@@ -132,38 +132,7 @@ async function deleteJob(window: import("@playwright/test").Page, jobName: strin
 test.describe("Crons Page", () => {
 
   // ──────────────────────────────────────────────────────────
-  // 1. Page navigation & empty state
-  // ──────────────────────────────────────────────────────────
-
-  test("navigates to crons page and shows empty state", async ({ window }) => {
-    await navigateToCrons(window);
-
-    // Page title (scoped to avoid matching other page h1s still in DOM)
-    await expect(window.locator("h1", { hasText: "Cron Jobs" })).toBeVisible();
-
-    // Page description
-    await expect(window.locator(".page-description")).toBeVisible();
-
-    // Connection status bar
-    const statusBar = window.locator(".crons-status-bar");
-    await expect(statusBar).toBeVisible();
-    await expect(statusBar).toContainText("Connected");
-
-    // Empty state since no jobs exist
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
-
-    // Toolbar with search, filters, and Add Job button
-    const toolbar = window.locator(".crons-toolbar");
-    await expect(toolbar).toBeVisible();
-    await expect(toolbar.locator(".crons-search-input")).toBeVisible();
-    await expect(toolbar.locator(".crons-filter-select")).toHaveCount(2); // enabled + sort
-    const addBtn = toolbar.locator(".btn-primary", { hasText: "Add Job" });
-    await expect(addBtn).toBeVisible();
-    await expect(addBtn).toBeEnabled();
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 2. Full CRUD lifecycle: create, edit, toggle, run, history, delete
+  // 1. Full CRUD lifecycle: create, edit, toggle, run, history, delete
   // ──────────────────────────────────────────────────────────
 
   test("CRUD lifecycle with interval schedule", async ({ window }) => {
@@ -277,7 +246,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 3. Cron expression schedule with presets and visual builder
+  // 2. Cron expression schedule with presets and visual builder
   // ──────────────────────────────────────────────────────────
 
   test("create with cron expression preset and visual builder", async ({ window }) => {
@@ -338,7 +307,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 4. One-time schedule with auto delete-after-run
+  // 3. One-time schedule with auto delete-after-run
   // ──────────────────────────────────────────────────────────
 
   test("create with one-time schedule auto-enables delete after run", async ({ window }) => {
@@ -381,7 +350,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 5. System Event payload type
+  // 4. System Event payload type
   // ──────────────────────────────────────────────────────────
 
   test("create with system event payload type", async ({ window }) => {
@@ -424,46 +393,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 6. Form validation
-  // ──────────────────────────────────────────────────────────
-
-  test("form validation: required fields", async ({ window }) => {
-    await navigateToCrons(window);
-
-    const modal = await openCreateForm(window);
-
-    // Try to submit with all empty fields — cron expression is default schedule type
-    const submitBtn = modal.locator(".modal-actions .btn-primary", { hasText: "Add Job" });
-    await submitBtn.click();
-
-    // Modal should stay open
-    await expect(modal).toBeVisible();
-
-    // Should show validation errors (name + schedule + payload = at least 2-3)
-    const fieldErrors = modal.locator(".crons-field-error");
-    const errorCount = await fieldErrors.count();
-    expect(errorCount).toBeGreaterThanOrEqual(2);
-
-    // Fill name to clear that error
-    await fillName(modal, "Validation Test");
-
-    // Select a preset to provide schedule
-    const preset = modal.locator(".crons-preset-chip", { hasText: "Every minute" });
-    await preset.click();
-
-    // Fill message (rows=3 textarea)
-    await fillPayloadText(modal, "Validation test message");
-
-    // Now should submit successfully
-    await submitBtn.click();
-    await expect(modal).toBeHidden({ timeout: 15_000 });
-
-    // Cleanup
-    await deleteJob(window, "Validation Test");
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 7. Webhook delivery mode validation
+  // 5. Webhook delivery mode validation
   // ──────────────────────────────────────────────────────────
 
   test("webhook delivery requires URL", async ({ window }) => {
@@ -511,7 +441,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 8. Advanced options: thinking mode and wake mode
+  // 6. Advanced options: thinking mode and wake mode
   // ──────────────────────────────────────────────────────────
 
   test("advanced options: thinking mode and wake mode", async ({ window }) => {
@@ -589,7 +519,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 9. Search and filter
+  // 7. Search and filter
   // ──────────────────────────────────────────────────────────
 
   test("search and filter jobs", async ({ window }) => {
@@ -656,7 +586,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 10. Sort options
+  // 8. Sort options
   // ──────────────────────────────────────────────────────────
 
   test("sort jobs by name", async ({ window }) => {
@@ -692,7 +622,126 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 11. Description field
+  // 9. Edit preserves all schedule types
+  // ──────────────────────────────────────────────────────────
+
+  test("edit preserves interval schedule correctly", async ({ window }) => {
+    await navigateToCrons(window);
+
+    // Create an interval job with specific unit
+    await createIntervalJob(window, "Interval Persist Job", { intervalValue: "2", unit: "Hours", message: "Interval persist test" });
+
+    // Verify schedule in table
+    const table = window.locator(".crons-table");
+    const jobRow = table.locator("tr", { hasText: "Interval Persist Job" });
+    await expect(jobRow).toBeVisible({ timeout: 10_000 });
+    await expect(jobRow.locator(".crons-schedule-text")).toContainText("Every 2h");
+
+    // Edit and verify schedule is preserved
+    await jobRow.locator(".btn", { hasText: "Edit" }).click();
+    const editModal = window.locator(".modal-backdrop");
+    await expect(editModal).toBeVisible();
+
+    // Interval should be active
+    const editIntervalBtn = editModal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
+    await expect(editIntervalBtn).toHaveClass(/crons-schedule-type-btn-active/);
+
+    // Value should be 2
+    const editIntervalInput = editModal.locator("input[type='number']");
+    await expect(editIntervalInput).toHaveValue("2");
+
+    // Unit should be Hours
+    const editUnitSelect = editModal.locator(".crons-form-row .custom-select-trigger");
+    await expect(editUnitSelect).toContainText("Hours");
+
+    // Cancel
+    await editModal.locator(".modal-actions .btn-secondary", { hasText: "Cancel" }).click();
+    await expect(editModal).toBeHidden({ timeout: 5_000 });
+
+    // Cleanup
+    await deleteJob(window, "Interval Persist Job");
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // 10. Enabled checkbox default and toggle in form
+  // ──────────────────────────────────────────────────────────
+
+  test("create job with enabled unchecked", async ({ window }) => {
+    await navigateToCrons(window);
+
+    const modal = await openCreateForm(window);
+    await fillName(modal, "Disabled Job");
+
+    // Set interval schedule
+    const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
+    await intervalBtn.click();
+    await modal.locator("input[type='number']").fill("60");
+
+    // Fill message (rows=3 textarea)
+    await fillPayloadText(modal, "Disabled test");
+
+    // Uncheck enabled
+    const enabledLabel = modal.locator(".crons-checkbox-label", { hasText: "Enabled" });
+    const enabledCheckbox = enabledLabel.locator("input[type='checkbox']");
+    await expect(enabledCheckbox).toBeChecked();
+    await enabledLabel.click();
+    await expect(enabledCheckbox).not.toBeChecked();
+
+    await submitForm(modal);
+
+    // Verify toggle is off in table
+    const table = window.locator(".crons-table");
+    const jobRow = table.locator("tr", { hasText: "Disabled Job" });
+    await expect(jobRow).toBeVisible({ timeout: 10_000 });
+
+    const toggle = jobRow.locator(".toggle-switch input[type='checkbox']");
+    await expect(toggle).not.toBeChecked();
+
+    // Cleanup
+    await deleteJob(window, "Disabled Job");
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // 11. Form validation
+  // ──────────────────────────────────────────────────────────
+
+  test("form validation: required fields", async ({ window }) => {
+    await navigateToCrons(window);
+
+    const modal = await openCreateForm(window);
+
+    // Try to submit with all empty fields — cron expression is default schedule type
+    const submitBtn = modal.locator(".modal-actions .btn-primary", { hasText: "Add Job" });
+    await submitBtn.click();
+
+    // Modal should stay open
+    await expect(modal).toBeVisible();
+
+    // Should show validation errors (name + schedule + payload = at least 2-3)
+    const fieldErrors = modal.locator(".crons-field-error");
+    const errorCount = await fieldErrors.count();
+    expect(errorCount).toBeGreaterThanOrEqual(2);
+
+    // Fill name to clear that error
+    await fillName(modal, "Validation Test");
+
+    // Select a preset to provide schedule
+    const preset = modal.locator(".crons-preset-chip", { hasText: "Every minute" });
+    await preset.click();
+
+    // Fill message (rows=3 textarea)
+    await fillPayloadText(modal, "Validation test message");
+
+    // Now should submit successfully
+    await submitBtn.click();
+    await expect(modal).toBeHidden({ timeout: 15_000 });
+
+    // Cleanup
+    await deleteJob(window, "Validation Test");
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // 12. Description field
   // ──────────────────────────────────────────────────────────
 
   test("job description displays in table and persists in edit", async ({ window }) => {
@@ -741,7 +790,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 12. Cron expression presets
+  // 13. Cron expression presets
   // ──────────────────────────────────────────────────────────
 
   test("cron presets update expression preview", async ({ window }) => {
@@ -778,7 +827,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 13. Cron timezone selector
+  // 14. Cron timezone selector
   // ──────────────────────────────────────────────────────────
 
   test("timezone select is searchable", async ({ window }) => {
@@ -825,7 +874,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 14. Multiple jobs with status bar count
+  // 15. Multiple jobs with status bar count
   // ──────────────────────────────────────────────────────────
 
   test("status bar shows job count", async ({ window }) => {
@@ -846,121 +895,7 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 15. Edit preserves all schedule types
-  // ──────────────────────────────────────────────────────────
-
-  test("edit preserves interval schedule correctly", async ({ window }) => {
-    await navigateToCrons(window);
-
-    // Create an interval job with specific unit
-    await createIntervalJob(window, "Interval Persist Job", { intervalValue: "2", unit: "Hours", message: "Interval persist test" });
-
-    // Verify schedule in table
-    const table = window.locator(".crons-table");
-    const jobRow = table.locator("tr", { hasText: "Interval Persist Job" });
-    await expect(jobRow).toBeVisible({ timeout: 10_000 });
-    await expect(jobRow.locator(".crons-schedule-text")).toContainText("Every 2h");
-
-    // Edit and verify schedule is preserved
-    await jobRow.locator(".btn", { hasText: "Edit" }).click();
-    const editModal = window.locator(".modal-backdrop");
-    await expect(editModal).toBeVisible();
-
-    // Interval should be active
-    const editIntervalBtn = editModal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
-    await expect(editIntervalBtn).toHaveClass(/crons-schedule-type-btn-active/);
-
-    // Value should be 2
-    const editIntervalInput = editModal.locator("input[type='number']");
-    await expect(editIntervalInput).toHaveValue("2");
-
-    // Unit should be Hours
-    const editUnitSelect = editModal.locator(".crons-form-row .custom-select-trigger");
-    await expect(editUnitSelect).toContainText("Hours");
-
-    // Cancel
-    await editModal.locator(".modal-actions .btn-secondary", { hasText: "Cancel" }).click();
-    await expect(editModal).toBeHidden({ timeout: 5_000 });
-
-    // Cleanup
-    await deleteJob(window, "Interval Persist Job");
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 16. Cancel form does not create a job
-  // ──────────────────────────────────────────────────────────
-
-  test("cancelling the create form does not create a job", async ({ window }) => {
-    await navigateToCrons(window);
-
-    // Verify empty state
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
-
-    // Open create form
-    const modal = await openCreateForm(window);
-    await fillName(modal, "Should Not Exist");
-
-    // Cancel
-    const cancelBtn = modal.locator(".modal-actions .btn-secondary", { hasText: "Cancel" });
-    await cancelBtn.click();
-    await expect(modal).toBeHidden({ timeout: 5_000 });
-
-    // Still empty state
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 5_000 });
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 17. Close form via backdrop click
-  // ──────────────────────────────────────────────────────────
-
-  test("close form by clicking modal backdrop", async ({ window }) => {
-    await navigateToCrons(window);
-
-    // Open create form
-    const modal = await openCreateForm(window);
-    await fillName(modal, "Backdrop Close Test");
-
-    // Click outside modal content (top-left of backdrop)
-    await modal.click({ position: { x: 5, y: 5 } });
-    await expect(modal).toBeHidden({ timeout: 5_000 });
-
-    // No job created
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 5_000 });
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 18. Delete confirmation cancel
-  // ──────────────────────────────────────────────────────────
-
-  test("cancelling delete keeps the job", async ({ window }) => {
-    await navigateToCrons(window);
-
-    // Create a job
-    await createIntervalJob(window, "Keep Me Job", { intervalValue: "60", message: "Keep me test" });
-
-    const table = window.locator(".crons-table");
-    const jobRow = table.locator("tr", { hasText: "Keep Me Job" });
-    await expect(jobRow).toBeVisible({ timeout: 10_000 });
-
-    // Click delete
-    await jobRow.locator(".btn-danger", { hasText: "Delete" }).click();
-
-    // Cancel the confirm dialog
-    const confirmDialog = window.locator(".modal-backdrop");
-    await expect(confirmDialog).toBeVisible();
-    const cancelBtn = confirmDialog.locator(".btn", { hasText: "Cancel" });
-    await cancelBtn.click();
-    await expect(confirmDialog).toBeHidden({ timeout: 5_000 });
-
-    // Job should still be there
-    await expect(jobRow).toBeVisible();
-
-    // Cleanup
-    await deleteJob(window, "Keep Me Job");
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 19. Run history modal for a job with no runs
+  // 16. Run history modal for a job with no runs
   // ──────────────────────────────────────────────────────────
 
   test("history modal shows empty state for new job", async ({ window }) => {
@@ -991,41 +926,106 @@ test.describe("Crons Page", () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 20. Enabled checkbox default and toggle in form
+  // 17. Page navigation & empty state
   // ──────────────────────────────────────────────────────────
 
-  test("create job with enabled unchecked", async ({ window }) => {
+  test("navigates to crons page and shows empty state", async ({ window }) => {
     await navigateToCrons(window);
 
+    // Page title (scoped to avoid matching other page h1s still in DOM)
+    await expect(window.locator("h1", { hasText: "Cron Jobs" })).toBeVisible();
+
+    // Page description
+    await expect(window.locator(".page-description")).toBeVisible();
+
+    // Connection status bar
+    const statusBar = window.locator(".crons-status-bar");
+    await expect(statusBar).toBeVisible();
+    await expect(statusBar).toContainText("Connected");
+
+    // Empty state since no jobs exist
+    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+
+    // Toolbar with search, filters, and Add Job button
+    const toolbar = window.locator(".crons-toolbar");
+    await expect(toolbar).toBeVisible();
+    await expect(toolbar.locator(".crons-search-input")).toBeVisible();
+    await expect(toolbar.locator(".crons-filter-select")).toHaveCount(2); // enabled + sort
+    const addBtn = toolbar.locator(".btn-primary", { hasText: "Add Job" });
+    await expect(addBtn).toBeVisible();
+    await expect(addBtn).toBeEnabled();
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // 18. Cancel form does not create a job
+  // ──────────────────────────────────────────────────────────
+
+  test("cancelling the create form does not create a job", async ({ window }) => {
+    await navigateToCrons(window);
+
+    // Verify empty state
+    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+
+    // Open create form
     const modal = await openCreateForm(window);
-    await fillName(modal, "Disabled Job");
+    await fillName(modal, "Should Not Exist");
 
-    // Set interval schedule
-    const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
-    await intervalBtn.click();
-    await modal.locator("input[type='number']").fill("60");
+    // Cancel
+    const cancelBtn = modal.locator(".modal-actions .btn-secondary", { hasText: "Cancel" });
+    await cancelBtn.click();
+    await expect(modal).toBeHidden({ timeout: 5_000 });
 
-    // Fill message (rows=3 textarea)
-    await fillPayloadText(modal, "Disabled test");
+    // Still empty state
+    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 5_000 });
+  });
 
-    // Uncheck enabled
-    const enabledLabel = modal.locator(".crons-checkbox-label", { hasText: "Enabled" });
-    const enabledCheckbox = enabledLabel.locator("input[type='checkbox']");
-    await expect(enabledCheckbox).toBeChecked();
-    await enabledLabel.click();
-    await expect(enabledCheckbox).not.toBeChecked();
+  // ──────────────────────────────────────────────────────────
+  // 19. Close form via backdrop click
+  // ──────────────────────────────────────────────────────────
 
-    await submitForm(modal);
+  test("close form by clicking modal backdrop", async ({ window }) => {
+    await navigateToCrons(window);
 
-    // Verify toggle is off in table
+    // Open create form
+    const modal = await openCreateForm(window);
+    await fillName(modal, "Backdrop Close Test");
+
+    // Click outside modal content (top-left of backdrop)
+    await modal.click({ position: { x: 5, y: 5 } });
+    await expect(modal).toBeHidden({ timeout: 5_000 });
+
+    // No job created
+    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 5_000 });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // 20. Delete confirmation cancel
+  // ──────────────────────────────────────────────────────────
+
+  test("cancelling delete keeps the job", async ({ window }) => {
+    await navigateToCrons(window);
+
+    // Create a job
+    await createIntervalJob(window, "Keep Me Job", { intervalValue: "60", message: "Keep me test" });
+
     const table = window.locator(".crons-table");
-    const jobRow = table.locator("tr", { hasText: "Disabled Job" });
+    const jobRow = table.locator("tr", { hasText: "Keep Me Job" });
     await expect(jobRow).toBeVisible({ timeout: 10_000 });
 
-    const toggle = jobRow.locator(".toggle-switch input[type='checkbox']");
-    await expect(toggle).not.toBeChecked();
+    // Click delete
+    await jobRow.locator(".btn-danger", { hasText: "Delete" }).click();
+
+    // Cancel the confirm dialog
+    const confirmDialog = window.locator(".modal-backdrop");
+    await expect(confirmDialog).toBeVisible();
+    const cancelBtn = confirmDialog.locator(".btn", { hasText: "Cancel" });
+    await cancelBtn.click();
+    await expect(confirmDialog).toBeHidden({ timeout: 5_000 });
+
+    // Job should still be there
+    await expect(jobRow).toBeVisible();
 
     // Cleanup
-    await deleteJob(window, "Disabled Job");
+    await deleteJob(window, "Keep Me Job");
   });
 });

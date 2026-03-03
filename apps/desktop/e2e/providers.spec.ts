@@ -1,6 +1,82 @@
 import { test, expect } from "./electron-fixture.js";
 
 test.describe("LLM Providers", () => {
+  test("add second key and switch active provider", async ({ window }) => {
+    const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
+    const volcengineKey = process.env.E2E_VOLCENGINE_API_KEY;
+    test.skip(!zhipuKey || !volcengineKey, "E2E_ZHIPU_API_KEY and E2E_VOLCENGINE_API_KEY required");
+
+    // Dismiss modals
+    for (let i = 0; i < 3; i++) {
+      const backdrop = window.locator(".modal-backdrop");
+      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
+      await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
+    }
+
+    // Navigate to Models page
+    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+    await providersBtn.click();
+    await expect(providersBtn).toHaveClass(/nav-active/);
+
+    // Verify pre-seeded volcengine key is active
+    const keyCards = window.locator(".key-card");
+    await expect(keyCards).toHaveCount(1);
+    await expect(keyCards.first()).toHaveClass(/key-card-active/);
+
+    // -- Add GLM key via the "Add Key" form --
+    const form = window.locator(".page-two-col");
+
+    // Switch to API tab
+    await form.locator(".tab-btn", { hasText: /API/i }).click();
+
+    // Select Zhipu (GLM)
+    await form.locator(".provider-select-trigger").click();
+    await form.locator(".provider-select-option", { hasText: /Zhipu \(GLM\) - China/i }).click();
+
+    // Select GLM-4.7-Flash model
+    await form.locator(".custom-select-trigger").click();
+    await window.locator(".custom-select-option", { hasText: /GLM-4\.7-Flash/i }).click();
+
+    // Enter API key and save.
+    // External API validation can be slow — retry if it times out.
+    await form.locator("input[type='password']").fill(zhipuKey!);
+    const saveBtn = form.locator(".form-actions .btn.btn-primary");
+    const errorAlert = form.locator(".error-alert");
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await saveBtn.click();
+      // Wait for either success (2 key cards) or error alert
+      const result = await Promise.race([
+        keyCards.nth(1).waitFor({ state: "visible", timeout: 30_000 }).then(() => "ok" as const),
+        errorAlert.waitFor({ state: "visible", timeout: 30_000 }).then(() => "error" as const),
+      ]).catch(() => "timeout" as const);
+      if (result === "ok") break;
+      // Validation timed out or failed transiently (e.g. 429 rate limit) — wait and retry
+      if (attempt < 2) {
+        await window.waitForTimeout(5_000);
+        // Clear error and re-enter key to retry
+        await form.locator("input[type='password']").fill(zhipuKey!);
+      }
+    }
+
+    // Verify both keys appear
+    await expect(keyCards).toHaveCount(2, { timeout: 10_000 });
+
+    const volcengineCard = window.locator(".key-card", { hasText: /Volcengine/i });
+    const zhipuCard = window.locator(".key-card", { hasText: /Zhipu/i });
+    await expect(volcengineCard).toHaveClass(/key-card-active/);
+    await expect(zhipuCard).toHaveClass(/key-card-inactive/);
+
+    // -- Activate the GLM key --
+    await zhipuCard.locator(".btn", { hasText: /Activate/i }).click();
+
+    // Verify GLM is now active and volcengine is inactive
+    await expect(zhipuCard).toHaveClass(/key-card-active/, { timeout: 10_000 });
+    await expect(volcengineCard).toHaveClass(/key-card-inactive/);
+    await expect(zhipuCard.locator(".badge-active")).toBeVisible();
+  });
+
   test("dropdowns and pricing tables", async ({ window }) => {
     // Dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
     // Prod builds may show modals that dev builds skip. Try up to 3 times.
@@ -130,81 +206,5 @@ test.describe("LLM Providers", () => {
 
     const count = await modelOptions.count();
     expect(count).toBeGreaterThanOrEqual(10);
-  });
-
-  test("add second key and switch active provider", async ({ window }) => {
-    const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
-    const volcengineKey = process.env.E2E_VOLCENGINE_API_KEY;
-    test.skip(!zhipuKey || !volcengineKey, "E2E_ZHIPU_API_KEY and E2E_VOLCENGINE_API_KEY required");
-
-    // Dismiss modals
-    for (let i = 0; i < 3; i++) {
-      const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
-      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
-      await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
-    }
-
-    // Navigate to Models page
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
-
-    // Verify pre-seeded volcengine key is active
-    const keyCards = window.locator(".key-card");
-    await expect(keyCards).toHaveCount(1);
-    await expect(keyCards.first()).toHaveClass(/key-card-active/);
-
-    // -- Add GLM key via the "Add Key" form --
-    const form = window.locator(".page-two-col");
-
-    // Switch to API tab
-    await form.locator(".tab-btn", { hasText: /API/i }).click();
-
-    // Select Zhipu (GLM)
-    await form.locator(".provider-select-trigger").click();
-    await form.locator(".provider-select-option", { hasText: /Zhipu \(GLM\) - China/i }).click();
-
-    // Select GLM-4.7-Flash model
-    await form.locator(".custom-select-trigger").click();
-    await window.locator(".custom-select-option", { hasText: /GLM-4\.7-Flash/i }).click();
-
-    // Enter API key and save.
-    // External API validation can be slow — retry if it times out.
-    await form.locator("input[type='password']").fill(zhipuKey!);
-    const saveBtn = form.locator(".form-actions .btn.btn-primary");
-    const errorAlert = form.locator(".error-alert");
-
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await saveBtn.click();
-      // Wait for either success (2 key cards) or error alert
-      const result = await Promise.race([
-        keyCards.nth(1).waitFor({ state: "visible", timeout: 30_000 }).then(() => "ok" as const),
-        errorAlert.waitFor({ state: "visible", timeout: 30_000 }).then(() => "error" as const),
-      ]).catch(() => "timeout" as const);
-      if (result === "ok") break;
-      // Validation timed out or failed transiently (e.g. 429 rate limit) — wait and retry
-      if (attempt < 2) {
-        await window.waitForTimeout(5_000);
-        // Clear error and re-enter key to retry
-        await form.locator("input[type='password']").fill(zhipuKey!);
-      }
-    }
-
-    // Verify both keys appear
-    await expect(keyCards).toHaveCount(2, { timeout: 10_000 });
-
-    const volcengineCard = window.locator(".key-card", { hasText: /Volcengine/i });
-    const zhipuCard = window.locator(".key-card", { hasText: /Zhipu/i });
-    await expect(volcengineCard).toHaveClass(/key-card-active/);
-    await expect(zhipuCard).toHaveClass(/key-card-inactive/);
-
-    // -- Activate the GLM key --
-    await zhipuCard.locator(".btn", { hasText: /Activate/i }).click();
-
-    // Verify GLM is now active and volcengine is inactive
-    await expect(zhipuCard).toHaveClass(/key-card-active/, { timeout: 10_000 });
-    await expect(volcengineCard).toHaveClass(/key-card-inactive/);
-    await expect(zhipuCard.locator(".badge-active")).toBeVisible();
   });
 });

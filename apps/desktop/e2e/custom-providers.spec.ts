@@ -1,7 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
 
-const API_BASE = "http://127.0.0.1:3210";
-
 test.describe("Custom Providers", () => {
   test("add custom provider via UI form", async ({ window }) => {
     const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
@@ -109,7 +107,7 @@ test.describe("Custom Providers", () => {
     await expect(options.nth(1)).toHaveText("glm-4.7-flash");
   });
 
-  test("activate and delete custom provider", async ({ window }) => {
+  test("activate and delete custom provider", async ({ window, apiBase }) => {
     const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
     test.skip(!zhipuKey, "E2E_ZHIPU_API_KEY required");
 
@@ -123,7 +121,7 @@ test.describe("Custom Providers", () => {
 
     // -- Seed a custom provider via API BEFORE navigating to Models page --
     // This ensures the ProvidersPage will fetch both keys on initial mount.
-    const createRes = await fetch(`${API_BASE}/api/provider-keys`, {
+    const createRes = await fetch(`${apiBase}/api/provider-keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

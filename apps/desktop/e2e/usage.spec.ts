@@ -1,7 +1,7 @@
 import { test, expect } from "./electron-fixture.js";
 
 test.describe("Usage Page", () => {
-  test("multi-provider seeded data, active key, today table, and chart", async ({ electronApp, window }) => {
+  test("multi-provider seeded data, active key, today table, and chart", async ({ electronApp, window, apiBase }) => {
     // Dismiss any modal(s) blocking the UI
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
@@ -169,10 +169,10 @@ test.describe("Usage Page", () => {
 
     // --- Verify API responses directly ---
     // /api/key-usage — all records
-    const usageResponse = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/key-usage");
+    const usageResponse = await window.evaluate(async (base) => {
+      const res = await fetch(`${base}/api/key-usage`);
       return { status: res.status, body: await res.json() };
-    });
+    }, apiBase);
     expect(usageResponse.status).toBe(200);
     expect(Array.isArray(usageResponse.body)).toBe(true);
     // Should have records for all 3 keys
@@ -203,10 +203,10 @@ test.describe("Usage Page", () => {
     expect(anthropicKey.outputTokens).toBe(800 + 1500 + 2200); // 4500
 
     // /api/key-usage/active — should return the active key
-    const activeResponse = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/key-usage/active");
+    const activeResponse = await window.evaluate(async (base) => {
+      const res = await fetch(`${base}/api/key-usage/active`);
       return { status: res.status, body: await res.json() };
-    });
+    }, apiBase);
     expect(activeResponse.status).toBe(200);
     expect(activeResponse.body).not.toBeNull();
     expect(activeResponse.body.keyId).toBe("key-openai-main");
@@ -216,10 +216,10 @@ test.describe("Usage Page", () => {
     expect(activeResponse.body.authType).toBe("api_key");
 
     // /api/key-usage/timeseries — should return daily buckets
-    const tsResponse = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/key-usage/timeseries");
+    const tsResponse = await window.evaluate(async (base) => {
+      const res = await fetch(`${base}/api/key-usage/timeseries`);
       return { status: res.status, body: await res.json() };
-    });
+    }, apiBase);
     expect(tsResponse.status).toBe(200);
     expect(Array.isArray(tsResponse.body)).toBe(true);
     // We seeded records across 5 different days, expect multiple buckets

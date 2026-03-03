@@ -9,17 +9,23 @@ import { createConnection } from "node:net";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const electronPath = require("electron") as unknown as string;
 
-const API_BASE = "http://127.0.0.1:3210";
-const GATEWAY_PORT = 28789;
+/** Default ports — each parallel worker offsets by workerIndex * 100. */
+const DEFAULT_GATEWAY_PORT = 28789;
+const DEFAULT_PANEL_PORT = 3210;
+const DEFAULT_PROXY_ROUTER_PORT = 9999;
+
+export type WorkerPorts = {
+  gateway: number;
+  panel: number;
+  proxy: number;
+};
 
 /**
- * Kill any process listening on the gateway port AND any orphaned
- * openclaw-gateway processes, then wait until the port is free.
+ * Kill any process listening on the given port, then wait until free.
  *
- * The gateway is spawned detached (its own process group), so it can
- * outlive the Electron process if Playwright force-kills it.  Killing
- * by port alone races with gateway startup — the process may exist but
- * not yet be listening.  We therefore also kill by process name.
+ * In parallel mode each worker uses unique ports, so we ONLY kill by port —
+ * never by process name (killall/taskkill /IM) as that would kill gateways
+ * belonging to other workers.
  */
 async function ensurePortFree(port: number): Promise<void> {
   if (process.platform === "win32") {
@@ -36,17 +42,10 @@ async function ensurePortFree(port: number): Promise<void> {
       for (const pid of pids) {
         try { execSync(`taskkill /T /F /PID ${pid}`, { stdio: "ignore", shell: "cmd.exe" }); } catch {}
       }
-      // Also kill orphaned gateway processes by name
-      try { execSync("taskkill /F /IM openclaw-gateway.exe 2>nul || exit 0", { stdio: "ignore", shell: "cmd.exe" }); } catch {}
     } catch {}
   } else {
     // Kill by port (lsof is fast — ~100ms on macOS)
     try { execSync(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`, { stdio: "ignore" }); } catch {}
-    // Kill orphaned gateway processes by exact binary name.
-    // NOTE: We use `killall` (~10ms) instead of `pkill -f` because pkill's
-    // full-command-line scan (`-f`) can take 20-50 seconds on macOS due to
-    // slow proc_info kernel calls when many processes are running.
-    try { execSync("killall -9 openclaw-gateway 2>/dev/null || true", { stdio: "ignore" }); } catch {}
   }
 
   // Wait until the port is actually free (up to 5s)
@@ -61,13 +60,23 @@ async function ensurePortFree(port: number): Promise<void> {
   }
 }
 
+/** Compute unique ports for a Playwright worker based on its index. */
+function computePorts(workerIndex: number): WorkerPorts {
+  const offset = workerIndex * 100;
+  return {
+    gateway: DEFAULT_GATEWAY_PORT + offset,
+    panel: DEFAULT_PANEL_PORT + offset,
+    proxy: DEFAULT_PROXY_ROUTER_PORT + offset,
+  };
+}
+
 /** Create a unique temp directory for data isolation. */
 function createTempDir(): string {
   return mkdtempSync(path.join(tmpdir(), "easyclaw-e2e-"));
 }
 
-/** Build a clean env for Electron with data isolation via temp dir. */
-function buildEnv(tempDir: string): Record<string, string> {
+/** Build a clean env for Electron with data + port isolation. */
+function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   const env = { ...process.env } as Record<string, string>;
   delete env.ELECTRON_RUN_AS_NODE;
 
@@ -75,6 +84,11 @@ function buildEnv(tempDir: string): Record<string, string> {
   env.EASYCLAW_DB_PATH = path.join(tempDir, "db.sqlite");
   env.EASYCLAW_SECRETS_DIR = path.join(tempDir, "secrets");
   env.OPENCLAW_STATE_DIR = path.join(tempDir, "openclaw");
+
+  // Assign unique ports so parallel workers don't collide
+  env.EASYCLAW_GATEWAY_PORT = String(ports.gateway);
+  env.EASYCLAW_PANEL_PORT = String(ports.panel);
+  env.EASYCLAW_PROXY_ROUTER_PORT = String(ports.proxy);
 
   // Skip the file-based gateway lock (acquireGatewayLock).  The lock uses
   // os.tmpdir()/openclaw-<uid>/gateway.<hash>.lock — a shared directory.
@@ -90,20 +104,24 @@ function buildEnv(tempDir: string): Record<string, string> {
 }
 
 type ElectronFixtures = {
+  ports: WorkerPorts;
+  apiBase: string;
   electronApp: ElectronApplication;
   window: Page;
 };
 
-/** Shared logic to launch Electron with data isolation. */
+/** Shared logic to launch Electron with data + port isolation. */
 async function launchElectronApp(
   use: (app: ElectronApplication) => Promise<void>,
+  ports: WorkerPorts,
 ) {
   // Kill any leftover gateway from a previous test or test-suite run
   // BEFORE launching Electron, so the new gateway never hits EADDRINUSE.
-  await ensurePortFree(GATEWAY_PORT);
+  await ensurePortFree(ports.gateway);
+  await ensurePortFree(ports.panel);
 
   const tempDir = createTempDir();
-  const env = buildEnv(tempDir);
+  const env = buildEnv(tempDir, ports);
   const execPath = process.env.E2E_EXECUTABLE_PATH;
   let app: ElectronApplication;
 
@@ -137,8 +155,9 @@ async function launchElectronApp(
   } finally {
     await app.close();
     // The gateway runs detached and may outlive the Electron process.
-    // Kill it and wait for port 28789 to be free before the next test.
-    await ensurePortFree(GATEWAY_PORT);
+    // Kill it by its specific port (safe in parallel — other workers use
+    // different ports).
+    await ensurePortFree(ports.gateway);
     if (testFailed) {
       // Keep temp dir for debugging — print its path
       console.log(`[e2e] Test FAILED — temp dir preserved: ${tempDir}`);
@@ -165,12 +184,12 @@ async function bringWindowToFront(electronApp: ElectronApplication) {
 }
 
 /** Seed a provider key via the gateway REST API. */
-async function seedProvider(opts: {
+async function seedProvider(apiBase: string, opts: {
   provider: string;
   model: string;
   apiKey: string;
 }): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/provider-keys`, {
+  const res = await fetch(`${apiBase}/api/provider-keys`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -185,7 +204,7 @@ async function seedProvider(opts: {
     throw new Error(`Failed to seed provider key: ${res.status} ${text}`);
   }
 
-  const settingsRes = await fetch(`${API_BASE}/api/settings`, {
+  const settingsRes = await fetch(`${apiBase}/api/settings`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ "llm-provider": opts.provider }),
@@ -204,11 +223,19 @@ async function seedProvider(opts: {
  * individual tests don't race against gateway startup time.
  */
 export const test = base.extend<ElectronFixtures>({
-  electronApp: async ({}, use) => {
-    await launchElectronApp(use);
+  ports: async ({}, use, testInfo) => {
+    await use(computePorts(testInfo.workerIndex));
   },
 
-  window: async ({ electronApp }, use) => {
+  apiBase: async ({ ports }, use) => {
+    await use(`http://127.0.0.1:${ports.panel}`);
+  },
+
+  electronApp: async ({ ports }, use) => {
+    await launchElectronApp(use, ports);
+  },
+
+  window: async ({ electronApp, apiBase }, use) => {
     const window = await electronApp.firstWindow({ timeout: 45_000 });
     await window.waitForLoadState("domcontentloaded");
 
@@ -226,7 +253,7 @@ export const test = base.extend<ElectronFixtures>({
     if (await window.locator(".onboarding-page").isVisible()) {
       const apiKey = process.env.E2E_VOLCENGINE_API_KEY;
       if (apiKey) {
-        await seedProvider({
+        await seedProvider(apiBase, {
           provider: "volcengine",
           model: "doubao-seed-1-6-flash-250828",
           apiKey,
@@ -262,8 +289,16 @@ export const test = base.extend<ElectronFixtures>({
  * shows the onboarding page.
  */
 export const freshTest = base.extend<ElectronFixtures>({
-  electronApp: async ({}, use) => {
-    await launchElectronApp(use);
+  ports: async ({}, use, testInfo) => {
+    await use(computePorts(testInfo.workerIndex));
+  },
+
+  apiBase: async ({ ports }, use) => {
+    await use(`http://127.0.0.1:${ports.panel}`);
+  },
+
+  electronApp: async ({ ports }, use) => {
+    await launchElectronApp(use, ports);
   },
 
   window: async ({ electronApp }, use) => {

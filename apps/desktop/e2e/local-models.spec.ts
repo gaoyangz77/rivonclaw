@@ -102,66 +102,7 @@ test.describe("Local Models E2E", () => {
     await expect(modelsBtn).toHaveClass(/nav-active/);
   }
 
-  // ── Test 1: Tab rendering, health check, and model fetching ─────────
-
-  test("Local LLM tab renders and connects to mock Ollama", async ({ window }) => {
-    await navigateToModels(window);
-
-    const form = window.locator(".page-two-col");
-
-    // -- Click "Local LLM" tab --
-    const localTab = form.locator(".tab-btn", { hasText: /Local/i });
-    await localTab.click();
-    await expect(localTab).toHaveClass(/tab-btn-active/);
-
-    // Subscription and API tabs should NOT be active
-    const subTab = form.locator(".tab-btn", { hasText: /Subscription/i });
-    const apiTab = form.locator(".tab-btn", { hasText: /API/i });
-    await expect(subTab).not.toHaveClass(/tab-btn-active/);
-    await expect(apiTab).not.toHaveClass(/tab-btn-active/);
-
-    // -- Verify form elements --
-    // Base URL input (default "localhost:11434", but auto-detect may resolve to "127.0.0.1")
-    const baseUrlInput = form.locator("input.input-mono[type='text']").first();
-    await expect(baseUrlInput).toBeVisible();
-    await expect(baseUrlInput).toHaveValue(/^http:\/\/(localhost|127\.0\.0\.1):11434$/);
-
-    // "Server URL" label
-    await expect(form.locator(".form-label", { hasText: /Server URL/i })).toBeVisible();
-
-    // "Model" label
-    await expect(form.locator(".form-label", { hasText: /Model/i })).toBeVisible();
-
-    // Save button (should be disabled — no model selected yet)
-    const saveBtn = form.locator(".form-actions .btn.btn-primary");
-    await expect(saveBtn).toBeVisible();
-    await expect(saveBtn).toBeDisabled();
-
-    // Info box on the right side (Ollama setup instructions)
-    const infoBox = window.locator(".page-col-side .info-box-blue");
-    await expect(infoBox).toBeVisible();
-    await expect(infoBox).toContainText(/Ollama/i);
-
-    // -- Type mock Ollama URL and verify connectivity --
-    await baseUrlInput.fill(`http://127.0.0.1:${mockOllamaPort}`);
-
-    // Wait for debounce (1.5s) + health check to complete
-    const healthBadge = form.locator(".badge-success");
-    await expect(healthBadge).toBeVisible({ timeout: 10_000 });
-    await expect(healthBadge).toContainText("Connected");
-
-    // -- Verify model select populated with options --
-    const modelSelect = form.locator("select.input-full.input-mono");
-    await expect(modelSelect).toBeVisible({ timeout: 5_000 });
-    const options = modelSelect.locator("option");
-    await expect(options).toHaveCount(3);
-
-    // -- Select a model → save button should become enabled --
-    await modelSelect.selectOption("llama3.2:latest");
-    await expect(saveBtn).toBeEnabled();
-  });
-
-  // ── Test 2: Full lifecycle — add, verify, update URL, remove ────────
+  // ── Test 1: Full lifecycle — add, verify, update URL, remove ────────
 
   test("full local key lifecycle: add, verify card, update URL, remove", async ({ window }) => {
     await navigateToModels(window);
@@ -254,162 +195,12 @@ test.describe("Local Models E2E", () => {
     await expect(visibleKeyCards).toHaveCount(initialCount);
   });
 
-  // ── Test 3: Connection failure handling ─────────────────────────────
+  // ── Test 2: Seed local key via DB and verify display ────────────────
 
-  test("connection failure shows error badge and manual model input", async ({ window }) => {
-    await navigateToModels(window);
-
-    const form = window.locator(".page-two-col");
-    await form.locator(".tab-btn", { hasText: /Local/i }).click();
-
-    // Type an unreachable URL
-    const baseUrlInput = form.locator("input.input-mono[type='text']").first();
-    await baseUrlInput.fill("http://127.0.0.1:1");
-
-    // Wait for health check to fail (debounce + timeout)
-    const failBadge = form.locator(".badge-danger");
-    await expect(failBadge).toBeVisible({ timeout: 15_000 });
-    await expect(failBadge).toContainText(/Cannot connect|connect/i);
-
-    // Model select should be visible but only have the placeholder "—" option
-    // since no models could be fetched from the unreachable server
-    const modelSelect = form.locator("select.input-full.input-mono");
-    await expect(modelSelect).toBeVisible();
-    const options = modelSelect.locator("option");
-    await expect(options).toHaveCount(1);
-    await expect(options.first()).toHaveText("—");
-
-    // Save button should be disabled since no model can be selected
-    const saveBtn = form.locator(".form-actions .btn.btn-primary");
-    await expect(saveBtn).toBeDisabled();
-  });
-
-  // ── Test 4: API endpoint validation through the running app ─────────
-
-  test("local model API endpoints respond correctly", async ({ window }) => {
-    // Test detection endpoint
-    const detectRes = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/local-models/detect");
-      return { status: res.status, body: await res.json() };
-    });
-    expect(detectRes.status).toBe(200);
-    expect(Array.isArray(detectRes.body.servers)).toBe(true);
-
-    // Test model fetching from mock Ollama
-    const modelsRes = await window.evaluate(async (port: number) => {
-      const res = await fetch(
-        `http://127.0.0.1:3210/api/local-models/models?baseUrl=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
-      );
-      return { status: res.status, body: await res.json() };
-    }, mockOllamaPort);
-    expect(modelsRes.status).toBe(200);
-    expect(modelsRes.body.models).toHaveLength(3);
-    expect(modelsRes.body.models[0].id).toBe("llama3.2:latest");
-    expect(modelsRes.body.models[1].id).toBe("qwen2.5:7b");
-    expect(modelsRes.body.models[2].id).toBe("deepseek-r1:latest");
-
-    // Test model fetching without baseUrl → 400
-    const noUrlRes = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/local-models/models");
-      return { status: res.status };
-    });
-    expect(noUrlRes.status).toBe(400);
-
-    // Test health check — reachable mock
-    const healthOkRes = await window.evaluate(async (port: number) => {
-      const res = await fetch("http://127.0.0.1:3210/api/local-models/health", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: `http://127.0.0.1:${port}` }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, mockOllamaPort);
-    expect(healthOkRes.status).toBe(200);
-    expect(healthOkRes.body.ok).toBe(true);
-    expect(healthOkRes.body.version).toBe(MOCK_VERSION);
-
-    // Test health check — unreachable server
-    const healthFailRes = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/local-models/health", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: "http://127.0.0.1:1" }),
-      });
-      return { status: res.status, body: await res.json() };
-    });
-    expect(healthFailRes.status).toBe(200);
-    expect(healthFailRes.body.ok).toBe(false);
-
-    // Test provider key CRUD via API
-    // Create a local key
-    const createRes = await window.evaluate(async (port: number) => {
-      const res = await fetch("http://127.0.0.1:3210/api/provider-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: "ollama",
-          label: "API Test Ollama",
-          model: "llama3.2:latest",
-          authType: "local",
-          baseUrl: `http://127.0.0.1:${port}`,
-        }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, mockOllamaPort);
-    expect(createRes.status).toBe(201);
-    expect(createRes.body.provider).toBe("ollama");
-    expect(createRes.body.authType).toBe("local");
-    expect(createRes.body.model).toBe("llama3.2:latest");
-    const keyId = createRes.body.id as string;
-
-    // List keys and verify local key appears with baseUrl
-    const listRes = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/provider-keys");
-      return { status: res.status, body: await res.json() };
-    });
-    expect(listRes.status).toBe(200);
-    const localKey = listRes.body.keys.find((k: { id: string }) => k.id === keyId);
-    expect(localKey).toBeDefined();
-    expect(localKey.provider).toBe("ollama");
-    expect(localKey.authType).toBe("local");
-    expect(localKey.baseUrl).toBe(`http://127.0.0.1:${mockOllamaPort}`);
-
-    // Update base URL
-    const updateRes = await window.evaluate(async (id: string) => {
-      const res = await fetch(`http://127.0.0.1:3210/api/provider-keys/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: "http://192.168.1.50:11434" }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, keyId);
-    expect(updateRes.status).toBe(200);
-    expect(updateRes.body.baseUrl).toBe("http://192.168.1.50:11434");
-
-    // Delete the key
-    const deleteRes = await window.evaluate(async (id: string) => {
-      const res = await fetch(`http://127.0.0.1:3210/api/provider-keys/${id}`, {
-        method: "DELETE",
-      });
-      return { status: res.status };
-    }, keyId);
-    expect(deleteRes.status).toBe(200);
-
-    // Verify key is gone
-    const listAfterRes = await window.evaluate(async () => {
-      const res = await fetch("http://127.0.0.1:3210/api/provider-keys");
-      return { status: res.status, body: await res.json() };
-    });
-    const deletedKey = listAfterRes.body.keys.find((k: { id: string }) => k.id === keyId);
-    expect(deletedKey).toBeUndefined();
-  });
-
-  // ── Test 5: Seed local key via DB and verify display ────────────────
-
-  test("seeded local key displays correctly with Local badge", async ({ window }) => {
+  test("seeded local key displays correctly with Local badge", async ({ window, apiBase }) => {
     // Seed a local key via the panel API (goes through the Electron process's storage)
-    const createRes = await window.evaluate(async (port: number) => {
-      const res = await fetch("http://127.0.0.1:3210/api/provider-keys", {
+    const createRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
+      const res = await fetch(`${base}/api/provider-keys`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -421,19 +212,19 @@ test.describe("Local Models E2E", () => {
         }),
       });
       return { status: res.status, body: await res.json() };
-    }, mockOllamaPort);
+    }, { base: apiBase, port: mockOllamaPort });
     expect(createRes.status).toBe(201);
     const keyId = createRes.body.id as string;
 
     // Activate the key and set it as the default provider
-    await window.evaluate(async (id: string) => {
-      await fetch(`http://127.0.0.1:3210/api/provider-keys/${id}/activate`, { method: "POST" });
-      await fetch("http://127.0.0.1:3210/api/settings", {
+    await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
+      await fetch(`${base}/api/provider-keys/${id}/activate`, { method: "POST" });
+      await fetch(`${base}/api/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ "llm-provider": "ollama" }),
       });
-    }, keyId);
+    }, { base: apiBase, id: keyId });
 
     // Creating a key + activating triggers gateway restarts. Wait for
     // them to settle, then reload so the Models page fetches fresh data.
@@ -472,5 +263,214 @@ test.describe("Local Models E2E", () => {
     const updateBtn = ollamaCard.locator(".btn-secondary", { hasText: /Update/i });
     await expect(updateBtn).toBeVisible();
     await expect(updateBtn).toContainText(/URL/i);
+  });
+
+  // ── Test 3: API endpoint validation through the running app ─────────
+
+  test("local model API endpoints respond correctly", async ({ window, apiBase }) => {
+    // Test detection endpoint
+    const detectRes = await window.evaluate(async (base: string) => {
+      const res = await fetch(`${base}/api/local-models/detect`);
+      return { status: res.status, body: await res.json() };
+    }, apiBase);
+    expect(detectRes.status).toBe(200);
+    expect(Array.isArray(detectRes.body.servers)).toBe(true);
+
+    // Test model fetching from mock Ollama
+    const modelsRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
+      const res = await fetch(
+        `${base}/api/local-models/models?baseUrl=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
+      );
+      return { status: res.status, body: await res.json() };
+    }, { base: apiBase, port: mockOllamaPort });
+    expect(modelsRes.status).toBe(200);
+    expect(modelsRes.body.models).toHaveLength(3);
+    expect(modelsRes.body.models[0].id).toBe("llama3.2:latest");
+    expect(modelsRes.body.models[1].id).toBe("qwen2.5:7b");
+    expect(modelsRes.body.models[2].id).toBe("deepseek-r1:latest");
+
+    // Test model fetching without baseUrl → 400
+    const noUrlRes = await window.evaluate(async (base: string) => {
+      const res = await fetch(`${base}/api/local-models/models`);
+      return { status: res.status };
+    }, apiBase);
+    expect(noUrlRes.status).toBe(400);
+
+    // Test health check — reachable mock
+    const healthOkRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
+      const res = await fetch(`${base}/api/local-models/health`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: `http://127.0.0.1:${port}` }),
+      });
+      return { status: res.status, body: await res.json() };
+    }, { base: apiBase, port: mockOllamaPort });
+    expect(healthOkRes.status).toBe(200);
+    expect(healthOkRes.body.ok).toBe(true);
+    expect(healthOkRes.body.version).toBe(MOCK_VERSION);
+
+    // Test health check — unreachable server
+    const healthFailRes = await window.evaluate(async (base: string) => {
+      const res = await fetch(`${base}/api/local-models/health`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: "http://127.0.0.1:1" }),
+      });
+      return { status: res.status, body: await res.json() };
+    }, apiBase);
+    expect(healthFailRes.status).toBe(200);
+    expect(healthFailRes.body.ok).toBe(false);
+
+    // Test provider key CRUD via API
+    // Create a local key
+    const createRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
+      const res = await fetch(`${base}/api/provider-keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "ollama",
+          label: "API Test Ollama",
+          model: "llama3.2:latest",
+          authType: "local",
+          baseUrl: `http://127.0.0.1:${port}`,
+        }),
+      });
+      return { status: res.status, body: await res.json() };
+    }, { base: apiBase, port: mockOllamaPort });
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.provider).toBe("ollama");
+    expect(createRes.body.authType).toBe("local");
+    expect(createRes.body.model).toBe("llama3.2:latest");
+    const keyId = createRes.body.id as string;
+
+    // List keys and verify local key appears with baseUrl
+    const listRes = await window.evaluate(async (base: string) => {
+      const res = await fetch(`${base}/api/provider-keys`);
+      return { status: res.status, body: await res.json() };
+    }, apiBase);
+    expect(listRes.status).toBe(200);
+    const localKey = listRes.body.keys.find((k: { id: string }) => k.id === keyId);
+    expect(localKey).toBeDefined();
+    expect(localKey.provider).toBe("ollama");
+    expect(localKey.authType).toBe("local");
+    expect(localKey.baseUrl).toBe(`http://127.0.0.1:${mockOllamaPort}`);
+
+    // Update base URL
+    const updateRes = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
+      const res = await fetch(`${base}/api/provider-keys/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: "http://192.168.1.50:11434" }),
+      });
+      return { status: res.status, body: await res.json() };
+    }, { base: apiBase, id: keyId });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.baseUrl).toBe("http://192.168.1.50:11434");
+
+    // Delete the key
+    const deleteRes = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
+      const res = await fetch(`${base}/api/provider-keys/${id}`, {
+        method: "DELETE",
+      });
+      return { status: res.status };
+    }, { base: apiBase, id: keyId });
+    expect(deleteRes.status).toBe(200);
+
+    // Verify key is gone
+    const listAfterRes = await window.evaluate(async (base: string) => {
+      const res = await fetch(`${base}/api/provider-keys`);
+      return { status: res.status, body: await res.json() };
+    }, apiBase);
+    const deletedKey = listAfterRes.body.keys.find((k: { id: string }) => k.id === keyId);
+    expect(deletedKey).toBeUndefined();
+  });
+
+  // ── Test 4: Tab rendering, health check, and model fetching ─────────
+
+  test("Local LLM tab renders and connects to mock Ollama", async ({ window }) => {
+    await navigateToModels(window);
+
+    const form = window.locator(".page-two-col");
+
+    // -- Click "Local LLM" tab --
+    const localTab = form.locator(".tab-btn", { hasText: /Local/i });
+    await localTab.click();
+    await expect(localTab).toHaveClass(/tab-btn-active/);
+
+    // Subscription and API tabs should NOT be active
+    const subTab = form.locator(".tab-btn", { hasText: /Subscription/i });
+    const apiTab = form.locator(".tab-btn", { hasText: /API/i });
+    await expect(subTab).not.toHaveClass(/tab-btn-active/);
+    await expect(apiTab).not.toHaveClass(/tab-btn-active/);
+
+    // -- Verify form elements --
+    // Base URL input (default "localhost:11434", but auto-detect may resolve to "127.0.0.1")
+    const baseUrlInput = form.locator("input.input-mono[type='text']").first();
+    await expect(baseUrlInput).toBeVisible();
+    await expect(baseUrlInput).toHaveValue(/^http:\/\/(localhost|127\.0\.0\.1):11434$/);
+
+    // "Server URL" label
+    await expect(form.locator(".form-label", { hasText: /Server URL/i })).toBeVisible();
+
+    // "Model" label
+    await expect(form.locator(".form-label", { hasText: /Model/i })).toBeVisible();
+
+    // Save button (should be disabled — no model selected yet)
+    const saveBtn = form.locator(".form-actions .btn.btn-primary");
+    await expect(saveBtn).toBeVisible();
+    await expect(saveBtn).toBeDisabled();
+
+    // Info box on the right side (Ollama setup instructions)
+    const infoBox = window.locator(".page-col-side .info-box-blue");
+    await expect(infoBox).toBeVisible();
+    await expect(infoBox).toContainText(/Ollama/i);
+
+    // -- Type mock Ollama URL and verify connectivity --
+    await baseUrlInput.fill(`http://127.0.0.1:${mockOllamaPort}`);
+
+    // Wait for debounce (1.5s) + health check to complete
+    const healthBadge = form.locator(".badge-success");
+    await expect(healthBadge).toBeVisible({ timeout: 10_000 });
+    await expect(healthBadge).toContainText("Connected");
+
+    // -- Verify model select populated with options --
+    const modelSelect = form.locator("select.input-full.input-mono");
+    await expect(modelSelect).toBeVisible({ timeout: 5_000 });
+    const options = modelSelect.locator("option");
+    await expect(options).toHaveCount(3);
+
+    // -- Select a model → save button should become enabled --
+    await modelSelect.selectOption("llama3.2:latest");
+    await expect(saveBtn).toBeEnabled();
+  });
+
+  // ── Test 5: Connection failure handling ─────────────────────────────
+
+  test("connection failure shows error badge and manual model input", async ({ window }) => {
+    await navigateToModels(window);
+
+    const form = window.locator(".page-two-col");
+    await form.locator(".tab-btn", { hasText: /Local/i }).click();
+
+    // Type an unreachable URL
+    const baseUrlInput = form.locator("input.input-mono[type='text']").first();
+    await baseUrlInput.fill("http://127.0.0.1:1");
+
+    // Wait for health check to fail (debounce + timeout)
+    const failBadge = form.locator(".badge-danger");
+    await expect(failBadge).toBeVisible({ timeout: 15_000 });
+    await expect(failBadge).toContainText(/Cannot connect|connect/i);
+
+    // Model select should be visible but only have the placeholder "—" option
+    // since no models could be fetched from the unreachable server
+    const modelSelect = form.locator("select.input-full.input-mono");
+    await expect(modelSelect).toBeVisible();
+    const options = modelSelect.locator("option");
+    await expect(options).toHaveCount(1);
+    await expect(options.first()).toHaveText("—");
+
+    // Save button should be disabled since no model can be selected
+    const saveBtn = form.locator(".form-actions .btn.btn-primary");
+    await expect(saveBtn).toBeDisabled();
   });
 });
