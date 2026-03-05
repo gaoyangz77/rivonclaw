@@ -18,11 +18,13 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
+    "uuid": "^11.0.5",
     "@easyclaw/core": "workspace:*",
     "@easyclaw/logger": "workspace:*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/uuid": "^10.0.0",
     "tsdown": "^0.20.3",
     "oxlint": "^1.43.0",
     "vitest": "^4.0.18"

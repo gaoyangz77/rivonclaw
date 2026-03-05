@@ -41,6 +41,15 @@ export type {
   CSWSFrame,
   PlatformAdapter,
 } from "./types/index.js";
+
+export type {
+  PairingRequest,
+  PairingResponse,
+  RelayAuthRequest,
+  RelayAuthResponse,
+  WsEnvelope,
+} from "./types/index.js";
+
 export { easyClawConfigSchema, DEFAULT_STT_SETTINGS, STT_SETTINGS_KEYS, STT_SECRET_KEYS } from "./types/index.js";
 
 export type { ChannelType } from "./channels.js";

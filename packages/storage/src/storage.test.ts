@@ -902,7 +902,7 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string; applied_at: string }>;
 
-    expect(rows).toHaveLength(13);
+    expect(rows).toHaveLength(15);
     expect(rows[0].id).toBe(1);
     expect(rows[0].name).toBe("initial_schema");
     expect(rows[1].id).toBe(2);
@@ -919,6 +919,8 @@ describe("Database", () => {
     expect(rows[9].name).toBe("add_custom_provider_columns");
     expect(rows[11].id).toBe(12);
     expect(rows[11].name).toBe("add_chat_sessions_table");
+    expect(rows[14].id).toBe(15);
+    expect(rows[14].name).toBe("add_is_owner_to_channel_recipients");
   });
 
   it("should not re-apply migrations on second open", () => {
@@ -930,6 +932,99 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string }>;
 
-    expect(rows).toHaveLength(13);
+    expect(rows).toHaveLength(15);
+  });
+});
+
+describe("ChannelRecipientsRepository", () => {
+  it("should ensureExists and retrieve recipient", () => {
+    storage.channelRecipients.ensureExists("telegram", "12345");
+    const meta = storage.channelRecipients.getRecipientMeta("telegram");
+    expect(meta["12345"]).toBeDefined();
+    expect(meta["12345"].label).toBe("");
+    expect(meta["12345"].isOwner).toBe(false);
+  });
+
+  it("should ensureExists with isOwner flag", () => {
+    storage.channelRecipients.ensureExists("telegram", "12345", true);
+    const meta = storage.channelRecipients.getRecipientMeta("telegram");
+    expect(meta["12345"].isOwner).toBe(true);
+  });
+
+  it("should not overwrite existing row on ensureExists", () => {
+    storage.channelRecipients.ensureExists("telegram", "12345", true);
+    storage.channelRecipients.setLabel("telegram", "12345", "Alice");
+    // Calling ensureExists again should not overwrite
+    storage.channelRecipients.ensureExists("telegram", "12345", false);
+    const meta = storage.channelRecipients.getRecipientMeta("telegram");
+    expect(meta["12345"].isOwner).toBe(true);
+    expect(meta["12345"].label).toBe("Alice");
+  });
+
+  it("should set and revoke owner status", () => {
+    storage.channelRecipients.ensureExists("telegram", "12345");
+    expect(storage.channelRecipients.hasAnyOwner()).toBe(false);
+
+    storage.channelRecipients.setOwner("telegram", "12345", true);
+    expect(storage.channelRecipients.hasAnyOwner()).toBe(true);
+
+    const owners = storage.channelRecipients.getOwners();
+    expect(owners).toEqual([{ channelId: "telegram", recipientId: "12345" }]);
+
+    storage.channelRecipients.setOwner("telegram", "12345", false);
+    expect(storage.channelRecipients.hasAnyOwner()).toBe(false);
+    expect(storage.channelRecipients.getOwners()).toEqual([]);
+  });
+
+  it("should getOwners across multiple channels", () => {
+    storage.channelRecipients.ensureExists("telegram", "111", true);
+    storage.channelRecipients.ensureExists("telegram", "222", false);
+    storage.channelRecipients.ensureExists("discord", "333", true);
+
+    const owners = storage.channelRecipients.getOwners();
+    expect(owners).toHaveLength(2);
+    expect(owners).toContainEqual({ channelId: "telegram", recipientId: "111" });
+    expect(owners).toContainEqual({ channelId: "discord", recipientId: "333" });
+  });
+
+  it("should preserve is_owner when setLabel is called", () => {
+    storage.channelRecipients.ensureExists("telegram", "12345", true);
+    storage.channelRecipients.setLabel("telegram", "12345", "Updated Label");
+
+    const meta = storage.channelRecipients.getRecipientMeta("telegram");
+    expect(meta["12345"].label).toBe("Updated Label");
+    expect(meta["12345"].isOwner).toBe(true);
+  });
+
+  it("should set default isOwner=false when setLabel creates a new row", () => {
+    // setLabel creates row if it doesn't exist, is_owner should be 0
+    storage.channelRecipients.setLabel("telegram", "99999", "New User");
+    const meta = storage.channelRecipients.getRecipientMeta("telegram");
+    expect(meta["99999"].label).toBe("New User");
+    expect(meta["99999"].isOwner).toBe(false);
+  });
+
+  it("should hasAnyOwner return false on empty database", () => {
+    expect(storage.channelRecipients.hasAnyOwner()).toBe(false);
+  });
+
+  it("should delete recipient and remove from owners", () => {
+    storage.channelRecipients.ensureExists("telegram", "12345", true);
+    expect(storage.channelRecipients.hasAnyOwner()).toBe(true);
+
+    storage.channelRecipients.delete("telegram", "12345");
+    expect(storage.channelRecipients.hasAnyOwner()).toBe(false);
+  });
+
+  it("should list recipients with isOwner flag", () => {
+    storage.channelRecipients.ensureExists("telegram", "111", true);
+    storage.channelRecipients.ensureExists("telegram", "222", false);
+
+    const list = storage.channelRecipients.list("telegram");
+    expect(list).toHaveLength(2);
+    const owner = list.find((r) => r.recipientId === "111");
+    const nonOwner = list.find((r) => r.recipientId === "222");
+    expect(owner?.isOwner).toBe(true);
+    expect(nonOwner?.isOwner).toBe(false);
   });
 });

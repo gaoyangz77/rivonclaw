@@ -1,0 +1,11 @@
+{
+    "id": "mobile-chat-channel",
+    "channels": [
+        "mobile"
+    ],
+    "configSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+    }
+}

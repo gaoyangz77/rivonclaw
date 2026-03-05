@@ -107,7 +107,7 @@ export function App() {
           setShowWhatsNew(true);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [showOnboarding]);
 
   // Show telemetry consent dialog on first launch (after onboarding)

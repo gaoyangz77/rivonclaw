@@ -10,6 +10,7 @@ import { UsageSnapshotsRepository } from "./repo-usage-snapshots.js";
 import { KeyUsageHistoryRepository } from "./repo-key-usage-history.js";
 import { ChatSessionsRepository } from "./repo-chat-sessions.js";
 import { ChannelRecipientsRepository } from "./repo-channel-recipients.js";
+import { RepoMobilePairings } from "./repo-mobile-pairings.js";
 
 export interface Storage {
   db: Database.Database;
@@ -23,6 +24,7 @@ export interface Storage {
   keyUsageHistory: KeyUsageHistoryRepository;
   chatSessions: ChatSessionsRepository;
   channelRecipients: ChannelRecipientsRepository;
+  mobilePairings: RepoMobilePairings;
   close(): void;
 }
 
@@ -41,6 +43,7 @@ export function createStorage(dbPath?: string): Storage {
     keyUsageHistory: new KeyUsageHistoryRepository(db),
     chatSessions: new ChatSessionsRepository(db),
     channelRecipients: new ChannelRecipientsRepository(db),
+    mobilePairings: new RepoMobilePairings(db),
     close() {
       closeDatabase(db);
     },
@@ -58,6 +61,8 @@ export { UsageSnapshotsRepository } from "./repo-usage-snapshots.js";
 export { KeyUsageHistoryRepository } from "./repo-key-usage-history.js";
 export { ChatSessionsRepository } from "./repo-chat-sessions.js";
 export { ChannelRecipientsRepository } from "./repo-channel-recipients.js";
+export { RepoMobilePairings } from "./repo-mobile-pairings.js";
+export type { MobilePairing } from "./repo-mobile-pairings.js";
 export type { ChatSession } from "./repo-chat-sessions.js";
 export type { ChannelRecipient } from "./repo-channel-recipients.js";
 export type { Migration } from "./migrations.js";

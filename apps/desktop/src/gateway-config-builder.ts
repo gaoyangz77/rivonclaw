@@ -3,6 +3,7 @@ import type { LLMProvider } from "@easyclaw/core";
 import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, resolveGatewayPort } from "@easyclaw/core";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@easyclaw/gateway";
 import type { Storage } from "@easyclaw/storage";
+import { buildOwnerAllowFrom } from "./owner-sync.js";
 
 export interface GatewayConfigDeps {
   storage: Storage;
@@ -96,6 +97,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       enableChatCompletions: true,
       commandsRestart: true,
       enableFilePermissions: true,
+      ownerAllowFrom: buildOwnerAllowFrom(storage),
       extensionsDir,
       plugins: {
         allow: [
@@ -104,6 +106,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           "search-browser-fallback",
           "wecom",
           "google-gemini-cli-auth",
+          "mobile-chat-channel",
         ],
       },
       enableGeminiCliAuth: isGeminiOAuthActive(),

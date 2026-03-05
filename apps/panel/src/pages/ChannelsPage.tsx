@@ -4,6 +4,7 @@ import { deleteChannelAccount, unbindWeComAccount, type ChannelAccountSnapshot }
 import { pollGatewayReady } from "../lib/poll-gateway.js";
 import { AddChannelAccountModal } from "../components/AddChannelAccountModal.js";
 import { WeComBindingModal } from "../components/WeComBindingModal.js";
+import { MobileBindingModal } from "../components/MobileBindingModal.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { Select } from "../components/Select.js";
 import { KNOWN_CHANNELS, getVisibleChannels, buildAccountsList } from "./channels/channel-defs.jsx";
@@ -13,9 +14,9 @@ import { ChannelAccountsTable } from "./channels/ChannelAccountsTable.js";
 export function ChannelsPage() {
   const { t, i18n } = useTranslation();
   const {
-    snapshot, loading, error, refreshing, wecomStatus,
-    setWecomStatus,
-    loadChannelStatus, loadWeComStatus,
+    snapshot, loading, error, refreshing, wecomStatus, mobileStatus,
+    setWecomStatus, setMobileStatus,
+    loadChannelStatus, loadWeComStatus, loadMobileStatus,
     handleRefresh,
   } = useChannelsData();
 
@@ -31,8 +32,9 @@ export function ChannelsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ channelId: string; accountId: string; label: string } | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
-  // WeCom binding modal
+  // WeCom and Mobile binding modals
   const [wecomModalOpen, setWecomModalOpen] = useState(false);
+  const [mobileModalOpen, setMobileModalOpen] = useState(false);
 
   // Dropdown selection state for add account
   const [selectedDropdownChannel, setSelectedDropdownChannel] = useState<string>("");
@@ -40,8 +42,8 @@ export function ChannelsPage() {
   const visibleChannels = getVisibleChannels(i18n.language, selectedDropdownChannel);
 
   const allAccounts = useMemo(
-    () => snapshot ? buildAccountsList(snapshot, wecomStatus, t) : [],
-    [snapshot, wecomStatus, t],
+    () => snapshot ? buildAccountsList(snapshot, wecomStatus, mobileStatus, t) : [],
+    [snapshot, wecomStatus, mobileStatus, t],
   );
 
   function handleAddAccountFromDropdown() {
@@ -50,6 +52,13 @@ export function ChannelsPage() {
     // WeCom uses its own binding modal (QR code flow)
     if (selectedDropdownChannel === "wecom") {
       setWecomModalOpen(true);
+      setSelectedDropdownChannel("");
+      return;
+    }
+
+    // Mobile Chat uses its own binding modal (QR code flow)
+    if (selectedDropdownChannel === "mobile") {
+      setMobileModalOpen(true);
       setSelectedDropdownChannel("");
       return;
     }
@@ -94,9 +103,15 @@ export function ChannelsPage() {
   }
 
   function handleDeleteAccount(channelId: string, accountId: string) {
-    const label = channelId === "wecom"
-      ? t("channels.channelWecom")
-      : (KNOWN_CHANNELS.find(c => c.id === channelId) ? t(KNOWN_CHANNELS.find(c => c.id === channelId)!.labelKey) : channelId);
+    let label = channelId;
+    if (channelId === "wecom") {
+      label = t("channels.channelWecom");
+    } else if (channelId === "mobile") {
+      label = t("nav.mobile");
+    } else {
+      const known = KNOWN_CHANNELS.find(c => c.id === channelId);
+      if (known) label = t(known.labelKey);
+    }
     setDeleteConfirm({ channelId, accountId, label });
   }
 
@@ -114,6 +129,11 @@ export function ChannelsPage() {
         // WeCom uses its own unbind flow
         await unbindWeComAccount();
         setWecomStatus(null);
+      } else if (channelId === "mobile") {
+        // Mobile uses its own unbind flow
+        const { disconnectMobilePairing } = await import("../api/mobile-chat.js");
+        await disconnectMobilePairing();
+        setMobileStatus(null);
       } else {
         await deleteChannelAccount(channelId, accountId);
         await pollGatewayReady(() => loadChannelStatus());
@@ -304,6 +324,16 @@ export function ChannelsPage() {
         onClose={() => setWecomModalOpen(false)}
         onBindingSuccess={() => {
           loadWeComStatus();
+        }}
+      />
+
+      {/* Mobile Binding Modal */}
+      <MobileBindingModal
+        isOpen={mobileModalOpen}
+        onClose={() => setMobileModalOpen(false)}
+        onBindingSuccess={() => {
+          loadMobileStatus();
+          setMobileModalOpen(false);
         }}
       />
 

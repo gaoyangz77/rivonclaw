@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchChannelStatus, fetchWeComBindingStatus, type ChannelsStatusSnapshot, type WeComBindingStatusResponse } from "../../api/index.js";
+import { getMobilePairingStatus } from "../../api/mobile-chat.js";
 
 export function useChannelsData() {
   const [snapshot, setSnapshot] = useState<ChannelsStatusSnapshot | null>(null);
@@ -7,6 +8,7 @@ export function useChannelsData() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [wecomStatus, setWecomStatus] = useState<WeComBindingStatusResponse | null>(null);
+  const [mobileStatus, setMobileStatus] = useState<{ pairing?: { mobileDeviceId: string } } | null>(null);
 
   const loadWeComStatus = useCallback(async () => {
     try {
@@ -15,6 +17,15 @@ export function useChannelsData() {
     } catch {
       // API not implemented (501) or gateway not ready — show "not connected" state
       setWecomStatus(null);
+    }
+  }, []);
+
+  const loadMobileStatus = useCallback(async () => {
+    try {
+      const data = await getMobilePairingStatus();
+      setMobileStatus(data);
+    } catch {
+      setMobileStatus(null);
     }
   }, []);
 
@@ -67,8 +78,9 @@ export function useChannelsData() {
         setSnapshot(data);
         setLoading(false);
         setRefreshing(false);
-        // Also fetch WeCom status
+        // Also fetch WeCom and Mobile status
         loadWeComStatus();
+        loadMobileStatus();
         // Healthy — next poll in 30s
         timer = setTimeout(poll, 30000);
       } catch (err) {
@@ -91,9 +103,9 @@ export function useChannelsData() {
   }
 
   return {
-    snapshot, loading, error, refreshing, wecomStatus,
-    setWecomStatus,
-    loadChannelStatus, retryUntilReady, loadWeComStatus,
+    snapshot, loading, error, refreshing, wecomStatus, mobileStatus,
+    setWecomStatus, setMobileStatus,
+    loadChannelStatus, retryUntilReady, loadWeComStatus, loadMobileStatus,
     handleRefresh,
   };
 }

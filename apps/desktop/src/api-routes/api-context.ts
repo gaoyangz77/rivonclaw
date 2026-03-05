@@ -5,6 +5,7 @@ import type { GatewayRpcClient } from "@easyclaw/gateway";
 import type { UsageSnapshotEngine } from "../usage-snapshot-engine.js";
 import type { UsageQueryService } from "../usage-query-service.js";
 import type { createWeComRelay } from "../wecom-relay.js";
+import type { MobileManager } from "../mobile-manager.js";
 
 export interface ApiContext {
   storage: Storage;
@@ -41,6 +42,7 @@ export interface ApiContext {
   snapshotEngine?: UsageSnapshotEngine;
   queryService?: UsageQueryService;
   wecomRelay?: ReturnType<typeof createWeComRelay>;
+  mobileManager?: MobileManager;
 }
 
 export type RouteHandler = (

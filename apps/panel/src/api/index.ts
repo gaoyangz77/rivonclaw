@@ -7,3 +7,4 @@ export * from "./usage.js";
 export * from "./skills.js";
 export * from "./app.js";
 export * from "./customer-service.js";
+export * from "./mobile-chat.js";

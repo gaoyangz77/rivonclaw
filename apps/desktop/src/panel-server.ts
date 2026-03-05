@@ -14,6 +14,7 @@ import { resolveMediaBase } from "./media-paths.js";
 import { UsageSnapshotEngine } from "./usage-snapshot-engine.js";
 import type { ModelUsageTotals } from "./usage-snapshot-engine.js";
 import { UsageQueryService } from "./usage-query-service.js";
+import { MobileManager } from "./mobile-manager.js";
 import { initCSBridge, restoreCS } from "./customer-service-bridge.js";
 import { sendChannelMessage } from "./channel-senders.js";
 import { createWeComRelay } from "./wecom-relay.js";
@@ -28,6 +29,7 @@ import { handleUsageRoutes } from "./api-routes/usage-routes.js";
 import { handleWecomRoutes } from "./api-routes/wecom-routes.js";
 import { handleSkillsRoutes } from "./api-routes/skills-routes.js";
 import { handleChatSessionRoutes } from "./api-routes/chat-session-routes.js";
+import { handleMobileChatRoutes } from "./api-routes/mobile-chat-routes.js";
 
 const log = createLogger("panel-server");
 
@@ -203,7 +205,7 @@ export interface PanelServerOptions {
   onUpdateDownload?: () => Promise<void>;
   onUpdateCancel?: () => void;
   onUpdateInstall?: () => Promise<void>;
-  getUpdateDownloadState?: () => { status: string; [key: string]: unknown };
+  getUpdateDownloadState?: () => { status: string;[key: string]: unknown };
 }
 
 // --- Route handlers (dispatched in order, first match wins) ---
@@ -217,6 +219,7 @@ const routeHandlers: RouteHandler[] = [
   handleUsageRoutes,
   handleSkillsRoutes,
   handleChatSessionRoutes,
+  handleMobileChatRoutes,
 ];
 
 /**
@@ -287,6 +290,9 @@ export function startPanelServer(options: PanelServerOptions): Server {
   const snapshotEngine = new UsageSnapshotEngine(storage, captureUsage);
   const queryService = new UsageQueryService(storage, captureUsage);
 
+  // Mobile Chat Pairing Manager
+  const mobileManager = new MobileManager(storage);
+
   // Reconcile usage snapshot for the active key on startup
   const activeKeyOnStartup = storage.providerKeys.getActive();
   if (activeKeyOnStartup) {
@@ -304,7 +310,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
     sttManager, onSttChange, onPermissionsChange, onBrowserChange, onAutoLaunchChange,
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete,
     onTelemetryTrack, vendorDir, deviceId, getUpdateResult, getGatewayInfo,
-    snapshotEngine, queryService, wecomRelay,
+    snapshotEngine, queryService, wecomRelay, mobileManager,
   };
 
   const server = createServer(async (req, res) => {
@@ -378,7 +384,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
           sendJson(res, 501, { error: "Not supported" });
           return;
         }
-        onUpdateDownload().catch(() => {});
+        onUpdateDownload().catch(() => { });
         sendJson(res, 200, { ok: true });
         return;
       }

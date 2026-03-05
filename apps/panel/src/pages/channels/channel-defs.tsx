@@ -14,6 +14,7 @@ export const KNOWN_CHANNELS = [
   { id: "matrix", labelKey: "channels.channelMatrix", tutorialUrl: "https://docs.openclaw.ai/channels/matrix", tooltip: "channels.tooltipMatrix" },
   { id: "mattermost", labelKey: "channels.channelMattermost", tutorialUrl: "https://docs.openclaw.ai/channels/mattermost", tooltip: "channels.tooltipMattermost" },
   { id: "msteams", labelKey: "channels.channelMsteams", tutorialUrl: "https://docs.openclaw.ai/channels/msteams", tooltip: "channels.tooltipMsteams" },
+  { id: "mobile", labelKey: "nav.mobile", tutorialUrl: "", tooltip: "mobile.description" },
 ] as const;
 
 // Channels that require services blocked in mainland China (GFW)
@@ -44,12 +45,14 @@ export interface AccountEntry {
   channelLabel: string;
   account: ChannelAccountSnapshot;
   isWecom?: boolean;
+  isMobile?: boolean;
 }
 
 /** Build the unified accounts list from snapshot + WeCom status, filtering synthetic defaults. */
 export function buildAccountsList(
   snapshot: ChannelsStatusSnapshot,
   wecomStatus: WeComBindingStatusResponse | null,
+  mobileStatus: { pairing?: { mobileDeviceId: string } } | null,
   t: (key: string) => string,
 ): AccountEntry[] {
   const allAccounts: AccountEntry[] = [];
@@ -64,6 +67,23 @@ export function buildAccountsList(
         accountId: "default",
         name: t("channels.channelWecom"),
         configured: !!wecomStatus.externalUserId,
+        running: true,
+        enabled: true,
+        dmPolicy: "pairing",
+      } as ChannelAccountSnapshot,
+    });
+  }
+
+  // Add Mobile virtual account if relay connection exists
+  if (mobileStatus && mobileStatus.pairing) {
+    allAccounts.push({
+      channelId: "mobile",
+      channelLabel: t("nav.mobile"),
+      isMobile: true,
+      account: {
+        accountId: "default",
+        name: t("nav.mobile"),
+        configured: true,
         running: true,
         enabled: true,
         dmPolicy: "pairing",

@@ -218,4 +218,26 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 14,
+    name: "add_mobile_pairings_table",
+    sql: `
+      CREATE TABLE IF NOT EXISTS mobile_pairings (
+        id TEXT PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        access_token TEXT NOT NULL,
+        relay_url TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT
+      );
+    `,
+  },
+  {
+    id: 15,
+    name: "add_is_owner_to_channel_recipients",
+    sql: `
+      ALTER TABLE channel_recipients ADD COLUMN is_owner INTEGER NOT NULL DEFAULT 0;
+      UPDATE channel_recipients SET is_owner = 1;
+    `,
+  },
 ];

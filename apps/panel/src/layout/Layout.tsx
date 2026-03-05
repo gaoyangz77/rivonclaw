@@ -222,7 +222,7 @@ export function Layout({
           if (info.currentVersion) setCurrentVersion(info.currentVersion);
           if (info.updateAvailable) setUpdateInfo(info);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
     function onVisibilityChange() {
       if (document.visibilityState === "visible") check();
@@ -247,7 +247,7 @@ export function Layout({
         .then((s) => {
           setDownloadStatus(s);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
     function onVisibilityChange() {
       if (document.visibilityState === "visible") poll();
@@ -276,7 +276,7 @@ export function Layout({
   }
 
   function handleCancel() {
-    cancelUpdateDownload().catch(() => {});
+    cancelUpdateDownload().catch(() => { });
     setDownloadStatus({ status: "idle" });
   }
 

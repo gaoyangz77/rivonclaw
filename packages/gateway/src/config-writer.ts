@@ -343,6 +343,9 @@ export interface WriteGatewayConfigOptions {
   /** Agent workspace directory. Written as agents.defaults.workspace so OpenClaw stores
    *  SOUL.md, USER.md, memory/ etc. under the EasyClaw-managed state dir instead of ~/.openclaw/workspace. */
   agentWorkspace?: string;
+  /** Explicit owner allowlist for commands.ownerAllowFrom.
+   *  If provided, replaces the default ["openclaw-control-ui"]. */
+  ownerAllowFrom?: string[];
   /** @deprecated Use browserMode instead. */
   forceStandaloneBrowser?: boolean;
   /**
@@ -472,14 +475,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
-  // EasyClaw Desktop is single-user — the webchat sender is always the owner.
-  // Without this, ownerOnly tools (gateway, cron) are filtered out by
-  // applyOwnerOnlyToolPolicy() because senderIsOwner defaults to false.
-  //
-  // Note: "*" does NOT work here — it sets ownerAllowAll=true which empties
-  // the ownerList, so matchedSender is always undefined → senderIsOwner=false.
-  // Must use the literal sender ID that the panel webchat client sends in
-  // its connect handshake (client.id = "openclaw-control-ui").
+  // ownerAllowFrom controls which senders get owner-only tools (gateway, cron).
+  // Always includes "openclaw-control-ui" (the panel webchat client ID).
+  // Channel recipients marked as owners are passed via options.ownerAllowFrom.
   {
     const existingCommands =
       typeof config.commands === "object" && config.commands !== null
@@ -487,7 +485,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         : {};
     config.commands = {
       ...existingCommands,
-      ownerAllowFrom: ["openclaw-control-ui"],
+      ownerAllowFrom: options.ownerAllowFrom ?? ["openclaw-control-ui"],
     };
   }
 

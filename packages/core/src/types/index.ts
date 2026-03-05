@@ -57,3 +57,13 @@ export type {
   CSWSFrame,
   PlatformAdapter,
 } from "./customer-service.js";
+
+export type {
+  PairingRequest,
+  PairingResponse,
+  RelayAuthRequest,
+  RelayAuthResponse,
+} from "./mobile-chat.js";
+
+export type { WsEnvelope } from "./mobile-ws.js";
+

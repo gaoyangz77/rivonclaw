@@ -149,6 +149,7 @@ export async function fetchPairingRequests(channelId: string): Promise<PairingRe
 export interface AllowlistResult {
   allowlist: string[];
   labels: Record<string, string>;
+  owners: Record<string, boolean>;
 }
 
 export async function fetchAllowlist(channelId: string): Promise<AllowlistResult> {
@@ -159,6 +160,13 @@ export async function setRecipientLabel(channelId: string, recipientId: string, 
   await fetchJson(`/pairing/allowlist/${channelId}/${encodeURIComponent(recipientId)}/label`, {
     method: "PUT",
     body: JSON.stringify({ label }),
+  });
+}
+
+export async function setRecipientOwner(channelId: string, recipientId: string, isOwner: boolean): Promise<void> {
+  await fetchJson(`/pairing/allowlist/${channelId}/${encodeURIComponent(recipientId)}/owner`, {
+    method: "PUT",
+    body: JSON.stringify({ isOwner }),
   });
 }
 
