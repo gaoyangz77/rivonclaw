@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
 import {
   fetchAllowlist,
@@ -9,9 +9,31 @@ import {
   setRecipientOwner,
   type PairingRequest,
 } from "../../api/channels.js";
-import { fetchMobileDeviceStatus, disconnectMobilePairing, getMobilePairingStatus, type MobileDeviceStatusResponse } from "../../api/mobile-chat.js";
+import { fetchMobileDeviceStatus, disconnectMobilePairing, getMobilePairingStatus, type MobileDeviceStatusResponse, type MobilePairingInfo } from "../../api/mobile-chat.js";
 import { ConfirmDialog } from "../../components/ConfirmDialog.js";
 import { StatusBadge, type AccountEntry } from "./channel-defs.jsx";
+
+/** Show last 3 chars of an ID with a copy-to-clipboard button. */
+function TruncatedId({ value, t }: { value: string; t: (key: string) => string }) {
+  const [copied, setCopied] = useState(false);
+  const suffix = value.length > 3 ? `...${value.slice(-3)}` : value;
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }, [value]);
+
+  return (
+    <span className="id-truncated">
+      <code>{suffix}</code>
+      <button className={`id-copy-btn${copied ? " copied" : ""}`} onClick={handleCopy} title={value}>
+        {copied ? t("pairing.copied") : "⧉"}
+      </button>
+    </span>
+  );
+}
 
 interface RecipientData {
   loading: boolean;
@@ -42,19 +64,26 @@ export function ChannelAccountsTable({
   const [processing, setProcessing] = useState<string | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState<{ channelId: string; entry: string } | null>(null);
   const [mobileDeviceStatus, setMobileDeviceStatus] = useState<MobileDeviceStatusResponse["devices"]>({});
+  const [mobilePairings, setMobilePairings] = useState<MobilePairingInfo[]>([]);
 
   // Track in-flight label saves to show subtle feedback
   const savingLabelsRef = useRef<Set<string>>(new Set());
 
-  // Poll mobile device status while the mobile channel is expanded
+  // Poll mobile device status and fetch pairings while the mobile channel is expanded
   useEffect(() => {
     if (!expandedChannels.has("mobile")) return;
 
     let cancelled = false;
     async function poll() {
       try {
-        const result = await fetchMobileDeviceStatus();
-        if (!cancelled) setMobileDeviceStatus(result.devices);
+        const [statusResult, pairingResult] = await Promise.all([
+          fetchMobileDeviceStatus(),
+          getMobilePairingStatus(),
+        ]);
+        if (!cancelled) {
+          setMobileDeviceStatus(statusResult.devices);
+          if (pairingResult.pairings) setMobilePairings(pairingResult.pairings);
+        }
       } catch { /* ignore */ }
     }
     poll();
@@ -348,6 +377,7 @@ export function ChannelAccountsTable({
                     <tr>
                       {channelId === "mobile" && <th className="presence-col"></th>}
                       <th>{t("pairing.userId")}</th>
+                      {channelId === "mobile" && <th>{t("pairing.pairingIdColumn")}</th>}
                       <th>{t("pairing.aliasColumn")}</th>
                       <th>{t("pairing.roleColumn")}</th>
                       <th className="text-right">{t("pairing.action")}</th>
@@ -357,6 +387,9 @@ export function ChannelAccountsTable({
                     {data.allowlist.map(entry => {
                       const isOwner = data.owners[entry] ?? false;
                       const deviceStatus = channelId === "mobile" ? mobileDeviceStatus[entry] : undefined;
+                      const pairingInfo = channelId === "mobile"
+                        ? mobilePairings.find(p => p.pairingId === entry || p.id === entry)
+                        : undefined;
                       return (
                         <tr key={entry}>
                           {channelId === "mobile" && (
@@ -368,11 +401,14 @@ export function ChannelAccountsTable({
                             </td>
                           )}
                           <td>
-                            {entry}
+                            <TruncatedId value={channelId === "mobile" ? (pairingInfo?.mobileDeviceId || entry) : entry} t={t} />
                             {deviceStatus?.stale && (
                               <span className="stale-hint">{t("pairing.staleHint")}</span>
                             )}
                           </td>
+                          {channelId === "mobile" && (
+                            <td><TruncatedId value={entry} t={t} /></td>
+                          )}
                           <td>
                             <input
                               className="recipient-label-input"

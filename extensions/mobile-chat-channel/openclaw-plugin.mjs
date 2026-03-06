@@ -61,6 +61,7 @@ const plugin = {
                 capabilities: {
                     chatTypes: ["direct"],
                     media: true,
+                    blockStreaming: true,
                 },
                 config: {
                     listAccountIds: () => (syncEngines.size > 0 || stalePairings.size > 0) ? ["default"] : [],
@@ -92,6 +93,19 @@ const plugin = {
                             running: hasEngines && transportConnected,
                             dmPolicy: "pairing",
                         };
+                    },
+                },
+                messaging: {
+                    targetResolver: {
+                        looksLikeId: (raw) => {
+                            const trimmed = (raw || "").trim();
+                            if (!trimmed) return false;
+                            // Accept "mobile:<uuid>" or bare UUID
+                            if (/^mobile:/i.test(trimmed)) return true;
+                            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) return true;
+                            return false;
+                        },
+                        hint: "mobile:<pairingId>",
                     },
                 },
                 outbound: {

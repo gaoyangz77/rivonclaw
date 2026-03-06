@@ -180,6 +180,17 @@ export class MobileSyncEngine {
         setTimeout(() => this.stop(), 200);
     }
 
+    public sendReaction(targetId: string, emoji: string) {
+        this.transport.send(this.pairingId, {
+            type: "reaction",
+            id: randomUUID(),
+            targetId,
+            emoji,
+            sender: "desktop",
+            timestamp: Date.now(),
+        });
+    }
+
     public get isRelayConnected(): boolean {
         return this.transport.isConnected();
     }
@@ -259,14 +270,24 @@ export class MobileSyncEngine {
                 this.onUnpaired?.();
                 break;
 
+            case "reaction":
+                // Mobile user reacted to a message — log for now
+                console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Received reaction from mobile: ${msg.emoji} on ${msg.targetId?.slice(0,8)}`);
+                break;
+
             case "msg":
                 // Always ACK (so mobile UI shows delivered promptly)
                 this.transport.send(this.pairingId, { type: "ack", id: msg.id });
                 // Dedup: skip if already processed (retransmit from flushPending)
                 if (msg.id && this.processedIds.has(msg.id)) break;
                 this.markProcessed(msg.id);
+                // Immediately react with 👀 so the user sees instant "seen" feedback
+                this.sendReaction(msg.id, "👀");
                 try {
-                    await this.processIncomingPayload(msg);
+                    const replied = await this.processIncomingPayload(msg);
+                    if (!replied) {
+                        // Agent produced no reply (empty response) — not an error, just nothing to send.
+                    }
                 } catch (err: any) {
                     console.error("[MobileSync] Failed to process message:", err.message, err.stack);
                     this.queueOutbound(this.pairingId, {
@@ -278,10 +299,11 @@ export class MobileSyncEngine {
         }
     }
 
-    private async processIncomingPayload(msg: any) {
+    /** Returns true if at least one agent reply was delivered to mobile. */
+    private async processIncomingPayload(msg: any): Promise<boolean> {
         const { payload, sender } = msg;
 
-        if (sender !== "mobile" || !payload) return;
+        if (sender !== "mobile" || !payload) return false;
 
         const core = this.api.runtime;
         const cfg = this.api.config;
@@ -326,13 +348,13 @@ export class MobileSyncEngine {
                 mediaTypes.push(payload.mimeType || "application/octet-stream");
             }
 
-            if (!messageText && mediaPaths.length === 0) return;
+            if (!messageText && mediaPaths.length === 0) return false;
 
             const route = core.channel.routing.resolveAgentRoute({
                 cfg,
                 channel: "mobile",
                 accountId: this.pairingId,
-                peer: { kind: "direct", id: this.pairingId },
+                peer: { kind: "direct", id: this.mobileDeviceId },
             });
 
             const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(cfg);
@@ -347,7 +369,7 @@ export class MobileSyncEngine {
 
             const body = core.channel.reply.formatAgentEnvelope({
                 channel: "Mobile",
-                from: this.pairingId,
+                from: this.mobileDeviceId,
                 timestamp: msg.timestamp || Date.now(),
                 previousTimestamp,
                 envelope: envelopeOptions,
@@ -359,12 +381,12 @@ export class MobileSyncEngine {
                 BodyForAgent: messageText,
                 RawBody: messageText,
                 CommandBody: messageText,
-                From: `mobile:${this.pairingId}`,
+                From: `mobile:${this.mobileDeviceId}`,
                 To: `mobile:${this.pairingId}`,
                 SessionKey: route.sessionKey,
                 AccountId: route.accountId,
                 ChatType: "direct",
-                ConversationLabel: `Mobile ${this.pairingId.slice(0, 8)}`,
+                ConversationLabel: `Mobile ${this.mobileDeviceId.slice(0, 8)}`,
                 Provider: "mobile",
                 Surface: "mobile",
                 MessageSid: msg.id,
@@ -387,29 +409,47 @@ export class MobileSyncEngine {
             // Track last block text to dedup block+final deliveries.
             // The buffered dispatcher calls deliver() for both streaming blocks
             // and the final reply, which often carry identical text.
+            // Also track whether any reply was delivered so we suppress the error
+            // notification when the agent already replied successfully.
             let lastBlockText: string | null = null;
-            await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
-                ctx: ctxPayload,
-                cfg,
-                dispatcherOptions: {
-                    deliver: async (replyPayload: any, info: { kind: string }) => {
-                        const text = replyPayload.text ?? "";
-                        if (!text) return;
-                        if (info.kind === "block") {
-                            lastBlockText = text;
+            let repliesDelivered = false;
+            try {
+                await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
+                    ctx: ctxPayload,
+                    cfg,
+                    replyOptions: { disableBlockStreaming: false },
+                    dispatcherOptions: {
+                        deliver: async (replyPayload: any, info: { kind: string }) => {
+                            const text = (replyPayload.text ?? "").replace(/\bNO_REPLY\b/g, "").trim();
+                            if (!text) return;
+                            if (info.kind === "block") {
+                                lastBlockText = text;
+                                repliesDelivered = true;
+                                this.queueOutbound(this.pairingId, { type: "text", text });
+                                return;
+                            }
+                            // Skip final reply if it matches the last block (already delivered)
+                            if (info.kind === "final" && text === lastBlockText) return;
+                            repliesDelivered = true;
                             this.queueOutbound(this.pairingId, { type: "text", text });
-                            return;
-                        }
-                        // Skip final reply if it matches the last block (already delivered)
-                        if (info.kind === "final" && text === lastBlockText) return;
-                        this.queueOutbound(this.pairingId, { type: "text", text });
+                        },
+                        onError: (err: any, info: any) => {
+                            console.error(`[MobileSync] ${info.kind} reply failed:`, err);
+                        },
                     },
-                    onError: (err: any, info: any) => {
-                        console.error(`[MobileSync] ${info.kind} reply failed:`, err);
-                    },
-                },
-            });
+                });
+            } catch (dispatchErr: any) {
+                // If agent replies were already delivered, this is a post-dispatch
+                // cleanup error — log it but don't propagate (the user already got
+                // the agent's response, sending "[System] Failed..." would be confusing).
+                if (repliesDelivered) {
+                    console.error("[MobileSync] Post-dispatch error (replies already sent, suppressed):", dispatchErr.message);
+                } else {
+                    throw dispatchErr;
+                }
+            }
 
             console.log("[MobileSync] Message dispatched to agent. sessionKey:", route.sessionKey);
+            return repliesDelivered;
     }
 }

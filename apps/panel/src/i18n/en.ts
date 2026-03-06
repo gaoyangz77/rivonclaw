@@ -671,6 +671,8 @@ export default {
     ownerBadge: "Owner",
     nonOwnerBadge: "User",
     noRecipients: "No recipients in allowlist.",
+    pairingIdColumn: "Pairing ID",
+    copied: "Copied!",
     expand: "Recipients",
   },
   mobile: {

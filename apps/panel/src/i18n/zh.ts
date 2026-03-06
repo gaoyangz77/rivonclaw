@@ -671,6 +671,8 @@ export default {
     ownerBadge: "管理员",
     nonOwnerBadge: "用户",
     noRecipients: "允许列表中暂无接收方。",
+    pairingIdColumn: "配对 ID",
+    copied: "已复制！",
     expand: "接收方",
   },
   mobile: {

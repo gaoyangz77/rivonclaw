@@ -3000,16 +3000,18 @@ tbody td {
   font-size: 13px;
 }
 
-.recipients-table th:nth-child(1) { width: 30%; }
-.recipients-table th:nth-child(2) { width: 28%; }
-.recipients-table th:nth-child(3) { width: 17%; }
-.recipients-table th:nth-child(4) { width: 25%; }
-/* Mobile allowlist: presence dot is first column, shift widths */
+/* Non-mobile: 4 cols — User ID, Alias, Role, Action */
+.recipients-table th:nth-child(1) { width: 15%; }
+.recipients-table th:nth-child(2) { width: 38%; }
+.recipients-table th:nth-child(3) { width: 20%; }
+.recipients-table th:nth-child(4) { width: 27%; }
+/* Mobile: 6 cols — presence, User ID, Pairing ID, Alias, Role, Action */
 .recipients-table th.presence-col { width: 24px !important; min-width: 24px; max-width: 24px; }
-.recipients-table th.presence-col ~ th:nth-child(2) { width: 30%; }
-.recipients-table th.presence-col ~ th:nth-child(3) { width: 28%; }
-.recipients-table th.presence-col ~ th:nth-child(4) { width: 17%; }
-.recipients-table th.presence-col ~ th:nth-child(5) { width: 25%; }
+.recipients-table th.presence-col ~ th:nth-child(2) { width: 13%; }
+.recipients-table th.presence-col ~ th:nth-child(3) { width: 13%; }
+.recipients-table th.presence-col ~ th:nth-child(4) { width: 30%; }
+.recipients-table th.presence-col ~ th:nth-child(5) { width: 18%; }
+.recipients-table th.presence-col ~ th:nth-child(6) { width: 22%; }
 
 .recipients-table th {
   text-align: left;
@@ -3027,6 +3029,42 @@ tbody td {
 
 .recipients-table tr:last-child td {
   border-bottom: none;
+}
+
+.id-truncated {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.id-truncated code {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.id-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--color-border-light);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.id-copy-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.id-copy-btn.copied {
+  border-color: var(--color-success, #22c55e);
+  color: var(--color-success, #22c55e);
 }
 
 .recipient-label-input {
