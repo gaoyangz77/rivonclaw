@@ -61,6 +61,78 @@ function stripUnknownKeys(config: Record<string, unknown>): string[] {
 }
 
 /**
+ * Fix semantic validation errors by progressively deleting the offending
+ * config path.  When the leaf key doesn't exist (e.g. a "required" field
+ * that is missing), walks upward and deletes the nearest existing ancestor.
+ *
+ * EasyClaw-managed top-level keys are protected — if the schema rejects
+ * something we wrote ourselves, that's a bug we should surface, not hide.
+ */
+/** Top-level config keys managed by EasyClaw — never deleted by fixSemanticErrors. */
+export const EASYCLAW_MANAGED_KEYS = new Set([
+  "gateway", "tools", "commands", "agents", "plugins",
+  "skills", "models", "browser", "session",
+]);
+
+function fixSemanticErrors(config: Record<string, unknown>): string[] {
+  const PROTECTED = EASYCLAW_MANAGED_KEYS;
+  const allRemoved: string[] = [];
+
+  for (let pass = 0; pass < 20; pass++) {
+    const result = OpenClawSchema.safeParse(config);
+    if (result.success) break;
+
+    const issues = result.error.issues.filter(
+      (i) => i.code !== "unrecognized_keys",
+    );
+    if (issues.length === 0) break;
+
+    let progress = false;
+    for (const issue of issues) {
+      const path = [...issue.path];
+      if (path.length === 0) continue;
+      if (PROTECTED.has(String(path[0]))) continue;
+
+      // Try to delete from the leaf upward until we find an existing key.
+      while (path.length > 0) {
+        const keyToDelete = String(path[path.length - 1]);
+        const parentPath = path.slice(0, -1);
+
+        let parent: unknown = config;
+        for (const seg of parentPath) {
+          if (parent == null || typeof parent !== "object") {
+            parent = null;
+            break;
+          }
+          parent = (parent as Record<PropertyKey, unknown>)[seg];
+        }
+
+        if (
+          parent != null &&
+          typeof parent === "object" &&
+          !Array.isArray(parent) &&
+          keyToDelete in (parent as Record<string, unknown>)
+        ) {
+          delete (parent as Record<string, unknown>)[keyToDelete];
+          allRemoved.push([...parentPath, keyToDelete].join("."));
+          progress = true;
+          break;
+        }
+
+        path.pop();
+      }
+
+      // Re-parse after each deletion to avoid cascading mis-deletions.
+      if (progress) break;
+    }
+
+    if (!progress) break;
+  }
+
+  return allRemoved;
+}
+
+/**
  * Find the monorepo root by looking for pnpm-workspace.yaml
  */
 function findMonorepoRoot(startDir: string = process.cwd()): string | null {
@@ -825,6 +897,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   const removedKeys = stripUnknownKeys(config);
   if (removedKeys.length > 0) {
     log.warn(`Stripped unknown config keys: ${removedKeys.join(", ")}`);
+  }
+
+  // Fix semantic validation errors (e.g. dmPolicy="allowlist" without allowFrom)
+  // by deleting the offending paths, escalating upward when the leaf key
+  // doesn't exist (required-but-missing).  Protects EasyClaw-managed keys.
+  const fixedPaths = fixSemanticErrors(config);
+  if (fixedPaths.length > 0) {
+    log.warn(`Fixed config validation errors by removing: ${fixedPaths.join(", ")}`);
   }
 
   writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");

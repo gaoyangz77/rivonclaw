@@ -11,7 +11,9 @@ import {
   generateGatewayToken,
   buildExtraProviderConfigs,
   DEFAULT_GATEWAY_PORT,
+  EASYCLAW_MANAGED_KEYS,
 } from "./config-writer.js";
+import { OpenClawSchema } from "../../../vendor/openclaw/src/config/zod-schema.js";
 
 describe("config-writer", () => {
   let tmpDir: string;
@@ -931,8 +933,8 @@ describe("config-writer", () => {
         configPath,
         JSON.stringify({
           channels: {
-            telegram: { botToken: "123:ABC", dmPolicy: "open" },
-            discord: { token: "discord-tok" },
+            telegram: { botToken: "123:ABC", dmPolicy: "open", allowFrom: ["*"] },
+            discord: { token: "discord-tok", dmPolicy: "open", allowFrom: ["*"] },
           },
           gateway: { port: 7777, auth: { mode: "none" } },
         }),
@@ -945,6 +947,76 @@ describe("config-writer", () => {
       expect(config.channels.telegram.dmPolicy).toBe("open");
       expect(config.channels.discord.token).toBe("discord-tok");
       expect(config.gateway.auth.mode).toBe("none");
+    });
+  });
+
+  describe("writeGatewayConfig - semantic validation fix", () => {
+    it("removes channel config when dmPolicy=allowlist but allowFrom is missing", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: { botToken: "123:ABC", dmPolicy: "allowlist" },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      // The telegram block should be removed because the semantic error
+      // (allowlist requires allowFrom) cannot be fixed by deleting a leaf.
+      expect(config.channels?.telegram).toBeUndefined();
+      // Gateway config should still be intact
+      expect(config.gateway.port).toBe(18789);
+    });
+
+    it("preserves valid channel config alongside broken one", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: { botToken: "123:ABC", dmPolicy: "allowlist" },
+            discord: { token: "discord-tok" },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels?.telegram).toBeUndefined();
+      expect(config.channels.discord.token).toBe("discord-tok");
+    });
+
+    it("does not delete EasyClaw-managed keys on semantic errors", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      // All managed keys should survive validation
+      expect(config.gateway).toBeDefined();
+      expect(config.gateway.port).toBe(18789);
+    });
+
+    it("keeps valid config when no semantic errors exist", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: { botToken: "123:ABC", dmPolicy: "open", allowFrom: ["*"] },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.botToken).toBe("123:ABC");
+      expect(config.channels.telegram.dmPolicy).toBe("open");
     });
   });
 
@@ -1018,6 +1090,87 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.browser.remoteCdpTimeoutMs).toBe(3000);
       expect(config.browser.defaultProfile).toBe("openclaw");
+    });
+  });
+
+  describe("fixSemanticErrors guard tests", () => {
+    it("EASYCLAW_MANAGED_KEYS covers all top-level keys written by writeGatewayConfig", () => {
+      // If this test fails, you added a new top-level key in writeGatewayConfig
+      // but forgot to add it to EASYCLAW_MANAGED_KEYS. Without it, that key
+      // could be deleted when fixSemanticErrors encounters unrelated errors.
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+        gatewayToken: "test-token",
+        enableChatCompletions: true,
+        commandsRestart: true,
+        plugins: { entries: {} },
+        extraSkillDirs: [],
+        skipBootstrap: true,
+        browserMode: "standalone",
+        defaultModel: { provider: "openai", modelId: "gpt-4o" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const writtenKeys = Object.keys(config);
+      const unprotected = writtenKeys.filter((k) => !EASYCLAW_MANAGED_KEYS.has(k));
+      expect(
+        unprotected,
+        `These top-level keys are written by writeGatewayConfig but missing from EASYCLAW_MANAGED_KEYS: ${unprotected.join(", ")}. ` +
+        "Add them to EASYCLAW_MANAGED_KEYS so fixSemanticErrors won't delete them.",
+      ).toEqual([]);
+    });
+
+    it("default config from ensureGatewayConfig passes OpenClaw schema validation", () => {
+      // If this test fails, vendor (OpenClaw) schema changed and our default
+      // config is no longer valid. Update writeGatewayConfig/ensureGatewayConfig
+      // to produce config that satisfies the new schema.
+      const configPath = join(tmpDir, "openclaw.json");
+      ensureGatewayConfig({ configPath });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const result = OpenClawSchema.safeParse(config);
+      if (!result.success) {
+        const messages = result.error.issues.map(
+          (i) => `  ${i.path.join(".")}: ${i.message}`,
+        );
+        expect.fail(
+          `Default config fails OpenClaw schema validation:\n${messages.join("\n")}\n` +
+          "The vendor schema likely changed. Update ensureGatewayConfig to match.",
+        );
+      }
+    });
+
+    it("full config from writeGatewayConfig passes OpenClaw schema validation", () => {
+      // If this test fails, a config shape we produce is rejected by the
+      // vendor schema. Fix writeGatewayConfig to produce valid config.
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+        gatewayToken: "abc123",
+        enableChatCompletions: true,
+        commandsRestart: true,
+        plugins: { entries: {} },
+        extraSkillDirs: ["/tmp/skills"],
+        skipBootstrap: true,
+        browserMode: "standalone",
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const result = OpenClawSchema.safeParse(config);
+      if (!result.success) {
+        const messages = result.error.issues
+          .filter((i) => i.code !== "unrecognized_keys")
+          .map((i) => `  ${i.path.join(".")}: ${i.message}`);
+        if (messages.length > 0) {
+          expect.fail(
+            `writeGatewayConfig output fails OpenClaw schema validation:\n${messages.join("\n")}\n` +
+            "Fix writeGatewayConfig to produce valid config.",
+          );
+        }
+      }
     });
   });
 });
