@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchSettings, updateSettings } from "../api/index.js";
+import { fetchSettings, updateSettings, trackEvent } from "../api/index.js";
 import type { SttProvider } from "@easyclaw/core";
 import { Select } from "../components/Select.js";
 
@@ -121,6 +121,7 @@ export function SttPage() {
       }
 
       setSaved(true);
+      trackEvent("stt.provider_saved", { provider, enabled });
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       setError(t("stt.failedToSave") + String(err));

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteChannelAccount, unbindWeComAccount, type ChannelAccountSnapshot } from "../api/index.js";
+import { deleteChannelAccount, unbindWeComAccount, trackEvent, type ChannelAccountSnapshot } from "../api/index.js";
 import { pollGatewayReady } from "../lib/poll-gateway.js";
 import { AddChannelAccountModal } from "../components/AddChannelAccountModal.js";
 import { WeComBindingModal } from "../components/WeComBindingModal.js";
@@ -124,6 +124,7 @@ export function ChannelsPage() {
   async function confirmDelete() {
     if (!deleteConfirm) return;
     const { channelId, accountId } = deleteConfirm;
+    trackEvent("channel.account_deleted", { channelType: channelId });
     const key = `${channelId}-${accountId}`;
     setDeleteConfirm(null);
     setDeletingKey(key);

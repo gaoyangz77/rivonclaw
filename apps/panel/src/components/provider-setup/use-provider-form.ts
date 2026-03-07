@@ -15,6 +15,7 @@ import {
   detectLocalModels,
   fetchLocalModels,
   checkLocalModelHealth,
+  trackEvent,
 } from "../../api/index.js";
 import type { ProviderPricing, LocalModelServer } from "../../api/index.js";
 
@@ -193,6 +194,7 @@ export function useProviderForm(onSave: (provider: string) => void) {
       setLabel("");
       setShowAdvanced(false);
       setExistingKeyCount((c) => (c ?? 0) + 1);
+      trackEvent("provider.key_added", { provider: "ollama" });
       onSave("ollama");
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -234,6 +236,7 @@ export function useProviderForm(onSave: (provider: string) => void) {
       setProxyUrl("");
       setShowAdvanced(false);
       setExistingKeyCount((c) => (c ?? 0) + 1);
+      trackEvent("provider.key_added", { provider });
       onSave(provider);
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -305,6 +308,7 @@ export function useProviderForm(onSave: (provider: string) => void) {
       setProxyUrl("");
       setShowAdvanced(false);
       setExistingKeyCount((c) => (c ?? 0) + 1);
+      trackEvent("provider.key_added", { provider });
       onSave(provider);
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err));
@@ -351,6 +355,7 @@ export function useProviderForm(onSave: (provider: string) => void) {
       setApiKey("");
       setCustomModels([]);
       setExistingKeyCount((c) => (c ?? 0) + 1);
+      trackEvent("provider.key_added", { provider: providerSlug });
       onSave(providerSlug);
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });

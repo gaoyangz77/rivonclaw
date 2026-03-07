@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { trackEvent } from "../api/index.js";
 
 type ThemePreference = "system" | "light" | "dark";
 
@@ -67,7 +68,7 @@ export function ThemeToggle() {
             <button
               key={mode}
               className={`theme-menu-option${themePreference === mode ? " theme-menu-option-active" : ""}`}
-              onClick={() => { setThemePreference(mode); setMenuOpen(false); }}
+              onClick={() => { setThemePreference(mode); setMenuOpen(false); trackEvent("ui.theme_changed", { theme: mode }); }}
             >
               <span className="theme-menu-option-icon">{THEME_ICON[mode]}</span>
               <span>{t(`theme.${mode}`)}</span>

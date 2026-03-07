@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { trackEvent } from "../api/index.js";
 import { Select } from "../components/Select.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { useCronManager } from "./crons/useCronManager.js";
@@ -60,6 +61,7 @@ export function CronsPage() {
     try {
       setActionError(null);
       await cron.toggleEnabled(job.id, !job.enabled);
+      trackEvent("cron.toggled", { enabled: !job.enabled });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
     }
@@ -70,6 +72,7 @@ export function CronsPage() {
       setActionError(null);
       setRunningJobId(id);
       await cron.runJob(id);
+      trackEvent("cron.run_now");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -82,6 +85,7 @@ export function CronsPage() {
     try {
       setActionError(null);
       await cron.removeJob(deleteTarget.id);
+      trackEvent("cron.deleted");
       setDeleteTarget(null);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
@@ -89,9 +93,11 @@ export function CronsPage() {
   }, [cron, deleteTarget]);
 
   const handleFormSubmit = useCallback(async (params: Record<string, unknown>) => {
+    const isCreate = !editingJob;
     await (editingJob
       ? cron.updateJob(editingJob.id, params)
       : cron.addJob(params));
+    if (isCreate) trackEvent("cron.created");
     setFormOpen(false);
     setEditingJob(null);
   }, [cron, editingJob]);

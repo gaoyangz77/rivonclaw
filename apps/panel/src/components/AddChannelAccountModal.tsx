@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "./Modal.js";
 import { Select } from "./Select.js";
-import { createChannelAccount, updateChannelAccount } from "../api/index.js";
+import { createChannelAccount, updateChannelAccount, trackEvent } from "../api/index.js";
 import { CHANNEL_SCHEMAS } from "../channel-schemas.js";
 
 export interface AddChannelAccountModalProps {
@@ -136,6 +136,7 @@ export function AddChannelAccountModal({
           config,
           secrets,
         });
+        trackEvent("channel.account_added", { channelType: channelId });
       }
 
       // Wait for parent to confirm gateway has reloaded

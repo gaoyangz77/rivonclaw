@@ -91,6 +91,7 @@ export function SettingsPage() {
       setSaving(true);
       setError(null);
       await updateAgentSettings({ dmScope: value });
+      trackEvent("settings.dm_scope_changed", { scope: value });
     } catch (err) {
       setError(t("settings.agent.failedToSave") + String(err));
       setDmScope(previous);
@@ -169,6 +170,7 @@ export function SettingsPage() {
       setSaving(true);
       setError(null);
       await updateAutoLaunchSetting(enabled);
+      trackEvent("settings.auto_launch_toggled", { enabled });
     } catch (err) {
       setError(t("settings.autoLaunch.failedToSave") + String(err));
       setAutoLaunchEnabled(previous);
@@ -184,6 +186,7 @@ export function SettingsPage() {
       setSaving(true);
       setError(null);
       await updatePrivacyMode(enabled);
+      trackEvent("settings.privacy_mode_toggled", { enabled });
       window.dispatchEvent(new CustomEvent("privacy-settings-changed"));
     } catch (err) {
       setError(t("settings.app.title") + ": " + String(err));
@@ -209,6 +212,7 @@ export function SettingsPage() {
       setSaving(true);
       setError(null);
       await updateBrowserMode(newMode);
+      trackEvent("settings.browser_mode_changed", { mode: newMode });
     } catch (err) {
       setError(t("settings.browser.failedToSave") + String(err));
       setBrowserMode(previous);
@@ -239,6 +243,7 @@ export function SettingsPage() {
       setSaving(true);
       setError(null);
       await resetOpenClawStateDir();
+      trackEvent("settings.state_dir_reset");
       setDataDirInfo((prev) => prev ? { ...prev, override: null } : prev);
       setDataDirRestartNeeded(true);
     } catch (err) {

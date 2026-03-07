@@ -11,6 +11,7 @@ import {
   saveWeComConfig,
   deleteWeComConfig,
   type CustomerServiceStatus,
+  trackEvent,
   type WeComConfigInput,
 } from "../api/index.js";
 
@@ -154,6 +155,7 @@ export function AppsPage() {
     try {
       await saveWeComConfig(wecomForm, wecomPanelToken, lang);
       setWecomConfigStatus("saved");
+      trackEvent("cs.configured");
       setWecomSavedCorpId(wecomForm.corpId);
       setWecomHasToken(true);
       setTimeout(() => {
@@ -203,6 +205,7 @@ export function AppsPage() {
 
   async function handleToggle(enabled: boolean) {
     setActionLoading(true);
+    trackEvent("cs.toggled", { enabled });
     try {
       if (enabled) {
         setConnectionState("connecting");

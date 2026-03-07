@@ -86,6 +86,7 @@ export function RulesPage() {
   async function handleDelete(id: string) {
     try {
       await deleteRule(id);
+      trackEvent("rule.deleted");
       await loadRules();
     } catch (err) {
       setError({ key: "rules.failedToDelete", detail: String(err) });
@@ -101,6 +102,7 @@ export function RulesPage() {
     if (!editText.trim()) return;
     try {
       await updateRule(id, editText.trim());
+      trackEvent("rule.edited");
       setEditingId(null);
       setEditText("");
       await loadRules();

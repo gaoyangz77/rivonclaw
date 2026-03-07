@@ -8,6 +8,7 @@ import {
   updateProviderKey,
   activateProviderKey,
   deleteProviderKey,
+  trackEvent,
 } from "../api/index.js";
 import { configManager } from "../lib/config-manager.js";
 import type { ProviderKeyEntry } from "../api/index.js";
@@ -82,6 +83,7 @@ export function ProvidersPage() {
     setError(null);
     try {
       await configManager.activateProvider(keyId, provider);
+      trackEvent("provider.key_activated", { provider });
       await loadData();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -90,9 +92,10 @@ export function ProvidersPage() {
 
   async function handleRemoveKey(keyId: string) {
     setError(null);
+    const entry = keys.find((k) => k.id === keyId);
     try {
       await deleteProviderKey(keyId);
-
+      trackEvent("provider.key_deleted", { provider: entry?.provider });
       await loadData();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });

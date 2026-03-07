@@ -7,6 +7,7 @@ import {
   fetchWorkspacePath,
   fetchSettings,
   updateSettings,
+  trackEvent,
   type Permissions,
 } from "../api/index.js";
 
@@ -113,6 +114,7 @@ export function PermissionsPage() {
     setSaving(true);
     try {
       await updateSettings({ "file-permissions-full-access": enabled ? "true" : "false" });
+      trackEvent("permission.full_access_toggled", { enabled });
     } catch (err) {
       setError({ key: "permissions.failedToSave", detail: String(err) });
       setFullAccess(!enabled); // revert on failure
@@ -184,6 +186,7 @@ export function PermissionsPage() {
 
     // Auto-save after adding
     await autoSave(newEntries);
+    trackEvent("permission.path_added");
   }
 
   async function handleTogglePermission(index: number, perm: PermLevel) {
@@ -198,6 +201,7 @@ export function PermissionsPage() {
     setEntries(newEntries);
     // Auto-save after removal
     await autoSave(newEntries);
+    trackEvent("permission.path_removed");
   }
 
   return (
