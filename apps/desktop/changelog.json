@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.6.3",
+    "date": "2026-03-07",
+    "en": [
+      "Add event bridge plugin for extensible event handling",
+      "Upgrade OpenClaw engine to v2026.3.7",
+      "Fix mobile chat media handling and reaction support",
+      "Fix QR code pairing: add expiry countdown, refresh, and shorter TTL",
+      "Fix auto-repair of invalid gateway config on startup",
+      "Fix dev warnings for startup-timer, memory-core plugin, and telegram groupPolicy",
+      "Add vendor bundle verification for build integrity"
+    ],
+    "zh": [
+      "新增事件桥接插件，支持可扩展事件处理",
+      "升级 OpenClaw 引擎至 v2026.3.7",
+      "修复手机聊天媒体处理和表情回应功能",
+      "修复二维码配对：新增过期倒计时、刷新按钮，缩短有效期",
+      "修复启动时自动修复无效网关配置",
+      "修复开发模式下启动计时器、内存插件、Telegram 群组策略警告",
+      "新增打包完整性验证"
+    ]
+  },
+  {
     "version": "1.6.2",
     "date": "2026-03-06",
     "en": [
