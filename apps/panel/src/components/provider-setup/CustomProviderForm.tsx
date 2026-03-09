@@ -1,5 +1,6 @@
 import { TagInput } from "../TagInput.js";
 import { Select } from "../Select.js";
+import { ModalityCheckboxGroup } from "./ModalityCheckboxGroup.js";
 import type { ProviderFormState } from "./use-provider-form.js";
 
 export function CustomProviderForm({
@@ -87,44 +88,7 @@ export function CustomProviderForm({
         <small className="form-help-sm">{t("providers.customModelsHelp")}</small>
       </div>
 
-      <div className="mb-sm">
-        <div className="form-label text-secondary">{t("providers.modelCapabilities")}</div>
-        <div className="form-checkbox-group">
-          <label className="form-checkbox-row">
-            <input
-              type="checkbox"
-              checked={inputModalities.includes("text")}
-              onChange={(e) => {
-                if (!e.target.checked && inputModalities.length <= 1) return;
-                setInputModalities(
-                  e.target.checked
-                    ? [...inputModalities, "text"]
-                    : inputModalities.filter((m) => m !== "text"),
-                );
-              }}
-              className="checkbox-sm"
-            />
-            <span className="form-checkbox-label">{t("providers.modalityText")}</span>
-          </label>
-          <label className="form-checkbox-row">
-            <input
-              type="checkbox"
-              checked={inputModalities.includes("image")}
-              onChange={(e) => {
-                if (!e.target.checked && inputModalities.length <= 1) return;
-                setInputModalities(
-                  e.target.checked
-                    ? [...inputModalities, "image"]
-                    : inputModalities.filter((m) => m !== "image"),
-                );
-              }}
-              className="checkbox-sm"
-            />
-            <span className="form-checkbox-label">{t("providers.modalityImage")}</span>
-          </label>
-        </div>
-        <small className="form-help-sm">{t("providers.modelCapabilitiesHelp")}</small>
-      </div>
+      <ModalityCheckboxGroup inputModalities={inputModalities} setInputModalities={setInputModalities} />
 
       <div className="form-actions">
         <button
