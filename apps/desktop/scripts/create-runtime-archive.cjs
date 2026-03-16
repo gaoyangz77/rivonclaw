@@ -265,6 +265,58 @@ function createStagingDir() {
 
   const stagingSize = dirSize(stagingDir);
   log(`Staging directory created: ${stagingDir} (${fmtSize(stagingSize)})`);
+
+}
+
+/**
+ * Collect all .pnpm/[entry]/node_modules/ paths for use as esbuild nodePaths.
+ * This lets esbuild resolve transitive deps that pnpm didn't hoist to the
+ * top-level node_modules, WITHOUT copying files or mutating the staging dir.
+ *
+ * @returns {string[]} absolute paths to pass as esbuild `nodePaths`
+ */
+function collectPnpmNodePaths() {
+  const pnpmDir = path.join(nmDir, ".pnpm");
+  if (!fs.existsSync(pnpmDir)) return [];
+
+  /** @type {string[]} */
+  const paths = [];
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const innerNm = path.join(pnpmDir, entry.name, "node_modules");
+    if (fs.existsSync(innerNm)) paths.push(innerNm);
+  }
+  log(`Collected ${paths.length} pnpm node_modules paths for bundler resolution`);
+  return paths;
+}
+
+/**
+ * Verify all keepSet packages exist at the top-level node_modules.
+ *
+ * With the current pipeline (packages:"external" in esbuild + metafile-driven
+ * keepSet), all keepSet packages should be ones that pnpm already hoisted to
+ * the top level. If any are missing, that signals a dependency graph change
+ * that needs investigation — we fail loud rather than silently hoisting a
+ * potentially wrong version.
+ *
+ * @param {Set<string>} keepSet
+ */
+function verifyKeepSetTopLevel(keepSet) {
+  const missing = [];
+  for (const pkgName of keepSet) {
+    if (!fs.existsSync(path.join(nmDir, pkgName))) {
+      missing.push(pkgName);
+    }
+  }
+  if (missing.length > 0) {
+    console.error(`\n[create-runtime-archive] ${missing.length} keepSet package(s) missing from top-level node_modules:\n`);
+    for (const pkg of missing.sort()) console.error(`  ${pkg}`);
+    console.error(`\nThese packages are needed at runtime but pnpm did not hoist them.`);
+    console.error(`This usually means a new vendor dependency introduced a non-hoisted transitive dep.`);
+    console.error(`Fix: add the package to EXTERNAL_PACKAGES in scripts/vendor-runtime-packages.cjs,`);
+    console.error(`or investigate why the metafile reports it as a runtime external.\n`);
+    process.exit(1);
+  }
 }
 
 // ─── Phase 0.0: Extract vendor model catalog ───
@@ -398,9 +450,7 @@ function prebundleExtensions() {
   const esbuild = loadEsbuild();
   const INLINE_SIZE_LIMIT = 2 * 1024 * 1024;
 
-  const extExternalsBase = [...EXTERNAL_PACKAGES];
   const { alias: pluginSdkAlias, externals: pluginSdkExternals } = resolvePluginSdkAliasAndExternals();
-  const extExternalsWithSdk = [...extExternalsBase, ...pluginSdkExternals];
   const pluginSdkDir = path.join(distDir, "plugin-sdk");
   const pluginSdkPkg = path.join(pluginSdkDir, "package.json");
   const hadPkgJson = fs.existsSync(pluginSdkPkg);
@@ -426,9 +476,13 @@ function prebundleExtensions() {
   /**
    * @param {string} entryPoint
    * @param {string} outfile
-   * @param {{inline: boolean}} opts
+   * @param {{inline: boolean, extDir: string}} opts
    */
   function buildExtension(entryPoint, outfile, opts) {
+    // Use packages:"external" to externalize all bare-specifier imports.
+    // When inline:true, plugin-sdk is aliased to file paths (not bare specifiers)
+    // so it gets inlined; everything else (npm deps) stays external.
+    // When inline:false, plugin-sdk is also listed in external via pluginSdkExternals.
     return esbuild.buildSync({
       entryPoints: [entryPoint],
       outfile,
@@ -436,9 +490,9 @@ function prebundleExtensions() {
       format: "cjs",
       platform: "node",
       target: "node22",
+      packages: "external",
       define: { "import.meta.url": "__import_meta_url" },
       banner: { js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;' },
-      external: opts.inline ? extExternalsBase : extExternalsWithSdk,
       ...(opts.inline ? { alias: pluginSdkAlias } : {}),
       metafile: true,
       minify: true,
@@ -477,11 +531,11 @@ function prebundleExtensions() {
     const indexJs = path.join(stagingExtDir, "index.js");
 
     try {
-      let result = buildExtension(entryTs, indexJs, { inline: true });
+      let result = buildExtension(entryTs, indexJs, { inline: true, extDir: ext.dir });
 
       // If output exceeds threshold, rebuild with plugin-sdk external
       if (fs.statSync(indexJs).size > INLINE_SIZE_LIMIT) {
-        result = buildExtension(entryTs, indexJs, { inline: false });
+        result = buildExtension(entryTs, indexJs, { inline: false, extDir: ext.dir });
       } else {
         inlinedCount++;
       }
@@ -555,46 +609,67 @@ function bundlePluginSdk() {
   const pluginSdkIndex = path.join(pluginSdkDir, "index.js");
   if (!fs.existsSync(pluginSdkIndex)) {
     log("dist/plugin-sdk/index.js not found, skipping.");
-    return;
+    return new Set();
   }
 
   const esbuild = loadEsbuild();
 
+  // Use packages:"external" — all bare-specifier npm imports stay external.
+  // The metafile accurately reports only the packages actually referenced.
+  const allSdkPkgs = new Set();
+
+  /** Collect external packages from metafile */
+  function collectExternals(result) {
+    if (!result?.metafile) return;
+    for (const output of Object.values(result.metafile.outputs)) {
+      for (const imp of /** @type {any} */ (output).imports || []) {
+        if (imp.external) {
+          const parts = imp.path.split("/");
+          allSdkPkgs.add(imp.path.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0]);
+        }
+      }
+    }
+  }
+
   /** @param {string} entryPoint @param {string} outfile */
   function bundleCjs(entryPoint, outfile) {
     const tmpOut = outfile + ".tmp.cjs";
-    esbuild.buildSync({
+    const result = esbuild.buildSync({
       entryPoints: [entryPoint],
       outfile: tmpOut,
       bundle: true,
       format: "cjs",
       platform: "node",
       target: "node22",
+      packages: "external",
       define: { "import.meta.url": "__import_meta_url" },
       banner: { js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;' },
-      external: EXTERNAL_PACKAGES,
+      metafile: true,
       minify: true,
       logLevel: "warning",
     });
+    collectExternals(result);
     fs.unlinkSync(entryPoint);
     fs.renameSync(tmpOut, entryPoint);
   }
 
   // Bundle index.js
   const tmpOut = path.join(pluginSdkDir, "index.bundled.mjs");
-  esbuild.buildSync({
+  const indexResult = esbuild.buildSync({
     entryPoints: [pluginSdkIndex],
     outfile: tmpOut,
     bundle: true,
     format: "cjs",
     platform: "node",
     target: "node22",
+    packages: "external",
     define: { "import.meta.url": "__import_meta_url" },
     banner: { js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;' },
-    external: EXTERNAL_PACKAGES,
+    metafile: true,
     minify: true,
     logLevel: "warning",
   });
+  collectExternals(indexResult);
   const bundleSize = fs.statSync(tmpOut).size;
   fs.unlinkSync(pluginSdkIndex);
   fs.renameSync(tmpOut, pluginSdkIndex);
@@ -633,6 +708,7 @@ function bundlePluginSdk() {
   fs.writeFileSync(path.join(pluginSdkDir, "package.json"), '{"type":"commonjs"}\n', "utf-8");
 
   log(`plugin-sdk bundled: ${fmtSize(bundleSize)}, deleted ${deleted} chunk files`);
+  return allSdkPkgs;
 }
 
 // ─── Phase 1: esbuild bundle with code splitting ───
@@ -688,6 +764,10 @@ async function bundleEntryJs() {
   }
   fs.mkdirSync(BUNDLE_TEMP_DIR, { recursive: true });
 
+  // Use nodePaths so esbuild can resolve transitive deps that pnpm didn't
+  // hoist to the top level, without mutating the staging dir.
+  const pnpmNodePaths = collectPnpmNodePaths();
+
   const t0 = Date.now();
   const result = await esbuild.build({
     entryPoints: [ENTRY_FILE],
@@ -699,6 +779,7 @@ async function bundleEntryJs() {
     platform: "node",
     target: "node22",
     external: EXTERNAL_PACKAGES,
+    nodePaths: pnpmNodePaths,
     logLevel: "warning",
     metafile: true,
     sourcemap: false,
@@ -941,11 +1022,20 @@ function parsePnpmDirName(dirName) {
   return dirName.substring(0, atIdx);
 }
 
-/** BFS from EXTERNAL_PACKAGES to find all transitive deps to keep. */
-function buildKeepSet() {
+/**
+ * BFS from seed packages to find all transitive deps to keep.
+ * Packages are resolved from the top-level node_modules (which includes
+ * hoisted pnpm deps from the staging setup phase).
+ */
+function buildKeepSet(extraSeeds = new Set()) {
   const keepSet = new Set();
   /** @type {string[]} */
   const queue = [];
+
+  // Seed with packages that bundles actually use as runtime externals
+  for (const pkg of extraSeeds) {
+    queue.push(pkg);
+  }
 
   for (const pattern of EXTERNAL_PACKAGES) {
     if (pattern.endsWith("/*")) {
@@ -1012,7 +1102,7 @@ function resolveNodeModulesSymlinks() {
   if (resolved > 0) log(`Resolved ${resolved} symlinks to real directories`);
 }
 
-function cleanupNodeModules() {
+function cleanupNodeModules(usedExternals = new Set()) {
   log("Cleaning node_modules to external-packages keepSet...");
 
   if (!fs.existsSync(nmDir)) return new Set();
@@ -1020,7 +1110,7 @@ function cleanupNodeModules() {
   resolveNodeModulesSymlinks();
 
   const filesBefore = countFiles(nmDir);
-  const keepSet = buildKeepSet();
+  const keepSet = buildKeepSet(usedExternals);
   log(`Packages to keep: ${keepSet.size}`);
 
   // Clean top-level entries
@@ -1106,9 +1196,8 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
   for (const pkg of [...packagesToVerify].sort()) {
     if (isNodeBuiltin(pkg)) continue;
     if (!matchesExternalPackage(pkg)) continue;
-    if (!keepSet.has(pkg)) continue; // never installed, expected
+    if (!keepSet.has(pkg) || !fs.existsSync(path.join(nmDir, pkg))) continue; // never installed or not kept, expected
     verified++;
-    if (!fs.existsSync(path.join(nmDir, pkg))) missing.push(pkg);
   }
 
   if (missing.length > 0) {
@@ -1146,7 +1235,7 @@ function smokeTestGateway() {
         ...process.env,
         OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
         OPENCLAW_STATE_DIR: tmpDir,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: extensionsDir,
         NODE_COMPILE_CACHE: undefined,
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -1245,7 +1334,7 @@ function generateCompileCache() {
     NODE_COMPILE_CACHE: cacheDir,
     OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
     OPENCLAW_STATE_DIR: tmpDir,
-    OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
+    OPENCLAW_BUNDLED_PLUGINS_DIR: extensionsDir,
   };
 
   if (useRealGateway) {
@@ -1329,18 +1418,7 @@ function createArchive() {
   const manifestInsideStaging = path.join(stagingDir, MANIFEST_FILENAME);
   fs.writeFileSync(manifestInsideStaging, JSON.stringify({ version: vendorVersion, placeholder: true }) + "\n", "utf-8");
 
-  // Copy pre-bundled extensions into staging/extensions/ for archiving.
-  // The archive should contain the pre-bundled .js versions, not the .ts source.
-  if (fs.existsSync(extStagingDir)) {
-    for (const entry of fs.readdirSync(extStagingDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const src = path.join(extStagingDir, entry.name);
-      const dst = path.join(extensionsDir, entry.name);
-      // Overlay: copy bundled files into staging extensions dir
-      fs.cpSync(src, dst, { recursive: true, force: true });
-    }
-    log("Copied pre-bundled extensions into staging/extensions/ for archiving");
-  }
+  // Pre-bundled extensions were already copied into staging/extensions/ before the smoke test.
 
   // Build tar exclusion list
   const excludes = [
@@ -1427,7 +1505,7 @@ function createArchive() {
     const { externals: extExternals, inlinedCount } = prebundleExtensions();
 
     // Phase 0.5a: Bundle plugin-sdk (in staging)
-    bundlePluginSdk();
+    const sdkExternals = bundlePluginSdk();
 
     // Phase 1: Bundle entry.js (in staging)
     const bundleExternals = await bundleEntryJs();
@@ -1443,11 +1521,27 @@ function createArchive() {
     pruneNodeModules();
 
     // Phase 4: Clean node_modules to keepSet (in staging)
-    const keepSet = cleanupNodeModules();
+    const allExternals = new Set([...extExternals, ...(sdkExternals || []), ...bundleExternals]);
+    const keepSet = cleanupNodeModules(allExternals);
 
-    // Phase 4.5: Verify
-    const allExternals = new Set([...extExternals, ...bundleExternals]);
+    // Phase 4.1: Verify all keepSet packages are at the top level.
+    // With packages:"external" + metafile-driven keepSet, all runtime packages
+    // should be ones pnpm already hoisted. Fail loud if any are missing.
+    verifyKeepSetTopLevel(keepSet);
+
     verifyExternalImports(allExternals, keepSet);
+
+    // Copy pre-bundled extensions into staging BEFORE smoke test so they can
+    // resolve packages from the staging node_modules via Node resolution.
+    if (fs.existsSync(extStagingDir)) {
+      for (const entry of fs.readdirSync(extStagingDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const src = path.join(extStagingDir, entry.name);
+        const dst = path.join(extensionsDir, entry.name);
+        fs.cpSync(src, dst, { recursive: true, force: true });
+      }
+      log("Copied pre-bundled extensions into staging for smoke test");
+    }
 
     // Phase 5: Smoke test (using staging's openclaw.mjs)
     smokeTestGateway();

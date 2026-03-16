@@ -199,6 +199,7 @@ export interface PanelServerOptions {
   onExtrasChange?: () => void;
   onPermissionsChange?: () => void;
   onBrowserChange?: () => void;
+  onAuthChange?: () => void;
   onAutoLaunchChange?: (enabled: boolean) => void;
   onChannelConfigured?: (channelId: string) => void;
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
@@ -255,7 +256,7 @@ const routeHandlers: RouteHandler[] = [
 export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAutoLaunchChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
+  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAuthChange, onAutoLaunchChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
 
   // Initialize the customer service bridge
   initCSBridge({ storage, secretStore, getGatewayInfo, deviceId });
@@ -329,7 +330,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
   // Build the ApiContext object passed to all route handlers
   const ctx: ApiContext = {
     storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog,
-    sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAutoLaunchChange,
+    sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAuthChange, onAutoLaunchChange,
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager, authSession, sessionLifecycleManager,

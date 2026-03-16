@@ -60,10 +60,10 @@ pnpm install
 pnpm build
 
 # 3. Launch in dev mode
-pnpm --filter @easyclaw/desktop dev
+pnpm dev
 ```
 
-This starts the Electron tray app, which spawns the OpenClaw gateway and serves the management panel at `http://localhost:3210`.
+This starts the Electron tray app and the panel dev server. The tray app spawns the OpenClaw gateway and serves the management panel at `http://localhost:3210`.
 
 ## Repository Structure
 
@@ -94,8 +94,7 @@ easyclaw/
 │   ├── test-local.sh             # Local test pipeline (build + unit + e2e tests)
 │   ├── publish-release.sh        # Publish draft GitHub Release
 │   ├── rebuild-native.sh         # Prebuild better-sqlite3 for Node.js + Electron
-│   ├── smoke-test-vendor.cjs     # Vendor gateway startup smoke test
-│   └── verify-vendor-bundle.cjs  # Dry-run bundle verification (pre-release check)
+│   └── vendor-runtime-packages.cjs  # Shared vendor external package definitions
 └── vendor/
     └── openclaw/         # Vendored OpenClaw binary (gitignored)
 ```
@@ -197,9 +196,9 @@ The desktop app runs as a **tray-only** application (hidden from the dock on mac
 
 1. Spawns the OpenClaw gateway from `vendor/openclaw/`
 2. Serves the panel UI and REST API on `localhost:3210`
-3. Writes gateway config and auth profiles to `~/.openclaw/`
+3. Writes gateway config and auth profiles to `~/.easyclaw/openclaw/`
 4. Injects secrets (API keys + OAuth tokens) from the system keychain at runtime
-5. Watches `~/.openclaw/skills/` for hot-reload of rule-generated skill files
+5. Watches `~/.easyclaw/openclaw/skills/` for hot-reload of rule-generated skill files
 6. Syncs refreshed OAuth tokens back to keychain on shutdown
 
 ### REST API
@@ -226,22 +225,16 @@ The panel server exposes these endpoints:
 
 | Path                             | Purpose                    |
 | -------------------------------- | -------------------------- |
-| `~/.easyclaw/easyclaw.db`        | SQLite database            |
-| `~/.easyclaw/logs/`              | Application logs           |
-| `~/.openclaw/`                   | OpenClaw state directory   |
-| `~/.openclaw/gateway/config.yml` | Gateway configuration      |
-| `~/.openclaw/sessions/`          | WhatsApp sessions          |
-| `~/.openclaw/skills/`            | Auto-generated skill files |
+| `~/.easyclaw/db.sqlite`                  | SQLite database            |
+| `~/.easyclaw/logs/`                      | Application logs           |
+| `~/.easyclaw/openclaw/`                  | OpenClaw state directory   |
+| `~/.easyclaw/openclaw/openclaw.json`     | Gateway configuration      |
+| `~/.easyclaw/openclaw/sessions/`         | WhatsApp sessions          |
+| `~/.easyclaw/openclaw/skills/`           | User skills (marketplace-installed + rule-generated; loaded as `extraSkillDirs` alongside OpenClaw's built-in skills under `~/.easyclaw/runtime/{hash}/skills/`) |
 
 ## Building Installers
 
-The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces file count from ~58K to ~7K (via esbuild bundling) and the DMG from ~360MB to ~310MB. See `docs/BUNDLE_VENDOR.md` for details.
-
-**After building**, vendor will be pruned/bundled. To restore full deps for development:
-
-```bash
-bash .claude/skills/update-vendor/scripts/provision-vendor.sh $(tr -d '[:space:]' < .openclaw-version)
-```
+The `dist:mac` and `dist:win` scripts generate a runtime archive from `vendor/openclaw` (staging-based, vendor is never modified). The archive includes esbuild-bundled code, pruned node_modules, pre-bundled extensions, and a V8 compile cache. On first launch, the app extracts the archive to `~/.easyclaw/runtime/`. See the "Infrastructure: Runtime Archive" section in `docs/PROGRESS_V2.md` for details.
 
 ### macOS (DMG, universal arm64+x64)
 

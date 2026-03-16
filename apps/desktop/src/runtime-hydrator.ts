@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -72,6 +72,76 @@ export function checkRuntimeReady(
 }
 
 /**
+ * Run tar extraction asynchronously, polling the output directory size
+ * to report real progress. Returns a promise that resolves when tar exits.
+ */
+/**
+ * Count top-level entries in a directory (fast, cross-platform).
+ * Returns 0 if the directory doesn't exist or can't be read.
+ */
+function countTopLevelEntries(dir: string): number {
+  try {
+    return readdirSync(dir).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Run tar extraction asynchronously, polling the output directory for
+ * newly created entries to report real progress. Pure Node.js — no
+ * platform-specific commands like `du`.
+ */
+function extractWithProgress(
+  archivePath: string,
+  extractDir: string,
+  report: (progress: HydrateProgress) => void,
+): Promise<void> {
+  // The runtime archive contains ~800 top-level entries after --strip-components=1
+  // (dist/, node_modules/, extensions/, openclaw.mjs, etc. with node_modules
+  // being the bulk). We use this as the denominator for progress estimation.
+  // Overestimating is fine — the bar just won't quite reach 90% before completion.
+  const ESTIMATED_ENTRY_COUNT = 900;
+
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn("tar", ["xzf", archivePath, "--strip-components=1", "-C", extractDir], {
+      stdio: "pipe",
+    });
+
+    // Poll every 2 seconds: count top-level entries in extractDir as progress
+    const pollInterval = setInterval(() => {
+      const count = countTopLevelEntries(extractDir);
+      // Map to 5%-90% range (reserve 0-5% for prep, 90-100% for verify)
+      const rawPercent = Math.min(count / ESTIMATED_ENTRY_COUNT, 1);
+      const percent = Math.round(5 + rawPercent * 85);
+      report({ phase: "extracting", message: "extracting", percent });
+    }, 2_000);
+
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      child.kill("SIGTERM");
+      reject(new Error("Archive extraction timed out (5 minutes)"));
+    }, 300_000);
+
+    child.on("close", (code) => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`tar exited with code ${code}`));
+      }
+    });
+
+    child.on("error", (err) => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+}
+
+/**
  * Extract the runtime archive and set up the runtime directory.
  *
  * - Reads runtime-manifest.json from archiveDir for hash + version
@@ -135,15 +205,12 @@ export async function hydrateRuntime(opts: {
 
   mkdirSync(extractDir, { recursive: true });
 
-  report({ phase: "extracting", message: "Extracting runtime archive...", percent: 10 });
+  report({ phase: "extracting", message: "Extracting runtime archive...", percent: 5 });
 
   try {
-    // --strip-components=1 removes the top-level "openclaw/" directory from the
-    // archive, extracting files directly into extractDir (e.g. openclaw.mjs at root).
-    execSync(`tar xzf "${archivePath}" --strip-components=1 -C "${extractDir}"`, {
-      stdio: "pipe",
-      timeout: 120_000, // 2 minute timeout for extraction
-    });
+    // Async extraction with real progress polling (not execSync which blocks
+    // the event loop and prevents the bootstrap window from rendering).
+    await extractWithProgress(archivePath, extractDir, report);
   } catch (err) {
     // Clean up failed extraction
     rmSync(extractDir, { recursive: true, force: true });
@@ -152,7 +219,7 @@ export async function hydrateRuntime(opts: {
     throw new Error(msg);
   }
 
-  report({ phase: "extracting", message: "Extraction complete", percent: 90 });
+  report({ phase: "extracting", message: "Extraction complete", percent: 92 });
 
   // ── Phase: verifying ──
   report({ phase: "verifying", message: "Verifying extracted runtime..." });
@@ -190,6 +257,8 @@ export async function hydrateRuntime(opts: {
     throw new Error(msg);
   }
 
+  report({ phase: "extracting", message: "Finalizing...", percent: 97 });
+
   // ── Atomic rename ──
   // If the target directory appeared while we were extracting (concurrent run),
   // the other instance won the race — use its result.
@@ -217,7 +286,7 @@ export async function hydrateRuntime(opts: {
   }
 
   log.info(`Runtime v${version} hydrated at ${runtimeDir}`);
-  report({ phase: "ready", message: `Runtime v${version} ready` });
+  report({ phase: "ready", message: `Runtime v${version} ready`, percent: 100 });
 
   // ── Cleanup ──
   cleanupOldRuntimes(runtimeBaseDir, sha256);

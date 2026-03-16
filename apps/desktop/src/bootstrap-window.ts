@@ -1,8 +1,33 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow, app, ipcMain } from "electron";
 import type { HydrateProgress } from "./runtime-hydrator.js";
 
-const BOOTSTRAP_HTML = `<!DOCTYPE html>
-<html lang="en">
+type Locale = "zh" | "en";
+
+const i18n = {
+  en: {
+    initializing: "Initializing...",
+    preparing: "Preparing to configure...",
+    extracting: "Configuring EasyClaw...",
+    verifying: "Verifying...",
+    almostReady: "Almost ready...",
+    retry: "Retry",
+    quit: "Quit",
+  },
+  zh: {
+    initializing: "正在初始化...",
+    preparing: "正在准备配置...",
+    extracting: "正在配置爪爪...",
+    verifying: "正在验证...",
+    almostReady: "即将完成...",
+    retry: "重试",
+    quit: "退出",
+  },
+} as const;
+
+function buildHtml(locale: Locale): string {
+  const t = i18n[locale];
+  return `<!DOCTYPE html>
+<html lang="${locale === "zh" ? "zh-CN" : "en"}">
 <head>
 <meta charset="utf-8">
 <title>EasyClaw</title>
@@ -149,7 +174,7 @@ const BOOTSTRAP_HTML = `<!DOCTYPE html>
   <div class="title">EasyClaw</div>
 
   <div id="progressSection" class="progress-section">
-    <div id="message" class="message">Initializing...</div>
+    <div id="message" class="message">${t.initializing}</div>
     <div class="progress-track">
       <div id="progressFill" class="progress-fill indeterminate"></div>
     </div>
@@ -158,8 +183,8 @@ const BOOTSTRAP_HTML = `<!DOCTYPE html>
   <div id="errorContainer" class="error-container">
     <div id="errorMessage" class="error-message"></div>
     <div class="error-actions">
-      <button id="retryBtn" class="btn btn-primary" onclick="handleRetry()">Retry</button>
-      <button id="quitBtn" class="btn btn-secondary" onclick="handleQuit()">Quit</button>
+      <button id="retryBtn" class="btn btn-primary" onclick="handleRetry()">${t.retry}</button>
+      <button id="quitBtn" class="btn btn-secondary" onclick="handleQuit()">${t.quit}</button>
     </div>
   </div>
 
@@ -204,6 +229,7 @@ const BOOTSTRAP_HTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
 
 export interface BootstrapWindow {
   show: () => void;
@@ -217,6 +243,8 @@ export interface BootstrapWindow {
  * The window uses inline HTML with no external dependencies.
  */
 export function createBootstrapWindow(): BootstrapWindow {
+  const locale: Locale = app.getLocale().startsWith("zh") ? "zh" : "en";
+
   const win = new BrowserWindow({
     width: 400,
     height: 250,
@@ -233,7 +261,8 @@ export function createBootstrapWindow(): BootstrapWindow {
   });
 
   // Load inline HTML via data URL
-  const encoded = Buffer.from(BOOTSTRAP_HTML, "utf-8").toString("base64");
+  const html = buildHtml(locale);
+  const encoded = Buffer.from(html, "utf-8").toString("base64");
   win.loadURL(`data:text/html;base64,${encoded}`);
 
   return {
@@ -243,7 +272,16 @@ export function createBootstrapWindow(): BootstrapWindow {
 
     updateProgress(progress: HydrateProgress) {
       if (win.isDestroyed()) return;
-      win.webContents.send("hydrate-progress", progress);
+      // Translate phase messages for display
+      const t = i18n[locale];
+      const displayMessage =
+        progress.phase === "checking" ? t.initializing :
+        progress.phase === "extracting" && (progress.percent ?? 0) < 5 ? t.preparing :
+        progress.phase === "extracting" ? t.extracting :
+        progress.phase === "verifying" ? t.verifying :
+        progress.phase === "ready" ? t.almostReady :
+        progress.message;
+      win.webContents.send("hydrate-progress", { ...progress, message: displayMessage });
     },
 
     showError(message: string, canRetry: boolean): Promise<"retry" | "quit"> {

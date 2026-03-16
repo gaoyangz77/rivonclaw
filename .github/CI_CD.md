@@ -67,12 +67,7 @@ If local tests fail, delete the draft release on GitHub and fix the issues.
 
 ## Vendor Pruning
 
-`dist:mac` / `dist:win` scripts automatically prune `vendor/openclaw/node_modules` before packaging to reduce installer size.
-
-After building locally, restore full deps for development:
-```bash
-cd vendor/openclaw && CI=true pnpm install --no-frozen-lockfile && cd ../..
-```
+`dist:mac` / `dist:win` scripts generate a staging-based runtime archive from `vendor/openclaw` (the canonical vendor directory is never modified). The `vendor-boundary` CI job runs boundary guard and artifact drift checks before build jobs.
 
 ## Troubleshooting
 

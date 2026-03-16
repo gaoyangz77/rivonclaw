@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/generate-vendor-artifacts.mjs && turbo run build",
+    "build": "node scripts/check-extension-deps.mjs && node scripts/generate-vendor-artifacts.mjs && turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "dev": "turbo run dev",
@@ -12,6 +12,7 @@
     "format:fix": "oxfmt --write",
     "postinstall": "bash scripts/rebuild-native.sh",
     "verify-proxy": "node scripts/verify-proxy-domains.mjs",
+    "check:ext-deps": "node scripts/check-extension-deps.mjs",
     "check:ext-externals": "node scripts/check-extension-externals.mjs",
     "generate:vendor-artifacts": "node scripts/generate-vendor-artifacts.mjs",
     "check:vendor-boundary": "node scripts/check-vendor-boundary.mjs",

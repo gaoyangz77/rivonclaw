@@ -53,7 +53,9 @@ import { createAutoUpdater } from "./auto-updater.js";
 import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch, migrateOldProviderKeys } from "./startup-utils.js";
 import { initTelemetry } from "./telemetry-init.js";
 import { createGatewayConfigBuilder } from "./gateway-config-builder.js";
+import type { GatewayConfigDeps } from "./gateway-config-builder.js";
 import { AuthSessionManager } from "./auth-session.js";
+import { fetchPluginPrompts } from "./plugin-prompt-fetcher.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
@@ -287,6 +289,60 @@ app.whenReady().then(async () => {
   // We explicitly show it for the main process here.
   app.dock?.show();
 
+  // Prevent Electron from quitting when the bootstrap window closes during
+  // hydration. The app is a tray app — it should stay alive even with zero
+  // windows until the tray is created and the full lifecycle is running.
+  app.on("window-all-closed", () => { /* tray app — stay alive with zero windows */ });
+
+  // In packaged app, the runtime archive is extracted on first launch to a
+  // content-addressed directory under ~/.easyclaw/runtime/{hash}/. Subsequent
+  // launches skip extraction if the hash matches (fast path, ~1ms).
+  // In dev, resolveVendorDir() resolves relative to source via import.meta.url.
+  let vendorDir = "";
+  if (app.isPackaged) {
+    const archiveDir = join(process.resourcesPath, "runtime-archive");
+    const runtimeBaseDir = join(resolveEasyClawHome(), "runtime");
+
+    // Quick check — is the runtime already hydrated?
+    const existingRuntime = checkRuntimeReady(archiveDir, runtimeBaseDir);
+
+    if (existingRuntime) {
+      vendorDir = existingRuntime;
+    } else {
+      // Need extraction — show bootstrap splash window
+      const bootstrap = createBootstrapWindow();
+      bootstrap.show();
+
+      let extracted = false;
+      while (!extracted) {
+        try {
+          const result = await hydrateRuntime({
+            archiveDir,
+            runtimeBaseDir,
+            onProgress: (p) => bootstrap.updateProgress(p),
+          });
+          vendorDir = result.runtimeDir;
+          extracted = true;
+          bootstrap.close();
+        } catch (err) {
+          log.error("Runtime hydration failed:", err);
+          const action = await bootstrap.showError(
+            err instanceof Error ? err.message : String(err),
+            true,
+          );
+          if (action !== "retry") {
+            bootstrap.close();
+            app.quit();
+            return;
+          }
+          // Loop continues — retry extraction
+        }
+      }
+    }
+  } else {
+    vendorDir = resolveVendorDir();
+  }
+
   // --- Device ID ---
   let deviceId: string;
   try {
@@ -434,10 +490,16 @@ app.whenReady().then(async () => {
   const { backfillOwnerMigration } = await import("./owner-migration.js");
   await backfillOwnerMigration(storage, stateDir, configPath);
 
-  // Build gateway config helpers (closures bound to current settings)
-  const { buildFullGatewayConfig } = createGatewayConfigBuilder({
+  // Fetch server-managed plugin prompts before first config build.
+  // Kept as a separate variable (not in configDeps) — prompts are pushed
+  // to the plugin via RPC, never written to the gateway config file.
+  let pluginPrompts: Record<string, string> = authSession?.getAccessToken()
+    ? await fetchPluginPrompts(authSession)
+    : {};
+  const configDeps: GatewayConfigDeps = {
     storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath, filePermissionsPluginPath, authSession,
-  });
+  };
+  const { buildFullGatewayConfig } = createGatewayConfigBuilder(configDeps);
 
   writeGatewayConfig(await buildFullGatewayConfig());
 
@@ -489,55 +551,6 @@ app.whenReady().then(async () => {
   // Normalize legacy cron store: rename jobId → id so the gateway's findJobOrThrow works.
   // The OpenClaw CLI writes "jobId" but the gateway service indexes jobs by "id".
   normalizeCronStoreIds(join(stateDir, "cron", "jobs.json"));
-
-  // In packaged app, the runtime archive is extracted on first launch to a
-  // content-addressed directory under ~/.easyclaw/runtime/{hash}/. Subsequent
-  // launches skip extraction if the hash matches (fast path, ~1ms).
-  // In dev, resolveVendorDir() resolves relative to source via import.meta.url.
-  let vendorDir = "";
-  if (app.isPackaged) {
-    const archiveDir = join(process.resourcesPath, "runtime-archive");
-    const runtimeBaseDir = join(resolveEasyClawHome(), "runtime");
-
-    // Quick check — is the runtime already hydrated?
-    const existingRuntime = checkRuntimeReady(archiveDir, runtimeBaseDir);
-
-    if (existingRuntime) {
-      vendorDir = existingRuntime;
-    } else {
-      // Need extraction — show bootstrap splash window
-      const bootstrap = createBootstrapWindow();
-      bootstrap.show();
-
-      let extracted = false;
-      while (!extracted) {
-        try {
-          const result = await hydrateRuntime({
-            archiveDir,
-            runtimeBaseDir,
-            onProgress: (p) => bootstrap.updateProgress(p),
-          });
-          vendorDir = result.runtimeDir;
-          extracted = true;
-          bootstrap.close();
-        } catch (err) {
-          log.error("Runtime hydration failed:", err);
-          const action = await bootstrap.showError(
-            err instanceof Error ? err.message : String(err),
-            true,
-          );
-          if (action !== "retry") {
-            bootstrap.close();
-            app.quit();
-            return;
-          }
-          // Loop continues — retry extraction
-        }
-      }
-    }
-  } else {
-    vendorDir = resolveVendorDir();
-  }
 
   const launcher = new GatewayLauncher({
     entryPath: resolveVendorEntryPath(vendorDir),
@@ -631,6 +644,15 @@ app.whenReady().then(async () => {
               }
             })
             .catch((e: unknown) => log.warn("Failed to list cron jobs for tool context push:", e));
+        }
+
+        // Push plugin prompts via RPC (in-memory, not written to config file).
+        // Each plugin registers "{pluginId}_set_prompt_addendum" gateway method;
+        // we iterate the map so new plugins need zero changes in main.ts.
+        for (const [pluginId, prompt] of Object.entries(pluginPrompts)) {
+          const method = `${pluginId.replace(/-/g, "_")}_set_prompt_addendum`;
+          rpcClient?.request(method, { prompt })
+            .catch((e: unknown) => log.debug(`Failed to push prompt for ${pluginId}:`, e));
         }
 
         // Push locally-stored cookies for managed profiles to the gateway plugin
@@ -1431,6 +1453,22 @@ app.whenReady().then(async () => {
               });
             });
         });
+    },
+    onAuthChange: () => {
+      // Re-fetch server-managed plugin prompts and push via RPC (in-memory).
+      (async () => {
+        if (authSession?.getAccessToken()) {
+          pluginPrompts = await fetchPluginPrompts(authSession);
+        } else {
+          pluginPrompts = {};
+        }
+        // Push updated prompts to all plugins via RPC (in-memory)
+        for (const [pluginId, prompt] of Object.entries(pluginPrompts)) {
+          const method = `${pluginId.replace(/-/g, "_")}_set_prompt_addendum`;
+          rpcClient?.request(method, { prompt })
+            .catch((e: unknown) => log.debug(`Failed to push prompt for ${pluginId} on auth change:`, e));
+        }
+      })().catch((e: unknown) => log.warn("onAuthChange prompt refresh failed:", e));
     },
     onAutoLaunchChange: (enabled: boolean) => {
       applyAutoLaunch(enabled);

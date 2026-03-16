@@ -4,7 +4,7 @@
 
 const EXTERNAL_PACKAGES = [
   // OpenAI Codex OAuth no longer keeps the full pi-ai package at runtime.
-  // bundle-vendor-deps extracts the upstream oauth helper into vendor/dist.
+  // create-runtime-archive extracts the upstream oauth helper into vendor/dist.
 
   // Native modules (contain .node or .dylib binaries)
   "sharp",
