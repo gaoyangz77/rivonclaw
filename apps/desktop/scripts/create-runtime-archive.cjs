@@ -214,23 +214,23 @@ function createStagingDir() {
     process.exit(1);
   }
 
-  // Fail if vendor checkout has untracked or modified files that would leak into the archive.
-  // This is a best-effort check — git may not be available in all environments.
+  // Fail if vendor SOURCE files have been modified. setup-vendor.sh legitimately
+  // modifies .npmrc, .gitignore, and creates node_modules/dist/ — those are fine.
+  // We only block on src/ or extension source changes that would leak into the archive.
   try {
-    const gitStatus = execSync("git status --porcelain .", {
+    const gitDiff = execSync("git diff --name-only -- src/ extensions/", {
       cwd: vendorDir,
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 10_000,
     }).trim();
-    if (gitStatus) {
-      const lines = gitStatus.split("\n").filter(Boolean);
+    if (gitDiff) {
+      const lines = gitDiff.split("\n").filter(Boolean);
       console.error(
-        `[create-runtime-archive] ERROR: vendor/openclaw has ${lines.length} untracked/modified file(s):\n` +
+        `[create-runtime-archive] ERROR: vendor/openclaw has ${lines.length} modified source file(s):\n` +
           lines.slice(0, 15).map((l) => `  ${l}`).join("\n") +
-          (lines.length > 15 ? `\n  ... and ${lines.length - 15} more` : "") +
-          "\n\nThe archive must be built from a clean vendor checkout to ensure deterministic output." +
-          "\nRun: cd vendor/openclaw && git checkout -- . && git clean -fd",
+          "\n\nVendor source modifications would leak into the archive." +
+          "\nRun: cd vendor/openclaw && git checkout -- .",
       );
       process.exit(1);
     }
