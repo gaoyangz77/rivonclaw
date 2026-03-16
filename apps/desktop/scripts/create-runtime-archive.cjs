@@ -83,6 +83,12 @@ const KEEP_DIST_DIRS = new Set([
   "plugin-sdk",
 ]);
 
+// ─── Vendor workspace packages (cause circular symlinks/junctions) ───
+// These are pnpm workspace packages inside vendor/openclaw. They create
+// node_modules links that point back into the vendor root, causing infinite
+// recursion when dereferencing during staging copy.
+const VENDOR_WORKSPACE_PKGS = new Set(["openclaw", "clawdbot", "moltbot", "openclaw-control-ui"]);
+
 // ─── Prune config ───
 
 const EXTRA_REMOVE = [
@@ -241,27 +247,45 @@ function createStagingDir() {
   // Create temp directory
   stagingParent = fs.mkdtempSync(path.join(os.tmpdir(), "easyclaw-runtime-"));
 
-  // Copy vendor/openclaw to staging, dereferencing symlinks and excluding .git.
-  // Use tar with -h flag to dereference symlinks (works on macOS, Linux, and
-  // Windows via Git for Windows which includes tar).
+  // Copy vendor/openclaw to staging, dereferencing symlinks.
   //
-  // pnpm workspace packages (moltbot, clawdbot) have symlinks like
+  // On macOS/Linux, pnpm uses symlinks; on Windows, pnpm uses directory junctions.
+  // tar -h dereferences symlinks but NOT junctions, so Windows staging copies end
+  // up with broken junction targets. Use Node.js fs.cpSync with dereference:true
+  // which handles both symlinks and junctions correctly on all platforms.
+  //
+  // pnpm workspace packages (moltbot, clawdbot) have links like
   //   packages/moltbot/node_modules/openclaw -> ../../..
-  // which point back to the vendor root. With tar -h (dereference), this creates
-  // infinite recursion. We exclude these self-referencing workspace symlinks.
-  // We also exclude .pnpm/node_modules/openclaw which is a similar hoisted link.
+  // which point back to the vendor root, creating infinite recursion when
+  // dereferencing. The filter function excludes these circular references.
   const vendorParent = path.dirname(vendorDir);
   const vendorBase = path.basename(vendorDir);
-  fs.mkdirSync(path.join(stagingParent, vendorBase), { recursive: true });
-  const tarExcludes = [
-    "--exclude=.git",
-    "--exclude=*/packages/*/node_modules/openclaw",
-    "--exclude=*/node_modules/.pnpm/node_modules/openclaw",
-  ].join(" ");
-  execSync(
-    `tar chf - ${tarExcludes} -C "${vendorParent}" "${vendorBase}" | tar xf - -C "${stagingParent}"`,
-    { stdio: "inherit", timeout: 300_000 },
-  );
+  const stagingTarget = path.join(stagingParent, vendorBase);
+  fs.cpSync(vendorDir, stagingTarget, {
+    recursive: true,
+    dereference: true,
+    filter: (src) => {
+      const rel = path.relative(vendorDir, src);
+      // Exclude .git directories
+      if (rel === ".git" || rel.startsWith(".git" + path.sep)) return false;
+      // Exclude any node_modules/openclaw or node_modules/clawdbot directories.
+      // pnpm workspace packages create symlinks/junctions like:
+      //   packages/moltbot/node_modules/openclaw -> ../../..
+      //   node_modules/.pnpm/node_modules/openclaw -> (another .pnpm entry)
+      //   node_modules/.pnpm/node_modules/clawdbot -> (workspace package)
+      // These point back into the vendor root, causing infinite recursion
+      // when dereferencing. We detect them by checking if any component in
+      // the path is a node_modules/<workspace-pkg> pattern.
+      const sep = /[\\/]/;
+      const segments = rel.split(sep);
+      for (let i = 0; i < segments.length - 1; i++) {
+        if (segments[i] === "node_modules" && VENDOR_WORKSPACE_PKGS.has(segments[i + 1])) {
+          return false;
+        }
+      }
+      return true;
+    },
+  });
 
   // Set staging paths
   stagingDir = path.join(stagingParent, vendorBase);
@@ -1123,6 +1147,12 @@ function cleanupNodeModules(usedExternals = new Set()) {
   const filesBefore = countFiles(nmDir);
   const keepSet = buildKeepSet(usedExternals);
   log(`Packages to keep: ${keepSet.size}`);
+  // Diagnostic: verify critical runtime packages are in keepSet
+  for (const critical of ["@sinclair/typebox", "undici", "ws"]) {
+    if (!keepSet.has(critical)) {
+      log(`WARNING: ${critical} is NOT in keepSet but is in EXTERNAL_PACKAGES`);
+    }
+  }
 
   // Clean top-level entries
   let removedTopLevel = 0;
