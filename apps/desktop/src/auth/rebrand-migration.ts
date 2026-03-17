@@ -37,17 +37,6 @@ const PATHS_TO_COPY = [
 ];
 
 /**
- * Check whether migration is needed (old dir exists and no marker).
- * Call this before showing a UI dialog so we only prompt when necessary.
- */
-export function needsMigration(): boolean {
-  const home = homedir();
-  const oldDir = join(home, OLD_DIR_NAME);
-  const marker = join(home, NEW_DIR_NAME, ".migrated-from-easyclaw");
-  return existsSync(oldDir) && !existsSync(marker);
-}
-
-/**
  * One-time migration from EasyClaw → RivonClaw.
  *
  * Selectively copies irreplaceable user data from ~/.easyclaw → ~/.rivonclaw,
@@ -66,8 +55,16 @@ export async function migrateFromEasyClaw(): Promise<void> {
     const oldDir = join(home, OLD_DIR_NAME);
     const newDir = join(home, NEW_DIR_NAME);
 
-    if (!needsMigration()) {
-      log.debug("Migration not needed — skipping");
+    // Skip if old directory doesn't exist (fresh install, nothing to migrate)
+    if (!existsSync(oldDir)) {
+      log.debug("~/.easyclaw does not exist — nothing to migrate");
+      return;
+    }
+
+    // One-time guard: marker file ensures we never run twice.
+    const markerCheck = join(newDir, ".migrated-from-easyclaw");
+    if (existsSync(markerCheck)) {
+      log.debug("Migration marker exists — already migrated");
       return;
     }
 

@@ -305,26 +305,8 @@ app.whenReady().then(async () => {
 
   // --- Rebrand migration (EasyClaw → RivonClaw) ---
   // TODO(cleanup): Remove after v1.8.0 (see auth/rebrand-migration.ts)
-  const { needsMigration, migrateFromEasyClaw } = await import("./auth/rebrand-migration.js");
-  if (needsMigration()) {
-    const isZh = app.getLocale().startsWith("zh");
-    const splashWin = new BrowserWindow({
-      width: 360, height: 160,
-      resizable: false,
-      frame: false,
-      alwaysOnTop: true,
-      show: false,
-    });
-    const msg = isZh
-      ? "正在从 EasyClaw 迁移数据，请稍候..."
-      : "Migrating data from EasyClaw, please wait...";
-    splashWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(
-      `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;font-size:15px;color:#333;background:#f8f8f8;user-select:none">${msg}</body>`,
-    )}`);
-    splashWin.once("ready-to-show", () => splashWin.show());
-    await migrateFromEasyClaw();
-    splashWin.close();
-  }
+  const { migrateFromEasyClaw } = await import("./auth/rebrand-migration.js");
+  await migrateFromEasyClaw();
 
   // Initialize storage and secrets
   const storage = createStorage();
