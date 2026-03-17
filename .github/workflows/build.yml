@@ -53,8 +53,43 @@ jobs:
       - name: Check generated artifact drift (ADR-030)
         run: node scripts/check-vendor-artifact-drift.mjs
 
-  build-windows:
+  build-runtime-archive:
     needs: [validate-vendor-patches, vendor-boundary]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup OpenClaw vendor
+        run: ./scripts/setup-vendor.sh --prod
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Create runtime archive
+        run: node apps/desktop/scripts/create-runtime-archive.cjs
+
+      - name: Upload runtime archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
+          retention-days: 1
+
+  build-windows:
+    needs: [build-runtime-archive]
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -78,6 +113,12 @@ jobs:
 
       - name: Build packages
         run: pnpm run build
+
+      - name: Download runtime archive
+        uses: actions/download-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
 
       - name: Build Windows app
         run: |
@@ -129,7 +170,7 @@ jobs:
           retention-days: 30
 
   build-macos:
-    needs: [validate-vendor-patches, vendor-boundary]
+    needs: [build-runtime-archive]
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -168,6 +209,12 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
+      - name: Download runtime archive
+        uses: actions/download-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
+
       - name: Build macOS app
         run: |
           cd apps/desktop
@@ -190,7 +237,7 @@ jobs:
           retention-days: 30
 
   build-linux:
-    needs: [validate-vendor-patches, vendor-boundary]
+    needs: [build-runtime-archive]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -213,6 +260,12 @@ jobs:
 
       - name: Build packages
         run: pnpm run build
+
+      - name: Download runtime archive
+        uses: actions/download-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
 
       - name: Build Linux app
         run: |

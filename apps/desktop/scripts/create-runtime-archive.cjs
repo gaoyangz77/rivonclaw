@@ -1,5 +1,5 @@
 // @ts-check
-// Creates a runtime archive (.asar) from vendor/openclaw for inclusion in the
+// Creates a runtime archive (.tar.gz) from vendor/openclaw for inclusion in the
 // Electron installer. All transformations happen on a temporary staging copy —
 // the canonical vendor/openclaw directory is NEVER modified.
 //
@@ -13,7 +13,7 @@
 //   6. Prune node_modules (EXTRA_REMOVE + keepSet + strip) — staging
 //   7. Smoke-test the bundled gateway — staging
 //   8. Generate V8 compile cache — staging
-//   9. Create ASAR archive + runtime-manifest.json — staging -> output
+//   9. Create tar.gz archive + runtime-manifest.json — staging -> output
 //  10. Clean up staging directory
 //
 // esbuild bundling is still necessary because:
@@ -24,8 +24,7 @@
 // - All bundling now operates on the staging copy, so vendor/ stays clean
 //
 // Produces:
-//   apps/desktop/runtime-archive/openclaw-runtime.asar
-//   apps/desktop/runtime-archive/openclaw-runtime.asar.unpacked/
+//   apps/desktop/runtime-archive/openclaw-runtime.tar.gz
 //   apps/desktop/runtime-archive/runtime-manifest.json
 
 const { execSync, execFileSync } = require("child_process");
@@ -49,7 +48,7 @@ const desktopDir = path.resolve(__dirname, "..");
 const extStagingDir = path.join(desktopDir, ".prebundled-extensions");
 
 const ARCHIVE_DIR = path.join(desktopDir, "runtime-archive");
-const ARCHIVE_FILE = "openclaw-runtime.asar";
+const ARCHIVE_FILE = "openclaw-runtime.tar.gz";
 
 // ─── Staging paths (set dynamically in createStagingDir) ───
 
@@ -1583,7 +1582,7 @@ function generateCompileCache() {
 
 // ─── Phase 6: Create archive ───
 
-async function createArchive() {
+function createArchive() {
   log("Creating runtime archive...");
 
   // Ensure output dir exists
@@ -1606,39 +1605,34 @@ async function createArchive() {
 
   // Pre-bundled extensions were already copied into staging/extensions/ before the smoke test.
 
-  // Clean up files from staging that should not be packed into the ASAR.
-  // (.git is already excluded during staging copy, but these may still exist.)
-  const excludeNames = [".gitignore", ".gitattributes", ".turbo", ".bundled", ".bundle-keepset.json"];
-  const cleanStagingExcludes = (/** @type {string} */ dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (excludeNames.includes(entry.name)) {
-        fs.rmSync(full, { recursive: true, force: true });
-      } else if (entry.isDirectory() && entry.name !== "node_modules") {
-        cleanStagingExcludes(full);
-      }
-    }
-    // Also clean node_modules/.cache and .package-lock.json if present
-    if (path.basename(dir) === "node_modules") {
-      const cachePath = path.join(dir, ".cache");
-      if (fs.existsSync(cachePath)) fs.rmSync(cachePath, { recursive: true, force: true });
-      const pkgLock = path.join(dir, ".package-lock.json");
-      if (fs.existsSync(pkgLock)) fs.rmSync(pkgLock, { force: true });
-    }
-  };
-  cleanStagingExcludes(stagingDir);
+  // Build tar exclusion list
+  const excludes = [
+    "--exclude=.git",
+    "--exclude=.gitignore",
+    "--exclude=.gitattributes",
+    "--exclude=node_modules/.cache",
+    "--exclude=node_modules/.package-lock.json",
+    "--exclude=.turbo",
+    "--exclude=.bundled",
+    "--exclude=.bundle-keepset.json",
+  ];
 
-  // Create ASAR archive using @electron/asar.
-  // Native .node modules are unpacked so they can be dlopen'd at runtime.
-  const asar = require("@electron/asar");
+  // Create tar.gz archive from the staging directory.
+  // Use -C to cd into the staging parent so the archive root is "openclaw/"
+  // On Windows, convert backslashes to forward slashes for tar compatibility.
+  const toSlash = (p) => p.replace(/\\/g, "/");
+  const tarCmd = [
+    "tar", "czf", toSlash(archivePath),
+    ...excludes,
+    "-C", toSlash(path.dirname(stagingDir)),
+    path.basename(stagingDir),
+  ].join(" ");
 
   const t0 = Date.now();
   try {
-    await asar.createPackageWithOptions(stagingDir, archivePath, {
-      unpack: "{*.node,**/*.node}",
-    });
+    execSync(tarCmd, { stdio: "inherit", timeout: 600_000 });
   } catch (err) {
-    console.error("[create-runtime-archive] asar.createPackageWithOptions failed:", /** @type {Error} */ (err).message);
+    console.error("[create-runtime-archive] tar command failed:", /** @type {Error} */ (err).message);
     process.exit(1);
   }
   const elapsed = Date.now() - t0;
@@ -1670,6 +1664,16 @@ async function createArchive() {
 
 (async () => {
   const t0 = Date.now();
+
+  // Skip if runtime archive already exists (e.g. downloaded from CI artifact)
+  const existingArchive = path.join(ARCHIVE_DIR, ARCHIVE_FILE);
+  const existingManifest = path.join(ARCHIVE_DIR, MANIFEST_FILENAME);
+  if (fs.existsSync(existingArchive) && fs.existsSync(existingManifest)) {
+    console.log("[create-runtime-archive] Runtime archive already exists, skipping.");
+    console.log(`  Archive: ${existingArchive}`);
+    console.log(`  Manifest: ${existingManifest}`);
+    process.exit(0);
+  }
 
   // Guards — validate the read-only vendor directory
   if (!fs.existsSync(vendorDir)) {
@@ -1743,7 +1747,7 @@ async function createArchive() {
     generateCompileCache();
 
     // Phase 6: Create the archive (from staging)
-    const manifest = await createArchive();
+    const manifest = createArchive();
 
     const totalElapsed = ((Date.now() - t0) / 1000).toFixed(1);
     log(`Done in ${totalElapsed}s. Archive: ${ARCHIVE_FILE} (${fmtSize(fs.statSync(path.join(ARCHIVE_DIR, ARCHIVE_FILE)).size)}), version ${manifest.version}`);

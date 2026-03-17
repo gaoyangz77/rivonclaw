@@ -19,7 +19,6 @@
     "check:vendor-artifact-drift": "node scripts/check-vendor-artifact-drift.mjs"
   },
   "devDependencies": {
-    "@electron/asar": "^4.1.0",
     "@types/node": "^22.15.0",
     "oxfmt": "0.28.0",
     "oxlint": "^1.43.0",

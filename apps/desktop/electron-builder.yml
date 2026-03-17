@@ -21,12 +21,10 @@ icon: build/icon
 
 # Files copied outside asar into Contents/Resources/
 extraResources:
-  # OpenClaw vendor runtime ASAR — read directly by Electron (no extraction needed).
-  # Contains openclaw-runtime.asar, openclaw-runtime.asar.unpacked/, and runtime-manifest.json.
+  # OpenClaw vendor runtime archive — extracted on first launch by the hydrator.
+  # Created by create-runtime-archive.cjs (tar.gz + manifest).
   - from: "runtime-archive"
     to: "runtime-archive"
-    filter:
-      - "**/*"
   # EasyClaw extensions — auto-discovered by OpenClaw at runtime
   - from: "../../extensions"
     to: "extensions"
@@ -68,8 +66,9 @@ mac:
   entitlementsInherit: entitlements.mac.plist
   identity: null
   notarize: false
-  # Only the better-sqlite3 native module in the app asar needs the
-  # x64ArchFiles hint for universal builds.
+  # The runtime archive is a single tar.gz file (platform-independent at the
+  # archive level). Only the better-sqlite3 native module in the asar needs
+  # the x64ArchFiles hint for universal builds.
   x64ArchFiles: "Contents/Resources/app.asar.unpacked/node_modules/better-sqlite3/**"
 dmg:
   background: build/dmg-background.png

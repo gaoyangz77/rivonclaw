@@ -49,8 +49,38 @@ jobs:
       - name: Check generated artifact drift (ADR-030)
         run: node scripts/check-vendor-artifact-drift.mjs
 
-  test-build-windows:
+  build-runtime-archive:
     needs: [validate-vendor-patches, vendor-boundary]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup OpenClaw vendor
+        run: ./scripts/setup-vendor.sh --prod
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Create runtime archive
+        run: node apps/desktop/scripts/create-runtime-archive.cjs
+
+      - name: Upload runtime archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
+          retention-days: 1
+
+  test-build-windows:
+    needs: [build-runtime-archive]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -69,6 +99,12 @@ jobs:
 
       - name: Build packages
         run: pnpm run build
+
+      - name: Download runtime archive
+        uses: actions/download-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
 
       - name: Build and package app (no signing)
         run: |
@@ -112,7 +148,7 @@ jobs:
           EASYCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
 
   test-build-macos:
-    needs: [validate-vendor-patches, vendor-boundary]
+    needs: [build-runtime-archive]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
@@ -130,6 +166,12 @@ jobs:
 
       - name: Build packages
         run: pnpm run build
+
+      - name: Download runtime archive
+        uses: actions/download-artifact@v6
+        with:
+          name: runtime-archive
+          path: apps/desktop/runtime-archive/
 
       - name: Build and package app (no signing)
         run: |
