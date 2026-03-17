@@ -1,5 +1,5 @@
-appId: com.rivonclaw.desktop
-productName: RivonClaw
+appId: com.easyclaw.desktop
+productName: EasyClaw
 
 directories:
   output: release
@@ -21,11 +21,25 @@ icon: build/icon
 
 # Files copied outside asar into Contents/Resources/
 extraResources:
-  # OpenClaw vendor runtime archive — extracted on first launch by the hydrator.
-  # Created by create-runtime-archive.cjs (tar.gz + manifest).
-  - from: "runtime-archive"
-    to: "runtime-archive"
-  # RivonClaw extensions — auto-discovered by OpenClaw at runtime
+  # OpenClaw vendor runtime — must be outside asar (runs as a separate Node.js process)
+  - from: "../../vendor/openclaw"
+    to: "vendor/openclaw"
+    filter:
+      - "openclaw.mjs"
+      - "package.json"
+      - "dist/**"
+      - "docs/**"
+      - "extensions/**"
+      - "!extensions/**/node_modules/**"
+      - "packages/**"
+      - "!packages/**/node_modules/**"
+  # Pre-bundled vendor extensions (CJS format, tree-shaken by bundle-vendor-deps.cjs).
+  # Written directly to .prebundled-extensions/ by Phase 0.5b — overlays vendor
+  # extensions with bundled .js + updated package.json in release builds.
+  # In pack-only builds (no bundle step), this dir doesn't exist and is skipped.
+  - from: ".prebundled-extensions"
+    to: "vendor/openclaw/extensions"
+  # EasyClaw extensions — auto-discovered by OpenClaw at runtime
   - from: "../../extensions"
     to: "extensions"
     filter:
@@ -66,10 +80,13 @@ mac:
   entitlementsInherit: entitlements.mac.plist
   identity: null
   notarize: false
-  # The runtime archive is a single tar.gz file (platform-independent at the
-  # archive level). Only the better-sqlite3 native module in the asar needs
-  # the x64ArchFiles hint for universal builds.
-  x64ArchFiles: "Contents/Resources/app.asar.unpacked/node_modules/better-sqlite3/**"
+  # Vendor node_modules may contain Mach-O binaries (sharp, koffi, etc.)
+  # that are identical in both x64/arm64 builds. Tell the universal
+  # merge to skip lipo for these files. Two vendor patterns are needed:
+  # 1) .pnpm/** — minimatch doesn't match dotfiles with **, so .pnpm
+  #    must be named explicitly
+  # 2) **     — covers non-dotfile paths (@img/sharp-*, etc.)
+  x64ArchFiles: "Contents/Resources/{vendor/openclaw/node_modules/.pnpm/**,vendor/openclaw/node_modules/**,app.asar.unpacked/node_modules/better-sqlite3/**}"
 dmg:
   background: build/dmg-background.png
   iconSize: 80
@@ -86,6 +103,7 @@ dmg:
 
 publish:
   - provider: generic
-    url: https://www.rivonclaw.com/releases/
+    url: https://www.easy-claw.com/releases/
 
+afterPack: scripts/copy-vendor-deps.cjs
 afterSign: scripts/notarize.cjs

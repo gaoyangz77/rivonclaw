@@ -207,7 +207,7 @@ export interface PanelServerOptions {
   onOAuthManualComplete?: (provider: string, callbackUrl: string) => Promise<{ email?: string; tokenPreview: string }>;
   onOAuthPoll?: (flowId: string) => { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string };
   onTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
-  vendorDir: string;
+  vendorDir?: string;
   /** Node.js binary path for spawning OpenClaw CLI commands (e.g. doctor). */
   nodeBin: string;
   deviceId?: string;

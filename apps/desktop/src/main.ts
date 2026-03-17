@@ -3,7 +3,6 @@ import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   GatewayLauncher,
   GatewayRpcClient,
-  resolveVendorDir,
   resolveVendorEntryPath,
   ensureGatewayConfig,
   resolveOpenClawStateDir,
@@ -61,8 +60,6 @@ import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { proxiedFetch } from "./api-routes/route-utils.js";
 import { buildToolContext } from "./utils/tool-context-builder.js";
-import { checkRuntimeReady, hydrateRuntime } from "./gateway/runtime-hydrator.js";
-import { createBootstrapWindow } from "./tray/bootstrap-window.js";
 
 const log = createLogger("desktop");
 
@@ -491,54 +488,11 @@ app.whenReady().then(async () => {
   // The OpenClaw CLI writes "jobId" but the gateway service indexes jobs by "id".
   normalizeCronStoreIds(join(stateDir, "cron", "jobs.json"));
 
-  // In packaged app, the runtime archive is extracted on first launch to a
-  // content-addressed directory under ~/.rivonclaw/runtime/{hash}/. Subsequent
-  // launches skip extraction if the hash matches (fast path, ~1ms).
-  // In dev, resolveVendorDir() resolves relative to source via import.meta.url.
-  let vendorDir = "";
-  if (app.isPackaged) {
-    const archiveDir = join(process.resourcesPath, "runtime-archive");
-    const runtimeBaseDir = join(resolveRivonClawHome(), "runtime");
-
-    // Quick check — is the runtime already hydrated?
-    const existingRuntime = checkRuntimeReady(archiveDir, runtimeBaseDir);
-
-    if (existingRuntime) {
-      vendorDir = existingRuntime;
-    } else {
-      // Need extraction — show bootstrap splash window
-      const bootstrap = createBootstrapWindow();
-      bootstrap.show();
-
-      let extracted = false;
-      while (!extracted) {
-        try {
-          const result = await hydrateRuntime({
-            archiveDir,
-            runtimeBaseDir,
-            onProgress: (p) => bootstrap.updateProgress(p),
-          });
-          vendorDir = result.runtimeDir;
-          extracted = true;
-          bootstrap.close();
-        } catch (err) {
-          log.error("Runtime hydration failed:", err);
-          const action = await bootstrap.showError(
-            err instanceof Error ? err.message : String(err),
-            true,
-          );
-          if (action !== "retry") {
-            bootstrap.close();
-            app.quit();
-            return;
-          }
-          // Loop continues — retry extraction
-        }
-      }
-    }
-  } else {
-    vendorDir = resolveVendorDir();
-  }
+  // In packaged app, vendor lives in Resources/vendor/openclaw (extraResources).
+  // In dev, resolveVendorEntryPath() resolves relative to source via import.meta.url.
+  const vendorDir = app.isPackaged
+    ? join(process.resourcesPath, "vendor", "openclaw")
+    : undefined;
 
   const launcher = new GatewayLauncher({
     entryPath: resolveVendorEntryPath(vendorDir),
@@ -1669,7 +1623,8 @@ app.whenReady().then(async () => {
   // Write the proxy setup CJS module once and build the NODE_OPTIONS string.
   // This is reused by all restart paths (handleSttChange, handlePermissionsChange)
   // so the --require is never accidentally dropped.
-  const proxySetupPath = writeProxySetupModule(stateDir, vendorDir);
+  const resolvedVendorDir = vendorDir ?? join(import.meta.dirname, "..", "..", "..", "vendor", "openclaw");
+  const proxySetupPath = writeProxySetupModule(stateDir, resolvedVendorDir);
   // Quote the path — Windows usernames with spaces break unquoted --require
   const gatewayNodeOptions = `--require "${proxySetupPath.replaceAll("\\", "/")}"`;
 

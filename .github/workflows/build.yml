@@ -4,57 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate-vendor-patches:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Clone OpenClaw vendor (pristine, no build)
-        run: ./scripts/setup-vendor.sh --clone-only
-
-      - name: Validate vendor patch replay
-        run: ./scripts/provision-vendor-patched.sh
-
-  vendor-boundary:
-    runs-on: ubuntu-latest
-    needs: validate-vendor-patches
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Check vendor boundary (ADR-030)
-        run: node scripts/check-vendor-boundary.mjs
-
-      - name: Check generated artifact drift (ADR-030)
-        run: node scripts/check-vendor-artifact-drift.mjs
-
   build-windows:
-    needs: [validate-vendor-patches, vendor-boundary]
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -87,18 +37,6 @@ jobs:
           # Code signing will be handled by SignPath
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Verify Windows packaged startup and model switch
-        # Unsigned apps require runtime hydration which may exceed CI timeout.
-        # Best-effort until a real signing identity is configured.
-        continue-on-error: true
-        run: |
-          node apps/desktop/scripts/prod-model-switch-check.mjs apps/desktop/release/win-unpacked/RivonClaw.exe
-        env:
-          RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
-          RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
-          RIVONCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 20
-          RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
-
       - name: Upload unsigned installer for signing
         uses: actions/upload-artifact@v6
         with:
@@ -112,11 +50,11 @@ jobs:
       #   with:
       #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
       #     organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-      #     project-slug: 'rivonclaw'
+      #     project-slug: 'easyclaw'
       #     signing-policy-slug: 'release-signing'
       #     artifact-configuration-slug: 'windows-installer'
-      #     input-artifact-path: 'apps/desktop/release/RivonClaw-Setup.exe'
-      #     output-artifact-path: 'apps/desktop/release/RivonClaw-Setup-Signed.exe'
+      #     input-artifact-path: 'apps/desktop/release/EasyClaw-Setup.exe'
+      #     output-artifact-path: 'apps/desktop/release/EasyClaw-Setup-Signed.exe'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
@@ -129,7 +67,6 @@ jobs:
           retention-days: 30
 
   build-macos:
-    needs: [validate-vendor-patches, vendor-boundary]
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -190,7 +127,6 @@ jobs:
           retention-days: 30
 
   build-linux:
-    needs: [validate-vendor-patches, vendor-boundary]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -284,7 +220,7 @@ jobs:
 
           # Create the draft release with release notes and all artifacts
           gh release create "$TAG" \
-            --title "RivonClaw $TAG" \
+            --title "EasyClaw $TAG" \
             --notes-file .github/RELEASE_BODY.md \
             --draft \
             artifacts/windows/* \
