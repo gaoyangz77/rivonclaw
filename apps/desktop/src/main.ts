@@ -1530,7 +1530,7 @@ app.whenReady().then(async () => {
       let flowId: string | undefined;
       let flow: PendingOAuthFlow | undefined;
       for (const [id, f] of pendingOAuthFlows) {
-        if (f.provider === provider && f.status === "pending") {
+        if (f.provider === provider && (f.status === "pending" || f.status === "completed")) {
           flowId = id;
           flow = f;
           break;
@@ -1538,6 +1538,13 @@ app.whenReady().then(async () => {
       }
       if (!flow || !flowId) {
         throw new Error("No pending OAuth flow. Please start the sign-in process first.");
+      }
+
+      // Auto-callback already completed — return its result directly
+      if (flow.status === "completed" && flow.creds) {
+        log.info(`OAuth flow ${flowId} already auto-completed, returning existing result`);
+        const creds = flow.creds as AcquiredOAuthCredentials;
+        return { email: creds.email, tokenPreview: creds.tokenPreview };
       }
 
       const proxyRouterUrl = `http://127.0.0.1:${resolveProxyRouterPort()}`;
