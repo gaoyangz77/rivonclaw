@@ -941,6 +941,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       trackerRef.current.dispatch({ type: "CHAT_ERROR", runId: idempotencyKey });
       trackerRef.current.cleanup();
     });
+
+    // Refresh session tabs so the tab bar appears on first message
+    refreshSessionsRef.current();
   }
 
   function handleStop() {
