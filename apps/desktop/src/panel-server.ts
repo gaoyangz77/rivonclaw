@@ -34,6 +34,7 @@ import { handleBrowserProfilesRoutes } from "./api-routes/browser-profiles-route
 import { handleAuthRoutes } from "./api-routes/auth-routes.js";
 import { handleCloudGraphqlRoutes } from "./api-routes/cloud-graphql-routes.js";
 import { handleDoctorRoutes } from "./api-routes/doctor-routes.js";
+import { handleDepsRoutes } from "./api-routes/deps-routes.js";
 import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
 
 const log = createLogger("panel-server");
@@ -247,6 +248,7 @@ const routeHandlers: RouteHandler[] = [
   handleBrowserProfilesRoutes,
   handleToolRegistryRoutes,
   handleDoctorRoutes,
+  handleDepsRoutes,
 ];
 
 /**

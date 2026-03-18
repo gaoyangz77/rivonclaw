@@ -931,6 +931,12 @@ export default {
         disagree: "Disagree",
       },
     },
+    deps: {
+      title: "System Dependencies",
+      description: "Check and install system dependencies (Git, Python, Node.js, uv) required by the agent engine.",
+      installButton: "Install Dependencies",
+      statusRunning: "Opening installer...",
+    },
     diagnostics: {
       title: "Diagnostics",
       description: "Run OpenClaw's built-in health check to diagnose and fix common issues.",
@@ -1343,6 +1349,11 @@ export default {
     errorInvalidCredentials: "Invalid email or password.",
     errorLoginFailed: "Login failed. Please try again.",
     errorRegisterFailed: "Registration failed. Please try again.",
+    captchaPlaceholder: "Enter captcha",
+    captchaRefresh: "Refresh",
+    captchaLoadFailed: "Failed to load captcha, click to retry",
+    captchaError: "Incorrect captcha, please try again",
+    captchaExpired: "Captcha expired, please refresh",
   },
   account: {
     title: "Account",

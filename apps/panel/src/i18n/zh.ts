@@ -931,6 +931,12 @@ export default {
         disagree: "不同意",
       },
     },
+    deps: {
+      title: "系统依赖",
+      description: "检查并安装 Agent 引擎所需的系统依赖（Git、Python、Node.js、uv），国内用户自动切换镜像加速。",
+      installButton: "安装依赖",
+      statusRunning: "正在打开安装窗口...",
+    },
     diagnostics: {
       title: "诊断",
       description: "运行 OpenClaw 内置的健康检查，诊断和修复常见问题。",
@@ -1343,6 +1349,11 @@ export default {
     errorInvalidCredentials: "邮箱或密码错误。",
     errorLoginFailed: "登录失败，请重试。",
     errorRegisterFailed: "注册失败，请重试。",
+    captchaPlaceholder: "请输入验证码",
+    captchaRefresh: "刷新",
+    captchaLoadFailed: "验证码加载失败，点击重试",
+    captchaError: "验证码错误，请重试",
+    captchaExpired: "验证码已过期，请刷新",
   },
   account: {
     title: "账户",

@@ -472,7 +472,8 @@
   line-height: 1.6;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  overflow: hidden;
+  word-break: break-word;
+  max-width: 100%;
   min-width: 0;
 }
 

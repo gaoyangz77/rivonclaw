@@ -11,24 +11,38 @@ const log = createLogger("deps-provisioner");
 
 export async function runDepsProvisioner(opts: {
   storage: { settings: { get(key: string): string | undefined; set(key: string, value: string): void } };
+  /** When true, always show the UI even if all deps are present (for manual re-trigger from Settings). */
+  showAlways?: boolean;
 }): Promise<void> {
-  const { storage } = opts;
+  const { storage, showAlways } = opts;
 
   // 1. Detect all deps
   let statuses = await detectDeps();
   const allAvailable = statuses.every((s) => s.available);
 
-  // 2. If all present, skip UI entirely
-  if (allAvailable) {
+  // 2. If all present and not manually triggered, skip UI entirely
+  if (allAvailable && !showAlways) {
     log.info("All system dependencies available, skipping provisioner UI");
     storage.settings.set("deps_provisioned", "true");
     return;
   }
 
-  // 3. Some deps missing — show provisioner window
+  // 3. Show provisioner window
   const win = createProvisionerWindow();
+  await win.ready;
   win.show();
   win.updateStatuses(statuses);
+
+  // If all deps already available, show result immediately
+  if (allAvailable) {
+    const result: ProvisionResult = { installed: [], skipped: [], failed: [] };
+    win.updateProgress({ phase: "done", message: "" });
+    const decision = await win.showResult(result);
+    // decision is always "continue" when nothing failed
+    storage.settings.set("deps_provisioned", "true");
+    win.close();
+    return;
+  }
 
   // 4. Detection phase progress
   win.updateProgress({ phase: "detecting", message: "Checking system dependencies..." });

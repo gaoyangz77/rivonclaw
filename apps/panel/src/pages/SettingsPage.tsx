@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchTelemetrySetting, updateTelemetrySetting, trackEvent, fetchAgentSettings, updateAgentSettings, fetchChatShowAgentEvents, updateChatShowAgentEvents, fetchChatPreserveToolEvents, updateChatPreserveToolEvents, fetchChatCollapseMessages, updateChatCollapseMessages, fetchBrowserMode, updateBrowserMode, fetchAutoLaunchSetting, updateAutoLaunchSetting, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, fetchPrivacyMode, updatePrivacyMode, fetchSessionStateCdpEnabled, updateSessionStateCdpEnabled } from "../api/index.js";
+import { DEFAULTS } from "@rivonclaw/core";
 import type { OpenClawStateDirInfo } from "../api/index.js";
 import { Select } from "../components/inputs/Select.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
@@ -36,12 +37,12 @@ export function SettingsPage() {
   const { t } = useTranslation();
   const [telemetryEnabled, setTelemetryEnabled] = useState(false);
   const [dmScope, setDmScope] = useState("main");
-  const [showAgentEvents, setShowAgentEvents] = useState(false);
-  const [preserveToolEvents, setPreserveToolEvents] = useState(false);
-  const [collapseMessages, setCollapseMessages] = useState(true);
+  const [showAgentEvents, setShowAgentEvents] = useState(DEFAULTS.settings.showAgentEvents);
+  const [preserveToolEvents, setPreserveToolEvents] = useState(DEFAULTS.settings.preserveToolEvents);
+  const [collapseMessages, setCollapseMessages] = useState(DEFAULTS.settings.collapseMessages);
   const [autoLaunchEnabled, setAutoLaunchEnabled] = useState(false);
-  const [browserMode, setBrowserMode] = useState<"standalone" | "cdp">("standalone");
-  const [sessionStateCdpEnabled, setSessionStateCdpEnabled] = useState(true);
+  const [browserMode, setBrowserMode] = useState<"standalone" | "cdp">(DEFAULTS.settings.browserMode);
+  const [sessionStateCdpEnabled, setSessionStateCdpEnabled] = useState(DEFAULTS.settings.sessionStateCdpEnabled);
   const [cdpConfirmOpen, setCdpConfirmOpen] = useState(false);
   const [dataDirInfo, setDataDirInfo] = useState<OpenClawStateDirInfo | null>(null);
   const [dataDirRestartNeeded, setDataDirRestartNeeded] = useState(false);
@@ -49,6 +50,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [depsInstalling, setDepsInstalling] = useState(false);
   const [doctorStatus, setDoctorStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [doctorOutput, setDoctorOutput] = useState<string[]>([]);
   const [doctorExitCode, setDoctorExitCode] = useState<number | null>(null);
@@ -69,6 +71,18 @@ export function SettingsPage() {
     return () => {
       doctorSseRef.current?.close();
     };
+  }, []);
+
+  const handleInstallDeps = useCallback(async () => {
+    setDepsInstalling(true);
+    try {
+      const res = await fetch("/api/deps/provision", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to start provisioner");
+    } catch (err) {
+      console.error("Failed to trigger deps provisioner:", err);
+    } finally {
+      setDepsInstalling(false);
+    }
   }, []);
 
   const runDoctor = useCallback((fix: boolean) => {
@@ -531,6 +545,26 @@ export function SettingsPage() {
             <li>{t("settings.telemetry.dontCollect.ruleText")}</li>
             <li>{t("settings.telemetry.dontCollect.personalInfo")}</li>
           </ul>
+        </div>
+      </div>
+
+      {/* System Dependencies Section */}
+      <div className="section-card">
+        <h3>{t("settings.deps.title")}</h3>
+        <p className="text-secondary">
+          {t("settings.deps.description")}
+        </p>
+        <div className="doctor-actions">
+          <button
+            className="btn btn-primary"
+            onClick={handleInstallDeps}
+            disabled={depsInstalling}
+          >
+            {t("settings.deps.installButton")}
+          </button>
+          {depsInstalling && (
+            <span className="doctor-status">{t("settings.deps.statusRunning")}</span>
+          )}
         </div>
       </div>
 
