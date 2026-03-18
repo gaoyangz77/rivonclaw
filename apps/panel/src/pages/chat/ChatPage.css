@@ -854,11 +854,6 @@
   flex-basis: 100%;
 }
 
-.chat-tool-args-inline .chat-tool-args-code {
-  /* When inline, expanded code takes full row width */
-  flex-basis: 100%;
-}
-}
 
 .chat-thinking-dots {
   display: inline-flex;
