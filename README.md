@@ -93,9 +93,7 @@ rivonclaw/
 ├── scripts/
 │   ├── test-local.sh             # Local test pipeline (build + unit + e2e tests)
 │   ├── publish-release.sh        # Publish draft GitHub Release
-│   ├── rebuild-native.sh         # Prebuild better-sqlite3 for Node.js + Electron
-│   ├── smoke-test-vendor.cjs     # Vendor gateway startup smoke test
-│   └── verify-vendor-bundle.cjs  # Dry-run bundle verification (pre-release check)
+│   └── rebuild-native.sh         # Prebuild better-sqlite3 for Node.js + Electron
 └── vendor/
     └── openclaw/         # Vendored OpenClaw binary (gitignored)
 ```
@@ -108,7 +106,7 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 
 | Package                  | Description                                                                                                            |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `@rivonclaw/desktop`      | Electron 35 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite.           |
+| `@rivonclaw/desktop`      | Electron 40 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite.           |
 | `@rivonclaw/panel`        | React 19 + Vite 6 SPA. Pages for chat, rules, providers, channels, permissions, STT, usage, skills marketplace, and a first-launch onboarding wizard. |
 
 ### Extensions
@@ -148,8 +146,6 @@ pnpm test               # Run all tests (vitest)
 pnpm lint               # Lint all packages (oxlint)
 pnpm format             # Check formatting (oxfmt, runs directly)
 pnpm format:fix         # Auto-fix formatting (oxfmt, runs directly)
-pnpm smoke-test:vendor  # Quick vendor gateway startup check (~2s)
-pnpm verify:bundle      # Full dry-run bundle verification (~18s, run before releases)
 ```
 
 ### Per-package
@@ -235,13 +231,7 @@ The panel server exposes these endpoints:
 
 ## Building Installers
 
-The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces file count from ~58K to ~7K (via esbuild bundling) and the DMG from ~360MB to ~310MB. See `docs/BUNDLE_VENDOR.md` for details.
-
-**After building**, vendor will be pruned/bundled. To restore full deps for development:
-
-```bash
-bash .claude/skills/update-vendor/scripts/provision-vendor.sh $(tr -d '[:space:]' < .openclaw-version)
-```
+The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces the vendor file count and size via esbuild bundling and node_modules pruning. Vendor is copied into the installer via `extraResources` — the source `vendor/openclaw/` is never modified.
 
 ### macOS (DMG, universal arm64+x64)
 
@@ -266,7 +256,8 @@ APPLE_TEAM_ID=<team-id>
 ```bash
 pnpm build
 pnpm --filter @rivonclaw/desktop dist:win
-# Output: apps/desktop/release/RivonClaw Setup <version>.exe
+# Output: apps/desktop/release/RivonClaw.Setup.<version>.exe
+#         apps/desktop/release/RivonClaw-<version>-portable.exe
 ```
 
 Cross-compiling from macOS works (NSIS doesn't need Wine). For code signing on Windows, set:

@@ -93,9 +93,7 @@ rivonclaw/
 ├── scripts/
 │   ├── test-local.sh             # 本地测试流程（构建 + 单元测试 + E2E 测试）
 │   ├── publish-release.sh        # 发布 GitHub Release 草稿
-│   ├── rebuild-native.sh         # 预编译 better-sqlite3（Node.js + Electron）
-│   ├── smoke-test-vendor.cjs     # Vendor 网关启动冒烟测试
-│   └── verify-vendor-bundle.cjs  # 干跑 Bundle 验证（发版前检查）
+│   └── rebuild-native.sh         # 预编译 better-sqlite3（Node.js + Electron）
 └── vendor/
     └── openclaw/         # 内置的 OpenClaw（gitignored）
 ```
@@ -108,7 +106,7 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 
 | 包                       | 说明                                                                                   |
 | ------------------------ | -------------------------------------------------------------------------------------- |
-| `@rivonclaw/desktop`      | Electron 35 托盘应用。管理网关生命周期，在端口 3210 托管面板服务，数据存储于 SQLite。   |
+| `@rivonclaw/desktop`      | Electron 40 托盘应用。管理网关生命周期，在端口 3210 托管面板服务，数据存储于 SQLite。   |
 | `@rivonclaw/panel`        | React 19 + Vite 6 SPA。包含聊天、规则、服务商、通道、权限、语音转文字、用量、技能市场页面，以及首次启动引导向导。  |
 
 ### 扩展
@@ -148,8 +146,6 @@ pnpm test               # 运行所有测试（vitest）
 pnpm lint               # 检查所有包（oxlint）
 pnpm format             # 检查格式（oxfmt，直接运行）
 pnpm format:fix         # 自动修复格式（oxfmt，直接运行）
-pnpm smoke-test:vendor  # 快速 Vendor 网关启动检查（约 2 秒）
-pnpm verify:bundle      # 完整干跑 Bundle 验证（约 18 秒，发版前运行）
 ```
 
 ### 单包命令
@@ -234,13 +230,7 @@ pnpm --filter @rivonclaw/gateway test
 
 ## 构建安装包
 
-`dist:mac` 和 `dist:win` 脚本会在打包前自动剪裁并打包 `vendor/openclaw`。这将文件数从约 58K 缩减到约 7K（通过 esbuild 打包），DMG 从约 360MB 缩减到约 310MB。详见 `docs/BUNDLE_VENDOR.md`。
-
-**构建完成后**，vendor 会被剪裁/打包。要恢复完整依赖用于开发：
-
-```bash
-bash .claude/skills/update-vendor/scripts/provision-vendor.sh $(tr -d '[:space:]' < .openclaw-version)
-```
+`dist:mac` 和 `dist:win` 脚本会在打包前自动剪裁并打包 `vendor/openclaw`。通过 esbuild 打包和 node_modules 裁剪来减少 vendor 文件数量和体积。Vendor 通过 `extraResources` 复制进安装包——源目录 `vendor/openclaw/` 不会被修改。
 
 ### macOS（DMG，universal arm64+x64）
 
@@ -265,7 +255,8 @@ APPLE_TEAM_ID=<团队 ID>
 ```bash
 pnpm build
 pnpm --filter @rivonclaw/desktop dist:win
-# 输出：apps/desktop/release/RivonClaw Setup <version>.exe
+# 输出：apps/desktop/release/RivonClaw.Setup.<version>.exe
+#       apps/desktop/release/RivonClaw-<version>-portable.exe
 ```
 
 支持从 macOS 交叉编译（NSIS 无需 Wine）。Windows 代码签名需设置：
