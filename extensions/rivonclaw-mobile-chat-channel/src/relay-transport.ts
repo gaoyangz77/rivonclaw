@@ -25,6 +25,8 @@ export class RelayTransport {
     private stopped = false;
     private relayUrl: string = '';
     private pendingJoins: Map<string, PendingJoin> = new Map();      // accessToken -> pending
+    private rejoinPending = false;
+    private authFailCount = 0;
 
     /**
      * Start the transport with the initial pairing credentials.
@@ -65,7 +67,7 @@ export class RelayTransport {
     }
 
     send(pairingId: string, message: object): void {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN || this.rejoinPending) return;
         this.ws.send(JSON.stringify({ ...message, pairingId }), (err) => {
             if (err) console.error(`[DesktopRelayTransport] ws.send error:`, err);
         });
@@ -161,15 +163,20 @@ export class RelayTransport {
             this.ws = new WebSocket(wsUrl);
 
             this.ws.on('open', () => {
-                this.updateStatus('online');
+                // Don't set 'online' yet — wait for rejoin_ack so pairings are registered
+                // on the relay before any business messages are sent.
+                this.rejoinPending = true;
+                this.authFailCount = 0;
 
                 // Send rejoin for all pairings
                 const tokens = Array.from(this.pairingTokens.values());
                 if (tokens.length > 0) {
                     this.ws!.send(JSON.stringify({ type: 'rejoin', tokens }));
+                } else {
+                    // No pairings to rejoin — go online immediately
+                    this.rejoinPending = false;
+                    this.updateStatus('online');
                 }
-
-                // Flush outbox of all handlers (engines will handle this themselves)
             });
 
             this.ws.on('message', (data: Buffer) => {
@@ -181,10 +188,11 @@ export class RelayTransport {
                 }
             });
 
-            this.ws.on('close', () => {
+            this.ws.on('close', (code: number) => {
                 this.ws = null;
+                this.rejoinPending = false;
                 this.updateStatus('offline');
-                this.scheduleReconnect();
+                this.scheduleReconnect(code);
             });
 
             this.ws.on('error', (err) => {
@@ -198,12 +206,23 @@ export class RelayTransport {
         }
     }
 
-    private scheduleReconnect(): void {
+    private scheduleReconnect(closeCode?: number): void {
         if (this.stopped) return;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+
+        let delay: number;
+        if (closeCode === 4001) {
+            // Auth failure — exponential backoff: 3s, 6s, 12s, 24s, 60s, 60s...
+            this.authFailCount++;
+            delay = Math.min(3000 * Math.pow(2, this.authFailCount - 1), 60_000);
+        } else {
+            this.authFailCount = 0;
+            delay = 3000;
+        }
+
         this.reconnectTimer = setTimeout(() => {
             this.connect();
-        }, 3000);
+        }, delay);
     }
 
     private handleIncoming(data: any): void {
@@ -243,6 +262,11 @@ export class RelayTransport {
                         handler({ type: 'peer_status', pairingId: p.pairingId, status: p.peerOnline ? 'online' : 'offline' });
                     }
                 }
+            }
+            // Rejoin complete — now safe for business messages
+            if (this.rejoinPending) {
+                this.rejoinPending = false;
+                this.updateStatus('online');
             }
             return;
         }

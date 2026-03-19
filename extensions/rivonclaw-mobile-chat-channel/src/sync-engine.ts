@@ -240,9 +240,8 @@ export class MobileSyncEngine {
 
         // Subscribe to transport connection status for reconnect outbox flush
         this.unsubTransport = this.transport.subscribeStatus((status) => {
-            if (status === 'online') {
-                this.flushOutbox();
-            }
+            // Don't flush on 'online' — the transport gates 'online' until rejoin_ack,
+            // and peer_status handler (below) flushes when mobile is confirmed reachable.
             if (status === 'offline') {
                 this.mobileOnline = false;
             }
@@ -518,6 +517,14 @@ export class MobileSyncEngine {
                         error: err.message,
                         timestamp: Date.now(),
                     });
+                }
+                break;
+
+            case "delivery_failed":
+                // Relay could not deliver (peer offline or pairing not yet registered).
+                // Keep the message in outbox — the ACK timer will retry automatically.
+                if (msg.messageId) {
+                    console.warn(`[MobileSync:${this.pairingId.slice(0, 8)}] delivery_failed for ${msg.messageId}: ${msg.reason}`);
                 }
                 break;
 

@@ -610,17 +610,14 @@ function prebundleExtensions() {
     ...pluginSdkExternals,
   ];
   const pluginSdkDir = path.join(distDir, "plugin-sdk");
-  // Mark plugin-sdk chunks as side-effect-free for esbuild tree-shaking,
-  // but exclude chunks that contain Zod schema initialization code.
-  // These chunks are imported as bare side-effect imports (e.g. `import "./zod-schema.core-*.js"`)
-  // and must not be dropped, otherwise Zod constructors are undefined at runtime.
+  // Do NOT mark plugin-sdk as sideEffects:false here. The new vendor's tsdown
+  // generates chunks with bare side-effect imports (e.g. `import "./zod-schema.core-*.js"`)
+  // that initialize Zod constructors and other runtime state. Marking them as
+  // side-effect-free causes esbuild to drop these imports, producing broken bundles
+  // ("cmu is not a constructor"). esbuild's own tree-shaking of unused exports is
+  // sufficient for extension bundling without the sideEffects hint.
   const pluginSdkPkg = path.join(pluginSdkDir, "package.json");
   const hadPkgJson = fs.existsSync(pluginSdkPkg);
-  const sideEffectFiles = fs.readdirSync(pluginSdkDir)
-    .filter((f) => f.endsWith(".js") && /^zod-schema[.\-]/.test(f))
-    .map((f) => `./${f}`);
-  const sideEffectsValue = sideEffectFiles.length > 0 ? sideEffectFiles : false;
-  fs.writeFileSync(pluginSdkPkg, JSON.stringify({ sideEffects: sideEffectsValue }), "utf-8");
 
   // Find all extensions with openclaw.plugin.json
   const extDirs = [];
@@ -756,7 +753,7 @@ function prebundleExtensions() {
 
   // Clean up the temporary package.json so it doesn't interfere with
   // Phase 0.5a or jiti runtime resolution.
-  if (!hadPkgJson) {
+  if (!hadPkgJson && fs.existsSync(pluginSdkPkg)) {
     fs.unlinkSync(pluginSdkPkg);
   }
 
