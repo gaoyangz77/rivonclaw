@@ -457,7 +457,16 @@ function bundlePluginSdk() {
     return;
   }
 
+  // Debug: log esbuild version and plugin-sdk index.js size + first-line hash
   const esbuild = loadEsbuild();
+  const crypto = require("crypto");
+  const indexContent = fs.readFileSync(pluginSdkIndex, "utf-8");
+  const indexHash = crypto.createHash("md5").update(indexContent).digest("hex").slice(0, 12);
+  const chunkCount = fs.readdirSync(pluginSdkDir).filter(f => f.endsWith(".js") && f !== "index.js" && f !== "account-id.js" && f !== "root-alias.cjs").length;
+  const pkgJson = fs.existsSync(path.join(pluginSdkDir, "package.json"))
+    ? fs.readFileSync(path.join(pluginSdkDir, "package.json"), "utf-8").trim()
+    : "(none)";
+  console.log(`[bundle-vendor-deps] Phase 0.5a debug: esbuild=${esbuild.version}, index.js=${(indexContent.length/1024/1024).toFixed(1)}MB hash=${indexHash}, chunks=${chunkCount}, package.json=${pkgJson}`);
   const tmpOut = path.join(pluginSdkDir, "index.bundled.mjs");
 
   esbuild.buildSync({
