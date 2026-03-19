@@ -288,3 +288,23 @@ export function RefreshIcon(props: IconProps) {
     );
 }
 
+
+export function ExternalLinkIcon(props: IconProps) {
+    return (
+        <Icon size={14} {...props}>
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+        </Icon>
+    );
+}
+
+export function LogOutIcon(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+        </Icon>
+    );
+}

@@ -4093,6 +4093,26 @@ tbody td {
   color: var(--color-primary);
 }
 
+/* Dark user popover */
+[data-theme="dark"] .upop {
+  background: var(--surface-dropdown, #1e2333);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .upop-menu-item:hover {
+  background-color: var(--brand-tint-10);
+}
+
+[data-theme="dark"] .upop-menu-item-danger:hover {
+  background-color: var(--brand-tint-10);
+  color: var(--color-danger);
+}
+
+[data-theme="dark"] .upop-plan-card {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 /* ===== D4. Main Content ===== */
 [data-theme="dark"] .main-content {
   background: var(--main-content-bg, var(--color-bg-page));
@@ -5703,6 +5723,236 @@ tbody td {
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
+}
+
+/* ===== User Avatar Wrapper (for popover positioning) ===== */
+
+.user-avatar-wrapper {
+  position: relative;
+}
+
+/* ===== User Popover ===== */
+
+.upop {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 210px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  overflow: hidden;
+  animation: upop-in 0.15s ease-out;
+}
+
+@keyframes upop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upop-header {
+  text-align: center;
+  padding: 20px 16px 16px;
+}
+
+.upop-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 auto 10px;
+}
+
+.upop-email {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upop-member-since {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.upop-plan-section {
+  padding: 0 16px 16px;
+}
+
+.upop-plan-card {
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.upop-plan-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.upop-plan-row+.upop-plan-row {
+  margin-top: 6px;
+}
+
+.upop-plan-label {
+  color: var(--color-text-muted);
+}
+
+.upop-plan-value {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.upop-plan-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.upop-seats-track {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+.upop-seats-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.upop-divider {
+  height: 1px;
+  background: var(--color-border);
+}
+
+.upop-menu {
+  padding: 4px;
+}
+
+.upop-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  transition: all var(--transition-fast);
+}
+
+.upop-menu-item:hover {
+  background-color: var(--brand-tint-06);
+  color: var(--color-text);
+}
+
+.upop-menu-item svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.upop-menu-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
+.upop-menu-item-danger {
+  color: var(--color-danger);
+}
+
+.upop-menu-item-danger svg {
+  color: var(--color-danger);
+}
+
+.upop-menu-item-danger:hover {
+  background-color: var(--brand-tint-06);
+  color: var(--color-danger);
+}
+
+.upop-menu-item-danger:hover svg {
+  color: var(--color-danger);
+}
+
+/* Prevent generic hover from overriding danger colors */
+.upop-menu-item.upop-menu-item-danger:hover {
+  background-color: var(--brand-tint-06);
+  color: var(--color-danger);
+}
+
+/* Guest (logged-out) popover */
+.upop-guest {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.upop-guest svg {
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.upop-guest-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.upop-guest-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.upop-btn-login {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  transition: opacity var(--transition-fast);
+}
+
+.upop-btn-login:hover {
+  opacity: 0.85;
 }
 
 /* ===== Account Page ===== */
