@@ -248,6 +248,7 @@ function normalizeSecretInputString(value) {
 
 // vendor/openclaw/src/secrets/ref-contract.ts
 var FILE_SECRET_REF_SEGMENT_PATTERN = /^(?:[^~]|~0|~1)*$/;
+var EXEC_SECRET_REF_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/;
 var SINGLE_VALUE_FILE_REF_ID = "value";
 function isValidFileSecretRefId(value) {
   if (value === SINGLE_VALUE_FILE_REF_ID) {
@@ -257,6 +258,27 @@ function isValidFileSecretRefId(value) {
     return false;
   }
   return value.slice(1).split("/").every((segment) => FILE_SECRET_REF_SEGMENT_PATTERN.test(segment));
+}
+function validateExecSecretRefId(value) {
+  if (!EXEC_SECRET_REF_ID_PATTERN.test(value)) {
+    return { ok: false, reason: "pattern" };
+  }
+  for (const segment of value.split("/")) {
+    if (segment === "." || segment === "..") {
+      return { ok: false, reason: "traversal-segment" };
+    }
+  }
+  return { ok: true };
+}
+function isValidExecSecretRefId(value) {
+  return validateExecSecretRefId(value).ok;
+}
+function formatExecSecretRefIdValidationMessage() {
+  return [
+    "Exec secret reference id must match /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/",
+    'and must not include "." or ".." path segments',
+    '(example: "vault/openai/api-key").'
+  ].join(" ");
 }
 
 // vendor/openclaw/src/config/types.models.ts
@@ -305,7 +327,6 @@ var sensitive = z3.registry();
 // vendor/openclaw/src/config/zod-schema.core.ts
 var ENV_SECRET_REF_ID_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
 var SECRET_PROVIDER_ALIAS_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/;
-var EXEC_SECRET_REF_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/;
 var WINDOWS_ABS_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
 var WINDOWS_UNC_PATH_PATTERN = /^\\\\[^\\]+\\[^\\]+/;
 function isAbsolutePath(value) {
@@ -339,10 +360,7 @@ var ExecSecretRefSchema = z4.object({
     SECRET_PROVIDER_ALIAS_PATTERN,
     'Secret reference provider must match /^[a-z][a-z0-9_-]{0,63}$/ (example: "default").'
   ),
-  id: z4.string().regex(
-    EXEC_SECRET_REF_ID_PATTERN,
-    'Exec secret reference id must match /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/ (example: "vault/openai/api-key").'
-  )
+  id: z4.string().refine(isValidExecSecretRefId, formatExecSecretRefIdValidationMessage())
 }).strict();
 var SecretRefSchema = z4.discriminatedUnion("source", [
   EnvSecretRefSchema,
@@ -413,7 +431,8 @@ var ModelCompatSchema = z4.object({
   requiresToolResultName: z4.boolean().optional(),
   requiresAssistantAfterToolResult: z4.boolean().optional(),
   requiresThinkingAsText: z4.boolean().optional(),
-  requiresMistralToolIds: z4.boolean().optional()
+  requiresMistralToolIds: z4.boolean().optional(),
+  requiresOpenAiAnthropicToolPayload: z4.boolean().optional()
 }).strict().optional();
 var ModelDefinitionSchema = z4.object({
   id: z4.string().min(1),
@@ -555,7 +574,9 @@ var TtsConfigSchema = z4.object({
     apiKey: SecretInputSchema.optional().register(sensitive),
     baseUrl: z4.string().optional(),
     model: z4.string().optional(),
-    voice: z4.string().optional()
+    voice: z4.string().optional(),
+    speed: z4.number().min(0.25).max(4).optional(),
+    instructions: z4.string().optional()
   }).strict().optional(),
   edge: z4.object({
     enabled: z4.boolean().optional(),
@@ -979,8 +1000,8 @@ var ToolsWebSearchSchema = z5.object({
   cacheTtlMinutes: z5.number().nonnegative().optional(),
   perplexity: z5.object({
     apiKey: SecretInputSchema.optional().register(sensitive),
-    // Legacy Sonar/OpenRouter fields — kept for backward compatibility
-    // so existing configs don't fail validation. Ignored at runtime.
+    // Legacy Sonar/OpenRouter compatibility fields.
+    // Setting either opts Perplexity back into the chat-completions path.
     baseUrl: z5.string().optional(),
     model: z5.string().optional()
   }).strict().optional(),
@@ -997,6 +1018,9 @@ var ToolsWebSearchSchema = z5.object({
     apiKey: SecretInputSchema.optional().register(sensitive),
     baseUrl: z5.string().optional(),
     model: z5.string().optional()
+  }).strict().optional(),
+  brave: z5.object({
+    mode: z5.union([z5.literal("web"), z5.literal("llm-context")]).optional()
   }).strict().optional()
 }).strict().optional();
 var ToolsWebFetchSchema = z5.object({
@@ -1006,7 +1030,16 @@ var ToolsWebFetchSchema = z5.object({
   timeoutSeconds: z5.number().int().positive().optional(),
   cacheTtlMinutes: z5.number().nonnegative().optional(),
   maxRedirects: z5.number().int().nonnegative().optional(),
-  userAgent: z5.string().optional()
+  userAgent: z5.string().optional(),
+  readability: z5.boolean().optional(),
+  firecrawl: z5.object({
+    enabled: z5.boolean().optional(),
+    apiKey: SecretInputSchema.optional().register(sensitive),
+    baseUrl: z5.string().optional(),
+    onlyMainContent: z5.boolean().optional(),
+    maxAgeMs: z5.number().int().nonnegative().optional(),
+    timeoutSeconds: z5.number().int().positive().optional()
+  }).strict().optional()
 }).strict().optional();
 var ToolsWebSchema = z5.object({
   search: ToolsWebSearchSchema,
@@ -1150,6 +1183,11 @@ var MemorySearchSchema = z5.object({
   enabled: z5.boolean().optional(),
   sources: z5.array(z5.union([z5.literal("memory"), z5.literal("sessions")])).optional(),
   extraPaths: z5.array(z5.string()).optional(),
+  multimodal: z5.object({
+    enabled: z5.boolean().optional(),
+    modalities: z5.array(z5.union([z5.literal("image"), z5.literal("audio"), z5.literal("all")])).optional(),
+    maxFileBytes: z5.number().int().positive().optional()
+  }).strict().optional(),
   experimental: z5.object({
     sessionMemory: z5.boolean().optional()
   }).strict().optional(),
@@ -1183,6 +1221,7 @@ var MemorySearchSchema = z5.object({
     z5.literal("none")
   ]).optional(),
   model: z5.string().optional(),
+  outputDimensionality: z5.number().int().positive().optional(),
   local: z5.object({
     modelPath: z5.string().optional(),
     modelCacheDir: z5.string().optional()
@@ -1207,7 +1246,8 @@ var MemorySearchSchema = z5.object({
     intervalMinutes: z5.number().int().nonnegative().optional(),
     sessions: z5.object({
       deltaBytes: z5.number().int().nonnegative().optional(),
-      deltaMessages: z5.number().int().nonnegative().optional()
+      deltaMessages: z5.number().int().nonnegative().optional(),
+      postCompactionForce: z5.boolean().optional()
     }).strict().optional()
   }).strict().optional(),
   query: z5.object({
@@ -1273,6 +1313,7 @@ var AgentEntrySchema = z5.object({
     thinking: z5.string().optional()
   }).strict().optional(),
   sandbox: AgentSandboxSchema,
+  params: z5.record(z5.string(), z5.unknown()).optional(),
   tools: AgentToolsSchema,
   runtime: AgentRuntimeSchema
 }).strict();
@@ -1421,6 +1462,7 @@ var AgentDefaultsSchema = z6.object({
     keepRecentTokens: z6.number().int().positive().optional(),
     reserveTokensFloor: z6.number().int().nonnegative().optional(),
     maxHistoryShare: z6.number().min(0.1).max(0.9).optional(),
+    customInstructions: z6.string().optional(),
     identifierPolicy: z6.union([z6.literal("strict"), z6.literal("off"), z6.literal("custom")]).optional(),
     identifierInstructions: z6.string().optional(),
     recentTurnsPreserve: z6.number().int().min(0).max(12).optional(),
@@ -1428,7 +1470,9 @@ var AgentDefaultsSchema = z6.object({
       enabled: z6.boolean().optional(),
       maxRetries: z6.number().int().nonnegative().optional()
     }).strict().optional(),
+    postIndexSync: z6.enum(["off", "async", "await"]).optional(),
     postCompactionSections: z6.array(z6.string()).optional(),
+    model: z6.string().optional(),
     memoryFlush: z6.object({
       enabled: z6.boolean().optional(),
       softThresholdTokens: z6.number().int().nonnegative().optional(),
@@ -2055,10 +2099,17 @@ var DiscordIdSchema = z13.union([z13.string(), z13.number()]).refine((value) => 
 });
 var DiscordIdListSchema = z13.array(DiscordIdSchema);
 var TelegramInlineButtonsScopeSchema = z13.enum(["off", "dm", "group", "all", "allowlist"]);
+var TelegramIdListSchema = z13.array(z13.union([z13.string(), z13.number()]));
 var TelegramCapabilitiesSchema = z13.union([
   z13.array(z13.string()),
   z13.object({
     inlineButtons: TelegramInlineButtonsScopeSchema.optional()
+  }).strict()
+]);
+var SlackCapabilitiesSchema = z13.union([
+  z13.array(z13.string()),
+  z13.object({
+    interactiveReplies: z13.boolean().optional()
   }).strict()
 ]);
 var TelegramTopicSchema = z13.object({
@@ -2095,8 +2146,8 @@ var TelegramDirectSchema = z13.object({
   requireTopic: z13.boolean().optional()
 }).strict();
 var TelegramCustomCommandSchema = z13.object({
-  command: z13.string().transform(normalizeTelegramCommandName),
-  description: z13.string().transform(normalizeTelegramCommandDescription)
+  command: z13.string().overwrite(normalizeTelegramCommandName),
+  description: z13.string().overwrite(normalizeTelegramCommandDescription)
 }).strict();
 var validateTelegramCustomCommands = (value, ctx) => {
   if (!value.customCommands || value.customCommands.length === 0) {
@@ -2131,6 +2182,13 @@ function normalizeSlackStreamingConfig(value) {
 var TelegramAccountSchemaBase = z13.object({
   name: z13.string().optional(),
   capabilities: TelegramCapabilitiesSchema.optional(),
+  execApprovals: z13.object({
+    enabled: z13.boolean().optional(),
+    approvers: TelegramIdListSchema.optional(),
+    agentFilter: z13.array(z13.string()).optional(),
+    sessionFilter: z13.array(z13.string()).optional(),
+    target: z13.enum(["dm", "channel", "both"]).optional()
+  }).strict().optional(),
   markdown: MarkdownConfigSchema,
   enabled: z13.boolean().optional(),
   commands: ProviderCommandsSchema,
@@ -2188,7 +2246,9 @@ var TelegramAccountSchemaBase = z13.object({
     sendMessage: z13.boolean().optional(),
     poll: z13.boolean().optional(),
     deleteMessage: z13.boolean().optional(),
-    sticker: z13.boolean().optional()
+    editMessage: z13.boolean().optional(),
+    sticker: z13.boolean().optional(),
+    createForumTopic: z13.boolean().optional()
   }).strict().optional(),
   threadBindings: z13.object({
     enabled: z13.boolean().optional(),
@@ -2300,7 +2360,15 @@ var DiscordGuildChannelSchema = z13.object({
   roles: DiscordIdListSchema.optional(),
   systemPrompt: z13.string().optional(),
   includeThreadStarter: z13.boolean().optional(),
-  autoThread: z13.boolean().optional()
+  autoThread: z13.boolean().optional(),
+  /** Archive duration for auto-created threads in minutes. Discord supports 60, 1440 (1 day), 4320 (3 days), 10080 (1 week). Default: 60. */
+  autoArchiveDuration: z13.union([
+    z13.enum(["60", "1440", "4320", "10080"]),
+    z13.literal(60),
+    z13.literal(1440),
+    z13.literal(4320),
+    z13.literal(10080)
+  ]).optional()
 }).strict();
 var DiscordGuildSchema = z13.object({
   slug: z13.string().optional(),
@@ -2625,7 +2693,7 @@ var SlackAccountSchema = z13.object({
   mode: z13.enum(["socket", "http"]).optional(),
   signingSecret: SecretInputSchema.optional().register(sensitive),
   webhookPath: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
+  capabilities: SlackCapabilitiesSchema.optional(),
   markdown: MarkdownConfigSchema,
   enabled: z13.boolean().optional(),
   commands: ProviderCommandsSchema,
@@ -2744,6 +2812,12 @@ var SlackConfigSchema = SlackAccountSchema.safeExtend({
   }
   validateSlackSigningSecretRequirements(value, ctx);
 });
+var SignalGroupEntrySchema = z13.object({
+  requireMention: z13.boolean().optional(),
+  tools: ToolPolicySchema,
+  toolsBySender: ToolPolicyBySenderSchema
+}).strict();
+var SignalGroupsSchema = z13.record(z13.string(), SignalGroupEntrySchema.optional()).optional();
 var SignalAccountSchemaBase = z13.object({
   name: z13.string().optional(),
   capabilities: z13.array(z13.string()).optional(),
@@ -2751,6 +2825,7 @@ var SignalAccountSchemaBase = z13.object({
   enabled: z13.boolean().optional(),
   configWrites: z13.boolean().optional(),
   account: z13.string().optional(),
+  accountUuid: z13.string().optional(),
   httpUrl: z13.string().optional(),
   httpHost: z13.string().optional(),
   httpPort: z13.number().int().positive().optional(),
@@ -2766,6 +2841,7 @@ var SignalAccountSchemaBase = z13.object({
   defaultTo: z13.string().optional(),
   groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+  groups: SignalGroupsSchema,
   historyLimit: z13.number().int().min(0).optional(),
   dmHistoryLimit: z13.number().int().min(0).optional(),
   dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
@@ -3450,7 +3526,8 @@ var MessagesSchema = z16.object({
       done: z16.string().optional(),
       error: z16.string().optional(),
       stallSoft: z16.string().optional(),
-      stallHard: z16.string().optional()
+      stallHard: z16.string().optional(),
+      compacting: z16.string().optional()
     }).strict().optional(),
     timing: z16.object({
       debounceMs: z16.number().int().min(0).optional(),
@@ -3572,6 +3649,41 @@ var PluginEntrySchema = z17.object({
   }).strict().optional(),
   config: z17.record(z17.string(), z17.unknown()).optional()
 }).strict();
+var TalkProviderEntrySchema = z17.object({
+  voiceId: z17.string().optional(),
+  voiceAliases: z17.record(z17.string(), z17.string()).optional(),
+  modelId: z17.string().optional(),
+  outputFormat: z17.string().optional(),
+  apiKey: SecretInputSchema.optional().register(sensitive)
+}).catchall(z17.unknown());
+var TalkSchema = z17.object({
+  provider: z17.string().optional(),
+  providers: z17.record(z17.string(), TalkProviderEntrySchema).optional(),
+  voiceId: z17.string().optional(),
+  voiceAliases: z17.record(z17.string(), z17.string()).optional(),
+  modelId: z17.string().optional(),
+  outputFormat: z17.string().optional(),
+  apiKey: SecretInputSchema.optional().register(sensitive),
+  interruptOnSpeech: z17.boolean().optional(),
+  silenceTimeoutMs: z17.number().int().positive().optional()
+}).strict().superRefine((talk, ctx) => {
+  const provider = talk.provider?.trim().toLowerCase();
+  const providers = talk.providers ? Object.keys(talk.providers) : [];
+  if (provider && providers.length > 0 && !(provider in talk.providers)) {
+    ctx.addIssue({
+      code: z17.ZodIssueCode.custom,
+      path: ["provider"],
+      message: `talk.provider must match a key in talk.providers (missing "${provider}")`
+    });
+  }
+  if (!provider && providers.length > 1) {
+    ctx.addIssue({
+      code: z17.ZodIssueCode.custom,
+      path: ["provider"],
+      message: "talk.provider is required when talk.providers defines multiple providers"
+    });
+  }
+});
 var OpenClawSchema = z17.object({
   $schema: z17.string().optional(),
   meta: z17.object({
@@ -3677,14 +3789,23 @@ var OpenClawSchema = z17.object({
       z17.object({
         cdpPort: z17.number().int().min(1).max(65535).optional(),
         cdpUrl: z17.string().optional(),
-        driver: z17.union([z17.literal("clawd"), z17.literal("extension")]).optional(),
+        driver: z17.union([
+          z17.literal("openclaw"),
+          z17.literal("clawd"),
+          z17.literal("extension"),
+          z17.literal("existing-session")
+        ]).optional(),
         attachOnly: z17.boolean().optional(),
         color: HexColorSchema
-      }).strict().refine((value) => value.cdpPort || value.cdpUrl, {
-        message: "Profile must set cdpPort or cdpUrl"
-      })
+      }).strict().refine(
+        (value) => value.driver === "existing-session" || value.cdpPort || value.cdpUrl,
+        {
+          message: "Profile must set cdpPort or cdpUrl"
+        }
+      )
     ).optional(),
-    extraArgs: z17.array(z17.string()).optional()
+    extraArgs: z17.array(z17.string()).optional(),
+    relayBindHost: z17.union([z17.string().ipv4(), z17.string().ipv6()]).optional()
   }).strict().optional(),
   ui: z17.object({
     seamColor: HexColorSchema.optional(),
@@ -3837,7 +3958,8 @@ var OpenClawSchema = z17.object({
   channels: ChannelsSchema,
   discovery: z17.object({
     wideArea: z17.object({
-      enabled: z17.boolean().optional()
+      enabled: z17.boolean().optional(),
+      domain: z17.string().optional()
     }).strict().optional(),
     mdns: z17.object({
       mode: z17.enum(["off", "minimal", "full"]).optional()
@@ -3849,25 +3971,7 @@ var OpenClawSchema = z17.object({
     port: z17.number().int().positive().optional(),
     liveReload: z17.boolean().optional()
   }).strict().optional(),
-  talk: z17.object({
-    provider: z17.string().optional(),
-    providers: z17.record(
-      z17.string(),
-      z17.object({
-        voiceId: z17.string().optional(),
-        voiceAliases: z17.record(z17.string(), z17.string()).optional(),
-        modelId: z17.string().optional(),
-        outputFormat: z17.string().optional(),
-        apiKey: SecretInputSchema.optional().register(sensitive)
-      }).catchall(z17.unknown())
-    ).optional(),
-    voiceId: z17.string().optional(),
-    voiceAliases: z17.record(z17.string(), z17.string()).optional(),
-    modelId: z17.string().optional(),
-    outputFormat: z17.string().optional(),
-    apiKey: SecretInputSchema.optional().register(sensitive),
-    interruptOnSpeech: z17.boolean().optional()
-  }).strict().optional(),
+  talk: TalkSchema.optional(),
   gateway: z17.object({
     port: z17.number().int().positive().optional(),
     mode: z17.union([z17.literal("local"), z17.literal("remote")]).optional(),
@@ -3977,6 +4081,14 @@ var OpenClawSchema = z17.object({
       }).strict().optional(),
       securityHeaders: z17.object({
         strictTransportSecurity: z17.union([z17.string(), z17.literal(false)]).optional()
+      }).strict().optional()
+    }).strict().optional(),
+    push: z17.object({
+      apns: z17.object({
+        relay: z17.object({
+          baseUrl: z17.string().optional(),
+          timeoutMs: z17.number().int().positive().optional()
+        }).strict().optional()
       }).strict().optional()
     }).strict().optional(),
     nodes: z17.object({

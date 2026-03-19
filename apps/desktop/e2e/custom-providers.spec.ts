@@ -29,7 +29,7 @@ test.describe("Custom Providers", () => {
     await expect(customTab).toHaveClass(/tab-btn-active/);
 
     // Info box should be visible on the right side
-    const infoBox = form.locator(".info-box");
+    const infoBox = form.locator(".provider-info-card");
     await expect(infoBox).toBeVisible();
 
     // -- Fill in the custom provider form --

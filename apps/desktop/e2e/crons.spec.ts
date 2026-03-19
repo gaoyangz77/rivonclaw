@@ -242,7 +242,7 @@ test.describe("Crons Page", () => {
     await deleteJob(window, "E2E CRUD Job Edited");
 
     // Back to empty state
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
   });
 
   // ──────────────────────────────────────────────────────────
@@ -460,7 +460,7 @@ test.describe("Crons Page", () => {
     await fillPayloadText(modal, "Advanced test");
 
     // Open advanced options (the last .crons-advanced-toggle, after the raw cron one)
-    const advancedToggle = modal.locator(".crons-advanced-toggle").last();
+    const advancedToggle = modal.locator(".advanced-toggle").last();
     await advancedToggle.click();
     await expect(modal.locator(".crons-advanced-content")).toBeVisible();
 
@@ -494,7 +494,7 @@ test.describe("Crons Page", () => {
     await expect(editModal).toBeVisible();
 
     // Open advanced options in edit mode
-    const editAdvancedToggle = editModal.locator(".crons-advanced-toggle").last();
+    const editAdvancedToggle = editModal.locator(".advanced-toggle").last();
     await editAdvancedToggle.click();
 
     // Verify thinking mode shows "High"
@@ -582,7 +582,7 @@ test.describe("Crons Page", () => {
     // Cleanup
     await deleteJob(window, "Alpha Job");
     await deleteJob(window, "Beta Job");
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
   });
 
   // ──────────────────────────────────────────────────────────
@@ -944,7 +944,7 @@ test.describe("Crons Page", () => {
     await expect(statusBar).toContainText("Connected");
 
     // Empty state since no jobs exist
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
 
     // Toolbar with search, filters, and Add Job button
     const toolbar = window.locator(".crons-toolbar");
@@ -964,7 +964,7 @@ test.describe("Crons Page", () => {
     await navigateToCrons(window);
 
     // Verify empty state
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
 
     // Open create form
     const modal = await openCreateForm(window);
@@ -976,7 +976,7 @@ test.describe("Crons Page", () => {
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
     // Still empty state
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 5_000 });
+    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────
@@ -995,7 +995,7 @@ test.describe("Crons Page", () => {
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
     // No job created
-    await expect(window.locator(".empty-state")).toBeVisible({ timeout: 5_000 });
+    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────

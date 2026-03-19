@@ -421,7 +421,7 @@ test.describe("Local Models E2E", () => {
     await expect(saveBtn).toBeDisabled();
 
     // Info box on the right side (Ollama setup instructions)
-    const infoBox = window.locator(".page-col-side .info-box-blue");
+    const infoBox = window.locator(".page-col-side .provider-info-card");
     await expect(infoBox).toBeVisible();
     await expect(infoBox).toContainText(/Ollama/i);
 
