@@ -6,4 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   noExternal: ["@rivonclaw/plugin-sdk", "@rivonclaw/policy", "@rivonclaw/logger"],
+  inlineOnly: ["zod", "tslog"],
 });
