@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.7.3",
+    "date": "2026-03-19",
+    "en": [
+      "Restore skill page features lost during UI migration (install, update, delete, refresh)",
+      "Upgrade OpenClaw engine to v2026.3.13-1"
+    ],
+    "zh": [
+      "修复界面迁移后技能页面缺失的安装、更新、删除、刷新功能",
+      "升级 OpenClaw 引擎至 v2026.3.13-1"
+    ]
+  },
+  {
     "version": "1.7.2",
     "date": "2026-03-18",
     "en": [
