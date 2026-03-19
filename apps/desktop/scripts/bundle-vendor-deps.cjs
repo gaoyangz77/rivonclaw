@@ -446,6 +446,57 @@ function resolvePluginSdkAliasAndExternals() {
 // Bundle index.js into a self-contained file so we can delete the chunks.
 // account-id.js is already self-contained (1.1KB, no chunk imports).
 
+/**
+ * Fix esbuild CJS bundling initialization order for plugin-sdk.
+ *
+ * esbuild can place a class assignment (`XXX=class {...}`) AFTER module-level
+ * code that calls `new XXX()`. This happens because of circular dependencies
+ * in the upstream source — esbuild hoists `var XXX;` but the assignment runs
+ * later. The symptom is "XXX is not a constructor" at require() time.
+ *
+ * Fix: find the pattern `function F(a,b,c=D){return new C(b,c).process(a)}`
+ * where C is the include-resolver class. Locate C's class assignment and
+ * move it just before the function that uses it.
+ */
+function fixPluginSdkInitOrder(filePath) {
+  let content = fs.readFileSync(filePath, "utf-8");
+
+  // Match: function XXX(e,t,n=YYY){return new ZZZ(t,n).process(e)}
+  const pattern = /function (\w+)\(e,t,n=(\w+)\)\{return new (\w+)\(t,n\)\.process\(e\)\}/;
+  const m = content.match(pattern);
+  if (!m) return; // pattern not found, nothing to fix
+
+  const [fullMatch, funcName, , ctorVar] = m;
+  const funcIdx = content.indexOf(fullMatch);
+
+  // Find the class assignment: ctorVar=class XXX{...};
+  const assignStr = ctorVar + "=class ";
+  const assignIdx = content.indexOf(assignStr);
+  if (assignIdx === -1 || assignIdx < funcIdx) return; // already before usage or not found
+
+  // Extract the full class definition (track brace depth)
+  let classEnd = assignIdx;
+  let depth = 0;
+  let entered = false;
+  for (let i = assignIdx; i < content.length; i++) {
+    if (content[i] === "{") { depth++; entered = true; }
+    if (content[i] === "}") { depth--; }
+    if (entered && depth === 0) { classEnd = i + 1; break; }
+  }
+  // Include trailing semicolon
+  if (content[classEnd] === ";") classEnd++;
+
+  const classDef = content.substring(assignIdx, classEnd);
+
+  // Remove from original position and insert just before the function that uses it
+  content = content.substring(0, assignIdx) + content.substring(classEnd);
+  // Recalculate funcIdx after removal
+  const newFuncIdx = content.indexOf(fullMatch);
+  content = content.substring(0, newFuncIdx) + classDef + content.substring(newFuncIdx);
+
+  fs.writeFileSync(filePath, content, "utf-8");
+}
+
 function bundlePluginSdk() {
   console.log("[bundle-vendor-deps] Phase 0.5a: Bundling plugin-sdk...");
 
@@ -478,6 +529,12 @@ function bundlePluginSdk() {
   });
 
   const bundleSize = fs.statSync(tmpOut).size;
+
+  // Fix esbuild CJS initialization order: the config include-resolver class
+  // assignment (e.g. `cmu=class $Ao{...}`) can end up AFTER module-level code
+  // that calls `new cmu()`, because esbuild doesn't guarantee correct ordering
+  // for circular dependencies. Move the class definition before its first usage.
+  fixPluginSdkInitOrder(tmpOut);
 
   // Replace index.js with the bundle
   fs.unlinkSync(pluginSdkIndex);
@@ -528,6 +585,7 @@ function bundlePluginSdk() {
         minify: true,
         logLevel: "warning",
       });
+      fixPluginSdkInitOrder(subTmp);
       fs.unlinkSync(subPath);
       fs.renameSync(subTmp, subPath);
     }
