@@ -1344,41 +1344,6 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
 function smokeTestGateway() {
   console.log("[bundle-vendor-deps] Phase 5: Smoke testing bundled gateway...");
 
-  // On macOS/Windows CI, the full gateway smoke test fails with a CJS
-  // initialization order issue ("cmu is not a constructor") that does NOT
-  // reproduce locally or affect the actual packaged app. The bundled
-  // plugin-sdk/index.js loads correctly in isolation (verified via child
-  // process require()). The issue is specific to how the gateway entry.js
-  // code-split chunks interact with the CJS plugin-sdk preload on CI runners.
-  // Fall back to a require()-only smoke check on these platforms in CI.
-  const isCi = process.env.CI === "true" || process.env.CI === "1";
-  const isMacOrWin = process.platform === "darwin" || process.platform === "win32";
-
-  const pluginSdkBundled = path.join(distDir, "plugin-sdk", "index.js");
-  if (fs.existsSync(pluginSdkBundled)) {
-    const { execFileSync: execCheck } = require("child_process");
-    try {
-      execCheck(process.execPath, ["-e", `require(${JSON.stringify(pluginSdkBundled)})`], {
-        cwd: vendorDir,
-        timeout: 30_000,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      console.log("[bundle-vendor-deps] Phase 5 pre-check: plugin-sdk/index.js loaded OK (child process)");
-    } catch (err) {
-      const stderr = (err.stderr || "").toString().trim();
-      console.error(`[bundle-vendor-deps] Phase 5 pre-check FAILED (child process):\n  ${stderr.split("\n").slice(0, 10).join("\n  ")}`);
-      // List node_modules packages for diagnosis
-      const nmPkgs = fs.existsSync(nmDir)
-        ? fs.readdirSync(nmDir).filter(f => !f.startsWith("."))
-        : [];
-      console.error(`[bundle-vendor-deps] vendor node_modules (${nmPkgs.length} entries): ${nmPkgs.join(", ")}`);
-    }
-  }
-
-  if (isCi && isMacOrWin) {
-    console.log("[bundle-vendor-deps] Smoke test: plugin-sdk require() OK — skipping full gateway smoke on CI macOS/Windows (known runner-specific init issue).");
-    return;
-  }
 
   const { execFileSync } = require("child_process");
   const os = require("os");
@@ -1406,28 +1371,14 @@ function smokeTestGateway() {
   let killed = false;
 
   try {
-    // Use a minimal env to avoid CI environment variables (HOME, USER, etc.)
-    // triggering unexpected config/state loading paths that cause CJS
-    // initialization order issues in the bundled plugin-sdk.
-    const minimalEnv = {
-      PATH: process.env.PATH,
-      TMPDIR: process.env.TMPDIR || os.tmpdir(),
-      HOME: tmpDir,
-      USER: process.env.USER || "ci",
-      OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
-      OPENCLAW_STATE_DIR: tmpDir,
-      OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
-    };
-    // Point plugins dir to an empty dir so no extensions load during smoke test.
-    // Extensions are verified separately; this isolates the core gateway + plugin-sdk.
-    const emptyPluginsDir = path.join(tmpDir, "empty-plugins");
-    fs.mkdirSync(emptyPluginsDir, { recursive: true });
     const stdout = execFileSync(process.execPath, [openclawMjs, "gateway"], {
       cwd: tmpDir,
       timeout: 90_000,
       env: {
-        ...minimalEnv,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: emptyPluginsDir,
+        ...process.env,
+        OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
+        OPENCLAW_STATE_DIR: tmpDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
       },
       stdio: ["ignore", "pipe", "pipe"],
       killSignal: "SIGTERM",
