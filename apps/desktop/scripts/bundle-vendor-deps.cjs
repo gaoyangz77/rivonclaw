@@ -1343,13 +1343,23 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
 
 function smokeTestGateway() {
   console.log("[bundle-vendor-deps] Phase 5: Smoke testing bundled gateway...");
-  // Debug: hash the bundled plugin-sdk/index.js to verify esbuild output is identical
-  const crypto = require("crypto");
+  // Quick sanity check: require() the bundled plugin-sdk before launching
+  // the full gateway. If CJS initialization order is broken, this catches it
+  // with a clear error before the 90s gateway timeout.
   const pluginSdkBundled = path.join(distDir, "plugin-sdk", "index.js");
   if (fs.existsSync(pluginSdkBundled)) {
-    const h = crypto.createHash("md5").update(fs.readFileSync(pluginSdkBundled)).digest("hex").slice(0, 12);
-    const sz = (fs.statSync(pluginSdkBundled).size / 1024 / 1024).toFixed(1);
-    console.log(`[bundle-vendor-deps] Phase 5 debug: bundled plugin-sdk/index.js ${sz}MB hash=${h}`);
+    try {
+      require(pluginSdkBundled);
+      console.log("[bundle-vendor-deps] Phase 5 pre-check: plugin-sdk/index.js loaded OK");
+    } catch (err) {
+      console.error(`[bundle-vendor-deps] Phase 5 pre-check FAILED: plugin-sdk/index.js\n  ${err.message}\n  ${err.stack?.split("\n").slice(0, 5).join("\n  ")}`);
+      // List node_modules packages for diagnosis
+      const nmDir = path.join(vendorDir, "node_modules");
+      if (fs.existsSync(nmDir)) {
+        const pkgs = fs.readdirSync(nmDir).filter(f => !f.startsWith("."));
+        console.error(`[bundle-vendor-deps] vendor node_modules (${pkgs.length} entries): ${pkgs.join(", ")}`);
+      }
+    }
   }
 
   const { execFileSync } = require("child_process");
