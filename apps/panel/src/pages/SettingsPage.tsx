@@ -46,7 +46,13 @@ export function SettingsPage() {
   const [cdpConfirmOpen, setCdpConfirmOpen] = useState(false);
   const [dataDirInfo, setDataDirInfo] = useState<OpenClawStateDirInfo | null>(null);
   const [dataDirRestartNeeded, setDataDirRestartNeeded] = useState(false);
+  const [accentColor, setAccentColor] = useState(() => localStorage.getItem("accentColor") || "blue");
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [tutorialEnabled, setTutorialEnabled] = useState(() => {
+    const stored = localStorage.getItem("tutorial.enabled");
+    if (stored === null) return DEFAULTS.settings.tutorialEnabled;
+    return stored === "true";
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -263,6 +269,19 @@ export function SettingsPage() {
     }
   }
 
+  function handleAccentColorChange(color: string) {
+    setAccentColor(color);
+    localStorage.setItem("accentColor", color);
+    window.dispatchEvent(new CustomEvent("accent-color-changed"));
+    trackEvent("settings.accent_color_changed", { color });
+  }
+
+  function handleToggleTutorial(enabled: boolean) {
+    localStorage.setItem("tutorial.enabled", String(enabled));
+    setTutorialEnabled(enabled);
+    window.dispatchEvent(new CustomEvent("tutorial-settings-changed"));
+  }
+
   async function handleToggleSessionStateCdp(enabled: boolean) {
     const previous = sessionStateCdpEnabled;
     setSessionStateCdpEnabled(enabled);
@@ -449,6 +468,42 @@ export function SettingsPage() {
       <div className="section-card">
         <h3>{t("settings.app.title")}</h3>
 
+        <div>
+          <label className="form-label-block">
+            {t("settings.app.accentColor")}
+          </label>
+          <div className="accent-color-picker">
+            <button
+              className={`accent-color-swatch accent-color-swatch-blue${accentColor === "blue" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("blue")}
+              title={t("settings.app.accentBlue")}
+            />
+            <button
+              className={`accent-color-swatch accent-color-swatch-orange${accentColor === "orange" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("orange")}
+              title={t("settings.app.accentOrange")}
+            />
+            <button
+              className={`accent-color-swatch accent-color-swatch-emerald${accentColor === "emerald" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("emerald")}
+              title={t("settings.app.accentEmerald")}
+            />
+            <button
+              className={`accent-color-swatch accent-color-swatch-rose${accentColor === "rose" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("rose")}
+              title={t("settings.app.accentRose")}
+            />
+            <button
+              className={`accent-color-swatch accent-color-swatch-violet${accentColor === "violet" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("violet")}
+              title={t("settings.app.accentViolet")}
+            />
+          </div>
+          <div className="form-hint">
+            {t("settings.app.accentColorHint")}
+          </div>
+        </div>
+
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.app.privacyMode")}</span>
@@ -456,6 +511,21 @@ export function SettingsPage() {
           </div>
           <div className="form-hint">
             {t("settings.app.privacyModeHint")}
+          </div>
+        </div>
+      </div>
+
+      {/* Tutorial Section */}
+      <div className="section-card">
+        <h3>{t("tutorial.settings.toggle")}</h3>
+
+        <div className="settings-toggle-card">
+          <div className="settings-toggle-label">
+            <span>{t("tutorial.settings.toggle")}</span>
+            <ToggleSwitch checked={tutorialEnabled} onChange={handleToggleTutorial} />
+          </div>
+          <div className="form-hint">
+            {t("tutorial.settings.hint")}
           </div>
         </div>
       </div>

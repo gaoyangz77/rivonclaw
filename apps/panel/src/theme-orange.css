@@ -1,0 +1,254 @@
+/*
+ * theme-orange.css — Orange accent theme
+ *
+ * Overrides theme-default.css when [data-accent="orange"] is set.
+ * Primary: warm orange (#ff8c42), Secondary: warm yellow (#ffc107).
+ */
+
+/* ===== Light Mode ===== */
+[data-accent="orange"] {
+    /* Primary accent */
+    --color-primary: #ff8c42;
+    --color-primary-hover: #ff7d2e;
+    --color-primary-active: #f07020;
+    --color-primary-light: rgba(255, 140, 66, 0.16);
+
+    /* Sidebar brand tints */
+    --color-sidebar-bg: #f6f1ec;
+    --color-sidebar-active: rgba(255, 140, 66, 0.14);
+
+    /* Background — page slightly tinted for card contrast */
+    --color-bg-page: #f8f3ee;
+    --color-bg-alt: #f9f5f0;
+
+    /* Border — brand-tinted */
+    --color-border: #e8ddd0;
+    --color-border-light: #f2eae0;
+    --color-border-strong: #e4d6c4;
+
+    /* Elevation — brand-tinted shadows */
+    --shadow-xs:
+        0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(255, 140, 66, 0.04);
+    --shadow-sm:
+        0 2px 8px rgba(15, 23, 42, 0.07), 0 4px 16px rgba(255, 140, 66, 0.06);
+    --shadow-md:
+        0 4px 12px rgba(15, 23, 42, 0.08), 0 8px 28px rgba(255, 140, 66, 0.08);
+    --shadow-lg:
+        0 8px 20px rgba(15, 23, 42, 0.1), 0 16px 44px rgba(255, 140, 66, 0.1);
+    --shadow-glow:
+        0 0 0 1px rgba(255, 140, 66, 0.12), 0 0 24px rgba(255, 140, 66, 0.1);
+
+    /* Focus */
+    --focus-ring: 0 0 0 2px rgba(255, 140, 66, 0.18);
+
+    /* ---- Brand-derived tokens ---- */
+    --nav-active-bg: linear-gradient(135deg, rgba(255, 140, 66, 0.14) 0%, rgba(255, 193, 7, 0.1) 100%);
+    --nav-active-shadow: inset 0 0 0 1px rgba(255, 140, 66, 0.12);
+
+    --page-bg-dot: rgba(255, 140, 66, 0.03);
+    --page-bg-glow1: rgba(255, 140, 66, 0.06);
+    --page-bg-glow2: rgba(255, 193, 7, 0.04);
+
+    --sidebar-bg: linear-gradient(180deg, #fbf5ef 0%, #f5ede5 100%);
+
+    --card-border-glow: rgba(255, 140, 66, 0.2);
+    --card-hover-border: rgba(255, 140, 66, 0.25);
+
+    /* Misc brand tints */
+    --brand-tint-02: rgba(255, 140, 66, 0.02);
+    --brand-tint-03: rgba(255, 140, 66, 0.03);
+    --brand-tint-04: rgba(255, 140, 66, 0.04);
+    --brand-tint-06: rgba(255, 140, 66, 0.06);
+    --brand-tint-08: rgba(255, 140, 66, 0.08);
+    --brand-tint-10: rgba(255, 140, 66, 0.10);
+    --brand-tint-12: rgba(255, 140, 66, 0.12);
+    --brand-tint-14: rgba(255, 140, 66, 0.14);
+    --brand-tint-16: rgba(255, 140, 66, 0.16);
+    --brand-tint-20: rgba(255, 140, 66, 0.20);
+    --brand-tint-22: rgba(255, 140, 66, 0.22);
+    --brand-tint-25: rgba(255, 140, 66, 0.25);
+    --brand-tint-35: rgba(255, 140, 66, 0.35);
+    --brand-tint-30: rgba(255, 140, 66, 0.30);
+    --brand-tint-40: rgba(255, 140, 66, 0.40);
+    --brand-tint-45: rgba(255, 140, 66, 0.45);
+    --brand-tint-50: rgba(255, 140, 66, 0.50);
+    --brand-tint-55: rgba(255, 140, 66, 0.55);
+
+    /* Secondary accent (yellow) */
+    --color-accent-secondary: rgba(255, 193, 7, 1);
+    --accent-secondary-04: rgba(255, 193, 7, 0.04);
+    --accent-secondary-05: rgba(255, 193, 7, 0.05);
+    --accent-secondary-08: rgba(255, 193, 7, 0.08);
+    --accent-secondary-10: rgba(255, 193, 7, 0.10);
+    --accent-secondary-60: rgba(255, 193, 7, 0.60);
+
+    /* Button glow */
+    --btn-primary-shadow: 0 2px 8px rgba(255, 140, 66, 0.25);
+    --btn-primary-shadow-hover: 0 4px 14px rgba(255, 140, 66, 0.35);
+    --btn-primary-shadow-active: 0 2px 6px rgba(255, 140, 66, 0.2);
+
+    /* Button gradient */
+    --btn-primary-bg: linear-gradient(135deg, #ff8c42 0%, #ffc107 100%);
+    --btn-primary-bg-hover: linear-gradient(135deg, #ff7d2e 0%, #ffb300 100%);
+    --btn-primary-bg-active: linear-gradient(135deg, #f07020 0%, #f0a800 100%);
+
+    /* Chat bubble */
+    --chat-user-bg: linear-gradient(135deg, #ff8c42 0%, #ffc107 100%);
+    --chat-user-shadow: 0 4px 14px rgba(255, 140, 66, 0.25);
+    --chat-input-focus-border: rgba(255, 140, 66, 0.55);
+    --chat-example-hover-bg: rgba(255, 140, 66, 0.03);
+    --chat-example-hover-border: rgba(255, 140, 66, 0.25);
+    --chat-example-dark-hover-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), 0 0 20px rgba(255, 150, 80, 0.12);
+
+    /* Skeleton shimmer */
+    --skeleton-mid: rgba(255, 140, 66, 0.06);
+
+    /* Selection */
+    --selection-bg: rgba(255, 140, 66, 0.22);
+
+    /* Skill market cards */
+    --skill-card-glow-start: rgba(255, 140, 66, 0);
+    --skill-card-glow-mid: rgba(255, 140, 66, 0.18);
+    --skill-card-glow-end: rgba(255, 140, 66, 0);
+    --skill-card-hover-border: rgba(255, 140, 66, 0.25);
+    --skill-card-hover-shadow: rgba(255, 140, 66, 0.1);
+
+    /* Provider badge gradient */
+    --provider-badge-gradient: linear-gradient(135deg, var(--color-primary) 0%, rgba(255, 193, 7, 0.6) 100%);
+
+    /* ---- Surface / layout tokens ---- */
+    --main-content-bg:
+        radial-gradient(circle at 1px 1px, rgba(255, 140, 66, 0.03) 1px, transparent 0),
+        radial-gradient(ellipse at 25% 15%, rgba(255, 140, 66, 0.06) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(255, 193, 7, 0.04) 0%, transparent 45%),
+        #f8f3ee;
+    --main-content-bg-size: 24px 24px, 100% 100%, 100% 100%, 100% 100%;
+    --sidebar-border: rgba(17, 24, 39, 0.06);
+    --sidebar-shadow: 2px 0 8px rgba(15, 23, 42, 0.04);
+    --surface-card: linear-gradient(180deg, #fffefb 0%, #fbf6f0 100%);
+    --surface-card-border: rgba(15, 23, 42, 0.06);
+    --surface-card-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    --surface-card-hover-shadow: var(--shadow-lg), var(--shadow-glow);
+    --surface-dropdown: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, #ffffff 100%);
+    --btn-disabled-bg: #f7f2ec;
+}
+
+/* ===== Dark Mode ===== */
+[data-accent="orange"][data-theme="dark"] {
+    /* Primary accent */
+    --color-primary: #ff9650;
+    --color-primary-hover: #ffa566;
+    --color-primary-active: #ee8540;
+    --color-primary-light: rgba(255, 150, 80, 0.16);
+
+    /* Sidebar brand tints */
+    --color-sidebar-bg: #1d1510;
+    --color-sidebar-active: rgba(255, 150, 80, 0.12);
+
+    /* Background */
+    --color-bg-page: #17110d;
+    --color-bg-alt: #302118;
+
+    /* Border */
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-border-light: rgba(255, 255, 255, 0.07);
+    --color-border-strong: rgba(255, 255, 255, 0.15);
+
+    /* Elevation */
+    --shadow-xs:
+        0 1px 4px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 150, 80, 0.04);
+    --shadow-md:
+        0 8px 24px rgba(0, 0, 0, 0.35), 0 0 30px rgba(255, 150, 80, 0.06);
+    --shadow-lg:
+        0 16px 40px rgba(0, 0, 0, 0.4), 0 0 50px rgba(255, 150, 80, 0.08);
+    --shadow-glow:
+        0 0 0 1px rgba(255, 150, 80, 0.4), 0 0 20px rgba(255, 150, 80, 0.15);
+
+    /* Focus */
+    --focus-ring: 0 0 0 2px rgba(255, 150, 80, 0.25);
+
+    /* ---- Brand-derived tokens (dark) ---- */
+    --nav-active-bg: linear-gradient(135deg, rgba(255, 150, 80, 0.14) 0%, rgba(255, 193, 7, 0.08) 100%);
+    --nav-active-shadow: inset 0 0 0 1px rgba(255, 150, 80, 0.12);
+
+    --page-bg-dot: rgba(255, 150, 80, 0.04);
+    --page-bg-glow1: rgba(255, 150, 80, 0.08);
+    --page-bg-glow2: rgba(255, 193, 7, 0.05);
+
+    --sidebar-bg: linear-gradient(180deg, #1d1510 0%, #1d1510 100%);
+
+    --card-border-glow: rgba(255, 150, 80, 0.3);
+    --card-hover-border: rgba(255, 150, 80, 0.35);
+
+    --brand-tint-02: rgba(255, 150, 80, 0.02);
+    --brand-tint-03: rgba(255, 150, 80, 0.03);
+    --brand-tint-04: rgba(255, 150, 80, 0.04);
+    --brand-tint-06: rgba(255, 150, 80, 0.06);
+    --brand-tint-08: rgba(255, 150, 80, 0.08);
+    --brand-tint-10: rgba(255, 150, 80, 0.10);
+    --brand-tint-12: rgba(255, 150, 80, 0.12);
+    --brand-tint-14: rgba(255, 150, 80, 0.14);
+    --brand-tint-16: rgba(255, 150, 80, 0.16);
+    --brand-tint-20: rgba(255, 150, 80, 0.20);
+    --brand-tint-22: rgba(255, 150, 80, 0.22);
+    --brand-tint-25: rgba(255, 150, 80, 0.25);
+    --brand-tint-35: rgba(255, 150, 80, 0.35);
+    --brand-tint-30: rgba(255, 150, 80, 0.30);
+    --brand-tint-40: rgba(255, 150, 80, 0.40);
+    --brand-tint-45: rgba(255, 150, 80, 0.45);
+    --brand-tint-50: rgba(255, 150, 80, 0.50);
+    --brand-tint-55: rgba(255, 150, 80, 0.55);
+
+    --color-accent-secondary: rgba(255, 193, 7, 1);
+    --accent-secondary-04: rgba(255, 193, 7, 0.04);
+    --accent-secondary-05: rgba(255, 193, 7, 0.05);
+    --accent-secondary-08: rgba(255, 193, 7, 0.08);
+    --accent-secondary-10: rgba(255, 193, 7, 0.10);
+    --accent-secondary-60: rgba(255, 193, 7, 0.60);
+
+    --btn-primary-shadow: none;
+    --btn-primary-shadow-hover: none;
+    --btn-primary-shadow-active: none;
+
+    /* Button gradient */
+    --btn-primary-bg: linear-gradient(135deg, #ff9650 0%, #ffc107 100%);
+    --btn-primary-bg-hover: linear-gradient(135deg, #ffa566 0%, #ffca28 100%);
+    --btn-primary-bg-active: linear-gradient(135deg, #ee8540 0%, #f0b000 100%);
+
+    /* Chat bubble */
+    --chat-user-bg: linear-gradient(135deg, #e08030 0%, #ee9940 100%);
+    --chat-user-shadow: 0 4px 14px rgba(224, 128, 48, 0.25);
+    --chat-input-focus-border: rgba(255, 150, 80, 0.55);
+    --chat-example-hover-bg: rgba(255, 150, 80, 0.10);
+    --chat-example-hover-border: rgba(255, 150, 80, 0.35);
+    --chat-example-dark-hover-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), 0 0 20px rgba(255, 150, 80, 0.12);
+
+    --skeleton-mid: rgba(255, 150, 80, 0.08);
+
+    --selection-bg: rgba(255, 150, 80, 0.35);
+
+    --skill-card-glow-start: rgba(255, 150, 80, 0);
+    --skill-card-glow-mid: rgba(255, 150, 80, 0.15);
+    --skill-card-glow-end: rgba(255, 150, 80, 0);
+    --skill-card-hover-border: rgba(255, 150, 80, 0.3);
+    --skill-card-hover-shadow: rgba(255, 150, 80, 0.08);
+
+    --provider-badge-gradient: linear-gradient(135deg, #ff9650 0%, #ffc107 100%);
+
+    /* ---- Surface / layout tokens (dark) ---- */
+    --main-content-bg:
+        radial-gradient(circle at 1px 1px, rgba(255, 150, 80, 0.04) 1px, transparent 0),
+        radial-gradient(ellipse at 20% 10%, rgba(255, 150, 80, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 85%, rgba(255, 193, 7, 0.05) 0%, transparent 45%),
+        #17110d;
+    --main-content-bg-size: 24px 24px, 100% 100%, 100% 100%, 100% 100%;
+    --sidebar-shadow: 1px 0 0 rgba(255, 150, 80, 0.06);
+    --surface-card: linear-gradient(180deg, #2b1f18 0%, #201810 100%);
+    --surface-card-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --surface-card-hover-shadow: var(--shadow-lg), var(--shadow-glow);
+    --surface-card-hover: linear-gradient(180deg, #332518 0%, #281d14 100%);
+    --surface-dropdown: linear-gradient(180deg, #332518 0%, #2b1f18 100%);
+    --btn-disabled-bg: rgba(255, 255, 255, 0.03);
+    --nav-active-bar: linear-gradient(180deg, #ff9650, rgba(255, 193, 7, 1));
+}

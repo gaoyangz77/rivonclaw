@@ -44,6 +44,21 @@ export function ThemeToggle() {
     localStorage.setItem("theme", themePreference);
   }, [effectiveTheme, themePreference]);
 
+  // Apply accent color from localStorage
+  useLayoutEffect(() => {
+    function applyAccent() {
+      const accent = localStorage.getItem("accentColor");
+      if (accent && accent !== "blue") {
+        document.documentElement.setAttribute("data-accent", accent);
+      } else {
+        document.documentElement.removeAttribute("data-accent");
+      }
+    }
+    applyAccent();
+    window.addEventListener("accent-color-changed", applyAccent);
+    return () => window.removeEventListener("accent-color-changed", applyAccent);
+  }, []);
+
   // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;

@@ -100,6 +100,7 @@ export const DEFAULTS = {
     collapseMessages: true,
     showAgentEvents: false,
     preserveToolEvents: false,
+    tutorialEnabled: true,
   },
 
   chat: {

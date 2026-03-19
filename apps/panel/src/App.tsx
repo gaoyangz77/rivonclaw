@@ -18,6 +18,7 @@ import { AccountPage } from "./pages/AccountPage.js";
 import { BrowserProfilesPage } from "./pages/BrowserProfilesPage.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
+import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
 import { fetchSettings, fetchChangelog, trackEvent } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
 
@@ -149,30 +150,34 @@ export function App() {
   const skipPages = new Set(["/", "/channels", "/apps", "/account"]);
   const OtherPage = !skipPages.has(currentPath) ? PAGES[currentPath] : null;
   return (
-    <Layout currentPath={currentPath} onNavigate={navigate} agentName={agentName}>
-      {/* Keep ChatPage always mounted so its WebSocket connection and pending
-          message state survive navigation to other pages (e.g. ProvidersPage). */}
-      <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
-        <ChatPage onAgentNameChange={setAgentName} />
-      </div>
-      {/* Keep ChannelsPage mounted to avoid re-fetching channel status on every visit. */}
-      <div className={currentPath === "/channels" ? "contents-toggle" : "hidden-toggle"}>
-        <ChannelsPage />
-      </div>
-      {currentPath === "/apps" && <AppsPage onNavigate={navigate} />}
-      {currentPath === "/browser-profiles" && <BrowserProfilesPage />}
-      {currentPath === "/account" && <AccountPage onNavigate={navigate} />}
-      {OtherPage && <OtherPage />}
-      <WhatsNewModal
-        isOpen={showWhatsNew}
-        onClose={() => setShowWhatsNew(false)}
-        entries={changelogEntries}
-        currentVersion={currentVersion}
-      />
-      <TelemetryConsentModal
-        isOpen={showTelemetryConsent && !showWhatsNew}
-        onClose={() => setShowTelemetryConsent(false)}
-      />
-    </Layout>
+    <TutorialProvider currentPath={currentPath}>
+      <Layout currentPath={currentPath} onNavigate={navigate} agentName={agentName}>
+        {/* Keep ChatPage always mounted so its WebSocket connection and pending
+            message state survive navigation to other pages (e.g. ProvidersPage). */}
+        <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
+          <ChatPage onAgentNameChange={setAgentName} />
+        </div>
+        {/* Keep ChannelsPage mounted to avoid re-fetching channel status on every visit. */}
+        <div className={currentPath === "/channels" ? "contents-toggle" : "hidden-toggle"}>
+          <ChannelsPage />
+        </div>
+        {currentPath === "/apps" && <AppsPage onNavigate={navigate} />}
+        {currentPath === "/browser-profiles" && <BrowserProfilesPage />}
+        {currentPath === "/account" && <AccountPage onNavigate={navigate} />}
+        {OtherPage && <OtherPage />}
+        <WhatsNewModal
+          isOpen={showWhatsNew}
+          onClose={() => setShowWhatsNew(false)}
+          entries={changelogEntries}
+          currentVersion={currentVersion}
+        />
+        <TelemetryConsentModal
+          isOpen={showTelemetryConsent && !showWhatsNew}
+          onClose={() => setShowTelemetryConsent(false)}
+        />
+      </Layout>
+      <TutorialOverlay />
+      <TutorialBubble />
+    </TutorialProvider>
   );
 }

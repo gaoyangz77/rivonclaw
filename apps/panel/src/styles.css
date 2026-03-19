@@ -5852,8 +5852,8 @@ tbody td {
 
 .tutorial-bubble {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: var(--bubble-right, 24px);
+  bottom: var(--bubble-bottom, 24px);
   z-index: 9998;
   width: 48px;
   height: 48px;
@@ -5960,6 +5960,7 @@ tbody td {
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin-bottom: 16px;
+  white-space: pre-line;
 }
 
 .tutorial-tooltip-footer {
@@ -5977,4 +5978,50 @@ tbody td {
 .tutorial-tooltip-nav {
   display: flex;
   gap: 8px;
+}
+
+/* ---- Accent Color Picker ---- */
+.accent-color-picker {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.accent-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.accent-color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.accent-color-swatch-active {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-text);
+}
+
+.accent-color-swatch-blue {
+  background: linear-gradient(135deg, #5b7fff, #4eadff);
+}
+
+.accent-color-swatch-orange {
+  background: linear-gradient(135deg, #ff8c42, #ffc107);
+}
+
+.accent-color-swatch-emerald {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+}
+
+.accent-color-swatch-rose {
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+}
+
+.accent-color-swatch-violet {
+  background: linear-gradient(135deg, #8b5cf6, #c084fc);
 }
