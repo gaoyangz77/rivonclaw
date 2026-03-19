@@ -1,21 +1,10 @@
 [
   {
-    "version": "1.7.3",
+    "version": "1.7.2",
     "date": "2026-03-19",
     "en": [
-      "Restore skill page features lost during UI migration (install, update, delete, refresh)",
-      "Upgrade OpenClaw engine to v2026.3.13-1"
-    ],
-    "zh": [
-      "修复界面迁移后技能页面缺失的安装、更新、删除、刷新功能",
-      "升级 OpenClaw 引擎至 v2026.3.13-1"
-    ]
-  },
-  {
-    "version": "1.7.2",
-    "date": "2026-03-18",
-    "en": [
       "UI overhaul: component refactor, theme separation, and redesigned skills page",
+      "Restore skill page features lost during UI migration (install, update, delete, refresh)",
       "Add captcha-based authentication and centralized default settings",
       "Add channel group-allow-from editor with SQLite-backed account config",
       "Plugin SDK refactor with internationalized branding",
@@ -27,6 +16,7 @@
     ],
     "zh": [
       "界面全面改版：组件重构、主题分离、技能页面重新设计",
+      "修复界面迁移后技能页面缺失的安装、更新、删除、刷新功能",
       "新增验证码登录认证和集中式默认配置",
       "新增频道群组白名单编辑器，支持 SQLite 存储账号配置",
       "插件 SDK 重构，品牌名称国际化",
