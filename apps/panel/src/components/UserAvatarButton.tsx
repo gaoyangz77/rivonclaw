@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../providers/AuthProvider.js";
 import { AuthModal } from "./modals/AuthModal.js";
-import { UserIcon, UserPlusIcon } from "./icons.js";
+import { UserPlusIcon } from "./icons.js";
+import { getUserInitial } from "../lib/user-manager.js";
 
 interface UserAvatarButtonProps {
   onNavigate: (path: string) => void;
@@ -21,6 +22,8 @@ export function UserAvatarButton({ onNavigate }: UserAvatarButtonProps) {
     }
   }
 
+  const initial = user ? getUserInitial(user) : "";
+
   return (
     <>
       <button
@@ -28,7 +31,7 @@ export function UserAvatarButton({ onNavigate }: UserAvatarButtonProps) {
         onClick={handleClick}
         title={user ? user.email : t("auth.login")}
       >
-        {user ? <UserIcon /> : <UserPlusIcon />}
+        {user ? <span className="user-avatar-circle">{initial}</span> : <UserPlusIcon />}
       </button>
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </>
