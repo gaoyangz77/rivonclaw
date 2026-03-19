@@ -1405,11 +1405,16 @@ function smokeTestGateway() {
       OPENCLAW_STATE_DIR: tmpDir,
       OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
     };
+    // Point plugins dir to an empty dir so no extensions load during smoke test.
+    // Extensions are verified separately; this isolates the core gateway + plugin-sdk.
+    const emptyPluginsDir = path.join(tmpDir, "empty-plugins");
+    fs.mkdirSync(emptyPluginsDir, { recursive: true });
     const stdout = execFileSync(process.execPath, [openclawMjs, "gateway"], {
       cwd: tmpDir,
       timeout: 90_000,
       env: {
         ...minimalEnv,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: emptyPluginsDir,
       },
       stdio: ["ignore", "pipe", "pipe"],
       killSignal: "SIGTERM",
