@@ -110,9 +110,10 @@ export function defineRivonClawPlugin(options: RivonClawPluginOptions): OpenClaw
     },
     // OpenClaw channel plugins require register() — alias to activate so
     // channel registration happens regardless of which lifecycle method
-    // the engine calls.
+    // the engine calls.  Use plugin.activate (not this.activate) to avoid
+    // broken `this` binding when OpenClaw calls register() as a detached function.
     register(api: PluginApi) {
-      this.activate(api);
+      plugin.activate(api);
     },
   };
 
