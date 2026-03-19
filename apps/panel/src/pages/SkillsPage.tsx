@@ -22,8 +22,8 @@ export function SkillsPage() {
   const { t, i18n } = useTranslation();
   const isCN = i18n.language === "zh";
 
-  // Tab state — default to essential (featured)
-  const [activeTab, setActiveTab] = useState<"market" | "essential" | "installed">("market");
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"market" | "installed">("market");
 
   // Market state
   const [page, setPage] = useState(1);
@@ -73,12 +73,6 @@ export function SkillsPage() {
 
   const marketSkills = marketData?.skills.skills ?? [];
   const total = marketData?.skills.total ?? 0;
-
-  // Featured/essential skills — filter by RECOMMENDED label from market data
-  const featuredSkills = useMemo(
-    () => marketSkills.filter((s) => s.labels.includes(GQL.SkillLabel.Recommended)),
-    [marketSkills],
-  );
 
   // Surface GraphQL errors
   useEffect(() => {
@@ -211,39 +205,6 @@ export function SkillsPage() {
         </button>
       </div>
 
-      {/* Essential tab */}
-      {activeTab === "essential" && (
-        <>
-          {loading && <p className="text-muted">{t("common.loading")}</p>}
-          {!loading && featuredSkills.length > 0 && (
-            <div className="skills-grid">
-              {featuredSkills.map((skill) => (
-                <SkillCard
-                  key={skill.slug}
-                  slug={skill.slug}
-                  nameEn={skill.name_en}
-                  nameZh={skill.name_zh}
-                  descEn={skill.desc_en}
-                  descZh={skill.desc_zh}
-                  author={skill.author}
-                  version={skill.version}
-                  stars={skill.stars}
-                  downloads={skill.downloads}
-                  labels={skill.labels}
-                  isBundled={bundledSlugs.has(skill.slug)}
-                  isInstalled={installedSlugs.has(skill.slug)}
-                  isInstalling={installingSlug === skill.slug}
-                  onInstall={() => handleInstall(skill)}
-                />
-              ))}
-            </div>
-          )}
-          {!loading && featuredSkills.length === 0 && (
-            <div className="empty-state">{t("skills.emptyEssential")}</div>
-          )}
-        </>
-      )}
-
       {/* Market tab */}
       {activeTab === "market" && (
         <>
@@ -330,9 +291,37 @@ export function SkillsPage() {
               >
                 {t("skills.prevPage")}
               </button>
-              <span className="text-muted">
-                {t("skills.pageInfo", { page, totalPages })}
-              </span>
+              {(() => {
+                // Build page number list with ellipsis gaps
+                const pages: (number | "ellipsis-left" | "ellipsis-right")[] = [];
+                if (totalPages <= 7) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  // Always show first page
+                  pages.push(1);
+                  if (page > 4) pages.push("ellipsis-left");
+                  // Pages around current
+                  const start = Math.max(2, page - 1);
+                  const end = Math.min(totalPages - 1, page + 1);
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  if (page < totalPages - 3) pages.push("ellipsis-right");
+                  // Always show last page
+                  pages.push(totalPages);
+                }
+                return pages.map((p) =>
+                  typeof p === "string" ? (
+                    <span key={p} className="pagination-ellipsis">...</span>
+                  ) : (
+                    <button
+                      key={p}
+                      className={`btn btn-sm pagination-page-btn${p === page ? " pagination-page-btn-active" : ""}`}
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </button>
+                  ),
+                );
+              })()}
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={page >= totalPages}
