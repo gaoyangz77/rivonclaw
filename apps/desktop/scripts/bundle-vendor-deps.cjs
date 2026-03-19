@@ -1343,6 +1343,14 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
 
 function smokeTestGateway() {
   console.log("[bundle-vendor-deps] Phase 5: Smoke testing bundled gateway...");
+  // Debug: hash the bundled plugin-sdk/index.js to verify esbuild output is identical
+  const crypto = require("crypto");
+  const pluginSdkBundled = path.join(distDir, "plugin-sdk", "index.js");
+  if (fs.existsSync(pluginSdkBundled)) {
+    const h = crypto.createHash("md5").update(fs.readFileSync(pluginSdkBundled)).digest("hex").slice(0, 12);
+    const sz = (fs.statSync(pluginSdkBundled).size / 1024 / 1024).toFixed(1);
+    console.log(`[bundle-vendor-deps] Phase 5 debug: bundled plugin-sdk/index.js ${sz}MB hash=${h}`);
+  }
 
   const { execFileSync } = require("child_process");
   const os = require("os");
