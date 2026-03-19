@@ -256,6 +256,7 @@ const SINGLE_ACCOUNT_KEYS_TO_MOVE = new Set([
   "allowFrom",
   "groupPolicy",
   "groupAllowFrom",
+  "groups",
   "defaultTo",
 ]);
 

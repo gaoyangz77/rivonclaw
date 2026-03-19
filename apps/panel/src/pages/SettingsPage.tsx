@@ -498,9 +498,21 @@ export function SettingsPage() {
               onClick={() => handleAccentColorChange("violet")}
               title={t("settings.app.accentViolet")}
             />
-          </div>
-          <div className="form-hint">
-            {t("settings.app.accentColorHint")}
+            <button
+              className={`accent-color-swatch accent-color-swatch-gold${accentColor === "gold" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("gold")}
+              title={t("settings.app.accentGold")}
+            />
+            <button
+              className={`accent-color-swatch accent-color-swatch-crimson${accentColor === "crimson" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("crimson")}
+              title={t("settings.app.accentCrimson")}
+            />
+            <button
+              className={`accent-color-swatch accent-color-swatch-tiffany${accentColor === "tiffany" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("tiffany")}
+              title={t("settings.app.accentTiffany")}
+            />
           </div>
         </div>
 

@@ -49,10 +49,15 @@ export function AddChannelAccountModal({
     const initialData: Record<string, any> = {};
     schema.fields.forEach(field => {
       if (existingAccount?.config[field.id] !== undefined) {
-        if (field.type === "tags" && Array.isArray(existingAccount.config[field.id])) {
-          initialData[field.id] = (existingAccount.config[field.id] as any[]).map(String);
+        const raw = existingAccount.config[field.id];
+        if (field.type === "tags" && Array.isArray(raw)) {
+          initialData[field.id] = (raw as any[]).map(String);
+        } else if (field.type === "tags" && raw && typeof raw === "object" && !Array.isArray(raw)) {
+          // OpenClaw stores some tags fields (e.g. "groups") as Record<string, {}>.
+          // Convert object keys back to a string array for the TagInput.
+          initialData[field.id] = Object.keys(raw as Record<string, unknown>);
         } else {
-          initialData[field.id] = existingAccount.config[field.id];
+          initialData[field.id] = raw;
         }
       } else if (field.defaultValue !== undefined) {
         initialData[field.id] = field.defaultValue;
@@ -127,10 +132,19 @@ export function AddChannelAccountModal({
           if (!matches) return;
         }
         const value = formData[field.id];
-        // Tags fields: include as array only if non-empty
+        // Tags fields: include as array only if non-empty.
+        // The "groups" field must be converted to Record<string, {}> for OpenClaw.
         if (field.type === "tags") {
           if (Array.isArray(value) && value.length > 0) {
-            config[field.id] = value;
+            if (field.id === "groups") {
+              const groupsObj: Record<string, Record<string, never>> = {};
+              for (const id of value) {
+                groupsObj[id] = {};
+              }
+              config[field.id] = groupsObj;
+            } else {
+              config[field.id] = value;
+            }
           }
           return;
         }

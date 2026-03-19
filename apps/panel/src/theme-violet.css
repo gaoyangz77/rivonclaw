@@ -14,17 +14,17 @@
     --color-primary-light: rgba(139, 92, 246, 0.16);
 
     /* Sidebar brand tints */
-    --color-sidebar-bg: #f5f3ff;
+    --color-sidebar-bg: #f4f3f7;
     --color-sidebar-active: rgba(139, 92, 246, 0.14);
 
     /* Background — page slightly tinted for card contrast */
-    --color-bg-page: #f5f3ff;
-    --color-bg-alt: #ede9fe;
+    --color-bg-page: #f5f4f7;
+    --color-bg-alt: #f2f1f5;
 
     /* Border — brand-tinted */
-    --color-border: #d4c6f0;
-    --color-border-light: #e0d5f5;
-    --color-border-strong: #c6b3e8;
+    --color-border: #dfdbe6;
+    --color-border-light: #e8e5ed;
+    --color-border-strong: #d4cfdd;
 
     /* Elevation — brand-tinted shadows */
     --shadow-xs:
@@ -46,10 +46,10 @@
     --nav-active-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.12);
 
     --page-bg-dot: rgba(139, 92, 246, 0.03);
-    --page-bg-glow1: rgba(139, 92, 246, 0.06);
-    --page-bg-glow2: rgba(192, 132, 252, 0.04);
+    --page-bg-glow1: rgba(139, 92, 246, 0.03);
+    --page-bg-glow2: rgba(192, 132, 252, 0.02);
 
-    --sidebar-bg: linear-gradient(180deg, #f8f6ff 0%, #f0ecfe 100%);
+    --sidebar-bg: linear-gradient(180deg, #f5f4f8 0%, #efedf3 100%);
 
     --card-border-glow: rgba(139, 92, 246, 0.2);
     --card-hover-border: rgba(139, 92, 246, 0.25);
@@ -119,18 +119,18 @@
     /* ---- Surface / layout tokens ---- */
     --main-content-bg:
         radial-gradient(circle at 1px 1px, rgba(139, 92, 246, 0.03) 1px, transparent 0),
-        radial-gradient(ellipse at 25% 15%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
-        radial-gradient(ellipse at 80% 80%, rgba(192, 132, 252, 0.04) 0%, transparent 45%),
-        #f5f3ff;
+        radial-gradient(ellipse at 25% 15%, rgba(139, 92, 246, 0.03) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(192, 132, 252, 0.02) 0%, transparent 45%),
+        #f5f4f7;
     --main-content-bg-size: 24px 24px, 100% 100%, 100% 100%, 100% 100%;
     --sidebar-border: rgba(17, 24, 39, 0.06);
     --sidebar-shadow: 2px 0 8px rgba(15, 23, 42, 0.04);
-    --surface-card: linear-gradient(180deg, #fdfcff 0%, #f6f3fc 100%);
+    --surface-card: linear-gradient(180deg, #fefdfe 0%, #f7f6f9 100%);
     --surface-card-border: rgba(15, 23, 42, 0.06);
     --surface-card-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.8);
     --surface-card-hover-shadow: var(--shadow-lg), var(--shadow-glow);
     --surface-dropdown: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, #ffffff 100%);
-    --btn-disabled-bg: #f0ecf7;
+    --btn-disabled-bg: #f1f0f4;
 }
 
 /* ===== Dark Mode ===== */
@@ -172,9 +172,9 @@
     --nav-active-bg: linear-gradient(135deg, rgba(167, 139, 250, 0.14) 0%, rgba(196, 181, 253, 0.08) 100%);
     --nav-active-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.12);
 
-    --page-bg-dot: rgba(167, 139, 250, 0.04);
-    --page-bg-glow1: rgba(167, 139, 250, 0.08);
-    --page-bg-glow2: rgba(196, 181, 253, 0.05);
+    --page-bg-dot: rgba(167, 139, 250, 0.02);
+    --page-bg-glow1: rgba(167, 139, 250, 0.03);
+    --page-bg-glow2: rgba(196, 181, 253, 0.02);
 
     --sidebar-bg: linear-gradient(180deg, #110d1a 0%, #110d1a 100%);
 
@@ -238,9 +238,9 @@
 
     /* ---- Surface / layout tokens (dark) ---- */
     --main-content-bg:
-        radial-gradient(circle at 1px 1px, rgba(167, 139, 250, 0.04) 1px, transparent 0),
-        radial-gradient(ellipse at 20% 10%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 85%, rgba(196, 181, 253, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 1px 1px, rgba(167, 139, 250, 0.02) 1px, transparent 0),
+        radial-gradient(ellipse at 20% 10%, rgba(167, 139, 250, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 85%, rgba(196, 181, 253, 0.02) 0%, transparent 45%),
         #0e0b16;
     --main-content-bg-size: 24px 24px, 100% 100%, 100% 100%, 100% 100%;
     --sidebar-shadow: 1px 0 0 rgba(167, 139, 250, 0.06);

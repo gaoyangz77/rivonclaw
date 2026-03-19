@@ -55,8 +55,8 @@
 
     /* Page background texture */
     --page-bg-dot: rgba(91, 127, 255, 0.03);
-    --page-bg-glow1: rgba(91, 127, 255, 0.06);
-    --page-bg-glow2: rgba(0, 194, 255, 0.04);
+    --page-bg-glow1: rgba(91, 127, 255, 0.03);
+    --page-bg-glow2: rgba(0, 194, 255, 0.02);
 
     /* Sidebar gradient */
     --sidebar-bg: linear-gradient(180deg, #f2f5fb 0%, #e9edf5 100%);
@@ -131,8 +131,8 @@
     /* Main content background (with dot-grid + glow texture) */
     --main-content-bg:
         radial-gradient(circle at 1px 1px, rgba(91, 127, 255, 0.03) 1px, transparent 0),
-        radial-gradient(ellipse at 25% 15%, rgba(91, 127, 255, 0.06) 0%, transparent 55%),
-        radial-gradient(ellipse at 80% 80%, rgba(0, 194, 255, 0.04) 0%, transparent 45%),
+        radial-gradient(ellipse at 25% 15%, rgba(91, 127, 255, 0.03) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(0, 194, 255, 0.02) 0%, transparent 45%),
         #f0f3f8;
     --main-content-bg-size: 24px 24px, 100% 100%, 100% 100%, 100% 100%;
     /* Sidebar */
@@ -188,9 +188,9 @@
     --nav-active-bg: linear-gradient(135deg, rgba(108, 99, 255, 0.14) 0%, rgba(0, 212, 255, 0.08) 100%);
     --nav-active-shadow: inset 0 0 0 1px rgba(108, 99, 255, 0.12);
 
-    --page-bg-dot: rgba(108, 99, 255, 0.04);
-    --page-bg-glow1: rgba(108, 99, 255, 0.08);
-    --page-bg-glow2: rgba(0, 212, 255, 0.05);
+    --page-bg-dot: rgba(108, 99, 255, 0.02);
+    --page-bg-glow1: rgba(108, 99, 255, 0.03);
+    --page-bg-glow2: rgba(0, 212, 255, 0.02);
 
     --sidebar-bg: linear-gradient(180deg, #12151d 0%, #12151d 100%);
 
@@ -254,9 +254,9 @@
 
     /* ---- Surface / layout tokens (dark) ---- */
     --main-content-bg:
-        radial-gradient(circle at 1px 1px, rgba(108, 99, 255, 0.04) 1px, transparent 0),
-        radial-gradient(ellipse at 20% 10%, rgba(108, 99, 255, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 85%, rgba(0, 212, 255, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 1px 1px, rgba(108, 99, 255, 0.02) 1px, transparent 0),
+        radial-gradient(ellipse at 20% 10%, rgba(108, 99, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 85%, rgba(0, 212, 255, 0.02) 0%, transparent 45%),
         #0f1117;
     --main-content-bg-size: 24px 24px, 100% 100%, 100% 100%, 100% 100%;
     --sidebar-shadow: 1px 0 0 rgba(108, 99, 255, 0.06);

@@ -6029,3 +6029,14 @@ tbody td {
 .accent-color-swatch-violet {
   background: linear-gradient(135deg, #8b5cf6, #c084fc);
 }
+.accent-color-swatch-crimson {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+}
+
+.accent-color-swatch-gold {
+  background: linear-gradient(135deg, #b8860b, #d4a017);
+}
+
+.accent-color-swatch-tiffany {
+  background: linear-gradient(135deg, #0abab5, #5ce0db);
+}
