@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/LOGO_CN_BOY_COMPACT.png" width="300" alt="爪爪">
+  <img src="assets/LOGO_CN.png" width="300" alt="爪爪">
 </p>
 
 <p align="center">
@@ -332,7 +332,7 @@ pnpm format:fix   # 自动修复
 - **海外 Telegram 群**：[加入讨论群](https://t.me/+IN_vVZxckbgxODIx)
 - **中国大陆微信群**：扫码加入
 
-  <img src="assets/wechat-group-qr.png" width="200" alt="微信讨论群二维码">
+  <img src="assets/WECHAT_GROUP_QR.png" width="200" alt="微信讨论群二维码">
 
 ## 许可证
 

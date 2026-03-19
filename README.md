@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/LOGO_EN_COMPACT_CROPPED.png" width="400" alt="RivonClaw">
+  <img src="assets/LOGO_EN.png" width="400" alt="RivonClaw">
 </p>
 
 <p align="center">
@@ -333,7 +333,7 @@ pnpm format:fix   # Auto-fix
 - **Telegram** (International): [Join Discussion Group](https://t.me/+IN_vVZxckbgxODIx)
 - **WeChat** (中国大陆): Scan to join
 
-  <img src="assets/wechat-group-qr.png" width="200" alt="WeChat Group QR Code">
+  <img src="assets/WECHAT_GROUP_QR.png" width="200" alt="WeChat Group QR Code">
 
 ## License
 
