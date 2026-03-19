@@ -1343,22 +1343,27 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
 
 function smokeTestGateway() {
   console.log("[bundle-vendor-deps] Phase 5: Smoke testing bundled gateway...");
-  // Quick sanity check: require() the bundled plugin-sdk before launching
-  // the full gateway. If CJS initialization order is broken, this catches it
-  // with a clear error before the 90s gateway timeout.
+  // Quick sanity check: require() the bundled plugin-sdk in a CHILD PROCESS
+  // (matching how the smoke test gateway loads it). Parent-process require()
+  // can succeed due to cached modules from earlier phases.
   const pluginSdkBundled = path.join(distDir, "plugin-sdk", "index.js");
   if (fs.existsSync(pluginSdkBundled)) {
+    const { execFileSync: execCheck } = require("child_process");
     try {
-      require(pluginSdkBundled);
-      console.log("[bundle-vendor-deps] Phase 5 pre-check: plugin-sdk/index.js loaded OK");
+      execCheck(process.execPath, ["-e", `require(${JSON.stringify(pluginSdkBundled)})`], {
+        cwd: vendorDir,
+        timeout: 30_000,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      console.log("[bundle-vendor-deps] Phase 5 pre-check: plugin-sdk/index.js loaded OK (child process)");
     } catch (err) {
-      console.error(`[bundle-vendor-deps] Phase 5 pre-check FAILED: plugin-sdk/index.js\n  ${err.message}\n  ${err.stack?.split("\n").slice(0, 5).join("\n  ")}`);
+      const stderr = (err.stderr || "").toString().trim();
+      console.error(`[bundle-vendor-deps] Phase 5 pre-check FAILED (child process):\n  ${stderr.split("\n").slice(0, 10).join("\n  ")}`);
       // List node_modules packages for diagnosis
-      const nmDir = path.join(vendorDir, "node_modules");
-      if (fs.existsSync(nmDir)) {
-        const pkgs = fs.readdirSync(nmDir).filter(f => !f.startsWith("."));
-        console.error(`[bundle-vendor-deps] vendor node_modules (${pkgs.length} entries): ${pkgs.join(", ")}`);
-      }
+      const nmPkgs = fs.existsSync(nmDir)
+        ? fs.readdirSync(nmDir).filter(f => !f.startsWith("."))
+        : [];
+      console.error(`[bundle-vendor-deps] vendor node_modules (${nmPkgs.length} entries): ${nmPkgs.join(", ")}`);
     }
   }
 
