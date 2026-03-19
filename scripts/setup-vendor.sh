@@ -27,9 +27,11 @@ if ls "$PATCH_DIR"/*.patch &>/dev/null; then
   echo "Vendor patches applied and rebuilt."
 fi
 
-if [ "$PROD" = "--prod" ]; then
-  pnpm install --prod --no-frozen-lockfile
-fi
+# NOTE: Do NOT run pnpm install --prod here. Dev deps must remain available
+# because bundle-vendor-deps.cjs (Phase 0.5a/b) needs the full node_modules
+# to correctly resolve and bundle plugin-sdk + extensions. The prod pruning
+# is handled later by prune-vendor-deps.cjs (Phase 1) which runs immediately
+# before bundling during dist:mac/dist:win/dist:linux.
 
 rm -f .gitignore
 echo "OpenClaw vendor ready ($HASH)"

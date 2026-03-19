@@ -21,7 +21,7 @@ jobs:
 
       - name: Setup OpenClaw vendor
         shell: bash
-        run: ./scripts/setup-vendor.sh --prod
+        run: ./scripts/setup-vendor.sh
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -82,7 +82,7 @@ jobs:
           cache: pnpm
 
       - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh --prod
+        run: ./scripts/setup-vendor.sh
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -142,7 +142,7 @@ jobs:
           cache: pnpm
 
       - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh --prod
+        run: ./scripts/setup-vendor.sh
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
