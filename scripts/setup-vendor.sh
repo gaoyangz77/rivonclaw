@@ -18,6 +18,8 @@ pnpm run build
 PATCH_DIR="$REPO_ROOT/vendor-patches/openclaw"
 if ls "$PATCH_DIR"/*.patch &>/dev/null; then
   echo "Replaying vendor patches from $PATCH_DIR..."
+  git config user.email "ci@rivonclaw.com"
+  git config user.name "RivonClaw CI"
   git am --3way "$PATCH_DIR"/*.patch
   # Incremental rebuild of patched source (preserves original dist)
   node scripts/tsdown-build.mjs
