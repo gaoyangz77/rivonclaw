@@ -446,57 +446,6 @@ function resolvePluginSdkAliasAndExternals() {
 // Bundle index.js into a self-contained file so we can delete the chunks.
 // account-id.js is already self-contained (1.1KB, no chunk imports).
 
-/**
- * Fix esbuild CJS bundling initialization order for plugin-sdk.
- *
- * esbuild can place a class assignment (`XXX=class {...}`) AFTER module-level
- * code that calls `new XXX()`. This happens because of circular dependencies
- * in the upstream source — esbuild hoists `var XXX;` but the assignment runs
- * later. The symptom is "XXX is not a constructor" at require() time.
- *
- * Fix: find the pattern `function F(a,b,c=D){return new C(b,c).process(a)}`
- * where C is the include-resolver class. Locate C's class assignment and
- * move it just before the function that uses it.
- */
-function fixPluginSdkInitOrder(filePath) {
-  let content = fs.readFileSync(filePath, "utf-8");
-
-  // Match: function XXX(e,t,n=YYY){return new ZZZ(t,n).process(e)}
-  const pattern = /function (\w+)\(e,t,n=(\w+)\)\{return new (\w+)\(t,n\)\.process\(e\)\}/;
-  const m = content.match(pattern);
-  if (!m) return; // pattern not found, nothing to fix
-
-  const [fullMatch, funcName, , ctorVar] = m;
-  const funcIdx = content.indexOf(fullMatch);
-
-  // Find the class assignment: ctorVar=class XXX{...};
-  const assignStr = ctorVar + "=class ";
-  const assignIdx = content.indexOf(assignStr);
-  if (assignIdx === -1 || assignIdx < funcIdx) return; // already before usage or not found
-
-  // Extract the full class definition (track brace depth)
-  let classEnd = assignIdx;
-  let depth = 0;
-  let entered = false;
-  for (let i = assignIdx; i < content.length; i++) {
-    if (content[i] === "{") { depth++; entered = true; }
-    if (content[i] === "}") { depth--; }
-    if (entered && depth === 0) { classEnd = i + 1; break; }
-  }
-  // Include trailing semicolon
-  if (content[classEnd] === ";") classEnd++;
-
-  const classDef = content.substring(assignIdx, classEnd);
-
-  // Remove from original position and insert just before the function that uses it
-  content = content.substring(0, assignIdx) + content.substring(classEnd);
-  // Recalculate funcIdx after removal
-  const newFuncIdx = content.indexOf(fullMatch);
-  content = content.substring(0, newFuncIdx) + classDef + content.substring(newFuncIdx);
-
-  fs.writeFileSync(filePath, content, "utf-8");
-}
-
 function bundlePluginSdk() {
   console.log("[bundle-vendor-deps] Phase 0.5a: Bundling plugin-sdk...");
 
@@ -529,12 +478,6 @@ function bundlePluginSdk() {
   });
 
   const bundleSize = fs.statSync(tmpOut).size;
-
-  // Fix esbuild CJS initialization order: the config include-resolver class
-  // assignment (e.g. `cmu=class $Ao{...}`) can end up AFTER module-level code
-  // that calls `new cmu()`, because esbuild doesn't guarantee correct ordering
-  // for circular dependencies. Move the class definition before its first usage.
-  fixPluginSdkInitOrder(tmpOut);
 
   // Replace index.js with the bundle
   fs.unlinkSync(pluginSdkIndex);
@@ -585,7 +528,6 @@ function bundlePluginSdk() {
         minify: true,
         logLevel: "warning",
       });
-      fixPluginSdkInitOrder(subTmp);
       fs.unlinkSync(subPath);
       fs.renameSync(subTmp, subPath);
     }
@@ -668,14 +610,10 @@ function prebundleExtensions() {
     ...pluginSdkExternals,
   ];
   const pluginSdkDir = path.join(distDir, "plugin-sdk");
-  // Do NOT mark plugin-sdk as sideEffects:false here. The new vendor's tsdown
-  // generates chunks with bare side-effect imports (e.g. `import "./zod-schema.core-*.js"`)
-  // that initialize Zod constructors and other runtime state. Marking them as
-  // side-effect-free causes esbuild to drop these imports, producing broken bundles
-  // ("cmu is not a constructor"). esbuild's own tree-shaking of unused exports is
-  // sufficient for extension bundling without the sideEffects hint.
+  // Mark plugin-sdk chunks as side-effect-free for esbuild tree-shaking.
   const pluginSdkPkg = path.join(pluginSdkDir, "package.json");
   const hadPkgJson = fs.existsSync(pluginSdkPkg);
+  fs.writeFileSync(pluginSdkPkg, JSON.stringify({ sideEffects: false }), "utf-8");
 
   // Find all extensions with openclaw.plugin.json
   const extDirs = [];
@@ -811,7 +749,7 @@ function prebundleExtensions() {
 
   // Clean up the temporary package.json so it doesn't interfere with
   // Phase 0.5a or jiti runtime resolution.
-  if (!hadPkgJson && fs.existsSync(pluginSdkPkg)) {
+  if (!hadPkgJson) {
     fs.unlinkSync(pluginSdkPkg);
   }
 
@@ -1083,21 +1021,16 @@ function patchPluginSdkPreload() {
   // and loads it via native require() before jiti runs. jiti checks
   // require.cache (when moduleCache is enabled, which is the default) and
   // returns the cached exports immediately, skipping its slow babel pipeline.
-  // Preload plugin-sdk via require() to bypass jiti's slow babel pipeline.
-  // The CJS-bundled plugin-sdk has known TDZ (Temporal Dead Zone) issues from
-  // esbuild's module initialization ordering (upstream OpenClaw issue — see
-  // openclaw/openclaw#45085, #48171). These errors are caught internally by
-  // HRl() and do not affect runtime behavior. The preload is wrapped in
-  // try/catch so these caught-and-logged errors don't prevent gateway startup.
-  //
-  // Only preload index.js — subpath files (bluebubbles.js, telegram.js, etc.)
-  // are loaded lazily by jiti when extensions need them.
   const preloadCode = [
     "// ── Plugin-SDK preload (bypass jiti) ──",
     'var __sdkDir=require("path").join(require("url").fileURLToPath(import.meta.url),"..","plugin-sdk");',
     'var __sdkIndex=require("path").join(__sdkDir,"index.js");',
     "try{",
     "  require(__sdkIndex);",
+    // Also populate common sub-path imports that extensions use
+    '  var __fs=require("fs"),__path=require("path");',
+    "  var __subFiles=__fs.readdirSync(__sdkDir).filter(function(f){return f.endsWith('.js')&&f!=='index.js'});",
+    "  __subFiles.forEach(function(f){try{require(__path.join(__sdkDir,f))}catch(e){}});",
     '}catch(e){process.stderr.write("[preload] plugin-sdk: "+e.message+"\\n")}',
   ].join("\n");
 
@@ -1407,34 +1340,6 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
 function smokeTestGateway() {
   console.log("[bundle-vendor-deps] Phase 5: Smoke testing bundled gateway...");
 
-  // On macOS CI, the esbuild CJS-bundled plugin-sdk triggers uncaught TDZ
-  // (Temporal Dead Zone) errors from upstream OpenClaw's module initialization
-  // ordering (see openclaw/openclaw#45085, #48171). The macOS CI runner hits
-  // code paths (Bonjour/mDNS, keychain) not present on Linux/Windows that
-  // trigger additional config loading before variable assignments run.
-  // Linux and Windows CI run the full gateway smoke test successfully.
-  // macOS CI falls back to a require()-only check of the bundled plugin-sdk.
-  const isCi = process.env.CI === "true" || process.env.CI === "1";
-  if (isCi && process.platform === "darwin") {
-    const pluginSdkBundled = path.join(distDir, "plugin-sdk", "index.js");
-    if (fs.existsSync(pluginSdkBundled)) {
-      const { execFileSync: execCheck } = require("child_process");
-      try {
-        execCheck(process.execPath, ["-e", `require(${JSON.stringify(pluginSdkBundled)})`], {
-          cwd: path.dirname(pluginSdkBundled),
-          timeout: 30_000,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-        console.log("[bundle-vendor-deps] Smoke test (macOS CI): plugin-sdk require() OK. Full gateway test skipped (upstream TDZ issue, covered by Linux/Windows CI).");
-        return;
-      } catch (err) {
-        const stderr = (err.stderr || "").toString().trim();
-        console.error(`[bundle-vendor-deps] ✗ macOS CI plugin-sdk require() FAILED:\n  ${stderr.split("\n").slice(0, 5).join("\n  ")}`);
-        process.exit(1);
-      }
-    }
-  }
-
   const { execFileSync } = require("child_process");
   const os = require("os");
 
@@ -1461,7 +1366,7 @@ function smokeTestGateway() {
   let killed = false;
 
   try {
-    const stdout = execFileSync(process.execPath, ["--max-old-space-size=4096", openclawMjs, "gateway"], {
+    const stdout = execFileSync(process.execPath, [openclawMjs, "gateway"], {
       cwd: tmpDir,
       timeout: 90_000,
       env: {
@@ -1469,6 +1374,7 @@ function smokeTestGateway() {
         OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
         OPENCLAW_STATE_DIR: tmpDir,
         OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
+        NODE_COMPILE_CACHE: undefined,
       },
       stdio: ["ignore", "pipe", "pipe"],
       killSignal: "SIGTERM",
