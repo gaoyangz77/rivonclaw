@@ -553,7 +553,7 @@ export function SettingsPage() {
           <h3>{t("settings.dataDir.title")}</h3>
 
           <div>
-            <div className="settings-toggle-label" style={{ cursor: "default" }}>
+            <div className="settings-toggle-label settings-toggle-label-static">
               <span>{t("settings.dataDir.label")}</span>
             </div>
             <div className="data-dir-display">

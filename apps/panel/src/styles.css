@@ -2191,6 +2191,10 @@ tbody td {
   cursor: pointer;
 }
 
+.settings-toggle-label-static {
+  cursor: default;
+}
+
 .settings-list {
   margin: 0;
   padding-left: 24px;

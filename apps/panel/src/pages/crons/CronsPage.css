@@ -425,6 +425,7 @@
 .crons-tip-bubble {
   position: fixed;
   z-index: 9999;
+  transform: translateX(-50%);
   background: var(--color-text);
   color: #fff;
   padding: 10px 14px;

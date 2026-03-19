@@ -78,7 +78,6 @@ function InfoTip({ tooltipKey }: { tooltipKey: string }) {
           style={{
             top: bubble.top,
             left: bubble.left,
-            transform: "translateX(-50%)",
           }}
         >
           {t(`crons.${tooltipKey}`)}
