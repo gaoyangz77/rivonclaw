@@ -1378,15 +1378,23 @@ function smokeTestGateway() {
   let killed = false;
 
   try {
+    // Use a minimal env to avoid CI environment variables (HOME, USER, etc.)
+    // triggering unexpected config/state loading paths that cause CJS
+    // initialization order issues in the bundled plugin-sdk.
+    const minimalEnv = {
+      PATH: process.env.PATH,
+      TMPDIR: process.env.TMPDIR || os.tmpdir(),
+      HOME: tmpDir,
+      USER: process.env.USER || "ci",
+      OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
+      OPENCLAW_STATE_DIR: tmpDir,
+      OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
+    };
     const stdout = execFileSync(process.execPath, [openclawMjs, "gateway"], {
       cwd: tmpDir,
       timeout: 90_000,
       env: {
-        ...process.env,
-        OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
-        OPENCLAW_STATE_DIR: tmpDir,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: extStagingDir,
-        NODE_COMPILE_CACHE: undefined,
+        ...minimalEnv,
       },
       stdio: ["ignore", "pipe", "pipe"],
       killSignal: "SIGTERM",
