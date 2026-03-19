@@ -36,11 +36,11 @@ export function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
         return () => document.removeEventListener("keydown", handleKey);
     }, [open, onClose]);
 
-    if (!open || !user) return null;
-
     const { data: subData } = useQuery<{
         subscriptionStatus: GQL.UserSubscription | null;
     }>(SUBSCRIPTION_STATUS_QUERY, { skip: !user });
+
+    if (!open || !user) return null;
 
     const sub = subData?.subscriptionStatus;
     const initial = getUserInitial(user);

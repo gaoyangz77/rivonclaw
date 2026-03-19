@@ -65,14 +65,14 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
         <h3>{t("account.subscription")}</h3>
 
         <div className="settings-toggle-card">
-          <div className="settings-toggle-label" style={{ cursor: "default" }}>
+          <div className="settings-toggle-label settings-toggle-label-static">
             <span>{t("account.plan")}</span>
             <span className="acct-badge acct-badge-plan">{subscription?.plan ?? user.plan}</span>
           </div>
         </div>
 
         <div className="settings-toggle-card">
-          <div className="settings-toggle-label" style={{ cursor: "default" }}>
+          <div className="settings-toggle-label settings-toggle-label-static">
             <span>{t("account.validUntil")}</span>
             <span>
               {subscription
@@ -85,7 +85,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
         {/* Seats progress */}
         {subscription && (
           <div className="acct-seats">
-            <div className="settings-toggle-label" style={{ cursor: "default" }}>
+            <div className="settings-toggle-label settings-toggle-label-static">
               <span>{t("account.seats")}</span>
               <span>{seatsUsed} / {seatsMax}</span>
             </div>
