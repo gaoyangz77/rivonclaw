@@ -369,13 +369,13 @@ tbody td {
 /* Sidebar collapse toggle */
 .sidebar-collapse-toggle {
   position: absolute;
-  top: 24px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
   color: var(--color-sidebar-muted);
