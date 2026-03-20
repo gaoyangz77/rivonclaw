@@ -18,11 +18,16 @@
 !macro _killRivonClawProcesses
   nsExec::ExecToLog 'taskkill /f /im RivonClaw.exe'
   Pop $0
+  ; Also kill pre-rebrand EasyClaw processes (upgrade from old version).
+  nsExec::ExecToLog 'taskkill /f /im EasyClaw.exe'
+  Pop $0
   nsExec::ExecToLog 'taskkill /f /t /im openclaw-gateway.exe'
   Pop $0
   nsExec::ExecToLog 'taskkill /f /t /im openclaw.exe'
   Pop $0
   nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%rivonclaw%'"'"'" call terminate'
+  Pop $0
+  nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%easyclaw%'"'"'" call terminate'
   Pop $0
   Sleep 5000
 !macroend
@@ -41,16 +46,24 @@
   !insertmacro _killRivonClawProcesses
 
   ; Wipe the old UninstallString so uninstallOldVersion() exits early.
-  ; SHELL_CONTEXT is set by initMultiUser (runs before customInit).
-  DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" UninstallString
-  DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" QuietUninstallString
+  ; SHCTX resolves to HKLM or HKCU based on SetShellVarContext (set by
+  ; initMultiUser which runs before customInit).  Note: "SHELL_CONTEXT"
+  ; is NOT a valid NSIS root-key constant — only SHCTX is.  The previous
+  ; code silently failed to delete anything, which let uninstallOldVersion
+  ; find the old uninstaller, run it, and show the "cannot be closed" dialog.
+  DeleteRegValue SHCTX "${UNINSTALL_REGISTRY_KEY}" UninstallString
+  DeleteRegValue SHCTX "${UNINSTALL_REGISTRY_KEY}" QuietUninstallString
   !ifdef UNINSTALL_REGISTRY_KEY_2
-    DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY_2}" UninstallString
-    DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY_2}" QuietUninstallString
+    DeleteRegValue SHCTX "${UNINSTALL_REGISTRY_KEY_2}" UninstallString
+    DeleteRegValue SHCTX "${UNINSTALL_REGISTRY_KEY_2}" QuietUninstallString
   !endif
   ; Also cover HKCU for per-all-users → per-user migration edge case.
-  DeleteRegValue HKEY_CURRENT_USER "${UNINSTALL_REGISTRY_KEY}" UninstallString
-  DeleteRegValue HKEY_CURRENT_USER "${UNINSTALL_REGISTRY_KEY}" QuietUninstallString
+  DeleteRegValue HKCU "${UNINSTALL_REGISTRY_KEY}" UninstallString
+  DeleteRegValue HKCU "${UNINSTALL_REGISTRY_KEY}" QuietUninstallString
+  !ifdef UNINSTALL_REGISTRY_KEY_2
+    DeleteRegValue HKCU "${UNINSTALL_REGISTRY_KEY_2}" UninstallString
+    DeleteRegValue HKCU "${UNINSTALL_REGISTRY_KEY_2}" QuietUninstallString
+  !endif
 
   ; Delete the old uninstaller binary (belt-and-suspenders).
   Delete "$INSTDIR\${UNINSTALL_FILENAME}"
