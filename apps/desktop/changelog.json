@@ -1,15 +1,19 @@
 [
   {
     "version": "1.7.3",
-    "date": "2026-03-19",
+    "date": "2026-03-20",
     "en": [
+      "Auto-provision RivonClaw Pro provider for Pro Plan users",
       "Upgrade OpenClaw engine to v2026.3.13-1",
       "Restore skill page features (install, update, delete, refresh) lost during UI migration",
+      "Fix startup delay: preload plugin-sdk to avoid 60s jiti babel transform",
       "Fix vendor build: plugin-sdk bundle and CI packaging"
     ],
     "zh": [
+      "Pro Plan 用户自动配置 RivonClaw Pro 模型服务",
       "升级 OpenClaw 引擎至 v2026.3.13-1",
       "修复界面迁移后技能页面缺失的安装、更新、删除、刷新功能",
+      "修复启动延迟：预加载插件 SDK 避免 60 秒编译等待",
       "修复构建流程：插件 SDK 打包及 CI 构建问题"
     ]
   },
