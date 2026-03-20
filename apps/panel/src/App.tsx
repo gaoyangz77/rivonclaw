@@ -16,7 +16,6 @@ import { AppsPage } from "./pages/AppsPage.js";
 import { OnboardingPage } from "./pages/OnboardingPage.js";
 import { AccountPage } from "./pages/AccountPage.js";
 import { BrowserProfilesPage } from "./pages/BrowserProfilesPage.js";
-import { SurfacesPage } from "./pages/SurfacesPage.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
@@ -34,7 +33,6 @@ const PAGES: Record<string, () => ReactNode> = {
   "/skills": SkillsPage,
   "/crons": CronsPage,
   "/apps": () => null, // Rendered separately below (needs onNavigate prop)
-  "/surfaces": SurfacesPage,
   "/browser-profiles": () => null, // Rendered separately below (needs onNavigate prop)
   "/settings": SettingsPage,
   "/account": () => null, // Rendered separately below (needs onNavigate prop)

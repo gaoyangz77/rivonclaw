@@ -1966,5 +1966,6 @@ export default {
     failedToDeleteProfile: "删除运行配置失败。",
     toolCount: "{{count}} 个工具",
     categoryCount: "{{count}} 个分类",
+    system: "系统",
   },
 } as const;

@@ -1976,5 +1976,6 @@ export default {
     failedToDeleteProfile: "Failed to delete run profile.",
     toolCount: "{{count}} tools",
     categoryCount: "{{count}} categories",
+    system: "System",
   },
 } as const;

@@ -33,6 +33,7 @@ export async function fetchSurfaces(): Promise<Surface[]> {
   return trackedQuery(async () => {
     const result = await getClient().query<{ surfaces: Surface[] }>({
       query: SURFACES_QUERY,
+      fetchPolicy: "cache-first",
     });
     return result.data!.surfaces;
   });
@@ -42,6 +43,7 @@ export async function fetchSurfacePresets(): Promise<SurfacePreset[]> {
   return trackedQuery(async () => {
     const result = await getClient().query<{ surfacePresets: SurfacePreset[] }>({
       query: SURFACE_PRESETS_QUERY,
+      fetchPolicy: "cache-first",
     });
     return result.data!.surfacePresets;
   });

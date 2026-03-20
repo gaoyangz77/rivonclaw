@@ -21,6 +21,7 @@ export async function fetchRunProfiles(surfaceId?: string): Promise<RunProfile[]
     const result = await getClient().query<{ runProfiles: RunProfile[] }>({
       query: RUN_PROFILES_QUERY,
       variables: surfaceId ? { surfaceId } : {},
+      fetchPolicy: "cache-first",
     });
     return result.data!.runProfiles;
   });

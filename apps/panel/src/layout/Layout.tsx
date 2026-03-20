@@ -13,7 +13,7 @@ import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
 import {
   ChatIcon, RulesIcon, ProvidersIcon, ChannelsIcon, AppsIcon,
-  PermissionsIcon, ExtrasIcon, UsageIcon, SkillsIcon, SurfacesIcon,
+  PermissionsIcon, ExtrasIcon, UsageIcon, SkillsIcon,
   BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
   AuthIcon, MenuIcon,
 } from "../components/icons.js";
@@ -36,7 +36,6 @@ const NAV_ICONS: Record<string, ReactNode> = {
   "/extras": <ExtrasIcon />,
   "/usage": <UsageIcon />,
   "/skills": <SkillsIcon />,
-  "/surfaces": <SurfacesIcon />,
   "/browser-profiles": <BrowserProfilesIcon />,
   "/crons": <CronsIcon />,
   "/settings": <SettingsIcon />,
@@ -191,7 +190,6 @@ export function Layout({
     { path: "/permissions", label: t("nav.permissions") },
     { path: "/extras", label: t("nav.extras") },
     { path: "/skills", label: t("nav.skills") },
-    { path: "/surfaces", label: t("nav.surfaces") },
     { path: "/browser-profiles", label: t("nav.browserProfiles") },
     { path: "/crons", label: t("nav.crons") },
     // { path: "/apps", label: t("customerService.nav") },
