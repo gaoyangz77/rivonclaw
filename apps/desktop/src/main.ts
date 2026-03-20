@@ -54,6 +54,7 @@ import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch } from "./gatew
 import { initTelemetry } from "./utils/telemetry-init.js";
 import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js";
 import { AuthSessionManager } from "./auth/auth-session.js";
+import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
@@ -325,6 +326,10 @@ app.whenReady().then(async () => {
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxiedFetch);
   await authSession.loadFromKeychain();
+  // Validate session and sync cloud provider key on startup (best-effort)
+  authSession.validate()
+    .then((user) => syncCloudProviderKey(user, storage, secretStore))
+    .catch(() => {});
 
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
@@ -1395,6 +1400,9 @@ app.whenReady().then(async () => {
         });
     },
     onAuthChange: () => {
+      // Sync cloud LLM provider key on login/logout
+      syncCloudProviderKey(authSession?.getCachedUser() ?? null, storage, secretStore).catch(() => {});
+
       // Re-init ToolCapabilityResolver with fresh entitlements after login/logout.
       (async () => {
         if (!rpcClient?.isConnected()) return;
