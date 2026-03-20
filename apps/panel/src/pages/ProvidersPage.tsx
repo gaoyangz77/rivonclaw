@@ -8,6 +8,7 @@ import {
   updateProviderKey,
   activateProviderKey,
   deleteProviderKey,
+  refreshProviderModels,
   trackEvent,
 } from "../api/index.js";
 import { configManager } from "../lib/config-manager.js";
@@ -28,6 +29,7 @@ export function ProvidersPage() {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editLabelValue, setEditLabelValue] = useState("");
   const [editBaseUrl, setEditBaseUrl] = useState("");
+  const [refreshingModelsId, setRefreshingModelsId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -139,6 +141,21 @@ export function ProvidersPage() {
       setError({ key: "providers.failedToSave", detail: String(err) });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleRefreshModels(keyId: string) {
+    setRefreshingModelsId(keyId);
+    setError(null);
+    try {
+      const updated = await refreshProviderModels(keyId);
+      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      setSavedId(keyId);
+      setTimeout(() => setSavedId(null), 2000);
+    } catch (err) {
+      setError({ key: "providers.failedToSave", detail: String(err) });
+    } finally {
+      setRefreshingModelsId(null);
     }
   }
 
@@ -276,6 +293,15 @@ export function ProvidersPage() {
 
                     {/* Right: action buttons */}
                     <div className="td-actions">
+                      {k.authType === "custom" && k.customProtocol === "openai" && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleRefreshModels(k.id)}
+                          disabled={refreshingModelsId === k.id}
+                        >
+                          {refreshingModelsId === k.id ? t("providers.fetchingModels") : t("providers.refreshModels")}
+                        </button>
+                      )}
                       {!isActive && (
                         <button className="btn btn-outline btn-sm" onClick={() => handleActivate(k.id, k.provider)}>
                           {t("providers.activate")}

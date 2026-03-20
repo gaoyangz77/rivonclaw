@@ -3,7 +3,7 @@ import type { LLMProvider } from "@rivonclaw/core";
 import { getDefaultModelForProvider, parseProxyUrl, reconstructProxyUrl, formatError } from "@rivonclaw/core";
 import { readFullModelCatalog } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
-import { validateProviderApiKey, validateCustomProviderApiKey, syncActiveKey } from "../providers/provider-validator.js";
+import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels, syncActiveKey } from "../providers/provider-validator.js";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody } from "./route-utils.js";
 
@@ -179,12 +179,51 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
     return true;
   }
 
+  // Provider key refresh models: POST /api/provider-keys/:id/refresh-models
+  if (pathname.startsWith("/api/provider-keys/") && pathname.endsWith("/refresh-models") && req.method === "POST") {
+    const id = pathname.slice("/api/provider-keys/".length, -"/refresh-models".length);
+    const entry = storage.providerKeys.getById(id);
+    if (!entry) {
+      sendJson(res, 404, { error: "Key not found" });
+      return true;
+    }
+    if (entry.authType !== "custom" || entry.customProtocol !== "openai") {
+      sendJson(res, 400, { error: "Refresh models is only supported for custom OpenAI-compatible providers" });
+      return true;
+    }
+    if (!entry.baseUrl) {
+      sendJson(res, 400, { error: "Custom provider is missing baseUrl" });
+      return true;
+    }
+    const apiKey = await secretStore.get(`provider-key-${id}`);
+    if (!apiKey) {
+      sendJson(res, 400, { error: "No API key found for this provider" });
+      return true;
+    }
+
+    let proxyUrl: string | undefined;
+    if (entry.proxyBaseUrl) {
+      const credentials = await secretStore.get(`proxy-auth-${id}`);
+      proxyUrl = credentials ? reconstructProxyUrl(entry.proxyBaseUrl, credentials) : entry.proxyBaseUrl;
+    }
+
+    const result = await fetchCustomProviderModels(entry.baseUrl, apiKey, proxyUrl);
+    if (result.error) {
+      sendJson(res, 422, { error: result.error });
+      return true;
+    }
+
+    const updated = storage.providerKeys.update(id, { customModelsJson: JSON.stringify(result.models) });
+    sendJson(res, 200, updated);
+    return true;
+  }
+
   // Provider key with ID: PUT /api/provider-keys/:id, DELETE /api/provider-keys/:id
   if (pathname.startsWith("/api/provider-keys/")) {
     const id = pathname.slice("/api/provider-keys/".length);
     if (!id.includes("/")) {
       if (req.method === "PUT") {
-        const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[] };
+        const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string };
         const existing = storage.providerKeys.getById(id);
         if (!existing) {
           sendJson(res, 404, { error: "Key not found" });
@@ -223,6 +262,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           proxyBaseUrl,
           baseUrl: body.baseUrl,
           inputModalities: body.inputModalities,
+          customModelsJson: body.customModelsJson,
         });
 
         if (modelChanging && existing.isDefault && snapshotEngine && body.model) {
@@ -274,6 +314,31 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
         return true;
       }
     }
+  }
+
+  // --- Custom Provider: Fetch Models ---
+  if (pathname === "/api/custom-provider/fetch-models" && req.method === "POST") {
+    const body = (await parseBody(req)) as {
+      baseUrl?: string;
+      apiKey?: string;
+      protocol?: string;
+      proxyUrl?: string;
+    };
+    if (!body.baseUrl || !body.apiKey) {
+      sendJson(res, 400, { error: "Missing required fields: baseUrl, apiKey" });
+      return true;
+    }
+    if (body.protocol !== "openai") {
+      sendJson(res, 400, { error: "Model fetching is only supported for OpenAI-compatible providers" });
+      return true;
+    }
+    const result = await fetchCustomProviderModels(body.baseUrl, body.apiKey, body.proxyUrl || undefined);
+    if (result.error) {
+      sendJson(res, 422, { error: result.error });
+      return true;
+    }
+    sendJson(res, 200, { models: result.models });
+    return true;
   }
 
   // --- Local Models ---

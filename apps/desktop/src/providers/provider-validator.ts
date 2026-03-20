@@ -268,6 +268,72 @@ export async function validateCustomProviderApiKey(
 }
 
 /**
+ * Fetch the list of available models from a custom provider's OpenAI-compatible /v1/models endpoint.
+ * Returns { models: string[] } on success or { error: "..." } on failure.
+ */
+export async function fetchCustomProviderModels(
+  baseUrl: string,
+  apiKey: string,
+  proxyUrl?: string,
+): Promise<{ models?: string[]; error?: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
+  const { ProxyAgent } = await import("undici");
+  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${resolveProxyRouterPort()}`);
+
+  // Normalize baseUrl: ensure it ends with /v1 and append /models
+  let normalized = baseUrl.trim().replace(/\/+$/, "");
+  if (!normalized.endsWith("/v1")) {
+    normalized += "/v1";
+  }
+  const modelsUrl = `${normalized}/models`;
+
+  try {
+    log.info(`Fetching models from custom provider: ${modelsUrl}`);
+    const res = await fetch(modelsUrl, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
+      ...(dispatcher && { dispatcher }),
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      return { error: "Authentication failed — check your API key" };
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return { error: `Provider returned ${res.status}: ${body.slice(0, 200)}` };
+    }
+
+    const json = await res.json() as { data?: Array<{ id: string }> };
+    if (!json.data || !Array.isArray(json.data)) {
+      return { error: "Unexpected response format — expected { data: [...] }" };
+    }
+
+    const models = json.data
+      .map((m) => m.id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0)
+      .sort();
+
+    if (models.length === 0) {
+      return { error: "No models returned by the provider" };
+    }
+
+    return { models };
+  } catch (err) {
+    const msg = formatError(err);
+    log.error("Custom provider model fetch failed:", msg);
+    if (msg.includes("abort")) {
+      return { error: "Request timed out — check your network connection" };
+    }
+    return { error: `Network error: ${msg}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
  * Sync the active key for a provider to the canonical secret store slot.
  * The gateway reads `{provider}-api-key` — this keeps it in sync with multi-key management.
  */

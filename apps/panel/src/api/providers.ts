@@ -46,11 +46,19 @@ export async function createProviderKey(data: {
 
 export async function updateProviderKey(
   id: string,
-  fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[] },
+  fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string },
 ): Promise<ProviderKeyEntry> {
   const result = await fetchJson<ProviderKeyEntry>("/provider-keys/" + id, {
     method: "PUT",
     body: JSON.stringify(fields),
+  });
+  invalidateCache("provider-keys");
+  return result;
+}
+
+export async function refreshProviderModels(id: string): Promise<ProviderKeyEntry> {
+  const result = await fetchJson<ProviderKeyEntry>("/provider-keys/" + id + "/refresh-models", {
+    method: "POST",
   });
   invalidateCache("provider-keys");
   return result;
@@ -134,6 +142,21 @@ export async function saveOAuthFlow(
   );
   invalidateCache("provider-keys");
   return result;
+}
+
+// --- Custom Provider: Fetch Models ---
+
+export async function fetchCustomProviderModels(
+  baseUrl: string,
+  apiKey: string,
+  protocol: string,
+  proxyUrl?: string,
+): Promise<string[]> {
+  const data = await fetchJson<{ models: string[] }>("/custom-provider/fetch-models", {
+    method: "POST",
+    body: JSON.stringify({ baseUrl, apiKey, protocol, proxyUrl }),
+  });
+  return data.models;
 }
 
 // --- Model Catalog ---
