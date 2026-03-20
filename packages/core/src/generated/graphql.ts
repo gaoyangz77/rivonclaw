@@ -19,11 +19,8 @@ export interface Scalars {
 /** Authentication response with JWT tokens */
 export interface AuthPayload {
   accessToken: Scalars['String']['output'];
-  email: Scalars['String']['output'];
-  llmKey?: Maybe<LlmKey>;
-  plan: UserPlan;
   refreshToken: Scalars['String']['output'];
-  userId: Scalars['String']['output'];
+  user: MeResponse;
 }
 
 /** A tool with its availability status for the current user */

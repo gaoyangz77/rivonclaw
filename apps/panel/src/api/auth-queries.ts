@@ -14,12 +14,16 @@ export const LOGIN_MUTATION = gql`
     login(input: $input) {
       accessToken
       refreshToken
-      userId
-      email
-      plan
-      llmKey {
-        key
-        suspendedUntil
+      user {
+        userId
+        email
+        name
+        plan
+        createdAt
+        llmKey {
+          key
+          suspendedUntil
+        }
       }
     }
   }
@@ -30,12 +34,16 @@ export const REGISTER_MUTATION = gql`
     register(input: $input) {
       accessToken
       refreshToken
-      userId
-      email
-      plan
-      llmKey {
-        key
-        suspendedUntil
+      user {
+        userId
+        email
+        name
+        plan
+        createdAt
+        llmKey {
+          key
+          suspendedUntil
+        }
       }
     }
   }
@@ -46,12 +54,16 @@ export const REFRESH_TOKEN_MUTATION = gql`
     refreshToken(refreshToken: $refreshToken) {
       accessToken
       refreshToken
-      userId
-      email
-      plan
-      llmKey {
-        key
-        suspendedUntil
+      user {
+        userId
+        email
+        name
+        plan
+        createdAt
+        llmKey {
+          key
+          suspendedUntil
+        }
       }
     }
   }

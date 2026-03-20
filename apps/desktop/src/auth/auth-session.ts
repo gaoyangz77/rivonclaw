@@ -1,11 +1,11 @@
 import type { SecretStore } from "@rivonclaw/secrets";
-import { getGraphqlUrl } from "@rivonclaw/core";
+import { getGraphqlUrl, GQL } from "@rivonclaw/core";
 
 const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
 
 // GraphQL operations (same as panel uses, but as raw strings)
-const REFRESH_TOKEN_MUTATION = `mutation RefreshToken($refreshToken: String!) { refreshToken(refreshToken: $refreshToken) { accessToken refreshToken userId email plan } }`;
+const REFRESH_TOKEN_MUTATION = `mutation RefreshToken($refreshToken: String!) { refreshToken(refreshToken: $refreshToken) { accessToken refreshToken user { userId email name plan createdAt llmKey { key suspendedUntil } } } }`;
 const ME_QUERY = `query Me { me { userId email name plan createdAt llmKey { key suspendedUntil } } }`;
 const LOGOUT_MUTATION = `mutation Logout($refreshToken: String!) { logout(refreshToken: $refreshToken) }`;
 const AVAILABLE_TOOLS_QUERY = `query { availableTools { id displayName description category allowed denialReason } }`;
@@ -19,17 +19,10 @@ export interface AvailableTool {
   denialReason?: string;
 }
 
-export interface AuthUser {
-  userId: string;
-  email: string;
-  name: string | null;
-  plan: string;
-}
-
 export class AuthSessionManager {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
-  private cachedUser: AuthUser | null = null;
+  private cachedUser: GQL.MeResponse | null = null;
   private cachedAvailableTools: AvailableTool[] | null = null;
   private refreshPromise: Promise<string> | null = null;
 
@@ -49,7 +42,7 @@ export class AuthSessionManager {
     return this.accessToken;
   }
 
-  getCachedUser(): AuthUser | null {
+  getCachedUser(): GQL.MeResponse | null {
     return this.cachedUser;
   }
 
@@ -85,22 +78,23 @@ export class AuthSessionManager {
       throw new Error("No refresh token available");
     }
 
-    const result = await this.graphqlFetch<{ refreshToken: { accessToken: string; refreshToken: string } }>(
+    const result = await this.graphqlFetch<{ refreshToken: { accessToken: string; refreshToken: string; user: GQL.MeResponse } }>(
       REFRESH_TOKEN_MUTATION,
       { refreshToken: this.refreshToken },
     );
 
     const payload = result.refreshToken;
     await this.storeTokens(payload.accessToken, payload.refreshToken);
+    this.cachedUser = payload.user;
     return payload.accessToken;
   }
 
   /** Validate the current session by calling the ME query. */
-  async validate(): Promise<AuthUser | null> {
+  async validate(): Promise<GQL.MeResponse | null> {
     if (!this.accessToken) return null;
 
     try {
-      const result = await this.graphqlFetch<{ me: AuthUser }>(ME_QUERY);
+      const result = await this.graphqlFetch<{ me: GQL.MeResponse }>(ME_QUERY);
       this.cachedUser = result.me;
       return result.me;
     } catch {

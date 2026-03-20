@@ -9,7 +9,6 @@ import {
   setOnRefreshFailed,
 } from "../api/apollo-client.js";
 import { trackEvent } from "../api/index.js";
-import { cloudLlmProvider } from "../lib/cloud-llm-provider.js";
 
 interface AuthState {
   user: GQL.MeResponse | null;
@@ -140,13 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [meData, meError, meLoading, token]);
 
-  // Auto-provision RivonClaw Pro provider when user has llmKey
-  useEffect(() => {
-    if (user?.llmKey?.key) {
-      cloudLlmProvider.provision(user.llmKey.key);
-    }
-  }, [user]);
-
   const [loginMutation] = useMutation<{ login: GQL.AuthPayload }>(LOGIN_MUTATION);
   const [registerMutation] = useMutation<{ register: GQL.AuthPayload }>(REGISTER_MUTATION);
 
@@ -164,14 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     tokenRef.current = payload.accessToken;
     setToken(payload.accessToken);
-    setUser({
-      userId: payload.userId,
-      email: payload.email,
-      plan: payload.plan,
-      name: null,
-      llmKey: payload.llmKey,
-      createdAt: new Date().toISOString(),
-    });
+    setUser(payload.user);
     trackEvent("auth.login");
   }, [loginMutation]);
 
@@ -189,19 +174,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     tokenRef.current = payload.accessToken;
     setToken(payload.accessToken);
-    setUser({
-      userId: payload.userId,
-      email: payload.email,
-      plan: payload.plan,
-      name: null,
-      llmKey: payload.llmKey,
-      createdAt: new Date().toISOString(),
-    });
+    setUser(payload.user);
     trackEvent("auth.register");
   }, [registerMutation]);
 
   const logout = useCallback(() => {
-    cloudLlmProvider.teardown();
     fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     trackEvent("auth.logout");
     setToken(null);

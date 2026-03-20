@@ -1,3 +1,4 @@
+import { GQL } from "@rivonclaw/core";
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 
@@ -39,7 +40,7 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
     if (!user) {
       const payload = decodeJwtPayload(body.accessToken);
       if (payload && typeof payload.email === "string") {
-        user = { userId: (payload.sub as string) ?? "", email: payload.email, name: null, plan: (payload.plan as string) ?? "" };
+        user = { userId: (payload.sub as string) ?? "", email: payload.email, name: null, plan: ((payload.plan as string) ?? "") as GQL.UserPlan, createdAt: new Date().toISOString() };
       }
     }
     ctx.onAuthChange?.();
