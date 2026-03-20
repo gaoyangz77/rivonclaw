@@ -108,6 +108,24 @@ export const channelsSteps: TutorialStep[] = [
     placement: "bottom",
   },
   {
+    target: ".modal-form-col .custom-select:nth-of-type(1)",
+    titleKey: "tutorial.channels.modalDmPolicyTitle",
+    bodyKey: "tutorial.channels.modalDmPolicyBody",
+    placement: "bottom",
+  },
+  {
+    target: ".modal-form-col .custom-select:nth-of-type(2)",
+    titleKey: "tutorial.channels.modalGroupPolicyTitle",
+    bodyKey: "tutorial.channels.modalGroupPolicyBody",
+    placement: "bottom",
+  },
+  {
+    target: ".modal-form-col .tag-input-wrap",
+    titleKey: "tutorial.channels.modalAllowedSendersTitle",
+    bodyKey: "tutorial.channels.modalAllowedSendersBody",
+    placement: "bottom",
+  },
+  {
     target: ".modal-form-col .form-checkbox-row",
     titleKey: "tutorial.channels.modalEnabledTitle",
     bodyKey: "tutorial.channels.modalEnabledBody",

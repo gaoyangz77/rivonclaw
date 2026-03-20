@@ -1267,6 +1267,20 @@ tbody td {
   color: var(--color-text-muted);
 }
 
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.form-error-sm {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
 .input-full {
   width: 100%;
 }

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { TagInput } from "../inputs/TagInput.js";
 import { Select } from "../inputs/Select.js";
 import { ModalityCheckboxGroup } from "./ModalityCheckboxGroup.js";
+import { fetchCustomProviderModels } from "../../api/providers.js";
 import type { ProviderFormState } from "./use-provider-form.js";
 
 export function CustomProviderForm({
@@ -26,7 +28,27 @@ export function CustomProviderForm({
     handleAddCustomProvider,
   } = form;
 
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [fetchModelsError, setFetchModelsError] = useState<string | null>(null);
+
   const canSave = customEndpoint.trim() && apiKey.trim() && customModels.length > 0;
+  const canFetchModels = customEndpoint.trim() && apiKey.trim() && customProtocol === "openai";
+
+  async function handleFetchModels() {
+    if (!canFetchModels) return;
+    setFetchingModels(true);
+    setFetchModelsError(null);
+    try {
+      const models = await fetchCustomProviderModels(
+        customEndpoint.trim(), apiKey.trim(), customProtocol,
+      );
+      setCustomModels(models);
+    } catch (err) {
+      setFetchModelsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setFetchingModels(false);
+    }
+  }
 
   return (
     <>
@@ -79,12 +101,26 @@ export function CustomProviderForm({
       </div>
 
       <div className="mb-sm">
-        <div className="form-label text-secondary">{t("providers.customModelsLabel")}</div>
+        <div className="form-label-row">
+          <div className="form-label text-secondary">{t("providers.customModelsLabel")}</div>
+          {customProtocol === "openai" && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={handleFetchModels}
+              disabled={!canFetchModels || fetchingModels}
+            >
+              {fetchingModels ? t("providers.fetchingModels") : t("providers.fetchModels")}
+            </button>
+          )}
+        </div>
         <TagInput
           tags={customModels}
           onChange={setCustomModels}
           placeholder={t("providers.customModelsPlaceholder")}
         />
+        {fetchModelsError && (
+          <small className="form-error-sm">{fetchModelsError}</small>
+        )}
         <small className="form-help-sm">{t("providers.customModelsHelp")}</small>
       </div>
 
