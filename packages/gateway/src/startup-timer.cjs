@@ -140,6 +140,33 @@ let pluginSdkResolvedPath = null;
 let pluginSdkDir = null;
 let pluginSdkPreloadSkipped = false;
 
+// ── Proactive plugin-sdk path resolution ──
+// Phase 2.6 (entry.js preload) was removed to fix Electron CJS/ESM conflicts.
+// Without it, no require("./plugin-sdk/index.js") fires to trigger the deferred
+// loading hook below. Resolve the path eagerly here so the _resolveFilename
+// hook is ready before jiti tries to load extensions.
+try {
+  // The gateway entry point lives at <vendor>/dist/entry.js.
+  // plugin-sdk is at <vendor>/dist/plugin-sdk/index.js.
+  // We locate it relative to the main entry module (process.argv[1]).
+  const entryDir = path.dirname(process.argv[1] || "");
+  const candidates = [
+    path.join(entryDir, "dist", "plugin-sdk", "index.js"),  // openclaw.mjs → dist/
+    path.join(entryDir, "plugin-sdk", "index.js"),           // if entry is already in dist/
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      pluginSdkResolvedPath = path.resolve(candidate);
+      pluginSdkDir = path.dirname(pluginSdkResolvedPath);
+      pluginSdkPreloadSkipped = true;
+      logPhaseV(`plugin-sdk resolved proactively: ${pluginSdkResolvedPath}`);
+      break;
+    }
+  }
+} catch {
+  // Non-critical — the deferred hook will still try to capture the path
+}
+
 const origResolveFilename = Module._resolveFilename;
 Module._resolveFilename = function resolveWithPluginSdk(
   request,
