@@ -210,17 +210,22 @@ export function ProvidersPage() {
                     <div className="key-info">
                       <div className="key-meta">
                         <strong className="text-sm">
+                          {k.provider === "rivonclaw-pro" && (
+                            <span className="provider-crown" aria-label="Premium">👑</span>
+                          )}
                           {k.authType === "custom" ? k.label : t(`providers.label_${k.provider}`)}
                         </strong>
-                        <span className="badge badge-muted">
-                          {k.authType === "custom"
-                            ? t("providers.authTypeCustom")
-                            : k.authType === "local"
-                              ? t("providers.badgeLocal")
-                              : k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
-                                ? t("providers.authTypeSubscription")
-                                : t("providers.authTypeApiKey")}
-                        </span>
+                        {k.provider !== "rivonclaw-pro" && (
+                          <span className="badge badge-muted">
+                            {k.authType === "custom"
+                              ? t("providers.authTypeCustom")
+                              : k.authType === "local"
+                                ? t("providers.badgeLocal")
+                                : k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
+                                  ? t("providers.authTypeSubscription")
+                                  : t("providers.authTypeApiKey")}
+                          </span>
+                        )}
                         {isActive && (
                           <span className="badge badge-active">
                             {t("providers.active")}
@@ -234,7 +239,7 @@ export function ProvidersPage() {
                             </svg>
                           </span>
                         )}
-                        {(k.authType === "local" || k.authType === "custom") && k.baseUrl && (
+                        {(k.authType === "local" || k.authType === "custom") && k.baseUrl && k.provider !== "rivonclaw-pro" && (
                           <span className="text-secondary text-sm">{k.baseUrl}</span>
                         )}
                         {savedId === k.id && (
@@ -318,9 +323,11 @@ export function ProvidersPage() {
                       >
                         {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
                       </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
-                        {t("providers.removeKey")}
-                      </button>
+                      {k.provider !== "rivonclaw-pro" && (
+                        <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
+                          {t("providers.removeKey")}
+                        </button>
+                      )}
                     </div>
                   </div>
 

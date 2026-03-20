@@ -223,7 +223,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
     const id = pathname.slice("/api/provider-keys/".length);
     if (!id.includes("/")) {
       if (req.method === "PUT") {
-        const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string };
+        const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string; apiKey?: string };
         const existing = storage.providerKeys.getById(id);
         if (!existing) {
           sendJson(res, 404, { error: "Key not found" });
@@ -248,6 +248,15 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
               sendJson(res, 400, { error: `Invalid proxy URL: ${formatError(error)}` });
               return true;
             }
+          }
+        }
+
+        // Update the API key secret if provided
+        if (body.apiKey) {
+          await secretStore.set(`provider-key-${id}`, body.apiKey);
+          if (existing.isDefault) {
+            await syncActiveKey(existing.provider, storage, secretStore);
+            onProviderChange?.({ keyOnly: true });
           }
         }
 
@@ -376,6 +385,31 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
   // --- Model Catalog ---
   if (pathname === "/api/models" && req.method === "GET") {
     const catalog = await readFullModelCatalog(undefined, vendorDir);
+
+    // Custom providers store their model list in customModelsJson but
+    // readFullModelCatalog only covers built-in providers.  The gateway's
+    // models.json is updated asynchronously after restart, so right after
+    // a custom provider is created the catalog won't include its models yet.
+    // Inject them from storage to close this race window.
+    const allKeys = storage.providerKeys.getAll();
+    for (const key of allKeys) {
+      if (key.customModelsJson) {
+        try {
+          const models: string[] = JSON.parse(key.customModelsJson);
+          const existing = catalog[key.provider] ?? [];
+          const existingIds = new Set(existing.map((e) => e.id));
+          const extras = models
+            .filter((id) => !existingIds.has(id))
+            .map((id) => ({ id, name: id }));
+          if (extras.length > 0) {
+            catalog[key.provider] = [...existing, ...extras];
+          }
+        } catch {
+          // Invalid JSON in customModelsJson — skip
+        }
+      }
+    }
+
     sendJson(res, 200, { models: catalog });
     return true;
   }

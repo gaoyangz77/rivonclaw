@@ -41,18 +41,20 @@ export async function createProviderKey(data: {
     body: JSON.stringify(data),
   });
   invalidateCache("provider-keys");
+  invalidateCache("models");
   return result;
 }
 
 export async function updateProviderKey(
   id: string,
-  fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string },
+  fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string; apiKey?: string },
 ): Promise<ProviderKeyEntry> {
   const result = await fetchJson<ProviderKeyEntry>("/provider-keys/" + id, {
     method: "PUT",
     body: JSON.stringify(fields),
   });
   invalidateCache("provider-keys");
+  invalidateCache("models");
   return result;
 }
 
@@ -61,17 +63,20 @@ export async function refreshProviderModels(id: string): Promise<ProviderKeyEntr
     method: "POST",
   });
   invalidateCache("provider-keys");
+  invalidateCache("models");
   return result;
 }
 
 export async function activateProviderKey(id: string): Promise<void> {
   await fetchJson("/provider-keys/" + id + "/activate", { method: "POST" });
   invalidateCache("provider-keys");
+  invalidateCache("models");
 }
 
 export async function deleteProviderKey(id: string): Promise<void> {
   await fetchJson("/provider-keys/" + id, { method: "DELETE" });
   invalidateCache("provider-keys");
+  invalidateCache("models");
 }
 
 // --- Local Models ---
@@ -141,6 +146,7 @@ export async function saveOAuthFlow(
     { method: "POST", body: JSON.stringify({ provider, ...options }) },
   );
   invalidateCache("provider-keys");
+  invalidateCache("models");
   return result;
 }
 

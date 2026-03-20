@@ -1707,6 +1707,13 @@ tbody td {
   overflow: hidden;
 }
 
+.provider-crown {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 2px;
+  opacity: 0.85;
+}
+
 .key-meta {
   display: flex;
   align-items: center;
