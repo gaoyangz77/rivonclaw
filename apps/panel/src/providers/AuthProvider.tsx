@@ -9,8 +9,7 @@ import {
   setOnRefreshFailed,
 } from "../api/apollo-client.js";
 import { trackEvent } from "../api/index.js";
-import { getApiBaseUrl } from "@rivonclaw/core";
-import { fetchProviderKeys, createProviderKey, updateProviderKey } from "../api/providers.js";
+import { cloudLlmProvider } from "../lib/cloud-llm-provider.js";
 
 interface AuthState {
   user: GQL.MeResponse | null;
@@ -142,56 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [meData, meError, meLoading, token]);
 
   // Auto-provision RivonClaw Pro provider when user has llmKey
-  const provisionedRef = useRef(false);
   useEffect(() => {
-    if (!user?.llmKey?.key || provisionedRef.current) return;
-    provisionedRef.current = true;
-
-    const llmKey = user.llmKey.key;
-    const PROVIDER_ID = "rivonclaw-pro";
-    const BASE_URL = `${getApiBaseUrl("en")}/llm/v1`;
-
-    (async () => {
-      try {
-        const existingKeys = await fetchProviderKeys();
-        const existing = existingKeys.find((k) => k.provider === PROVIDER_ID);
-
-        if (existing) {
-          // Key rotation: update if the key has changed
-          // We can't read the stored secret, so always push the current key
-          await updateProviderKey(existing.id, { apiKey: llmKey });
-          return;
-        }
-
-        // Fetch available models from the OpenAI-compatible endpoint
-        let modelIds: string[] = [];
-        try {
-          const modelsRes = await fetch(BASE_URL + "/models", {
-            headers: { Authorization: `Bearer ${llmKey}` },
-          });
-          if (modelsRes.ok) {
-            const modelsData = (await modelsRes.json()) as { data?: Array<{ id: string }> };
-            modelIds = modelsData.data?.map((m) => m.id) ?? [];
-          }
-        } catch {
-          // Model fetch failed — create entry with empty models, user can refresh later
-        }
-
-        await createProviderKey({
-          provider: PROVIDER_ID,
-          label: "RivonClaw Pro",
-          model: modelIds[0] ?? "",
-          apiKey: llmKey,
-          authType: "custom",
-          baseUrl: BASE_URL,
-          customProtocol: "openai",
-          customModelsJson: JSON.stringify(modelIds),
-        });
-      } catch (err) {
-        // Auto-provisioning is best-effort — never block the auth flow
-        console.warn("[AuthProvider] Failed to auto-provision RivonClaw Pro provider:", err);
-      }
-    })();
+    if (user?.llmKey?.key) {
+      cloudLlmProvider.provision(user.llmKey.key);
+    }
   }, [user]);
 
   const [loginMutation] = useMutation<{ login: GQL.AuthPayload }>(LOGIN_MUTATION);
@@ -248,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [registerMutation]);
 
   const logout = useCallback(() => {
-    // Desktop handles cloud logout best-effort
+    cloudLlmProvider.teardown();
     fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     trackEvent("auth.logout");
     setToken(null);
