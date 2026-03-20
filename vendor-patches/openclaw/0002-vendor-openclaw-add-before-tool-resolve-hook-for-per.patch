@@ -1,37 +1,33 @@
-From d1f81b364fd5a2fe3fa1cc9c863ed282a54d2f8c Mon Sep 17 00:00:00 2001
-From: Gaoyang Zhang <younglobalization@gmail.com>
-Date: Wed, 18 Mar 2026 19:13:50 -0700
+From 3a978bab4991e868b50d3ad0ea46986d83a8d0be Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Fri, 20 Mar 2026 13:29:32 -0700
 Subject: [PATCH] vendor(openclaw): add before_tool_resolve hook for
  per-session tool filtering
 
 Why:
-- RivonClaw's four-layer capability model (ADR-031) requires per-session
-  tool visibility control. Tools not in effectiveTools should not appear
-  in the LLM's tool list OR system prompt.
-- The hook fires in attempt.ts and compact.ts BEFORE buildEmbeddedSystemPrompt()
-  so that both the tool list AND the system prompt only include selected tools.
-- splitSdkTools() remains unchanged (sync, no hook logic). The hook is called
-  directly in the caller where the tools variable is defined.
+- RivonClaw's capability-manager extension needs to control which tools are
+  visible to the LLM on a per-session basis (ADR-031). The existing hook
+  points fire too late (after tool resolution), so the system prompt and
+  tool list are already built with all tools.
 
 Removal:
-- Can be dropped if OpenClaw adds native per-session tool filtering via
-  config or a built-in hook. No upstream PR exists yet.
+- When upstream OpenClaw adds a native per-session tool filtering mechanism
+  (e.g. via plugin hook or config), this patch can be dropped.
 
 Tests:
-- extensions/rivonclaw-capability-manager/src/index.test.ts
-- apps/desktop/e2e/tool-visibility.spec.ts
+- extensions/rivonclaw-capability-manager/src/__tests__/
 ---
  src/agents/pi-embedded-runner/compact.ts     | 20 +++++++++++++++-
  src/agents/pi-embedded-runner/run/attempt.ts | 23 ++++++++++++++++---
  src/plugins/hooks.ts                         | 24 ++++++++++++++++++++
- src/plugins/types.ts                         | 22 +++++++++++++++++-
- 4 files changed, 84 insertions(+), 5 deletions(-)
+ src/plugins/types.ts                         | 17 ++++++++++++++
+ 4 files changed, 80 insertions(+), 4 deletions(-)
 
 diff --git a/src/agents/pi-embedded-runner/compact.ts b/src/agents/pi-embedded-runner/compact.ts
-index 05fa34906..424348ca1 100644
+index 8c490e113d..dac68d5e36 100644
 --- a/src/agents/pi-embedded-runner/compact.ts
 +++ b/src/agents/pi-embedded-runner/compact.ts
-@@ -417,7 +417,7 @@ export async function compactEmbeddedPiSessionDirect(
+@@ -555,7 +555,7 @@ export async function compactEmbeddedPiSessionDirect(
        modelContextWindowTokens: ctxInfo.tokens,
        modelAuthMode: resolveModelAuthMode(model.provider, params.config),
      });
@@ -40,7 +36,7 @@ index 05fa34906..424348ca1 100644
        tools: supportsModelTools(model) ? toolsRaw : [],
        provider,
      });
-@@ -518,6 +518,23 @@ export async function compactEmbeddedPiSessionDirect(
+@@ -656,6 +656,23 @@ export async function compactEmbeddedPiSessionDirect(
      });
      const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
      const ownerDisplay = resolveOwnerDisplaySetting(params.config);
@@ -64,7 +60,7 @@ index 05fa34906..424348ca1 100644
      const appendPrompt = buildEmbeddedSystemPrompt({
        workspaceDir: effectiveWorkspace,
        defaultThinkLevel: params.thinkLevel,
-@@ -600,6 +617,7 @@ export async function compactEmbeddedPiSessionDirect(
+@@ -738,6 +755,7 @@ export async function compactEmbeddedPiSessionDirect(
          await resourceLoader.reload();
        }
  
@@ -73,11 +69,11 @@ index 05fa34906..424348ca1 100644
          tools,
          sandboxEnabled: !!sandbox?.enabled,
 diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
-index 467b8e150..1a623222d 100644
+index 274ef0ef86..49cd96effc 100644
 --- a/src/agents/pi-embedded-runner/run/attempt.ts
 +++ b/src/agents/pi-embedded-runner/run/attempt.ts
-@@ -886,10 +886,28 @@ export async function runEmbeddedAttempt(
-           disableMessageTool: params.disableMessageTool,
+@@ -1530,10 +1530,28 @@ export async function runEmbeddedAttempt(
+           },
          });
      const toolsEnabled = supportsModelTools(params.model);
 -    const tools = sanitizeToolsForGoogle({
@@ -106,7 +102,7 @@ index 467b8e150..1a623222d 100644
      const clientTools = toolsEnabled ? params.clientTools : undefined;
      const allowedToolNames = collectAllowedToolNames({
        tools,
-@@ -1144,9 +1162,8 @@ export async function runEmbeddedAttempt(
+@@ -1789,9 +1807,8 @@ export async function runEmbeddedAttempt(
          await resourceLoader.reload();
        }
  
@@ -118,7 +114,7 @@ index 467b8e150..1a623222d 100644
          tools,
          sandboxEnabled: !!sandbox?.enabled,
 diff --git a/src/plugins/hooks.ts b/src/plugins/hooks.ts
-index 110d717d7..f83287d24 100644
+index 110d717d78..f83287d245 100644
 --- a/src/plugins/hooks.ts
 +++ b/src/plugins/hooks.ts
 @@ -56,6 +56,8 @@ import type {
@@ -174,10 +170,10 @@ index 110d717d7..f83287d24 100644
      runAfterToolCall,
      runToolResultPersist,
 diff --git a/src/plugins/types.ts b/src/plugins/types.ts
-index ca8cacc1d..7ee9e1047 100644
+index bb79a21103..1757819e24 100644
 --- a/src/plugins/types.ts
 +++ b/src/plugins/types.ts
-@@ -343,6 +343,7 @@ export type PluginHookName =
+@@ -446,6 +446,7 @@ export type PluginHookName =
    | "subagent_ended"
    | "gateway_start"
    | "gateway_stop"
@@ -185,7 +181,7 @@ index ca8cacc1d..7ee9e1047 100644
    | "browser_session_start"
    | "browser_session_end"
    | "before_browser_action"
-@@ -373,6 +374,7 @@ export const PLUGIN_HOOK_NAMES = [
+@@ -476,6 +477,7 @@ export const PLUGIN_HOOK_NAMES = [
    "subagent_ended",
    "gateway_start",
    "gateway_stop",
@@ -193,7 +189,7 @@ index ca8cacc1d..7ee9e1047 100644
    "browser_session_start",
    "browser_session_end",
    "before_browser_action",
-@@ -611,6 +613,17 @@ export type PluginHookToolContext = {
+@@ -714,6 +716,17 @@ export type PluginHookToolContext = {
    toolCallId?: string;
  };
  
@@ -211,7 +207,7 @@ index ca8cacc1d..7ee9e1047 100644
  // before_tool_call hook
  export type PluginHookBeforeToolCallEvent = {
    toolName: string;
-@@ -879,6 +892,10 @@ export type PluginHookHandlerMap = {
+@@ -982,6 +995,10 @@ export type PluginHookHandlerMap = {
      event: PluginHookMessageSentEvent,
      ctx: PluginHookMessageContext,
    ) => Promise<void> | void;
@@ -222,18 +218,6 @@ index ca8cacc1d..7ee9e1047 100644
    before_tool_call: (
      event: PluginHookBeforeToolCallEvent,
      ctx: PluginHookToolContext,
-@@ -941,7 +958,10 @@ export type PluginHookHandlerMap = {
-   before_browser_action: (
-     event: PluginHookBeforeBrowserActionEvent,
-     ctx: PluginHookBrowserContext,
--  ) => Promise<PluginHookBeforeBrowserActionResult | void> | PluginHookBeforeBrowserActionResult | void;
-+  ) =>
-+    | Promise<PluginHookBeforeBrowserActionResult | void>
-+    | PluginHookBeforeBrowserActionResult
-+    | void;
-   after_browser_action: (
-     event: PluginHookAfterBrowserActionEvent,
-     ctx: PluginHookBrowserContext,
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

@@ -159,15 +159,16 @@ try {
       // Actually load the module so it lands in require.cache.
       // This is CJS context (--require preload), no ESM/CJS conflict.
       const t0 = performance.now();
+      logPhase(`plugin-sdk found at: ${pluginSdkResolvedPath}`);
       require(pluginSdkResolvedPath);
       const loadMs = (performance.now() - t0).toFixed(0);
-      logPhaseV(`plugin-sdk preloaded in ${loadMs}ms: ${pluginSdkResolvedPath}`);
+      logPhase(`plugin-sdk preloaded into require.cache in ${loadMs}ms`);
       break;
     }
   }
 } catch (e) {
   // Non-critical — the deferred hook will still try to capture the path
-  logPhaseV(`plugin-sdk proactive preload failed: ${e.message}`);
+  logPhase(`plugin-sdk proactive preload FAILED: ${e.message}`);
 }
 
 const origResolveFilename = Module._resolveFilename;
