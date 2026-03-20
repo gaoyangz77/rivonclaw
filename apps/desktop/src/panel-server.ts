@@ -17,7 +17,7 @@ import { MobileManager } from "./mobile/mobile-manager.js";
 import type { AuthSessionManager } from "./auth/auth-session.js";
 import type { SessionLifecycleManager } from "./browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
-import { initCSBridge, restoreCS } from "./channels/customer-service-bridge.js";
+import { initCSBridge } from "./channels/customer-service-bridge.js";
 import { sendChannelMessage } from "./channels/channel-senders.js";
 import type { ApiContext, RouteHandler } from "./api-routes/api-context.js";
 import { sendJson } from "./api-routes/route-utils.js";
@@ -468,11 +468,6 @@ export function startPanelServer(options: PanelServerOptions): Server {
   });
 
   server.on("close", () => pairingNotifier.stop());
-
-  // Restore customer service module
-  restoreCS().catch((err) => {
-    log.warn("CS: failed to restore from saved config:", err);
-  });
 
   return server;
 }

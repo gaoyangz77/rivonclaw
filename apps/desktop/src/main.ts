@@ -44,7 +44,7 @@ import { brandName } from "./i18n/brand.js";
 import { createTrayIcon } from "./tray/tray-icon.js";
 import { buildTrayMenu } from "./tray/tray-menu.js";
 import { startPanelServer, pushChatSSE } from "./panel-server.js";
-import { stopCS } from "./channels/customer-service-bridge.js";
+import { stopCS, restoreCS } from "./channels/customer-service-bridge.js";
 import { SttManager } from "./utils/stt-manager.js";
 import { createCdpManager } from "./browser-profiles/cdp-manager.js";
 import { CdpCookieAdapter } from "./browser-profiles/cdp-cookie-adapter.js";
@@ -1156,6 +1156,9 @@ app.whenReady().then(async () => {
     log.info("Gateway ready (listening)");
     connectRpcClient().catch((err) => {
       log.error("Failed to initiate RPC client after gateway ready:", err);
+    });
+    restoreCS().catch((err) => {
+      log.warn("CS: failed to restore from saved config:", err);
     });
   });
 
