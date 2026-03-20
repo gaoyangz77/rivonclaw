@@ -140,15 +140,12 @@ let pluginSdkResolvedPath = null;
 let pluginSdkDir = null;
 let pluginSdkPreloadSkipped = false;
 
-// ── Proactive plugin-sdk path resolution ──
+// ── Proactive plugin-sdk path resolution + preload ──
 // Phase 2.6 (entry.js preload) was removed to fix Electron CJS/ESM conflicts.
 // Without it, no require("./plugin-sdk/index.js") fires to trigger the deferred
-// loading hook below. Resolve the path eagerly here so the _resolveFilename
-// hook is ready before jiti tries to load extensions.
+// loading hook below. Resolve the path eagerly here AND load it into
+// require.cache so jiti skips its babel transform (~60s → ~2s).
 try {
-  // The gateway entry point lives at <vendor>/dist/entry.js.
-  // plugin-sdk is at <vendor>/dist/plugin-sdk/index.js.
-  // We locate it relative to the main entry module (process.argv[1]).
   const entryDir = path.dirname(process.argv[1] || "");
   const candidates = [
     path.join(entryDir, "dist", "plugin-sdk", "index.js"),  // openclaw.mjs → dist/
@@ -159,12 +156,18 @@ try {
       pluginSdkResolvedPath = path.resolve(candidate);
       pluginSdkDir = path.dirname(pluginSdkResolvedPath);
       pluginSdkPreloadSkipped = true;
-      logPhaseV(`plugin-sdk resolved proactively: ${pluginSdkResolvedPath}`);
+      // Actually load the module so it lands in require.cache.
+      // This is CJS context (--require preload), no ESM/CJS conflict.
+      const t0 = performance.now();
+      require(pluginSdkResolvedPath);
+      const loadMs = (performance.now() - t0).toFixed(0);
+      logPhaseV(`plugin-sdk preloaded in ${loadMs}ms: ${pluginSdkResolvedPath}`);
       break;
     }
   }
-} catch {
+} catch (e) {
   // Non-critical — the deferred hook will still try to capture the path
+  logPhaseV(`plugin-sdk proactive preload failed: ${e.message}`);
 }
 
 const origResolveFilename = Module._resolveFilename;
@@ -197,10 +200,13 @@ Module._load = function timedLoad(request, parent, isMain) {
   requireCount++;
   const start = performance.now();
 
-  // Defer plugin-sdk preload: the first require("...plugin-sdk/index.js")
-  // comes from entry.js's preload block which discards the return value.
-  // We set the path alias but skip the expensive 15.2 MB evaluation (~2s).
-  // Real loading happens on-demand when a third-party plugin actually needs it.
+  // Capture plugin-sdk path from the first require("...plugin-sdk/index.js").
+  // We do NOT skip the load — the module must land in require.cache so that
+  // jiti finds it and returns immediately instead of running its slow babel
+  // ESM→CJS transform on the 21 MB bundle (~60s on Windows).
+  //
+  // This runs in CJS context (--require preload), so there is no ESM/CJS
+  // dual-loading conflict (the reason Phase 2.6 entry.js injection was removed).
   if (!pluginSdkPreloadSkipped && /plugin-sdk[/\\]index\.js$/.test(request)) {
     pluginSdkPreloadSkipped = true;
     try {
@@ -211,14 +217,11 @@ Module._load = function timedLoad(request, parent, isMain) {
         isMain,
       );
       pluginSdkDir = path.dirname(pluginSdkResolvedPath);
-      logPhaseV(`plugin-sdk deferred (alias set): ${pluginSdkResolvedPath}`);
+      logPhaseV(`plugin-sdk loading into require.cache: ${pluginSdkResolvedPath}`);
     } catch {
       // Non-critical — extensions will still load via jiti fallback
     }
-    // Return empty module — preload block doesn't use the return value.
-    // We don't call origLoad, so nothing is cached in require.cache.
-    // The next real require() will load the full module on-demand.
-    return {};
+    // Fall through to origLoad so the module is actually loaded and cached.
   }
 
   const result = origLoad.call(this, request, parent, isMain);
