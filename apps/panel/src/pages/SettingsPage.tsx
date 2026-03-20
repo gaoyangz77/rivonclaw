@@ -513,6 +513,11 @@ export function SettingsPage() {
               onClick={() => handleAccentColorChange("tiffany")}
               title={t("settings.app.accentTiffany")}
             />
+            <button
+              className={`accent-color-swatch accent-color-swatch-gray${accentColor === "gray" ? " accent-color-swatch-active" : ""}`}
+              onClick={() => handleAccentColorChange("gray")}
+              title={t("settings.app.accentGray")}
+            />
           </div>
         </div>
 

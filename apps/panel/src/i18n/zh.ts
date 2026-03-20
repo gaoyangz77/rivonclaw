@@ -878,6 +878,7 @@ export default {
       accentGold: "琉璃金",
       accentCrimson: "中国红",
       accentTiffany: "蒂芙尼",
+      accentGray: "石板灰",
       privacyMode: "隐私模式",
       privacyModeHint: "隐藏敏感信息（如二维码），适合直播或屏幕共享时使用。",
       clickToReveal: "点击显示",

@@ -15,6 +15,7 @@ import "./theme-violet.css";
 import "./theme-crimson.css";
 import "./theme-gold.css";
 import "./theme-tiffany.css";
+import "./theme-gray.css";
 import "./i18n/index.js";
 import { App } from "./App.js";
 import { ApolloWrapper } from "./providers/ApolloWrapper.js";

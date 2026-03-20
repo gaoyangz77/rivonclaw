@@ -6673,3 +6673,6 @@ tbody td {
 .accent-color-swatch-tiffany {
   background: linear-gradient(135deg, #0abab5, #5ce0db);
 }
+.accent-color-swatch-gray {
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
+}

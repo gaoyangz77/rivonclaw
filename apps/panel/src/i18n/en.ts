@@ -888,6 +888,7 @@ export default {
       accentGold: "Royal Gold",
       accentCrimson: "China Red",
       accentTiffany: "Tiffany Mint",
+      accentGray: "Slate Gray",
       privacyMode: "Privacy Mode",
       privacyModeHint: "Hide sensitive information like QR codes behind a blur. Useful for screen sharing or live streaming.",
       clickToReveal: "Click to reveal",
