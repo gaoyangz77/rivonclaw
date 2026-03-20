@@ -1004,58 +1004,30 @@ function patchIsMainModule() {
   }
 }
 
-// ─── Phase 2.6: Pre-load plugin-sdk to bypass jiti ───
+// ─── Phase 2.6: Plugin-sdk preload (REMOVED) ───
 //
-// jiti takes ~13 seconds to process the 16.6 MB plugin-sdk bundle because it
-// runs babel ESM detection + transform on every file it loads. Native require()
-// loads the same file in ~650ms. By pre-loading the plugin-sdk into
-// require.cache before jiti tries to load it, jiti finds the cached module and
-// returns immediately, cutting ~12 seconds off every gateway restart.
-
-function patchPluginSdkPreload() {
-  console.log("[bundle-vendor-deps] Phase 2.6: Injecting plugin-sdk preload...");
-
-  const content = fs.readFileSync(ENTRY_FILE, "utf-8");
-
-  // The preload code computes the plugin-sdk path relative to entry.js
-  // and loads it via native require() before jiti runs. jiti checks
-  // require.cache (when moduleCache is enabled, which is the default) and
-  // returns the cached exports immediately, skipping its slow babel pipeline.
-  const preloadCode = [
-    "// ── Plugin-SDK preload (bypass jiti) ──",
-    'var __sdkDir=require("path").join(require("url").fileURLToPath(import.meta.url),"..","plugin-sdk");',
-    'var __sdkIndex=require("path").join(__sdkDir,"index.js");',
-    "try{",
-    "  require(__sdkIndex);",
-    // Also populate common sub-path imports that extensions use
-    '  var __fs=require("fs"),__path=require("path");',
-    "  var __subFiles=__fs.readdirSync(__sdkDir).filter(function(f){return f.endsWith('.js')&&f!=='index.js'});",
-    "  __subFiles.forEach(function(f){try{require(__path.join(__sdkDir,f))}catch(e){}});",
-    '}catch(e){process.stderr.write("[preload] plugin-sdk: "+e.message+"\\n")}',
-  ].join("\n");
-
-  // Insert after the createRequire line (so `require` is available)
-  const requireIdx = content.indexOf("const require");
-  if (requireIdx === -1) {
-    console.warn("[bundle-vendor-deps] WARNING: Could not find 'const require' — plugin-sdk preload NOT injected");
-    return;
-  }
-
-  const afterRequireLine = content.indexOf("\n", requireIdx);
-  if (afterRequireLine === -1) {
-    console.warn("[bundle-vendor-deps] WARNING: No newline after 'const require' — plugin-sdk preload NOT injected");
-    return;
-  }
-
-  const patched =
-    content.slice(0, afterRequireLine + 1) +
-    preloadCode +
-    "\n" +
-    content.slice(afterRequireLine + 1);
-
-  fs.writeFileSync(ENTRY_FILE, patched, "utf-8");
-  console.log("[bundle-vendor-deps] Plugin-sdk preload injected");
-}
+// HISTORY: This phase used to inject require() calls into entry.js to
+// pre-load plugin-sdk/index.js and all subpath files into require.cache,
+// bypassing jiti's slow babel pipeline (~13s overhead).
+//
+// WHY REMOVED: Injecting require() inside ESM entry.js causes the same
+// module to be loaded via both require() (CJS) and import() (ESM) in the
+// same process. This triggers Node.js ERR_INTERNAL_ASSERTION in Electron's
+// module loader (nodejs/node#53454, #60211). The error does not occur
+// with standalone Node.js (CI smoke test) but crashes the packaged
+// Electron app on Windows.
+//
+// REPLACEMENT: The gateway launcher (packages/gateway/src/launcher.ts)
+// already provides an equivalent mechanism via Node.js --require flag:
+// it spawns the gateway with `--require startup-timer.cjs`, which
+// monkey-patches Module._resolveFilename and Module._load to intercept
+// plugin-sdk resolution. This achieves the same performance benefit
+// (bypassing jiti babel) without the dual CJS/ESM loading conflict,
+// because --require runs entirely in CJS context before the ESM entry
+// point is evaluated.
+//
+// If startup performance regresses, the fix belongs in launcher.ts's
+// --require preload (CJS, process-level), NOT in entry.js (ESM, module-level).
 
 // ─── Phase 3: (no-op with code splitting) ───
 // Old vendor chunk cleanup is now handled by Phase 2 which replaces all
@@ -1725,7 +1697,8 @@ if (!fs.existsSync(nmDir)) {
   const bundleExternals = bundleWithEsbuild();
   replaceEntryWithBundle();
   patchIsMainModule();
-  patchPluginSdkPreload();
+  // Phase 2.6 (plugin-sdk preload injection) removed — see comment above.
+  // Plugin-sdk preload is now handled by launcher.ts via --require flag.
   deleteChunkFiles();
   const keepSet = cleanupNodeModules();
   // Merge all external packages from extensions + main bundle for verification
