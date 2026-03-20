@@ -216,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: payload.email,
       plan: payload.plan,
       name: null,
+      llmKey: payload.llmKey,
       createdAt: new Date().toISOString(),
     });
     trackEvent("auth.login");
@@ -240,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: payload.email,
       plan: payload.plan,
       name: null,
+      llmKey: payload.llmKey,
       createdAt: new Date().toISOString(),
     });
     trackEvent("auth.register");

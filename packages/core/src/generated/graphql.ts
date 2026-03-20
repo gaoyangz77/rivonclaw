@@ -20,6 +20,7 @@ export interface Scalars {
 export interface AuthPayload {
   accessToken: Scalars['String']['output'];
   email: Scalars['String']['output'];
+  llmKey?: Maybe<LlmKey>;
   plan: UserPlan;
   refreshToken: Scalars['String']['output'];
   userId: Scalars['String']['output'];
@@ -174,8 +175,6 @@ export interface CreateSurfaceInput {
   allowedToolIds: Array<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
-  /** Create from a preset template */
-  presetId?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** Supported payment currencies */
@@ -197,7 +196,11 @@ export interface EntitlementCheckResult {
 export const EntitlementKey = {
   BrowserProfilesAgentWrite: 'BROWSER_PROFILES_AGENT_WRITE',
   BrowserProfilesEdit: 'BROWSER_PROFILES_EDIT',
-  MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES'
+  MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES',
+  TiktokCsRead: 'TIKTOK_CS_READ',
+  TiktokCsWrite: 'TIKTOK_CS_WRITE',
+  TiktokLogisticsRead: 'TIKTOK_LOGISTICS_READ',
+  TiktokProductRead: 'TIKTOK_PRODUCT_READ'
 } as const;
 
 export type EntitlementKey = typeof EntitlementKey[keyof typeof EntitlementKey];
@@ -224,6 +227,16 @@ export interface GeneratePairingResult {
   qrUrl?: Maybe<Scalars['String']['output']>;
 }
 
+export interface LlmKey {
+  key: Scalars['String']['output'];
+  suspendedUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+export interface LlmQuotaStatus {
+  fiveHour: QuotaCircleStatus;
+  weekly: QuotaCircleStatus;
+}
+
 /** Login input */
 export interface LoginInput {
   captchaAnswer: Scalars['String']['input'];
@@ -236,6 +249,7 @@ export interface LoginInput {
 export interface MeResponse {
   createdAt: Scalars['DateTimeISO']['output'];
   email: Scalars['String']['output'];
+  llmKey?: Maybe<LlmKey>;
   name?: Maybe<Scalars['String']['output']>;
   plan: UserPlan;
   userId: Scalars['String']['output'];
@@ -256,16 +270,12 @@ export interface Mutation {
   batchArchiveBrowserProfiles: Scalars['Int']['output'];
   /** Batch delete browser profiles */
   batchDeleteBrowserProfiles: Scalars['Int']['output'];
-  /** Start checkout for a subscription plan */
-  checkout: UserSubscription;
   /** Create a new browser profile */
   createBrowserProfile: BrowserProfile;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a new surface */
   createSurface: Surface;
-  /** Create a surface from a preset template */
-  createSurfaceFromPreset: Surface;
   /** Deallocate a seat by ID */
   deallocateSeat: Scalars['Boolean']['output'];
   /** Delete a browser profile permanently */
@@ -322,11 +332,6 @@ export interface MutationBatchDeleteBrowserProfilesArgs {
 }
 
 
-export interface MutationCheckoutArgs {
-  planId: UserPlan;
-}
-
-
 export interface MutationCreateBrowserProfileArgs {
   input: CreateBrowserProfileInput;
 }
@@ -339,11 +344,6 @@ export interface MutationCreateRunProfileArgs {
 
 export interface MutationCreateSurfaceArgs {
   input: CreateSurfaceInput;
-}
-
-
-export interface MutationCreateSurfaceFromPresetArgs {
-  presetId: Scalars['String']['input'];
 }
 
 
@@ -495,6 +495,8 @@ export interface Query {
   entitlementSet: EntitlementSetModel;
   /** List all entitlements for the authenticated user */
   entitlements: Array<UserEntitlement>;
+  /** Get LLM quota status for the current user */
+  llmQuotaStatus: LlmQuotaStatus;
   /** Get current authenticated user profile */
   me: MeResponse;
   /** Get PWA install URL (base URL without pairing code) */
@@ -525,8 +527,6 @@ export interface Query {
   subscriptionStatus?: Maybe<UserSubscription>;
   /** Get a single surface by ID */
   surface?: Maybe<Surface>;
-  /** List available surface presets */
-  surfacePresets: Array<SurfacePresetModel>;
   /** List surfaces for the authenticated user */
   surfaces: Array<Surface>;
   /** Get the full tool registry (all defined tools) */
@@ -625,6 +625,11 @@ export interface QueryWaitForPairingArgs {
   code: Scalars['String']['input'];
 }
 
+export interface QuotaCircleStatus {
+  refreshAt: Scalars['DateTimeISO']['output'];
+  remainingPercent: Scalars['Float']['output'];
+}
+
 /** Registration input */
 export interface RegisterInput {
   captchaAnswer: Scalars['String']['input'];
@@ -669,7 +674,8 @@ export const SeatStatus = {
 export type SeatStatus = typeof SeatStatus[keyof typeof SeatStatus];
 /** Tool service category */
 export const ServiceCategory = {
-  BrowserProfiles: 'BROWSER_PROFILES'
+  BrowserProfiles: 'BROWSER_PROFILES',
+  CustomerService: 'CUSTOMER_SERVICE'
 } as const;
 
 export type ServiceCategory = typeof ServiceCategory[keyof typeof ServiceCategory];
@@ -772,15 +778,6 @@ export interface Surface {
   userId?: Maybe<Scalars['String']['output']>;
 }
 
-/** Preset Surface template provided for common apps */
-export interface SurfacePresetModel {
-  allowedCategories: Array<Scalars['String']['output']>;
-  allowedToolIds: Array<Scalars['String']['output']>;
-  description: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-}
-
 /** Result of checking access to a specific tool */
 export interface ToolAccessResult {
   allowed: Scalars['Boolean']['output'];
@@ -790,7 +787,11 @@ export interface ToolAccessResult {
 
 /** Tool functional category */
 export const ToolCategory = {
-  BrowserProfiles: 'BROWSER_PROFILES'
+  BrowserProfiles: 'BROWSER_PROFILES',
+  TiktokCs: 'TIKTOK_CS',
+  TiktokLogistics: 'TIKTOK_LOGISTICS',
+  TiktokProduct: 'TIKTOK_PRODUCT',
+  TiktokShopMgmt: 'TIKTOK_SHOP_MGMT'
 } as const;
 
 export type ToolCategory = typeof ToolCategory[keyof typeof ToolCategory];
@@ -810,7 +811,24 @@ export const ToolId = {
   BrowserProfilesGet: 'BROWSER_PROFILES_GET',
   BrowserProfilesList: 'BROWSER_PROFILES_LIST',
   BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',
-  BrowserProfilesTestProxy: 'BROWSER_PROFILES_TEST_PROXY'
+  BrowserProfilesTestProxy: 'BROWSER_PROFILES_TEST_PROXY',
+  TiktokCreateConversation: 'TIKTOK_CREATE_CONVERSATION',
+  TiktokGetAgentSettings: 'TIKTOK_GET_AGENT_SETTINGS',
+  TiktokGetConversations: 'TIKTOK_GET_CONVERSATIONS',
+  TiktokGetConversationDetails: 'TIKTOK_GET_CONVERSATION_DETAILS',
+  TiktokGetConversationMessages: 'TIKTOK_GET_CONVERSATION_MESSAGES',
+  TiktokGetCsPerformance: 'TIKTOK_GET_CS_PERFORMANCE',
+  TiktokGetCurrentShop: 'TIKTOK_GET_CURRENT_SHOP',
+  TiktokGetProduct: 'TIKTOK_GET_PRODUCT',
+  TiktokGetShippingProviders: 'TIKTOK_GET_SHIPPING_PROVIDERS',
+  TiktokGetShopAuthStatus: 'TIKTOK_GET_SHOP_AUTH_STATUS',
+  TiktokGetWarehouses: 'TIKTOK_GET_WAREHOUSES',
+  TiktokListShops: 'TIKTOK_LIST_SHOPS',
+  TiktokReadMessage: 'TIKTOK_READ_MESSAGE',
+  TiktokSearchSessions: 'TIKTOK_SEARCH_SESSIONS',
+  TiktokSendMessage: 'TIKTOK_SEND_MESSAGE',
+  TiktokUpdateAgentSettings: 'TIKTOK_UPDATE_AGENT_SETTINGS',
+  TiktokUploadImage: 'TIKTOK_UPLOAD_IMAGE'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];
@@ -849,7 +867,6 @@ export interface UserEntitlement {
 
 /** Subscription plan tiers */
 export const UserPlan = {
-  Enterprise: 'ENTERPRISE',
   Free: 'FREE',
   Pro: 'PRO'
 } as const;

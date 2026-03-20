@@ -17,6 +17,10 @@ export const LOGIN_MUTATION = gql`
       userId
       email
       plan
+      llmKey {
+        key
+        suspendedUntil
+      }
     }
   }
 `;
@@ -29,6 +33,10 @@ export const REGISTER_MUTATION = gql`
       userId
       email
       plan
+      llmKey {
+        key
+        suspendedUntil
+      }
     }
   }
 `;
@@ -41,6 +49,10 @@ export const REFRESH_TOKEN_MUTATION = gql`
       userId
       email
       plan
+      llmKey {
+        key
+        suspendedUntil
+      }
     }
   }
 `;
@@ -53,6 +65,10 @@ export const ME_QUERY = gql`
       name
       plan
       createdAt
+      llmKey {
+        key
+        suspendedUntil
+      }
     }
   }
 `;
@@ -133,6 +149,21 @@ export const ALLOCATE_SEAT_MUTATION = gql`
 export const DEALLOCATE_SEAT_MUTATION = gql`
   mutation DeallocateSeat($seatId: String!) {
     deallocateSeat(seatId: $seatId)
+  }
+`;
+
+export const LLM_QUOTA_STATUS_QUERY = gql`
+  query LlmQuotaStatus {
+    llmQuotaStatus {
+      fiveHour {
+        remainingPercent
+        refreshAt
+      }
+      weekly {
+        remainingPercent
+        refreshAt
+      }
+    }
   }
 `;
 
