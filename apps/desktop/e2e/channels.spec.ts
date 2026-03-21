@@ -146,7 +146,8 @@ test.describe("Channels Page", () => {
 
     // groupAllowFrom (TagInput) should NOT be visible initially because
     // Telegram's default groupPolicy is "open", not "allowlist".
-    await expect(modal.locator(".tag-input-wrap")).toBeHidden();
+    const groupAllowFromWrap = modal.locator(".tag-input-wrap").last();
+    await expect(groupAllowFromWrap).toBeHidden();
 
     // Verify Group Policy trigger shows the default "Open" value
     const groupPolicyTrigger = getGroupPolicyTrigger(modal);
@@ -156,7 +157,7 @@ test.describe("Channels Page", () => {
     await selectGroupPolicy(window, modal, /Allowlist/);
 
     // The groupAllowFrom tag input should now be visible
-    await expect(modal.locator(".tag-input-wrap")).toBeVisible({ timeout: 5_000 });
+    await expect(groupAllowFromWrap).toBeVisible({ timeout: 5_000 });
 
     // Verify the "Allowed Senders in Groups" label appeared
     const allLabels = await modal.locator(".form-label-block").allTextContents();
@@ -180,20 +181,21 @@ test.describe("Channels Page", () => {
     const modal = await openAddAccountModal(window, "Telegram");
 
     // Set groupPolicy to "allowlist" -- groupAllowFrom should appear
+    const groupAllowFromWrap = modal.locator(".tag-input-wrap").last();
     await selectGroupPolicy(window, modal, /Allowlist/);
-    await expect(modal.locator(".tag-input-wrap")).toBeVisible({ timeout: 5_000 });
+    await expect(groupAllowFromWrap).toBeVisible({ timeout: 5_000 });
 
     // Change groupPolicy to "Open" -- groupAllowFrom should disappear
     await selectGroupPolicy(window, modal, /^Open/);
-    await expect(modal.locator(".tag-input-wrap")).toBeHidden({ timeout: 5_000 });
+    await expect(groupAllowFromWrap).toBeHidden({ timeout: 5_000 });
 
     // Change groupPolicy to "Disabled" -- groupAllowFrom should stay hidden
     await selectGroupPolicy(window, modal, /Disabled/);
-    await expect(modal.locator(".tag-input-wrap")).toBeHidden();
+    await expect(groupAllowFromWrap).toBeHidden();
 
     // Change back to "Allowlist" -- groupAllowFrom should reappear
     await selectGroupPolicy(window, modal, /Allowlist/);
-    await expect(modal.locator(".tag-input-wrap")).toBeVisible({ timeout: 5_000 });
+    await expect(groupAllowFromWrap).toBeVisible({ timeout: 5_000 });
 
     // Close the modal
     await modal.locator(".modal-close-btn").click();

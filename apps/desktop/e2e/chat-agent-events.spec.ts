@@ -498,7 +498,7 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(toggle).toBeChecked();
   });
 
-  test("Settings page sections are in correct order: Agent → Chat → App → Startup → Data Directory → Telemetry", async ({ window }) => {
+  test("Settings page sections are in correct order: Agent → Chat → App → Tutorial → Startup → Data Directory → Telemetry", async ({ window }) => {
     await dismissModals(window);
 
     const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
@@ -509,31 +509,28 @@ test.describe("Chat Agent Events & Settings", () => {
     const sectionCards = window.locator(".section-card:visible");
     await expect(sectionCards.first()).toBeVisible({ timeout: 10_000 });
     const count = await sectionCards.count();
-    expect(count).toBeGreaterThanOrEqual(6);
+    expect(count).toBeGreaterThanOrEqual(7);
 
     // First section: Agent Settings (includes browser mode)
-    const firstSection = sectionCards.nth(0);
-    await expect(firstSection).toContainText(/Agent Settings|智能体设置/);
+    await expect(sectionCards.nth(0)).toContainText(/Agent Settings|智能体设置/);
 
     // Second section: Chat Settings
-    const secondSection = sectionCards.nth(1);
-    await expect(secondSection).toContainText(/Chat Settings|聊天设置/);
+    await expect(sectionCards.nth(1)).toContainText(/Chat Settings|聊天设置/);
 
     // Third section: App Settings
-    const thirdSection = sectionCards.nth(2);
-    await expect(thirdSection).toContainText(/App Settings|应用设置/);
+    await expect(sectionCards.nth(2)).toContainText(/App Settings|应用设置/);
 
-    // Fourth section: Startup (Auto-Launch)
-    const fourthSection = sectionCards.nth(3);
-    await expect(fourthSection).toContainText(/Startup|启动/);
+    // Fourth section: Tutorial Mode
+    await expect(sectionCards.nth(3)).toContainText(/Tutorial|教程/);
 
-    // Fifth section: Data Directory
-    const fifthSection = sectionCards.nth(4);
-    await expect(fifthSection).toContainText(/Data Directory|数据目录/);
+    // Fifth section: Startup (Auto-Launch)
+    await expect(sectionCards.nth(4)).toContainText(/Startup|启动/);
 
-    // Sixth section: Telemetry & Privacy
-    const sixthSection = sectionCards.nth(5);
-    await expect(sixthSection).toContainText(/Telemetry|遥测/);
+    // Sixth section: Data Directory
+    await expect(sectionCards.nth(5)).toContainText(/Data Directory|数据目录/);
+
+    // Seventh section: Telemetry & Privacy
+    await expect(sectionCards.nth(6)).toContainText(/Telemetry|遥测/);
   });
 
   test("Settings page: Agent section has DM scope dropdown", async ({ window }) => {
