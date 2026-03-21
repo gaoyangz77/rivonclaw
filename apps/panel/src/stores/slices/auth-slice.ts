@@ -161,7 +161,9 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
     get().resetSurfaces();
     get().resetRunProfiles();
     get().resetAvailableTools();
-    get().resetProviderKeys();
+    // Re-fetch provider keys — cloud key will be removed by onUserChanged,
+    // but local keys must remain visible
+    get().fetchProviderKeys();
   },
 
   setToken: (token: string) => {
