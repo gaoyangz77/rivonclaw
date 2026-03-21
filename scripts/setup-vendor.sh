@@ -33,10 +33,12 @@ if [ "$PROD" = "--prod" ]; then
   pnpm install --prod --no-frozen-lockfile
 fi
 
-# Remove .gitignore so dist/ is visible to electron-builder.
+# Replace .gitignore so dist/ is visible to electron-builder while still
+# ignoring node_modules (recursive deps create paths that exceed Windows
+# MAX_PATH, breaking `git add -A` on CI).
 # Amend the last patch commit (or create one if no patches) to keep vendor
 # git clean without adding extra commits beyond the patch count.
-rm -f .gitignore
+printf 'node_modules\n' > .gitignore
 git add -A
 if git log --oneline "$HASH"..HEAD 2>/dev/null | head -1 | grep -q .; then
   # Patches were applied — amend the last patch commit
