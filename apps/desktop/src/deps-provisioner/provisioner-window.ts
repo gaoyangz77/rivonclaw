@@ -4,6 +4,23 @@ import { brandName } from "../i18n/brand.js";
 
 type Locale = "zh" | "en";
 
+export interface ThemeOptions {
+  mode: "light" | "dark";
+  accent: string;
+}
+
+const accentColors: Record<string, { light: string; dark: string }> = {
+  blue:    { light: "#5b7fff", dark: "#6c63ff" },
+  rose:    { light: "#ec4899", dark: "#f472b6" },
+  orange:  { light: "#ff8c42", dark: "#ff9650" },
+  emerald: { light: "#10b981", dark: "#34d399" },
+  violet:  { light: "#8b5cf6", dark: "#a78bfa" },
+  crimson: { light: "#dc2626", dark: "#f87171" },
+  gold:    { light: "#b8860b", dark: "#d4a017" },
+  tiffany: { light: "#0abab5", dark: "#5ce0db" },
+  gray:    { light: "#6b7280", dark: "#9ca3af" },
+};
+
 const i18n = {
   en: {
     subtitle: "Setting up system dependencies",
@@ -40,8 +57,10 @@ const depDisplayNames: Record<string, string> = {
   uv: "uv",
 };
 
-function buildHtml(locale: Locale): string {
+function buildHtml(locale: Locale, theme: ThemeOptions): string {
   const t = i18n[locale];
+  const accent = accentColors[theme.accent]?.[theme.mode] ?? accentColors.blue[theme.mode];
+  const isDark = theme.mode === "dark";
   return `<!DOCTYPE html>
 <html lang="${locale === "zh" ? "zh-CN" : "en"}">
 <head>
@@ -49,32 +68,17 @@ function buildHtml(locale: Locale): string {
 <title>${brandName(locale)}</title>
 <style>
   :root {
-    --bg-primary: #1a1a2e;
-    --bg-secondary: #16213e;
-    --text-primary: #e0e0e0;
-    --text-secondary: #a0a0b0;
-    --accent: #4a9eff;
-    --accent-dim: #2a5a9f;
-    --error: #ff6b6b;
-    --success: #4caf50;
-    --bar-bg: #2a2a4a;
+    --bg-primary: ${isDark ? "#1a1a2e" : "#f0f3f8"};
+    --bg-secondary: ${isDark ? "#16213e" : "#ffffff"};
+    --text-primary: ${isDark ? "#e0e0e0" : "#111827"};
+    --text-secondary: ${isDark ? "#a0a0b0" : "#4b5563"};
+    --accent: ${accent};
+    --error: ${isDark ? "#ff6b6b" : "#ef4444"};
+    --success: ${isDark ? "#4caf50" : "#22c55e"};
+    --bar-bg: ${isDark ? "#2a2a4a" : "#d8dde8"};
     --radius: 6px;
   }
-
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg-primary: #f0f3f8;
-      --bg-secondary: #ffffff;
-      --text-primary: #111827;
-      --text-secondary: #4b5563;
-      --accent: #5b7fff;
-      --accent-dim: #4a6be0;
-      --error: #ef4444;
-      --success: #22c55e;
-      --bar-bg: #d8dde8;
-    }
-    .btn-primary { color: #ffffff; }
-  }
+  .btn-primary { color: ${isDark ? "var(--bg-primary)" : "#ffffff"}; }
 
   * {
     margin: 0;
@@ -257,7 +261,6 @@ function buildHtml(locale: Locale): string {
 
   .btn-primary {
     background: var(--accent);
-    color: var(--bg-primary);
   }
 
   .btn-secondary {
@@ -459,9 +462,10 @@ export interface ProvisionerWindow {
  * Create a frameless provisioner window for displaying dependency setup progress.
  * The window uses inline HTML with no external dependencies.
  */
-export function createProvisionerWindow(): ProvisionerWindow {
+export function createProvisionerWindow(theme?: ThemeOptions): ProvisionerWindow {
   const locale: Locale = app.getLocale().startsWith("zh") ? "zh" : "en";
   const t = i18n[locale];
+  const resolvedTheme: ThemeOptions = theme ?? { mode: "dark", accent: "blue" };
 
   const win = new BrowserWindow({
     width: 400,
@@ -479,7 +483,7 @@ export function createProvisionerWindow(): ProvisionerWindow {
   });
 
   // Load inline HTML via data URL
-  const html = buildHtml(locale);
+  const html = buildHtml(locale, resolvedTheme);
   const encoded = Buffer.from(html, "utf-8").toString("base64");
   const readyPromise = win.loadURL(`data:text/html;base64,${encoded}`);
 

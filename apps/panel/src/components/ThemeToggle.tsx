@@ -1,8 +1,14 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../api/index.js";
+import { updateSettings } from "../api/settings.js";
 import { MonitorIcon, SunIcon, MoonIcon } from "./icons.js";
 import type { IconProps } from "./icons.js";
+
+/** Fire-and-forget sync of a theme-related setting to the backend SQLite store. */
+function syncSettingToBackend(key: string, value: string): void {
+  updateSettings({ [key]: value }).catch(() => {/* best-effort */});
+}
 
 type ThemePreference = "system" | "light" | "dark";
 
@@ -42,17 +48,19 @@ export function ThemeToggle() {
   useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", effectiveTheme);
     localStorage.setItem("theme", themePreference);
+    syncSettingToBackend("panel_theme", effectiveTheme);
   }, [effectiveTheme, themePreference]);
 
   // Apply accent color from localStorage
   useLayoutEffect(() => {
     function applyAccent() {
-      const accent = localStorage.getItem("accentColor");
-      if (accent && accent !== "blue") {
+      const accent = localStorage.getItem("accentColor") || "blue";
+      if (accent !== "blue") {
         document.documentElement.setAttribute("data-accent", accent);
       } else {
         document.documentElement.removeAttribute("data-accent");
       }
+      syncSettingToBackend("panel_accent", accent);
     }
     applyAccent();
     window.addEventListener("accent-color-changed", applyAccent);

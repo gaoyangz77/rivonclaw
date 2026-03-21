@@ -1,4 +1,5 @@
 import { platform } from "node:os";
+import { nativeTheme } from "electron";
 import { createLogger } from "@rivonclaw/logger";
 import type { DepName, DepStatus, ProvisionResult } from "./types.js";
 import { detectDeps } from "./dep-detector.js";
@@ -27,8 +28,14 @@ export async function runDepsProvisioner(opts: {
     return;
   }
 
-  // 3. Show provisioner window
-  const win = createProvisionerWindow();
+  // 3. Read panel theme from storage, fall back to OS theme
+  const panelTheme = storage.settings.get("panel_theme");
+  const themeMode = panelTheme === "light" || panelTheme === "dark"
+    ? panelTheme
+    : (nativeTheme.shouldUseDarkColors ? "dark" : "light");
+  const panelAccent = storage.settings.get("panel_accent") || "blue";
+
+  const win = createProvisionerWindow({ mode: themeMode, accent: panelAccent });
   await win.ready;
   win.show();
   win.updateStatuses(statuses);
