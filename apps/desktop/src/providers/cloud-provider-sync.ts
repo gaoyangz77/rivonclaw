@@ -17,7 +17,20 @@ const CLOUD_KEY_LABEL = "RivonClaw Pro";
  * - If the user has an llmKey: upsert the provider key entry + secret.
  * - If not (logged out / no key): delete any existing cloud entry.
  */
+let syncInFlight: Promise<void> | null = null;
+
 export async function syncCloudProviderKey(
+  user: GQL.MeResponse | null,
+  storage: Storage,
+  secretStore: SecretStore,
+): Promise<void> {
+  // Serialize concurrent calls to avoid SQLite write conflicts
+  if (syncInFlight) await syncInFlight.catch(() => {});
+  syncInFlight = doSync(user, storage, secretStore);
+  try { await syncInFlight; } finally { syncInFlight = null; }
+}
+
+async function doSync(
   user: GQL.MeResponse | null,
   storage: Storage,
   secretStore: SecretStore,

@@ -172,5 +172,10 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
 
   clearAuth: () => {
     set({ user: null, token: null });
+    get().resetSubscription();
+    get().resetSurfaces();
+    get().resetRunProfiles();
+    get().resetAvailableTools();
+    get().fetchProviderKeys();
   },
 });
