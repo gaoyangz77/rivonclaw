@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.7.5",
+    "date": "2026-03-21",
+    "en": [
+      "Fix provider key cleanup on logout and serialize cloud key sync",
+      "Reload provider keys after logout to prevent stale state"
+    ],
+    "zh": [
+      "修复登出后模型服务密钥未清理的问题",
+      "修复登出后密钥状态残留导致的异常"
+    ]
+  },
+  {
     "version": "1.7.4",
     "date": "2026-03-21",
     "en": [
