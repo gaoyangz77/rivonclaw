@@ -1,24 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
-import {
-  fetchProviderKeys,
-  createProviderKey,
-  updateProviderKey,
-  activateProviderKey,
-  deleteProviderKey,
-  refreshProviderModels,
-  trackEvent,
-} from "../api/index.js";
+import { trackEvent } from "../api/index.js";
 import { configManager } from "../lib/config-manager.js";
-import type { ProviderKeyEntry } from "../api/index.js";
 import { ModelSelect } from "../components/inputs/ModelSelect.js";
+import { Select } from "../components/inputs/Select.js";
 import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
+import { usePanelStore } from "../stores/index.js";
 
 export function ProvidersPage() {
   const { t } = useTranslation();
-  const [keys, setKeys] = useState<ProviderKeyEntry[]>([]);
+  const keys = usePanelStore((s) => s.providerKeys);
+  const storeCreateKey = usePanelStore((s) => s.createProviderKey);
+  const storeUpdateKey = usePanelStore((s) => s.updateProviderKey);
+  const storeActivateKey = usePanelStore((s) => s.activateProviderKey);
+  const storeDeleteKey = usePanelStore((s) => s.deleteProviderKey);
+  const storeRefreshModels = usePanelStore((s) => s.refreshProviderModels);
+  const storeFetchKeys = usePanelStore((s) => s.fetchProviderKeys);
   const [expandedKeyId, setExpandedKeyId] = useState<string | null>(null);
   const [updateApiKey, setUpdateApiKey] = useState("");
   const [editProxyUrl, setEditProxyUrl] = useState("");
@@ -31,28 +30,14 @@ export function ProvidersPage() {
   const [editBaseUrl, setEditBaseUrl] = useState("");
   const [refreshingModelsId, setRefreshingModelsId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    try {
-      const keysList = await fetchProviderKeys();
-      setKeys(keysList);
-      setError(null);
-    } catch (err) {
-      setError({ key: "providers.failedToLoad", detail: String(err) });
-    }
-  }
-
   async function handleUpdateKey(keyId: string, provider: string) {
     if (!updateApiKey.trim()) return;
     setValidating(true);
     setError(null);
     try {
       const existing = keys.find((k) => k.id === keyId);
-      await deleteProviderKey(keyId);
-      const entry = await createProviderKey({
+      await storeDeleteKey(keyId);
+      const entry = await storeCreateKey({
         provider,
         label: existing?.label || t("providers.labelDefault"),
         model: existing?.model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
@@ -64,17 +49,15 @@ export function ProvidersPage() {
       });
 
       if (existing?.isDefault) {
-        await activateProviderKey(entry.id);
+        await storeActivateKey(entry.id);
       }
 
       setUpdateApiKey("");
       setExpandedKeyId(null);
       setSavedId(entry.id);
       setTimeout(() => setSavedId(null), 2000);
-      await loadData();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
-      await loadData();
     } finally {
       setSaving(false);
       setValidating(false);
@@ -86,7 +69,7 @@ export function ProvidersPage() {
     try {
       await configManager.activateProvider(keyId, provider);
       trackEvent("provider.key_activated", { provider });
-      await loadData();
+      await storeFetchKeys();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
     }
@@ -96,9 +79,8 @@ export function ProvidersPage() {
     setError(null);
     const entry = keys.find((k) => k.id === keyId);
     try {
-      await deleteProviderKey(keyId);
+      await storeDeleteKey(keyId);
       trackEvent("provider.key_deleted", { provider: entry?.provider });
-      await loadData();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
     }
@@ -108,7 +90,7 @@ export function ProvidersPage() {
     setError(null);
     try {
       await configManager.switchModel(keyId, model);
-      setKeys((prev) => prev.map((k) => (k.id === keyId ? { ...k, model } : k)));
+      await storeFetchKeys();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
     }
@@ -118,8 +100,7 @@ export function ProvidersPage() {
     setError(null);
     setSaving(true);
     try {
-      const updated = await updateProviderKey(keyId, { proxyUrl: proxyUrl || null as any });
-      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      await storeUpdateKey(keyId, { proxyUrl: proxyUrl || null as any });
       setSavedId(keyId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (err) {
@@ -133,8 +114,7 @@ export function ProvidersPage() {
     setError(null);
     setSaving(true);
     try {
-      const updated = await updateProviderKey(keyId, { baseUrl: newBaseUrl || null as any });
-      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      await storeUpdateKey(keyId, { baseUrl: newBaseUrl || null as any });
       setSavedId(keyId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (err) {
@@ -148,8 +128,7 @@ export function ProvidersPage() {
     setRefreshingModelsId(keyId);
     setError(null);
     try {
-      const updated = await refreshProviderModels(keyId);
-      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      await storeRefreshModels(keyId);
       setSavedId(keyId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (err) {
@@ -164,8 +143,7 @@ export function ProvidersPage() {
     if (!trimmed) return;
     setError(null);
     try {
-      const updated = await updateProviderKey(keyId, { label: trimmed });
-      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      await storeUpdateKey(keyId, { label: trimmed });
       setEditingLabelId(null);
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -183,7 +161,7 @@ export function ProvidersPage() {
 
       {/* Section A: Add Key */}
       <ProviderSetupForm
-        onSave={async () => { await loadData(); }}
+        onSave={() => { storeFetchKeys(); }}
         title={t("providers.addTitle")}
       />
 
@@ -277,15 +255,15 @@ export function ProvidersPage() {
                           </span>
                         )}
                         {k.authType === "custom" && k.customModelsJson ? (
-                          <select
+                          <Select
                             value={k.model}
-                            onChange={(e) => handleModelChange(k.id, e.target.value)}
-                            className="input-mono"
-                          >
-                            {(JSON.parse(k.customModelsJson) as string[]).map((m) => (
-                              <option key={m} value={m}>{m}</option>
-                            ))}
-                          </select>
+                            onChange={(model) => handleModelChange(k.id, model)}
+                            options={
+                              (JSON.parse(k.customModelsJson) as string[])
+                                .sort((a, b) => b.localeCompare(a))
+                                .map((m) => ({ value: m, label: m }))
+                            }
+                          />
                         ) : (
                           <ModelSelect
                             provider={k.provider}
@@ -312,17 +290,19 @@ export function ProvidersPage() {
                           {t("providers.activate")}
                         </button>
                       )}
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setExpandedKeyId(isExp ? null : k.id);
-                          setUpdateApiKey("");
-                          setEditProxyUrl(k.proxyUrl || "");
-                          setEditBaseUrl(k.baseUrl || "");
-                        }}
-                      >
-                        {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
-                      </button>
+                      {k.provider !== "rivonclaw-pro" && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setExpandedKeyId(isExp ? null : k.id);
+                            setUpdateApiKey("");
+                            setEditProxyUrl(k.proxyUrl || "");
+                            setEditBaseUrl(k.baseUrl || "");
+                          }}
+                        >
+                          {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
+                        </button>
+                      )}
                       {k.provider !== "rivonclaw-pro" && (
                         <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
                           {t("providers.removeKey")}

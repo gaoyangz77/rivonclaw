@@ -970,9 +970,13 @@
   margin-left: 4px;
 }
 
-/* Dropdown portal inherits the className — ensure model names don't wrap */
+/* Dropdown portal inherits the className — match trigger font size */
 .chat-model-select.custom-select-dropdown {
   min-width: 160px;
+}
+
+.chat-model-select.custom-select-dropdown .custom-select-option {
+  font-size: 12px;
 }
 
 .chat-thinking-select {
@@ -1006,6 +1010,45 @@
 }
 
 .custom-select-dropdown.chat-thinking-select .custom-select-option {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* RunProfile selector in chat status bar — matches chat-tools-toggle style */
+.chat-profile-select {
+  flex-shrink: 0;
+}
+
+.chat-profile-select .custom-select-trigger {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  min-height: auto;
+  height: auto;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.chat-profile-select .custom-select-trigger:hover:not(:disabled) {
+  background: var(--color-bg);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.chat-profile-select .custom-select-chevron {
+  font-size: 8px;
+  margin-left: 4px;
+}
+
+.custom-select-dropdown.chat-profile-select {
+  /* Positioning handled by Select component's overflow detection */
+}
+
+.custom-select-dropdown.chat-profile-select .custom-select-option {
   font-size: 12px;
   white-space: nowrap;
 }

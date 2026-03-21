@@ -1,9 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@apollo/client/react";
-import { GQL } from "@rivonclaw/core";
-import { useAuth } from "../providers/AuthProvider.js";
-import { SUBSCRIPTION_STATUS_QUERY } from "../api/auth-queries.js";
+import { useAuth, usePanelStore } from "../stores/index.js";
 import { getUserInitial } from "../lib/user-manager.js";
 import { LogOutIcon } from "./icons.js";
 
@@ -36,13 +33,9 @@ export function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
         return () => document.removeEventListener("keydown", handleKey);
     }, [open, onClose]);
 
-    const { data: subData } = useQuery<{
-        subscriptionStatus: GQL.UserSubscription | null;
-    }>(SUBSCRIPTION_STATUS_QUERY, { skip: !user });
+    const sub = usePanelStore((s) => s.subscriptionStatus);
 
     if (!open || !user) return null;
-
-    const sub = subData?.subscriptionStatus;
     const initial = getUserInitial(user);
 
     function handleLogout() { onClose(); logout(); onNavigate("/"); }

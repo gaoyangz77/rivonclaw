@@ -1,5 +1,8 @@
 import type { SecretStore } from "@rivonclaw/secrets";
 import { getGraphqlUrl, GQL } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+
+const log = createLogger("auth-session");
 
 const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
@@ -19,12 +22,15 @@ export interface AvailableTool {
   denialReason?: string;
 }
 
+export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
+
 export class AuthSessionManager {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private cachedUser: GQL.MeResponse | null = null;
   private cachedAvailableTools: AvailableTool[] | null = null;
   private refreshPromise: Promise<string> | null = null;
+  private userChangedListeners: UserChangedListener[] = [];
 
   constructor(
     private secretStore: SecretStore,
@@ -32,10 +38,25 @@ export class AuthSessionManager {
     private fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response>,
   ) {}
 
+  /** Register a listener that fires whenever the cached user changes. */
+  onUserChanged(listener: UserChangedListener): void {
+    this.userChangedListeners.push(listener);
+  }
+
+  private async setUser(user: GQL.MeResponse | null): Promise<void> {
+    this.cachedUser = user;
+    for (const listener of this.userChangedListeners) {
+      try {
+        await listener(user);
+      } catch { /* listener errors must not break auth flow */ }
+    }
+  }
+
   /** Load tokens from keychain into memory. Call once at startup. */
   async loadFromKeychain(): Promise<void> {
     this.accessToken = await this.secretStore.get(ACCESS_TOKEN_KEY) ?? null;
     this.refreshToken = await this.secretStore.get(REFRESH_TOKEN_KEY) ?? null;
+    log.info(`loadFromKeychain: access=${this.accessToken ? "found" : "missing"} refresh=${this.refreshToken ? "found" : "missing"}`);
   }
 
   getAccessToken(): string | null {
@@ -56,7 +77,7 @@ export class AuthSessionManager {
   async clearTokens(): Promise<void> {
     this.accessToken = null;
     this.refreshToken = null;
-    this.cachedUser = null;
+    await this.setUser(null);
     this.cachedAvailableTools = null;
     await this.secretStore.delete(ACCESS_TOKEN_KEY);
     await this.secretStore.delete(REFRESH_TOKEN_KEY);
@@ -85,7 +106,7 @@ export class AuthSessionManager {
 
     const payload = result.refreshToken;
     await this.storeTokens(payload.accessToken, payload.refreshToken);
-    this.cachedUser = payload.user;
+    await this.setUser(payload.user);
     return payload.accessToken;
   }
 
@@ -94,11 +115,13 @@ export class AuthSessionManager {
     if (!this.accessToken) return null;
 
     try {
+      log.info("validate: sending ME_QUERY...");
       const result = await this.graphqlFetch<{ me: GQL.MeResponse }>(ME_QUERY);
-      this.cachedUser = result.me;
+      log.info(`validate: success, user=${result.me.email}`);
+      await this.setUser(result.me);
       return result.me;
-    } catch {
-      // Token invalid — clear it
+    } catch (err) {
+      log.error("validate: FAILED, clearing tokens.", err);
       await this.clearTokens();
       return null;
     }

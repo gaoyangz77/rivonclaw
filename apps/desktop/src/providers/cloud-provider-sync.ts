@@ -13,7 +13,7 @@ const CLOUD_KEY_LABEL = "RivonClaw Pro";
 /**
  * Sync the cloud LLM provider key into SQLite + secretStore.
  *
- * Called once per auth state change (login, logout, app startup).
+ * Called via onUserChanged listener whenever the cached user changes.
  * - If the user has an llmKey: upsert the provider key entry + secret.
  * - If not (logged out / no key): delete any existing cloud entry.
  */
@@ -63,16 +63,30 @@ export async function syncCloudProviderKey(
   const baseUrl = `${getApiBaseUrl("en")}/llm/v1`;
   const shouldActivate = !storage.providerKeys.getActive();
 
+  // Fetch available models
+  let modelIds: string[] = [];
+  try {
+    const res = await fetch(baseUrl + "/models", {
+      headers: { Authorization: `Bearer ${llmKey}` },
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { data?: Array<{ id: string }> };
+      modelIds = data.data?.map((m) => m.id) ?? [];
+    }
+  } catch {
+    // Model fetch failed — create entry with empty models
+  }
+
   const entry = storage.providerKeys.create({
     id: `cloud-${CLOUD_PROVIDER_ID}`,
     provider: CLOUD_PROVIDER_ID,
     label: CLOUD_KEY_LABEL,
-    model: "",
+    model: modelIds[0] ?? "",
     isDefault: shouldActivate,
     authType: "custom",
     baseUrl,
     customProtocol: "openai",
-    customModelsJson: null,
+    customModelsJson: modelIds.length > 0 ? JSON.stringify(modelIds) : null,
     inputModalities: undefined,
     createdAt: "",
     updatedAt: "",

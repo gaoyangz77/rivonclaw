@@ -17,7 +17,7 @@ import {
   BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
   AuthIcon, MenuIcon,
 } from "../components/icons.js";
-import { useAuth } from "../providers/AuthProvider.js";
+import { useAuth } from "../stores/index.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 
 const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles"]);

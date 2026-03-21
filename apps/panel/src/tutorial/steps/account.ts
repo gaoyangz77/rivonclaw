@@ -1,60 +1,143 @@
 import type { TutorialStep } from "../types.js"
 
 export const accountSteps: TutorialStep[] = [
-  // --- Welcome ---
+  // ── Section 1: Welcome ──
   {
-    target: ".account-page h1",
+    target: ".account-page",
     titleKey: "tutorial.account.welcomeTitle",
     bodyKey: "tutorial.account.welcomeBody",
     placement: "bottom",
   },
-  // --- Profile Card ---
+
+  // ── Section 2: Profile & Subscription Card ──
   {
     target: ".account-profile-card",
     titleKey: "tutorial.account.profileCardTitle",
     bodyKey: "tutorial.account.profileCardBody",
     placement: "bottom",
   },
-  // --- Avatar and Identity ---
   {
     target: ".account-profile-identity",
     titleKey: "tutorial.account.identityTitle",
     bodyKey: "tutorial.account.identityBody",
     placement: "bottom",
   },
-  // --- Logout Button ---
   {
     target: ".account-profile-header .btn-danger",
     titleKey: "tutorial.account.logoutTitle",
     bodyKey: "tutorial.account.logoutBody",
     placement: "left",
   },
-  // --- Plan Badge ---
   {
-    target: ".account-profile-details .account-info-item:nth-of-type(1)",
+    target: ".account-info-grid .account-info-item:nth-child(1)",
     titleKey: "tutorial.account.planTitle",
     bodyKey: "tutorial.account.planBody",
     placement: "bottom",
   },
-  // --- Member Since ---
   {
-    target: ".account-profile-details .account-info-item:nth-of-type(2)",
+    target: ".account-info-grid .account-info-item:nth-child(2)",
     titleKey: "tutorial.account.memberSinceTitle",
     bodyKey: "tutorial.account.memberSinceBody",
     placement: "bottom",
   },
-  // --- Subscription Section ---
   {
-    target: ".account-page > .section-card:nth-of-type(2)",
-    titleKey: "tutorial.account.subscriptionTitle",
-    bodyKey: "tutorial.account.subscriptionBody",
+    target: ".account-info-grid .account-info-item:nth-child(3)",
+    titleKey: "tutorial.account.validUntilTitle",
+    bodyKey: "tutorial.account.validUntilBody",
     placement: "bottom",
   },
-  // --- Subscription Info Grid ---
   {
-    target: ".account-info-grid",
-    titleKey: "tutorial.account.subscriptionDetailsTitle",
-    bodyKey: "tutorial.account.subscriptionDetailsBody",
+    target: ".quota-five-hour",
+    titleKey: "tutorial.account.quotaFiveHourTitle",
+    bodyKey: "tutorial.account.quotaFiveHourBody",
     placement: "bottom",
+  },
+  {
+    target: ".quota-weekly",
+    titleKey: "tutorial.account.quotaWeeklyTitle",
+    bodyKey: "tutorial.account.quotaWeeklyBody",
+    placement: "bottom",
+  },
+
+  // ── Section 3: Surfaces ──
+  {
+    target: ".account-page > .section-card:nth-of-type(2)",
+    titleKey: "tutorial.account.surfacesSectionTitle",
+    bodyKey: "tutorial.account.surfacesSectionBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(2) .acct-section-header",
+    titleKey: "tutorial.account.surfacesHeaderTitle",
+    bodyKey: "tutorial.account.surfacesHeaderBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(2) .btn-primary",
+    titleKey: "tutorial.account.createSurfaceBtnTitle",
+    bodyKey: "tutorial.account.createSurfaceBtnBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(2) .btn-secondary",
+    titleKey: "tutorial.account.fromPresetBtnTitle",
+    bodyKey: "tutorial.account.fromPresetBtnBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(2) .acct-item-list, .account-page > .section-card:nth-of-type(2) .empty-cell",
+    titleKey: "tutorial.account.surfaceListTitle",
+    bodyKey: "tutorial.account.surfaceListBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(2) .acct-item:first-child",
+    titleKey: "tutorial.account.surfaceItemTitle",
+    bodyKey: "tutorial.account.surfaceItemBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(2) .acct-tool-chips",
+    titleKey: "tutorial.account.surfaceToolChipsTitle",
+    bodyKey: "tutorial.account.surfaceToolChipsBody",
+    placement: "bottom",
+  },
+
+  // ── Section 4: Run Profiles ──
+  {
+    target: ".account-page > .section-card:nth-of-type(3)",
+    titleKey: "tutorial.account.profilesSectionTitle",
+    bodyKey: "tutorial.account.profilesSectionBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(3) .acct-section-header",
+    titleKey: "tutorial.account.profilesHeaderTitle",
+    bodyKey: "tutorial.account.profilesHeaderBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(3) .btn-primary",
+    titleKey: "tutorial.account.createProfileBtnTitle",
+    bodyKey: "tutorial.account.createProfileBtnBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(3) .acct-item-list, .account-page > .section-card:nth-of-type(3) .empty-cell",
+    titleKey: "tutorial.account.profileListTitle",
+    bodyKey: "tutorial.account.profileListBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(3) .acct-item:first-child",
+    titleKey: "tutorial.account.profileItemTitle",
+    bodyKey: "tutorial.account.profileItemBody",
+    placement: "bottom",
+  },
+  {
+    target: ".account-page > .section-card:nth-of-type(3) .acct-tool-chips",
+    titleKey: "tutorial.account.profileToolChipsTitle",
+    bodyKey: "tutorial.account.profileToolChipsBody",
+    placement: "top",
   },
 ]

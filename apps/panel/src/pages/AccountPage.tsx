@@ -1,122 +1,70 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@apollo/client/react";
-import { GQL } from "@rivonclaw/core";
-import { useAuth } from "../providers/AuthProvider.js";
-import { SUBSCRIPTION_STATUS_QUERY } from "../api/auth-queries.js";
 import { getUserInitial } from "../lib/user-manager.js";
-import {
-  fetchSurfaces,
-  fetchSurfacePresets,
-  createSurface,
-  createSurfaceFromPreset,
-  updateSurface,
-  deleteSurface,
-} from "../api/surfaces.js";
-import type { Surface, SurfacePreset } from "../api/surfaces.js";
-import {
-  fetchRunProfiles,
-  createRunProfile,
-  updateRunProfile,
-  deleteRunProfile,
-} from "../api/run-profiles.js";
+import { Modal } from "../components/modals/Modal.js";
+import { ToolMultiSelect } from "../components/inputs/ToolMultiSelect.js";
+import { Select } from "../components/inputs/Select.js";
+import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
+import type { Surface } from "../api/surfaces.js";
 import type { RunProfile } from "../api/run-profiles.js";
-
-function parseCommaSeparated(value: string): string[] {
-  return value
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
 
-  const { data: subData } = useQuery<{
-    subscriptionStatus: GQL.UserSubscription | null;
-  }>(SUBSCRIPTION_STATUS_QUERY, { skip: !user });
+  const { tools: allTools } = useToolRegistry();
+  const subscription = usePanelStore((s) => s.subscriptionStatus);
+  const llmQuota = usePanelStore((s) => s.llmQuota);
+  const surfaces = usePanelStore((s) => s.surfaces);
+  const profiles = usePanelStore((s) => s.runProfiles);
+  const storeFetchRunProfiles = usePanelStore((s) => s.fetchRunProfiles);
+  const storeCreateSurface = usePanelStore((s) => s.createSurface);
+  const storeUpdateSurface = usePanelStore((s) => s.updateSurface);
+  const storeDeleteSurface = usePanelStore((s) => s.deleteSurface);
+  const storeCreateRunProfile = usePanelStore((s) => s.createRunProfile);
+  const storeUpdateRunProfile = usePanelStore((s) => s.updateRunProfile);
+  const storeDeleteRunProfile = usePanelStore((s) => s.deleteRunProfile);
 
-  const subscription = subData?.subscriptionStatus;
-
-  // ── Surface state ──
-  const [surfaces, setSurfaces] = useState<Surface[]>([]);
-  const [presets, setPresets] = useState<SurfacePreset[]>([]);
+  // ── Surface modal state ──
   const [surfaceError, setSurfaceError] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [surfaceModalOpen, setSurfaceModalOpen] = useState(false);
   const [editingSurface, setEditingSurface] = useState<Surface | null>(null);
   const [surfaceName, setSurfaceName] = useState("");
   const [surfaceDescription, setSurfaceDescription] = useState("");
-  const [surfaceToolIds, setSurfaceToolIds] = useState("");
-  const [surfaceCategories, setSurfaceCategories] = useState("");
+  const [surfaceToolIds, setSurfaceToolIds] = useState<Set<string>>(new Set());
   const [savingSurface, setSavingSurface] = useState(false);
-  const [showPresetForm, setShowPresetForm] = useState(false);
+  const [presetModalOpen, setPresetModalOpen] = useState(false);
   const [selectedPresetId, setSelectedPresetId] = useState("");
 
-  // ── Run Profile state ──
-  const [profiles, setProfiles] = useState<RunProfile[]>([]);
+  // ── Run Profile modal state ──
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<RunProfile | null>(null);
   const [profileName, setProfileName] = useState("");
-  const [profileToolIds, setProfileToolIds] = useState("");
+  const [profileToolIds, setProfileToolIds] = useState<Set<string>>(new Set());
   const [profileSurfaceId, setProfileSurfaceId] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    loadSurfaces();
-    loadPresets();
-    loadProfiles();
-  }, [user]);
-
-  async function loadSurfaces() {
-    try {
-      const list = await fetchSurfaces();
-      setSurfaces(list);
-      setSurfaceError(null);
-    } catch {
-      setSurfaceError(t("surfaces.failedToLoad"));
-    }
-  }
-
-  async function loadPresets() {
-    try {
-      const list = await fetchSurfacePresets();
-      setPresets(list);
-    } catch {
-      // Presets are optional
-    }
-  }
-
-  async function loadProfiles() {
-    try {
-      const list = await fetchRunProfiles();
-      setProfiles(list);
-      setProfileError(null);
-    } catch {
-      setProfileError(t("surfaces.failedToLoadProfiles"));
-    }
-  }
-
   // ── Surface handlers ──
-  function resetSurfaceForm() {
-    setShowCreateForm(false);
+  function openCreateSurface() {
     setEditingSurface(null);
     setSurfaceName("");
     setSurfaceDescription("");
-    setSurfaceToolIds("");
-    setSurfaceCategories("");
+    setSurfaceToolIds(new Set());
+    setSurfaceModalOpen(true);
   }
 
-  function startEditSurface(s: Surface) {
+  function openEditSurface(s: Surface) {
     setEditingSurface(s);
     setSurfaceName(s.name);
     setSurfaceDescription(s.description || "");
-    setSurfaceToolIds(s.allowedToolIds.join(", "));
-    setSurfaceCategories(s.allowedCategories.join(", "));
-    setShowCreateForm(true);
-    setShowPresetForm(false);
+    setSurfaceToolIds(new Set(s.allowedToolIds));
+    setSurfaceModalOpen(true);
+  }
+
+  function closeSurfaceModal() {
+    setSurfaceModalOpen(false);
+    setEditingSurface(null);
   }
 
   async function handleSaveSurface() {
@@ -125,22 +73,21 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setSurfaceError(null);
     try {
       if (editingSurface) {
-        await updateSurface(editingSurface.id, {
+        await storeUpdateSurface(editingSurface.id, {
           name: surfaceName.trim(),
           description: surfaceDescription.trim() || undefined,
-          allowedToolIds: parseCommaSeparated(surfaceToolIds),
-          allowedCategories: parseCommaSeparated(surfaceCategories),
+          allowedToolIds: Array.from(surfaceToolIds),
+          allowedCategories: [],
         });
       } else {
-        await createSurface({
+        await storeCreateSurface({
           name: surfaceName.trim(),
           description: surfaceDescription.trim() || undefined,
-          allowedToolIds: parseCommaSeparated(surfaceToolIds),
-          allowedCategories: parseCommaSeparated(surfaceCategories),
+          allowedToolIds: Array.from(surfaceToolIds),
+          allowedCategories: [],
         });
       }
-      resetSurfaceForm();
-      await loadSurfaces();
+      closeSurfaceModal();
     } catch {
       setSurfaceError(t("surfaces.failedToSave"));
     } finally {
@@ -148,49 +95,54 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     }
   }
 
-  async function handleCreateFromPreset() {
-    if (!selectedPresetId) return;
-    setSavingSurface(true);
-    setSurfaceError(null);
-    try {
-      await createSurfaceFromPreset(selectedPresetId);
-      setShowPresetForm(false);
-      setSelectedPresetId("");
-      await loadSurfaces();
-    } catch {
-      setSurfaceError(t("surfaces.failedToSave"));
-    } finally {
-      setSavingSurface(false);
-    }
+  function handleCreateFromPreset() {
+    const source = surfaces.find((s) => s.id === selectedPresetId);
+    if (!source) return;
+    setPresetModalOpen(false);
+    setSelectedPresetId("");
+    setEditingSurface(null);
+    setSurfaceName(`${source.name} (copy)`);
+    setSurfaceDescription(source.description || "");
+    // System Default Surface → pre-select all available tools
+    const isSystemDefault = source.userId === null && source.allowedToolIds.length === 0;
+    const prefilledIds = isSystemDefault
+      ? new Set(allTools.map((t) => t.id))
+      : new Set(source.allowedToolIds);
+    setSurfaceToolIds(prefilledIds);
+    setSurfaceModalOpen(true);
   }
 
   async function handleDeleteSurface(id: string) {
     if (!window.confirm(t("surfaces.confirmDeleteSurface"))) return;
     setSurfaceError(null);
     try {
-      await deleteSurface(id);
-      await loadSurfaces();
-      await loadProfiles();
+      await storeDeleteSurface(id);
+      await storeFetchRunProfiles();
     } catch {
       setSurfaceError(t("surfaces.failedToDelete"));
     }
   }
 
   // ── Run Profile handlers ──
-  function resetProfileForm() {
-    setShowProfileForm(false);
+  function openCreateProfile() {
     setEditingProfile(null);
     setProfileName("");
-    setProfileToolIds("");
-    setProfileSurfaceId("");
+    setProfileToolIds(new Set());
+    setProfileSurfaceId(surfaces[0]?.id ?? "");
+    setProfileModalOpen(true);
   }
 
-  function startEditProfile(p: RunProfile) {
+  function openEditProfile(p: RunProfile) {
     setEditingProfile(p);
     setProfileName(p.name);
-    setProfileToolIds(p.selectedToolIds.join(", "));
+    setProfileToolIds(new Set(p.selectedToolIds));
     setProfileSurfaceId(p.surfaceId);
-    setShowProfileForm(true);
+    setProfileModalOpen(true);
+  }
+
+  function closeProfileModal() {
+    setProfileModalOpen(false);
+    setEditingProfile(null);
   }
 
   async function handleSaveProfile() {
@@ -199,19 +151,18 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setProfileError(null);
     try {
       if (editingProfile) {
-        await updateRunProfile(editingProfile.id, {
+        await storeUpdateRunProfile(editingProfile.id, {
           name: profileName.trim(),
-          selectedToolIds: parseCommaSeparated(profileToolIds),
+          selectedToolIds: Array.from(profileToolIds),
         });
       } else {
-        await createRunProfile({
+        await storeCreateRunProfile({
           name: profileName.trim(),
-          selectedToolIds: parseCommaSeparated(profileToolIds),
+          selectedToolIds: Array.from(profileToolIds),
           surfaceId: profileSurfaceId,
         });
       }
-      resetProfileForm();
-      await loadProfiles();
+      closeProfileModal();
     } catch {
       setProfileError(t("surfaces.failedToSaveProfile"));
     } finally {
@@ -223,8 +174,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     if (!window.confirm(t("surfaces.confirmDeleteRunProfile"))) return;
     setProfileError(null);
     try {
-      await deleteRunProfile(profileId);
-      await loadProfiles();
+      await storeDeleteRunProfile(profileId);
     } catch {
       setProfileError(t("surfaces.failedToDeleteProfile"));
     }
@@ -237,7 +187,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
 
   if (!user) {
     return (
-      <div className="page-enter">
+      <div className="account-page page-enter">
         <div className="section-card">
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
@@ -247,267 +197,156 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   }
 
   const initial = getUserInitial(user);
-  const seatsUsed = subscription?.seatsUsed ?? 0;
-  const seatsMax = subscription?.seatsMax ?? 1;
-  const seatsPct = Math.round((seatsUsed / seatsMax) * 100);
 
-  // Build a lookup from surface id to name for the profiles card
   const surfaceNameById: Record<string, string> = {};
   for (const s of surfaces) {
     surfaceNameById[s.id] = s.name;
   }
 
-  // Group profiles by surface name for display
-  const profilesBySurface: Record<string, RunProfile[]> = {};
-  for (const p of profiles) {
-    const groupName = surfaceNameById[p.surfaceId] || p.surfaceId;
-    if (!profilesBySurface[groupName]) profilesBySurface[groupName] = [];
-    profilesBySurface[groupName].push(p);
-  }
-  const profileGroupNames = Object.keys(profilesBySurface).sort();
-
-  // User surfaces only (for the "create profile" surface selector)
-  const userSurfaces = surfaces.filter((s) => s.userId !== null);
-
   return (
-    <div className="page-enter">
-      <h1>{t("account.title")}</h1>
-      <p className="page-description">{t("account.description")}</p>
+    <div className="account-page page-enter">
 
-      {/* ── Card 1: Profile ── */}
-      <div className="section-card">
-        <h3>{t("account.profile")}</h3>
-
-        <div className="acct-profile-row">
-          <div className="acct-avatar">{initial}</div>
-          <div className="acct-profile-info">
-            {user.name && <span className="acct-name">{user.name}</span>}
-            <span className="acct-email">{user.email}</span>
-            <span className="acct-member-since">
-              {t("account.memberSince")}: {new Date(user.createdAt).toLocaleDateString()}
-            </span>
+      {/* ── Profile & Subscription ── */}
+      <div className="section-card account-profile-card">
+        <div className="account-profile-header">
+          <div className="account-profile-identity">
+            <div className="account-avatar">{initial}</div>
+            <div className="account-profile-name-group">
+              {user.name && <span className="account-profile-name">{user.name}</span>}
+              <span className="account-profile-email">{user.email}</span>
+            </div>
           </div>
           <button className="btn btn-danger btn-sm" onClick={handleLogout}>
             {t("auth.logout")}
           </button>
         </div>
-      </div>
 
-      {/* ── Card 2: Subscription ── */}
-      <div className="section-card">
-        <h3>{t("account.subscription")}</h3>
-
-        <div className="settings-toggle-card">
-          <div className="settings-toggle-label settings-toggle-label-static">
-            <span>{t("account.plan")}</span>
-            <span className="acct-badge acct-badge-plan">{subscription?.plan ?? user.plan}</span>
-          </div>
-        </div>
-
-        <div className="settings-toggle-card">
-          <div className="settings-toggle-label settings-toggle-label-static">
-            <span>{t("account.validUntil")}</span>
-            <span>
-              {subscription
-                ? new Date(subscription.validUntil).toLocaleDateString()
-                : "—"}
+        <div className="account-info-grid">
+          <div className="account-info-item">
+            <span className="account-info-label">{t("account.plan")}</span>
+            <span className="account-info-value">
+              <span className="acct-badge acct-badge-plan">{subscription?.plan ?? user.plan}</span>
             </span>
           </div>
-        </div>
-
-        {/* Seats progress */}
-        {subscription && (
-          <div className="acct-seats">
-            <div className="settings-toggle-label settings-toggle-label-static">
-              <span>{t("account.seats")}</span>
-              <span>{seatsUsed} / {seatsMax}</span>
-            </div>
-            <div className="acct-seats-track">
-              <div className="acct-seats-fill" style={{ width: `${seatsPct}%` }} />
-            </div>
+          <div className="account-info-item">
+            <span className="account-info-label">{t("account.memberSince")}</span>
+            <span className="account-info-value">
+              {new Date(user.createdAt).toLocaleDateString()}
+            </span>
           </div>
-        )}
+          <div className="account-info-item">
+            <span className="account-info-label">{t("account.validUntil")}</span>
+            <span className="account-info-value">
+              {subscription ? new Date(subscription.validUntil).toLocaleDateString() : "—"}
+            </span>
+          </div>
+          {llmQuota && (
+            <>
+              <div className="account-info-item account-info-item-wide quota-five-hour">
+                <div className="quota-header">
+                  <span className="account-info-label">{t("account.quotaFiveHour")}</span>
+                  <span className="quota-refresh-time">
+                    {t("account.quotaRefreshAt", { time: new Date(llmQuota.fiveHour.refreshAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}
+                  </span>
+                </div>
+                <div className="quota-bar-wrap">
+                  <progress
+                    className={`quota-bar${llmQuota.fiveHour.remainingPercent < 20 ? " quota-bar-low" : ""}`}
+                    value={llmQuota.fiveHour.remainingPercent}
+                    max={100}
+                  />
+                  <span className="quota-bar-label">{Math.round(llmQuota.fiveHour.remainingPercent)}%</span>
+                </div>
+              </div>
+              <div className="account-info-item account-info-item-wide quota-weekly">
+                <div className="quota-header">
+                  <span className="account-info-label">{t("account.quotaWeekly")}</span>
+                  <span className="quota-refresh-time">
+                    {t("account.quotaRefreshAt", { time: new Date(llmQuota.weekly.refreshAt).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}
+                  </span>
+                </div>
+                <div className="quota-bar-wrap">
+                  <progress
+                    className={`quota-bar${llmQuota.weekly.remainingPercent < 20 ? " quota-bar-low" : ""}`}
+                    value={llmQuota.weekly.remainingPercent}
+                    max={100}
+                  />
+                  <span className="quota-bar-label">{Math.round(llmQuota.weekly.remainingPercent)}%</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* ── Card 3: Surfaces ── */}
+      {/* ── Surfaces ── */}
       <div className="section-card">
-        <h3>{t("surfaces.surfacesTitle")}</h3>
+        <div className="acct-section-header">
+          <div>
+            <h3>{t("surfaces.surfacesTitle")}</h3>
+            <p className="acct-section-desc">{t("surfaces.description")}</p>
+          </div>
+          <div className="td-actions">
+            <button className="btn btn-primary btn-sm" onClick={openCreateSurface}>
+              {t("surfaces.createSurface")}
+            </button>
+            {surfaces.length > 0 && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => { setSelectedPresetId(""); setPresetModalOpen(true); }}
+              >
+                {t("surfaces.createFromPreset")}
+              </button>
+            )}
+          </div>
+        </div>
 
         {surfaceError && <div className="error-alert">{surfaceError}</div>}
 
-        <div className="td-actions">
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => {
-              resetSurfaceForm();
-              setShowCreateForm(true);
-              setShowPresetForm(false);
-            }}
-          >
-            {t("surfaces.createSurface")}
-          </button>
-          {presets.length > 0 && (
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                setShowPresetForm(true);
-                setShowCreateForm(false);
-                resetSurfaceForm();
-              }}
-            >
-              {t("surfaces.createFromPreset")}
-            </button>
-          )}
-        </div>
-
-        {/* Preset form */}
-        {showPresetForm && (
-          <div className="key-expanded">
-            <label className="form-label-block">
-              {t("surfaces.presetLabel")}
-              <select
-                value={selectedPresetId}
-                onChange={(e) => setSelectedPresetId(e.target.value)}
-              >
-                <option value="">{t("surfaces.selectPreset")}</option>
-                {presets.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {p.description}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="td-actions">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleCreateFromPreset}
-                disabled={!selectedPresetId || savingSurface}
-              >
-                {t("common.add")}
-              </button>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  setShowPresetForm(false);
-                  setSelectedPresetId("");
-                }}
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Create/Edit Surface form */}
-        {showCreateForm && (
-          <div className="key-expanded">
-            <label className="form-label-block">
-              {t("surfaces.name")}
-              <input
-                type="text"
-                value={surfaceName}
-                onChange={(e) => setSurfaceName(e.target.value)}
-                placeholder={t("surfaces.namePlaceholder")}
-              />
-            </label>
-            <label className="form-label-block">
-              {t("surfaces.descriptionLabel")}
-              <input
-                type="text"
-                value={surfaceDescription}
-                onChange={(e) => setSurfaceDescription(e.target.value)}
-                placeholder={t("surfaces.descriptionPlaceholder")}
-              />
-            </label>
-            <label className="form-label-block">
-              {t("surfaces.allowedToolIds")}
-              <input
-                type="text"
-                value={surfaceToolIds}
-                onChange={(e) => setSurfaceToolIds(e.target.value)}
-                placeholder={t("surfaces.allowedToolIdsPlaceholder")}
-              />
-              <small className="form-hint">{t("surfaces.allowedToolIdsHint")}</small>
-            </label>
-            <label className="form-label-block">
-              {t("surfaces.allowedCategories")}
-              <input
-                type="text"
-                value={surfaceCategories}
-                onChange={(e) => setSurfaceCategories(e.target.value)}
-                placeholder={t("surfaces.allowedCategoriesPlaceholder")}
-              />
-              <small className="form-hint">{t("surfaces.allowedCategoriesHint")}</small>
-            </label>
-            <div className="td-actions">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleSaveSurface}
-                disabled={!surfaceName.trim() || savingSurface}
-              >
-                {savingSurface ? t("common.loading") : t("common.save")}
-              </button>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={resetSurfaceForm}
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Surfaces list */}
         {surfaces.length === 0 ? (
           <div className="empty-cell">{t("surfaces.noSurfaces")}</div>
         ) : (
-          <div className="flex-col-gap-1">
+          <div className="acct-item-list">
             {surfaces.map((s) => {
               const isSystem = s.userId === null;
+              const profileCount = profiles.filter((p) => p.surfaceId === s.id).length;
               return (
-                <div key={s.id} className="key-card">
-                  <div className="key-row">
-                    <div className="key-info">
-                      <div className="key-meta">
-                        <strong className="text-sm">{s.name}</strong>
-                        {isSystem && (
-                          <span className="badge badge-muted">{t("surfaces.system")}</span>
-                        )}
-                        {s.presetId && (
-                          <span className="badge badge-muted">{t("surfaces.presetLabel")}</span>
-                        )}
-                        <span className="badge badge-muted">
-                          {t("surfaces.toolCount", { count: s.allowedToolIds.length })}
-                        </span>
-                        {s.allowedCategories.length > 0 && (
-                          <span className="badge badge-muted">
-                            {t("surfaces.categoryCount", { count: s.allowedCategories.length })}
-                          </span>
-                        )}
-                      </div>
-                      {s.description && (
-                        <div className="key-details">
-                          <span className="text-secondary text-sm">{s.description}</span>
-                        </div>
-                      )}
-                    </div>
+                <div key={s.id} className={`acct-item${isSystem ? " acct-item-system" : ""}`}>
+                  <div className="acct-item-title-row">
+                    <span className="acct-item-name">{s.name}</span>
+                    {isSystem && <span className="acct-badge-system">{t("surfaces.system")}</span>}
+                    {s.allowedToolIds.length === 0 && (
+                      <span className="acct-badge-subtle">{t("surfaces.unrestricted")}</span>
+                    )}
                     {!isSystem && (
-                      <div className="td-actions">
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => startEditSurface(s)}
-                        >
+                      <div className="acct-item-actions">
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditSurface(s)}>
                           {t("surfaces.editSurface")}
                         </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteSurface(s.id)}
-                        >
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteSurface(s.id)}>
                           {t("surfaces.deleteSurface")}
                         </button>
                       </div>
                     )}
                   </div>
+                  {s.description && <span className="acct-item-desc">{s.description}</span>}
+                  <div className="acct-item-meta">
+                    {profileCount > 0 && (
+                      <span>{profileCount} {t("surfaces.runProfilesTitle").toLowerCase()}</span>
+                    )}
+                    {s.allowedToolIds.length > 0 && (
+                      <span>{t("surfaces.toolCount", { count: s.allowedToolIds.length })}</span>
+                    )}
+                  </div>
+                  {s.allowedToolIds.length > 0 && (
+                    <div className="acct-tool-chips">
+                      {s.allowedToolIds.map((toolId) => (
+                        <span key={toolId} className="acct-tool-chip">
+                          {t(`tools.selector.name.${toolId}`, { defaultValue: toolId })}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -515,130 +354,254 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
         )}
       </div>
 
-      {/* ── Card 4: Run Profiles ── */}
+      {/* ── Run Profiles ── */}
       <div className="section-card">
-        <h3>{t("surfaces.runProfilesTitle")}</h3>
+        <div className="acct-section-header">
+          <div>
+            <h3>{t("surfaces.runProfilesTitle")}</h3>
+            <p className="acct-section-desc">{t("account.runProfilesDesc")}</p>
+          </div>
+          <div className="td-actions">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={openCreateProfile}
+              disabled={surfaces.length === 0}
+            >
+              {t("surfaces.createRunProfile")}
+            </button>
+          </div>
+        </div>
 
         {profileError && <div className="error-alert">{profileError}</div>}
 
-        <div className="td-actions">
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => {
-              resetProfileForm();
-              setShowProfileForm(true);
-            }}
-            disabled={userSurfaces.length === 0}
-          >
-            {t("surfaces.createRunProfile")}
-          </button>
-        </div>
-
-        {/* Create/Edit Profile form */}
-        {showProfileForm && (
-          <div className="key-expanded">
-            {!editingProfile && (
-              <label className="form-label-block">
-                {t("surfaces.surfacesTitle")}
-                <select
-                  value={profileSurfaceId}
-                  onChange={(e) => setProfileSurfaceId(e.target.value)}
-                >
-                  <option value="">{t("surfaces.selectPreset")}</option>
-                  {userSurfaces.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="form-label-block">
-              {t("surfaces.profileName")}
-              <input
-                type="text"
-                value={profileName}
-                onChange={(e) => setProfileName(e.target.value)}
-                placeholder={t("surfaces.profileNamePlaceholder")}
-              />
-            </label>
-            <label className="form-label-block">
-              {t("surfaces.selectedToolIds")}
-              <input
-                type="text"
-                value={profileToolIds}
-                onChange={(e) => setProfileToolIds(e.target.value)}
-                placeholder={t("surfaces.selectedToolIdsPlaceholder")}
-              />
-              <small className="form-hint">{t("surfaces.selectedToolIdsHint")}</small>
-            </label>
-            <div className="td-actions">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleSaveProfile}
-                disabled={!profileName.trim() || (!editingProfile && !profileSurfaceId) || savingProfile}
-              >
-                {savingProfile ? t("common.loading") : t("common.save")}
-              </button>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={resetProfileForm}
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Profiles list grouped by surface */}
         {profiles.length === 0 ? (
           <div className="empty-cell">{t("surfaces.noRunProfiles")}</div>
         ) : (
-          <div className="flex-col-gap-1">
-            {profileGroupNames.map((groupName) => (
-              <div key={groupName}>
-                <div className="key-meta">
-                  <strong className="text-sm">{groupName}</strong>
-                </div>
-                {profilesBySurface[groupName].map((p) => {
-                  const isSystem = p.userId === null;
-                  return (
-                    <div key={p.id} className="key-card">
-                      <div className="key-row">
-                        <div className="key-info">
-                          <div className="key-meta">
-                            <strong className="text-sm">{p.name}</strong>
-                            {isSystem && (
-                              <span className="badge badge-muted">{t("surfaces.system")}</span>
-                            )}
-                            <span className="badge badge-muted">
-                              {t("surfaces.toolCount", { count: p.selectedToolIds.length })}
-                            </span>
-                          </div>
-                        </div>
-                        {!isSystem && (
-                          <div className="td-actions">
-                            <button
-                              className="btn btn-outline btn-sm"
-                              onClick={() => startEditProfile(p)}
-                            >
-                              {t("surfaces.editRunProfile")}
-                            </button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => handleDeleteProfile(p.id)}
-                            >
-                              {t("surfaces.deleteRunProfile")}
-                            </button>
-                          </div>
-                        )}
+          <div className="acct-item-list">
+            {profiles.map((p) => {
+              const isSystem = p.userId === null;
+              const surfName = surfaceNameById[p.surfaceId] || p.surfaceId;
+              return (
+                <div key={p.id} className={`acct-item${isSystem ? " acct-item-system" : ""}`}>
+                  <div className="acct-item-title-row">
+                    <span className="acct-item-name">{p.name}</span>
+                    {isSystem && <span className="acct-badge-system">{t("surfaces.system")}</span>}
+                    {!isSystem && (
+                      <div className="acct-item-actions">
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditProfile(p)}>
+                          {t("surfaces.editRunProfile")}
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteProfile(p.id)}>
+                          {t("surfaces.deleteRunProfile")}
+                        </button>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                    )}
+                  </div>
+                  <div className="acct-item-meta">
+                    <span>{surfName}</span>
+                    <span>{t("surfaces.toolCount", { count: p.selectedToolIds.length })}</span>
+                  </div>
+                  {p.selectedToolIds.length > 0 && (() => {
+                    const parentSurface = surfaces.find((s) => s.id === p.surfaceId);
+                    const restricted = parentSurface && parentSurface.allowedToolIds.length > 0;
+                    const allowedSet = restricted ? new Set(parentSurface.allowedToolIds) : null;
+                    return (
+                      <div className="acct-tool-chips">
+                        {p.selectedToolIds.map((toolId) => {
+                          const outOfScope = allowedSet && !allowedSet.has(toolId);
+                          return (
+                            <span
+                              key={toolId}
+                              className={`acct-tool-chip${outOfScope ? " acct-tool-chip-warn" : ""}`}
+                              title={outOfScope ? t("surfaces.toolOutOfScope") : undefined}
+                            >
+                              {t(`tools.selector.name.${toolId}`, { defaultValue: toolId })}
+                              {outOfScope && <span className="acct-tool-chip-icon">⚠</span>}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* ── Surface Modal ── */}
+      <Modal
+        isOpen={surfaceModalOpen}
+        onClose={closeSurfaceModal}
+        title={editingSurface ? t("surfaces.editSurface") : t("surfaces.createSurface")}
+      >
+        <div className="modal-form-col">
+          <div>
+            <label className="form-label-block">
+              {t("surfaces.name")}
+            </label>
+            <input
+              type="text"
+              value={surfaceName}
+              onChange={(e) => setSurfaceName(e.target.value)}
+              placeholder={t("surfaces.namePlaceholder")}
+              className="input-full"
+            />
+          </div>
+          <div>
+            <label className="form-label-block">
+              {t("surfaces.descriptionLabel")}
+            </label>
+            <input
+              type="text"
+              value={surfaceDescription}
+              onChange={(e) => setSurfaceDescription(e.target.value)}
+              placeholder={t("surfaces.descriptionPlaceholder")}
+              className="input-full"
+            />
+          </div>
+          <div>
+            <label className="form-label-block">
+              {t("surfaces.allowedToolIds")}
+            </label>
+            <div className="form-hint">{t("surfaces.allowedToolIdsHint")}</div>
+            <ToolMultiSelect selected={surfaceToolIds} onChange={setSurfaceToolIds} />
+          </div>
+
+          {editingSurface && (() => {
+            const currentAllowed = surfaceToolIds;
+            const childProfiles = profiles.filter((p) => p.surfaceId === editingSurface.id);
+            const affectedProfiles = childProfiles.filter((p) =>
+              p.selectedToolIds.some((tid) => currentAllowed.size > 0 && !currentAllowed.has(tid)),
+            );
+            if (affectedProfiles.length === 0) return null;
+            return (
+              <div className="form-warning">
+                {t("surfaces.surfaceNarrowWarning", { count: affectedProfiles.length })}
+                <ul className="form-warning-list">
+                  {affectedProfiles.map((p) => <li key={p.id}>{p.name}</li>)}
+                </ul>
+              </div>
+            );
+          })()}
+
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={closeSurfaceModal}>
+              {t("common.cancel")}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSaveSurface}
+              disabled={!surfaceName.trim() || savingSurface}
+            >
+              {savingSurface ? t("common.loading") : t("common.save")}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Preset Modal ── */}
+      <Modal
+        isOpen={presetModalOpen}
+        onClose={() => setPresetModalOpen(false)}
+        title={t("surfaces.createFromPreset")}
+      >
+        <div className="modal-form-col">
+          <div>
+            <label className="form-label-block">
+              {t("surfaces.presetLabel")}
+            </label>
+            <Select
+              value={selectedPresetId}
+              onChange={setSelectedPresetId}
+              placeholder={t("surfaces.selectPreset")}
+              className="input-full"
+              options={surfaces.map((s) => ({
+                value: s.id,
+                label: s.name,
+                description: s.description ?? undefined,
+              }))}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={() => setPresetModalOpen(false)}>
+              {t("common.cancel")}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleCreateFromPreset}
+              disabled={!selectedPresetId || savingSurface}
+            >
+              {savingSurface ? t("common.loading") : t("common.add")}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── RunProfile Modal ── */}
+      <Modal
+        isOpen={profileModalOpen}
+        onClose={closeProfileModal}
+        title={editingProfile ? t("surfaces.editRunProfile") : t("surfaces.createRunProfile")}
+      >
+        <div className="modal-form-col">
+          {!editingProfile && (
+            <div>
+              <label className="form-label-block">
+                {t("surfaces.surfacesTitle")}
+              </label>
+              <Select
+                value={profileSurfaceId}
+                onChange={setProfileSurfaceId}
+                className="input-full"
+                options={surfaces.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  description: s.description ?? undefined,
+                }))}
+              />
+            </div>
+          )}
+          <div>
+            <label className="form-label-block">
+              {t("surfaces.profileName")}
+            </label>
+            <input
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              placeholder={t("surfaces.profileNamePlaceholder")}
+              className="input-full"
+            />
+          </div>
+          <div>
+            <label className="form-label-block">
+              {t("surfaces.selectedToolIds")}
+            </label>
+            <div className="form-hint">{t("surfaces.selectedToolIdsHint")}</div>
+            <ToolMultiSelect
+              selected={profileToolIds}
+              onChange={setProfileToolIds}
+              allowedToolIds={surfaces.find((s) => s.id === profileSurfaceId)?.allowedToolIds}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={closeProfileModal}>
+              {t("common.cancel")}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSaveProfile}
+              disabled={!profileName.trim() || !profileSurfaceId || savingProfile}
+            >
+              {savingProfile ? t("common.loading") : t("common.save")}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

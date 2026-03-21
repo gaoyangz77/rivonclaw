@@ -18,8 +18,9 @@ import { useSessionManager } from "./chat/useSessionManager.js";
 import { SessionTabBar } from "./chat/SessionTabBar.js";
 import type { GatewaySessionInfo } from "./chat/SessionTabBar.js";
 import { ChatInputArea } from "./chat/ChatInputArea.js";
-import { ToolSelector } from "../components/inputs/ToolSelector.js";
-import { useToolRegistry } from "../providers/ToolRegistryProvider.js";
+import { RunProfileSelector } from "../components/inputs/RunProfileSelector.js";
+import { useToolRegistry, usePanelStore } from "../stores/index.js";
+import { setRunProfileForScope } from "../api/tool-registry.js";
 import "./chat/ChatPage.css";
 
 export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
@@ -70,9 +71,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const shouldInstantScrollRef = useRef(true);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showToolSelector, setShowToolSelector] = useState(false);
-  const { hasTools } = useToolRegistry();
-  const toolsWrapperRef = useRef<HTMLDivElement>(null);
+  const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
+  const runProfiles = usePanelStore((s) => s.runProfiles);
+  const { tools } = useToolRegistry();
   const [externalPending, setExternalPending] = useState(false);
   const externalPendingRef = useRef(false);
 
@@ -1019,16 +1020,34 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
     }
   }, []);
 
+  // Reset RunProfile selection when session tab changes
+  const activeKey = sessionManager.activeSessionKey;
   useEffect(() => {
-    if (!showToolSelector) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (toolsWrapperRef.current && !toolsWrapperRef.current.contains(e.target as Node)) {
-        setShowToolSelector(false);
-      }
+    setSelectedRunProfileId("");
+    setRunProfileForScope("chat_session", activeKey, null).catch(() => {});
+  }, [activeKey]);
+
+  function pushRunProfileToScope(profileId: string, scopeKey: string) {
+    const profile = profileId ? runProfiles.find((p) => p.id === profileId) : null;
+    if (!profile) {
+      setRunProfileForScope("chat_session", scopeKey, null).catch(() => {});
+      return;
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showToolSelector]);
+    const systemIds = tools.filter((t) => t.source === "system").map((t) => t.id);
+    const merged = [...new Set([...profile.selectedToolIds, ...systemIds])];
+    setRunProfileForScope(
+      "chat_session",
+      scopeKey,
+      { id: profile.id, name: profile.name, selectedToolIds: merged, surfaceId: profile.surfaceId },
+    ).catch(() => {});
+  }
+
+  // Push RunProfile selection to desktop when changed.
+  // Admin scopes (chat, cron) always include system tools on top of the RunProfile.
+  function handleRunProfileChange(profileId: string) {
+    setSelectedRunProfileId(profileId);
+    pushRunProfileToScope(profileId, activeKey);
+  }
 
   const visibleMessages = messages.slice(Math.max(0, messages.length - visibleCount));
   const showHistoryEnd = allFetched && visibleCount >= messages.length && messages.length > 0;
@@ -1222,25 +1241,11 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           />
         )}
         <span className="chat-status-spacer" />
-        {hasTools && (
-          <div className="chat-tools-wrapper" ref={toolsWrapperRef}>
-            <button
-              className={`chat-tools-toggle${showToolSelector ? " chat-tools-toggle-active" : ""}`}
-              onClick={() => setShowToolSelector((v) => !v)}
-            >
-              <span className="chat-tools-toggle-icon">&#9881;</span>
-              {t("tools.selector.title")}
-            </button>
-            {showToolSelector && (
-              <div className="chat-tools-popover">
-                <ToolSelector
-                  scopeType="chat_session"
-                  scopeKey={sessionManager.activeSessionKey}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        <RunProfileSelector
+          value={selectedRunProfileId}
+          onChange={handleRunProfileChange}
+          className="chat-profile-select"
+        />
         <button
           className="btn btn-sm btn-secondary"
           onClick={handleReset}
