@@ -1030,7 +1030,16 @@ var ToolsWebFetchSchema = z5.object({
   timeoutSeconds: z5.number().int().positive().optional(),
   cacheTtlMinutes: z5.number().nonnegative().optional(),
   maxRedirects: z5.number().int().nonnegative().optional(),
-  userAgent: z5.string().optional()
+  userAgent: z5.string().optional(),
+  readability: z5.boolean().optional(),
+  firecrawl: z5.object({
+    enabled: z5.boolean().optional(),
+    apiKey: SecretInputSchema.optional().register(sensitive),
+    baseUrl: z5.string().optional(),
+    onlyMainContent: z5.boolean().optional(),
+    maxAgeMs: z5.number().int().nonnegative().optional(),
+    timeoutSeconds: z5.number().int().positive().optional()
+  }).strict().optional()
 }).strict().optional();
 var ToolsWebSchema = z5.object({
   search: ToolsWebSearchSchema,
@@ -1237,7 +1246,8 @@ var MemorySearchSchema = z5.object({
     intervalMinutes: z5.number().int().nonnegative().optional(),
     sessions: z5.object({
       deltaBytes: z5.number().int().nonnegative().optional(),
-      deltaMessages: z5.number().int().nonnegative().optional()
+      deltaMessages: z5.number().int().nonnegative().optional(),
+      postCompactionForce: z5.boolean().optional()
     }).strict().optional()
   }).strict().optional(),
   query: z5.object({
@@ -1303,6 +1313,7 @@ var AgentEntrySchema = z5.object({
     thinking: z5.string().optional()
   }).strict().optional(),
   sandbox: AgentSandboxSchema,
+  params: z5.record(z5.string(), z5.unknown()).optional(),
   tools: AgentToolsSchema,
   runtime: AgentRuntimeSchema
 }).strict();
@@ -1451,6 +1462,7 @@ var AgentDefaultsSchema = z6.object({
     keepRecentTokens: z6.number().int().positive().optional(),
     reserveTokensFloor: z6.number().int().nonnegative().optional(),
     maxHistoryShare: z6.number().min(0.1).max(0.9).optional(),
+    customInstructions: z6.string().optional(),
     identifierPolicy: z6.union([z6.literal("strict"), z6.literal("off"), z6.literal("custom")]).optional(),
     identifierInstructions: z6.string().optional(),
     recentTurnsPreserve: z6.number().int().min(0).max(12).optional(),
@@ -1458,6 +1470,7 @@ var AgentDefaultsSchema = z6.object({
       enabled: z6.boolean().optional(),
       maxRetries: z6.number().int().nonnegative().optional()
     }).strict().optional(),
+    postIndexSync: z6.enum(["off", "async", "await"]).optional(),
     postCompactionSections: z6.array(z6.string()).optional(),
     model: z6.string().optional(),
     memoryFlush: z6.object({
@@ -2093,6 +2106,12 @@ var TelegramCapabilitiesSchema = z13.union([
     inlineButtons: TelegramInlineButtonsScopeSchema.optional()
   }).strict()
 ]);
+var SlackCapabilitiesSchema = z13.union([
+  z13.array(z13.string()),
+  z13.object({
+    interactiveReplies: z13.boolean().optional()
+  }).strict()
+]);
 var TelegramTopicSchema = z13.object({
   requireMention: z13.boolean().optional(),
   disableAudioPreflight: z13.boolean().optional(),
@@ -2127,8 +2146,8 @@ var TelegramDirectSchema = z13.object({
   requireTopic: z13.boolean().optional()
 }).strict();
 var TelegramCustomCommandSchema = z13.object({
-  command: z13.string().transform(normalizeTelegramCommandName),
-  description: z13.string().transform(normalizeTelegramCommandDescription)
+  command: z13.string().overwrite(normalizeTelegramCommandName),
+  description: z13.string().overwrite(normalizeTelegramCommandDescription)
 }).strict();
 var validateTelegramCustomCommands = (value, ctx) => {
   if (!value.customCommands || value.customCommands.length === 0) {
@@ -2674,7 +2693,7 @@ var SlackAccountSchema = z13.object({
   mode: z13.enum(["socket", "http"]).optional(),
   signingSecret: SecretInputSchema.optional().register(sensitive),
   webhookPath: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
+  capabilities: SlackCapabilitiesSchema.optional(),
   markdown: MarkdownConfigSchema,
   enabled: z13.boolean().optional(),
   commands: ProviderCommandsSchema,
@@ -2793,6 +2812,12 @@ var SlackConfigSchema = SlackAccountSchema.safeExtend({
   }
   validateSlackSigningSecretRequirements(value, ctx);
 });
+var SignalGroupEntrySchema = z13.object({
+  requireMention: z13.boolean().optional(),
+  tools: ToolPolicySchema,
+  toolsBySender: ToolPolicyBySenderSchema
+}).strict();
+var SignalGroupsSchema = z13.record(z13.string(), SignalGroupEntrySchema.optional()).optional();
 var SignalAccountSchemaBase = z13.object({
   name: z13.string().optional(),
   capabilities: z13.array(z13.string()).optional(),
@@ -2816,6 +2841,7 @@ var SignalAccountSchemaBase = z13.object({
   defaultTo: z13.string().optional(),
   groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+  groups: SignalGroupsSchema,
   historyLimit: z13.number().int().min(0).optional(),
   dmHistoryLimit: z13.number().int().min(0).optional(),
   dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
@@ -3500,7 +3526,8 @@ var MessagesSchema = z16.object({
       done: z16.string().optional(),
       error: z16.string().optional(),
       stallSoft: z16.string().optional(),
-      stallHard: z16.string().optional()
+      stallHard: z16.string().optional(),
+      compacting: z16.string().optional()
     }).strict().optional(),
     timing: z16.object({
       debounceMs: z16.number().int().min(0).optional(),
@@ -3762,12 +3789,20 @@ var OpenClawSchema = z17.object({
       z17.object({
         cdpPort: z17.number().int().min(1).max(65535).optional(),
         cdpUrl: z17.string().optional(),
-        driver: z17.union([z17.literal("openclaw"), z17.literal("clawd"), z17.literal("extension")]).optional(),
+        driver: z17.union([
+          z17.literal("openclaw"),
+          z17.literal("clawd"),
+          z17.literal("extension"),
+          z17.literal("existing-session")
+        ]).optional(),
         attachOnly: z17.boolean().optional(),
         color: HexColorSchema
-      }).strict().refine((value) => value.cdpPort || value.cdpUrl, {
-        message: "Profile must set cdpPort or cdpUrl"
-      })
+      }).strict().refine(
+        (value) => value.driver === "existing-session" || value.cdpPort || value.cdpUrl,
+        {
+          message: "Profile must set cdpPort or cdpUrl"
+        }
+      )
     ).optional(),
     extraArgs: z17.array(z17.string()).optional(),
     relayBindHost: z17.union([z17.string().ipv4(), z17.string().ipv6()]).optional()
@@ -3923,7 +3958,8 @@ var OpenClawSchema = z17.object({
   channels: ChannelsSchema,
   discovery: z17.object({
     wideArea: z17.object({
-      enabled: z17.boolean().optional()
+      enabled: z17.boolean().optional(),
+      domain: z17.string().optional()
     }).strict().optional(),
     mdns: z17.object({
       mode: z17.enum(["off", "minimal", "full"]).optional()
@@ -4045,6 +4081,14 @@ var OpenClawSchema = z17.object({
       }).strict().optional(),
       securityHeaders: z17.object({
         strictTransportSecurity: z17.union([z17.string(), z17.literal(false)]).optional()
+      }).strict().optional()
+    }).strict().optional(),
+    push: z17.object({
+      apns: z17.object({
+        relay: z17.object({
+          baseUrl: z17.string().optional(),
+          timeoutMs: z17.number().int().positive().optional()
+        }).strict().optional()
       }).strict().optional()
     }).strict().optional(),
     nodes: z17.object({

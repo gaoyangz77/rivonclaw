@@ -140,6 +140,30 @@ export interface CSBindingResolvedFrame {
   gateway_id: string;
 }
 
+// ── W29-0E: TikTok Relay-to-Desktop Frames ──────────────────────────────────
+
+/** Relay → Client: TikTok new conversation notification. */
+export interface CSTikTokNewConversationFrame {
+  type: "cs_tiktok_new_conversation";
+  shopId: string;
+  conversationId: string;
+  createTime: number;
+}
+
+/** Relay → Client: TikTok new message notification (buyer message relayed to desktop agent). */
+export interface CSTikTokNewMessageFrame {
+  type: "cs_tiktok_new_message";
+  shopId: string;
+  conversationId: string;
+  messageId: string;
+  messageType: string;
+  content: string;
+  senderRole: string;
+  senderId: string;
+  createTime: number;
+  isVisible: boolean;
+}
+
 /** Union of all customer service WebSocket frames. */
 export type CSWSFrame =
   | CSHelloFrame
@@ -151,7 +175,9 @@ export type CSWSFrame =
   | CSCreateBindingFrame
   | CSCreateBindingAckFrame
   | CSUnbindAllFrame
-  | CSBindingResolvedFrame;
+  | CSBindingResolvedFrame
+  | CSTikTokNewConversationFrame
+  | CSTikTokNewMessageFrame;
 
 // ── Adapter Interface ───────────────────────────────────────────────────────
 

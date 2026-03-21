@@ -10,7 +10,7 @@ import { resolve } from "path";
  */
 
 const EXPECTED_HASH =
-  "5828977f2c0830c93566f1cc29848a650b2315d9e49ccde9dce9adf4996b9728";
+  "e1ee7144c7e5645060462a42f083be83d70feb067a57cea09a4fb8ed8e531351";
 
 const VENDOR_FILE = resolve(
   __dirname,
@@ -34,34 +34,34 @@ describe("browser tool description sentinel", () => {
     ).not.toBeNull();
   });
 
-  it('contains sentinel string: profile="chrome"', () => {
+  it('contains sentinel string: profile="user"', () => {
     expect(
       descriptionSource,
       formatSentinelMessage(
-        'Missing sentinel string profile="chrome"',
+        'Missing sentinel string profile="user"',
         descriptionSource,
       ),
-    ).toContain('profile="chrome"');
+    ).toContain('profile="user"');
   });
 
-  it('contains sentinel string: profile="openclaw"', () => {
+  it('contains sentinel string: profile="chrome-relay"', () => {
     expect(
       descriptionSource,
       formatSentinelMessage(
-        'Missing sentinel string profile="openclaw"',
+        'Missing sentinel string profile="chrome-relay"',
         descriptionSource,
       ),
-    ).toContain('profile="openclaw"');
+    ).toContain('profile="chrome-relay"');
   });
 
-  it("contains sentinel string: Chrome extension relay", () => {
+  it("contains sentinel string: Browser Relay", () => {
     expect(
       descriptionSource,
       formatSentinelMessage(
-        "Missing sentinel string 'Chrome extension relay'",
+        "Missing sentinel string 'Browser Relay'",
         descriptionSource,
       ),
-    ).toContain("Chrome extension relay");
+    ).toContain("Browser Relay");
   });
 
   it("matches the expected SHA-256 hash", () => {

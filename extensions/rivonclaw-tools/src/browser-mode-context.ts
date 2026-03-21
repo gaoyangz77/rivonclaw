@@ -18,16 +18,16 @@ type PromptBuildResult = {
 
 const CDP_CONTEXT = [
   "Browser is configured in CDP mode — connected to the user's existing Chrome via remote debugging.",
-  'Only `profile="openclaw"` is available (it connects to the user\'s real Chrome at the CDP endpoint).',
-  'Do NOT use `profile="chrome"` — Chrome extension relay is NOT available in this mode.',
+  "The default browser (omit profile) connects to the user's real Chrome at the CDP endpoint.",
+  'Do NOT use `profile="chrome-relay"` — Chrome extension relay is NOT available in this mode.',
   "Ignore all instructions about Chrome extension relay, Browser Relay toolbar, or \"attach tab\".",
   "The browser is the user's actual Chrome with their real tabs, extensions, and login sessions.",
 ].join("\n");
 
 const STANDALONE_CONTEXT = [
   "Browser is configured in standalone mode — using an isolated managed browser.",
-  'Only `profile="openclaw"` is available (managed by the runtime).',
-  'Do NOT use `profile="chrome"` — Chrome extension relay is NOT available in this mode.',
+  "The default browser (omit profile) is managed by the runtime.",
+  'Do NOT use `profile="chrome-relay"` — Chrome extension relay is NOT available in this mode.',
   "Ignore all instructions about Chrome extension relay, Browser Relay toolbar, or \"attach tab\".",
 ].join("\n");
 
