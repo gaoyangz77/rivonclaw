@@ -1,4 +1,4 @@
-/** REST client for the unified tool capability registry (panel-server endpoints). */
+/** REST client for the tool capability registry (desktop panel-server endpoints). */
 
 export interface AvailableTool {
   id: string;
@@ -6,16 +6,12 @@ export interface AvailableTool {
   description: string;
   category: string;
   allowed: boolean;
-  denialReason?: string;
-}
-
-export interface ToolSelection {
-  toolId: string;
-  enabled: boolean;
+  source?: "system" | "extension" | "entitled";
 }
 
 const BASE = "/api/tools";
 
+/** Fetch all available tools from CapabilityResolver (system + extension + entitled). */
 export async function fetchAvailableTools(): Promise<AvailableTool[]> {
   const res = await fetch(`${BASE}/available`);
   if (!res.ok) return [];
@@ -23,36 +19,28 @@ export async function fetchAvailableTools(): Promise<AvailableTool[]> {
   return data.tools;
 }
 
-export async function fetchToolSelections(
+/** Set a RunProfile for a scope (chat session, cron job). Pass null to clear. */
+export async function setRunProfileForScope(
   scopeType: string,
   scopeKey: string,
-): Promise<ToolSelection[]> {
-  const params = new URLSearchParams({ scopeType, scopeKey });
-  const res = await fetch(`${BASE}/selections?${params}`);
-  if (!res.ok) throw new Error(`fetchToolSelections failed: ${res.status}`);
-  const data = (await res.json()) as { selections: ToolSelection[] };
-  return data.selections;
-}
-
-export async function saveToolSelections(
-  scopeType: string,
-  scopeKey: string,
-  selections: ToolSelection[],
+  runProfile: { id: string; name: string; selectedToolIds: string[]; surfaceId: string } | null,
 ): Promise<void> {
-  const res = await fetch(`${BASE}/selections`, {
+  const res = await fetch(`${BASE}/run-profile`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ scopeType, scopeKey, selections }),
+    body: JSON.stringify({ scopeType, scopeKey, runProfile }),
   });
-  if (!res.ok) throw new Error(`saveToolSelections failed: ${res.status}`);
+  if (!res.ok) throw new Error(`setRunProfileForScope failed: ${res.status}`);
 }
 
-export async function fetchSurfaceAvailability(): Promise<string[]> {
-  const res = await fetch(`${BASE}/surface-availability`);
-  if (!res.ok) return [];
-  const data = (await res.json()) as { availableToolIds: string[] };
-  return data.availableToolIds;
+/** Get the RunProfile currently set for a scope. Returns null if none. */
+export async function getRunProfileForScope(
+  scopeType: string,
+  scopeKey: string,
+): Promise<{ id: string; name: string; selectedToolIds: string[]; surfaceId: string } | null> {
+  const params = new URLSearchParams({ scopeType, scopeKey });
+  const res = await fetch(`${BASE}/run-profile?${params}`);
+  if (!res.ok) return null;
+  const data = (await res.json()) as { runProfile: { id: string; name: string; selectedToolIds: string[]; surfaceId: string } | null };
+  return data.runProfile;
 }
-
-// ensureToolContext removed — context is now pushed automatically by Desktop
-// when gateway fires session_start via the event-bridge pattern.

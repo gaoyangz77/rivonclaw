@@ -67,9 +67,9 @@ export const chatSteps: TutorialStep[] = [
     placement: "top",
   },
   {
-    target: ".chat-tools-toggle",
-    titleKey: "tutorial.chat.toolsSelectorTitle",
-    bodyKey: "tutorial.chat.toolsSelectorBody",
+    target: ".chat-profile-select",
+    titleKey: "tutorial.chat.runProfileTitle",
+    bodyKey: "tutorial.chat.runProfileBody",
     placement: "top",
   },
   {

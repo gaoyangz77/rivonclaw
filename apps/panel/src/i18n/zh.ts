@@ -2068,6 +2068,7 @@ export default {
     categoryCount: "{{count}} 个分类",
     unrestricted: "不受限",
     system: "系统",
+    copySuffix: "（副本）",
     toolOutOfScope: "此工具不在父场景的允许列表中，运行时将被忽略。",
     surfaceNarrowWarning: "{{count}} 个运行配置使用了将超出此场景范围的工具：",
   },

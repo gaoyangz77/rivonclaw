@@ -38,9 +38,6 @@ function activatePlugin() {
 
 beforeEach(() => {
   mockFetch.mockReset();
-  // Clear the module-level cache by firing gateway_stop
-  const { handlers } = activatePlugin();
-  handlers["gateway_stop"]?.();
 });
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -146,57 +143,26 @@ describe("before_tool_resolve", () => {
   });
 });
 
-describe("caching", () => {
-  it("caches effective tools per session (only one HTTP call)", async () => {
+describe("no caching — always fetches fresh", () => {
+  it("makes a new HTTP call for every tool check (supports mid-session RunProfile changes)", async () => {
     const { handlers } = activatePlugin();
     const hook = handlers["before_tool_call"];
 
     mockEffectiveToolsResponse(["BROWSER_PROFILES_LIST"]);
+    mockEffectiveToolsResponse(["BROWSER_PROFILES_LIST"]);
 
-    // First call — HTTP fetch
+    // First call
     await hook(
       { toolName: "browser_profiles_list", params: {} },
       { sessionKey: "session-1" },
     );
 
-    // Second call — should use cache, no additional fetch
-    const result = await hook(
-      { toolName: "browser_profiles_list", params: {} },
-      { sessionKey: "session-1" },
-    );
-
-    expect(result).toBeUndefined();
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("session_end cache invalidation", () => {
-  it("invalidates cache on session_end, causing a new HTTP fetch", async () => {
-    const { handlers } = activatePlugin();
-    const hook = handlers["before_tool_call"];
-
-    // First call populates cache
-    mockEffectiveToolsResponse(["BROWSER_PROFILES_LIST"]);
+    // Second call — should also fetch (no cache)
     await hook(
-      { toolName: "browser_profiles_list", params: {} },
-      { sessionKey: "session-1" },
-    );
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-
-    // session_end invalidates cache
-    await handlers["session_end"]({ sessionId: "id-1", sessionKey: "session-1" });
-
-    // Next call should trigger a new HTTP fetch
-    mockFetchFailure();
-    const result = await hook(
       { toolName: "browser_profiles_list", params: {} },
       { sessionKey: "session-1" },
     );
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(result).toEqual({
-      block: true,
-      blockReason: expect.stringContaining("Could not resolve capability context"),
-    });
   });
 });

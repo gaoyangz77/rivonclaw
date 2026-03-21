@@ -1400,7 +1400,6 @@ app.whenReady().then(async () => {
     onAuthChange: () => {
       // Re-init ToolCapabilityResolver with fresh entitlements after login/logout.
       (async () => {
-        if (!rpcClient?.isConnected()) return;
         try {
           let entitledToolIds: string[] = [];
           if (authSession?.getAccessToken()) {
@@ -1409,14 +1408,21 @@ app.whenReady().then(async () => {
               .filter((t: { allowed: boolean }) => t.allowed)
               .map((t: { id: string }) => t.id);
           }
-          const catalogRes = await rpcClient.request<{ tools: Array<{ name: string; source: string; pluginId?: string }> }>("tools.catalog", {});
-          const catalogTools = (catalogRes?.tools ?? []).map((t: { name: string; source: string; pluginId?: string }) => ({
-            id: t.name,
-            source: t.source as "core" | "plugin",
-            pluginId: t.pluginId,
-          }));
-          toolCapabilityResolver.init(entitledToolIds, catalogTools);
-          log.info(`ToolCapabilityResolver re-initialized: ${entitledToolIds.length} entitled tools`);
+
+          // If gateway is connected, do a full re-init with fresh catalog
+          if (rpcClient?.isConnected()) {
+            const catalogRes = await rpcClient.request<{ tools: Array<{ name: string; source: string; pluginId?: string }> }>("tools.catalog", {});
+            const catalogTools = (catalogRes?.tools ?? []).map((t: { name: string; source: string; pluginId?: string }) => ({
+              id: t.name,
+              source: t.source as "core" | "plugin",
+              pluginId: t.pluginId,
+            }));
+            toolCapabilityResolver.init(entitledToolIds, catalogTools);
+          } else {
+            // Gateway not connected — update entitled only (system stays as static/last known)
+            toolCapabilityResolver.setEntitledToolIds(entitledToolIds);
+          }
+          log.info(`ToolCapabilityResolver auth change: ${entitledToolIds.length} entitled tools`);
         } catch (e) {
           log.warn("Failed to re-init ToolCapabilityResolver on auth change:", e);
         }

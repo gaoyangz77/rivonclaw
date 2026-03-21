@@ -96,18 +96,23 @@ test.describe("Tool Visibility — Capability Resolver", () => {
   }) => {
     await loginAndStoreTokens(apiBase);
 
-    const putRes = await fetch(`${apiBase}/api/tools/selections`, {
+    const putRes = await fetch(`${apiBase}/api/tools/run-profile`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         scopeType: "chat_session",
         scopeKey: "test-read-only",
-        selections: [
-          { toolId: "BROWSER_PROFILES_LIST", enabled: true },
-          { toolId: "BROWSER_PROFILES_GET", enabled: true },
-          { toolId: "BROWSER_PROFILES_FIND", enabled: true },
-          { toolId: "BROWSER_PROFILES_TEST_PROXY", enabled: true },
-        ],
+        runProfile: {
+          id: "test-read-only-profile",
+          name: "Read Only",
+          selectedToolIds: [
+            "BROWSER_PROFILES_LIST",
+            "BROWSER_PROFILES_GET",
+            "BROWSER_PROFILES_FIND",
+            "BROWSER_PROFILES_TEST_PROXY",
+          ],
+          surfaceId: "",
+        },
       }),
     });
     expect(putRes.ok).toBe(true);
@@ -130,19 +135,24 @@ test.describe("Tool Visibility — Capability Resolver", () => {
   }) => {
     await loginAndStoreTokens(apiBase);
 
-    const putRes = await fetch(`${apiBase}/api/tools/selections`, {
+    const putRes = await fetch(`${apiBase}/api/tools/run-profile`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         scopeType: "chat_session",
         scopeKey: "test-read-write",
-        selections: [
-          { toolId: "BROWSER_PROFILES_LIST", enabled: true },
-          { toolId: "BROWSER_PROFILES_GET", enabled: true },
-          { toolId: "BROWSER_PROFILES_FIND", enabled: true },
-          { toolId: "BROWSER_PROFILES_MANAGE", enabled: true },
-          { toolId: "BROWSER_PROFILES_TEST_PROXY", enabled: true },
-        ],
+        runProfile: {
+          id: "test-read-write-profile",
+          name: "Read + Write",
+          selectedToolIds: [
+            "BROWSER_PROFILES_LIST",
+            "BROWSER_PROFILES_GET",
+            "BROWSER_PROFILES_FIND",
+            "BROWSER_PROFILES_MANAGE",
+            "BROWSER_PROFILES_TEST_PROXY",
+          ],
+          surfaceId: "",
+        },
       }),
     });
     expect(putRes.ok).toBe(true);

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../api/index.js";
-import { fetchToolSelections, saveToolSelections } from "../api/tool-registry.js";
+import { getRunProfileForScope, setRunProfileForScope } from "../api/tool-registry.js";
 import { Select } from "../components/inputs/Select.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { useCronManager } from "./crons/useCronManager.js";
@@ -100,10 +100,11 @@ export function CronsPage() {
       await cron.updateJob(editingJob.id, params);
     } else {
       const newJob = await cron.addJob(params);
-      // Copy tool selections from temporary scope to the real job ID
-      const tempSelections = await fetchToolSelections("cron_job", TEMP_CRON_SCOPE_KEY);
-      if (tempSelections.length > 0) {
-        await saveToolSelections("cron_job", newJob.id, tempSelections);
+      // Copy RunProfile from temporary scope to the real job ID
+      const tempProfile = await getRunProfileForScope("cron_job", TEMP_CRON_SCOPE_KEY);
+      if (tempProfile) {
+        await setRunProfileForScope("cron_job", newJob.id, tempProfile);
+        await setRunProfileForScope("cron_job", TEMP_CRON_SCOPE_KEY, null);
       }
     }
     if (isCreate) trackEvent("cron.created");

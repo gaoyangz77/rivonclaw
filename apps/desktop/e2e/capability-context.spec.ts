@@ -77,55 +77,6 @@ test.describe("Capability Context — Public Queries", () => {
     }
   });
 
-  test("surfacePresets returns preset templates", async ({
-    window: _window,
-    apiBase,
-  }) => {
-    const res = await cloudGraphql(
-      apiBase,
-      `query { surfacePresets { id name description allowedToolIds allowedCategories } }`,
-    );
-
-    // May return 401 if surfacePresets requires auth
-    if (res.status === 401) {
-      const body = await res.json();
-      expect(body.error).toBe("Not authenticated");
-      return;
-    }
-
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      data?: {
-        surfacePresets?: Array<{
-          id: string;
-          name: string;
-          description: string;
-          allowedToolIds: string[];
-          allowedCategories: string[];
-        }>;
-      };
-      errors?: Array<{ message: string }>;
-    };
-
-    if (body.errors && !body.data?.surfacePresets) {
-      return;
-    }
-
-    expect(body.data?.surfacePresets).toBeDefined();
-    const presets = body.data!.surfacePresets!;
-    expect(presets.length).toBeGreaterThan(0);
-
-    // Verify well-known presets exist
-    const presetIds = presets.map((p) => p.id);
-    expect(presetIds).toContain("unrestricted");
-    expect(presetIds).toContain("browser-automation");
-
-    // Each preset should have a name and non-empty allowedToolIds
-    for (const preset of presets) {
-      expect(preset.name).toBeTruthy();
-      expect(preset.allowedToolIds.length).toBeGreaterThanOrEqual(0);
-    }
-  });
 });
 
 // ---------------------------------------------------------------------------

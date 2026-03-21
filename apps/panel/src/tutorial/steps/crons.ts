@@ -106,6 +106,12 @@ export const cronsSteps: TutorialStep[] = [
     placement: "bottom",
   },
   {
+    target: ".form-group .custom-select",
+    titleKey: "tutorial.crons.runProfileTitle",
+    bodyKey: "tutorial.crons.runProfileBody",
+    placement: "bottom",
+  },
+  {
     target: ".modal-actions",
     titleKey: "tutorial.crons.formActionsTitle",
     bodyKey: "tutorial.crons.formActionsBody",

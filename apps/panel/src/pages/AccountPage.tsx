@@ -101,7 +101,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setPresetModalOpen(false);
     setSelectedPresetId("");
     setEditingSurface(null);
-    setSurfaceName(`${source.name} (copy)`);
+    setSurfaceName(`${source.name} ${t("surfaces.copySuffix")}`);
     setSurfaceDescription(source.description || "");
     // System Default Surface → pre-select all available tools
     const isSystemDefault = source.userId === null && source.allowedToolIds.length === 0;

@@ -34,22 +34,19 @@ type PluginHookBeforeToolCallResult = {
   blockReason?: string;
 };
 
-/** Simple per-session cache: sessionKey → effectiveToolIds */
-const cache = new Map<string, string[]>();
-
+/**
+ * Fetch effective tools from Desktop's ToolCapabilityResolver.
+ * No caching — always fetches fresh to reflect mid-session RunProfile changes.
+ * This is a localhost HTTP call with negligible latency.
+ */
 async function getEffectiveTools(sessionKey: string): Promise<string[] | null> {
-  const cached = cache.get(sessionKey);
-  if (cached) return cached;
-
   try {
     const res = await fetch(
       `${PANEL_BASE_URL}/api/tools/effective-tools?sessionKey=${encodeURIComponent(sessionKey)}`,
     );
     if (!res.ok) return null;
     const data = await res.json() as { effectiveToolIds?: string[] };
-    const tools = data.effectiveToolIds ?? [];
-    cache.set(sessionKey, tools);
-    return tools;
+    return data.effectiveToolIds ?? [];
   } catch {
     return null;
   }
@@ -113,21 +110,6 @@ export default defineRivonClawPlugin({
       { priority: 50 },
     );
 
-    // ── session_end: invalidate cache ──────────────────────────────
-    api.on(
-      "session_end",
-      async (
-        event: { sessionId: string; sessionKey?: string },
-      ) => {
-        if (event.sessionKey) {
-          cache.delete(event.sessionKey);
-        }
-      },
-    );
-
-    // ── gateway_stop: clear all caches ─────────────────────────────
-    api.on("gateway_stop", () => {
-      cache.clear();
-    });
+    // No cache lifecycle hooks needed — getEffectiveTools fetches fresh every time.
   },
 });

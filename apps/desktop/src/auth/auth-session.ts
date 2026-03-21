@@ -121,8 +121,17 @@ export class AuthSessionManager {
       await this.setUser(result.me);
       return result.me;
     } catch (err) {
-      log.error("validate: FAILED, clearing tokens.", err);
-      await this.clearTokens();
+      // Only clear tokens on auth errors (expired/revoked token that refresh also failed).
+      // Network errors (timeout, DNS, server 500) should NOT clear tokens — the user
+      // may simply be offline or the server temporarily unavailable.
+      const msg = err instanceof Error ? err.message : String(err);
+      const isAuthError = msg.includes("Not authenticated") || msg.includes("Invalid token") || msg.includes("Token expired");
+      if (isAuthError) {
+        log.error("validate: auth error, clearing tokens.", err);
+        await this.clearTokens();
+      } else {
+        log.warn("validate: non-auth error, keeping tokens.", err);
+      }
       return null;
     }
   }

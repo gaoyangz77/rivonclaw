@@ -2078,6 +2078,7 @@ export default {
     categoryCount: "{{count}} categories",
     system: "System",
     unrestricted: "Unrestricted",
+    copySuffix: "(copy)",
     toolOutOfScope: "This tool is not in the parent surface's allowed list and will be ignored at runtime.",
     surfaceNarrowWarning: "{{count}} run profile(s) use tools that will be outside this surface's scope:",
   },
