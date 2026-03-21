@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.7.4",
+    "date": "2026-03-21",
+    "en": [
+      "Fix provider key loading for non-logged-in users"
+    ],
+    "zh": [
+      "修复未登录用户无法加载模型服务密钥的问题"
+    ]
+  },
+  {
     "version": "1.7.3",
     "date": "2026-03-20",
     "en": [
