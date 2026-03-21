@@ -97,6 +97,8 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
       // Desktop unreachable — stay logged out
     }
     set({ authLoading: false });
+    // Provider keys are local data — always load regardless of auth state
+    get().fetchProviderKeys();
   },
 
   login: async (input: GQL.LoginInput) => {
