@@ -1486,24 +1486,11 @@ function generateCompileCache() {
   }
   fs.mkdirSync(cacheDir, { recursive: true });
 
-  // Create a temporary warm-up script that imports entry.js, triggering V8
-  // compilation. The compile cache (NODE_COMPILE_CACHE) captures the bytecode.
-  // CJS format so it works regardless of package.json "type" field.
-  const warmUpScript = path.join(distDir, "_warmup.cjs");
-  fs.writeFileSync(
-    warmUpScript,
-    [
-      "'use strict';",
-      "const { pathToFileURL } = require('url');",
-      "const entryPath = process.argv[2];",
-      "import(pathToFileURL(entryPath).href)",
-      "  .then(() => setTimeout(() => process.exit(0), 1000))",
-      "  .catch(() => setTimeout(() => process.exit(0), 1000));",
-      "// Hard timeout in case import() hangs",
-      "setTimeout(() => process.exit(0), 25000);",
-    ].join("\n"),
-    "utf-8",
-  );
+  // Start the full gateway (with skipBootstrap) via a wrapper script that
+  // intercepts stdout/stderr for "listening on". Once the gateway is fully
+  // started, all ~350 startup-path chunks have been compiled by V8 and the
+  // compile cache captures their bytecode. This reduces first-launch time
+  // from ~72s to ~5-10s because the cache is keyed by content hash, not path.
 
   // Write a minimal config so the gateway can start (same as smoke test)
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-compile-cache-"));
@@ -1520,10 +1507,40 @@ function generateCompileCache() {
 
   const t0 = Date.now();
 
+  const warmUpScript = path.join(distDir, "_warmup.cjs");
+  fs.writeFileSync(
+    warmUpScript,
+    [
+      "'use strict';",
+      "const { pathToFileURL } = require('url');",
+      "const mod = require('module');",
+      "const flush = () => { try { mod.flushCompileCache?.(); } catch {} };",
+      "const entryPath = process.argv[2];",
+      "let ready = false;",
+      "// Intercept gateway stdout/stderr to detect 'listening on'.",
+      "const origStdoutWrite = process.stdout.write.bind(process.stdout);",
+      "const origStderrWrite = process.stderr.write.bind(process.stderr);",
+      "const check = (chunk) => {",
+      "  if (!ready && chunk && chunk.toString().includes('listening on')) {",
+      "    ready = true;",
+      "    // Give V8 2s to flush compile cache, then exit.",
+      "    setTimeout(() => { flush(); process.exit(0); }, 2000);",
+      "  }",
+      "};",
+      "process.stdout.write = function(chunk, ...args) { check(chunk); return origStdoutWrite(chunk, ...args); };",
+      "process.stderr.write = function(chunk, ...args) { check(chunk); return origStderrWrite(chunk, ...args); };",
+      "import(pathToFileURL(entryPath).href)",
+      "  .catch(() => { flush(); setTimeout(() => process.exit(0), 500); });",
+      "// Hard timeout: exit even if gateway never reaches listening state.",
+      "setTimeout(() => { flush(); process.exit(0); }, 120000);",
+    ].join("\n"),
+    "utf-8",
+  );
+
   try {
     execFileSync(electronPath, [warmUpScript, ENTRY_FILE], {
       cwd: tmpDir,
-      timeout: 30_000,
+      timeout: 130_000,
       env: {
         ...process.env,
         ELECTRON_RUN_AS_NODE: "1",
@@ -1536,9 +1553,6 @@ function generateCompileCache() {
       killSignal: "SIGTERM",
     });
   } catch (err) {
-    // Process may be killed by timeout or exit non-zero — the cache is still
-    // generated as long as V8 had time to compile and flush. Only warn if the
-    // process was killed before it could compile (very short timeout).
     const killed = /** @type {any} */ (err).killed ?? false;
     if (killed) {
       console.log("[bundle-vendor-deps] Compile cache warm-up timed out (cache may be incomplete).");
@@ -1546,7 +1560,7 @@ function generateCompileCache() {
   }
 
   // Clean up temp files
-  fs.unlinkSync(warmUpScript);
+  try { fs.unlinkSync(warmUpScript); } catch {}
   try {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   } catch {}
