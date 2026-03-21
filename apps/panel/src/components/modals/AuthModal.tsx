@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation } from "@apollo/client/react";
 import type { TFunction } from "i18next";
 import { GQL } from "@rivonclaw/core";
-import { useAuth } from "../../providers/AuthProvider.js";
+import { useAuth } from "../../stores/index.js";
 import { REQUEST_CAPTCHA } from "../../api/auth-queries.js";
 import { formatError } from "@rivonclaw/core";
 import { Modal } from "./Modal.js";

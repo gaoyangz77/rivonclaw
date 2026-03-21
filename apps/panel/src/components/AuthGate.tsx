@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@apollo/client/react";
-import { GQL } from "@rivonclaw/core";
-import { useAuth } from "../providers/AuthProvider.js";
-import { SUBSCRIPTION_STATUS_QUERY } from "../api/auth-queries.js";
+import { useAuth, usePanelStore } from "../stores/index.js";
 
 interface AuthGateProps {
   children: ReactNode;
@@ -29,11 +26,7 @@ export function AuthGate({
 }: AuthGateProps) {
   const { t } = useTranslation();
   const { user, loading: authLoading } = useAuth();
-
-  const { data: subData, loading: subLoading } = useQuery<{
-    subscriptionStatus: GQL.UserSubscription;
-  }>(SUBSCRIPTION_STATUS_QUERY, { skip: !user || skipSubscriptionCheck });
-  const subscription = subData?.subscriptionStatus;
+  const subscription = usePanelStore((s) => s.subscriptionStatus);
 
   if (authLoading) {
     if (loadingElement) return <>{loadingElement}</>;
@@ -56,15 +49,6 @@ export function AuthGate({
         >
           {t("auth.login")}
         </button>
-      </div>
-    );
-  }
-
-  if (!skipSubscriptionCheck && subLoading) {
-    if (loadingElement) return <>{loadingElement}</>;
-    return (
-      <div className="section-card auth-gate-card">
-        <p className="form-hint">{t("common.loading")}</p>
       </div>
     );
   }

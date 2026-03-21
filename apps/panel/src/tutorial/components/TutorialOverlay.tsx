@@ -57,6 +57,7 @@ export function TutorialOverlay() {
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const spotlightRef = useRef<HTMLDivElement>(null)
+  const directionRef = useRef<"forward" | "backward">("forward")
 
   const updatePosition = useCallback(async () => {
     if (!isPlaying || steps.length === 0) return
@@ -73,8 +74,10 @@ export function TutorialOverlay() {
 
     const el = document.querySelector(step.target)
     if (!el) {
-      // Target not found — skip to next step or stop
-      if (currentStepIndex < steps.length - 1) {
+      // Target not found — skip in the direction the user was navigating
+      if (directionRef.current === "backward" && currentStepIndex > 0) {
+        prev()
+      } else if (currentStepIndex < steps.length - 1) {
         next()
       } else {
         stop()
@@ -170,11 +173,11 @@ export function TutorialOverlay() {
           </span>
           <div className="tutorial-tooltip-nav">
             {!isFirst && (
-              <button className="btn btn-secondary btn-sm" onClick={prev}>
+              <button className="btn btn-secondary btn-sm" onClick={() => { directionRef.current = "backward"; prev(); }}>
                 {t("tutorial.nav.prev")}
               </button>
             )}
-            <button className="btn btn-primary btn-sm" onClick={next}>
+            <button className="btn btn-primary btn-sm" onClick={() => { directionRef.current = "forward"; next(); }}>
               {isLast ? t("tutorial.nav.done") : t("tutorial.nav.next")}
             </button>
           </div>

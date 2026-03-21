@@ -3,10 +3,11 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../../components/modals/Modal.js";
 import { Select } from "../../components/inputs/Select.js";
-import { ToolSelector } from "../../components/inputs/ToolSelector.js";
+import { RunProfileSelector } from "../../components/inputs/RunProfileSelector.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import { fetchChannelStatus, fetchAllowlist, setRecipientLabel, type ChannelsStatusSnapshot } from "../../api/channels.js";
-import { useToolRegistry } from "../../providers/ToolRegistryProvider.js";
+import { useToolRegistry, usePanelStore } from "../../stores/index.js";
+import { setRunProfileForScope } from "../../api/tool-registry.js";
 import type { CronJob, CronJobFormData, ScheduleKind, PayloadKind, EveryUnit, CronWakeMode, CronDeliveryMode, FormErrors } from "./cron-utils.js";
 import { defaultFormData, cronJobToFormData, formDataToCreateParams, formDataToPatch, validateCronForm, TIMEZONE_ENTRIES } from "./cron-utils.js";
 
@@ -106,7 +107,9 @@ export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFo
   const [allowlist, setAllowlist] = useState<string[]>([]);
   const [recipientLabels, setRecipientLabels] = useState<Record<string, string>>({});
   const [allowlistLoading, setAllowlistLoading] = useState(false);
-  const { hasTools } = useToolRegistry();
+  const { tools } = useToolRegistry();
+  const runProfiles = usePanelStore((s) => s.runProfiles);
+  const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -710,17 +713,30 @@ export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFo
                 }))}
               />
             </div>
-            {hasTools && (
-              <div className="form-group">
-                <label className="form-label-block">{t("tools.selector.title")}</label>
-                <div className="form-hint">{t("crons.toolSelectionHint")}</div>
-                <ToolSelector
-                  scopeType="cron_job"
-                  scopeKey={mode === "edit" && initialData ? initialData.id : TEMP_CRON_SCOPE_KEY}
-                  dropdown
-                />
-              </div>
-            )}
+            <div className="form-group">
+              <label className="form-label-block">{t("runProfileSelector.label")}</label>
+              <div className="form-hint">{t("runProfileSelector.hint")}</div>
+              <RunProfileSelector
+                value={selectedRunProfileId}
+                className="input-full"
+                onChange={(profileId) => {
+                  setSelectedRunProfileId(profileId);
+                  const cronScopeKey = mode === "edit" && initialData ? initialData.id : TEMP_CRON_SCOPE_KEY;
+                  const profile = profileId ? runProfiles.find((p) => p.id === profileId) : null;
+                  if (!profile) {
+                    setRunProfileForScope("cron_job", cronScopeKey, null).catch(() => {});
+                    return;
+                  }
+                  const systemIds = tools.filter((t) => t.source === "system").map((t) => t.id);
+                  const merged = [...new Set([...profile.selectedToolIds, ...systemIds])];
+                  setRunProfileForScope(
+                    "cron_job",
+                    cronScopeKey,
+                    { id: profile.id, name: profile.name, selectedToolIds: merged, surfaceId: profile.surfaceId },
+                  ).catch(() => {});
+                }}
+              />
+            </div>
           </div>
         )}
       </div>

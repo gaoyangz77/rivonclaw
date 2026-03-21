@@ -35,13 +35,22 @@ export function Select({ value, onChange, options, placeholder, disabled, classN
     const spaceBelow = window.innerHeight - rect.bottom;
     const dropdownMaxHeight = 280;
     const openAbove = spaceBelow < dropdownMaxHeight && rect.top > spaceBelow;
+    // Horizontal: if dropdown would overflow right edge, align to right side of trigger
+    const dropdownWidth = Math.max(rect.width, 200);
+    const overflowsRight = rect.left + dropdownWidth > window.innerWidth - 8;
+    const horizontalStyle = overflowsRight
+      ? { right: window.innerWidth - rect.right, left: "auto" as const }
+      : { left: rect.left };
+
     setDropdownStyle({
       position: "fixed",
       ...(openAbove
         ? { bottom: window.innerHeight - rect.top + 4, maxHeight: rect.top - 8 }
         : { top: rect.bottom + 4, maxHeight: spaceBelow - 8 }),
-      left: rect.left,
+      ...horizontalStyle,
       minWidth: rect.width,
+      width: "max-content",
+      maxWidth: window.innerWidth - 16,
     });
   }, []);
 
@@ -87,9 +96,17 @@ export function Select({ value, onChange, options, placeholder, disabled, classN
             s.top = `${rect.bottom + 4}px`;
             s.maxHeight = `${spaceBelow - 8}px`;
           }
-          s.left = `${rect.left}px`;
+          const dw = Math.max(rect.width, 200);
+          if (rect.left + dw > window.innerWidth - 8) {
+            s.left = "auto";
+            s.right = `${window.innerWidth - rect.right}px`;
+          } else {
+            s.right = "";
+            s.left = `${rect.left}px`;
+          }
           s.minWidth = `${rect.width}px`;
-          s.width = "";
+          s.width = "max-content";
+          s.maxWidth = `${window.innerWidth - 16}px`;
         }
         return;
       }

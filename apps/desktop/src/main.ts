@@ -60,7 +60,6 @@ import { createCloudBackupProvider } from "./browser-profiles/session-state/back
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
 import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
-import { proxiedFetch } from "./api-routes/route-utils.js";
 import { toolCapabilityResolver } from "./utils/tool-capability-resolver.js";
 
 const log = createLogger("desktop");
@@ -324,12 +323,11 @@ app.whenReady().then(async () => {
   const { client: telemetryClient, heartbeatTimer } = initTelemetry(storage, deviceId, locale);
 
   // Initialize auth session manager
-  const authSession = new AuthSessionManager(secretStore, locale, proxiedFetch);
+  const authSession = new AuthSessionManager(secretStore, locale, fetch);
+  authSession.onUserChanged((user) => syncCloudProviderKey(user, storage, secretStore));
   await authSession.loadFromKeychain();
-  // Validate session and sync cloud provider key on startup (best-effort)
-  authSession.validate()
-    .then((user) => syncCloudProviderKey(user, storage, secretStore))
-    .catch(() => {});
+  // Validate session on startup (auth uses native fetch, no proxy dependency)
+  authSession.validate().catch(() => {});
 
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
@@ -1400,9 +1398,6 @@ app.whenReady().then(async () => {
         });
     },
     onAuthChange: () => {
-      // Sync cloud LLM provider key on login/logout
-      syncCloudProviderKey(authSession?.getCachedUser() ?? null, storage, secretStore).catch(() => {});
-
       // Re-init ToolCapabilityResolver with fresh entitlements after login/logout.
       (async () => {
         if (!rpcClient?.isConnected()) return;
