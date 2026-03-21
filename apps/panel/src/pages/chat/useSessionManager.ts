@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { GatewayChatClient } from "../../lib/gateway-client.js";
 import type { SessionTabInfo, SessionChatState, SessionsListResult } from "./chat-utils.js";
-import { DEFAULT_SESSION_KEY, INITIAL_VISIBLE, FETCH_BATCH, parseRawMessages } from "./chat-utils.js";
+import { DEFAULT_SESSION_KEY, INITIAL_VISIBLE, FETCH_BATCH, parseRawMessages, cleanDerivedTitle } from "./chat-utils.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { restoreImages } from "../../lib/image-cache.js";
 import { fetchChatSessions, updateChatSession } from "../../api/chat-sessions.js";
@@ -10,14 +10,6 @@ import { trackEvent } from "../../api/index.js";
 
 const REFRESH_DEBOUNCE = DEFAULTS.chat.sessionRefreshDebounceMs;
 const MAX_CACHED_SESSIONS = DEFAULTS.chat.maxCachedSessions;
-
-/** Strip RivonClaw prependContext blocks from a derived title. */
-const PREPEND_CONTEXT_RE = /---\s+RivonClaw[\s\S]*?---\s+End\s+\w[\w\s]*---/g;
-function cleanDerivedTitle(raw: string | undefined): string | undefined {
-  if (!raw) return raw;
-  const cleaned = raw.replace(PREPEND_CONTEXT_RE, "").trim();
-  return cleaned || undefined;
-}
 
 /**
  * Internal sessions created by RivonClaw subsystems (e.g. rule compilation

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { SessionTabInfo } from "./chat-utils.js";
-import { DEFAULT_SESSION_KEY } from "./chat-utils.js";
+import { DEFAULT_SESSION_KEY, cleanDerivedTitle } from "./chat-utils.js";
 import type { ChatSessionMeta } from "../../api/chat-sessions.js";
 import { fetchChatSessions, deleteChatSession } from "../../api/chat-sessions.js";
 
@@ -357,7 +357,7 @@ function ArchivedDropdown({
             const gw = gwMap.get(r.key);
             return {
               ...r,
-              derivedTitle: gw?.derivedTitle,
+              derivedTitle: cleanDerivedTitle(gw?.derivedTitle),
               lastMessagePreview: gw?.lastMessagePreview,
             };
           })

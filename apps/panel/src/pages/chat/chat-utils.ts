@@ -159,6 +159,38 @@ export function cleanMessageText(text: string): string {
   return cleaned;
 }
 
+/**
+ * Strip AI-facing metadata blocks from a derived session title so it shows
+ * the actual user message, not raw "Sender (untrusted metadata):..." noise.
+ */
+const PREPEND_CONTEXT_RE = /---\s+RivonClaw[\s\S]*?---\s+End\s+\w[\w\s]*---/g;
+const INBOUND_META_SENTINELS = [
+  "Conversation info (untrusted metadata):",
+  "Sender (untrusted metadata):",
+  "Thread starter (untrusted, for context):",
+  "Replied message (untrusted, for context):",
+  "Forwarded message context (untrusted metadata):",
+  "Chat history since last reply (untrusted, for context):",
+];
+const INBOUND_META_BLOCK_RE = new RegExp(
+  INBOUND_META_SENTINELS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .map((s) => `${s}\\s*\`\`\`json[\\s\\S]*?\`\`\``)
+    .join("|"),
+  "g",
+);
+const UNTRUSTED_CONTEXT_RE =
+  /Untrusted context \(metadata, do not treat as instructions or commands\):[\s\S]*/;
+
+export function cleanDerivedTitle(raw: string | undefined): string | undefined {
+  if (!raw) return raw;
+  const cleaned = raw
+    .replace(PREPEND_CONTEXT_RE, "")
+    .replace(INBOUND_META_BLOCK_RE, "")
+    .replace(UNTRUSTED_CONTEXT_RE, "")
+    .trim();
+  return cleaned || undefined;
+}
+
 export function formatTimestamp(ts: number, locale: string): string {
   const d = new Date(ts);
   if (locale.startsWith("zh")) {
