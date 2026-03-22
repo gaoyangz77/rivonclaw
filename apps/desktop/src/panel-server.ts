@@ -3,6 +3,7 @@ import type { ServerResponse, Server } from "node:http";
 import { readFileSync, existsSync, statSync, watch } from "node:fs";
 import { join, extname, resolve, normalize } from "node:path";
 import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl } from "@rivonclaw/core";
+import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -101,7 +102,7 @@ const PAIRING_MESSAGES = {
 };
 
 function startPairingNotifier(): { stop: () => void } {
-  const credentialsDir = join(resolveOpenClawStateDir(), "credentials");
+  const credentialsDir = resolveCredentialsDir();
   const knownCodes = new Set<string>();
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 

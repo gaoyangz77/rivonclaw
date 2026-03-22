@@ -84,3 +84,36 @@ export function resolveUserSkillsDir(
 ): string {
   return join(resolveOpenClawStateDir(env), "skills");
 }
+
+/** Resolve the credentials directory (channel pairing, mobile allow-lists). */
+export function resolveCredentialsDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveOpenClawStateDir(env), "credentials");
+}
+
+/** Default agent ID used by the OpenClaw engine. */
+export const DEFAULT_AGENT_ID = "main";
+
+/** Resolve the main agent config directory (models.json, auth-profiles.json). */
+export function resolveAgentConfigDir(
+  env: Record<string, string | undefined> = process.env,
+  agentId: string = DEFAULT_AGENT_ID,
+): string {
+  return join(resolveOpenClawStateDir(env), "agents", agentId, "agent");
+}
+
+/** Resolve the agent sessions directory (sessions.json). */
+export function resolveAgentSessionsDir(
+  env: Record<string, string | undefined> = process.env,
+  agentId: string = DEFAULT_AGENT_ID,
+): string {
+  return join(resolveOpenClawStateDir(env), "agents", agentId, "sessions");
+}
+
+/** Resolve the browser session-state base directory. */
+export function resolveSessionStateDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveOpenClawStateDir(env), "session-state");
+}

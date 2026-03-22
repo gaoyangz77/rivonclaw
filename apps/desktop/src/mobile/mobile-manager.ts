@@ -16,7 +16,7 @@ export class MobileManager {
 
     constructor(
         private readonly storage: Storage,
-        private readonly controlPlaneUrl: string = "https://api.rivonclaw.com",
+        private readonly controlPlaneUrl: string,
         private readonly stateDir?: string,
     ) { }
 

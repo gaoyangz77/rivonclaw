@@ -17,4 +17,9 @@ export {
   resolveHeartbeatPath,
   resolveProxyRouterConfigPath,
   resolveUserSkillsDir,
+  resolveCredentialsDir,
+  DEFAULT_AGENT_ID,
+  resolveAgentConfigDir,
+  resolveAgentSessionsDir,
+  resolveSessionStateDir,
 } from "./paths.js";

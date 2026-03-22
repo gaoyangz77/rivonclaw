@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type { LLMProvider } from "@rivonclaw/core";
-import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, resolveGatewayPort } from "@rivonclaw/core";
+import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, resolveGatewayPort, getOllamaOpenAiBaseUrl } from "@rivonclaw/core";
+import { resolveUserSkillsDir } from "@rivonclaw/core/node";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -41,7 +42,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       const activeKey = storage.providerKeys.getByProvider(localProvider)[0];
       if (!activeKey) continue;
       const meta = getProviderMeta(localProvider);
-      let baseUrl = activeKey.baseUrl || meta?.baseUrl || "http://localhost:11434/v1";
+      let baseUrl = activeKey.baseUrl || meta?.baseUrl || getOllamaOpenAiBaseUrl();
       if (!baseUrl.match(/\/v\d\/?$/)) {
         baseUrl = baseUrl.replace(/\/+$/, "") + "/v1";
       }
@@ -174,7 +175,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
-      extraSkillDirs: [join(stateDir, "skills")],
+      extraSkillDirs: [resolveUserSkillsDir()],
       // ADR-031: allow all plugin tools by default (visibility controlled at runtime by capability-manager).
       // "group:plugins" is an OpenClaw allowlist keyword that permits all optional plugin tools.
       toolAllowlist: overrides?.toolAllowlist ?? ["group:plugins"],

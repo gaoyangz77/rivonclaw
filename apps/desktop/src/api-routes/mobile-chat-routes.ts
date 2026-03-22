@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { resolveOpenClawStateDir, resolveOpenClawConfigPath } from "@rivonclaw/gateway";
+import { resolveOpenClawConfigPath } from "@rivonclaw/gateway";
+import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
 import { PAIRING_CODE_TTL_MS } from "../mobile/mobile-manager.js";
 import type { MobileGraphQLRequest } from "@rivonclaw/core";
@@ -18,8 +19,7 @@ interface AllowFromStore {
 
 export async function readMobileAllowlist(): Promise<string[]> {
     try {
-        const stateDir = resolveOpenClawStateDir();
-        const filePath = join(stateDir, "credentials", "mobile-allowFrom.json");
+        const filePath = join(resolveCredentialsDir(), "mobile-allowFrom.json");
         const content = await fs.readFile(filePath, "utf-8");
         const data: AllowFromStore = JSON.parse(content);
         return Array.isArray(data.allowFrom) ? data.allowFrom : [];
@@ -30,8 +30,7 @@ export async function readMobileAllowlist(): Promise<string[]> {
 }
 
 export async function writeMobileAllowlist(allowFrom: string[]): Promise<void> {
-    const stateDir = resolveOpenClawStateDir();
-    const credDir = join(stateDir, "credentials");
+    const credDir = resolveCredentialsDir();
     await fs.mkdir(credDir, { recursive: true });
     const filePath = join(credDir, "mobile-allowFrom.json");
     const data: AllowFromStore = { version: 1, allowFrom };

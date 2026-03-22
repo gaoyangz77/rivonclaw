@@ -132,4 +132,51 @@ export const DEFAULTS = {
     rulesCompilationPollMs: 3_000,
     channelProbeClientTimeoutMs: 25_000,
   },
+
+  // ---------------------------------------------------------------------------
+  // Domains & URLs — single source of truth for all external endpoints.
+  // Fork maintainers: change these to point at your own infrastructure.
+  // ---------------------------------------------------------------------------
+
+  /** First-party service domains (no protocol — composed by endpoints.ts). */
+  domains: {
+    api: "api.rivonclaw.com",
+    apiCn: "api.zhuazhuaai.cn",
+    web: "www.rivonclaw.com",
+    webCn: "www.zhuazhuaai.cn",
+    staging: "stg.rivonclaw.com",
+    telemetry: "t.rivonclaw.com",
+    telemetryCn: "t.zhuazhuaai.cn",
+  },
+
+  /** Third-party channel API hosts. */
+  channels: {
+    telegram: "api.telegram.org",
+    feishu: "open.feishu.cn",
+    lark: "open.larksuite.com",
+    line: "api.line.me",
+    wecom: "qyapi.weixin.qq.com",
+  },
+
+  /** Third-party provider API hosts. */
+  providers: {
+    anthropic: "api.anthropic.com",
+  },
+
+  /** Local model server defaults. */
+  ollama: {
+    host: "localhost",
+    port: 11434,
+  },
+
+  /** External installer / setup script URLs. */
+  installers: {
+    homebrew: "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh",
+    uvUnix: "https://astral.sh/uv/install.sh",
+    uvWindows: "https://astral.sh/uv/install.ps1",
+    winget: "https://aka.ms/getwinget",
+  },
+
+  /** URL used to detect whether Google is reachable (GFW probe). */
+  gfwProbeUrl: "https://www.google.com/generate_204",
 };

@@ -1,7 +1,8 @@
 import { createLogger } from "@rivonclaw/logger";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
+import { resolveOpenClawConfigPath, readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
 import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
 import { DEFAULTS } from "@rivonclaw/core";
+import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { sendChannelMessage } from "../channels/channel-senders.js";
@@ -32,17 +33,16 @@ interface AllowFromStore {
 }
 
 function resolvePairingPath(channelId: string): string {
-  const stateDir = resolveOpenClawStateDir();
-  return join(stateDir, "credentials", `${channelId}-pairing.json`);
+  return join(resolveCredentialsDir(), `${channelId}-pairing.json`);
 }
 
 function resolveAllowFromPath(channelId: string, accountId?: string): string {
-  const stateDir = resolveOpenClawStateDir();
+  const credDir = resolveCredentialsDir();
   const normalized = accountId?.trim().toLowerCase() || "";
   if (normalized) {
-    return join(stateDir, "credentials", `${channelId}-${normalized}-allowFrom.json`);
+    return join(credDir, `${channelId}-${normalized}-allowFrom.json`);
   }
-  return join(stateDir, "credentials", `${channelId}-allowFrom.json`);
+  return join(credDir, `${channelId}-allowFrom.json`);
 }
 
 async function readPairingRequests(channelId: string): Promise<PairingRequest[]> {
@@ -83,8 +83,7 @@ async function writeAllowFromList(channelId: string, allowFrom: string[], accoun
 
 /** Read and merge allowFrom entries from all scoped + legacy files for a channel. */
 async function readAllAllowFromLists(channelId: string): Promise<string[]> {
-  const stateDir = resolveOpenClawStateDir();
-  const credentialsDir = join(stateDir, "credentials");
+  const credentialsDir = resolveCredentialsDir();
   const prefix = `${channelId}-`;
   const suffix = "-allowFrom.json";
   const allEntries = new Set<string>();
@@ -530,8 +529,7 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
     try {
       let changed = false;
-      const stateDir = resolveOpenClawStateDir();
-      const credentialsDir = join(stateDir, "credentials");
+      const credentialsDir = resolveCredentialsDir();
       const prefix = `${channelId}-`;
       const suffix = "-allowFrom.json";
 

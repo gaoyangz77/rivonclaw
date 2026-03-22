@@ -2,11 +2,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
+import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
 
 const log = createLogger("gateway:auth-profile");
 
 const AUTH_PROFILE_FILENAME = "auth-profiles.json";
-const DEFAULT_AGENT_ID = "main";
 
 type ApiKeyProfile = { type: "api_key"; provider: string; key: string };
 type OAuthProfile = {

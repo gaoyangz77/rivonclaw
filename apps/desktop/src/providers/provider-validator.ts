@@ -1,5 +1,5 @@
 import { createLogger } from "@rivonclaw/logger";
-import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, resolveProxyRouterPort } from "@rivonclaw/core";
+import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, resolveProxyRouterPort, getAnthropicMessagesUrl } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -91,7 +91,7 @@ export async function validateProviderApiKey(
       }
 
       const endpoint = isNativeAnthropic
-        ? "https://api.anthropic.com/v1/messages"
+        ? getAnthropicMessagesUrl()
         : `${baseUrl}/v1/messages`;
 
       res = await fetch(endpoint, {

@@ -1,7 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { session } from "electron";
 import type { ProxyRouterConfig } from "@rivonclaw/proxy-router";
-import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, resolveProxyRouterPort } from "@rivonclaw/core";
+import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, resolveProxyRouterPort, CHANNEL_NO_PROXY_DOMAINS } from "@rivonclaw/core";
 import { resolveProxyRouterConfigPath } from "@rivonclaw/core/node";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -153,9 +153,7 @@ export function buildProxyEnv(): Record<string, string> {
     "172.16.0.0/12",
     "192.168.0.0/16",
     // Chinese-domestic channel APIs — no GFW bypass needed, connect directly
-    "open.feishu.cn",
-    "open.larksuite.com",
-    "qyapi.weixin.qq.com",
+    ...CHANNEL_NO_PROXY_DOMAINS,
   ].join(",");
   return {
     HTTP_PROXY: localProxyUrl,

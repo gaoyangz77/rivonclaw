@@ -9,7 +9,7 @@ import { createReadStream } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
-import { resolveOpenClawStateDir } from "@rivonclaw/gateway";
+import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,7 +91,7 @@ export type OpenClawConfig = {
 // ---------------------------------------------------------------------------
 
 function sessionsDir(): string {
-  return join(resolveOpenClawStateDir(), "agents", "main", "sessions");
+  return resolveAgentSessionsDir();
 }
 
 function emptyCostTotals(): CostUsageTotals {

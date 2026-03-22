@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveProxyRouterPort } from "@rivonclaw/core";
-import { resolveUserSkillsDir, resolveOpenClawStateDir } from "@rivonclaw/core/node";
+import { resolveUserSkillsDir, resolveAgentSessionsDir } from "@rivonclaw/core/node";
 
 const log = createLogger("panel-server");
 
@@ -94,8 +94,7 @@ export function parseSkillFrontmatter(content: string): { name?: string; descrip
  */
 export function invalidateSkillsSnapshot(): void {
   try {
-    const stateDir = resolveOpenClawStateDir();
-    const storePath = join(stateDir, "agents", "main", "sessions", "sessions.json");
+    const storePath = join(resolveAgentSessionsDir(), "sessions.json");
     if (!existsSync(storePath)) return;
     const store = JSON.parse(readFileSync(storePath, "utf-8")) as Record<string, Record<string, unknown>>;
     let changed = false;

@@ -1,5 +1,6 @@
 import { createLogger } from "@rivonclaw/logger";
 import { resolveOpenClawConfigPath, readExistingConfig } from "@rivonclaw/gateway";
+import { getTelegramSendUrl, getFeishuTokenUrl, getFeishuMessageUrl, getLinePushUrl } from "@rivonclaw/core";
 
 const log = createLogger("channel-senders");
 
@@ -36,7 +37,7 @@ async function sendTelegramMessage(chatId: string, text: string, proxiedFetch: P
     return false;
   }
   try {
-    const res = await proxiedFetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await proxiedFetch(getTelegramSendUrl(botToken), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text }),
@@ -60,9 +61,8 @@ async function getFeishuTenantToken(appId: string, appSecret: string, domain: st
   if (feishuTokenCache.token && feishuTokenCache.expiresAt && Date.now() < feishuTokenCache.expiresAt) {
     return feishuTokenCache.token;
   }
-  const host = domain === "lark" ? "open.larksuite.com" : "open.feishu.cn";
   try {
-    const res = await fetch(`https://${host}/open-apis/auth/v3/tenant_access_token/internal`, {
+    const res = await fetch(getFeishuTokenUrl(domain), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
@@ -91,9 +91,8 @@ async function sendFeishuMessage(chatId: string, text: string): Promise<boolean>
   }
   const token = await getFeishuTenantToken(appId, appSecret, domain);
   if (!token) return false;
-  const host = domain === "lark" ? "open.larksuite.com" : "open.feishu.cn";
   try {
-    const res = await fetch(`https://${host}/open-apis/im/v1/messages?receive_id_type=open_id`, {
+    const res = await fetch(getFeishuMessageUrl(domain), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -126,7 +125,7 @@ async function sendLineMessage(chatId: string, text: string, proxiedFetch: Proxi
     return false;
   }
   try {
-    const res = await proxiedFetch("https://api.line.me/v2/bot/message/push", {
+    const res = await proxiedFetch(getLinePushUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

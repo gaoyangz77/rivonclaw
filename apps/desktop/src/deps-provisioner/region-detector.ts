@@ -1,3 +1,4 @@
+import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import { net } from "electron";
 
@@ -33,7 +34,7 @@ async function checkGoogle(): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const request = net.request({
       method: "HEAD",
-      url: "https://www.google.com/generate_204",
+      url: DEFAULTS.gfwProbeUrl,
     });
     request.on("response", () => resolve(true));
     request.on("error", () => resolve(false));

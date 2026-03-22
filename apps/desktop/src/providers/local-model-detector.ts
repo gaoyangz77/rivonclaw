@@ -19,7 +19,8 @@ interface ProbeTarget {
 }
 
 const PROBE_TARGETS: ProbeTarget[] = [
-  { type: "ollama", host: "127.0.0.1", port: 11434, versionPath: "/api/version" },
+  // Probe uses IPv4 literal to avoid DNS resolution (localhost may resolve to ::1 on IPv6 systems).
+  { type: "ollama", host: "127.0.0.1", port: DEFAULTS.ollama.port, versionPath: "/api/version" },
 ];
 
 const PROBE_TIMEOUT_MS = DEFAULTS.desktop.probeTimeoutMs;

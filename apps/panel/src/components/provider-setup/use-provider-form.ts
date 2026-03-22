@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@apollo/client/react";
-import { getDefaultModelForProvider, getProviderMeta } from "@rivonclaw/core";
+import { getDefaultModelForProvider, getProviderMeta, getOllamaBaseUrl } from "@rivonclaw/core";
 import type { LLMProvider, GQL } from "@rivonclaw/core";
 import {
   fetchProviderKeys,
@@ -43,7 +43,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
   const [apiKey, setApiKey] = useState("");
   const [label, setLabel] = useState("");
   const [proxyUrl, setProxyUrl] = useState("");
-  const [baseUrl, setBaseUrl] = useState("http://localhost:11434");
+  const [baseUrl, setBaseUrl] = useState(getOllamaBaseUrl());
   const [baseUrlTouched, setBaseUrlTouched] = useState(false);
   const [modelName, setModelName] = useState("");
   const [detectedServer, setDetectedServer] = useState<LocalModelServer | null>(null);
@@ -197,7 +197,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
         : (i18n.language === "zh" ? "zhipu" : "openai");
     handleProviderChange(prov);
     if (newTab === "local") {
-      setBaseUrl("http://localhost:11434");
+      setBaseUrl(getOllamaBaseUrl());
       setBaseUrlTouched(false);
       setModelName("");
       setHealthStatus(null);
@@ -225,7 +225,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
         await updateSettings({ "llm-provider": "ollama" });
       }
 
-      setBaseUrl("http://localhost:11434");
+      setBaseUrl(getOllamaBaseUrl());
       setModelName("");
       setApiKey("");
       setLabel("");

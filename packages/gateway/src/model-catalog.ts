@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { resolveOpenClawStateDir } from "./config-writer.js";
+import { resolveAgentConfigDir } from "@rivonclaw/core/node";
 import { resolveVendorDir } from "./vendor.js";
 import { ALL_PROVIDERS, getProviderMeta, initKnownModels, PROVIDERS, type LLMProvider, type RootProvider } from "@rivonclaw/core";
 
@@ -40,8 +40,7 @@ function getSupplementalCatalogEntries(provider: LLMProvider): CatalogModelEntry
 export function readGatewayModelCatalog(
   env?: Record<string, string | undefined>,
 ): Record<string, CatalogModelEntry[]> {
-  const stateDir = resolveOpenClawStateDir(env);
-  const modelsPath = join(stateDir, "agents", "main", "agent", "models.json");
+  const modelsPath = join(resolveAgentConfigDir(env), "models.json");
 
   if (!existsSync(modelsPath)) {
     return {};

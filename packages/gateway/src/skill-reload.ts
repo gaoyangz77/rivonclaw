@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, watch, type FSWatcher } from "node:fs";
 import { join } from "node:path";
-import { resolveOpenClawStateDir as _resolveOpenClawStateDir } from "@rivonclaw/core/node";
+import { resolveOpenClawStateDir as _resolveOpenClawStateDir, resolveUserSkillsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("gateway:skill-reload");
@@ -11,14 +11,12 @@ const SKILL_FILE_RE = /SKILL\.md$/;
 /**
  * Resolve the skills directory path.
  *
- * Uses the provided `stateDir` as the parent, or falls back to
- * `resolveOpenClawStateDir()` when none is given.
- *
- * Returns `{stateDir}/skills`.
+ * When `stateDir` is provided (e.g. in tests), returns `{stateDir}/skills`.
+ * Otherwise delegates to the centralized `resolveUserSkillsDir()` from core.
  */
 export function resolveSkillsDir(stateDir?: string): string {
-  const base = stateDir ?? _resolveOpenClawStateDir();
-  return join(base, "skills");
+  if (stateDir != null) return join(stateDir, "skills");
+  return resolveUserSkillsDir();
 }
 
 /**

@@ -116,7 +116,7 @@ async function ensureHomebrew(
     "/bin/bash",
     [
       "-c",
-      '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)',
+      `$(curl -fsSL ${DEFAULTS.installers.homebrew})`,
     ],
     onOutput,
     { env },
@@ -188,7 +188,7 @@ async function installDepMacOS(
       onOutput("Installing uv via curl...");
       await spawnAsync(
         "/bin/bash",
-        ["-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"],
+        ["-c", `curl -LsSf ${DEFAULTS.installers.uvUnix} | sh`],
         onOutput,
         { env: { ...process.env, PATH: getAugmentedPath() } },
       );
@@ -272,7 +272,7 @@ async function installDepWindows(
           "-ExecutionPolicy",
           "Bypass",
           "-Command",
-          "irm https://astral.sh/uv/install.ps1 | iex",
+          `irm ${DEFAULTS.installers.uvWindows} | iex`,
         ],
         onOutput,
         { shell: true },
@@ -284,7 +284,7 @@ async function installDepWindows(
   throw new Error(
     `Cannot install ${dep}: winget is not available. ` +
       `Please install ${dep} manually, or update Windows to a version that includes winget (App Installer). ` +
-      `You can get winget from the Microsoft Store: https://aka.ms/getwinget`,
+      `You can get winget from the Microsoft Store: ${DEFAULTS.installers.winget}`,
   );
 }
 
@@ -399,7 +399,7 @@ async function installDepLinux(
       onOutput("Installing uv via curl...");
       await spawnAsync(
         "/bin/bash",
-        ["-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"],
+        ["-c", `curl -LsSf ${DEFAULTS.installers.uvUnix} | sh`],
         onOutput,
       );
     }

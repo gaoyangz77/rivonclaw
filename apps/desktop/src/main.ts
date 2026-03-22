@@ -26,7 +26,7 @@ import {
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
 import { parseProxyUrl, formatError, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
-import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome } from "@rivonclaw/core/node";
+import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
 import { ArtifactPipeline, syncSkillsForRule, cleanupSkillsForDeletedRule } from "@rivonclaw/rules";
@@ -1297,7 +1297,7 @@ app.whenReady().then(async () => {
     }
   };
   const backupProvider = authSession ? createCloudBackupProvider(authSession) : undefined;
-  const sessionStateStack = await createSessionStateStack(join(stateDir, "session-state"), secretStore, policyResolver, backupProvider);
+  const sessionStateStack = await createSessionStateStack(resolveSessionStateDir(), secretStore, policyResolver, backupProvider);
   sessionStateStackRef = sessionStateStack;
 
   // Create managed browser service for multi-profile browser management

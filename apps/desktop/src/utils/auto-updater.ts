@@ -1,4 +1,4 @@
-import { formatError } from "@rivonclaw/core";
+import { formatError, getReleaseFeedUrl } from "@rivonclaw/core";
 import { brandName } from "../i18n/brand.js";
 import { createLogger } from "@rivonclaw/logger";
 import { app, Notification, shell } from "electron";
@@ -100,16 +100,9 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   let updateDownloadState: UpdateDownloadState = { status: "idle" };
   let runFullCleanup: (() => Promise<void>) | null = null;
 
-  // Configure update feed URL.
-  // UPDATE_FROM_STAGING=1 → use staging server for testing updates locally.
-  const useStaging = process.env.UPDATE_FROM_STAGING === "1";
-  const updateRegion = deps.locale === "zh" ? "cn" : "us";
-  const updateFeedUrl = useStaging
-    ? "https://stg.rivonclaw.com/releases"
-    : updateRegion === "cn"
-      ? "https://www.zhuazhuaai.cn/releases"
-      : "https://www.rivonclaw.com/releases";
-  if (useStaging) log.info("Using staging update feed: " + updateFeedUrl);
+  // Configure update feed URL (staging/production resolved centrally).
+  const updateFeedUrl = getReleaseFeedUrl(deps.locale);
+  if (process.env.UPDATE_FROM_STAGING === "1") log.info("Using staging update feed: " + updateFeedUrl);
   autoUpdater.setFeedURL({
     provider: "generic",
     url: updateFeedUrl,
