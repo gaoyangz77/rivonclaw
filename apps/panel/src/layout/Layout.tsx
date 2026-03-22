@@ -12,15 +12,15 @@ import { formatError } from "@rivonclaw/core";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
 import {
-  ChatIcon, RulesIcon, ProvidersIcon, ChannelsIcon, AppsIcon,
+  ChatIcon, RulesIcon, ProvidersIcon, ChannelsIcon,
   PermissionsIcon, ExtrasIcon, UsageIcon, SkillsIcon,
   BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
-  AuthIcon, MenuIcon,
+  AuthIcon, MenuIcon, ShopIcon,
 } from "../components/icons.js";
 import { useAuth } from "../stores/index.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 
-const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles"]);
+const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles", "/tiktok-shops"]);
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -31,12 +31,12 @@ const NAV_ICONS: Record<string, ReactNode> = {
   "/rules": <RulesIcon />,
   "/providers": <ProvidersIcon />,
   "/channels": <ChannelsIcon />,
-  "/apps": <AppsIcon />,
   "/permissions": <PermissionsIcon />,
   "/extras": <ExtrasIcon />,
   "/usage": <UsageIcon />,
   "/skills": <SkillsIcon />,
   "/browser-profiles": <BrowserProfilesIcon />,
+  "/tiktok-shops": <ShopIcon />,
   "/crons": <CronsIcon />,
   "/settings": <SettingsIcon />,
   "/account": <AccountIcon />,
@@ -192,7 +192,7 @@ export function Layout({
     { path: "/skills", label: t("nav.skills") },
     { path: "/browser-profiles", label: t("nav.browserProfiles") },
     { path: "/crons", label: t("nav.crons") },
-    // { path: "/apps", label: t("customerService.nav") },
+    { path: "/tiktok-shops", label: t("nav.tiktokShops") },
     { path: "/usage", label: t("nav.usage") },
     { path: "/settings", label: t("nav.settings") },
   ];

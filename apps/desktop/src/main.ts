@@ -44,7 +44,6 @@ import { brandName } from "./i18n/brand.js";
 import { createTrayIcon } from "./tray/tray-icon.js";
 import { buildTrayMenu } from "./tray/tray-menu.js";
 import { startPanelServer, pushChatSSE } from "./panel-server.js";
-import { stopCS, restoreCS } from "./channels/customer-service-bridge.js";
 import { SttManager } from "./utils/stt-manager.js";
 import { createCdpManager } from "./browser-profiles/cdp-manager.js";
 import { CdpCookieAdapter } from "./browser-profiles/cdp-cookie-adapter.js";
@@ -55,6 +54,7 @@ import { initTelemetry } from "./utils/telemetry-init.js";
 import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js";
 import { AuthSessionManager } from "./auth/auth-session.js";
 import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
+import { NotificationClient } from "./cloud/notification-client.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
@@ -328,6 +328,25 @@ app.whenReady().then(async () => {
   await authSession.loadFromKeychain();
   // Validate session on startup (auth uses native fetch, no proxy dependency)
   authSession.validate().catch(() => {});
+
+  // Initialize cloud notification WebSocket client
+  const notificationClient = new NotificationClient(locale);
+  // Connect when user is authenticated, disconnect on logout
+  authSession.onUserChanged((user) => {
+    if (user) {
+      notificationClient.reconnect();
+    } else {
+      notificationClient.disconnect();
+    }
+  });
+  // Forward cloud notifications to Panel via SSE bridge
+  notificationClient.on("oauth_complete", (payload) => {
+    log.info("OAuth complete notification received, forwarding to Panel", { payload });
+    pushChatSSE("oauth-complete", payload);
+  });
+
+  // Initial connect if already authenticated
+  notificationClient.connect(() => authSession.getAccessToken());
 
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
@@ -1160,9 +1179,6 @@ app.whenReady().then(async () => {
     connectRpcClient().catch((err) => {
       log.error("Failed to initiate RPC client after gateway ready:", err);
     });
-    restoreCS().catch((err) => {
-      log.warn("CS: failed to restore from saved config:", err);
-    });
   });
 
   launcher.on("stopped", () => {
@@ -1754,9 +1770,6 @@ app.whenReady().then(async () => {
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
-    // Same cleanup sequence as the before-quit handler
-    stopCS();
-
     await Promise.all([
       launcher.stop(),
       proxyRouter.stop(),
@@ -1800,8 +1813,8 @@ app.whenReady().then(async () => {
     removeHeartbeat();
 
     const cleanup = async () => {
-      // Stop customer service bridge (closes relay WS + gateway RPC, rejects pending replies)
-      stopCS();
+      // Disconnect cloud notification WebSocket
+      notificationClient.disconnect();
 
       // Shutdown managed browser service (ends all managed profile sessions)
       await managedBrowserService.shutdown();

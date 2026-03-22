@@ -286,7 +286,7 @@ export const getProductOutputSchema = tiktokApiResponseSchema.extend({
 export type GetProductOutput = z.infer<typeof getProductOutputSchema>;
 
 // ---------------------------------------------------------------------------
-// Logistics (2)
+// Logistics (3)
 // ---------------------------------------------------------------------------
 
 // 13. getWarehouses
@@ -310,7 +310,26 @@ export const getWarehousesOutputSchema = tiktokApiResponseSchema.extend({
 });
 export type GetWarehousesOutput = z.infer<typeof getWarehousesOutputSchema>;
 
-// 14. getShippingProviders
+// 14. getGlobalWarehouses
+export const getGlobalWarehousesInputSchema = z.object({
+  warehouse_id: z.string().optional(),
+});
+export type GetGlobalWarehousesInput = z.infer<typeof getGlobalWarehousesInputSchema>;
+
+export const getGlobalWarehousesOutputSchema = tiktokApiResponseSchema.extend({
+  data: z.object({
+    warehouses: z.array(z.object({
+      warehouse_id: z.string(),
+      name: z.string().optional(),
+      address: z.string().optional(),
+      region: z.string().optional(),
+      is_default: z.boolean().optional(),
+    })),
+  }).optional(),
+});
+export type GetGlobalWarehousesOutput = z.infer<typeof getGlobalWarehousesOutputSchema>;
+
+// 15. getShippingProviders
 export const getShippingProvidersInputSchema = z.object({
   delivery_option_id: z.string(),
 });
@@ -375,11 +394,158 @@ export const getShopAuthStatusOutputSchema = z.object({
 export type GetShopAuthStatusOutput = z.infer<typeof getShopAuthStatusOutputSchema>;
 
 // ---------------------------------------------------------------------------
+// Order & Logistics — two-tool variant pattern (ADR-032)
+// ---------------------------------------------------------------------------
+// Seller/ops variants: full access, no buyer filter. NOT available in CS runProfile.
+// CS (buyer-scoped) variants: backend passes buyerUserId to TikTok API for
+// platform-level enforcement. No post-validation needed.
+
+// 18. getOrder (seller/ops variant)
+export const getOrderInputSchema = z.object({
+  order_id: z.string(),
+});
+export type GetOrderInput = z.infer<typeof getOrderInputSchema>;
+
+// 19. getOrderForBuyer (CS variant — order_id optional, defaults to session order)
+export const getOrderForBuyerInputSchema = z.object({
+  order_id: z.string().optional().describe("TikTok order ID (optional — defaults to conversation order)"),
+});
+export type GetOrderForBuyerInput = z.infer<typeof getOrderForBuyerInputSchema>;
+
+// Shared order output schema
+export const getOrderOutputSchema = tiktokApiResponseSchema.extend({
+  data: z.object({
+    order_id: z.string(),
+    status: z.string().optional(),
+    buyer_user_id: z.string().optional(),
+    payment_method: z.string().optional(),
+    total_amount: z.string().optional(),
+    currency: z.string().optional(),
+    items: z.array(z.object({
+      product_id: z.string(),
+      product_name: z.string().optional(),
+      sku_id: z.string().optional(),
+      quantity: z.number().optional(),
+      price: z.string().optional(),
+    })).optional(),
+    shipping_address: z.object({
+      name: z.string().optional(),
+      phone: z.string().optional(),
+      region: z.string().optional(),
+      city: z.string().optional(),
+      address: z.string().optional(),
+      zipcode: z.string().optional(),
+    }).optional(),
+    create_time: z.number().optional(),
+    update_time: z.number().optional(),
+  }).optional(),
+});
+export type GetOrderOutput = z.infer<typeof getOrderOutputSchema>;
+
+// 20. listOrders (seller/ops variant)
+export const listOrdersInputSchema = z.object({
+  status: z.string().optional().describe("Order status filter"),
+  page_size: z.number().int().optional().describe("Page size (default 20)"),
+  page_token: z.string().optional().describe("Pagination cursor"),
+});
+export type ListOrdersInput = z.infer<typeof listOrdersInputSchema>;
+
+// 21. listBuyerOrders (CS variant — always scoped to session buyer)
+export const listBuyerOrdersInputSchema = z.object({
+  status: z.string().optional().describe("Order status filter"),
+  page_size: z.number().int().optional().describe("Page size (default 20)"),
+  page_token: z.string().optional().describe("Pagination cursor"),
+});
+export type ListBuyerOrdersInput = z.infer<typeof listBuyerOrdersInputSchema>;
+
+// Shared order list output schema
+export const listOrdersOutputSchema = tiktokApiResponseSchema.extend({
+  data: z.object({
+    orders: z.array(z.object({
+      order_id: z.string(),
+      status: z.string().optional(),
+      buyer_user_id: z.string().optional(),
+      total_amount: z.string().optional(),
+      currency: z.string().optional(),
+      create_time: z.number().optional(),
+    })).optional(),
+    next_page_token: z.string().optional(),
+  }).optional(),
+});
+export type ListOrdersOutput = z.infer<typeof listOrdersOutputSchema>;
+
+// 22. getLogisticsTracking (seller/ops variant)
+export const getLogisticsTrackingInputSchema = z.object({
+  order_id: z.string(),
+});
+export type GetLogisticsTrackingInput = z.infer<typeof getLogisticsTrackingInputSchema>;
+
+// 23. getLogisticsForBuyer (CS variant — always scoped to session buyer)
+export const getLogisticsForBuyerInputSchema = z.object({
+  order_id: z.string(),
+});
+export type GetLogisticsForBuyerInput = z.infer<typeof getLogisticsForBuyerInputSchema>;
+
+// Shared logistics output schema
+export const getLogisticsTrackingOutputSchema = tiktokApiResponseSchema.extend({
+  data: z.object({
+    order_id: z.string(),
+    tracking_number: z.string().optional(),
+    shipping_provider: z.string().optional(),
+    tracking_status: z.string().optional(),
+    tracking_events: z.array(z.object({
+      description: z.string(),
+      timestamp: z.number().optional(),
+      location: z.string().optional(),
+    })).optional(),
+    estimated_delivery_time: z.number().optional(),
+  }).optional(),
+});
+export type GetLogisticsTrackingOutput = z.infer<typeof getLogisticsTrackingOutputSchema>;
+
+// ---------------------------------------------------------------------------
+// CS Schema Variants (ADR-032: session-scoped tool binding)
+// ---------------------------------------------------------------------------
+// Conversation-scoped CS schemas omit locked parameters (conversation_id) —
+// injected from session context. Full schemas include all parameters —
+// used in management/admin contexts.
+
+// send_message CS variant (omits conversation_id)
+export const sendMessageCSInputSchema = z.object({
+  type: tiktokMessageTypeSchema,
+  content: z.record(z.string(), z.unknown()),
+});
+export type SendMessageCSInput = z.infer<typeof sendMessageCSInputSchema>;
+
+// read_message CS variant (omits conversation_id)
+export const readMessageCSInputSchema = z.object({});
+export type ReadMessageCSInput = z.infer<typeof readMessageCSInputSchema>;
+
+// get_conversation_messages CS variant (omits conversation_id)
+export const getConversationMessagesCSInputSchema = z.object({
+  page_token: z.string().optional(),
+  page_size: z.number().int().min(1),
+  locale: z.string().optional(),
+});
+export type GetConversationMessagesCSInput = z.infer<typeof getConversationMessagesCSInputSchema>;
+
+// upload_image CS variant (no locked params but scoped to session)
+export const uploadImageCSInputSchema = z.object({
+  file_path: z.string().describe("Local path to the image file to upload"),
+});
+export type UploadImageCSInput = z.infer<typeof uploadImageCSInputSchema>;
+
+// get_conversations CS variant (returns current conversation only)
+export const getConversationsCSInputSchema = z.object({});
+export type GetConversationsCSInput = z.infer<typeof getConversationsCSInputSchema>;
+
+// ---------------------------------------------------------------------------
 // Tool category enum
 // ---------------------------------------------------------------------------
 
 export const tiktokToolCategorySchema = z.enum([
   "TIKTOK_CS",
+  "TIKTOK_ORDER",
   "TIKTOK_PRODUCT",
   "TIKTOK_LOGISTICS",
   "TIKTOK_MANAGEMENT",
@@ -451,13 +617,6 @@ export const TIKTOK_TOOL_REGISTRY = [
     outputSchema: readMessageOutputSchema,
   },
   {
-    name: "tiktok_upload_image",
-    description: "Upload an image for use in customer service messages",
-    category: "TIKTOK_CS",
-    inputSchema: uploadImageInputSchema,
-    outputSchema: uploadImageOutputSchema,
-  },
-  {
     name: "tiktok_update_agent_settings",
     description: "Update customer service agent configuration",
     category: "TIKTOK_CS",
@@ -471,6 +630,35 @@ export const TIKTOK_TOOL_REGISTRY = [
     inputSchema: searchSessionsInputSchema,
     outputSchema: searchSessionsOutputSchema,
   },
+  // Order tools (two-tool variant pattern per ADR-032)
+  {
+    name: "tiktok_get_order",
+    description: "Get order details by order ID (seller/ops — no buyer filter)",
+    category: "TIKTOK_ORDER",
+    inputSchema: getOrderInputSchema,
+    outputSchema: getOrderOutputSchema,
+  },
+  {
+    name: "tiktok_get_order_for_buyer",
+    description: "Get order details scoped to session buyer (CS variant — platform enforcement)",
+    category: "TIKTOK_ORDER",
+    inputSchema: getOrderForBuyerInputSchema,
+    outputSchema: getOrderOutputSchema,
+  },
+  {
+    name: "tiktok_list_orders",
+    description: "List orders with optional filters (seller/ops — no buyer filter)",
+    category: "TIKTOK_ORDER",
+    inputSchema: listOrdersInputSchema,
+    outputSchema: listOrdersOutputSchema,
+  },
+  {
+    name: "tiktok_list_buyer_orders",
+    description: "List orders for the session buyer (CS variant — platform enforcement)",
+    category: "TIKTOK_ORDER",
+    inputSchema: listBuyerOrdersInputSchema,
+    outputSchema: listOrdersOutputSchema,
+  },
   // Product
   {
     name: "tiktok_get_product",
@@ -479,13 +667,34 @@ export const TIKTOK_TOOL_REGISTRY = [
     inputSchema: getProductInputSchema,
     outputSchema: getProductOutputSchema,
   },
-  // Logistics
+  // Logistics tools (two-tool variant pattern per ADR-032)
+  {
+    name: "tiktok_get_logistics_tracking",
+    description: "Get logistics tracking for an order (seller/ops — no buyer filter)",
+    category: "TIKTOK_LOGISTICS",
+    inputSchema: getLogisticsTrackingInputSchema,
+    outputSchema: getLogisticsTrackingOutputSchema,
+  },
+  {
+    name: "tiktok_get_logistics_for_buyer",
+    description: "Get logistics tracking scoped to session buyer (CS variant — platform enforcement)",
+    category: "TIKTOK_LOGISTICS",
+    inputSchema: getLogisticsForBuyerInputSchema,
+    outputSchema: getLogisticsTrackingOutputSchema,
+  },
   {
     name: "tiktok_get_warehouses",
     description: "Get a list of seller warehouses",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getWarehousesInputSchema,
     outputSchema: getWarehousesOutputSchema,
+  },
+  {
+    name: "tiktok_get_global_warehouses",
+    description: "Get global seller warehouse information",
+    category: "TIKTOK_LOGISTICS",
+    inputSchema: getGlobalWarehousesInputSchema,
+    outputSchema: getGlobalWarehousesOutputSchema,
   },
   {
     name: "tiktok_get_shipping_providers",

@@ -44,7 +44,7 @@ function tabLabel(session: SessionTabInfo, t: (key: string) => string): string {
 
 /** Known channel ids for i18n key mapping. */
 const KNOWN_CHANNELS = new Set([
-  "telegram", "feishu", "lark", "wecom", "wechat", "whatsapp",
+  "telegram", "feishu", "lark", "whatsapp",
   "discord", "slack", "signal", "imessage", "webchat", "line",
   "googlechat", "matrix", "msteams", "mattermost",
 ]);

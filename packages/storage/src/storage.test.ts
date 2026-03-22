@@ -208,7 +208,7 @@ describe("ChannelsRepository", () => {
   it("should create and retrieve a channel", () => {
     const channel = storage.channels.create({
       id: "ch-1",
-      channelType: "wecom",
+      channelType: "telegram",
       enabled: true,
       accountId: "account-123",
       settings: { webhookUrl: "https://example.com/hook" },
@@ -218,7 +218,7 @@ describe("ChannelsRepository", () => {
 
     const fetched = storage.channels.getById("ch-1");
     expect(fetched).toBeDefined();
-    expect(fetched!.channelType).toBe("wecom");
+    expect(fetched!.channelType).toBe("telegram");
     expect(fetched!.enabled).toBe(true);
     expect(fetched!.settings).toEqual({ webhookUrl: "https://example.com/hook" });
   });
@@ -231,14 +231,14 @@ describe("ChannelsRepository", () => {
   it("should get all channels", () => {
     storage.channels.create({
       id: "ch-1",
-      channelType: "wecom",
+      channelType: "telegram",
       enabled: true,
       accountId: "acc-1",
       settings: {},
     });
     storage.channels.create({
       id: "ch-2",
-      channelType: "dingtalk",
+      channelType: "discord",
       enabled: false,
       accountId: "acc-2",
       settings: {},
@@ -251,7 +251,7 @@ describe("ChannelsRepository", () => {
   it("should update a channel", () => {
     storage.channels.create({
       id: "ch-1",
-      channelType: "wecom",
+      channelType: "telegram",
       enabled: true,
       accountId: "acc-1",
       settings: {},
@@ -265,7 +265,7 @@ describe("ChannelsRepository", () => {
     expect(updated).toBeDefined();
     expect(updated!.enabled).toBe(false);
     expect(updated!.settings).toEqual({ newSetting: "value" });
-    expect(updated!.channelType).toBe("wecom"); // unchanged
+    expect(updated!.channelType).toBe("telegram"); // unchanged
   });
 
   it("should return undefined when updating non-existent channel", () => {
@@ -276,7 +276,7 @@ describe("ChannelsRepository", () => {
   it("should delete a channel", () => {
     storage.channels.create({
       id: "ch-1",
-      channelType: "wecom",
+      channelType: "telegram",
       enabled: true,
       accountId: "acc-1",
       settings: {},

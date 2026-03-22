@@ -1,5 +1,5 @@
 {
-  "name": "@rivonclaw/customer-service",
+  "name": "@rivonclaw/tiktok-shop",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,18 +11,23 @@
       "types": "./dist/index.d.mts"
     }
   },
+  "openclaw": {
+    "extensions": [
+      "./dist/tiktok-shop.mjs"
+    ]
+  },
   "scripts": {
     "build": "tsdown",
     "lint": "oxlint",
     "test": "vitest run"
   },
   "dependencies": {
-    "@rivonclaw/core": "workspace:*",
-    "ws": "^8.18.0"
+    "@rivonclaw/plugin-sdk": "workspace:*"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.0",
-    "ansis": "^4.2.0",
+    "@rivonclaw/core": "workspace:*",
+    "@sinclair/typebox": "^0.34.0",
+    "@types/node": "^22.15.0",
     "oxlint": "^1.43.0",
     "tsdown": "^0.20.3",
     "vitest": "^4.0.18"

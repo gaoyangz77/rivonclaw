@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import type { ServerResponse, Server } from "node:http";
 import { readFileSync, existsSync, statSync, watch } from "node:fs";
 import { join, extname, resolve, normalize } from "node:path";
-import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort } from "@rivonclaw/core";
+import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -17,7 +17,6 @@ import { MobileManager } from "./mobile/mobile-manager.js";
 import type { AuthSessionManager } from "./auth/auth-session.js";
 import type { SessionLifecycleManager } from "./browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
-import { initCSBridge } from "./channels/customer-service-bridge.js";
 import { sendChannelMessage } from "./channels/channel-senders.js";
 import type { ApiContext, RouteHandler } from "./api-routes/api-context.js";
 import { sendJson } from "./api-routes/route-utils.js";
@@ -33,6 +32,7 @@ import { handleMobileChatRoutes } from "./api-routes/mobile-chat-routes.js";
 import { handleBrowserProfilesRoutes } from "./api-routes/browser-profiles-routes.js";
 import { handleAuthRoutes } from "./api-routes/auth-routes.js";
 import { handleCloudGraphqlRoutes } from "./api-routes/cloud-graphql-routes.js";
+import { handleCloudTikTokRoutes } from "./api-routes/cloud-tiktok-routes.js";
 import { handleDoctorRoutes } from "./api-routes/doctor-routes.js";
 import { handleDepsRoutes } from "./api-routes/deps-routes.js";
 import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
@@ -238,6 +238,7 @@ export interface PanelServerOptions {
 const routeHandlers: RouteHandler[] = [
   handleAuthRoutes,
   handleCloudGraphqlRoutes,
+  handleCloudTikTokRoutes,
   handleRulesRoutes,
   handleSettingsRoutes,
   handleProviderRoutes,
@@ -260,9 +261,6 @@ export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
   const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
-
-  // Initialize the customer service bridge
-  initCSBridge({ storage, secretStore, getGatewayInfo, deviceId });
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -317,7 +315,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
   const queryService = new UsageQueryService(storage, captureUsage);
 
   // Mobile Chat Pairing Manager
-  const mobileManager = new MobileManager(storage, undefined, resolveOpenClawStateDir());
+  const mobileManager = new MobileManager(storage, getApiBaseUrl(getSystemLocale()), resolveOpenClawStateDir());
 
   // Reconcile usage snapshot for the active key on startup
   const activeKeyOnStartup = storage.providerKeys.getActive();

@@ -3948,91 +3948,6 @@ tbody td {
   color: var(--color-primary);
 }
 
-/* ===== 44. Customer Service Page ===== */
-
-.cs-card {
-  max-width: 480px;
-}
-
-.cs-card-desc {
-  margin-bottom: 16px;
-}
-
-.cs-card-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.cs-card-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.cs-card-row:last-child {
-  border-bottom: none;
-}
-
-.cs-card-row-label {
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  min-width: 80px;
-}
-
-.cs-card-row-value {
-  flex: 1;
-  min-width: 0;
-}
-
-.cs-card-prompt-preview {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-}
-
-.cs-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.cs-card-footer-label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.cs-credential-group {
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.cs-credential-group>.form-hint:first-child {
-  margin-bottom: 12px;
-}
-
-.cs-credential-group>.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.cs-prompt-textarea {
-  min-height: 200px;
-  resize: vertical;
-}
-
-
 /* ==========================================================================
    DARK THEME
    Applied via <html data-theme="dark">
@@ -7015,4 +6930,27 @@ tbody td {
 }
 .accent-color-swatch-gray {
   background: linear-gradient(135deg, #6b7280, #9ca3af);
+}
+
+/* ===== TikTok Shops Page ===== */
+
+.shop-services-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.shop-service-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shop-service-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
 }
