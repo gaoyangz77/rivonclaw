@@ -20,9 +20,16 @@ import {
 } from "../../api/index.js";
 import type { LocalModelServer } from "../../api/index.js";
 import { PRICING_QUERY } from "../../api/pricing-queries.js";
+import { usePanelStore } from "../../stores/index.js";
 
-export function useProviderForm(onSave: (provider: string) => void) {
+export function useProviderForm(onSaveCallback: (provider: string) => void) {
   const { t, i18n } = useTranslation();
+
+  // Wrap onSave to always sync the provider keys store after a key is created
+  const onSave = useCallback((provider: string) => {
+    usePanelStore.getState().fetchProviderKeys();
+    onSaveCallback(provider);
+  }, [onSaveCallback]);
 
   const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "gemini";
   const [tab, setTab] = useState<"subscription" | "api" | "local" | "custom">("subscription");
