@@ -84,12 +84,17 @@ export type RunAction =
   | { type: "CHAT_FINAL"; runId: string }
   | { type: "CHAT_ERROR"; runId: string }
   | { type: "CHAT_ABORTED"; runId: string }
+  // Fallback terminal transition
+  | { type: "FORCE_DONE"; runId: string }
   // Cleanup
   | { type: "RUN_CLEANUP"; runId: string };
 
 // ---------------------------------------------------------------------------
 // RunTracker
 // ---------------------------------------------------------------------------
+
+/** How long to wait after LIFECYCLE_END before force-transitioning to done. */
+export const FINAL_FALLBACK_MS = 5_000;
 
 function channelToSource(channel: string): RunSource {
   if (channel === "wechat") return "wechat";
@@ -101,6 +106,8 @@ export class RunTracker {
   private runs = new Map<string, RunState>();
   private localRunId: string | null = null;
   private onChange: () => void;
+  /** Pending timers that force-transition runs to done if CHAT_FINAL never arrives. */
+  private finalFallbackTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(onChange: () => void) {
     this.onChange = onChange;
@@ -181,8 +188,19 @@ export class RunTracker {
       case "LIFECYCLE_END":
       case "LIFECYCLE_ERROR": {
         // Lifecycle end/error is informational; actual terminal state
-        // comes from CHAT_FINAL / CHAT_ERROR. We don't transition here
-        // because the chat event carries the definitive state.
+        // normally comes from CHAT_FINAL / CHAT_ERROR. However, if the
+        // gateway sends lifecycle.end but never sends chat.final, the run
+        // stays stuck forever. Set a delayed fallback timer: if CHAT_FINAL
+        // does not arrive within FINAL_FALLBACK_MS, force-transition to done.
+        const endRun = this.runs.get(action.runId);
+        if (endRun && ACTIVE_PHASES.has(endRun.phase)) {
+          this.clearFallbackTimer(action.runId);
+          const timer = setTimeout(() => {
+            this.finalFallbackTimers.delete(action.runId);
+            this.dispatch({ type: "FORCE_DONE", runId: action.runId });
+          }, FINAL_FALLBACK_MS);
+          this.finalFallbackTimers.set(action.runId, timer);
+        }
         break;
       }
 
@@ -213,6 +231,7 @@ export class RunTracker {
       }
 
       case "CHAT_FINAL": {
+        this.clearFallbackTimer(action.runId);
         const run = this.runs.get(action.runId);
         if (run) {
           run.phase = "done";
@@ -224,6 +243,7 @@ export class RunTracker {
       }
 
       case "CHAT_ERROR": {
+        this.clearFallbackTimer(action.runId);
         const run = this.runs.get(action.runId);
         if (run) {
           run.phase = "error";
@@ -235,9 +255,23 @@ export class RunTracker {
       }
 
       case "CHAT_ABORTED": {
+        this.clearFallbackTimer(action.runId);
         const run = this.runs.get(action.runId);
         if (run) {
           run.phase = "aborted";
+          run.toolName = undefined;
+          if (this.localRunId === action.runId) this.localRunId = null;
+          changed = true;
+        }
+        break;
+      }
+
+      // ---- fallback terminal transition ----
+
+      case "FORCE_DONE": {
+        const run = this.runs.get(action.runId);
+        if (run && ACTIVE_PHASES.has(run.phase)) {
+          run.phase = "done";
           run.toolName = undefined;
           if (this.localRunId === action.runId) this.localRunId = null;
           changed = true;
@@ -329,12 +363,30 @@ export class RunTracker {
     return this.runs.get(runId);
   }
 
+  /** Clear a pending fallback timer for a specific run. */
+  private clearFallbackTimer(runId: string): void {
+    const timer = this.finalFallbackTimers.get(runId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.finalFallbackTimers.delete(runId);
+    }
+  }
+
+  /** Clear all pending fallback timers. */
+  private clearAllFallbackTimers(): void {
+    for (const timer of this.finalFallbackTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.finalFallbackTimers.clear();
+  }
+
   /** Remove all terminal-state runs. */
   cleanup(): void {
     let changed = false;
     for (const [id, run] of this.runs) {
       if (!ACTIVE_PHASES.has(run.phase)) {
         this.runs.delete(id);
+        this.clearFallbackTimer(id);
         changed = true;
       }
     }
@@ -345,6 +397,7 @@ export class RunTracker {
 
   /** Reset all state. */
   reset(): void {
+    this.clearAllFallbackTimers();
     this.runs.clear();
     this.localRunId = null;
     this.onChange();

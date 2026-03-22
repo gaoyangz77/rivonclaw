@@ -265,7 +265,6 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
 
     // Process agent events — dispatch to RunTracker for phase tracking
     if (evt.event === "agent") {
-      lastActivityRef.current = Date.now();
       const agentPayload = evt.payload as {
         runId?: string;
         stream?: string;
@@ -285,10 +284,6 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
 
       const agentRunId = agentPayload.runId;
 
-      // Always track last agent stream for timeout refinement
-      lastAgentStreamRef.current = agentPayload.stream ?? null;
-      lastActivityRef.current = Date.now();
-
       // Only process events for tracked runs (replaces old runIdRef guard)
       if (!agentRunId || !tracker.isTracked(agentRunId)) {
         // DEBUG: log dropped agent events to diagnose missing tool_start flush
@@ -300,6 +295,13 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         }
         return;
       }
+
+      // Only update watchdog activity and last-stream tracking for events
+      // belonging to tracked runs.  Unrelated agent activity (cron jobs, other
+      // runs) must NOT reset the watchdog, otherwise the stuck-run timer never
+      // fires.
+      lastAgentStreamRef.current = agentPayload.stream ?? null;
+      lastActivityRef.current = Date.now();
 
       const stream = agentPayload.stream;
 

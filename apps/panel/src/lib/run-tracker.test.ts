@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { RunTracker } from "./run-tracker.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { RunTracker, FINAL_FALLBACK_MS } from "./run-tracker.js";
 import type { RunAction } from "./run-tracker.js";
 
 function createTracker() {
@@ -538,6 +538,186 @@ describe("RunTracker", () => {
       onChange.mockClear();
       tracker.dispatch({ type: "ASSISTANT_STREAM", runId: "r1" });
       expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // LIFECYCLE_END fallback timer
+  // ---------------------------------------------------------------------------
+  describe("LIFECYCLE_END fallback timer", () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it("force-transitions to done after timeout when CHAT_FINAL never arrives", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "LIFECYCLE_START", runId: "r1" });
+      expect(tracker.getRun("r1")!.phase).toBe("awaiting_llm");
+
+      tracker.dispatch({ type: "LIFECYCLE_END", runId: "r1" });
+      // Still active immediately after LIFECYCLE_END
+      expect(tracker.getRun("r1")!.phase).toBe("awaiting_llm");
+
+      // Advance past the fallback timeout
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS);
+
+      expect(tracker.getRun("r1")!.phase).toBe("done");
+      expect(tracker.getLocalRunId()).toBeNull();
+    });
+
+    it("cancels fallback timer when CHAT_FINAL arrives in time", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "LIFECYCLE_END", runId: "r1" });
+
+      // CHAT_FINAL arrives before the timeout
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      expect(tracker.getRun("r1")!.phase).toBe("done");
+
+      // Advance past the timeout — should NOT cause any error or double-transition
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS + 1000);
+      expect(tracker.getRun("r1")!.phase).toBe("done");
+    });
+
+    it("cancels fallback timer when CHAT_ERROR arrives in time", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "LIFECYCLE_ERROR", runId: "r1" });
+
+      tracker.dispatch({ type: "CHAT_ERROR", runId: "r1" });
+      expect(tracker.getRun("r1")!.phase).toBe("error");
+
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS + 1000);
+      expect(tracker.getRun("r1")!.phase).toBe("error");
+    });
+
+    it("cancels fallback timer when CHAT_ABORTED arrives in time", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "LIFECYCLE_END", runId: "r1" });
+
+      tracker.dispatch({ type: "CHAT_ABORTED", runId: "r1" });
+      expect(tracker.getRun("r1")!.phase).toBe("aborted");
+
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS + 1000);
+      expect(tracker.getRun("r1")!.phase).toBe("aborted");
+    });
+
+    it("does not set timer for already-terminal runs", () => {
+      const { tracker, onChange } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      onChange.mockClear();
+
+      tracker.dispatch({ type: "LIFECYCLE_END", runId: "r1" });
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS + 1000);
+
+      // No state change should have occurred
+      expect(onChange).not.toHaveBeenCalled();
+      expect(tracker.getRun("r1")!.phase).toBe("done");
+    });
+
+    it("does not set timer for unknown runs", () => {
+      const { tracker, onChange } = createTracker();
+      onChange.mockClear();
+
+      tracker.dispatch({ type: "LIFECYCLE_END", runId: "unknown" });
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS + 1000);
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("reset clears all fallback timers", () => {
+      const { tracker, onChange } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "LIFECYCLE_END", runId: "r1" });
+
+      tracker.reset();
+      onChange.mockClear();
+
+      // Timer should have been cleared by reset — FORCE_DONE should NOT fire
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS + 1000);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("works with LIFECYCLE_ERROR too", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "EXTERNAL_INBOUND", runId: "ext1", sessionKey: "s1", channel: "wechat" });
+      tracker.dispatch({ type: "LIFECYCLE_START", runId: "ext1" });
+
+      tracker.dispatch({ type: "LIFECYCLE_ERROR", runId: "ext1" });
+      expect(tracker.getRun("ext1")!.phase).toBe("awaiting_llm");
+
+      vi.advanceTimersByTime(FINAL_FALLBACK_MS);
+      expect(tracker.getRun("ext1")!.phase).toBe("done");
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // FORCE_DONE
+  // ---------------------------------------------------------------------------
+  describe("FORCE_DONE", () => {
+    it("transitions active run to done", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "ASSISTANT_STREAM", runId: "r1" });
+      expect(tracker.getRun("r1")!.phase).toBe("generating");
+
+      tracker.dispatch({ type: "FORCE_DONE", runId: "r1" });
+      expect(tracker.getRun("r1")!.phase).toBe("done");
+      expect(tracker.getLocalRunId()).toBeNull();
+    });
+
+    it("clears toolName when force-done from tooling", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "browser" });
+      expect(tracker.getRun("r1")!.toolName).toBe("browser");
+
+      tracker.dispatch({ type: "FORCE_DONE", runId: "r1" });
+      expect(tracker.getRun("r1")!.toolName).toBeUndefined();
+      expect(tracker.getRun("r1")!.phase).toBe("done");
+    });
+
+    it("does nothing for already-terminal runs", () => {
+      const { tracker, onChange } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      onChange.mockClear();
+
+      tracker.dispatch({ type: "FORCE_DONE", runId: "r1" });
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("does nothing for unknown runId", () => {
+      const { tracker, onChange } = createTracker();
+      tracker.dispatch({ type: "FORCE_DONE", runId: "unknown" });
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("transitions all active phases to done", () => {
+      const phases = ["queued", "processing", "awaiting_llm", "tooling", "generating"] as const;
+      for (const phase of phases) {
+        const { tracker } = createTracker();
+        // Set up a run and manipulate it to the desired phase
+        if (phase === "queued") {
+          tracker.dispatch({ type: "EXTERNAL_INBOUND", runId: "r1", sessionKey: "s1", channel: "wechat" });
+        } else {
+          tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+          if (phase === "awaiting_llm") {
+            tracker.dispatch({ type: "LIFECYCLE_START", runId: "r1" });
+          } else if (phase === "tooling") {
+            tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "t" });
+          } else if (phase === "generating") {
+            tracker.dispatch({ type: "ASSISTANT_STREAM", runId: "r1" });
+          }
+          // "processing" is the initial state for LOCAL_SEND, no extra dispatch needed
+        }
+
+        expect(tracker.getRun("r1")!.phase).toBe(phase);
+        tracker.dispatch({ type: "FORCE_DONE", runId: "r1" });
+        expect(tracker.getRun("r1")!.phase).toBe("done");
+      }
     });
   });
 });
