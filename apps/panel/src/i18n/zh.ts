@@ -2029,11 +2029,10 @@ export default {
     connectShopTitle: "连接 TikTok Shop",
     connectShopDesc: "将在浏览器中打开 TikTok 授权页面。授权完成后，你的店铺将自动显示在此处。",
     noShops: "尚未连接任何 TikTok Shop。点击「连接店铺」开始。",
-    // Market selection
-    marketLabel: "市场区域",
-    marketUS: "美国",
-    marketROW: "其他地区",
-    marketHint: "选择你的 TikTok Shop 所注册的市场区域。",
+    // Platform app selection
+    platformAppLabel: "平台账号",
+    platformAppHint: "选择要授权的平台账号。",
+    noPlatformApps: "未配置平台账号。请联系管理员。",
     authorizeButton: "前往 TikTok 授权",
     // Auth status
     authStatus_AUTHORIZED: "已授权",

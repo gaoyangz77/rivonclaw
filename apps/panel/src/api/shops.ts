@@ -2,6 +2,7 @@ import { getClient, trackedQuery } from "./apollo-client.js";
 import {
   SHOPS_QUERY,
   SHOP_AUTH_STATUS_QUERY,
+  PLATFORM_APPS_QUERY,
   CREATE_SHOP_MUTATION,
   UPDATE_SHOP_MUTATION,
   DELETE_SHOP_MUTATION,
@@ -20,6 +21,7 @@ export interface Shop {
   shopName: string;
   authStatus: string;
   region: string;
+  platformAppId: string;
   grantedScopes: string[];
   services: ShopServiceConfig;
   createdAt: string;
@@ -30,6 +32,16 @@ export interface ShopAuthStatusInfo {
   hasToken: boolean;
   accessTokenExpiresAt?: string;
   refreshTokenExpiresAt?: string;
+}
+
+export interface PlatformAppInfo {
+  id: string;
+  platform: string;
+  market: string;
+  status: string;
+  label: string;
+  apiBaseUrl: string;
+  authLinkUrl: string;
 }
 
 export async function fetchShops(): Promise<Shop[]> {
@@ -50,6 +62,16 @@ export async function fetchShopAuthStatus(id: string): Promise<ShopAuthStatusInf
       fetchPolicy: "network-only",
     });
     return result.data!.shopAuthStatus;
+  });
+}
+
+export async function fetchPlatformApps(): Promise<PlatformAppInfo[]> {
+  return trackedQuery(async () => {
+    const result = await getClient().query<{ platformApps: PlatformAppInfo[] }>({
+      query: PLATFORM_APPS_QUERY,
+      fetchPolicy: "network-only",
+    });
+    return result.data!.platformApps;
   });
 }
 
@@ -84,13 +106,13 @@ export async function deleteShop(id: string): Promise<boolean> {
   });
 }
 
-export async function initiateTikTokOAuth(market: "US" | "ROW"): Promise<{ authUrl: string; state: string }> {
+export async function initiateTikTokOAuth(platformAppId: string): Promise<{ authUrl: string; state: string }> {
   return trackedQuery(async () => {
     const result = await getClient().mutate<{
       initiateTikTokOAuth: { authUrl: string; state: string };
     }>({
       mutation: INITIATE_TIKTOK_OAUTH_MUTATION,
-      variables: { market },
+      variables: { platformAppId },
     });
     return result.data!.initiateTikTokOAuth;
   });

@@ -119,14 +119,10 @@ export * from "./cs-skill-template.js";
 export {
   tiktokTokenLifecycleSchema,
   tiktokOAuthCallbackSchema,
-  tiktokMarketSchema,
-  tiktokShopOAuthStatusSchema,
 } from "./tiktok-oauth.js";
 export type {
   TikTokTokenLifecycle,
   TikTokOAuthCallback,
-  TikTokMarket,
-  TikTokShopOAuthStatus,
 } from "./tiktok-oauth.js";
 
 export type {

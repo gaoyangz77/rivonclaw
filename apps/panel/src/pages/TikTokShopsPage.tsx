@@ -13,7 +13,9 @@ export function TikTokShopsPage() {
 
   const shops = usePanelStore((s) => s.shops);
   const shopsLoading = usePanelStore((s) => s.shopsLoading);
+  const platformApps = usePanelStore((s) => s.platformApps);
   const storeFetchShops = usePanelStore((s) => s.fetchShops);
+  const storeFetchPlatformApps = usePanelStore((s) => s.fetchPlatformApps);
   const storeUpdateShop = usePanelStore((s) => s.updateShop);
   const storeDeleteShop = usePanelStore((s) => s.deleteShop);
   const storeInitiateOAuth = usePanelStore((s) => s.initiateTikTokOAuth);
@@ -25,7 +27,7 @@ export function TikTokShopsPage() {
 
   // ── Connect Shop modal state ──
   const [connectModalOpen, setConnectModalOpen] = useState(false);
-  const [selectedMarket, setSelectedMarket] = useState<"US" | "ROW">("US");
+  const [selectedPlatformAppId, setSelectedPlatformAppId] = useState<string>("");
 
   // ── Service toggle loading state ──
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
@@ -54,12 +56,20 @@ export function TikTokShopsPage() {
     };
   }, []);
 
-  // Fetch shops on mount
+  // Fetch shops and platform apps on mount
   useEffect(() => {
     if (user) {
       storeFetchShops();
+      storeFetchPlatformApps();
     }
   }, [user]);
+
+  // Auto-select first platform app when list loads
+  useEffect(() => {
+    if (platformApps.length > 0 && !selectedPlatformAppId) {
+      setSelectedPlatformAppId(platformApps[0].id);
+    }
+  }, [platformApps, selectedPlatformAppId]);
 
   function startOAuthSSEListener() {
     // Connect to the desktop SSE endpoint to listen for oauth-complete events
@@ -93,11 +103,12 @@ export function TikTokShopsPage() {
   }
 
   async function handleConnectShop() {
+    if (!selectedPlatformAppId) return;
     setOauthLoading(true);
     setError(null);
     setSuccessMsg(null);
     try {
-      const { authUrl } = await storeInitiateOAuth(selectedMarket);
+      const { authUrl } = await storeInitiateOAuth(selectedPlatformAppId);
       setConnectModalOpen(false);
 
       // Start listening for oauth_complete via SSE before opening browser
@@ -114,11 +125,19 @@ export function TikTokShopsPage() {
   }
 
   async function handleReauthorize(shopId: string) {
+    // Find the platformAppId from the shop being re-authorized
+    const shop = shops.find((s) => s.id === shopId);
+    const appId = shop?.platformAppId || (platformApps.length > 0 ? platformApps[0].id : "");
+    if (!appId) {
+      setError(t("tiktokShops.oauthFailed"));
+      return;
+    }
+
     setOauthLoading(true);
     setError(null);
     setSuccessMsg(null);
     try {
-      const { authUrl } = await storeInitiateOAuth("US");
+      const { authUrl } = await storeInitiateOAuth(appId);
 
       // Start listening for oauth_complete via SSE before opening browser
       startOAuthSSEListener();
@@ -126,7 +145,6 @@ export function TikTokShopsPage() {
 
       // Open TikTok auth URL in system browser
       window.open(authUrl, "_blank");
-      void shopId; // used for context
     } catch (err) {
       setError(err instanceof Error ? err.message : t("tiktokShops.oauthFailed"));
     } finally {
@@ -228,7 +246,7 @@ export function TikTokShopsPage() {
           <div className="td-actions">
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => { setConnectModalOpen(true); setSelectedMarket("US"); }}
+              onClick={() => { setConnectModalOpen(true); }}
               disabled={oauthLoading || oauthWaiting}
             >
               {t("tiktokShops.connectShop")}
@@ -326,18 +344,24 @@ export function TikTokShopsPage() {
           <p>{t("tiktokShops.connectShopDesc")}</p>
           <div>
             <label className="form-label-block">
-              {t("tiktokShops.marketLabel")}
+              {t("tiktokShops.platformAppLabel")}
             </label>
-            <Select
-              value={selectedMarket}
-              onChange={(v) => setSelectedMarket(v as "US" | "ROW")}
-              className="input-full"
-              options={[
-                { value: "US", label: t("tiktokShops.marketUS") },
-                { value: "ROW", label: t("tiktokShops.marketROW") },
-              ]}
-            />
-            <div className="form-hint">{t("tiktokShops.marketHint")}</div>
+            {platformApps.length === 0 ? (
+              <div className="form-hint">{t("tiktokShops.noPlatformApps")}</div>
+            ) : platformApps.length === 1 ? (
+              <div className="form-hint">{platformApps[0].label}</div>
+            ) : (
+              <Select
+                value={selectedPlatformAppId}
+                onChange={(v) => setSelectedPlatformAppId(v)}
+                className="input-full"
+                options={platformApps.map((app) => ({
+                  value: app.id,
+                  label: app.label,
+                }))}
+              />
+            )}
+            <div className="form-hint">{t("tiktokShops.platformAppHint")}</div>
           </div>
           <div className="modal-actions">
             <button
@@ -349,7 +373,7 @@ export function TikTokShopsPage() {
             <button
               className="btn btn-primary"
               onClick={handleConnectShop}
-              disabled={oauthLoading}
+              disabled={oauthLoading || !selectedPlatformAppId}
             >
               {oauthLoading ? t("common.loading") : t("tiktokShops.authorizeButton")}
             </button>

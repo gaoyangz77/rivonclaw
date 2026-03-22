@@ -2039,11 +2039,10 @@ export default {
     connectShopTitle: "Connect TikTok Shop",
     connectShopDesc: "A TikTok authorization page will open in your browser. After authorization, your shop will appear here automatically.",
     noShops: "No TikTok Shops connected yet. Click \"Connect Shop\" to get started.",
-    // Market selection
-    marketLabel: "Market Region",
-    marketUS: "United States",
-    marketROW: "Rest of World",
-    marketHint: "Select the market region where your TikTok Shop is registered.",
+    // Platform app selection
+    platformAppLabel: "Platform Account",
+    platformAppHint: "Select the platform account to authorize with.",
+    noPlatformApps: "No platform accounts configured. Contact your administrator.",
     authorizeButton: "Authorize with TikTok",
     // Auth status
     authStatus_AUTHORIZED: "Authorized",

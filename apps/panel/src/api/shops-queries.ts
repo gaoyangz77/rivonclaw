@@ -10,6 +10,7 @@ export const SHOPS_QUERY = gql`
       shopName
       authStatus
       region
+      platformAppId
       grantedScopes
       services {
         customerService
@@ -30,6 +31,20 @@ export const SHOP_AUTH_STATUS_QUERY = gql`
   }
 `;
 
+export const PLATFORM_APPS_QUERY = gql`
+  query PlatformApps {
+    platformApps {
+      id
+      platform
+      market
+      status
+      label
+      apiBaseUrl
+      authLinkUrl
+    }
+  }
+`;
+
 export const CREATE_SHOP_MUTATION = gql`
   mutation CreateShop($input: CreateShopInput!) {
     createShop(input: $input) {
@@ -40,6 +55,7 @@ export const CREATE_SHOP_MUTATION = gql`
       shopName
       authStatus
       region
+      platformAppId
       grantedScopes
       services {
         customerService
@@ -60,6 +76,7 @@ export const UPDATE_SHOP_MUTATION = gql`
       shopName
       authStatus
       region
+      platformAppId
       grantedScopes
       services {
         customerService
@@ -77,8 +94,8 @@ export const DELETE_SHOP_MUTATION = gql`
 `;
 
 export const INITIATE_TIKTOK_OAUTH_MUTATION = gql`
-  mutation InitiateTikTokOAuth($market: TikTokMarket!) {
-    initiateTikTokOAuth(market: $market) {
+  mutation InitiateTikTokOAuth($platformAppId: ID!) {
+    initiateTikTokOAuth(platformAppId: $platformAppId) {
       authUrl
       state
     }

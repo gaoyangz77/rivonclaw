@@ -1,20 +1,24 @@
 import type { StateCreator } from "zustand";
 import {
   fetchShops as apiFetchShops,
+  fetchPlatformApps as apiFetchPlatformApps,
   updateShop as apiUpdateShop,
   deleteShop as apiDeleteShop,
   initiateTikTokOAuth as apiInitiateTikTokOAuth,
 } from "../../api/shops.js";
-import type { Shop } from "../../api/shops.js";
+import type { Shop, PlatformAppInfo } from "../../api/shops.js";
 import type { PanelStore } from "../panel-store.js";
 
-export type { Shop };
+export type { Shop, PlatformAppInfo };
 
 export interface ShopsSlice {
   shops: Shop[];
   shopsLoading: boolean;
+  platformApps: PlatformAppInfo[];
+  platformAppsLoading: boolean;
 
   fetchShops: () => Promise<void>;
+  fetchPlatformApps: () => Promise<void>;
   updateShop: (
     id: string,
     input: {
@@ -26,13 +30,15 @@ export interface ShopsSlice {
     },
   ) => Promise<Shop>;
   deleteShop: (id: string) => Promise<void>;
-  initiateTikTokOAuth: (market: "US" | "ROW") => Promise<{ authUrl: string; state: string }>;
+  initiateTikTokOAuth: (platformAppId: string) => Promise<{ authUrl: string; state: string }>;
   resetShops: () => void;
 }
 
 export const createShopsSlice: StateCreator<PanelStore, [], [], ShopsSlice> = (set) => ({
   shops: [],
   shopsLoading: false,
+  platformApps: [],
+  platformAppsLoading: false,
 
   fetchShops: async () => {
     set({ shopsLoading: true });
@@ -41,6 +47,16 @@ export const createShopsSlice: StateCreator<PanelStore, [], [], ShopsSlice> = (s
       set({ shops: list, shopsLoading: false });
     } catch {
       set({ shopsLoading: false });
+    }
+  },
+
+  fetchPlatformApps: async () => {
+    set({ platformAppsLoading: true });
+    try {
+      const list = await apiFetchPlatformApps();
+      set({ platformApps: list, platformAppsLoading: false });
+    } catch {
+      set({ platformAppsLoading: false });
     }
   },
 
@@ -59,11 +75,11 @@ export const createShopsSlice: StateCreator<PanelStore, [], [], ShopsSlice> = (s
     }));
   },
 
-  initiateTikTokOAuth: async (market) => {
-    return apiInitiateTikTokOAuth(market);
+  initiateTikTokOAuth: async (platformAppId) => {
+    return apiInitiateTikTokOAuth(platformAppId);
   },
 
   resetShops: () => {
-    set({ shops: [], shopsLoading: false });
+    set({ shops: [], shopsLoading: false, platformApps: [], platformAppsLoading: false });
   },
 });

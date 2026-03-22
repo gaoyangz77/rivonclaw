@@ -22,23 +22,3 @@ export const tiktokOAuthCallbackSchema = z.object({
 });
 
 export type TikTokOAuthCallback = z.infer<typeof tiktokOAuthCallbackSchema>;
-
-// ── TikTok market enum ──────────────────────────────────────────────────────
-
-export const tiktokMarketSchema = z.enum(["US", "ROW"]);
-
-export type TikTokMarket = z.infer<typeof tiktokMarketSchema>;
-
-// ── Shop OAuth status (for Panel UI display) ───────────────────────────────
-
-export const tiktokShopOAuthStatusSchema = z.object({
-  shopId: z.string(),
-  shopName: z.string(),
-  market: tiktokMarketSchema,
-  tokenLifecycle: tiktokTokenLifecycleSchema,
-  accessTokenExpiresAt: z.string().datetime().optional(),
-  refreshTokenExpiresAt: z.string().datetime().optional(),
-  grantedScopes: z.array(z.string()),
-});
-
-export type TikTokShopOAuthStatus = z.infer<typeof tiktokShopOAuthStatusSchema>;
