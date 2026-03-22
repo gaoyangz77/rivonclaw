@@ -6,6 +6,7 @@ import type { BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import type { UpdateDownloadState } from "@rivonclaw/updater";
+import { isNewerVersion } from "@rivonclaw/updater";
 import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
@@ -311,6 +312,18 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     },
     setRunFullCleanup: (fn: () => Promise<void>) => {
       runFullCleanup = fn;
+    },
+    setServerPushInfo: (info: { version: string; releaseNotes?: string }) => {
+      if (!isNewerVersion(app.getVersion(), info.version)) return;
+      latestUpdateInfo = {
+        version: info.version,
+        releaseNotes: info.releaseNotes ?? null,
+        files: [],
+        path: "",
+        sha512: "",
+        releaseDate: new Date().toISOString(),
+      } as UpdateInfo;
+      deps.updateTray();
     },
   };
 }

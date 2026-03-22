@@ -58,7 +58,6 @@ export const DEFAULTS = {
     shutdownTimeoutMs: 10_000,
     heartbeatIntervalMs: 10_000,
     heartbeatStaleMs: 30_000,
-    updateCheckIntervalMs: 4 * 60 * 60 * 1_000,
     oauthCleanupIntervalMs: 5 * 60 * 1_000,
     probeTimeoutMs: 2_000,
     fetchTimeoutMs: 5_000,

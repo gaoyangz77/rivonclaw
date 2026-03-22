@@ -125,16 +125,3 @@ export type {
   TikTokOAuthCallback,
 } from "./tiktok-oauth.js";
 
-export type {
-  WSNotificationBase,
-  OAuthCompleteNotification,
-  SystemAnnouncementNotification,
-  MaintenanceScheduledNotification,
-  UpdateAvailableNotification,
-  ServerNotification,
-  ServerNotificationType,
-  NotificationPayloadMap,
-  WSClientMessage,
-  WSServerPing,
-  WSServerFrame,
-} from "./ws-notifications.js";

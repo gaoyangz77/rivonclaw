@@ -54,7 +54,8 @@ import { initTelemetry } from "./utils/telemetry-init.js";
 import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js";
 import { AuthSessionManager } from "./auth/auth-session.js";
 import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
-import { NotificationClient } from "./cloud/notification-client.js";
+import { OAuthSubscriptionClient } from "./cloud/oauth-subscription-client.js";
+import { UpdateSubscriptionClient } from "./cloud/update-subscription-client.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
@@ -329,24 +330,22 @@ app.whenReady().then(async () => {
   // Validate session on startup (auth uses native fetch, no proxy dependency)
   authSession.validate().catch(() => {});
 
-  // Initialize cloud notification WebSocket client
-  const notificationClient = new NotificationClient(locale);
-  // Connect when user is authenticated, disconnect on logout
-  authSession.onUserChanged((user) => {
-    if (user) {
-      notificationClient.reconnect();
-    } else {
-      notificationClient.disconnect();
-    }
-  });
-  // Forward cloud notifications to Panel via SSE bridge
-  notificationClient.on("oauth_complete", (payload) => {
+  // Initialize cloud OAuth subscription client (GraphQL Subscription via graphql-ws)
+  const oauthSubscription = new OAuthSubscriptionClient(locale, (payload) => {
     log.info("OAuth complete notification received, forwarding to Panel", { payload });
     pushChatSSE("oauth-complete", payload);
   });
+  // Connect when user is authenticated, disconnect on logout
+  authSession.onUserChanged((user) => {
+    if (user) {
+      oauthSubscription.reconnect();
+    } else {
+      oauthSubscription.disconnect();
+    }
+  });
 
   // Initial connect if already authenticated
-  notificationClient.connect(() => authSession.getAccessToken());
+  oauthSubscription.connect(() => authSession.getAccessToken());
 
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
@@ -1055,17 +1054,36 @@ app.whenReady().then(async () => {
 
   updateTray("stopped");
 
-  // Deferred: startup update check (must run after tray creation)
+  // Startup update check (fallback for non-authenticated users)
   updater.check().catch((err: unknown) => {
     log.warn("Startup update check failed:", err);
   });
 
-  // Re-check every 4 hours
-  const updateCheckTimer = setInterval(() => {
-    updater.check().catch((err: unknown) => {
-      log.warn("Periodic update check failed:", err);
+  // Real-time update push via GraphQL subscription (replaces 4h polling)
+  const updateSubscription = new UpdateSubscriptionClient(locale, app.getVersion(), (payload) => {
+    log.info(`Server pushed update: v${payload.version}`);
+    updater.setServerPushInfo(payload);
+    pushChatSSE("update-available", {
+      updateAvailable: true,
+      currentVersion: app.getVersion(),
+      latestVersion: payload.version,
+      releaseNotes: payload.releaseNotes ?? null,
+      downloadUrl: payload.downloadUrl ?? null,
     });
-  }, DEFAULTS.desktop.updateCheckIntervalMs);
+    updater.check().catch((err: unknown) => {
+      log.warn("Update check after subscription push failed:", err);
+    });
+  });
+  // Connect/disconnect update subscription with auth lifecycle
+  authSession.onUserChanged((user) => {
+    if (user) {
+      updateSubscription.connect(() => authSession.getAccessToken());
+    } else {
+      updateSubscription.disconnect();
+    }
+  });
+  // Initial connect if already authenticated
+  updateSubscription.connect(() => authSession.getAccessToken());
 
   // Create main panel window (hidden initially, loaded when gateway starts)
   const isDev = !!process.env.PANEL_DEV_URL;
@@ -1766,7 +1784,7 @@ app.whenReady().then(async () => {
     // Stop all periodic timers
     clearInterval(proxyPollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    clearInterval(updateCheckTimer);
+    updateSubscription.disconnect();
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
@@ -1808,13 +1826,13 @@ app.whenReady().then(async () => {
     // Stop all periodic timers so they don't keep the event loop alive
     clearInterval(proxyPollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    clearInterval(updateCheckTimer);
+    updateSubscription.disconnect();
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
     const cleanup = async () => {
-      // Disconnect cloud notification WebSocket
-      notificationClient.disconnect();
+      // Disconnect cloud OAuth subscription
+      oauthSubscription.disconnect();
 
       // Shutdown managed browser service (ends all managed profile sessions)
       await managedBrowserService.shutdown();

@@ -1,5 +1,11 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
+import { createRequire } from "node:module";
+
+// Resolve "graphql" from graphql-ws so both share the same instance (avoids pnpm dual-copy issue)
+const require = createRequire(import.meta.url);
+const graphqlWsPath = require.resolve("graphql-ws");
+const graphqlPath = createRequire(graphqlWsPath).resolve("graphql");
 
 export default defineConfig({
   test: {
@@ -10,6 +16,8 @@ export default defineConfig({
       "@rivonclaw/core/node": resolve(__dirname, "../../packages/core/src/node.ts"),
       "@rivonclaw/core": resolve(__dirname, "../../packages/core/src/index.ts"),
       "@rivonclaw/storage": resolve(__dirname, "../../packages/storage/src/index.ts"),
+      "@rivonclaw/updater": resolve(__dirname, "../../packages/updater/src/index.ts"),
+      "graphql": graphqlPath,
     },
   },
 });

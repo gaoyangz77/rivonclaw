@@ -73,6 +73,8 @@ export function Layout({
   // Also re-check when the window becomes visible (e.g. tray click triggers
   // showMainWindow + performUpdateDownload — without this the panel stays
   // unaware and shows no banner/progress).
+  // Additionally, listen for SSE "update-available" events pushed from the
+  // server subscription so the banner appears immediately without polling.
   useEffect(() => {
     function check() {
       fetchUpdateInfo()
@@ -88,10 +90,23 @@ export function Layout({
     const firstTimer = setTimeout(check, 5_000);
     const retryTimer = setTimeout(check, 20_000);
     document.addEventListener("visibilitychange", onVisibilityChange);
+
+    const sse = new EventSource("/api/chat/events");
+    sse.addEventListener("update-available", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as UpdateInfo & { currentVersion?: string };
+        if (data.currentVersion) setCurrentVersion(data.currentVersion);
+        if (data.updateAvailable) setUpdateInfo(data);
+      } catch {
+        // Ignore malformed SSE data
+      }
+    });
+
     return () => {
       clearTimeout(firstTimer);
       clearTimeout(retryTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      sse.close();
     };
   }, []);
 

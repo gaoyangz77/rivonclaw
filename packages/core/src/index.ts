@@ -205,19 +205,6 @@ export type {
   GetConversationsCSInput,
 } from "./types/index.js";
 
-export type {
-  WSNotificationBase,
-  OAuthCompleteNotification,
-  SystemAnnouncementNotification,
-  MaintenanceScheduledNotification,
-  UpdateAvailableNotification,
-  ServerNotification,
-  ServerNotificationType,
-  NotificationPayloadMap,
-  WSClientMessage,
-  WSServerPing,
-  WSServerFrame,
-} from "./types/index.js";
 
 export type { ChannelType } from "./channels.js";
 export { ALL_CHANNELS, BUILTIN_CHANNELS, CUSTOM_CHANNELS } from "./channels.js";
