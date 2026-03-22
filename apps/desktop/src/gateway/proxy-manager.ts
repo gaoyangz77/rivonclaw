@@ -140,10 +140,8 @@ export async function writeProxyRouterConfig(
  * Returns fixed proxy URL (127.0.0.1:DEFAULT_PROXY_ROUTER_PORT) regardless of configuration.
  * The router handles dynamic routing based on its config file.
  *
- * Chinese-domestic channel domains (Feishu, WeCom) are excluded via NO_PROXY
- * since they don't need GFW bypass. GFW-blocked channel domains (Telegram,
- * Discord, Slack, LINE) go through the proxy router so the system proxy can
- * route them out.
+ * GFW-blocked channel domains (Telegram, Discord, Slack, LINE) go through
+ * the proxy router so the system proxy can route them out.
  */
 export function buildProxyEnv(): Record<string, string> {
   const localProxyUrl = `http://127.0.0.1:${resolveProxyRouterPort()}`;

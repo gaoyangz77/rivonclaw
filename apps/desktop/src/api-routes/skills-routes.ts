@@ -4,7 +4,6 @@ import { execFile } from "node:child_process";
 import AdmZip from "adm-zip";
 import { formatError, getApiBaseUrl } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
-import { initCSBridge, startCS, stopCS, getCSStatus, updateCSConfig } from "../channels/customer-service-bridge.js";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody, proxiedFetch, parseSkillFrontmatter, invalidateSkillsSnapshot, getUserSkillsDir } from "./route-utils.js";
 
@@ -154,62 +153,6 @@ export const handleSkillsRoutes: RouteHandler = async (req, res, url, pathname, 
         sendJson(res, 200, { ok: true });
       }
     });
-    return true;
-  }
-
-  // --- Customer Service ---
-  if (pathname === "/api/customer-service/status" && req.method === "GET") {
-    const status = getCSStatus();
-    sendJson(res, 200, status);
-    return true;
-  }
-
-  if (pathname === "/api/customer-service/start" && req.method === "POST") {
-    try {
-      const body = await parseBody(req) as {
-        businessPrompt?: string;
-        platforms?: string[];
-      };
-      startCS({
-        businessPrompt: body.businessPrompt ?? "",
-        platforms: body.platforms ?? [],
-      });
-      sendJson(res, 200, { ok: true });
-    } catch (err) {
-      const msg = formatError(err);
-      sendJson(res, 500, { error: msg });
-    }
-    return true;
-  }
-
-  if (pathname === "/api/customer-service/stop" && req.method === "POST") {
-    stopCS();
-    sendJson(res, 200, { ok: true });
-    return true;
-  }
-
-  if (pathname === "/api/customer-service/config" && req.method === "PUT") {
-    try {
-      const body = await parseBody(req) as {
-        businessPrompt?: string;
-        platforms?: string[];
-      };
-      updateCSConfig(body);
-      sendJson(res, 200, { ok: true });
-    } catch (err) {
-      const msg = formatError(err);
-      sendJson(res, 500, { error: msg });
-    }
-    return true;
-  }
-
-  if (pathname === "/api/customer-service/platforms" && req.method === "GET") {
-    const status = getCSStatus();
-    const platforms = (status?.platforms ?? []).map((p: { platform: string; boundCustomers: number }) => ({
-      platform: p.platform,
-      boundCustomers: p.boundCustomers,
-    }));
-    sendJson(res, 200, { platforms });
     return true;
   }
 

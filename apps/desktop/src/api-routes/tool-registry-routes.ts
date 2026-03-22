@@ -46,7 +46,6 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
     const runProfile = scopeProfiles.get(toScopeKey(scopeType, scopeKey)) ?? null;
     // ⚠️ SECURITY: surface=null means UNRESTRICTED — all tools pass Layer 2.
     // This is intentional for ChatPage/CronJob (admin scopes) and OpenClaw native sessions.
-    // Do NOT pass null for user-facing restricted scopes (e.g., customer service).
     // Future scope types that need Surface restriction must look up the Surface
     // from the RunProfile's surfaceId and pass it here instead of null.
     const result = toolCapabilityResolver.computeEffectiveTools(null, runProfile);

@@ -18,6 +18,7 @@ export type RegisterInput = GQL.RegisterInput;
 export type { Surface } from "./slices/surfaces-slice.js";
 export type { RunProfile } from "./slices/run-profiles-slice.js";
 export type { ProviderKeyEntry } from "./slices/provider-keys-slice.js";
+export type { Shop } from "./slices/shops-slice.js";
 
 // Convenience selector hooks
 export const useUser = () => usePanelStore((s) => s.user);
@@ -28,6 +29,7 @@ export const useLlmQuota = () => usePanelStore((s) => s.llmQuota);
 export const useSurfaces = () => usePanelStore((s) => s.surfaces);
 export const useRunProfiles = () => usePanelStore((s) => s.runProfiles);
 export const useProviderKeys = () => usePanelStore((s) => s.providerKeys);
+export const useShops = () => usePanelStore((s) => s.shops);
 
 /** Backward-compatible useAuth hook matching the shape of the old AuthProvider context. */
 export function useAuth() {

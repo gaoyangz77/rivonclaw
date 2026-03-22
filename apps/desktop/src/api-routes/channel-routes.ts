@@ -624,7 +624,7 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
     return true;
   }
 
-  if (pathname.startsWith("/api/channels/") && req.method === "DELETE" && !pathname.includes("/wecom/")) {
+  if (pathname.startsWith("/api/channels/") && req.method === "DELETE") {
     const id = pathname.slice("/api/channels/".length);
     if (!id.includes("/")) {
       const deleted = storage.channels.delete(id);

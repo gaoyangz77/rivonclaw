@@ -141,6 +141,15 @@ export {
   getCurrentShopOutputSchema,
   getShopAuthStatusInputSchema,
   getShopAuthStatusOutputSchema,
+  getOrderInputSchema,
+  getOrderOutputSchema,
+  getLogisticsTrackingInputSchema,
+  getLogisticsTrackingOutputSchema,
+  sendMessageCSInputSchema,
+  readMessageCSInputSchema,
+  getConversationMessagesCSInputSchema,
+  uploadImageCSInputSchema,
+  getConversationsCSInputSchema,
   TIKTOK_TOOL_REGISTRY,
 } from "./types/index.js";
 
@@ -185,6 +194,29 @@ export type {
   GetCurrentShopOutput,
   GetShopAuthStatusInput,
   GetShopAuthStatusOutput,
+  GetOrderInput,
+  GetOrderOutput,
+  GetLogisticsTrackingInput,
+  GetLogisticsTrackingOutput,
+  SendMessageCSInput,
+  ReadMessageCSInput,
+  GetConversationMessagesCSInput,
+  UploadImageCSInput,
+  GetConversationsCSInput,
+} from "./types/index.js";
+
+export type {
+  WSNotificationBase,
+  OAuthCompleteNotification,
+  SystemAnnouncementNotification,
+  MaintenanceScheduledNotification,
+  UpdateAvailableNotification,
+  ServerNotification,
+  ServerNotificationType,
+  NotificationPayloadMap,
+  WSClientMessage,
+  WSServerPing,
+  WSServerFrame,
 } from "./types/index.js";
 
 export type { ChannelType } from "./channels.js";
