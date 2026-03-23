@@ -627,11 +627,17 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
     }
 
     const body = (await parseBody(req)) as { accountId?: string; timeoutMs?: number };
+    // web.login.wait is a long-poll: the gateway blocks until the user scans
+    // or the server-side timeout expires. Set the RPC timeout higher than the
+    // server-side poll timeout so the RPC doesn't abort prematurely.
+    const serverPollMs = body.timeoutMs ?? 60_000;
+    const rpcTimeoutMs = serverPollMs + 15_000;
 
     try {
       const result = await rpcClient.request<{ connected: boolean; message: string; accountId?: string }>(
         "web.login.wait",
-        { accountId: body.accountId, timeoutMs: body.timeoutMs }
+        { accountId: body.accountId, timeoutMs: body.timeoutMs },
+        rpcTimeoutMs,
       );
       sendJson(res, 200, result);
     } catch (err) {

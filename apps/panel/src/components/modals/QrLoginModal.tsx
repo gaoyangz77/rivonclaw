@@ -6,8 +6,8 @@ import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "success" | "error";
 
-/** Per-poll server-side timeout. Must be shorter than GatewayRpcClient's 30s request timeout. */
-const POLL_TIMEOUT_MS = 25_000;
+/** Per-poll server-side timeout. The desktop route sets RPC timeout = this + 15s headroom. */
+const POLL_TIMEOUT_MS = 60_000;
 /** Total QR session lifetime. After this the QR is considered expired. */
 const SESSION_TIMEOUT_MS = 5 * 60_000;
 
