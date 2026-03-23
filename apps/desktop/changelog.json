@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.7.7",
+    "date": "2026-03-23",
+    "en": [
+      "Fix duplicate messages in webchat channel event bridge",
+      "Fix local run completion not clearing pending state",
+      "Reorganize merchant extensions into separate private repo",
+      "Improve vendor dependency layout and build script reliability"
+    ],
+    "zh": [
+      "修复网页聊天频道收到重复消息的问题",
+      "修复本地运行完成后状态未正确清除的问题",
+      "商户扩展插件迁移至独立私有仓库",
+      "优化依赖布局和构建脚本可靠性"
+    ]
+  },
+  {
     "version": "1.7.6",
     "date": "2026-03-23",
     "en": [
