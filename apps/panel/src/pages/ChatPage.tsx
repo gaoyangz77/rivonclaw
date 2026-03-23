@@ -451,7 +451,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
     // If not tracked and not our local run, this may be an external run
     // we haven't seen yet (e.g. SSE inbound event arrived late or not at all).
     // Track it so we handle its lifecycle properly.
-    if (chatRunId && !isTrackedRun && !isOurLocalRun) {
+    if (chatRunId && !isTrackedRun && !isOurLocalRun && !tracker.isRecentlyCompleted(chatRunId)) {
       // Only track if it's on our session (delta/final/error from external channel)
       if (payload.state === "delta") {
         tracker.dispatch({

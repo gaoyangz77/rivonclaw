@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { RunTracker, FINAL_FALLBACK_MS } from "./run-tracker.js";
+import { RunTracker, FINAL_FALLBACK_MS, RECENTLY_COMPLETED_TTL_MS } from "./run-tracker.js";
 import type { RunAction } from "./run-tracker.js";
 
 function createTracker() {
@@ -650,6 +650,109 @@ describe("RunTracker", () => {
 
       vi.advanceTimersByTime(FINAL_FALLBACK_MS);
       expect(tracker.getRun("ext1")!.phase).toBe("done");
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // recentlyCompleted (phantom run suppression)
+  // ---------------------------------------------------------------------------
+  describe("recentlyCompleted", () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it("marks run as recently completed after CHAT_FINAL + cleanup", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      tracker.cleanup();
+
+      // Run is no longer tracked but is recently completed
+      expect(tracker.isTracked("r1")).toBe(false);
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+    });
+
+    it("expires recently completed status after TTL", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      tracker.cleanup();
+
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+
+      vi.advanceTimersByTime(RECENTLY_COMPLETED_TTL_MS);
+
+      expect(tracker.isRecentlyCompleted("r1")).toBe(false);
+    });
+
+    it("marks run as recently completed on CHAT_FINAL even before cleanup", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+
+      // Still tracked (not yet cleaned up) but also recently completed
+      expect(tracker.isTracked("r1")).toBe(true);
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+    });
+
+    it("marks run as recently completed on CHAT_ERROR", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_ERROR", runId: "r1" });
+      tracker.cleanup();
+
+      expect(tracker.isTracked("r1")).toBe(false);
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+    });
+
+    it("marks run as recently completed on CHAT_ABORTED", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_ABORTED", runId: "r1" });
+      tracker.cleanup();
+
+      expect(tracker.isTracked("r1")).toBe(false);
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+    });
+
+    it("marks run as recently completed on FORCE_DONE", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "FORCE_DONE", runId: "r1" });
+      tracker.cleanup();
+
+      expect(tracker.isTracked("r1")).toBe(false);
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+    });
+
+    it("reset clears recently completed state", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      tracker.cleanup();
+
+      expect(tracker.isRecentlyCompleted("r1")).toBe(true);
+
+      tracker.reset();
+      expect(tracker.isRecentlyCompleted("r1")).toBe(false);
+    });
+
+    it("reset clears recently completed timers (no late expiry side effects)", () => {
+      const { tracker, onChange } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_FINAL", runId: "r1" });
+      tracker.cleanup();
+
+      tracker.reset();
+      onChange.mockClear();
+
+      // Timer from the old recently-completed should have been cleared
+      vi.advanceTimersByTime(RECENTLY_COMPLETED_TTL_MS + 1000);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("returns false for unknown runId", () => {
+      const { tracker } = createTracker();
+      expect(tracker.isRecentlyCompleted("unknown")).toBe(false);
     });
   });
 

@@ -96,6 +96,9 @@ export type RunAction =
 /** How long to wait after LIFECYCLE_END before force-transitioning to done. */
 export const FINAL_FALLBACK_MS = 5_000;
 
+/** How long a completed runId stays in the "recently completed" set to suppress phantom runs. */
+export const RECENTLY_COMPLETED_TTL_MS = 10_000;
+
 function channelToSource(channel: string): RunSource {
   if (channel === "wechat") return "wechat";
   if (channel === "telegram") return "telegram";
@@ -108,6 +111,9 @@ export class RunTracker {
   private onChange: () => void;
   /** Pending timers that force-transition runs to done if CHAT_FINAL never arrives. */
   private finalFallbackTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** RunIds that recently completed — used to suppress phantom runs from late-arriving deltas. */
+  private recentlyCompleted = new Set<string>();
+  private recentlyCompletedTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(onChange: () => void) {
     this.onChange = onChange;
@@ -232,6 +238,7 @@ export class RunTracker {
 
       case "CHAT_FINAL": {
         this.clearFallbackTimer(action.runId);
+        this.markRecentlyCompleted(action.runId);
         const run = this.runs.get(action.runId);
         if (run) {
           run.phase = "done";
@@ -244,6 +251,7 @@ export class RunTracker {
 
       case "CHAT_ERROR": {
         this.clearFallbackTimer(action.runId);
+        this.markRecentlyCompleted(action.runId);
         const run = this.runs.get(action.runId);
         if (run) {
           run.phase = "error";
@@ -256,6 +264,7 @@ export class RunTracker {
 
       case "CHAT_ABORTED": {
         this.clearFallbackTimer(action.runId);
+        this.markRecentlyCompleted(action.runId);
         const run = this.runs.get(action.runId);
         if (run) {
           run.phase = "aborted";
@@ -269,6 +278,7 @@ export class RunTracker {
       // ---- fallback terminal transition ----
 
       case "FORCE_DONE": {
+        this.markRecentlyCompleted(action.runId);
         const run = this.runs.get(action.runId);
         if (run && ACTIVE_PHASES.has(run.phase)) {
           run.phase = "done";
@@ -380,11 +390,30 @@ export class RunTracker {
     this.finalFallbackTimers.clear();
   }
 
+  /** Mark a runId as recently completed so late-arriving events don't create phantom runs. */
+  private markRecentlyCompleted(runId: string): void {
+    this.recentlyCompleted.add(runId);
+    // Clear any existing timer for this runId to reset the TTL
+    const existing = this.recentlyCompletedTimers.get(runId);
+    if (existing !== undefined) clearTimeout(existing);
+    const timer = setTimeout(() => {
+      this.recentlyCompleted.delete(runId);
+      this.recentlyCompletedTimers.delete(runId);
+    }, RECENTLY_COMPLETED_TTL_MS);
+    this.recentlyCompletedTimers.set(runId, timer);
+  }
+
+  /** Check whether a runId was recently completed (within the TTL window). */
+  isRecentlyCompleted(runId: string): boolean {
+    return this.recentlyCompleted.has(runId);
+  }
+
   /** Remove all terminal-state runs. */
   cleanup(): void {
     let changed = false;
     for (const [id, run] of this.runs) {
       if (!ACTIVE_PHASES.has(run.phase)) {
+        this.markRecentlyCompleted(id);
         this.runs.delete(id);
         this.clearFallbackTimer(id);
         changed = true;
@@ -398,6 +427,11 @@ export class RunTracker {
   /** Reset all state. */
   reset(): void {
     this.clearAllFallbackTimers();
+    for (const timer of this.recentlyCompletedTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.recentlyCompletedTimers.clear();
+    this.recentlyCompleted.clear();
     this.runs.clear();
     this.localRunId = null;
     this.onChange();
