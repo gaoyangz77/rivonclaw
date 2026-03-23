@@ -1,5 +1,5 @@
 import { createLogger } from "@rivonclaw/logger";
-import { resolveOpenClawConfigPath, readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
+import { resolveOpenClawConfigPath, resolveOpenClawStateDir, readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
 import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
 import { DEFAULTS, formatError } from "@rivonclaw/core";
 import { resolveCredentialsDir } from "@rivonclaw/core/node";
@@ -345,6 +345,22 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
       }
 
       removeChannelAccount({ configPath, channelId, accountId });
+
+      // WeChat plugin stores its own state files (account index + credential files).
+      // Clean them up so the plugin doesn't re-register the account on reload.
+      if (channelId === "openclaw-weixin") {
+        const weixinStateDir = join(resolveOpenClawStateDir(), "openclaw-weixin");
+        // Remove credential file
+        await fs.rm(join(weixinStateDir, "accounts", `${accountId}.json`), { force: true });
+        // Remove accountId from index
+        try {
+          const indexPath = join(weixinStateDir, "accounts.json");
+          const raw = await fs.readFile(indexPath, "utf-8");
+          const ids: string[] = JSON.parse(raw);
+          const updated = ids.filter((id: string) => id !== accountId);
+          await fs.writeFile(indexPath, JSON.stringify(updated, null, 2), "utf-8");
+        } catch { /* index file may not exist */ }
+      }
 
       // Remove from SQLite
       storage.channelAccounts.delete(channelId, accountId);
