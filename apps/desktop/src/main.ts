@@ -1067,11 +1067,19 @@ app.whenReady().then(async () => {
       updateAvailable: true,
       currentVersion: app.getVersion(),
       latestVersion: payload.version,
-      releaseNotes: payload.releaseNotes ?? null,
       downloadUrl: payload.downloadUrl ?? null,
     });
     updater.check().catch((err: unknown) => {
       log.warn("Update check after subscription push failed:", err);
+    });
+  }, () => {
+    log.info("Server dismissed update — clearing banner");
+    updater.clearServerPushInfo();
+    pushChatSSE("update-available", {
+      updateAvailable: false,
+      currentVersion: app.getVersion(),
+      latestVersion: null,
+      downloadUrl: null,
     });
   });
   // Connect/disconnect update subscription with auth lifecycle
@@ -1345,9 +1353,6 @@ app.whenReady().then(async () => {
         updateAvailable: info != null,
         currentVersion: app.getVersion(),
         latestVersion: info?.version,
-        releaseNotes: typeof info?.releaseNotes === "string"
-          ? info.releaseNotes
-          : undefined,
       };
     },
     onUpdateDownload: () => updater.download(),

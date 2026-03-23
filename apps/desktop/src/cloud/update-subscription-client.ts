@@ -10,7 +10,6 @@ const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
       version
-      releaseNotes
       downloadUrl
     }
   }
@@ -18,7 +17,6 @@ const UPDATE_SUBSCRIPTION = `
 
 export interface UpdatePayload {
   version: string;
-  releaseNotes?: string;
   downloadUrl?: string;
 }
 
@@ -31,6 +29,7 @@ export class UpdateSubscriptionClient {
     private readonly locale: string,
     private readonly currentVersion: string,
     private readonly onUpdate: (payload: UpdatePayload) => void,
+    private readonly onDismiss?: () => void,
   ) {}
 
   connect(getToken: () => string | null): void {
@@ -91,7 +90,8 @@ export class UpdateSubscriptionClient {
           const payload = result.data?.updateAvailable;
           if (!payload) return;
           if (!isNewerVersion(this.currentVersion, payload.version)) {
-            log.info(`Ignoring update: v${payload.version} is not newer than v${this.currentVersion}`);
+            log.info(`Update dismissed: v${payload.version} is not newer than v${this.currentVersion}`);
+            this.onDismiss?.();
             return;
           }
           log.info(`Update available via subscription: v${payload.version}`);

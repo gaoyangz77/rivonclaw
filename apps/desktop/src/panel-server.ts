@@ -220,7 +220,6 @@ export interface PanelServerOptions {
     currentVersion: string;
     latestVersion?: string;
     download?: { url: string; sha256: string; size: number };
-    releaseNotes?: string;
     error?: string;
   } | null;
   getGatewayInfo?: () => { wsUrl: string; token?: string };

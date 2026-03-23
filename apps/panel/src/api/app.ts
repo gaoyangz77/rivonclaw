@@ -19,7 +19,6 @@ export interface UpdateInfo {
   currentVersion: string | null;
   latestVersion: string | null;
   downloadUrl: string | null;
-  releaseNotes: string | null;
 }
 
 export async function fetchUpdateInfo(): Promise<UpdateInfo> {

@@ -33,7 +33,6 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
       currentVersion: result?.currentVersion ?? null,
       latestVersion: result?.latestVersion ?? null,
       downloadUrl: result?.download?.url ?? null,
-      releaseNotes: result?.releaseNotes ?? null,
     });
     return true;
   }

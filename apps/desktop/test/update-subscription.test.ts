@@ -19,7 +19,6 @@ import {
 
 interface StoredUpdate {
   version: string;
-  releaseNotes?: string;
   downloadUrl?: string;
 }
 
@@ -34,7 +33,6 @@ function buildMockServer() {
     name: "UpdatePayload",
     fields: {
       version: { type: new GraphQLNonNull(GraphQLString) },
-      releaseNotes: { type: GraphQLString },
       downloadUrl: { type: GraphQLString },
     },
   });
@@ -207,7 +205,6 @@ describe("UpdateSubscriptionClient", () => {
   it("connect-time pull: receives stored version when it is newer", async () => {
     mockServer.setStoredUpdate({
       version: "2.0.0",
-      releaseNotes: "New features",
     });
 
     const { result } = waitForUpdate("1.0.0");
@@ -215,7 +212,6 @@ describe("UpdateSubscriptionClient", () => {
 
     expect(payload).not.toBeNull();
     expect(payload!.version).toBe("2.0.0");
-    expect(payload!.releaseNotes).toBe("New features");
   });
 
   it("connect-time pull ignored: no event when stored version is not newer", async () => {
@@ -241,7 +237,6 @@ describe("UpdateSubscriptionClient", () => {
 
     mockServer.pushUpdate({
       version: "3.0.0",
-      releaseNotes: "Major release",
       downloadUrl: "https://example.com/download",
     });
 
@@ -255,7 +250,6 @@ describe("UpdateSubscriptionClient", () => {
 
     const payload = onUpdate.mock.calls[0][0];
     expect(payload.version).toBe("3.0.0");
-    expect(payload.releaseNotes).toBe("Major release");
     expect(payload.downloadUrl).toBe("https://example.com/download");
   });
 
