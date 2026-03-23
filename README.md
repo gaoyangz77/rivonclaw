@@ -46,20 +46,25 @@ RivonClaw enforces file access permissions through an OpenClaw plugin that inter
 
 | Tool    | Version    |
 | ------- | ---------- |
+| Git     | any        |
 | Node.js | >= 24      |
 | pnpm    | 10.6.2     |
 
 ## Quick Start
 
 ```bash
-# 1. Clone and build the vendored OpenClaw runtime
+# 1. Clone the repository
+git clone https://github.com/nicepkg/rivonclaw.git
+cd rivonclaw
+
+# 2. Clone and build the vendored OpenClaw runtime (applies vendor patches automatically)
 ./scripts/setup-vendor.sh
 
-# 2. Install workspace dependencies and build
+# 3. Install workspace dependencies and build
 pnpm install
 pnpm build
 
-# 3. Launch in dev mode
+# 4. Launch in dev mode
 pnpm --filter @rivonclaw/desktop dev
 ```
 

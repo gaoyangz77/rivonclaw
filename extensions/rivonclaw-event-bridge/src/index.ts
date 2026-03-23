@@ -111,8 +111,8 @@ export default defineRivonClawPlugin({
         ctx: { channelId?: string; conversationId?: string },
       ) => {
         if (!gatewayBroadcast || !ctx?.channelId || !evt?.content) return;
-        // Skip mobile channel — it has its own dedicated mobile.inbound mechanism.
-        if (ctx.channelId === "mobile") return;
+        // Skip channels that already show user messages natively.
+        if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
 
         const queue = pendingInboundMessages.get(ctx.channelId) ?? [];
         queue.push({
@@ -138,8 +138,8 @@ export default defineRivonClawPlugin({
         ctx: { sessionKey?: string; channelId?: string; trigger?: string },
       ) => {
         if (!gatewayBroadcast || !ctx?.sessionKey || !ctx?.channelId) return;
-        // Only process external channels (skip mobile — handled separately).
-        if (ctx.channelId === "mobile") return;
+        // Skip channels that already show user messages natively.
+        if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
 
         const queue = pendingInboundMessages.get(ctx.channelId);
         if (!queue || queue.length === 0) return;
