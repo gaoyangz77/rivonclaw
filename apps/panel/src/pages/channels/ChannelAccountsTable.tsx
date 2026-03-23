@@ -527,7 +527,7 @@ export function ChannelAccountsTable({
                 const isDeleting = deletingKey === rowKey;
                 const isExpanded = expandedChannels.has(channelId);
                 const canExpand = channelId !== "mobile" && !QR_LOGIN_CHANNELS.has(channelId);
-                const canEdit = channelId !== "mobile" && !QR_LOGIN_CHANNELS.has(channelId);
+                const canEdit = channelId !== "mobile";
                 return (
                   <Fragment key={rowKey}>
                     <tr

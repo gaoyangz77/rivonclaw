@@ -77,9 +77,27 @@ export function AddChannelAccountModal({
   }
 
   async function handleSave() {
-    // Validation
+    // No schema = name-only edit (e.g. QR login channels like WeChat)
     if (!schema) {
-      setError(t("channels.errorChannelNotSupported", { channelId }));
+      if (!isEdit) {
+        setError(t("channels.errorChannelNotSupported", { channelId }));
+        return;
+      }
+      setSaving(true);
+      setError(null);
+      try {
+        await updateChannelAccount(channelId, existingAccount!.accountId, {
+          name: name.trim() || undefined,
+          config: {},
+        });
+        await onSuccess();
+        resetForm();
+        onClose();
+      } catch (err: unknown) {
+        setError(String(err));
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -197,23 +215,60 @@ export function AddChannelAccountModal({
     onClose();
   }
 
-  // Handle unknown channel
+  // No schema: name-only edit for QR login channels, or error for unknown channels
   if (!schema) {
+    if (!isEdit) {
+      return (
+        <Modal
+          isOpen={isOpen}
+          onClose={handleCancel}
+          title={t("channels.errorLabel")}
+          maxWidth={500}
+        >
+          <div>
+            <p>{t("channels.errorChannelNotSupported", { channelId })}</p>
+            <button
+              className="btn btn-primary error-alert-actions"
+              onClick={handleCancel}
+            >
+              {t("channels.buttonCancel")}
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
     return (
       <Modal
         isOpen={isOpen}
         onClose={handleCancel}
-        title={t("channels.errorLabel")}
+        title={t("channels.modalTitleEdit", { channel: channelLabel })}
         maxWidth={500}
       >
-        <div>
-          <p>{t("channels.errorChannelNotSupported", { channelId })}</p>
-          <button
-            className="btn btn-primary error-alert-actions"
-            onClick={handleCancel}
-          >
-            {t("channels.buttonCancel")}
-          </button>
+        <div className="modal-form-col modal-form-relative">
+          {saving && (
+            <div className="modal-saving-overlay">
+              <div className="modal-saving-spinner" />
+              <span>{t("channels.buttonSaving")}</span>
+            </div>
+          )}
+          <div className="form-group">
+            <label className="form-label-block">{t("channels.displayName")}</label>
+            <input
+              type="text"
+              className="input-full"
+              placeholder={t("channels.displayNamePlaceholder")}
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
+          </div>
+          {error && <div className="modal-error-box">{error}</div>}
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={handleCancel}>{t("channels.buttonCancel")}</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? t("channels.buttonSaving") : t("channels.buttonSave")}
+            </button>
+          </div>
         </div>
       </Modal>
     );
