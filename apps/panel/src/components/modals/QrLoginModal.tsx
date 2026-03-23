@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import { startQrLogin, waitQrLogin } from "../../api/channels.js";
+import { startQrLogin, waitQrLogin, updateChannelAccount } from "../../api/channels.js";
 import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "success" | "error";
@@ -64,6 +64,13 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
           if (abortRef.current) break;
 
           if (result.connected) {
+            // Set accountId as initial display name so the row isn't blank
+            if (result.accountId) {
+              updateChannelAccount(channelId, result.accountId, {
+                name: result.accountId,
+                config: {},
+              }).catch(() => { /* best-effort */ });
+            }
             setPhase("success");
             // Brief delay so user sees the success message
             setTimeout(() => {
