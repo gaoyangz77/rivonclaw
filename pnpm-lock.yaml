@@ -127,9 +127,6 @@ importers:
       '@rivonclaw/rivonclaw-tools':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-tools
-      '@rivonclaw/tiktok-shop':
-        specifier: workspace:*
-        version: link:../../extensions/tiktok-shop
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
