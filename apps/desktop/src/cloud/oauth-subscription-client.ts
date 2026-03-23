@@ -1,4 +1,4 @@
-import { createClient, type Client } from "graphql-ws";
+import { createClient, type Client } from "graphql-ws/client";
 import WebSocket from "ws";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
