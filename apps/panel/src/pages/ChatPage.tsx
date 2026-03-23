@@ -510,6 +510,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
             sendTimeRef.current = 0;
           }
           lastAgentStreamRef.current = null;
+          if (externalPendingRef.current) {
+            setExternalPending(false); externalPendingRef.current = false;
+          }
           tracker.cleanup();
           break;
         }
@@ -519,6 +522,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           const errText = localizeError(raw, tRef.current);
           setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
           lastAgentStreamRef.current = null;
+          if (externalPendingRef.current) {
+            setExternalPending(false); externalPendingRef.current = false;
+          }
           tracker.cleanup();
           break;
         }
@@ -530,6 +536,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
             setMessages((prev) => [...prev, { role: "assistant", text: abortedText, timestamp: Date.now() }]);
           }
           lastAgentStreamRef.current = null;
+          if (externalPendingRef.current) {
+            setExternalPending(false); externalPendingRef.current = false;
+          }
           tracker.cleanup();
           break;
         }

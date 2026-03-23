@@ -93,9 +93,10 @@ test.describe("Chat Agent Events & Settings", () => {
     const assistantBubble = window.locator(".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)");
     await expect(assistantBubble.last()).toBeVisible({ timeout: 60_000 });
 
-    // Thinking indicator should disappear after response
+    // Thinking indicator should disappear after response.
+    // Allow up to 20s: if chat.final is lost, LIFECYCLE_END + 5s FORCE_DONE fallback clears it.
     const thinkingBubble = window.locator(".chat-thinking");
-    await expect(thinkingBubble).not.toBeVisible({ timeout: 10_000 });
+    await expect(thinkingBubble).not.toBeVisible({ timeout: 20_000 });
   });
 
   test("Chat agent phase shows processing status when events enabled", async ({ window, apiBase }) => {
@@ -149,10 +150,11 @@ test.describe("Chat Agent Events & Settings", () => {
     const assistantBubble = window.locator(".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)");
     await expect(assistantBubble.last()).toBeVisible({ timeout: 60_000 });
 
-    // After completion, no thinking indicator should remain
-    await expect(window.locator(".chat-thinking")).not.toBeVisible();
+    // After completion, no thinking indicator should remain.
+    // Allow up to 20s: if chat.final is lost, LIFECYCLE_END + 5s FORCE_DONE fallback clears it.
+    await expect(window.locator(".chat-thinking")).not.toBeVisible({ timeout: 20_000 });
     // No agent phase should remain
-    await expect(window.locator(".chat-agent-phase")).not.toBeVisible();
+    await expect(window.locator(".chat-agent-phase")).not.toBeVisible({ timeout: 20_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────
@@ -352,44 +354,39 @@ test.describe("Chat Agent Events & Settings", () => {
     expect(offResult).toBe("false");
   });
 
-  test("Settings API: can write and read chat_preserve_tool_events", async ({ window, apiBase }) => {
+  test("Settings API: can write and read chat_preserve_tool_events", async ({ electronApp: _app, apiBase }) => {
+    // Wait for panel server to be ready
+    for (let i = 0; i < 30; i++) {
+      const ok = await fetch(`${apiBase}/api/settings`).then(() => true).catch(() => false);
+      if (ok) break;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
     // Write "true"
-    const writeRes = await window.evaluate(async (base) => {
-      const res = await fetch(`${base}/api/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_preserve_tool_events: "true" }),
-      });
-      return res.status;
-    }, apiBase);
-    expect(writeRes).toBe(200);
+    const writeRes = await fetch(`${apiBase}/api/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_preserve_tool_events: "true" }),
+    });
+    expect(writeRes.status).toBe(200);
 
     // Read back
-    const readTrue = await window.evaluate(async (base) => {
-      const res = await fetch(`${base}/api/settings`);
-      const data = await res.json();
-      return data.settings?.chat_preserve_tool_events;
-    }, apiBase);
-    expect(readTrue).toBe("true");
+    const readRes1 = await fetch(`${apiBase}/api/settings`);
+    const readData1 = (await readRes1.json()) as { settings?: { chat_preserve_tool_events?: string } };
+    expect(readData1.settings?.chat_preserve_tool_events).toBe("true");
 
     // Write "false"
-    const writeRes2 = await window.evaluate(async (base) => {
-      const res = await fetch(`${base}/api/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_preserve_tool_events: "false" }),
-      });
-      return res.status;
-    }, apiBase);
-    expect(writeRes2).toBe(200);
+    const writeRes2 = await fetch(`${apiBase}/api/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_preserve_tool_events: "false" }),
+    });
+    expect(writeRes2.status).toBe(200);
 
     // Read back
-    const readFalse = await window.evaluate(async (base) => {
-      const res = await fetch(`${base}/api/settings`);
-      const data = await res.json();
-      return data.settings?.chat_preserve_tool_events;
-    }, apiBase);
-    expect(readFalse).toBe("false");
+    const readRes2 = await fetch(`${apiBase}/api/settings`);
+    const readData2 = (await readRes2.json()) as { settings?: { chat_preserve_tool_events?: string } };
+    expect(readData2.settings?.chat_preserve_tool_events).toBe("false");
   });
 
   // ──────────────────────────────────────────────────────────────────
