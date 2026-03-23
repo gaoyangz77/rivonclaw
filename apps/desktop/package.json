@@ -58,7 +58,7 @@
     "@rivonclaw/rivonclaw-search-browser-fallback": "workspace:*",
     "@rivonclaw/rivonclaw-tools": "workspace:*",
     "@rivonclaw/tiktok-shop": "workspace:*",
-    "channel-weixin": "workspace:*",
+    "openclaw-weixin": "workspace:*",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.3.1",
     "electron": "^40.4.1",

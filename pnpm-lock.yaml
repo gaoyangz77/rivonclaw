@@ -133,9 +133,6 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
-      channel-weixin:
-        specifier: workspace:*
-        version: link:../../extensions/channel-weixin
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
@@ -151,6 +148,9 @@ importers:
       graphql:
         specifier: ^16.13.1
         version: 16.13.1
+      openclaw-weixin:
+        specifier: workspace:*
+        version: link:../../extensions/channel-weixin
       oxlint:
         specifier: ^1.43.0
         version: 1.43.0
