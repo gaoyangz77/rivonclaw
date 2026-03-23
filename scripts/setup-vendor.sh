@@ -10,7 +10,9 @@ git clone https://github.com/openclaw/openclaw.git "$REPO_ROOT/vendor/openclaw"
 cd "$REPO_ROOT/vendor/openclaw"
 git checkout "$HASH"
 git checkout -B main
-echo 'node-linker=hoisted' > .npmrc
+# Use env var for hoisted layout instead of modifying .npmrc,
+# so vendor git stays clean (pre-commit hook checks for dirty state).
+export npm_config_node_linker=hoisted
 pnpm install --no-frozen-lockfile
 pnpm run build
 
@@ -30,7 +32,7 @@ if ls "$PATCH_DIR"/*.patch &>/dev/null; then
 fi
 
 if [ "$PROD" = "--prod" ]; then
-  pnpm install --prod --no-frozen-lockfile
+  npm_config_node_linker=hoisted pnpm install --prod --no-frozen-lockfile
 fi
 
 rm -f .gitignore

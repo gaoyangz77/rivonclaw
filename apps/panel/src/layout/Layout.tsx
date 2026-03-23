@@ -211,7 +211,7 @@ export function Layout({
     { path: "/skills", label: t("nav.skills") },
     { path: "/browser-profiles", label: t("nav.browserProfiles") },
     { path: "/crons", label: t("nav.crons") },
-    { path: "/tiktok-shops", label: t("nav.tiktokShops") },
+    // { path: "/tiktok-shops", label: t("nav.tiktokShops") },  // temporarily hidden
     { path: "/usage", label: t("nav.usage") },
     { path: "/settings", label: t("nav.settings") },
   ];

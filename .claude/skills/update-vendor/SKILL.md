@@ -72,7 +72,9 @@ required here:
 bash .claude/skills/update-vendor/scripts/provision-vendor.sh $NEW_HASH
 ```
 
-Handles: updating `.openclaw-version`, re-provisioning via `setup-vendor.sh`, fixing vendor git state for pre-commit hook (local `main` at pinned commit, clean `.npmrc`).
+Handles: updating `.openclaw-version`, re-provisioning via `setup-vendor.sh`, fixing vendor git state for pre-commit hook (local `main` at pinned commit, clean tree).
+
+> **Note:** `setup-vendor.sh` uses `npm_config_node_linker=hoisted` (env var) to install vendor deps with flat layout. It does NOT modify `.npmrc`, so vendor git stays clean. If you ever need to manually run `pnpm install` inside `vendor/openclaw/`, always prefix with `npm_config_node_linker=hoisted` — otherwise node_modules will use nested symlinks and dev-mode gateway startup will be ~30s slower.
 
 ## Step 5: Replay the patch stack in a disposable patched workspace
 
