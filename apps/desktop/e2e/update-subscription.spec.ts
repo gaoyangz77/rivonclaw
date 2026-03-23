@@ -169,13 +169,12 @@ async function callPublishUpdate(
 // ---------------------------------------------------------------------------
 
 rawTest.describe("Update Subscription — protocol level", () => {
+  rawTest.skip(!adminEmail || !adminPassword, "Staging admin credentials not configured");
+
   let adminToken: string;
 
   rawTest.beforeAll(async () => {
-    if (!adminEmail || !adminPassword) {
-      throw new Error("Missing STAGING_ADMIN_USERNAME or STAGING_ADMIN_PASSWORD in e2e/.env");
-    }
-    const { accessToken } = await loginToStaging(adminEmail, adminPassword);
+    const { accessToken } = await loginToStaging(adminEmail!, adminPassword!);
     adminToken = accessToken;
   });
 
@@ -238,13 +237,12 @@ rawTest.describe("Update Subscription — protocol level", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Update Subscription — full app E2E", () => {
+  test.skip(!adminEmail || !adminPassword, "Staging admin credentials not configured");
+
   let adminToken: string;
 
   test.beforeAll(async () => {
-    if (!adminEmail || !adminPassword) {
-      throw new Error("Missing STAGING_ADMIN_USERNAME or STAGING_ADMIN_PASSWORD in e2e/.env");
-    }
-    const { accessToken } = await loginToStaging(adminEmail, adminPassword);
+    const { accessToken } = await loginToStaging(adminEmail!, adminPassword!);
     adminToken = accessToken;
   });
 

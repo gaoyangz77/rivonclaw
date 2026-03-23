@@ -55,12 +55,16 @@ async function loginAndStoreTokens(apiBase: string): Promise<void> {
   });
   expect(storeRes.status).toBe(200);
 
-  // Wait for async entitlement sync + resolver init, then poll until ready
+  // Wait for async entitlement sync + resolver init, then poll until entitled tools appear.
+  // We check /api/tools/available for source==="entitled" rather than effective-tools,
+  // because system tools load immediately on gateway connect (before login), so
+  // effectiveToolIds.length > 0 would pass before entitled tools are actually ready.
   await new Promise((r) => setTimeout(r, 2000));
-  for (let i = 0; i < 10; i++) {
-    const check = await fetch(`${apiBase}/api/tools/effective-tools?sessionKey=__init-check`);
-    const checkBody = (await check.json()) as { effectiveToolIds: string[] };
-    if (checkBody.effectiveToolIds.length > 0) break;
+  for (let i = 0; i < 15; i++) {
+    const check = await fetch(`${apiBase}/api/tools/available`);
+    const checkBody = (await check.json()) as { tools: Array<{ id: string; source: string }> };
+    const hasEntitled = checkBody.tools.some((t: { source: string }) => t.source === "entitled");
+    if (hasEntitled) break;
     await new Promise((r) => setTimeout(r, 1000));
   }
 }
