@@ -6,8 +6,8 @@ import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "success" | "error";
 
-/** Per-poll server-side timeout (seconds). Gateway returns {connected:false} after this. */
-const POLL_TIMEOUT_MS = 60_000;
+/** Per-poll server-side timeout. Must be shorter than GatewayRpcClient's 30s request timeout. */
+const POLL_TIMEOUT_MS = 25_000;
 /** Total QR session lifetime. After this the QR is considered expired. */
 const SESSION_TIMEOUT_MS = 5 * 60_000;
 
@@ -76,12 +76,7 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
           }
           // Not connected yet -- continue polling
         } catch {
-          // Network error during poll -- stop and show error
-          if (!abortRef.current) {
-            setErrorMessage(t("qrLogin.failed"));
-            setPhase("error");
-          }
-          return;
+          // Poll timeout or transient error -- continue polling until session deadline
         }
       }
       // Session timed out — QR expired
