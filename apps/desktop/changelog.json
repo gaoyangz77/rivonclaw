@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.7.6",
+    "date": "2026-03-23",
+    "en": [
+      "Add WeChat channel integration with QR code login",
+      "Add TikTok Shop customer service tools (21 MCP tools)",
+      "Real-time update push notification via server subscription",
+      "Allow editing display name for QR-login channel accounts",
+      "Auto-set WeChat account display name on login",
+      "Centralize hardcoded URLs and domains into shared config",
+      "Fix chat page getting stuck when final event is missing",
+      "Fix panel theme not syncing to provisioner window",
+      "Fix streaming defaults and Telegram streaming normalization"
+    ],
+    "zh": [
+      "新增微信公众号渠道接入，支持扫码登录",
+      "新增 TikTok Shop 客服工具（21 个 MCP 工具）",
+      "新版本推送改为服务端实时通知",
+      "支持编辑扫码登录渠道的显示名称",
+      "微信账号登录后自动设置显示名称",
+      "统一管理内部链接和域名配置",
+      "修复对话页面偶尔卡住的问题",
+      "修复设置窗口主题不同步的问题",
+      "修复流式响应默认配置和 Telegram 流式规范化"
+    ]
+  },
+  {
     "version": "1.7.5",
     "date": "2026-03-21",
     "en": [
