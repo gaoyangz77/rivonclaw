@@ -6,6 +6,11 @@ import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "success" | "error";
 
+/** Per-poll server-side timeout (seconds). Gateway returns {connected:false} after this. */
+const POLL_TIMEOUT_MS = 60_000;
+/** Total QR session lifetime. After this the QR is considered expired. */
+const SESSION_TIMEOUT_MS = 5 * 60_000;
+
 interface QrLoginModalProps {
   channelId: string;
   onClose: () => void;
@@ -51,10 +56,11 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
       setQrImageUrl(qrData);
       setPhase("scanning");
 
-      // Start long-polling for scan confirmation
-      while (!abortRef.current) {
+      // Start long-polling for scan confirmation with session timeout
+      const deadline = Date.now() + SESSION_TIMEOUT_MS;
+      while (!abortRef.current && Date.now() < deadline) {
         try {
-          const result = await waitQrLogin();
+          const result = await waitQrLogin(undefined, POLL_TIMEOUT_MS);
           if (abortRef.current) break;
 
           if (result.connected) {
@@ -77,6 +83,11 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
           }
           return;
         }
+      }
+      // Session timed out — QR expired
+      if (!abortRef.current) {
+        setErrorMessage(t("qrLogin.expired"));
+        setPhase("error");
       }
     } catch (err: any) {
       if (!abortRef.current) {

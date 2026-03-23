@@ -656,6 +656,22 @@ app.whenReady().then(async () => {
           };
           pushChatSSE("chat-mirror", p);
         }
+        if (evt.event === "rivonclaw.channel-inbound") {
+          const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
+          if (p?.sessionKey && p?.message) {
+            const session = storage.chatSessions.getByKey(p.sessionKey);
+            if (session?.archivedAt) {
+              storage.chatSessions.upsert(p.sessionKey, { archivedAt: null });
+            }
+            pushChatSSE("inbound", {
+              runId: randomUUID(),
+              sessionKey: p.sessionKey,
+              channel: p.channel || "unknown",
+              message: p.message,
+              timestamp: p.timestamp || Date.now(),
+            });
+          }
+        }
         if (evt.event === "mobile.inbound") {
           const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string; mediaPaths?: string[] } | undefined;
           if (p?.sessionKey && p?.message) {

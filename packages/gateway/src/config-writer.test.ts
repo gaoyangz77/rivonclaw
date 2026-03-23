@@ -403,6 +403,54 @@ describe("config-writer", () => {
     });
   });
 
+  describe("writeGatewayConfig - blockStreaming", () => {
+    it("always writes blockStreamingDefault and blockStreamingBreak into agents.defaults", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.blockStreamingDefault).toBe("on");
+      expect(config.agents.defaults.blockStreamingBreak).toBe("text_end");
+    });
+
+    it("preserves existing agents.defaults fields alongside block streaming", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "openai", modelId: "gpt-4o" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
+      expect(config.agents.defaults.blockStreamingDefault).toBe("on");
+      expect(config.agents.defaults.blockStreamingBreak).toBe("text_end");
+    });
+
+    it("overwrites pre-existing block streaming values", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              blockStreamingDefault: "off",
+              blockStreamingBreak: "message_end",
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.blockStreamingDefault).toBe("on");
+      expect(config.agents.defaults.blockStreamingBreak).toBe("text_end");
+    });
+  });
+
   describe("writeGatewayConfig - commandsRestart", () => {
     it("writes commands.restart when enabled", () => {
       const configPath = join(tmpDir, "openclaw.json");
@@ -1181,6 +1229,146 @@ describe("config-writer", () => {
           );
         }
       }
+    });
+  });
+
+  describe("writeGatewayConfig - Telegram streaming normalization", () => {
+    it("normalizes streaming: 'off' to 'block' on Telegram accounts", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: {
+              accounts: {
+                default: { botToken: "tok1", streaming: "off" },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.accounts.default.streaming).toBe("block");
+    });
+
+    it("normalizes streaming: 'partial' to 'block' on Telegram accounts", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: {
+              accounts: {
+                mybot: { botToken: "tok2", streaming: "partial" },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.accounts.mybot.streaming).toBe("block");
+    });
+
+    it("sets streaming to 'block' on Telegram accounts that lack it", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: {
+              accounts: {
+                default: { botToken: "tok3" },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.accounts.default.streaming).toBe("block");
+    });
+
+    it("normalizes multiple Telegram accounts at once", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: {
+              accounts: {
+                bot1: { botToken: "t1", streaming: "off" },
+                bot2: { botToken: "t2", streaming: "partial" },
+                bot3: { botToken: "t3" },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.accounts.bot1.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.bot2.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.bot3.streaming).toBe("block");
+    });
+
+    it("does not affect non-Telegram channel accounts", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: {
+              accounts: {
+                default: { botToken: "tg-tok", streaming: "off" },
+              },
+            },
+            feishu: {
+              accounts: {
+                default: { appId: "fs-app", streaming: "off" },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      // Telegram gets normalized
+      expect(config.channels.telegram.accounts.default.streaming).toBe("block");
+      // Feishu is untouched
+      expect(config.channels.feishu.accounts.default.streaming).toBe("off");
+    });
+
+    it("is a no-op when no telegram channel exists", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            feishu: {
+              accounts: {
+                default: { appId: "fs-app", streaming: "off" },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.feishu.accounts.default.streaming).toBe("off");
     });
   });
 });

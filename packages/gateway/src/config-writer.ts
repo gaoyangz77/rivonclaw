@@ -272,6 +272,8 @@ export interface OpenClawGatewayConfig {
       model?: {
         primary?: string;
       };
+      blockStreamingDefault?: "off" | "on";
+      blockStreamingBreak?: "text_end" | "message_end";
     };
   };
   tools?: {
@@ -592,6 +594,28 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       defaults: {
         ...existingDefaults,
         ...patch,
+      },
+    };
+  }
+
+  // Block streaming defaults — RivonClaw always enables block streaming so that
+  // channel integrations can segment responses at text boundaries rather than
+  // forwarding raw token-by-token SSE chunks.
+  {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        blockStreamingDefault: "on",
+        blockStreamingBreak: "text_end",
       },
     };
   }
@@ -1049,6 +1073,22 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   const migratedChannels = migrateSingleAccountChannels(config);
   if (migratedChannels.length > 0) {
     log.info(`Migrated single-account channel configs: ${migratedChannels.join(", ")}`);
+  }
+
+  // Normalize Telegram streaming mode to "block" so that block streaming
+  // (blockStreamingDefault) is not disabled by streaming: "off".
+  {
+    const telegramChannel = (config.channels as Record<string, unknown> | undefined)?.telegram;
+    if (telegramChannel && typeof telegramChannel === "object") {
+      const accounts = (telegramChannel as Record<string, unknown>).accounts;
+      if (accounts && typeof accounts === "object") {
+        for (const acct of Object.values(accounts as Record<string, unknown>)) {
+          if (acct && typeof acct === "object") {
+            (acct as Record<string, unknown>).streaming = "block";
+          }
+        }
+      }
+    }
   }
 
   // Strip keys unrecognised by the OpenClaw schema (at any nesting level)

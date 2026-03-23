@@ -703,6 +703,7 @@ export default {
     success: "连接成功！",
     failed: "连接失败",
     retry: "重试",
+    expired: "二维码已过期，请重试。",
     gatewayUnavailable: "网关未连接，请先启动网关。",
   },
   mobile: {
