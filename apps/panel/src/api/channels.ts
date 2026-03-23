@@ -194,3 +194,19 @@ export async function removeFromAllowlist(channelId: string, entry: string): Pro
   });
 }
 
+// --- QR Login (WeChat) ---
+
+export async function startQrLogin(accountId?: string): Promise<{ qrDataUrl?: string; message: string }> {
+  return fetchJson<{ qrDataUrl?: string; message: string }>("/channels/qr-login/start", {
+    method: "POST",
+    body: JSON.stringify({ accountId }),
+  });
+}
+
+export async function waitQrLogin(accountId?: string, timeoutMs?: number): Promise<{ connected: boolean; message: string; accountId?: string }> {
+  return fetchJson<{ connected: boolean; message: string; accountId?: string }>("/channels/qr-login/wait", {
+    method: "POST",
+    body: JSON.stringify({ accountId, timeoutMs }),
+  });
+}
+

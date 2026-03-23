@@ -14,7 +14,10 @@ export const KNOWN_CHANNELS = [
   { id: "matrix", labelKey: "channels.channelMatrix", tutorialUrl: "https://docs.openclaw.ai/channels/matrix", tooltip: "channels.tooltipMatrix" },
   { id: "mattermost", labelKey: "channels.channelMattermost", tutorialUrl: "https://docs.openclaw.ai/channels/mattermost", tooltip: "channels.tooltipMattermost" },
   { id: "msteams", labelKey: "channels.channelMsteams", tutorialUrl: "https://docs.openclaw.ai/channels/msteams", tooltip: "channels.tooltipMsteams" },
+  { id: "openclaw-weixin", labelKey: "channels.channelWeixin", tutorialUrl: "", tooltip: "channels.tooltipWeixin" },
 ] as const;
+
+export const QR_LOGIN_CHANNELS = new Set(["openclaw-weixin"]);
 
 
 export function StatusBadge({ status, t }: { status: boolean | null | undefined; t: (key: string) => string }) {

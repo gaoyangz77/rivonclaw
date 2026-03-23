@@ -1,7 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { resolveOpenClawConfigPath, readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
 import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
-import { DEFAULTS } from "@rivonclaw/core";
+import { DEFAULTS, formatError } from "@rivonclaw/core";
 import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
@@ -591,6 +591,52 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
     } catch (err) {
       log.error("Failed to remove from allowlist:", err);
       sendJson(res, 500, { error: String(err) });
+    }
+    return true;
+  }
+
+  // POST /api/channels/qr-login/start
+  if (pathname === "/api/channels/qr-login/start" && req.method === "POST") {
+    const rpcClient = getRpcClient?.();
+    if (!rpcClient || !rpcClient.isConnected()) {
+      sendJson(res, 503, { error: "Gateway not connected" });
+      return true;
+    }
+
+    const body = (await parseBody(req)) as { accountId?: string };
+
+    try {
+      const result = await rpcClient.request<{ qrDataUrl?: string; message: string }>(
+        "web.login.start",
+        { accountId: body.accountId }
+      );
+      sendJson(res, 200, result);
+    } catch (err) {
+      log.error("Failed to start QR login:", err);
+      sendJson(res, 500, { error: formatError(err) });
+    }
+    return true;
+  }
+
+  // POST /api/channels/qr-login/wait
+  if (pathname === "/api/channels/qr-login/wait" && req.method === "POST") {
+    const rpcClient = getRpcClient?.();
+    if (!rpcClient || !rpcClient.isConnected()) {
+      sendJson(res, 503, { error: "Gateway not connected" });
+      return true;
+    }
+
+    const body = (await parseBody(req)) as { accountId?: string; timeoutMs?: number };
+
+    try {
+      const result = await rpcClient.request<{ connected: boolean; message: string; accountId?: string }>(
+        "web.login.wait",
+        { accountId: body.accountId, timeoutMs: body.timeoutMs }
+      );
+      sendJson(res, 200, result);
+    } catch (err) {
+      log.error("Failed to wait for QR login:", err);
+      sendJson(res, 500, { error: formatError(err) });
     }
     return true;
   }

@@ -3536,6 +3536,21 @@ tbody td {
   color: var(--color-text-muted);
 }
 
+/* QR Login Modal (WeChat) */
+.qr-login-body {
+  padding: 1rem 0;
+}
+
+.qr-login-scan-view {
+  text-align: center;
+}
+
+.qr-login-hint {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  color: var(--color-text-secondary);
+}
+
 .select-min-w-200 {
   min-width: 200px;
 }

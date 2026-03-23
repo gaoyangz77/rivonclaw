@@ -12,7 +12,7 @@ import {
 } from "../../api/channels.js";
 import { fetchMobileDeviceStatus, disconnectMobilePairing, getMobilePairingStatus, type MobileDeviceStatusResponse, type MobilePairingInfo } from "../../api/mobile-chat.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
-import { StatusBadge, type AccountEntry } from "./channel-defs.jsx";
+import { StatusBadge, QR_LOGIN_CHANNELS, type AccountEntry } from "./channel-defs.jsx";
 
 /** Show last 3 chars of an ID with a copy-to-clipboard button. */
 function TruncatedId({ value, t }: { value: string; t: (key: string) => string }) {
@@ -526,12 +526,14 @@ export function ChannelAccountsTable({
                 const rowKey = `${channelId}-${account.accountId}`;
                 const isDeleting = deletingKey === rowKey;
                 const isExpanded = expandedChannels.has(channelId);
+                const canExpand = channelId !== "mobile" && !QR_LOGIN_CHANNELS.has(channelId);
+                const canEdit = channelId !== "mobile" && !QR_LOGIN_CHANNELS.has(channelId);
                 return (
                   <Fragment key={rowKey}>
                     <tr
-                      className={`table-hover-row${isDeleting ? " row-deleting" : ""} row-expandable`}
+                      className={`table-hover-row${isDeleting ? " row-deleting" : ""}${canExpand ? " row-expandable" : ""}`}
                       onClick={(e) => {
-                        if (isDeleting) return;
+                        if (isDeleting || !canExpand) return;
                         // Don't toggle when clicking buttons or inputs
                         const target = e.target as HTMLElement;
                         if (target.closest("button, a, input, select")) return;
@@ -539,7 +541,7 @@ export function ChannelAccountsTable({
                       }}
                     >
                       <td className="channel-expand-col">
-                        <span className={`advanced-chevron${isExpanded ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>
+                        {canExpand && <span className={`advanced-chevron${isExpanded ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>}
                       </td>
                       <td className="font-medium">{channelLabel}</td>
                       <td>{account.name || "\u2014"}</td>
@@ -548,9 +550,7 @@ export function ChannelAccountsTable({
                       <td>{account.dmPolicy ? t(`channels.dmPolicyLabel_${account.dmPolicy}`, { defaultValue: account.dmPolicy }) : "\u2014"}</td>
                       <td>
                         <div className="td-actions">
-                          {channelId === "mobile" ? (
-                            <button className="btn btn-secondary btn-invisible" disabled aria-hidden="true">{t("common.edit")}</button>
-                          ) : (
+                          {canEdit ? (
                             <button
                               className="btn btn-secondary"
                               onClick={() => onEdit(channelId, account)}
@@ -558,6 +558,8 @@ export function ChannelAccountsTable({
                             >
                               {t("common.edit")}
                             </button>
+                          ) : (
+                            <button className="btn btn-secondary btn-invisible" disabled aria-hidden="true">{t("common.edit")}</button>
                           )}
                           <button
                             className="btn btn-danger"
@@ -569,7 +571,7 @@ export function ChannelAccountsTable({
                         </div>
                       </td>
                     </tr>
-                    {isExpanded && renderExpandedRow(channelId)}
+                    {isExpanded && canExpand && renderExpandedRow(channelId)}
                   </Fragment>
                 );
               })

@@ -7,9 +7,10 @@ import { MobileBindingModal } from "../components/modals/MobileBindingModal.js";
 import { MobileQrInlineFlow } from "../components/MobileQrInlineFlow.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
-import { KNOWN_CHANNELS, getVisibleChannels, buildAccountsList } from "./channels/channel-defs.jsx";
+import { KNOWN_CHANNELS, QR_LOGIN_CHANNELS, getVisibleChannels, buildAccountsList } from "./channels/channel-defs.jsx";
 import { useChannelsData } from "./channels/use-channels-data.js";
 import { ChannelAccountsTable } from "./channels/ChannelAccountsTable.js";
+import { QrLoginModal } from "../components/modals/QrLoginModal.js";
 
 export function ChannelsPage() {
   const { t, i18n } = useTranslation();
@@ -34,6 +35,9 @@ export function ChannelsPage() {
   // Mobile binding modal
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
 
+  // QR login modal (WeChat)
+  const [qrLoginChannelId, setQrLoginChannelId] = useState<string | null>(null);
+
   // Dropdown selection state for add account
   const [selectedDropdownChannel, setSelectedDropdownChannel] = useState<string>("");
 
@@ -57,6 +61,13 @@ export function ChannelsPage() {
     // Mobile Chat uses its own binding modal (QR code flow)
     if (selectedDropdownChannel === "mobile") {
       setMobileModalOpen(true);
+      return;
+    }
+
+    // QR login channels (e.g., WeChat) use QR code login modal
+    if (QR_LOGIN_CHANNELS.has(selectedDropdownChannel)) {
+      setQrLoginChannelId(selectedDropdownChannel);
+      setSelectedDropdownChannel("");
       return;
     }
 
@@ -326,6 +337,15 @@ export function ChannelsPage() {
         onClose={handleMobileModalClose}
         onBindingSuccess={handleMobileBindingSuccess}
       />
+
+      {/* QR Login Modal (WeChat) */}
+      {qrLoginChannelId && (
+        <QrLoginModal
+          channelId={qrLoginChannelId}
+          onClose={() => setQrLoginChannelId(null)}
+          onSuccess={() => loadChannelStatus()}
+        />
+      )}
 
       {/* Delete Confirm Dialog */}
       <ConfirmDialog

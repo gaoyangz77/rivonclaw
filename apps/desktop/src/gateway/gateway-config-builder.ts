@@ -141,6 +141,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           "rivonclaw-event-bridge",
           "memory-core",
           "rivonclaw-browser-profiles-tools",
+          "openclaw-weixin",
         ],
         entries: {
           "rivonclaw-tools": {

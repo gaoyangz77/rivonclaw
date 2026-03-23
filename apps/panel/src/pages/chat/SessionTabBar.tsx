@@ -47,11 +47,22 @@ const KNOWN_CHANNELS = new Set([
   "telegram", "feishu", "lark", "whatsapp",
   "discord", "slack", "signal", "imessage", "webchat", "line",
   "googlechat", "matrix", "msteams", "mattermost",
+  "openclaw-weixin",
 ]);
+
+/** Map non-trivial channel IDs to their i18n suffix (used for chat.channel* keys). */
+const CHANNEL_I18N_SUFFIX: Record<string, string> = {
+  "openclaw-weixin": "Weixin",
+};
 
 /** Capitalize first letter for building i18n keys like "channelTelegram". */
 function capitalizeFirst(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Resolve the i18n suffix for a channel key. */
+function channelI18nSuffix(key: string): string {
+  return CHANNEL_I18N_SUFFIX[key] ?? capitalizeFirst(key);
 }
 
 /**
@@ -85,11 +96,12 @@ function ChannelBadge({ channel }: { channel: string }) {
   const { t } = useTranslation();
   const key = channel.toLowerCase();
   const isKnown = KNOWN_CHANNELS.has(key);
+  const suffix = channelI18nSuffix(key);
   const shortLabel = isKnown
-    ? t(`chat.channel${capitalizeFirst(key)}`)
+    ? t(`chat.channel${suffix}`)
     : channel.slice(0, 2).toUpperCase();
   const tooltip = isKnown
-    ? t(`chat.channelTooltip${capitalizeFirst(key)}`)
+    ? t(`chat.channelTooltip${suffix}`)
     : channel;
   return (
     <span className="chat-tab-channel-badge" title={tooltip}>

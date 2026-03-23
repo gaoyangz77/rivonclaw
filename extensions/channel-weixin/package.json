@@ -1,0 +1,34 @@
+{
+  "name": "channel-weixin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "dependencies": {
+    "@tencent-weixin/openclaw-weixin": "^1.0.2"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.mjs"
+    ],
+    "channel": {
+      "id": "openclaw-weixin",
+      "label": "WeChat",
+      "selectionLabel": "WeChat",
+      "blurb": "Connect your WeChat account via QR code scan",
+      "order": 75
+    }
+  },
+  "devDependencies": {
+    "tsdown": "^0.20.3",
+    "vitest": "^4.0.18"
+  }
+}
