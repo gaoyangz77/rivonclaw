@@ -4,7 +4,7 @@ export default defineConfig({
   entry: ["src/index.ts"],
   format: "esm",
   clean: true,
-  external: ["qrcode-terminal"],
+  external: ["qrcode-terminal", "silk-wasm"],
   noExternal: [/^@tencent-weixin\//, /^zod/],
   inlineOnly: [/^@tencent-weixin\//, /^zod/],
   onSuccess: async () => {

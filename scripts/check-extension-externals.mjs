@@ -34,8 +34,13 @@ const SPECIFIER_PATTERNS = {
   moduleCreateRequireCall: /module\.createRequire\([^)]*\)\(\s*["']([^"']+)["']\s*\)/g,
 };
 
+// Optional dynamic imports in the upstream @tencent-weixin/openclaw-weixin plugin.
+// These have try/catch fallbacks and are not required at runtime.
+const CHANNEL_WEIXIN_OPTIONAL_EXTERNALS = new Set(["qrcode-terminal", "silk-wasm"]);
+
 function isAllowedWorkspaceSpecifier(spec) {
-  return spec === "openclaw/plugin-sdk" || spec.startsWith("openclaw/plugin-sdk/");
+  return spec === "openclaw/plugin-sdk" || spec.startsWith("openclaw/plugin-sdk/")
+    || CHANNEL_WEIXIN_OPTIONAL_EXTERNALS.has(spec);
 }
 
 function isAllowedSpecifier(spec) {
