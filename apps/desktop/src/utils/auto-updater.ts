@@ -313,11 +313,15 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     setRunFullCleanup: (fn: () => Promise<void>) => {
       runFullCleanup = fn;
     },
-    setServerPushInfo: (info: { version: string; releaseNotes?: string }) => {
+    clearServerPushInfo: () => {
+      latestUpdateInfo = null;
+      deps.updateTray();
+    },
+    setServerPushInfo: (info: { version: string }) => {
       if (!isNewerVersion(app.getVersion(), info.version)) return;
       latestUpdateInfo = {
         version: info.version,
-        releaseNotes: info.releaseNotes ?? null,
+        releaseNotes: null,
         files: [],
         path: "",
         sha512: "",

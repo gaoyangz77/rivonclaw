@@ -96,7 +96,11 @@ export function Layout({
       try {
         const data = JSON.parse(e.data) as UpdateInfo & { currentVersion?: string };
         if (data.currentVersion) setCurrentVersion(data.currentVersion);
-        if (data.updateAvailable) setUpdateInfo(data);
+        if (data.updateAvailable) {
+          setUpdateInfo(data);
+        } else {
+          setUpdateInfo(null);
+        }
       } catch {
         // Ignore malformed SSE data
       }
@@ -222,7 +226,7 @@ export function Layout({
           <span className="update-banner-content">
             {ds.status === "idle" && (
               <>
-                {t("update.bannerText", { version: updateInfo.latestVersion })}{" "}
+                {t("update.bannerText", { version: updateInfo.latestVersion })}
                 <button
                   className="update-banner-action"
                   onClick={handleDownload}

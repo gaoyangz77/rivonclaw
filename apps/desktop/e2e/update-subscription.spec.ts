@@ -41,21 +41,19 @@ const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
       version
-      releaseNotes
       downloadUrl
     }
   }
 `;
 
 const PUBLISH_UPDATE_MUTATION = `
-  mutation PublishUpdate($version: String!, $releaseNotes: String) {
-    publishUpdate(version: $version, releaseNotes: $releaseNotes)
+  mutation PublishUpdate($version: String!) {
+    publishUpdate(version: $version)
   }
 `;
 
 interface UpdatePayload {
   version: string;
-  releaseNotes?: string;
   downloadUrl?: string;
 }
 
@@ -144,7 +142,6 @@ function collectSubscriptionEvents(
 async function callPublishUpdate(
   token: string,
   version: string,
-  releaseNotes?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const res = await fetch(STAGING_GRAPHQL_URL, {
     method: "POST",
@@ -154,7 +151,7 @@ async function callPublishUpdate(
     },
     body: JSON.stringify({
       query: PUBLISH_UPDATE_MUTATION,
-      variables: { version, releaseNotes },
+      variables: { version },
     }),
   });
   const body = (await res.json()) as {
@@ -182,9 +179,14 @@ rawTest.describe("Update Subscription — protocol level", () => {
     adminToken = accessToken;
   });
 
+  rawTest.afterAll(async () => {
+    // Clean up: reset stored version so it doesn't pollute other tests or the real app
+    await callPublishUpdate(adminToken, "0.0.0");
+  });
+
   rawTest("connect-time pull: server pushes stored update when clientVersion is old", async () => {
     // Publish a high version so the server has a stored update
-    const publishResult = await callPublishUpdate(adminToken, "99.0.0", "E2E connect-time pull");
+    const publishResult = await callPublishUpdate(adminToken, "99.0.0");
     rawExpect(publishResult.success).toBe(true);
 
     // Subscribe with a very low version to trigger connect-time pull
@@ -193,7 +195,6 @@ rawTest.describe("Update Subscription — protocol level", () => {
       const events = await collectSubscriptionEvents(client, "0.0.1", 1, 10_000);
       rawExpect(events.length).toBeGreaterThanOrEqual(1);
       rawExpect(events[0].version).toBe("99.0.0");
-      rawExpect(events[0].releaseNotes).toBe("E2E connect-time pull");
     } finally {
       client.dispose();
     }
@@ -220,13 +221,12 @@ rawTest.describe("Update Subscription — protocol level", () => {
       await new Promise((r) => setTimeout(r, 2_000));
 
       const uniqueVersion = `98.${Date.now() % 1000}.0`;
-      const pushResult = await callPublishUpdate(adminToken, uniqueVersion, "E2E admin push");
+      const pushResult = await callPublishUpdate(adminToken, uniqueVersion);
       rawExpect(pushResult.success).toBe(true);
 
       const events = await eventsPromise;
       const pushEvent = events.find((e) => e.version === uniqueVersion);
       rawExpect(pushEvent).toBeDefined();
-      rawExpect(pushEvent!.releaseNotes).toBe("E2E admin push");
     } finally {
       client.dispose();
     }
@@ -246,6 +246,11 @@ test.describe("Update Subscription — full app E2E", () => {
     }
     const { accessToken } = await loginToStaging(adminEmail, adminPassword);
     adminToken = accessToken;
+  });
+
+  test.afterAll(async () => {
+    // Clean up: reset stored version so it doesn't pollute other tests or the real app
+    await callPublishUpdate(adminToken, "0.0.0");
   });
 
   test("update banner appears after admin pushes a new version", async ({ window, apiBase }) => {
@@ -272,7 +277,7 @@ test.describe("Update Subscription — full app E2E", () => {
 
     // 2. Admin publishes a fake high version
     const testVersion = `97.${Date.now() % 1000}.0`;
-    const pushResult = await callPublishUpdate(adminToken, testVersion, "E2E banner test");
+    const pushResult = await callPublishUpdate(adminToken, testVersion);
     expect(pushResult.success).toBe(true);
 
     // 3. Verify the update banner appears in the Panel UI
