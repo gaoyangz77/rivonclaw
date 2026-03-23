@@ -67,6 +67,11 @@ export class AuthSessionManager {
     return this.cachedUser;
   }
 
+  /** Set the cached user directly (e.g. from JWT fallback when validate() fails). */
+  setCachedUser(user: GQL.MeResponse): void {
+    this.cachedUser = user;
+  }
+
   async storeTokens(accessToken: string, refreshToken: string): Promise<void> {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;

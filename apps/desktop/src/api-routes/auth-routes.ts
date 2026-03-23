@@ -41,6 +41,7 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
       const payload = decodeJwtPayload(body.accessToken);
       if (payload && typeof payload.email === "string") {
         user = { userId: (payload.sub as string) ?? "", email: payload.email, name: null, plan: ((payload.plan as string) ?? "") as GQL.UserPlan, createdAt: new Date().toISOString() };
+        ctx.authSession.setCachedUser(user);
       }
     }
     ctx.onAuthChange?.();
