@@ -146,12 +146,11 @@ if [ "$SKIP_BUILD" -eq 1 ]; then
   echo "==> Skipping pnpm install + build"
 else
   echo "==> Installing patched vendor dependencies"
-  if ! grep -q 'node-linker=hoisted' "$TARGET_DIR/.npmrc" 2>/dev/null; then
-    echo 'node-linker=hoisted' >> "$TARGET_DIR/.npmrc"
-  fi
-
   (
     cd "$TARGET_DIR"
+    # Use env var for hoisted layout instead of modifying .npmrc,
+    # so vendor git stays clean.
+    export npm_config_node_linker=hoisted
     pnpm install --no-frozen-lockfile
     pnpm run build
     if [ "$PROD_ONLY" -eq 1 ]; then
