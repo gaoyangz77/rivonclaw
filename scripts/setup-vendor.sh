@@ -35,5 +35,9 @@ if [ "$PROD" = "--prod" ]; then
   npm_config_node_linker=hoisted pnpm install --prod --no-frozen-lockfile
 fi
 
+# Remove .gitignore so dist/ and node_modules/ are visible to electron-builder
+# during CI packaging. Replicate the ignore rules in .git/info/exclude so that
+# git status stays clean locally (pre-commit hook checks for dirty state).
+cp .gitignore .git/info/exclude
 rm -f .gitignore
 echo "OpenClaw vendor ready ($HASH)"
