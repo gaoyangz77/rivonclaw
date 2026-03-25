@@ -23,8 +23,7 @@
   },
   "dependencies": {
     "@rivonclaw/plugin-sdk": "workspace:*",
-    "@rivonclaw/policy": "workspace:*",
-    "@rivonclaw/logger": "workspace:*"
+    "@rivonclaw/policy": "workspace:*"
   },
   "devDependencies": {
     "tsdown": "^0.20.3",

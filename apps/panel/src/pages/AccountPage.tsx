@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getUserInitial } from "../lib/user-manager.js";
 import { Modal } from "../components/modals/Modal.js";
+import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { ToolMultiSelect } from "../components/inputs/ToolMultiSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ModuleIcon } from "../components/icons.js";
@@ -42,6 +43,10 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   const [savingSurface, setSavingSurface] = useState(false);
   const [presetModalOpen, setPresetModalOpen] = useState(false);
   const [selectedPresetId, setSelectedPresetId] = useState("");
+
+  // ── Confirm dialog state ──
+  const [confirmDeleteSurfaceId, setConfirmDeleteSurfaceId] = useState<string | null>(null);
+  const [confirmDeleteProfileId, setConfirmDeleteProfileId] = useState<string | null>(null);
 
   // ── Run Profile modal state ──
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -120,7 +125,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   }
 
   async function handleDeleteSurface(id: string) {
-    if (!window.confirm(t("surfaces.confirmDeleteSurface"))) return;
+    setConfirmDeleteSurfaceId(null);
     setSurfaceError(null);
     try {
       await storeDeleteSurface(id);
@@ -178,7 +183,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   }
 
   async function handleDeleteProfile(profileId: string) {
-    if (!window.confirm(t("surfaces.confirmDeleteRunProfile"))) return;
+    setConfirmDeleteProfileId(null);
     setProfileError(null);
     try {
       await storeDeleteRunProfile(profileId);
@@ -330,7 +335,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                         <button className="btn btn-secondary btn-sm" onClick={() => openEditSurface(s)}>
                           {t("surfaces.editSurface")}
                         </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteSurface(s.id)}>
+                        <button className="btn btn-danger btn-sm" onClick={() => setConfirmDeleteSurfaceId(s.id)}>
                           {t("surfaces.deleteSurface")}
                         </button>
                       </div>
@@ -398,7 +403,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                         <button className="btn btn-secondary btn-sm" onClick={() => openEditProfile(p)}>
                           {t("surfaces.editRunProfile")}
                         </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteProfile(p.id)}>
+                        <button className="btn btn-danger btn-sm" onClick={() => setConfirmDeleteProfileId(p.id)}>
                           {t("surfaces.deleteRunProfile")}
                         </button>
                       </div>
@@ -598,6 +603,28 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
           </div>
         </div>
       </Modal>
+
+      {/* ── Delete Surface Confirm ── */}
+      <ConfirmDialog
+        isOpen={confirmDeleteSurfaceId !== null}
+        title={t("surfaces.deleteSurface")}
+        message={t("surfaces.confirmDeleteSurface")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => confirmDeleteSurfaceId && handleDeleteSurface(confirmDeleteSurfaceId)}
+        onCancel={() => setConfirmDeleteSurfaceId(null)}
+      />
+
+      {/* ── Delete RunProfile Confirm ── */}
+      <ConfirmDialog
+        isOpen={confirmDeleteProfileId !== null}
+        title={t("surfaces.deleteRunProfile")}
+        message={t("surfaces.confirmDeleteRunProfile")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => confirmDeleteProfileId && handleDeleteProfile(confirmDeleteProfileId)}
+        onCancel={() => setConfirmDeleteProfileId(null)}
+      />
 
       {/* ── RunProfile Modal ── */}
       <Modal

@@ -92,6 +92,18 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     mistral: "RIVONCLAW_EMB_MISTRAL_APIKEY",
   };
 
+  /** Build plugin config for rivonclaw-policy from compiled artifacts in storage. */
+  function buildPolicyPluginConfig(): { compiledPolicy: string; guards: Array<{ id: string; ruleId: string; content: string }> } {
+    const allArtifacts = storage.artifacts.getAll();
+    const policyFragments = allArtifacts
+      .filter((a) => a.type === "policy-fragment" && a.status === "ok")
+      .map((a) => a.content);
+    const guards = allArtifacts
+      .filter((a) => a.type === "guard" && a.status === "ok")
+      .map((a) => ({ id: a.id, ruleId: a.ruleId, content: a.content }));
+    return { compiledPolicy: policyFragments.join("\n"), guards };
+  }
+
   async function buildFullGatewayConfig(overrides?: { toolAllowlist?: string[] }): Promise<Parameters<typeof writeGatewayConfig>[0]> {
     const activeKey = storage.providerKeys.getActive();
     const curProvider = activeKey?.provider as LLMProvider | undefined;
@@ -143,6 +155,9 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
             config: {
               browserMode: curBrowserMode,
             },
+          },
+          "rivonclaw-policy": {
+            config: buildPolicyPluginConfig(),
           },
         },
       },

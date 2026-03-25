@@ -5,6 +5,23 @@
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {}
+    "properties": {
+      "compiledPolicy": {
+        "type": "string",
+        "description": "Concatenated compiled policy fragments"
+      },
+      "guards": {
+        "type": "array",
+        "description": "Active guard directives",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "ruleId": { "type": "string" },
+            "content": { "type": "string" }
+          }
+        }
+      }
+    }
   }
 }
