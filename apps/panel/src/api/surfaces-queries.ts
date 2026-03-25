@@ -9,6 +9,24 @@ export const SURFACES_QUERY = gql`
       description
       allowedToolIds
       allowedCategories
+      moduleId
+      presetId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const SYSTEM_SURFACES_QUERY = gql`
+  query SystemSurfaces($moduleId: String) {
+    systemSurfaces(moduleId: $moduleId) {
+      id
+      userId
+      name
+      description
+      allowedToolIds
+      allowedCategories
+      moduleId
       presetId
       createdAt
       updatedAt
@@ -25,6 +43,7 @@ export const CREATE_SURFACE_MUTATION = gql`
       description
       allowedToolIds
       allowedCategories
+      moduleId
       presetId
       createdAt
       updatedAt
@@ -41,6 +60,7 @@ export const UPDATE_SURFACE_MUTATION = gql`
       description
       allowedToolIds
       allowedCategories
+      moduleId
       presetId
       createdAt
       updatedAt

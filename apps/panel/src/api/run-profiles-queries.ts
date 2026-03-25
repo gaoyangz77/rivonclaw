@@ -8,6 +8,22 @@ export const RUN_PROFILES_QUERY = gql`
       name
       selectedToolIds
       surfaceId
+      moduleId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const SYSTEM_RUN_PROFILES_QUERY = gql`
+  query SystemRunProfiles($moduleId: String) {
+    systemRunProfiles(moduleId: $moduleId) {
+      id
+      userId
+      name
+      selectedToolIds
+      surfaceId
+      moduleId
       createdAt
       updatedAt
     }
@@ -22,6 +38,7 @@ export const CREATE_RUN_PROFILE_MUTATION = gql`
       name
       selectedToolIds
       surfaceId
+      moduleId
       createdAt
       updatedAt
     }
@@ -36,6 +53,7 @@ export const UPDATE_RUN_PROFILE_MUTATION = gql`
       name
       selectedToolIds
       surfaceId
+      moduleId
       createdAt
       updatedAt
     }

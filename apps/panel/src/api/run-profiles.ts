@@ -1,6 +1,7 @@
 import { getClient, trackedQuery } from "./apollo-client.js";
 import {
   RUN_PROFILES_QUERY,
+  SYSTEM_RUN_PROFILES_QUERY,
   CREATE_RUN_PROFILE_MUTATION,
   UPDATE_RUN_PROFILE_MUTATION,
   DELETE_RUN_PROFILE_MUTATION,
@@ -12,6 +13,7 @@ export interface RunProfile {
   name: string;
   selectedToolIds: string[];
   surfaceId: string;
+  moduleId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,17 @@ export async function fetchRunProfiles(surfaceId?: string): Promise<RunProfile[]
       fetchPolicy: "cache-first",
     });
     return result.data!.runProfiles;
+  });
+}
+
+export async function fetchSystemRunProfiles(moduleId?: string): Promise<RunProfile[]> {
+  return trackedQuery(async () => {
+    const result = await getClient().query<{ systemRunProfiles: RunProfile[] }>({
+      query: SYSTEM_RUN_PROFILES_QUERY,
+      variables: moduleId ? { moduleId } : {},
+      fetchPolicy: "cache-first",
+    });
+    return result.data!.systemRunProfiles;
   });
 }
 

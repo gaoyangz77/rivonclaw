@@ -5,7 +5,7 @@ import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
 import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from "../components/icons.js";
-import { useAuth, usePanelStore } from "../stores/index.js";
+import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
 import type { Shop, ServiceCreditInfo } from "../stores/index.js";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
@@ -55,6 +55,7 @@ type DrawerTab = "overview" | "aiCustomerService";
 export function EcommercePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { tools: allTools } = useToolRegistry();
 
   const shops = usePanelStore((s) => s.shops);
   const shopsLoading = usePanelStore((s) => s.shopsLoading);
@@ -73,6 +74,8 @@ export function EcommercePage() {
   const storeFetchSessionStats = usePanelStore((s) => s.fetchSessionStats);
   const storeRedeemCredit = usePanelStore((s) => s.redeemCredit);
   const storeSetSelectedShopId = usePanelStore((s) => s.setSelectedShopId);
+  const runProfiles = usePanelStore((s) => s.runProfiles);
+  const storeFetchRunProfiles = usePanelStore((s) => s.fetchRunProfiles);
 
   const [error, setError] = useState<string | null>(null);
   const [upgradePrompt, setUpgradePrompt] = useState(false);
@@ -94,14 +97,13 @@ export function EcommercePage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
+  const [savingRunProfile, setSavingRunProfile] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
 
   // Manual refresh state
   const [refreshing, setRefreshing] = useState(false);
 
   // Fallback polling ref for OAuth waiting (if SSE fails to deliver)
-  const oauthPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const shopCountAtOAuthStart = useRef<number>(0);
 
   // SSE listener for oauth_complete
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,10 +120,6 @@ export function EcommercePage() {
       sseRef.current.close();
       sseRef.current = null;
     }
-    if (oauthPollRef.current) {
-      clearInterval(oauthPollRef.current);
-      oauthPollRef.current = null;
-    }
     setOauthWaiting(false);
     setOauthAuthUrl(null);
     setLinkCopied(false);
@@ -132,26 +130,17 @@ export function EcommercePage() {
     return () => {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
       if (sseRef.current) sseRef.current.close();
-      if (oauthPollRef.current) clearInterval(oauthPollRef.current);
     };
   }, []);
 
-  // Fetch shops and platform apps on mount
+  // Fetch shops, platform apps, and run profiles on mount
   useEffect(() => {
     if (user) {
       storeFetchShops();
       storeFetchPlatformApps();
+      storeFetchRunProfiles();
     }
   }, [user]);
-
-  // Fallback: detect new shops during OAuth polling and auto-complete
-  useEffect(() => {
-    if (oauthWaiting && shops.length > shopCountAtOAuthStart.current) {
-      cleanupOAuthWait();
-      setConnectModalOpen(false);
-      setSuccessMsg(t("ecommerce.oauthSuccess"));
-    }
-  }, [oauthWaiting, shops.length, cleanupOAuthWait, t]);
 
   // Market containment mapping — for future-proofing
   const MARKET_CONTAINS: Record<string, string[]> = useMemo(() => ({
@@ -227,9 +216,6 @@ export function EcommercePage() {
     const sse = new EventSource("/api/chat/events");
     sseRef.current = sse;
 
-    // Record current shop count for fallback polling comparison
-    shopCountAtOAuthStart.current = shops.length;
-
     sse.addEventListener("oauth-complete", (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
@@ -248,15 +234,6 @@ export function EcommercePage() {
         console.warn("[EcommercePage] OAuth SSE connection closed");
       }
     });
-
-    // Fallback polling: if SSE doesn't deliver, poll every 5s and detect new shops
-    oauthPollRef.current = setInterval(async () => {
-      try {
-        await storeFetchShops();
-      } catch {
-        // Ignore poll errors
-      }
-    }, 5000);
 
     oauthTimeoutRef.current = setTimeout(() => {
       cleanupOAuthWait();
@@ -342,6 +319,8 @@ export function EcommercePage() {
       if (selectedShopId === shopId) {
         closeDrawer();
       }
+      setSuccessMsg(t("ecommerce.disconnectSuccess"));
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       handleError(err, "ecommerce.deleteFailed");
     }
@@ -381,6 +360,22 @@ export function EcommercePage() {
       handleError(err, "ecommerce.updateFailed");
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function handleRunProfileChange(profileId: string) {
+    if (!selectedShopId) return;
+    setSavingRunProfile(true);
+    setError(null);
+    setUpgradePrompt(false);
+    try {
+      await storeUpdateShop(selectedShopId, {
+        services: { customerService: { runProfileId: profileId } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingRunProfile(false);
     }
   }
 
@@ -429,6 +424,8 @@ export function EcommercePage() {
       case "REVOKED":
       case "PENDING_AUTH":
         return "badge badge-danger";
+      case "DISCONNECTED":
+        return "badge badge-muted";
       default:
         return "badge badge-muted";
     }
@@ -459,6 +456,19 @@ export function EcommercePage() {
     return null;
   }
 
+  const selectedRunProfileId = selectedShop?.services.customerService.runProfileId ?? "";
+  const selectedRunProfile = runProfiles.find((p) => p.id === selectedRunProfileId) ?? null;
+
+  const runProfileOptions = useMemo(
+    () => runProfiles.map((p) => ({ value: p.id, label: p.name })),
+    [runProfiles],
+  );
+
+  function toolDisplayName(toolId: string): string {
+    const tool = allTools.find((t) => t.id === toolId);
+    return t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
+  }
+
   const csCredits = credits.filter((c) => c.service === "CUSTOMER_SERVICE" && c.status === "AVAILABLE");
 
   if (!user) {
@@ -476,19 +486,21 @@ export function EcommercePage() {
     <div className="page-enter">
       <div className="ecommerce-page-header">
         <div>
-          <h1>{t("ecommerce.title")}</h1>
+          <h1>
+            {t("ecommerce.title")}
+            <button
+              className="btn-icon-inline"
+              onClick={handleRefreshShops}
+              disabled={refreshing}
+              aria-label={t("ecommerce.refreshShops")}
+              title={t("ecommerce.refreshShops")}
+            >
+              <RefreshIcon className={refreshing ? "spin" : ""} />
+            </button>
+          </h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.subtitle")}</p>
         </div>
         <div className="ecommerce-header-actions">
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={handleRefreshShops}
-            disabled={refreshing}
-            aria-label={t("ecommerce.refreshShops")}
-          >
-            <RefreshIcon className={refreshing ? "spin" : ""} />
-            {refreshing ? t("ecommerce.refreshingShops") : t("ecommerce.refreshShops")}
-          </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => {
@@ -904,6 +916,37 @@ export function EcommercePage() {
                         )}
                       </span>
                     </div>
+                  )}
+                </div>
+
+                {/* RunProfile Selector */}
+                <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.runProfile")}</div>
+                <div className="shop-info-card">
+                  <div className="shop-runprofile-row">
+                    <label className="form-label-block">{t("ecommerce.shopDrawer.aiCS.runProfileLabel")}</label>
+                    <Select
+                      value={selectedRunProfileId}
+                      onChange={handleRunProfileChange}
+                      options={runProfileOptions}
+                      placeholder={t("ecommerce.shopDrawer.aiCS.runProfileNone")}
+                      disabled={savingRunProfile}
+                      className="input-full"
+                    />
+                  </div>
+                  {selectedRunProfile ? (
+                    <div className="shop-runprofile-tools">
+                      <div className="form-label-block">{t("ecommerce.shopDrawer.aiCS.availableTools")}</div>
+                      <ul className="shop-tool-list">
+                        {selectedRunProfile.selectedToolIds.map((toolId) => (
+                          <li key={toolId} className="shop-tool-list-item">{toolDisplayName(toolId)}</li>
+                        ))}
+                      </ul>
+                      <div className="shop-tool-count">
+                        {t("ecommerce.shopDrawer.aiCS.toolCount", { count: selectedRunProfile.selectedToolIds.length })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="form-hint">{t("ecommerce.shopDrawer.aiCS.runProfileHint")}</div>
                   )}
                 </div>
 

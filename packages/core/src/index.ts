@@ -265,5 +265,7 @@ export { DEFAULTS } from "./defaults.js";
 
 export * as GQL from "./generated/graphql.js";
 
+export { toolName } from "./tool-utils.js";
+
 export { stripReasoningTagsFromText } from "./generated/reasoning-tags.js";
 export type { ReasoningTagMode, ReasoningTagTrim } from "./generated/reasoning-tags.js";

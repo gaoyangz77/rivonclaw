@@ -39,7 +39,7 @@ export interface ShopsSlice {
       shopName?: string;
       authStatus?: string;
       region?: string;
-      services?: { customerService?: { enabled?: boolean; businessPrompt?: string } };
+      services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string } };
     },
   ) => Promise<Shop>;
   deleteShop: (id: string) => Promise<void>;

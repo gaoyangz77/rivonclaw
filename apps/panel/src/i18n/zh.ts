@@ -1520,12 +1520,22 @@ export default {
         TIKTOK_CREATE_CONVERSATION: "TikTok — 创建会话",
         TIKTOK_SEND_MESSAGE: "TikTok — 发送消息",
         TIKTOK_READ_MESSAGE: "TikTok — 标记已读",
+        TIKTOK_READ_MESSAGES: "TikTok — 获取未读消息",
         TIKTOK_UPLOAD_IMAGE: "TikTok — 上传图片",
         TIKTOK_UPDATE_AGENT_SETTINGS: "TikTok — 更新设置",
         TIKTOK_SEARCH_SESSIONS: "TikTok — 搜索会话",
+        // TikTok 双工具变体（买家视角）
+        TIKTOK_GET_ORDER_FOR_BUYER: "TikTok — 订单详情（买家）",
+        TIKTOK_LIST_BUYER_ORDERS: "TikTok — 订单列表（买家）",
+        TIKTOK_GET_LOGISTICS_FOR_BUYER: "TikTok — 物流追踪（买家）",
+        // TikTok 双工具变体（卖家/运营）
+        TIKTOK_GET_ORDER: "TikTok — 查询订单",
+        TIKTOK_LIST_ORDERS: "TikTok — 订单列表",
+        TIKTOK_GET_LOGISTICS_TRACKING: "TikTok — 物流追踪",
         // TikTok 商品/物流
         TIKTOK_GET_PRODUCT: "TikTok — 商品详情",
         TIKTOK_GET_WAREHOUSES: "TikTok — 仓库列表",
+        TIKTOK_GET_GLOBAL_WAREHOUSES: "TikTok — 全球仓库",
         TIKTOK_GET_SHIPPING_PROVIDERS: "TikTok — 物流商",
         // 电商店铺管理
         ECOMMERCE_LIST_SHOPS: "电商 — 店铺列表",
@@ -2087,6 +2097,7 @@ export default {
     authStatus_TOKEN_EXPIRED: "令牌过期",
     authStatus_REVOKED: "已撤销",
     authStatus_PENDING_AUTH: "待授权",
+    authStatus_DISCONNECTED: "已断开",
     // Balance
     balance: {
       remaining: "剩余 {{balance}}",
@@ -2099,7 +2110,8 @@ export default {
     // Actions
     reauthorize: "重新授权",
     disconnect: "断开连接",
-    confirmDisconnect: "确定要断开此店铺的连接吗？这将删除所有相关令牌，且无法撤销。",
+    confirmDisconnect: "断开此店铺的连接？您的服务余额将被保留，重新连接后可恢复。",
+    disconnectSuccess: "店铺已断开连接。余额已保留。",
     // Service toggles
     customerServiceLabel: "AI 智能客服",
     customerServiceActiveHint: "此店铺的 AI 客服已激活。可在技能页面配置客服技能。",
@@ -2234,13 +2246,20 @@ export default {
         credits: "充值卡",
         sessions: "会话统计",
         noCredits: "没有可用的充值卡",
+        runProfile: "Agent 权限配置",
+        runProfileLabel: "运行配置",
+        runProfileHint: "选择一个运行配置来控制客服 Agent 可以使用的工具。",
+        runProfileNone: "未选择运行配置",
+        availableTools: "可用工具",
+        toolCount: "共 {{count}} 个工具",
       },
     },
     noShops: "尚未连接任何店铺。点击「添加店铺」开始。",
     view: "查看",
     reauthorize: "重新授权",
     disconnect: "断开连接",
-    confirmDisconnect: "确定要断开此店铺的连接吗？这将删除所有相关令牌，且无法撤销。",
+    confirmDisconnect: "断开此店铺的连接？您的服务余额将被保留，重新连接后可恢复。",
+    disconnectSuccess: "店铺已断开连接。余额已保留。",
     oauthSuccess: "店铺连接成功！",
     oauthFailed: "连接店铺失败，请重试。",
     oauthTimeout: "授权超时，请重试。",

@@ -1,4 +1,6 @@
 import { z } from "zod/v4";
+import { ToolId } from "../generated/graphql.js";
+import { toolName } from "../tool-utils.js";
 
 // ---------------------------------------------------------------------------
 // Common types
@@ -560,35 +562,35 @@ export type TiktokToolCategory = z.infer<typeof tiktokToolCategorySchema>;
 export const TIKTOK_TOOL_REGISTRY = [
   // CS Read Tools
   {
-    name: "tiktok_get_conversations",
+    name: toolName(ToolId.TiktokGetConversations),
     description: "Get a paginated list of customer service conversations",
     category: "TIKTOK_CS",
     inputSchema: getConversationsInputSchema,
     outputSchema: getConversationsOutputSchema,
   },
   {
-    name: "tiktok_get_conversation_messages",
+    name: toolName(ToolId.TiktokGetConversationMessages),
     description: "Get messages within a specific conversation",
     category: "TIKTOK_CS",
     inputSchema: getConversationMessagesInputSchema,
     outputSchema: getConversationMessagesOutputSchema,
   },
   {
-    name: "tiktok_get_conversation_details",
+    name: toolName(ToolId.TiktokGetConversationDetails),
     description: "Get detailed information about a specific conversation",
     category: "TIKTOK_CS",
     inputSchema: getConversationDetailsInputSchema,
     outputSchema: getConversationDetailsOutputSchema,
   },
   {
-    name: "tiktok_get_agent_settings",
+    name: toolName(ToolId.TiktokGetAgentSettings),
     description: "Get current customer service agent settings",
     category: "TIKTOK_CS",
     inputSchema: getAgentSettingsInputSchema,
     outputSchema: getAgentSettingsOutputSchema,
   },
   {
-    name: "tiktok_get_cs_performance",
+    name: toolName(ToolId.TiktokGetCsPerformance),
     description: "Get customer service performance metrics",
     category: "TIKTOK_CS",
     inputSchema: getCsPerformanceInputSchema,
@@ -596,35 +598,35 @@ export const TIKTOK_TOOL_REGISTRY = [
   },
   // CS Write Tools
   {
-    name: "tiktok_create_conversation",
+    name: toolName(ToolId.TiktokCreateConversation),
     description: "Create a new customer service conversation with a buyer",
     category: "TIKTOK_CS",
     inputSchema: createConversationInputSchema,
     outputSchema: createConversationOutputSchema,
   },
   {
-    name: "tiktok_send_message",
+    name: toolName(ToolId.TiktokSendMessage),
     description: "Send a message in an existing conversation",
     category: "TIKTOK_CS",
     inputSchema: sendMessageInputSchema,
     outputSchema: sendMessageOutputSchema,
   },
   {
-    name: "tiktok_read_message",
+    name: toolName(ToolId.TiktokReadMessage),
     description: "Mark messages as read in a conversation",
     category: "TIKTOK_CS",
     inputSchema: readMessageInputSchema,
     outputSchema: readMessageOutputSchema,
   },
   {
-    name: "tiktok_update_agent_settings",
+    name: toolName(ToolId.TiktokUpdateAgentSettings),
     description: "Update customer service agent configuration",
     category: "TIKTOK_CS",
     inputSchema: updateAgentSettingsInputSchema,
     outputSchema: updateAgentSettingsOutputSchema,
   },
   {
-    name: "tiktok_search_sessions",
+    name: toolName(ToolId.TiktokSearchSessions),
     description: "Search customer service sessions with filters",
     category: "TIKTOK_CS",
     inputSchema: searchSessionsInputSchema,
@@ -632,28 +634,28 @@ export const TIKTOK_TOOL_REGISTRY = [
   },
   // Order tools (two-tool variant pattern per ADR-032)
   {
-    name: "tiktok_get_order",
+    name: toolName(ToolId.TiktokGetOrder),
     description: "Get order details by order ID (seller/ops — no buyer filter)",
     category: "TIKTOK_ORDER",
     inputSchema: getOrderInputSchema,
     outputSchema: getOrderOutputSchema,
   },
   {
-    name: "tiktok_get_order_for_buyer",
+    name: toolName(ToolId.TiktokGetOrderForBuyer),
     description: "Get order details scoped to session buyer (CS variant — platform enforcement)",
     category: "TIKTOK_ORDER",
     inputSchema: getOrderForBuyerInputSchema,
     outputSchema: getOrderOutputSchema,
   },
   {
-    name: "tiktok_list_orders",
+    name: toolName(ToolId.TiktokListOrders),
     description: "List orders with optional filters (seller/ops — no buyer filter)",
     category: "TIKTOK_ORDER",
     inputSchema: listOrdersInputSchema,
     outputSchema: listOrdersOutputSchema,
   },
   {
-    name: "tiktok_list_buyer_orders",
+    name: toolName(ToolId.TiktokListBuyerOrders),
     description: "List orders for the session buyer (CS variant — platform enforcement)",
     category: "TIKTOK_ORDER",
     inputSchema: listBuyerOrdersInputSchema,
@@ -661,7 +663,7 @@ export const TIKTOK_TOOL_REGISTRY = [
   },
   // Product
   {
-    name: "tiktok_get_product",
+    name: toolName(ToolId.TiktokGetProduct),
     description: "Get detailed product information by product ID",
     category: "TIKTOK_PRODUCT",
     inputSchema: getProductInputSchema,
@@ -669,41 +671,41 @@ export const TIKTOK_TOOL_REGISTRY = [
   },
   // Logistics tools (two-tool variant pattern per ADR-032)
   {
-    name: "tiktok_get_logistics_tracking",
+    name: toolName(ToolId.TiktokGetLogisticsTracking),
     description: "Get logistics tracking for an order (seller/ops — no buyer filter)",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getLogisticsTrackingInputSchema,
     outputSchema: getLogisticsTrackingOutputSchema,
   },
   {
-    name: "tiktok_get_logistics_for_buyer",
+    name: toolName(ToolId.TiktokGetLogisticsForBuyer),
     description: "Get logistics tracking scoped to session buyer (CS variant — platform enforcement)",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getLogisticsForBuyerInputSchema,
     outputSchema: getLogisticsTrackingOutputSchema,
   },
   {
-    name: "tiktok_get_warehouses",
+    name: toolName(ToolId.TiktokGetWarehouses),
     description: "Get a list of seller warehouses",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getWarehousesInputSchema,
     outputSchema: getWarehousesOutputSchema,
   },
   {
-    name: "tiktok_get_global_warehouses",
+    name: toolName(ToolId.TiktokGetGlobalWarehouses),
     description: "Get global seller warehouse information",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getGlobalWarehousesInputSchema,
     outputSchema: getGlobalWarehousesOutputSchema,
   },
   {
-    name: "tiktok_get_shipping_providers",
+    name: toolName(ToolId.TiktokGetShippingProviders),
     description: "Get shipping providers for a delivery option",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getShippingProvidersInputSchema,
     outputSchema: getShippingProvidersOutputSchema,
   },
-  // Internal Management
+  // Internal Management (local tools — no backend ToolId)
   {
     name: "tiktok_list_shops",
     description: "List all connected TikTok Shop shops",

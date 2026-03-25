@@ -15,6 +15,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
       customerService {
         enabled
         businessPrompt
+        runProfileId
       }
       customerServiceBilling {
         tier

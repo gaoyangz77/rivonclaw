@@ -70,7 +70,7 @@ export class UpdateSubscriptionClient {
       on: {
         connected: () => log.info("Update subscription WebSocket connected"),
         closed: () => log.info("Update subscription WebSocket closed"),
-        error: (err) => log.error("Update subscription WebSocket error", { error: String(err) }),
+        error: (err) => log.error("Update subscription WebSocket error", { error: err instanceof Error ? err.message : JSON.stringify(err) }),
       },
     });
 
@@ -98,7 +98,7 @@ export class UpdateSubscriptionClient {
           this.onUpdate(payload);
         },
         error: (err) => {
-          log.error("Update subscription error", { error: String(err) });
+          log.error("Update subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
         },
         complete: () => {
           log.info("Update subscription completed");

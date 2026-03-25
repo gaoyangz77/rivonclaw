@@ -14,6 +14,7 @@ import {
 export interface CustomerServiceConfig {
   enabled: boolean;
   businessPrompt?: string;
+  runProfileId?: string;
 }
 
 export interface CustomerServiceBilling {
@@ -110,7 +111,7 @@ export async function updateShop(
     shopName?: string;
     authStatus?: string;
     region?: string;
-    services?: { customerService?: { enabled?: boolean; businessPrompt?: string } };
+    services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string } };
   },
 ): Promise<Shop> {
   return trackedQuery(async () => {

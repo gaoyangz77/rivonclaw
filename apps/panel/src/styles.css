@@ -7216,7 +7216,33 @@ tbody td {
   flex-shrink: 0;
 }
 
-.ecommerce-header-actions .btn svg.spin {
+.btn-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--color-text-muted);
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.btn-icon-inline:hover {
+  color: var(--color-text);
+  background: var(--color-bg-alt);
+}
+.btn-icon-inline:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.btn-icon-inline svg {
+  width: 14px;
+  height: 14px;
+}
+.btn-icon-inline svg.spin {
   animation: spin 600ms linear infinite;
 }
 
@@ -7286,6 +7312,7 @@ tbody td {
 .auth-link-copy-btn {
   display: inline-flex;
   align-items: center;
+  align-self: flex-end;
   gap: 6px;
   padding: 8px 14px;
   border: none;
@@ -7502,6 +7529,45 @@ tbody td {
   font-size: 11px;
   color: var(--color-text-muted);
   pointer-events: none;
+}
+
+/* RunProfile Selector in AI CS tab */
+
+.shop-runprofile-row {
+  padding: 10px 14px;
+}
+
+.shop-runprofile-tools {
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.shop-tool-list {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.shop-tool-list-item {
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+}
+
+.shop-tool-list-item + .shop-tool-list-item {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.shop-tool-count {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 /* Billing Balance Hero */

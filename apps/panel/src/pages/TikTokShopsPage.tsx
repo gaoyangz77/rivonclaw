@@ -237,6 +237,8 @@ export function TikTokShopsPage() {
       if (selectedShopId === shopId) {
         storeSetSelectedShopId(null);
       }
+      setSuccessMsg(t("tiktokShops.disconnectSuccess"));
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       handleError(err, "tiktokShops.deleteFailed");
     }
@@ -316,6 +318,8 @@ export function TikTokShopsPage() {
       case "REVOKED":
       case "PENDING_AUTH":
         return "badge badge-danger";
+      case "DISCONNECTED":
+        return "badge badge-muted";
       default:
         return "badge badge-muted";
     }
