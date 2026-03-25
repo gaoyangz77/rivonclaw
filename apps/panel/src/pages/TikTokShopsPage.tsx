@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../components/modals/Modal.js";
+import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
 import { useAuth, usePanelStore } from "../stores/index.js";
 import type { Shop, ServiceCreditInfo } from "../stores/index.js";
@@ -88,6 +89,7 @@ export function TikTokShopsPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
+  const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
 
   // SSE listener for oauth_complete
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,7 +229,7 @@ export function TikTokShopsPage() {
   }
 
   async function handleDeleteShop(shopId: string) {
-    if (!window.confirm(t("tiktokShops.confirmDisconnect"))) return;
+    setConfirmDeleteShopId(null);
     setError(null);
     setUpgradePrompt(false);
     try {
@@ -480,7 +482,7 @@ export function TikTokShopsPage() {
                         )}
                         <button
                           className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteShop(shop.id)}
+                          onClick={() => setConfirmDeleteShopId(shop.id)}
                         >
                           {t("tiktokShops.disconnect")}
                         </button>
@@ -827,6 +829,16 @@ export function TikTokShopsPage() {
           </div>
         )}
       </Modal>
+      {/* ── Delete Shop Confirm ── */}
+      <ConfirmDialog
+        isOpen={confirmDeleteShopId !== null}
+        title={t("tiktokShops.disconnect")}
+        message={t("tiktokShops.confirmDisconnect")}
+        confirmLabel={t("tiktokShops.disconnect")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => confirmDeleteShopId && handleDeleteShop(confirmDeleteShopId)}
+        onCancel={() => setConfirmDeleteShopId(null)}
+      />
     </div>
   );
 }
