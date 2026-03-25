@@ -174,23 +174,34 @@ export class AuthSessionManager {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
 
-    let res = await this.fetchFn(url, {
+    const doFetch = () => this.fetchFn(url, {
       method: "POST",
       headers,
       body: JSON.stringify({ query, variables }),
     });
 
+    let res = await doFetch();
+
+    let refreshed = false;
     if (res.status === 401 && this.refreshToken) {
-      const newToken = await this.refresh();
-      headers["Authorization"] = `Bearer ${newToken}`;
-      res = await this.fetchFn(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ query, variables }),
-      });
+      headers["Authorization"] = `Bearer ${await this.refresh()}`;
+      refreshed = true;
+      res = await doFetch();
     }
 
-    const json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
+    let json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
+
+    // Some servers return auth errors as GraphQL errors (HTTP 200) rather than HTTP 401.
+    // Attempt a token refresh if we haven't already.
+    if (json.errors?.length && !refreshed && this.refreshToken) {
+      const msg = json.errors.map(e => e.message).join("; ");
+      if (/Not authenticated|Authentication required|Invalid token|Token expired/.test(msg)) {
+        headers["Authorization"] = `Bearer ${await this.refresh()}`;
+        res = await doFetch();
+        json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
+      }
+    }
+
     if (json.errors?.length) {
       throw new Error(json.errors.map((e) => e.message).join("; "));
     }
