@@ -2097,6 +2097,7 @@ export default {
     authStatus_TOKEN_EXPIRED: "Token Expired",
     authStatus_REVOKED: "Revoked",
     authStatus_PENDING_AUTH: "Pending",
+    authStatus_DISCONNECTED: "Disconnected",
     // Balance
     balance: {
       remaining: "{{balance}} remaining",
@@ -2109,7 +2110,8 @@ export default {
     // Actions
     reauthorize: "Re-authorize",
     disconnect: "Disconnect",
-    confirmDisconnect: "Are you sure you want to disconnect this shop? This will remove all associated tokens and cannot be undone.",
+    confirmDisconnect: "Disconnect this shop? Your service balance will be preserved and restored if you reconnect later.",
+    disconnectSuccess: "Shop disconnected. Balance preserved.",
     // Service toggles
     customerServiceLabel: "AI Customer Service",
     customerServiceActiveHint: "AI customer service is active for this shop. Configure skills in the Skills page.",
@@ -2177,6 +2179,8 @@ export default {
     title: "Global E-commerce Seller",
     subtitle: "Manage your connected shops",
     addShop: "Add Shop",
+    refreshShops: "Refresh",
+    refreshingShops: "Refreshing...",
     addShopModal: {
       title: "Add Shop",
       marketLabel: "Market / Region",
@@ -2248,7 +2252,8 @@ export default {
     view: "View",
     reauthorize: "Re-authorize",
     disconnect: "Disconnect",
-    confirmDisconnect: "Are you sure you want to disconnect this shop? This will remove all associated tokens and cannot be undone.",
+    confirmDisconnect: "Disconnect this shop? Your service balance will be preserved and restored if you reconnect later.",
+    disconnectSuccess: "Shop disconnected. Balance preserved.",
     oauthSuccess: "Shop connected successfully!",
     oauthFailed: "Failed to connect shop. Please try again.",
     oauthTimeout: "Authorization timed out. Please try again.",

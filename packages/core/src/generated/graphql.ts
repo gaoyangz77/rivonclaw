@@ -219,18 +219,8 @@ export interface CustomerServiceSettingsInput {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
-/** Result of checking a specific entitlement */
-export interface EntitlementCheckResult {
-  allowed: Scalars['Boolean']['output'];
-  key: EntitlementKey;
-  /** Human-readable denial reason */
-  reason?: Maybe<Scalars['String']['output']>;
-}
-
 /** Feature entitlement identifiers */
 export const EntitlementKey = {
-  BrowserProfilesAgentWrite: 'BROWSER_PROFILES_AGENT_WRITE',
-  BrowserProfilesEdit: 'BROWSER_PROFILES_EDIT',
   MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES',
   TiktokCsRead: 'TIKTOK_CS_READ',
   TiktokCsWrite: 'TIKTOK_CS_WRITE',
@@ -239,28 +229,6 @@ export const EntitlementKey = {
 } as const;
 
 export type EntitlementKey = typeof EntitlementKey[keyof typeof EntitlementKey];
-/** Entitlement set pushed to desktop on login / subscription change */
-export interface EntitlementSetModel {
-  /** App IDs the plan grants access to */
-  appIds: Array<Scalars['String']['output']>;
-  /** Tool categories the plan grants access to */
-  categories: Array<Scalars['String']['output']>;
-  /** Service categories the plan grants access to */
-  serviceCategories: Array<Scalars['String']['output']>;
-  /** Service IDs the plan grants access to */
-  serviceIds: Array<Scalars['String']['output']>;
-  /** Tool IDs the user's plan grants access to */
-  toolIds: Array<Scalars['String']['output']>;
-}
-
-/** Origin of an entitlement grant */
-export const EntitlementSource = {
-  Override: 'OVERRIDE',
-  Plan: 'PLAN',
-  Trial: 'TRIAL'
-} as const;
-
-export type EntitlementSource = typeof EntitlementSource[keyof typeof EntitlementSource];
 export interface GeneratePairingResult {
   code: Scalars['String']['output'];
   qrUrl?: Maybe<Scalars['String']['output']>;
@@ -290,13 +258,6 @@ export interface LoginInput {
   password: Scalars['String']['input'];
 }
 
-/** Product module identifiers */
-export const ModuleId = {
-  GlobalEcommerceSeller: 'GLOBAL_ECOMMERCE_SELLER'
-} as const;
-
-export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
-
 /** Current user profile */
 export interface MeResponse {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -317,6 +278,12 @@ export interface ModelPricing {
   outputPricePerMillion: Scalars['String']['output'];
 }
 
+/** Product module identifiers */
+export const ModuleId = {
+  GlobalEcommerceSeller: 'GLOBAL_ECOMMERCE_SELLER'
+} as const;
+
+export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
   /** Allocate a new seat to a gateway */
   allocateSeat: CsSeat;
@@ -342,14 +309,14 @@ export interface Mutation {
   deleteRunProfile: Scalars['Boolean']['output'];
   /** Delete the session state backup for a profile */
   deleteSessionStateBackup: Scalars['Boolean']['output'];
-  /** Delete/disconnect a shop */
+  /** Disconnect a shop (soft delete — balance preserved for reconnection) */
   deleteShop: Scalars['Boolean']['output'];
-  /** Enroll in a product module */
-  enrollModule: MeResponse;
   /** Delete a surface */
   deleteSurface: Scalars['Boolean']['output'];
   /** Delete WeCom customer service credentials */
   deleteWeComConfig: CsConfig;
+  /** Enroll in a product module */
+  enrollModule: MeResponse;
   /** Generate a 6-character pairing code for QR display */
   generatePairingCode: GeneratePairingResult;
   /** Generate TikTok OAuth authorization URL */
@@ -370,8 +337,6 @@ export interface Mutation {
   requestCaptcha: CaptchaResponse;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
-  /** Unenroll from a product module */
-  unenrollModule: MeResponse;
   /** Save WeCom customer service credentials */
   saveWeComConfig: CsConfig;
   /** Create a new conversation with a buyer */
@@ -382,6 +347,8 @@ export interface Mutation {
   tiktokSendMessage: TikTokApiResult;
   /** Update agent settings for a shop */
   tiktokUpdateAgentSettings: TikTokApiResult;
+  /** Unenroll from a product module */
+  unenrollModule: MeResponse;
   /** Update an existing browser profile */
   updateBrowserProfile?: Maybe<BrowserProfile>;
   /** Update an existing run profile */
@@ -468,13 +435,13 @@ export interface MutationDeleteSurfaceArgs {
 }
 
 
-export interface MutationEnrollModuleArgs {
-  moduleId: ModuleId;
+export interface MutationDeleteWeComConfigArgs {
+  corpId: Scalars['String']['input'];
 }
 
 
-export interface MutationDeleteWeComConfigArgs {
-  corpId: Scalars['String']['input'];
+export interface MutationEnrollModuleArgs {
+  moduleId: ModuleId;
 }
 
 
@@ -552,6 +519,11 @@ export interface MutationTiktokUpdateAgentSettingsArgs {
 }
 
 
+export interface MutationUnenrollModuleArgs {
+  moduleId: ModuleId;
+}
+
+
 export interface MutationUpdateBrowserProfileArgs {
   id: Scalars['ID']['input'];
   input: UpdateBrowserProfileInput;
@@ -573,11 +545,6 @@ export interface MutationUpdateShopArgs {
 export interface MutationUpdateSurfaceArgs {
   id: Scalars['ID']['input'];
   input: UpdateSurfaceInput;
-}
-
-
-export interface MutationUnenrollModuleArgs {
-  moduleId: ModuleId;
 }
 
 
@@ -693,18 +660,12 @@ export interface Query {
   browserProfilePromptAddendum?: Maybe<Scalars['String']['output']>;
   /** List browser profiles for the authenticated user */
   browserProfiles: PaginatedBrowserProfiles;
-  /** Check whether the user has a specific entitlement */
-  checkEntitlement: EntitlementCheckResult;
   /** Check if the authenticated user can access a specific tool */
   checkToolAccess: ToolAccessResult;
   /** Get customer service platform configuration */
   csConfig?: Maybe<CsConfig>;
   /** Get CS session stats for a shop */
   csSessionStats: CsSessionStats;
-  /** Returns the current user's entitlement set (toolIds, categories, serviceCategories, appIds, serviceIds) */
-  entitlementSet: EntitlementSetModel;
-  /** List all entitlements for the authenticated user */
-  entitlements: Array<UserEntitlement>;
   /** Get LLM quota status for the current user */
   llmQuotaStatus: LlmQuotaStatus;
   /** Get current authenticated user profile */
@@ -796,11 +757,6 @@ export interface QueryBrowserProfilesArgs {
 }
 
 
-export interface QueryCheckEntitlementArgs {
-  key: EntitlementKey;
-}
-
-
 export interface QueryCheckToolAccessArgs {
   toolId: Scalars['String']['input'];
 }
@@ -851,6 +807,13 @@ export interface QueryShopArgs {
 
 export interface QueryShopAuthStatusArgs {
   id: Scalars['ID']['input'];
+}
+
+
+export interface QueryShopsArgs {
+  platform?: InputMaybe<Scalars['String']['input']>;
+  refreshTokenExpiringBefore?: InputMaybe<Scalars['String']['input']>;
+  region?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -1043,7 +1006,7 @@ export const ServiceCreditStatus = {
 } as const;
 
 export type ServiceCreditStatus = typeof ServiceCreditStatus[keyof typeof ServiceCreditStatus];
-/** Service-level identifiers for subscription gating */
+/** Business service type identifiers */
 export const ServiceId = {
   CustomerService: 'CUSTOMER_SERVICE',
   OrderManagement: 'ORDER_MANAGEMENT'
@@ -1103,6 +1066,7 @@ export interface Shop {
 /** OAuth authorization status of a connected shop */
 export const ShopAuthStatus = {
   Authorized: 'AUTHORIZED',
+  Disconnected: 'DISCONNECTED',
   PendingAuth: 'PENDING_AUTH',
   Revoked: 'REVOKED',
   TokenExpired: 'TOKEN_EXPIRED'
@@ -1234,10 +1198,10 @@ export interface ToolAccessResult {
 /** Tool functional category */
 export const ToolCategory = {
   BrowserProfiles: 'BROWSER_PROFILES',
+  EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
   TiktokCs: 'TIKTOK_CS',
   TiktokLogistics: 'TIKTOK_LOGISTICS',
-  TiktokProduct: 'TIKTOK_PRODUCT',
-  EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT'
+  TiktokProduct: 'TIKTOK_PRODUCT'
 } as const;
 
 export type ToolCategory = typeof ToolCategory[keyof typeof ToolCategory];
@@ -1258,18 +1222,16 @@ export const ToolId = {
   BrowserProfilesList: 'BROWSER_PROFILES_LIST',
   BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',
   BrowserProfilesTestProxy: 'BROWSER_PROFILES_TEST_PROXY',
+  EcommerceListShops: 'ECOMMERCE_LIST_SHOPS',
   TiktokCreateConversation: 'TIKTOK_CREATE_CONVERSATION',
   TiktokGetAgentSettings: 'TIKTOK_GET_AGENT_SETTINGS',
   TiktokGetConversations: 'TIKTOK_GET_CONVERSATIONS',
   TiktokGetConversationDetails: 'TIKTOK_GET_CONVERSATION_DETAILS',
   TiktokGetConversationMessages: 'TIKTOK_GET_CONVERSATION_MESSAGES',
   TiktokGetCsPerformance: 'TIKTOK_GET_CS_PERFORMANCE',
-  EcommerceGetCurrentShop: 'ECOMMERCE_GET_CURRENT_SHOP',
   TiktokGetProduct: 'TIKTOK_GET_PRODUCT',
   TiktokGetShippingProviders: 'TIKTOK_GET_SHIPPING_PROVIDERS',
-  EcommerceGetShopAuthStatus: 'ECOMMERCE_GET_SHOP_AUTH_STATUS',
   TiktokGetWarehouses: 'TIKTOK_GET_WAREHOUSES',
-  EcommerceListShops: 'ECOMMERCE_LIST_SHOPS',
   TiktokReadMessage: 'TIKTOK_READ_MESSAGE',
   TiktokSearchSessions: 'TIKTOK_SEARCH_SESSIONS',
   TiktokSendMessage: 'TIKTOK_SEND_MESSAGE',
@@ -1317,13 +1279,6 @@ export interface UpdateSurfaceInput {
   allowedToolIds?: InputMaybe<Array<Scalars['String']['input']>>;
   description?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-}
-
-/** A single entitlement granted to a user */
-export interface UserEntitlement {
-  enabled: Scalars['Boolean']['output'];
-  key: EntitlementKey;
-  source: EntitlementSource;
 }
 
 /** Subscription plan tiers */

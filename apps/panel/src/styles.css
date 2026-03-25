@@ -7209,6 +7209,17 @@ tbody td {
   margin: 4px 0 0 0;
 }
 
+.ecommerce-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ecommerce-header-actions .btn svg.spin {
+  animation: spin 600ms linear infinite;
+}
+
 /* ── OAuth Flow (polished auth link form) ── */
 
 .oauth-flow {

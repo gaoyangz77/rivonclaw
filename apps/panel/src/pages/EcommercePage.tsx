@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
-import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon } from "../components/icons.js";
+import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from "../components/icons.js";
 import { useAuth, usePanelStore } from "../stores/index.js";
 import type { Shop, ServiceCreditInfo } from "../stores/index.js";
 
@@ -96,6 +96,13 @@ export function EcommercePage() {
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
 
+  // Manual refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fallback polling ref for OAuth waiting (if SSE fails to deliver)
+  const oauthPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shopCountAtOAuthStart = useRef<number>(0);
+
   // SSE listener for oauth_complete
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sseRef = useRef<EventSource | null>(null);
@@ -111,6 +118,10 @@ export function EcommercePage() {
       sseRef.current.close();
       sseRef.current = null;
     }
+    if (oauthPollRef.current) {
+      clearInterval(oauthPollRef.current);
+      oauthPollRef.current = null;
+    }
     setOauthWaiting(false);
     setOauthAuthUrl(null);
     setLinkCopied(false);
@@ -121,6 +132,7 @@ export function EcommercePage() {
     return () => {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
       if (sseRef.current) sseRef.current.close();
+      if (oauthPollRef.current) clearInterval(oauthPollRef.current);
     };
   }, []);
 
@@ -131,6 +143,15 @@ export function EcommercePage() {
       storeFetchPlatformApps();
     }
   }, [user]);
+
+  // Fallback: detect new shops during OAuth polling and auto-complete
+  useEffect(() => {
+    if (oauthWaiting && shops.length > shopCountAtOAuthStart.current) {
+      cleanupOAuthWait();
+      setConnectModalOpen(false);
+      setSuccessMsg(t("ecommerce.oauthSuccess"));
+    }
+  }, [oauthWaiting, shops.length, cleanupOAuthWait, t]);
 
   // Market containment mapping — for future-proofing
   const MARKET_CONTAINS: Record<string, string[]> = useMemo(() => ({
@@ -206,6 +227,9 @@ export function EcommercePage() {
     const sse = new EventSource("/api/chat/events");
     sseRef.current = sse;
 
+    // Record current shop count for fallback polling comparison
+    shopCountAtOAuthStart.current = shops.length;
+
     sse.addEventListener("oauth-complete", (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
@@ -225,10 +249,28 @@ export function EcommercePage() {
       }
     });
 
+    // Fallback polling: if SSE doesn't deliver, poll every 5s and detect new shops
+    oauthPollRef.current = setInterval(async () => {
+      try {
+        await storeFetchShops();
+      } catch {
+        // Ignore poll errors
+      }
+    }, 5000);
+
     oauthTimeoutRef.current = setTimeout(() => {
       cleanupOAuthWait();
       setError(t("ecommerce.oauthTimeout"));
     }, OAUTH_TIMEOUT_MS);
+  }
+
+  async function handleRefreshShops() {
+    setRefreshing(true);
+    try {
+      await Promise.all([storeFetchShops(), storeFetchPlatformApps()]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   async function handleConnectShop() {
@@ -437,29 +479,40 @@ export function EcommercePage() {
           <h1>{t("ecommerce.title")}</h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.subtitle")}</p>
         </div>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => {
-            setOauthAuthUrl(null);
-            setOauthWaiting(false);
-            setLinkCopied(false);
-            // Auto-select first available market and platform
-            const firstMarket = availableMarkets.length > 0 ? availableMarkets[0] : "";
-            setSelectedMarket(firstMarket);
-            if (firstMarket) {
-              const contained = MARKET_CONTAINS[firstMarket] ?? [firstMarket];
-              const appsForMarket = platformApps.filter((app) => contained.includes(app.market));
-              const platforms = [...new Set(appsForMarket.map((app) => app.platform))];
-              setSelectedPlatform(platforms.length > 0 ? platforms[0] : "");
-            } else {
-              setSelectedPlatform("");
-            }
-            setConnectModalOpen(true);
-          }}
-          disabled={oauthLoading}
-        >
-          {t("ecommerce.addShop")}
-        </button>
+        <div className="ecommerce-header-actions">
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleRefreshShops}
+            disabled={refreshing}
+            aria-label={t("ecommerce.refreshShops")}
+          >
+            <RefreshIcon className={refreshing ? "spin" : ""} />
+            {refreshing ? t("ecommerce.refreshingShops") : t("ecommerce.refreshShops")}
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setOauthAuthUrl(null);
+              setOauthWaiting(false);
+              setLinkCopied(false);
+              // Auto-select first available market and platform
+              const firstMarket = availableMarkets.length > 0 ? availableMarkets[0] : "";
+              setSelectedMarket(firstMarket);
+              if (firstMarket) {
+                const contained = MARKET_CONTAINS[firstMarket] ?? [firstMarket];
+                const appsForMarket = platformApps.filter((app) => contained.includes(app.market));
+                const platforms = [...new Set(appsForMarket.map((app) => app.platform))];
+                setSelectedPlatform(platforms.length > 0 ? platforms[0] : "");
+              } else {
+                setSelectedPlatform("");
+              }
+              setConnectModalOpen(true);
+            }}
+            disabled={oauthLoading}
+          >
+            {t("ecommerce.addShop")}
+          </button>
+        </div>
       </div>
 
       {upgradePrompt && (
@@ -876,7 +929,7 @@ export function EcommercePage() {
                     <button
                       className="btn btn-primary btn-sm"
                       onClick={handleSaveBusinessPrompt}
-                      disabled={savingSettings}
+                      disabled={savingSettings || editBusinessPrompt === (selectedShop?.services.customerService.businessPrompt ?? "")}
                     >
                       {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
                     </button>

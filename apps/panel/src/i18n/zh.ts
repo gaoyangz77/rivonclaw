@@ -2167,6 +2167,8 @@ export default {
     title: "跨境电商卖家",
     subtitle: "管理你的已连接店铺",
     addShop: "添加店铺",
+    refreshShops: "刷新",
+    refreshingShops: "刷新中...",
     addShopModal: {
       title: "添加店铺",
       marketLabel: "地区 / 市场",
