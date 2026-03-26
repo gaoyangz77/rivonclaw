@@ -72,6 +72,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
+  const selectedRunProfileIdRef = useRef(selectedRunProfileId);
   const runProfiles = usePanelStore((s) => s.runProfiles);
   const [externalPending, setExternalPending] = useState(false);
   const externalPendingRef = useRef(false);
@@ -87,6 +88,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       pendingImages,
       visibleCount,
       allFetched,
+      selectedRunProfileId: selectedRunProfileIdRef.current,
     }),
     setState: (state) => {
       setMessages(state.messages);
@@ -94,6 +96,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       setPendingImages(state.pendingImages);
       setVisibleCount(state.visibleCount);
       setAllFetched(state.allFetched);
+      const restoredProfileId = state.selectedRunProfileId ?? "";
+      setSelectedRunProfileId(restoredProfileId);
+      selectedRunProfileIdRef.current = restoredProfileId;
       shouldInstantScrollRef.current = true; stickyRef.current = true;
       fetchLimitRef.current = FETCH_BATCH;
       isFetchingRef.current = false;
@@ -1036,12 +1041,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
     }
   }, []);
 
-  // Reset RunProfile selection when session tab changes
   const activeKey = sessionManager.activeSessionKey;
-  useEffect(() => {
-    setSelectedRunProfileId("");
-    setRunProfileForScope(ScopeType.CHAT_SESSION, activeKey, null).catch(() => {});
-  }, [activeKey]);
 
   // Background history refresh on session switch — picks up messages that
   // arrived while a different tab was active (e.g. the final response from a
@@ -1073,6 +1073,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   // Push RunProfile selection to desktop when changed.
   function handleRunProfileChange(profileId: string) {
     setSelectedRunProfileId(profileId);
+    selectedRunProfileIdRef.current = profileId;
     pushRunProfileToScope(profileId, activeKey);
   }
 

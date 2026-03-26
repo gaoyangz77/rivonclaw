@@ -42,6 +42,8 @@ export type SessionChatState = {
   visibleCount: number;
   allFetched: boolean;
   lastAccessed: number;
+  /** RunProfile selected for this session — optional for backward compat with older cached states. */
+  selectedRunProfileId?: string;
 };
 
 /** Response from gateway `sessions.list` RPC. */
