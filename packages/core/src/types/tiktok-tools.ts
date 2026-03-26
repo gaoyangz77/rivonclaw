@@ -571,6 +571,7 @@ export const TIKTOK_CS_TOOL_IDS: readonly string[] = [
   toolName(ToolId.TiktokCsListOrders),
   toolName(ToolId.TiktokCsGetLogisticsTracking),
   toolName(ToolId.TiktokCsGetProduct),
+  toolName(ToolId.TiktokCsSearchProducts),
   toolName(ToolId.TiktokCsCreateConversation),
 ];
 

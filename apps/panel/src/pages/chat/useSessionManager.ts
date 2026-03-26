@@ -12,12 +12,19 @@ const REFRESH_DEBOUNCE = DEFAULTS.chat.sessionRefreshDebounceMs;
 const MAX_CACHED_SESSIONS = DEFAULTS.chat.maxCachedSessions;
 
 /**
- * Internal sessions created by RivonClaw subsystems (e.g. rule compilation
- * LLM calls via /v1/chat/completions with `user: "rivonclaw-rule-compile"`).
- * The gateway generates session keys like `agent:main:openai-user:rivonclaw-rule-compile`.
+ * Session key patterns that belong to dedicated subsystems and should NOT
+ * appear as tabs in the Chat Page.  Each entry is tested via `key.includes()`.
+ *
+ * Add new patterns here as more subsystem session types are introduced.
  */
-function isInternalSession(key: string): boolean {
-  return key.includes(":openai-user:rivonclaw-");
+const HIDDEN_SESSION_KEY_PATTERNS: string[] = [
+  ":openai-user:rivonclaw-",  // Internal API sessions (rule compilation LLM calls)
+  ":cs:",                      // Customer Service sessions (e.g. agent:main:cs:tiktok:{id})
+];
+
+/** Returns true if the session key belongs to a hidden subsystem. */
+function isHiddenSession(key: string): boolean {
+  return HIDDEN_SESSION_KEY_PATTERNS.some((pattern) => key.includes(pattern));
 }
 
 /** Load custom tab order from localStorage. */
@@ -138,7 +145,7 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
       // Filter out subagent sessions, archived sessions, and internal
       // API-created sessions (rule compilation, etc. via /v1/chat/completions).
       const filtered = result.sessions.filter(
-        (s) => !s.spawnedBy && !archived.has(s.key) && !isInternalSession(s.key),
+        (s) => !s.spawnedBy && !archived.has(s.key) && !isHiddenSession(s.key),
       );
 
       const tabs: SessionTabInfo[] = filtered.map((s) => {

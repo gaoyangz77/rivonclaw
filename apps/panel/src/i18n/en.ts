@@ -1558,6 +1558,8 @@ export default {
         TIKTOK_GET_WAREHOUSES: "TikTok — Warehouses",
         TIKTOK_GET_GLOBAL_WAREHOUSES: "TikTok — Global Warehouses",
         TIKTOK_GET_SHIPPING_PROVIDERS: "TikTok — Shipping Providers",
+        TIKTOK_SEARCH_PRODUCTS: "TikTok — Search Products",
+        TIKTOK_CS_SEARCH_PRODUCTS: "TikTok CS — Search Products",
         // E-commerce Shop Management
         ECOMMERCE_LIST_SHOPS: "E-commerce — List Shops",
         ECOMMERCE_GET_SHOP_AUTH_STATUS: "E-commerce — Shop Auth Status",
@@ -2082,6 +2084,13 @@ export default {
     copySuffix: "(copy)",
     toolOutOfScope: "This tool is not in the parent surface's allowed list and will be ignored at runtime.",
     surfaceNarrowWarning: "{{count}} run profile(s) use tools that will be outside this surface's scope:",
+    /** Localized names for system-provided surfaces and run profiles (keyed by DB name). */
+    systemNames: {
+      "Default": "Default",
+      "TikTok Global Seller": "TikTok Global Seller",
+      "TikTok Customer Service": "TikTok Customer Service",
+      "TikTok Shop Operations": "TikTok Shop Operations",
+    } as Record<string, string>,
   },
   runProfileSelector: {
     placeholder: "Select a run profile...",
@@ -2273,6 +2282,13 @@ export default {
         runProfileNone: "No RunProfile selected",
         availableTools: "Available Tools",
         toolCount: "{{count}} tools total",
+        csBindDevice: "Handle CS on this device",
+        csBindDeviceHint: "Enable to receive and respond to customer messages on this device",
+        csBindConflict: "Another device is currently handling this shop's customer service. Switch to this device?",
+        csBindConflictTitle: "Device Conflict",
+        csUnbind: "Stop handling CS on this device",
+        csThisDevice: "Handled by this device",
+        csOtherDevice: "Handled by another device",
       },
     },
     noShops: "No shops connected yet. Click \"Add Shop\" to get started.",

@@ -103,6 +103,11 @@ export function EcommercePage() {
   // Manual refresh state
   const [refreshing, setRefreshing] = useState(false);
 
+  // Device CS binding state
+  const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
+  const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
+  const [togglingBindShopId, setTogglingBindShopId] = useState<string | null>(null);
+
   // Fallback polling ref for OAuth waiting (if SSE fails to deliver)
 
   // SSE listener for oauth_complete
@@ -131,6 +136,14 @@ export function EcommercePage() {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
       if (sseRef.current) sseRef.current.close();
     };
+  }, []);
+
+  // Fetch deviceId from desktop on mount
+  useEffect(() => {
+    fetch("/api/status")
+      .then((res) => res.json())
+      .then((status) => setMyDeviceId(status.deviceId || null))
+      .catch(() => setMyDeviceId(null));
   }, []);
 
   // Fetch shops, platform apps, and run profiles on mount
@@ -391,6 +404,75 @@ export function EcommercePage() {
     }
   }
 
+  async function handleBindDevice(shopId: string) {
+    if (!myDeviceId) return;
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
+    const existingDeviceId = shop.services?.customerService?.csDeviceId;
+    if (existingDeviceId && existingDeviceId !== myDeviceId) {
+      // Another device is handling this shop — ask for confirmation
+      setBindConflictShopId(shopId);
+      return;
+    }
+    setTogglingBindShopId(shopId);
+    try {
+      await storeUpdateShop(shopId, {
+        services: { customerService: { csDeviceId: myDeviceId } },
+      });
+      // Notify desktop to refresh CS bridge context
+      fetch("/api/cs-bridge/refresh-shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId }),
+      }).catch(() => {});
+    } catch {
+      setError(t("ecommerce.updateFailed"));
+    } finally {
+      setTogglingBindShopId(null);
+    }
+  }
+
+  async function handleForceBindConfirmed() {
+    const shopId = bindConflictShopId;
+    setBindConflictShopId(null);
+    if (!shopId || !myDeviceId) return;
+    setTogglingBindShopId(shopId);
+    try {
+      await storeUpdateShop(shopId, {
+        services: { customerService: { csDeviceId: myDeviceId } },
+      });
+      // Notify desktop to refresh CS bridge context
+      fetch("/api/cs-bridge/refresh-shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId }),
+      }).catch(() => {});
+    } catch {
+      setError(t("ecommerce.updateFailed"));
+    } finally {
+      setTogglingBindShopId(null);
+    }
+  }
+
+  async function handleUnbindDevice(shopId: string) {
+    setTogglingBindShopId(shopId);
+    try {
+      await storeUpdateShop(shopId, {
+        services: { customerService: { csDeviceId: null } },
+      });
+      // Notify desktop to refresh CS bridge context (will remove this shop's context)
+      fetch("/api/cs-bridge/refresh-shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId }),
+      }).catch(() => {});
+    } catch {
+      setError(t("ecommerce.updateFailed"));
+    } finally {
+      setTogglingBindShopId(null);
+    }
+  }
+
   async function handleRedeemCredit(credit: ServiceCreditInfo) {
     if (!selectedShopId) return;
     setRedeemingCreditId(credit.id);
@@ -472,7 +554,10 @@ export function EcommercePage() {
   const selectedRunProfile = runProfiles.find((p) => p.id === selectedRunProfileId) ?? null;
 
   const runProfileOptions = useMemo(
-    () => runProfiles.map((p) => ({ value: p.id, label: p.name })),
+    () => runProfiles.map((p) => ({
+      value: p.id,
+      label: p.userId === null ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string) : p.name,
+    })),
     [runProfiles],
   );
 
@@ -931,6 +1016,48 @@ export function EcommercePage() {
                   )}
                 </div>
 
+                {/* Device CS Binding Toggle */}
+                <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csBindDevice")}</div>
+                <div className="shop-toggle-card">
+                  <div className="shop-toggle-card-left">
+                    <span className="shop-toggle-card-label">
+                      {t("ecommerce.shopDrawer.aiCS.csBindDevice")}
+                    </span>
+                    <span className="form-hint">{t("ecommerce.shopDrawer.aiCS.csBindDeviceHint")}</span>
+                    {selectedShop.services?.customerService?.csDeviceId && selectedShop.services.customerService.csDeviceId !== myDeviceId && (
+                      <span className="badge badge-warning shop-badge-inline">
+                        {t("ecommerce.shopDrawer.aiCS.csOtherDevice")}
+                      </span>
+                    )}
+                    {selectedShop.services?.customerService?.csDeviceId && selectedShop.services.customerService.csDeviceId === myDeviceId && (
+                      <span className="badge badge-success shop-badge-inline">
+                        {t("ecommerce.shopDrawer.aiCS.csThisDevice")}
+                      </span>
+                    )}
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={selectedShop.services?.customerService?.csDeviceId === myDeviceId}
+                      onChange={() => {
+                        if (selectedShop.services?.customerService?.csDeviceId === myDeviceId) {
+                          handleUnbindDevice(selectedShop.id);
+                        } else {
+                          handleBindDevice(selectedShop.id);
+                        }
+                      }}
+                      disabled={togglingBindShopId === selectedShop.id || !myDeviceId}
+                    />
+                    <span
+                      className={`toggle-track ${selectedShop.services?.customerService?.csDeviceId === myDeviceId ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === selectedShop.id ? "toggle-track-disabled" : ""}`}
+                    >
+                      <span
+                        className={`toggle-thumb ${selectedShop.services?.customerService?.csDeviceId === myDeviceId ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                      />
+                    </span>
+                  </label>
+                </div>
+
                 {/* RunProfile Selector */}
                 <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.runProfile")}</div>
                 <div className="shop-info-card">
@@ -1062,6 +1189,16 @@ export function EcommercePage() {
         cancelLabel={t("common.cancel")}
         onConfirm={() => confirmDeleteShopId && handleDeleteShop(confirmDeleteShopId)}
         onCancel={() => setConfirmDeleteShopId(null)}
+      />
+      {/* ── Device Bind Conflict Confirm ── */}
+      <ConfirmDialog
+        isOpen={bindConflictShopId !== null}
+        title={t("ecommerce.shopDrawer.aiCS.csBindConflictTitle")}
+        message={t("ecommerce.shopDrawer.aiCS.csBindConflict")}
+        confirmLabel={t("common.done")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={handleForceBindConfirmed}
+        onCancel={() => setBindConflictShopId(null)}
       />
     </div>
   );

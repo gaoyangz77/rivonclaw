@@ -647,8 +647,8 @@ app.whenReady().then(async () => {
               getAuthToken: () => authSession?.getAccessToken(),
               getRpcClient: () => rpcClient,
             });
-            // Load shop contexts (prompt + IDs) for CS-enabled shops
-            loadCSShopContexts(csBridge, authSession).catch((e: unknown) =>
+            // Load shop contexts (prompt + IDs) for CS-enabled shops bound to this device
+            loadCSShopContexts(csBridge, authSession, deviceId).catch((e: unknown) =>
               log.error("Failed to load CS shop contexts:", e));
             csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
           }

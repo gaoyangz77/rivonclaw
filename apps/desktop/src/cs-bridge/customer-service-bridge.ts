@@ -3,6 +3,9 @@ import { createLogger } from "@rivonclaw/logger";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import type {
   CSHelloFrame,
+  CSBindShopsFrame,
+  CSBindShopsResultFrame,
+  CSShopTakenOverFrame,
   CSTikTokNewMessageFrame,
   CSTikTokNewConversationFrame,
   CSWSFrame,
@@ -58,6 +61,9 @@ export class CustomerServiceBridge {
   /** Shop context keyed by platformShopId (from webhook). */
   private shopContexts = new Map<string, CSShopContext>();
 
+  /** Shops currently bound to other devices (from last cs_bind_shops_result). */
+  private bindingConflicts: Array<{ shopId: string; gatewayId: string }> = [];
+
   constructor(private readonly opts: CustomerServiceBridgeOptions) {}
 
   // ── Public API ──────────────────────────────────────────────────────
@@ -85,15 +91,36 @@ export class CustomerServiceBridge {
   /**
    * Register or update shop context. Called by desktop on startup (for all
    * CS-enabled shops) and when the user modifies businessPrompt in Panel.
+   * Also sends a binding frame to the relay for the new/updated shop.
    */
   setShopContext(ctx: CSShopContext): void {
     this.shopContexts.set(ctx.platformShopId, ctx);
     log.info(`Shop context set: platform=${ctx.platformShopId} object=${ctx.objectId}`);
+    // Send binding for the newly added/updated shop
+    this.sendShopBindings([ctx.platformShopId]);
   }
 
   /** Remove shop context (shop disconnected/deleted). */
   removeShopContext(platformShopId: string): void {
     this.shopContexts.delete(platformShopId);
+  }
+
+  /** Get current binding conflicts (shops bound to other devices). */
+  getBindingConflicts(): Array<{ shopId: string; gatewayId: string }> {
+    return this.bindingConflicts;
+  }
+
+  /** Force-bind a shop (take over from another device). */
+  forceBindShop(shopId: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ type: "cs_force_bind_shop", shopId }));
+  }
+
+  /** Unbind a shop from this device. */
+  unbindShop(shopId: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ type: "cs_unbind_shops", shopIds: [shopId] }));
+    this.shopContexts.delete(shopId);
   }
 
   // ── Connection management ───────────────────────────────────────────
@@ -184,17 +211,53 @@ export class CustomerServiceBridge {
       case "cs_ack":
         this.reconnectAttempt = 0;
         log.info("CS relay connection confirmed (cs_ack)");
+        // Bind all CS-enabled shops after relay confirms connection
+        this.sendShopBindings();
         break;
-      case "cs_connection_replaced":
-        log.warn("CS relay connection replaced by another device — will not reconnect");
-        this.closed = true;
+      case "cs_bind_shops_result": {
+        const result = frame as CSBindShopsResultFrame;
+        if (result.bound.length > 0) {
+          log.info(`Shops bound: ${result.bound.join(", ")}`);
+        }
+        if (result.conflicts.length > 0) {
+          log.warn(`Shop binding conflicts: ${result.conflicts.map(c => c.shopId).join(", ")}`);
+        }
+        this.bindingConflicts = result.conflicts;
         break;
+      }
+      case "cs_shop_taken_over": {
+        const taken = frame as CSShopTakenOverFrame;
+        log.warn(`Shop ${taken.shopId} taken over by gateway ${taken.newGatewayId}`);
+        // Remove from local shop contexts so we stop handling messages for this shop
+        this.shopContexts.delete(taken.shopId);
+        break;
+      }
       case "cs_error":
         log.error(`CS relay error: ${(frame as { message?: string }).message}`);
         break;
       default:
         break;
     }
+  }
+
+  // ── Shop binding ───────────────────────────────────────────────────
+
+  /**
+   * Send cs_bind_shops frame to the relay.
+   * If shopIds is provided, only those shops are sent; otherwise all known shops.
+   */
+  private sendShopBindings(shopIds?: string[]): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    const ids = shopIds ?? [...this.shopContexts.values()].map(ctx => ctx.platformShopId);
+    if (ids.length === 0) return;
+
+    const frame: CSBindShopsFrame = {
+      type: "cs_bind_shops",
+      shopIds: ids,
+    };
+    this.ws.send(JSON.stringify(frame));
+    log.info(`Sent shop bindings: ${ids.length} shop(s)`);
   }
 
   // ── TikTok message handling ─────────────────────────────────────────

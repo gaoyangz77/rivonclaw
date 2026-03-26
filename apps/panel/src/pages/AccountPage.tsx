@@ -13,9 +13,17 @@ import { setDefaultRunProfile as notifyDesktopDefaultProfile } from "../api/tool
 import type { Surface } from "../api/surfaces.js";
 import type { RunProfile } from "../api/run-profiles.js";
 
+/** Resolve a display name for system-provided surfaces/profiles via i18n. */
+function useSystemName() {
+  const { t } = useTranslation();
+  return (name: string, isSystem: boolean) =>
+    isSystem ? (t(`surfaces.systemNames.${name}`, { defaultValue: name }) as string) : name;
+}
+
 export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const resolveSystemName = useSystemName();
 
   const { tools: allTools } = useToolRegistry();
   const enrolledModules = usePanelStore((s) => s.enrolledModules);
@@ -260,7 +268,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
 
   const surfaceNameById: Record<string, string> = {};
   for (const s of surfaces) {
-    surfaceNameById[s.id] = s.name;
+    surfaceNameById[s.id] = resolveSystemName(s.name, s.userId === null);
   }
 
   return (
@@ -373,7 +381,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
               return (
                 <div key={s.id} className={`acct-item${isSystem ? " acct-item-system" : ""}`}>
                   <div className="acct-item-title-row">
-                    <span className="acct-item-name">{s.name}</span>
+                    <span className="acct-item-name">{resolveSystemName(s.name, isSystem)}</span>
                     {isSystem && <span className="acct-badge-system">{t("surfaces.system")}</span>}
                     {s.allowedToolIds.length === 0 && (
                       <span className="acct-badge-subtle">{t("surfaces.unrestricted")}</span>
@@ -466,7 +474,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
               return (
                 <div key={p.id} className={`acct-item${isSystem ? " acct-item-system" : ""}`}>
                   <div className="acct-item-title-row">
-                    <span className="acct-item-name">{p.name}</span>
+                    <span className="acct-item-name">{resolveSystemName(p.name, isSystem)}</span>
                     {isSystem && <span className="acct-badge-system">{t("surfaces.system")}</span>}
                     {!isSystem && (
                       <div className="acct-item-actions">

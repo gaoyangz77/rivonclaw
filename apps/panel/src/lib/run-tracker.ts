@@ -33,6 +33,14 @@ export interface RunState {
   phase: RunPhase;
   toolName?: string;
   streaming?: string;
+  /**
+   * Cumulative character offset of streaming text that has been flushed
+   * (committed as a message bubble) across tool-call boundaries.
+   * When the gateway sends accumulated text across an entire agent turn,
+   * this offset is used to slice off already-committed content so that
+   * the streaming bubble and final commit only show new text.
+   */
+  flushedOffset: number;
   startedAt: number;
 }
 
@@ -45,7 +53,7 @@ export interface RunTrackerView {
   displayPhase: RunPhase | null;
   /** Tool name when displayPhase === "tooling" */
   displayToolName: string | null;
-  /** Streaming text buffer of the display run */
+  /** Streaming text buffer of the display run (already sliced to exclude flushed content) */
   displayStreaming: string | null;
   /** Whether the stop button should be enabled */
   canAbort: boolean;
@@ -55,6 +63,11 @@ export interface RunTrackerView {
   localRunId: string | null;
   /** Streaming text of the local run (null if no local run or no text yet) */
   localStreaming: string | null;
+  /**
+   * Cumulative flushed offset for the display run.  Used by the CHAT_FINAL
+   * handler to strip already-committed text from the final message.
+   */
+  displayFlushedOffset: number;
 }
 
 /** Serialisable snapshot of RunTracker state for per-session caching. */
@@ -133,6 +146,7 @@ export class RunTracker {
           source: "local",
           sessionKey: action.sessionKey,
           phase: "processing",
+          flushedOffset: 0,
           startedAt: Date.now(),
         });
         changed = true;
@@ -153,6 +167,7 @@ export class RunTracker {
           source: channelToSource(action.channel),
           sessionKey: action.sessionKey,
           phase: "queued",
+          flushedOffset: 0,
           startedAt: Date.now(),
         });
         changed = true;
@@ -162,6 +177,13 @@ export class RunTracker {
       case "TOOL_START": {
         const run = this.runs.get(action.runId);
         if (run && ACTIVE_PHASES.has(run.phase)) {
+          // Record the length of accumulated text being flushed so that
+          // subsequent CHAT_DELTA events (which carry the full accumulated
+          // text across the entire agent turn) can slice off the already-
+          // committed portion.  Accumulates across multiple tool calls.
+          if (run.streaming) {
+            run.flushedOffset = run.streaming.length;
+          }
           run.phase = "tooling";
           run.toolName = action.toolName;
           run.streaming = undefined;
@@ -350,11 +372,14 @@ export class RunTracker {
       isActive,
       displayPhase: displayRun?.phase ?? null,
       displayToolName: displayRun?.phase === "tooling" ? (displayRun.toolName ?? null) : null,
-      displayStreaming: displayRun?.streaming ?? null,
+      displayStreaming: displayRun?.streaming
+        ? (displayRun.flushedOffset > 0 ? displayRun.streaming.slice(displayRun.flushedOffset) : displayRun.streaming)
+        : null,
       canAbort: abortTarget !== null,
       abortTargetRunId: abortTarget?.runId ?? null,
       localRunId: localActive ? this.localRunId : null,
       localStreaming: localActive ? (this.runs.get(this.localRunId!)?.streaming ?? null) : null,
+      displayFlushedOffset: displayRun?.flushedOffset ?? 0,
     };
   }
 
@@ -371,6 +396,19 @@ export class RunTracker {
   /** Get a specific run's state. */
   getRun(runId: string): RunState | undefined {
     return this.runs.get(runId);
+  }
+
+  /**
+   * Update the flushed offset for a run.  Called when the async history-patch
+   * mechanism recovers additional characters that were still in the gateway's
+   * throttle buffer at the time of tool_start.  This keeps the offset in sync
+   * with the committed bubble text so that CHAT_FINAL slicing is accurate.
+   */
+  updateFlushedOffset(runId: string, newOffset: number): void {
+    const run = this.runs.get(runId);
+    if (run && newOffset > run.flushedOffset) {
+      run.flushedOffset = newOffset;
+    }
   }
 
   /** Clear a pending fallback timer for a specific run. */

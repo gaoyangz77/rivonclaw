@@ -475,6 +475,105 @@ describe("RunTracker", () => {
   });
 
   // ---------------------------------------------------------------------------
+  // flushedOffset — deduplication across tool-call boundaries
+  // ---------------------------------------------------------------------------
+  describe("flushedOffset", () => {
+    it("starts at 0", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(0);
+    });
+
+    it("records streaming length on TOOL_START", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "Hello world" });
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "browser" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(11); // "Hello world".length
+    });
+
+    it("accumulates across multiple tool calls", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      // First generation: 10 chars
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "0123456789" });
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "tool1" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(10);
+
+      // After tool completes, new accumulated text includes old + new
+      tracker.dispatch({ type: "TOOL_RESULT", runId: "r1" });
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "0123456789ABCDE" }); // 15 chars total
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "tool2" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(15);
+    });
+
+    it("does not change flushedOffset when no streaming text at TOOL_START", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      // TOOL_START without any prior CHAT_DELTA
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "browser" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(0);
+    });
+
+    it("displayStreaming slices off flushed prefix", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "pre-tool" });
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "browser" });
+      tracker.dispatch({ type: "TOOL_RESULT", runId: "r1" });
+      // Gateway sends accumulated text: pre-tool + new content
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "pre-toolNEW CONTENT" });
+
+      const view = tracker.getView();
+      expect(view.displayStreaming).toBe("NEW CONTENT");
+      expect(view.displayFlushedOffset).toBe(8); // "pre-tool".length
+    });
+
+    it("displayFlushedOffset is 0 when no tools used", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "Hello" });
+      const view = tracker.getView();
+      expect(view.displayStreaming).toBe("Hello");
+      expect(view.displayFlushedOffset).toBe(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // updateFlushedOffset
+  // ---------------------------------------------------------------------------
+  describe("updateFlushedOffset", () => {
+    it("increases flushed offset when patched text is longer", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "partial" });
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "browser" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(7); // "partial".length
+
+      // History patch recovered more text
+      tracker.updateFlushedOffset("r1", 20);
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(20);
+    });
+
+    it("does not decrease flushed offset", () => {
+      const { tracker } = createTracker();
+      tracker.dispatch({ type: "LOCAL_SEND", runId: "r1", sessionKey: "s1" });
+      tracker.dispatch({ type: "CHAT_DELTA", runId: "r1", text: "1234567890" });
+      tracker.dispatch({ type: "TOOL_START", runId: "r1", toolName: "browser" });
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(10);
+
+      tracker.updateFlushedOffset("r1", 5);
+      expect(tracker.getRun("r1")!.flushedOffset).toBe(10); // stays at 10
+    });
+
+    it("is a no-op for unknown runs", () => {
+      const { tracker } = createTracker();
+      // Should not throw
+      tracker.updateFlushedOffset("unknown", 100);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // getView — localRunId and localStreaming
   // ---------------------------------------------------------------------------
   describe("getView localRunId / localStreaming", () => {

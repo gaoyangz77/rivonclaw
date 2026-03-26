@@ -19,7 +19,45 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       sendJson(res, 200, { ok: true, skipped: true }); // Bridge not running — no-op
       return true;
     }
-    refreshCSShopContext(ctx.csBridge, ctx.authSession, body.shopId).catch(() => {});
+    refreshCSShopContext(ctx.csBridge, ctx.authSession, body.shopId, ctx.deviceId ?? "unknown").catch(() => {});
+    sendJson(res, 200, { ok: true });
+    return true;
+  }
+
+  // GET /api/cs-bridge/binding-status — get current shop binding conflicts
+  if (pathname === "/api/cs-bridge/binding-status" && req.method === "GET") {
+    const bridge = ctx.csBridge;
+    if (!bridge) {
+      sendJson(res, 200, { connected: false, conflicts: [] });
+      return true;
+    }
+    sendJson(res, 200, {
+      connected: true,
+      conflicts: bridge.getBindingConflicts(),
+    });
+    return true;
+  }
+
+  // POST /api/cs-bridge/force-bind — force-bind a shop (take over from another device)
+  if (pathname === "/api/cs-bridge/force-bind" && req.method === "POST") {
+    const body = await parseBody(req) as { shopId?: string };
+    if (!body.shopId) {
+      sendJson(res, 400, { error: "Missing shopId" });
+      return true;
+    }
+    ctx.csBridge?.forceBindShop(body.shopId);
+    sendJson(res, 200, { ok: true });
+    return true;
+  }
+
+  // POST /api/cs-bridge/unbind — unbind a shop from this device
+  if (pathname === "/api/cs-bridge/unbind" && req.method === "POST") {
+    const body = await parseBody(req) as { shopId?: string };
+    if (!body.shopId) {
+      sendJson(res, 400, { error: "Missing shopId" });
+      return true;
+    }
+    ctx.csBridge?.unbindShop(body.shopId);
     sendJson(res, 200, { ok: true });
     return true;
   }

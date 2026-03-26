@@ -323,10 +323,18 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           // Flush current streaming text into a committed assistant bubble
           // before adding the tool event.  Read from tracker (single source of truth)
           // BEFORE dispatching TOOL_START which clears run.streaming.
-          const flushedText = tracker.getRun(agentRunId)?.streaming ?? null;
+          //
+          // IMPORTANT: The gateway sends cumulative text across the entire turn,
+          // so run.streaming contains ALL text from the start — including text
+          // that was already flushed into bubbles during earlier tool calls.
+          // Slice off the already-flushed prefix to avoid duplication.
+          const flushRun = tracker.getRun(agentRunId);
+          const rawStreaming = flushRun?.streaming ?? null;
+          const currentOffset = flushRun?.flushedOffset ?? 0;
+          const flushedText = rawStreaming && currentOffset > 0 ? rawStreaming.slice(currentOffset) : rawStreaming;
           // DEBUG: log tool_start flush state
-          console.info("[chat] tool_start: tool=%s flushedText=%s runId=%s",
-            name, flushedText ? `"${flushedText.slice(0, 40)}..." (${flushedText.length}ch)` : "null", agentRunId);
+          console.info("[chat] tool_start: tool=%s flushedText=%s offset=%d runId=%s",
+            name, flushedText ? `"${flushedText.slice(0, 40)}..." (${flushedText.length}ch)` : "null", currentOffset, agentRunId);
           const args = agentPayload.data?.args as Record<string, unknown> | undefined;
           const toolEvt: ChatMessage = { role: "tool-event", text: name, toolName: name, toolArgs: args, timestamp: Date.now() };
           if (flushedText) {
@@ -336,8 +344,13 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
             // Fetch stored history (which has the complete text) and patch the
             // truncated bubble.  Use the run's idempotencyKey to precisely locate
             // the user message, then find the last assistant message after it.
+            //
+            // Only run this recovery for the FIRST tool call in a turn (offset 0).
+            // For subsequent tool calls, the CHAT_DELTA text is cumulative across
+            // the entire turn, so the sliced portion is already complete — no
+            // throttle-buffer gap to recover.
             const client = clientRef.current;
-            if (client) {
+            if (client && currentOffset === 0) {
               const snap = flushedText;
               const runKey = agentRunId; // equals idempotencyKey for local runs
               client.request<{ messages?: Array<{ role?: string; content?: unknown; idempotencyKey?: string }> }>(
@@ -366,6 +379,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
                       patched[idx] = { ...patched[idx], text: full };
                       return patched;
                     });
+                    // Keep flushedOffset in sync with the patched (longer) text
+                    // so CHAT_FINAL slicing remains accurate.
+                    tracker.updateFlushedOffset(runKey, full.length);
                     break;
                   }
                 }
@@ -508,12 +524,22 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         }
         case "final": {
           // DEBUG: log final event state
-          const localStreaming = tracker.getRun(chatRunId!)?.streaming;
-          console.info("[chat] final: runId=%s streaming=%s",
-            chatRunId, localStreaming ? `"${localStreaming.slice(0, 40)}..."` : "null");
+          const localRun = tracker.getRun(chatRunId!);
+          const localStreaming = localRun?.streaming;
+          const flushedOffset = localRun?.flushedOffset ?? 0;
+          console.info("[chat] final: runId=%s streaming=%s flushedOffset=%d",
+            chatRunId, localStreaming ? `"${localStreaming.slice(0, 40)}..."` : "null", flushedOffset);
           const finalText = extractText(payload.message?.content);
           if (finalText) {
-            setMessages((prev) => [...prev, { role: "assistant", text: finalText, timestamp: Date.now() }]);
+            // When tool calls occurred during this run, pre-tool text was
+            // already flushed into committed message bubbles. The gateway's
+            // final message contains the FULL accumulated text for the entire
+            // turn, so we must strip the already-committed prefix to avoid
+            // duplicating it.
+            const newText = flushedOffset > 0 ? finalText.slice(flushedOffset) : finalText;
+            if (newText.trim()) {
+              setMessages((prev) => [...prev, { role: "assistant", text: newText, timestamp: Date.now() }]);
+            }
           }
           if (sendTimeRef.current > 0) {
             trackEvent("chat.response_received", { durationMs: Date.now() - sendTimeRef.current });
@@ -541,8 +567,11 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         case "aborted": {
           // If there was partial streaming text, keep it as a message.
           // Read from tracker BEFORE cleanup (which removes the run).
-          const abortedText = tracker.getRun(chatRunId!)?.streaming ?? null;
-          if (abortedText) {
+          const abortedRun = tracker.getRun(chatRunId!);
+          const abortedRaw = abortedRun?.streaming ?? null;
+          const abortedOffset = abortedRun?.flushedOffset ?? 0;
+          const abortedText = abortedRaw && abortedOffset > 0 ? abortedRaw.slice(abortedOffset) : abortedRaw;
+          if (abortedText?.trim()) {
             setMessages((prev) => [...prev, { role: "assistant", text: abortedText, timestamp: Date.now() }]);
           }
           lastAgentStreamRef.current = null;
@@ -574,9 +603,14 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         // Immediately commit the final text so the user sees it without waiting
         // for loadHistory. The subsequent loadHistory will replace all messages
         // with the canonical transcript, but this avoids a visible gap.
+        const extRun = chatRunId ? tracker.getRun(chatRunId) : undefined;
+        const extFlushedOffset = extRun?.flushedOffset ?? 0;
         const finalText = extractText(payload.message?.content);
         if (finalText) {
-          setMessages((prev) => [...prev, { role: "assistant", text: finalText, timestamp: Date.now() }]);
+          const extNewText = extFlushedOffset > 0 ? finalText.slice(extFlushedOffset) : finalText;
+          if (extNewText.trim()) {
+            setMessages((prev) => [...prev, { role: "assistant", text: extNewText, timestamp: Date.now() }]);
+          }
         }
         // DEBUG: log external final that triggers history reload
         console.info("[chat] external final → reloading history: runId=%s localRunId=%s",

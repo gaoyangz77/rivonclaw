@@ -1241,6 +1241,7 @@ export const ToolId = {
   TiktokGetLogisticsTracking: 'TIKTOK_GET_LOGISTICS_TRACKING',
   TiktokGetOrder: 'TIKTOK_GET_ORDER',
   TiktokGetProduct: 'TIKTOK_GET_PRODUCT',
+  TiktokSearchProducts: 'TIKTOK_SEARCH_PRODUCTS',
   TiktokGetShippingProviders: 'TIKTOK_GET_SHIPPING_PROVIDERS',
   TiktokGetWarehouses: 'TIKTOK_GET_WAREHOUSES',
   TiktokListOrders: 'TIKTOK_LIST_ORDERS',
@@ -1260,7 +1261,8 @@ export const ToolId = {
   TiktokCsListOrders: 'TIKTOK_CS_LIST_ORDERS',
   TiktokCsGetLogisticsTracking: 'TIKTOK_CS_GET_LOGISTICS_TRACKING',
   TiktokCsGetProduct: 'TIKTOK_CS_GET_PRODUCT',
-  TiktokCsCreateConversation: 'TIKTOK_CS_CREATE_CONVERSATION'
+  TiktokCsCreateConversation: 'TIKTOK_CS_CREATE_CONVERSATION',
+  TiktokCsSearchProducts: 'TIKTOK_CS_SEARCH_PRODUCTS'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];

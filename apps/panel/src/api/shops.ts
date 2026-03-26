@@ -15,6 +15,7 @@ export interface CustomerServiceConfig {
   enabled: boolean;
   businessPrompt?: string;
   runProfileId?: string;
+  csDeviceId?: string | null;
 }
 
 export interface CustomerServiceBilling {
@@ -111,7 +112,7 @@ export async function updateShop(
     shopName?: string;
     authStatus?: string;
     region?: string;
-    services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string } };
+    services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string; csDeviceId?: string | null } };
   },
 ): Promise<Shop> {
   return trackedQuery(async () => {

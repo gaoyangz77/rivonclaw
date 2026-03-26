@@ -112,9 +112,36 @@ export interface CSErrorFrame {
   message: string;
 }
 
-/** Relay → Client: connection replaced by another device. */
-export interface CSConnectionReplacedFrame {
-  type: "cs_connection_replaced";
+/** Client → Relay: bind shops to this gateway. */
+export interface CSBindShopsFrame {
+  type: "cs_bind_shops";
+  shopIds: string[];
+}
+
+/** Relay → Client: shop binding result. */
+export interface CSBindShopsResultFrame {
+  type: "cs_bind_shops_result";
+  bound: string[];
+  conflicts: Array<{ shopId: string; gatewayId: string }>;
+}
+
+/** Client → Relay: unbind shops. */
+export interface CSUnbindShopsFrame {
+  type: "cs_unbind_shops";
+  shopIds: string[];
+}
+
+/** Client → Relay: force-bind a shop (take over from another device). */
+export interface CSForceBindShopFrame {
+  type: "cs_force_bind_shop";
+  shopId: string;
+}
+
+/** Relay → Client: your shop was taken over by another device. */
+export interface CSShopTakenOverFrame {
+  type: "cs_shop_taken_over";
+  shopId: string;
+  newGatewayId: string;
 }
 
 /** Client → Relay: request a new binding token. */
@@ -181,7 +208,11 @@ export type CSWSFrame =
   | CSImageReplyFrame
   | CSAckFrame
   | CSErrorFrame
-  | CSConnectionReplacedFrame
+  | CSBindShopsFrame
+  | CSBindShopsResultFrame
+  | CSUnbindShopsFrame
+  | CSForceBindShopFrame
+  | CSShopTakenOverFrame
   | CSCreateBindingFrame
   | CSCreateBindingAckFrame
   | CSUnbindAllFrame

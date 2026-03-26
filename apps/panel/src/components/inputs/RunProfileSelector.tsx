@@ -24,7 +24,9 @@ export function RunProfileSelector({ value, onChange, className }: RunProfileSel
     { value: "", label: t("runProfileSelector.allTools") },
     ...profiles.map((p) => ({
       value: p.id,
-      label: p.userId === null ? `${p.name} · ${t("surfaces.system")}` : p.name,
+      label: p.userId === null
+        ? `${t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name })} · ${t("surfaces.system")}`
+        : p.name,
     })),
   ];
 
