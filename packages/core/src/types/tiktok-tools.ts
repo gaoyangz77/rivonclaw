@@ -561,7 +561,9 @@ export type TiktokToolCategory = z.infer<typeof tiktokToolCategorySchema>;
 // Derived from ToolId enum so the bridge and resolver stay in sync with backend.
 
 export const TIKTOK_CS_TOOL_IDS: readonly string[] = [
-  toolName(ToolId.TiktokCsSendMessage),
+  // Text replies are auto-forwarded by CS bridge — no send_message tool needed.
+  toolName(ToolId.TiktokCsSendMedia),
+  toolName(ToolId.TiktokCsSendCard),
   toolName(ToolId.TiktokCsGetConversations),
   toolName(ToolId.TiktokCsGetConversationMessages),
   toolName(ToolId.TiktokCsGetConversationDetails),

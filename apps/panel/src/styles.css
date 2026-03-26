@@ -7004,7 +7004,12 @@ tbody td {
 .shop-detail-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+}
+
+/* Remove extra top spacing for first section label in drawer */
+.shop-detail-section > .drawer-section-label:first-child {
+  margin-top: -2px;
 }
 
 .shop-detail-grid {
@@ -7031,7 +7036,8 @@ tbody td {
 
 .shop-prompt-textarea {
   min-height: 100px;
-  margin-top: 4px;
+  margin-top: 2px;
+  padding-bottom: 24px;
 }
 
 /* ── Drawer ── */
@@ -7039,10 +7045,10 @@ tbody td {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-overlay, rgba(0, 0, 0, 0.3));
   z-index: 900;
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-normal);
   pointer-events: none;
 }
 
@@ -7061,11 +7067,11 @@ tbody td {
   border-left: 1px solid var(--color-border);
   z-index: 901;
   transform: translateX(100%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-lg, -4px 0 24px rgba(0, 0, 0, 0.06));
 }
 
 .drawer-panel-open {
@@ -7076,8 +7082,9 @@ tbody td {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg);
   flex-shrink: 0;
   gap: 12px;
 }
@@ -7099,11 +7106,13 @@ tbody td {
   background: var(--color-primary-light);
   color: var(--color-primary);
   flex-shrink: 0;
+  box-shadow: 0 1px 3px var(--color-primary-light);
 }
 
 .drawer-header-info {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
   min-width: 0;
 }
@@ -7140,7 +7149,9 @@ tbody td {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 24px;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  padding: 20px 24px 28px;
 }
 
 /* ── Module Cards ── */
@@ -7412,7 +7423,7 @@ tbody td {
 
 .drawer-tab-bar {
   display: flex;
-  gap: 0;
+  gap: 2px;
   background: var(--color-bg-alt);
   border-radius: var(--radius-sm);
   padding: 3px;
@@ -7430,7 +7441,7 @@ tbody td {
   border: none;
   border-radius: calc(var(--radius-sm) - 2px);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .drawer-tab-btn:hover {
@@ -7440,7 +7451,8 @@ tbody td {
 .drawer-tab-btn-active {
   background: var(--color-bg);
   color: var(--color-text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(0, 0, 0, 0.08));
 }
 
 /* Section Labels */
@@ -7451,7 +7463,16 @@ tbody td {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+/* Collapse gap between label and its following card —
+   the label is visually grouped with the card below it, not the section above */
+.drawer-section-label + .shop-info-card,
+.drawer-section-label + .shop-toggle-card,
+.drawer-section-label + .session-stats-grid,
+.drawer-section-label + .acct-item-list {
+  margin-top: -2px;
 }
 
 /* Shop Info Card (key-value list) */
@@ -7469,6 +7490,11 @@ tbody td {
   justify-content: space-between;
   padding: 10px 14px;
   gap: 12px;
+  transition: background var(--transition-fast);
+}
+
+.shop-info-row:hover {
+  background: var(--color-bg-alt);
 }
 
 .shop-info-row + .shop-info-row {
@@ -7485,31 +7511,44 @@ tbody td {
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text);
-  text-align: right;
   min-width: 0;
   word-break: break-word;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .shop-info-value-danger {
   color: var(--color-danger);
+  font-weight: 600;
 }
 
 /* Toggle Card */
 
 .shop-toggle-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 14px 16px;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
-  background: var(--color-bg);
+  background: var(--color-bg-alt);
+  gap: 12px;
+  transition: border-color var(--transition-fast);
+}
+
+.shop-toggle-card:hover {
+  border-color: var(--color-border);
 }
 
 .shop-toggle-card-left {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
 }
 
 .shop-toggle-card-label {
@@ -7518,12 +7557,29 @@ tbody td {
   color: var(--color-text);
 }
 
+.shop-toggle-card > .toggle-switch {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 /* Business Prompt Section */
 
 .shop-prompt-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.shop-prompt-section > .drawer-section-label {
+  margin-bottom: 2px;
+}
+
+.shop-prompt-section > .modal-actions {
+  padding-top: 4px;
 }
 
 .shop-prompt-wrapper {
@@ -7542,30 +7598,36 @@ tbody td {
 /* RunProfile Selector in AI CS tab */
 
 .shop-runprofile-row {
-  padding: 10px 14px;
+  padding: 12px 14px;
 }
 
 .shop-runprofile-tools {
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-top: 1px solid var(--color-border-light);
 }
 
 .shop-tool-list {
   list-style: none;
-  margin: 6px 0;
+  margin: 8px 0 0;
   padding: 0;
   max-height: 200px;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--color-bg-alt);
 }
 
 .shop-tool-list-item {
-  padding: 5px 12px;
-  font-size: 13px;
-  color: var(--color-text);
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
   font-family: var(--font-mono, monospace);
+  transition: color var(--transition-fast);
+}
+
+.shop-tool-list-item:hover {
+  color: var(--color-text);
 }
 
 .shop-tool-list-item + .shop-tool-list-item {
@@ -7573,7 +7635,7 @@ tbody td {
 }
 
 .shop-tool-count {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 12px;
   color: var(--color-text-muted);
 }
@@ -7629,12 +7691,17 @@ tbody td {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 10px;
+  padding: 20px 12px 18px;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
-  background: var(--color-bg);
+  background: var(--color-bg-alt);
   text-align: center;
-  gap: 6px;
+  gap: 8px;
+  transition: border-color var(--transition-fast);
+}
+
+.session-stat-card:hover {
+  border-color: var(--color-border);
 }
 
 .session-stat-label {
@@ -7643,13 +7710,15 @@ tbody td {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
+  order: 1;
 }
 
 .session-stat-value {
   font-family: var(--font-mono);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--color-text);
   line-height: 1;
   letter-spacing: -0.02em;
+  order: 0;
 }

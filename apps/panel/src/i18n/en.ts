@@ -1542,7 +1542,8 @@ export default {
         TIKTOK_LIST_ORDERS: "TikTok — List Orders",
         TIKTOK_GET_LOGISTICS_TRACKING: "TikTok — Logistics Tracking",
         // TikTok CS — Session-scoped tools
-        TIKTOK_CS_SEND_MESSAGE: "TikTok CS — Send Message",
+        TIKTOK_CS_SEND_MEDIA: "TikTok CS — Send Media",
+        TIKTOK_CS_SEND_CARD: "TikTok CS — Send Card",
         TIKTOK_CS_GET_CONVERSATIONS: "TikTok CS — Get Conversations",
         TIKTOK_CS_GET_CONVERSATION_MESSAGES: "TikTok CS — Get Messages",
         TIKTOK_CS_GET_CONVERSATION_DETAILS: "TikTok CS — Conversation Details",

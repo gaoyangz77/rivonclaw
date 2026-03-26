@@ -662,6 +662,9 @@ app.whenReady().then(async () => {
         log.info("Gateway RPC client disconnected");
       },
       onEvent: (evt) => {
+        // Forward events to CS bridge for auto-forwarding agent text to buyer
+        csBridge?.onGatewayEvent(evt);
+
         if (evt.event === "mobile.session-reset") {
           const payload = evt.payload as { sessionKey?: string } | undefined;
           if (payload?.sessionKey) {

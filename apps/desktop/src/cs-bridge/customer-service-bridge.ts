@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
-import type { GatewayRpcClient } from "@rivonclaw/gateway";
+import type { GatewayRpcClient, GatewayEventFrame } from "@rivonclaw/gateway";
 import type {
   CSHelloFrame,
   CSBindShopsFrame,
@@ -55,6 +55,7 @@ const PANEL_BASE = `http://127.0.0.1:${DEFAULT_PANEL_PORT}`;
 export class CustomerServiceBridge {
   private ws: WebSocket | null = null;
   private closed = false;
+  private authenticated = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempt = 0;
 
@@ -63,6 +64,9 @@ export class CustomerServiceBridge {
 
   /** Shops currently bound to other devices (from last cs_bind_shops_result). */
   private bindingConflicts: Array<{ shopId: string; gatewayId: string }> = [];
+
+  /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
+  private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
 
   constructor(private readonly opts: CustomerServiceBridgeOptions) {}
 
@@ -123,6 +127,46 @@ export class CustomerServiceBridge {
     this.shopContexts.delete(shopId);
   }
 
+  /**
+   * Handle gateway events forwarded from the RPC client's onEvent callback.
+   * Watches for `chat` events with `state: "final"` to auto-forward agent
+   * text output to the buyer — removing the need for a dedicated send_message tool.
+   */
+  onGatewayEvent(evt: GatewayEventFrame): void {
+    if (evt.event !== "chat") return;
+
+    const payload = evt.payload as {
+      runId?: string;
+      state?: string;
+      message?: {
+        role?: string;
+        content?: Array<{ type?: string; text?: string }>;
+      };
+    } | undefined;
+    if (!payload?.runId) return;
+
+    const pending = this.pendingRuns.get(payload.runId);
+    if (!pending) return;
+
+    if (payload.state === "final") {
+      this.pendingRuns.delete(payload.runId);
+
+      const agentText = payload.message?.content
+        ?.filter((c) => c.type === "text" && c.text)
+        .map((c) => c.text!.trim())
+        .join("\n")
+        .trim();
+
+      if (agentText) {
+        this.forwardTextToBuyer(pending.shopObjectId, pending.conversationId, agentText)
+          .catch((err) => log.error("Failed to auto-forward agent text:", err));
+      }
+    } else if (payload.state === "error") {
+      this.pendingRuns.delete(payload.runId);
+      log.warn(`Agent run ${payload.runId} ended with error, skipping auto-forward`);
+    }
+  }
+
   // ── Connection management ───────────────────────────────────────────
 
   private async connect(): Promise<void> {
@@ -163,6 +207,7 @@ export class CustomerServiceBridge {
       ws.on("close", (code, reason) => {
         log.info(`CS relay WebSocket closed: ${code} ${reason.toString()}`);
         this.ws = null;
+        this.authenticated = false;
         if (!this.closed) {
           this.scheduleReconnect();
         }
@@ -210,6 +255,7 @@ export class CustomerServiceBridge {
         break;
       case "cs_ack":
         this.reconnectAttempt = 0;
+        this.authenticated = true;
         log.info("CS relay connection confirmed (cs_ack)");
         // Bind all CS-enabled shops after relay confirms connection
         this.sendShopBindings();
@@ -247,7 +293,7 @@ export class CustomerServiceBridge {
    * If shopIds is provided, only those shops are sent; otherwise all known shops.
    */
   private sendShopBindings(shopIds?: string[]): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.authenticated) return;
 
     const ids = shopIds ?? [...this.shopContexts.values()].map(ctx => ctx.platformShopId);
     if (ids.length === 0) return;
@@ -329,17 +375,25 @@ export class CustomerServiceBridge {
       `- Buyer User ID: ${frame.buyerUserId}`,
       ...(frame.orderId ? [`- Order ID: ${frame.orderId}`] : []),
       "",
-      "Use the tools available to you to help this buyer. Always reply using tiktok_cs_send_message tool.",
+      "Use the tools available to you to help this buyer. Your text replies are automatically delivered to the buyer.",
     ].join("\n");
 
     // 7. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
     try {
-      await rpcClient.request("agent", {
+      const response = await rpcClient.request<{ runId?: string }>("agent", {
         sessionKey: dispatchKey,
         message: textContent,
         extraSystemPrompt,
         idempotencyKey: `tiktok:${frame.messageId}`,
       });
+      // Track the run so onGatewayEvent can auto-forward the agent's text output
+      if (response?.runId) {
+        this.pendingRuns.set(response.runId, {
+          shopObjectId: shop.objectId,
+          conversationId: frame.conversationId,
+        });
+        log.info(`Agent run dispatched: runId=${response.runId}`);
+      }
     } catch (err) {
       log.error(`Failed to dispatch agent run for message ${frame.messageId}:`, err);
     }
@@ -371,5 +425,42 @@ export class CustomerServiceBridge {
     }
 
     return `[${frame.messageType} message received]`;
+  }
+
+  // ── Auto-forward agent text to buyer ──────────────────────────────────
+
+  /**
+   * Send agent text output to the buyer via the backend GraphQL proxy.
+   * Uses the same `tiktokSendMessage` mutation that the ops send_message tool uses.
+   */
+  private async forwardTextToBuyer(
+    shopId: string,
+    conversationId: string,
+    text: string,
+  ): Promise<void> {
+    const mutation = `
+      mutation($shopId: String!, $conversationId: String!, $type: String!, $content: String!) {
+        tiktokSendMessage(shopId: $shopId, conversationId: $conversationId, type: $type, content: $content) {
+          code message data
+        }
+      }
+    `;
+    const res = await fetch(`${PANEL_BASE}/api/cloud/graphql`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: mutation,
+        variables: {
+          shopId,
+          conversationId,
+          type: "TEXT",
+          content: JSON.stringify({ content: text }),
+        },
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`GraphQL HTTP error: ${res.status} ${res.statusText}`);
+    }
+    log.info(`Auto-forwarded agent text to buyer (${text.length} chars)`);
   }
 }
