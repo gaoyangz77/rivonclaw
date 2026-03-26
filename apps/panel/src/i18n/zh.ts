@@ -1532,7 +1532,8 @@ export default {
         TIKTOK_LIST_ORDERS: "TikTok — 订单列表",
         TIKTOK_GET_LOGISTICS_TRACKING: "TikTok — 物流追踪",
         // TikTok 客服 — 会话级工具
-        TIKTOK_CS_SEND_MESSAGE: "TikTok 客服 — 发送消息",
+        TIKTOK_CS_SEND_MEDIA: "TikTok 客服 — 发送图片",
+        TIKTOK_CS_SEND_CARD: "TikTok 客服 — 发送卡片",
         TIKTOK_CS_GET_CONVERSATIONS: "TikTok 客服 — 获取会话",
         TIKTOK_CS_GET_CONVERSATION_MESSAGES: "TikTok 客服 — 获取消息",
         TIKTOK_CS_GET_CONVERSATION_DETAILS: "TikTok 客服 — 会话详情",
