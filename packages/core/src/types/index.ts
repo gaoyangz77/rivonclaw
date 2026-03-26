@@ -105,6 +105,7 @@ export type {
   ToolSelectionScope,
   ScopedToolConfig,
 } from "./tool-selection.js";
+export { ScopeType, TRUSTED_SCOPE_TYPES } from "./tool-selection.js";
 
 export type {
   CatalogTool,

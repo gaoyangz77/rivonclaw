@@ -1375,6 +1375,9 @@ export default {
     seats: "Seats",
     validUntil: "Valid Until",
     runProfilesDesc: "Tool presets for agent runs. Select one or more when starting a chat or cron job.",
+    defaultRunProfile: "Default Run Profile",
+    defaultRunProfileHint: "Applied to new sessions when no specific profile is selected",
+    noDefault: "None (baseline tools only)",
     llmKey: "LLM Key",
     llmKeySuspended: "Suspended",
     quotaFiveHour: "Quota (5h)",
@@ -1534,14 +1537,22 @@ export default {
         TIKTOK_UPLOAD_IMAGE: "TikTok — Upload Image",
         TIKTOK_UPDATE_AGENT_SETTINGS: "TikTok — Update Settings",
         TIKTOK_SEARCH_SESSIONS: "TikTok — Search Sessions",
-        // TikTok Two-tool variants (buyer-scoped)
-        TIKTOK_GET_ORDER_FOR_BUYER: "TikTok — Get Order (Buyer)",
-        TIKTOK_LIST_BUYER_ORDERS: "TikTok — List Buyer Orders",
-        TIKTOK_GET_LOGISTICS_FOR_BUYER: "TikTok — Logistics (Buyer)",
-        // TikTok Two-tool variants (seller/ops)
+        // TikTok Ops — Orders & Logistics
         TIKTOK_GET_ORDER: "TikTok — Get Order",
         TIKTOK_LIST_ORDERS: "TikTok — List Orders",
         TIKTOK_GET_LOGISTICS_TRACKING: "TikTok — Logistics Tracking",
+        // TikTok CS — Session-scoped tools
+        TIKTOK_CS_SEND_MESSAGE: "TikTok CS — Send Message",
+        TIKTOK_CS_GET_CONVERSATIONS: "TikTok CS — Get Conversations",
+        TIKTOK_CS_GET_CONVERSATION_MESSAGES: "TikTok CS — Get Messages",
+        TIKTOK_CS_GET_CONVERSATION_DETAILS: "TikTok CS — Conversation Details",
+        TIKTOK_CS_READ_MESSAGE: "TikTok CS — Read Message",
+        TIKTOK_CS_READ_MESSAGES: "TikTok CS — Read Messages",
+        TIKTOK_CS_GET_ORDER: "TikTok CS — Get Order",
+        TIKTOK_CS_LIST_ORDERS: "TikTok CS — List Orders",
+        TIKTOK_CS_GET_LOGISTICS_TRACKING: "TikTok CS — Logistics Tracking",
+        TIKTOK_CS_GET_PRODUCT: "TikTok CS — Get Product",
+        TIKTOK_CS_CREATE_CONVERSATION: "TikTok CS — Create Conversation",
         // TikTok Product/Logistics
         TIKTOK_GET_PRODUCT: "TikTok — Get Product",
         TIKTOK_GET_WAREHOUSES: "TikTok — Warehouses",

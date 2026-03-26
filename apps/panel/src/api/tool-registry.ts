@@ -1,5 +1,9 @@
 /** REST client for the tool capability registry (desktop panel-server endpoints). */
 
+import { ScopeType } from "@rivonclaw/core";
+
+export { ScopeType };
+
 export interface AvailableTool {
   id: string;
   displayName: string;
@@ -8,6 +12,8 @@ export interface AvailableTool {
   allowed: boolean;
   source?: "system" | "extension" | "entitled";
 }
+
+type RunProfilePayload = { id: string; name: string; selectedToolIds: string[]; surfaceId: string };
 
 const BASE = "/api/tools";
 
@@ -21,9 +27,9 @@ export async function fetchAvailableTools(): Promise<AvailableTool[]> {
 
 /** Set a RunProfile for a scope (chat session, cron job). Pass null to clear. */
 export async function setRunProfileForScope(
-  scopeType: string,
+  scopeType: ScopeType,
   scopeKey: string,
-  runProfile: { id: string; name: string; selectedToolIds: string[]; surfaceId: string } | null,
+  runProfile: RunProfilePayload | null,
 ): Promise<void> {
   const res = await fetch(`${BASE}/run-profile`, {
     method: "PUT",
@@ -35,12 +41,24 @@ export async function setRunProfileForScope(
 
 /** Get the RunProfile currently set for a scope. Returns null if none. */
 export async function getRunProfileForScope(
-  scopeType: string,
+  scopeType: ScopeType,
   scopeKey: string,
-): Promise<{ id: string; name: string; selectedToolIds: string[]; surfaceId: string } | null> {
+): Promise<RunProfilePayload | null> {
   const params = new URLSearchParams({ scopeType, scopeKey });
   const res = await fetch(`${BASE}/run-profile?${params}`);
   if (!res.ok) return null;
-  const data = (await res.json()) as { runProfile: { id: string; name: string; selectedToolIds: string[]; surfaceId: string } | null };
+  const data = (await res.json()) as { runProfile: RunProfilePayload | null };
   return data.runProfile;
+}
+
+/** Set/clear the user's default RunProfile (trusted scope fallback). */
+export async function setDefaultRunProfile(
+  runProfile: RunProfilePayload | null,
+): Promise<void> {
+  const res = await fetch(`${BASE}/default-run-profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ runProfile }),
+  });
+  if (!res.ok) throw new Error(`setDefaultRunProfile failed: ${res.status}`);
 }

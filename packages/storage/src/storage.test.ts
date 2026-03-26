@@ -1009,7 +1009,7 @@ describe("ToolSelections", () => {
   });
 
   it("should return empty array for non-existent scope", () => {
-    const selections = storage.toolSelections.getForScope("app_run", "nonexistent");
+    const selections = storage.toolSelections.getForScope("unknown", "nonexistent");
     expect(selections).toHaveLength(0);
   });
 

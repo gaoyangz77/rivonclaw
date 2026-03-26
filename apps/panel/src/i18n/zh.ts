@@ -1365,6 +1365,9 @@ export default {
     seats: "席位",
     validUntil: "有效期至",
     runProfilesDesc: "Agent 运行的工具预设。启动聊天或定时任务时选择一个或多个。",
+    defaultRunProfile: "默认运行配置",
+    defaultRunProfileHint: "未手动选择时应用于新会话（聊天、定时任务、渠道消息）",
+    noDefault: "无（仅基础工具）",
     llmKey: "LLM 密钥",
     llmKeySuspended: "已暂停",
     quotaFiveHour: "配额（5小时）",
@@ -1524,14 +1527,22 @@ export default {
         TIKTOK_UPLOAD_IMAGE: "TikTok — 上传图片",
         TIKTOK_UPDATE_AGENT_SETTINGS: "TikTok — 更新设置",
         TIKTOK_SEARCH_SESSIONS: "TikTok — 搜索会话",
-        // TikTok 双工具变体（买家视角）
-        TIKTOK_GET_ORDER_FOR_BUYER: "TikTok — 订单详情（买家）",
-        TIKTOK_LIST_BUYER_ORDERS: "TikTok — 订单列表（买家）",
-        TIKTOK_GET_LOGISTICS_FOR_BUYER: "TikTok — 物流追踪（买家）",
-        // TikTok 双工具变体（卖家/运营）
+        // TikTok 运营 — 订单与物流
         TIKTOK_GET_ORDER: "TikTok — 查询订单",
         TIKTOK_LIST_ORDERS: "TikTok — 订单列表",
         TIKTOK_GET_LOGISTICS_TRACKING: "TikTok — 物流追踪",
+        // TikTok 客服 — 会话级工具
+        TIKTOK_CS_SEND_MESSAGE: "TikTok 客服 — 发送消息",
+        TIKTOK_CS_GET_CONVERSATIONS: "TikTok 客服 — 获取会话",
+        TIKTOK_CS_GET_CONVERSATION_MESSAGES: "TikTok 客服 — 获取消息",
+        TIKTOK_CS_GET_CONVERSATION_DETAILS: "TikTok 客服 — 会话详情",
+        TIKTOK_CS_READ_MESSAGE: "TikTok 客服 — 标记已读",
+        TIKTOK_CS_READ_MESSAGES: "TikTok 客服 — 读取消息",
+        TIKTOK_CS_GET_ORDER: "TikTok 客服 — 查询订单",
+        TIKTOK_CS_LIST_ORDERS: "TikTok 客服 — 订单列表",
+        TIKTOK_CS_GET_LOGISTICS_TRACKING: "TikTok 客服 — 物流追踪",
+        TIKTOK_CS_GET_PRODUCT: "TikTok 客服 — 产品详情",
+        TIKTOK_CS_CREATE_CONVERSATION: "TikTok 客服 — 创建会话",
         // TikTok 商品/物流
         TIKTOK_GET_PRODUCT: "TikTok — 商品详情",
         TIKTOK_GET_WAREHOUSES: "TikTok — 仓库列表",

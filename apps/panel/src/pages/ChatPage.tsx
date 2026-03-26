@@ -19,8 +19,8 @@ import { SessionTabBar } from "./chat/SessionTabBar.js";
 import type { GatewaySessionInfo } from "./chat/SessionTabBar.js";
 import { ChatInputArea } from "./chat/ChatInputArea.js";
 import { RunProfileSelector } from "../components/inputs/RunProfileSelector.js";
-import { useToolRegistry, usePanelStore } from "../stores/index.js";
-import { setRunProfileForScope } from "../api/tool-registry.js";
+import { usePanelStore } from "../stores/index.js";
+import { setRunProfileForScope, ScopeType } from "../api/tool-registry.js";
 import "./chat/ChatPage.css";
 
 export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
@@ -73,7 +73,6 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
   const runProfiles = usePanelStore((s) => s.runProfiles);
-  const { tools } = useToolRegistry();
   const [externalPending, setExternalPending] = useState(false);
   const externalPendingRef = useRef(false);
 
@@ -99,11 +98,17 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       fetchLimitRef.current = FETCH_BATCH;
       isFetchingRef.current = false;
       setExternalPending(false); externalPendingRef.current = false;
-      if (state.trackerSnapshot) {
-        trackerRef.current.restore(state.trackerSnapshot);
-      } else {
-        trackerRef.current.reset();
-      }
+      // Always reset the tracker on session switch rather than restoring a
+      // cached snapshot.  Cached snapshots can contain stale active runs
+      // whose terminal events (CHAT_FINAL, CHAT_ERROR) arrived while a
+      // different tab was active and were therefore filtered out.  Restoring
+      // such a snapshot causes an infinitely-stuck streaming cursor.
+      //
+      // If a run is genuinely still active for this session, the gateway will
+      // send new events (chat.delta, agent lifecycle) that auto-register the
+      // run in the tracker, so the streaming indicator will reappear within
+      // one delta interval (~150ms).
+      trackerRef.current.reset();
     },
   });
 
@@ -1035,26 +1040,37 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const activeKey = sessionManager.activeSessionKey;
   useEffect(() => {
     setSelectedRunProfileId("");
-    setRunProfileForScope("chat_session", activeKey, null).catch(() => {});
+    setRunProfileForScope(ScopeType.CHAT_SESSION, activeKey, null).catch(() => {});
   }, [activeKey]);
+
+  // Background history refresh on session switch — picks up messages that
+  // arrived while a different tab was active (e.g. the final response from a
+  // run that completed in the background).  Only runs when the client is
+  // connected and the session key actually changes.
+  const prevActiveKeyRef = useRef(activeKey);
+  useEffect(() => {
+    if (activeKey === prevActiveKeyRef.current) return;
+    prevActiveKeyRef.current = activeKey;
+    const client = clientRef.current;
+    if (!client || connectionState !== "connected") return;
+    loadHistory(client);
+  }, [activeKey, connectionState, loadHistory]);
 
   function pushRunProfileToScope(profileId: string, scopeKey: string) {
     const profile = profileId ? runProfiles.find((p) => p.id === profileId) : null;
     if (!profile) {
-      setRunProfileForScope("chat_session", scopeKey, null).catch(() => {});
+      setRunProfileForScope(ScopeType.CHAT_SESSION, scopeKey, null).catch(() => {});
       return;
     }
-    const systemIds = tools.filter((t) => t.source === "system").map((t) => t.id);
-    const merged = [...new Set([...profile.selectedToolIds, ...systemIds])];
+    // System tools are now handled by desktop's tool-capability-resolver
     setRunProfileForScope(
-      "chat_session",
+      ScopeType.CHAT_SESSION,
       scopeKey,
-      { id: profile.id, name: profile.name, selectedToolIds: merged, surfaceId: profile.surfaceId },
+      { id: profile.id, name: profile.name, selectedToolIds: profile.selectedToolIds, surfaceId: profile.surfaceId },
     ).catch(() => {});
   }
 
   // Push RunProfile selection to desktop when changed.
-  // Admin scopes (chat, cron) always include system tools on top of the RunProfile.
   function handleRunProfileChange(profileId: string) {
     setSelectedRunProfileId(profileId);
     pushRunProfileToScope(profileId, activeKey);

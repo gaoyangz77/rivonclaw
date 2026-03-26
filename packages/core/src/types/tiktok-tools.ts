@@ -641,7 +641,7 @@ export const TIKTOK_TOOL_REGISTRY = [
     outputSchema: getOrderOutputSchema,
   },
   {
-    name: toolName(ToolId.TiktokGetOrderForBuyer),
+    name: toolName(ToolId.TiktokCsGetOrder),
     description: "Get order details scoped to session buyer (CS variant — platform enforcement)",
     category: "TIKTOK_ORDER",
     inputSchema: getOrderForBuyerInputSchema,
@@ -655,7 +655,7 @@ export const TIKTOK_TOOL_REGISTRY = [
     outputSchema: listOrdersOutputSchema,
   },
   {
-    name: toolName(ToolId.TiktokListBuyerOrders),
+    name: toolName(ToolId.TiktokCsListOrders),
     description: "List orders for the session buyer (CS variant — platform enforcement)",
     category: "TIKTOK_ORDER",
     inputSchema: listBuyerOrdersInputSchema,
@@ -678,7 +678,7 @@ export const TIKTOK_TOOL_REGISTRY = [
     outputSchema: getLogisticsTrackingOutputSchema,
   },
   {
-    name: toolName(ToolId.TiktokGetLogisticsForBuyer),
+    name: toolName(ToolId.TiktokCsGetLogisticsTracking),
     description: "Get logistics tracking scoped to session buyer (CS variant — platform enforcement)",
     category: "TIKTOK_LOGISTICS",
     inputSchema: getLogisticsForBuyerInputSchema,

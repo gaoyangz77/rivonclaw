@@ -46,6 +46,20 @@ export function getTelemetryUrl(locale: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Customer-service relay URLs
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the CS relay WebSocket URL.
+ * Overridable via CS_RELAY_URL env var for staging/testing.
+ */
+export function getCsRelayWsUrl(): string {
+	const envOverride = typeof process !== "undefined" ? process.env.CS_RELAY_URL : undefined;
+	if (envOverride) return envOverride;
+	return `wss://${DEFAULTS.domains.csRelay}/ws`;
+}
+
+// ---------------------------------------------------------------------------
 // Release feed URLs
 // ---------------------------------------------------------------------------
 

@@ -1,32 +1,32 @@
-import type { GQL } from "@rivonclaw/core";
+import { ScopeType } from "@rivonclaw/core";
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { toolCapabilityResolver } from "../utils/tool-capability-resolver.js";
 
+// ── Session key parsing ─────────────────────────────────────────────────────
+// Pure function: sessionKey → scopeType.
+// Phase 1: string-based rules. Phase 2: SQLite lookup for Channel persistence.
+
 /**
- * In-memory scope → RunProfile bindings.
- * Managed by Panel via PUT/GET/DELETE /api/tools/run-profile.
- * Used by capability-manager plugin via GET /api/tools/effective-tools.
+ * Parse a sessionKey into its ScopeType.
+ *
+ * Rules (evaluated in order):
+ * - Contains ":cron:" → CRON_JOB
+ * - Starts with "cs:" → CS_SESSION
+ * - Everything else → CHAT_SESSION (covers ChatPage, Channels, etc.)
  */
-const scopeProfiles = new Map<string, GQL.RunProfile>();
-
-function toScopeKey(scopeType: string, scopeKey: string): string {
-  return `${scopeType}:${scopeKey}`;
-}
-
-/** Resolve sessionKey to scopeType + scopeKey (handles cron detection). */
-function resolveScope(sessionKey: string, defaultScopeType: string): { scopeType: string; scopeKey: string } {
-  const cronMatch = sessionKey.match(/:cron:([^:]+)/);
-  if (cronMatch) {
-    return { scopeType: "cron_job", scopeKey: cronMatch[1] };
-  }
-  return { scopeType: defaultScopeType, scopeKey: sessionKey };
+export function parseScopeType(sessionKey: string): ScopeType {
+  if (sessionKey.includes(":cron:")) return ScopeType.CRON_JOB;
+  if (sessionKey.startsWith("cs:")) return ScopeType.CS_SESSION;
+  if (sessionKey.startsWith("agent:")) return ScopeType.CHAT_SESSION;
+  return ScopeType.UNKNOWN;
 }
 
 /**
  * Thin HTTP adapter for ToolCapabilityResolver.
- * Routes handle: parameter parsing, scope→RunProfile state, session→scope resolution.
- * All tool computation is delegated to the resolver.
+ *
+ * Routes handle ONLY: HTTP parsing + delegation to resolver.
+ * Business logic (scope trust, system tools enrichment, defaults) lives in the resolver.
  */
 export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
 
@@ -42,20 +42,13 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
       return true;
     }
 
-    const { scopeType, scopeKey } = resolveScope(sessionKey, url.searchParams.get("scopeType") ?? "chat_session");
-    const runProfile = scopeProfiles.get(toScopeKey(scopeType, scopeKey)) ?? null;
-    // ⚠️ SECURITY: surface=null means UNRESTRICTED — all tools pass Layer 2.
-    // This is intentional for ChatPage/CronJob (admin scopes) and OpenClaw native sessions.
-    // Future scope types that need Surface restriction must look up the Surface
-    // from the RunProfile's surfaceId and pass it here instead of null.
-    const result = toolCapabilityResolver.computeEffectiveTools(null, runProfile);
-    sendJson(res, 200, { effectiveToolIds: result.effectiveToolIds });
+    const scopeType = parseScopeType(sessionKey);
+    const effectiveToolIds = toolCapabilityResolver.getEffectiveToolsForScope(scopeType, sessionKey);
+    sendJson(res, 200, { effectiveToolIds });
     return true;
   }
 
   // GET /api/tools/available — full tool list for Panel UI
-  // System tools are always available (pre-seeded from static catalog).
-  // Extension tools appear after gateway connects. Entitled tools require login.
   if (pathname === "/api/tools/available" && req.method === "GET") {
     const entitledMeta = ctx.authSession?.getAccessToken()
       ? (ctx.authSession.getCachedAvailableTools()
@@ -66,56 +59,48 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
     return true;
   }
 
-  // PUT /api/tools/run-profile
-  if (pathname === "/api/tools/run-profile" && req.method === "PUT") {
-    const body = await parseBody(req) as {
-      scopeType?: string;
-      scopeKey?: string;
-      runProfile?: Partial<GQL.RunProfile> | null;
-    };
-    if (!body.scopeType || !body.scopeKey) {
-      sendJson(res, 400, { error: "Missing scopeType or scopeKey" });
-      return true;
-    }
-    const sk = toScopeKey(body.scopeType, body.scopeKey);
-    if (body.runProfile) {
-      const now = new Date().toISOString();
-      scopeProfiles.set(sk, {
-        id: body.runProfile.id ?? "",
-        name: body.runProfile.name ?? "",
-        selectedToolIds: body.runProfile.selectedToolIds ?? [],
-        surfaceId: body.runProfile.surfaceId ?? "",
-        createdAt: now,
-        updatedAt: now,
-      });
-    } else {
-      scopeProfiles.delete(sk);
-    }
+  // PUT /api/tools/default-run-profile — set/clear the user's default RunProfile
+  if (pathname === "/api/tools/default-run-profile" && req.method === "PUT") {
+    const body = await parseBody(req) as { runProfile?: { selectedToolIds: string[]; surfaceId?: string } | null };
+    toolCapabilityResolver.setDefaultRunProfile(body.runProfile ?? null);
     sendJson(res, 200, { ok: true });
     return true;
   }
 
-  // GET /api/tools/run-profile
-  if (pathname === "/api/tools/run-profile" && req.method === "GET") {
-    const scopeType = url.searchParams.get("scopeType");
-    const scopeKey = url.searchParams.get("scopeKey");
-    if (!scopeType || !scopeKey) {
-      sendJson(res, 400, { error: "Missing scopeType or scopeKey" });
+  // PUT /api/tools/run-profile — set RunProfile for a specific session
+  if (pathname === "/api/tools/run-profile" && req.method === "PUT") {
+    const body = await parseBody(req) as {
+      scopeKey?: string;
+      runProfile?: { selectedToolIds: string[]; surfaceId?: string } | null;
+    };
+    if (!body.scopeKey) {
+      sendJson(res, 400, { error: "Missing scopeKey" });
       return true;
     }
-    sendJson(res, 200, { runProfile: scopeProfiles.get(toScopeKey(scopeType, scopeKey)) ?? null });
+    toolCapabilityResolver.setSessionRunProfile(body.scopeKey, body.runProfile ?? null);
+    sendJson(res, 200, { ok: true });
     return true;
   }
 
-  // DELETE /api/tools/run-profile
-  if (pathname === "/api/tools/run-profile" && req.method === "DELETE") {
-    const scopeType = url.searchParams.get("scopeType");
+  // GET /api/tools/run-profile — get RunProfile for a session
+  if (pathname === "/api/tools/run-profile" && req.method === "GET") {
     const scopeKey = url.searchParams.get("scopeKey");
-    if (!scopeType || !scopeKey) {
-      sendJson(res, 400, { error: "Missing scopeType or scopeKey" });
+    if (!scopeKey) {
+      sendJson(res, 400, { error: "Missing scopeKey" });
       return true;
     }
-    scopeProfiles.delete(toScopeKey(scopeType, scopeKey));
+    sendJson(res, 200, { runProfile: toolCapabilityResolver.getSessionRunProfile(scopeKey) });
+    return true;
+  }
+
+  // DELETE /api/tools/run-profile — clear RunProfile for a session
+  if (pathname === "/api/tools/run-profile" && req.method === "DELETE") {
+    const scopeKey = url.searchParams.get("scopeKey");
+    if (!scopeKey) {
+      sendJson(res, 400, { error: "Missing scopeKey" });
+      return true;
+    }
+    toolCapabilityResolver.setSessionRunProfile(scopeKey, null);
     sendJson(res, 200, { ok: true });
     return true;
   }

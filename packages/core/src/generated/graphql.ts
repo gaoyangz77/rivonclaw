@@ -261,6 +261,7 @@ export interface LoginInput {
 /** Current user profile */
 export interface MeResponse {
   createdAt: Scalars['DateTimeISO']['output'];
+  defaultRunProfileId?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
   enrolledModules: Array<ModuleId>;
   entitlementKeys: Array<EntitlementKey>;
@@ -339,6 +340,8 @@ export interface Mutation {
   revokeAllSessions: Scalars['Int']['output'];
   /** Save WeCom customer service credentials */
   saveWeComConfig: CsConfig;
+  /** Set or clear the default RunProfile for the current user */
+  setDefaultRunProfile: Scalars['Boolean']['output'];
   /** Create a new conversation with a buyer */
   tiktokCreateConversation: TikTokApiResult;
   /** Mark messages as read in a conversation */
@@ -489,6 +492,11 @@ export interface MutationRegisterArgs {
 
 export interface MutationSaveWeComConfigArgs {
   input: WeComConfigInput;
+}
+
+
+export interface MutationSetDefaultRunProfileArgs {
+  runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -1230,21 +1238,29 @@ export const ToolId = {
   TiktokGetConversationMessages: 'TIKTOK_GET_CONVERSATION_MESSAGES',
   TiktokGetCsPerformance: 'TIKTOK_GET_CS_PERFORMANCE',
   TiktokGetGlobalWarehouses: 'TIKTOK_GET_GLOBAL_WAREHOUSES',
-  TiktokGetLogisticsForBuyer: 'TIKTOK_GET_LOGISTICS_FOR_BUYER',
   TiktokGetLogisticsTracking: 'TIKTOK_GET_LOGISTICS_TRACKING',
   TiktokGetOrder: 'TIKTOK_GET_ORDER',
-  TiktokGetOrderForBuyer: 'TIKTOK_GET_ORDER_FOR_BUYER',
   TiktokGetProduct: 'TIKTOK_GET_PRODUCT',
   TiktokGetShippingProviders: 'TIKTOK_GET_SHIPPING_PROVIDERS',
   TiktokGetWarehouses: 'TIKTOK_GET_WAREHOUSES',
-  TiktokListBuyerOrders: 'TIKTOK_LIST_BUYER_ORDERS',
   TiktokListOrders: 'TIKTOK_LIST_ORDERS',
   TiktokReadMessage: 'TIKTOK_READ_MESSAGE',
   TiktokReadMessages: 'TIKTOK_READ_MESSAGES',
   TiktokSearchSessions: 'TIKTOK_SEARCH_SESSIONS',
   TiktokSendMessage: 'TIKTOK_SEND_MESSAGE',
   TiktokUpdateAgentSettings: 'TIKTOK_UPDATE_AGENT_SETTINGS',
-  TiktokUploadImage: 'TIKTOK_UPLOAD_IMAGE'
+  TiktokUploadImage: 'TIKTOK_UPLOAD_IMAGE',
+  TiktokCsSendMessage: 'TIKTOK_CS_SEND_MESSAGE',
+  TiktokCsGetConversations: 'TIKTOK_CS_GET_CONVERSATIONS',
+  TiktokCsGetConversationMessages: 'TIKTOK_CS_GET_CONVERSATION_MESSAGES',
+  TiktokCsGetConversationDetails: 'TIKTOK_CS_GET_CONVERSATION_DETAILS',
+  TiktokCsReadMessage: 'TIKTOK_CS_READ_MESSAGE',
+  TiktokCsReadMessages: 'TIKTOK_CS_READ_MESSAGES',
+  TiktokCsGetOrder: 'TIKTOK_CS_GET_ORDER',
+  TiktokCsListOrders: 'TIKTOK_CS_LIST_ORDERS',
+  TiktokCsGetLogisticsTracking: 'TIKTOK_CS_GET_LOGISTICS_TRACKING',
+  TiktokCsGetProduct: 'TIKTOK_CS_GET_PRODUCT',
+  TiktokCsCreateConversation: 'TIKTOK_CS_CREATE_CONVERSATION'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];

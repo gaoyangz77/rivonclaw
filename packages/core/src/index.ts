@@ -33,6 +33,8 @@ export type {
   CSCreateBindingAckFrame,
   CSUnbindAllFrame,
   CSBindingResolvedFrame,
+  CSTikTokNewConversationFrame,
+  CSTikTokNewMessageFrame,
   CSWSFrame,
   PlatformAdapter,
 } from "./types/index.js";
@@ -87,6 +89,7 @@ export type {
   ToolSelectionScope,
   ScopedToolConfig,
 } from "./types/index.js";
+export { ScopeType, TRUSTED_SCOPE_TYPES } from "./types/index.js";
 
 export type {
   AgentRunCapabilityContext,
@@ -246,6 +249,7 @@ export {
   CHANNEL_NO_PROXY_DOMAINS,
   getAnthropicMessagesUrl,
   getOllamaBaseUrl, getOllamaOpenAiBaseUrl,
+  getCsRelayWsUrl,
 } from "./endpoints.js";
 
 export {

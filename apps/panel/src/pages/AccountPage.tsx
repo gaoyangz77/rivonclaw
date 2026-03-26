@@ -7,6 +7,9 @@ import { ToolMultiSelect } from "../components/inputs/ToolMultiSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ModuleIcon } from "../components/icons.js";
 import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
+import { getClient } from "../api/apollo-client.js";
+import { SET_DEFAULT_RUN_PROFILE_MUTATION } from "../api/auth-queries.js";
+import { setDefaultRunProfile as notifyDesktopDefaultProfile } from "../api/tool-registry.js";
 import type { Surface } from "../api/surfaces.js";
 import type { RunProfile } from "../api/run-profiles.js";
 
@@ -56,6 +59,10 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   const [profileToolIds, setProfileToolIds] = useState<Set<string>>(new Set());
   const [profileSurfaceId, setProfileSurfaceId] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // ── Default RunProfile state ──
+  const [savingDefault, setSavingDefault] = useState(false);
+  const [defaultProfileError, setDefaultProfileError] = useState<string | null>(null);
 
   // ── Surface handlers ──
   function openCreateSurface() {
@@ -187,8 +194,49 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setProfileError(null);
     try {
       await storeDeleteRunProfile(profileId);
+      // If the deleted profile was the default, clear it
+      if (user?.defaultRunProfileId === profileId) {
+        await handleDefaultProfileChange("");
+      }
     } catch {
       setProfileError(t("surfaces.failedToDeleteProfile"));
+    }
+  }
+
+  async function handleDefaultProfileChange(profileId: string) {
+    setSavingDefault(true);
+    setDefaultProfileError(null);
+    try {
+      // 1. Persist to backend
+      const runProfileId = profileId || null;
+      await getClient().mutate<{ setDefaultRunProfile: boolean }>({
+        mutation: SET_DEFAULT_RUN_PROFILE_MUTATION,
+        variables: { runProfileId },
+      });
+
+      // 2. Notify desktop runtime
+      if (runProfileId) {
+        const profile = profiles.find((p) => p.id === runProfileId);
+        if (profile) {
+          await notifyDesktopDefaultProfile({
+            id: profile.id,
+            name: profile.name,
+            selectedToolIds: profile.selectedToolIds,
+            surfaceId: profile.surfaceId,
+          });
+        }
+      } else {
+        await notifyDesktopDefaultProfile(null);
+      }
+
+      // 3. Update local user state with the new defaultRunProfileId
+      usePanelStore.setState((state) => ({
+        user: state.user ? { ...state.user, defaultRunProfileId: runProfileId } : null,
+      }));
+    } catch {
+      setDefaultProfileError(t("surfaces.failedToSaveProfile"));
+    } finally {
+      setSavingDefault(false);
     }
   }
 
@@ -385,6 +433,28 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
         </div>
 
         {profileError && <div className="error-alert">{profileError}</div>}
+
+        {profiles.length > 0 && (
+          <div className="acct-default-profile">
+            <label className="form-label-block">{t("account.defaultRunProfile")}</label>
+            <div className="form-hint">{t("account.defaultRunProfileHint")}</div>
+            {defaultProfileError && <div className="error-alert">{defaultProfileError}</div>}
+            <Select
+              value={user?.defaultRunProfileId ?? ""}
+              onChange={handleDefaultProfileChange}
+              disabled={savingDefault}
+              className="input-full"
+              options={[
+                { value: "", label: t("account.noDefault") },
+                ...profiles.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                  description: surfaceNameById[p.surfaceId] || p.surfaceId,
+                })),
+              ]}
+            />
+          </div>
+        )}
 
         {profiles.length === 0 ? (
           <div className="empty-cell">{t("surfaces.noRunProfiles")}</div>

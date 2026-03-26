@@ -25,7 +25,7 @@ import {
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, formatError, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
+import { parseProxyUrl, formatError, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, getCsRelayWsUrl } from "@rivonclaw/core";
 import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -62,6 +62,7 @@ import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.j
 import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { toolCapabilityResolver } from "./utils/tool-capability-resolver.js";
+import { CustomerServiceBridge } from "./cs-bridge/customer-service-bridge.js";
 
 const log = createLogger("desktop");
 
@@ -548,6 +549,7 @@ app.whenReady().then(async () => {
 
   // Initialize gateway RPC client for channels.status and other RPC calls
   let rpcClient: GatewayRpcClient | null = null;
+  let csBridge: CustomerServiceBridge | null = null;
   async function connectRpcClient(): Promise<void> {
     if (rpcClient) {
       rpcClient.stop();
@@ -632,6 +634,23 @@ app.whenReady().then(async () => {
         // Tool contexts are now pushed on-demand: when selections change (PUT/DELETE),
         // when the panel ensures context (POST ensure-context), or at cron event time.
 
+        // Start CS Bridge if user has e-commerce module
+        if (authSession?.getAccessToken()) {
+          const user = authSession.getCachedUser();
+          const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
+          if (hasEcommerce) {
+            if (csBridge) csBridge.stop();
+            csBridge = new CustomerServiceBridge({
+              relayUrl: getCsRelayWsUrl(),
+              gatewayId: deviceId ?? "unknown",
+              locale,
+              getAuthToken: () => authSession?.getAccessToken(),
+              getRpcClient: () => rpcClient,
+            });
+            csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
+          }
+        }
+
         // Push locally-stored cookies for managed profiles to the gateway plugin
         pushStoredCookiesToGateway()
           .catch((e: unknown) => log.debug("Failed to push stored cookies to gateway (best-effort):", e));
@@ -710,6 +729,10 @@ app.whenReady().then(async () => {
   }
 
   function disconnectRpcClient(): void {
+    if (csBridge) {
+      csBridge.stop();
+      csBridge = null;
+    }
     if (rpcClient) {
       rpcClient.stop();
       rpcClient = null;

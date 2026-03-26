@@ -4,6 +4,7 @@ import type {
   ToolCapabilityResult,
   GQL,
 } from "@rivonclaw/core";
+import { ScopeType, TRUSTED_SCOPE_TYPES } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 import { SYSTEM_TOOL_CATALOG } from "../generated/system-tool-catalog.js";
@@ -59,12 +60,23 @@ function toolIdInSet(toolId: string, idSet: Set<string>): boolean {
  * Layer 3 (RunProfile): per-run tool selection (null = unrestricted)
  * Layer 4 (Tool Execution): capability-manager plugin enforcement (external)
  */
+/** Minimal RunProfile shape for internal storage (avoids full GQL.RunProfile dependency). */
+interface StoredRunProfile {
+  selectedToolIds: string[];
+  surfaceId?: string;
+}
+
 export class ToolCapabilityResolver {
   private entitledToolIds: string[] = [];
   /** Pre-seeded from static catalog; overwritten by gateway catalog on init(). */
   private systemToolIds: string[] = SYSTEM_TOOL_CATALOG.map((t) => t.id);
   private customExtensionToolIds: string[] = [];
   private initialized = false;
+
+  /** Per-session RunProfile overrides (in-memory; Phase 2: SQLite for Channel persistence). */
+  private sessionProfiles = new Map<string, StoredRunProfile>();
+  /** User's default RunProfile (fallback for trusted scopes without explicit selection). */
+  private defaultProfile: StoredRunProfile | null = null;
 
   /**
    * Initialize with entitled tools from backend and tool catalog from gateway.
@@ -104,6 +116,11 @@ export class ToolCapabilityResolver {
 
   isInitialized(): boolean {
     return this.initialized;
+  }
+
+  /** System tool IDs (always-available core tools like read, write, exec, fetch). */
+  getSystemToolIds(): string[] {
+    return this.systemToolIds;
   }
 
   /** Update entitled tools independently of gateway init (e.g., on login/logout). */
@@ -174,6 +191,60 @@ export class ToolCapabilityResolver {
     ];
   }
 
+  // ── Session RunProfile state ──
+
+  setDefaultRunProfile(profile: StoredRunProfile | null): void {
+    this.defaultProfile = profile;
+    log.info(profile ? `Default RunProfile set (${profile.selectedToolIds.length} tools)` : "Default RunProfile cleared");
+  }
+
+  setSessionRunProfile(sessionKey: string, profile: StoredRunProfile | null): void {
+    if (profile) {
+      this.sessionProfiles.set(sessionKey, profile);
+    } else {
+      this.sessionProfiles.delete(sessionKey);
+    }
+  }
+
+  getSessionRunProfile(sessionKey: string): StoredRunProfile | null {
+    return this.sessionProfiles.get(sessionKey) ?? null;
+  }
+
+  /**
+   * Main entry point for capability-manager queries.
+   * Resolves RunProfile for the session, computes effective tools,
+   * and enriches with system tools for trusted scopes.
+   */
+  getEffectiveToolsForScope(scopeType: ScopeType, sessionKey: string): string[] {
+    // 1. Resolve RunProfile: explicit per-session → default fallback (trusted only) → null
+    let runProfile: StoredRunProfile | null = this.sessionProfiles.get(sessionKey) ?? null;
+    if (!runProfile && TRUSTED_SCOPE_TYPES.has(scopeType)) {
+      runProfile = this.defaultProfile;
+    }
+
+    // 2. Untrusted scope without explicit RunProfile → empty (defense-in-depth).
+    //    CS bridge always sets a RunProfile before dispatch; if it didn't,
+    //    the agent should have no tools rather than getting baseline.
+    if (!runProfile && !TRUSTED_SCOPE_TYPES.has(scopeType)) {
+      return [];
+    }
+
+    // 3. Compute effective tools (pure four-layer computation)
+    const gqlProfile: GQL.RunProfile | null = runProfile
+      ? { id: "", name: "", selectedToolIds: runProfile.selectedToolIds, surfaceId: runProfile.surfaceId ?? "", createdAt: "", updatedAt: "" }
+      : null;
+    const result = this.computeEffectiveTools(null, gqlProfile);
+
+    // 4. Trusted scopes: always include system tools
+    if (TRUSTED_SCOPE_TYPES.has(scopeType)) {
+      const merged = new Set(result.effectiveToolIds);
+      for (const id of this.systemToolIds) merged.add(id);
+      return [...merged];
+    }
+
+    return result.effectiveToolIds;
+  }
+
   // ── Four-layer computation ──
 
   /**
@@ -218,8 +289,11 @@ export class ToolCapabilityResolver {
     const availability = this.computeSurfaceAvailability(surface);
     const availableSet = new Set(availability.availableToolIds);
 
-    // No RunProfile → baseline tools only (system + extension, no entitled)
-    const baselineToolIds = [...this.systemToolIds, ...this.customExtensionToolIds];
+    // No RunProfile → system tools only. Extension and entitled tools
+    //   require explicit opt-in via a RunProfile.
+    // With RunProfile → exactly runProfile.selectedToolIds (caller decides
+    //   whether to merge system tools based on scope trust level).
+    const baselineToolIds = [...this.systemToolIds];
     const selectedToolIds = runProfile?.selectedToolIds ?? baselineToolIds;
     const effectiveToolIds = selectedToolIds.filter(id => toolIdInSet(id, availableSet));
 

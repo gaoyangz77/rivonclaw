@@ -22,6 +22,7 @@ export const LOGIN_MUTATION = gql`
         createdAt
         enrolledModules
         entitlementKeys
+        defaultRunProfileId
         llmKey {
           key
           suspendedUntil
@@ -44,6 +45,7 @@ export const REGISTER_MUTATION = gql`
         createdAt
         enrolledModules
         entitlementKeys
+        defaultRunProfileId
         llmKey {
           key
           suspendedUntil
@@ -66,6 +68,7 @@ export const REFRESH_TOKEN_MUTATION = gql`
         createdAt
         enrolledModules
         entitlementKeys
+        defaultRunProfileId
         llmKey {
           key
           suspendedUntil
@@ -85,6 +88,7 @@ export const ME_QUERY = gql`
       createdAt
       enrolledModules
       entitlementKeys
+      defaultRunProfileId
       llmKey {
         key
         suspendedUntil
@@ -108,6 +112,12 @@ export const UNENROLL_MODULE_MUTATION = gql`
       enrolledModules
       entitlementKeys
     }
+  }
+`;
+
+export const SET_DEFAULT_RUN_PROFILE_MUTATION = gql`
+  mutation SetDefaultRunProfile($runProfileId: String) {
+    setDefaultRunProfile(runProfileId: $runProfileId)
   }
 `;
 

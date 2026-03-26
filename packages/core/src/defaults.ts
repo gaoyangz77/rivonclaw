@@ -147,6 +147,7 @@ export const DEFAULTS = {
     staging: "stg.rivonclaw.com",
     telemetry: "t.rivonclaw.com",
     telemetryCn: "t.zhuazhuaai.cn",
+    csRelay: "relay.rivonclaw.com",
   },
 
   /** Third-party channel API hosts. */

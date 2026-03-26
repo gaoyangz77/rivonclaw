@@ -7,7 +7,7 @@ import { RunProfileSelector } from "../../components/inputs/RunProfileSelector.j
 import { ChevronRightIcon } from "../../components/icons.js";
 import { fetchChannelStatus, fetchAllowlist, setRecipientLabel, type ChannelsStatusSnapshot } from "../../api/channels.js";
 import { useToolRegistry, usePanelStore } from "../../stores/index.js";
-import { setRunProfileForScope } from "../../api/tool-registry.js";
+import { setRunProfileForScope, ScopeType } from "../../api/tool-registry.js";
 import type { CronJob, CronJobFormData, ScheduleKind, PayloadKind, EveryUnit, CronWakeMode, CronDeliveryMode, FormErrors } from "./cron-utils.js";
 import { defaultFormData, cronJobToFormData, formDataToCreateParams, formDataToPatch, validateCronForm, TIMEZONE_ENTRIES } from "./cron-utils.js";
 
@@ -724,15 +724,13 @@ export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFo
                   const cronScopeKey = mode === "edit" && initialData ? initialData.id : TEMP_CRON_SCOPE_KEY;
                   const profile = profileId ? runProfiles.find((p) => p.id === profileId) : null;
                   if (!profile) {
-                    setRunProfileForScope("cron_job", cronScopeKey, null).catch(() => {});
+                    setRunProfileForScope(ScopeType.CRON_JOB, cronScopeKey, null).catch(() => {});
                     return;
                   }
-                  const systemIds = tools.filter((t) => t.source === "system").map((t) => t.id);
-                  const merged = [...new Set([...profile.selectedToolIds, ...systemIds])];
                   setRunProfileForScope(
-                    "cron_job",
+                    ScopeType.CRON_JOB,
                     cronScopeKey,
-                    { id: profile.id, name: profile.name, selectedToolIds: merged, surfaceId: profile.surfaceId },
+                    { id: profile.id, name: profile.name, selectedToolIds: profile.selectedToolIds, surfaceId: profile.surfaceId },
                   ).catch(() => {});
                 }}
               />
