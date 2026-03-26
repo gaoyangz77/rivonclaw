@@ -185,6 +185,10 @@ export class CustomerServiceBridge {
         this.reconnectAttempt = 0;
         log.info("CS relay connection confirmed (cs_ack)");
         break;
+      case "cs_connection_replaced":
+        log.warn("CS relay connection replaced by another device — will not reconnect");
+        this.closed = true;
+        break;
       case "cs_error":
         log.error(`CS relay error: ${(frame as { message?: string }).message}`);
         break;

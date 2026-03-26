@@ -40,6 +40,7 @@ export type {
   CSImageReplyFrame,
   CSAckFrame,
   CSErrorFrame,
+  CSConnectionReplacedFrame,
   CSCreateBindingFrame,
   CSCreateBindingAckFrame,
   CSUnbindAllFrame,

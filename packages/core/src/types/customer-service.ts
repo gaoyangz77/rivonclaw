@@ -112,6 +112,11 @@ export interface CSErrorFrame {
   message: string;
 }
 
+/** Relay → Client: connection replaced by another device. */
+export interface CSConnectionReplacedFrame {
+  type: "cs_connection_replaced";
+}
+
 /** Client → Relay: request a new binding token. */
 export interface CSCreateBindingFrame {
   type: "cs_create_binding";
@@ -176,6 +181,7 @@ export type CSWSFrame =
   | CSImageReplyFrame
   | CSAckFrame
   | CSErrorFrame
+  | CSConnectionReplacedFrame
   | CSCreateBindingFrame
   | CSCreateBindingAckFrame
   | CSUnbindAllFrame
