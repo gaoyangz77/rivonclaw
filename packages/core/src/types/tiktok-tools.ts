@@ -556,6 +556,25 @@ export const tiktokToolCategorySchema = z.enum([
 export type TiktokToolCategory = z.infer<typeof tiktokToolCategorySchema>;
 
 // ---------------------------------------------------------------------------
+// CS Tool IDs — canonical list for RunProfile restriction
+// ---------------------------------------------------------------------------
+// Derived from ToolId enum so the bridge and resolver stay in sync with backend.
+
+export const TIKTOK_CS_TOOL_IDS: readonly string[] = [
+  toolName(ToolId.TiktokCsSendMessage),
+  toolName(ToolId.TiktokCsGetConversations),
+  toolName(ToolId.TiktokCsGetConversationMessages),
+  toolName(ToolId.TiktokCsGetConversationDetails),
+  toolName(ToolId.TiktokCsReadMessage),
+  toolName(ToolId.TiktokCsReadMessages),
+  toolName(ToolId.TiktokCsGetOrder),
+  toolName(ToolId.TiktokCsListOrders),
+  toolName(ToolId.TiktokCsGetLogisticsTracking),
+  toolName(ToolId.TiktokCsGetProduct),
+  toolName(ToolId.TiktokCsCreateConversation),
+];
+
+// ---------------------------------------------------------------------------
 // Tool Registry
 // ---------------------------------------------------------------------------
 

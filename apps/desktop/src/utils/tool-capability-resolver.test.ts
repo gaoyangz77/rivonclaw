@@ -33,8 +33,12 @@ describe("parseScopeType", () => {
     expect(parseScopeType("agent:main:cron:job1:run:uuid")).toBe(ScopeType.CRON_JOB);
   });
 
-  it("returns CS_SESSION for customer service session", () => {
+  it("returns CS_SESSION for CS session (raw key)", () => {
     expect(parseScopeType("cs:tiktok:conv123")).toBe(ScopeType.CS_SESSION);
+  });
+
+  it("returns CS_SESSION for CS session (gateway-prefixed key)", () => {
+    expect(parseScopeType("agent:main:cs:tiktok:conv123")).toBe(ScopeType.CS_SESSION);
   });
 
   it("returns UNKNOWN for unrecognized format", () => {

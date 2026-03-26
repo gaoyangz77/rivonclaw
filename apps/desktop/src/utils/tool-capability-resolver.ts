@@ -66,6 +66,17 @@ interface StoredRunProfile {
   surfaceId?: string;
 }
 
+/** Session profiles older than this are eligible for lazy eviction. */
+const SESSION_PROFILE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Lazy cleanup triggers when the session profile map exceeds this size. */
+const SESSION_PROFILE_CLEANUP_THRESHOLD = 100;
+
+interface TimestampedProfile {
+  profile: StoredRunProfile;
+  setAt: number;
+}
+
 export class ToolCapabilityResolver {
   private entitledToolIds: string[] = [];
   /** Pre-seeded from static catalog; overwritten by gateway catalog on init(). */
@@ -74,7 +85,7 @@ export class ToolCapabilityResolver {
   private initialized = false;
 
   /** Per-session RunProfile overrides (in-memory; Phase 2: SQLite for Channel persistence). */
-  private sessionProfiles = new Map<string, StoredRunProfile>();
+  private sessionProfiles = new Map<string, TimestampedProfile>();
   /** User's default RunProfile (fallback for trusted scopes without explicit selection). */
   private defaultProfile: StoredRunProfile | null = null;
 
@@ -200,14 +211,22 @@ export class ToolCapabilityResolver {
 
   setSessionRunProfile(sessionKey: string, profile: StoredRunProfile | null): void {
     if (profile) {
-      this.sessionProfiles.set(sessionKey, profile);
+      this.sessionProfiles.set(sessionKey, { profile, setAt: Date.now() });
+
+      // Lazy cleanup: evict expired entries when the map grows large
+      if (this.sessionProfiles.size > SESSION_PROFILE_CLEANUP_THRESHOLD) {
+        const now = Date.now();
+        for (const [key, entry] of this.sessionProfiles) {
+          if (now - entry.setAt > SESSION_PROFILE_TTL_MS) this.sessionProfiles.delete(key);
+        }
+      }
     } else {
       this.sessionProfiles.delete(sessionKey);
     }
   }
 
   getSessionRunProfile(sessionKey: string): StoredRunProfile | null {
-    return this.sessionProfiles.get(sessionKey) ?? null;
+    return this.sessionProfiles.get(sessionKey)?.profile ?? null;
   }
 
   /**
@@ -217,7 +236,7 @@ export class ToolCapabilityResolver {
    */
   getEffectiveToolsForScope(scopeType: ScopeType, sessionKey: string): string[] {
     // 1. Resolve RunProfile: explicit per-session → default fallback (trusted only) → null
-    let runProfile: StoredRunProfile | null = this.sessionProfiles.get(sessionKey) ?? null;
+    let runProfile: StoredRunProfile | null = this.sessionProfiles.get(sessionKey)?.profile ?? null;
     if (!runProfile && TRUSTED_SCOPE_TYPES.has(scopeType)) {
       runProfile = this.defaultProfile;
     }

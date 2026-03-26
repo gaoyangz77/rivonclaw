@@ -37,6 +37,7 @@ import { handleCloudTikTokRoutes } from "./api-routes/cloud-tiktok-routes.js";
 import { handleDoctorRoutes } from "./api-routes/doctor-routes.js";
 import { handleDepsRoutes } from "./api-routes/deps-routes.js";
 import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
+import { handleCSBridgeRoutes } from "./api-routes/cs-bridge-routes.js";
 
 const log = createLogger("panel-server");
 
@@ -231,6 +232,7 @@ export interface PanelServerOptions {
   authSession?: AuthSessionManager;
   sessionLifecycleManager?: SessionLifecycleManager;
   managedBrowserService?: ManagedBrowserService;
+  csBridge?: import("./cs-bridge/customer-service-bridge.js").CustomerServiceBridge;
 }
 
 // --- Route handlers (dispatched in order, first match wins) ---
@@ -249,6 +251,7 @@ const routeHandlers: RouteHandler[] = [
   handleMobileChatRoutes,
   handleBrowserProfilesRoutes,
   handleToolRegistryRoutes,
+  handleCSBridgeRoutes,
   handleDoctorRoutes,
   handleDepsRoutes,
 ];
@@ -336,6 +339,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager, authSession, sessionLifecycleManager,
     managedBrowserService,
+    get csBridge() { return options.csBridge; },
   };
 
   const server = createServer(async (req, res) => {

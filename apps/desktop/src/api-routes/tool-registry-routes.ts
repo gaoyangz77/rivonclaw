@@ -17,7 +17,7 @@ import { toolCapabilityResolver } from "../utils/tool-capability-resolver.js";
  */
 export function parseScopeType(sessionKey: string): ScopeType {
   if (sessionKey.includes(":cron:")) return ScopeType.CRON_JOB;
-  if (sessionKey.startsWith("cs:")) return ScopeType.CS_SESSION;
+  if (sessionKey.includes(":cs:") || sessionKey.startsWith("cs:")) return ScopeType.CS_SESSION;
   if (sessionKey.startsWith("agent:")) return ScopeType.CHAT_SESSION;
   return ScopeType.UNKNOWN;
 }

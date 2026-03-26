@@ -154,6 +154,7 @@ export {
   uploadImageCSInputSchema,
   getConversationsCSInputSchema,
   TIKTOK_TOOL_REGISTRY,
+  TIKTOK_CS_TOOL_IDS,
 } from "./types/index.js";
 
 export type {

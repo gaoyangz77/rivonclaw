@@ -334,6 +334,12 @@ export function EcommercePage() {
       await storeUpdateShop(shopId, {
         services: { customerService: { enabled: !currentValue } },
       });
+      // Notify desktop CS bridge to reload shop context (CS enabled/disabled)
+      fetch("http://127.0.0.1:3210/api/cs-bridge/refresh-shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId }),
+      }).catch(() => {});
       // If disabling CS while on the AI CS tab, switch back to overview
       if (currentValue && activeTab === "aiCustomerService") {
         setActiveTab("overview");
@@ -354,6 +360,12 @@ export function EcommercePage() {
       await storeUpdateShop(selectedShopId, {
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
+      // Notify desktop CS bridge to reload this shop's prompt
+      fetch("http://127.0.0.1:3210/api/cs-bridge/refresh-shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId: selectedShopId }),
+      }).catch(() => {}); // best-effort, don't block UI
       setSuccessMsg(t("common.saved"));
       setTimeout(() => setSuccessMsg(null), 2000);
     } catch (err) {

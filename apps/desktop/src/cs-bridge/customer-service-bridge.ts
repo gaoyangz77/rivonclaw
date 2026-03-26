@@ -1,6 +1,5 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
-import { getGraphqlUrl, ScopeType } from "@rivonclaw/core";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import type {
   CSHelloFrame,
@@ -8,6 +7,7 @@ import type {
   CSTikTokNewConversationFrame,
   CSWSFrame,
 } from "@rivonclaw/core";
+import { TIKTOK_CS_TOOL_IDS, DEFAULT_PANEL_PORT } from "@rivonclaw/core";
 
 const log = createLogger("cs-bridge");
 
@@ -15,18 +15,27 @@ const log = createLogger("cs-bridge");
 // Types
 // ---------------------------------------------------------------------------
 
+/** Shop data needed by the CS bridge (resolved by desktop, not by bridge). */
+export interface CSShopContext {
+  /** MongoDB ObjectId — used for backend API calls and prompt assembly. */
+  objectId: string;
+  /** Platform shop ID (TikTok's ID) — matches webhook shop_id. */
+  platformShopId: string;
+  /** Assembled CS system prompt for this shop. */
+  systemPrompt: string;
+}
+
 interface CustomerServiceBridgeOptions {
   relayUrl: string;
   gatewayId: string;
-  locale: string;
   getAuthToken: () => string | null;
   getRpcClient: () => GatewayRpcClient | null;
+  /** CS tool IDs for RunProfile restriction. Defaults to TIKTOK_CS_TOOL_IDS from core. */
+  csToolIds?: readonly string[];
 }
 
-interface AssembledPromptResult {
-  systemPrompt: string;
-  version: number;
-}
+/** Base URL for the local panel HTTP server. */
+const PANEL_BASE = `http://127.0.0.1:${DEFAULT_PANEL_PORT}`;
 
 // ---------------------------------------------------------------------------
 // CustomerServiceBridge
@@ -36,16 +45,18 @@ interface AssembledPromptResult {
  * Desktop-side bridge that connects to the TikTok CS relay WebSocket,
  * receives buyer messages, and dispatches agent runs via the gateway RPC.
  *
- * The agent replies directly using MCP tools (tiktok_send_message etc.) —
- * there is no relay reply path.
+ * The bridge is intentionally thin — it does NOT fetch data from the backend.
+ * All shop context (ObjectId, prompt) is provided by the desktop layer via
+ * {@link setShopContext}. The agent replies directly using MCP tools.
  */
 export class CustomerServiceBridge {
   private ws: WebSocket | null = null;
   private closed = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempt = 0;
-  private static readonly PROMPT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-  private promptCache = new Map<string, { prompt: string; fetchedAt: number }>();
+
+  /** Shop context keyed by platformShopId (from webhook). */
+  private shopContexts = new Map<string, CSShopContext>();
 
   constructor(private readonly opts: CustomerServiceBridgeOptions) {}
 
@@ -71,9 +82,18 @@ export class CustomerServiceBridge {
     log.info("CS bridge stopped");
   }
 
-  /** Clear cached prompt for a shop so the next message fetches a fresh copy. */
-  invalidatePromptCache(shopId: string): void {
-    this.promptCache.delete(shopId);
+  /**
+   * Register or update shop context. Called by desktop on startup (for all
+   * CS-enabled shops) and when the user modifies businessPrompt in Panel.
+   */
+  setShopContext(ctx: CSShopContext): void {
+    this.shopContexts.set(ctx.platformShopId, ctx);
+    log.info(`Shop context set: platform=${ctx.platformShopId} object=${ctx.objectId}`);
+  }
+
+  /** Remove shop context (shop disconnected/deleted). */
+  removeShopContext(platformShopId: string): void {
+    this.shopContexts.delete(platformShopId);
   }
 
   // ── Connection management ───────────────────────────────────────────
@@ -124,7 +144,6 @@ export class CustomerServiceBridge {
 
       ws.on("error", (err) => {
         log.warn(`CS relay WebSocket error: ${err.message}`);
-        // The close event will fire after this, triggering reconnect.
       });
     });
   }
@@ -170,7 +189,6 @@ export class CustomerServiceBridge {
         log.error(`CS relay error: ${(frame as { message?: string }).message}`);
         break;
       default:
-        // Ignore unhandled frame types (cs_inbound, cs_binding_resolved, etc.)
         break;
     }
   }
@@ -184,83 +202,73 @@ export class CustomerServiceBridge {
       return;
     }
 
-    // 1. Parse text content
+    // 1. Look up shop context (pre-loaded by desktop, keyed by platform shop ID)
+    const shop = this.shopContexts.get(frame.shopId);
+    if (!shop) {
+      log.error(`No shop context for platform shopId ${frame.shopId}, dropping message`);
+      return;
+    }
+
+    // 2. Parse text content
     const textContent = this.parseMessageContent(frame);
 
-    // 2. Fetch assembled CS prompt (cached per shopId)
-    const assembledPrompt = await this.fetchPrompt(frame.shopId);
-
-    // 3. Build session key
-    const sessionKey = `cs:tiktok:${frame.conversationId}`;
+    // 3. Build session keys
+    // scopeKey: the full gateway-resolved key used for RunProfile storage and
+    //           session registration (capability-manager queries with this key).
+    // dispatchKey: the raw key passed to the agent RPC; gateway prepends
+    //             "agent:main:" automatically, yielding the same scopeKey.
+    const scopeKey = `agent:main:cs:tiktok:${frame.conversationId}`;
+    const dispatchKey = `cs:tiktok:${frame.conversationId}`;
 
     // 4. Register CSSessionContext via gateway method
     try {
       await rpcClient.request("tiktok_cs_register_session", {
-        sessionKey,
+        sessionKey: scopeKey,
         csContext: {
-          shopId: frame.shopId,
+          shopId: shop.objectId,
           conversationId: frame.conversationId,
           buyerUserId: frame.buyerUserId,
           orderId: frame.orderId,
         },
       });
     } catch (err) {
-      log.error(`Failed to register CS session ${sessionKey}, dropping message:`, err);
+      log.error(`Failed to register CS session ${scopeKey}, dropping message:`, err);
       return;
     }
 
-    // 5. Set CS RunProfile for this session scope (restricts tools to CS-only set)
-    const csToolIds = [
-      "tiktok_cs_send_message",
-      "tiktok_cs_get_conversations",
-      "tiktok_cs_get_conversation_messages",
-      "tiktok_cs_get_conversation_details",
-      "tiktok_cs_read_message",
-      "tiktok_cs_read_messages",
-      "tiktok_cs_get_order",
-      "tiktok_cs_list_orders",
-      "tiktok_cs_get_logistics_tracking",
-      "tiktok_cs_get_product",
-      "tiktok_cs_create_conversation",
-    ];
-
+    // 5. Set CS RunProfile (restricts tools to CS-only set)
+    const csToolIds = this.opts.csToolIds ?? TIKTOK_CS_TOOL_IDS;
     try {
-      await fetch("http://127.0.0.1:3210/api/tools/run-profile", {
+      await fetch(`${PANEL_BASE}/api/tools/run-profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          scopeType: ScopeType.CS_SESSION,
-          scopeKey: sessionKey,
-          runProfile: {
-            id: "__cs_default__",
-            name: "CS Default",
-            selectedToolIds: csToolIds,
-            surfaceId: null,
-          },
+          scopeKey,
+          runProfile: { selectedToolIds: [...csToolIds] },
         }),
       });
     } catch (err) {
-      log.error(`Failed to set CS RunProfile for ${sessionKey}:`, err);
-      return; // Don't dispatch agent without tool restriction
+      log.error(`Failed to set CS RunProfile for ${scopeKey}:`, err);
+      return;
     }
 
     // 6. Build extra system prompt
     const extraSystemPrompt = [
-      assembledPrompt,
+      shop.systemPrompt,
       "",
       "## Current Session",
-      `- Shop ID: ${frame.shopId}`,
+      `- Shop ID: ${shop.objectId}`,
       `- Conversation ID: ${frame.conversationId}`,
       `- Buyer User ID: ${frame.buyerUserId}`,
       ...(frame.orderId ? [`- Order ID: ${frame.orderId}`] : []),
       "",
-      "Use the tools available to you to help this buyer. Always reply using tiktok_send_message tool.",
+      "Use the tools available to you to help this buyer. Always reply using tiktok_cs_send_message tool.",
     ].join("\n");
 
-    // 7. Dispatch agent run
+    // 7. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
     try {
       await rpcClient.request("agent", {
-        sessionKey,
+        sessionKey: dispatchKey,
         message: textContent,
         extraSystemPrompt,
         idempotencyKey: `tiktok:${frame.messageId}`,
@@ -274,7 +282,6 @@ export class CustomerServiceBridge {
     const msgType = frame.messageType.toUpperCase();
 
     if (msgType === "TEXT") {
-      // TikTok sometimes wraps text in JSON; try to extract
       try {
         const parsed = JSON.parse(frame.content) as Record<string, unknown>;
         if (typeof parsed.content === "string") return parsed.content;
@@ -285,76 +292,17 @@ export class CustomerServiceBridge {
       return frame.content;
     }
 
-    if (msgType === "IMAGE") {
-      return "[Image received]";
-    }
+    if (msgType === "IMAGE") return "[Image received]";
 
     if (msgType === "ORDER_CARD") {
       try {
         const parsed = JSON.parse(frame.content) as Record<string, unknown>;
         const orderId = parsed.orderId ?? parsed.order_id;
         if (orderId) return `[Order card received] Order ID: ${orderId}`;
-      } catch {
-        // Ignore parse errors
-      }
+      } catch { /* ignore */ }
       return "[Order card received]";
     }
 
     return `[${frame.messageType} message received]`;
-  }
-
-  // ── Prompt cache ────────────────────────────────────────────────────
-
-  private async fetchPrompt(shopId: string): Promise<string> {
-    const cached = this.promptCache.get(shopId);
-    if (cached && Date.now() - cached.fetchedAt < CustomerServiceBridge.PROMPT_CACHE_TTL_MS) {
-      return cached.prompt;
-    }
-
-    const fallback = "You are a customer service assistant. Reply helpfully.";
-
-    try {
-      const token = this.opts.getAuthToken();
-      if (!token) {
-        log.warn("No auth token for prompt fetch, using fallback");
-        return fallback;
-      }
-
-      const url = getGraphqlUrl(this.opts.locale);
-      const query = `query CsAssemblePrompt($shopId: String!) { csAssemblePrompt(shopId: $shopId) { systemPrompt version } }`;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query, variables: { shopId } }),
-      });
-
-      if (!res.ok) {
-        log.warn(`Prompt fetch failed (HTTP ${res.status}), using fallback`);
-        return fallback;
-      }
-
-      const json = (await res.json()) as { data?: { csAssemblePrompt?: AssembledPromptResult }; errors?: unknown[] };
-
-      if (json.errors) {
-        log.warn("GraphQL errors in prompt fetch:", json.errors);
-        return fallback;
-      }
-
-      const prompt = json.data?.csAssemblePrompt?.systemPrompt;
-      if (!prompt) {
-        log.warn("Empty prompt from backend, using fallback");
-        return fallback;
-      }
-
-      this.promptCache.set(shopId, { prompt, fetchedAt: Date.now() });
-      return prompt;
-    } catch (err) {
-      log.warn("Failed to fetch CS prompt:", err);
-      return fallback;
-    }
   }
 }

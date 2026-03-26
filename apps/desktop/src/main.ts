@@ -63,6 +63,7 @@ import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { toolCapabilityResolver } from "./utils/tool-capability-resolver.js";
 import { CustomerServiceBridge } from "./cs-bridge/customer-service-bridge.js";
+import { loadCSShopContexts } from "./cs-bridge/load-shop-contexts.js";
 
 const log = createLogger("desktop");
 
@@ -643,10 +644,12 @@ app.whenReady().then(async () => {
             csBridge = new CustomerServiceBridge({
               relayUrl: getCsRelayWsUrl(),
               gatewayId: deviceId ?? "unknown",
-              locale,
               getAuthToken: () => authSession?.getAccessToken(),
               getRpcClient: () => rpcClient,
             });
+            // Load shop contexts (prompt + IDs) for CS-enabled shops
+            loadCSShopContexts(csBridge, authSession).catch((e: unknown) =>
+              log.error("Failed to load CS shop contexts:", e));
             csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
           }
         }
@@ -1740,6 +1743,7 @@ app.whenReady().then(async () => {
       telemetryClient?.track(eventType, metadata);
     },
     authSession,
+    get csBridge() { return csBridge ?? undefined; },
   });
 
   // Sync auth profiles + build env, then start gateway.

@@ -52,6 +52,7 @@ export interface ApiContext {
   authSession?: AuthSessionManager;
   sessionLifecycleManager?: SessionLifecycleManager;
   managedBrowserService?: ManagedBrowserService;
+  csBridge?: import("../cs-bridge/customer-service-bridge.js").CustomerServiceBridge;
 }
 
 export type RouteHandler = (
