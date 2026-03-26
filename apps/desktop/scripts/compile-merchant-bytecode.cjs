@@ -37,7 +37,26 @@ function resolvePackagedElectronPath(context) {
   if (electronPlatformName === "win32") {
     return path.join(appOutDir, `${productName}.exe`);
   }
-  // Linux: binary name is lowercase productName
+  // Linux: find the Electron executable in appOutDir. electron-builder may use
+  // productName, lowercase productName, or executableName depending on config.
+  // Scan directory for an ELF executable rather than guessing the name.
+  for (const entry of fs.readdirSync(appOutDir)) {
+    const full = path.join(appOutDir, entry);
+    if (!fs.statSync(full).isFile()) continue;
+    // Skip known non-executable files
+    if (entry.endsWith(".so") || entry.endsWith(".pak") || entry.endsWith(".dat") || entry.endsWith(".bin") || entry.endsWith(".json") || entry.endsWith(".node") || entry.startsWith(".")) continue;
+    // Check if it's an ELF binary (starts with 0x7f ELF)
+    try {
+      const header = Buffer.alloc(4);
+      const fd = fs.openSync(full, "r");
+      fs.readSync(fd, header, 0, 4, 0);
+      fs.closeSync(fd);
+      if (header[0] === 0x7f && header[1] === 0x45 && header[2] === 0x4c && header[3] === 0x46) {
+        return full;
+      }
+    } catch {}
+  }
+  // Fallback
   return path.join(appOutDir, productName.toLowerCase());
 }
 
