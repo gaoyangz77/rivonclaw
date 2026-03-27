@@ -45,7 +45,7 @@ function formatBalanceDisplay(
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   if (balance === undefined || balance === null) return "—";
-  if (tier) return t("tiktokShops.balance.of", { balance, tier });
+  if (tier) return t("tiktokShops.balance.of", { balance, tier: t(`tiktokShops.tier.${tier}`, { defaultValue: tier }) });
   return t("tiktokShops.balance.remaining", { balance });
 }
 
@@ -702,7 +702,7 @@ export function TikTokShopsPage() {
                   <span className="form-label-block">{t("tiktokShops.modal.billing.currentTier")}</span>
                   <span>
                     {selectedShop.services.customerServiceBilling?.tier
-                      ? selectedShop.services.customerServiceBilling.tier
+                      ? t(`tiktokShops.tier.${selectedShop.services.customerServiceBilling.tier}`, { defaultValue: selectedShop.services.customerServiceBilling.tier })
                       : t("tiktokShops.modal.billing.noTier")}
                   </span>
                 </div>

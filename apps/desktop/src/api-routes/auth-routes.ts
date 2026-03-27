@@ -17,12 +17,57 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
   if (!ctx.authSession) return false;
 
-  // GET /api/auth/session — return current token + cached user
+  // GET /api/auth/session — return current user + authenticated flag (no token exposed)
   if (pathname === "/api/auth/session" && req.method === "GET") {
     sendJson(res, 200, {
-      accessToken: ctx.authSession.getAccessToken(),
       user: ctx.authSession.getCachedUser(),
+      authenticated: !!ctx.authSession.getAccessToken(),
     });
+    return true;
+  }
+
+  // POST /api/auth/login — Desktop handles cloud login, stores tokens, returns user
+  if (pathname === "/api/auth/login" && req.method === "POST") {
+    const body = await parseBody(req) as { email: string; password: string; captchaToken?: string };
+    if (!body.email || !body.password) {
+      sendJson(res, 400, { error: "Missing email or password" });
+      return true;
+    }
+    try {
+      const user = await ctx.authSession.loginWithCredentials(body);
+      ctx.onAuthChange?.();
+      sendJson(res, 200, { user });
+    } catch (err) {
+      sendJson(res, 401, { error: err instanceof Error ? err.message : "Login failed" });
+    }
+    return true;
+  }
+
+  // POST /api/auth/register — Desktop handles cloud registration, stores tokens, returns user
+  if (pathname === "/api/auth/register" && req.method === "POST") {
+    const body = await parseBody(req) as { email: string; password: string; name?: string; captchaToken?: string };
+    if (!body.email || !body.password) {
+      sendJson(res, 400, { error: "Missing email or password" });
+      return true;
+    }
+    try {
+      const user = await ctx.authSession.registerWithCredentials(body);
+      ctx.onAuthChange?.();
+      sendJson(res, 200, { user });
+    } catch (err) {
+      sendJson(res, 401, { error: err instanceof Error ? err.message : "Registration failed" });
+    }
+    return true;
+  }
+
+  // POST /api/auth/request-captcha — Desktop proxies captcha request to Cloud
+  if (pathname === "/api/auth/request-captcha" && req.method === "POST") {
+    try {
+      const captcha = await ctx.authSession.requestCaptcha();
+      sendJson(res, 200, captcha);
+    } catch (err) {
+      sendJson(res, 500, { error: err instanceof Error ? err.message : "Captcha request failed" });
+    }
     return true;
   }
 

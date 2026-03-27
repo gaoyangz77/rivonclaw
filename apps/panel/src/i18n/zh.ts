@@ -2118,6 +2118,10 @@ export default {
     authStatus_REVOKED: "已撤销",
     authStatus_PENDING_AUTH: "待授权",
     authStatus_DISCONNECTED: "已断开",
+    // Tier display names
+    tier: {
+      TRIAL: "试用",
+    },
     // Balance
     balance: {
       remaining: "剩余 {{balance}}",
@@ -2279,6 +2283,10 @@ export default {
         csUnbind: "停止本设备的客服接管",
         csThisDevice: "本设备接管中",
         csOtherDevice: "由其他设备接管",
+        csModelOverride: "客服模型",
+        csModelOverrideHint: "为客服会话选择专用模型。默认使用全局活跃模型。",
+        csModelDefault: "默认（全局模型）",
+        csModelUnavailable: "所选模型已不可用",
       },
     },
     noShops: "尚未连接任何店铺。点击「添加店铺」开始。",

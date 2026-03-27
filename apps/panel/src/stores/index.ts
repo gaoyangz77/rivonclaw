@@ -2,7 +2,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { GQL } from "@rivonclaw/core";
 import { usePanelStore } from "./panel-store.js";
 
-export { usePanelStore, initStoreBindings } from "./panel-store.js";
+export { usePanelStore } from "./panel-store.js";
 export type { PanelStore } from "./panel-store.js";
 
 // Re-export GQL types that appear in inferred return types of convenience hooks.
@@ -24,7 +24,7 @@ export type { ModuleId } from "./slices/modules-slice.js";
 // Convenience selector hooks
 export const useUser = () => usePanelStore((s) => s.user);
 export const useAuthLoading = () => usePanelStore((s) => s.authLoading);
-export const useToken = () => usePanelStore((s) => s.token);
+export const useAuthenticated = () => usePanelStore((s) => s.authenticated);
 export const useSubscriptionStatus = () => usePanelStore((s) => s.subscriptionStatus);
 export const useLlmQuota = () => usePanelStore((s) => s.llmQuota);
 export const useSurfaces = () => usePanelStore((s) => s.surfaces);
@@ -36,7 +36,7 @@ export const useShops = () => usePanelStore((s) => s.shops);
 export function useAuth() {
   return usePanelStore(useShallow((s) => ({
     user: s.user,
-    token: s.token,
+    authenticated: s.authenticated,
     loading: s.authLoading,
     login: s.login,
     register: s.register,

@@ -6247,14 +6247,14 @@ tbody td {
 /* ── Account: Tool chips ── */
 
 .acct-tool-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin-top: 4px;
 }
 
 .acct-tool-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
@@ -6264,6 +6264,10 @@ tbody td {
   color: var(--color-text-secondary);
   background: var(--color-bg-alt);
   border: 1px solid var(--color-border-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .acct-tool-chip-warn {
@@ -7062,7 +7066,7 @@ tbody td {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(480px, 90vw);
+  width: min(540px, 90vw);
   background: var(--color-bg);
   border-left: 1px solid var(--color-border);
   z-index: 901;
@@ -7482,6 +7486,20 @@ tbody td {
   border-radius: var(--radius-sm);
   background: var(--color-bg);
   overflow: hidden;
+}
+
+.shop-info-card-warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.select-strikethrough .custom-select-label {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.form-hint-warning {
+  color: var(--color-warning);
+  text-align: center;
 }
 
 .shop-info-row {

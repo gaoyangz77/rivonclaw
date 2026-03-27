@@ -8,6 +8,14 @@ vi.mock("@rivonclaw/logger", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
+const mockRpcRequest = vi.fn();
+const { mockGetRpcClient } = vi.hoisted(() => ({
+  mockGetRpcClient: vi.fn(),
+}));
+vi.mock("../gateway/rpc-client-ref.js", () => ({
+  getRpcClient: mockGetRpcClient,
+}));
+
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
@@ -17,16 +25,11 @@ import { CustomerServiceBridge, type CSShopContext } from "./customer-service-br
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const mockRpcRequest = vi.fn();
-
-function createBridge(overrides?: Partial<{
-  getRpcClient: () => unknown;
-}>): CustomerServiceBridge {
+function createBridge(): CustomerServiceBridge {
   return new CustomerServiceBridge({
     relayUrl: "ws://localhost:3001",
     gatewayId: "test-gateway",
     getAuthToken: () => "test-token",
-    getRpcClient: overrides?.getRpcClient ?? (() => ({ request: mockRpcRequest }) as any),
   });
 }
 
@@ -65,6 +68,7 @@ async function triggerMessage(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
   mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
   mockRpcRequest.mockResolvedValue({ ok: true });
 });
@@ -338,7 +342,6 @@ describe("CS RunProfile setup", () => {
       relayUrl: "ws://localhost:3001",
       gatewayId: "test-gateway",
       getAuthToken: () => "test-token",
-      getRpcClient: () => ({ request: mockRpcRequest }) as any,
       csToolIds: customToolIds,
     });
     bridge.setShopContext(defaultShop);
@@ -515,7 +518,8 @@ describe("agent dispatch", () => {
 
 describe("error scenarios", () => {
   it("no RPC client → message dropped entirely", async () => {
-    const bridge = createBridge({ getRpcClient: () => null });
+    mockGetRpcClient.mockReturnValue(null);
+    const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());

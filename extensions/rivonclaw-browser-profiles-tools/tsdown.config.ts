@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   inlineOnly: ["@sinclair/typebox", "ws"],
-  noExternal: ["@rivonclaw/plugin-sdk"],
+  noExternal: ["@rivonclaw/plugin-sdk", "@rivonclaw/core/extension-client"],
 });

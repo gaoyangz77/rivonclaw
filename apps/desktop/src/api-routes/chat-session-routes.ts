@@ -1,4 +1,5 @@
 import type { RouteHandler } from "./api-context.js";
+import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { sendJson, parseBody, extractIdFromPath } from "./route-utils.js";
 
 /**
@@ -61,7 +62,7 @@ export const handleChatSessionRoutes: RouteHandler = async (req, res, _url, path
     storage.chatSessions.delete(decodedKey);
 
     // Also delete from gateway (transcript + session entry)
-    const rpcClient = ctx.getRpcClient?.();
+    const rpcClient = getRpcClient();
     if (rpcClient?.isConnected()) {
       try {
         await rpcClient.request("sessions.delete", {

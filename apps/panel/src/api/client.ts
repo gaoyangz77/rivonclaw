@@ -5,6 +5,10 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
     headers: { "Content-Type": "application/json" },
     ...init,
   });
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent("rivonclaw:auth-expired"));
+    throw new Error("Authentication required");
+  }
   if (!res.ok) {
     // Try to extract the server's error message (and optional detail) from the JSON body
     let serverMessage: string | undefined;
@@ -55,4 +59,12 @@ export function cachedFetch<T>(key: string, fn: () => Promise<T>, ttl: number): 
 /** Invalidate a cached endpoint so the next call re-fetches. */
 export function invalidateCache(key: string) {
   _cache.delete(key);
+}
+
+/** Fire-and-forget fetch — errors are silently ignored. */
+export function fetchVoid(path: string, init?: RequestInit): void {
+  fetch(BASE_URL + path, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  }).catch(() => {});
 }

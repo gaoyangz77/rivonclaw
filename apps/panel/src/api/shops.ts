@@ -16,6 +16,7 @@ export interface CustomerServiceConfig {
   businessPrompt?: string;
   runProfileId?: string;
   csDeviceId?: string | null;
+  csModelOverride?: string;
 }
 
 export interface CustomerServiceBilling {
@@ -112,14 +113,13 @@ export async function updateShop(
     shopName?: string;
     authStatus?: string;
     region?: string;
-    services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string; csDeviceId?: string | null } };
+    services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string; csDeviceId?: string | null; csModelOverride?: string | null } };
   },
 ): Promise<Shop> {
   return trackedQuery(async () => {
     const result = await getClient().mutate<{ updateShop: Shop }>({
       mutation: UPDATE_SHOP_MUTATION,
       variables: { id, input },
-      refetchQueries: [{ query: SHOPS_QUERY }],
     });
     return result.data!.updateShop;
   });

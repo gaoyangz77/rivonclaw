@@ -1,7 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson } from "./route-utils.js";
-import { getApiBaseUrl } from "@rivonclaw/core";
 
 /**
  * Parse raw binary body from an incoming request.
@@ -24,7 +23,7 @@ function parseRawBody(req: IncomingMessage): Promise<Buffer> {
  */
 export const handleCloudTikTokRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
   if (pathname === "/api/cloud/tiktok/upload-image" && req.method === "POST") {
-    if (!ctx.authSession?.getAccessToken()) {
+    if (!ctx.cloudClient) {
       sendJson(res, 401, { error: "Not authenticated" });
       return true;
     }
@@ -43,22 +42,23 @@ export const handleCloudTikTokRoutes: RouteHandler = async (req, res, _url, path
       return true;
     }
 
-    // Determine locale from auth session for correct API base URL
-    const locale = "en"; // Default; cloud URL routing is language-based
-    const backendUrl = `${getApiBaseUrl(locale)}/api/tiktok/upload-image`;
-
-    const backendRes = await fetch(backendUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": contentType,
-        "Authorization": `Bearer ${ctx.authSession.getAccessToken()}`,
-        "x-shop-id": shopId,
-      },
-      body: imageBuffer,
-    });
-
-    const data = await backendRes.json();
-    sendJson(res, backendRes.status, data);
+    try {
+      const data = await ctx.cloudClient.rest("/api/tiktok/upload-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": contentType,
+          "x-shop-id": shopId,
+        },
+        body: imageBuffer,
+      });
+      sendJson(res, 200, data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      // Extract status code from CloudClient error message if available
+      const statusMatch = message.match(/Cloud REST error: (\d+)/);
+      const status = statusMatch ? Number(statusMatch[1]) : 502;
+      sendJson(res, status, { error: message });
+    }
     return true;
   }
 

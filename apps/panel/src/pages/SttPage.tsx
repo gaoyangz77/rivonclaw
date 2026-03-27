@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchSettings, updateSettings, trackEvent } from "../api/index.js";
+import { fetchJson } from "../api/client.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
 
@@ -30,15 +31,9 @@ export function SttPage() {
 
       // Check if credentials exist in keychain
       try {
-        const credentialsRes = await fetch("/api/stt/credentials");
-        if (credentialsRes.ok) {
-          const contentType = credentialsRes.headers.get("content-type");
-          if (contentType?.includes("application/json")) {
-            const credentials = await credentialsRes.json() as { groq: boolean; volcengine: boolean };
-            setHasGroqKey(credentials.groq);
-            setHasVolcengineKeys(credentials.volcengine);
-          }
-        }
+        const credentials = await fetchJson<{ groq: boolean; volcengine: boolean }>("/stt/credentials");
+        setHasGroqKey(credentials.groq);
+        setHasVolcengineKeys(credentials.volcengine);
       } catch (credErr) {
         // Silently ignore credential check errors (might happen if desktop app isn't running yet)
         console.warn("Failed to check credentials:", credErr);
@@ -81,38 +76,26 @@ export function SttPage() {
       // Save credentials to keychain (via API)
       if (enabled) {
         if (provider === "groq" && groqApiKey.trim()) {
-          const res = await fetch("/api/stt/credentials", {
+          await fetchJson("/stt/credentials", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               provider: "groq",
               apiKey: groqApiKey.trim(),
             }),
           });
 
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to save Groq credentials: ${res.status} ${errorText}`);
-          }
-
           setHasGroqKey(true);
           setGroqApiKey(""); // Clear after save
         }
         if (provider === "volcengine" && volcengineAppKey.trim() && volcengineAccessKey.trim()) {
-          const res = await fetch("/api/stt/credentials", {
+          await fetchJson("/stt/credentials", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               provider: "volcengine",
               appKey: volcengineAppKey.trim(),
               accessKey: volcengineAccessKey.trim(),
             }),
           });
-
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to save Volcengine credentials: ${res.status} ${errorText}`);
-          }
 
           setHasVolcengineKeys(true);
           setVolcengineAppKey(""); // Clear after save

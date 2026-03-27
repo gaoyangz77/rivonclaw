@@ -21,13 +21,7 @@ import { App } from "./App.js";
 import { ApolloWrapper } from "./providers/ApolloWrapper.js";
 import { ToastProvider } from "./components/Toast.js";
 import { GraphQLLoadingProvider } from "./contexts/GraphQLLoadingContext.js";
-import { initStoreBindings, usePanelStore } from "./stores/index.js";
-
-// Wire Apollo client callbacks to the Zustand store at module level.
-// setTokenGetter / setOnTokenRefreshed / setOnRefreshFailed just set
-// module-level variables that the auth link reads lazily, so this is
-// safe to call before the Apollo client instance exists.
-initStoreBindings();
+import { usePanelStore } from "./stores/index.js";
 
 function StoreInitializer({ children }: { children: React.ReactNode }) {
   const initSession = usePanelStore((s) => s.initSession);

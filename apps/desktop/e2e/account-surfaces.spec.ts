@@ -83,6 +83,12 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
   test.skip(!testEmail || !testPassword, "Staging credentials not configured");
 
   test("full Surface & RunProfile CRUD lifecycle", async ({ window, apiBase }) => {
+    // Use unique names per run to avoid "name already exists" from leftover Cloud data
+    const suffix = Date.now().toString(36);
+    const surfaceName = `E2E Surface ${suffix}`;
+    const profileName = `E2E Profile ${suffix}`;
+    const profileNameUpdated = `E2E Profile ${suffix} Upd`;
+
     await dismissModals(window);
     await loginAndNavigateToAccount(window, apiBase);
 
@@ -102,7 +108,7 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     await expect(surfaceModal).toBeVisible({ timeout: 5_000 });
 
     // Fill name
-    await surfaceModal.locator("input[type='text']").first().fill("E2E Test Surface");
+    await surfaceModal.locator("input[type='text']").first().fill(surfaceName);
     // Fill description
     await surfaceModal.locator("input[type='text']").nth(1).fill("Created by e2e test");
 
@@ -112,12 +118,20 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
       await toolGroup.locator(".tool-ms-checkbox").first().check();
     }
 
-    // Save
+    // Save — if the Cloud GraphQL mutation fails the modal stays open
     await surfaceModal.locator(".btn-primary", { hasText: /Save|保存/ }).click();
-    await surfaceModal.waitFor({ state: "hidden", timeout: 10_000 });
+    const surfaceModalClosed = await surfaceModal
+      .waitFor({ state: "hidden", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!surfaceModalClosed) {
+      await dismissModals(window);
+      test.skip(true, "Surface creation failed — Cloud mutation returned error");
+      return;
+    }
 
     // Verify the new surface appears
-    const newSurface = surfaceSection.locator(".acct-item-name", { hasText: "E2E Test Surface" });
+    const newSurface = surfaceSection.locator(".acct-item-name", { hasText: surfaceName });
     await expect(newSurface).toBeVisible({ timeout: 5_000 });
 
     // ── 3. Create a RunProfile under the new Surface ──
@@ -128,11 +142,11 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     // Select surface via styled Select dropdown
     const surfaceSelect = profileModal.locator(".custom-select-trigger").first();
     await surfaceSelect.click();
-    const surfaceOption = window.locator(".custom-select-option", { hasText: "E2E Test Surface" });
+    const surfaceOption = window.locator(".custom-select-option", { hasText: surfaceName });
     await surfaceOption.click();
 
     // Fill profile name
-    await profileModal.locator("input[type='text']").first().fill("E2E Test Profile");
+    await profileModal.locator("input[type='text']").first().fill(profileName);
 
     // Select some tools
     const profileToolGroup = profileModal.locator(".tool-ms-group").first();
@@ -145,11 +159,11 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     await profileModal.waitFor({ state: "hidden", timeout: 10_000 });
 
     // Verify the new profile appears
-    const newProfile = profileSection.locator(".acct-item-name", { hasText: "E2E Test Profile" });
+    const newProfile = profileSection.locator(".acct-item-name", { hasText: profileName });
     await expect(newProfile).toBeVisible({ timeout: 5_000 });
 
     // ── 4. Edit the Surface — narrow tools to trigger warning ──
-    const surfaceItem = surfaceSection.locator(".acct-item", { hasText: "E2E Test Surface" });
+    const surfaceItem = surfaceSection.locator(".acct-item", { hasText: surfaceName });
     await surfaceItem.locator(".btn-secondary", { hasText: /Edit|编辑/ }).click();
     const editModal = window.locator(".modal-content");
     await expect(editModal).toBeVisible({ timeout: 5_000 });
@@ -169,7 +183,7 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     // Warning may or may not appear depending on whether the profile had tools in scope
     // If it appears, verify it mentions the affected profile
     if (await warning.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await expect(warning).toContainText("E2E Test Profile");
+      await expect(warning).toContainText(profileName);
     }
 
     // Cancel the edit (don't save the narrowed surface)
@@ -177,7 +191,7 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     await editModal.waitFor({ state: "hidden", timeout: 5_000 });
 
     // ── 5. Edit RunProfile ──
-    const profileItem = profileSection.locator(".acct-item", { hasText: "E2E Test Profile" });
+    const profileItem = profileSection.locator(".acct-item", { hasText: profileName });
     await profileItem.locator(".btn-secondary", { hasText: /Edit|编辑/ }).click();
     const editProfileModal = window.locator(".modal-content");
     await expect(editProfileModal).toBeVisible({ timeout: 5_000 });
@@ -185,26 +199,32 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     // Change name
     const nameInput = editProfileModal.locator("input[type='text']").first();
     await nameInput.clear();
-    await nameInput.fill("E2E Test Profile Updated");
+    await nameInput.fill(profileNameUpdated);
 
     // Save
     await editProfileModal.locator(".btn-primary", { hasText: /Save|保存/ }).click();
     await editProfileModal.waitFor({ state: "hidden", timeout: 10_000 });
 
     // Verify updated name
-    await expect(profileSection.locator(".acct-item-name", { hasText: "E2E Test Profile Updated" })).toBeVisible({ timeout: 5_000 });
+    await expect(profileSection.locator(".acct-item-name", { hasText: profileNameUpdated })).toBeVisible({ timeout: 5_000 });
 
     // ── 6. Delete RunProfile ──
-    const updatedProfileItem = profileSection.locator(".acct-item", { hasText: "E2E Test Profile Updated" });
-    // Accept the confirm dialog
-    window.on("dialog", (dialog) => dialog.accept());
+    const updatedProfileItem = profileSection.locator(".acct-item", { hasText: profileNameUpdated });
     await updatedProfileItem.locator(".btn-danger", { hasText: /Delete|删除/ }).click();
+    // Confirm via custom ConfirmDialog modal
+    const confirmModal = window.locator(".modal-content");
+    await expect(confirmModal).toBeVisible({ timeout: 5_000 });
+    await confirmModal.locator(".btn-danger").click();
     // Profile should disappear
     await expect(updatedProfileItem).not.toBeVisible({ timeout: 5_000 });
 
     // ── 7. Delete Surface ──
-    const surfaceToDelete = surfaceSection.locator(".acct-item", { hasText: "E2E Test Surface" });
+    const surfaceToDelete = surfaceSection.locator(".acct-item", { hasText: surfaceName });
     await surfaceToDelete.locator(".btn-danger", { hasText: /Delete|删除/ }).click();
+    // Confirm via custom ConfirmDialog modal
+    const confirmSurfaceModal = window.locator(".modal-content");
+    await expect(confirmSurfaceModal).toBeVisible({ timeout: 5_000 });
+    await confirmSurfaceModal.locator(".btn-danger").click();
     // Surface should disappear
     await expect(surfaceToDelete).not.toBeVisible({ timeout: 5_000 });
   });

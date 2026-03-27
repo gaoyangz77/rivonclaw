@@ -7,6 +7,8 @@ import { Select } from "../components/inputs/Select.js";
 import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from "../components/icons.js";
 import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
 import type { Shop, ServiceCreditInfo } from "../stores/index.js";
+import { configManager } from "../lib/config-manager.js";
+import { fetchJson, fetchVoid } from "../api/client.js";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -46,7 +48,7 @@ function formatBalanceDisplay(
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   if (balance === undefined || balance === null) return "\u2014";
-  if (tier) return t("tiktokShops.balance.of", { balance, tier });
+  if (tier) return t("tiktokShops.balance.of", { balance, tier: t(`tiktokShops.tier.${tier}`, { defaultValue: tier }) });
   return t("tiktokShops.balance.remaining", { balance });
 }
 
@@ -98,6 +100,7 @@ export function EcommercePage() {
   const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
   const [savingRunProfile, setSavingRunProfile] = useState(false);
+  const [savingModel, setSavingModel] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
 
   // Manual refresh state
@@ -107,6 +110,9 @@ export function EcommercePage() {
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
   const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
   const [togglingBindShopId, setTogglingBindShopId] = useState<string | null>(null);
+
+  // Model options from the active LLM key's provider (same pattern as ChatPage)
+  const [csModelOptions, setCsModelOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   // Fallback polling ref for OAuth waiting (if SSE fails to deliver)
 
@@ -140,8 +146,7 @@ export function EcommercePage() {
 
   // Fetch deviceId from desktop on mount
   useEffect(() => {
-    fetch("/api/status")
-      .then((res) => res.json())
+    fetchJson<{ deviceId?: string }>("/status")
       .then((status) => setMyDeviceId(status.deviceId || null))
       .catch(() => setMyDeviceId(null));
   }, []);
@@ -154,6 +159,19 @@ export function EcommercePage() {
       storeFetchRunProfiles();
     }
   }, [user]);
+
+  // Load model options from the active LLM key's provider (same pattern as ChatPage)
+  useEffect(() => {
+    function refreshModels() {
+      configManager.getActiveKey().then(async (info) => {
+        if (!info) { setCsModelOptions([]); return; }
+        const models = await configManager.getModelsForProvider(info.provider);
+        setCsModelOptions(models.map((m) => ({ value: m.id, label: m.name })));
+      }).catch(() => setCsModelOptions([]));
+    }
+    refreshModels();
+    return configManager.onChange(refreshModels);
+  }, []);
 
   // Market containment mapping — for future-proofing
   const MARKET_CONTAINS: Record<string, string[]> = useMemo(() => ({
@@ -348,11 +366,10 @@ export function EcommercePage() {
         services: { customerService: { enabled: !currentValue } },
       });
       // Notify desktop CS bridge to reload shop context (CS enabled/disabled)
-      fetch("http://127.0.0.1:3210/api/cs-bridge/refresh-shop", {
+      fetchVoid("/cs-bridge/refresh-shop", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId }),
-      }).catch(() => {});
+      });
       // If disabling CS while on the AI CS tab, switch back to overview
       if (currentValue && activeTab === "aiCustomerService") {
         setActiveTab("overview");
@@ -374,11 +391,10 @@ export function EcommercePage() {
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
       // Notify desktop CS bridge to reload this shop's prompt
-      fetch("http://127.0.0.1:3210/api/cs-bridge/refresh-shop", {
+      fetchVoid("/cs-bridge/refresh-shop", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId: selectedShopId }),
-      }).catch(() => {}); // best-effort, don't block UI
+      });
       setSuccessMsg(t("common.saved"));
       setTimeout(() => setSuccessMsg(null), 2000);
     } catch (err) {
@@ -404,6 +420,27 @@ export function EcommercePage() {
     }
   }
 
+  async function handleCSModelChange(modelRef: string) {
+    if (!selectedShopId) return;
+    setSavingModel(true);
+    setError(null);
+    setUpgradePrompt(false);
+    try {
+      await storeUpdateShop(selectedShopId, {
+        services: { customerService: { csModelOverride: modelRef || null } },
+      });
+      // Notify desktop to refresh CS context
+      fetchVoid("/cs-bridge/refresh-shop", {
+        method: "POST",
+        body: JSON.stringify({ shopId: selectedShopId }),
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingModel(false);
+    }
+  }
+
   async function handleBindDevice(shopId: string) {
     if (!myDeviceId) return;
     const shop = shops.find((s) => s.id === shopId);
@@ -420,11 +457,10 @@ export function EcommercePage() {
         services: { customerService: { csDeviceId: myDeviceId } },
       });
       // Notify desktop to refresh CS bridge context
-      fetch("/api/cs-bridge/refresh-shop", {
+      fetchVoid("/cs-bridge/refresh-shop", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId }),
-      }).catch(() => {});
+      });
     } catch {
       setError(t("ecommerce.updateFailed"));
     } finally {
@@ -442,11 +478,10 @@ export function EcommercePage() {
         services: { customerService: { csDeviceId: myDeviceId } },
       });
       // Notify desktop to refresh CS bridge context
-      fetch("/api/cs-bridge/refresh-shop", {
+      fetchVoid("/cs-bridge/refresh-shop", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId }),
-      }).catch(() => {});
+      });
     } catch {
       setError(t("ecommerce.updateFailed"));
     } finally {
@@ -461,11 +496,10 @@ export function EcommercePage() {
         services: { customerService: { csDeviceId: null } },
       });
       // Notify desktop to refresh CS bridge context (will remove this shop's context)
-      fetch("/api/cs-bridge/refresh-shop", {
+      fetchVoid("/cs-bridge/refresh-shop", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId }),
-      }).catch(() => {});
+      });
     } catch {
       setError(t("ecommerce.updateFailed"));
     } finally {
@@ -560,6 +594,21 @@ export function EcommercePage() {
     })),
     [runProfiles],
   );
+
+  const selectedCSModel = selectedShop?.services.customerService.csModelOverride ?? "";
+  const csModelUnavailable = !!selectedCSModel && !csModelOptions.some((o) => o.value === selectedCSModel);
+
+  // Prepend "Default" option; append unavailable marker if current override is not in the list
+  const csModelSelectOptions = useMemo(() => {
+    const opts: Array<{ value: string; label: string }> = [
+      { value: "", label: t("ecommerce.shopDrawer.aiCS.csModelDefault") },
+      ...csModelOptions,
+    ];
+    if (selectedCSModel && !opts.some((o) => o.value === selectedCSModel)) {
+      opts.push({ value: selectedCSModel, label: selectedCSModel });
+    }
+    return opts;
+  }, [csModelOptions, selectedCSModel, t]);
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
@@ -993,7 +1042,7 @@ export function EcommercePage() {
                     <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.currentTier")}</span>
                     <span className="shop-info-value">
                       {selectedShop.services.customerServiceBilling?.tier ? (
-                        <span className="badge badge-active">{selectedShop.services.customerServiceBilling.tier}</span>
+                        <span className="badge badge-active">{t(`tiktokShops.tier.${selectedShop.services.customerServiceBilling.tier}`, { defaultValue: selectedShop.services.customerServiceBilling.tier })}</span>
                       ) : (
                         t("ecommerce.shopDrawer.billing.noTier")
                       )}
@@ -1086,6 +1135,26 @@ export function EcommercePage() {
                     </div>
                   ) : (
                     <div className="form-hint">{t("ecommerce.shopDrawer.aiCS.runProfileHint")}</div>
+                  )}
+                </div>
+
+                {/* CS Model Override */}
+                <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</div>
+                <div className={`shop-info-card${csModelUnavailable ? " shop-info-card-warning" : ""}`}>
+                  <div className="shop-runprofile-row">
+                    <label className="form-label-block">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</label>
+                    <Select
+                      value={selectedCSModel}
+                      onChange={handleCSModelChange}
+                      options={csModelSelectOptions}
+                      disabled={savingModel}
+                      className={`input-full${csModelUnavailable ? " select-strikethrough" : ""}`}
+                    />
+                  </div>
+                  {csModelUnavailable ? (
+                    <div className="form-hint form-hint-warning">{t("ecommerce.shopDrawer.aiCS.csModelUnavailable")}</div>
+                  ) : (
+                    <div className="form-hint">{t("ecommerce.shopDrawer.aiCS.csModelOverrideHint")}</div>
                   )}
                 </div>
 

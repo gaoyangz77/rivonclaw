@@ -11,6 +11,7 @@ import {
 } from "../api-routes/mobile-chat-routes.js";
 import { resolveOpenClawConfigPath } from "@rivonclaw/gateway";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
+import { getRpcClient } from "../gateway/rpc-client-ref.js";
 
 interface RegisterPairingData extends Record<string, unknown> {
   registerPairing: RegisterPairingResult;
@@ -99,7 +100,7 @@ async function handleRegisterPairing(
     console.error("[MobileChat] Failed to update mobile allowlist:", err);
   }
 
-  const rpcClient = ctx.getRpcClient?.();
+  const rpcClient = getRpcClient();
   if (rpcClient?.isConnected()) {
     console.log(
       "[MobileChat] Sending mobile_chat_start_sync RPC. relayUrl:",

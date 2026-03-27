@@ -456,7 +456,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                 { value: "", label: t("account.noDefault") },
                 ...profiles.map((p) => ({
                   value: p.id,
-                  label: p.name,
+                  label: resolveSystemName(p.name, p.userId === null),
                   description: surfaceNameById[p.surfaceId] || p.surfaceId,
                 })),
               ]}

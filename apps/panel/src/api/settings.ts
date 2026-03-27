@@ -1,4 +1,4 @@
-import { fetchJson, cachedFetch, invalidateCache, BASE_URL } from "./client.js";
+import { fetchJson, fetchVoid, cachedFetch, invalidateCache } from "./client.js";
 
 // --- Settings ---
 
@@ -214,9 +214,8 @@ export async function resetOpenClawStateDir(): Promise<{ ok: boolean; restartReq
 
 /** Fire-and-forget telemetry event relay to desktop main process. */
 export function trackEvent(eventType: string, metadata?: Record<string, unknown>): void {
-  fetch(BASE_URL + "/telemetry/track", {
+  fetchVoid("/telemetry/track", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ eventType, metadata }),
-  }).catch(() => {});
+  });
 }

@@ -7,6 +7,7 @@
  */
 
 import { Type } from "@sinclair/typebox";
+import { extensionGraphqlFetch, extensionRestFetch } from "@rivonclaw/core/extension-client";
 
 // Minimal tool types — inlined to avoid depending on vendor internals.
 type ToolResult = {
@@ -22,38 +23,14 @@ type ToolDef = {
   execute: (toolCallId: string, args: unknown) => Promise<ToolResult>;
 };
 
-const PANEL_BASE_URL = "http://127.0.0.1:3210";
-const GRAPHQL_PATH = "/api/cloud/graphql";
-
 function jsonResult(payload: unknown): ToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
   };
 }
 
-async function graphqlFetch<T = Record<string, unknown>>(
-  query: string,
-  variables?: Record<string, unknown>,
-): Promise<{ data?: T | null; errors?: Array<{ message: string }> }> {
-  const res = await fetch(`${PANEL_BASE_URL}${GRAPHQL_PATH}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables }),
-  });
-  return (await res.json()) as { data?: T | null; errors?: Array<{ message: string }> };
-}
+const graphqlFetch = extensionGraphqlFetch;
 
-async function restFetch<T = Record<string, unknown>>(
-  path: string,
-  options: { method: string; body?: unknown },
-): Promise<T> {
-  const res = await fetch(`${PANEL_BASE_URL}${path}`, {
-    method: options.method,
-    headers: { "Content-Type": "application/json" },
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-  });
-  return (await res.json()) as T;
-}
 
 // ---------------------------------------------------------------------------
 // Read-only tools
@@ -284,9 +261,9 @@ export function createTestProxyTool(): ToolDef {
     }),
     async execute(_toolCallId, args) {
       const { profileId } = args as { profileId: string };
-      const result = await restFetch<{ ok: boolean; message: string; checkedAt: string; error?: string }>(
+      const result = await extensionRestFetch<{ ok: boolean; message: string; checkedAt: string; error?: string }>(
         "/api/browser-profiles/test-proxy",
-        { method: "POST", body: { id: profileId } },
+        { method: "POST", body: JSON.stringify({ id: profileId }) },
       );
       if (result.error) return jsonResult({ error: result.error });
       return jsonResult({ proxyTest: result });

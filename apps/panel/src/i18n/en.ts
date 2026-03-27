@@ -2129,6 +2129,10 @@ export default {
     authStatus_REVOKED: "Revoked",
     authStatus_PENDING_AUTH: "Pending",
     authStatus_DISCONNECTED: "Disconnected",
+    // Tier display names
+    tier: {
+      TRIAL: "Trial",
+    },
     // Balance
     balance: {
       remaining: "{{balance}} remaining",
@@ -2290,6 +2294,10 @@ export default {
         csUnbind: "Stop handling CS on this device",
         csThisDevice: "Handled by this device",
         csOtherDevice: "Handled by another device",
+        csModelOverride: "CS Model",
+        csModelOverrideHint: "Select a specific model for customer service sessions. Default uses the globally active model.",
+        csModelDefault: "Default (global model)",
+        csModelUnavailable: "Selected model is no longer available",
       },
     },
     noShops: "No shops connected yet. Click \"Add Shop\" to get started.",

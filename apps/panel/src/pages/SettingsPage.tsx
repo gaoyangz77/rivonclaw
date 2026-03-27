@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchTelemetrySetting, updateTelemetrySetting, trackEvent, fetchAgentSettings, updateAgentSettings, fetchChatShowAgentEvents, updateChatShowAgentEvents, fetchChatPreserveToolEvents, updateChatPreserveToolEvents, fetchChatCollapseMessages, updateChatCollapseMessages, fetchBrowserMode, updateBrowserMode, fetchAutoLaunchSetting, updateAutoLaunchSetting, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, fetchPrivacyMode, updatePrivacyMode, fetchSessionStateCdpEnabled, updateSessionStateCdpEnabled } from "../api/index.js";
+import { fetchJson } from "../api/client.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import type { OpenClawStateDirInfo } from "../api/index.js";
 import { Select } from "../components/inputs/Select.js";
@@ -87,8 +88,7 @@ export function SettingsPage() {
   const handleInstallDeps = useCallback(async () => {
     setDepsInstalling(true);
     try {
-      const res = await fetch("/api/deps/provision", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to start provisioner");
+      await fetchJson("/deps/provision", { method: "POST" });
     } catch (err) {
       console.error("Failed to trigger deps provisioner:", err);
     } finally {

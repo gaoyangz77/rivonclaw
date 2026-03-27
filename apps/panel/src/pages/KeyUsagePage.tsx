@@ -6,6 +6,7 @@ import {
   fetchKeyUsage, fetchActiveKeyUsage, fetchKeyUsageTimeseries,
   type KeyModelUsageSummary, type ActiveKeyInfo, type KeyUsageDailyBucket,
 } from "../api/index.js";
+import { fetchJson } from "../api/client.js";
 import { PRICING_QUERY } from "../api/pricing-queries.js";
 import {
   type TimeRange, type PricingMap,
@@ -31,9 +32,8 @@ export function KeyUsagePage() {
 
   // Fetch deviceId once on mount (needed for pricing query variables)
   useEffect(() => {
-    fetch("/api/status")
-      .then((res) => res.json())
-      .then((status) => setDeviceId(status.deviceId || "unknown"))
+    fetchJson<{ deviceId: string }>("/status")
+      .then((s) => setDeviceId(s.deviceId || "unknown"))
       .catch(() => setDeviceId("unknown"));
   }, []);
 

@@ -7,7 +7,7 @@ import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, GatewayRpcClient } from "@rivonclaw/gateway";
+import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir } from "@rivonclaw/gateway";
 import { discoverAllSessions, loadSessionCostSummary } from "./usage/session-usage.js";
 import { promises as fs } from "node:fs";
 import { resolveMediaBase } from "./utils/media-paths.js";
@@ -18,6 +18,7 @@ import { MobileManager } from "./mobile/mobile-manager.js";
 import type { AuthSessionManager } from "./auth/auth-session.js";
 import type { SessionLifecycleManager } from "./browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
+import { CloudClient } from "./clients/cloud-client.js";
 import { sendChannelMessage } from "./channels/channel-senders.js";
 import type { ApiContext, RouteHandler } from "./api-routes/api-context.js";
 import { sendJson } from "./api-routes/route-utils.js";
@@ -188,7 +189,6 @@ export interface PanelServerOptions {
   panelDistDir: string;
   storage: Storage;
   secretStore: SecretStore;
-  getRpcClient?: () => GatewayRpcClient | null;
   onRuleChange?: (action: "created" | "updated" | "deleted" | "channel-created" | "channel-deleted", ruleId: string) => void;
   onProviderChange?: (hint?: { configOnly?: boolean; keyOnly?: boolean }) => void;
   onOpenFileDialog?: () => Promise<string | null>;
@@ -232,7 +232,6 @@ export interface PanelServerOptions {
   authSession?: AuthSessionManager;
   sessionLifecycleManager?: SessionLifecycleManager;
   managedBrowserService?: ManagedBrowserService;
-  csBridge?: import("./cs-bridge/customer-service-bridge.js").CustomerServiceBridge;
 }
 
 // --- Route handlers (dispatched in order, first match wins) ---
@@ -263,7 +262,7 @@ const routeHandlers: RouteHandler[] = [
 export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
+  const { storage, secretStore, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -333,13 +332,14 @@ export function startPanelServer(options: PanelServerOptions): Server {
 
   // Build the ApiContext object passed to all route handlers
   const ctx: ApiContext = {
-    storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog,
+    storage, secretStore, onRuleChange, onProviderChange, onOpenFileDialog,
     sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange,
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
-    snapshotEngine, queryService, mobileManager, authSession, sessionLifecycleManager,
+    snapshotEngine, queryService, mobileManager, authSession,
+    cloudClient: authSession ? new CloudClient(authSession, getSystemLocale()) : undefined,
+    sessionLifecycleManager,
     managedBrowserService,
-    get csBridge() { return options.csBridge; },
   };
 
   const server = createServer(async (req, res) => {

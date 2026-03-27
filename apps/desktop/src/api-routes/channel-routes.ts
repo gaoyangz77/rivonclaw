@@ -7,6 +7,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { sendChannelMessage } from "../channels/channel-senders.js";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
+import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody, proxiedFetch } from "./route-utils.js";
 
@@ -120,11 +121,11 @@ const APPROVAL_MESSAGES = {
 };
 
 export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onChannelConfigured } = ctx;
+  const { storage, secretStore, onRuleChange, onProviderChange, onChannelConfigured } = ctx;
 
   // GET /api/channels/status
   if (pathname === "/api/channels/status" && req.method === "GET") {
-    const rpcClient = getRpcClient?.();
+    const rpcClient = getRpcClient();
 
     if (!rpcClient || !rpcClient.isConnected()) {
       sendJson(res, 503, { error: "Gateway not connected", snapshot: null });
@@ -591,7 +592,7 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
         const match = allPairings.find(p => p.pairingId === entry || p.id === entry);
         if (match) {
           ctx.mobileManager.disconnectPairing(match.id);
-          const rpcClient = getRpcClient?.();
+          const rpcClient = getRpcClient();
           if (rpcClient?.isConnected()) {
             rpcClient.request("mobile_chat_stop_sync", {
               pairingId: match.pairingId || entry,
@@ -613,7 +614,7 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
   // POST /api/channels/qr-login/start
   if (pathname === "/api/channels/qr-login/start" && req.method === "POST") {
-    const rpcClient = getRpcClient?.();
+    const rpcClient = getRpcClient();
     if (!rpcClient || !rpcClient.isConnected()) {
       sendJson(res, 503, { error: "Gateway not connected" });
       return true;
@@ -636,7 +637,7 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
   // POST /api/channels/qr-login/wait
   if (pathname === "/api/channels/qr-login/wait" && req.method === "POST") {
-    const rpcClient = getRpcClient?.();
+    const rpcClient = getRpcClient();
     if (!rpcClient || !rpcClient.isConnected()) {
       sendJson(res, 503, { error: "Gateway not connected" });
       return true;

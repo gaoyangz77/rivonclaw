@@ -122,6 +122,9 @@ export * from "./tiktok-tools.js";
 
 export * from "./cs-skill-template.js";
 
+export type { CSSessionContext, CSToolArgs } from "./cs-session.js";
+export { registerCSSession, unregisterCSSession, getInjectedParams, resolveSessionContext } from "./cs-session.js";
+
 export {
   tiktokTokenLifecycleSchema,
   tiktokOAuthCallbackSchema,

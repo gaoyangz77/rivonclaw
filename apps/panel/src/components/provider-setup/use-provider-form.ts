@@ -18,6 +18,7 @@ import {
   checkLocalModelHealth,
   trackEvent,
 } from "../../api/index.js";
+import { fetchJson } from "../../api/client.js";
 import type { LocalModelServer } from "../../api/index.js";
 import { PRICING_QUERY } from "../../api/pricing-queries.js";
 import { usePanelStore } from "../../stores/index.js";
@@ -94,9 +95,8 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
 
   // Fetch deviceId on mount (needed for pricing query variables)
   useEffect(() => {
-    fetch("/api/status")
-      .then((res) => res.json())
-      .then((status) => setDeviceId(status.deviceId || "unknown"))
+    fetchJson<{ deviceId: string }>("/status")
+      .then((s) => setDeviceId(s.deviceId || "unknown"))
       .catch(() => setDeviceId("unknown"));
     fetchProviderKeys().then((keys) => setExistingKeyCount(keys.length)).catch(() => {});
   }, []);

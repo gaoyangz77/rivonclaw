@@ -30,12 +30,13 @@ test.describe("Capability Context — Public Queries", () => {
       `query { toolRegistry { id category serviceCategory displayName description } }`,
     );
 
-    // The cloud proxy may return 401 if not authenticated, or 200 if
+    // The cloud proxy may return an auth error if not authenticated, or 200 if
     // toolRegistry is a public query. Handle both cases.
     if (res.status === 401) {
       // Auth required even for toolRegistry — verify the error shape
       const body = await res.json();
-      expect(body.error).toBe("Not authenticated");
+      expect(body.errors).toBeDefined();
+      expect(body.errors.length).toBeGreaterThan(0);
       return;
     }
 
@@ -84,7 +85,7 @@ test.describe("Capability Context — Public Queries", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Capability Context — Auth-Gated Queries", () => {
-  test("entitlementSet requires authentication", async ({
+  test("entitlementSet query is forwarded and returns errors without auth", async ({
     window: _window,
     apiBase,
   }) => {
@@ -93,14 +94,13 @@ test.describe("Capability Context — Auth-Gated Queries", () => {
       `query { entitlementSet { toolIds categories serviceCategories } }`,
     );
 
-    // In E2E without auth setup, this should return 401
-    expect(res.status).toBe(401);
-
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 
-  test("surfaces requires authentication", async ({
+  test("surfaces query is forwarded and returns errors without auth", async ({
     window: _window,
     apiBase,
   }) => {
@@ -108,14 +108,13 @@ test.describe("Capability Context — Auth-Gated Queries", () => {
       apiBase,
       `query { surfaces { id name allowedToolIds allowedCategories description } }`,
     );
-
-    expect(res.status).toBe(401);
-
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 
-  test("assembleCapabilityContext requires authentication", async ({
+  test("assembleCapabilityContext query is forwarded and returns errors without auth", async ({
     window: _window,
     apiBase,
   }) => {
@@ -140,14 +139,13 @@ test.describe("Capability Context — Auth-Gated Queries", () => {
         },
       },
     );
-
-    expect(res.status).toBe(401);
-
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 
-  test("runProfiles requires authentication", async ({
+  test("runProfiles query is forwarded and returns errors without auth", async ({
     window: _window,
     apiBase,
   }) => {
@@ -155,11 +153,10 @@ test.describe("Capability Context — Auth-Gated Queries", () => {
       apiBase,
       `query { runProfiles { id name selectedToolIds surfaceId } }`,
     );
-
-    expect(res.status).toBe(401);
-
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 });
 
@@ -168,7 +165,7 @@ test.describe("Capability Context — Auth-Gated Queries", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Capability Context — Cloud Proxy Validation", () => {
-  test("empty body returns 401 not 400 when unauthenticated", async ({
+  test("empty body returns 200 with missing query error", async ({
     window: _window,
     apiBase,
   }) => {
@@ -177,16 +174,19 @@ test.describe("Capability Context — Cloud Proxy Validation", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    // Auth check happens before body validation
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.errors[0].message).toBe("Missing query");
   });
 
-  test("malformed query returns 401 when unauthenticated", async ({
+  test("malformed query is forwarded to Cloud and returns 200 with errors", async ({
     window: _window,
     apiBase,
   }) => {
     const res = await cloudGraphql(apiBase, "not a valid graphql query {{{");
-    // Auth check takes priority over query validation
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 });

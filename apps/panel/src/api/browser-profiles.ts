@@ -8,6 +8,7 @@ import {
   BATCH_ARCHIVE_BROWSER_PROFILES_MUTATION,
   BATCH_DELETE_BROWSER_PROFILES_MUTATION,
 } from "./browser-profiles-queries.js";
+import { fetchJson, fetchVoid } from "./client.js";
 
 /** Shape returned by the cloud BrowserProfile type. */
 export interface CloudBrowserProfile {
@@ -113,7 +114,7 @@ export async function deleteBrowserProfile(id: string): Promise<void> {
     });
 
     // Fire-and-forget: clean up local Chrome profile directory
-    fetch(`/api/browser-profiles/${id}/data`, { method: "DELETE" }).catch(() => {});
+    fetchVoid(`/browser-profiles/${id}/data`, { method: "DELETE" });
   });
 }
 
@@ -146,13 +147,8 @@ export async function batchDeleteBrowserProfiles(ids: string[]): Promise<number>
 export async function testBrowserProfileProxy(
   id: string,
 ): Promise<BrowserProfileProxyTestResult> {
-  const res = await fetch("/api/browser-profiles/test-proxy", {
+  return fetchJson<BrowserProfileProxyTestResult>("/browser-profiles/test-proxy", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id }),
   });
-  if (!res.ok) {
-    throw new Error(`Proxy test request failed: ${res.status}`);
-  }
-  return res.json() as Promise<BrowserProfileProxyTestResult>;
 }

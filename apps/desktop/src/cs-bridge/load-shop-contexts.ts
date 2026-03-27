@@ -13,6 +13,7 @@ interface ShopData {
       enabled?: boolean;
       businessPrompt?: string;
       csDeviceId?: string | null;
+      csModelOverride?: string | null;
     };
   };
 }
@@ -24,7 +25,7 @@ interface PromptData {
   };
 }
 
-const SHOPS_QUERY = `query { shops { id platformShopId shopName services { customerService { enabled businessPrompt csDeviceId } } } }`;
+const SHOPS_QUERY = `query { shops { id platformShopId shopName services { customerService { enabled businessPrompt csDeviceId csModelOverride } } } }`;
 const PROMPT_QUERY = `query($shopId: String!) { csAssemblePrompt(shopId: $shopId) { systemPrompt version } }`;
 
 /**
@@ -39,7 +40,7 @@ export async function refreshCSShopContext(
 ): Promise<void> {
   try {
     const result = await authSession.graphqlFetch<{ shop: ShopData | null }>(
-      `query($id: ID!) { shop(id: $id) { id platformShopId shopName services { customerService { enabled businessPrompt csDeviceId } } } }`,
+      `query($id: ID!) { shop(id: $id) { id platformShopId shopName services { customerService { enabled businessPrompt csDeviceId csModelOverride } } } }`,
       { id: shopId },
     );
     const shop = result.shop;
@@ -58,6 +59,7 @@ export async function refreshCSShopContext(
       objectId: shop.id,
       platformShopId: shop.platformShopId,
       systemPrompt: promptResult.csAssemblePrompt.systemPrompt,
+      csModelOverride: shop.services?.customerService?.csModelOverride ?? undefined,
     });
     log.info(`Refreshed CS context for shop ${shop.shopName}`);
   } catch (err) {
@@ -100,6 +102,7 @@ export async function loadCSShopContexts(
         objectId: shop.id,
         platformShopId: shop.platformShopId,
         systemPrompt: promptResult.csAssemblePrompt.systemPrompt,
+        csModelOverride: shop.services?.customerService?.csModelOverride ?? undefined,
       };
       bridge.setShopContext(ctx);
     } catch (err) {

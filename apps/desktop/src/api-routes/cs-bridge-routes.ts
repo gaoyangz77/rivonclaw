@@ -1,6 +1,7 @@
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { refreshCSShopContext } from "../cs-bridge/load-shop-contexts.js";
+import { getCsBridge } from "../gateway/gateway-connection.js";
 
 /**
  * Routes for CS bridge management.
@@ -15,18 +16,19 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       sendJson(res, 400, { error: "Missing shopId" });
       return true;
     }
-    if (!ctx.csBridge || !ctx.authSession) {
+    const bridge = getCsBridge();
+    if (!bridge || !ctx.authSession) {
       sendJson(res, 200, { ok: true, skipped: true }); // Bridge not running — no-op
       return true;
     }
-    refreshCSShopContext(ctx.csBridge, ctx.authSession, body.shopId, ctx.deviceId ?? "unknown").catch(() => {});
+    refreshCSShopContext(bridge, ctx.authSession, body.shopId, ctx.deviceId ?? "unknown").catch(() => {});
     sendJson(res, 200, { ok: true });
     return true;
   }
 
   // GET /api/cs-bridge/binding-status — get current shop binding conflicts
   if (pathname === "/api/cs-bridge/binding-status" && req.method === "GET") {
-    const bridge = ctx.csBridge;
+    const bridge = getCsBridge();
     if (!bridge) {
       sendJson(res, 200, { connected: false, conflicts: [] });
       return true;
@@ -45,7 +47,7 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       sendJson(res, 400, { error: "Missing shopId" });
       return true;
     }
-    ctx.csBridge?.forceBindShop(body.shopId);
+    getCsBridge()?.forceBindShop(body.shopId);
     sendJson(res, 200, { ok: true });
     return true;
   }
@@ -57,7 +59,7 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       sendJson(res, 400, { error: "Missing shopId" });
       return true;
     }
-    ctx.csBridge?.unbindShop(body.shopId);
+    getCsBridge()?.unbindShop(body.shopId);
     sendJson(res, 200, { ok: true });
     return true;
   }

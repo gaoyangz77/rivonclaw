@@ -102,6 +102,9 @@ export type {
   ToolCallEnforcementResult,
 } from "./types/index.js";
 
+export type { CSSessionContext, CSToolArgs } from "./types/index.js";
+export { registerCSSession, unregisterCSSession, getInjectedParams, resolveSessionContext } from "./types/index.js";
+
 export type {
   CatalogTool,
   SurfaceAvailabilityResult,
@@ -272,6 +275,8 @@ export {
 export { RELAY_MAX_CLIENT_BYTES, RELAY_MAX_CLIENT_MB, RELAY_MAX_PAYLOAD_BYTES } from "./relay.js";
 
 export { DEFAULTS } from "./defaults.js";
+
+export { extensionGraphqlFetch, extensionRestFetch } from "./extension-client.js";
 
 export * as GQL from "./generated/graphql.js";
 

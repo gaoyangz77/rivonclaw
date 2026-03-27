@@ -62,36 +62,39 @@ test.describe("Browser Profiles — Auth Gating", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Browser Profiles — Cloud Proxy Unauthenticated", () => {
-  test("browserProfiles query returns 401 when not authenticated", async ({ window: _window, apiBase }) => {
+  test("browserProfiles query is forwarded to Cloud and returns errors", async ({ window: _window, apiBase }) => {
     const res = await cloudGraphql(apiBase, `query { browserProfiles { id name } }`);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 
-  test("createBrowserProfile mutation returns 401 when not authenticated", async ({ window: _window, apiBase }) => {
+  test("createBrowserProfile mutation is forwarded to Cloud and returns errors", async ({ window: _window, apiBase }) => {
     const res = await cloudGraphql(
       apiBase,
       `mutation ($input: CreateBrowserProfileInput!) { createBrowserProfile(input: $input) { id name status } }`,
       { input: { name: "Test Profile" } },
     );
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors.length).toBeGreaterThan(0);
   });
 
-  test("request without query body returns 401 when not authenticated", async ({ window: _window, apiBase }) => {
+  test("request without query body returns 200 with errors", async ({ window: _window, apiBase }) => {
     const res = await fetch(`${apiBase}/api/cloud/graphql`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.error).toBe("Not authenticated");
+    expect(body.errors).toBeDefined();
+    expect(body.errors[0].message).toBe("Missing query");
   });
 });
 
@@ -130,27 +133,31 @@ test.describe("Browser Profiles — Local Data Cleanup", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite 4: Cloud Proxy — Input Validation (auth check takes priority)
+// Suite 4: Cloud Proxy — Input Validation (missing query caught before forwarding)
 // ---------------------------------------------------------------------------
 
 test.describe("Browser Profiles — Cloud Proxy Input Validation", () => {
-  test("empty body returns 401 not 400 when unauthenticated", async ({ window: _window, apiBase }) => {
+  test("empty body returns 200 with missing query error", async ({ window: _window, apiBase }) => {
     const res = await fetch(`${apiBase}/api/cloud/graphql`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    // Auth check happens before body validation
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.errors[0].message).toBe("Missing query");
   });
 
-  test("empty query string returns 401 not 400 when unauthenticated", async ({ window: _window, apiBase }) => {
+  test("empty query string returns 200 with missing query error", async ({ window: _window, apiBase }) => {
     const res = await fetch(`${apiBase}/api/cloud/graphql`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: "" }),
     });
-    // Auth check happens before body validation
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.errors[0].message).toBe("Missing query");
   });
 });

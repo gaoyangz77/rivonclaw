@@ -2,7 +2,6 @@ import { app, BrowserWindow, Menu, Tray, shell, dialog, nativeImage } from "elec
 import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   GatewayLauncher,
-  GatewayRpcClient,
   resolveVendorEntryPath,
   ensureGatewayConfig,
   resolveOpenClawStateDir,
@@ -12,20 +11,16 @@ import {
   syncAllAuthProfiles,
   syncBackOAuthCredentials,
   clearAllAuthProfiles,
-  acquireGeminiOAuthToken,
   saveGeminiOAuthCredentials,
   validateGeminiAccessToken,
-  startManualOAuthFlow,
   completeManualOAuthFlow,
-  acquireCodexOAuthToken,
   saveCodexOAuthCredentials,
-  validateCodexAccessToken,
   startHybridCodexOAuthFlow,
   startHybridGeminiOAuthFlow,
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, formatError, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, getCsRelayWsUrl } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
 import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -52,6 +47,7 @@ import { createAutoUpdater } from "./utils/auto-updater.js";
 import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch } from "./gateway/startup-utils.js";
 import { initTelemetry } from "./utils/telemetry-init.js";
 import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js";
+import { createGatewayEventDispatcher } from "./gateway/gateway-event-dispatcher.js";
 import { AuthSessionManager } from "./auth/auth-session.js";
 import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
 import { OAuthSubscriptionClient } from "./cloud/oauth-subscription-client.js";
@@ -62,8 +58,10 @@ import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.j
 import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { toolCapabilityResolver } from "./utils/tool-capability-resolver.js";
-import { CustomerServiceBridge } from "./cs-bridge/customer-service-bridge.js";
-import { loadCSShopContexts } from "./cs-bridge/load-shop-contexts.js";
+import { initCookieSync, pullAndPersistCookies } from "./browser-profiles/cookie-sync.js";
+import { createGatewayConfigHandlers } from "./gateway/gateway-config-handlers.js";
+import { connectGateway, disconnectGateway, getCsBridge } from "./gateway/gateway-connection.js";
+import { getRpcClient } from "./gateway/rpc-client-ref.js";
 
 const log = createLogger("desktop");
 
@@ -548,264 +546,22 @@ app.whenReady().then(async () => {
     stateDir,
   });
 
-  // Initialize gateway RPC client for channels.status and other RPC calls
-  let rpcClient: GatewayRpcClient | null = null;
-  let csBridge: CustomerServiceBridge | null = null;
-  async function connectRpcClient(): Promise<void> {
-    if (rpcClient) {
-      rpcClient.stop();
-    }
+  // Create the gateway event dispatcher — routes WS events to Panel SSE
+  const dispatchGatewayEvent = createGatewayEventDispatcher({
+    pushChatSSE,
+    chatSessions: storage.chatSessions,
+  });
 
-    const config = readExistingConfig(configPath);
-    const gw = config.gateway as Record<string, unknown> | undefined;
-    const port = (gw?.port as number) ?? resolveGatewayPort();
-    const auth = gw?.auth as Record<string, unknown> | undefined;
-    const token = auth?.token as string | undefined;
-
-    rpcClient = new GatewayRpcClient({
-      url: `ws://127.0.0.1:${port}`,
-      token,
-      deviceIdentityPath: join(stateDir, "identity", "device.json"),
-      onConnect: () => {
-        log.info("Gateway RPC client connected");
-
-        // Start Mobile Sync engines for all active pairings (skip stale)
-        const allPairings = storage.mobilePairings.getAllPairings();
-        const stalePairings = [];
-        for (const pairing of allPairings) {
-          if (pairing.status === 'stale') {
-            stalePairings.push({
-              pairingId: pairing.pairingId || pairing.id,
-              mobileDeviceId: pairing.mobileDeviceId,
-            });
-            continue;
-          }
-          rpcClient?.request("mobile_chat_start_sync", {
-            pairingId: pairing.pairingId,
-            accessToken: pairing.accessToken,
-            relayUrl: pairing.relayUrl,
-            desktopDeviceId: pairing.deviceId,
-            mobileDeviceId: pairing.mobileDeviceId || pairing.id,
-          }).catch((e: unknown) => log.error(`Failed to start Mobile Sync for ${pairing.pairingId || pairing.mobileDeviceId || pairing.id}:`, e));
-        }
-
-        // Register stale pairings so the mobile channel stays visible in Panel
-        if (stalePairings.length > 0) {
-          rpcClient?.request("mobile_chat_register_stale", { pairings: stalePairings })
-            .catch((e: unknown) => log.error("Failed to register stale mobile pairings:", e));
-        }
-
-        // Initialize event bridge plugin so it captures the gateway broadcast function
-        rpcClient?.request("event_bridge_init", {})
-          .catch((e: unknown) => log.debug("Event bridge init (may not be loaded):", e));
-
-        // Initialize ToolCapabilityResolver with gateway tool catalog + entitlements
-        (async () => {
-          try {
-            const catalog = await rpcClient!.request<{
-              groups: Array<{
-                tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>;
-              }>;
-            }>("tools.catalog", { includePlugins: true });
-
-            const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
-            for (const group of catalog.groups ?? []) {
-              for (const tool of group.tools ?? []) {
-                catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
-              }
-            }
-
-            // Get entitled tools from cached available tools or fetch fresh
-            let entitledToolIds: string[] = [];
-            if (authSession?.getAccessToken()) {
-              const availableTools = authSession.getCachedAvailableTools()
-                ?? await authSession.fetchAvailableTools().catch(() => []);
-              entitledToolIds = availableTools
-                .filter(t => t.allowed)
-                .map(t => t.id);
-            }
-
-            toolCapabilityResolver.init(entitledToolIds, catalogTools);
-          } catch (e) {
-            log.warn("Failed to initialize ToolCapabilityResolver:", e);
-          }
-        })();
-
-        // NOTE: Batch push of tool contexts on gateway connect has been removed.
-        // Tool contexts are now pushed on-demand: when selections change (PUT/DELETE),
-        // when the panel ensures context (POST ensure-context), or at cron event time.
-
-        // Start CS Bridge if user has e-commerce module
-        if (authSession?.getAccessToken()) {
-          const user = authSession.getCachedUser();
-          const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
-          if (hasEcommerce) {
-            if (csBridge) csBridge.stop();
-            csBridge = new CustomerServiceBridge({
-              relayUrl: getCsRelayWsUrl(),
-              gatewayId: deviceId ?? "unknown",
-              getAuthToken: () => authSession?.getAccessToken(),
-              getRpcClient: () => rpcClient,
-            });
-            // Load shop contexts (prompt + IDs) for CS-enabled shops bound to this device
-            loadCSShopContexts(csBridge, authSession, deviceId).catch((e: unknown) =>
-              log.error("Failed to load CS shop contexts:", e));
-            csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
-          }
-        }
-
-        // Push locally-stored cookies for managed profiles to the gateway plugin
-        pushStoredCookiesToGateway()
-          .catch((e: unknown) => log.debug("Failed to push stored cookies to gateway (best-effort):", e));
-      },
-      onClose: () => {
-        log.info("Gateway RPC client disconnected");
-      },
-      onEvent: (evt) => {
-        // Forward events to CS bridge for auto-forwarding agent text to buyer
-        csBridge?.onGatewayEvent(evt);
-
-        if (evt.event === "mobile.session-reset") {
-          const payload = evt.payload as { sessionKey?: string } | undefined;
-          if (payload?.sessionKey) {
-            pushChatSSE("session-reset", { sessionKey: payload.sessionKey });
-          }
-        }
-        if (evt.event === "rivonclaw.chat-mirror") {
-          const p = evt.payload as {
-            runId: string;
-            sessionKey: string;
-            stream: string;  // "assistant" | "lifecycle" | "tool"
-            data: unknown;
-            seq?: number;
-          };
-          pushChatSSE("chat-mirror", p);
-        }
-        if (evt.event === "rivonclaw.channel-inbound") {
-          const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
-          if (p?.sessionKey && p?.message) {
-            const session = storage.chatSessions.getByKey(p.sessionKey);
-            if (session?.archivedAt) {
-              storage.chatSessions.upsert(p.sessionKey, { archivedAt: null });
-            }
-            pushChatSSE("inbound", {
-              runId: randomUUID(),
-              sessionKey: p.sessionKey,
-              channel: p.channel || "unknown",
-              message: p.message,
-              timestamp: p.timestamp || Date.now(),
-            });
-          }
-        }
-        if (evt.event === "mobile.inbound") {
-          const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string; mediaPaths?: string[] } | undefined;
-          if (p?.sessionKey && p?.message) {
-            // Auto-unarchive the session so it appears in Active sessions,
-            // even when the Panel UI is closed.
-            const session = storage.chatSessions.getByKey(p.sessionKey);
-            if (session?.archivedAt) {
-              storage.chatSessions.upsert(p.sessionKey, { archivedAt: null });
-            }
-            // Convert absolute media file paths to panel-server /api/media/ URLs.
-            const MEDIA_DIR_SEG = "/openclaw/media/";
-            const mediaUrls: string[] = [];
-            if (Array.isArray(p.mediaPaths)) {
-              for (const fp of p.mediaPaths) {
-                const idx = fp.indexOf(MEDIA_DIR_SEG);
-                if (idx >= 0) {
-                  mediaUrls.push(`/api/media/${fp.slice(idx + MEDIA_DIR_SEG.length)}`);
-                }
-              }
-            }
-            pushChatSSE("inbound", {
-              runId: randomUUID(),
-              sessionKey: p.sessionKey,
-              channel: p.channel || "mobile",
-              message: p.message,
-              timestamp: p.timestamp || Date.now(),
-              ...(mediaUrls.length > 0 ? { mediaUrls } : {}),
-            });
-          }
-        }
-
-      },
-    });
-
-    await rpcClient.start();
-  }
-
-  function disconnectRpcClient(): void {
-    if (csBridge) {
-      csBridge.stop();
-      csBridge = null;
-    }
-    if (rpcClient) {
-      rpcClient.stop();
-      rpcClient = null;
-    }
-  }
-
-  /**
-   * Push locally-stored (decrypted) cookies for all managed profiles to the
-   * gateway plugin so it can restore them via CDP on browser_session_start.
-   *
-   * Best-effort: errors are logged and swallowed.
-   */
-  async function pushStoredCookiesToGateway(): Promise<void> {
-    if (!rpcClient) return;
-    const stack = sessionStateStackRef;
-    if (!stack) return;
-
-    // Iterate over all managed browser entries that are running/allocated
-    const entries = managedBrowserService.getAllEntries();
-    for (const entry of entries) {
-      try {
-        const raw = await stack.store.readCookieSnapshot("managed_profile", entry.profileId);
-        if (!raw) continue;
-        const cookies = JSON.parse(raw.toString("utf-8"));
-        if (!Array.isArray(cookies) || cookies.length === 0) continue;
-
-        await rpcClient.request("browser_profiles_push_cookies", {
-          profileName: entry.profileId,
-          cookies,
-          cdpPort: entry.port,
-        });
-        log.debug(`Pushed ${cookies.length} stored cookies for profile ${entry.profileId} to gateway`);
-      } catch (e: unknown) {
-        log.debug(`Failed to push stored cookies for profile ${entry.profileId} (best-effort):`, e);
-      }
-    }
-  }
-
-  /**
-   * Pull captured cookies from the gateway plugin for a profile and persist
-   * them locally (encrypted).
-   *
-   * Best-effort: errors are logged and swallowed.
-   */
-  async function pullAndPersistCookies(profileName: string): Promise<void> {
-    if (!rpcClient) return;
-    const stack = sessionStateStackRef;
-    if (!stack) return;
-
-    try {
-      const result = await rpcClient.request<{ cookies: Array<Record<string, unknown>> }>(
-        "browser_profiles_pull_cookies",
-        { profileName },
-      );
-      if (!result?.cookies || !Array.isArray(result.cookies) || result.cookies.length === 0) {
-        log.debug(`No cookies returned from gateway for profile ${profileName}`);
-        return;
-      }
-
-      const payload = Buffer.from(JSON.stringify(result.cookies), "utf-8");
-      await stack.store.ensureDir("managed_profile", profileName);
-      await stack.store.writeCookieSnapshot("managed_profile", profileName, payload);
-      log.info(`Pulled and persisted ${result.cookies.length} cookies for profile ${profileName} from gateway`);
-    } catch (e: unknown) {
-      log.debug(`Failed to pull cookies for profile ${profileName} (best-effort):`, e);
-    }
-  }
+  // Gateway connection deps — passed to connectGateway() on each "ready" event
+  const gatewayConnectionDeps = {
+    configPath,
+    stateDir,
+    deviceId,
+    storage,
+    authSession,
+    toolCapabilityResolver,
+    dispatchGatewayEvent,
+  };
 
   // Initialize artifact pipeline with LLM config resolver
   const pipeline = new ArtifactPipeline({
@@ -850,65 +606,6 @@ app.whenReady().then(async () => {
     });
   }
 
-  /**
-   * Called when STT settings or credentials change.
-   * Regenerates gateway config and restarts gateway to apply new env vars.
-   */
-  async function handleSttChange(): Promise<void> {
-    log.info("STT settings changed, regenerating config and restarting gateway");
-
-    // Regenerate full OpenClaw config (reads current STT settings from storage)
-    writeGatewayConfig(await buildFullGatewayConfig());
-
-    // Rebuild environment with updated STT credentials (GROQ_API_KEY, etc.)
-    const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath);
-    launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
-
-    // Reinitialize STT manager
-    await sttManager.initialize().catch((err) => {
-      log.error("Failed to reinitialize STT manager:", err);
-    });
-
-    // Full restart to apply new environment variables and config
-    await launcher.stop();
-    await launcher.start();
-  }
-
-  /**
-   * Called when web search or embedding settings/credentials change.
-   * Regenerates gateway config and restarts gateway to apply new env vars.
-   */
-  async function handleExtrasChange(): Promise<void> {
-    log.info("Extras settings changed, regenerating config and restarting gateway");
-
-    // Regenerate full OpenClaw config (reads current web search / embedding settings from storage)
-    writeGatewayConfig(await buildFullGatewayConfig());
-
-    // Rebuild environment with updated credentials (BRAVE_API_KEY, VOYAGE_API_KEY, etc.)
-    const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath);
-    launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
-
-    // Full restart to apply new environment variables and config
-    await launcher.stop();
-    await launcher.start();
-  }
-
-  /**
-   * Called when file permissions change.
-   * Rebuilds environment variables and restarts the gateway to apply the new permissions.
-   */
-  async function handlePermissionsChange(): Promise<void> {
-    log.info("File permissions changed, rebuilding environment and restarting gateway");
-
-    // Rebuild environment with updated file permissions
-    const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath);
-    launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
-
-    // Full restart to apply new environment variables
-    await launcher.stop();
-    await launcher.start();
-  }
-
   // Late-bound reference: sessionStateStack is created after cdpManager,
   // so we capture it via a mutable binding that the callback closes over.
   // eslint-disable-next-line prefer-const -- assigned later, after cdpManager creation
@@ -938,61 +635,6 @@ app.whenReady().then(async () => {
         .catch((err: unknown) => log.warn("Failed to start CDP session state tracking:", err));
     },
   });
-
-  /**
-   * Called when provider settings change (API key added/removed, default changed, proxy changed).
-   *
-   * Hint modes:
-   * - `keyOnly: true` — Only an API key changed (add/activate/delete).
-   *   Syncs auth-profiles.json and proxy router config. No restart needed.
-   * - `configOnly: true` — Only the config file changed (e.g. model switch).
-   *   Updates gateway config and performs a full gateway restart.
-   *   Full restart is required because SIGUSR1 reload re-reads config but
-   *   agent sessions keep their existing model (only new sessions get the new default).
-   * - Neither — Updates all configs and restarts gateway.
-   *   Full restart ensures model changes take effect immediately.
-   */
-  async function handleProviderChange(hint?: { configOnly?: boolean; keyOnly?: boolean }): Promise<void> {
-    const keyOnly = hint?.keyOnly === true;
-    const configOnly = hint?.configOnly === true;
-    log.info(`Provider settings changed (keyOnly=${keyOnly}, configOnly=${configOnly})`);
-
-    // Always sync auth profiles and proxy router config so OpenClaw has current state on disk
-    await Promise.all([
-      syncAllAuthProfiles(stateDir, storage, secretStore),
-      writeProxyRouterConfig(storage, secretStore, lastSystemProxy),
-    ]);
-
-    if (keyOnly) {
-      // Key-only change: auth profiles + proxy config synced, done.
-      // OpenClaw re-reads auth-profiles.json on every LLM turn,
-      // proxy router re-reads its config file on change (fs.watch).
-      // No restart needed — zero disruption.
-      log.info("Key-only change, configs synced (no restart needed)");
-      return;
-    }
-
-    if (configOnly) {
-      // Config-only change (e.g. channel add/delete): the config file was
-      // already modified by the caller. Just tell the running gateway to
-      // re-read it via SIGUSR1 — no process restart needed.
-      log.info("Config-only change, sending graceful reload to gateway");
-      await launcher.reload();
-      return;
-    }
-
-    // Rewrite full OpenClaw config (reads current provider/model from storage)
-    writeGatewayConfig(await buildFullGatewayConfig());
-
-    // Full gateway restart to ensure model change takes effect.
-    // SIGUSR1 graceful reload re-reads config but agent sessions keep their
-    // existing model assignment. A stop+start creates fresh sessions with
-    // the new default model from config.
-    log.info("Config updated, performing full gateway restart for model change");
-    await launcher.stop();
-    await launcher.start();
-    // RPC client reconnects automatically via the "ready" event handler.
-  }
 
   // Determine system locale for tray menu i18n
   const systemLocale = app.getLocale().startsWith("zh") ? "zh" : "en";
@@ -1247,7 +889,7 @@ app.whenReady().then(async () => {
 
   launcher.on("ready", () => {
     log.info("Gateway ready (listening)");
-    connectRpcClient().catch((err) => {
+    connectGateway(gatewayConnectionDeps).catch((err: unknown) => {
       log.error("Failed to initiate RPC client after gateway ready:", err);
     });
   });
@@ -1265,7 +907,7 @@ app.whenReady().then(async () => {
     Promise.all(pullPromises)
       .catch(() => {}) // swallow aggregate errors
       .finally(() => {
-        disconnectRpcClient();
+        disconnectGateway();
       });
 
     updateTray("stopped");
@@ -1377,6 +1019,21 @@ app.whenReady().then(async () => {
     join(stateDir, "managed-browsers"),
   );
 
+  // Wire cookie-sync module to session state and managed browser service
+  initCookieSync({
+    getSessionStateStack: () => sessionStateStackRef,
+    getManagedBrowserEntries: () => managedBrowserService.getAllEntries(),
+  });
+
+  // Late-bound config handler refs — configHandlers is created after workspacePath
+  // is resolved (post-launcher), but panel-server callbacks need them earlier.
+  // The callbacks are only invoked at runtime (user action), never during startup,
+  // so the late binding is safe.
+  let handleProviderChange!: (hint?: { configOnly?: boolean; keyOnly?: boolean }) => Promise<void>;
+  let handleSttChange!: () => Promise<void>;
+  let handleExtrasChange!: () => Promise<void>;
+  let handlePermissionsChange!: () => Promise<void>;
+
   // Start the panel server
   const panelDistDir = app.isPackaged
     ? join(process.resourcesPath, "panel-dist")
@@ -1391,7 +1048,6 @@ app.whenReady().then(async () => {
     storage,
     secretStore,
     deviceId,
-    getRpcClient: () => rpcClient,
     getUpdateResult: () => {
       const info = updater.getLatestInfo();
       return {
@@ -1437,6 +1093,8 @@ app.whenReady().then(async () => {
       handleProviderChange(hint).catch((err) => {
         log.error("Failed to handle provider change:", err);
       });
+      // Refresh CS bridge model catalog so stale overrides are detected
+      getCsBridge()?.refreshModelCatalog().catch(() => {});
     },
     onOpenFileDialog: async () => {
       const result = await dialog.showOpenDialog({
@@ -1494,13 +1152,17 @@ app.whenReady().then(async () => {
           }
 
           // If gateway is connected, do a full re-init with fresh catalog
-          if (rpcClient?.isConnected()) {
-            const catalogRes = await rpcClient.request<{ tools: Array<{ name: string; source: string; pluginId?: string }> }>("tools.catalog", {});
-            const catalogTools = (catalogRes?.tools ?? []).map((t: { name: string; source: string; pluginId?: string }) => ({
-              id: t.name,
-              source: t.source as "core" | "plugin",
-              pluginId: t.pluginId,
-            }));
+          const rpc = getRpcClient();
+          if (rpc?.isConnected()) {
+            const catalog = await rpc.request<{
+              groups: Array<{ tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> }>;
+            }>("tools.catalog", { includePlugins: true });
+            const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
+            for (const group of catalog.groups ?? []) {
+              for (const tool of group.tools ?? []) {
+                catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
+              }
+            }
             toolCapabilityResolver.init(entitledToolIds, catalogTools);
           } else {
             // Gateway not connected — update entitled only (system stays as static/last known)
@@ -1746,7 +1408,6 @@ app.whenReady().then(async () => {
       telemetryClient?.track(eventType, metadata);
     },
     authSession,
-    get csBridge() { return csBridge ?? undefined; },
   });
 
   // Sync auth profiles + build env, then start gateway.
@@ -1770,6 +1431,26 @@ app.whenReady().then(async () => {
     env.NODE_OPTIONS = gatewayNodeOptions;
     return env;
   }
+
+  // Assign the late-bound config handlers now that workspacePath is available
+  const configHandlers = createGatewayConfigHandlers({
+    storage,
+    secretStore,
+    launcher,
+    stateDir,
+    workspacePath,
+    buildFullGatewayConfig,
+    writeGatewayConfig,
+    buildFullProxyEnv,
+    sttManager,
+    syncAllAuthProfiles,
+    writeProxyRouterConfig,
+    getLastSystemProxy: () => lastSystemProxy,
+  });
+  handleProviderChange = configHandlers.handleProviderChange;
+  handleSttChange = configHandlers.handleSttChange;
+  handleExtrasChange = configHandlers.handleExtrasChange;
+  handlePermissionsChange = configHandlers.handlePermissionsChange;
 
   Promise.all([
     syncAllAuthProfiles(stateDir, storage, secretStore),

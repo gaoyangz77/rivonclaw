@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchSettings, updateSettings, trackEvent } from "../api/index.js";
+import { fetchJson } from "../api/client.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
 
@@ -57,33 +58,21 @@ export function ExtrasPage() {
 
       // Check STT credentials
       try {
-        const credentialsRes = await fetch("/api/stt/credentials");
-        if (credentialsRes.ok) {
-          const contentType = credentialsRes.headers.get("content-type");
-          if (contentType?.includes("application/json")) {
-            const credentials = await credentialsRes.json() as { groq: boolean; volcengine: boolean };
-            setHasGroqKey(credentials.groq);
-            setHasVolcengineKeys(credentials.volcengine);
-          }
-        }
+        const credentials = await fetchJson<{ groq: boolean; volcengine: boolean }>("/stt/credentials");
+        setHasGroqKey(credentials.groq);
+        setHasVolcengineKeys(credentials.volcengine);
       } catch (credErr) {
         console.warn("Failed to check STT credentials:", credErr);
       }
 
       // Check extras credentials
       try {
-        const extrasRes = await fetch("/api/extras/credentials");
-        if (extrasRes.ok) {
-          const contentType = extrasRes.headers.get("content-type");
-          if (contentType?.includes("application/json")) {
-            const extras = await extrasRes.json() as {
-              webSearch: Record<string, boolean>;
-              embedding: Record<string, boolean>;
-            };
-            setHasWebSearchKeys(extras.webSearch || {});
-            setHasEmbeddingKeys(extras.embedding || {});
-          }
-        }
+        const extras = await fetchJson<{
+          webSearch: Record<string, boolean>;
+          embedding: Record<string, boolean>;
+        }>("/extras/credentials");
+        setHasWebSearchKeys(extras.webSearch || {});
+        setHasEmbeddingKeys(extras.embedding || {});
       } catch (credErr) {
         console.warn("Failed to check extras credentials:", credErr);
       }
@@ -125,35 +114,25 @@ export function ExtrasPage() {
       // Save STT credentials
       if (sttEnabled) {
         if (sttProvider === "groq" && groqApiKey.trim()) {
-          const res = await fetch("/api/stt/credentials", {
+          await fetchJson("/stt/credentials", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               provider: "groq",
               apiKey: groqApiKey.trim(),
             }),
           });
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to save Groq credentials: ${res.status} ${errorText}`);
-          }
           setHasGroqKey(true);
           setGroqApiKey("");
         }
         if (sttProvider === "volcengine" && volcengineAppKey.trim() && volcengineAccessKey.trim()) {
-          const res = await fetch("/api/stt/credentials", {
+          await fetchJson("/stt/credentials", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               provider: "volcengine",
               appKey: volcengineAppKey.trim(),
               accessKey: volcengineAccessKey.trim(),
             }),
           });
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Failed to save Volcengine credentials: ${res.status} ${errorText}`);
-          }
           setHasVolcengineKeys(true);
           setVolcengineAppKey("");
           setVolcengineAccessKey("");
@@ -191,19 +170,14 @@ export function ExtrasPage() {
 
       // Save credentials
       if (webSearchEnabled && webSearchApiKey.trim()) {
-        const res = await fetch("/api/extras/credentials", {
+        await fetchJson("/extras/credentials", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "webSearch",
             provider: webSearchProvider,
             apiKey: webSearchApiKey.trim(),
           }),
         });
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to save credentials: ${res.status} ${errorText}`);
-        }
         setHasWebSearchKeys((prev) => ({ ...prev, [webSearchProvider]: true }));
         setWebSearchApiKey("");
       }
@@ -239,19 +213,14 @@ export function ExtrasPage() {
 
       // Save credentials
       if (embeddingEnabled && embeddingApiKey.trim()) {
-        const res = await fetch("/api/extras/credentials", {
+        await fetchJson("/extras/credentials", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "embedding",
             provider: embeddingProvider,
             apiKey: embeddingApiKey.trim(),
           }),
         });
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to save credentials: ${res.status} ${errorText}`);
-        }
         setHasEmbeddingKeys((prev) => ({ ...prev, [embeddingProvider]: true }));
         setEmbeddingApiKey("");
       }

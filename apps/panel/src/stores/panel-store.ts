@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { setTokenGetter, setOnTokenRefreshed, setOnRefreshFailed } from "../api/apollo-client.js";
 import { createAuthSlice } from "./slices/auth-slice.js";
 import type { AuthSlice } from "./slices/auth-slice.js";
 import { createSubscriptionSlice } from "./slices/subscription-slice.js";
@@ -36,12 +35,3 @@ export const usePanelStore = create<PanelStore>()((...a) => ({
   ...createShopsSlice(...a),
   ...createModulesSlice(...a),
 }));
-
-/** Call once before React tree mounts to wire Apollo client callbacks. */
-export function initStoreBindings(): void {
-  setTokenGetter(() => usePanelStore.getState().token);
-  setOnTokenRefreshed((accessToken: string) =>
-    usePanelStore.getState().setToken(accessToken),
-  );
-  setOnRefreshFailed(() => usePanelStore.getState().clearAuth());
-}

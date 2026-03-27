@@ -1,66 +1,52 @@
 import { GQL } from "@rivonclaw/core";
 import type { StateCreator } from "zustand";
-import { LOGIN_MUTATION, REGISTER_MUTATION, ME_QUERY } from "../../api/auth-queries.js";
+import { ME_QUERY } from "../../api/auth-queries.js";
 import { getClient } from "../../api/apollo-client.js";
 import { trackEvent } from "../../api/settings.js";
+import { fetchJson, fetchVoid } from "../../api/client.js";
 import type { PanelStore } from "../panel-store.js";
 
 export interface AuthSlice {
   user: GQL.MeResponse | null;
-  token: string | null;
+  authenticated: boolean;
   authLoading: boolean;
 
   initSession: () => Promise<void>;
   login: (input: GQL.LoginInput) => Promise<void>;
   register: (input: GQL.RegisterInput) => Promise<void>;
   logout: () => void;
-  setToken: (token: string) => void;
   clearAuth: () => void;
 }
 
-const TOKEN_KEY = "rivonclaw.auth.token";
-const REFRESH_KEY = "rivonclaw.auth.refreshToken";
-
 export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set, get) => ({
   user: null,
-  token: null,
+  authenticated: false,
   authLoading: true,
 
   initSession: async () => {
-    // One-time migration: push localStorage tokens to desktop, then remove
-    const legacyToken = localStorage.getItem(TOKEN_KEY);
-    if (legacyToken) {
-      const legacyRefresh = localStorage.getItem(REFRESH_KEY);
-      try {
-        await fetch("/api/auth/store-tokens", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: legacyToken,
-            refreshToken: legacyRefresh,
-          }),
-        });
-      } catch {
-        // Migration is best-effort
-      }
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_KEY);
-    }
-
-    // Fetch current session from desktop
     try {
-      const res = await fetch("/api/auth/session");
-      if (res.ok) {
-        const session = (await res.json()) as {
-          accessToken: string | null;
-          user: GQL.MeResponse | null;
-        };
-        if (session.accessToken) {
-          if (session.user) {
-            // Have both token and user — done
-            set({ token: session.accessToken, user: session.user, authLoading: false });
-            get().syncEnrolledModules((session.user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
-            // Fire-and-forget post-auth data fetches
+      const session = await fetchJson<{ user: GQL.MeResponse | null; authenticated: boolean }>("/auth/session");
+      if (session.authenticated && session.user) {
+        set({ user: session.user, authenticated: true, authLoading: false });
+        get().syncEnrolledModules((session.user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+        get().fetchSubscription();
+        get().fetchLlmQuota();
+        get().fetchSurfaces();
+        get().fetchRunProfiles();
+        get().fetchAvailableTools();
+        get().fetchProviderKeys();
+        return;
+      }
+      if (session.authenticated && !session.user) {
+        // Token exists but user not cached — validate via Desktop proxy ME query
+        try {
+          const { data } = await getClient().query<{ me: GQL.MeResponse }>({
+            query: ME_QUERY,
+            fetchPolicy: "network-only",
+          });
+          if (data?.me) {
+            set({ user: data.me, authenticated: true, authLoading: false });
+            get().syncEnrolledModules((data.me.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
             get().fetchSubscription();
             get().fetchLlmQuota();
             get().fetchSurfaces();
@@ -69,59 +55,26 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
             get().fetchProviderKeys();
             return;
           }
-          // Token exists but no cached user — validate via ME_QUERY
-          set({ token: session.accessToken });
-          try {
-            const { data } = await getClient().query<{ me: GQL.MeResponse }>({
-              query: ME_QUERY,
-              fetchPolicy: "network-only",
-            });
-            if (data?.me) {
-              set({ user: data.me, authLoading: false });
-              get().syncEnrolledModules((data.me.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
-              // Fire-and-forget post-auth data fetches
-              get().fetchSubscription();
-              get().fetchLlmQuota();
-              get().fetchSurfaces();
-              get().fetchRunProfiles();
-              get().fetchAvailableTools();
-              get().fetchProviderKeys();
-              return;
-            }
-          } catch {
-            // Token invalid — clear it
-            set({ token: null, authLoading: false });
-            return;
-          }
+        } catch {
+          set({ authenticated: false, authLoading: false });
+          return;
         }
       }
     } catch {
-      // Desktop unreachable — stay logged out
+      // Desktop unreachable
     }
     set({ authLoading: false });
-    // Provider keys are local data — always load regardless of auth state
     get().fetchProviderKeys();
   },
 
   login: async (input: GQL.LoginInput) => {
-    const { data } = await getClient().mutate<{ login: GQL.AuthPayload }>({
-      mutation: LOGIN_MUTATION,
-      variables: { input },
-    });
-    if (!data?.login) throw new Error("Login failed");
-    const payload = data.login;
-    await fetch("/api/auth/store-tokens", {
+    const { user } = await fetchJson<{ user: GQL.MeResponse }>("/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        accessToken: payload.accessToken,
-        refreshToken: payload.refreshToken,
-      }),
+      body: JSON.stringify(input),
     });
-    set({ token: payload.accessToken, user: payload.user });
-    get().syncEnrolledModules((payload.user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+    set({ user, authenticated: true });
+    get().syncEnrolledModules((user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
     trackEvent("auth.login");
-    // Fire-and-forget post-auth data fetches
     get().fetchSubscription();
     get().fetchLlmQuota();
     get().fetchSurfaces();
@@ -131,24 +84,13 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
   },
 
   register: async (input: GQL.RegisterInput) => {
-    const { data } = await getClient().mutate<{ register: GQL.AuthPayload }>({
-      mutation: REGISTER_MUTATION,
-      variables: { input },
-    });
-    if (!data?.register) throw new Error("Registration failed");
-    const payload = data.register;
-    await fetch("/api/auth/store-tokens", {
+    const { user } = await fetchJson<{ user: GQL.MeResponse }>("/auth/register", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        accessToken: payload.accessToken,
-        refreshToken: payload.refreshToken,
-      }),
+      body: JSON.stringify(input),
     });
-    set({ token: payload.accessToken, user: payload.user });
-    get().syncEnrolledModules((payload.user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+    set({ user, authenticated: true });
+    get().syncEnrolledModules((user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
     trackEvent("auth.register");
-    // Fire-and-forget post-auth data fetches
     get().fetchSubscription();
     get().fetchLlmQuota();
     get().fetchSurfaces();
@@ -158,24 +100,18 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
   },
 
   logout: () => {
-    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    fetchVoid("/auth/logout", { method: "POST" });
     trackEvent("auth.logout");
-    set({ user: null, token: null });
+    set({ user: null, authenticated: false });
     get().resetSubscription();
     get().resetSurfaces();
     get().resetRunProfiles();
     get().resetAvailableTools();
-    // Re-fetch provider keys — cloud key will be removed by onUserChanged,
-    // but local keys must remain visible
     get().fetchProviderKeys();
   },
 
-  setToken: (token: string) => {
-    set({ token });
-  },
-
   clearAuth: () => {
-    set({ user: null, token: null });
+    set({ user: null, authenticated: false });
     get().resetSubscription();
     get().resetSurfaces();
     get().resetRunProfiles();

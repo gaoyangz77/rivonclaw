@@ -7,6 +7,7 @@ import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
 import { PAIRING_CODE_TTL_MS } from "../mobile/mobile-manager.js";
 import type { MobileGraphQLRequest } from "@rivonclaw/core";
 import { executeMobileGraphQL } from "../mobile/mobile-graphql.js";
+import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import type { ApiContext } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 
@@ -173,7 +174,7 @@ export async function handleMobileChatRoutes(
                         console.error("[MobileChat] Failed to update mobile allowlist:", err);
                     }
 
-                    const rpcClient = ctx.getRpcClient?.();
+                    const rpcClient = getRpcClient();
                     if (rpcClient?.isConnected()) {
                         console.log("[MobileChat] Sending mobile_chat_start_sync RPC. relayUrl:", status.relayUrl);
                         rpcClient.request("mobile_chat_start_sync", {
@@ -205,7 +206,7 @@ export async function handleMobileChatRoutes(
         // Lazy migration: re-key old mobileDeviceId-based allowlist entries to pairingId
         await migrateAllowlistToPairingId(ctx);
 
-        const rpcClient = ctx.getRpcClient?.();
+        const rpcClient = getRpcClient();
         if (!rpcClient?.isConnected()) {
             sendJson(res, 200, { devices: {} });
             return true;
@@ -306,7 +307,7 @@ export async function handleMobileChatRoutes(
             }
 
             // Stop the Gateway plugin sync engine
-            const rpcClient = ctx.getRpcClient?.();
+            const rpcClient = getRpcClient();
             if (rpcClient?.isConnected()) {
                 rpcClient.request("mobile_chat_stop_sync", {
                     pairingId: relayPairingId, // undefined = stop all engines

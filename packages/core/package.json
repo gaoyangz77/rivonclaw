@@ -13,6 +13,10 @@
     "./node": {
       "import": "./dist/node.mjs",
       "types": "./dist/node.d.mts"
+    },
+    "./extension-client": {
+      "import": "./dist/extension-client.mjs",
+      "types": "./dist/extension-client.d.mts"
     }
   },
   "scripts": {

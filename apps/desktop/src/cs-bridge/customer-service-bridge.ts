@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
-import type { GatewayRpcClient, GatewayEventFrame } from "@rivonclaw/gateway";
+import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import type {
   CSHelloFrame,
   CSBindShopsFrame,
@@ -10,7 +10,9 @@ import type {
   CSTikTokNewConversationFrame,
   CSWSFrame,
 } from "@rivonclaw/core";
-import { TIKTOK_CS_TOOL_IDS, DEFAULT_PANEL_PORT } from "@rivonclaw/core";
+import { TIKTOK_CS_TOOL_IDS } from "@rivonclaw/core";
+import { getRpcClient } from "../gateway/rpc-client-ref.js";
+import { panelServerFetch } from "../clients/panel-server-client.js";
 
 const log = createLogger("cs-bridge");
 
@@ -26,19 +28,17 @@ export interface CSShopContext {
   platformShopId: string;
   /** Assembled CS system prompt for this shop. */
   systemPrompt: string;
+  /** LLM model override for CS sessions (provider/modelId format). Undefined = use global default. */
+  csModelOverride?: string;
 }
 
 interface CustomerServiceBridgeOptions {
   relayUrl: string;
   gatewayId: string;
   getAuthToken: () => string | null;
-  getRpcClient: () => GatewayRpcClient | null;
   /** CS tool IDs for RunProfile restriction. Defaults to TIKTOK_CS_TOOL_IDS from core. */
   csToolIds?: readonly string[];
 }
-
-/** Base URL for the local panel HTTP server. */
-const PANEL_BASE = `http://127.0.0.1:${DEFAULT_PANEL_PORT}`;
 
 // ---------------------------------------------------------------------------
 // CustomerServiceBridge
@@ -68,7 +68,32 @@ export class CustomerServiceBridge {
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
 
+  /** Conversations with an active agent run — prevents duplicate dispatches. */
+  private activeConversations = new Set<string>();
+
+  /** Cached set of model IDs available under the active provider. Refreshed on provider change. */
+  private activeProviderModelIds = new Set<string>();
+
   constructor(private readonly opts: CustomerServiceBridgeOptions) {}
+
+  /** Refresh the cached model list for the active provider. */
+  async refreshModelCatalog(): Promise<void> {
+    try {
+      // Find the active provider
+      const keysData = await panelServerFetch<{ keys?: Array<{ provider: string; isDefault?: boolean }> }>("/api/provider-keys");
+      const activeProvider = keysData.keys?.find((k) => k.isDefault)?.provider;
+      if (!activeProvider) { this.activeProviderModelIds = new Set(); return; }
+
+      // Get models for that provider only
+      const catalog = await panelServerFetch<{ models?: Record<string, Array<{ id: string }>> }>("/api/models");
+      const ids = new Set<string>();
+      const providerModels = catalog.models?.[activeProvider] ?? [];
+      for (const m of providerModels) ids.add(m.id);
+      this.activeProviderModelIds = ids;
+    } catch {
+      // Keep existing cache on failure
+    }
+  }
 
   // ── Public API ──────────────────────────────────────────────────────
 
@@ -149,6 +174,7 @@ export class CustomerServiceBridge {
     if (!pending) return;
 
     if (payload.state === "final") {
+      this.activeConversations.delete(pending.conversationId);
       this.pendingRuns.delete(payload.runId);
 
       const agentText = payload.message?.content
@@ -162,6 +188,7 @@ export class CustomerServiceBridge {
           .catch((err) => log.error("Failed to auto-forward agent text:", err));
       }
     } else if (payload.state === "error") {
+      this.activeConversations.delete(pending.conversationId);
       this.pendingRuns.delete(payload.runId);
       log.warn(`Agent run ${payload.runId} ended with error, skipping auto-forward`);
     }
@@ -309,7 +336,7 @@ export class CustomerServiceBridge {
   // ── TikTok message handling ─────────────────────────────────────────
 
   private async onTikTokMessage(frame: CSTikTokNewMessageFrame): Promise<void> {
-    const rpcClient = this.opts.getRpcClient();
+    const rpcClient = getRpcClient();
     if (!rpcClient) {
       log.warn("No RPC client available, dropping TikTok message");
       return;
@@ -322,7 +349,13 @@ export class CustomerServiceBridge {
       return;
     }
 
-    // 2. Parse text content
+    // 2. Skip if conversation already has an active agent run
+    if (this.activeConversations.has(frame.conversationId)) {
+      log.info(`Conversation ${frame.conversationId} already has active run, queuing message`);
+      return;
+    }
+
+    // 3. Parse text content
     const textContent = this.parseMessageContent(frame);
 
     // 3. Build session keys
@@ -352,9 +385,8 @@ export class CustomerServiceBridge {
     // 5. Set CS RunProfile (restricts tools to CS-only set)
     const csToolIds = this.opts.csToolIds ?? TIKTOK_CS_TOOL_IDS;
     try {
-      await fetch(`${PANEL_BASE}/api/tools/run-profile`, {
+      await panelServerFetch("/api/tools/run-profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scopeKey,
           runProfile: { selectedToolIds: [...csToolIds] },
@@ -365,7 +397,35 @@ export class CustomerServiceBridge {
       return;
     }
 
-    // 6. Build extra system prompt
+    // 6. Apply per-shop CS model override (validated against active provider's model catalog)
+    //    CRITICAL: if a stale modelOverride exists on the session file from a previous patch,
+    //    we MUST clear it via sessions.patch { model: null } before dispatching.
+    //    Otherwise the gateway will attempt the unavailable model, trigger auth failover,
+    //    and produce broken responses.
+    if (shop.csModelOverride) {
+      if (this.activeProviderModelIds.has(shop.csModelOverride)) {
+        try {
+          await rpcClient.request("sessions.patch", {
+            key: scopeKey,
+            model: shop.csModelOverride,
+          });
+        } catch (err) {
+          log.warn(`CS model override patch failed for ${scopeKey}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      } else {
+        log.warn(`CS model override "${shop.csModelOverride}" not available in active provider, clearing session override`);
+        shop.csModelOverride = undefined;
+        try {
+          await rpcClient.request("sessions.patch", { key: scopeKey, model: null });
+        } catch (err) {
+          // If we can't clear the stale override, do NOT dispatch — the run would use the bad model
+          log.error(`Failed to clear stale model override on session ${scopeKey}, dropping message to prevent bad response: ${err instanceof Error ? err.message : String(err)}`);
+          return;
+        }
+      }
+    }
+
+    // 7. Build extra system prompt
     const extraSystemPrompt = [
       shop.systemPrompt,
       "",
@@ -378,7 +438,7 @@ export class CustomerServiceBridge {
       "Use the tools available to you to help this buyer. Your text replies are automatically delivered to the buyer.",
     ].join("\n");
 
-    // 7. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
+    // 8. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
     try {
       const response = await rpcClient.request<{ runId?: string }>("agent", {
         sessionKey: dispatchKey,
@@ -388,6 +448,7 @@ export class CustomerServiceBridge {
       });
       // Track the run so onGatewayEvent can auto-forward the agent's text output
       if (response?.runId) {
+        this.activeConversations.add(frame.conversationId);
         this.pendingRuns.set(response.runId, {
           shopObjectId: shop.objectId,
           conversationId: frame.conversationId,
@@ -445,9 +506,8 @@ export class CustomerServiceBridge {
         }
       }
     `;
-    const res = await fetch(`${PANEL_BASE}/api/cloud/graphql`, {
+    await panelServerFetch("/api/cloud/graphql", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: mutation,
         variables: {
@@ -458,9 +518,6 @@ export class CustomerServiceBridge {
         },
       }),
     });
-    if (!res.ok) {
-      throw new Error(`GraphQL HTTP error: ${res.status} ${res.statusText}`);
-    }
     log.info(`Auto-forwarded agent text to buyer (${text.length} chars)`);
   }
 }

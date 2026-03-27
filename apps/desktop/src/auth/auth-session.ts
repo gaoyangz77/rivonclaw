@@ -11,6 +11,9 @@ const REFRESH_TOKEN_KEY = "auth.refreshToken";
 const REFRESH_TOKEN_MUTATION = `mutation RefreshToken($refreshToken: String!) { refreshToken(refreshToken: $refreshToken) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys llmKey { key suspendedUntil } } } }`;
 const ME_QUERY = `query Me { me { userId email name plan createdAt enrolledModules entitlementKeys llmKey { key suspendedUntil } } }`;
 const LOGOUT_MUTATION = `mutation Logout($refreshToken: String!) { logout(refreshToken: $refreshToken) }`;
+const LOGIN_MUTATION = `mutation Login($input: LoginInput!) { login(input: $input) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
+const REGISTER_MUTATION = `mutation Register($input: RegisterInput!) { register(input: $input) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
+const REQUEST_CAPTCHA_MUTATION = `mutation RequestCaptcha { requestCaptcha { token svg } }`;
 const AVAILABLE_TOOLS_QUERY = `query { availableTools { id displayName description category allowed denialReason } }`;
 
 export interface AvailableTool {
@@ -152,6 +155,28 @@ export class AuthSessionManager {
         // Best-effort — ignore failures
       }
     }
+  }
+
+  /** Log in with email/password credentials. Desktop calls Cloud, stores tokens, returns user. */
+  async loginWithCredentials(input: { email: string; password: string; captchaToken?: string }): Promise<GQL.MeResponse> {
+    const data = await this.graphqlFetch<{ login: GQL.AuthPayload }>(LOGIN_MUTATION, { input });
+    await this.storeTokens(data.login.accessToken, data.login.refreshToken);
+    await this.setUser(data.login.user);
+    return data.login.user;
+  }
+
+  /** Register with email/password credentials. Desktop calls Cloud, stores tokens, returns user. */
+  async registerWithCredentials(input: { email: string; password: string; name?: string; captchaToken?: string }): Promise<GQL.MeResponse> {
+    const data = await this.graphqlFetch<{ register: GQL.AuthPayload }>(REGISTER_MUTATION, { input });
+    await this.storeTokens(data.register.accessToken, data.register.refreshToken);
+    await this.setUser(data.register.user);
+    return data.register.user;
+  }
+
+  /** Request a CAPTCHA challenge from the Cloud. */
+  async requestCaptcha(): Promise<{ token: string; svg: string }> {
+    const data = await this.graphqlFetch<{ requestCaptcha: { token: string; svg: string } }>(REQUEST_CAPTCHA_MUTATION);
+    return data.requestCaptcha;
   }
 
   /** Fetch available tools from the cloud and cache the result. */
