@@ -150,7 +150,7 @@ function compileToBytecodeSingle(electronPath, sourceFile, outputFile) {
  * evaluates .mjs files in a CommonJS-compatible context where `require`
  * and `module` are available.
  *
- * @param {string} jscBasename - Basename of the .jsc file (e.g. "rivonclaw-ecommerce.jsc")
+ * @param {string} jscBasename - Basename of the .jsc file (e.g. "rivonclaw-cloud-tools.jsc")
  * @returns {string} The loader wrapper source code
  */
 function generateLoaderWrapper(jscBasename) {

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../api/index.js";
-import { getRunProfileForScope, setRunProfileForScope, ScopeType } from "../api/tool-registry.js";
+import { getRunProfileForScope, setRunProfileForScope } from "../api/tool-registry.js";
 import { Select } from "../components/inputs/Select.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { useCronManager } from "./crons/useCronManager.js";
@@ -101,10 +101,10 @@ export function CronsPage() {
     } else {
       const newJob = await cron.addJob(params);
       // Copy RunProfile from temporary scope to the real job ID
-      const tempProfile = await getRunProfileForScope(ScopeType.CRON_JOB, TEMP_CRON_SCOPE_KEY);
-      if (tempProfile) {
-        await setRunProfileForScope(ScopeType.CRON_JOB, newJob.id, tempProfile);
-        await setRunProfileForScope(ScopeType.CRON_JOB, TEMP_CRON_SCOPE_KEY, null);
+      const tempRunProfileId = await getRunProfileForScope(TEMP_CRON_SCOPE_KEY);
+      if (tempRunProfileId) {
+        await setRunProfileForScope(newJob.id, tempRunProfileId);
+        await setRunProfileForScope(TEMP_CRON_SCOPE_KEY, null);
       }
     }
     if (isCreate) trackEvent("cron.created");

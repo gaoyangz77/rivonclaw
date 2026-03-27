@@ -8,6 +8,7 @@ import { ScopeType, TRUSTED_SCOPE_TYPES } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 import { SYSTEM_TOOL_CATALOG } from "../generated/system-tool-catalog.js";
+import { entityCache } from "../entity-cache.js";
 
 const log = createLogger("tool-capability-resolver");
 
@@ -17,17 +18,25 @@ export interface ToolInfo {
   displayName: string;
   description: string;
   category: string;
-  allowed: boolean;
   source: "system" | "extension" | "entitled";
 }
 
-/** Entitled tool metadata from backend. */
-export interface EntitledToolMeta {
+/** Surface metadata for Panel display. */
+export interface SurfaceInfo {
   id: string;
-  displayName: string;
-  description: string;
-  category: string;
-  allowed: boolean;
+  name: string;
+  userId: string;
+  /** Resolved tool IDs available in this surface (from CapabilityResolver, not raw allowedToolIds). */
+  resolvedToolIds: string[];
+}
+
+/** RunProfile metadata for Panel display. */
+export interface RunProfileInfo {
+  id: string;
+  name: string;
+  userId: string;
+  surfaceId: string;
+  selectedToolIds: string[];
 }
 
 /**
@@ -44,60 +53,58 @@ function toolIdInSet(toolId: string, idSet: Set<string>): boolean {
 }
 
 /**
- * ToolCapabilityResolver — pure computation engine for the four-layer tool model.
+ * ToolCapabilityResolver — the SINGLE source of truth for tool lists on the client.
  *
  * Responsibilities:
- * - Holds the tool catalog: system, extension, entitled (three categories)
- * - Computes effective tools given a Surface and RunProfile
- * - Provides tool listing with display metadata for Panel UI
+ * 1. Tool catalog: aggregates system + extension + entitled tools
+ * 2. Surface resolution: given a surface, returns available tools
+ *    (system surfaces automatically include system tools)
+ * 3. RunProfile resolution: given a profile, returns selected tools
+ * 4. Combined computation: surface ∩ profile → effective tools
+ * 5. System presets: manages system-level surfaces and run profiles
+ *    (derived from entity-cache toolSpecs)
  *
- * Does NOT manage: sessions, scopes, caching, or business routing.
- * Those belong in the route layer (scope→RunProfile) and the
- * capability-manager plugin (per-session caching).
- *
- * Layer 1 (Entitlement): paid tools from backend
- * Layer 2 (Surface): usage scenario boundary (null = unrestricted)
- * Layer 3 (RunProfile): per-run tool selection (null = unrestricted)
- * Layer 4 (Tool Execution): capability-manager plugin enforcement (external)
+ * Data sources:
+ * - System tools: static catalog (pre-seeded), overwritten by gateway catalog on init()
+ * - Extension tools: from gateway catalog on init()
+ * - Entitled tools + system presets: entity-cache (toolSpecs)
  */
-/** Minimal RunProfile shape for internal storage (avoids full GQL.RunProfile dependency). */
+
+/** Minimal RunProfile shape for internal storage. */
 interface StoredRunProfile {
   selectedToolIds: string[];
   surfaceId?: string;
 }
 
-/** Session profiles older than this are eligible for lazy eviction. */
-const SESSION_PROFILE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-/** Lazy cleanup triggers when the session profile map exceeds this size. */
+const SESSION_PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_PROFILE_CLEANUP_THRESHOLD = 100;
+
+/** Default surface: unrestricted, always present. */
+const DEFAULT_SURFACE: SurfaceInfo = {
+  id: "Default",
+  name: "Default",
+  userId: "",
+  resolvedToolIds: [],  // Populated dynamically — Default means "all tools"
+};
 
 interface TimestampedProfile {
   profile: StoredRunProfile;
+  runProfileId: string | null;
   setAt: number;
 }
 
 export class ToolCapabilityResolver {
-  private entitledToolIds: string[] = [];
   /** Pre-seeded from static catalog; overwritten by gateway catalog on init(). */
   private systemToolIds: string[] = SYSTEM_TOOL_CATALOG.map((t) => t.id);
   private customExtensionToolIds: string[] = [];
   private initialized = false;
 
-  /** Per-session RunProfile overrides (in-memory; Phase 2: SQLite for Channel persistence). */
   private sessionProfiles = new Map<string, TimestampedProfile>();
-  /** User's default RunProfile (fallback for trusted scopes without explicit selection). */
   private defaultProfile: StoredRunProfile | null = null;
 
-  /**
-   * Initialize with entitled tools from backend and tool catalog from gateway.
-   * Call after gateway connects and entitlements are fetched.
-   */
-  init(entitledToolIds: string[], catalogTools: CatalogTool[]): void {
-    this.entitledToolIds = entitledToolIds;
+  // ── Initialization ──
 
-    // Only overwrite systemToolIds if gateway catalog has core tools;
-    // otherwise keep the static pre-seeded list as fallback.
+  init(catalogTools: CatalogTool[]): void {
     const coreFromCatalog: string[] = [];
     const extensionsFromCatalog: string[] = [];
 
@@ -106,7 +113,7 @@ export class ToolCapabilityResolver {
         coreFromCatalog.push(tool.id);
       } else if (tool.source === "plugin") {
         if (tool.pluginId && OUR_PLUGIN_IDS.has(tool.pluginId)) {
-          continue; // Infrastructure plugins — exempted by capability-manager directly
+          continue;
         }
         extensionsFromCatalog.push(tool.id);
       }
@@ -118,8 +125,9 @@ export class ToolCapabilityResolver {
     this.customExtensionToolIds = extensionsFromCatalog;
 
     this.initialized = true;
+    const entitled = this.getEntitledToolIds();
     log.info(
-      `Initialized: ${this.entitledToolIds.length} entitled, ` +
+      `Initialized: ${entitled.length} entitled, ` +
       `${this.systemToolIds.length} system, ` +
       `${this.customExtensionToolIds.length} custom extension tools`,
     );
@@ -129,44 +137,33 @@ export class ToolCapabilityResolver {
     return this.initialized;
   }
 
-  /** System tool IDs (always-available core tools like read, write, exec, fetch). */
+  // ── Tool catalog ──
+
   getSystemToolIds(): string[] {
     return this.systemToolIds;
   }
 
-  /** Update entitled tools independently of gateway init (e.g., on login/logout). */
-  setEntitledToolIds(ids: string[]): void {
-    this.entitledToolIds = ids;
+  getCustomExtensionToolIds(): string[] {
+    return this.customExtensionToolIds;
   }
 
-  // ── Tool catalog ──
+  private getEntitledToolIds(): string[] {
+    return entityCache.getState().toolSpecs.map(s => s.id);
+  }
 
   /** All available tool IDs = system ∪ extension ∪ entitled */
   getAllAvailableToolIds(): string[] {
     return [
       ...this.systemToolIds,
       ...this.customExtensionToolIds,
-      ...this.entitledToolIds,
+      ...this.getEntitledToolIds(),
     ];
   }
 
-  /**
-   * Build the full tool list with display metadata for Panel UI.
-   * @param entitledMeta Rich metadata for entitled tools from AuthSession.
-   */
-  getToolList(entitledMeta: EntitledToolMeta[]): ToolInfo[] {
-    const metaMap = new Map<string, EntitledToolMeta>();
-    for (const t of entitledMeta) {
-      metaMap.set(t.id, t);
-    }
-
-    // Use resolver's entitledToolIds if available (post-init), otherwise fall back
-    // to entitledMeta IDs (pre-init, gateway not connected yet but user is logged in)
-    const entitledIds = this.entitledToolIds.length > 0
-      ? this.entitledToolIds
-      : entitledMeta.map(t => t.id);
-
+  /** Full tool list with display metadata for Panel UI. */
+  getToolList(): ToolInfo[] {
     const systemMetaMap = new Map(SYSTEM_TOOL_CATALOG.map((t) => [t.id, t]));
+    const toolSpecs = entityCache.getState().toolSpecs;
 
     return [
       ...this.systemToolIds.map(id => {
@@ -175,8 +172,7 @@ export class ToolCapabilityResolver {
           id,
           displayName: meta?.label ?? id,
           description: meta?.description ?? "",
-          category: meta?.section ?? "SYSTEM",
-          allowed: true,
+          category: meta?.section ?? "system",
           source: "system" as const,
         };
       }),
@@ -184,22 +180,70 @@ export class ToolCapabilityResolver {
         id,
         displayName: id,
         description: "",
-        category: "EXTENSION",
-        allowed: true,
+        category: "Extension",
         source: "extension" as const,
       })),
-      ...entitledIds.map(id => {
-        const meta = metaMap.get(id);
-        return {
-          id,
-          displayName: meta?.displayName ?? id,
-          description: meta?.description ?? "",
-          category: meta?.category ?? "ENTITLED",
-          allowed: meta?.allowed ?? true,
-          source: "entitled" as const,
-        };
-      }),
+      ...toolSpecs.map(s => ({
+        id: s.id,
+        displayName: s.displayName,
+        description: s.description,
+        category: s.category,
+        source: "entitled" as const,
+      })),
     ];
+  }
+
+  // ── System presets (surfaces + run profiles from toolSpecs) ──
+
+  /** All surfaces: Default + derived from toolSpecs + user-created from entity-cache. */
+  getAllSurfaces(): SurfaceInfo[] {
+    const allToolIds = this.getAllAvailableToolIds();
+
+    // Default surface: all tools
+    const defaultSurface: SurfaceInfo = { ...DEFAULT_SURFACE, resolvedToolIds: allToolIds };
+
+    // Derived from toolSpecs
+    const derivedSurfaces = entityCache.getState().getDerivedSurfaces();
+    const systemSurfaces: SurfaceInfo[] = derivedSurfaces.map(s => ({
+      id: s.id,
+      name: s.name,
+      userId: s.userId ?? "",
+      // System surfaces: entitled tools from allowedToolIds + system tools always included
+      resolvedToolIds: [...this.systemToolIds, ...s.allowedToolIds],
+    }));
+
+    // User-created from entity-cache
+    const userSurfaces: SurfaceInfo[] = entityCache.getState().surfaces.map(s => ({
+      id: s.id,
+      name: s.name,
+      userId: s.userId ?? "",
+      // User surfaces: strict — only what they selected
+      resolvedToolIds: s.allowedToolIds,
+    }));
+
+    return [defaultSurface, ...systemSurfaces, ...userSurfaces];
+  }
+
+  /** All run profiles: derived from toolSpecs + user-created from entity-cache. */
+  getAllRunProfiles(): RunProfileInfo[] {
+    const derivedProfiles = entityCache.getState().getDerivedRunProfiles();
+    const systemProfiles: RunProfileInfo[] = derivedProfiles.map(p => ({
+      id: p.id,
+      name: p.name,
+      userId: p.userId ?? "",
+      surfaceId: p.surfaceId ?? "Default",
+      selectedToolIds: p.selectedToolIds,
+    }));
+
+    const userProfiles: RunProfileInfo[] = entityCache.getState().runProfiles.map(p => ({
+      id: p.id,
+      name: p.name,
+      userId: p.userId ?? "",
+      surfaceId: p.surfaceId ?? "Default",
+      selectedToolIds: p.selectedToolIds,
+    }));
+
+    return [...systemProfiles, ...userProfiles];
   }
 
   // ── Session RunProfile state ──
@@ -209,11 +253,10 @@ export class ToolCapabilityResolver {
     log.info(profile ? `Default RunProfile set (${profile.selectedToolIds.length} tools)` : "Default RunProfile cleared");
   }
 
-  setSessionRunProfile(sessionKey: string, profile: StoredRunProfile | null): void {
+  setSessionRunProfile(sessionKey: string, profile: StoredRunProfile | null, runProfileId: string | null = null): void {
     if (profile) {
-      this.sessionProfiles.set(sessionKey, { profile, setAt: Date.now() });
+      this.sessionProfiles.set(sessionKey, { profile, runProfileId, setAt: Date.now() });
 
-      // Lazy cleanup: evict expired entries when the map grows large
       if (this.sessionProfiles.size > SESSION_PROFILE_CLEANUP_THRESHOLD) {
         const now = Date.now();
         for (const [key, entry] of this.sessionProfiles) {
@@ -229,32 +272,27 @@ export class ToolCapabilityResolver {
     return this.sessionProfiles.get(sessionKey)?.profile ?? null;
   }
 
-  /**
-   * Main entry point for capability-manager queries.
-   * Resolves RunProfile for the session, computes effective tools,
-   * and enriches with system tools for trusted scopes.
-   */
+  getSessionRunProfileId(sessionKey: string): string | null {
+    return this.sessionProfiles.get(sessionKey)?.runProfileId ?? null;
+  }
+
+  // ── Runtime: effective tools for agent sessions ──
+
   getEffectiveToolsForScope(scopeType: ScopeType, sessionKey: string): string[] {
-    // 1. Resolve RunProfile: explicit per-session → default fallback (trusted only) → null
     let runProfile: StoredRunProfile | null = this.sessionProfiles.get(sessionKey)?.profile ?? null;
     if (!runProfile && TRUSTED_SCOPE_TYPES.has(scopeType)) {
       runProfile = this.defaultProfile;
     }
 
-    // 2. Untrusted scope without explicit RunProfile → empty (defense-in-depth).
-    //    CS bridge always sets a RunProfile before dispatch; if it didn't,
-    //    the agent should have no tools rather than getting baseline.
     if (!runProfile && !TRUSTED_SCOPE_TYPES.has(scopeType)) {
       return [];
     }
 
-    // 3. Compute effective tools (pure four-layer computation)
     const gqlProfile: GQL.RunProfile | null = runProfile
       ? { id: "", name: "", selectedToolIds: runProfile.selectedToolIds, surfaceId: runProfile.surfaceId ?? "", createdAt: "", updatedAt: "" }
       : null;
     const result = this.computeEffectiveTools(null, gqlProfile);
 
-    // 4. Trusted scopes: always include system tools
     if (TRUSTED_SCOPE_TYPES.has(scopeType)) {
       const merged = new Set(result.effectiveToolIds);
       for (const id of this.systemToolIds) merged.add(id);
@@ -266,14 +304,9 @@ export class ToolCapabilityResolver {
 
   // ── Four-layer computation ──
 
-  /**
-   * Compute tool availability after Surface restriction (Layer 1 ∪ then ∩ Layer 2).
-   * Surface = null means unrestricted (all tools pass).
-   */
   computeSurfaceAvailability(surface: GQL.Surface | null): SurfaceAvailabilityResult {
     const allAvailable = this.getAllAvailableToolIds();
 
-    // Surface = null → unrestricted (ChatPage, CronJob, OpenClaw native sessions)
     if (!surface) {
       return {
         allAvailableToolIds: allAvailable,
@@ -283,9 +316,14 @@ export class ToolCapabilityResolver {
       };
     }
 
-    // Surface with allowedToolIds (including empty []) → strict filtering
     const surfaceSet = new Set(surface.allowedToolIds.map(id => id.toUpperCase()));
-    const availableToolIds = allAvailable.filter(id => toolIdInSet(id, surfaceSet));
+
+    // System surfaces (userId empty): system tools always pass through
+    const isSystemSurface = !surface.userId;
+    const availableToolIds = allAvailable.filter(id => {
+      if (isSystemSurface && this.systemToolIds.includes(id)) return true;
+      return toolIdInSet(id, surfaceSet);
+    });
 
     return {
       allAvailableToolIds: allAvailable,
@@ -295,12 +333,6 @@ export class ToolCapabilityResolver {
     };
   }
 
-  /**
-   * Compute the final effective tool set (Layer 1 ∪ then ∩ Layer 2 ∩ Layer 3).
-   * Surface = null → unrestricted (no surface filtering).
-   * RunProfile = null → baseline only (system + extension, no entitled).
-   *   Entitled tools require explicit opt-in via a RunProfile.
-   */
   computeEffectiveTools(
     surface: GQL.Surface | null,
     runProfile: GQL.RunProfile | null,
@@ -308,17 +340,13 @@ export class ToolCapabilityResolver {
     const availability = this.computeSurfaceAvailability(surface);
     const availableSet = new Set(availability.availableToolIds);
 
-    // No RunProfile → system tools only. Extension and entitled tools
-    //   require explicit opt-in via a RunProfile.
-    // With RunProfile → exactly runProfile.selectedToolIds (caller decides
-    //   whether to merge system tools based on scope trust level).
     const baselineToolIds = [...this.systemToolIds];
     const selectedToolIds = runProfile?.selectedToolIds ?? baselineToolIds;
     const effectiveToolIds = selectedToolIds.filter(id => toolIdInSet(id, availableSet));
 
     return {
       allAvailableToolIds: availability.allAvailableToolIds,
-      entitledToolIds: this.entitledToolIds,
+      entitledToolIds: this.getEntitledToolIds(),
       systemToolIds: this.systemToolIds,
       customExtensionToolIds: this.customExtensionToolIds,
       surfaceId: availability.surfaceId,

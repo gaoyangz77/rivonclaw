@@ -16,6 +16,12 @@ export interface Scalars {
   DateTimeISO: { input: any; output: any; }
 }
 
+/** Assembled CS system prompt with version */
+export interface AssembledPromptResult {
+  systemPrompt: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+}
+
 /** Authentication response with JWT tokens */
 export interface AuthPayload {
   accessToken: Scalars['String']['output'];
@@ -32,7 +38,6 @@ export interface AvailableTool {
   displayName: Scalars['String']['output'];
   id: ToolId;
   requiredEntitlements: Array<Scalars['String']['output']>;
-  serviceCategory: ServiceCategory;
 }
 
 /** Isolated browser profile for multi-profile agent sessions */
@@ -77,12 +82,6 @@ export interface BrowserProfileProxyPolicy {
   enabled: Scalars['Boolean']['output'];
 }
 
-/** Result of resolving the best browser profile for a task */
-export interface BrowserProfileResolveForTaskResult {
-  profile: BrowserProfile;
-  totalCandidates: Scalars['Int']['output'];
-}
-
 /** Session state persistence policy for a browser profile */
 export interface BrowserProfileSessionStatePolicy {
   checkpointIntervalSec: Scalars['Float']['output'];
@@ -115,11 +114,6 @@ export interface BrowserProfilesFilterInput {
 export interface BrowserProfilesPaginationInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
-}
-
-/** Customer service platform configurations (singleton) */
-export interface CsConfig {
-  wecom?: Maybe<WeComConfig>;
 }
 
 /** Customer service seat allocation */
@@ -210,22 +204,37 @@ export interface CustomerServiceBilling {
 /** Customer service settings per shop (user-configurable) */
 export interface CustomerServiceSettings {
   businessPrompt?: Maybe<Scalars['String']['output']>;
+  csDeviceId?: Maybe<Scalars['String']['output']>;
+  /** LLM model override for CS sessions (provider/modelId format). Null = use default. */
+  csModelOverride?: Maybe<Scalars['String']['output']>;
   enabled: Scalars['Boolean']['output'];
+  /** RunProfile ID for CS agent sessions */
+  runProfileId?: Maybe<Scalars['String']['output']>;
 }
 
 /** Input for updating customer service settings */
 export interface CustomerServiceSettingsInput {
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
+  csDeviceId?: InputMaybe<Scalars['String']['input']>;
+  csModelOverride?: InputMaybe<Scalars['String']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  runProfileId?: InputMaybe<Scalars['String']['input']>;
+}
+
+/** Generic JSON result proxied from e-commerce platform API */
+export interface EcommerceApiResult {
+  code: Scalars['Float']['output'];
+  data?: Maybe<Scalars['String']['output']>;
+  message: Scalars['String']['output'];
 }
 
 /** Feature entitlement identifiers */
 export const EntitlementKey = {
-  MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES',
-  TiktokCsRead: 'TIKTOK_CS_READ',
-  TiktokCsWrite: 'TIKTOK_CS_WRITE',
-  TiktokLogisticsRead: 'TIKTOK_LOGISTICS_READ',
-  TiktokProductRead: 'TIKTOK_PRODUCT_READ'
+  EcomCsRead: 'ECOM_CS_READ',
+  EcomCsWrite: 'ECOM_CS_WRITE',
+  EcomLogisticsRead: 'ECOM_LOGISTICS_READ',
+  EcomProductRead: 'ECOM_PRODUCT_READ',
+  MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES'
 } as const;
 
 export type EntitlementKey = typeof EntitlementKey[keyof typeof EntitlementKey];
@@ -314,8 +323,14 @@ export interface Mutation {
   deleteShop: Scalars['Boolean']['output'];
   /** Delete a surface */
   deleteSurface: Scalars['Boolean']['output'];
-  /** Delete WeCom customer service credentials */
-  deleteWeComConfig: CsConfig;
+  /** Create a new conversation with a buyer */
+  ecommerceCreateConversation: EcommerceApiResult;
+  /** Mark messages as read in a conversation */
+  ecommerceReadMessage: EcommerceApiResult;
+  /** Send a message in a conversation */
+  ecommerceSendMessage: EcommerceApiResult;
+  /** Update agent settings for a shop */
+  ecommerceUpdateAgentSettings: EcommerceApiResult;
   /** Enroll in a product module */
   enrollModule: MeResponse;
   /** Generate a 6-character pairing code for QR display */
@@ -338,18 +353,8 @@ export interface Mutation {
   requestCaptcha: CaptchaResponse;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
-  /** Save WeCom customer service credentials */
-  saveWeComConfig: CsConfig;
   /** Set or clear the default RunProfile for the current user */
   setDefaultRunProfile: Scalars['Boolean']['output'];
-  /** Create a new conversation with a buyer */
-  tiktokCreateConversation: TikTokApiResult;
-  /** Mark messages as read in a conversation */
-  tiktokReadMessage: TikTokApiResult;
-  /** Send a message in a conversation */
-  tiktokSendMessage: TikTokApiResult;
-  /** Update agent settings for a shop */
-  tiktokUpdateAgentSettings: TikTokApiResult;
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
   /** Update an existing browser profile */
@@ -438,8 +443,30 @@ export interface MutationDeleteSurfaceArgs {
 }
 
 
-export interface MutationDeleteWeComConfigArgs {
-  corpId: Scalars['String']['input'];
+export interface MutationEcommerceCreateConversationArgs {
+  buyerUserId: Scalars['String']['input'];
+  orderId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceReadMessageArgs {
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceSendMessageArgs {
+  content: Scalars['String']['input'];
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+  type: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceUpdateAgentSettingsArgs {
+  settings: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
 }
 
 
@@ -490,40 +517,8 @@ export interface MutationRegisterArgs {
 }
 
 
-export interface MutationSaveWeComConfigArgs {
-  input: WeComConfigInput;
-}
-
-
 export interface MutationSetDefaultRunProfileArgs {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
-}
-
-
-export interface MutationTiktokCreateConversationArgs {
-  buyerUserId: Scalars['String']['input'];
-  orderId?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface MutationTiktokReadMessageArgs {
-  conversationId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface MutationTiktokSendMessageArgs {
-  content: Scalars['String']['input'];
-  conversationId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-  type: Scalars['String']['input'];
-}
-
-
-export interface MutationTiktokUpdateAgentSettingsArgs {
-  settings: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
 }
 
 
@@ -620,6 +615,17 @@ export interface PlatformApp {
   status: PlatformAppStatus;
 }
 
+/** Platform app credentials (admin-only) */
+export interface PlatformAppSecretResult {
+  /** Application key */
+  appKey: Scalars['String']['output'];
+  /** Application secret */
+  appSecret: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  market: PlatformMarket;
+  platform: PlatformType;
+}
+
 /** PlatformApp lifecycle status */
 export const PlatformAppStatus = {
   Active: 'ACTIVE',
@@ -664,16 +670,38 @@ export interface Query {
   browserProfile?: Maybe<BrowserProfile>;
   /** Get audit log for a browser profile */
   browserProfileAuditLog: Array<BrowserProfileAuditEntry>;
-  /** Get the browser profiles prompt addendum (requires entitlement) */
-  browserProfilePromptAddendum?: Maybe<Scalars['String']['output']>;
   /** List browser profiles for the authenticated user */
   browserProfiles: PaginatedBrowserProfiles;
   /** Check if the authenticated user can access a specific tool */
   checkToolAccess: ToolAccessResult;
-  /** Get customer service platform configuration */
-  csConfig?: Maybe<CsConfig>;
+  /** Assemble the full CS system prompt for a shop */
+  csAssemblePrompt: AssembledPromptResult;
   /** Get CS session stats for a shop */
   csSessionStats: CsSessionStats;
+  /** Get agent settings for a shop */
+  ecommerceGetAgentSettings: EcommerceApiResult;
+  /** Get customer service performance metrics */
+  ecommerceGetCSPerformance: EcommerceApiResult;
+  /** Get conversation details */
+  ecommerceGetConversationDetails: EcommerceApiResult;
+  /** Get messages in a conversation */
+  ecommerceGetConversationMessages: EcommerceApiResult;
+  /** Get conversations for a shop */
+  ecommerceGetConversations: EcommerceApiResult;
+  /** Get global seller warehouses */
+  ecommerceGetGlobalWarehouses: EcommerceApiResult;
+  /** Get logistics tracking for an order. Optional buyerUserId for buyer scoping. */
+  ecommerceGetLogisticsTracking: EcommerceApiResult;
+  /** Get order details. Optional buyerUserId for platform-level buyer scoping. */
+  ecommerceGetOrder: EcommerceApiResult;
+  /** List/search orders. Optional buyerUserId for buyer-scoped queries. */
+  ecommerceGetOrders: EcommerceApiResult;
+  /** Get product details */
+  ecommerceGetProduct: EcommerceApiResult;
+  /** Get warehouse list */
+  ecommerceGetWarehouses: EcommerceApiResult;
+  /** Search/list products with optional filters */
+  ecommerceSearchProducts: EcommerceApiResult;
   /** Get LLM quota status for the current user */
   llmQuotaStatus: LlmQuotaStatus;
   /** Get current authenticated user profile */
@@ -684,12 +712,12 @@ export interface Query {
   myCredits: Array<ServiceCredit>;
   /** List all available plan definitions */
   planDefinitions: Array<PlanDefinition>;
+  /** List all active platform app secrets (admin-only, for relay startup) */
+  platformAppSecrets: Array<PlatformAppSecretResult>;
   /** List active PlatformApps (for OAuth target selection) */
   platformApps: Array<PlatformApp>;
   /** Get pricing for all providers */
   pricing: Array<ProviderPricing>;
-  /** Resolve the best browser profile for a given task description */
-  resolveProfileForTask?: Maybe<BrowserProfileResolveForTaskResult>;
   /** Get a single run profile by ID */
   runProfile?: Maybe<RunProfile>;
   /** List run profiles for the authenticated user, optionally filtered by surface */
@@ -718,30 +746,14 @@ export interface Query {
   surface?: Maybe<Surface>;
   /** List surfaces for the authenticated user */
   surfaces: Array<Surface>;
-  /** Get agent settings for a shop */
-  tiktokGetAgentSettings: TikTokApiResult;
-  /** Get customer service performance metrics */
-  tiktokGetCSPerformance: TikTokApiResult;
-  /** Get conversation details */
-  tiktokGetConversationDetails: TikTokApiResult;
-  /** Get messages in a conversation */
-  tiktokGetConversationMessages: TikTokApiResult;
-  /** Get conversations for a shop */
-  tiktokGetConversations: TikTokApiResult;
-  /** Get global seller warehouses */
-  tiktokGetGlobalWarehouses: TikTokApiResult;
-  /** Get logistics tracking for an order. Optional buyerUserId for buyer scoping. */
-  tiktokGetLogisticsTracking: TikTokApiResult;
-  /** Get order details. Optional buyerUserId for platform-level buyer scoping. */
-  tiktokGetOrder: TikTokApiResult;
-  /** List/search orders. Optional buyerUserId for buyer-scoped queries. */
-  tiktokGetOrders: TikTokApiResult;
-  /** Get product details */
-  tiktokGetProduct: TikTokApiResult;
-  /** Get warehouse list */
-  tiktokGetWarehouses: TikTokApiResult;
+  /** Get system preset run profiles (userId=null), optionally filtered by moduleId */
+  systemRunProfiles: Array<RunProfile>;
+  /** Get system preset surfaces (userId=null), optionally filtered by moduleId */
+  systemSurfaces: Array<Surface>;
   /** Get the full tool registry (all defined tools) */
   toolRegistry: Array<ToolDefinition>;
+  /** Get tool specifications for dynamic client-side registration (filtered by user entitlements) */
+  toolSpecs: Array<ToolSpec>;
   /** Batch-verify relay access tokens */
   verifyRelayTokens: Array<RelayTokenResult>;
   /** Long-poll for pairing completion (30s timeout) */
@@ -770,8 +782,98 @@ export interface QueryCheckToolAccessArgs {
 }
 
 
+export interface QueryCsAssemblePromptArgs {
+  shopId: Scalars['String']['input'];
+}
+
+
 export interface QueryCsSessionStatsArgs {
   shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetAgentSettingsArgs {
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetCsPerformanceArgs {
+  endTime?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+  startTime?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryEcommerceGetConversationDetailsArgs {
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetConversationMessagesArgs {
+  conversationId: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  pageSize: Scalars['Float']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetConversationsArgs {
+  locale?: InputMaybe<Scalars['String']['input']>;
+  pageSize: Scalars['Float']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetGlobalWarehousesArgs {
+  shopId: Scalars['String']['input'];
+  warehouseId?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryEcommerceGetLogisticsTrackingArgs {
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
+  orderId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetOrderArgs {
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
+  orderId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetOrdersArgs {
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
+  pageSize?: InputMaybe<Scalars['Float']['input']>;
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+  status?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryEcommerceGetProductArgs {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetWarehousesArgs {
+  pageSize?: InputMaybe<Scalars['Float']['input']>;
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceSearchProductsArgs {
+  pageSize?: InputMaybe<Scalars['Float']['input']>;
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+  status?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -780,11 +882,6 @@ export interface QueryPricingArgs {
   deviceId?: InputMaybe<Scalars['String']['input']>;
   language?: InputMaybe<Scalars['String']['input']>;
   platform?: InputMaybe<Scalars['String']['input']>;
-}
-
-
-export interface QueryResolveProfileForTaskArgs {
-  input: ResolveProfileForTaskInput;
 }
 
 
@@ -844,80 +941,13 @@ export interface QuerySurfaceArgs {
 }
 
 
-export interface QueryTiktokGetAgentSettingsArgs {
-  shopId: Scalars['String']['input'];
+export interface QuerySystemRunProfilesArgs {
+  moduleId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
-export interface QueryTiktokGetCsPerformanceArgs {
-  endTime?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
-  startTime?: InputMaybe<Scalars['String']['input']>;
-}
-
-
-export interface QueryTiktokGetConversationDetailsArgs {
-  conversationId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryTiktokGetConversationMessagesArgs {
-  conversationId: Scalars['String']['input'];
-  locale?: InputMaybe<Scalars['String']['input']>;
-  pageSize: Scalars['Float']['input'];
-  pageToken?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryTiktokGetConversationsArgs {
-  locale?: InputMaybe<Scalars['String']['input']>;
-  pageSize: Scalars['Float']['input'];
-  pageToken?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryTiktokGetGlobalWarehousesArgs {
-  shopId: Scalars['String']['input'];
-  warehouseId?: InputMaybe<Scalars['String']['input']>;
-}
-
-
-export interface QueryTiktokGetLogisticsTrackingArgs {
-  buyerUserId?: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryTiktokGetOrderArgs {
-  buyerUserId?: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryTiktokGetOrdersArgs {
-  buyerUserId?: InputMaybe<Scalars['String']['input']>;
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
-  status?: InputMaybe<Scalars['String']['input']>;
-}
-
-
-export interface QueryTiktokGetProductArgs {
-  productId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryTiktokGetWarehousesArgs {
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
+export interface QuerySystemSurfacesArgs {
+  moduleId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -951,18 +981,12 @@ export interface RelayTokenResult {
   valid: Scalars['Boolean']['output'];
 }
 
-/** Input for resolving a browser profile for a task */
-export interface ResolveProfileForTaskInput {
-  /** Preferred tags to bias profile selection */
-  preferredTags?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Description of the task that needs a browser profile */
-  taskDescription: Scalars['String']['input'];
-}
-
 /** RunProfile entity — defines tool selection for a specific run. userId=null for system presets. */
 export interface RunProfile {
   createdAt: Scalars['DateTimeISO']['output'];
   id: Scalars['ID']['output'];
+  /** Module this system preset belongs to. Null for user-created profiles. */
+  moduleId?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   selectedToolIds: Array<Scalars['String']['output']>;
   surfaceId: Scalars['String']['output'];
@@ -977,13 +1001,6 @@ export const SeatStatus = {
 } as const;
 
 export type SeatStatus = typeof SeatStatus[keyof typeof SeatStatus];
-/** Tool service category */
-export const ServiceCategory = {
-  BrowserProfiles: 'BROWSER_PROFILES',
-  CustomerService: 'CUSTOMER_SERVICE'
-} as const;
-
-export type ServiceCategory = typeof ServiceCategory[keyof typeof ServiceCategory];
 /** A one-time service credit (top-up) that can be redeemed to a shop */
 export interface ServiceCredit {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -1183,17 +1200,12 @@ export interface Surface {
   createdAt: Scalars['DateTimeISO']['output'];
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  /** Module this system preset belongs to. Null for user-created surfaces. */
+  moduleId?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   presetId?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId?: Maybe<Scalars['String']['output']>;
-}
-
-/** Generic JSON result proxied from TikTok API */
-export interface TikTokApiResult {
-  code: Scalars['Float']['output'];
-  data?: Maybe<Scalars['String']['output']>;
-  message: Scalars['String']['output'];
 }
 
 /** Result of checking access to a specific tool */
@@ -1207,12 +1219,18 @@ export interface ToolAccessResult {
 export const ToolCategory = {
   BrowserProfiles: 'BROWSER_PROFILES',
   EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
-  TiktokCs: 'TIKTOK_CS',
-  TiktokLogistics: 'TIKTOK_LOGISTICS',
-  TiktokProduct: 'TIKTOK_PRODUCT'
+  EcomCs: 'ECOM_CS',
+  EcomLogistics: 'ECOM_LOGISTICS',
+  EcomProduct: 'ECOM_PRODUCT'
 } as const;
 
 export type ToolCategory = typeof ToolCategory[keyof typeof ToolCategory];
+/** Context binding for auto-injecting parameters from session context */
+export interface ToolContextBinding {
+  contextField: Scalars['String']['output'];
+  paramName: Scalars['String']['output'];
+}
+
 /** Definition of a tool in the registry */
 export interface ToolDefinition {
   category: ToolCategory;
@@ -1220,7 +1238,6 @@ export interface ToolDefinition {
   displayName: Scalars['String']['output'];
   id: ToolId;
   requiredEntitlements: Array<Scalars['String']['output']>;
-  serviceCategory: ServiceCategory;
 }
 
 /** Unique tool identifier */
@@ -1231,42 +1248,76 @@ export const ToolId = {
   BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',
   BrowserProfilesTestProxy: 'BROWSER_PROFILES_TEST_PROXY',
   EcommerceListShops: 'ECOMMERCE_LIST_SHOPS',
-  TiktokCreateConversation: 'TIKTOK_CREATE_CONVERSATION',
-  TiktokGetAgentSettings: 'TIKTOK_GET_AGENT_SETTINGS',
-  TiktokGetConversations: 'TIKTOK_GET_CONVERSATIONS',
-  TiktokGetConversationDetails: 'TIKTOK_GET_CONVERSATION_DETAILS',
-  TiktokGetConversationMessages: 'TIKTOK_GET_CONVERSATION_MESSAGES',
-  TiktokGetCsPerformance: 'TIKTOK_GET_CS_PERFORMANCE',
-  TiktokGetGlobalWarehouses: 'TIKTOK_GET_GLOBAL_WAREHOUSES',
-  TiktokGetLogisticsTracking: 'TIKTOK_GET_LOGISTICS_TRACKING',
-  TiktokGetOrder: 'TIKTOK_GET_ORDER',
-  TiktokGetProduct: 'TIKTOK_GET_PRODUCT',
-  TiktokSearchProducts: 'TIKTOK_SEARCH_PRODUCTS',
-  TiktokGetShippingProviders: 'TIKTOK_GET_SHIPPING_PROVIDERS',
-  TiktokGetWarehouses: 'TIKTOK_GET_WAREHOUSES',
-  TiktokListOrders: 'TIKTOK_LIST_ORDERS',
-  TiktokReadMessage: 'TIKTOK_READ_MESSAGE',
-  TiktokReadMessages: 'TIKTOK_READ_MESSAGES',
-  TiktokSearchSessions: 'TIKTOK_SEARCH_SESSIONS',
-  TiktokSendMessage: 'TIKTOK_SEND_MESSAGE',
-  TiktokUpdateAgentSettings: 'TIKTOK_UPDATE_AGENT_SETTINGS',
-  TiktokUploadImage: 'TIKTOK_UPLOAD_IMAGE',
-  TiktokCsSendMedia: 'TIKTOK_CS_SEND_MEDIA',
-  TiktokCsSendCard: 'TIKTOK_CS_SEND_CARD',
-  TiktokCsGetConversations: 'TIKTOK_CS_GET_CONVERSATIONS',
-  TiktokCsGetConversationMessages: 'TIKTOK_CS_GET_CONVERSATION_MESSAGES',
-  TiktokCsGetConversationDetails: 'TIKTOK_CS_GET_CONVERSATION_DETAILS',
-  TiktokCsReadMessage: 'TIKTOK_CS_READ_MESSAGE',
-  TiktokCsReadMessages: 'TIKTOK_CS_READ_MESSAGES',
-  TiktokCsGetOrder: 'TIKTOK_CS_GET_ORDER',
-  TiktokCsListOrders: 'TIKTOK_CS_LIST_ORDERS',
-  TiktokCsGetLogisticsTracking: 'TIKTOK_CS_GET_LOGISTICS_TRACKING',
-  TiktokCsGetProduct: 'TIKTOK_CS_GET_PRODUCT',
-  TiktokCsCreateConversation: 'TIKTOK_CS_CREATE_CONVERSATION',
-  TiktokCsSearchProducts: 'TIKTOK_CS_SEARCH_PRODUCTS'
+  EcomCreateConversation: 'ECOM_CREATE_CONVERSATION',
+  EcomCsCreateConversation: 'ECOM_CS_CREATE_CONVERSATION',
+  EcomCsGetConversations: 'ECOM_CS_GET_CONVERSATIONS',
+  EcomCsGetConversationDetails: 'ECOM_CS_GET_CONVERSATION_DETAILS',
+  EcomCsGetConversationMessages: 'ECOM_CS_GET_CONVERSATION_MESSAGES',
+  EcomCsGetLogisticsTracking: 'ECOM_CS_GET_LOGISTICS_TRACKING',
+  EcomCsGetOrder: 'ECOM_CS_GET_ORDER',
+  EcomCsGetProduct: 'ECOM_CS_GET_PRODUCT',
+  EcomCsListOrders: 'ECOM_CS_LIST_ORDERS',
+  EcomCsReadMessage: 'ECOM_CS_READ_MESSAGE',
+  EcomCsReadMessages: 'ECOM_CS_READ_MESSAGES',
+  EcomCsSearchProducts: 'ECOM_CS_SEARCH_PRODUCTS',
+  EcomCsSendCard: 'ECOM_CS_SEND_CARD',
+  EcomCsSendMedia: 'ECOM_CS_SEND_MEDIA',
+  EcomGetAgentSettings: 'ECOM_GET_AGENT_SETTINGS',
+  EcomGetConversations: 'ECOM_GET_CONVERSATIONS',
+  EcomGetConversationDetails: 'ECOM_GET_CONVERSATION_DETAILS',
+  EcomGetConversationMessages: 'ECOM_GET_CONVERSATION_MESSAGES',
+  EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
+  EcomGetGlobalWarehouses: 'ECOM_GET_GLOBAL_WAREHOUSES',
+  EcomGetLogisticsTracking: 'ECOM_GET_LOGISTICS_TRACKING',
+  EcomGetOrder: 'ECOM_GET_ORDER',
+  EcomGetProduct: 'ECOM_GET_PRODUCT',
+  EcomGetShippingProviders: 'ECOM_GET_SHIPPING_PROVIDERS',
+  EcomGetWarehouses: 'ECOM_GET_WAREHOUSES',
+  EcomListOrders: 'ECOM_LIST_ORDERS',
+  EcomReadMessage: 'ECOM_READ_MESSAGE',
+  EcomReadMessages: 'ECOM_READ_MESSAGES',
+  EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
+  EcomSearchSessions: 'ECOM_SEARCH_SESSIONS',
+  EcomSendMessage: 'ECOM_SEND_MESSAGE',
+  EcomUpdateAgentSettings: 'ECOM_UPDATE_AGENT_SETTINGS',
+  EcomUploadImage: 'ECOM_UPLOAD_IMAGE'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];
+/** Parameter specification for a dynamically registered tool */
+export interface ToolParamSpec {
+  defaultValue?: Maybe<Scalars['String']['output']>;
+  description: Scalars['String']['output'];
+  enumValues?: Maybe<Array<Scalars['String']['output']>>;
+  graphqlVar: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  required: Scalars['Boolean']['output'];
+  type: Scalars['String']['output'];
+}
+
+/** Complete tool specification for dynamic client-side registration */
+export interface ToolSpec {
+  category: Scalars['String']['output'];
+  contextBindings?: Maybe<Array<ToolContextBinding>>;
+  description: Scalars['String']['output'];
+  displayName: Scalars['String']['output'];
+  /** GraphQL operation string (null for REST tools) */
+  graphqlOperation?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  operationType: Scalars['String']['output'];
+  parameters: Array<ToolParamSpec>;
+  /** REST content type */
+  restContentType?: Maybe<Scalars['String']['output']>;
+  /** REST endpoint path (for non-GraphQL tools) */
+  restEndpoint?: Maybe<Scalars['String']['output']>;
+  /** REST HTTP method */
+  restMethod?: Maybe<Scalars['String']['output']>;
+  runProfiles?: Maybe<Array<Scalars['String']['output']>>;
+  supportedPlatforms?: Maybe<Array<Scalars['String']['output']>>;
+  surfaces?: Maybe<Array<Scalars['String']['output']>>;
+}
+
 /** Input for updating an existing browser profile */
 export interface UpdateBrowserProfileInput {
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1344,23 +1395,4 @@ export interface WaitPairingResult {
   pairingId?: Maybe<Scalars['String']['output']>;
   reason?: Maybe<Scalars['String']['output']>;
   relayUrl?: Maybe<Scalars['String']['output']>;
-}
-
-/** WeCom (企业微信) customer service credentials */
-export interface WeComConfig {
-  appSecret: Scalars['String']['output'];
-  corpId: Scalars['String']['output'];
-  encodingAesKey: Scalars['String']['output'];
-  kfLinkId: Scalars['String']['output'];
-  openKfId: Scalars['String']['output'];
-  token: Scalars['String']['output'];
-}
-
-/** Input for saving WeCom customer service credentials */
-export interface WeComConfigInput {
-  appSecret: Scalars['String']['input'];
-  corpId: Scalars['String']['input'];
-  encodingAesKey: Scalars['String']['input'];
-  kfLinkId: Scalars['String']['input'];
-  token: Scalars['String']['input'];
 }

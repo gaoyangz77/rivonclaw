@@ -7,11 +7,12 @@ import { ToolMultiSelect } from "../components/inputs/ToolMultiSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ModuleIcon } from "../components/icons.js";
 import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
+import { useToolDisplayLabel } from "../lib/tool-display.js";
 import { getClient } from "../api/apollo-client.js";
 import { SET_DEFAULT_RUN_PROFILE_MUTATION } from "../api/auth-queries.js";
 import { setDefaultRunProfile as notifyDesktopDefaultProfile } from "../api/tool-registry.js";
-import type { Surface } from "../api/surfaces.js";
-import type { RunProfile } from "../api/run-profiles.js";
+import type { Surface } from "../stores/slices/surfaces-slice.js";
+import type { RunProfile } from "../stores/slices/run-profiles-slice.js";
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
@@ -26,6 +27,9 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   const resolveSystemName = useSystemName();
 
   const { tools: allTools } = useToolRegistry();
+
+  const toolDisplayLabel = useToolDisplayLabel();
+
   const enrolledModules = usePanelStore((s) => s.enrolledModules);
   const enrollModule = usePanelStore((s) => s.enrollModule);
   const unenrollModule = usePanelStore((s) => s.unenrollModule);
@@ -84,8 +88,8 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   function openEditSurface(s: Surface) {
     setEditingSurface(s);
     setSurfaceName(s.name);
-    setSurfaceDescription(s.description || "");
-    setSurfaceToolIds(new Set(s.allowedToolIds));
+    setSurfaceDescription("");
+    setSurfaceToolIds(new Set(s.resolvedToolIds));
     setSurfaceModalOpen(true);
   }
 
@@ -129,12 +133,12 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setSelectedPresetId("");
     setEditingSurface(null);
     setSurfaceName(`${source.name} ${t("surfaces.copySuffix")}`);
-    setSurfaceDescription(source.description || "");
+    setSurfaceDescription("");
     // System Default Surface → pre-select all available tools
-    const isSystemDefault = source.userId === null && source.allowedToolIds.length === 0;
+    const isSystemDefault = !source.userId && source.resolvedToolIds.length === 0;
     const prefilledIds = isSystemDefault
       ? new Set(allTools.map((t) => t.id))
-      : new Set(source.allowedToolIds);
+      : new Set(source.resolvedToolIds);
     setSurfaceToolIds(prefilledIds);
     setSurfaceModalOpen(true);
   }
@@ -223,19 +227,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
       });
 
       // 2. Notify desktop runtime
-      if (runProfileId) {
-        const profile = profiles.find((p) => p.id === runProfileId);
-        if (profile) {
-          await notifyDesktopDefaultProfile({
-            id: profile.id,
-            name: profile.name,
-            selectedToolIds: profile.selectedToolIds,
-            surfaceId: profile.surfaceId,
-          });
-        }
-      } else {
-        await notifyDesktopDefaultProfile(null);
-      }
+      await notifyDesktopDefaultProfile(runProfileId);
 
       // 3. Update local user state with the new defaultRunProfileId
       usePanelStore.setState((state) => ({
@@ -268,7 +260,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
 
   const surfaceNameById: Record<string, string> = {};
   for (const s of surfaces) {
-    surfaceNameById[s.id] = resolveSystemName(s.name, s.userId === null);
+    surfaceNameById[s.id] = resolveSystemName(s.name, !s.userId);
   }
 
   return (
@@ -376,14 +368,15 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
         ) : (
           <div className="acct-item-list">
             {surfaces.map((s) => {
-              const isSystem = s.userId === null;
+              const isSystem = !s.userId;
+              const isDefault = isSystem && s.id === "Default";
               const profileCount = profiles.filter((p) => p.surfaceId === s.id).length;
               return (
                 <div key={s.id} className={`acct-item${isSystem ? " acct-item-system" : ""}`}>
                   <div className="acct-item-title-row">
                     <span className="acct-item-name">{resolveSystemName(s.name, isSystem)}</span>
                     {isSystem && <span className="acct-badge-system">{t("surfaces.system")}</span>}
-                    {s.allowedToolIds.length === 0 && (
+                    {isDefault && (
                       <span className="acct-badge-subtle">{t("surfaces.unrestricted")}</span>
                     )}
                     {!isSystem && (
@@ -397,20 +390,19 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                       </div>
                     )}
                   </div>
-                  {s.description && <span className="acct-item-desc">{s.description}</span>}
                   <div className="acct-item-meta">
                     {profileCount > 0 && (
                       <span>{profileCount} {t("surfaces.runProfilesTitle").toLowerCase()}</span>
                     )}
-                    {s.allowedToolIds.length > 0 && (
-                      <span>{t("surfaces.toolCount", { count: s.allowedToolIds.length })}</span>
+                    {!isDefault && s.resolvedToolIds.length > 0 && (
+                      <span>{t("surfaces.toolCount", { count: s.resolvedToolIds.length })}</span>
                     )}
                   </div>
-                  {s.allowedToolIds.length > 0 && (
+                  {!isDefault && s.resolvedToolIds.length > 0 && (
                     <div className="acct-tool-chips">
-                      {s.allowedToolIds.map((toolId) => (
+                      {s.resolvedToolIds.map((toolId) => (
                         <span key={toolId} className="acct-tool-chip">
-                          {t(`tools.selector.name.${toolId}`, { defaultValue: toolId })}
+                          {toolDisplayLabel(toolId)}
                         </span>
                       ))}
                     </div>
@@ -456,7 +448,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                 { value: "", label: t("account.noDefault") },
                 ...profiles.map((p) => ({
                   value: p.id,
-                  label: resolveSystemName(p.name, p.userId === null),
+                  label: resolveSystemName(p.name, !p.userId),
                   description: surfaceNameById[p.surfaceId] || p.surfaceId,
                 })),
               ]}
@@ -469,7 +461,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
         ) : (
           <div className="acct-item-list">
             {profiles.map((p) => {
-              const isSystem = p.userId === null;
+              const isSystem = !p.userId;
               const surfName = surfaceNameById[p.surfaceId] || p.surfaceId;
               return (
                 <div key={p.id} className={`acct-item${isSystem ? " acct-item-system" : ""}`}>
@@ -493,8 +485,8 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                   </div>
                   {p.selectedToolIds.length > 0 && (() => {
                     const parentSurface = surfaces.find((s) => s.id === p.surfaceId);
-                    const restricted = parentSurface && parentSurface.allowedToolIds.length > 0;
-                    const allowedSet = restricted ? new Set(parentSurface.allowedToolIds) : null;
+                    const restricted = parentSurface && parentSurface.resolvedToolIds.length > 0;
+                    const allowedSet = restricted ? new Set(parentSurface.resolvedToolIds) : null;
                     return (
                       <div className="acct-tool-chips">
                         {p.selectedToolIds.map((toolId) => {
@@ -505,7 +497,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                               className={`acct-tool-chip${outOfScope ? " acct-tool-chip-warn" : ""}`}
                               title={outOfScope ? t("surfaces.toolOutOfScope") : undefined}
                             >
-                              {t(`tools.selector.name.${toolId}`, { defaultValue: toolId })}
+                              {toolDisplayLabel(toolId)}
                               {outOfScope && <span className="acct-tool-chip-icon">⚠</span>}
                             </span>
                           );
@@ -661,8 +653,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
               className="input-full"
               options={surfaces.map((s) => ({
                 value: s.id,
-                label: s.name,
-                description: s.description ?? undefined,
+                label: resolveSystemName(s.name, !s.userId),
               }))}
             />
           </div>
@@ -722,8 +713,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                 className="input-full"
                 options={surfaces.map((s) => ({
                   value: s.id,
-                  label: s.name,
-                  description: s.description ?? undefined,
+                  label: resolveSystemName(s.name, !s.userId),
                 }))}
               />
             </div>
@@ -748,7 +738,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
             <ToolMultiSelect
               selected={profileToolIds}
               onChange={setProfileToolIds}
-              allowedToolIds={surfaces.find((s) => s.id === profileSurfaceId)?.allowedToolIds}
+              allowedToolIds={surfaces.find((s) => s.id === profileSurfaceId)?.resolvedToolIds}
             />
           </div>
 

@@ -100,9 +100,7 @@ test.describe("Custom Providers", () => {
     await expect(modelTrigger).toContainText("glm-4-flash");
   });
 
-  // Skipped: requires Zhipu API to be reachable for key validation during seeding.
-  // Fails when Zhipu is slow/unreachable — the API seed calls timeout and key cards don't render.
-  test.skip("activate and delete custom provider", async ({ window, apiBase }) => {
+  test("activate and delete custom provider", async ({ window, apiBase }) => {
     const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
     test.skip(!zhipuKey, "E2E_ZHIPU_API_KEY required");
 
@@ -156,7 +154,7 @@ test.describe("Custom Providers", () => {
     });
     expect(createRes.ok).toBe(true);
 
-    // Navigate to Models page — data fetches on mount will include both keys
+    // Navigate to Models page — ProvidersPage fetches keys on mount
     const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
     await providersBtn.click();
     await expect(providersBtn).toHaveClass(/nav-active/);

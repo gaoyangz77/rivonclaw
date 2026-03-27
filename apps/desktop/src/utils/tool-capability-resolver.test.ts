@@ -3,6 +3,7 @@ import { ScopeType } from "@rivonclaw/core";
 import type { CatalogTool } from "@rivonclaw/core";
 import { parseScopeType } from "../api-routes/tool-registry-routes.js";
 import { ToolCapabilityResolver } from "./tool-capability-resolver.js";
+import { entityCache } from "../entity-cache.js";
 
 // ---------------------------------------------------------------------------
 // parseScopeType — pure function: sessionKey → ScopeType
@@ -33,10 +34,6 @@ describe("parseScopeType", () => {
     expect(parseScopeType("agent:main:cron:job1:run:uuid")).toBe(ScopeType.CRON_JOB);
   });
 
-  it("returns CS_SESSION for CS session (raw key)", () => {
-    expect(parseScopeType("cs:tiktok:conv123")).toBe(ScopeType.CS_SESSION);
-  });
-
   it("returns CS_SESSION for CS session (gateway-prefixed key)", () => {
     expect(parseScopeType("agent:main:cs:tiktok:conv123")).toBe(ScopeType.CS_SESSION);
   });
@@ -59,12 +56,17 @@ describe("parseScopeType", () => {
  *
  * System tools (core):  read, write, exec
  * Extension tool:       custom_ext_tool   (source=plugin, pluginId NOT in OUR_PLUGIN_IDS)
- * Entitled tools:       entitled_tool_1, entitled_tool_2
- *
- * We also include a tool from an OUR_PLUGIN_IDS plugin (tiktok-shop) to verify it
- * is filtered out as infrastructure during init().
+ * Entitled tools:       entitled_tool_1, entitled_tool_2  (from entity-cache)
  */
 function createTestResolver(): ToolCapabilityResolver {
+  // Seed entity-cache with mock toolSpecs (entitled tools)
+  entityCache.setState({
+    toolSpecs: [
+      { id: "entitled_tool_1", name: "entitled_tool_1" } as any,
+      { id: "entitled_tool_2", name: "entitled_tool_2" } as any,
+    ],
+  });
+
   const resolver = new ToolCapabilityResolver();
 
   const catalogTools: CatalogTool[] = [
@@ -72,12 +74,12 @@ function createTestResolver(): ToolCapabilityResolver {
     { id: "write", source: "core" },
     { id: "exec", source: "core" },
     // This plugin is in OUR_PLUGIN_IDS, so it should be excluded from customExtensionToolIds
-    { id: "tiktok_send_message", source: "plugin", pluginId: "tiktok-shop" },
+    { id: "ecom_send_message", source: "plugin", pluginId: "rivonclaw-cloud-tools" },
     // This plugin is NOT in OUR_PLUGIN_IDS, so it becomes a custom extension tool
     { id: "custom_ext_tool", source: "plugin", pluginId: "my-custom-plugin" },
   ];
 
-  resolver.init(["entitled_tool_1", "entitled_tool_2"], catalogTools);
+  resolver.init(catalogTools);
   return resolver;
 }
 
@@ -112,8 +114,6 @@ describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
     });
     const result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
-    // tiktok_send_message is in OUR_PLUGIN_IDS → excluded from catalog → not selectable
-    expect(result).not.toContain("tiktok_send_message");
   });
 
   it("trusted scope + RunProfile overrides default", () => {
@@ -209,9 +209,13 @@ describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
 // ---------------------------------------------------------------------------
 
 describe("ToolCapabilityResolver.init", () => {
+  beforeEach(() => {
+    entityCache.setState({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+  });
+
   it("classifies core tools as system tools", () => {
     const resolver = new ToolCapabilityResolver();
-    resolver.init([], [
+    resolver.init([
       { id: "read", source: "core" },
       { id: "write", source: "core" },
     ]);
@@ -220,11 +224,10 @@ describe("ToolCapabilityResolver.init", () => {
 
   it("excludes OUR_PLUGIN_IDS plugin tools from custom extensions", () => {
     const resolver = new ToolCapabilityResolver();
-    resolver.init([], [
+    resolver.init([
       { id: "read", source: "core" },
       { id: "infra_tool", source: "plugin", pluginId: "rivonclaw-capability-manager" },
     ]);
-    // infra_tool is from an OUR_PLUGIN_IDS plugin, should not appear in available tools
     const all = resolver.getAllAvailableToolIds();
     expect(all).toContain("read");
     expect(all).not.toContain("infra_tool");
@@ -232,7 +235,7 @@ describe("ToolCapabilityResolver.init", () => {
 
   it("includes non-OUR_PLUGIN_IDS plugin tools as custom extensions", () => {
     const resolver = new ToolCapabilityResolver();
-    resolver.init([], [
+    resolver.init([
       { id: "read", source: "core" },
       { id: "my_tool", source: "plugin", pluginId: "my-custom-plugin" },
     ]);
@@ -243,7 +246,7 @@ describe("ToolCapabilityResolver.init", () => {
   it("sets initialized flag", () => {
     const resolver = new ToolCapabilityResolver();
     expect(resolver.isInitialized()).toBe(false);
-    resolver.init([], []);
+    resolver.init([]);
     expect(resolver.isInitialized()).toBe(true);
   });
 });

@@ -17,23 +17,6 @@ export const SURFACES_QUERY = gql`
   }
 `;
 
-export const SYSTEM_SURFACES_QUERY = gql`
-  query SystemSurfaces($moduleId: String) {
-    systemSurfaces(moduleId: $moduleId) {
-      id
-      userId
-      name
-      description
-      allowedToolIds
-      allowedCategories
-      moduleId
-      presetId
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
 export const CREATE_SURFACE_MUTATION = gql`
   mutation CreateSurface($input: CreateSurfaceInput!) {
     createSurface(input: $input) {

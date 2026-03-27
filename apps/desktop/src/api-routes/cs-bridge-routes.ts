@@ -1,27 +1,25 @@
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
-import { refreshCSShopContext } from "../cs-bridge/load-shop-contexts.js";
 import { getCsBridge } from "../gateway/gateway-connection.js";
 
 /**
  * Routes for CS bridge management.
- * Panel calls these after modifying shop CS config (businessPrompt, enabled, etc.).
+ * The bridge reactively syncs from the entity cache (populated by Panel's
+ * GraphQL requests flowing through Desktop's proxy), so no explicit refresh
+ * endpoint is needed for shop data. The routes below manage relay bindings.
  */
-export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
+export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathname, _ctx) => {
 
-  // POST /api/cs-bridge/refresh-shop — refresh a single shop's CS context
-  if (pathname === "/api/cs-bridge/refresh-shop" && req.method === "POST") {
-    const body = await parseBody(req) as { shopId?: string };
-    if (!body.shopId) {
-      sendJson(res, 400, { error: "Missing shopId" });
-      return true;
-    }
+  // POST /api/cs-bridge/sync — trigger a manual re-sync from entity cache
+  // POST /api/cs-bridge/refresh-shop — backward-compatible alias (Panel calls this after mutations;
+  //   with the reactive architecture the entity cache already handled it, but a manual sync is harmless)
+  if ((pathname === "/api/cs-bridge/sync" || pathname === "/api/cs-bridge/refresh-shop") && req.method === "POST") {
     const bridge = getCsBridge();
-    if (!bridge || !ctx.authSession) {
-      sendJson(res, 200, { ok: true, skipped: true }); // Bridge not running — no-op
+    if (!bridge) {
+      sendJson(res, 200, { ok: true, skipped: true });
       return true;
     }
-    refreshCSShopContext(bridge, ctx.authSession, body.shopId, ctx.deviceId ?? "unknown").catch(() => {});
+    bridge.syncFromCache();
     sendJson(res, 200, { ok: true });
     return true;
   }

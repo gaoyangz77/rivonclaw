@@ -6,9 +6,8 @@ import { join } from "node:path";
 import { setRpcClient, getRpcClient } from "./rpc-client-ref.js";
 import { pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
-import { loadCSShopContexts } from "../cs-bridge/load-shop-contexts.js";
-import type { AuthSessionManager } from "../auth/auth-session.js";
 import type { GatewayEventHandler } from "./gateway-event-dispatcher.js";
+import { getAuthSession } from "../auth/auth-session-ref.js";
 
 const log = createLogger("gateway-connection");
 
@@ -35,15 +34,8 @@ export interface GatewayConnectionDeps {
       }>;
     };
   };
-  authSession: {
-    getAccessToken(): string | null;
-    getCachedUser(): { enrolledModules?: string[] } | null;
-    getCachedAvailableTools(): Array<{ id: string; allowed: boolean }> | null;
-    fetchAvailableTools(): Promise<Array<{ id: string; allowed: boolean }>>;
-    graphqlFetch<T = unknown>(query: string, variables?: Record<string, unknown>): Promise<T>;
-  } | null;
   toolCapabilityResolver: {
-    init(entitledToolIds: string[], catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>): void;
+    init(catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>): void;
   };
   dispatchGatewayEvent: GatewayEventHandler;
 }
@@ -65,7 +57,6 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
     stateDir,
     deviceId,
     storage,
-    authSession,
     toolCapabilityResolver,
     dispatchGatewayEvent,
   } = deps;
@@ -129,23 +120,17 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
             }
           }
 
-          // Get entitled tools from cached available tools or fetch fresh
-          let entitledToolIds: string[] = [];
-          if (authSession?.getAccessToken()) {
-            const availableTools = authSession.getCachedAvailableTools()
-              ?? await authSession.fetchAvailableTools().catch(() => []);
-            entitledToolIds = availableTools
-              .filter(t => t.allowed)
-              .map(t => t.id);
-          }
-
-          toolCapabilityResolver.init(entitledToolIds, catalogTools);
+          toolCapabilityResolver.init(catalogTools);
         } catch (e) {
           log.warn("Failed to initialize ToolCapabilityResolver:", e);
         }
       })();
 
       // Start CS Bridge if user has e-commerce module
+      // The bridge subscribes to the entity cache on start() and reactively
+      // syncs shop contexts when Panel's fetchShops flows through the proxy.
+      // No direct backend fetch is needed.
+      const authSession = getAuthSession();
       if (authSession?.getAccessToken()) {
         const user = authSession.getCachedUser();
         const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
@@ -154,12 +139,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
           _csBridge = new CustomerServiceBridge({
             relayUrl: getCsRelayWsUrl(),
             gatewayId: deviceId ?? "unknown",
-            getAuthToken: () => authSession?.getAccessToken() ?? null,
           });
-          // Load shop contexts (prompt + IDs) for CS-enabled shops bound to this device
-          loadCSShopContexts(_csBridge, authSession as AuthSessionManager, deviceId).catch((e: unknown) =>
-            log.error("Failed to load CS shop contexts:", e));
-          // Cache available model IDs for CS model override validation
           _csBridge.refreshModelCatalog().catch(() => {});
           _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
         }

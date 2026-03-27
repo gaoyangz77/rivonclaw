@@ -58,10 +58,14 @@ import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.j
 import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { toolCapabilityResolver } from "./utils/tool-capability-resolver.js";
+
 import { initCookieSync, pullAndPersistCookies } from "./browser-profiles/cookie-sync.js";
 import { createGatewayConfigHandlers } from "./gateway/gateway-config-handlers.js";
 import { connectGateway, disconnectGateway, getCsBridge } from "./gateway/gateway-connection.js";
 import { getRpcClient } from "./gateway/rpc-client-ref.js";
+import { setAuthSession } from "./auth/auth-session-ref.js";
+import { setProviderKeysStore } from "./gateway/provider-keys-ref.js";
+import { setVendorDir } from "./gateway/vendor-dir-ref.js";
 
 const log = createLogger("desktop");
 
@@ -313,6 +317,7 @@ app.whenReady().then(async () => {
 
   // Initialize storage and secrets
   const storage = createStorage();
+  setProviderKeysStore(storage.providerKeys);
   const secretStore = createSecretStore();
 
   // Apply auto-launch (login item) setting from DB to OS
@@ -325,6 +330,7 @@ app.whenReady().then(async () => {
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, fetch);
+  setAuthSession(authSession);
   authSession.onUserChanged((user) => syncCloudProviderKey(user, storage, secretStore));
   await authSession.loadFromKeychain();
   // Validate session on startup (auth uses native fetch, no proxy dependency)
@@ -537,6 +543,7 @@ app.whenReady().then(async () => {
   const vendorDir = app.isPackaged
     ? join(process.resourcesPath, "vendor", "openclaw")
     : join(import.meta.dirname, "..", "..", "..", "vendor", "openclaw");
+  setVendorDir(vendorDir);
 
   const launcher = new GatewayLauncher({
     entryPath: resolveVendorEntryPath(vendorDir),
@@ -558,7 +565,6 @@ app.whenReady().then(async () => {
     stateDir,
     deviceId,
     storage,
-    authSession,
     toolCapabilityResolver,
     dispatchGatewayEvent,
   };
@@ -1140,18 +1146,10 @@ app.whenReady().then(async () => {
         });
     },
     onAuthChange: () => {
-      // Re-init ToolCapabilityResolver with fresh entitlements after login/logout.
+      // Re-init ToolCapabilityResolver on auth change (refresh system + extension tools from gateway catalog).
+      // Entitled tools come from entity-cache (populated by Panel's warmToolSpecs via proxy).
       (async () => {
         try {
-          let entitledToolIds: string[] = [];
-          if (authSession?.getAccessToken()) {
-            const availableTools = await authSession.fetchAvailableTools().catch(() => []);
-            entitledToolIds = availableTools
-              .filter((t: { allowed: boolean }) => t.allowed)
-              .map((t: { id: string }) => t.id);
-          }
-
-          // If gateway is connected, do a full re-init with fresh catalog
           const rpc = getRpcClient();
           if (rpc?.isConnected()) {
             const catalog = await rpc.request<{
@@ -1163,12 +1161,9 @@ app.whenReady().then(async () => {
                 catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
               }
             }
-            toolCapabilityResolver.init(entitledToolIds, catalogTools);
-          } else {
-            // Gateway not connected — update entitled only (system stays as static/last known)
-            toolCapabilityResolver.setEntitledToolIds(entitledToolIds);
+            toolCapabilityResolver.init(catalogTools);
           }
-          log.info(`ToolCapabilityResolver auth change: ${entitledToolIds.length} entitled tools`);
+          log.info(`ToolCapabilityResolver auth change: re-initialized`);
         } catch (e) {
           log.warn("Failed to re-init ToolCapabilityResolver on auth change:", e);
         }

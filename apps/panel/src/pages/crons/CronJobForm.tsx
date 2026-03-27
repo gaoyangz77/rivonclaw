@@ -7,7 +7,7 @@ import { RunProfileSelector } from "../../components/inputs/RunProfileSelector.j
 import { ChevronRightIcon } from "../../components/icons.js";
 import { fetchChannelStatus, fetchAllowlist, setRecipientLabel, type ChannelsStatusSnapshot } from "../../api/channels.js";
 import { useToolRegistry, usePanelStore } from "../../stores/index.js";
-import { setRunProfileForScope, ScopeType } from "../../api/tool-registry.js";
+import { setRunProfileForScope } from "../../api/tool-registry.js";
 import type { CronJob, CronJobFormData, ScheduleKind, PayloadKind, EveryUnit, CronWakeMode, CronDeliveryMode, FormErrors } from "./cron-utils.js";
 import { defaultFormData, cronJobToFormData, formDataToCreateParams, formDataToPatch, validateCronForm, TIMEZONE_ENTRIES } from "./cron-utils.js";
 
@@ -722,16 +722,11 @@ export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFo
                 onChange={(profileId) => {
                   setSelectedRunProfileId(profileId);
                   const cronScopeKey = mode === "edit" && initialData ? initialData.id : TEMP_CRON_SCOPE_KEY;
-                  const profile = profileId ? runProfiles.find((p) => p.id === profileId) : null;
-                  if (!profile) {
-                    setRunProfileForScope(ScopeType.CRON_JOB, cronScopeKey, null).catch(() => {});
+                  if (!profileId || !runProfiles.find((p) => p.id === profileId)) {
+                    setRunProfileForScope(cronScopeKey, null).catch(() => {});
                     return;
                   }
-                  setRunProfileForScope(
-                    ScopeType.CRON_JOB,
-                    cronScopeKey,
-                    { id: profile.id, name: profile.name, selectedToolIds: profile.selectedToolIds, surfaceId: profile.surfaceId },
-                  ).catch(() => {});
+                  setRunProfileForScope(cronScopeKey, profileId).catch(() => {});
                 }}
               />
             </div>

@@ -124,7 +124,12 @@ function fixSemanticErrors(config: Record<string, unknown>): string[] {
 }
 
 /** Plugin IDs that have been permanently removed from the project. */
-const REMOVED_PLUGIN_IDS = new Set(["wecom", "dingtalk"]);
+const REMOVED_PLUGIN_IDS = new Set([
+  "wecom", "dingtalk",
+  // W31: tiktok-shop replaced by dynamic tool registration via @Tool decorator (ADR-035).
+  // rivonclaw-ecommerce plugin was never shipped — removed during W31 refactor.
+  "tiktok-shop", "rivonclaw-ecommerce",
+]);
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
 /** Plugin IDs renamed during the EasyClaw → RivonClaw rebrand.

@@ -1,14 +1,20 @@
 import type { StateCreator } from "zustand";
+import { fetchJson } from "../../api/client.js";
 import {
-  fetchRunProfiles as apiFetchRunProfiles,
   createRunProfile as apiCreateRunProfile,
   updateRunProfile as apiUpdateRunProfile,
   deleteRunProfile as apiDeleteRunProfile,
 } from "../../api/run-profiles.js";
-import type { RunProfile } from "../../api/run-profiles.js";
 import type { PanelStore } from "../panel-store.js";
 
-export type { RunProfile };
+/** RunProfile as returned by CapabilityResolver. */
+export interface RunProfile {
+  id: string;
+  name: string;
+  userId: string;
+  surfaceId: string;
+  selectedToolIds: string[];
+}
 
 export interface RunProfilesSlice {
   runProfiles: RunProfile[];
@@ -19,7 +25,7 @@ export interface RunProfilesSlice {
     name: string;
     selectedToolIds: string[];
     surfaceId: string;
-  }) => Promise<RunProfile>;
+  }) => Promise<void>;
   updateRunProfile: (
     id: string,
     input: {
@@ -27,44 +33,38 @@ export interface RunProfilesSlice {
       selectedToolIds?: string[];
       surfaceId?: string;
     },
-  ) => Promise<RunProfile>;
+  ) => Promise<void>;
   deleteRunProfile: (id: string) => Promise<void>;
   resetRunProfiles: () => void;
 }
 
-export const createRunProfilesSlice: StateCreator<PanelStore, [], [], RunProfilesSlice> = (set) => ({
+export const createRunProfilesSlice: StateCreator<PanelStore, [], [], RunProfilesSlice> = (set, get) => ({
   runProfiles: [],
   runProfilesLoading: false,
 
   fetchRunProfiles: async () => {
     set({ runProfilesLoading: true });
     try {
-      const list = await apiFetchRunProfiles();
-      set({ runProfiles: list, runProfilesLoading: false });
+      const data = await fetchJson<{ runProfiles: RunProfile[] }>("/tools/run-profiles");
+      set({ runProfiles: data.runProfiles ?? [], runProfilesLoading: false });
     } catch {
       set({ runProfilesLoading: false });
     }
   },
 
   createRunProfile: async (input) => {
-    const created = await apiCreateRunProfile(input);
-    set((state) => ({ runProfiles: [...state.runProfiles, created] }));
-    return created;
+    await apiCreateRunProfile(input);
+    await get().fetchRunProfiles();
   },
 
   updateRunProfile: async (id, input) => {
-    const updated = await apiUpdateRunProfile(id, input);
-    set((state) => ({
-      runProfiles: state.runProfiles.map((p) => (p.id === id ? updated : p)),
-    }));
-    return updated;
+    await apiUpdateRunProfile(id, input);
+    await get().fetchRunProfiles();
   },
 
   deleteRunProfile: async (id) => {
     await apiDeleteRunProfile(id);
-    set((state) => ({
-      runProfiles: state.runProfiles.filter((p) => p.id !== id),
-    }));
+    await get().fetchRunProfiles();
   },
 
   resetRunProfiles: () => {

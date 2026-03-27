@@ -172,18 +172,25 @@ export interface CSBindingResolvedFrame {
   gateway_id: string;
 }
 
-// ── W29-0E: TikTok Relay-to-Desktop Frames ──────────────────────────────────
+// ── W29-0E: Relay-to-Desktop New-Message / New-Conversation Frames ───────────
+//
+// The wire-format `type` strings ("cs_tiktok_new_message", etc.) are kept for
+// backward compatibility with the relay server.  The TypeScript interface names
+// are platform-neutral because the desktop CS bridge handles these frames
+// identically regardless of which e-commerce platform originated them.
 
-/** Relay → Client: TikTok new conversation notification. */
-export interface CSTikTokNewConversationFrame {
+/** Relay → Client: new conversation notification. */
+export interface CSNewConversationFrame {
+  /** Wire-format identifier — kept as "cs_tiktok_new_conversation" for relay compat. */
   type: "cs_tiktok_new_conversation";
   shopId: string;
   conversationId: string;
   createTime: number;
 }
 
-/** Relay → Client: TikTok new message notification (buyer message relayed to desktop agent). */
-export interface CSTikTokNewMessageFrame {
+/** Relay → Client: new message notification (buyer message relayed to desktop agent). */
+export interface CSNewMessageFrame {
+  /** Wire-format identifier — kept as "cs_tiktok_new_message" for relay compat. */
   type: "cs_tiktok_new_message";
   shopId: string;
   conversationId: string;
@@ -217,8 +224,8 @@ export type CSWSFrame =
   | CSCreateBindingAckFrame
   | CSUnbindAllFrame
   | CSBindingResolvedFrame
-  | CSTikTokNewConversationFrame
-  | CSTikTokNewMessageFrame;
+  | CSNewConversationFrame
+  | CSNewMessageFrame;
 
 // ── Adapter Interface ───────────────────────────────────────────────────────
 

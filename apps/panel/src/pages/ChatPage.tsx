@@ -20,7 +20,7 @@ import type { GatewaySessionInfo } from "./chat/SessionTabBar.js";
 import { ChatInputArea } from "./chat/ChatInputArea.js";
 import { RunProfileSelector } from "../components/inputs/RunProfileSelector.js";
 import { usePanelStore } from "../stores/index.js";
-import { setRunProfileForScope, ScopeType } from "../api/tool-registry.js";
+import { setRunProfileForScope } from "../api/tool-registry.js";
 import "./chat/ChatPage.css";
 
 export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
@@ -821,6 +821,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           },
           onMirrorEvent: (mirror) => {
             if (cancelled) return;
+            if (mirror.sessionKey !== sessionKeyRef.current) return;
             const data = mirror.data as Record<string, unknown>;
 
             if (mirror.stream === "assistant") {
@@ -1091,17 +1092,11 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   }, [activeKey, connectionState, loadHistory]);
 
   function pushRunProfileToScope(profileId: string, scopeKey: string) {
-    const profile = profileId ? runProfiles.find((p) => p.id === profileId) : null;
-    if (!profile) {
-      setRunProfileForScope(ScopeType.CHAT_SESSION, scopeKey, null).catch(() => {});
+    if (!profileId || !runProfiles.find((p) => p.id === profileId)) {
+      setRunProfileForScope(scopeKey, null).catch(() => {});
       return;
     }
-    // System tools are now handled by desktop's tool-capability-resolver
-    setRunProfileForScope(
-      ScopeType.CHAT_SESSION,
-      scopeKey,
-      { id: profile.id, name: profile.name, selectedToolIds: profile.selectedToolIds, surfaceId: profile.surfaceId },
-    ).catch(() => {});
+    setRunProfileForScope(scopeKey, profileId).catch(() => {});
   }
 
   // Push RunProfile selection to desktop when changed.

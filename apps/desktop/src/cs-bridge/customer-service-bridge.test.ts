@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CSTikTokNewMessageFrame } from "@rivonclaw/core";
+import type { CSNewMessageFrame } from "@rivonclaw/core";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -16,20 +16,47 @@ vi.mock("../gateway/rpc-client-ref.js", () => ({
   getRpcClient: mockGetRpcClient,
 }));
 
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+const mockGraphqlFetch = vi.fn();
+const { mockGetAuthSession } = vi.hoisted(() => ({
+  mockGetAuthSession: vi.fn(),
+}));
+vi.mock("../auth/auth-session-ref.js", () => ({
+  getAuthSession: mockGetAuthSession,
+}));
+
+vi.mock("../gateway/provider-keys-ref.js", () => ({
+  getProviderKeysStore: () => ({ getAll: () => [] }),
+}));
+
+vi.mock("../gateway/vendor-dir-ref.js", () => ({
+  getVendorDir: () => "/fake/vendor",
+}));
+
+vi.mock("@rivonclaw/gateway", () => ({
+  readFullModelCatalog: async () => ({}),
+}));
+
+const mockGetAllRunProfiles = vi.fn();
+const mockSetSessionRunProfile = vi.fn();
+vi.mock("../utils/tool-capability-resolver.js", () => ({
+  toolCapabilityResolver: {
+    getAllRunProfiles: (...args: unknown[]) => mockGetAllRunProfiles(...args),
+    setSessionRunProfile: (...args: unknown[]) => mockSetSessionRunProfile(...args),
+  },
+}));
 
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
+import { entityCache } from "../entity-cache.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function createBridge(): CustomerServiceBridge {
+function createBridge(overrides?: Partial<{ defaultRunProfileId: string }>): CustomerServiceBridge {
   return new CustomerServiceBridge({
     relayUrl: "ws://localhost:3001",
     gatewayId: "test-gateway",
-    getAuthToken: () => "test-token",
+    defaultRunProfileId: overrides?.defaultRunProfileId ?? "TIKTOK_CUSTOMER_SERVICE",
   });
 }
 
@@ -37,9 +64,10 @@ const defaultShop: CSShopContext = {
   objectId: "mongo-id-123",
   platformShopId: "tiktok-shop-456",
   systemPrompt: "You are a CS assistant.",
+  runProfileId: "TIKTOK_CUSTOMER_SERVICE",
 };
 
-function createFrame(overrides?: Partial<CSTikTokNewMessageFrame>): CSTikTokNewMessageFrame {
+function createFrame(overrides?: Partial<CSNewMessageFrame>): CSNewMessageFrame {
   return {
     type: "cs_tiktok_new_message",
     shopId: "tiktok-shop-456",
@@ -56,12 +84,12 @@ function createFrame(overrides?: Partial<CSTikTokNewMessageFrame>): CSTikTokNewM
   };
 }
 
-/** Invoke the private onTikTokMessage method. */
+/** Invoke the private onNewMessage method. */
 async function triggerMessage(
   bridge: CustomerServiceBridge,
-  frame: CSTikTokNewMessageFrame,
+  frame: CSNewMessageFrame,
 ): Promise<void> {
-  await (bridge as any).onTikTokMessage(frame);
+  await (bridge as any).onNewMessage(frame);
 }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -69,8 +97,19 @@ async function triggerMessage(
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
-  mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
   mockRpcRequest.mockResolvedValue({ ok: true });
+  mockGraphqlFetch.mockResolvedValue({ ecommerceSendMessage: { code: 0 } });
+  mockGetAuthSession.mockReturnValue({
+    getAccessToken: () => "test-token",
+    graphqlFetch: mockGraphqlFetch,
+  });
+  // Default: RunProfile found in cache
+  mockGetAllRunProfiles.mockReturnValue([
+    { id: "TIKTOK_CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
+    { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
+  ]);
+  // Reset entity cache
+  entityCache.setState({ runProfiles: [], surfaces: [], toolSpecs: [], shops: [] });
 });
 
 // ─── 1. Shop context management ─────────────────────────────────────────────
@@ -80,7 +119,7 @@ describe("shop context management", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    // Prove context is stored: onTikTokMessage should find it and proceed
+    // Prove context is stored: onNewMessage should find it and proceed
     await triggerMessage(bridge, createFrame());
     expect(mockRpcRequest).toHaveBeenCalled();
   });
@@ -91,9 +130,9 @@ describe("shop context management", () => {
     bridge.removeShopContext("tiktok-shop-456");
 
     await triggerMessage(bridge, createFrame());
-    // Should drop: no RPC calls, no fetch
+    // Should drop: no RPC calls, no profile set
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
   });
 
   it("drops message when shop context not found", async () => {
@@ -102,7 +141,7 @@ describe("shop context management", () => {
 
     await triggerMessage(bridge, createFrame());
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
   });
 
   it("proceeds when shop context is found", async () => {
@@ -118,14 +157,14 @@ describe("shop context management", () => {
 // ─── 2. Session key construction ────────────────────────────────────────────
 
 describe("session key construction", () => {
-  it("tiktok_cs_register_session receives scopeKey (agent:main:cs:tiktok:{conversationId})", async () => {
+  it("cs_register_session receives scopeKey (agent:main:cs:tiktok:{conversationId})", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame({ conversationId: "conv-ABC" }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
-      "tiktok_cs_register_session",
+      "cs_register_session",
       expect.objectContaining({
         sessionKey: "agent:main:cs:tiktok:conv-ABC",
       }),
@@ -146,17 +185,51 @@ describe("session key construction", () => {
     );
   });
 
-  it("RunProfile PUT receives scopeKey in the body", async () => {
+  it("setSessionRunProfile receives scopeKey", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame({ conversationId: "conv-XYZ" }));
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/tools/run-profile"),
+    expect(mockSetSessionRunProfile).toHaveBeenCalledWith(
+      "agent:main:cs:tiktok:conv-XYZ",
+      { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
+      "TIKTOK_CUSTOMER_SERVICE",
+    );
+  });
+
+  it("uses shop.platform for session keys when provided", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext({ ...defaultShop, platform: "shopee" });
+
+    await triggerMessage(bridge, createFrame({ conversationId: "conv-PLAT" }));
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "cs_register_session",
       expect.objectContaining({
-        method: "PUT",
-        body: expect.stringContaining("agent:main:cs:tiktok:conv-XYZ"),
+        sessionKey: "agent:main:cs:shopee:conv-PLAT",
+      }),
+    );
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "cs:shopee:conv-PLAT",
+        idempotencyKey: "shopee:msg-001",
+      }),
+    );
+  });
+
+  it("defaults platform to 'tiktok' when shop.platform is undefined", async () => {
+    const bridge = createBridge();
+    // defaultShop has no platform field
+    bridge.setShopContext({ ...defaultShop, platform: undefined });
+
+    await triggerMessage(bridge, createFrame({ conversationId: "conv-DEF" }));
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "cs_register_session",
+      expect.objectContaining({
+        sessionKey: "agent:main:cs:tiktok:conv-DEF",
       }),
     );
   });
@@ -289,75 +362,67 @@ describe("message content parsing", () => {
 // ─── 4. CS RunProfile setup ─────────────────────────────────────────────────
 
 describe("CS RunProfile setup", () => {
-  it("PUT is called with scopeKey and tool IDs", async () => {
+  it("calls setSessionRunProfile with scopeKey, profile data, and runProfileId", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/tools/run-profile"),
-      expect.objectContaining({ method: "PUT" }),
-    );
-
-    // Parse the body to verify structure
-    const fetchCall = mockFetch.mock.calls[0]!;
-    const body = JSON.parse(fetchCall[1].body);
-    expect(body.scopeKey).toBe("agent:main:cs:tiktok:conv-789");
-    expect(body.runProfile).toBeDefined();
-    expect(body.runProfile.selectedToolIds).toEqual(expect.any(Array));
-    expect(body.runProfile.selectedToolIds.length).toBeGreaterThan(0);
-  });
-
-  it("uses PANEL_BASE URL (port 3210)", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame());
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringMatching(/^http:\/\/127\.0\.0\.1:3210\/api\/tools\/run-profile$/),
-      expect.anything(),
+    expect(mockSetSessionRunProfile).toHaveBeenCalledWith(
+      "agent:main:cs:tiktok:conv-789",
+      { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
+      "TIKTOK_CUSTOMER_SERVICE",
     );
   });
 
-  it("if PUT fails, message is dropped (agent not dispatched)", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("network error"));
+  it("drops message when RunProfile not found in cache", async () => {
+    mockGetAllRunProfiles.mockReturnValue([]); // no profiles
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    // register_session is called (before fetch), but agent dispatch is not
     expect(mockRpcRequest).toHaveBeenCalledWith(
-      "tiktok_cs_register_session",
+      "cs_register_session",
       expect.anything(),
     );
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
-  it("accepts custom csToolIds override", async () => {
-    const customToolIds = ["custom_tool_a", "custom_tool_b"];
-    const bridge = new CustomerServiceBridge({
-      relayUrl: "ws://localhost:3001",
-      gatewayId: "test-gateway",
-      getAuthToken: () => "test-token",
-      csToolIds: customToolIds,
-    });
-    bridge.setShopContext(defaultShop);
+  it("falls back to defaultRunProfileId when shop has no runProfileId", async () => {
+    const bridge = createBridge({ defaultRunProfileId: "FALLBACK_CS" });
+    bridge.setShopContext({ ...defaultShop, runProfileId: undefined });
 
     await triggerMessage(bridge, createFrame());
 
-    const fetchCall = mockFetch.mock.calls[0]!;
-    const body = JSON.parse(fetchCall[1].body);
-    expect(body.runProfile.selectedToolIds).toEqual(customToolIds);
+    expect(mockSetSessionRunProfile).toHaveBeenCalledWith(
+      expect.any(String),
+      { selectedToolIds: ["TOOL_C"], surfaceId: "Default" },
+      "FALLBACK_CS",
+    );
+  });
+
+  it("drops message when no runProfileId and no defaultRunProfileId", async () => {
+    const bridge = new CustomerServiceBridge({
+      relayUrl: "ws://localhost:3001",
+      gatewayId: "test-gateway",
+      // no defaultRunProfileId
+    });
+    bridge.setShopContext({ ...defaultShop, runProfileId: undefined });
+
+    await triggerMessage(bridge, createFrame());
+
+    // cs_register_session is called (step 4), but RunProfile set and agent dispatch are not
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 });
 
 // ─── 5. Session registration ────────────────────────────────────────────────
 
 describe("session registration", () => {
-  it("tiktok_cs_register_session called with correct scopeKey and csContext", async () => {
+  it("cs_register_session called with correct scopeKey and csContext", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -366,7 +431,7 @@ describe("session registration", () => {
       buyerUserId: "buyer-200",
     }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("tiktok_cs_register_session", {
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
       sessionKey: "agent:main:cs:tiktok:conv-100",
       csContext: {
         shopId: "mongo-id-123",
@@ -388,7 +453,7 @@ describe("session registration", () => {
     await triggerMessage(bridge, createFrame({ shopId: "platform-id-999" }));
 
     const registerCall = mockRpcRequest.mock.calls.find(
-      (c: any[]) => c[0] === "tiktok_cs_register_session",
+      (c: any[]) => c[0] === "cs_register_session",
     );
     expect(registerCall).toBeDefined();
     expect(registerCall![1].csContext.shopId).toBe("actual-mongo-object-id");
@@ -401,14 +466,14 @@ describe("session registration", () => {
     await triggerMessage(bridge, createFrame({ orderId: "order-555" }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
-      "tiktok_cs_register_session",
+      "cs_register_session",
       expect.objectContaining({
         csContext: expect.objectContaining({ orderId: "order-555" }),
       }),
     );
   });
 
-  it("if registration fails, message is dropped (no RunProfile PUT, no agent dispatch)", async () => {
+  it("if registration fails, message is dropped (no RunProfile set, no agent dispatch)", async () => {
     mockRpcRequest.mockRejectedValueOnce(new Error("registration failed"));
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -417,9 +482,9 @@ describe("session registration", () => {
 
     // Only the failed register call; no agent call
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
-    expect(mockRpcRequest).toHaveBeenCalledWith("tiktok_cs_register_session", expect.anything());
-    // No fetch (RunProfile PUT) should have been called
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    // No RunProfile set should have been called
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
   });
 });
 
@@ -481,7 +546,7 @@ describe("agent dispatch", () => {
     expect(agentCall![1].extraSystemPrompt).not.toContain("Order ID");
   });
 
-  it("idempotencyKey = tiktok:{messageId}", async () => {
+  it("idempotencyKey = {platform}:{messageId}", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -509,7 +574,7 @@ describe("agent dispatch", () => {
 
     // Both calls were attempted
     expect(mockRpcRequest).toHaveBeenCalledTimes(2);
-    expect(mockRpcRequest).toHaveBeenCalledWith("tiktok_cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
   });
 });
@@ -525,7 +590,7 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
   });
 
   it("shop context not found → message dropped with no further calls", async () => {
@@ -535,10 +600,10 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame({ shopId: "nonexistent-shop" }));
 
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
   });
 
-  it("session registration fails → RunProfile PUT and agent dispatch skipped", async () => {
+  it("session registration fails → RunProfile set and agent dispatch skipped", async () => {
     mockRpcRequest.mockRejectedValueOnce(new Error("session reg failed"));
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -546,11 +611,11 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
   });
 
-  it("RunProfile PUT fails → agent dispatch skipped", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("fetch failed"));
+  it("RunProfile not found → agent dispatch skipped", async () => {
+    mockGetAllRunProfiles.mockReturnValue([]); // empty profiles
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -558,7 +623,7 @@ describe("error scenarios", () => {
 
     // register_session called, agent NOT called
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
-    expect(mockRpcRequest).toHaveBeenCalledWith("tiktok_cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
   });
 
   it("agent dispatch fails → bridge does not throw (continues running)", async () => {
@@ -590,11 +655,300 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame({ shopId: "platform-B" }));
 
     const registerCall = mockRpcRequest.mock.calls.find(
-      (c: any[]) => c[0] === "tiktok_cs_register_session",
+      (c: any[]) => c[0] === "cs_register_session",
     );
     expect(registerCall![1].csContext.shopId).toBe("mongo-B");
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall![1].extraSystemPrompt).toContain("Prompt B");
+  });
+});
+
+// ── 8. Reactive entity cache sync ──────────────────────────────────────────
+
+describe("reactive entity cache sync", () => {
+  it("syncFromCache picks up CS-enabled shops bound to this device", () => {
+    const bridge = createBridge();
+
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "My Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              assembledPrompt: "You are a CS agent.",
+              csModelOverride: null,
+              runProfileId: "rp-1",
+            },
+          },
+        },
+      ],
+    });
+
+    bridge.syncFromCache();
+
+    // Verify the shop context is set by triggering a message
+    const frame = createFrame({ shopId: "ps-1" });
+    return triggerMessage(bridge, frame).then(() => {
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "cs_register_session",
+        expect.objectContaining({
+          csContext: expect.objectContaining({ shopId: "shop-1" }),
+        }),
+      );
+    });
+  });
+
+  it("syncFromCache skips shops not bound to this device", () => {
+    const bridge = createBridge();
+
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Other Device Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "other-device",
+              assembledPrompt: "prompt",
+            },
+          },
+        },
+      ],
+    });
+
+    bridge.syncFromCache();
+
+    // Should not have context for this shop
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      expect(mockRpcRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  it("syncFromCache skips shops with CS disabled", () => {
+    const bridge = createBridge();
+
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Disabled Shop",
+          services: {
+            customerService: {
+              enabled: false,
+              csDeviceId: "test-gateway",
+              assembledPrompt: "prompt",
+            },
+          },
+        },
+      ],
+    });
+
+    bridge.syncFromCache();
+
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      expect(mockRpcRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  it("syncFromCache skips shops without assembledPrompt", () => {
+    const bridge = createBridge();
+
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "No Prompt Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              assembledPrompt: null,
+            },
+          },
+        },
+      ],
+    });
+
+    bridge.syncFromCache();
+
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      expect(mockRpcRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  it("syncFromCache removes shops that are no longer in cache", () => {
+    const bridge = createBridge();
+
+    // First: add a shop context manually
+    bridge.setShopContext({
+      objectId: "shop-1",
+      platformShopId: "ps-1",
+      platform: "tiktok",
+      systemPrompt: "Old prompt",
+    });
+
+    // Then: sync from empty cache (shop was removed)
+    entityCache.setState({ ...entityCache.getState(), shops: [] });
+    bridge.syncFromCache();
+
+    // Should not have context anymore
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      expect(mockRpcRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  it("syncFromCache updates existing shop context when data changes", () => {
+    const bridge = createBridge();
+
+    // Initial sync
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              assembledPrompt: "Old prompt",
+              runProfileId: null,
+              csModelOverride: null,
+            },
+          },
+        },
+      ],
+    });
+    bridge.syncFromCache();
+
+    // Update: change assembledPrompt
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              assembledPrompt: "Updated prompt",
+              runProfileId: null,
+              csModelOverride: null,
+            },
+          },
+        },
+      ],
+    });
+    bridge.syncFromCache();
+
+    // Trigger message and verify the updated prompt is used
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+      expect(agentCall![1].extraSystemPrompt).toContain("Updated prompt");
+    });
+  });
+
+  it("syncFromCache normalizes platform name from enum", () => {
+    const bridge = createBridge();
+
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              assembledPrompt: "prompt",
+            },
+          },
+        },
+      ],
+    });
+    bridge.syncFromCache();
+
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "cs_register_session",
+        expect.objectContaining({
+          sessionKey: "agent:main:cs:tiktok:conv-789",
+        }),
+      );
+    });
+  });
+
+  it("syncFromCache handles multiple shops with mixed eligibility", () => {
+    const bridge = createBridge();
+
+    entityCache.setState({
+      ...entityCache.getState(),
+      shops: [
+        {
+          id: "shop-1", platform: "TIKTOK_SHOP", platformShopId: "ps-1", shopName: "Eligible",
+          services: { customerService: { enabled: true, csDeviceId: "test-gateway", assembledPrompt: "prompt-1" } },
+        },
+        {
+          id: "shop-2", platform: "TIKTOK_SHOP", platformShopId: "ps-2", shopName: "Disabled",
+          services: { customerService: { enabled: false, csDeviceId: "test-gateway", assembledPrompt: "prompt-2" } },
+        },
+        {
+          id: "shop-3", platform: "SHOPEE_STORE", platformShopId: "ps-3", shopName: "Other Device",
+          services: { customerService: { enabled: true, csDeviceId: "other-device", assembledPrompt: "prompt-3" } },
+        },
+        {
+          id: "shop-4", platform: "TIKTOK_SHOP", platformShopId: "ps-4", shopName: "Also Eligible",
+          services: { customerService: { enabled: true, csDeviceId: "test-gateway", assembledPrompt: "prompt-4" } },
+        },
+      ],
+    });
+    bridge.syncFromCache();
+
+    // Only shop-1 and shop-4 should be active. Verify shop-1 works:
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(async () => {
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "cs_register_session",
+        expect.objectContaining({ csContext: expect.objectContaining({ shopId: "shop-1" }) }),
+      );
+
+      // Reset and verify shop-4 works:
+      vi.clearAllMocks();
+      mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
+      mockRpcRequest.mockResolvedValue({ ok: true });
+      mockGetAllRunProfiles.mockReturnValue([
+        { id: "TIKTOK_CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
+      ]);
+
+      await triggerMessage(bridge, createFrame({ shopId: "ps-4" }));
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "cs_register_session",
+        expect.objectContaining({ csContext: expect.objectContaining({ shopId: "shop-4" }) }),
+      );
+    });
   });
 });

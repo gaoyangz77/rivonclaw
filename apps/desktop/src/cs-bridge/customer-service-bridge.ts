@@ -1,20 +1,36 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
+import { readFullModelCatalog } from "@rivonclaw/gateway";
 import type {
   CSHelloFrame,
   CSBindShopsFrame,
   CSBindShopsResultFrame,
   CSShopTakenOverFrame,
-  CSTikTokNewMessageFrame,
-  CSTikTokNewConversationFrame,
+  CSNewMessageFrame,
+  CSNewConversationFrame,
   CSWSFrame,
 } from "@rivonclaw/core";
-import { TIKTOK_CS_TOOL_IDS } from "@rivonclaw/core";
 import { getRpcClient } from "../gateway/rpc-client-ref.js";
-import { panelServerFetch } from "../clients/panel-server-client.js";
+import { getAuthSession } from "../auth/auth-session-ref.js";
+import { getProviderKeysStore } from "../gateway/provider-keys-ref.js";
+import { getVendorDir } from "../gateway/vendor-dir-ref.js";
+import { toolCapabilityResolver } from "../utils/tool-capability-resolver.js";
+import { entityCache, normalizePlatform } from "../entity-cache.js";
 
 const log = createLogger("cs-bridge");
+
+/**
+ * GraphQL mutation for auto-forwarding agent text to buyer.
+ * Must match EcommerceResolver.ecommerceSendMessage signature in the backend.
+ */
+const SEND_MESSAGE_MUTATION = `
+  mutation($shopId: String!, $conversationId: String!, $type: String!, $content: String!) {
+    ecommerceSendMessage(shopId: $shopId, conversationId: $conversationId, type: $type, content: $content) {
+      code message data
+    }
+  }
+`;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,22 +38,25 @@ const log = createLogger("cs-bridge");
 
 /** Shop data needed by the CS bridge (resolved by desktop, not by bridge). */
 export interface CSShopContext {
-  /** MongoDB ObjectId — used for backend API calls and prompt assembly. */
+  /** MongoDB ObjectId -- used for backend API calls and prompt assembly. */
   objectId: string;
-  /** Platform shop ID (TikTok's ID) — matches webhook shop_id. */
+  /** Platform shop ID (TikTok's ID) -- matches webhook shop_id. */
   platformShopId: string;
+  /** Normalized short platform name for session keys (e.g., "tiktok"). Defaults to "tiktok". */
+  platform?: string;
   /** Assembled CS system prompt for this shop. */
   systemPrompt: string;
   /** LLM model override for CS sessions (provider/modelId format). Undefined = use global default. */
   csModelOverride?: string;
+  /** RunProfile ID configured for this shop's CS sessions. When set, tool IDs are read from the cached profile. */
+  runProfileId?: string;
 }
 
 interface CustomerServiceBridgeOptions {
   relayUrl: string;
   gatewayId: string;
-  getAuthToken: () => string | null;
-  /** CS tool IDs for RunProfile restriction. Defaults to TIKTOK_CS_TOOL_IDS from core. */
-  csToolIds?: readonly string[];
+  /** Default RunProfile ID for CS sessions (fallback when shop has no runProfileId). */
+  defaultRunProfileId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -45,12 +64,20 @@ interface CustomerServiceBridgeOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * Desktop-side bridge that connects to the TikTok CS relay WebSocket,
+ * Desktop-side bridge that connects to the CS relay WebSocket,
  * receives buyer messages, and dispatches agent runs via the gateway RPC.
  *
- * The bridge is intentionally thin — it does NOT fetch data from the backend.
- * All shop context (ObjectId, prompt) is provided by the desktop layer via
- * {@link setShopContext}. The agent replies directly using MCP tools.
+ * Platform-agnostic: the bridge resolves the platform from the shop context
+ * (looked up by platformShopId) and uses it to build session keys, so adding
+ * a new e-commerce platform only requires registering its shop contexts.
+ *
+ * The bridge is intentionally thin -- it does NOT fetch data from the backend.
+ * All shop context is derived reactively from the entity cache, which is
+ * populated by Panel's GraphQL requests flowing through Desktop's proxy.
+ *
+ * On start(), the bridge subscribes to the entity cache. When shops appear
+ * or change, it syncs shop contexts and manages the relay connection
+ * accordingly. No explicit push of shop contexts is needed.
  */
 export class CustomerServiceBridge {
   private ws: WebSocket | null = null;
@@ -68,43 +95,58 @@ export class CustomerServiceBridge {
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
 
-  /** Conversations with an active agent run — prevents duplicate dispatches. */
+  /** Conversations with an active agent run -- prevents duplicate dispatches. */
   private activeConversations = new Set<string>();
 
   /** Cached set of model IDs available under the active provider. Refreshed on provider change. */
   private activeProviderModelIds = new Set<string>();
+
+  /** Entity cache subscription unsubscribe function. */
+  private cacheUnsubscribe: (() => void) | null = null;
 
   constructor(private readonly opts: CustomerServiceBridgeOptions) {}
 
   /** Refresh the cached model list for the active provider. */
   async refreshModelCatalog(): Promise<void> {
     try {
-      // Find the active provider
-      const keysData = await panelServerFetch<{ keys?: Array<{ provider: string; isDefault?: boolean }> }>("/api/provider-keys");
-      const activeProvider = keysData.keys?.find((k) => k.isDefault)?.provider;
+      const keys = getProviderKeysStore()?.getAll() ?? [];
+      const activeProvider = keys.find((k) => k.isDefault)?.provider;
       if (!activeProvider) { this.activeProviderModelIds = new Set(); return; }
 
-      // Get models for that provider only
-      const catalog = await panelServerFetch<{ models?: Record<string, Array<{ id: string }>> }>("/api/models");
+      const vendorDir = getVendorDir() ?? undefined;
+      const catalog = await readFullModelCatalog(undefined, vendorDir);
       const ids = new Set<string>();
-      const providerModels = catalog.models?.[activeProvider] ?? [];
-      for (const m of providerModels) ids.add(m.id);
+      for (const m of catalog[activeProvider] ?? []) ids.add(m.id);
       this.activeProviderModelIds = ids;
     } catch {
       // Keep existing cache on failure
     }
   }
 
-  // ── Public API ──────────────────────────────────────────────────────
+  // -- Public API ------------------------------------------------------------
 
   async start(): Promise<void> {
     this.closed = false;
     this.reconnectAttempt = 0;
-    await this.connect();
+    // Subscribe to entity cache for reactive shop sync
+    this.subscribeToCacheChanges();
+    // Perform initial sync in case shops are already in cache
+    this.syncFromCache();
+    // Only connect to relay if we have shop contexts
+    if (this.shopContexts.size > 0) {
+      await this.connect();
+    } else {
+      log.info("CS bridge started, waiting for shops to appear in entity cache");
+    }
   }
 
   stop(): void {
     this.closed = true;
+    // Unsubscribe from entity cache
+    if (this.cacheUnsubscribe) {
+      this.cacheUnsubscribe();
+      this.cacheUnsubscribe = null;
+    }
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -153,9 +195,60 @@ export class CustomerServiceBridge {
   }
 
   /**
+   * Sync shop contexts from entity cache. Reads all cached shops, filters
+   * for CS-enabled shops bound to this device, and updates the internal
+   * shopContexts map. Also manages relay connection lifecycle:
+   * - Connects if shops appeared and relay is not connected
+   * - Disconnects if all shops were removed
+   */
+  syncFromCache(): void {
+    const { shops } = entityCache.getState();
+    const deviceId = this.opts.gatewayId;
+
+    // Build the set of shops that should be active
+    const activeShopIds = new Set<string>();
+
+    for (const shop of shops) {
+      const cs = shop.services?.customerService;
+      if (!cs?.enabled) continue;
+      if (cs.csDeviceId !== deviceId) continue;
+      if (!cs.assembledPrompt) {
+        log.info(`Shop ${shop.shopName} (${shop.id}) has no assembledPrompt yet, skipping`);
+        continue;
+      }
+
+      const platformShopId = shop.platformShopId;
+      activeShopIds.add(platformShopId);
+
+      // Check if context needs updating
+      const existing = this.shopContexts.get(platformShopId);
+      const newCtx: CSShopContext = {
+        objectId: shop.id,
+        platformShopId,
+        platform: normalizePlatform(shop.platform),
+        systemPrompt: cs.assembledPrompt,
+        csModelOverride: cs.csModelOverride ?? undefined,
+        runProfileId: cs.runProfileId ?? undefined,
+      };
+
+      if (!existing || !this.shopContextEqual(existing, newCtx)) {
+        this.setShopContext(newCtx);
+      }
+    }
+
+    // Remove shops that are no longer active
+    for (const [platformShopId] of this.shopContexts) {
+      if (!activeShopIds.has(platformShopId)) {
+        log.info(`Shop ${platformShopId} no longer active in cache, removing context`);
+        this.removeShopContext(platformShopId);
+      }
+    }
+  }
+
+  /**
    * Handle gateway events forwarded from the RPC client's onEvent callback.
    * Watches for `chat` events with `state: "final"` to auto-forward agent
-   * text output to the buyer — removing the need for a dedicated send_message tool.
+   * text output to the buyer -- removing the need for a dedicated send_message tool.
    */
   onGatewayEvent(evt: GatewayEventFrame): void {
     if (evt.event !== "chat") return;
@@ -194,12 +287,48 @@ export class CustomerServiceBridge {
     }
   }
 
-  // ── Connection management ───────────────────────────────────────────
+  // -- Entity cache subscription ---------------------------------------------
+
+  private subscribeToCacheChanges(): void {
+    // Avoid double-subscribe
+    if (this.cacheUnsubscribe) return;
+
+    this.cacheUnsubscribe = entityCache.subscribe((state, prevState) => {
+      // Only react when the shops array reference changes
+      if (state.shops !== prevState.shops) {
+        this.onShopsChanged();
+      }
+    });
+  }
+
+  private onShopsChanged(): void {
+    const hadShops = this.shopContexts.size > 0;
+    this.syncFromCache();
+    const hasShops = this.shopContexts.size > 0;
+
+    // Connect to relay if shops appeared and we aren't connected
+    if (!hadShops && hasShops && !this.ws && !this.closed) {
+      log.info("Shops appeared in entity cache, connecting to CS relay");
+      this.connect().catch((err) => {
+        log.warn(`CS bridge connect on shop appearance failed: ${(err as Error).message ?? err}`);
+      });
+    }
+
+    // Disconnect from relay if all shops removed
+    if (hadShops && !hasShops && this.ws) {
+      log.info("All shops removed from entity cache, disconnecting from CS relay");
+      this.ws.close();
+      this.ws = null;
+      this.authenticated = false;
+    }
+  }
+
+  // -- Connection management -------------------------------------------------
 
   private async connect(): Promise<void> {
     if (this.closed) return;
 
-    const token = this.opts.getAuthToken();
+    const token = getAuthSession()?.getAccessToken() ?? null;
     if (!token) {
       log.warn("No auth token available, scheduling reconnect");
       this.scheduleReconnect();
@@ -265,19 +394,20 @@ export class CustomerServiceBridge {
     }, delay);
   }
 
-  // ── Frame dispatch ──────────────────────────────────────────────────
+  // -- Frame dispatch --------------------------------------------------------
 
   private onFrame(frame: CSWSFrame): void {
     switch (frame.type) {
+      // Wire-format identifiers from the relay server — not platform-specific restrictions.
       case "cs_tiktok_new_message":
-        this.onTikTokMessage(frame).catch((err) => {
-          log.error("Error handling TikTok message:", err);
+        this.onNewMessage(frame as CSNewMessageFrame).catch((err) => {
+          log.error("Error handling CS message:", err);
         });
         break;
       case "cs_tiktok_new_conversation":
         log.info(
-          `New TikTok conversation: shop=${(frame as CSTikTokNewConversationFrame).shopId} ` +
-          `conv=${(frame as CSTikTokNewConversationFrame).conversationId}`,
+          `New CS conversation: shop=${(frame as CSNewConversationFrame).shopId} ` +
+          `conv=${(frame as CSNewConversationFrame).conversationId}`,
         );
         break;
       case "cs_ack":
@@ -313,7 +443,7 @@ export class CustomerServiceBridge {
     }
   }
 
-  // ── Shop binding ───────────────────────────────────────────────────
+  // -- Shop binding ----------------------------------------------------------
 
   /**
    * Send cs_bind_shops frame to the relay.
@@ -333,12 +463,12 @@ export class CustomerServiceBridge {
     log.info(`Sent shop bindings: ${ids.length} shop(s)`);
   }
 
-  // ── TikTok message handling ─────────────────────────────────────────
+  // -- Inbound message handling -----------------------------------------------
 
-  private async onTikTokMessage(frame: CSTikTokNewMessageFrame): Promise<void> {
+  private async onNewMessage(frame: CSNewMessageFrame): Promise<void> {
     const rpcClient = getRpcClient();
     if (!rpcClient) {
-      log.warn("No RPC client available, dropping TikTok message");
+      log.warn("No RPC client available, dropping CS message");
       return;
     }
 
@@ -363,12 +493,13 @@ export class CustomerServiceBridge {
     //           session registration (capability-manager queries with this key).
     // dispatchKey: the raw key passed to the agent RPC; gateway prepends
     //             "agent:main:" automatically, yielding the same scopeKey.
-    const scopeKey = `agent:main:cs:tiktok:${frame.conversationId}`;
-    const dispatchKey = `cs:tiktok:${frame.conversationId}`;
+    const platform = shop.platform ?? "tiktok";
+    const scopeKey = `agent:main:cs:${platform}:${frame.conversationId}`;
+    const dispatchKey = `cs:${platform}:${frame.conversationId}`;
 
     // 4. Register CSSessionContext via gateway method
     try {
-      await rpcClient.request("tiktok_cs_register_session", {
+      await rpcClient.request("cs_register_session", {
         sessionKey: scopeKey,
         csContext: {
           shopId: shop.objectId,
@@ -382,26 +513,31 @@ export class CustomerServiceBridge {
       return;
     }
 
-    // 5. Set CS RunProfile (restricts tools to CS-only set)
-    const csToolIds = this.opts.csToolIds ?? TIKTOK_CS_TOOL_IDS;
+    // 5. Set CS RunProfile — delegate tool resolution to ToolCapabilityResolver
+    const runProfileId = shop.runProfileId ?? this.opts.defaultRunProfileId;
+    if (!runProfileId) {
+      log.error(`Shop ${shop.objectId} has no runProfileId configured for CS, dropping message`);
+      return;
+    }
     try {
-      await panelServerFetch("/api/tools/run-profile", {
-        method: "PUT",
-        body: JSON.stringify({
-          scopeKey,
-          runProfile: { selectedToolIds: [...csToolIds] },
-        }),
-      });
+      const profile = toolCapabilityResolver.getAllRunProfiles().find(p => p.id === runProfileId);
+      if (!profile) {
+        log.error(`RunProfile "${runProfileId}" not found in cache, dropping message`);
+        return;
+      }
+      toolCapabilityResolver.setSessionRunProfile(scopeKey, {
+        selectedToolIds: profile.selectedToolIds,
+        surfaceId: profile.surfaceId,
+      }, runProfileId);
     } catch (err) {
       log.error(`Failed to set CS RunProfile for ${scopeKey}:`, err);
       return;
     }
 
     // 6. Apply per-shop CS model override (validated against active provider's model catalog)
-    //    CRITICAL: if a stale modelOverride exists on the session file from a previous patch,
-    //    we MUST clear it via sessions.patch { model: null } before dispatching.
-    //    Otherwise the gateway will attempt the unavailable model, trigger auth failover,
-    //    and produce broken responses.
+    //    CRITICAL: if a stale modelOverride points to an unavailable model, we MUST
+    //    clear it via sessions.patch { model: null } before dispatching. Otherwise
+    //    the gateway will attempt the unavailable model and fail with FailoverError.
     if (shop.csModelOverride) {
       if (this.activeProviderModelIds.has(shop.csModelOverride)) {
         try {
@@ -414,12 +550,10 @@ export class CustomerServiceBridge {
         }
       } else {
         log.warn(`CS model override "${shop.csModelOverride}" not available in active provider, clearing session override`);
-        shop.csModelOverride = undefined;
         try {
           await rpcClient.request("sessions.patch", { key: scopeKey, model: null });
         } catch (err) {
-          // If we can't clear the stale override, do NOT dispatch — the run would use the bad model
-          log.error(`Failed to clear stale model override on session ${scopeKey}, dropping message to prevent bad response: ${err instanceof Error ? err.message : String(err)}`);
+          log.error(`Failed to clear stale model override on session ${scopeKey}, dropping message: ${err instanceof Error ? err.message : String(err)}`);
           return;
         }
       }
@@ -444,7 +578,7 @@ export class CustomerServiceBridge {
         sessionKey: dispatchKey,
         message: textContent,
         extraSystemPrompt,
-        idempotencyKey: `tiktok:${frame.messageId}`,
+        idempotencyKey: `${platform}:${frame.messageId}`,
       });
       // Track the run so onGatewayEvent can auto-forward the agent's text output
       if (response?.runId) {
@@ -460,7 +594,19 @@ export class CustomerServiceBridge {
     }
   }
 
-  private parseMessageContent(frame: CSTikTokNewMessageFrame): string {
+  /**
+   * Parse buyer message content from a relay frame.
+   *
+   * Platform-specific parsers can be dispatched here by shop.platform.
+   * For now, all supported platforms use the same message type schema
+   * (TEXT, IMAGE, ORDER_CARD).  When a platform with different message
+   * types is added, extract per-platform parsers and dispatch here.
+   *
+   * Note: ORDER_CARD is currently TikTok-specific. If another platform
+   * sends a different card format, it will fall through to the default
+   * "[{messageType} message received]" branch, which is safe.
+   */
+  private parseMessageContent(frame: CSNewMessageFrame): string {
     const msgType = frame.messageType.toUpperCase();
 
     if (msgType === "TEXT") {
@@ -469,7 +615,7 @@ export class CustomerServiceBridge {
         if (typeof parsed.content === "string") return parsed.content;
         if (typeof parsed.text === "string") return parsed.text;
       } catch {
-        // Not JSON — use raw content
+        // Not JSON -- use raw content
       }
       return frame.content;
     }
@@ -488,36 +634,43 @@ export class CustomerServiceBridge {
     return `[${frame.messageType} message received]`;
   }
 
-  // ── Auto-forward agent text to buyer ──────────────────────────────────
+  // -- Auto-forward agent text to buyer ----------------------------------------
 
   /**
    * Send agent text output to the buyer via the backend GraphQL proxy.
-   * Uses the same `tiktokSendMessage` mutation that the ops send_message tool uses.
+   * Uses the platform-agnostic `ecommerceSendMessage` mutation -- the backend
+   * resolver routes by shop.platform, so no platform dispatch is needed here.
    */
   private async forwardTextToBuyer(
     shopId: string,
     conversationId: string,
     text: string,
   ): Promise<void> {
-    const mutation = `
-      mutation($shopId: String!, $conversationId: String!, $type: String!, $content: String!) {
-        tiktokSendMessage(shopId: $shopId, conversationId: $conversationId, type: $type, content: $content) {
-          code message data
-        }
-      }
-    `;
-    await panelServerFetch("/api/cloud/graphql", {
-      method: "POST",
-      body: JSON.stringify({
-        query: mutation,
-        variables: {
-          shopId,
-          conversationId,
-          type: "TEXT",
-          content: JSON.stringify({ content: text }),
-        },
-      }),
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn("No auth session available, cannot forward text to buyer");
+      return;
+    }
+    await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
+      shopId,
+      conversationId,
+      type: "TEXT",
+      content: JSON.stringify({ content: text }),
     });
     log.info(`Auto-forwarded agent text to buyer (${text.length} chars)`);
+  }
+
+  // -- Internal helpers -------------------------------------------------------
+
+  /** Shallow equality check for CSShopContext to avoid unnecessary updates. */
+  private shopContextEqual(a: CSShopContext, b: CSShopContext): boolean {
+    return (
+      a.objectId === b.objectId &&
+      a.platformShopId === b.platformShopId &&
+      a.platform === b.platform &&
+      a.systemPrompt === b.systemPrompt &&
+      a.csModelOverride === b.csModelOverride &&
+      a.runProfileId === b.runProfileId
+    );
   }
 }

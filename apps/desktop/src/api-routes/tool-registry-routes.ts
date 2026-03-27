@@ -3,23 +3,28 @@ import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { toolCapabilityResolver } from "../utils/tool-capability-resolver.js";
 
+
 // ── Session key parsing ─────────────────────────────────────────────────────
-// Pure function: sessionKey → scopeType.
-// Phase 1: string-based rules. Phase 2: SQLite lookup for Channel persistence.
+// Pure function: sessionKey → scopeType (string-based rules).
 
 /**
  * Parse a sessionKey into its ScopeType.
  *
  * Rules (evaluated in order):
  * - Contains ":cron:" → CRON_JOB
- * - Starts with "cs:" → CS_SESSION
+ * - Contains ":cs:" → CS_SESSION
  * - Everything else → CHAT_SESSION (covers ChatPage, Channels, etc.)
  */
 export function parseScopeType(sessionKey: string): ScopeType {
   if (sessionKey.includes(":cron:")) return ScopeType.CRON_JOB;
-  if (sessionKey.includes(":cs:") || sessionKey.startsWith("cs:")) return ScopeType.CS_SESSION;
+  if (sessionKey.includes(":cs:")) return ScopeType.CS_SESSION;
   if (sessionKey.startsWith("agent:")) return ScopeType.CHAT_SESSION;
   return ScopeType.UNKNOWN;
+}
+
+/** Look up a RunProfile by ID from the CapabilityResolver. */
+function resolveRunProfile(runProfileId: string): { selectedToolIds: string[]; surfaceId?: string } | null {
+  return toolCapabilityResolver.getAllRunProfiles().find(p => p.id === runProfileId) ?? null;
 }
 
 /**
@@ -48,60 +53,97 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
     return true;
   }
 
-  // GET /api/tools/available — full tool list for Panel UI
+  // GET /api/tools/available — full tool list with display metadata
   if (pathname === "/api/tools/available" && req.method === "GET") {
-    const entitledMeta = ctx.authSession?.getAccessToken()
-      ? (ctx.authSession.getCachedAvailableTools()
-        ?? await ctx.authSession.fetchAvailableTools().catch(() => []))
-      : [];
-
-    sendJson(res, 200, { tools: toolCapabilityResolver.getToolList(entitledMeta) });
+    sendJson(res, 200, { tools: toolCapabilityResolver.getToolList() });
     return true;
   }
 
-  // PUT /api/tools/default-run-profile — set/clear the user's default RunProfile
+  // GET /api/tools/surfaces — all surfaces (system + user) with resolved tool lists
+  if (pathname === "/api/tools/surfaces" && req.method === "GET") {
+    sendJson(res, 200, { surfaces: toolCapabilityResolver.getAllSurfaces() });
+    return true;
+  }
+
+  // GET /api/tools/run-profiles — all run profiles (system + user)
+  if (pathname === "/api/tools/run-profiles" && req.method === "GET") {
+    sendJson(res, 200, { runProfiles: toolCapabilityResolver.getAllRunProfiles() });
+    return true;
+  }
+
+  // PUT /api/tools/default-run-profile — set/clear the user's default RunProfile (by ID)
   if (pathname === "/api/tools/default-run-profile" && req.method === "PUT") {
-    const body = await parseBody(req) as { runProfile?: { selectedToolIds: string[]; surfaceId?: string } | null };
-    toolCapabilityResolver.setDefaultRunProfile(body.runProfile ?? null);
+    const body = await parseBody(req) as { runProfileId?: string | null };
+    if (!body.runProfileId) {
+      toolCapabilityResolver.setDefaultRunProfile(null);
+      sendJson(res, 200, { ok: true });
+      return true;
+    }
+    const profile = resolveRunProfile(body.runProfileId);
+    if (!profile) {
+      sendJson(res, 404, { error: `RunProfile "${body.runProfileId}" not found in cache` });
+      return true;
+    }
+    toolCapabilityResolver.setDefaultRunProfile({
+      selectedToolIds: profile.selectedToolIds,
+      surfaceId: profile.surfaceId,
+    });
     sendJson(res, 200, { ok: true });
     return true;
   }
 
   // PUT /api/tools/run-profile — set RunProfile for a specific session
+  // Accepts either:
+  //   { scopeKey, runProfileId }       — look up a cached profile by ID
+  //   { scopeKey, runProfile: { ... } } — inline profile (ad-hoc tool selection)
   if (pathname === "/api/tools/run-profile" && req.method === "PUT") {
     const body = await parseBody(req) as {
       scopeKey?: string;
-      runProfile?: { selectedToolIds: string[]; surfaceId?: string } | null;
+      runProfileId?: string | null;
+      runProfile?: { id?: string; selectedToolIds: string[]; surfaceId?: string } | null;
     };
     if (!body.scopeKey) {
       sendJson(res, 400, { error: "Missing scopeKey" });
       return true;
     }
-    toolCapabilityResolver.setSessionRunProfile(body.scopeKey, body.runProfile ?? null);
+
+    // Inline runProfile takes precedence (backward-compatible path)
+    if (body.runProfile && typeof body.runProfile === "object") {
+      toolCapabilityResolver.setSessionRunProfile(body.scopeKey, {
+        selectedToolIds: body.runProfile.selectedToolIds,
+        surfaceId: body.runProfile.surfaceId,
+      }, body.runProfile.id ?? null);
+      sendJson(res, 200, { ok: true });
+      return true;
+    }
+
+    // runProfileId path: look up from cached profiles
+    if (!body.runProfileId) {
+      toolCapabilityResolver.setSessionRunProfile(body.scopeKey, null);
+      sendJson(res, 200, { ok: true });
+      return true;
+    }
+    const profile = resolveRunProfile(body.runProfileId);
+    if (!profile) {
+      sendJson(res, 404, { error: `RunProfile "${body.runProfileId}" not found in cache` });
+      return true;
+    }
+    toolCapabilityResolver.setSessionRunProfile(body.scopeKey, {
+      selectedToolIds: profile.selectedToolIds,
+      surfaceId: profile.surfaceId,
+    }, body.runProfileId);
     sendJson(res, 200, { ok: true });
     return true;
   }
 
-  // GET /api/tools/run-profile — get RunProfile for a session
+  // GET /api/tools/run-profile — get RunProfile ID for a session
   if (pathname === "/api/tools/run-profile" && req.method === "GET") {
     const scopeKey = url.searchParams.get("scopeKey");
     if (!scopeKey) {
       sendJson(res, 400, { error: "Missing scopeKey" });
       return true;
     }
-    sendJson(res, 200, { runProfile: toolCapabilityResolver.getSessionRunProfile(scopeKey) });
-    return true;
-  }
-
-  // DELETE /api/tools/run-profile — clear RunProfile for a session
-  if (pathname === "/api/tools/run-profile" && req.method === "DELETE") {
-    const scopeKey = url.searchParams.get("scopeKey");
-    if (!scopeKey) {
-      sendJson(res, 400, { error: "Missing scopeKey" });
-      return true;
-    }
-    toolCapabilityResolver.setSessionRunProfile(scopeKey, null);
-    sendJson(res, 200, { ok: true });
+    sendJson(res, 200, { runProfileId: toolCapabilityResolver.getSessionRunProfileId(scopeKey) });
     return true;
   }
 

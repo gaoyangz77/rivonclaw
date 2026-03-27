@@ -4,6 +4,7 @@ import { ME_QUERY } from "../../api/auth-queries.js";
 import { getClient } from "../../api/apollo-client.js";
 import { trackEvent } from "../../api/settings.js";
 import { fetchJson, fetchVoid } from "../../api/client.js";
+import { warmToolSpecs } from "../../api/presets.js";
 import type { PanelStore } from "../panel-store.js";
 
 export interface AuthSlice {
@@ -28,13 +29,20 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
       const session = await fetchJson<{ user: GQL.MeResponse | null; authenticated: boolean }>("/auth/session");
       if (session.authenticated && session.user) {
         set({ user: session.user, authenticated: true, authLoading: false });
-        get().syncEnrolledModules((session.user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+        const modules = (session.user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[];
+        get().syncEnrolledModules(modules);
         get().fetchSubscription();
         get().fetchLlmQuota();
-        get().fetchSurfaces();
-        get().fetchRunProfiles();
-        get().fetchAvailableTools();
+        // Warm entity-cache with toolSpecs, then fetch presets and available tools
+        warmToolSpecs().catch(() => {}).then(() => {
+          get().fetchSurfaces();
+          get().fetchRunProfiles();
+          get().fetchAvailableTools();
+        });
         get().fetchProviderKeys();
+        if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
+          get().fetchShops();
+        }
         return;
       }
       if (session.authenticated && !session.user) {
@@ -46,13 +54,20 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
           });
           if (data?.me) {
             set({ user: data.me, authenticated: true, authLoading: false });
-            get().syncEnrolledModules((data.me.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+            const modules = (data.me.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[];
+            get().syncEnrolledModules(modules);
             get().fetchSubscription();
             get().fetchLlmQuota();
-            get().fetchSurfaces();
-            get().fetchRunProfiles();
-            get().fetchAvailableTools();
+            // Warm entity-cache with toolSpecs, then fetch presets and available tools
+            warmToolSpecs().catch(() => {}).then(() => {
+              get().fetchSurfaces();
+              get().fetchRunProfiles();
+              get().fetchAvailableTools();
+            });
             get().fetchProviderKeys();
+            if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
+              get().fetchShops();
+            }
             return;
           }
         } catch {
@@ -73,14 +88,21 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
       body: JSON.stringify(input),
     });
     set({ user, authenticated: true });
-    get().syncEnrolledModules((user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+    const modules = (user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[];
+    get().syncEnrolledModules(modules);
     trackEvent("auth.login");
     get().fetchSubscription();
     get().fetchLlmQuota();
-    get().fetchSurfaces();
-    get().fetchRunProfiles();
-    get().fetchAvailableTools();
+    // Warm entity-cache with toolSpecs, then fetch presets and available tools
+    warmToolSpecs().catch(() => {}).then(() => {
+      get().fetchSurfaces();
+      get().fetchRunProfiles();
+      get().fetchAvailableTools();
+    });
     get().fetchProviderKeys();
+    if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
+      get().fetchShops();
+    }
   },
 
   register: async (input: GQL.RegisterInput) => {
@@ -89,14 +111,21 @@ export const createAuthSlice: StateCreator<PanelStore, [], [], AuthSlice> = (set
       body: JSON.stringify(input),
     });
     set({ user, authenticated: true });
-    get().syncEnrolledModules((user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[]);
+    const modules = (user.enrolledModules ?? []) as import("./modules-slice.js").ModuleId[];
+    get().syncEnrolledModules(modules);
     trackEvent("auth.register");
     get().fetchSubscription();
     get().fetchLlmQuota();
-    get().fetchSurfaces();
-    get().fetchRunProfiles();
-    get().fetchAvailableTools();
+    // Warm entity-cache with toolSpecs, then fetch presets and available tools
+    warmToolSpecs().catch(() => {}).then(() => {
+      get().fetchSurfaces();
+      get().fetchRunProfiles();
+      get().fetchAvailableTools();
+    });
     get().fetchProviderKeys();
+    if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
+      get().fetchShops();
+    }
   },
 
   logout: () => {

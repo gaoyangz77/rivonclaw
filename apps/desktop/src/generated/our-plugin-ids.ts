@@ -3,12 +3,11 @@ export const OUR_PLUGIN_IDS: ReadonlySet<string> = new Set([
   "openclaw-weixin",
   "rivonclaw-browser-profiles-tools",
   "rivonclaw-capability-manager",
-  "rivonclaw-ecommerce",
+  "rivonclaw-cloud-tools",
   "rivonclaw-event-bridge",
   "rivonclaw-file-permissions",
   "rivonclaw-mobile-chat-channel",
   "rivonclaw-policy",
   "rivonclaw-search-browser-fallback",
-  "rivonclaw-tools",
-  "tiktok-shop"
+  "rivonclaw-tools"
 ]);

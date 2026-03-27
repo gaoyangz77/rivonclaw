@@ -1,7 +1,15 @@
 import type { StateCreator } from "zustand";
-import { fetchAvailableTools as apiFetchAvailableTools } from "../../api/tool-registry.js";
-import type { AvailableTool } from "../../api/tool-registry.js";
+import { fetchJson } from "../../api/client.js";
 import type { PanelStore } from "../panel-store.js";
+
+/** Tool metadata for Panel display. */
+export interface AvailableTool {
+  id: string;
+  displayName: string;
+  description: string;
+  category: string;
+  source?: "system" | "extension" | "entitled";
+}
 
 export interface AvailableToolsSlice {
   availableTools: AvailableTool[];
@@ -15,8 +23,8 @@ export const createAvailableToolsSlice: StateCreator<PanelStore, [], [], Availab
 
   fetchAvailableTools: async () => {
     try {
-      const tools = await apiFetchAvailableTools();
-      set({ availableTools: tools });
+      const data = await fetchJson<{ tools: AvailableTool[] }>("/tools/available");
+      set({ availableTools: data.tools ?? [] });
     } catch {
       // Silently fail — tools list is non-critical
     }

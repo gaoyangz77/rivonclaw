@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../api/index.js";
+import { invalidateCache } from "../api/client.js";
 import { configManager } from "../lib/config-manager.js";
 import { ModelSelect } from "../components/inputs/ModelSelect.js";
 import { Select } from "../components/inputs/Select.js";
@@ -29,6 +30,13 @@ export function ProvidersPage() {
   const [editLabelValue, setEditLabelValue] = useState("");
   const [editBaseUrl, setEditBaseUrl] = useState("");
   const [refreshingModelsId, setRefreshingModelsId] = useState<string | null>(null);
+
+  // Invalidate cache + fetch latest keys on mount — ensures data is fresh
+  // when navigating to this page (e.g., keys added via API or cloud sync)
+  useEffect(() => {
+    invalidateCache("provider-keys");
+    storeFetchKeys();
+  }, [storeFetchKeys]);
 
   async function handleUpdateKey(keyId: string, provider: string) {
     if (!updateApiKey.trim()) return;

@@ -17,6 +17,7 @@ export interface CustomerServiceConfig {
   runProfileId?: string;
   csDeviceId?: string | null;
   csModelOverride?: string;
+  assembledPrompt?: string | null;
 }
 
 export interface CustomerServiceBilling {

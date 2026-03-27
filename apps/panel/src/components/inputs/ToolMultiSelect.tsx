@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToolRegistry } from "../../stores/index.js";
+import { useToolDisplayLabel } from "../../lib/tool-display.js";
 
 interface ToolMultiSelectProps {
   /** Currently selected tool IDs */
@@ -41,18 +42,7 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
     return t(`tools.selector.category.${category}`, { defaultValue: category });
   }
 
-  function toolLabel(tool: { id: string; displayName: string }): string {
-    return t(`tools.selector.name.${tool.id}`, { defaultValue: tool.displayName });
-  }
-
-  function sourceLabel(catTools: typeof tools): string | null {
-    const source = catTools[0]?.source;
-    if (!source) return null;
-    if (source === "system") return t("tools.selector.sourceSystem");
-    if (source === "extension") return t("tools.selector.sourceExtension");
-    if (source === "entitled") return t("tools.selector.sourceCloud");
-    return null;
-  }
+  const toolLabel = useToolDisplayLabel();
 
   function toggleCollapse(category: string) {
     setCollapsed((prev) => {
@@ -100,7 +90,6 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
         const allSelected = catTools.every((tool) => selected.has(tool.id));
         const someSelected = !allSelected && catTools.some((tool) => selected.has(tool.id));
         const isCollapsed = collapsed.has(category);
-        const badge = sourceLabel(catTools);
         return (
           <div key={category} className="tool-ms-group">
             <div className="tool-ms-group-header">
@@ -118,7 +107,6 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
                 <span className={`tool-ms-chevron${isCollapsed ? "" : " tool-ms-chevron-open"}`}>&#9656;</span>
                 {categoryLabel(category)}
               </span>
-              {badge && <span className="tool-ms-source-badge">{badge}</span>}
               <span className="tool-ms-group-count">{catTools.filter((tool) => selected.has(tool.id)).length}/{catTools.length}</span>
             </div>
             {!isCollapsed && (
@@ -131,7 +119,7 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
                       checked={selected.has(tool.id)}
                       onChange={() => toggle(tool.id)}
                     />
-                    <span className="tool-ms-item-name">{toolLabel(tool)}</span>
+                    <span className="tool-ms-item-name">{toolLabel(tool.id)}</span>
                   </label>
                 ))}
               </div>

@@ -49,8 +49,8 @@ export type {
   CSCreateBindingAckFrame,
   CSUnbindAllFrame,
   CSBindingResolvedFrame,
-  CSTikTokNewConversationFrame,
-  CSTikTokNewMessageFrame,
+  CSNewConversationFrame,
+  CSNewMessageFrame,
   CSWSFrame,
   PlatformAdapter,
 } from "./customer-service.js";
@@ -117,8 +117,6 @@ export type {
   SurfaceAvailabilityResult,
   ToolCapabilityResult,
 } from "./tool-capability.js";
-
-export * from "./tiktok-tools.js";
 
 export * from "./cs-skill-template.js";
 

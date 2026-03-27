@@ -24,7 +24,11 @@ export const createModulesSlice: StateCreator<PanelStore, [], [], ModulesSlice> 
       variables: { moduleId },
     });
     if (data?.enrollModule) {
-      set({ enrolledModules: new Set(data.enrollModule.enrolledModules as ModuleId[]) });
+      const modules = data.enrollModule.enrolledModules as ModuleId[];
+      set({ enrolledModules: new Set(modules) });
+      if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
+        get().fetchShops();
+      }
     }
   },
 

@@ -590,7 +590,7 @@ export function EcommercePage() {
   const runProfileOptions = useMemo(
     () => runProfiles.map((p) => ({
       value: p.id,
-      label: p.userId === null ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string) : p.name,
+      label: !p.userId ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string) : p.name,
     })),
     [runProfiles],
   );
@@ -612,7 +612,9 @@ export function EcommercePage() {
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
-    return t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
+    const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: "" }) : "";
+    const nameLabel = t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
+    return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   }
 
   const csCredits = credits.filter((c) => c.service === "CUSTOMER_SERVICE" && c.status === "AVAILABLE");

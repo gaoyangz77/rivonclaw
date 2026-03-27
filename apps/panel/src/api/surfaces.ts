@@ -1,7 +1,6 @@
 import { getClient, trackedQuery } from "./apollo-client.js";
 import {
   SURFACES_QUERY,
-  SYSTEM_SURFACES_QUERY,
   CREATE_SURFACE_MUTATION,
   UPDATE_SURFACE_MUTATION,
   DELETE_SURFACE_MUTATION,
@@ -28,17 +27,6 @@ export async function fetchSurfaces(): Promise<Surface[]> {
       fetchPolicy: "cache-first",
     });
     return result.data!.surfaces;
-  });
-}
-
-export async function fetchSystemSurfaces(moduleId?: string): Promise<Surface[]> {
-  return trackedQuery(async () => {
-    const result = await getClient().query<{ systemSurfaces: Surface[] }>({
-      query: SYSTEM_SURFACES_QUERY,
-      variables: moduleId ? { moduleId } : {},
-      fetchPolicy: "cache-first",
-    });
-    return result.data!.systemSurfaces;
   });
 }
 
@@ -83,6 +71,7 @@ export async function deleteSurface(id: string): Promise<boolean> {
       mutation: DELETE_SURFACE_MUTATION,
       variables: { id },
       refetchQueries: [{ query: SURFACES_QUERY }, { query: RUN_PROFILES_QUERY }],
+      awaitRefetchQueries: true,
     });
     return result.data!.deleteSurface;
   });

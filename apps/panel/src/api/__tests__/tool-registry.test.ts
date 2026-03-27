@@ -19,11 +19,9 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 import {
-  fetchAvailableTools,
   setRunProfileForScope,
   getRunProfileForScope,
   setDefaultRunProfile,
-  ScopeType,
 } from "../tool-registry.js";
 
 // ---------------------------------------------------------------------------
@@ -33,58 +31,35 @@ import {
 describe("tool-registry", () => {
   beforeEach(() => mockFetch.mockReset());
 
-  describe("fetchAvailableTools", () => {
-    it("calls /tools/available and returns tools array", async () => {
-      const tools = [{ id: "t1", displayName: "Tool 1", description: "", category: "general", allowed: true }];
-      mockFetch.mockResolvedValue(jsonResponse({ tools }));
-
-      const result = await fetchAvailableTools();
-
-      expect(mockFetch).toHaveBeenCalledWith("/api/tools/available", expect.anything());
-      expect(result).toEqual(tools);
-    });
-
-    it("returns empty array on error", async () => {
-      mockFetch.mockResolvedValue(jsonResponse({ error: "Server error" }, 500));
-
-      const result = await fetchAvailableTools();
-
-      expect(result).toEqual([]);
-    });
-  });
-
   describe("setRunProfileForScope", () => {
-    it("calls PUT /tools/run-profile with correct body", async () => {
+    it("calls PUT /tools/run-profile with runProfileId", async () => {
       mockFetch.mockResolvedValue(jsonResponse({}));
-      const profile = { id: "p1", name: "Profile 1", selectedToolIds: ["t1"], surfaceId: "s1" };
 
-      await setRunProfileForScope(ScopeType.CHAT_SESSION, "sk1", profile);
+      await setRunProfileForScope("sk1", "p1");
 
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/tools/run-profile",
         expect.objectContaining({
           method: "PUT",
           body: JSON.stringify({
-            scopeType: ScopeType.CHAT_SESSION,
             scopeKey: "sk1",
-            runProfile: profile,
+            runProfileId: "p1",
           }),
         }),
       );
     });
 
-    it("passes null runProfile to clear", async () => {
+    it("passes null runProfileId to clear", async () => {
       mockFetch.mockResolvedValue(jsonResponse({}));
 
-      await setRunProfileForScope(ScopeType.CHAT_SESSION, "sk1", null);
+      await setRunProfileForScope("sk1", null);
 
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/tools/run-profile",
         expect.objectContaining({
           body: JSON.stringify({
-            scopeType: ScopeType.CHAT_SESSION,
             scopeKey: "sk1",
-            runProfile: null,
+            runProfileId: null,
           }),
         }),
       );
@@ -92,40 +67,52 @@ describe("tool-registry", () => {
   });
 
   describe("getRunProfileForScope", () => {
-    it("calls /tools/run-profile with query params and returns profile", async () => {
-      const profile = { id: "p1", name: "Profile 1", selectedToolIds: ["t1"], surfaceId: "s1" };
-      mockFetch.mockResolvedValue(jsonResponse({ runProfile: profile }));
+    it("calls /tools/run-profile with query params and returns runProfileId", async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ runProfileId: "p1" }));
 
-      const result = await getRunProfileForScope(ScopeType.CHAT_SESSION, "sk1");
+      const result = await getRunProfileForScope("sk1");
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/tools/run-profile?"),
         expect.anything(),
       );
-      expect(result).toEqual(profile);
+      expect(result).toBe("p1");
     });
 
     it("returns null on error", async () => {
       mockFetch.mockResolvedValue(jsonResponse({ error: "not found" }, 404));
 
-      const result = await getRunProfileForScope(ScopeType.CHAT_SESSION, "sk1");
+      const result = await getRunProfileForScope("sk1");
 
       expect(result).toBeNull();
     });
   });
 
   describe("setDefaultRunProfile", () => {
-    it("calls PUT /tools/default-run-profile with correct body", async () => {
+    it("calls PUT /tools/default-run-profile with runProfileId", async () => {
       mockFetch.mockResolvedValue(jsonResponse({}));
-      const profile = { id: "p1", name: "Default", selectedToolIds: ["t1", "t2"], surfaceId: "s1" };
 
-      await setDefaultRunProfile(profile);
+      await setDefaultRunProfile("p1");
 
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/tools/default-run-profile",
         expect.objectContaining({
           method: "PUT",
-          body: JSON.stringify({ runProfile: profile }),
+          body: JSON.stringify({ runProfileId: "p1" }),
+        }),
+      );
+    });
+
+    it("passes null to clear default", async () => {
+      mockFetch.mockResolvedValue(jsonResponse({}));
+
+      await setDefaultRunProfile(null);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/tools/default-run-profile",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ runProfileId: null }),
         }),
       );
     });

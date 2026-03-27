@@ -14,24 +14,12 @@ const LOGOUT_MUTATION = `mutation Logout($refreshToken: String!) { logout(refres
 const LOGIN_MUTATION = `mutation Login($input: LoginInput!) { login(input: $input) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
 const REGISTER_MUTATION = `mutation Register($input: RegisterInput!) { register(input: $input) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
 const REQUEST_CAPTCHA_MUTATION = `mutation RequestCaptcha { requestCaptcha { token svg } }`;
-const AVAILABLE_TOOLS_QUERY = `query { availableTools { id displayName description category allowed denialReason } }`;
-
-export interface AvailableTool {
-  id: string;
-  displayName: string;
-  description: string;
-  category: string;
-  allowed: boolean;
-  denialReason?: string;
-}
-
 export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
 
 export class AuthSessionManager {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private cachedUser: GQL.MeResponse | null = null;
-  private cachedAvailableTools: AvailableTool[] | null = null;
   private refreshPromise: Promise<string> | null = null;
   private userChangedListeners: UserChangedListener[] = [];
 
@@ -86,7 +74,6 @@ export class AuthSessionManager {
     this.accessToken = null;
     this.refreshToken = null;
     await this.setUser(null);
-    this.cachedAvailableTools = null;
     await this.secretStore.delete(ACCESS_TOKEN_KEY);
     await this.secretStore.delete(REFRESH_TOKEN_KEY);
   }
@@ -177,18 +164,6 @@ export class AuthSessionManager {
   async requestCaptcha(): Promise<{ token: string; svg: string }> {
     const data = await this.graphqlFetch<{ requestCaptcha: { token: string; svg: string } }>(REQUEST_CAPTCHA_MUTATION);
     return data.requestCaptcha;
-  }
-
-  /** Fetch available tools from the cloud and cache the result. */
-  async fetchAvailableTools(): Promise<AvailableTool[]> {
-    const result = await this.graphqlFetch<{ availableTools: AvailableTool[] }>(AVAILABLE_TOOLS_QUERY);
-    this.cachedAvailableTools = result.availableTools;
-    return result.availableTools;
-  }
-
-  /** Return the cached available tools, or null if not yet fetched. */
-  getCachedAvailableTools(): AvailableTool[] | null {
-    return this.cachedAvailableTools;
   }
 
   /** Lightweight GraphQL fetch to the cloud backend. Public so config builder can use it. */

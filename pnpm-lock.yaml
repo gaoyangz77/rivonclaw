@@ -93,6 +93,9 @@ importers:
       ws:
         specifier: ^8.18.0
         version: 8.19.0
+      zustand:
+        specifier: ^5.0.12
+        version: 5.0.12(@types/react@19.2.13)(immer@11.1.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
       '@electron/notarize':
         specifier: ^3.0.0
@@ -103,15 +106,15 @@ importers:
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
-      '@rivonclaw/ecommerce':
-        specifier: workspace:*
-        version: link:../../extensions-merchant/rivonclaw-ecommerce
       '@rivonclaw/rivonclaw-browser-profiles-tools':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-browser-profiles-tools
       '@rivonclaw/rivonclaw-capability-manager':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-capability-manager
+      '@rivonclaw/rivonclaw-cloud-tools':
+        specifier: workspace:*
+        version: link:../../extensions-merchant/rivonclaw-cloud-tools
       '@rivonclaw/rivonclaw-event-bridge':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-event-bridge
@@ -246,29 +249,7 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
-  extensions-merchant/rivonclaw-ecommerce:
-    dependencies:
-      '@rivonclaw/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      '@rivonclaw/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@sinclair/typebox':
-        specifier: ^0.34.0
-        version: 0.34.48
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  extensions-merchant/tiktok-shop:
+  extensions-merchant/rivonclaw-cloud-tools:
     dependencies:
       '@rivonclaw/plugin-sdk':
         specifier: workspace:*
@@ -281,7 +262,7 @@ importers:
         specifier: ^0.34.0
         version: 0.34.48
       '@types/node':
-        specifier: ^22.15.0
+        specifier: ^22.0.0
         version: 22.19.9
       oxlint:
         specifier: ^1.43.0
@@ -2185,6 +2166,7 @@ packages:
   '@rolldown/binding-darwin-arm64@1.0.0-rc.3':
     resolution: {integrity: sha512-JWWLzvcmc/3pe7qdJqPpuPk91SoE/N+f3PcWx/6ZwuyDVyungAEJPvKm/eEldiDdwTmaEzWfIR+HORxYWrCi1A==}
     engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
     os: [darwin]
 
   '@rolldown/binding-darwin-x64@1.0.0-rc.3':
