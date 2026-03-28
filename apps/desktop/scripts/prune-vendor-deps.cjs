@@ -170,7 +170,7 @@ try {
     cwd: vendorDir,
     stdio: "inherit",
     timeout: 120_000,
-    env: { ...process.env, CI: "true" },
+    env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
   });
 } catch (err) {
   console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
