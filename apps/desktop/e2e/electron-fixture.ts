@@ -173,19 +173,11 @@ async function launchElectronApp(
     // different ports).
     await ensurePortFree(ports.gateway);
 
-    // Chrome instances launched by ManagedBrowserService are detached
-    // (spawn with detached: true + unref) and use --user-data-dir under
-    // the test's temp directory. They survive Electron shutdown.
-    // Kill them by matching the unique tempDir in their command line.
-    try {
-      if (process.platform === "win32") {
-        execSync(`wmic process where "CommandLine like '%${tempDir.replace(/\\/g, "\\\\")}%'" call terminate 2>nul`, { stdio: "ignore", shell: "cmd.exe" });
-      } else {
-        execSync(`pkill -9 -f ${JSON.stringify(tempDir)} 2>/dev/null || true`, { stdio: "ignore" });
-      }
-    } catch {
-      // Best-effort cleanup
-    }
+    // NOTE: Chrome cleanup removed — session-state-agent tests (the only
+    // tests that launched Chrome via ManagedBrowserService) have been deleted.
+    // If browser-profile tests return, track spawned PIDs in a file under
+    // tempDir instead of scanning all processes (pkill/pgrep -f takes 20-50s
+    // on macOS due to slow proc_info kernel calls).
     if (testFailed) {
       // Keep temp dir for debugging — print its path
       console.log(`[e2e] Test FAILED — temp dir preserved: ${tempDir}`);
