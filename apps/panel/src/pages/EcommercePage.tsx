@@ -10,6 +10,9 @@ import { useEntityStore } from "../store/EntityStoreProvider.js";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
 import { configManager } from "../lib/config-manager.js";
 import { fetchJson, fetchVoid } from "../api/client.js";
+import { useToast } from "../components/Toast.js";
+import { fetchInstalledSkills, writeSkillTemplate } from "../api/skills.js";
+import { fetchCsSkillTemplate } from "../api/shops.js";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -73,9 +76,8 @@ export const EcommercePage = observer(function EcommercePage() {
   const [sessionStatsLoading, setSessionStatsLoading] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
   const [upgradePrompt, setUpgradePrompt] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthWaiting, setOauthWaiting] = useState(false);
   const [oauthAuthUrl, setOauthAuthUrl] = useState<string | null>(null);
@@ -104,6 +106,9 @@ export const EcommercePage = observer(function EcommercePage() {
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
   const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
   const [togglingBindShopId, setTogglingBindShopId] = useState<string | null>(null);
+
+  // CS skill template auto-download state
+  const [csSkillChecked, setCsSkillChecked] = useState(false);
 
   // Model options from the active LLM key's provider (same pattern as ChatPage)
   const [csModelOptions, setCsModelOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -218,6 +223,26 @@ export const EcommercePage = observer(function EcommercePage() {
     return null;
   }, [selectedMarket, selectedPlatform, matchedApps, t]);
 
+  // Auto-download CS skill template on first CS tab open
+  useEffect(() => {
+    if (activeTab !== "aiCustomerService" || csSkillChecked) return;
+    setCsSkillChecked(true);
+
+    (async () => {
+      try {
+        const installed = await fetchInstalledSkills();
+        if (installed.some((s) => s.slug === "customer-service")) return;
+
+        const content = await fetchCsSkillTemplate();
+        if (!content) return;
+
+        await writeSkillTemplate("customer-service", content);
+      } catch {
+        // Silent — skill template is optional, don't block CS usage
+      }
+    })();
+  }, [activeTab, csSkillChecked]);
+
   // Fetch credits on mount (user-level, not shop-specific)
   useEffect(() => {
     if (user) {
@@ -242,10 +267,9 @@ export const EcommercePage = observer(function EcommercePage() {
   function handleError(err: unknown, fallbackKey: string) {
     if (hasUpgradeRequired(err)) {
       setUpgradePrompt(true);
-      setError(null);
     } else {
       setUpgradePrompt(false);
-      setError(err instanceof Error ? err.message : t(fallbackKey));
+      showToast(err instanceof Error ? err.message : t(fallbackKey), "error");
     }
   }
 
@@ -258,7 +282,7 @@ export const EcommercePage = observer(function EcommercePage() {
         const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
         cleanupOAuthWait();
         setConnectModalOpen(false);
-        setSuccessMsg(t("ecommerce.oauthSuccess"));
+        showToast(t("ecommerce.oauthSuccess"), "success");
         // Shops auto-update via MST/SSE — no manual fetch needed
         void data;
       } catch {
@@ -274,7 +298,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
     oauthTimeoutRef.current = setTimeout(() => {
       cleanupOAuthWait();
-      setError(t("ecommerce.oauthTimeout"));
+      showToast(t("ecommerce.oauthTimeout"), "error");
     }, OAUTH_TIMEOUT_MS);
   }
 
@@ -290,8 +314,6 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleConnectShop() {
     if (!selectedPlatformAppId) return;
     setOauthLoading(true);
-    setError(null);
-    setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
       const { authUrl } = await entityStore.initiateTikTokOAuth(selectedPlatformAppId);
@@ -318,7 +340,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
   function handleCancelOAuth() {
     cleanupOAuthWait();
-    setError(null);
+
     setConnectModalOpen(false);
   }
 
@@ -326,13 +348,13 @@ export const EcommercePage = observer(function EcommercePage() {
     const shop = shops.find((s) => s.id === shopId);
     const appId = shop?.platformAppId || (platformApps.length > 0 ? platformApps[0].id : "");
     if (!appId) {
-      setError(t("ecommerce.oauthFailed"));
+      showToast(t("ecommerce.oauthFailed"), "error");
       return;
     }
 
     setOauthLoading(true);
-    setError(null);
-    setSuccessMsg(null);
+
+
     setUpgradePrompt(false);
     try {
       const { authUrl } = await entityStore.initiateTikTokOAuth(appId);
@@ -349,7 +371,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
   async function handleDeleteShop(shopId: string) {
     setConfirmDeleteShopId(null);
-    setError(null);
+
     setUpgradePrompt(false);
     try {
       await entityStore.deleteShop(shopId);
@@ -357,8 +379,7 @@ export const EcommercePage = observer(function EcommercePage() {
       if (selectedShopId === shopId) {
         closeDrawer();
       }
-      setSuccessMsg(t("ecommerce.disconnectSuccess"));
-      setTimeout(() => setSuccessMsg(null), 3000);
+      showToast(t("ecommerce.disconnectSuccess"), "success");
     } catch (err) {
       handleError(err, "ecommerce.deleteFailed");
     }
@@ -366,7 +387,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
   async function handleToggleCustomerService(shopId: string, currentValue: boolean) {
     setTogglingServiceId(shopId);
-    setError(null);
+
     setUpgradePrompt(false);
     try {
       await entityStore.updateShop(shopId, {
@@ -391,7 +412,7 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleSaveBusinessPrompt() {
     if (!selectedShopId) return;
     setSavingSettings(true);
-    setError(null);
+
     setUpgradePrompt(false);
     try {
       await entityStore.updateShop(selectedShopId, {
@@ -402,8 +423,7 @@ export const EcommercePage = observer(function EcommercePage() {
         method: "POST",
         body: JSON.stringify({ shopId: selectedShopId }),
       });
-      setSuccessMsg(t("common.saved"));
-      setTimeout(() => setSuccessMsg(null), 2000);
+      showToast(t("common.saved"), "success");
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -414,7 +434,7 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleRunProfileChange(profileId: string) {
     if (!selectedShopId) return;
     setSavingRunProfile(true);
-    setError(null);
+
     setUpgradePrompt(false);
     try {
       await entityStore.updateShop(selectedShopId, {
@@ -430,7 +450,7 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleCSModelChange(modelRef: string) {
     if (!selectedShopId) return;
     setSavingModel(true);
-    setError(null);
+
     setUpgradePrompt(false);
     try {
       await entityStore.updateShop(selectedShopId, {
@@ -469,7 +489,7 @@ export const EcommercePage = observer(function EcommercePage() {
         body: JSON.stringify({ shopId }),
       });
     } catch {
-      setError(t("ecommerce.updateFailed"));
+      showToast(t("ecommerce.updateFailed"), "error");
     } finally {
       setTogglingBindShopId(null);
     }
@@ -490,7 +510,7 @@ export const EcommercePage = observer(function EcommercePage() {
         body: JSON.stringify({ shopId }),
       });
     } catch {
-      setError(t("ecommerce.updateFailed"));
+      showToast(t("ecommerce.updateFailed"), "error");
     } finally {
       setTogglingBindShopId(null);
     }
@@ -508,7 +528,7 @@ export const EcommercePage = observer(function EcommercePage() {
         body: JSON.stringify({ shopId }),
       });
     } catch {
-      setError(t("ecommerce.updateFailed"));
+      showToast(t("ecommerce.updateFailed"), "error");
     } finally {
       setTogglingBindShopId(null);
     }
@@ -517,12 +537,11 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleRedeemCredit(credit: ServiceCredit) {
     if (!selectedShopId) return;
     setRedeemingCreditId(credit.id);
-    setError(null);
+
     setUpgradePrompt(false);
     try {
       await entityStore.redeemCredit(credit.id, selectedShopId);
-      setSuccessMsg(t("ecommerce.shopDrawer.billing.redeemSuccess"));
-      setTimeout(() => setSuccessMsg(null), 2000);
+      showToast(t("ecommerce.shopDrawer.billing.redeemSuccess"), "success");
       handleFetchSessionStats(selectedShopId);
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
@@ -534,9 +553,9 @@ export const EcommercePage = observer(function EcommercePage() {
   function openDrawer(shopId: string) {
     setSelectedShopId(shopId);
     setActiveTab("overview");
-    setError(null);
+
     setUpgradePrompt(false);
-    setSuccessMsg(null);
+
     setDrawerOpen(true);
   }
 
@@ -545,7 +564,7 @@ export const EcommercePage = observer(function EcommercePage() {
     // Delay clearing selection so close animation plays
     setTimeout(() => {
       setSelectedShopId(null);
-      setError(null);
+  
       setUpgradePrompt(false);
     }, 300);
   }
@@ -685,20 +704,6 @@ export const EcommercePage = observer(function EcommercePage() {
       {upgradePrompt && (
         <div className="info-box info-box-blue">
           {t("ecommerce.upgradeRequired")}
-        </div>
-      )}
-      {error && (
-        <div className="error-alert">{error}</div>
-      )}
-      {successMsg && (
-        <div className="info-box info-box-green">
-          {successMsg}
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setSuccessMsg(null)}
-          >
-            {t("common.close")}
-          </button>
         </div>
       )}
 
@@ -924,10 +929,6 @@ export const EcommercePage = observer(function EcommercePage() {
               <div className="info-box info-box-blue">
                 {t("ecommerce.upgradeRequired")}
               </div>
-            )}
-            {error && <div className="error-alert">{error}</div>}
-            {successMsg && (
-              <div className="info-box info-box-green">{successMsg}</div>
             )}
 
             {/* Tab Bar */}

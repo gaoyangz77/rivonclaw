@@ -6316,6 +6316,10 @@ tbody td {
   transform: translateX(-50%);
   z-index: 10000;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .toast {
@@ -6328,6 +6332,9 @@ tbody td {
   animation: toast-slide-up 150ms ease-out both;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   white-space: nowrap;
+  max-width: 480px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toast-success {

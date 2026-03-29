@@ -5,6 +5,7 @@ import { DEFAULTS } from "@rivonclaw/core";
 import type { OpenClawStateDirInfo } from "../api/index.js";
 import { Select } from "../components/inputs/Select.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
+import { useToast } from "../components/Toast.js";
 
 const DM_SCOPE_OPTIONS = [
   { value: "main", labelKey: "settings.agent.dmScopeMain" },
@@ -60,7 +61,8 @@ export function SettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [depsInstalling, setDepsInstalling] = useState(false);
   const [doctorStatus, setDoctorStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [doctorOutput, setDoctorOutput] = useState<string[]>([]);
@@ -153,9 +155,9 @@ export function SettingsPage() {
       setAutoLaunchEnabled(autoLaunch);
       setDataDirInfo(dirInfo);
       setPrivacyMode(privacy);
-      setError(null);
+      setLoadError(null);
     } catch (err) {
-      setError(t("settings.agent.failedToLoad") + String(err));
+      setLoadError(t("settings.agent.failedToLoad") + String(err));
     } finally {
       setLoading(false);
     }
@@ -166,11 +168,10 @@ export function SettingsPage() {
     setDmScope(value);
     try {
       setSaving(true);
-      setError(null);
       await updateAgentSettings({ dmScope: value });
       trackEvent("settings.dm_scope_changed", { scope: value });
     } catch (err) {
-      setError(t("settings.agent.failedToSave") + String(err));
+      showToast(t("settings.agent.failedToSave") + String(err), "error");
       setDmScope(previous);
     } finally {
       setSaving(false);
@@ -182,11 +183,10 @@ export function SettingsPage() {
     setShowAgentEvents(enabled);
     try {
       setSaving(true);
-      setError(null);
       await updateChatShowAgentEvents(enabled);
       window.dispatchEvent(new CustomEvent("chat-settings-changed"));
     } catch (err) {
-      setError(t("settings.chat.failedToSave") + String(err));
+      showToast(t("settings.chat.failedToSave") + String(err), "error");
       setShowAgentEvents(previous);
     } finally {
       setSaving(false);
@@ -198,11 +198,10 @@ export function SettingsPage() {
     setPreserveToolEvents(enabled);
     try {
       setSaving(true);
-      setError(null);
       await updateChatPreserveToolEvents(enabled);
       window.dispatchEvent(new CustomEvent("chat-settings-changed"));
     } catch (err) {
-      setError(t("settings.chat.failedToSave") + String(err));
+      showToast(t("settings.chat.failedToSave") + String(err), "error");
       setPreserveToolEvents(previous);
     } finally {
       setSaving(false);
@@ -214,11 +213,10 @@ export function SettingsPage() {
     setCollapseMessages(enabled);
     try {
       setSaving(true);
-      setError(null);
       await updateChatCollapseMessages(enabled);
       window.dispatchEvent(new CustomEvent("chat-settings-changed"));
     } catch (err) {
-      setError(t("settings.chat.failedToSave") + String(err));
+      showToast(t("settings.chat.failedToSave") + String(err), "error");
       setCollapseMessages(previous);
     } finally {
       setSaving(false);
@@ -228,12 +226,11 @@ export function SettingsPage() {
   async function handleToggleTelemetry(enabled: boolean) {
     try {
       setSaving(true);
-      setError(null);
       await updateTelemetrySetting(enabled);
       setTelemetryEnabled(enabled);
       trackEvent("telemetry.toggled", { enabled });
     } catch (err) {
-      setError(t("settings.telemetry.failedToSave") + String(err));
+      showToast(t("settings.telemetry.failedToSave") + String(err), "error");
       setTelemetryEnabled(!enabled);
     } finally {
       setSaving(false);
@@ -245,11 +242,10 @@ export function SettingsPage() {
     setAutoLaunchEnabled(enabled);
     try {
       setSaving(true);
-      setError(null);
       await updateAutoLaunchSetting(enabled);
       trackEvent("settings.auto_launch_toggled", { enabled });
     } catch (err) {
-      setError(t("settings.autoLaunch.failedToSave") + String(err));
+      showToast(t("settings.autoLaunch.failedToSave") + String(err), "error");
       setAutoLaunchEnabled(previous);
     } finally {
       setSaving(false);
@@ -261,12 +257,11 @@ export function SettingsPage() {
     setPrivacyMode(enabled);
     try {
       setSaving(true);
-      setError(null);
       await updatePrivacyMode(enabled);
       trackEvent("settings.privacy_mode_toggled", { enabled });
       window.dispatchEvent(new CustomEvent("privacy-settings-changed"));
     } catch (err) {
-      setError(t("settings.app.title") + ": " + String(err));
+      showToast(t("settings.app.title") + ": " + String(err), "error");
       setPrivacyMode(previous);
     } finally {
       setSaving(false);
@@ -297,11 +292,10 @@ export function SettingsPage() {
     setSessionStateCdpEnabled(enabled);
     try {
       setSaving(true);
-      setError(null);
       await updateSessionStateCdpEnabled(enabled);
       trackEvent("settings.session_state_cdp_toggled", { enabled });
     } catch (err) {
-      setError(t("settings.browser.failedToSave") + String(err));
+      showToast(t("settings.browser.failedToSave") + String(err), "error");
       setSessionStateCdpEnabled(previous);
     } finally {
       setSaving(false);
@@ -322,11 +316,10 @@ export function SettingsPage() {
     setBrowserMode(newMode);
     try {
       setSaving(true);
-      setError(null);
       await updateBrowserMode(newMode);
       trackEvent("settings.browser_mode_changed", { mode: newMode });
     } catch (err) {
-      setError(t("settings.browser.failedToSave") + String(err));
+      showToast(t("settings.browser.failedToSave") + String(err), "error");
       setBrowserMode(previous);
     } finally {
       setSaving(false);
@@ -339,12 +332,11 @@ export function SettingsPage() {
     if (!selected) return;
     try {
       setSaving(true);
-      setError(null);
       await updateOpenClawStateDir(selected);
       setDataDirInfo((prev) => prev ? { ...prev, override: selected } : prev);
       setDataDirRestartNeeded(true);
     } catch (err) {
-      setError(t("settings.dataDir.failedToSave") + String(err));
+      showToast(t("settings.dataDir.failedToSave") + String(err), "error");
     } finally {
       setSaving(false);
     }
@@ -353,13 +345,12 @@ export function SettingsPage() {
   async function handleResetDataDir() {
     try {
       setSaving(true);
-      setError(null);
       await resetOpenClawStateDir();
       trackEvent("settings.state_dir_reset");
       setDataDirInfo((prev) => prev ? { ...prev, override: null } : prev);
       setDataDirRestartNeeded(true);
     } catch (err) {
-      setError(t("settings.dataDir.failedToReset") + String(err));
+      showToast(t("settings.dataDir.failedToReset") + String(err), "error");
     } finally {
       setSaving(false);
     }
@@ -380,9 +371,9 @@ export function SettingsPage() {
       <h1>{t("settings.title")}</h1>
       <p className="page-description">{t("settings.description")}</p>
 
-      {error && (
+      {loadError && (
         <div className="error-alert">
-          {error}
+          {loadError}
         </div>
       )}
 

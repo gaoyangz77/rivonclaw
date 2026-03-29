@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { fetchSettings, updateSettings, trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
+import { useToast } from "../components/Toast.js";
 
 type WebSearchProvider = "brave" | "perplexity" | "grok" | "gemini" | "kimi";
 type EmbeddingProvider = "openai" | "gemini" | "voyage" | "mistral" | "ollama";
@@ -34,12 +35,10 @@ export function ExtrasPage() {
 
   // Per-section UI state
   const [sttSaving, setSttSaving] = useState(false);
-  const [sttSaved, setSttSaved] = useState(false);
   const [webSearchSaving, setWebSearchSaving] = useState(false);
-  const [webSearchSaved, setWebSearchSaved] = useState(false);
   const [embeddingSaving, setEmbeddingSaving] = useState(false);
-  const [embeddingSaved, setEmbeddingSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadSettings();
@@ -73,28 +72,26 @@ export function ExtrasPage() {
         console.warn("Failed to check extras credentials:", credErr);
       }
 
-      setError(null);
+      setLoadError(null);
     } catch (err) {
-      setError(t("extras.failedToLoad") + String(err));
+      setLoadError(t("extras.failedToLoad") + String(err));
     }
   }
 
   async function handleSaveStt() {
     setSttSaving(true);
-    setError(null);
-    setSttSaved(false);
 
     try {
       // Validate STT credentials
       if (sttEnabled) {
         if (sttProvider === "groq" && !groqApiKey.trim() && !hasGroqKey) {
-          setError(t("stt.groqApiKeyRequired"));
+          showToast(t("stt.groqApiKeyRequired"), "error");
           setSttSaving(false);
           return;
         }
         if (sttProvider === "volcengine" && !hasVolcengineKeys) {
           if (!volcengineAppKey.trim() || !volcengineAccessKey.trim()) {
-            setError(t("stt.volcengineKeysRequired"));
+            showToast(t("stt.volcengineKeysRequired"), "error");
             setSttSaving(false);
             return;
           }
@@ -129,11 +126,10 @@ export function ExtrasPage() {
         }
       }
 
-      setSttSaved(true);
+      showToast(t("common.saved"), "success");
       trackEvent("extras.stt.saved", { provider: sttProvider, enabled: sttEnabled });
-      setTimeout(() => setSttSaved(false), 2000);
     } catch (err) {
-      setError(t("extras.failedToSave") + String(err));
+      showToast(t("extras.failedToSave") + String(err), "error");
     } finally {
       setSttSaving(false);
     }
@@ -141,13 +137,11 @@ export function ExtrasPage() {
 
   async function handleSaveWebSearch() {
     setWebSearchSaving(true);
-    setError(null);
-    setWebSearchSaved(false);
 
     try {
       // Validate
       if (webSearchEnabled && !webSearchApiKey.trim() && !hasWebSearchKeys[webSearchProvider]) {
-        setError(t("extras.webSearchApiKeyRequired"));
+        showToast(t("extras.webSearchApiKeyRequired"), "error");
         setWebSearchSaving(false);
         return;
       }
@@ -169,11 +163,10 @@ export function ExtrasPage() {
         setWebSearchApiKey("");
       }
 
-      setWebSearchSaved(true);
+      showToast(t("common.saved"), "success");
       trackEvent("extras.webSearch.saved", { provider: webSearchProvider, enabled: webSearchEnabled });
-      setTimeout(() => setWebSearchSaved(false), 2000);
     } catch (err) {
-      setError(t("extras.failedToSave") + String(err));
+      showToast(t("extras.failedToSave") + String(err), "error");
     } finally {
       setWebSearchSaving(false);
     }
@@ -181,13 +174,11 @@ export function ExtrasPage() {
 
   async function handleSaveEmbedding() {
     setEmbeddingSaving(true);
-    setError(null);
-    setEmbeddingSaved(false);
 
     try {
       // Validate (Ollama key is optional)
       if (embeddingEnabled && embeddingProvider !== "ollama" && !embeddingApiKey.trim() && !hasEmbeddingKeys[embeddingProvider]) {
-        setError(t("extras.embeddingApiKeyRequired"));
+        showToast(t("extras.embeddingApiKeyRequired"), "error");
         setEmbeddingSaving(false);
         return;
       }
@@ -209,11 +200,10 @@ export function ExtrasPage() {
         setEmbeddingApiKey("");
       }
 
-      setEmbeddingSaved(true);
+      showToast(t("common.saved"), "success");
       trackEvent("extras.embedding.saved", { provider: embeddingProvider, enabled: embeddingEnabled });
-      setTimeout(() => setEmbeddingSaved(false), 2000);
     } catch (err) {
-      setError(t("extras.failedToSave") + String(err));
+      showToast(t("extras.failedToSave") + String(err), "error");
     } finally {
       setEmbeddingSaving(false);
     }
@@ -226,7 +216,7 @@ export function ExtrasPage() {
         <p className="extras-subtitle">{t("extras.description")}</p>
       </div>
 
-      {error && <div className="error-alert">{error}</div>}
+      {loadError && <div className="error-alert">{loadError}</div>}
 
       <div className="extras-list">
         {/* ── Card 1: Speech-to-Text ── */}
@@ -328,7 +318,6 @@ export function ExtrasPage() {
             <button className="btn btn-primary btn-action" onClick={handleSaveStt} disabled={sttSaving}>
               {sttSaving ? t("common.loading") : t("common.save")}
             </button>
-            {sttSaved && <span className="text-success">{t("common.saved")}</span>}
           </div>
         </div>
 
@@ -395,7 +384,6 @@ export function ExtrasPage() {
             <button className="btn btn-primary btn-action" onClick={handleSaveWebSearch} disabled={webSearchSaving}>
               {webSearchSaving ? t("common.loading") : t("common.save")}
             </button>
-            {webSearchSaved && <span className="text-success">{t("common.saved")}</span>}
           </div>
         </div>
 
@@ -462,7 +450,6 @@ export function ExtrasPage() {
             <button className="btn btn-primary btn-action" onClick={handleSaveEmbedding} disabled={embeddingSaving}>
               {embeddingSaving ? t("common.loading") : t("common.save")}
             </button>
-            {embeddingSaved && <span className="text-success">{t("common.saved")}</span>}
           </div>
         </div>
       </div>

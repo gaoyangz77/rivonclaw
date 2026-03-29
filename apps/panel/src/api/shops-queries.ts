@@ -133,3 +133,9 @@ export const REDEEM_CREDIT_MUTATION = gql`
     redeemCredit(creditId: $creditId, shopId: $shopId)
   }
 `;
+
+export const CS_SKILL_TEMPLATE_QUERY = gql`
+  query CsSkillTemplate {
+    csSkillTemplate
+  }
+`;

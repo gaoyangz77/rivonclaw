@@ -39,6 +39,15 @@ export async function installSkill(
   return result;
 }
 
+export async function writeSkillTemplate(slug: string, content: string): Promise<{ ok: boolean; error?: string }> {
+  const result = await fetchJson<{ ok: boolean; error?: string }>("/skills/write-template", {
+    method: "POST",
+    body: JSON.stringify({ slug, content }),
+  });
+  invalidateCache("installed-skills");
+  return result;
+}
+
 export async function deleteSkill(slug: string): Promise<{ ok: boolean; error?: string }> {
   const result = await fetchJson<{ ok: boolean; error?: string }>("/skills/delete", {
     method: "POST",

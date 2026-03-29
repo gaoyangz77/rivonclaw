@@ -1,4 +1,4 @@
-import type { BrowserProfileProxyTestResult } from "@rivonclaw/core";
+import type { BrowserProfileProxyTestResult, GQL } from "@rivonclaw/core";
 import { getClient, trackedQuery } from "./apollo-client.js";
 import {
   BROWSER_PROFILES_QUERY,
@@ -10,37 +10,12 @@ import {
 } from "./browser-profiles-queries.js";
 import { fetchJson, fetchVoid } from "./client.js";
 
-/** Shape returned by the cloud BrowserProfile type. */
-export interface CloudBrowserProfile {
-  id: string;
-  name: string;
-  proxyPolicy: { enabled: boolean; baseUrl?: string | null };
-  sessionStatePolicy: {
-    enabled: boolean;
-    checkpointIntervalSec: number;
-    mode: string;
-    storage: string;
-  };
-  tags: string[];
-  notes?: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface BrowserProfilesPage {
-  items: CloudBrowserProfile[];
-  total: number;
-  offset: number;
-  limit: number;
-}
-
 export async function fetchBrowserProfiles(
   filter?: { status?: string[]; tags?: string[]; query?: string },
   pagination?: { offset?: number; limit?: number },
-): Promise<BrowserProfilesPage> {
+): Promise<GQL.PaginatedBrowserProfiles> {
   return trackedQuery(async () => {
-    const result = await getClient().query<{ browserProfiles: BrowserProfilesPage }>({
+    const result = await getClient().query<{ browserProfiles: GQL.PaginatedBrowserProfiles }>({
       query: BROWSER_PROFILES_QUERY,
       variables: { filter, pagination },
       fetchPolicy: "network-only",
@@ -64,9 +39,9 @@ export async function createBrowserProfile(input: {
     mode?: string;
     storage?: string;
   };
-}): Promise<CloudBrowserProfile> {
+}): Promise<GQL.BrowserProfile> {
   return trackedQuery(async () => {
-    const { data } = await getClient().mutate<{ createBrowserProfile: CloudBrowserProfile }>({
+    const { data } = await getClient().mutate<{ createBrowserProfile: GQL.BrowserProfile }>({
       mutation: CREATE_BROWSER_PROFILE_MUTATION,
       variables: { input },
     });
@@ -93,9 +68,9 @@ export async function updateBrowserProfile(
       storage?: string;
     };
   },
-): Promise<CloudBrowserProfile> {
+): Promise<GQL.BrowserProfile> {
   return trackedQuery(async () => {
-    const { data } = await getClient().mutate<{ updateBrowserProfile: CloudBrowserProfile }>({
+    const { data } = await getClient().mutate<{ updateBrowserProfile: GQL.BrowserProfile }>({
       mutation: UPDATE_BROWSER_PROFILE_MUTATION,
       variables: { id, input },
     });

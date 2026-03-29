@@ -7,6 +7,7 @@ import { Select } from "../components/inputs/Select.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
+import { useToast } from "../components/Toast.js";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -45,7 +46,7 @@ function formatBalanceDisplay(
   tier: string | undefined | null,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
-  if (balance === undefined || balance === null) return "—";
+  if (balance === undefined || balance === null) return "\u2014";
   if (tier) return t("tiktokShops.balance.of", { balance, tier: t(`tiktokShops.tier.${tier}`, { defaultValue: tier }) });
   return t("tiktokShops.balance.remaining", { balance });
 }
@@ -80,9 +81,8 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     try { await entityStore.fetchSessionStats(shopId); } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
   }
 
-  const [error, setError] = useState<string | null>(null);
   const [upgradePrompt, setUpgradePrompt] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthWaiting, setOauthWaiting] = useState(false);
 
@@ -156,10 +156,9 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   function handleError(err: unknown, fallbackKey: string) {
     if (hasUpgradeRequired(err)) {
       setUpgradePrompt(true);
-      setError(null);
     } else {
       setUpgradePrompt(false);
-      setError(err instanceof Error ? err.message : t(fallbackKey));
+      showToast(err instanceof Error ? err.message : t(fallbackKey), "error");
     }
   }
 
@@ -171,7 +170,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
       try {
         const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
         cleanupOAuthWait();
-        setSuccessMsg(t("tiktokShops.oauthSuccess"));
+        showToast(t("tiktokShops.oauthSuccess"), "success");
         // Shops auto-update via MST/SSE — no manual fetch needed
         void data;
       } catch {
@@ -187,15 +186,13 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
 
     oauthTimeoutRef.current = setTimeout(() => {
       cleanupOAuthWait();
-      setError(t("tiktokShops.oauthTimeout"));
+      showToast(t("tiktokShops.oauthTimeout"), "error");
     }, OAUTH_TIMEOUT_MS);
   }
 
   async function handleConnectShop() {
     if (!selectedPlatformAppId) return;
     setOauthLoading(true);
-    setError(null);
-    setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
       const { authUrl } = await entityStore.initiateTikTokOAuth(selectedPlatformAppId);
@@ -214,13 +211,11 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     const shop = shops.find((s) => s.id === shopId);
     const appId = shop?.platformAppId || (platformApps.length > 0 ? platformApps[0].id : "");
     if (!appId) {
-      setError(t("tiktokShops.oauthFailed"));
+      showToast(t("tiktokShops.oauthFailed"), "error");
       return;
     }
 
     setOauthLoading(true);
-    setError(null);
-    setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
       const { authUrl } = await entityStore.initiateTikTokOAuth(appId);
@@ -236,7 +231,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
 
   async function handleDeleteShop(shopId: string) {
     setConfirmDeleteShopId(null);
-    setError(null);
     setUpgradePrompt(false);
     try {
       await entityStore.deleteShop(shopId);
@@ -244,8 +238,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
       if (selectedShopId === shopId) {
         setSelectedShopId(null);
       }
-      setSuccessMsg(t("tiktokShops.disconnectSuccess"));
-      setTimeout(() => setSuccessMsg(null), 3000);
+      showToast(t("tiktokShops.disconnectSuccess"), "success");
     } catch (err) {
       handleError(err, "tiktokShops.deleteFailed");
     }
@@ -253,7 +246,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
 
   async function handleToggleCustomerService(shopId: string, currentValue: boolean) {
     setTogglingServiceId(shopId);
-    setError(null);
     setUpgradePrompt(false);
     try {
       await entityStore.updateShop(shopId, {
@@ -269,14 +261,12 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   async function handleSaveBusinessPrompt() {
     if (!selectedShopId) return;
     setSavingSettings(true);
-    setError(null);
     setUpgradePrompt(false);
     try {
       await entityStore.updateShop(selectedShopId, {
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
-      setSuccessMsg(t("common.saved"));
-      setTimeout(() => setSuccessMsg(null), 2000);
+      showToast(t("common.saved"), "success");
     } catch (err) {
       handleError(err, "tiktokShops.updateFailed");
     } finally {
@@ -287,12 +277,10 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   async function handleRedeemCredit(credit: ServiceCredit) {
     if (!selectedShopId) return;
     setRedeemingCreditId(credit.id);
-    setError(null);
     setUpgradePrompt(false);
     try {
       await entityStore.redeemCredit(credit.id, selectedShopId);
-      setSuccessMsg(t("tiktokShops.modal.billing.redeemSuccess"));
-      setTimeout(() => setSuccessMsg(null), 2000);
+      showToast(t("tiktokShops.modal.billing.redeemSuccess"), "success");
       // Refresh session stats
       handleFetchSessionStats(selectedShopId);
     } catch (err) {
@@ -305,14 +293,11 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   function openDetailModal(shopId: string) {
     setSelectedShopId(shopId);
     setActiveTab("overview");
-    setError(null);
     setUpgradePrompt(false);
-    setSuccessMsg(null);
   }
 
   function closeDetailModal() {
     setSelectedShopId(null);
-    setError(null);
     setUpgradePrompt(false);
   }
 
@@ -387,20 +372,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
           {t("tiktokShops.upgradeRequired")}
         </div>
       )}
-      {error && (
-        <div className="error-alert">{error}</div>
-      )}
-      {successMsg && (
-        <div className="info-box info-box-green">
-          {successMsg}
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setSuccessMsg(null)}
-          >
-            {t("common.close")}
-          </button>
-        </div>
-      )}
 
       {/* OAuth Waiting State */}
       {oauthWaiting && (
@@ -410,7 +381,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
             className="btn btn-secondary btn-sm"
             onClick={() => {
               cleanupOAuthWait();
-              setError(null);
             }}
           >
             {t("common.cancel")}
@@ -468,7 +438,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
                       <span className="shop-balance-cell">
                         {billing
                           ? formatBalanceDisplay(billing.balance, billing.tier, t)
-                          : "—"}
+                          : "\u2014"}
                         {getBalanceBadge(shop)}
                       </span>
                     </td>
@@ -566,10 +536,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
                 {t("tiktokShops.upgradeRequired")}
               </div>
             )}
-            {error && <div className="error-alert">{error}</div>}
-            {successMsg && (
-              <div className="info-box info-box-green">{successMsg}</div>
-            )}
 
             {/* Tab Bar */}
             <div className="tab-bar tab-bar--spread">
@@ -625,7 +591,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
                     <span>
                       {selectedShop.accessTokenExpiresAt
                         ? new Date(selectedShop.accessTokenExpiresAt).toLocaleString()
-                        : "—"}
+                        : "\u2014"}
                     </span>
                   </div>
                   <div className="shop-detail-field">
@@ -633,7 +599,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
                     <span>
                       {selectedShop.refreshTokenExpiresAt
                         ? new Date(selectedShop.refreshTokenExpiresAt).toLocaleString()
-                        : "—"}
+                        : "\u2014"}
                     </span>
                   </div>
                 </div>
@@ -722,7 +688,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
                           selectedShop.services?.customerServiceBilling?.tier,
                           t,
                         )
-                      : "—"}
+                      : "\u2014"}
                     {getBalanceBadge(selectedShop)}
                   </span>
                 </div>

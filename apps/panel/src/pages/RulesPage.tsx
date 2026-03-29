@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchRules, createRule, updateRule, deleteRule, trackEvent, type Rule } from "../api/index.js";
 import { DEFAULTS } from "@rivonclaw/core";
+import { useToast } from "../components/Toast.js";
 
 const EXAMPLE_RULE_KEYS = [
   "onboarding.exampleRule1",
@@ -36,7 +37,8 @@ export function RulesPage() {
   const { t } = useTranslation();
   const [rules, setRules] = useState<Rule[]>([]);
   const [newRuleText, setNewRuleText] = useState("");
-  const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: string; detail?: string } | null>(null);
+  const { showToast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -67,9 +69,9 @@ export function RulesPage() {
   async function loadRules() {
     try {
       setRules(await fetchRules());
-      setError(null);
+      setLoadError(null);
     } catch (err) {
-      setError({ key: "rules.failedToLoad", detail: String(err) });
+      setLoadError({ key: "rules.failedToLoad", detail: String(err) });
     }
   }
 
@@ -80,7 +82,7 @@ export function RulesPage() {
       setNewRuleText("");
       await loadRules();
     } catch (err) {
-      setError({ key: "rules.failedToCreate", detail: String(err) });
+      showToast(t("rules.failedToCreate") + String(err), "error");
     }
   }
 
@@ -90,7 +92,7 @@ export function RulesPage() {
       trackEvent("rule.deleted");
       await loadRules();
     } catch (err) {
-      setError({ key: "rules.failedToDelete", detail: String(err) });
+      showToast(t("rules.failedToDelete") + String(err), "error");
     }
   }
 
@@ -108,7 +110,7 @@ export function RulesPage() {
       setEditText("");
       await loadRules();
     } catch (err) {
-      setError({ key: "rules.failedToUpdate", detail: String(err) });
+      showToast(t("rules.failedToUpdate") + String(err), "error");
     }
   }
 
@@ -122,7 +124,7 @@ export function RulesPage() {
       await updateRule(rule.id, rule.text);
       await loadRules();
     } catch (err) {
-      setError({ key: "rules.failedToRecompile", detail: String(err) });
+      showToast(t("rules.failedToRecompile") + String(err), "error");
     }
   }
 
@@ -131,8 +133,8 @@ export function RulesPage() {
       <h1>{t("rules.title")}</h1>
       <p>{t("rules.description")}</p>
 
-      {error && (
-        <div className="error-alert">{t(error.key)}{error.detail ?? ""}</div>
+      {loadError && (
+        <div className="error-alert">{t(loadError.key)}{loadError.detail ?? ""}</div>
       )}
 
       {/* Add Rule — examples left, input right */}

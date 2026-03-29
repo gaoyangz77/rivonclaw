@@ -1,49 +1,14 @@
 import { fetchJson } from "./client.js";
+import type { ChannelAccountSnapshot, ChannelsStatusSnapshot } from "@rivonclaw/core";
+export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
 
-// --- Channels ---
-
-/**
- * Legacy channel interface (SQLite-backed, not used in Phase 1)
- * @deprecated Use fetchChannelStatus instead
- */
-export interface Channel {
+/** Legacy channel interface (SQLite-backed, not in GQL) */
+interface Channel {
   id: string;
   channelType: string;
   enabled: boolean;
   accountId: string;
   settings: Record<string, unknown>;
-}
-
-/**
- * OpenClaw channels status snapshot types
- */
-export interface ChannelAccountSnapshot {
-  accountId: string;
-  name?: string | null;
-  enabled?: boolean | null;
-  configured?: boolean | null;
-  linked?: boolean | null;
-  running?: boolean | null;
-  connected?: boolean | null;
-  lastError?: string | null;
-  lastInboundAt?: number | null;
-  lastOutboundAt?: number | null;
-  mode?: string | null;
-  dmPolicy?: string | null;
-  groupPolicy?: string | null;
-  streamMode?: string | null;
-  webhookUrl?: string | null;
-  probe?: unknown;
-}
-
-export interface ChannelsStatusSnapshot {
-  ts: number;
-  channelOrder: string[];
-  channelLabels: Record<string, string>;
-  channelMeta?: Array<{ id: string; label: string; detailLabel: string }>;
-  channels: Record<string, unknown>;
-  channelAccounts: Record<string, ChannelAccountSnapshot[]>;
-  channelDefaultAccountId: Record<string, string>;
 }
 
 /**

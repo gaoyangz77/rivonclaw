@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { CloudBrowserProfile } from "../api/browser-profiles.js";
+import type { GQL } from "@rivonclaw/core";
 import {
   fetchBrowserProfiles,
   createBrowserProfile,
@@ -13,6 +13,7 @@ import {
 import { trackEvent } from "../api/index.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { DEFAULTS } from "@rivonclaw/core";
+import { useToast } from "../components/Toast.js";
 
 interface BrowserProfileFormState {
   name: string;
@@ -42,9 +43,10 @@ export function BrowserProfilesPage() {
   const { t } = useTranslation();
 
   // Profile list state
-  const [profiles, setProfiles] = useState<CloudBrowserProfile[]>([]);
+  const [profiles, setProfiles] = useState<GQL.BrowserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,10 +56,10 @@ export function BrowserProfilesPage() {
   const [saving, setSaving] = useState(false);
 
   // Delete confirm state
-  const [deletingProfile, setDeletingProfile] = useState<CloudBrowserProfile | null>(null);
+  const [deletingProfile, setDeletingProfile] = useState<GQL.BrowserProfile | null>(null);
 
   // Archive confirm state
-  const [archivingProfile, setArchivingProfile] = useState<CloudBrowserProfile | null>(null);
+  const [archivingProfile, setArchivingProfile] = useState<GQL.BrowserProfile | null>(null);
 
   // Filter state
   const [searchInput, setSearchInput] = useState("");
@@ -99,7 +101,7 @@ export function BrowserProfilesPage() {
 
   const loadProfiles = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       const filter: Record<string, unknown> = {};
       if (statusFilter !== "all") filter.status = [statusFilter];
@@ -112,7 +114,7 @@ export function BrowserProfilesPage() {
       setProfiles(data.items);
       setTotalProfiles(data.total);
     } catch (err) {
-      setError(String(err));
+      setLoadError(String(err));
     } finally {
       setLoading(false);
     }
@@ -129,14 +131,14 @@ export function BrowserProfilesPage() {
     setModalOpen(true);
   }
 
-  function openEditModal(profile: CloudBrowserProfile) {
+  function openEditModal(profile: GQL.BrowserProfile) {
     setEditingId(profile.id);
     const sp = profile.sessionStatePolicy;
     setForm({
       name: profile.name,
       proxyEnabled: profile.proxyPolicy.enabled,
       proxyBaseUrl: profile.proxyPolicy.baseUrl ?? "",
-      tags: profile.tags.join(", "),
+      tags: (profile.tags ?? []).join(", "),
       notes: profile.notes ?? "",
       status: profile.status,
       sessionEnabled: sp?.enabled ?? true,
@@ -253,7 +255,7 @@ export function BrowserProfilesPage() {
       await loadProfiles();
     } catch (err) {
       setDeletingProfile(null);
-      setError(String(err));
+      showToast(String(err), "error");
     }
   }
 
@@ -266,16 +268,16 @@ export function BrowserProfilesPage() {
       await loadProfiles();
     } catch (err) {
       setArchivingProfile(null);
-      setError(String(err));
+      showToast(String(err), "error");
     }
   }
 
-  async function handleUnarchive(profile: CloudBrowserProfile) {
+  async function handleUnarchive(profile: GQL.BrowserProfile) {
     try {
       await updateBrowserProfile(profile.id, { status: "ACTIVE" });
       await loadProfiles();
     } catch (err) {
-      setError(String(err));
+      showToast(String(err), "error");
     }
   }
 
@@ -309,7 +311,7 @@ export function BrowserProfilesPage() {
       await loadProfiles();
     } catch (err) {
       setBatchAction(null);
-      setError(String(err));
+      showToast(String(err), "error");
     }
   }
 
@@ -328,9 +330,9 @@ export function BrowserProfilesPage() {
         <p className="form-hint">{t("browserProfiles.description")}</p>
       </div>
 
-      {error && (
+      {loadError && (
         <div className="error-alert">
-          {error}
+          {loadError}
           <div className="error-alert-actions">
             <button className="btn btn-danger" onClick={loadProfiles} type="button">
               {t("browserProfiles.retry")}
@@ -343,7 +345,7 @@ export function BrowserProfilesPage() {
         <div className="centered-muted">{t("common.loading")}</div>
       )}
 
-      {!loading && !error && totalProfiles === 0 && !searchQuery && statusFilter === "all" && (
+      {!loading && !loadError && totalProfiles === 0 && !searchQuery && statusFilter === "all" && (
         <div className="section-card bp-empty-state">
           <p className="centered-muted">{t("browserProfiles.emptyState")}</p>
         </div>
@@ -476,7 +478,7 @@ export function BrowserProfilesPage() {
                     </span>
                   </td>
                   <td className="td-meta">
-                    {p.tags.length > 0 ? p.tags.join(", ") : "-"}
+                    {p.tags && p.tags.length > 0 ? p.tags.join(", ") : "-"}
                   </td>
                   <td className="td-actions">
                     {p.status !== "ARCHIVED" && (

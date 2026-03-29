@@ -10,6 +10,7 @@ import {
   trackEvent,
   type Permissions,
 } from "../api/index.js";
+import { useToast } from "../components/Toast.js";
 
 type PermLevel = "read" | "readwrite";
 
@@ -87,7 +88,8 @@ function PermissionSwitcher({
 export function PermissionsPage() {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<PathEntry[]>([]);
-  const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: string; detail?: string } | null>(null);
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string>("");
   const [selectedPerm, setSelectedPerm] = useState<PermLevel>("read");
@@ -116,7 +118,7 @@ export function PermissionsPage() {
       await updateSettings({ "file-permissions-full-access": enabled ? "true" : "false" });
       trackEvent("permission.full_access_toggled", { enabled });
     } catch (err) {
-      setError({ key: "permissions.failedToSave", detail: String(err) });
+      showToast(t("permissions.failedToSave") + (String(err)), "error");
       setFullAccess(!enabled); // revert on failure
     } finally {
       setSaving(false);
@@ -136,48 +138,44 @@ export function PermissionsPage() {
     try {
       const perms = await fetchPermissions();
       setEntries(mergePermissions(perms));
-      setError(null);
+      setLoadError(null);
     } catch (err) {
-      setError({ key: "permissions.failedToLoad", detail: String(err) });
+      setLoadError({ key: "permissions.failedToLoad", detail: String(err) });
     }
   }
 
   // Auto-save function - called after any change
   const autoSave = useCallback(async (newEntries: PathEntry[]) => {
-    setError(null);
     setSaving(true);
     try {
       await updatePermissions(splitPermissions(newEntries));
       // Success - no need to show anything (changes are auto-saved)
     } catch (err) {
-      setError({ key: "permissions.failedToSave", detail: String(err) });
+      showToast(t("permissions.failedToSave") + (String(err)), "error");
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [showToast, t]);
 
   async function handleBrowse() {
-    setError(null);
     try {
       const path = await openFileDialog();
       if (!path) return;
 
       // Duplicate check
       if (entries.some((e) => e.path === path)) {
-        setError({ key: "permissions.duplicatePath" });
+        showToast(t("permissions.duplicatePath"), "error");
         return;
       }
 
       setSelectedPath(path);
     } catch (err) {
-      setError({ key: "permissions.failedToOpenDialog", detail: String(err) });
+      showToast(t("permissions.failedToOpenDialog") + String(err), "error");
     }
   }
 
   async function handleAdd() {
     if (!selectedPath) return;
-
-    setError(null);
 
     const newEntries = [...entries, { path: selectedPath, permission: selectedPerm }];
     setEntries(newEntries);
@@ -209,10 +207,10 @@ export function PermissionsPage() {
       <h1>{t("permissions.title")}</h1>
       <p>{t("permissions.description")}</p>
 
-      {error && (
+      {loadError && (
         <div className="error-alert">
-          {t(error.key)}
-          {error.detail ?? ""}
+          {t(loadError.key)}
+          {loadError.detail ?? ""}
         </div>
       )}
 

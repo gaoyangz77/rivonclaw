@@ -8,6 +8,7 @@ import {
   MY_CREDITS_QUERY,
   CS_SESSION_STATS_QUERY,
   REDEEM_CREDIT_MUTATION,
+  CS_SKILL_TEMPLATE_QUERY,
 } from "./shops-queries.js";
 
 export async function fetchShops(): Promise<GQL.Shop[]> {
@@ -81,5 +82,15 @@ export async function redeemCredit(creditId: string, shopId: string): Promise<bo
       variables: { creditId, shopId },
     });
     return result.data!.redeemCredit;
+  });
+}
+
+export async function fetchCsSkillTemplate(): Promise<string | null> {
+  return trackedQuery(async () => {
+    const result = await getClient().query<{ csSkillTemplate: string | null }>({
+      query: CS_SKILL_TEMPLATE_QUERY,
+      fetchPolicy: "network-only",
+    });
+    return result.data!.csSkillTemplate;
   });
 }

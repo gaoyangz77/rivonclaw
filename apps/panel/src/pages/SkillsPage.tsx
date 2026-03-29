@@ -15,6 +15,7 @@ import type { InstalledSkill } from "../api/index.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { SkillCard } from "../components/SkillCard.js";
 import { DEFAULTS } from "@rivonclaw/core";
+import { useToast } from "../components/Toast.js";
 
 const PAGE_SIZE = DEFAULTS.pagination.skills;
 
@@ -31,7 +32,8 @@ export function SkillsPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [installingSlug, setInstallingSlug] = useState<string | null>(null);
-  const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: string; detail?: string } | null>(null);
+  const { showToast } = useToast();
 
   // Installed state
   const [installedSkills, setInstalledSkills] = useState<InstalledSkill[]>([]);
@@ -77,7 +79,7 @@ export function SkillsPage() {
   // Surface GraphQL errors
   useEffect(() => {
     if (gqlError) {
-      setError({ key: "skills.installError", detail: gqlError.message });
+      setLoadError({ key: "skills.installError", detail: gqlError.message });
     }
   }, [gqlError]);
 
@@ -109,7 +111,6 @@ export function SkillsPage() {
   // Handle install
   async function handleInstall(skill: GQL.Skill) {
     setInstallingSlug(skill.slug);
-    setError(null);
     try {
       const displayName = isCN ? skill.name_zh || skill.name_en : skill.name_en;
       const displayDesc = isCN ? skill.desc_zh || skill.desc_en : skill.desc_en;
@@ -120,13 +121,13 @@ export function SkillsPage() {
         version: skill.version,
       });
       if (!result.ok) {
-        setError({ key: "skills.installError", detail: result.error });
+        showToast(t("skills.installError", { error: result.error ?? "" }), "error");
         return;
       }
       trackEvent("skills.install", { slug: skill.slug });
       await loadInstalled();
     } catch (err) {
-      setError({ key: "skills.installError", detail: String(err) });
+      showToast(t("skills.installError", { error: String(err) }), "error");
     } finally {
       setInstallingSlug(null);
     }
@@ -136,17 +137,16 @@ export function SkillsPage() {
   async function handleDelete(slug: string) {
     setDeletingSlug(slug);
     setConfirmDelete(null);
-    setError(null);
     try {
       const result = await deleteSkill(slug);
       if (!result.ok) {
-        setError({ key: "skills.deleteError", detail: result.error });
+        showToast(t("skills.deleteError", { error: result.error ?? "" }), "error");
         return;
       }
       trackEvent("skills.delete", { slug });
       await loadInstalled();
     } catch (err) {
-      setError({ key: "skills.deleteError", detail: String(err) });
+      showToast(t("skills.deleteError", { error: String(err) }), "error");
     } finally {
       setDeletingSlug(null);
     }
@@ -179,9 +179,9 @@ export function SkillsPage() {
         <p className="skills-page-subtitle">{t("skills.description")}</p>
       </div>
 
-      {error && (
+      {loadError && (
         <div className="error-alert">
-          {t(error.key, { error: error.detail ?? "" })}
+          {t(loadError.key, { error: loadError.detail ?? "" })}
         </div>
       )}
 

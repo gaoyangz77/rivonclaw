@@ -28,6 +28,8 @@ export type ChannelAccountSnapshot = {
   lastProbeAt?: number | null;
   mode?: string | null;
   dmPolicy?: string | null;
+  groupPolicy?: string | null;
+  streamMode?: string | null;
   allowFrom?: string[] | null;
   tokenSource?: string | null;
   botTokenSource?: string | null;

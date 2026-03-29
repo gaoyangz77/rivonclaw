@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { fetchSettings, updateSettings, trackEvent, fetchSttCredentials, saveSttCredentials } from "../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
+import { useToast } from "../components/Toast.js";
 
 export function SttPage() {
   const { t, i18n } = useTranslation();
@@ -13,8 +14,8 @@ export function SttPage() {
   const [volcengineAppKey, setVolcengineAppKey] = useState("");
   const [volcengineAccessKey, setVolcengineAccessKey] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [hasGroqKey, setHasGroqKey] = useState(false);
   const [hasVolcengineKeys, setHasVolcengineKeys] = useState(false);
 
@@ -38,28 +39,26 @@ export function SttPage() {
         console.warn("Failed to check credentials:", credErr);
       }
 
-      setError(null);
+      setLoadError(null);
     } catch (err) {
-      setError(t("stt.failedToLoad") + String(err));
+      setLoadError(t("stt.failedToLoad") + String(err));
     }
   }
 
   async function handleSave() {
     setSaving(true);
-    setError(null);
-    setSaved(false);
 
     try {
       // Validate credentials (skip if keys are already saved in Keychain)
       if (enabled) {
         if (provider === "groq" && !groqApiKey.trim() && !hasGroqKey) {
-          setError(t("stt.groqApiKeyRequired"));
+          showToast(t("stt.groqApiKeyRequired"), "error");
           setSaving(false);
           return;
         }
         if (provider === "volcengine" && !hasVolcengineKeys) {
           if (!volcengineAppKey.trim() || !volcengineAccessKey.trim()) {
-            setError(t("stt.volcengineKeysRequired"));
+            showToast(t("stt.volcengineKeysRequired"), "error");
             setSaving(false);
             return;
           }
@@ -96,11 +95,10 @@ export function SttPage() {
         }
       }
 
-      setSaved(true);
+      showToast(t("common.saved"), "success");
       trackEvent("stt.provider_saved", { provider, enabled });
-      setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setError(t("stt.failedToSave") + String(err));
+      showToast(t("stt.failedToSave") + String(err), "error");
     } finally {
       setSaving(false);
     }
@@ -111,8 +109,8 @@ export function SttPage() {
       <h1>{t("stt.title")}</h1>
       <p>{t("stt.description")}</p>
 
-      {error && (
-        <div className="error-alert">{error}</div>
+      {loadError && (
+        <div className="error-alert">{loadError}</div>
       )}
 
       <div className="section-card stt-section">
@@ -263,7 +261,6 @@ export function SttPage() {
                 : t("common.save")
             )}
           </button>
-          {saved && <span className="text-success">{t("common.saved")}</span>}
         </div>
       </div>
 

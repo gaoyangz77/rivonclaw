@@ -118,6 +118,31 @@ export const handleSkillsRoutes: RouteHandler = async (req, res, url, pathname, 
     return true;
   }
 
+  if (pathname === "/api/skills/write-template" && req.method === "POST") {
+    const body = (await parseBody(req)) as { slug?: string; content?: string };
+    if (!body.slug || !body.content) {
+      sendJson(res, 400, { error: "Missing required fields: slug, content" });
+      return true;
+    }
+    if (body.slug.includes("..") || body.slug.includes("/") || body.slug.includes("\\")) {
+      sendJson(res, 400, { error: "Invalid slug" });
+      return true;
+    }
+
+    try {
+      const skillsDir = getUserSkillsDir();
+      const skillDir = join(skillsDir, body.slug);
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(join(skillDir, "SKILL.md"), body.content, "utf-8");
+      invalidateSkillsSnapshot();
+      sendJson(res, 200, { ok: true });
+    } catch (err: unknown) {
+      const msg = formatError(err);
+      sendJson(res, 200, { ok: false, error: msg });
+    }
+    return true;
+  }
+
   if (pathname === "/api/skills/delete" && req.method === "POST") {
     const body = (await parseBody(req)) as { slug?: string };
     if (!body.slug) {

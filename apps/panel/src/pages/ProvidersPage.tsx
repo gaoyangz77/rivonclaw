@@ -9,6 +9,7 @@ import { ModelSelect } from "../components/inputs/ModelSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
 import { useEntityStore } from "../store/index.js";
+import { useToast } from "../components/Toast.js";
 
 export const ProvidersPage = observer(function ProvidersPage() {
   const { t } = useTranslation();
@@ -19,8 +20,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
   const [editProxyUrl, setEditProxyUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
+  const { showToast } = useToast();
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editLabelValue, setEditLabelValue] = useState("");
   const [editBaseUrl, setEditBaseUrl] = useState("");
@@ -29,7 +29,6 @@ export const ProvidersPage = observer(function ProvidersPage() {
   async function handleUpdateKey(keyId: string, provider: string) {
     if (!updateApiKey.trim()) return;
     setValidating(true);
-    setError(null);
     try {
       const existing = keys.find((k) => k.id === keyId);
       await store.deleteProviderKey(keyId);
@@ -50,10 +49,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
 
       setUpdateApiKey("");
       setExpandedKeyId(null);
-      setSavedId(entry.id);
-      setTimeout(() => setSavedId(null), 2000);
+      showToast(t("common.saved"), "success");
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     } finally {
       setSaving(false);
       setValidating(false);
@@ -61,58 +59,51 @@ export const ProvidersPage = observer(function ProvidersPage() {
   }
 
   async function handleActivate(keyId: string, provider: string) {
-    setError(null);
     try {
       await configManager.activateProvider(keyId, provider);
       trackEvent("provider.key_activated", { provider });
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     }
   }
 
   async function handleRemoveKey(keyId: string) {
-    setError(null);
     const entry = keys.find((k) => k.id === keyId);
     try {
       await store.deleteProviderKey(keyId);
       trackEvent("provider.key_deleted", { provider: entry?.provider });
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     }
   }
 
   async function handleModelChange(keyId: string, model: string) {
-    setError(null);
     try {
       await configManager.switchModel(keyId, model);
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     }
   }
 
   async function handleProxyChange(keyId: string, proxyUrl: string) {
-    setError(null);
     setSaving(true);
     try {
       await store.updateProviderKey(keyId, { proxyUrl: proxyUrl || null as any });
-      setSavedId(keyId);
-      setTimeout(() => setSavedId(null), 2000);
+      showToast(t("common.saved"), "success");
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleBaseUrlChange(keyId: string, newBaseUrl: string) {
-    setError(null);
     setSaving(true);
     try {
       await store.updateProviderKey(keyId, { baseUrl: newBaseUrl || null as any });
-      setSavedId(keyId);
-      setTimeout(() => setSavedId(null), 2000);
+      showToast(t("common.saved"), "success");
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     } finally {
       setSaving(false);
     }
@@ -120,13 +111,11 @@ export const ProvidersPage = observer(function ProvidersPage() {
 
   async function handleRefreshModels(keyId: string) {
     setRefreshingModelsId(keyId);
-    setError(null);
     try {
       await store.refreshProviderModels(keyId);
-      setSavedId(keyId);
-      setTimeout(() => setSavedId(null), 2000);
+      showToast(t("common.saved"), "success");
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     } finally {
       setRefreshingModelsId(null);
     }
@@ -135,12 +124,11 @@ export const ProvidersPage = observer(function ProvidersPage() {
   async function handleLabelSave(keyId: string) {
     const trimmed = editLabelValue.trim();
     if (!trimmed) return;
-    setError(null);
     try {
       await store.updateProviderKey(keyId, { label: trimmed });
       setEditingLabelId(null);
     } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
+      showToast(t("providers.failedToSave") + String(err), "error");
     }
   }
 
@@ -148,10 +136,6 @@ export const ProvidersPage = observer(function ProvidersPage() {
     <div className="page-enter">
       <h1>{t("providers.title")}</h1>
       <p>{t("providers.description")}</p>
-
-      {error && (
-        <div className="error-alert">{t(error.key)}{error.detail ?? ""}</div>
-      )}
 
       {/* Section A: Add Key */}
       <ProviderSetupForm
@@ -213,9 +197,6 @@ export const ProvidersPage = observer(function ProvidersPage() {
                         )}
                         {(k.authType === "local" || k.authType === "custom") && k.baseUrl && k.provider !== "rivonclaw-pro" && (
                           <span className="text-secondary text-sm">{k.baseUrl}</span>
-                        )}
-                        {savedId === k.id && (
-                          <span className="badge-saved">{t("common.saved")}</span>
                         )}
                       </div>
                       <div className="key-details">

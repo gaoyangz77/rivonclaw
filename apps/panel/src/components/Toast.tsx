@@ -22,63 +22,60 @@ export function useToast(): ToastContextValue {
   return ctx;
 }
 
-function ToastContainer({ toast, onDismiss }: { toast: ToastState | null; onDismiss: () => void }) {
+function ToastItem({ toast, onDismiss }: { toast: ToastState; onDismiss: (key: number) => void }) {
   const [exiting, setExiting] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!toast) return;
-    setExiting(false);
-
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
-
     timerRef.current = setTimeout(() => {
       setExiting(true);
       exitTimerRef.current = setTimeout(() => {
-        onDismiss();
+        onDismiss(toast.key);
       }, 150);
-    }, 2000);
+    }, 3000);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     };
-  }, [toast?.key]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!toast) return null;
+  }, [toast.key, onDismiss]);
 
   const typeClass = toast.type === "error" ? "toast-error" : "toast-success";
   const exitClass = exiting ? " toast-exit" : "";
 
-  return createPortal(
-    <div className="toast-container">
-      <div className={`toast ${typeClass}${exitClass}`}>
-        {toast.message}
-      </div>
-    </div>,
-    document.body,
+  return (
+    <div className={`toast ${typeClass}${exitClass}`}>
+      {toast.message}
+    </div>
   );
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const [toasts, setToasts] = useState<ToastState[]>([]);
   const keyRef = useRef(0);
 
   const showToast = useCallback((message: string, type: ToastType = "success") => {
     keyRef.current += 1;
-    setToast({ message, type, key: keyRef.current });
+    setToasts((prev) => [...prev, { message, type, key: keyRef.current }]);
   }, []);
 
-  const handleDismiss = useCallback(() => {
-    setToast(null);
+  const handleDismiss = useCallback((key: number) => {
+    setToasts((prev) => prev.filter((t) => t.key !== key));
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <ToastContainer toast={toast} onDismiss={handleDismiss} />
+      {toasts.length > 0 &&
+        createPortal(
+          <div className="toast-container">
+            {toasts.map((toast) => (
+              <ToastItem key={toast.key} toast={toast} onDismiss={handleDismiss} />
+            ))}
+          </div>,
+          document.body,
+        )}
     </ToastContext.Provider>
   );
 }
