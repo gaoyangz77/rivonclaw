@@ -176,8 +176,8 @@ test.describe("Local Models E2E", () => {
     const editSaveBtn = expandedForm.locator(".btn.btn-primary");
     await editSaveBtn.click();
 
-    // Wait for "Saved" indicator
-    await expect(card.locator(".badge-saved")).toBeVisible({ timeout: 5_000 });
+    // Wait for toast success message
+    await expect(window.locator(".toast-success")).toBeVisible({ timeout: 5_000 });
 
     // Verify the new URL is shown in the metadata
     await expect(card).toContainText(newUrl);

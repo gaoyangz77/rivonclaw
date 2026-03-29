@@ -64,11 +64,8 @@ test.describe("Extra Features Page", () => {
     // Click Save
     await section.locator(".btn-primary").click();
 
-    // Verify "Saved" success message appears
-    await expect(section.locator(".text-success")).toBeVisible({ timeout: 10_000 });
-
-    // Verify the "Saved" badge appears on the key label (input is cleared after save)
-    await expect(section.locator(".badge-saved")).toBeVisible({ timeout: 5_000 });
+    // Verify toast success message appears
+    await expect(window.locator(".toast-success")).toBeVisible({ timeout: 10_000 });
   });
 
   test("Web Search: saves Brave Search API key successfully", async ({ window }) => {
@@ -96,11 +93,8 @@ test.describe("Extra Features Page", () => {
     // Click Save
     await section.locator(".btn-primary").click();
 
-    // Verify success message
-    await expect(section.locator(".text-success")).toBeVisible({ timeout: 10_000 });
-
-    // Verify badge appears
-    await expect(section.locator(".badge-saved")).toBeVisible({ timeout: 5_000 });
+    // Verify toast success message appears
+    await expect(window.locator(".toast-success")).toBeVisible({ timeout: 10_000 });
   });
 
   test("Embedding: saves Gemini API key successfully", async ({ window }) => {
@@ -129,11 +123,8 @@ test.describe("Extra Features Page", () => {
     // Click Save
     await section.locator(".btn-primary").click();
 
-    // Verify success message
-    await expect(section.locator(".text-success")).toBeVisible({ timeout: 10_000 });
-
-    // Verify badge appears
-    await expect(section.locator(".badge-saved")).toBeVisible({ timeout: 5_000 });
+    // Verify toast success message appears
+    await expect(window.locator(".toast-success")).toBeVisible({ timeout: 10_000 });
   });
 
   test("API: extras credentials CRUD", async ({ window, apiBase }) => {
@@ -271,7 +262,7 @@ test.describe("Extra Features Page", () => {
 
     // Save with feature disabled — no API key validation needed
     await section.locator(".btn-primary").click();
-    await expect(section.locator(".text-success")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".toast-success")).toBeVisible({ timeout: 10_000 });
 
     // Verify settings API reflects disabled
     const settingsDisabled = await window.evaluate(async (base) => {

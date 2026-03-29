@@ -9,7 +9,7 @@ import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
 import { configManager } from "../lib/config-manager.js";
-import { fetchJson, fetchVoid } from "../api/client.js";
+import { fetchJson } from "../api/client.js";
 import { useToast } from "../components/Toast.js";
 import { fetchInstalledSkills, writeSkillTemplate } from "../api/skills.js";
 import { fetchCsSkillTemplate } from "../api/shops.js";
@@ -106,9 +106,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
   const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
   const [togglingBindShopId, setTogglingBindShopId] = useState<string | null>(null);
-
-  // CS skill template auto-download state
-  const [csSkillChecked, setCsSkillChecked] = useState(false);
 
   // Model options from the active LLM key's provider (same pattern as ChatPage)
   const [csModelOptions, setCsModelOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -222,26 +219,6 @@ export const EcommercePage = observer(function EcommercePage() {
     if (matchedApps.length > 1) return t("ecommerce.addShopModal.multipleMatch");
     return null;
   }, [selectedMarket, selectedPlatform, matchedApps, t]);
-
-  // Auto-download CS skill template on first CS tab open
-  useEffect(() => {
-    if (activeTab !== "aiCustomerService" || csSkillChecked) return;
-    setCsSkillChecked(true);
-
-    (async () => {
-      try {
-        const installed = await fetchInstalledSkills();
-        if (installed.some((s) => s.slug === "customer-service")) return;
-
-        const content = await fetchCsSkillTemplate();
-        if (!content) return;
-
-        await writeSkillTemplate("customer-service", content);
-      } catch {
-        // Silent — skill template is optional, don't block CS usage
-      }
-    })();
-  }, [activeTab, csSkillChecked]);
 
   // Fetch credits on mount (user-level, not shop-specific)
   useEffect(() => {
@@ -393,11 +370,16 @@ export const EcommercePage = observer(function EcommercePage() {
       await entityStore.updateShop(shopId, {
         services: { customerService: { enabled: !currentValue } },
       });
-      // Notify desktop CS bridge to reload shop context (CS enabled/disabled)
-      fetchVoid("/cs-bridge/refresh-shop", {
-        method: "POST",
-        body: JSON.stringify({ shopId }),
-      });
+      // If enabling CS, auto-download skill template if not already installed (fire-and-forget)
+      if (!currentValue) {
+        fetchInstalledSkills()
+          .then(async (installed) => {
+            if (installed.some((s) => s.slug === "customer-service")) return;
+            const content = await fetchCsSkillTemplate();
+            if (content) await writeSkillTemplate("customer-service", content);
+          })
+          .catch(() => {}); // Silent — skill template is optional
+      }
       // If disabling CS while on the AI CS tab, switch back to overview
       if (currentValue && activeTab === "aiCustomerService") {
         setActiveTab("overview");
@@ -417,11 +399,6 @@ export const EcommercePage = observer(function EcommercePage() {
     try {
       await entityStore.updateShop(selectedShopId, {
         services: { customerService: { businessPrompt: editBusinessPrompt } },
-      });
-      // Notify desktop CS bridge to reload this shop's prompt
-      fetchVoid("/cs-bridge/refresh-shop", {
-        method: "POST",
-        body: JSON.stringify({ shopId: selectedShopId }),
       });
       showToast(t("common.saved"), "success");
     } catch (err) {
@@ -456,11 +433,6 @@ export const EcommercePage = observer(function EcommercePage() {
       await entityStore.updateShop(selectedShopId, {
         services: { customerService: { csModelOverride: modelRef || null } },
       });
-      // Notify desktop to refresh CS context
-      fetchVoid("/cs-bridge/refresh-shop", {
-        method: "POST",
-        body: JSON.stringify({ shopId: selectedShopId }),
-      });
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -483,11 +455,6 @@ export const EcommercePage = observer(function EcommercePage() {
       await entityStore.updateShop(shopId, {
         services: { customerService: { csDeviceId: myDeviceId } },
       });
-      // Notify desktop to refresh CS bridge context
-      fetchVoid("/cs-bridge/refresh-shop", {
-        method: "POST",
-        body: JSON.stringify({ shopId }),
-      });
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {
@@ -504,11 +471,6 @@ export const EcommercePage = observer(function EcommercePage() {
       await entityStore.updateShop(shopId, {
         services: { customerService: { csDeviceId: myDeviceId } },
       });
-      // Notify desktop to refresh CS bridge context
-      fetchVoid("/cs-bridge/refresh-shop", {
-        method: "POST",
-        body: JSON.stringify({ shopId }),
-      });
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {
@@ -521,11 +483,6 @@ export const EcommercePage = observer(function EcommercePage() {
     try {
       await entityStore.updateShop(shopId, {
         services: { customerService: { csDeviceId: null } },
-      });
-      // Notify desktop to refresh CS bridge context (will remove this shop's context)
-      fetchVoid("/cs-bridge/refresh-shop", {
-        method: "POST",
-        body: JSON.stringify({ shopId }),
       });
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
