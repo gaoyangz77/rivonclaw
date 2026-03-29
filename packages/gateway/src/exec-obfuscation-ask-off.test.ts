@@ -76,16 +76,16 @@ describe("exec obfuscation + ask=off", () => {
 
   it("obfuscation detection still forces approval when ask is not off", () => {
     // Verify the patch does not suppress obfuscation for other ask modes.
-    const hostAsk: string = "on-miss";
+    const hostAsk = "on-miss";
     const obfuscation = detectCommandObfuscation("echo " + "x".repeat(11_000));
 
     const requiresAsk =
       requiresExecApproval({
-        ask: hostAsk as "on-miss",
+        ask: hostAsk,
         security: "full",
         analysisOk: true,
         allowlistSatisfied: true,
-      }) || (obfuscation.detected && hostAsk !== "off");
+      }) || (obfuscation.detected && (hostAsk as string) !== "off");
     expect(requiresAsk).toBe(true);
   });
 });
