@@ -356,7 +356,7 @@ app.whenReady().then(async () => {
   // Connect when user is authenticated, disconnect on logout
   authSession.onUserChanged((user) => {
     if (user) {
-      oauthSubscription.reconnect();
+      oauthSubscription.connect(() => authSession.getAccessToken());
     } else {
       oauthSubscription.disconnect();
     }
