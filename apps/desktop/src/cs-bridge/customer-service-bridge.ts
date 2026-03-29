@@ -33,6 +33,16 @@ const SEND_MESSAGE_MUTATION = `
   }
 `;
 
+const CS_GET_OR_CREATE_SESSION_MUTATION = `
+  mutation CsGetOrCreateSession($shopId: ID!, $conversationId: String!, $buyerUserId: String!) {
+    csGetOrCreateSession(shopId: $shopId, conversationId: $conversationId, buyerUserId: $buyerUserId) {
+      sessionId
+      isNew
+      balance
+    }
+  }
+`;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -571,7 +581,40 @@ export class CustomerServiceBridge {
       "Use the tools available to you to help this buyer.",
     ].join("\n");
 
-    // 8. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
+    // 8. Ensure CS session exists (balance check — only on first message per conversation)
+    if (!this.activeConversations.has(frame.conversationId)) {
+      const authSession = getAuthSession();
+      if (!authSession) {
+        log.warn("No auth session available, skipping agent dispatch");
+        return;
+      }
+
+      try {
+        const result = await authSession.graphqlFetch<{
+          csGetOrCreateSession: { sessionId: string; isNew: boolean; balance: number };
+        }>(CS_GET_OR_CREATE_SESSION_MUTATION, {
+          shopId: shop.objectId,
+          conversationId: frame.conversationId,
+          buyerUserId: frame.buyerUserId,
+        });
+        const session = result.csGetOrCreateSession;
+        this.activeConversations.add(frame.conversationId);
+        log.info("CS session ready", {
+          shopId: shop.objectId,
+          conversationId: frame.conversationId,
+          sessionId: session.sessionId,
+          isNew: session.isNew,
+          balance: session.balance,
+        });
+      } catch (err) {
+        log.warn(`CS session creation failed (insufficient balance?), skipping agent dispatch: ${err instanceof Error ? err.message : String(err)}`);
+        return;
+      }
+    }
+
+    // 9. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
+    // Session stays ACTIVE across messages — it's per-conversation, not per-message.
+    // Session ending is handled separately (idle timeout, conversation close, etc.)
     try {
       const response = await rpcClient.request<{ runId?: string }>("agent", {
         sessionKey: dispatchKey,

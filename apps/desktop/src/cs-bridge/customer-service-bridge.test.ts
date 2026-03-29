@@ -103,7 +103,10 @@ beforeEach(() => {
   setSessionRunProfileCalls.length = 0;
   mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
   mockRpcRequest.mockResolvedValue({ ok: true });
-  mockGraphqlFetch.mockResolvedValue({ ecommerceSendMessage: { code: 0 } });
+  mockGraphqlFetch.mockResolvedValue({
+    csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 },
+    ecommerceSendMessage: { code: 0 },
+  });
   mockGetAuthSession.mockReturnValue({
     getAccessToken: () => "test-token",
     graphqlFetch: mockGraphqlFetch,
@@ -942,13 +945,72 @@ describe("reactive entity cache sync", () => {
       setSessionRunProfileCalls.length = 0;
       mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
       mockRpcRequest.mockResolvedValue({ ok: true });
+      mockGetAuthSession.mockReturnValue({
+        getAccessToken: () => "test-token",
+        graphqlFetch: mockGraphqlFetch,
+      });
+      mockGraphqlFetch.mockResolvedValue({
+        csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 },
+      });
       // RunProfiles are already in the MST store from beforeEach
 
-      await triggerMessage(bridge, createFrame({ shopId: "ps-4" }));
+      await triggerMessage(bridge, createFrame({ shopId: "ps-4", conversationId: "conv-shop4" }));
       expect(mockRpcRequest).toHaveBeenCalledWith(
         "cs_register_session",
         expect.objectContaining({ csContext: expect.objectContaining({ shopId: "shop-4" }) }),
       );
     });
   });
+});
+
+// ─── 9. CS session lifecycle ────────────────────────────────────────────────
+
+describe("CS session lifecycle", () => {
+  it("calls csGetOrCreateSession before agent dispatch", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({
+      conversationId: "conv-lifecycle",
+      buyerUserId: "buyer-lifecycle",
+    }));
+
+    // graphqlFetch should have been called with the session creation mutation
+    expect(mockGraphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("csGetOrCreateSession"),
+      {
+        shopId: "mongo-id-123",
+        conversationId: "conv-lifecycle",
+        buyerUserId: "buyer-lifecycle",
+      },
+    );
+  });
+
+  it("skips agent dispatch when csGetOrCreateSession fails (insufficient balance)", async () => {
+    mockGraphqlFetch.mockRejectedValueOnce(new Error("Insufficient balance"));
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    // cs_register_session should be called (step 4), but agent dispatch should NOT
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+  });
+
+  it("skips agent dispatch when no auth session available", async () => {
+    mockGetAuthSession.mockReturnValue(null);
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    // cs_register_session is called, but agent is not dispatched
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockGraphqlFetch).not.toHaveBeenCalled();
+  });
+
 });

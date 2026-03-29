@@ -172,6 +172,13 @@ export interface CreateSurfaceInput {
   name: Scalars['String']['input'];
 }
 
+/** Result of getting or creating a CS session */
+export interface CsSessionResult {
+  balance: Scalars['Int']['output'];
+  isNew: Scalars['Boolean']['output'];
+  sessionId: Scalars['String']['output'];
+}
+
 /** Supported payment currencies */
 export const Currency = {
   Cny: 'CNY',
@@ -293,6 +300,10 @@ export interface Mutation {
   createShop: Shop;
   /** Create a new surface */
   createSurface: Surface;
+  /** End an active CS session for a conversation (idempotent) */
+  csEndSession: Scalars['Boolean']['output'];
+  /** Get an existing active session or create a new one for a conversation */
+  csGetOrCreateSession: CsSessionResult;
   /** Deallocate a seat by ID */
   deallocateSeat: Scalars['Boolean']['output'];
   /** Delete a run profile */
@@ -305,8 +316,6 @@ export interface Mutation {
   deleteSurface: Scalars['Boolean']['output'];
   /** Create a new conversation with a buyer */
   ecommerceCreateConversation: EcommerceApiResult;
-  /** Mark messages as read in a conversation */
-  ecommerceReadMessage: EcommerceApiResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: EcommerceApiResult;
   /** Update agent settings for a shop */
@@ -378,6 +387,19 @@ export interface MutationCreateSurfaceArgs {
 }
 
 
+export interface MutationCsEndSessionArgs {
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsGetOrCreateSessionArgs {
+  buyerUserId: Scalars['String']['input'];
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface MutationDeallocateSeatArgs {
   seatId: Scalars['String']['input'];
 }
@@ -406,12 +428,6 @@ export interface MutationDeleteSurfaceArgs {
 export interface MutationEcommerceCreateConversationArgs {
   buyerUserId: Scalars['String']['input'];
   orderId?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface MutationEcommerceReadMessageArgs {
-  conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
 
@@ -636,6 +652,8 @@ export interface Query {
   csAssemblePrompt: AssembledPromptResult;
   /** Get CS session stats for a shop */
   csSessionStats: CsSessionStats;
+  /** Get the platform CS skill template content (markdown). Returns null if not configured. */
+  csSkillTemplate?: Maybe<Scalars['String']['output']>;
   /** Get agent settings for a shop */
   ecommerceGetAgentSettings: EcommerceApiResult;
   /** Get customer service performance metrics */
@@ -1212,8 +1230,6 @@ export const ToolId = {
   EcomCsGetProduct: 'ECOM_CS_GET_PRODUCT',
   EcomCsGetShippingDocument: 'ECOM_CS_GET_SHIPPING_DOCUMENT',
   EcomCsListOrders: 'ECOM_CS_LIST_ORDERS',
-  EcomCsReadMessage: 'ECOM_CS_READ_MESSAGE',
-  EcomCsReadMessages: 'ECOM_CS_READ_MESSAGES',
   EcomCsSearchPackages: 'ECOM_CS_SEARCH_PACKAGES',
   EcomCsSearchProducts: 'ECOM_CS_SEARCH_PRODUCTS',
   EcomCsSendCard: 'ECOM_CS_SEND_CARD',
@@ -1229,13 +1245,10 @@ export const ToolId = {
   EcomGetProduct: 'ECOM_GET_PRODUCT',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomListOrders: 'ECOM_LIST_ORDERS',
-  EcomReadMessage: 'ECOM_READ_MESSAGE',
-  EcomReadMessages: 'ECOM_READ_MESSAGES',
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchSessions: 'ECOM_SEARCH_SESSIONS',
-  EcomUpdateAgentSettings: 'ECOM_UPDATE_AGENT_SETTINGS',
-  EcomUploadImage: 'ECOM_UPLOAD_IMAGE'
+  EcomUpdateAgentSettings: 'ECOM_UPDATE_AGENT_SETTINGS'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];
@@ -1307,6 +1320,8 @@ export interface UpdateSurfaceInput {
 export const UserPlan = {
   Enterprise: 'ENTERPRISE',
   Free: 'FREE',
+  Max: 'MAX',
+  Plus: 'PLUS',
   Pro: 'PRO'
 } as const;
 

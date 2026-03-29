@@ -15,22 +15,27 @@ function parseRawBody(req: IncomingMessage): Promise<Buffer> {
 }
 
 /**
- * Proxy route for TikTok image upload.
+ * Proxy route for TikTok image send (upload + send in one call).
  *
  * The extension cannot call the cloud backend directly (no auth token access),
  * so it POSTs the raw image to the panel-server which forwards with the user's
  * access token to the cloud backend REST endpoint.
  */
 export const handleCloudTikTokRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
-  if (pathname === "/api/cloud/tiktok/upload-image" && req.method === "POST") {
+  if (pathname === "/api/cloud/ecommerce/send-image" && req.method === "POST") {
     if (!ctx.cloudClient) {
       sendJson(res, 401, { error: "Not authenticated" });
       return true;
     }
 
     const shopId = req.headers["x-shop-id"] as string | undefined;
+    const conversationId = req.headers["x-conversation-id"] as string | undefined;
     if (!shopId) {
       sendJson(res, 400, { error: "Missing x-shop-id header" });
+      return true;
+    }
+    if (!conversationId) {
+      sendJson(res, 400, { error: "Missing x-conversation-id header" });
       return true;
     }
 
@@ -43,18 +48,18 @@ export const handleCloudTikTokRoutes: RouteHandler = async (req, res, _url, path
     }
 
     try {
-      const data = await ctx.cloudClient.rest("/api/tiktok/upload-image", {
+      const data = await ctx.cloudClient.rest("/api/tiktok/send-image", {
         method: "POST",
         headers: {
           "Content-Type": contentType,
           "x-shop-id": shopId,
+          "x-conversation-id": conversationId,
         },
         body: imageBuffer,
       });
       sendJson(res, 200, data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Upload failed";
-      // Extract status code from CloudClient error message if available
+      const message = err instanceof Error ? err.message : "Send image failed";
       const statusMatch = message.match(/Cloud REST error: (\d+)/);
       const status = statusMatch ? Number(statusMatch[1]) : 502;
       sendJson(res, status, { error: message });
