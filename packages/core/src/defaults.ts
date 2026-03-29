@@ -180,4 +180,12 @@ export const DEFAULTS = {
 
   /** URL used to detect whether Google is reachable (GFW probe). */
   gfwProbeUrl: "https://www.google.com/generate_204",
+
+  /** Desktop panel-server API paths. */
+  api: {
+    /** Cloud GraphQL proxy path (relative, no host). */
+    cloudGraphql: "/api/cloud/graphql",
+    /** Cloud REST proxy prefix — strip "/cloud" to derive backend path. */
+    cloudRestPrefix: "/api/cloud/",
+  },
 };

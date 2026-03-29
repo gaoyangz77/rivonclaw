@@ -1,4 +1,5 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
+import { DEFAULTS } from "@rivonclaw/core";
 
 let _loadingCallbacks: { start: () => void; stop: () => void } | null = null;
 
@@ -19,7 +20,7 @@ let _client: ApolloClient | null = null;
 
 export function createApolloClient() {
   _client = new ApolloClient({
-    link: createHttpLink({ uri: "/api/cloud/graphql" }),
+    link: createHttpLink({ uri: DEFAULTS.api.cloudGraphql }),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: {

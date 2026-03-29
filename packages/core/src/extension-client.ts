@@ -7,7 +7,7 @@ export async function extensionGraphqlFetch<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<{ data?: T | null; errors?: Array<{ message: string }> }> {
-  const res = await fetch(`${PANEL_URL}/api/cloud/graphql`, {
+  const res = await fetch(`${PANEL_URL}${DEFAULTS.api.cloudGraphql}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),

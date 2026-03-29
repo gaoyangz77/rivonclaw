@@ -1,6 +1,7 @@
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { rootStore } from "../store/desktop-store.js";
+import { DEFAULTS } from "@rivonclaw/core";
 
 // ── ToolSpecs dedup cache ───────────────────────────────────────────────────
 // ToolSpecs is stable data queried by both Panel and plugin on startup.
@@ -15,7 +16,7 @@ function extractOperationName(query: string): string | null {
 }
 
 export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
-  if (pathname === "/api/cloud/graphql" && req.method === "POST") {
+  if (pathname === DEFAULTS.api.cloudGraphql && req.method === "POST") {
     if (!ctx.authSession) {
       sendJson(res, 200, { errors: [{ message: "Auth session not ready" }] });
       return true;

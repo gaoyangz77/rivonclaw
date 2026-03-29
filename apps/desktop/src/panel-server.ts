@@ -34,7 +34,7 @@ import { handleMobileChatRoutes } from "./api-routes/mobile-chat-routes.js";
 import { handleBrowserProfilesRoutes } from "./api-routes/browser-profiles-routes.js";
 import { handleAuthRoutes } from "./api-routes/auth-routes.js";
 import { handleCloudGraphqlRoutes } from "./api-routes/cloud-graphql-routes.js";
-import { handleCloudTikTokRoutes } from "./api-routes/cloud-tiktok-routes.js";
+import { handleCloudRestRoutes } from "./api-routes/cloud-rest-routes.js";
 import { handleDoctorRoutes } from "./api-routes/doctor-routes.js";
 import { handleDepsRoutes } from "./api-routes/deps-routes.js";
 import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
@@ -240,7 +240,7 @@ export interface PanelServerOptions {
 const routeHandlers: RouteHandler[] = [
   handleAuthRoutes,
   handleCloudGraphqlRoutes,
-  handleCloudTikTokRoutes,
+  handleCloudRestRoutes,
   handleRulesRoutes,
   handleSettingsRoutes,
   handleProviderRoutes,
