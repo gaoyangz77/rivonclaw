@@ -78,10 +78,48 @@ vendor upgrade, the AI must still inspect whether each patch:
 
 ## Current Patches
 
-- `0001-vendor-openclaw-add-browser-lifecycle-hooks-for-plug.patch`
-  - adds browser lifecycle hooks required by
-    `extensions/rivonclaw-browser-profiles-tools/`
-- `0002-vendor-openclaw-add-before-tool-resolve-hook-for-per.patch`
-  - adds `before_tool_resolve` hook for per-session tool filtering (ADR-031)
-  - used by `extensions/rivonclaw-capability-manager/` to control which
-    tools are visible to the LLM based on effectiveTools
+### 0001 — Browser lifecycle hooks for plugin integration
+
+**File:** `0001-vendor-openclaw-add-browser-lifecycle-hooks-for-plug.patch`
+
+**Why:** OpenClaw's browser subsystem has no plugin hooks for lifecycle events
+(launch, close, page navigation). EasyClaw's
+`extensions/rivonclaw-browser-profiles-tools/` needs these hooks to manage
+browser profiles, inject CDP sessions, and synchronize browser state with the
+gateway. Without this patch, browser-profile plugins cannot observe or control
+browser lifecycle.
+
+**Removal:** Drop when upstream OpenClaw adds a browser plugin lifecycle API
+(hooks or event emitter) that covers launch/close/navigate events.
+
+### 0002 — `before_tool_resolve` hook for per-session tool filtering
+
+**File:** `0002-vendor-openclaw-add-before-tool-resolve-hook-for-per.patch`
+
+**Why:** OpenClaw resolves the full tool list once at agent startup and does not
+support per-session or per-turn filtering. EasyClaw's capability manager
+(`extensions/rivonclaw-capability-manager/`, ADR-031) needs to dynamically
+show/hide tools based on the current session's `effectiveTools` policy. This
+patch adds a `before_tool_resolve` hook that lets plugins intercept tool
+resolution and filter the list before it reaches the LLM.
+
+**Removal:** Drop when upstream OpenClaw provides a native tool-filtering hook
+or plugin API that supports per-session tool visibility.
+
+### 0003 — Respect `ask=off` for obfuscation-triggered approvals
+
+**File:** `0003-vendor-openclaw-respect-ask-off-for-obfuscation-trig.patch`
+
+**Why:** OpenClaw's exec obfuscation detector (commands >10k chars or matching
+known obfuscation patterns) unconditionally forces human approval, ignoring the
+`exec.ask` config. EasyClaw sets `ask: "off"` and `security: "full"` for the
+local Chat Page — a localhost-only surface where physical access implies full
+trust. Without this patch, long but legitimate commands (e.g. writing a .docx
+file inline) trigger approval prompts that EasyClaw has no UI to handle,
+causing the request to time out and fail.
+
+**Change:** `obfuscation.detected` → `(obfuscation.detected && hostAsk !== "off")`
+in both `bash-tools.exec-host-gateway.ts` and `bash-tools.exec-host-node.ts`.
+
+**Removal:** Drop when upstream OpenClaw makes obfuscation detection respect the
+`ask` setting natively.
