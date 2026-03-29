@@ -25,6 +25,7 @@ export class OAuthSubscriptionClient {
   private client: Client | null = null;
   private unsubscribe: (() => void) | null = null;
   private getToken: (() => string | null) | null = null;
+  private resubscribeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly locale: string,
@@ -37,6 +38,10 @@ export class OAuthSubscriptionClient {
   }
 
   disconnect(): void {
+    if (this.resubscribeTimer) {
+      clearTimeout(this.resubscribeTimer);
+      this.resubscribeTimer = null;
+    }
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.client?.dispose();
@@ -69,7 +74,7 @@ export class OAuthSubscriptionClient {
       on: {
         connected: () => log.info("OAuth subscription WebSocket connected"),
         closed: () => log.info("OAuth subscription WebSocket closed"),
-        error: (err) => log.error("OAuth subscription WebSocket error", { error: String(err) }),
+        error: (err) => log.error("OAuth subscription WebSocket error", { error: err instanceof Error ? err.message : JSON.stringify(err) }),
       },
     });
 
@@ -79,6 +84,7 @@ export class OAuthSubscriptionClient {
   private subscribe(): void {
     if (!this.client) return;
 
+    this.unsubscribe?.();
     this.unsubscribe = this.client.subscribe<{ oauthComplete: OAuthCompletePayload }>(
       {
         query: OAUTH_COMPLETE_SUBSCRIPTION,
@@ -91,12 +97,23 @@ export class OAuthSubscriptionClient {
           this.onOAuthComplete(payload);
         },
         error: (err) => {
-          log.error("OAuth subscription error", { error: String(err) });
+          log.error("OAuth subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
+          this.scheduleResubscribe();
         },
         complete: () => {
           log.info("OAuth subscription completed");
+          this.scheduleResubscribe();
         },
       },
     );
+  }
+
+  private scheduleResubscribe(): void {
+    if (!this.client) return;
+    this.resubscribeTimer = setTimeout(() => {
+      this.resubscribeTimer = null;
+      log.info("Re-subscribing to OAuth events");
+      this.subscribe();
+    }, 2000);
   }
 }

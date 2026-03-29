@@ -24,6 +24,7 @@ export class UpdateSubscriptionClient {
   private client: Client | null = null;
   private unsubscribe: (() => void) | null = null;
   private getToken: (() => string | null) | null = null;
+  private resubscribeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly locale: string,
@@ -38,6 +39,10 @@ export class UpdateSubscriptionClient {
   }
 
   disconnect(): void {
+    if (this.resubscribeTimer) {
+      clearTimeout(this.resubscribeTimer);
+      this.resubscribeTimer = null;
+    }
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.client?.dispose();
@@ -80,6 +85,7 @@ export class UpdateSubscriptionClient {
   private subscribe(): void {
     if (!this.client) return;
 
+    this.unsubscribe?.();
     this.unsubscribe = this.client.subscribe<{ updateAvailable: UpdatePayload }>(
       {
         query: UPDATE_SUBSCRIPTION,
@@ -99,11 +105,22 @@ export class UpdateSubscriptionClient {
         },
         error: (err) => {
           log.error("Update subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
+          this.scheduleResubscribe();
         },
         complete: () => {
           log.info("Update subscription completed");
+          this.scheduleResubscribe();
         },
       },
     );
+  }
+
+  private scheduleResubscribe(): void {
+    if (!this.client) return;
+    this.resubscribeTimer = setTimeout(() => {
+      this.resubscribeTimer = null;
+      log.info("Re-subscribing to update events");
+      this.subscribe();
+    }, 2000);
   }
 }
