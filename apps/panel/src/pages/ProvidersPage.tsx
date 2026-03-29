@@ -1,24 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { observer } from "mobx-react-lite";
 import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../api/index.js";
-import { invalidateCache } from "../api/client.js";
 import { configManager } from "../lib/config-manager.js";
 import { ModelSelect } from "../components/inputs/ModelSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
-import { usePanelStore } from "../stores/index.js";
+import { useEntityStore } from "../store/index.js";
 
-export function ProvidersPage() {
+export const ProvidersPage = observer(function ProvidersPage() {
   const { t } = useTranslation();
-  const keys = usePanelStore((s) => s.providerKeys);
-  const storeCreateKey = usePanelStore((s) => s.createProviderKey);
-  const storeUpdateKey = usePanelStore((s) => s.updateProviderKey);
-  const storeActivateKey = usePanelStore((s) => s.activateProviderKey);
-  const storeDeleteKey = usePanelStore((s) => s.deleteProviderKey);
-  const storeRefreshModels = usePanelStore((s) => s.refreshProviderModels);
-  const storeFetchKeys = usePanelStore((s) => s.fetchProviderKeys);
+  const store = useEntityStore();
+  const keys = store.providerKeys;
   const [expandedKeyId, setExpandedKeyId] = useState<string | null>(null);
   const [updateApiKey, setUpdateApiKey] = useState("");
   const [editProxyUrl, setEditProxyUrl] = useState("");
@@ -31,33 +26,26 @@ export function ProvidersPage() {
   const [editBaseUrl, setEditBaseUrl] = useState("");
   const [refreshingModelsId, setRefreshingModelsId] = useState<string | null>(null);
 
-  // Invalidate cache + fetch latest keys on mount — ensures data is fresh
-  // when navigating to this page (e.g., keys added via API or cloud sync)
-  useEffect(() => {
-    invalidateCache("provider-keys");
-    storeFetchKeys();
-  }, [storeFetchKeys]);
-
   async function handleUpdateKey(keyId: string, provider: string) {
     if (!updateApiKey.trim()) return;
     setValidating(true);
     setError(null);
     try {
       const existing = keys.find((k) => k.id === keyId);
-      await storeDeleteKey(keyId);
-      const entry = await storeCreateKey({
+      await store.deleteProviderKey(keyId);
+      const entry = await store.createProviderKey({
         provider,
         label: existing?.label || t("providers.labelDefault"),
         model: existing?.model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
         apiKey: updateApiKey.trim(),
-        authType: existing?.authType,
+        authType: existing?.authType as "api_key" | "oauth" | "local" | "custom" | undefined,
         baseUrl: existing?.authType === "custom" ? (existing.baseUrl || undefined) : undefined,
         customProtocol: existing?.authType === "custom" ? (existing.customProtocol as "openai" | "anthropic" || undefined) : undefined,
         customModelsJson: existing?.authType === "custom" ? (existing.customModelsJson || undefined) : undefined,
       });
 
       if (existing?.isDefault) {
-        await storeActivateKey(entry.id);
+        await store.activateProviderKey(entry.id);
       }
 
       setUpdateApiKey("");
@@ -77,7 +65,6 @@ export function ProvidersPage() {
     try {
       await configManager.activateProvider(keyId, provider);
       trackEvent("provider.key_activated", { provider });
-      await storeFetchKeys();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
     }
@@ -87,7 +74,7 @@ export function ProvidersPage() {
     setError(null);
     const entry = keys.find((k) => k.id === keyId);
     try {
-      await storeDeleteKey(keyId);
+      await store.deleteProviderKey(keyId);
       trackEvent("provider.key_deleted", { provider: entry?.provider });
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -98,7 +85,6 @@ export function ProvidersPage() {
     setError(null);
     try {
       await configManager.switchModel(keyId, model);
-      await storeFetchKeys();
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
     }
@@ -108,7 +94,7 @@ export function ProvidersPage() {
     setError(null);
     setSaving(true);
     try {
-      await storeUpdateKey(keyId, { proxyUrl: proxyUrl || null as any });
+      await store.updateProviderKey(keyId, { proxyUrl: proxyUrl || null as any });
       setSavedId(keyId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (err) {
@@ -122,7 +108,7 @@ export function ProvidersPage() {
     setError(null);
     setSaving(true);
     try {
-      await storeUpdateKey(keyId, { baseUrl: newBaseUrl || null as any });
+      await store.updateProviderKey(keyId, { baseUrl: newBaseUrl || null as any });
       setSavedId(keyId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (err) {
@@ -136,7 +122,7 @@ export function ProvidersPage() {
     setRefreshingModelsId(keyId);
     setError(null);
     try {
-      await storeRefreshModels(keyId);
+      await store.refreshProviderModels(keyId);
       setSavedId(keyId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (err) {
@@ -151,7 +137,7 @@ export function ProvidersPage() {
     if (!trimmed) return;
     setError(null);
     try {
-      await storeUpdateKey(keyId, { label: trimmed });
+      await store.updateProviderKey(keyId, { label: trimmed });
       setEditingLabelId(null);
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -169,7 +155,7 @@ export function ProvidersPage() {
 
       {/* Section A: Add Key */}
       <ProviderSetupForm
-        onSave={() => { storeFetchKeys(); }}
+        onSave={() => { /* MST auto-updates via SSE */ }}
         title={t("providers.addTitle")}
       />
 
@@ -441,4 +427,4 @@ export function ProvidersPage() {
       </div>
     </div>
   );
-}
+});

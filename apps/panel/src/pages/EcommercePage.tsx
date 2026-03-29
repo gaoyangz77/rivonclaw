@@ -5,8 +5,9 @@ import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
 import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from "../components/icons.js";
-import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
-import type { Shop, ServiceCreditInfo } from "../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
+import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
 import { configManager } from "../lib/config-manager.js";
 import { fetchJson, fetchVoid } from "../api/client.js";
 
@@ -23,13 +24,13 @@ function isBalanceLow(balance: number): boolean {
   return balance > 0 && balance < LOW_BALANCE_THRESHOLD;
 }
 
-function isBalanceExpiringSoon(expiresAt?: string): boolean {
+function isBalanceExpiringSoon(expiresAt?: string | null): boolean {
   if (!expiresAt) return false;
   const diff = new Date(expiresAt).getTime() - Date.now();
   return diff > 0 && diff < EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000;
 }
 
-function isBalanceExpired(expiresAt?: string): boolean {
+function isBalanceExpired(expiresAt?: string | null): boolean {
   if (!expiresAt) return false;
   return new Date(expiresAt).getTime() < Date.now();
 }
@@ -43,8 +44,8 @@ function hasUpgradeRequired(err: unknown): boolean {
 }
 
 function formatBalanceDisplay(
-  balance: number | undefined,
-  tier: string | undefined,
+  balance: number | undefined | null,
+  tier: string | undefined | null,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   if (balance === undefined || balance === null) return "\u2014";
@@ -54,30 +55,23 @@ function formatBalanceDisplay(
 
 type DrawerTab = "overview" | "aiCustomerService";
 
-export function EcommercePage() {
+export const EcommercePage = observer(function EcommercePage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const { tools: allTools } = useToolRegistry();
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
+  const allTools = entityStore.availableTools;
+  const shops = entityStore.shops;
+  const runProfiles = entityStore.allRunProfiles;
 
-  const shops = usePanelStore((s) => s.shops);
-  const shopsLoading = usePanelStore((s) => s.shopsLoading);
-  const platformApps = usePanelStore((s) => s.platformApps);
-  const credits = usePanelStore((s) => s.credits);
-  const creditsLoading = usePanelStore((s) => s.creditsLoading);
-  const sessionStats = usePanelStore((s) => s.sessionStats);
-  const sessionStatsLoading = usePanelStore((s) => s.sessionStatsLoading);
-  const selectedShopId = usePanelStore((s) => s.selectedShopId);
-  const storeFetchShops = usePanelStore((s) => s.fetchShops);
-  const storeFetchPlatformApps = usePanelStore((s) => s.fetchPlatformApps);
-  const storeUpdateShop = usePanelStore((s) => s.updateShop);
-  const storeDeleteShop = usePanelStore((s) => s.deleteShop);
-  const storeInitiateOAuth = usePanelStore((s) => s.initiateTikTokOAuth);
-  const storeFetchCredits = usePanelStore((s) => s.fetchCredits);
-  const storeFetchSessionStats = usePanelStore((s) => s.fetchSessionStats);
-  const storeRedeemCredit = usePanelStore((s) => s.redeemCredit);
-  const storeSetSelectedShopId = usePanelStore((s) => s.setSelectedShopId);
-  const runProfiles = usePanelStore((s) => s.runProfiles);
-  const storeFetchRunProfiles = usePanelStore((s) => s.fetchRunProfiles);
+  const platformApps = entityStore.platformApps;
+  const credits = entityStore.credits;
+  const sessionStats = entityStore.sessionStats;
+
+  // Loading flags and selectedShopId are pure UI state
+  const [platformAppsLoading, setPlatformAppsLoading] = useState(false);
+  const [creditsLoading, setCreditsLoading] = useState(false);
+  const [sessionStatsLoading, setSessionStatsLoading] = useState(false);
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [upgradePrompt, setUpgradePrompt] = useState(false);
@@ -136,6 +130,20 @@ export function EcommercePage() {
     setLinkCopied(false);
   }, []);
 
+  // Wrapper functions for fetching with loading state
+  async function handleFetchPlatformApps() {
+    setPlatformAppsLoading(true);
+    try { await entityStore.fetchPlatformApps(); } catch { /* ignore */ } finally { setPlatformAppsLoading(false); }
+  }
+  async function handleFetchCredits() {
+    setCreditsLoading(true);
+    try { await entityStore.fetchCredits(); } catch { /* ignore */ } finally { setCreditsLoading(false); }
+  }
+  async function handleFetchSessionStats(shopId: string) {
+    setSessionStatsLoading(true);
+    try { await entityStore.fetchSessionStats(shopId); } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
+  }
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -151,12 +159,10 @@ export function EcommercePage() {
       .catch(() => setMyDeviceId(null));
   }, []);
 
-  // Fetch shops, platform apps, and run profiles on mount
+  // Fetch platform apps on mount (shops arrive via MST/SSE)
   useEffect(() => {
     if (user) {
-      storeFetchShops();
-      storeFetchPlatformApps();
-      storeFetchRunProfiles();
+      handleFetchPlatformApps();
     }
   }, [user]);
 
@@ -215,23 +221,23 @@ export function EcommercePage() {
   // Fetch credits on mount (user-level, not shop-specific)
   useEffect(() => {
     if (user) {
-      storeFetchCredits();
+      handleFetchCredits();
     }
   }, [user]);
 
   // Load session stats when a shop is selected
   useEffect(() => {
     if (selectedShopId) {
-      storeFetchSessionStats(selectedShopId);
+      handleFetchSessionStats(selectedShopId);
     }
   }, [selectedShopId]);
 
   // Sync business prompt from shop data (re-runs when shop changes or after mutations refresh the shop)
   useEffect(() => {
     if (selectedShop) {
-      setEditBusinessPrompt(selectedShop.services.customerService.businessPrompt ?? "");
+      setEditBusinessPrompt(selectedShop.services?.customerService?.businessPrompt ?? "");
     }
-  }, [selectedShop?.id, selectedShop?.services.customerService.businessPrompt]);
+  }, [selectedShop?.id, selectedShop?.services?.customerService?.businessPrompt]);
 
   function handleError(err: unknown, fallbackKey: string) {
     if (hasUpgradeRequired(err)) {
@@ -253,7 +259,7 @@ export function EcommercePage() {
         cleanupOAuthWait();
         setConnectModalOpen(false);
         setSuccessMsg(t("ecommerce.oauthSuccess"));
-        storeFetchShops();
+        // Shops auto-update via MST/SSE — no manual fetch needed
         void data;
       } catch {
         // Ignore malformed data
@@ -275,7 +281,7 @@ export function EcommercePage() {
   async function handleRefreshShops() {
     setRefreshing(true);
     try {
-      await Promise.all([storeFetchShops(), storeFetchPlatformApps()]);
+      await handleFetchPlatformApps();
     } finally {
       setRefreshing(false);
     }
@@ -288,7 +294,7 @@ export function EcommercePage() {
     setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
-      const { authUrl } = await storeInitiateOAuth(selectedPlatformAppId);
+      const { authUrl } = await entityStore.initiateTikTokOAuth(selectedPlatformAppId);
       setOauthAuthUrl(authUrl);
       startOAuthSSEListener();
       setOauthWaiting(true);
@@ -329,7 +335,7 @@ export function EcommercePage() {
     setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
-      const { authUrl } = await storeInitiateOAuth(appId);
+      const { authUrl } = await entityStore.initiateTikTokOAuth(appId);
       setOauthAuthUrl(authUrl);
       setConnectModalOpen(true);
       startOAuthSSEListener();
@@ -346,7 +352,8 @@ export function EcommercePage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeDeleteShop(shopId);
+      await entityStore.deleteShop(shopId);
+      // MST store auto-updates via SSE patch
       if (selectedShopId === shopId) {
         closeDrawer();
       }
@@ -362,7 +369,7 @@ export function EcommercePage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeUpdateShop(shopId, {
+      await entityStore.updateShop(shopId, {
         services: { customerService: { enabled: !currentValue } },
       });
       // Notify desktop CS bridge to reload shop context (CS enabled/disabled)
@@ -387,7 +394,7 @@ export function EcommercePage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeUpdateShop(selectedShopId, {
+      await entityStore.updateShop(selectedShopId, {
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
       // Notify desktop CS bridge to reload this shop's prompt
@@ -410,7 +417,7 @@ export function EcommercePage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeUpdateShop(selectedShopId, {
+      await entityStore.updateShop(selectedShopId, {
         services: { customerService: { runProfileId: profileId } },
       });
     } catch (err) {
@@ -426,7 +433,7 @@ export function EcommercePage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeUpdateShop(selectedShopId, {
+      await entityStore.updateShop(selectedShopId, {
         services: { customerService: { csModelOverride: modelRef || null } },
       });
       // Notify desktop to refresh CS context
@@ -453,7 +460,7 @@ export function EcommercePage() {
     }
     setTogglingBindShopId(shopId);
     try {
-      await storeUpdateShop(shopId, {
+      await entityStore.updateShop(shopId, {
         services: { customerService: { csDeviceId: myDeviceId } },
       });
       // Notify desktop to refresh CS bridge context
@@ -474,7 +481,7 @@ export function EcommercePage() {
     if (!shopId || !myDeviceId) return;
     setTogglingBindShopId(shopId);
     try {
-      await storeUpdateShop(shopId, {
+      await entityStore.updateShop(shopId, {
         services: { customerService: { csDeviceId: myDeviceId } },
       });
       // Notify desktop to refresh CS bridge context
@@ -492,7 +499,7 @@ export function EcommercePage() {
   async function handleUnbindDevice(shopId: string) {
     setTogglingBindShopId(shopId);
     try {
-      await storeUpdateShop(shopId, {
+      await entityStore.updateShop(shopId, {
         services: { customerService: { csDeviceId: null } },
       });
       // Notify desktop to refresh CS bridge context (will remove this shop's context)
@@ -507,16 +514,16 @@ export function EcommercePage() {
     }
   }
 
-  async function handleRedeemCredit(credit: ServiceCreditInfo) {
+  async function handleRedeemCredit(credit: ServiceCredit) {
     if (!selectedShopId) return;
     setRedeemingCreditId(credit.id);
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeRedeemCredit(credit.id, selectedShopId);
+      await entityStore.redeemCredit(credit.id, selectedShopId);
       setSuccessMsg(t("ecommerce.shopDrawer.billing.redeemSuccess"));
       setTimeout(() => setSuccessMsg(null), 2000);
-      storeFetchSessionStats(selectedShopId);
+      handleFetchSessionStats(selectedShopId);
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -525,7 +532,7 @@ export function EcommercePage() {
   }
 
   function openDrawer(shopId: string) {
-    storeSetSelectedShopId(shopId);
+    setSelectedShopId(shopId);
     setActiveTab("overview");
     setError(null);
     setUpgradePrompt(false);
@@ -537,7 +544,7 @@ export function EcommercePage() {
     setDrawerOpen(false);
     // Delay clearing selection so close animation plays
     setTimeout(() => {
-      storeSetSelectedShopId(null);
+      setSelectedShopId(null);
       setError(null);
       setUpgradePrompt(false);
     }, 300);
@@ -560,7 +567,7 @@ export function EcommercePage() {
   }
 
   function getBalanceBadge(shop: Shop): JSX.Element | null {
-    const billing = shop.services.customerServiceBilling;
+    const billing = shop.services?.customerServiceBilling;
     if (!billing) return null;
 
     if (billing.balance === 0) {
@@ -584,7 +591,7 @@ export function EcommercePage() {
     return null;
   }
 
-  const selectedRunProfileId = selectedShop?.services.customerService.runProfileId ?? "";
+  const selectedRunProfileId = selectedShop?.services?.customerService?.runProfileId ?? "";
   const selectedRunProfile = runProfiles.find((p) => p.id === selectedRunProfileId) ?? null;
 
   const runProfileOptions = useMemo(
@@ -595,7 +602,7 @@ export function EcommercePage() {
     [runProfiles],
   );
 
-  const selectedCSModel = selectedShop?.services.customerService.csModelOverride ?? "";
+  const selectedCSModel = selectedShop?.services?.customerService?.csModelOverride ?? "";
   const csModelUnavailable = !!selectedCSModel && !csModelOptions.some((o) => o.value === selectedCSModel);
 
   // Prepend "Default" option; append unavailable marker if current override is not in the list
@@ -697,9 +704,7 @@ export function EcommercePage() {
 
       {/* Shop Table */}
       <div className="section-card">
-        {shopsLoading && shops.length === 0 ? (
-          <div className="empty-cell">{t("common.loading")}</div>
-        ) : shops.length === 0 ? (
+        {shops.length === 0 ? (
           <div className="empty-cell">{t("ecommerce.noShops")}</div>
         ) : (
           <table className="shop-table">
@@ -715,7 +720,7 @@ export function EcommercePage() {
             </thead>
             <tbody>
               {shops.map((shop) => {
-                const billing = shop.services.customerServiceBilling;
+                const billing = shop.services?.customerServiceBilling;
                 return (
                   <tr key={shop.id}>
                     <td>
@@ -933,7 +938,7 @@ export function EcommercePage() {
               >
                 {t("ecommerce.shopDrawer.tabs.overview")}
               </button>
-              {selectedShop.services.customerService.enabled && (
+              {selectedShop.services?.customerService?.enabled && (
                 <button
                   className={`drawer-tab-btn ${activeTab === "aiCustomerService" ? "drawer-tab-btn-active" : ""}`}
                   onClick={() => setActiveTab("aiCustomerService")}
@@ -995,8 +1000,8 @@ export function EcommercePage() {
                     <span className="shop-toggle-card-label">
                       {t("ecommerce.shopDrawer.overview.csToggle")}
                     </span>
-                    <span className={selectedShop.services.customerService.enabled ? "badge badge-active" : "badge badge-muted"}>
-                      {selectedShop.services.customerService.enabled
+                    <span className={selectedShop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                      {selectedShop.services?.customerService?.enabled
                         ? t("common.enabled")
                         : t("common.disabled")}
                     </span>
@@ -1004,20 +1009,20 @@ export function EcommercePage() {
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
-                      checked={selectedShop.services.customerService.enabled}
+                      checked={selectedShop.services?.customerService?.enabled}
                       onChange={() =>
                         handleToggleCustomerService(
                           selectedShop.id,
-                          selectedShop.services.customerService.enabled,
+                          selectedShop.services?.customerService?.enabled ?? false,
                         )
                       }
                       disabled={togglingServiceId === selectedShop.id}
                     />
                     <span
-                      className={`toggle-track ${selectedShop.services.customerService.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === selectedShop.id ? "toggle-track-disabled" : ""}`}
+                      className={`toggle-track ${selectedShop.services?.customerService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === selectedShop.id ? "toggle-track-disabled" : ""}`}
                     >
                       <span
-                        className={`toggle-thumb ${selectedShop.services.customerService.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                        className={`toggle-thumb ${selectedShop.services?.customerService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
                       />
                     </span>
                   </label>
@@ -1026,7 +1031,7 @@ export function EcommercePage() {
             )}
 
             {/* Tab: AI Customer Service */}
-            {activeTab === "aiCustomerService" && selectedShop.services.customerService.enabled && (
+            {activeTab === "aiCustomerService" && selectedShop.services?.customerService?.enabled && (
               <div className="shop-detail-section">
                 {/* Service Status */}
                 <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.serviceStatus")}</div>
@@ -1034,8 +1039,8 @@ export function EcommercePage() {
                   <div className="shop-info-row">
                     <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.balance")}</span>
                     <span className="shop-info-value">
-                      {selectedShop.services.customerServiceBilling
-                        ? (selectedShop.services.customerServiceBilling.balance ?? 0)
+                      {selectedShop.services?.customerServiceBilling
+                        ? (selectedShop.services?.customerServiceBilling?.balance ?? 0)
                         : 0}
                       {getBalanceBadge(selectedShop)}
                     </span>
@@ -1043,22 +1048,22 @@ export function EcommercePage() {
                   <div className="shop-info-row">
                     <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.currentTier")}</span>
                     <span className="shop-info-value">
-                      {selectedShop.services.customerServiceBilling?.tier ? (
-                        <span className="badge badge-active">{t(`tiktokShops.tier.${selectedShop.services.customerServiceBilling.tier}`, { defaultValue: selectedShop.services.customerServiceBilling.tier })}</span>
+                      {selectedShop.services?.customerServiceBilling?.tier ? (
+                        <span className="badge badge-active">{t(`tiktokShops.tier.${selectedShop.services?.customerServiceBilling?.tier}`, { defaultValue: selectedShop.services?.customerServiceBilling?.tier })}</span>
                       ) : (
                         t("ecommerce.shopDrawer.billing.noTier")
                       )}
                     </span>
                   </div>
-                  {selectedShop.services.customerServiceBilling?.balanceExpiresAt && (
+                  {selectedShop.services?.customerServiceBilling?.balanceExpiresAt && (
                     <div className="shop-info-row">
                       <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.expiry")}</span>
                       <span className="shop-info-value">
-                        {new Date(selectedShop.services.customerServiceBilling.balanceExpiresAt).toLocaleDateString()}
-                        {isBalanceExpiringSoon(selectedShop.services.customerServiceBilling.balanceExpiresAt) && (
+                        {new Date(selectedShop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString()}
+                        {isBalanceExpiringSoon(selectedShop.services?.customerServiceBilling?.balanceExpiresAt) && (
                           <span className="badge badge-warning shop-badge-inline">
                             {t("tiktokShops.balance.expiring", {
-                              date: new Date(selectedShop.services.customerServiceBilling.balanceExpiresAt).toLocaleDateString(),
+                              date: new Date(selectedShop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString(),
                             })}
                           </span>
                         )}
@@ -1075,12 +1080,12 @@ export function EcommercePage() {
                       {t("ecommerce.shopDrawer.aiCS.csBindDevice")}
                     </span>
                     <span className="form-hint">{t("ecommerce.shopDrawer.aiCS.csBindDeviceHint")}</span>
-                    {selectedShop.services?.customerService?.csDeviceId && selectedShop.services.customerService.csDeviceId !== myDeviceId && (
+                    {selectedShop.services?.customerService?.csDeviceId && selectedShop.services?.customerService?.csDeviceId !== myDeviceId && (
                       <span className="badge badge-warning shop-badge-inline">
                         {t("ecommerce.shopDrawer.aiCS.csOtherDevice")}
                       </span>
                     )}
-                    {selectedShop.services?.customerService?.csDeviceId && selectedShop.services.customerService.csDeviceId === myDeviceId && (
+                    {selectedShop.services?.customerService?.csDeviceId && selectedShop.services?.customerService?.csDeviceId === myDeviceId && (
                       <span className="badge badge-success shop-badge-inline">
                         {t("ecommerce.shopDrawer.aiCS.csThisDevice")}
                       </span>
@@ -1182,7 +1187,7 @@ export function EcommercePage() {
                     <button
                       className="btn btn-primary btn-sm"
                       onClick={handleSaveBusinessPrompt}
-                      disabled={savingSettings || editBusinessPrompt === (selectedShop?.services.customerService.businessPrompt ?? "")}
+                      disabled={savingSettings || editBusinessPrompt === (selectedShop?.services?.customerService?.businessPrompt ?? "")}
                     >
                       {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
                     </button>
@@ -1273,4 +1278,4 @@ export function EcommercePage() {
       />
     </div>
   );
-}
+});

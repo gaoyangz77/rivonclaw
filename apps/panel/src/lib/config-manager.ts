@@ -1,5 +1,6 @@
-import { updateProviderKey, activateProviderKey, updateSettings, fetchActiveKeyUsage, fetchModelCatalog } from "../api/index.js";
+import { updateSettings, fetchActiveKeyUsage, fetchModelCatalog } from "../api/index.js";
 import type { ActiveKeyInfo, CatalogModelEntry } from "../api/index.js";
+import { entityStore } from "../store/index.js";
 
 /** Fired after any model or provider change. */
 const CONFIG_CHANGED_EVENT = "config-changed";
@@ -7,13 +8,13 @@ const CONFIG_CHANGED_EVENT = "config-changed";
 class ConfigManager {
   /** Switch model on a provider key. Triggers gateway restart server-side. */
   async switchModel(keyId: string, model: string): Promise<void> {
-    await updateProviderKey(keyId, { model });
+    await entityStore.updateProviderKey(keyId, { model });
     this.broadcast();
   }
 
   /** Activate a provider key + set it as the active provider. */
   async activateProvider(keyId: string, provider: string): Promise<void> {
-    await activateProviderKey(keyId);
+    await entityStore.activateProviderKey(keyId);
     await updateSettings({ "llm-provider": provider });
     this.broadcast();
   }

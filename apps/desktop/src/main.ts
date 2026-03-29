@@ -50,6 +50,9 @@ import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js"
 import { createGatewayEventDispatcher } from "./gateway/gateway-event-dispatcher.js";
 import { AuthSessionManager } from "./auth/auth-session.js";
 import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
+import { allKeysToMstSnapshots, toMstSnapshot } from "./providers/provider-key-utils.js";
+import { syncActiveKey } from "./providers/provider-validator.js";
+import { rootStore, initDesktopStoreEnv } from "./store/desktop-store.js";
 import { OAuthSubscriptionClient } from "./cloud/oauth-subscription-client.js";
 import { UpdateSubscriptionClient } from "./cloud/update-subscription-client.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
@@ -57,7 +60,7 @@ import { createCloudBackupProvider } from "./browser-profiles/session-state/back
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
 import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
-import { toolCapabilityResolver } from "./utils/tool-capability-resolver.js";
+import { OUR_PLUGIN_IDS } from "./generated/our-plugin-ids.js";
 
 import { initCookieSync, pullAndPersistCookies } from "./browser-profiles/cookie-sync.js";
 import { createGatewayConfigHandlers } from "./gateway/gateway-config-handlers.js";
@@ -320,6 +323,15 @@ app.whenReady().then(async () => {
   setProviderKeysStore(storage.providerKeys);
   const secretStore = createSecretStore();
 
+  // Load provider keys into MST store (before panel server starts, so SSE
+  // snapshot includes them on first Panel connect)
+  const allKeyEntries = storage.providerKeys.getAll();
+  const mstKeySnapshots = await allKeysToMstSnapshots(allKeyEntries, secretStore);
+  rootStore.loadProviderKeys(mstKeySnapshots);
+
+  // Client tool specs are loaded via RPC after gateway connects (see gateway-connection.ts).
+  // No direct import needed here — avoids module instance duplication across processes.
+
   // Apply auto-launch (login item) setting from DB to OS
   const autoLaunchEnabled = storage.settings.get("auto_launch_enabled") === "true";
   applyAutoLaunch(autoLaunchEnabled);
@@ -565,10 +577,13 @@ app.whenReady().then(async () => {
     stateDir,
     deviceId,
     storage,
-    toolCapabilityResolver,
+    toolCapability: rootStore.toolCapability,
+    ourPluginIds: OUR_PLUGIN_IDS,
     dispatchGatewayEvent,
   };
 
+  // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
+  // when tools change (e.g. after ingestGraphQLResponse).
   // Initialize artifact pipeline with LLM config resolver
   const pipeline = new ArtifactPipeline({
     storage,
@@ -1146,8 +1161,8 @@ app.whenReady().then(async () => {
         });
     },
     onAuthChange: () => {
-      // Re-init ToolCapabilityResolver on auth change (refresh system + extension tools from gateway catalog).
-      // Entitled tools come from entity-cache (populated by Panel's warmToolSpecs via proxy).
+      // Re-init ToolCapability on auth change (refresh system + extension tools from gateway catalog).
+      // Entitled tools come from MST store (populated by Panel's warmToolSpecs via proxy).
       (async () => {
         try {
           const rpc = getRpcClient();
@@ -1161,11 +1176,11 @@ app.whenReady().then(async () => {
                 catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
               }
             }
-            toolCapabilityResolver.init(catalogTools);
+            rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
           }
-          log.info(`ToolCapabilityResolver auth change: re-initialized`);
+          log.info(`ToolCapability auth change: re-initialized`);
         } catch (e) {
-          log.warn("Failed to re-init ToolCapabilityResolver on auth change:", e);
+          log.warn("Failed to re-init ToolCapability on auth change:", e);
         }
       })().catch(() => {});
     },
@@ -1371,6 +1386,11 @@ app.whenReady().then(async () => {
       await syncAllAuthProfiles(stateDir, storage, secretStore);
       await writeProxyRouterConfig(storage, secretStore, lastSystemProxy);
       writeGatewayConfig(await buildFullGatewayConfig());
+
+      // Sync MST state (FIX: OAuth save was missing MST update)
+      const oauthMstKeys = await allKeysToMstSnapshots(storage.providerKeys.getAll(), secretStore);
+      rootStore.loadProviderKeys(oauthMstKeys);
+
       // Restart gateway to pick up new plugin + auth profile
       await launcher.stop();
       await launcher.start();
@@ -1446,6 +1466,19 @@ app.whenReady().then(async () => {
   handleSttChange = configHandlers.handleSttChange;
   handleExtrasChange = configHandlers.handleExtrasChange;
   handlePermissionsChange = configHandlers.handlePermissionsChange;
+
+  // Initialize Desktop store environment — provider key MST actions use these deps.
+  // handleProviderChange uses optional chaining inside MST actions, so it's safe
+  // even though configHandlers was just created (actions are only called at runtime,
+  // never during init).
+  initDesktopStoreEnv({
+    storage,
+    secretStore,
+    syncActiveKey,
+    toMstSnapshot,
+    allKeysToMstSnapshots,
+    handleProviderChange: (hint) => configHandlers.handleProviderChange(hint),
+  });
 
   Promise.all([
     syncAllAuthProfiles(stateDir, storage, secretStore),

@@ -1,7 +1,7 @@
 /**
  * Tool Capability types — shared types for the four-layer tool authority model.
  *
- * These types are used by Desktop's ToolCapabilityResolver and
+ * These types are used by Desktop's ToolCapabilityModel and
  * pushed to the gateway's capability-manager plugin.
  */
 

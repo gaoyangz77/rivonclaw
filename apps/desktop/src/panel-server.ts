@@ -39,6 +39,7 @@ import { handleDoctorRoutes } from "./api-routes/doctor-routes.js";
 import { handleDepsRoutes } from "./api-routes/deps-routes.js";
 import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
 import { handleCSBridgeRoutes } from "./api-routes/cs-bridge-routes.js";
+import { handleStoreStream } from "./api-routes/store-stream-routes.js";
 
 const log = createLogger("panel-server");
 
@@ -369,6 +370,12 @@ export function startPanelServer(options: PanelServerOptions): Server {
       const cleanup = () => chatEventSSEClients.delete(res);
       req.on("close", cleanup);
       res.on("error", cleanup);
+      return;
+    }
+
+    // SSE endpoint for MST store patch sync (Desktop → Panel)
+    if (pathname === "/api/store/stream" && req.method === "GET") {
+      handleStoreStream(req, res);
       return;
     }
 

@@ -18,6 +18,8 @@ export interface ProviderKeyEntry {
   /** Supported input modalities for the model (e.g. ["text"] or ["text", "image"]).
    *  NULL/undefined defaults to ["text"]. Primarily used by local providers. */
   inputModalities?: string[] | null;
+  /** Origin of this key: "local" for user-managed, "cloud" for Pro subscription keys. */
+  source?: "local" | "cloud";
   createdAt: string;
   updatedAt: string;
 }

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { applySnapshot } from "mobx-state-tree";
 import { ScopeType } from "@rivonclaw/core";
 import type { CatalogTool } from "@rivonclaw/core";
 import { parseScopeType } from "../api-routes/tool-registry-routes.js";
-import { ToolCapabilityResolver } from "./tool-capability-resolver.js";
-import { entityCache } from "../entity-cache.js";
+import { rootStore } from "../store/desktop-store.js";
+import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
 // ---------------------------------------------------------------------------
 // parseScopeType — pure function: sessionKey → ScopeType
@@ -48,26 +49,24 @@ describe("parseScopeType", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ToolCapabilityResolver.getEffectiveToolsForScope
+// ToolCapabilityModel.getEffectiveToolsForScope
 // ---------------------------------------------------------------------------
 
 /**
- * Helper: create a fresh resolver initialized with deterministic mock data.
+ * Helper: seed MST store and initialize toolCapability with deterministic mock data.
  *
  * System tools (core):  read, write, exec
  * Extension tool:       custom_ext_tool   (source=plugin, pluginId NOT in OUR_PLUGIN_IDS)
- * Entitled tools:       entitled_tool_1, entitled_tool_2  (from entity-cache)
+ * Entitled tools:       entitled_tool_1, entitled_tool_2  (from MST store)
  */
-function createTestResolver(): ToolCapabilityResolver {
-  // Seed entity-cache with mock toolSpecs (entitled tools)
-  entityCache.setState({
+function seedTestStore(): void {
+  // Seed MST store with mock entitled tools
+  rootStore.ingestGraphQLResponse({
     toolSpecs: [
-      { id: "entitled_tool_1", name: "entitled_tool_1" } as any,
-      { id: "entitled_tool_2", name: "entitled_tool_2" } as any,
+      { id: "entitled_tool_1", name: "entitled_tool_1", displayName: "entitled_tool_1", description: "", category: "", operationType: "query", parameters: [] },
+      { id: "entitled_tool_2", name: "entitled_tool_2", displayName: "entitled_tool_2", description: "", category: "", operationType: "query", parameters: [] },
     ],
   });
-
-  const resolver = new ToolCapabilityResolver();
 
   const catalogTools: CatalogTool[] = [
     { id: "read", source: "core" },
@@ -79,21 +78,21 @@ function createTestResolver(): ToolCapabilityResolver {
     { id: "custom_ext_tool", source: "plugin", pluginId: "my-custom-plugin" },
   ];
 
-  resolver.init(catalogTools);
-  return resolver;
+  rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
 }
 
-describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
-  let resolver: ToolCapabilityResolver;
-
+describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   beforeEach(() => {
-    resolver = createTestResolver();
+    rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    seedTestStore();
+    // Clear any session/default profiles
+    rootStore.toolCapability.setDefaultRunProfile(null);
   });
 
   // ── Trusted scopes ──
 
   it("trusted scope + no RunProfile + no default → system tools only", () => {
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
     // Should not include entitled or extension tools without a RunProfile
     expect(result).not.toContain("entitled_tool_1");
@@ -102,26 +101,26 @@ describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
   });
 
   it("trusted scope + no RunProfile + has default → system + default's tools", () => {
-    resolver.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
+    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_1"]));
     expect(result).not.toContain("entitled_tool_2");
   });
 
   it("trusted scope + has RunProfile → system + profile's tools", () => {
-    resolver.setSessionRunProfile("agent:main:panel-abc", {
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
       selectedToolIds: ["custom_ext_tool"],
     });
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
   });
 
   it("trusted scope + RunProfile overrides default", () => {
-    resolver.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    resolver.setSessionRunProfile("agent:main:panel-abc", {
+    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
       selectedToolIds: ["entitled_tool_2"],
     });
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_2"]));
     expect(result).not.toContain("entitled_tool_1");
   });
@@ -129,10 +128,10 @@ describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
   // ── CS_SESSION (untrusted) ──
 
   it("CS_SESSION + has RunProfile → strictly profile tools, no system tools", () => {
-    resolver.setSessionRunProfile("cs:tiktok:conv1", {
+    rootStore.toolCapability.setSessionRunProfile("cs:tiktok:conv1", {
       selectedToolIds: ["entitled_tool_1"],
     });
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv1");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv1");
     expect(result).toEqual(["entitled_tool_1"]);
     expect(result).not.toContain("read");
     expect(result).not.toContain("write");
@@ -140,28 +139,28 @@ describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
   });
 
   it("CS_SESSION + no RunProfile → empty (defense-in-depth)", () => {
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv2");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv2");
     expect(result).toEqual([]);
   });
 
   it("CS_SESSION ignores default RunProfile", () => {
-    resolver.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv3");
+    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv3");
     expect(result).toEqual([]);
   });
 
   // ── UNKNOWN scope ──
 
   it("UNKNOWN scope + no RunProfile → empty", () => {
-    const result = resolver.getEffectiveToolsForScope(ScopeType.UNKNOWN, "random:key");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.UNKNOWN, "random:key");
     expect(result).toEqual([]);
   });
 
   // ── CRON_JOB (trusted) ──
 
   it("CRON_JOB is trusted → same as CHAT_SESSION behavior", () => {
-    resolver.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    const result = resolver.getEffectiveToolsForScope(
+    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.CRON_JOB,
       "agent:main:cron:job1:run:uuid",
     );
@@ -171,82 +170,80 @@ describe("ToolCapabilityResolver.getEffectiveToolsForScope", () => {
   // ── Clear session RunProfile ──
 
   it("clear session RunProfile → falls back to default", () => {
-    resolver.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    resolver.setSessionRunProfile("agent:main:panel-abc", {
+    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
       selectedToolIds: ["entitled_tool_2"],
     });
 
     // With session profile: entitled_tool_2
-    let result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    let result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["entitled_tool_2"]));
     expect(result).not.toContain("entitled_tool_1");
 
     // Clear session profile
-    resolver.setSessionRunProfile("agent:main:panel-abc", null);
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", null);
 
     // Should fall back to default: entitled_tool_1
-    result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_1"]));
     expect(result).not.toContain("entitled_tool_2");
   });
 
   it("clear session RunProfile with no default → system tools only for trusted scope", () => {
-    resolver.setSessionRunProfile("agent:main:panel-abc", {
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
       selectedToolIds: ["entitled_tool_2"],
     });
 
     // Clear session profile, no default set
-    resolver.setSessionRunProfile("agent:main:panel-abc", null);
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", null);
 
-    const result = resolver.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
     expect(result).not.toContain("entitled_tool_2");
   });
 });
 
 // ---------------------------------------------------------------------------
-// ToolCapabilityResolver.init — catalog classification
+// ToolCapabilityModel.init — catalog classification
 // ---------------------------------------------------------------------------
 
-describe("ToolCapabilityResolver.init", () => {
+describe("ToolCapabilityModel.init", () => {
   beforeEach(() => {
-    entityCache.setState({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    // Reset toolCapability to a clean state (no pre-seeded catalog, not initialized)
+    applySnapshot(rootStore.toolCapability, {});
   });
 
   it("classifies core tools as system tools", () => {
-    const resolver = new ToolCapabilityResolver();
-    resolver.init([
+    rootStore.toolCapability.init([
       { id: "read", source: "core" },
       { id: "write", source: "core" },
-    ]);
-    expect(resolver.getSystemToolIds()).toEqual(["read", "write"]);
+    ], OUR_PLUGIN_IDS);
+    expect(rootStore.toolCapability.systemToolIds).toEqual(["read", "write"]);
   });
 
   it("excludes OUR_PLUGIN_IDS plugin tools from custom extensions", () => {
-    const resolver = new ToolCapabilityResolver();
-    resolver.init([
+    rootStore.toolCapability.init([
       { id: "read", source: "core" },
       { id: "infra_tool", source: "plugin", pluginId: "rivonclaw-capability-manager" },
-    ]);
-    const all = resolver.getAllAvailableToolIds();
+    ], OUR_PLUGIN_IDS);
+    const all = rootStore.toolCapability.allAvailableToolIds;
     expect(all).toContain("read");
     expect(all).not.toContain("infra_tool");
   });
 
   it("includes non-OUR_PLUGIN_IDS plugin tools as custom extensions", () => {
-    const resolver = new ToolCapabilityResolver();
-    resolver.init([
+    rootStore.toolCapability.init([
       { id: "read", source: "core" },
       { id: "my_tool", source: "plugin", pluginId: "my-custom-plugin" },
-    ]);
-    const all = resolver.getAllAvailableToolIds();
+    ], OUR_PLUGIN_IDS);
+    const all = rootStore.toolCapability.allAvailableToolIds;
     expect(all).toContain("my_tool");
   });
 
   it("sets initialized flag", () => {
-    const resolver = new ToolCapabilityResolver();
-    expect(resolver.isInitialized()).toBe(false);
-    resolver.init([]);
-    expect(resolver.isInitialized()).toBe(true);
+    expect(rootStore.toolCapability.initialized).toBe(false);
+    rootStore.toolCapability.init([], OUR_PLUGIN_IDS);
+    expect(rootStore.toolCapability.initialized).toBe(true);
   });
 });

@@ -18,6 +18,9 @@ import {
   clearAllAuthProfiles,
 } from "@rivonclaw/gateway";
 import { startPanelServer } from "../panel-server.js";
+import { initDesktopStoreEnv } from "../store/desktop-store.js";
+import { syncActiveKey } from "./provider-validator.js";
+import { toMstSnapshot, allKeysToMstSnapshots } from "./provider-key-utils.js";
 
 // ---------------------------------------------------------------------------
 // Mock Ollama server
@@ -124,7 +127,17 @@ beforeAll(async () => {
   stateDir = join(tmpdir(), `rivonclaw-test-${randomUUID()}`);
   mkdirSync(join(stateDir, "agents", "main", "agent"), { recursive: true });
 
-  // 3. Start panel server
+  // 3. Initialize desktop store env (provider key MST actions need this)
+  initDesktopStoreEnv({
+    storage,
+    secretStore: mockSecretStore as any,
+    syncActiveKey,
+    toMstSnapshot,
+    allKeysToMstSnapshots,
+    handleProviderChange: null,
+  });
+
+  // 4. Start panel server
   panelServer = startPanelServer({
     port: 0,
     panelDistDir: "/tmp/nonexistent-panel-dist",

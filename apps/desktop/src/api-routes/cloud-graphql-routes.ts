@@ -1,6 +1,6 @@
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
-import { entityCache } from "../entity-cache.js";
+import { rootStore } from "../store/desktop-store.js";
 
 // ── Query-level dedup cache ─────────────────────────────────────────────────
 // Prevents duplicate backend requests when Panel and plugin fire the same
@@ -63,7 +63,7 @@ export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pat
       if (opName && !mutation) dedupCache.set(opName, { data: null, ts: 0, inflight: fetchPromise });
 
       const data = await fetchPromise;
-      entityCache.getState().ingestGraphQLResponse(data as Record<string, unknown>);
+      rootStore.ingestGraphQLResponse(data as Record<string, unknown>, body.variables);
 
       if (mutation) {
         // Mutation succeeded — invalidate all cached queries so subsequent

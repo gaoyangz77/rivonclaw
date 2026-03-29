@@ -18,7 +18,8 @@ import {
   BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
   AuthIcon, MenuIcon, ShopIcon, EcommerceIcon,
 } from "../components/icons.js";
-import { useAuth, usePanelStore } from "../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 
 const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles", "/tiktok-shops", "/ecommerce"]);
@@ -45,7 +46,7 @@ const NAV_ICONS: Record<string, ReactNode> = {
   "/auth": <AuthIcon />,
 };
 
-export function Layout({
+export const Layout = observer(function Layout({
   children,
   currentPath,
   onNavigate,
@@ -57,8 +58,8 @@ export function Layout({
   agentName?: string | null;
 }) {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const enrolledModules = usePanelStore((s) => s.enrolledModules);
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAuthPath, setPendingAuthPath] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -229,7 +230,7 @@ export function Layout({
     { path: "/browser-profiles", label: t("nav.browserProfiles") },
     { path: "/crons", label: t("nav.crons") },
     // { path: "/tiktok-shops", label: t("nav.tiktokShops") },  // temporarily hidden
-    ...(enrolledModules.has("GLOBAL_ECOMMERCE_SELLER")
+    ...(entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")
       ? [{ path: "/ecommerce", label: t("nav.ecommerce") }]
       : []),
     { path: "/usage", label: t("nav.usage") },
@@ -372,4 +373,4 @@ export function Layout({
       />
     </div>
   );
-}
+});

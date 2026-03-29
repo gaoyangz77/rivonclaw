@@ -2,12 +2,15 @@ import { createLogger } from "@rivonclaw/logger";
 import { GatewayRpcClient, readExistingConfig } from "@rivonclaw/gateway";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import { resolveGatewayPort, getCsRelayWsUrl } from "@rivonclaw/core";
+import type { CatalogTool } from "@rivonclaw/core";
 import { join } from "node:path";
 import { setRpcClient, getRpcClient } from "./rpc-client-ref.js";
 import { pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
 import type { GatewayEventHandler } from "./gateway-event-dispatcher.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
+import { loadClientToolSpecs } from "../store/client-tool-loader.js";
+
 
 const log = createLogger("gateway-connection");
 
@@ -34,10 +37,11 @@ export interface GatewayConnectionDeps {
       }>;
     };
   };
-  toolCapabilityResolver: {
-    init(catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>): void;
+  toolCapability: {
+    init(catalogTools: CatalogTool[], ourPluginIds: ReadonlySet<string>): void;
   };
   dispatchGatewayEvent: GatewayEventHandler;
+  ourPluginIds: ReadonlySet<string>;
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
@@ -57,8 +61,9 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
     stateDir,
     deviceId,
     storage,
-    toolCapabilityResolver,
+    toolCapability,
     dispatchGatewayEvent,
+    ourPluginIds,
   } = deps;
 
   const config = readExistingConfig(configPath);
@@ -104,7 +109,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
       rpcClient.request("event_bridge_init", {})
         .catch((e: unknown) => log.debug("Event bridge init (may not be loaded):", e));
 
-      // Initialize ToolCapabilityResolver with gateway tool catalog + entitlements
+      // Initialize ToolCapability with gateway tool catalog + entitlements
       (async () => {
         try {
           const catalog = await rpcClient.request<{
@@ -113,18 +118,23 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
             }>;
           }>("tools.catalog", { includePlugins: true });
 
-          const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
+          const catalogTools: CatalogTool[] = [];
           for (const group of catalog.groups ?? []) {
             for (const tool of group.tools ?? []) {
               catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
             }
           }
 
-          toolCapabilityResolver.init(catalogTools);
+          toolCapability.init(catalogTools, ourPluginIds);
         } catch (e) {
-          log.warn("Failed to initialize ToolCapabilityResolver:", e);
+          log.warn("Failed to initialize ToolCapability:", e);
         }
       })();
+
+      // Load client tool specs from the rivonclaw-local-tools plugin via RPC
+      loadClientToolSpecs(rpcClient).catch((e: unknown) =>
+        log.warn("Failed to load client tool specs:", e),
+      );
 
       // Start CS Bridge if user has e-commerce module
       // The bridge subscribes to the entity cache on start() and reactively

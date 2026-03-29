@@ -41,10 +41,11 @@
     "better-sqlite3": "^12.6.2",
     "electron-updater": "^6.3.0",
     "graphql-ws": "^6.0.7",
+    "mobx": "^6.15.0",
+    "mobx-state-tree": "^7.1.0",
     "undici": "^7.21.0",
     "uuid": "^11.0.5",
-    "ws": "^8.18.0",
-    "zustand": "^5.0.12"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@electron/notarize": "^3.0.0",
@@ -52,7 +53,6 @@
     "@playwright/test": "^1.58.2",
     "@rivonclaw/rivonclaw-browser-profiles-tools": "workspace:*",
     "@rivonclaw/rivonclaw-capability-manager": "workspace:*",
-    "@rivonclaw/rivonclaw-cloud-tools": "workspace:*",
     "@rivonclaw/rivonclaw-event-bridge": "workspace:*",
     "@rivonclaw/rivonclaw-file-permissions": "workspace:*",
     "@rivonclaw/rivonclaw-mobile-chat-channel": "workspace:*",

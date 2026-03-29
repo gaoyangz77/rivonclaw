@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
+import { observer } from "mobx-react-lite";
 import { Select } from "./Select.js";
-import { usePanelStore } from "../../stores/index.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 
 interface RunProfileSelectorProps {
   /** Currently selected RunProfile ID (empty string = default / baseline) */
@@ -16,9 +17,10 @@ interface RunProfileSelectorProps {
  * Shows all available RunProfiles (system + user).
  * Empty selection means baseline tools only (system + extension).
  */
-export function RunProfileSelector({ value, onChange, className }: RunProfileSelectorProps) {
+export const RunProfileSelector = observer(function RunProfileSelector({ value, onChange, className }: RunProfileSelectorProps) {
   const { t } = useTranslation();
-  const profiles = usePanelStore((s) => s.runProfiles);
+  const entityStore = useEntityStore();
+  const profiles = entityStore.allRunProfiles;
 
   const options = [
     { value: "", label: t("runProfileSelector.allTools") },
@@ -39,4 +41,4 @@ export function RunProfileSelector({ value, onChange, className }: RunProfileSel
       className={className}
     />
   );
-}
+});

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Scans extensions/{name}/openclaw.plugin.json and generates a TypeScript
 // module exporting the set of our plugin IDs. Run as part of the build
-// so ToolCapabilityResolver doesn't need a hardcoded list.
+// so ToolCapabilityModel doesn't need a hardcoded list.
 import { readdirSync, readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";

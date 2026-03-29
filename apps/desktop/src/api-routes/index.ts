@@ -12,3 +12,4 @@ export { handleAuthRoutes } from "./auth-routes.js";
 export { handleCloudGraphqlRoutes } from "./cloud-graphql-routes.js";
 export { handleCloudTikTokRoutes } from "./cloud-tiktok-routes.js";
 export { handleToolRegistryRoutes } from "./tool-registry-routes.js";
+export { handleStoreStream } from "./store-stream-routes.js";

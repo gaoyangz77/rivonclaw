@@ -9,6 +9,10 @@
     ".": {
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
+    },
+    "./client-tools": {
+      "import": "./dist/client-tools.mjs",
+      "types": "./dist/client-tools.d.mts"
     }
   },
   "openclaw": {
@@ -22,10 +26,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@rivonclaw/core": "workspace:*",
     "@rivonclaw/plugin-sdk": "workspace:*"
   },
   "devDependencies": {
-    "@rivonclaw/core": "workspace:*",
     "@sinclair/typebox": "^0.34.0",
     "@types/ws": "^8.18.1",
     "oxlint": "^1.43.0",

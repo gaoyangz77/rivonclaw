@@ -309,4 +309,11 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 24,
+    name: "add_source_to_provider_keys",
+    sql: `
+      ALTER TABLE provider_keys ADD COLUMN source TEXT NOT NULL DEFAULT 'local';
+    `,
+  },
 ];

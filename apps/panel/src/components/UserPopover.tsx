@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth, usePanelStore } from "../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { getUserInitial } from "../lib/user-manager.js";
 import { LogOutIcon } from "./icons.js";
 
@@ -10,9 +11,10 @@ interface UserPopoverProps {
     onNavigate: (path: string) => void;
 }
 
-export function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
+export const UserPopover = observer(function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
     const { t } = useTranslation();
-    const { user, logout } = useAuth();
+    const entityStore = useEntityStore();
+    const user = entityStore.currentUser;
     const ref = useRef<HTMLDivElement>(null);
 
     // Close on click outside
@@ -33,12 +35,12 @@ export function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
         return () => document.removeEventListener("keydown", handleKey);
     }, [open, onClose]);
 
-    const sub = usePanelStore((s) => s.subscriptionStatus);
+    const sub = entityStore.subscriptionStatus;
 
     if (!open || !user) return null;
     const initial = getUserInitial(user);
 
-    function handleLogout() { onClose(); logout(); onNavigate("/"); }
+    function handleLogout() { onClose(); entityStore.logout(); onNavigate("/"); }
 
     return (
         <div className="upop" ref={ref}>
@@ -72,4 +74,4 @@ export function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
             </div>
         </div>
     );
-}
+});

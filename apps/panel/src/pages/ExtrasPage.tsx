@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchSettings, updateSettings, trackEvent } from "../api/index.js";
-import { fetchJson } from "../api/client.js";
+import { fetchSettings, updateSettings, trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
 
@@ -58,7 +57,7 @@ export function ExtrasPage() {
 
       // Check STT credentials
       try {
-        const credentials = await fetchJson<{ groq: boolean; volcengine: boolean }>("/stt/credentials");
+        const credentials = await fetchSttCredentials();
         setHasGroqKey(credentials.groq);
         setHasVolcengineKeys(credentials.volcengine);
       } catch (credErr) {
@@ -67,10 +66,7 @@ export function ExtrasPage() {
 
       // Check extras credentials
       try {
-        const extras = await fetchJson<{
-          webSearch: Record<string, boolean>;
-          embedding: Record<string, boolean>;
-        }>("/extras/credentials");
+        const extras = await fetchExtrasCredentials();
         setHasWebSearchKeys(extras.webSearch || {});
         setHasEmbeddingKeys(extras.embedding || {});
       } catch (credErr) {
@@ -114,24 +110,18 @@ export function ExtrasPage() {
       // Save STT credentials
       if (sttEnabled) {
         if (sttProvider === "groq" && groqApiKey.trim()) {
-          await fetchJson("/stt/credentials", {
-            method: "PUT",
-            body: JSON.stringify({
-              provider: "groq",
-              apiKey: groqApiKey.trim(),
-            }),
+          await saveSttCredentials({
+            provider: "groq",
+            apiKey: groqApiKey.trim(),
           });
           setHasGroqKey(true);
           setGroqApiKey("");
         }
         if (sttProvider === "volcengine" && volcengineAppKey.trim() && volcengineAccessKey.trim()) {
-          await fetchJson("/stt/credentials", {
-            method: "PUT",
-            body: JSON.stringify({
-              provider: "volcengine",
-              appKey: volcengineAppKey.trim(),
-              accessKey: volcengineAccessKey.trim(),
-            }),
+          await saveSttCredentials({
+            provider: "volcengine",
+            appKey: volcengineAppKey.trim(),
+            accessKey: volcengineAccessKey.trim(),
           });
           setHasVolcengineKeys(true);
           setVolcengineAppKey("");
@@ -170,13 +160,10 @@ export function ExtrasPage() {
 
       // Save credentials
       if (webSearchEnabled && webSearchApiKey.trim()) {
-        await fetchJson("/extras/credentials", {
-          method: "PUT",
-          body: JSON.stringify({
-            type: "webSearch",
-            provider: webSearchProvider,
-            apiKey: webSearchApiKey.trim(),
-          }),
+        await saveExtrasCredentials({
+          type: "webSearch",
+          provider: webSearchProvider,
+          apiKey: webSearchApiKey.trim(),
         });
         setHasWebSearchKeys((prev) => ({ ...prev, [webSearchProvider]: true }));
         setWebSearchApiKey("");
@@ -213,13 +200,10 @@ export function ExtrasPage() {
 
       // Save credentials
       if (embeddingEnabled && embeddingApiKey.trim()) {
-        await fetchJson("/extras/credentials", {
-          method: "PUT",
-          body: JSON.stringify({
-            type: "embedding",
-            provider: embeddingProvider,
-            apiKey: embeddingApiKey.trim(),
-          }),
+        await saveExtrasCredentials({
+          type: "embedding",
+          provider: embeddingProvider,
+          apiKey: embeddingApiKey.trim(),
         });
         setHasEmbeddingKeys((prev) => ({ ...prev, [embeddingProvider]: true }));
         setEmbeddingApiKey("");

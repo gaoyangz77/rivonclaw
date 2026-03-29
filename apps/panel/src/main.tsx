@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useRef } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
@@ -21,28 +21,17 @@ import { App } from "./App.js";
 import { ApolloWrapper } from "./providers/ApolloWrapper.js";
 import { ToastProvider } from "./components/Toast.js";
 import { GraphQLLoadingProvider } from "./contexts/GraphQLLoadingContext.js";
-import { usePanelStore } from "./stores/index.js";
-
-function StoreInitializer({ children }: { children: React.ReactNode }) {
-  const initSession = usePanelStore((s) => s.initSession);
-  const initialized = useRef(false);
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    initSession();
-  }, [initSession]);
-  return <>{children}</>;
-}
+import { EntityStoreProvider } from "./store/EntityStoreProvider.js";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ApolloWrapper>
       <GraphQLLoadingProvider>
-        <StoreInitializer>
+        <EntityStoreProvider>
           <ToastProvider>
             <App />
           </ToastProvider>
-        </StoreInitializer>
+        </EntityStoreProvider>
       </GraphQLLoadingProvider>
     </ApolloWrapper>
   </StrictMode>,

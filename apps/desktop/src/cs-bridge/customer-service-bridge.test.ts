@@ -36,19 +36,23 @@ vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: async () => ({}),
 }));
 
-const mockGetAllRunProfiles = vi.fn();
-const mockSetSessionRunProfile = vi.fn();
-vi.mock("../utils/tool-capability-resolver.js", () => ({
-  toolCapabilityResolver: {
-    getAllRunProfiles: (...args: unknown[]) => mockGetAllRunProfiles(...args),
-    setSessionRunProfile: (...args: unknown[]) => mockSetSessionRunProfile(...args),
-  },
-}));
-
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
-import { entityCache } from "../entity-cache.js";
+import { rootStore } from "../store/desktop-store.js";
+import { onAction } from "mobx-state-tree";
+
+// Track setSessionRunProfile calls via MST's onAction middleware (no spy mutation needed)
+const setSessionRunProfileCalls: Array<{ sessionKey: string; profile: any; runProfileId: string | null }> = [];
+onAction(rootStore, (call) => {
+  if (call.name === "setSessionRunProfile") {
+    setSessionRunProfileCalls.push({
+      sessionKey: call.args?.[0] as string,
+      profile: call.args?.[1],
+      runProfileId: call.args?.[2] as string | null ?? null,
+    });
+  }
+}, true); // true = attach to subtree (captures actions on child models)
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -96,6 +100,7 @@ async function triggerMessage(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  setSessionRunProfileCalls.length = 0;
   mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
   mockRpcRequest.mockResolvedValue({ ok: true });
   mockGraphqlFetch.mockResolvedValue({ ecommerceSendMessage: { code: 0 } });
@@ -103,13 +108,16 @@ beforeEach(() => {
     getAccessToken: () => "test-token",
     graphqlFetch: mockGraphqlFetch,
   });
-  // Default: RunProfile found in cache
-  mockGetAllRunProfiles.mockReturnValue([
-    { id: "TIKTOK_CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
-    { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
-  ]);
-  // Reset entity cache
-  entityCache.setState({ runProfiles: [], surfaces: [], toolSpecs: [], shops: [] });
+  // Reset MST store, then seed RunProfiles so toolCapability.allRunProfiles returns test data
+  rootStore.ingestGraphQLResponse({
+    runProfiles: [
+      { id: "TIKTOK_CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
+      { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
+    ],
+    surfaces: [],
+    toolSpecs: [],
+    shops: [],
+  });
 });
 
 // ─── 1. Shop context management ─────────────────────────────────────────────
@@ -132,7 +140,7 @@ describe("shop context management", () => {
     await triggerMessage(bridge, createFrame());
     // Should drop: no RPC calls, no profile set
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
   it("drops message when shop context not found", async () => {
@@ -141,7 +149,7 @@ describe("shop context management", () => {
 
     await triggerMessage(bridge, createFrame());
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
   it("proceeds when shop context is found", async () => {
@@ -191,11 +199,11 @@ describe("session key construction", () => {
 
     await triggerMessage(bridge, createFrame({ conversationId: "conv-XYZ" }));
 
-    expect(mockSetSessionRunProfile).toHaveBeenCalledWith(
-      "agent:main:cs:tiktok:conv-XYZ",
-      { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
-      "TIKTOK_CUSTOMER_SERVICE",
-    );
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:cs:tiktok:conv-XYZ",
+      profile: { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
+      runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+    });
   });
 
   it("uses shop.platform for session keys when provided", async () => {
@@ -368,15 +376,15 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockSetSessionRunProfile).toHaveBeenCalledWith(
-      "agent:main:cs:tiktok:conv-789",
-      { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
-      "TIKTOK_CUSTOMER_SERVICE",
-    );
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:cs:tiktok:conv-789",
+      profile: { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
+      runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+    });
   });
 
   it("drops message when RunProfile not found in cache", async () => {
-    mockGetAllRunProfiles.mockReturnValue([]); // no profiles
+    rootStore.ingestGraphQLResponse({ runProfiles: [] }); // no profiles
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -395,10 +403,11 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockSetSessionRunProfile).toHaveBeenCalledWith(
-      expect.any(String),
-      { selectedToolIds: ["TOOL_C"], surfaceId: "Default" },
-      "FALLBACK_CS",
+    expect(setSessionRunProfileCalls).toContainEqual(
+      expect.objectContaining({
+        profile: { selectedToolIds: ["TOOL_C"], surfaceId: "Default" },
+        runProfileId: "FALLBACK_CS",
+      }),
     );
   });
 
@@ -414,7 +423,7 @@ describe("CS RunProfile setup", () => {
 
     // cs_register_session is called (step 4), but RunProfile set and agent dispatch are not
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 });
@@ -484,7 +493,7 @@ describe("session registration", () => {
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     // No RunProfile set should have been called
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 });
 
@@ -590,7 +599,7 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
   it("shop context not found → message dropped with no further calls", async () => {
@@ -600,7 +609,7 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame({ shopId: "nonexistent-shop" }));
 
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
   it("session registration fails → RunProfile set and agent dispatch skipped", async () => {
@@ -611,11 +620,11 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
-    expect(mockSetSessionRunProfile).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
   it("RunProfile not found → agent dispatch skipped", async () => {
-    mockGetAllRunProfiles.mockReturnValue([]); // empty profiles
+    rootStore.ingestGraphQLResponse({ runProfiles: [] }); // empty profiles
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -670,8 +679,7 @@ describe("reactive entity cache sync", () => {
   it("syncFromCache picks up CS-enabled shops bound to this device", () => {
     const bridge = createBridge();
 
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -708,8 +716,7 @@ describe("reactive entity cache sync", () => {
   it("syncFromCache skips shops not bound to this device", () => {
     const bridge = createBridge();
 
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -738,8 +745,7 @@ describe("reactive entity cache sync", () => {
   it("syncFromCache skips shops with CS disabled", () => {
     const bridge = createBridge();
 
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -767,8 +773,7 @@ describe("reactive entity cache sync", () => {
   it("syncFromCache skips shops without assembledPrompt", () => {
     const bridge = createBridge();
 
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -805,7 +810,7 @@ describe("reactive entity cache sync", () => {
     });
 
     // Then: sync from empty cache (shop was removed)
-    entityCache.setState({ ...entityCache.getState(), shops: [] });
+    rootStore.ingestGraphQLResponse({ shops: [] });
     bridge.syncFromCache();
 
     // Should not have context anymore
@@ -818,8 +823,7 @@ describe("reactive entity cache sync", () => {
     const bridge = createBridge();
 
     // Initial sync
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -841,8 +845,7 @@ describe("reactive entity cache sync", () => {
     bridge.syncFromCache();
 
     // Update: change assembledPrompt
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -873,8 +876,7 @@ describe("reactive entity cache sync", () => {
   it("syncFromCache normalizes platform name from enum", () => {
     const bridge = createBridge();
 
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1",
@@ -906,8 +908,7 @@ describe("reactive entity cache sync", () => {
   it("syncFromCache handles multiple shops with mixed eligibility", () => {
     const bridge = createBridge();
 
-    entityCache.setState({
-      ...entityCache.getState(),
+    rootStore.ingestGraphQLResponse({
       shops: [
         {
           id: "shop-1", platform: "TIKTOK_SHOP", platformShopId: "ps-1", shopName: "Eligible",
@@ -938,11 +939,10 @@ describe("reactive entity cache sync", () => {
 
       // Reset and verify shop-4 works:
       vi.clearAllMocks();
+      setSessionRunProfileCalls.length = 0;
       mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
       mockRpcRequest.mockResolvedValue({ ok: true });
-      mockGetAllRunProfiles.mockReturnValue([
-        { id: "TIKTOK_CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
-      ]);
+      // RunProfiles are already in the MST store from beforeEach
 
       await triggerMessage(bridge, createFrame({ shopId: "ps-4" }));
       expect(mockRpcRequest).toHaveBeenCalledWith(

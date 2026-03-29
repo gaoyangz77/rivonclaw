@@ -29,17 +29,6 @@ export interface AuthPayload {
   user: MeResponse;
 }
 
-/** A tool with its availability status for the current user */
-export interface AvailableTool {
-  allowed: Scalars['Boolean']['output'];
-  category: ToolCategory;
-  denialReason?: Maybe<Scalars['String']['output']>;
-  description: Scalars['String']['output'];
-  displayName: Scalars['String']['output'];
-  id: ToolId;
-  requiredEntitlements: Array<Scalars['String']['output']>;
-}
-
 /** Isolated browser profile for multi-profile agent sessions */
 export interface BrowserProfile {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -72,6 +61,13 @@ export interface BrowserProfileAuditEntry {
   details?: Maybe<Scalars['String']['output']>;
   profileId: Scalars['String']['output'];
   userId: Scalars['String']['output'];
+}
+
+/** Result of a browser profile management operation */
+export interface BrowserProfileManageResult {
+  /** JSON-serialized result data (profile object, count, etc.) */
+  data?: Maybe<Scalars['String']['output']>;
+  ok: Scalars['Boolean']['output'];
 }
 
 /** Proxy configuration for a browser profile */
@@ -151,16 +147,6 @@ export interface CaptchaResponse {
   token: Scalars['String']['output'];
 }
 
-/** Input for creating a new browser profile */
-export interface CreateBrowserProfileInput {
-  name: Scalars['String']['input'];
-  notes?: InputMaybe<Scalars['String']['input']>;
-  proxyBaseUrl?: InputMaybe<Scalars['String']['input']>;
-  proxyEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  sessionStatePolicy?: InputMaybe<SessionStatePolicyInput>;
-  tags?: InputMaybe<Array<Scalars['String']['input']>>;
-}
-
 /** Input for creating a new RunProfile */
 export interface CreateRunProfileInput {
   name: Scalars['String']['input'];
@@ -203,6 +189,8 @@ export interface CustomerServiceBilling {
 
 /** Customer service settings per shop (user-configurable) */
 export interface CustomerServiceSettings {
+  /** Assembled CS system prompt (platform prompt + business prompt). Computed at query time, not stored. */
+  assembledPrompt?: Maybe<Scalars['String']['output']>;
   businessPrompt?: Maybe<Scalars['String']['output']>;
   csDeviceId?: Maybe<Scalars['String']['output']>;
   /** LLM model override for CS sessions (provider/modelId format). Null = use default. */
@@ -232,7 +220,7 @@ export interface EcommerceApiResult {
 export const EntitlementKey = {
   EcomCsRead: 'ECOM_CS_READ',
   EcomCsWrite: 'ECOM_CS_WRITE',
-  EcomLogisticsRead: 'ECOM_LOGISTICS_READ',
+  EcomFulfillmentRead: 'ECOM_FULFILLMENT_READ',
   EcomProductRead: 'ECOM_PRODUCT_READ',
   MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES'
 } as const;
@@ -297,14 +285,8 @@ export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
   /** Allocate a new seat to a gateway */
   allocateSeat: CsSeat;
-  /** Batch archive browser profiles */
-  batchArchiveBrowserProfiles: Scalars['Int']['output'];
-  /** Batch delete browser profiles */
-  batchDeleteBrowserProfiles: Scalars['Int']['output'];
   /** Handle TikTok OAuth callback (exchange code for tokens) */
   completeTikTokOAuth: OAuthCallbackResponse;
-  /** Create a new browser profile */
-  createBrowserProfile: BrowserProfile;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a new shop connection */
@@ -313,8 +295,6 @@ export interface Mutation {
   createSurface: Surface;
   /** Deallocate a seat by ID */
   deallocateSeat: Scalars['Boolean']['output'];
-  /** Delete a browser profile permanently */
-  deleteBrowserProfile: Scalars['Boolean']['output'];
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
   /** Delete the session state backup for a profile */
@@ -327,7 +307,7 @@ export interface Mutation {
   ecommerceCreateConversation: EcommerceApiResult;
   /** Mark messages as read in a conversation */
   ecommerceReadMessage: EcommerceApiResult;
-  /** Send a message in a conversation */
+  /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: EcommerceApiResult;
   /** Update agent settings for a shop */
   ecommerceUpdateAgentSettings: EcommerceApiResult;
@@ -341,6 +321,8 @@ export interface Mutation {
   login: AuthPayload;
   /** Log out (revoke the provided refresh token) */
   logout: Scalars['Boolean']['output'];
+  /** Unified browser profile management: create, update, delete, archive, or batch delete profiles */
+  manageBrowserProfile: BrowserProfileManageResult;
   /** Publish an update notification to all connected clients (admin only) */
   publishUpdate: Scalars['Boolean']['output'];
   /** Redeem a service credit to a shop */
@@ -357,8 +339,6 @@ export interface Mutation {
   setDefaultRunProfile: Scalars['Boolean']['output'];
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
-  /** Update an existing browser profile */
-  updateBrowserProfile?: Maybe<BrowserProfile>;
   /** Update an existing run profile */
   updateRunProfile?: Maybe<RunProfile>;
   /** Update an existing shop */
@@ -377,24 +357,9 @@ export interface MutationAllocateSeatArgs {
 }
 
 
-export interface MutationBatchArchiveBrowserProfilesArgs {
-  ids: Array<Scalars['ID']['input']>;
-}
-
-
-export interface MutationBatchDeleteBrowserProfilesArgs {
-  ids: Array<Scalars['ID']['input']>;
-}
-
-
 export interface MutationCompleteTikTokOAuthArgs {
   code: Scalars['String']['input'];
   state: Scalars['String']['input'];
-}
-
-
-export interface MutationCreateBrowserProfileArgs {
-  input: CreateBrowserProfileInput;
 }
 
 
@@ -415,11 +380,6 @@ export interface MutationCreateSurfaceArgs {
 
 export interface MutationDeallocateSeatArgs {
   seatId: Scalars['String']['input'];
-}
-
-
-export interface MutationDeleteBrowserProfileArgs {
-  id: Scalars['ID']['input'];
 }
 
 
@@ -495,6 +455,14 @@ export interface MutationLogoutArgs {
 }
 
 
+export interface MutationManageBrowserProfileArgs {
+  action: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  ids?: InputMaybe<Array<Scalars['ID']['input']>>;
+  input?: InputMaybe<Scalars['String']['input']>;
+}
+
+
 export interface MutationPublishUpdateArgs {
   downloadUrl?: InputMaybe<Scalars['String']['input']>;
   version: Scalars['String']['input'];
@@ -524,12 +492,6 @@ export interface MutationSetDefaultRunProfileArgs {
 
 export interface MutationUnenrollModuleArgs {
   moduleId: ModuleId;
-}
-
-
-export interface MutationUpdateBrowserProfileArgs {
-  id: Scalars['ID']['input'];
-  input: UpdateBrowserProfileInput;
 }
 
 
@@ -664,17 +626,13 @@ export interface ProviderSubscription {
 }
 
 export interface Query {
-  /** Get available tools for the authenticated user */
-  availableTools: Array<AvailableTool>;
   /** Get a single browser profile by ID */
   browserProfile?: Maybe<BrowserProfile>;
   /** Get audit log for a browser profile */
   browserProfileAuditLog: Array<BrowserProfileAuditEntry>;
   /** List browser profiles for the authenticated user */
   browserProfiles: PaginatedBrowserProfiles;
-  /** Check if the authenticated user can access a specific tool */
-  checkToolAccess: ToolAccessResult;
-  /** Assemble the full CS system prompt for a shop */
+  /** Assemble the full CS system prompt for a shop. DEPRECATED: use the assembledPrompt field on CustomerServiceSettings instead. */
   csAssemblePrompt: AssembledPromptResult;
   /** Get CS session stats for a shop */
   csSessionStats: CsSessionStats;
@@ -688,18 +646,20 @@ export interface Query {
   ecommerceGetConversationMessages: EcommerceApiResult;
   /** Get conversations for a shop */
   ecommerceGetConversations: EcommerceApiResult;
-  /** Get global seller warehouses */
-  ecommerceGetGlobalWarehouses: EcommerceApiResult;
-  /** Get logistics tracking for an order. Optional buyerUserId for buyer scoping. */
-  ecommerceGetLogisticsTracking: EcommerceApiResult;
+  /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
+  ecommerceGetFulfillmentTracking: EcommerceApiResult;
   /** Get order details. Optional buyerUserId for platform-level buyer scoping. */
   ecommerceGetOrder: EcommerceApiResult;
   /** List/search orders. Optional buyerUserId for buyer-scoped queries. */
   ecommerceGetOrders: EcommerceApiResult;
+  /** Get package detail by package ID */
+  ecommerceGetPackageDetail: EcommerceApiResult;
+  /** Get shipping document for a package */
+  ecommerceGetPackageShippingDocument: EcommerceApiResult;
   /** Get product details */
   ecommerceGetProduct: EcommerceApiResult;
-  /** Get warehouse list */
-  ecommerceGetWarehouses: EcommerceApiResult;
+  /** Search fulfillment packages with optional filters */
+  ecommerceSearchPackages: EcommerceApiResult;
   /** Search/list products with optional filters */
   ecommerceSearchProducts: EcommerceApiResult;
   /** Get LLM quota status for the current user */
@@ -750,12 +710,12 @@ export interface Query {
   systemRunProfiles: Array<RunProfile>;
   /** Get system preset surfaces (userId=null), optionally filtered by moduleId */
   systemSurfaces: Array<Surface>;
-  /** Get the full tool registry (all defined tools) */
-  toolRegistry: Array<ToolDefinition>;
   /** Get tool specifications for dynamic client-side registration (filtered by user entitlements) */
   toolSpecs: Array<ToolSpec>;
   /** Batch-verify relay access tokens */
   verifyRelayTokens: Array<RelayTokenResult>;
+  /** Verify whether the authenticated user has access to the given shops */
+  verifyShopAccess: VerifyShopAccessResult;
   /** Long-poll for pairing completion (30s timeout) */
   waitForPairing: WaitPairingResult;
 }
@@ -774,11 +734,6 @@ export interface QueryBrowserProfileAuditLogArgs {
 export interface QueryBrowserProfilesArgs {
   filter?: InputMaybe<BrowserProfilesFilterInput>;
   pagination?: InputMaybe<BrowserProfilesPaginationInput>;
-}
-
-
-export interface QueryCheckToolAccessArgs {
-  toolId: Scalars['String']['input'];
 }
 
 
@@ -827,13 +782,7 @@ export interface QueryEcommerceGetConversationsArgs {
 }
 
 
-export interface QueryEcommerceGetGlobalWarehousesArgs {
-  shopId: Scalars['String']['input'];
-  warehouseId?: InputMaybe<Scalars['String']['input']>;
-}
-
-
-export interface QueryEcommerceGetLogisticsTrackingArgs {
+export interface QueryEcommerceGetFulfillmentTrackingArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
@@ -856,16 +805,38 @@ export interface QueryEcommerceGetOrdersArgs {
 }
 
 
+export interface QueryEcommerceGetPackageDetailArgs {
+  packageId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetPackageShippingDocumentArgs {
+  documentFormat?: InputMaybe<Scalars['String']['input']>;
+  documentSize?: InputMaybe<Scalars['String']['input']>;
+  documentType: Scalars['String']['input'];
+  packageId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
 export interface QueryEcommerceGetProductArgs {
   productId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
 
 
-export interface QueryEcommerceGetWarehousesArgs {
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
+export interface QueryEcommerceSearchPackagesArgs {
+  createTimeGe?: InputMaybe<Scalars['Float']['input']>;
+  createTimeLt?: InputMaybe<Scalars['Float']['input']>;
+  packageStatus?: InputMaybe<Scalars['String']['input']>;
+  pageSize: Scalars['Float']['input'];
   pageToken?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
+  sortField?: InputMaybe<Scalars['String']['input']>;
+  sortOrder?: InputMaybe<Scalars['String']['input']>;
+  updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
+  updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
 }
 
 
@@ -953,6 +924,11 @@ export interface QuerySystemSurfacesArgs {
 
 export interface QueryVerifyRelayTokensArgs {
   tokens: Array<Scalars['String']['input']>;
+}
+
+
+export interface QueryVerifyShopAccessArgs {
+  shopIds: Array<Scalars['String']['input']>;
 }
 
 
@@ -1060,14 +1036,6 @@ export interface SessionStateBackupManifestInput {
   profileId: Scalars['String']['input'];
   target: Scalars['String']['input'];
   updatedAt: Scalars['Float']['input'];
-}
-
-/** Input for session state policy fields */
-export interface SessionStatePolicyInput {
-  checkpointIntervalSec?: InputMaybe<Scalars['Float']['input']>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  mode?: InputMaybe<Scalars['String']['input']>;
-  storage?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** A connected e-commerce shop */
@@ -1208,19 +1176,14 @@ export interface Surface {
   userId?: Maybe<Scalars['String']['output']>;
 }
 
-/** Result of checking access to a specific tool */
-export interface ToolAccessResult {
-  allowed: Scalars['Boolean']['output'];
-  reason?: Maybe<Scalars['String']['output']>;
-  toolId: Scalars['String']['output'];
-}
-
 /** Tool functional category */
 export const ToolCategory = {
   BrowserProfiles: 'BROWSER_PROFILES',
   EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
   EcomCs: 'ECOM_CS',
-  EcomLogistics: 'ECOM_LOGISTICS',
+  EcomFulfillment: 'ECOM_FULFILLMENT',
+  EcomOps: 'ECOM_OPS',
+  EcomOrder: 'ECOM_ORDER',
   EcomProduct: 'ECOM_PRODUCT'
 } as const;
 
@@ -1231,34 +1194,27 @@ export interface ToolContextBinding {
   paramName: Scalars['String']['output'];
 }
 
-/** Definition of a tool in the registry */
-export interface ToolDefinition {
-  category: ToolCategory;
-  description: Scalars['String']['output'];
-  displayName: Scalars['String']['output'];
-  id: ToolId;
-  requiredEntitlements: Array<Scalars['String']['output']>;
-}
-
 /** Unique tool identifier */
 export const ToolId = {
   BrowserProfilesFind: 'BROWSER_PROFILES_FIND',
   BrowserProfilesGet: 'BROWSER_PROFILES_GET',
   BrowserProfilesList: 'BROWSER_PROFILES_LIST',
   BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',
-  BrowserProfilesTestProxy: 'BROWSER_PROFILES_TEST_PROXY',
   EcommerceListShops: 'ECOMMERCE_LIST_SHOPS',
   EcomCreateConversation: 'ECOM_CREATE_CONVERSATION',
   EcomCsCreateConversation: 'ECOM_CS_CREATE_CONVERSATION',
   EcomCsGetConversations: 'ECOM_CS_GET_CONVERSATIONS',
   EcomCsGetConversationDetails: 'ECOM_CS_GET_CONVERSATION_DETAILS',
   EcomCsGetConversationMessages: 'ECOM_CS_GET_CONVERSATION_MESSAGES',
-  EcomCsGetLogisticsTracking: 'ECOM_CS_GET_LOGISTICS_TRACKING',
+  EcomCsGetFulfillmentTracking: 'ECOM_CS_GET_FULFILLMENT_TRACKING',
   EcomCsGetOrder: 'ECOM_CS_GET_ORDER',
+  EcomCsGetPackageDetail: 'ECOM_CS_GET_PACKAGE_DETAIL',
   EcomCsGetProduct: 'ECOM_CS_GET_PRODUCT',
+  EcomCsGetShippingDocument: 'ECOM_CS_GET_SHIPPING_DOCUMENT',
   EcomCsListOrders: 'ECOM_CS_LIST_ORDERS',
   EcomCsReadMessage: 'ECOM_CS_READ_MESSAGE',
   EcomCsReadMessages: 'ECOM_CS_READ_MESSAGES',
+  EcomCsSearchPackages: 'ECOM_CS_SEARCH_PACKAGES',
   EcomCsSearchProducts: 'ECOM_CS_SEARCH_PRODUCTS',
   EcomCsSendCard: 'ECOM_CS_SEND_CARD',
   EcomCsSendMedia: 'ECOM_CS_SEND_MEDIA',
@@ -1267,18 +1223,17 @@ export const ToolId = {
   EcomGetConversationDetails: 'ECOM_GET_CONVERSATION_DETAILS',
   EcomGetConversationMessages: 'ECOM_GET_CONVERSATION_MESSAGES',
   EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
-  EcomGetGlobalWarehouses: 'ECOM_GET_GLOBAL_WAREHOUSES',
-  EcomGetLogisticsTracking: 'ECOM_GET_LOGISTICS_TRACKING',
+  EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetOrder: 'ECOM_GET_ORDER',
+  EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',
   EcomGetProduct: 'ECOM_GET_PRODUCT',
-  EcomGetShippingProviders: 'ECOM_GET_SHIPPING_PROVIDERS',
-  EcomGetWarehouses: 'ECOM_GET_WAREHOUSES',
+  EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomListOrders: 'ECOM_LIST_ORDERS',
   EcomReadMessage: 'ECOM_READ_MESSAGE',
   EcomReadMessages: 'ECOM_READ_MESSAGES',
+  EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchSessions: 'ECOM_SEARCH_SESSIONS',
-  EcomSendMessage: 'ECOM_SEND_MESSAGE',
   EcomUpdateAgentSettings: 'ECOM_UPDATE_AGENT_SETTINGS',
   EcomUploadImage: 'ECOM_UPLOAD_IMAGE'
 } as const;
@@ -1297,13 +1252,13 @@ export interface ToolParamSpec {
 
 /** Complete tool specification for dynamic client-side registration */
 export interface ToolSpec {
-  category: Scalars['String']['output'];
+  category: ToolCategory;
   contextBindings?: Maybe<Array<ToolContextBinding>>;
   description: Scalars['String']['output'];
   displayName: Scalars['String']['output'];
   /** GraphQL operation string (null for REST tools) */
   graphqlOperation?: Maybe<Scalars['String']['output']>;
-  id: Scalars['String']['output'];
+  id: ToolId;
   name: Scalars['String']['output'];
   operationType: Scalars['String']['output'];
   parameters: Array<ToolParamSpec>;
@@ -1316,17 +1271,6 @@ export interface ToolSpec {
   runProfiles?: Maybe<Array<Scalars['String']['output']>>;
   supportedPlatforms?: Maybe<Array<Scalars['String']['output']>>;
   surfaces?: Maybe<Array<Scalars['String']['output']>>;
-}
-
-/** Input for updating an existing browser profile */
-export interface UpdateBrowserProfileInput {
-  name?: InputMaybe<Scalars['String']['input']>;
-  notes?: InputMaybe<Scalars['String']['input']>;
-  proxyBaseUrl?: InputMaybe<Scalars['String']['input']>;
-  proxyEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  sessionStatePolicy?: InputMaybe<SessionStatePolicyInput>;
-  status?: InputMaybe<BrowserProfileStatus>;
-  tags?: InputMaybe<Array<Scalars['String']['input']>>;
 }
 
 /** Update notification payload */
@@ -1385,6 +1329,12 @@ export interface VerifyPairingResult {
   desktopDeviceId: Scalars['String']['output'];
   pairingId: Scalars['String']['output'];
   relayUrl: Scalars['String']['output'];
+}
+
+/** Result of shop access verification */
+export interface VerifyShopAccessResult {
+  authorized: Array<Scalars['String']['output']>;
+  unauthorized: Array<Scalars['String']['output']>;
 }
 
 export interface WaitPairingResult {

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth, usePanelStore } from "../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 
 interface AuthGateProps {
   children: ReactNode;
@@ -16,7 +17,7 @@ interface AuthGateProps {
   skipSubscriptionCheck?: boolean;
 }
 
-export function AuthGate({
+export const AuthGate = observer(function AuthGate({
   children,
   loginPath = "/account",
   upgradePath = "/account",
@@ -25,8 +26,12 @@ export function AuthGate({
   skipSubscriptionCheck = false,
 }: AuthGateProps) {
   const { t } = useTranslation();
-  const { user, loading: authLoading } = useAuth();
-  const subscription = usePanelStore((s) => s.subscriptionStatus);
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
+  const subscription = entityStore.subscriptionStatus;
+  // authLoading is no longer needed — if currentUser is null during init,
+  // the SSE snapshot will populate it. Show login gate if user is null.
+  const authLoading = false;
 
   if (authLoading) {
     if (loadingElement) return <>{loadingElement}</>;
@@ -70,4 +75,4 @@ export function AuthGate({
   }
 
   return <>{children}</>;
-}
+});

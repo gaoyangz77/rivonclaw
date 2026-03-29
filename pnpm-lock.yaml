@@ -84,6 +84,12 @@ importers:
       graphql-ws:
         specifier: ^6.0.7
         version: 6.0.7(graphql@16.13.1)(ws@8.19.0)
+      mobx:
+        specifier: ^6.15.0
+        version: 6.15.0
+      mobx-state-tree:
+        specifier: ^7.1.0
+        version: 7.1.0(mobx@6.15.0)(typescript@5.9.3)
       undici:
         specifier: ^7.21.0
         version: 7.21.0
@@ -93,9 +99,6 @@ importers:
       ws:
         specifier: ^8.18.0
         version: 8.19.0
-      zustand:
-        specifier: ^5.0.12
-        version: 5.0.12(@types/react@19.2.13)(immer@11.1.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
       '@electron/notarize':
         specifier: ^3.0.0
@@ -112,9 +115,6 @@ importers:
       '@rivonclaw/rivonclaw-capability-manager':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-capability-manager
-      '@rivonclaw/rivonclaw-cloud-tools':
-        specifier: workspace:*
-        version: link:../../extensions-merchant/rivonclaw-cloud-tools
       '@rivonclaw/rivonclaw-event-bridge':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-event-bridge
@@ -190,6 +190,15 @@ importers:
       i18next:
         specifier: ^25.8.4
         version: 25.8.4(typescript@5.9.3)
+      mobx:
+        specifier: ^6.15.0
+        version: 6.15.0
+      mobx-react-lite:
+        specifier: ^4.1.1
+        version: 4.1.1(mobx@6.15.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      mobx-state-tree:
+        specifier: ^7.1.0
+        version: 7.1.0(mobx@6.15.0)(typescript@5.9.3)
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -211,9 +220,6 @@ importers:
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
-      zustand:
-        specifier: ^5.0.12
-        version: 5.0.12(@types/react@19.2.13)(immer@11.1.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -274,6 +280,53 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
+  extensions-merchant/rivonclaw-cs:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  extensions-merchant/rivonclaw-local-tools:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+      '@rivonclaw/rivonclaw-browser-profiles-tools':
+        specifier: workspace:*
+        version: link:../../extensions/rivonclaw-browser-profiles-tools
+      '@sinclair/typebox':
+        specifier: ^0.34.0
+        version: 0.34.48
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+
   extensions/channel-weixin:
     dependencies:
       '@tencent-weixin/openclaw-weixin':
@@ -289,13 +342,13 @@ importers:
 
   extensions/rivonclaw-browser-profiles-tools:
     dependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@rivonclaw/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
     devDependencies:
-      '@rivonclaw/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@sinclair/typebox':
         specifier: ^0.34.0
         version: 0.34.48
@@ -447,6 +500,12 @@ importers:
 
   packages/core:
     dependencies:
+      mobx:
+        specifier: ^6.15.0
+        version: 6.15.0
+      mobx-state-tree:
+        specifier: ^7.1.0
+        version: 7.1.0(mobx@6.15.0)(typescript@5.9.3)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -5062,6 +5121,27 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  mobx-react-lite@4.1.1:
+    resolution: {integrity: sha512-iUxiMpsvNraCKXU+yPotsOncNNmyeS2B5DKL+TL6Tar/xm+wwNJAubJmtRSeAoYawdZqwv8Z/+5nPRHeQxTiXg==}
+    peerDependencies:
+      mobx: ^6.9.0
+      react: ^16.8.0 || ^17 || ^18 || ^19
+      react-dom: '*'
+      react-native: '*'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+
+  mobx-state-tree@7.1.0:
+    resolution: {integrity: sha512-g19UxBZtJE6R5Vl34TsdXbes4fYiga3Sqfk7FCEcRljCAMML3hkceZrKW49T/Kgm2eHoefgVYhZk5sIROGeWVg==}
+    peerDependencies:
+      mobx: ^6.3.0
+
+  mobx@6.15.0:
+    resolution: {integrity: sha512-UczzB+0nnwGotYSgllfARAqWCJ5e/skuV2K/l+Zyck/H6pJIhLXuBnz+6vn2i211o7DtbE78HQtsYEKICHGI+g==}
+
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
@@ -6114,6 +6194,14 @@ packages:
   ts-algebra@2.0.0:
     resolution: {integrity: sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==}
 
+  ts-essentials@9.4.2:
+    resolution: {integrity: sha512-mB/cDhOvD7pg3YCLk2rOtejHjjdSi9in/IBYE13S+8WA5FBSraYf4V/ws55uvs0IvQ/l0wBOlXy5yBNZ9Bl8ZQ==}
+    peerDependencies:
+      typescript: '>=4.1.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   tsdown@0.20.3:
     resolution: {integrity: sha512-qWOUXSbe4jN8JZEgrkc/uhJpC8VN2QpNu3eZkBWwNuTEjc/Ik1kcc54ycfcQ5QPRHeu9OQXaLfCI3o7pEJgB2w==}
     engines: {node: '>=20.19.0'}
@@ -6554,24 +6642,6 @@ packages:
 
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
-
-  zustand@5.0.12:
-    resolution: {integrity: sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      '@types/react': '>=18.0.0'
-      immer: '>=9.0.6'
-      react: '>=18.0.0'
-      use-sync-external-store: '>=1.2.0'
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      immer:
-        optional: true
-      react:
-        optional: true
-      use-sync-external-store:
-        optional: true
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -11982,6 +12052,23 @@ snapshots:
   mkdirp@1.0.4:
     optional: true
 
+  mobx-react-lite@4.1.1(mobx@6.15.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      mobx: 6.15.0
+      react: 19.2.4
+      use-sync-external-store: 1.6.0(react@19.2.4)
+    optionalDependencies:
+      react-dom: 19.2.4(react@19.2.4)
+
+  mobx-state-tree@7.1.0(mobx@6.15.0)(typescript@5.9.3):
+    dependencies:
+      mobx: 6.15.0
+      ts-essentials: 9.4.2(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
+
+  mobx@6.15.0: {}
+
   ms@2.1.3: {}
 
   music-metadata@11.11.2:
@@ -13279,6 +13366,10 @@ snapshots:
 
   ts-algebra@2.0.0: {}
 
+  ts-essentials@9.4.2(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
+
   tsdown@0.20.3(synckit@0.11.12)(typescript@5.9.3):
     dependencies:
       ansis: 4.2.0
@@ -13756,12 +13847,5 @@ snapshots:
       zod: 4.3.6
 
   zod@4.3.6: {}
-
-  zustand@5.0.12(@types/react@19.2.13)(immer@11.1.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)):
-    optionalDependencies:
-      '@types/react': 19.2.13
-      immer: 11.1.4
-      react: 19.2.4
-      use-sync-external-store: 1.6.0(react@19.2.4)
 
   zwitch@2.0.4: {}

@@ -1,6 +1,7 @@
 import { GQL } from "@rivonclaw/core";
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
+import { rootStore } from "../store/desktop-store.js";
 
 /** Decode the payload of a JWT without verification (already validated elsewhere). */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -19,8 +20,10 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
 
   // GET /api/auth/session — return current user + authenticated flag (no token exposed)
   if (pathname === "/api/auth/session" && req.method === "GET") {
+    const user = ctx.authSession.getCachedUser();
+    if (user) rootStore.setCurrentUser(user);
     sendJson(res, 200, {
-      user: ctx.authSession.getCachedUser(),
+      user,
       authenticated: !!ctx.authSession.getAccessToken(),
     });
     return true;
@@ -35,6 +38,7 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
     }
     try {
       const user = await ctx.authSession.loginWithCredentials(body);
+      rootStore.setCurrentUser(user);
       ctx.onAuthChange?.();
       sendJson(res, 200, { user });
     } catch (err) {
@@ -52,6 +56,7 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
     }
     try {
       const user = await ctx.authSession.registerWithCredentials(body);
+      rootStore.setCurrentUser(user);
       ctx.onAuthChange?.();
       sendJson(res, 200, { user });
     } catch (err) {
@@ -89,6 +94,7 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
         ctx.authSession.setCachedUser(user);
       }
     }
+    if (user) rootStore.setCurrentUser(user);
     ctx.onAuthChange?.();
     sendJson(res, 200, { ok: true, user });
     return true;
@@ -108,6 +114,7 @@ export const handleAuthRoutes: RouteHandler = async (req, res, _url, pathname, c
   // POST /api/auth/logout — clear tokens + best-effort cloud logout
   if (pathname === "/api/auth/logout" && req.method === "POST") {
     await ctx.authSession.logout();
+    rootStore.clearUser();
     ctx.onAuthChange?.();
     sendJson(res, 200, { ok: true });
     return true;

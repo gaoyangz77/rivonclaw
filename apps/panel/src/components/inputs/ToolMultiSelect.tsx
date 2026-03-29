@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useToolRegistry } from "../../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToolDisplayLabel } from "../../lib/tool-display.js";
+import type { AvailableTool } from "@rivonclaw/core/models";
 
 interface ToolMultiSelectProps {
   /** Currently selected tool IDs */
@@ -16,9 +18,10 @@ interface ToolMultiSelectProps {
  * Multi-select checkbox list of individual tools, grouped by category.
  * Categories are collapsible and show a source badge (System / Extensions / Cloud).
  */
-export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMultiSelectProps) {
+export const ToolMultiSelect = observer(function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMultiSelectProps) {
   const { t } = useTranslation();
-  const { tools } = useToolRegistry();
+  const entityStore = useEntityStore();
+  const tools = entityStore.availableTools;
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const allowedSet = useMemo(
@@ -27,7 +30,7 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
   );
 
   const grouped = useMemo(() => {
-    const map = new Map<string, typeof tools>();
+    const map = new Map<string, AvailableTool[]>();
     for (const tool of tools) {
       if (allowedSet && !allowedSet.has(tool.id)) continue;
       const cat = tool.category || "other";
@@ -66,7 +69,7 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
     onChange(next);
   }
 
-  function toggleCategory(catTools: typeof tools) {
+  function toggleCategory(catTools: AvailableTool[]) {
     const ids = catTools.map((tool) => tool.id);
     const allSelected = ids.every((id) => selected.has(id));
     const next = new Set(selected);
@@ -129,4 +132,4 @@ export function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMult
       })}
     </div>
   );
-}
+});

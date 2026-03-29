@@ -210,6 +210,12 @@ export async function resetOpenClawStateDir(): Promise<{ ok: boolean; restartReq
   });
 }
 
+// --- System Dependencies ---
+
+export async function provisionDeps(): Promise<void> {
+  await fetchJson("/deps/provision", { method: "POST" });
+}
+
 // --- Telemetry Event Tracking ---
 
 /** Fire-and-forget telemetry event relay to desktop main process. */

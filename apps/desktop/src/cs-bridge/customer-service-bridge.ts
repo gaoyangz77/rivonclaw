@@ -15,8 +15,9 @@ import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { getProviderKeysStore } from "../gateway/provider-keys-ref.js";
 import { getVendorDir } from "../gateway/vendor-dir-ref.js";
-import { toolCapabilityResolver } from "../utils/tool-capability-resolver.js";
-import { entityCache, normalizePlatform } from "../entity-cache.js";
+import { reaction, toJS } from "mobx";
+import { rootStore } from "../store/desktop-store.js";
+import { normalizePlatform } from "../utils/platform.js";
 
 const log = createLogger("cs-bridge");
 
@@ -202,7 +203,7 @@ export class CustomerServiceBridge {
    * - Disconnects if all shops were removed
    */
   syncFromCache(): void {
-    const { shops } = entityCache.getState();
+    const shops = rootStore.shops;
     const deviceId = this.opts.gatewayId;
 
     // Build the set of shops that should be active
@@ -293,12 +294,10 @@ export class CustomerServiceBridge {
     // Avoid double-subscribe
     if (this.cacheUnsubscribe) return;
 
-    this.cacheUnsubscribe = entityCache.subscribe((state, prevState) => {
-      // Only react when the shops array reference changes
-      if (state.shops !== prevState.shops) {
-        this.onShopsChanged();
-      }
-    });
+    this.cacheUnsubscribe = reaction(
+      () => toJS(rootStore.shops),
+      () => this.onShopsChanged(),
+    );
   }
 
   private onShopsChanged(): void {
@@ -513,19 +512,19 @@ export class CustomerServiceBridge {
       return;
     }
 
-    // 5. Set CS RunProfile — delegate tool resolution to ToolCapabilityResolver
+    // 5. Set CS RunProfile — delegate tool resolution to ToolCapability model
     const runProfileId = shop.runProfileId ?? this.opts.defaultRunProfileId;
     if (!runProfileId) {
       log.error(`Shop ${shop.objectId} has no runProfileId configured for CS, dropping message`);
       return;
     }
     try {
-      const profile = toolCapabilityResolver.getAllRunProfiles().find(p => p.id === runProfileId);
+      const profile = rootStore.toolCapability.allRunProfiles.find((p: { id: string }) => p.id === runProfileId);
       if (!profile) {
         log.error(`RunProfile "${runProfileId}" not found in cache, dropping message`);
         return;
       }
-      toolCapabilityResolver.setSessionRunProfile(scopeKey, {
+      rootStore.toolCapability.setSessionRunProfile(scopeKey, {
         selectedToolIds: profile.selectedToolIds,
         surfaceId: profile.surfaceId,
       }, runProfileId);
@@ -569,7 +568,7 @@ export class CustomerServiceBridge {
       `- Buyer User ID: ${frame.buyerUserId}`,
       ...(frame.orderId ? [`- Order ID: ${frame.orderId}`] : []),
       "",
-      "Use the tools available to you to help this buyer. Your text replies are automatically delivered to the buyer.",
+      "Use the tools available to you to help this buyer.",
     ].join("\n");
 
     // 8. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)

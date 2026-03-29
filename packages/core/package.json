@@ -17,6 +17,14 @@
     "./extension-client": {
       "import": "./dist/extension-client.mjs",
       "types": "./dist/extension-client.d.mts"
+    },
+    "./models": {
+      "import": "./dist/mst-models.mjs",
+      "types": "./dist/mst-models.d.mts"
+    },
+    "./client-tools": {
+      "import": "./dist/client-tools.mjs",
+      "types": "./dist/client-tools.d.mts"
     }
   },
   "scripts": {
@@ -25,11 +33,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "mobx": "^6.15.0",
+    "mobx-state-tree": "^7.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "tsdown": "^0.20.3",
     "oxlint": "^1.43.0",
+    "tsdown": "^0.20.3",
     "vitest": "^4.0.18"
   }
 }

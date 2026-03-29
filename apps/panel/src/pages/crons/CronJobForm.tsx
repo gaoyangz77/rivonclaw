@@ -6,7 +6,8 @@ import { Select } from "../../components/inputs/Select.js";
 import { RunProfileSelector } from "../../components/inputs/RunProfileSelector.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import { fetchChannelStatus, fetchAllowlist, setRecipientLabel, type ChannelsStatusSnapshot } from "../../api/channels.js";
-import { useToolRegistry, usePanelStore } from "../../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { setRunProfileForScope } from "../../api/tool-registry.js";
 import type { CronJob, CronJobFormData, ScheduleKind, PayloadKind, EveryUnit, CronWakeMode, CronDeliveryMode, FormErrors } from "./cron-utils.js";
 import { defaultFormData, cronJobToFormData, formDataToCreateParams, formDataToPatch, validateCronForm, TIMEZONE_ENTRIES } from "./cron-utils.js";
@@ -89,7 +90,7 @@ function InfoTip({ tooltipKey }: { tooltipKey: string }) {
   );
 }
 
-export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFormProps) {
+export const CronJobForm = observer(function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFormProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState<CronJobFormData>(
     initialData ? cronJobToFormData(initialData) : defaultFormData(),
@@ -107,8 +108,9 @@ export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFo
   const [allowlist, setAllowlist] = useState<string[]>([]);
   const [recipientLabels, setRecipientLabels] = useState<Record<string, string>>({});
   const [allowlistLoading, setAllowlistLoading] = useState(false);
-  const { tools } = useToolRegistry();
-  const runProfiles = usePanelStore((s) => s.runProfiles);
+  const entityStore = useEntityStore();
+  const tools = entityStore.availableTools;
+  const runProfiles = entityStore.allRunProfiles;
   const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
 
   useEffect(() => {
@@ -744,4 +746,4 @@ export function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFo
       </div>
     </Modal>
   );
-}
+});

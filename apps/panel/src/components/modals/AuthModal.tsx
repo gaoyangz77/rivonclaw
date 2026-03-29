@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation } from "@apollo/client/react";
 import type { TFunction } from "i18next";
 import { GQL } from "@rivonclaw/core";
-import { useAuth } from "../../stores/index.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { REQUEST_CAPTCHA } from "../../api/auth-queries.js";
 import { formatError } from "@rivonclaw/core";
 import { Modal } from "./Modal.js";
@@ -62,7 +62,9 @@ function getPasswordChecks(pw: string) {
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const { t } = useTranslation();
-  const { login, register } = useAuth();
+  const entityStore = useEntityStore();
+  const login = entityStore.login;
+  const register = entityStore.register;
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");

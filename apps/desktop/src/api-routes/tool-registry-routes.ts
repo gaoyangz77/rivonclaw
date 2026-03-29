@@ -1,7 +1,7 @@
 import { ScopeType } from "@rivonclaw/core";
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
-import { toolCapabilityResolver } from "../utils/tool-capability-resolver.js";
+import { rootStore } from "../store/desktop-store.js";
 
 
 // ── Session key parsing ─────────────────────────────────────────────────────
@@ -22,16 +22,16 @@ export function parseScopeType(sessionKey: string): ScopeType {
   return ScopeType.UNKNOWN;
 }
 
-/** Look up a RunProfile by ID from the CapabilityResolver. */
+/** Look up a RunProfile by ID from the ToolCapability model. */
 function resolveRunProfile(runProfileId: string): { selectedToolIds: string[]; surfaceId?: string } | null {
-  return toolCapabilityResolver.getAllRunProfiles().find(p => p.id === runProfileId) ?? null;
+  return rootStore.toolCapability.allRunProfiles.find(p => p.id === runProfileId) ?? null;
 }
 
 /**
- * Thin HTTP adapter for ToolCapabilityResolver.
+ * Thin HTTP adapter for ToolCapability model.
  *
- * Routes handle ONLY: HTTP parsing + delegation to resolver.
- * Business logic (scope trust, system tools enrichment, defaults) lives in the resolver.
+ * Routes handle ONLY: HTTP parsing + delegation to model.
+ * Business logic (scope trust, system tools enrichment, defaults) lives in the model.
  */
 export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
 
@@ -42,32 +42,14 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
       sendJson(res, 400, { error: "Missing sessionKey" });
       return true;
     }
-    if (!toolCapabilityResolver.isInitialized()) {
+    if (!rootStore.toolCapability.initialized) {
       sendJson(res, 200, { effectiveToolIds: [] });
       return true;
     }
 
     const scopeType = parseScopeType(sessionKey);
-    const effectiveToolIds = toolCapabilityResolver.getEffectiveToolsForScope(scopeType, sessionKey);
+    const effectiveToolIds = rootStore.toolCapability.getEffectiveToolsForScope(scopeType, sessionKey);
     sendJson(res, 200, { effectiveToolIds });
-    return true;
-  }
-
-  // GET /api/tools/available — full tool list with display metadata
-  if (pathname === "/api/tools/available" && req.method === "GET") {
-    sendJson(res, 200, { tools: toolCapabilityResolver.getToolList() });
-    return true;
-  }
-
-  // GET /api/tools/surfaces — all surfaces (system + user) with resolved tool lists
-  if (pathname === "/api/tools/surfaces" && req.method === "GET") {
-    sendJson(res, 200, { surfaces: toolCapabilityResolver.getAllSurfaces() });
-    return true;
-  }
-
-  // GET /api/tools/run-profiles — all run profiles (system + user)
-  if (pathname === "/api/tools/run-profiles" && req.method === "GET") {
-    sendJson(res, 200, { runProfiles: toolCapabilityResolver.getAllRunProfiles() });
     return true;
   }
 
@@ -75,7 +57,7 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
   if (pathname === "/api/tools/default-run-profile" && req.method === "PUT") {
     const body = await parseBody(req) as { runProfileId?: string | null };
     if (!body.runProfileId) {
-      toolCapabilityResolver.setDefaultRunProfile(null);
+      rootStore.toolCapability.setDefaultRunProfile(null);
       sendJson(res, 200, { ok: true });
       return true;
     }
@@ -84,7 +66,7 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
       sendJson(res, 404, { error: `RunProfile "${body.runProfileId}" not found in cache` });
       return true;
     }
-    toolCapabilityResolver.setDefaultRunProfile({
+    rootStore.toolCapability.setDefaultRunProfile({
       selectedToolIds: profile.selectedToolIds,
       surfaceId: profile.surfaceId,
     });
@@ -109,7 +91,7 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
 
     // Inline runProfile takes precedence (backward-compatible path)
     if (body.runProfile && typeof body.runProfile === "object") {
-      toolCapabilityResolver.setSessionRunProfile(body.scopeKey, {
+      rootStore.toolCapability.setSessionRunProfile(body.scopeKey, {
         selectedToolIds: body.runProfile.selectedToolIds,
         surfaceId: body.runProfile.surfaceId,
       }, body.runProfile.id ?? null);
@@ -119,7 +101,7 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
 
     // runProfileId path: look up from cached profiles
     if (!body.runProfileId) {
-      toolCapabilityResolver.setSessionRunProfile(body.scopeKey, null);
+      rootStore.toolCapability.setSessionRunProfile(body.scopeKey, null);
       sendJson(res, 200, { ok: true });
       return true;
     }
@@ -128,7 +110,7 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
       sendJson(res, 404, { error: `RunProfile "${body.runProfileId}" not found in cache` });
       return true;
     }
-    toolCapabilityResolver.setSessionRunProfile(body.scopeKey, {
+    rootStore.toolCapability.setSessionRunProfile(body.scopeKey, {
       selectedToolIds: profile.selectedToolIds,
       surfaceId: profile.surfaceId,
     }, body.runProfileId);
@@ -143,7 +125,7 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
       sendJson(res, 400, { error: "Missing scopeKey" });
       return true;
     }
-    sendJson(res, 200, { runProfileId: toolCapabilityResolver.getSessionRunProfileId(scopeKey) });
+    sendJson(res, 200, { runProfileId: rootStore.toolCapability.getSessionRunProfileId(scopeKey) });
     return true;
   }
 

@@ -1,0 +1,27 @@
+export { ToolModel, ToolSpecModel, ToolParamSpecModel, ToolContextBindingModel } from "./ToolSpec.js";
+export type { Tool, ToolSpec, ToolParamSpec, ToolContextBinding } from "./ToolSpec.js";
+export { SurfaceModel } from "./Surface.js";
+export type { Surface } from "./Surface.js";
+export { RunProfileModel } from "./RunProfile.js";
+export type { RunProfile } from "./RunProfile.js";
+export { ShopModel, CustomerServiceConfigModel, CustomerServiceBillingModel, ShopServiceConfigModel } from "./Shop.js";
+export type { Shop, CustomerServiceConfig, CustomerServiceBilling, ShopServiceConfig } from "./Shop.js";
+export { QuotaCircleModel, LlmQuotaStatusModel, UserSubscriptionModel } from "./Subscription.js";
+export type { QuotaCircle, LlmQuotaStatus, UserSubscription } from "./Subscription.js";
+export { ProviderKeyModel } from "./ProviderKey.js";
+export type { ProviderKey } from "./ProviderKey.js";
+export { ToolCapabilityModel, toolIdMatch } from "./ToolCapability.js";
+export type { ToolCapability, AvailableTool, SurfaceInfo, RunProfileInfo } from "./ToolCapability.js";
+export { UserModel } from "./User.js";
+export type { User } from "./User.js";
+export { PlatformAppModel } from "./PlatformApp.js";
+export type { PlatformApp } from "./PlatformApp.js";
+export { ServiceCreditModel } from "./ServiceCredit.js";
+export type { ServiceCredit } from "./ServiceCredit.js";
+export { SessionStatsModel } from "./SessionStats.js";
+export type { SessionStats } from "./SessionStats.js";
+export { RootStoreModel } from "./RootStore.js";
+export type { RootStore } from "./RootStore.js";
+
+// Compile-time GQL ↔ MST drift detection (side-effect only, no runtime exports)
+import "./type-guards.js";

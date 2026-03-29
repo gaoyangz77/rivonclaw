@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { Layout } from "./layout/Layout.js";
 import { ChatPage } from "./pages/ChatPage.js";
@@ -22,9 +22,9 @@ import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
 import { fetchSettings, fetchChangelog, trackEvent } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
-import { usePanelStore } from "./stores/index.js";
+import { entityStore } from "./store/entity-store.js";
 
-const PAGES: Record<string, () => ReactNode> = {
+const PAGES: Record<string, ComponentType | (() => ReactNode)> = {
   "/": () => null, // ChatPage is always rendered directly (not via PAGES) to keep its WS alive
   "/rules": RulesPage,
   "/providers": ProvidersPage,
@@ -71,7 +71,7 @@ export function App() {
 
   // Clear auth state when any API call returns 401
   useEffect(() => {
-    const handler = () => usePanelStore.getState().clearAuth();
+    const handler = () => entityStore.clearAuth();
     window.addEventListener("rivonclaw:auth-expired", handler);
     return () => window.removeEventListener("rivonclaw:auth-expired", handler);
   }, []);

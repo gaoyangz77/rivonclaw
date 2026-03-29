@@ -4,15 +4,9 @@ import { useQuery } from "@apollo/client/react";
 import { getDefaultModelForProvider, getProviderMeta, getOllamaBaseUrl } from "@rivonclaw/core";
 import type { LLMProvider, GQL } from "@rivonclaw/core";
 import {
-  fetchProviderKeys,
   updateSettings,
-  createProviderKey,
   validateApiKey,
   validateCustomApiKey,
-  startOAuthFlow,
-  saveOAuthFlow,
-  completeManualOAuth,
-  pollOAuthStatus,
   detectLocalModels,
   fetchLocalModels,
   checkLocalModelHealth,
@@ -21,14 +15,13 @@ import {
 import { fetchJson } from "../../api/client.js";
 import type { LocalModelServer } from "../../api/index.js";
 import { PRICING_QUERY } from "../../api/pricing-queries.js";
-import { usePanelStore } from "../../stores/index.js";
+import { entityStore } from "../../store/index.js";
 
 export function useProviderForm(onSaveCallback: (provider: string) => void) {
   const { t, i18n } = useTranslation();
 
-  // Wrap onSave to always sync the provider keys store after a key is created
+  // MST auto-updates via SSE — no manual fetch needed after key creation
   const onSave = useCallback((provider: string) => {
-    usePanelStore.getState().fetchProviderKeys();
     onSaveCallback(provider);
   }, [onSaveCallback]);
 
@@ -98,7 +91,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     fetchJson<{ deviceId: string }>("/status")
       .then((s) => setDeviceId(s.deviceId || "unknown"))
       .catch(() => setDeviceId("unknown"));
-    fetchProviderKeys().then((keys) => setExistingKeyCount(keys.length)).catch(() => {});
+    setExistingKeyCount(entityStore.providerKeys.length);
   }, []);
 
   const pricingLang = navigator.language?.slice(0, 2) || "en";
@@ -211,7 +204,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     setError(null);
     try {
       const url = baseUrl.trim().replace(/\/+$/, "");
-      await createProviderKey({
+      await entityStore.createProviderKey({
         provider: "ollama",
         label: label.trim() || "Ollama",
         model: modelName.trim(),
@@ -254,7 +247,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
         return;
       }
 
-      await createProviderKey({
+      await entityStore.createProviderKey({
         provider,
         label: label.trim() || t("providers.labelDefault"),
         model: model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
@@ -289,7 +282,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     setError(null);
     stopPolling();
     try {
-      const result = await startOAuthFlow(provider);
+      const result = await entityStore.startOAuthFlow(provider);
       // Always enter manual/hybrid mode — show auth URL + callback input immediately
       setOauthManualMode(true);
       setOauthAuthUrl(result.authUrl || "");
@@ -298,7 +291,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
         // Start polling for auto-callback completion
         pollRef.current = setInterval(async () => {
           try {
-            const status = await pollOAuthStatus(result.flowId!);
+            const status = await entityStore.pollOAuthStatus(result.flowId!);
             if (status.status === "completed") {
               stopPolling();
               setOauthTokenPreview(status.tokenPreview || "oauth-token-••••••••");
@@ -331,7 +324,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     setOauthManualLoading(true);
     setError(null);
     try {
-      const result = await completeManualOAuth(provider, oauthCallbackUrl.trim());
+      const result = await entityStore.completeManualOAuth(provider, oauthCallbackUrl.trim());
       setOauthTokenPreview(result.tokenPreview || "oauth-token-••••••••");
       setLabel((prev) => prev.trim() ? prev : (result.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth"));
       setModel(getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? "");
@@ -352,7 +345,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     setError(null);
     try {
       const proxy = proxyUrl.trim() || undefined;
-      await saveOAuthFlow(provider, {
+      await entityStore.saveOAuthFlow(provider, {
         proxyUrl: proxy,
         label: label.trim() || t("providers.labelDefault"),
         model: model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
@@ -394,7 +387,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
       }
 
       const providerSlug = "custom-" + crypto.randomUUID().slice(0, 8);
-      await createProviderKey({
+      await entityStore.createProviderKey({
         provider: providerSlug,
         label: customName.trim() || t("providers.customDefault"),
         model: customModels[0],

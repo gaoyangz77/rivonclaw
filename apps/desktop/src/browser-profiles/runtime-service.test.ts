@@ -527,7 +527,9 @@ describe("BrowserProfileRuntimeService", () => {
       }));
 
       const adapter = createMockAdapter(makeCookies(3));
-      const checkpointSpy = vi.spyOn(svc, "checkpointSessionState");
+      const checkpointSpy = vi
+        .spyOn(svc, "checkpointSessionState")
+        .mockResolvedValue({ skipped: true, reason: "no_change" });
 
       await svc.startCheckpointTimer("prof-1", adapter, T);
 
@@ -554,7 +556,9 @@ describe("BrowserProfileRuntimeService", () => {
       await service.startCheckpointTimer("prof-1", adapter1, T);
       expect(service.hasCheckpointTimer("prof-1")).toBe(true);
 
-      const checkpointSpy = vi.spyOn(service, "checkpointSessionState");
+      const checkpointSpy = vi
+        .spyOn(service, "checkpointSessionState")
+        .mockResolvedValue({ skipped: true, reason: "no_change" });
 
       // Start again with different adapter — should stop old timer
       await service.startCheckpointTimer("prof-1", adapter2, T);

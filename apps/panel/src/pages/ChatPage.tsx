@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchGatewayInfo, fetchProviderKeys, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchChatCollapseMessages } from "../api/index.js";
+import { fetchGatewayInfo, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchChatCollapseMessages } from "../api/index.js";
+import { entityStore } from "../store/index.js";
 import { formatError } from "@rivonclaw/core";
 import { configManager } from "../lib/config-manager.js";
 import { Select } from "../components/inputs/Select.js";
@@ -19,11 +20,12 @@ import { SessionTabBar } from "./chat/SessionTabBar.js";
 import type { GatewaySessionInfo } from "./chat/SessionTabBar.js";
 import { ChatInputArea } from "./chat/ChatInputArea.js";
 import { RunProfileSelector } from "../components/inputs/RunProfileSelector.js";
-import { usePanelStore } from "../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { setRunProfileForScope } from "../api/tool-registry.js";
 import "./chat/ChatPage.css";
 
-export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
+export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
   const { t, i18n } = useTranslation();
   const tRef = useRef(t);
   tRef.current = t;
@@ -73,7 +75,8 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
   const selectedRunProfileIdRef = useRef(selectedRunProfileId);
-  const runProfiles = usePanelStore((s) => s.runProfiles);
+  const entityStore = useEntityStore();
+  const runProfiles = entityStore.allRunProfiles;
   const [externalPending, setExternalPending] = useState(false);
   const externalPendingRef = useRef(false);
 
@@ -685,8 +688,8 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       } else {
         setActiveModel(null);
         setModelOptions([]);
-        // Check if any provider keys exist at all
-        fetchProviderKeys().then((keys) => setHasProviderKeys(keys.length > 0)).catch(() => { });
+        // Check if any provider keys exist at all (read from MST store)
+        setHasProviderKeys(entityStore.providerKeys.length > 0);
       }
     }).catch(() => { setActiveModel(null); setModelOptions([]); });
   }
@@ -938,21 +941,16 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
     const files = pendingImages;
     if ((!text && files.length === 0) || connectionState !== "connected" || !clientRef.current) return;
 
-    // Pre-flight: check if any provider key is configured
-    try {
-      const keys = await fetchProviderKeys();
-      if (keys.length === 0) {
-        setMessages((prev) => [
-          ...prev,
-          { role: "user", text, timestamp: Date.now() },
-          { role: "assistant", text: `⚠ ${t("chat.noProviderError")}`, timestamp: Date.now() },
-        ]);
-        setDraft("");
-        setPendingImages([]);
-        return;
-      }
-    } catch {
-      // Check failed — proceed anyway, let gateway handle it
+    // Pre-flight: check if any provider key is configured (read from MST store)
+    if (entityStore.providerKeys.length === 0) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text, timestamp: Date.now() },
+        { role: "assistant", text: `⚠ ${t("chat.noProviderError")}`, timestamp: Date.now() },
+      ]);
+      setDraft("");
+      setPendingImages([]);
+      return;
     }
 
     const idempotencyKey = crypto.randomUUID();
@@ -1343,4 +1341,4 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       </Modal>
     </div>
   );
-}
+});

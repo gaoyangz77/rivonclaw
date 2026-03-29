@@ -1,85 +1,18 @@
+import { GQL } from "@rivonclaw/core";
 import { getClient, trackedQuery } from "./apollo-client.js";
 import {
   SHOPS_QUERY,
   SHOP_AUTH_STATUS_QUERY,
   PLATFORM_APPS_QUERY,
-  UPDATE_SHOP_MUTATION,
-  DELETE_SHOP_MUTATION,
   INITIATE_TIKTOK_OAUTH_MUTATION,
   MY_CREDITS_QUERY,
   CS_SESSION_STATS_QUERY,
   REDEEM_CREDIT_MUTATION,
 } from "./shops-queries.js";
 
-export interface CustomerServiceConfig {
-  enabled: boolean;
-  businessPrompt?: string;
-  runProfileId?: string;
-  csDeviceId?: string | null;
-  csModelOverride?: string;
-  assembledPrompt?: string | null;
-}
-
-export interface CustomerServiceBilling {
-  tier?: string;
-  balance: number;
-  balanceExpiresAt?: string;
-  periodEnd?: string;
-}
-
-export interface ShopServiceConfig {
-  customerService: CustomerServiceConfig;
-  customerServiceBilling?: CustomerServiceBilling;
-}
-
-export interface Shop {
-  id: string;
-  platform: string;
-  platformAppId: string;
-  platformShopId: string;
-  shopName: string;
-  authStatus: string;
-  region: string;
-  accessTokenExpiresAt?: string;
-  refreshTokenExpiresAt?: string;
-  services: ShopServiceConfig;
-}
-
-export interface ShopAuthStatusInfo {
-  hasToken: boolean;
-  accessTokenExpiresAt?: string;
-  refreshTokenExpiresAt?: string;
-}
-
-export interface PlatformAppInfo {
-  id: string;
-  platform: string;
-  market: string;
-  status: string;
-  label: string;
-  apiBaseUrl: string;
-  authLinkUrl: string;
-}
-
-export interface ServiceCreditInfo {
-  id: string;
-  service: string;
-  quota: number;
-  status: string;
-  expiresAt: string;
-  source: string;
-}
-
-export interface CSSessionStatsInfo {
-  activeSessions: number;
-  totalSessions: number;
-  balance: number;
-  balanceExpiresAt?: string;
-}
-
-export async function fetchShops(): Promise<Shop[]> {
+export async function fetchShops(): Promise<GQL.Shop[]> {
   return trackedQuery(async () => {
-    const result = await getClient().query<{ shops: Shop[] }>({
+    const result = await getClient().query<{ shops: GQL.Shop[] }>({
       query: SHOPS_QUERY,
       fetchPolicy: "network-only",
     });
@@ -87,9 +20,9 @@ export async function fetchShops(): Promise<Shop[]> {
   });
 }
 
-export async function fetchShopAuthStatus(id: string): Promise<ShopAuthStatusInfo> {
+export async function fetchShopAuthStatus(id: string): Promise<GQL.ShopAuthStatusResponse> {
   return trackedQuery(async () => {
-    const result = await getClient().query<{ shopAuthStatus: ShopAuthStatusInfo }>({
+    const result = await getClient().query<{ shopAuthStatus: GQL.ShopAuthStatusResponse }>({
       query: SHOP_AUTH_STATUS_QUERY,
       variables: { id },
       fetchPolicy: "network-only",
@@ -98,42 +31,13 @@ export async function fetchShopAuthStatus(id: string): Promise<ShopAuthStatusInf
   });
 }
 
-export async function fetchPlatformApps(): Promise<PlatformAppInfo[]> {
+export async function fetchPlatformApps(): Promise<GQL.PlatformApp[]> {
   return trackedQuery(async () => {
-    const result = await getClient().query<{ platformApps: PlatformAppInfo[] }>({
+    const result = await getClient().query<{ platformApps: GQL.PlatformApp[] }>({
       query: PLATFORM_APPS_QUERY,
       fetchPolicy: "network-only",
     });
     return result.data!.platformApps;
-  });
-}
-
-export async function updateShop(
-  id: string,
-  input: {
-    shopName?: string;
-    authStatus?: string;
-    region?: string;
-    services?: { customerService?: { enabled?: boolean; businessPrompt?: string; runProfileId?: string; csDeviceId?: string | null; csModelOverride?: string | null } };
-  },
-): Promise<Shop> {
-  return trackedQuery(async () => {
-    const result = await getClient().mutate<{ updateShop: Shop }>({
-      mutation: UPDATE_SHOP_MUTATION,
-      variables: { id, input },
-    });
-    return result.data!.updateShop;
-  });
-}
-
-export async function deleteShop(id: string): Promise<boolean> {
-  return trackedQuery(async () => {
-    const result = await getClient().mutate<{ deleteShop: boolean }>({
-      mutation: DELETE_SHOP_MUTATION,
-      variables: { id },
-      refetchQueries: [{ query: SHOPS_QUERY }],
-    });
-    return result.data!.deleteShop;
   });
 }
 
@@ -149,9 +53,9 @@ export async function initiateTikTokOAuth(platformAppId: string): Promise<{ auth
   });
 }
 
-export async function fetchMyCredits(): Promise<ServiceCreditInfo[]> {
+export async function fetchMyCredits(): Promise<GQL.ServiceCredit[]> {
   return trackedQuery(async () => {
-    const result = await getClient().query<{ myCredits: ServiceCreditInfo[] }>({
+    const result = await getClient().query<{ myCredits: GQL.ServiceCredit[] }>({
       query: MY_CREDITS_QUERY,
       fetchPolicy: "network-only",
     });
@@ -159,9 +63,9 @@ export async function fetchMyCredits(): Promise<ServiceCreditInfo[]> {
   });
 }
 
-export async function fetchCSSessionStats(shopId: string): Promise<CSSessionStatsInfo> {
+export async function fetchCSSessionStats(shopId: string): Promise<GQL.CsSessionStats> {
   return trackedQuery(async () => {
-    const result = await getClient().query<{ csSessionStats: CSSessionStatsInfo }>({
+    const result = await getClient().query<{ csSessionStats: GQL.CsSessionStats }>({
       query: CS_SESSION_STATS_QUERY,
       variables: { shopId },
       fetchPolicy: "network-only",

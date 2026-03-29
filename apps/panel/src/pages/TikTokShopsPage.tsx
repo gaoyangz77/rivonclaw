@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
-import { useAuth, usePanelStore } from "../stores/index.js";
-import type { Shop, ServiceCreditInfo } from "../stores/index.js";
+import { observer } from "mobx-react-lite";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
+import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -20,13 +21,13 @@ function isBalanceLow(balance: number): boolean {
   return balance > 0 && balance < LOW_BALANCE_THRESHOLD;
 }
 
-function isBalanceExpiringSoon(expiresAt?: string): boolean {
+function isBalanceExpiringSoon(expiresAt?: string | null): boolean {
   if (!expiresAt) return false;
   const diff = new Date(expiresAt).getTime() - Date.now();
   return diff > 0 && diff < EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000;
 }
 
-function isBalanceExpired(expiresAt?: string): boolean {
+function isBalanceExpired(expiresAt?: string | null): boolean {
   if (!expiresAt) return false;
   return new Date(expiresAt).getTime() < Date.now();
 }
@@ -40,8 +41,8 @@ function hasUpgradeRequired(err: unknown): boolean {
 }
 
 function formatBalanceDisplay(
-  balance: number | undefined,
-  tier: string | undefined,
+  balance: number | undefined | null,
+  tier: string | undefined | null,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   if (balance === undefined || balance === null) return "—";
@@ -51,27 +52,33 @@ function formatBalanceDisplay(
 
 type ModalTab = "overview" | "billing" | "sessions";
 
-export function TikTokShopsPage() {
+export const TikTokShopsPage = observer(function TikTokShopsPage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
+  const shops = entityStore.shops;
 
-  const shops = usePanelStore((s) => s.shops);
-  const shopsLoading = usePanelStore((s) => s.shopsLoading);
-  const platformApps = usePanelStore((s) => s.platformApps);
-  const credits = usePanelStore((s) => s.credits);
-  const creditsLoading = usePanelStore((s) => s.creditsLoading);
-  const sessionStats = usePanelStore((s) => s.sessionStats);
-  const sessionStatsLoading = usePanelStore((s) => s.sessionStatsLoading);
-  const selectedShopId = usePanelStore((s) => s.selectedShopId);
-  const storeFetchShops = usePanelStore((s) => s.fetchShops);
-  const storeFetchPlatformApps = usePanelStore((s) => s.fetchPlatformApps);
-  const storeUpdateShop = usePanelStore((s) => s.updateShop);
-  const storeDeleteShop = usePanelStore((s) => s.deleteShop);
-  const storeInitiateOAuth = usePanelStore((s) => s.initiateTikTokOAuth);
-  const storeFetchCredits = usePanelStore((s) => s.fetchCredits);
-  const storeFetchSessionStats = usePanelStore((s) => s.fetchSessionStats);
-  const storeRedeemCredit = usePanelStore((s) => s.redeemCredit);
-  const storeSetSelectedShopId = usePanelStore((s) => s.setSelectedShopId);
+  const platformApps = entityStore.platformApps;
+  const credits = entityStore.credits;
+  const sessionStats = entityStore.sessionStats;
+
+  // Loading flags and selectedShopId are pure UI state
+  const [creditsLoading, setCreditsLoading] = useState(false);
+  const [sessionStatsLoading, setSessionStatsLoading] = useState(false);
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+
+  // Wrapper functions for fetching with loading state
+  async function handleFetchPlatformApps() {
+    try { await entityStore.fetchPlatformApps(); } catch { /* ignore */ }
+  }
+  async function handleFetchCredits() {
+    setCreditsLoading(true);
+    try { await entityStore.fetchCredits(); } catch { /* ignore */ } finally { setCreditsLoading(false); }
+  }
+  async function handleFetchSessionStats(shopId: string) {
+    setSessionStatsLoading(true);
+    try { await entityStore.fetchSessionStats(shopId); } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
+  }
 
   const [error, setError] = useState<string | null>(null);
   const [upgradePrompt, setUpgradePrompt] = useState(false);
@@ -117,11 +124,10 @@ export function TikTokShopsPage() {
     };
   }, []);
 
-  // Fetch shops and platform apps on mount
+  // Fetch platform apps on mount (shops arrive via MST/SSE)
   useEffect(() => {
     if (user) {
-      storeFetchShops();
-      storeFetchPlatformApps();
+      handleFetchPlatformApps();
     }
   }, [user]);
 
@@ -135,15 +141,15 @@ export function TikTokShopsPage() {
   // Load detail data when a shop is selected
   useEffect(() => {
     if (selectedShopId) {
-      storeFetchCredits();
-      storeFetchSessionStats(selectedShopId);
+      handleFetchCredits();
+      handleFetchSessionStats(selectedShopId);
     }
   }, [selectedShopId]);
 
   // Set business prompt when shop selection changes
   useEffect(() => {
     if (selectedShop) {
-      setEditBusinessPrompt(selectedShop.services.customerService.businessPrompt ?? "");
+      setEditBusinessPrompt(selectedShop.services?.customerService?.businessPrompt ?? "");
     }
   }, [selectedShop?.id]);
 
@@ -166,7 +172,7 @@ export function TikTokShopsPage() {
         const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
         cleanupOAuthWait();
         setSuccessMsg(t("tiktokShops.oauthSuccess"));
-        storeFetchShops();
+        // Shops auto-update via MST/SSE — no manual fetch needed
         void data;
       } catch {
         // Ignore malformed data
@@ -192,7 +198,7 @@ export function TikTokShopsPage() {
     setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
-      const { authUrl } = await storeInitiateOAuth(selectedPlatformAppId);
+      const { authUrl } = await entityStore.initiateTikTokOAuth(selectedPlatformAppId);
       setConnectModalOpen(false);
       startOAuthSSEListener();
       setOauthWaiting(true);
@@ -217,7 +223,7 @@ export function TikTokShopsPage() {
     setSuccessMsg(null);
     setUpgradePrompt(false);
     try {
-      const { authUrl } = await storeInitiateOAuth(appId);
+      const { authUrl } = await entityStore.initiateTikTokOAuth(appId);
       startOAuthSSEListener();
       setOauthWaiting(true);
       window.open(authUrl, "_blank");
@@ -233,9 +239,10 @@ export function TikTokShopsPage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeDeleteShop(shopId);
+      await entityStore.deleteShop(shopId);
+      // MST store auto-updates via SSE patch
       if (selectedShopId === shopId) {
-        storeSetSelectedShopId(null);
+        setSelectedShopId(null);
       }
       setSuccessMsg(t("tiktokShops.disconnectSuccess"));
       setTimeout(() => setSuccessMsg(null), 3000);
@@ -249,7 +256,7 @@ export function TikTokShopsPage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeUpdateShop(shopId, {
+      await entityStore.updateShop(shopId, {
         services: { customerService: { enabled: !currentValue } },
       });
     } catch (err) {
@@ -265,7 +272,7 @@ export function TikTokShopsPage() {
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeUpdateShop(selectedShopId, {
+      await entityStore.updateShop(selectedShopId, {
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
       setSuccessMsg(t("common.saved"));
@@ -277,17 +284,17 @@ export function TikTokShopsPage() {
     }
   }
 
-  async function handleRedeemCredit(credit: ServiceCreditInfo) {
+  async function handleRedeemCredit(credit: ServiceCredit) {
     if (!selectedShopId) return;
     setRedeemingCreditId(credit.id);
     setError(null);
     setUpgradePrompt(false);
     try {
-      await storeRedeemCredit(credit.id, selectedShopId);
+      await entityStore.redeemCredit(credit.id, selectedShopId);
       setSuccessMsg(t("tiktokShops.modal.billing.redeemSuccess"));
       setTimeout(() => setSuccessMsg(null), 2000);
       // Refresh session stats
-      storeFetchSessionStats(selectedShopId);
+      handleFetchSessionStats(selectedShopId);
     } catch (err) {
       handleError(err, "tiktokShops.updateFailed");
     } finally {
@@ -296,7 +303,7 @@ export function TikTokShopsPage() {
   }
 
   function openDetailModal(shopId: string) {
-    storeSetSelectedShopId(shopId);
+    setSelectedShopId(shopId);
     setActiveTab("overview");
     setError(null);
     setUpgradePrompt(false);
@@ -304,7 +311,7 @@ export function TikTokShopsPage() {
   }
 
   function closeDetailModal() {
-    storeSetSelectedShopId(null);
+    setSelectedShopId(null);
     setError(null);
     setUpgradePrompt(false);
   }
@@ -326,7 +333,7 @@ export function TikTokShopsPage() {
   }
 
   function getBalanceBadge(shop: Shop): JSX.Element | null {
-    const billing = shop.services.customerServiceBilling;
+    const billing = shop.services?.customerServiceBilling;
     if (!billing) return null;
 
     if (billing.balance === 0) {
@@ -351,7 +358,7 @@ export function TikTokShopsPage() {
   }
 
   function getCsStatusBadge(shop: Shop): JSX.Element {
-    if (shop.services.customerService.enabled) {
+    if (shop.services?.customerService?.enabled) {
       return <span className="badge badge-active">{t("common.enabled")}</span>;
     }
     return <span className="badge badge-muted">{t("common.disabled")}</span>;
@@ -428,9 +435,7 @@ export function TikTokShopsPage() {
           </div>
         </div>
 
-        {shopsLoading && shops.length === 0 ? (
-          <div className="empty-cell">{t("common.loading")}</div>
-        ) : shops.length === 0 ? (
+        {shops.length === 0 ? (
           <div className="empty-cell">{t("tiktokShops.noShops")}</div>
         ) : (
           <table className="shop-table">
@@ -446,7 +451,7 @@ export function TikTokShopsPage() {
             </thead>
             <tbody>
               {shops.map((shop) => {
-                const billing = shop.services.customerServiceBilling;
+                const billing = shop.services?.customerServiceBilling;
                 return (
                   <tr key={shop.id}>
                     <td>
@@ -642,25 +647,25 @@ export function TikTokShopsPage() {
                     <label className="toggle-switch">
                       <input
                         type="checkbox"
-                        checked={selectedShop.services.customerService.enabled}
+                        checked={selectedShop.services?.customerService?.enabled}
                         onChange={() =>
                           handleToggleCustomerService(
                             selectedShop.id,
-                            selectedShop.services.customerService.enabled,
+                            selectedShop.services?.customerService?.enabled ?? false,
                           )
                         }
                         disabled={togglingServiceId === selectedShop.id}
                       />
                       <span
-                        className={`toggle-track ${selectedShop.services.customerService.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === selectedShop.id ? "toggle-track-disabled" : ""}`}
+                        className={`toggle-track ${selectedShop.services?.customerService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === selectedShop.id ? "toggle-track-disabled" : ""}`}
                       >
                         <span
-                          className={`toggle-thumb ${selectedShop.services.customerService.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                          className={`toggle-thumb ${selectedShop.services?.customerService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
                         />
                       </span>
                     </label>
-                    <span className={selectedShop.services.customerService.enabled ? "badge badge-active" : "badge badge-muted"}>
-                      {selectedShop.services.customerService.enabled
+                    <span className={selectedShop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                      {selectedShop.services?.customerService?.enabled
                         ? t("common.enabled")
                         : t("common.disabled")}
                     </span>
@@ -668,7 +673,7 @@ export function TikTokShopsPage() {
                 </div>
 
                 {/* Business Prompt */}
-                {selectedShop.services.customerService.enabled && (
+                {selectedShop.services?.customerService?.enabled && (
                   <div>
                     <label className="form-label-block">
                       {t("tiktokShops.detail.businessPrompt")}
@@ -701,8 +706,8 @@ export function TikTokShopsPage() {
                 <div className="shop-detail-field">
                   <span className="form-label-block">{t("tiktokShops.modal.billing.currentTier")}</span>
                   <span>
-                    {selectedShop.services.customerServiceBilling?.tier
-                      ? t(`tiktokShops.tier.${selectedShop.services.customerServiceBilling.tier}`, { defaultValue: selectedShop.services.customerServiceBilling.tier })
+                    {selectedShop.services?.customerServiceBilling?.tier
+                      ? t(`tiktokShops.tier.${selectedShop.services?.customerServiceBilling?.tier}`, { defaultValue: selectedShop.services?.customerServiceBilling?.tier })
                       : t("tiktokShops.modal.billing.noTier")}
                   </span>
                 </div>
@@ -711,10 +716,10 @@ export function TikTokShopsPage() {
                 <div className="shop-detail-field">
                   <span className="form-label-block">{t("tiktokShops.tableHeaders.balance")}</span>
                   <span className="shop-balance-cell">
-                    {selectedShop.services.customerServiceBilling
+                    {selectedShop.services?.customerServiceBilling
                       ? formatBalanceDisplay(
-                          selectedShop.services.customerServiceBilling.balance,
-                          selectedShop.services.customerServiceBilling.tier,
+                          selectedShop.services?.customerServiceBilling?.balance,
+                          selectedShop.services?.customerServiceBilling?.tier,
                           t,
                         )
                       : "—"}
@@ -723,15 +728,15 @@ export function TikTokShopsPage() {
                 </div>
 
                 {/* Balance Expiry */}
-                {selectedShop.services.customerServiceBilling?.balanceExpiresAt && (
+                {selectedShop.services?.customerServiceBilling?.balanceExpiresAt && (
                   <div className="shop-detail-field">
                     <span className="form-label-block">{t("tiktokShops.detail.balanceExpiry")}</span>
                     <span>
-                      {new Date(selectedShop.services.customerServiceBilling.balanceExpiresAt).toLocaleDateString()}
-                      {isBalanceExpiringSoon(selectedShop.services.customerServiceBilling.balanceExpiresAt) && (
+                      {new Date(selectedShop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString()}
+                      {isBalanceExpiringSoon(selectedShop.services?.customerServiceBilling?.balanceExpiresAt) && (
                         <span className="badge badge-warning shop-badge-inline">
                           {t("tiktokShops.balance.expiring", {
-                            date: new Date(selectedShop.services.customerServiceBilling.balanceExpiresAt).toLocaleDateString(),
+                            date: new Date(selectedShop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString(),
                           })}
                         </span>
                       )}
@@ -845,4 +850,4 @@ export function TikTokShopsPage() {
       />
     </div>
   );
-}
+});

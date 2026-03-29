@@ -10,14 +10,13 @@
  */
 
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
-import { getAllTools } from "./tools.js";
 import { pushCookiesForRestore, pushCdpPort, restoreCookies, captureCookies, pullCapturedCookies, clearAll as clearCookieState } from "./cookie-handler.js";
 import type { CdpCookie } from "./cdp-transport.js";
 
 export default defineRivonClawPlugin({
   id: "rivonclaw-browser-profiles-tools",
   name: "Browser Profiles Tools",
-  tools: getAllTools(),
+  tools: [], // Tools now registered via defineClientTool → rivonclaw-local-tools
   toolVisibility: "managed",
 
   setup(api) {

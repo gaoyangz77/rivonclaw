@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchSettings, updateSettings, trackEvent } from "../api/index.js";
-import { fetchJson } from "../api/client.js";
+import { fetchSettings, updateSettings, trackEvent, fetchSttCredentials, saveSttCredentials } from "../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
 
@@ -31,7 +30,7 @@ export function SttPage() {
 
       // Check if credentials exist in keychain
       try {
-        const credentials = await fetchJson<{ groq: boolean; volcengine: boolean }>("/stt/credentials");
+        const credentials = await fetchSttCredentials();
         setHasGroqKey(credentials.groq);
         setHasVolcengineKeys(credentials.volcengine);
       } catch (credErr) {
@@ -76,25 +75,19 @@ export function SttPage() {
       // Save credentials to keychain (via API)
       if (enabled) {
         if (provider === "groq" && groqApiKey.trim()) {
-          await fetchJson("/stt/credentials", {
-            method: "PUT",
-            body: JSON.stringify({
-              provider: "groq",
-              apiKey: groqApiKey.trim(),
-            }),
+          await saveSttCredentials({
+            provider: "groq",
+            apiKey: groqApiKey.trim(),
           });
 
           setHasGroqKey(true);
           setGroqApiKey(""); // Clear after save
         }
         if (provider === "volcengine" && volcengineAppKey.trim() && volcengineAccessKey.trim()) {
-          await fetchJson("/stt/credentials", {
-            method: "PUT",
-            body: JSON.stringify({
-              provider: "volcengine",
-              appKey: volcengineAppKey.trim(),
-              accessKey: volcengineAccessKey.trim(),
-            }),
+          await saveSttCredentials({
+            provider: "volcengine",
+            appKey: volcengineAppKey.trim(),
+            accessKey: volcengineAccessKey.trim(),
           });
 
           setHasVolcengineKeys(true);

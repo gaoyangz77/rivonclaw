@@ -1,18 +1,22 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { observer } from "mobx-react-lite";
 import { getUserInitial } from "../lib/user-manager.js";
 import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { ToolMultiSelect } from "../components/inputs/ToolMultiSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ModuleIcon } from "../components/icons.js";
-import { useAuth, usePanelStore, useToolRegistry } from "../stores/index.js";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useToolDisplayLabel } from "../lib/tool-display.js";
 import { getClient } from "../api/apollo-client.js";
 import { SET_DEFAULT_RUN_PROFILE_MUTATION } from "../api/auth-queries.js";
 import { setDefaultRunProfile as notifyDesktopDefaultProfile } from "../api/tool-registry.js";
-import type { Surface } from "../stores/slices/surfaces-slice.js";
-import type { RunProfile } from "../stores/slices/run-profiles-slice.js";
+import type { SnapshotIn } from "mobx-state-tree";
+import { SurfaceModel, RunProfileModel } from "@rivonclaw/core/models";
+
+type Surface = SnapshotIn<typeof SurfaceModel>;
+type RunProfile = SnapshotIn<typeof RunProfileModel>;
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
@@ -21,29 +25,22 @@ function useSystemName() {
     isSystem ? (t(`surfaces.systemNames.${name}`, { defaultValue: name }) as string) : name;
 }
 
-export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+export const AccountPage = observer(function AccountPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
   const resolveSystemName = useSystemName();
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
 
-  const { tools: allTools } = useToolRegistry();
+  const allTools = entityStore.availableTools;
 
   const toolDisplayLabel = useToolDisplayLabel();
 
-  const enrolledModules = usePanelStore((s) => s.enrolledModules);
-  const enrollModule = usePanelStore((s) => s.enrollModule);
-  const unenrollModule = usePanelStore((s) => s.unenrollModule);
-  const subscription = usePanelStore((s) => s.subscriptionStatus);
-  const llmQuota = usePanelStore((s) => s.llmQuota);
-  const surfaces = usePanelStore((s) => s.surfaces);
-  const profiles = usePanelStore((s) => s.runProfiles);
-  const storeFetchRunProfiles = usePanelStore((s) => s.fetchRunProfiles);
-  const storeCreateSurface = usePanelStore((s) => s.createSurface);
-  const storeUpdateSurface = usePanelStore((s) => s.updateSurface);
-  const storeDeleteSurface = usePanelStore((s) => s.deleteSurface);
-  const storeCreateRunProfile = usePanelStore((s) => s.createRunProfile);
-  const storeUpdateRunProfile = usePanelStore((s) => s.updateRunProfile);
-  const storeDeleteRunProfile = usePanelStore((s) => s.deleteRunProfile);
+  const subscription = entityStore.subscriptionStatus;
+  const llmQuota = entityStore.llmQuotaStatus;
+
+  // Read surfaces and run-profiles from MST store (auto-synced via SSE)
+  const surfaces = entityStore.allSurfaces;
+  const profiles = entityStore.allRunProfiles;
 
   // ── Module toggle state ──
   const [moduleToggling, setModuleToggling] = useState(false);
@@ -89,7 +86,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setEditingSurface(s);
     setSurfaceName(s.name);
     setSurfaceDescription("");
-    setSurfaceToolIds(new Set(s.resolvedToolIds));
+    setSurfaceToolIds(new Set(s.allowedToolIds));
     setSurfaceModalOpen(true);
   }
 
@@ -104,14 +101,14 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setSurfaceError(null);
     try {
       if (editingSurface) {
-        await storeUpdateSurface(editingSurface.id, {
+        await entityStore.updateSurface(editingSurface.id, {
           name: surfaceName.trim(),
           description: surfaceDescription.trim() || undefined,
           allowedToolIds: Array.from(surfaceToolIds),
           allowedCategories: [],
         });
       } else {
-        await storeCreateSurface({
+        await entityStore.createSurface({
           name: surfaceName.trim(),
           description: surfaceDescription.trim() || undefined,
           allowedToolIds: Array.from(surfaceToolIds),
@@ -134,11 +131,11 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setEditingSurface(null);
     setSurfaceName(`${source.name} ${t("surfaces.copySuffix")}`);
     setSurfaceDescription("");
-    // System Default Surface → pre-select all available tools
-    const isSystemDefault = !source.userId && source.resolvedToolIds.length === 0;
+    // System Default Surface -> pre-select all available tools
+    const isSystemDefault = !source.userId && source.allowedToolIds.length === 0;
     const prefilledIds = isSystemDefault
       ? new Set(allTools.map((t) => t.id))
-      : new Set(source.resolvedToolIds);
+      : new Set(source.allowedToolIds);
     setSurfaceToolIds(prefilledIds);
     setSurfaceModalOpen(true);
   }
@@ -147,8 +144,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setConfirmDeleteSurfaceId(null);
     setSurfaceError(null);
     try {
-      await storeDeleteSurface(id);
-      await storeFetchRunProfiles();
+      await entityStore.deleteSurface(id);
     } catch {
       setSurfaceError(t("surfaces.failedToDelete"));
     }
@@ -167,7 +163,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setEditingProfile(p);
     setProfileName(p.name);
     setProfileToolIds(new Set(p.selectedToolIds));
-    setProfileSurfaceId(p.surfaceId);
+    setProfileSurfaceId(p.surfaceId ?? "");
     setProfileModalOpen(true);
   }
 
@@ -182,12 +178,12 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setProfileError(null);
     try {
       if (editingProfile) {
-        await storeUpdateRunProfile(editingProfile.id, {
+        await entityStore.updateRunProfile(editingProfile.id, {
           name: profileName.trim(),
           selectedToolIds: Array.from(profileToolIds),
         });
       } else {
-        await storeCreateRunProfile({
+        await entityStore.createRunProfile({
           name: profileName.trim(),
           selectedToolIds: Array.from(profileToolIds),
           surfaceId: profileSurfaceId,
@@ -205,7 +201,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
     setConfirmDeleteProfileId(null);
     setProfileError(null);
     try {
-      await storeDeleteRunProfile(profileId);
+      await entityStore.deleteRunProfile(profileId);
       // If the deleted profile was the default, clear it
       if (user?.defaultRunProfileId === profileId) {
         await handleDefaultProfileChange("");
@@ -230,9 +226,10 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
       await notifyDesktopDefaultProfile(runProfileId);
 
       // 3. Update local user state with the new defaultRunProfileId
-      usePanelStore.setState((state) => ({
-        user: state.user ? { ...state.user, defaultRunProfileId: runProfileId } : null,
-      }));
+      // Desktop MST will be updated via the GraphQL proxy; but also update locally for immediate UI feedback
+      if (entityStore.currentUser) {
+        (entityStore.currentUser as any).defaultRunProfileId = runProfileId;
+      }
     } catch {
       setDefaultProfileError(t("surfaces.failedToSaveProfile"));
     } finally {
@@ -241,7 +238,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
   }
 
   function handleLogout() {
-    logout();
+    entityStore.logout();
     onNavigate("/");
   }
 
@@ -394,13 +391,13 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                     {profileCount > 0 && (
                       <span>{profileCount} {t("surfaces.runProfilesTitle").toLowerCase()}</span>
                     )}
-                    {!isDefault && s.resolvedToolIds.length > 0 && (
-                      <span>{t("surfaces.toolCount", { count: s.resolvedToolIds.length })}</span>
+                    {!isDefault && s.allowedToolIds.length > 0 && (
+                      <span>{t("surfaces.toolCount", { count: s.allowedToolIds.length })}</span>
                     )}
                   </div>
-                  {!isDefault && s.resolvedToolIds.length > 0 && (
+                  {!isDefault && s.allowedToolIds.length > 0 && (
                     <div className="acct-tool-chips">
-                      {s.resolvedToolIds.map((toolId) => (
+                      {s.allowedToolIds.map((toolId) => (
                         <span key={toolId} className="acct-tool-chip">
                           {toolDisplayLabel(toolId)}
                         </span>
@@ -485,8 +482,8 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                   </div>
                   {p.selectedToolIds.length > 0 && (() => {
                     const parentSurface = surfaces.find((s) => s.id === p.surfaceId);
-                    const restricted = parentSurface && parentSurface.resolvedToolIds.length > 0;
-                    const allowedSet = restricted ? new Set(parentSurface.resolvedToolIds) : null;
+                    const restricted = parentSurface && parentSurface.allowedToolIds.length > 0;
+                    const allowedSet = restricted ? new Set(parentSurface.allowedToolIds) : null;
                     return (
                       <div className="acct-tool-chips">
                         {p.selectedToolIds.map((toolId) => {
@@ -534,15 +531,15 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
               <label className="toggle-switch">
                 <input
                   type="checkbox"
-                  checked={enrolledModules.has("GLOBAL_ECOMMERCE_SELLER")}
+                  checked={entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")}
                   disabled={moduleToggling}
                   onChange={async () => {
                     setModuleToggling(true);
                     try {
-                      if (enrolledModules.has("GLOBAL_ECOMMERCE_SELLER")) {
-                        await unenrollModule("GLOBAL_ECOMMERCE_SELLER");
+                      if (entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")) {
+                        await entityStore.unenrollModule("GLOBAL_ECOMMERCE_SELLER");
                       } else {
-                        await enrollModule("GLOBAL_ECOMMERCE_SELLER");
+                        await entityStore.enrollModule("GLOBAL_ECOMMERCE_SELLER");
                       }
                     } catch {
                       // Error will surface via network layer
@@ -552,10 +549,10 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
                   }}
                 />
                 <span
-                  className={`toggle-track ${enrolledModules.has("GLOBAL_ECOMMERCE_SELLER") ? "toggle-track-on" : "toggle-track-off"} ${moduleToggling ? "toggle-track-disabled" : ""}`}
+                  className={`toggle-track ${entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER") ? "toggle-track-on" : "toggle-track-off"} ${moduleToggling ? "toggle-track-disabled" : ""}`}
                 >
                   <span
-                    className={`toggle-thumb ${enrolledModules.has("GLOBAL_ECOMMERCE_SELLER") ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                    className={`toggle-thumb ${entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER") ? "toggle-thumb-on" : "toggle-thumb-off"}`}
                   />
                 </span>
               </label>
@@ -738,7 +735,7 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
             <ToolMultiSelect
               selected={profileToolIds}
               onChange={setProfileToolIds}
-              allowedToolIds={surfaces.find((s) => s.id === profileSurfaceId)?.resolvedToolIds}
+              allowedToolIds={surfaces.find((s) => s.id === profileSurfaceId)?.allowedToolIds}
             />
           </div>
 
@@ -758,4 +755,4 @@ export function AccountPage({ onNavigate }: { onNavigate: (path: string) => void
       </Modal>
     </div>
   );
-}
+});

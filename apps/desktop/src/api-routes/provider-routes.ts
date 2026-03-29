@@ -1,16 +1,16 @@
-import { randomUUID } from "node:crypto";
 import type { LLMProvider } from "@rivonclaw/core";
-import { getDefaultModelForProvider, parseProxyUrl, reconstructProxyUrl, formatError } from "@rivonclaw/core";
+import { getDefaultModelForProvider, reconstructProxyUrl, formatError } from "@rivonclaw/core";
 import { readFullModelCatalog } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
-import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels, syncActiveKey } from "../providers/provider-validator.js";
+import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels } from "../providers/provider-validator.js";
+import { rootStore } from "../store/desktop-store.js";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody } from "./route-utils.js";
 
 const log = createLogger("panel-server");
 
 export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
-  const { storage, secretStore, onProviderChange, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, snapshotEngine } = ctx;
+  const { storage, secretStore, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, snapshotEngine } = ctx;
 
   // --- Provider Keys ---
   if (pathname === "/api/provider-keys" && req.method === "GET") {
@@ -86,53 +86,34 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       }
     }
 
-    const id = randomUUID();
     const model = body.model || (isCustom ? "" : getDefaultModelForProvider(body.provider as LLMProvider)?.modelId) || "";
     const label = body.label || "Default";
 
-    let proxyBaseUrl: string | null = null;
+    // Proxy URL validation (fail fast before MST action)
     if (body.proxyUrl?.trim()) {
       try {
-        const proxyConfig = parseProxyUrl(body.proxyUrl.trim());
-        proxyBaseUrl = proxyConfig.baseUrl;
-        if (proxyConfig.hasAuth && proxyConfig.credentials) {
-          await secretStore.set(`proxy-auth-${id}`, proxyConfig.credentials);
-        }
+        const { parseProxyUrl } = await import("@rivonclaw/core");
+        parseProxyUrl(body.proxyUrl.trim());
       } catch (error) {
         sendJson(res, 400, { error: `Invalid proxy URL: ${formatError(error)}` });
         return true;
       }
     }
 
-    const currentActive = storage.providerKeys.getActive();
-    const shouldActivate = !currentActive;
-
-    const entry = storage.providerKeys.create({
-      id,
+    // MST action: full create transaction (SQLite + Keychain + syncActiveKey + MST state + gateway sync)
+    const { entry, shouldActivate } = await rootStore.providerKeyCreate({
       provider: body.provider,
       label,
       model,
-      isDefault: shouldActivate,
-      proxyBaseUrl,
-      authType: body.authType ?? "api_key",
-      baseUrl: (isLocal || isCustom) ? (body.baseUrl || null) : null,
-      customProtocol: isCustom ? (body.customProtocol || null) : null,
-      customModelsJson: isCustom ? (body.customModelsJson || null) : null,
-      inputModalities: body.inputModalities ?? undefined,
-      createdAt: "",
-      updatedAt: "",
+      apiKey: body.apiKey,
+      proxyUrl: body.proxyUrl,
+      authType: body.authType,
+      baseUrl: body.baseUrl,
+      customProtocol: body.customProtocol,
+      customModelsJson: body.customModelsJson,
+      inputModalities: body.inputModalities,
     });
 
-    if (body.apiKey) {
-      await secretStore.set(`provider-key-${id}`, body.apiKey);
-    }
-
-    if (shouldActivate) {
-      storage.settings.set("llm-provider", body.provider);
-    }
-
-    await syncActiveKey(body.provider, storage, secretStore);
-    onProviderChange?.(shouldActivate ? { configOnly: true } : { keyOnly: true });
     onTelemetryTrack?.("provider.key_added", { provider: body.provider, isFirst: shouldActivate });
 
     sendJson(res, 201, entry);
@@ -148,10 +129,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       return true;
     }
 
+    // Usage tracking (stays in route handler — API-layer concern)
     const oldActive = storage.providerKeys.getActive();
-    const modelChanged = oldActive?.model !== entry.model;
-    const activeProvider = oldActive?.provider;
-
     if (oldActive && snapshotEngine) {
       await snapshotEngine.recordDeactivation(oldActive.id, oldActive.provider, oldActive.model);
     }
@@ -159,19 +138,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       await snapshotEngine.recordActivation(entry.id, entry.provider, entry.model);
     }
 
-    storage.providerKeys.setDefault(id);
-    storage.settings.set("llm-provider", entry.provider);
-    await syncActiveKey(entry.provider, storage, secretStore);
-    if (activeProvider && activeProvider !== entry.provider) {
-      await syncActiveKey(activeProvider, storage, secretStore);
-    }
-
-    const providerChanged = entry.provider !== activeProvider;
-    if (providerChanged || modelChanged) {
-      onProviderChange?.();
-    } else {
-      onProviderChange?.({ keyOnly: true });
-    }
+    // MST action: full activate transaction
+    await rootStore.providerKeyActivate(id);
 
     onTelemetryTrack?.("provider.activated", { provider: entry.provider });
 
@@ -213,7 +181,9 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       return true;
     }
 
-    const updated = storage.providerKeys.update(id, { customModelsJson: JSON.stringify(result.models) });
+    // MST action: refresh models transaction (FIX: now includes gateway sync for active keys)
+    const updated = await rootStore.providerKeyRefreshModels(id, result.models!);
+
     sendJson(res, 200, updated);
     return true;
   }
@@ -230,45 +200,29 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           return true;
         }
 
-        let proxyBaseUrl: string | null | undefined = undefined;
-        if (body.proxyUrl !== undefined) {
-          if (body.proxyUrl === "" || body.proxyUrl === null) {
-            proxyBaseUrl = null;
-            await secretStore.delete(`proxy-auth-${id}`);
-          } else {
-            try {
-              const proxyConfig = parseProxyUrl(body.proxyUrl.trim());
-              proxyBaseUrl = proxyConfig.baseUrl;
-              if (proxyConfig.hasAuth && proxyConfig.credentials) {
-                await secretStore.set(`proxy-auth-${id}`, proxyConfig.credentials);
-              } else {
-                await secretStore.delete(`proxy-auth-${id}`);
-              }
-            } catch (error) {
-              sendJson(res, 400, { error: `Invalid proxy URL: ${formatError(error)}` });
-              return true;
-            }
+        // Proxy URL validation (fail fast before MST action)
+        if (body.proxyUrl !== undefined && body.proxyUrl !== "" && body.proxyUrl !== null) {
+          try {
+            const { parseProxyUrl } = await import("@rivonclaw/core");
+            parseProxyUrl(body.proxyUrl.trim());
+          } catch (error) {
+            sendJson(res, 400, { error: `Invalid proxy URL: ${formatError(error)}` });
+            return true;
           }
         }
 
-        // Update the API key secret if provided
-        if (body.apiKey) {
-          await secretStore.set(`provider-key-${id}`, body.apiKey);
-          if (existing.isDefault) {
-            await syncActiveKey(existing.provider, storage, secretStore);
-            onProviderChange?.({ keyOnly: true });
-          }
-        }
-
+        // Usage tracking (stays in route handler — API-layer concern)
         const modelChanging = !!(body.model && body.model !== existing.model);
         if (modelChanging && existing.isDefault && snapshotEngine) {
           await snapshotEngine.recordDeactivation(existing.id, existing.provider, existing.model);
         }
 
-        const updated = storage.providerKeys.update(id, {
+        // MST action: full update transaction
+        const { updated } = await rootStore.providerKeyUpdate(id, {
           label: body.label,
           model: body.model,
-          proxyBaseUrl,
+          apiKey: body.apiKey,
+          proxyUrl: body.proxyUrl,
           baseUrl: body.baseUrl,
           inputModalities: body.inputModalities,
           customModelsJson: body.customModelsJson,
@@ -276,12 +230,6 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
 
         if (modelChanging && existing.isDefault && snapshotEngine && body.model) {
           await snapshotEngine.recordActivation(existing.id, existing.provider, body.model);
-        }
-
-        const modelChanged = modelChanging;
-        const proxyChanged = proxyBaseUrl !== undefined && proxyBaseUrl !== existing.proxyBaseUrl;
-        if (existing.isDefault && (modelChanged || proxyChanged)) {
-          onProviderChange?.();
         }
 
         sendJson(res, 200, updated);
@@ -295,29 +243,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           return true;
         }
 
-        storage.providerKeys.delete(id);
-        await secretStore.delete(`provider-key-${id}`);
-        await secretStore.delete(`proxy-auth-${id}`);
-
-        let promotedKey: typeof existing | undefined;
-        if (existing.isDefault) {
-          const remaining = storage.providerKeys.getAll().filter((k) => k.id !== id);
-          if (remaining.length > 0) {
-            storage.providerKeys.setDefault(remaining[0].id);
-            storage.settings.set("llm-provider", remaining[0].provider);
-            promotedKey = remaining[0];
-          } else {
-            storage.settings.set("llm-provider", "");
-          }
-        }
-
-        await syncActiveKey(existing.provider, storage, secretStore);
-        if (promotedKey && promotedKey.provider !== existing.provider) {
-          await syncActiveKey(promotedKey.provider, storage, secretStore);
-        }
-
-        const modelChanged = existing.isDefault && promotedKey?.model !== existing.model;
-        onProviderChange?.(modelChanged ? { configOnly: true } : { keyOnly: true });
+        // MST action: full delete transaction (SQLite + Keychain + promotion + syncActiveKey + MST state + gateway sync)
+        await rootStore.providerKeyDelete(id);
 
         sendJson(res, 200, { ok: true });
         return true;
