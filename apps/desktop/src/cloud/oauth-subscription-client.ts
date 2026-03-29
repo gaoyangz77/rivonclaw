@@ -25,7 +25,6 @@ export class OAuthSubscriptionClient {
   private client: Client | null = null;
   private unsubscribe: (() => void) | null = null;
   private getToken: (() => string | null) | null = null;
-  private resubscribeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly locale: string,
@@ -33,15 +32,12 @@ export class OAuthSubscriptionClient {
   ) {}
 
   connect(getToken: () => string | null): void {
+    if (this.client) return;
     this.getToken = getToken;
     this.doConnect();
   }
 
   disconnect(): void {
-    if (this.resubscribeTimer) {
-      clearTimeout(this.resubscribeTimer);
-      this.resubscribeTimer = null;
-    }
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.client?.dispose();
@@ -98,22 +94,11 @@ export class OAuthSubscriptionClient {
         },
         error: (err) => {
           log.error("OAuth subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
-          this.scheduleResubscribe();
         },
         complete: () => {
-          log.info("OAuth subscription completed");
-          this.scheduleResubscribe();
+          log.warn("OAuth subscription completed by server");
         },
       },
     );
-  }
-
-  private scheduleResubscribe(): void {
-    if (!this.client) return;
-    this.resubscribeTimer = setTimeout(() => {
-      this.resubscribeTimer = null;
-      log.info("Re-subscribing to OAuth events");
-      this.subscribe();
-    }, 2000);
   }
 }
