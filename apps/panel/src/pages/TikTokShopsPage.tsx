@@ -78,7 +78,10 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   }
   async function handleFetchSessionStats(shopId: string) {
     setSessionStatsLoading(true);
-    try { await entityStore.fetchSessionStats(shopId); } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
+    try {
+      const shop = shops.find((s) => s.id === shopId);
+      if (shop) await shop.fetchSessionStats();
+    } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
   }
 
   const [upgradePrompt, setUpgradePrompt] = useState(false);
@@ -233,7 +236,9 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     setConfirmDeleteShopId(null);
     setUpgradePrompt(false);
     try {
-      await entityStore.deleteShop(shopId);
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) throw new Error(`Shop ${shopId} not found`);
+      await shop.delete();
       // MST store auto-updates via SSE patch
       if (selectedShopId === shopId) {
         setSelectedShopId(null);
@@ -248,7 +253,9 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     setTogglingServiceId(shopId);
     setUpgradePrompt(false);
     try {
-      await entityStore.updateShop(shopId, {
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) throw new Error(`Shop ${shopId} not found`);
+      await shop.update({
         services: { customerService: { enabled: !currentValue } },
       });
     } catch (err) {
@@ -263,7 +270,9 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     setSavingSettings(true);
     setUpgradePrompt(false);
     try {
-      await entityStore.updateShop(selectedShopId, {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
       showToast(t("common.saved"), "success");
@@ -279,7 +288,9 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     setRedeemingCreditId(credit.id);
     setUpgradePrompt(false);
     try {
-      await entityStore.redeemCredit(credit.id, selectedShopId);
+      const creditInstance = entityStore.credits.find((c) => c.id === credit.id);
+      if (!creditInstance) throw new Error(`Credit ${credit.id} not found`);
+      await creditInstance.redeem(selectedShopId);
       showToast(t("tiktokShops.modal.billing.redeemSuccess"), "success");
       // Refresh session stats
       handleFetchSessionStats(selectedShopId);

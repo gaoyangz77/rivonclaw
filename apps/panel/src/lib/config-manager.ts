@@ -8,13 +8,17 @@ const CONFIG_CHANGED_EVENT = "config-changed";
 class ConfigManager {
   /** Switch model on a provider key. Triggers gateway restart server-side. */
   async switchModel(keyId: string, model: string): Promise<void> {
-    await entityStore.updateProviderKey(keyId, { model });
+    const key = entityStore.providerKeys.find((k) => k.id === keyId);
+    if (!key) throw new Error(`Provider key ${keyId} not found`);
+    await key.update({ model });
     this.broadcast();
   }
 
   /** Activate a provider key + set it as the active provider. */
   async activateProvider(keyId: string, provider: string): Promise<void> {
-    await entityStore.activateProviderKey(keyId);
+    const key = entityStore.providerKeys.find((k) => k.id === keyId);
+    if (!key) throw new Error(`Provider key ${keyId} not found`);
+    await key.activate();
     await updateSettings({ "llm-provider": provider });
     this.broadcast();
   }

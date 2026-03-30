@@ -143,7 +143,10 @@ export const EcommercePage = observer(function EcommercePage() {
   }
   async function handleFetchSessionStats(shopId: string) {
     setSessionStatsLoading(true);
-    try { await entityStore.fetchSessionStats(shopId); } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
+    try {
+      const shop = shops.find((s) => s.id === shopId);
+      if (shop) await shop.fetchSessionStats();
+    } catch { /* ignore */ } finally { setSessionStatsLoading(false); }
   }
 
   // Cleanup on unmount
@@ -355,7 +358,9 @@ export const EcommercePage = observer(function EcommercePage() {
 
     setUpgradePrompt(false);
     try {
-      await entityStore.deleteShop(shopId);
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) throw new Error(`Shop ${shopId} not found`);
+      await shop.delete();
       // MST store auto-updates via SSE patch
       if (selectedShopId === shopId) {
         closeDrawer();
@@ -371,7 +376,9 @@ export const EcommercePage = observer(function EcommercePage() {
 
     setUpgradePrompt(false);
     try {
-      await entityStore.updateShop(shopId, {
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) throw new Error(`Shop ${shopId} not found`);
+      await shop.update({
         services: { customerService: { enabled: !currentValue } },
       });
       showToast(t(!currentValue ? "ecommerce.csEnabled" : "ecommerce.csDisabled"), "success");
@@ -402,7 +409,9 @@ export const EcommercePage = observer(function EcommercePage() {
 
     setUpgradePrompt(false);
     try {
-      await entityStore.updateShop(selectedShopId, {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
       showToast(t("common.saved"), "success");
@@ -419,7 +428,9 @@ export const EcommercePage = observer(function EcommercePage() {
 
     setUpgradePrompt(false);
     try {
-      await entityStore.updateShop(selectedShopId, {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
         services: { customerService: { runProfileId: profileId } },
       });
       showToast(t("common.saved"), "success");
@@ -436,7 +447,9 @@ export const EcommercePage = observer(function EcommercePage() {
 
     setUpgradePrompt(false);
     try {
-      await entityStore.updateShop(selectedShopId, {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
         services: { customerService: { csModelOverride: modelRef || null } },
       });
       showToast(t("common.saved"), "success");
@@ -459,7 +472,7 @@ export const EcommercePage = observer(function EcommercePage() {
     }
     setTogglingBindShopId(shopId);
     try {
-      await entityStore.updateShop(shopId, {
+      await shop.update({
         services: { customerService: { csDeviceId: myDeviceId } },
       });
       showToast(t("ecommerce.deviceBound"), "success");
@@ -474,9 +487,11 @@ export const EcommercePage = observer(function EcommercePage() {
     const shopId = bindConflictShopId;
     setBindConflictShopId(null);
     if (!shopId || !myDeviceId) return;
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
     setTogglingBindShopId(shopId);
     try {
-      await entityStore.updateShop(shopId, {
+      await shop.update({
         services: { customerService: { csDeviceId: myDeviceId } },
       });
       showToast(t("ecommerce.deviceBound"), "success");
@@ -488,9 +503,11 @@ export const EcommercePage = observer(function EcommercePage() {
   }
 
   async function handleUnbindDevice(shopId: string) {
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
     setTogglingBindShopId(shopId);
     try {
-      await entityStore.updateShop(shopId, {
+      await shop.update({
         services: { customerService: { csDeviceId: null } },
       });
       showToast(t("ecommerce.deviceUnbound"), "success");
@@ -507,7 +524,9 @@ export const EcommercePage = observer(function EcommercePage() {
 
     setUpgradePrompt(false);
     try {
-      await entityStore.redeemCredit(credit.id, selectedShopId);
+      const creditInstance = entityStore.credits.find((c) => c.id === credit.id);
+      if (!creditInstance) throw new Error(`Credit ${credit.id} not found`);
+      await creditInstance.redeem(selectedShopId);
       showToast(t("ecommerce.shopDrawer.billing.redeemSuccess"), "success");
       handleFetchSessionStats(selectedShopId);
     } catch (err) {

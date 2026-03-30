@@ -1,39 +1,33 @@
-import { applySnapshot, applyPatch, flow, getEnv, type Instance, type IJsonPatch } from "mobx-state-tree";
+import { applySnapshot, applyPatch, flow, getEnv, types, type Instance, type IJsonPatch } from "mobx-state-tree";
 import { RootStoreModel } from "@rivonclaw/core/models";
 import {
-  CREATE_SURFACE_MUTATION,
-  UPDATE_SURFACE_MUTATION,
-  DELETE_SURFACE_MUTATION,
-} from "../api/surfaces-queries.js";
-import {
-  CREATE_RUN_PROFILE_MUTATION,
-  UPDATE_RUN_PROFILE_MUTATION,
-  DELETE_RUN_PROFILE_MUTATION,
-} from "../api/run-profiles-queries.js";
+  UserModel,
+  SurfaceModel,
+  RunProfileModel,
+  ShopModel,
+  ProviderKeyModel,
+  ServiceCreditModel,
+} from "./models/index.js";
+import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
+import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
   SHOPS_QUERY,
   PLATFORM_APPS_QUERY,
   MY_CREDITS_QUERY,
-  CS_SESSION_STATS_QUERY,
-  UPDATE_SHOP_MUTATION,
-  DELETE_SHOP_MUTATION,
   INITIATE_TIKTOK_OAUTH_MUTATION,
-  REDEEM_CREDIT_MUTATION,
 } from "../api/shops-queries.js";
 import { SURFACES_QUERY } from "../api/surfaces-queries.js";
 import { RUN_PROFILES_QUERY } from "../api/run-profiles-queries.js";
 import {
   ME_QUERY,
-  ENROLL_MODULE_MUTATION,
-  UNENROLL_MODULE_MUTATION,
   SUBSCRIPTION_STATUS_QUERY,
   LLM_QUOTA_STATUS_QUERY,
 } from "../api/auth-queries.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
 import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
-import type { ApolloClient } from "@apollo/client";
 import { gql } from "@apollo/client/core";
+import type { PanelStoreEnv } from "./types.js";
 
 /**
  * ToolSpecs query — fires through Desktop proxy which ingests the response
@@ -51,18 +45,24 @@ const TOOL_SPECS_SYNC_QUERY = gql`
   }
 `;
 
-interface PanelStoreEnv {
-  apolloClient: ApolloClient;
-}
-
 /**
  * Panel-specific extension of RootStoreModel with CRUD mutation actions,
  * auth/session management, module enrollment, and entity sync.
  * Mutations fire GraphQL via `getEnv(self).apolloClient`. The response flows
  * through Desktop proxy -> ingestGraphQLResponse -> MST -> SSE -> Panel auto-updates,
  * so we do NOT manually update the store here.
+ *
+ * Entity-level actions (update, delete) live on per-model files in ./models/.
+ * RootStore retains session-level actions and create operations (where no instance exists yet).
  */
-const PanelRootStoreModel = RootStoreModel.actions((self) => {
+const PanelRootStoreModel = RootStoreModel.props({
+  currentUser: types.maybeNull(UserModel),
+  surfaces: types.optional(types.array(SurfaceModel), []),
+  runProfiles: types.optional(types.array(RunProfileModel), []),
+  shops: types.optional(types.array(ShopModel), []),
+  providerKeys: types.optional(types.array(ProviderKeyModel), []),
+  credits: types.optional(types.array(ServiceCreditModel), []),
+}).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
   return {
@@ -208,36 +208,6 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
       return result;
     }),
 
-    updateProviderKey: flow(function* (
-      id: string,
-      fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string; apiKey?: string },
-    ): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
-      const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>("/provider-keys/" + id, {
-        method: "PUT",
-        body: JSON.stringify(fields),
-      });
-      invalidateCache("models");
-      return result;
-    }),
-
-    activateProviderKey: flow(function* (id: string) {
-      yield fetchJson("/provider-keys/" + id + "/activate", { method: "POST" });
-      invalidateCache("models");
-    }),
-
-    deleteProviderKey: flow(function* (id: string) {
-      yield fetchJson("/provider-keys/" + id, { method: "DELETE" });
-      invalidateCache("models");
-    }),
-
-    refreshProviderModels: flow(function* (id: string): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
-      const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>("/provider-keys/" + id + "/refresh-models", {
-        method: "POST",
-      });
-      invalidateCache("models");
-      return result;
-    }),
-
     // ── OAuth flow mutations (REST to Desktop) ──
 
     startOAuthFlow: flow(function* (provider: string) {
@@ -280,32 +250,6 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
       return result;
     }),
 
-    // ── Module mutations ──
-
-    enrollModule: flow(function* (moduleId: string) {
-      yield client().mutate({
-        mutation: ENROLL_MODULE_MUTATION,
-        variables: { moduleId },
-      });
-      // Result ingested by Desktop via proxy -> MST -> SSE -> Panel auto-updates
-      // Trigger shops sync if ecommerce module
-      if (moduleId === "GLOBAL_ECOMMERCE_SELLER") {
-        yield Promise.all([
-          client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
-        ]).catch(() => {});
-      }
-    }),
-
-    unenrollModule: flow(function* (moduleId: string) {
-      yield client().mutate({
-        mutation: UNENROLL_MODULE_MUTATION,
-        variables: { moduleId },
-      });
-      // Result ingested by Desktop via proxy -> MST -> SSE -> Panel auto-updates
-    }),
-
     // ── Shops / ecommerce mutations ──
 
     initiateTikTokOAuth: flow(function* (platformAppId: string) {
@@ -314,16 +258,6 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
         variables: { platformAppId },
       });
       return result.data!.initiateTikTokOAuth as { authUrl: string; state: string };
-    }),
-
-    redeemCredit: flow(function* (creditId: string, shopId: string) {
-      const result = yield client().mutate({
-        mutation: REDEEM_CREDIT_MUTATION,
-        variables: { creditId, shopId },
-      });
-      // Refresh credits after redemption
-      yield client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }).catch(() => {});
-      return result.data!.redeemCredit as boolean;
     }),
 
     /** Fire shops query to populate MST via Desktop proxy. */
@@ -341,15 +275,6 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
       yield client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" });
     }),
 
-    /** Fire session stats query for a specific shop. */
-    fetchSessionStats: flow(function* (shopId: string) {
-      yield client().query({
-        query: CS_SESSION_STATS_QUERY,
-        variables: { shopId },
-        fetchPolicy: "network-only",
-      });
-    }),
-
     // ── Surface mutations ──
 
     createSurface: flow(function* (input: {
@@ -363,28 +288,6 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
         variables: { input },
       });
       return result.data!.createSurface;
-    }),
-
-    updateSurface: flow(function* (
-      id: string,
-      input: {
-        name?: string;
-        description?: string;
-        allowedToolIds?: string[];
-        allowedCategories?: string[];
-      },
-    ) {
-      const result = yield client().mutate({
-        mutation: UPDATE_SURFACE_MUTATION,
-        variables: { id, input },
-      });
-      return result.data!.updateSurface;
-    }),
-
-    deleteSurface: flow(function* (id: string) {
-      yield client().mutate({ mutation: DELETE_SURFACE_MUTATION, variables: { id } });
-      const idx = self.surfaces.findIndex((s) => s.id === id);
-      if (idx >= 0) self.surfaces.splice(idx, 1);
     }),
 
     // ── RunProfile mutations ──
@@ -401,62 +304,20 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
       return result.data!.createRunProfile;
     }),
 
-    updateRunProfile: flow(function* (
-      id: string,
-      input: {
-        name?: string;
-        selectedToolIds?: string[];
-        surfaceId?: string;
-      },
-    ) {
-      const result = yield client().mutate({
-        mutation: UPDATE_RUN_PROFILE_MUTATION,
-        variables: { id, input },
-      });
-      return result.data!.updateRunProfile;
-    }),
-
-    deleteRunProfile: flow(function* (id: string) {
-      yield client().mutate({ mutation: DELETE_RUN_PROFILE_MUTATION, variables: { id } });
-      const idx = self.runProfiles.findIndex((p) => p.id === id);
-      if (idx >= 0) self.runProfiles.splice(idx, 1);
-    }),
-
-    // ── Shop mutations ──
-
-    updateShop: flow(function* (
-      id: string,
-      input: {
-        shopName?: string;
-        authStatus?: string;
-        region?: string;
-        services?: {
-          customerService?: {
-            enabled?: boolean;
-            businessPrompt?: string;
-            runProfileId?: string;
-            csDeviceId?: string | null;
-            csModelOverride?: string | null;
-          };
-        };
-      },
-    ) {
-      const result = yield client().mutate({
-        mutation: UPDATE_SHOP_MUTATION,
-        variables: { id, input },
-      });
-      return result.data!.updateShop;
-    }),
-
-    deleteShop: flow(function* (id: string) {
-      yield client().mutate({ mutation: DELETE_SHOP_MUTATION, variables: { id } });
-      const idx = self.shops.findIndex((s) => s.id === id);
-      if (idx >= 0) self.shops.splice(idx, 1);
-    }),
   };
 });
 
-export type PanelRootStore = Instance<typeof PanelRootStoreModel>;
+// MST's .props() override doesn't propagate to Instance<> type inference.
+// Explicitly declare Panel-extended entity types so pages see the actions.
+interface PanelEntityOverrides {
+  readonly currentUser: Instance<typeof UserModel> | null;
+  readonly surfaces: Instance<typeof SurfaceModel>[];
+  readonly runProfiles: Instance<typeof RunProfileModel>[];
+  readonly shops: Instance<typeof ShopModel>[];
+  readonly providerKeys: Instance<typeof ProviderKeyModel>[];
+  readonly credits: Instance<typeof ServiceCreditModel>[];
+}
+export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
 
 // Use a lazy getter so apolloClient is resolved at call time, not import time.
 // getClient() throws if called before createApolloClient(), so we must defer.
@@ -469,7 +330,7 @@ export const entityStore = PanelRootStoreModel.create(
       return getClient();
     },
   },
-);
+) as unknown as PanelRootStore;
 
 let eventSource: EventSource | null = null;
 

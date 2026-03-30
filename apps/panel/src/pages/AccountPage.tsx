@@ -101,7 +101,9 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
     setSurfaceError(null);
     try {
       if (editingSurface) {
-        await entityStore.updateSurface(editingSurface.id, {
+        const surface = entityStore.surfaces.find((s) => s.id === editingSurface.id);
+        if (!surface) throw new Error(`Surface ${editingSurface.id} not found`);
+        await surface.update({
           name: surfaceName.trim(),
           description: surfaceDescription.trim() || undefined,
           allowedToolIds: Array.from(surfaceToolIds),
@@ -144,7 +146,9 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
     setConfirmDeleteSurfaceId(null);
     setSurfaceError(null);
     try {
-      await entityStore.deleteSurface(id);
+      const surface = entityStore.surfaces.find((s) => s.id === id);
+      if (!surface) throw new Error(`Surface ${id} not found`);
+      await surface.delete();
     } catch {
       setSurfaceError(t("surfaces.failedToDelete"));
     }
@@ -178,7 +182,9 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
     setProfileError(null);
     try {
       if (editingProfile) {
-        await entityStore.updateRunProfile(editingProfile.id, {
+        const profile = entityStore.runProfiles.find((p) => p.id === editingProfile.id);
+        if (!profile) throw new Error(`RunProfile ${editingProfile.id} not found`);
+        await profile.update({
           name: profileName.trim(),
           selectedToolIds: Array.from(profileToolIds),
         });
@@ -201,7 +207,9 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
     setConfirmDeleteProfileId(null);
     setProfileError(null);
     try {
-      await entityStore.deleteRunProfile(profileId);
+      const profile = entityStore.runProfiles.find((p) => p.id === profileId);
+      if (!profile) throw new Error(`RunProfile ${profileId} not found`);
+      await profile.delete();
       // If the deleted profile was the default, clear it
       if (user?.defaultRunProfileId === profileId) {
         await handleDefaultProfileChange("");
@@ -537,9 +545,9 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
                     setModuleToggling(true);
                     try {
                       if (entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")) {
-                        await entityStore.unenrollModule("GLOBAL_ECOMMERCE_SELLER");
+                        await entityStore.currentUser!.unenrollModule("GLOBAL_ECOMMERCE_SELLER");
                       } else {
-                        await entityStore.enrollModule("GLOBAL_ECOMMERCE_SELLER");
+                        await entityStore.currentUser!.enrollModule("GLOBAL_ECOMMERCE_SELLER");
                       }
                     } catch {
                       // Error will surface via network layer

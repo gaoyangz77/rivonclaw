@@ -211,6 +211,24 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
     }
   },
 
+  /**
+   * Remove an entity from a collection by __typename and ID.
+   * Called by the GraphQL proxy after a successful delete mutation.
+   * This triggers SSE patches to Panel automatically.
+   */
+  removeEntity(typeName: string, id: string) {
+    const COLLECTIONS: Record<string, any> = {
+      Shop: self.shops,
+      Surface: self.surfaces,
+      RunProfile: self.runProfiles,
+    };
+    const target = COLLECTIONS[typeName];
+    if (target) {
+      const idx = target.findIndex((item: any) => item.id === id);
+      if (idx >= 0) target.splice(idx, 1);
+    }
+  },
+
   /** Set the current user from auth REST routes (login/register/session). */
   setCurrentUser(userData: any) {
     if (self.currentUser) {

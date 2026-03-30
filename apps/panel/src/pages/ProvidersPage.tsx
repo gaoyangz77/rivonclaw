@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../api/index.js";
+import { fetchJson, invalidateCache } from "../api/client.js";
 import { configManager } from "../lib/config-manager.js";
 import { ModelSelect } from "../components/inputs/ModelSelect.js";
 import { Select } from "../components/inputs/Select.js";
@@ -31,20 +32,37 @@ export const ProvidersPage = observer(function ProvidersPage() {
     setValidating(true);
     try {
       const existing = keys.find((k) => k.id === keyId);
-      await store.deleteProviderKey(keyId);
+      if (!existing) throw new Error(`Provider key ${keyId} not found`);
+      // Capture values before delete — SSE patch may remove the node during await
+      const wasDefault = existing.isDefault;
+      const prevLabel = existing.label;
+      const prevModel = existing.model;
+      const prevAuthType = existing.authType;
+      const prevBaseUrl = existing.baseUrl;
+      const prevCustomProtocol = existing.customProtocol;
+      const prevCustomModelsJson = existing.customModelsJson;
+      await existing.delete();
       const entry = await store.createProviderKey({
         provider,
-        label: existing?.label || t("providers.labelDefault"),
-        model: existing?.model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
+        label: prevLabel || t("providers.labelDefault"),
+        model: prevModel || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
         apiKey: updateApiKey.trim(),
-        authType: existing?.authType as "api_key" | "oauth" | "local" | "custom" | undefined,
-        baseUrl: existing?.authType === "custom" ? (existing.baseUrl || undefined) : undefined,
-        customProtocol: existing?.authType === "custom" ? (existing.customProtocol as "openai" | "anthropic" || undefined) : undefined,
-        customModelsJson: existing?.authType === "custom" ? (existing.customModelsJson || undefined) : undefined,
+        authType: prevAuthType as "api_key" | "oauth" | "local" | "custom" | undefined,
+        baseUrl: prevAuthType === "custom" ? (prevBaseUrl || undefined) : undefined,
+        customProtocol: prevAuthType === "custom" ? (prevCustomProtocol as "openai" | "anthropic" || undefined) : undefined,
+        customModelsJson: prevAuthType === "custom" ? (prevCustomModelsJson || undefined) : undefined,
       });
 
-      if (existing?.isDefault) {
-        await store.activateProviderKey(entry.id);
+      if (wasDefault) {
+        // The new key may not be in the MST store yet (arrives via SSE),
+        // so try the MST instance first, fall back to direct REST call.
+        const newKey = store.providerKeys.find((k) => k.id === entry.id);
+        if (newKey) {
+          await newKey.activate();
+        } else {
+          await fetchJson("/provider-keys/" + entry.id + "/activate", { method: "POST" });
+          invalidateCache("models");
+        }
       }
 
       setUpdateApiKey("");
@@ -68,10 +86,12 @@ export const ProvidersPage = observer(function ProvidersPage() {
   }
 
   async function handleRemoveKey(keyId: string) {
-    const entry = keys.find((k) => k.id === keyId);
+    const key = keys.find((k) => k.id === keyId);
+    if (!key) return;
     try {
-      await store.deleteProviderKey(keyId);
-      trackEvent("provider.key_deleted", { provider: entry?.provider });
+      const provider = key.provider;
+      await key.delete();
+      trackEvent("provider.key_deleted", { provider });
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
     }
@@ -88,7 +108,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
   async function handleProxyChange(keyId: string, proxyUrl: string) {
     setSaving(true);
     try {
-      await store.updateProviderKey(keyId, { proxyUrl: proxyUrl || null as any });
+      const key = store.providerKeys.find((k) => k.id === keyId);
+      if (!key) throw new Error(`Provider key ${keyId} not found`);
+      await key.update({ proxyUrl: proxyUrl || null as any });
       showToast(t("common.saved"), "success");
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
@@ -100,7 +122,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
   async function handleBaseUrlChange(keyId: string, newBaseUrl: string) {
     setSaving(true);
     try {
-      await store.updateProviderKey(keyId, { baseUrl: newBaseUrl || null as any });
+      const key = store.providerKeys.find((k) => k.id === keyId);
+      if (!key) throw new Error(`Provider key ${keyId} not found`);
+      await key.update({ baseUrl: newBaseUrl || null as any });
       showToast(t("common.saved"), "success");
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
@@ -112,7 +136,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
   async function handleRefreshModels(keyId: string) {
     setRefreshingModelsId(keyId);
     try {
-      await store.refreshProviderModels(keyId);
+      const key = store.providerKeys.find((k) => k.id === keyId);
+      if (!key) throw new Error(`Provider key ${keyId} not found`);
+      await key.refreshModels();
       showToast(t("common.saved"), "success");
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
@@ -125,7 +151,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
     const trimmed = editLabelValue.trim();
     if (!trimmed) return;
     try {
-      await store.updateProviderKey(keyId, { label: trimmed });
+      const key = store.providerKeys.find((k) => k.id === keyId);
+      if (!key) throw new Error(`Provider key ${keyId} not found`);
+      await key.update({ label: trimmed });
       setEditingLabelId(null);
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
