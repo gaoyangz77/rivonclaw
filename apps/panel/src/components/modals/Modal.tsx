@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -12,17 +12,24 @@ export interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, maxWidth = 600, hideCloseButton, preventBackdropClose }: ModalProps) {
+  const mouseDownOnBackdrop = useRef(false);
+
   if (!isOpen) return null;
 
   return (
     <div
       className="modal-backdrop"
-      onClick={preventBackdropClose ? undefined : onClose}
+      onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => {
+        if (!preventBackdropClose && e.target === e.currentTarget && mouseDownOnBackdrop.current) {
+          onClose();
+        }
+        mouseDownOnBackdrop.current = false;
+      }}
     >
       <div
         className="modal-content"
         style={{ maxWidth: `${maxWidth}px` }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>

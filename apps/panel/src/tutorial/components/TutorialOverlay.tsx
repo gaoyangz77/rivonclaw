@@ -57,6 +57,7 @@ export function TutorialOverlay() {
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const spotlightRef = useRef<HTMLDivElement>(null)
+  const mouseDownOnOverlay = useRef(false)
   const directionRef = useRef<"forward" | "backward">("forward")
 
   const updatePosition = useCallback(async () => {
@@ -143,13 +144,19 @@ export function TutorialOverlay() {
   const isFirst = currentStepIndex === 0
 
   return (
-    <div className="tutorial-overlay" onClick={stop}>
+    <div
+      className="tutorial-overlay"
+      onMouseDown={(e) => { mouseDownOnOverlay.current = e.target === e.currentTarget; }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownOnOverlay.current) stop();
+        mouseDownOnOverlay.current = false;
+      }}
+    >
       {/* Spotlight cutout */}
       {spotlightRect && (
         <div
           ref={spotlightRef}
           className="tutorial-spotlight"
-          onClick={(e) => e.stopPropagation()}
         />
       )}
 
@@ -157,7 +164,6 @@ export function TutorialOverlay() {
       <div
         ref={tooltipRef}
         className="tutorial-tooltip"
-        onClick={(e) => e.stopPropagation()}
       >
         <button className="tutorial-tooltip-close" onClick={stop} title={t("tutorial.nav.close")}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -84,6 +84,8 @@ export function BrowserProfilesPage() {
     message: string;
   } | null>(null);
 
+  const mouseDownOnBackdrop = useRef(false);
+
   // Debounce search input
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
@@ -643,8 +645,15 @@ export function BrowserProfilesPage() {
 
       {/* Create/Edit Modal */}
       {modalOpen && (
-        <div className="modal-backdrop" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownOnBackdrop.current) closeModal();
+            mouseDownOnBackdrop.current = false;
+          }}
+        >
+          <div className="modal-content">
             <div className="modal-header">
               <h2 className="modal-title">
                 {editingId
