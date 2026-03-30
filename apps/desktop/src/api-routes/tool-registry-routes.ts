@@ -22,11 +22,6 @@ export function parseScopeType(sessionKey: string): ScopeType {
   return ScopeType.UNKNOWN;
 }
 
-/** Look up a RunProfile by ID from the ToolCapability model. */
-function resolveRunProfile(runProfileId: string): { selectedToolIds: string[]; surfaceId?: string } | null {
-  return rootStore.toolCapability.allRunProfiles.find(p => p.id === runProfileId) ?? null;
-}
-
 /**
  * Thin HTTP adapter for ToolCapability model.
  *
@@ -56,64 +51,19 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
   // PUT /api/tools/default-run-profile — set/clear the user's default RunProfile (by ID)
   if (pathname === "/api/tools/default-run-profile" && req.method === "PUT") {
     const body = await parseBody(req) as { runProfileId?: string | null };
-    if (!body.runProfileId) {
-      rootStore.toolCapability.setDefaultRunProfile(null);
-      sendJson(res, 200, { ok: true });
-      return true;
-    }
-    const profile = resolveRunProfile(body.runProfileId);
-    if (!profile) {
-      sendJson(res, 404, { error: `RunProfile "${body.runProfileId}" not found in cache` });
-      return true;
-    }
-    rootStore.toolCapability.setDefaultRunProfile({
-      selectedToolIds: profile.selectedToolIds,
-      surfaceId: profile.surfaceId,
-    });
+    rootStore.toolCapability.setDefaultRunProfile(body.runProfileId ?? null);
     sendJson(res, 200, { ok: true });
     return true;
   }
 
-  // PUT /api/tools/run-profile — set RunProfile for a specific session
-  // Accepts either:
-  //   { scopeKey, runProfileId }       — look up a cached profile by ID
-  //   { scopeKey, runProfile: { ... } } — inline profile (ad-hoc tool selection)
+  // PUT /api/tools/run-profile — set RunProfile for a specific session (by ID)
   if (pathname === "/api/tools/run-profile" && req.method === "PUT") {
-    const body = await parseBody(req) as {
-      scopeKey?: string;
-      runProfileId?: string | null;
-      runProfile?: { id?: string; selectedToolIds: string[]; surfaceId?: string } | null;
-    };
+    const body = await parseBody(req) as { scopeKey?: string; runProfileId?: string | null };
     if (!body.scopeKey) {
       sendJson(res, 400, { error: "Missing scopeKey" });
       return true;
     }
-
-    // Inline runProfile takes precedence (backward-compatible path)
-    if (body.runProfile && typeof body.runProfile === "object") {
-      rootStore.toolCapability.setSessionRunProfile(body.scopeKey, {
-        selectedToolIds: body.runProfile.selectedToolIds,
-        surfaceId: body.runProfile.surfaceId,
-      }, body.runProfile.id ?? null);
-      sendJson(res, 200, { ok: true });
-      return true;
-    }
-
-    // runProfileId path: look up from cached profiles
-    if (!body.runProfileId) {
-      rootStore.toolCapability.setSessionRunProfile(body.scopeKey, null);
-      sendJson(res, 200, { ok: true });
-      return true;
-    }
-    const profile = resolveRunProfile(body.runProfileId);
-    if (!profile) {
-      sendJson(res, 404, { error: `RunProfile "${body.runProfileId}" not found in cache` });
-      return true;
-    }
-    rootStore.toolCapability.setSessionRunProfile(body.scopeKey, {
-      selectedToolIds: profile.selectedToolIds,
-      surfaceId: profile.surfaceId,
-    }, body.runProfileId);
+    rootStore.toolCapability.setSessionRunProfile(body.scopeKey, body.runProfileId ?? null);
     sendJson(res, 200, { ok: true });
     return true;
   }

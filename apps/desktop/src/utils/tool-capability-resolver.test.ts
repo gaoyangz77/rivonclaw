@@ -66,6 +66,15 @@ function seedTestStore(): void {
       { id: "entitled_tool_1", name: "entitled_tool_1", displayName: "entitled_tool_1", description: "", category: "", operationType: "query", parameters: [] },
       { id: "entitled_tool_2", name: "entitled_tool_2", displayName: "entitled_tool_2", description: "", category: "", operationType: "query", parameters: [] },
     ],
+    // Seed RunProfiles for use in tests
+    runProfiles: [
+      { id: "profile-entitled-1", name: "Entitled 1", selectedToolIds: ["entitled_tool_1"], surfaceId: "" },
+      { id: "profile-entitled-2", name: "Entitled 2", selectedToolIds: ["entitled_tool_2"], surfaceId: "" },
+      { id: "profile-ext", name: "Extension", selectedToolIds: ["custom_ext_tool"], surfaceId: "" },
+      { id: "profile-both", name: "Both Entitled", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "" },
+      { id: "profile-restricted", name: "Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "restricted-surface" },
+      { id: "profile-cs-restricted", name: "CS Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "cs-surface" },
+    ],
   });
 
   const catalogTools: CatalogTool[] = [
@@ -91,46 +100,76 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
 
   // ── Trusted scopes ──
 
-  it("trusted scope + no RunProfile + no default → system tools only", () => {
+  it("trusted scope + no RunProfile + no default → system + extension tools", () => {
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
-    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
-    // Should not include entitled or extension tools without a RunProfile
+    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
+    // Should not include entitled tools without a RunProfile
     expect(result).not.toContain("entitled_tool_1");
     expect(result).not.toContain("entitled_tool_2");
-    expect(result).not.toContain("custom_ext_tool");
   });
 
   it("trusted scope + no RunProfile + has default → system + default's tools", () => {
-    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_1"]));
     expect(result).not.toContain("entitled_tool_2");
   });
 
   it("trusted scope + has RunProfile → system + profile's tools", () => {
-    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
-      selectedToolIds: ["custom_ext_tool"],
-    });
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-ext");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
   });
 
   it("trusted scope + RunProfile overrides default", () => {
-    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
-      selectedToolIds: ["entitled_tool_2"],
-    });
+    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_2"]));
     expect(result).not.toContain("entitled_tool_1");
   });
 
+  // ── Surface filtering via RunProfile's surfaceId ──
+
+  it("RunProfile's parent surface restricts available tools", () => {
+    // Create a user surface that only allows entitled_tool_1
+    rootStore.ingestGraphQLResponse({
+      surfaces: [
+        { id: "restricted-surface", name: "Restricted", allowedToolIds: ["entitled_tool_1"], userId: "user1" },
+      ],
+    });
+
+    // Use profile-restricted which selects entitled_tool_1 AND entitled_tool_2, surfaceId = "restricted-surface"
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-restricted");
+
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    // entitled_tool_1 passes (in surface AND in profile)
+    expect(result).toContain("entitled_tool_1");
+    // entitled_tool_2 blocked by surface (NOT in surface's allowedToolIds)
+    expect(result).not.toContain("entitled_tool_2");
+    // System tools still included (trusted scope)
+    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
+  });
+
+  it("CS_SESSION RunProfile respects surface restriction", () => {
+    rootStore.ingestGraphQLResponse({
+      surfaces: [
+        { id: "cs-surface", name: "CS Surface", allowedToolIds: ["entitled_tool_1"], userId: "user1" },
+      ],
+    });
+
+    // Use profile-cs-restricted which selects entitled_tool_1 AND entitled_tool_2, surfaceId = "cs-surface"
+    rootStore.toolCapability.setSessionRunProfile("cs:tiktok:conv-surface", "profile-cs-restricted");
+
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv-surface");
+    // Only entitled_tool_1 passes surface + profile intersection
+    expect(result).toEqual(["entitled_tool_1"]);
+  });
+
   // ── CS_SESSION (untrusted) ──
 
   it("CS_SESSION + has RunProfile → strictly profile tools, no system tools", () => {
-    rootStore.toolCapability.setSessionRunProfile("cs:tiktok:conv1", {
-      selectedToolIds: ["entitled_tool_1"],
-    });
+    rootStore.toolCapability.setSessionRunProfile("cs:tiktok:conv1", "profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv1");
     expect(result).toEqual(["entitled_tool_1"]);
     expect(result).not.toContain("read");
@@ -144,7 +183,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   });
 
   it("CS_SESSION ignores default RunProfile", () => {
-    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv3");
     expect(result).toEqual([]);
   });
@@ -159,7 +198,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   // ── CRON_JOB (trusted) ──
 
   it("CRON_JOB is trusted → same as CHAT_SESSION behavior", () => {
-    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
+    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.CRON_JOB,
       "agent:main:cron:job1:run:uuid",
@@ -170,10 +209,8 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   // ── Clear session RunProfile ──
 
   it("clear session RunProfile → falls back to default", () => {
-    rootStore.toolCapability.setDefaultRunProfile({ selectedToolIds: ["entitled_tool_1"] });
-    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
-      selectedToolIds: ["entitled_tool_2"],
-    });
+    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
 
     // With session profile: entitled_tool_2
     let result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
@@ -189,17 +226,185 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     expect(result).not.toContain("entitled_tool_2");
   });
 
-  it("clear session RunProfile with no default → system tools only for trusted scope", () => {
-    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", {
-      selectedToolIds: ["entitled_tool_2"],
-    });
+  it("clear session RunProfile with no default → system + extension tools for trusted scope", () => {
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
 
     // Clear session profile, no default set
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", null);
 
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
-    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
+    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
     expect(result).not.toContain("entitled_tool_2");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Map-indexed views (surfacesById, runProfilesById)
+// ---------------------------------------------------------------------------
+
+describe("Map-indexed views", () => {
+  beforeEach(() => {
+    rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    seedTestStore();
+  });
+
+  it("surfacesById contains Default + system + user surfaces", () => {
+    rootStore.ingestGraphQLResponse({
+      surfaces: [
+        { id: "user-surface", name: "User", allowedToolIds: ["entitled_tool_1"], userId: "u1" },
+      ],
+    });
+    const map = rootStore.toolCapability.surfacesById;
+    expect(map.get("Default")).toBeDefined();
+    expect(map.get("user-surface")).toBeDefined();
+    expect(map.get("user-surface")!.resolvedToolIds).toEqual(["entitled_tool_1"]);
+  });
+
+  it("runProfilesById indexes all profiles by ID", () => {
+    // seedTestStore already ingests run profiles
+    const map = rootStore.toolCapability.runProfilesById;
+    expect(map.get("profile-entitled-1")).toBeDefined();
+    expect(map.get("profile-entitled-1")!.selectedToolIds).toEqual(["entitled_tool_1"]);
+    expect(map.get("nonexistent")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deleted/missing RunProfile and Surface
+// ---------------------------------------------------------------------------
+
+describe("deleted entity fallback", () => {
+  beforeEach(() => {
+    rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    seedTestStore();
+    rootStore.toolCapability.setDefaultRunProfile(null);
+  });
+
+  it("session references deleted RunProfile → empty effectiveToolIds", () => {
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "nonexistent-profile");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "agent:main:panel-x");
+    // CS_SESSION (untrusted) + deleted profile → no tools
+    expect(result).toEqual([]);
+  });
+
+  it("session references deleted RunProfile (trusted scope) → system tools only", () => {
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "nonexistent-profile");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
+    // Trusted scope + deleted profile → computeEffectiveTools returns empty, but system tools merged back
+    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
+    expect(result).not.toContain("entitled_tool_1");
+  });
+
+  it("RunProfile references deleted Surface → falls back to unrestricted (Default)", () => {
+    // Create a profile that references a non-existent surface
+    rootStore.ingestGraphQLResponse({
+      runProfiles: [
+        { id: "profile-ghost-surface", name: "Ghost", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "deleted-surface" },
+      ],
+    });
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "profile-ghost-surface");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
+    // Surface not found → unrestricted → both entitled tools pass through
+    expect(result).toContain("entitled_tool_1");
+    expect(result).toContain("entitled_tool_2");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeSurfaceAvailability — system vs user surface behavior
+// ---------------------------------------------------------------------------
+
+describe("computeSurfaceAvailability — system vs user surface", () => {
+  beforeEach(() => {
+    rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    seedTestStore();
+  });
+
+  it("system surface (empty userId) always passes system tools through", () => {
+    const result = rootStore.toolCapability.computeSurfaceAvailability({
+      id: "sys-surface",
+      allowedToolIds: ["entitled_tool_1"],
+      userId: "",  // system surface
+    });
+    // System tools pass through even though not in allowedToolIds
+    expect(result.availableToolIds).toContain("read");
+    expect(result.availableToolIds).toContain("write");
+    expect(result.availableToolIds).toContain("exec");
+    // Entitled tool in allowedToolIds also passes
+    expect(result.availableToolIds).toContain("entitled_tool_1");
+    // Entitled tool NOT in allowedToolIds is blocked
+    expect(result.availableToolIds).not.toContain("entitled_tool_2");
+  });
+
+  it("user surface (non-empty userId) does NOT auto-include system tools", () => {
+    const result = rootStore.toolCapability.computeSurfaceAvailability({
+      id: "user-surface",
+      allowedToolIds: ["entitled_tool_1"],
+      userId: "user1",  // user surface — strict
+    });
+    // Only explicitly allowed tools pass
+    expect(result.availableToolIds).toEqual(["entitled_tool_1"]);
+    // System tools blocked (not in allowedToolIds)
+    expect(result.availableToolIds).not.toContain("read");
+  });
+
+  it("null surface → all tools available (unrestricted)", () => {
+    const result = rootStore.toolCapability.computeSurfaceAvailability(null);
+    expect(result.availableToolIds).toEqual(result.allAvailableToolIds);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Default profile + Surface filtering
+// ---------------------------------------------------------------------------
+
+describe("default profile + Surface filtering", () => {
+  beforeEach(() => {
+    rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
+    seedTestStore();
+    rootStore.toolCapability.setDefaultRunProfile(null);
+  });
+
+  it("default profile's surface restriction is enforced", () => {
+    // Surface allows only entitled_tool_1
+    rootStore.ingestGraphQLResponse({
+      surfaces: [
+        { id: "default-surface", name: "Default Restricted", allowedToolIds: ["entitled_tool_1"], userId: "u1" },
+      ],
+      runProfiles: [
+        { id: "profile-default-restricted", name: "Default Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "default-surface" },
+      ],
+    });
+    rootStore.toolCapability.setDefaultRunProfile("profile-default-restricted");
+
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
+    // entitled_tool_1 passes surface + profile
+    expect(result).toContain("entitled_tool_1");
+    // entitled_tool_2 blocked by surface
+    expect(result).not.toContain("entitled_tool_2");
+    // System tools always included for trusted scope
+    expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
+  });
+
+  it("session profile overrides default, each with own surface", () => {
+    rootStore.ingestGraphQLResponse({
+      surfaces: [
+        { id: "broad-surface", name: "Broad", allowedToolIds: ["entitled_tool_1", "entitled_tool_2"], userId: "u1" },
+        { id: "narrow-surface", name: "Narrow", allowedToolIds: ["entitled_tool_2"], userId: "u1" },
+      ],
+      runProfiles: [
+        { id: "profile-broad", name: "Broad", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "broad-surface" },
+        { id: "profile-narrow", name: "Narrow", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "narrow-surface" },
+      ],
+    });
+
+    rootStore.toolCapability.setDefaultRunProfile("profile-broad");
+    rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "profile-narrow");
+
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
+    // Session profile's narrow surface only allows entitled_tool_2
+    expect(result).toContain("entitled_tool_2");
+    expect(result).not.toContain("entitled_tool_1");
   });
 });
 

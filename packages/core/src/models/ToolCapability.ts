@@ -1,13 +1,11 @@
-import { types, getRoot, applySnapshot, cast, type Instance } from "mobx-state-tree";
+import { types, getRoot, applySnapshot, type Instance } from "mobx-state-tree";
 import { ScopeType, TRUSTED_SCOPE_TYPES } from "../types/index.js";
 import type { CatalogTool, SurfaceAvailabilityResult, ToolCapabilityResult } from "../types/index.js";
 
 // ── Nested models ──────────────────────────────────────────────────────────
 
 const SessionProfileModel = types.model("SessionProfile", {
-  selectedToolIds: types.array(types.string),
-  surfaceId: types.optional(types.string, ""),
-  runProfileId: types.maybeNull(types.string),
+  runProfileId: types.string,
   setAt: types.number,
 });
 
@@ -63,8 +61,7 @@ export const ToolCapabilityModel = types
     extensionToolIds: types.optional(types.array(types.string), []),
     initialized: types.optional(types.boolean, false),
     sessionProfiles: types.optional(types.map(SessionProfileModel), {}),
-    defaultProfileToolIds: types.maybeNull(types.array(types.string)),
-    defaultProfileSurfaceId: types.optional(types.string, ""),
+    defaultRunProfileId: types.maybeNull(types.string),
   })
   .views((self) => {
     // Helper to access parent RootStore — typed loosely to avoid circular refs
@@ -197,6 +194,21 @@ export const ToolCapabilityModel = types
     };
   })
   .views((self) => ({
+    /** O(1) Surface lookup by ID. */
+    get surfacesById(): Map<string, SurfaceInfo> {
+      const map = new Map<string, SurfaceInfo>();
+      for (const s of self.allSurfaces) map.set(s.id, s);
+      return map;
+    },
+
+    /** O(1) RunProfile lookup by ID. */
+    get runProfilesById(): Map<string, RunProfileInfo> {
+      const map = new Map<string, RunProfileInfo>();
+      for (const p of self.allRunProfiles) map.set(p.id, p);
+      return map;
+    },
+  }))
+  .views((self) => ({
     /** Compute surface availability — Layer 1 + Layer 2 filtering. */
     computeSurfaceAvailability(surface: { id: string; allowedToolIds: string[]; userId?: string | null } | null): SurfaceAvailabilityResult {
       const allAvailable = self.allAvailableToolIds;
@@ -211,12 +223,12 @@ export const ToolCapabilityModel = types
       }
 
       const surfaceSet = new Set(surface.allowedToolIds.map((id: string) => id.toUpperCase()));
-      const systemToolIds = self.systemToolIds;
+      const systemToolSet = new Set(self.systemToolIds);
 
       // System surfaces (userId empty): system tools always pass through
       const isSystemSurface = !surface.userId;
       const availableToolIds = allAvailable.filter((id: string) => {
-        if (isSystemSurface && systemToolIds.includes(id)) return true;
+        if (isSystemSurface && systemToolSet.has(id)) return true;
         return toolIdInSet(id, surfaceSet);
       });
 
@@ -228,43 +240,50 @@ export const ToolCapabilityModel = types
       };
     },
 
-    /** Get session run profile. */
-    getSessionRunProfile(sessionKey: string): { selectedToolIds: string[]; surfaceId?: string } | null {
-      const entry = self.sessionProfiles.get(sessionKey);
-      if (!entry) return null;
-      return {
-        selectedToolIds: [...entry.selectedToolIds],
-        surfaceId: entry.surfaceId || undefined,
-      };
-    },
-
     /** Get session run profile ID. */
     getSessionRunProfileId(sessionKey: string): string | null {
       return self.sessionProfiles.get(sessionKey)?.runProfileId ?? null;
     },
   }))
   .views((self) => ({
-    /** Compute effective tools — surface + run profile intersection. */
-    computeEffectiveTools(
-      surface: { id: string; allowedToolIds: string[]; userId?: string | null } | null,
-      runProfile: { selectedToolIds: string[]; surfaceId?: string } | null,
-    ): ToolCapabilityResult {
+    /** Compute effective tools — accepts RunProfile ID, looks up everything internally. */
+    computeEffectiveTools(runProfileId: string): ToolCapabilityResult {
+      // O(1) RunProfile lookup
+      const profile = self.runProfilesById.get(runProfileId);
+      if (!profile) {
+        // RunProfile not found (deleted?) → empty result
+        return {
+          allAvailableToolIds: self.allAvailableToolIds,
+          entitledToolIds: self.entitledToolIds,
+          systemToolIds: self.systemToolIds,
+          customExtensionToolIds: [...self.extensionToolIds],
+          surfaceId: "",
+          surfaceAllowedToolIds: [],
+          runProfileSelectedToolIds: [],
+          effectiveToolIds: [],
+        };
+      }
+
+      // O(1) Surface lookup
+      const surfaceId = profile.surfaceId || "Default";
+      const surfaceInfo = self.surfacesById.get(surfaceId);
+      const surface = surfaceInfo
+        ? { id: surfaceInfo.id, allowedToolIds: surfaceInfo.resolvedToolIds, userId: surfaceInfo.userId || null }
+        : null;
+
       const availability = self.computeSurfaceAvailability(surface);
       const availableSet = new Set(availability.availableToolIds);
-      const systemToolIds = self.systemToolIds;
 
-      const baselineToolIds = [...systemToolIds];
-      const selectedToolIds = runProfile?.selectedToolIds ?? baselineToolIds;
-      const effectiveToolIds = selectedToolIds.filter((id: string) => toolIdInSet(id, availableSet));
+      const effectiveToolIds = profile.selectedToolIds.filter((id: string) => toolIdInSet(id, availableSet));
 
       return {
         allAvailableToolIds: availability.allAvailableToolIds,
         entitledToolIds: self.entitledToolIds,
-        systemToolIds,
+        systemToolIds: self.systemToolIds,
         customExtensionToolIds: [...self.extensionToolIds],
         surfaceId: availability.surfaceId,
         surfaceAllowedToolIds: availability.surfaceAllowedToolIds,
-        runProfileSelectedToolIds: selectedToolIds,
+        runProfileSelectedToolIds: [...profile.selectedToolIds],
         effectiveToolIds,
       };
     },
@@ -272,26 +291,26 @@ export const ToolCapabilityModel = types
   .views((self) => ({
     /** Get effective tools for a scope, resolving session/default profiles. */
     getEffectiveToolsForScope(scopeType: ScopeType, sessionKey: string): string[] {
-      const sessionEntry = self.sessionProfiles.get(sessionKey);
-      let runProfile: { selectedToolIds: string[]; surfaceId?: string } | null =
-        sessionEntry
-          ? { selectedToolIds: [...sessionEntry.selectedToolIds], surfaceId: sessionEntry.surfaceId || undefined }
-          : null;
+      // 1. Look up session-specific RunProfile ID
+      const session = self.sessionProfiles.get(sessionKey);
+      let runProfileId: string | null = session?.runProfileId ?? null;
 
-      if (!runProfile && TRUSTED_SCOPE_TYPES.has(scopeType)) {
-        runProfile = self.defaultProfileToolIds
-          ? { selectedToolIds: [...self.defaultProfileToolIds], surfaceId: self.defaultProfileSurfaceId || undefined }
-          : null;
+      // 2. Trusted scope fallback: try default profile
+      if (!runProfileId && TRUSTED_SCOPE_TYPES.has(scopeType)) {
+        runProfileId = self.defaultRunProfileId;
       }
 
-      if (!runProfile && !TRUSTED_SCOPE_TYPES.has(scopeType)) {
-        return [];
+      // 3. No profile at all
+      if (!runProfileId) {
+        if (TRUSTED_SCOPE_TYPES.has(scopeType)) {
+          // System + extension tools only, no entitlement tools
+          return [...self.systemToolIds, ...self.extensionToolIds];
+        }
+        return []; // Untrusted scope without profile → no tools
       }
 
-      const gqlProfile = runProfile
-        ? { selectedToolIds: runProfile.selectedToolIds, surfaceId: runProfile.surfaceId ?? "" }
-        : null;
-      const result = self.computeEffectiveTools(null, gqlProfile);
+      // 4. Has profile → full 3-layer resolution
+      const result = self.computeEffectiveTools(runProfileId);
 
       if (TRUSTED_SCOPE_TYPES.has(scopeType)) {
         const merged = new Set(result.effectiveToolIds);
@@ -337,27 +356,15 @@ export const ToolCapabilityModel = types
       self.initialized = true;
     },
 
-    /** Set or clear the user's default RunProfile. */
-    setDefaultRunProfile(profile: { selectedToolIds: string[]; surfaceId?: string } | null): void {
-      if (profile) {
-        self.defaultProfileToolIds = cast(profile.selectedToolIds);
-        self.defaultProfileSurfaceId = profile.surfaceId ?? "";
-      } else {
-        self.defaultProfileToolIds = null;
-        self.defaultProfileSurfaceId = "";
-      }
+    /** Set or clear the user's default RunProfile (by ID). */
+    setDefaultRunProfile(runProfileId: string | null): void {
+      self.defaultRunProfileId = runProfileId;
     },
 
-    /** Set or clear a session-specific RunProfile. */
-    setSessionRunProfile(
-      sessionKey: string,
-      profile: { selectedToolIds: string[]; surfaceId?: string } | null,
-      runProfileId: string | null = null,
-    ): void {
-      if (profile) {
+    /** Set or clear a session-specific RunProfile (by ID). */
+    setSessionRunProfile(sessionKey: string, runProfileId: string | null): void {
+      if (runProfileId) {
         self.sessionProfiles.set(sessionKey, {
-          selectedToolIds: cast(profile.selectedToolIds),
-          surfaceId: profile.surfaceId ?? "",
           runProfileId,
           setAt: Date.now(),
         });

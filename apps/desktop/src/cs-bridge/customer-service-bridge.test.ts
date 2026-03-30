@@ -43,13 +43,12 @@ import { rootStore } from "../store/desktop-store.js";
 import { onAction } from "mobx-state-tree";
 
 // Track setSessionRunProfile calls via MST's onAction middleware (no spy mutation needed)
-const setSessionRunProfileCalls: Array<{ sessionKey: string; profile: any; runProfileId: string | null }> = [];
+const setSessionRunProfileCalls: Array<{ sessionKey: string; runProfileId: string | null }> = [];
 onAction(rootStore, (call) => {
   if (call.name === "setSessionRunProfile") {
     setSessionRunProfileCalls.push({
       sessionKey: call.args?.[0] as string,
-      profile: call.args?.[1],
-      runProfileId: call.args?.[2] as string | null ?? null,
+      runProfileId: call.args?.[1] as string | null ?? null,
     });
   }
 }, true); // true = attach to subtree (captures actions on child models)
@@ -204,7 +203,6 @@ describe("session key construction", () => {
 
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-XYZ",
-      profile: { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
       runProfileId: "TIKTOK_CUSTOMER_SERVICE",
     });
   });
@@ -343,6 +341,137 @@ describe("message content parsing", () => {
   });
 });
 
+// ─── 3a. Image attachment extraction ─────────────────────────────────────────
+
+describe("image attachment extraction", () => {
+  it("IMAGE message: fetches image and passes base64 attachment to agent RPC", async () => {
+    const fakeImageBuffer = Buffer.from("fake-png-data");
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "image/png" }),
+      arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer.slice(
+        fakeImageBuffer.byteOffset,
+        fakeImageBuffer.byteOffset + fakeImageBuffer.byteLength,
+      )),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const imageUrl = "https://tosv.boei18n.byted.org/obj/test-image.png";
+    const content = JSON.stringify({ url: imageUrl, width: 304, height: 290 });
+
+    await triggerMessage(bridge, createFrame({
+      messageType: "IMAGE",
+      content,
+    }));
+
+    // fetch was called with the image URL
+    expect(mockFetch).toHaveBeenCalledWith(imageUrl);
+
+    // agent RPC includes attachments
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall).toBeDefined();
+    expect(agentCall![1].attachments).toEqual([
+      { mimeType: "image/png", content: fakeImageBuffer.toString("base64") },
+    ]);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("IMAGE message: fetch failure does not block agent dispatch (graceful degradation)", async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error("network error"));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const content = JSON.stringify({ url: "https://example.com/broken.jpg", width: 100, height: 100 });
+
+    await triggerMessage(bridge, createFrame({
+      messageType: "IMAGE",
+      content,
+    }));
+
+    // Agent RPC was still called (dispatch not blocked)
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall).toBeDefined();
+
+    // No attachments passed (fetch failed)
+    expect(agentCall![1].attachments).toBeUndefined();
+
+    // Text content still includes the IMAGE prefix
+    expect(agentCall![1].message).toContain("[IMAGE]");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("IMAGE message: non-ok response does not produce attachments", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      headers: new Headers(),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const content = JSON.stringify({ url: "https://example.com/missing.jpg" });
+
+    await triggerMessage(bridge, createFrame({
+      messageType: "IMAGE",
+      content,
+    }));
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall).toBeDefined();
+    expect(agentCall![1].attachments).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("TEXT message: no attachments passed to agent RPC", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({
+      messageType: "TEXT",
+      content: JSON.stringify({ content: "Hello" }),
+    }));
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall).toBeDefined();
+    expect(agentCall![1].attachments).toBeUndefined();
+  });
+
+  it("IMAGE message: defaults mimeType to image/jpeg when content-type header is missing", async () => {
+    const fakeImageBuffer = Buffer.from("fake-jpeg-data");
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers(), // no content-type
+      arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer.slice(
+        fakeImageBuffer.byteOffset,
+        fakeImageBuffer.byteOffset + fakeImageBuffer.byteLength,
+      )),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({
+      messageType: "IMAGE",
+      content: JSON.stringify({ url: "https://example.com/no-ct.jpg" }),
+    }));
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall![1].attachments).toEqual([
+      { mimeType: "image/jpeg", content: fakeImageBuffer.toString("base64") },
+    ]);
+
+    vi.unstubAllGlobals();
+  });
+});
+
 // ─── 4. CS RunProfile setup ─────────────────────────────────────────────────
 
 describe("CS RunProfile setup", () => {
@@ -354,23 +483,28 @@ describe("CS RunProfile setup", () => {
 
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",
-      profile: { selectedToolIds: ["TOOL_A", "TOOL_B"], surfaceId: "Default" },
       runProfileId: "TIKTOK_CUSTOMER_SERVICE",
     });
   });
 
-  it("drops message when RunProfile not found in cache", async () => {
+  it("proceeds with agent dispatch even when RunProfile not in cache (model resolves at query time)", async () => {
     rootStore.ingestGraphQLResponse({ runProfiles: [] }); // no profiles
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
+    // Bridge no longer validates profile existence — it stores the ID and lets the model
+    // resolve at effective-tools query time (returning empty tools if not found).
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "cs_register_session",
       expect.anything(),
     );
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:cs:tiktok:conv-789",
+      runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+    });
   });
 
   it("falls back to defaultRunProfileId when shop has no runProfileId", async () => {
@@ -381,7 +515,6 @@ describe("CS RunProfile setup", () => {
 
     expect(setSessionRunProfileCalls).toContainEqual(
       expect.objectContaining({
-        profile: { selectedToolIds: ["TOOL_C"], surfaceId: "Default" },
         runProfileId: "FALLBACK_CS",
       }),
     );
@@ -599,16 +732,18 @@ describe("error scenarios", () => {
     expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
-  it("RunProfile not found → agent dispatch skipped", async () => {
+  it("RunProfile not in cache → bridge still proceeds (model resolves at query time)", async () => {
     rootStore.ingestGraphQLResponse({ runProfiles: [] }); // empty profiles
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    // register_session called, agent NOT called
-    expect(mockRpcRequest).toHaveBeenCalledTimes(1);
+    // Bridge no longer validates profile existence — it stores the ID.
+    // Both cs_register_session and agent dispatch proceed.
+    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
   });
 
   it("agent dispatch fails → bridge does not throw (continues running)", async () => {

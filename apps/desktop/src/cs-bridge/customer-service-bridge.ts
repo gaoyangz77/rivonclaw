@@ -497,7 +497,26 @@ export class CustomerServiceBridge {
     // 3. Parse text content
     const textContent = this.parseMessageContent(frame);
 
-    // 3. Build session keys
+    // 3a. Extract image attachment for multimodal LLM input
+    let attachments: Array<{ mimeType: string; content: string }> | undefined;
+    if (frame.messageType.toUpperCase() === "IMAGE") {
+      try {
+        const parsed = JSON.parse(frame.content) as { url?: string };
+        if (parsed.url) {
+          const res = await fetch(parsed.url);
+          if (res.ok) {
+            const buffer = Buffer.from(await res.arrayBuffer());
+            const mimeType = res.headers.get("content-type") ?? "image/jpeg";
+            attachments = [{ mimeType, content: buffer.toString("base64") }];
+          }
+        }
+      } catch (err) {
+        log.warn("Failed to fetch buyer image, agent will see URL only", { err });
+        // Graceful degradation: agent still sees the URL text from parseMessageContent
+      }
+    }
+
+    // 4. Build session keys
     // scopeKey: the full gateway-resolved key used for RunProfile storage and
     //           session registration (capability-manager queries with this key).
     // dispatchKey: the raw key passed to the agent RPC; gateway prepends
@@ -506,7 +525,7 @@ export class CustomerServiceBridge {
     const scopeKey = `agent:main:cs:${platform}:${frame.conversationId}`;
     const dispatchKey = `cs:${platform}:${frame.conversationId}`;
 
-    // 4. Register CSSessionContext via gateway method
+    // 5. Register CSSessionContext via gateway method
     try {
       await rpcClient.request("cs_register_session", {
         sessionKey: scopeKey,
@@ -522,28 +541,20 @@ export class CustomerServiceBridge {
       return;
     }
 
-    // 5. Set CS RunProfile — delegate tool resolution to ToolCapability model
+    // 6. Set CS RunProfile — delegate tool resolution to ToolCapability model
     const runProfileId = shop.runProfileId ?? this.opts.defaultRunProfileId;
     if (!runProfileId) {
       log.error(`Shop ${shop.objectId} has no runProfileId configured for CS, dropping message`);
       return;
     }
     try {
-      const profile = rootStore.toolCapability.allRunProfiles.find((p: { id: string }) => p.id === runProfileId);
-      if (!profile) {
-        log.error(`RunProfile "${runProfileId}" not found in cache, dropping message`);
-        return;
-      }
-      rootStore.toolCapability.setSessionRunProfile(scopeKey, {
-        selectedToolIds: profile.selectedToolIds,
-        surfaceId: profile.surfaceId,
-      }, runProfileId);
+      rootStore.toolCapability.setSessionRunProfile(scopeKey, runProfileId);
     } catch (err) {
       log.error(`Failed to set CS RunProfile for ${scopeKey}:`, err);
       return;
     }
 
-    // 6. Apply per-shop CS model override (validated against active provider's model catalog)
+    // 7. Apply per-shop CS model override (validated against active provider's model catalog)
     //    CRITICAL: if a stale modelOverride points to an unavailable model, we MUST
     //    clear it via sessions.patch { model: null } before dispatching. Otherwise
     //    the gateway will attempt the unavailable model and fail with FailoverError.
@@ -568,7 +579,7 @@ export class CustomerServiceBridge {
       }
     }
 
-    // 7. Build extra system prompt
+    // 8. Build extra system prompt
     const extraSystemPrompt = [
       shop.systemPrompt,
       "",
@@ -581,7 +592,7 @@ export class CustomerServiceBridge {
       "Use the tools available to you to help this buyer.",
     ].join("\n");
 
-    // 8. Ensure CS session exists (balance check — only on first message per conversation)
+    // 9. Ensure CS session exists (balance check — only on first message per conversation)
     if (!this.activeConversations.has(frame.conversationId)) {
       const authSession = getAuthSession();
       if (!authSession) {
@@ -612,7 +623,7 @@ export class CustomerServiceBridge {
       }
     }
 
-    // 9. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
+    // 10. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
     // Session stays ACTIVE across messages — it's per-conversation, not per-message.
     // Session ending is handled separately (idle timeout, conversation close, etc.)
     try {
@@ -621,6 +632,7 @@ export class CustomerServiceBridge {
         message: textContent,
         extraSystemPrompt,
         idempotencyKey: `${platform}:${frame.messageId}`,
+        ...(attachments ? { attachments } : {}),
       });
       // Track the run so onGatewayEvent can auto-forward the agent's text output
       if (response?.runId) {
