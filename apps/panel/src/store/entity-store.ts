@@ -386,6 +386,7 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
         mutation: DELETE_SURFACE_MUTATION,
         variables: { id },
       });
+      yield fetchJson("/store/remove", { method: "POST", body: JSON.stringify({ typeName: "Surface", id }) });
       return result.data!.deleteSurface;
     }),
 
@@ -423,6 +424,7 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
         mutation: DELETE_RUN_PROFILE_MUTATION,
         variables: { id },
       });
+      yield fetchJson("/store/remove", { method: "POST", body: JSON.stringify({ typeName: "RunProfile", id }) });
       return result.data!.deleteRunProfile;
     }),
 
@@ -457,6 +459,7 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
         mutation: DELETE_SHOP_MUTATION,
         variables: { id },
       });
+      yield fetchJson("/store/remove", { method: "POST", body: JSON.stringify({ typeName: "Shop", id }) });
       return result.data!.deleteShop;
     }),
   };
