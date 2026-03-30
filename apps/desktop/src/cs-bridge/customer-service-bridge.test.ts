@@ -294,78 +294,51 @@ describe("message content parsing", () => {
     );
   });
 
-  it("IMAGE message produces [Image received]", async () => {
+  it("IMAGE message passes raw content with type prefix", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
+    const content = JSON.stringify({ url: "https://example.com/img.jpg", width: 304, height: 290 });
 
     await triggerMessage(bridge, createFrame({
       messageType: "IMAGE",
-      content: "binary-data",
+      content,
     }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: "[Image received]" }),
+      expect.objectContaining({ message: `[IMAGE] ${content}` }),
     );
   });
 
-  it("ORDER_CARD message with orderId", async () => {
+  it("ORDER_CARD message passes raw content with type prefix", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
+    const content = JSON.stringify({ order_id: "ORD-12345" });
 
     await triggerMessage(bridge, createFrame({
       messageType: "ORDER_CARD",
-      content: JSON.stringify({ orderId: "ORD-12345" }),
+      content,
     }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: "[Order card received] Order ID: ORD-12345" }),
+      expect.objectContaining({ message: `[ORDER_CARD] ${content}` }),
     );
   });
 
-  it("ORDER_CARD message with order_id (snake_case)", async () => {
+  it("VIDEO message passes raw content with type prefix", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "ORDER_CARD",
-      content: JSON.stringify({ order_id: "ORD-99999" }),
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: "[Order card received] Order ID: ORD-99999" }),
-    );
-  });
-
-  it("ORDER_CARD message without orderId falls back to generic text", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "ORDER_CARD",
-      content: JSON.stringify({ something: "else" }),
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: "[Order card received]" }),
-    );
-  });
-
-  it("unknown message type uses raw messageType name", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    const content = JSON.stringify({ url: "https://example.com/video.mp4", duration: "20.5" });
 
     await triggerMessage(bridge, createFrame({
       messageType: "VIDEO",
-      content: "video-data",
+      content,
     }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: "[VIDEO message received]" }),
+      expect.objectContaining({ message: `[VIDEO] ${content}` }),
     );
   });
 });
