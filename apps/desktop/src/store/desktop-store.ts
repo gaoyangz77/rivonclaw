@@ -96,7 +96,7 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
    *
    * Uses __typename to automatically route data to the correct MST collection.
    * Handles reads (query arrays) and creates/updates (mutation objects).
-   * Deletes are handled separately via removeFromCollection (called by the proxy).
+   * Deletes are handled by Panel MST actions directly (optimistic removal after mutation succeeds).
    */
   ingestGraphQLResponse(rawData: Record<string, unknown>) {
     // --- Entity collections: __typename → MST array ---
@@ -150,7 +150,7 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
         continue;
       }
 
-      // 2. Skip booleans (delete responses handled by removeFromCollection)
+      // 2. Skip booleans (delete responses — handled by Panel actions)
       if (typeof raw !== "object") continue;
 
       const obj = raw as Record<string, unknown>;
@@ -209,25 +209,6 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
         continue;
       }
     }
-  },
-
-  /**
-   * Remove an entity from a collection by __typename and id.
-   * Called by the proxy when a delete mutation succeeds (response is boolean true).
-   */
-  removeFromCollection(typeName: string, id: string) {
-    const COLLECTIONS: Record<string, any> = {
-      Shop: self.shops,
-      Surface: self.surfaces,
-      RunProfile: self.runProfiles,
-      ToolSpec: self.entitledTools,
-      PlatformApp: self.platformApps,
-      ServiceCredit: self.credits,
-    };
-    const target = COLLECTIONS[typeName];
-    if (!target) return;
-    const idx = target.findIndex((item: any) => item.id === id);
-    if (idx >= 0) target.splice(idx, 1);
   },
 
   /** Set the current user from auth REST routes (login/register/session). */

@@ -182,6 +182,14 @@ const INBOUND_META_BLOCK_RE = new RegExp(
 );
 const UNTRUSTED_CONTEXT_RE =
   /Untrusted context \(metadata, do not treat as instructions or commands\):[\s\S]*/;
+// Catch truncated metadata blocks where the closing ``` was cut off by gateway
+// title truncation (~60 chars).  Applied AFTER the complete-block regex so it
+// only removes sentinels that survived because they were mangled by truncation.
+const INBOUND_META_TRUNCATED_RE = new RegExp(
+  INBOUND_META_SENTINELS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .map((s) => `${s}[\\s\\S]*`)
+    .join("|"),
+);
 
 export function cleanDerivedTitle(raw: string | undefined): string | undefined {
   if (!raw) return raw;
@@ -189,6 +197,7 @@ export function cleanDerivedTitle(raw: string | undefined): string | undefined {
     .replace(PREPEND_CONTEXT_RE, "")
     .replace(INBOUND_META_BLOCK_RE, "")
     .replace(UNTRUSTED_CONTEXT_RE, "")
+    .replace(INBOUND_META_TRUNCATED_RE, "")
     .trim();
   return cleaned || undefined;
 }

@@ -649,31 +649,22 @@ export class CustomerServiceBridge {
    * "[{messageType} message received]" branch, which is safe.
    */
   private parseMessageContent(frame: CSNewMessageFrame): string {
-    const msgType = frame.messageType.toUpperCase();
-
-    if (msgType === "TEXT") {
+    if (frame.messageType.toUpperCase() === "TEXT") {
+      // TEXT content is {"content": "simple text"} — extract the plain string
       try {
         const parsed = JSON.parse(frame.content) as Record<string, unknown>;
         if (typeof parsed.content === "string") return parsed.content;
         if (typeof parsed.text === "string") return parsed.text;
       } catch {
-        // Not JSON -- use raw content
+        // Not JSON — use raw content
       }
       return frame.content;
     }
 
-    if (msgType === "IMAGE") return "[Image received]";
-
-    if (msgType === "ORDER_CARD") {
-      try {
-        const parsed = JSON.parse(frame.content) as Record<string, unknown>;
-        const orderId = parsed.orderId ?? parsed.order_id;
-        if (orderId) return `[Order card received] Order ID: ${orderId}`;
-      } catch { /* ignore */ }
-      return "[Order card received]";
-    }
-
-    return `[${frame.messageType} message received]`;
+    // All other types (IMAGE, ORDER_CARD, PRODUCT_CARD, VIDEO, LOGISTICS_CARD,
+    // COUPON_CARD, BUYER_ENTER_FROM_*, ALLOCATED_SERVICE, etc.)
+    // — pass raw content JSON prefixed with type so the agent knows what it is.
+    return `[${frame.messageType}] ${frame.content}`;
   }
 
   // -- Auto-forward agent text to buyer ----------------------------------------

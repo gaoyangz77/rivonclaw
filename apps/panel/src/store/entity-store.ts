@@ -382,12 +382,9 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
     }),
 
     deleteSurface: flow(function* (id: string) {
-      const result = yield client().mutate({
-        mutation: DELETE_SURFACE_MUTATION,
-        variables: { id },
-      });
-      yield fetchJson("/store/remove", { method: "POST", body: JSON.stringify({ typeName: "Surface", id }) });
-      return result.data!.deleteSurface;
+      yield client().mutate({ mutation: DELETE_SURFACE_MUTATION, variables: { id } });
+      const idx = self.surfaces.findIndex((s) => s.id === id);
+      if (idx >= 0) self.surfaces.splice(idx, 1);
     }),
 
     // ── RunProfile mutations ──
@@ -420,12 +417,9 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
     }),
 
     deleteRunProfile: flow(function* (id: string) {
-      const result = yield client().mutate({
-        mutation: DELETE_RUN_PROFILE_MUTATION,
-        variables: { id },
-      });
-      yield fetchJson("/store/remove", { method: "POST", body: JSON.stringify({ typeName: "RunProfile", id }) });
-      return result.data!.deleteRunProfile;
+      yield client().mutate({ mutation: DELETE_RUN_PROFILE_MUTATION, variables: { id } });
+      const idx = self.runProfiles.findIndex((p) => p.id === id);
+      if (idx >= 0) self.runProfiles.splice(idx, 1);
     }),
 
     // ── Shop mutations ──
@@ -455,12 +449,9 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
     }),
 
     deleteShop: flow(function* (id: string) {
-      const result = yield client().mutate({
-        mutation: DELETE_SHOP_MUTATION,
-        variables: { id },
-      });
-      yield fetchJson("/store/remove", { method: "POST", body: JSON.stringify({ typeName: "Shop", id }) });
-      return result.data!.deleteShop;
+      yield client().mutate({ mutation: DELETE_SHOP_MUTATION, variables: { id } });
+      const idx = self.shops.findIndex((s) => s.id === id);
+      if (idx >= 0) self.shops.splice(idx, 1);
     }),
   };
 });

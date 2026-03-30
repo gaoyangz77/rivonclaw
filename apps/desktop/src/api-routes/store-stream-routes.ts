@@ -1,8 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { getSnapshot } from "mobx-state-tree";
 import { rootStore, subscribeToPatch } from "../store/desktop-store.js";
-import type { RouteHandler } from "./api-context.js";
-import { parseBody, sendJson } from "./route-utils.js";
 
 /**
  * SSE endpoint for streaming MST store patches to Panel.
@@ -34,21 +32,3 @@ export function handleStoreStream(req: IncomingMessage, res: ServerResponse): vo
     unsubscribe();
   });
 }
-
-/**
- * POST /api/store/remove — remove an entity from an MST collection by typename + id.
- * Called by Panel MST actions after a delete mutation succeeds.
- */
-export const handleStoreRemove: RouteHandler = async (req, res, _url, pathname) => {
-  if (pathname === "/api/store/remove" && req.method === "POST") {
-    const body = await parseBody(req) as { typeName?: string; id?: string };
-    if (!body.typeName || !body.id) {
-      sendJson(res, 400, { error: "Missing typeName or id" });
-      return true;
-    }
-    rootStore.removeFromCollection(body.typeName, body.id);
-    sendJson(res, 200, { ok: true });
-    return true;
-  }
-  return false;
-};
