@@ -15,6 +15,17 @@ function extractOperationName(query: string): string | null {
   return m?.[1] ?? null;
 }
 
+/**
+ * Extract the entity typename from a delete mutation operation name.
+ * e.g., "DeleteShop" → "Shop", "DeleteRunProfile" → "RunProfile"
+ * Returns null if the operation is not a delete mutation.
+ */
+function extractDeleteTypeName(opName: string | null): string | null {
+  if (!opName) return null;
+  const m = opName.match(/^Delete(\w+)$/);
+  return m?.[1] ?? null;
+}
+
 export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
   if (pathname === DEFAULTS.api.cloudGraphql && req.method === "POST") {
     if (!ctx.authSession) {
@@ -56,7 +67,13 @@ export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pat
       }
 
       const data = await fetchPromise;
-      rootStore.ingestGraphQLResponse(data as Record<string, unknown>, body.variables);
+      rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
+
+      // Handle delete mutations explicitly (response is boolean, no __typename)
+      const deleteTypeName = extractDeleteTypeName(opName);
+      if (deleteTypeName && body.variables?.id) {
+        rootStore.removeFromCollection(deleteTypeName, body.variables.id as string);
+      }
 
       if (opName === TOOLSPECS_OP_NAME) {
         toolSpecsCache = { data, ts: Date.now() };

@@ -93,135 +93,141 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
 
   /**
    * Ingest a GraphQL response into the MST store.
-   * Strips __typename fields that Apollo adds (MST rejects unknown properties).
+   *
+   * Uses __typename to automatically route data to the correct MST collection.
+   * Handles reads (query arrays) and creates/updates (mutation objects).
+   * Deletes are handled separately via removeFromCollection (called by the proxy).
    */
-  ingestGraphQLResponse(rawData: Record<string, unknown>, variables?: Record<string, unknown>) {
-    const data = sanitizeForMst(rawData);
-    // Bulk array replacements
-    if (Array.isArray(data.runProfiles)) applySnapshot(self.runProfiles, data.runProfiles);
-    if (Array.isArray(data.surfaces)) applySnapshot(self.surfaces, data.surfaces);
-    if (Array.isArray(data.toolSpecs)) applySnapshot(self.entitledTools, data.toolSpecs);
-    if (Array.isArray(data.shops)) applySnapshot(self.shops, data.shops);
+  ingestGraphQLResponse(rawData: Record<string, unknown>) {
+    // --- Entity collections: __typename → MST array ---
+    const COLLECTIONS: Record<string, any> = {
+      Shop: self.shops,
+      Surface: self.surfaces,
+      RunProfile: self.runProfiles,
+      ToolSpec: self.entitledTools,
+      PlatformApp: self.platformApps,
+      ServiceCredit: self.credits,
+    };
 
-    // Single mutations — RunProfiles
-    if (data.createRunProfile && typeof data.createRunProfile === "object") {
-      self.runProfiles.push(data.createRunProfile as any);
-    }
-    if (data.updateRunProfile && typeof data.updateRunProfile === "object") {
-      const u = data.updateRunProfile as { id: string };
-      const idx = self.runProfiles.findIndex((p) => p.id === u.id);
-      if (idx >= 0) applySnapshot(self.runProfiles[idx], data.updateRunProfile as any);
-    }
-    if (data.deleteRunProfile === true && variables?.id) {
-      const idx = self.runProfiles.findIndex((p) => p.id === variables.id);
-      if (idx >= 0) self.runProfiles.splice(idx, 1);
-    }
+    // --- Nullable singletons: __typename → getter/setter ---
+    const SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
+      UserSubscription: {
+        get: () => self.subscriptionStatus,
+        set: (v) => { self.subscriptionStatus = v; },
+      },
+      LlmQuotaStatus: {
+        get: () => self.llmQuotaStatus,
+        set: (v) => { self.llmQuotaStatus = v; },
+      },
+      CSSessionStats: {
+        get: () => self.sessionStats,
+        set: (v) => { self.sessionStats = v; },
+      },
+      MeResponse: {
+        get: () => self.currentUser,
+        set: (v) => { self.currentUser = v; },
+      },
+    };
 
-    // Single mutations — Surfaces
-    if (data.createSurface && typeof data.createSurface === "object") {
-      self.surfaces.push(data.createSurface as any);
-    }
-    if (data.updateSurface && typeof data.updateSurface === "object") {
-      const u = data.updateSurface as { id: string };
-      const idx = self.surfaces.findIndex((s) => s.id === u.id);
-      if (idx >= 0) applySnapshot(self.surfaces[idx], data.updateSurface as any);
-    }
-    if (data.deleteSurface === true && variables?.id) {
-      const idx = self.surfaces.findIndex((s) => s.id === variables.id);
-      if (idx >= 0) self.surfaces.splice(idx, 1);
-    }
+    // --- Key-based fallback for arrays without __typename ---
+    const KEY_FALLBACK: Record<string, any> = {
+      shops: self.shops,
+      surfaces: self.surfaces,
+      runProfiles: self.runProfiles,
+      toolSpecs: self.entitledTools,
+      platformApps: self.platformApps,
+      myCredits: self.credits,
+    };
 
-    // Single mutations — Shops
-    if (data.createShop && typeof data.createShop === "object") {
-      self.shops.push(data.createShop as any);
-    }
-    if (data.updateShop && typeof data.updateShop === "object") {
-      const u = data.updateShop as { id: string };
-      const idx = self.shops.findIndex((s) => s.id === u.id);
-      if (idx >= 0) applySnapshot(self.shops[idx], data.updateShop as any);
-    }
-    if (data.deleteShop === true && variables?.id) {
-      const idx = self.shops.findIndex((s) => s.id === variables.id);
-      if (idx >= 0) self.shops.splice(idx, 1);
-    }
+    for (const [key, raw] of Object.entries(rawData)) {
+      if (raw === undefined || raw === null) continue;
 
-    // ME_QUERY response — validate required userId field before ingesting
-    if (data.me && typeof data.me === "object" && "userId" in (data.me as Record<string, unknown>)) {
-      if (self.currentUser) {
-        applySnapshot(self.currentUser, data.me as any);
-      } else {
-        self.currentUser = data.me as any;
+      // 1. Array → full replace (query result)
+      if (Array.isArray(raw)) {
+        const typeName = (raw[0] as any)?.__typename;
+        const target = (typeName && COLLECTIONS[typeName]) || KEY_FALLBACK[key];
+        if (target) applySnapshot(target, sanitizeForMst(raw));
+        continue;
       }
-    }
 
-    // Login/register response (nested user)
-    if (data.login && typeof data.login === "object") {
-      const login = data.login as { user?: Record<string, unknown> };
-      if (login.user && typeof login.user === "object" && "userId" in login.user) {
-        if (self.currentUser) {
-          applySnapshot(self.currentUser, login.user as any);
-        } else {
-          self.currentUser = login.user as any;
+      // 2. Skip booleans (delete responses handled by removeFromCollection)
+      if (typeof raw !== "object") continue;
+
+      const obj = raw as Record<string, unknown>;
+      const typeName = obj.__typename as string | undefined;
+      const sanitized = sanitizeForMst(obj);
+
+      // 3. Collection entity → upsert by identifier
+      if (typeName && COLLECTIONS[typeName]) {
+        const target = COLLECTIONS[typeName];
+        const id = (sanitized as any).id;
+        if (id) {
+          const idx = target.findIndex((item: any) => item.id === id);
+          if (idx >= 0) {
+            applySnapshot(target[idx], sanitized);
+          } else {
+            target.push(sanitized as any);
+          }
         }
+        continue;
       }
-    }
-    if (data.register && typeof data.register === "object") {
-      const reg = data.register as { user?: Record<string, unknown> };
-      if (reg.user && typeof reg.user === "object" && "userId" in reg.user) {
-        if (self.currentUser) {
-          applySnapshot(self.currentUser, reg.user as any);
+
+      // 4. Singleton entity → set or update
+      if (typeName && SINGLETONS[typeName]) {
+        const s = SINGLETONS[typeName];
+        if (s.get()) {
+          applySnapshot(s.get(), sanitized);
         } else {
-          self.currentUser = reg.user as any;
+          s.set(sanitized);
         }
+        continue;
       }
-    }
 
-    // Module enroll/unenroll
-    if (data.enrollModule && typeof data.enrollModule === "object") {
-      const result = data.enrollModule as { enrolledModules?: string[]; entitlementKeys?: string[] };
-      if (self.currentUser && result.enrolledModules) {
-        applySnapshot(self.currentUser.enrolledModules, result.enrolledModules);
+      // 5. AuthPayload wrapper (login/register → nested user)
+      if (typeName === "AuthPayload") {
+        const user = (obj as any).user;
+        if (user && typeof user === "object" && user.__typename === "MeResponse") {
+          const sanitizedUser = sanitizeForMst(user);
+          if (self.currentUser) {
+            applySnapshot(self.currentUser, sanitizedUser);
+          } else {
+            self.currentUser = sanitizedUser as any;
+          }
+        }
+        continue;
       }
-      if (self.currentUser && result.entitlementKeys) {
-        applySnapshot(self.currentUser.entitlementKeys, result.entitlementKeys);
-      }
-    }
-    if (data.unenrollModule && typeof data.unenrollModule === "object") {
-      const result = data.unenrollModule as { enrolledModules?: string[]; entitlementKeys?: string[] };
-      if (self.currentUser && result.enrolledModules) {
-        applySnapshot(self.currentUser.enrolledModules, result.enrolledModules);
-      }
-      if (self.currentUser && result.entitlementKeys) {
-        applySnapshot(self.currentUser.entitlementKeys, result.entitlementKeys);
-      }
-    }
 
-    // Platform apps, credits, session stats
-    if (Array.isArray(data.platformApps)) applySnapshot(self.platformApps, data.platformApps);
-    if (Array.isArray(data.myCredits)) applySnapshot(self.credits, data.myCredits);
-    if (data.csSessionStats && typeof data.csSessionStats === "object") {
-      if (self.sessionStats) {
-        applySnapshot(self.sessionStats, data.csSessionStats as any);
-      } else {
-        self.sessionStats = data.csSessionStats as any;
+      // 6. Module enroll/unenroll → partial user update
+      if (key === "enrollModule" || key === "unenrollModule") {
+        const result = sanitized as { enrolledModules?: string[]; entitlementKeys?: string[] };
+        if (self.currentUser && result.enrolledModules) {
+          applySnapshot(self.currentUser.enrolledModules, result.enrolledModules);
+        }
+        if (self.currentUser && result.entitlementKeys) {
+          applySnapshot(self.currentUser.entitlementKeys, result.entitlementKeys);
+        }
+        continue;
       }
     }
+  },
 
-    // Subscription & quota — single nullable objects
-    if (data.subscriptionStatus && typeof data.subscriptionStatus === "object") {
-      if (self.subscriptionStatus) {
-        applySnapshot(self.subscriptionStatus, data.subscriptionStatus as any);
-      } else {
-        self.subscriptionStatus = data.subscriptionStatus as any;
-      }
-    }
-    if (data.llmQuotaStatus && typeof data.llmQuotaStatus === "object") {
-      if (self.llmQuotaStatus) {
-        applySnapshot(self.llmQuotaStatus, data.llmQuotaStatus as any);
-      } else {
-        self.llmQuotaStatus = data.llmQuotaStatus as any;
-      }
-    }
+  /**
+   * Remove an entity from a collection by __typename and id.
+   * Called by the proxy when a delete mutation succeeds (response is boolean true).
+   */
+  removeFromCollection(typeName: string, id: string) {
+    const COLLECTIONS: Record<string, any> = {
+      Shop: self.shops,
+      Surface: self.surfaces,
+      RunProfile: self.runProfiles,
+      ToolSpec: self.entitledTools,
+      PlatformApp: self.platformApps,
+      ServiceCredit: self.credits,
+    };
+    const target = COLLECTIONS[typeName];
+    if (!target) return;
+    const idx = target.findIndex((item: any) => item.id === id);
+    if (idx >= 0) target.splice(idx, 1);
   },
 
   /** Set the current user from auth REST routes (login/register/session). */

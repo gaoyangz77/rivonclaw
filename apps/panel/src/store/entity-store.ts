@@ -326,6 +326,11 @@ const PanelRootStoreModel = RootStoreModel.actions((self) => {
       return result.data!.redeemCredit as boolean;
     }),
 
+    /** Fire shops query to populate MST via Desktop proxy. */
+    fetchShops: flow(function* () {
+      yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+    }),
+
     /** Fire platform apps query to populate MST via Desktop proxy. */
     fetchPlatformApps: flow(function* () {
       yield client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" });

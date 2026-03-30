@@ -260,8 +260,9 @@ export const EcommercePage = observer(function EcommercePage() {
         cleanupOAuthWait();
         setConnectModalOpen(false);
         showToast(t("ecommerce.oauthSuccess"), "success");
-        // Shops auto-update via MST/SSE — no manual fetch needed
-        void data;
+        // Trigger shops refresh — OAuth callback creates the shop on backend,
+        // but Desktop proxy only sees data when Panel fires a query.
+        entityStore.fetchShops().catch(() => {});
       } catch {
         // Ignore malformed data
       }
@@ -282,7 +283,10 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleRefreshShops() {
     setRefreshing(true);
     try {
-      await handleFetchPlatformApps();
+      await Promise.all([
+        entityStore.fetchShops(),
+        handleFetchPlatformApps(),
+      ]);
     } finally {
       setRefreshing(false);
     }
