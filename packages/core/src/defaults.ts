@@ -6,10 +6,12 @@
  */
 export const DEFAULTS = {
   ports: {
-    gateway: 28789,
-    panel: 3210,
-    proxyRouter: 9999,
+    gateway: 0,
+    panel: 0,
+    proxyRouter: 0,
     panelDev: 5180,
+    /** Fixed port for the panel server in dev mode, so Vite's proxy target is stable. */
+    panelDevBackend: 3210,
     cdpOffset: 12,
   },
 

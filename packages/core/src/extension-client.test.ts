@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { extensionGraphqlFetch, extensionRestFetch } from "./extension-client.js";
+import { DEFAULTS } from "./defaults.js";
 
 const fetchSpy = vi.fn();
 
@@ -19,7 +20,7 @@ describe("extensionGraphqlFetch", () => {
 
     expect(fetchSpy).toHaveBeenCalledOnce();
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(url).toBe("http://127.0.0.1:3210/api/cloud/graphql");
+    expect(url).toBe(`http://127.0.0.1:${DEFAULTS.ports.panel}/api/cloud/graphql`);
     expect(init.method).toBe("POST");
     expect(init.headers).toEqual({ "Content-Type": "application/json" });
     expect(JSON.parse(init.body)).toEqual({ query: "query { hello }", variables: { id: "1" } });
@@ -63,7 +64,7 @@ describe("extensionRestFetch", () => {
 
     expect(fetchSpy).toHaveBeenCalledOnce();
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(url).toBe("http://127.0.0.1:3210/api/test");
+    expect(url).toBe(`http://127.0.0.1:${DEFAULTS.ports.panel}/api/test`);
     expect(init.headers).toEqual({ "Content-Type": "application/json" });
     expect(result).toEqual({ result: "ok" });
   });

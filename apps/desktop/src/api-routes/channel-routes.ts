@@ -524,7 +524,8 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
       const locale = (body.locale === "zh" ? "zh" : "en") as "zh" | "en";
       const confirmMsg = APPROVAL_MESSAGES[locale];
-      sendChannelMessage(body.channelId, request.id, confirmMsg, proxiedFetch).then(ok => {
+      const boundFetch = (url: string | URL, init?: RequestInit) => proxiedFetch(ctx.proxyRouterPort, url, init);
+      sendChannelMessage(body.channelId, request.id, confirmMsg, boundFetch).then(ok => {
         if (ok) log.info(`Sent approval confirmation to ${body.channelId} user ${request.id}`);
       });
     } catch (err) {

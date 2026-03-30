@@ -20,7 +20,7 @@ import {
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, findFreePort, DEFAULTS } from "@rivonclaw/core";
 import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -31,7 +31,6 @@ import { getDeviceId } from "@rivonclaw/device-id";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
-import { createConnection } from "node:net";
 import { existsSync, unlinkSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
@@ -80,7 +79,9 @@ function setDockIcon(): void {
   }
 }
 
-const PANEL_URL = process.env.PANEL_DEV_URL || `http://127.0.0.1:${resolvePanelPort()}`;
+// Late-bound: actual panel port is determined after startPanelServer() resolves.
+// PANEL_DEV_URL overrides dynamic allocation entirely (Vite dev server).
+let PANEL_URL = process.env.PANEL_DEV_URL || "";
 // Resolve Volcengine STT CLI script path.
 // In packaged app: bundled into Resources/.
 // In dev: resolve relative to the bundled output (apps/desktop/dist/) → packages/gateway/dist/.
@@ -447,6 +448,16 @@ app.whenReady().then(async () => {
     log.error("Failed to start proxy router:", err);
   });
 
+  // Resolve actual ports after services bind to OS-assigned ephemeral ports.
+  // Proxy router port is now known (server is listening).
+  const actualProxyRouterPort = proxyRouter.getPort();
+  log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
+
+  // Gateway port: use env override if set (nonzero), otherwise ask OS for a free port.
+  const envGatewayPort = resolveGatewayPort();
+  const actualGatewayPort = envGatewayPort !== 0 ? envGatewayPort : await findFreePort();
+  log.info(`Gateway will use port ${actualGatewayPort}`);
+
   // Initialize gateway launcher
   const stateDir = resolveOpenClawStateDir();
   resetDevicePairing(stateDir);
@@ -499,48 +510,23 @@ app.whenReady().then(async () => {
     storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath, filePermissionsPluginPath,
   });
 
-  writeGatewayConfig(await buildFullGatewayConfig());
+  writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
 
-  // Clean up any existing openclaw processes before starting.
-  // First do a fast TCP probe (~1ms) to check if the port is in use.
-  // Only run the expensive lsof/netstat cleanup when something is actually listening.
-  const portInUse = await new Promise<boolean>((resolve) => {
-    const sock = createConnection({ port: resolveGatewayPort(), host: "127.0.0.1" });
-    sock.once("connect", () => { sock.destroy(); resolve(true); });
-    sock.once("error", () => { resolve(false); });
-  });
-
-  if (portInUse) {
-    log.info(`Port ${resolveGatewayPort()} is in use, killing existing openclaw processes`);
-    try {
-      if (process.platform === "win32") {
-        // Find PIDs listening on the gateway port and kill their process trees
-        const netstatOut = execSync("netstat -ano", { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"], shell: "cmd.exe" });
-        const pids = new Set<string>();
-        for (const line of netstatOut.split("\n")) {
-          if (line.includes(`:${resolveGatewayPort()}`) && line.includes("LISTENING")) {
-            const parts = line.trim().split(/\s+/);
-            const pid = parts[parts.length - 1];
-            if (pid && /^\d+$/.test(pid)) pids.add(pid);
-          }
-        }
-        for (const pid of pids) {
-          try { execSync(`taskkill /T /F /PID ${pid}`, { stdio: "ignore", shell: "cmd.exe" }); } catch { }
-        }
-        // Also try by name as fallback for packaged openclaw binaries
-        try { execSync("taskkill /f /im openclaw-gateway.exe 2>nul & taskkill /f /im openclaw.exe 2>nul & exit /b 0", { stdio: "ignore", shell: "cmd.exe" }); } catch { }
-      } else {
-        execSync(`lsof -ti :${resolveGatewayPort()} | xargs kill -9 2>/dev/null || true`, { stdio: "ignore" });
-        // Use killall (~10ms) instead of pkill which can take 20-50s on macOS
-        // due to slow proc_info kernel calls when many processes are running.
-        execSync("killall -9 openclaw-gateway 2>/dev/null || true; killall -9 openclaw 2>/dev/null || true", { stdio: "ignore" });
-      }
-      log.info("Cleaned up existing openclaw processes");
-    } catch (err) {
-      log.warn("Failed to cleanup openclaw processes:", err);
+  // Clean up any stale openclaw processes before starting.
+  // With dynamic ports, orphaned processes won't block new instances,
+  // so we skip TCP port probing entirely. Only do process-name-based cleanup
+  // as a dev convenience (handles stale processes from previous runs).
+  try {
+    if (process.platform === "win32") {
+      try { execSync("taskkill /f /im openclaw-gateway.exe 2>nul & taskkill /f /im openclaw.exe 2>nul & exit /b 0", { stdio: "ignore", shell: "cmd.exe" }); } catch { }
+    } else {
+      // Use killall (~10ms) instead of pkill which can take 20-50s on macOS
+      // due to slow proc_info kernel calls when many processes are running.
+      execSync("killall -9 openclaw-gateway 2>/dev/null || true; killall -9 openclaw 2>/dev/null || true", { stdio: "ignore" });
     }
-  } else {
-    log.info("No existing openclaw process on port, skipping cleanup");
+    log.info("Cleaned up existing openclaw processes");
+  } catch (err) {
+    log.warn("Failed to cleanup openclaw processes:", err);
   }
 
   // Clean up stale gateway lock file (and kill owner) before starting.
@@ -576,6 +562,7 @@ app.whenReady().then(async () => {
     configPath,
     stateDir,
     deviceId,
+    gatewayPort: actualGatewayPort,
     storage,
     toolCapability: rootStore.toolCapability,
     ourPluginIds: OUR_PLUGIN_IDS,
@@ -594,7 +581,7 @@ app.whenReady().then(async () => {
       const token = auth?.token as string | undefined;
       if (!token) return null;
 
-      const port = (gw?.port as number) ?? resolveGatewayPort();
+      const port = (gw?.port as number) ?? actualGatewayPort;
       return {
         gatewayUrl: `http://127.0.0.1:${port}`,
         authToken: token,
@@ -636,7 +623,7 @@ app.whenReady().then(async () => {
     storage,
     launcher,
     writeGatewayConfig,
-    buildFullGatewayConfig,
+    buildFullGatewayConfig: () => buildFullGatewayConfig(actualGatewayPort),
     onCdpReady: (port) => {
       const stack = sessionStateStackRef;
       if (!stack) {
@@ -1060,14 +1047,21 @@ app.whenReady().then(async () => {
     ? join(process.resourcesPath, "panel-dist")
     : resolve(__dirname, "../../panel/dist");
   const changelogPath = resolve(__dirname, "../changelog.json");
-  startPanelServer({
-    port: resolvePanelPort(),
+  // In dev mode, use fixed port so Vite's proxy can find us.
+  // In production, use OS-assigned port (0) for conflict-free startup.
+  const requestedPanelPort = process.env.PANEL_DEV_URL
+    ? DEFAULTS.ports.panelDevBackend
+    : resolvePanelPort();
+  const { port: actualPanelPort } = await startPanelServer({
+    port: requestedPanelPort,
     panelDistDir,
     changelogPath,
     vendorDir,
     nodeBin: process.execPath,
     storage,
     secretStore,
+    proxyRouterPort: actualProxyRouterPort,
+    gatewayPort: actualGatewayPort,
     deviceId,
     getUpdateResult: () => {
       const info = updater.getLatestInfo();
@@ -1087,7 +1081,7 @@ app.whenReady().then(async () => {
     getGatewayInfo: () => {
       const config = readExistingConfig(configPath);
       const gw = config.gateway as Record<string, unknown> | undefined;
-      const port = (gw?.port as number) ?? resolveGatewayPort();
+      const port = (gw?.port as number) ?? actualGatewayPort;
       const auth = gw?.auth as Record<string, unknown> | undefined;
       const token = auth?.token as string | undefined;
       return { wsUrl: `ws://127.0.0.1:${port}`, token };
@@ -1188,7 +1182,7 @@ app.whenReady().then(async () => {
       applyAutoLaunch(enabled);
     },
     onOAuthAcquire: async (provider: string) => {
-      const proxyRouterUrl = `http://127.0.0.1:${resolveProxyRouterPort()}`;
+      const proxyRouterUrl = `http://127.0.0.1:${actualProxyRouterPort}`;
       const flowId = randomUUID();
 
       if (provider === "openai-codex") {
@@ -1290,7 +1284,7 @@ app.whenReady().then(async () => {
         return { email: creds.email, tokenPreview: creds.tokenPreview };
       }
 
-      const proxyRouterUrl = `http://127.0.0.1:${resolveProxyRouterPort()}`;
+      const proxyRouterUrl = `http://127.0.0.1:${actualProxyRouterPort}`;
 
       if (provider === "openai-codex") {
         // Resolve the manual input promise — the vendor's loginOpenAICodex handles the rest
@@ -1349,7 +1343,7 @@ app.whenReady().then(async () => {
         }
       }
 
-      const validationProxy = options.proxyUrl?.trim() || `http://127.0.0.1:${resolveProxyRouterPort()}`;
+      const validationProxy = options.proxyUrl?.trim() || `http://127.0.0.1:${actualProxyRouterPort}`;
       let result: OAuthFlowResult;
       let activeProvider: string;
 
@@ -1385,7 +1379,7 @@ app.whenReady().then(async () => {
       storage.settings.set("llm-provider", activeProvider);
       await syncAllAuthProfiles(stateDir, storage, secretStore);
       await writeProxyRouterConfig(storage, secretStore, lastSystemProxy);
-      writeGatewayConfig(await buildFullGatewayConfig());
+      writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
 
       // Sync MST state (FIX: OAuth save was missing MST update)
       const oauthMstKeys = await allKeysToMstSnapshots(storage.providerKeys.getAll(), secretStore);
@@ -1425,6 +1419,12 @@ app.whenReady().then(async () => {
     authSession,
   });
 
+  // Now that the panel server is bound, set the actual URL for BrowserWindow.
+  if (!process.env.PANEL_DEV_URL) {
+    PANEL_URL = `http://127.0.0.1:${actualPanelPort}`;
+  }
+  log.info(`Panel URL: ${PANEL_URL}`);
+
   // Sync auth profiles + build env, then start gateway.
   // System proxy and proxy router config were already written before proxyRouter.start().
   const workspacePath = stateDir;
@@ -1442,7 +1442,7 @@ app.whenReady().then(async () => {
    * Centralised so every restart path gets --require proxy-setup.cjs.
    */
   function buildFullProxyEnv(): Record<string, string> {
-    const env = buildProxyEnv();
+    const env = buildProxyEnv(actualProxyRouterPort);
     env.NODE_OPTIONS = gatewayNodeOptions;
     return env;
   }
@@ -1454,7 +1454,7 @@ app.whenReady().then(async () => {
     launcher,
     stateDir,
     workspacePath,
-    buildFullGatewayConfig,
+    buildFullGatewayConfig: () => buildFullGatewayConfig(actualGatewayPort),
     writeGatewayConfig,
     buildFullProxyEnv,
     sttManager,
@@ -1488,7 +1488,7 @@ app.whenReady().then(async () => {
       // Debug: Log which API keys are configured (without showing values)
       const configuredKeys = Object.keys(secretEnv).filter(k => k.endsWith('_API_KEY') || k.endsWith('_OAUTH_TOKEN'));
       log.info(`Initial API keys: ${configuredKeys.join(', ') || '(none)'}`);
-      log.info(`Proxy router: http://127.0.0.1:${resolveProxyRouterPort()} (dynamic routing enabled)`);
+      log.info(`Proxy router: http://127.0.0.1:${actualProxyRouterPort} (dynamic routing enabled)`);
 
       // Log file permissions status (without showing paths)
       if (secretEnv.RIVONCLAW_FILE_PERMISSIONS) {

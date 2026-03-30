@@ -1,5 +1,8 @@
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import type { LLMProvider } from "@rivonclaw/core";
 import { getDefaultModelForProvider, reconstructProxyUrl, formatError } from "@rivonclaw/core";
+import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { readFullModelCatalog } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels } from "../providers/provider-validator.js";
@@ -8,6 +11,58 @@ import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody } from "./route-utils.js";
 
 const log = createLogger("panel-server");
+
+/**
+ * Check whether the active session's token usage risks exceeding the new
+ * model's context window (>80% of capacity). Returns a warning object when
+ * the risk is detected, or `undefined` otherwise.
+ *
+ * Failures are silently swallowed — this is advisory-only and must never
+ * block the model switch.
+ */
+async function checkContextOverflowRisk(
+  newModelId: string,
+  provider: string,
+  vendorDir: string | undefined,
+): Promise<{ currentTokens: number; newContextWindow: number } | undefined> {
+  try {
+    // 1. Read the active session's totalTokens from sessions.json
+    const storePath = join(resolveAgentSessionsDir(), "sessions.json");
+    if (!existsSync(storePath)) return undefined;
+
+    const store = JSON.parse(readFileSync(storePath, "utf-8")) as
+      Record<string, { totalTokens?: number }>;
+
+    // Find the maximum totalTokens across all sessions — the "main" session
+    // is typically the one that matters, but the key name is opaque. Using
+    // the max is a safe heuristic.
+    let currentTokens = 0;
+    for (const entry of Object.values(store)) {
+      if (typeof entry.totalTokens === "number" && entry.totalTokens > currentTokens) {
+        currentTokens = entry.totalTokens;
+      }
+    }
+
+    if (currentTokens === 0) return undefined;
+
+    // 2. Look up the new model's contextWindow from the catalog
+    const catalog = await readFullModelCatalog(undefined, vendorDir);
+    const providerModels = catalog[provider];
+    if (!providerModels) return undefined;
+
+    const modelEntry = providerModels.find((m) => m.id === newModelId);
+    if (!modelEntry?.contextWindow) return undefined;
+
+    // 3. Warn if usage exceeds 80% of the new model's context window
+    if (currentTokens > modelEntry.contextWindow * 0.8) {
+      return { currentTokens, newContextWindow: modelEntry.contextWindow };
+    }
+
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
   const { storage, secretStore, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, snapshotEngine } = ctx;
@@ -72,14 +127,14 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
         return true;
       }
       const validation = await validateCustomProviderApiKey(
-        body.baseUrl, body.apiKey!, body.customProtocol, models[0], body.proxyUrl || undefined,
+        body.baseUrl, body.apiKey!, body.customProtocol, models[0], ctx.proxyRouterPort, body.proxyUrl || undefined,
       );
       if (!validation.valid) {
         sendJson(res, 422, { error: validation.error || "Invalid API key" });
         return true;
       }
     } else if (!isLocal) {
-      const validation = await validateProviderApiKey(body.provider, body.apiKey!, body.proxyUrl || undefined, body.model || undefined);
+      const validation = await validateProviderApiKey(body.provider, body.apiKey!, ctx.proxyRouterPort, body.proxyUrl || undefined, body.model || undefined);
       if (!validation.valid) {
         sendJson(res, 422, { error: validation.error || "Invalid API key" });
         return true;
@@ -175,7 +230,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       proxyUrl = credentials ? reconstructProxyUrl(entry.proxyBaseUrl, credentials) : entry.proxyBaseUrl;
     }
 
-    const result = await fetchCustomProviderModels(entry.baseUrl, apiKey, proxyUrl);
+    const result = await fetchCustomProviderModels(entry.baseUrl, apiKey, ctx.proxyRouterPort, proxyUrl);
     if (result.error) {
       sendJson(res, 422, { error: result.error });
       return true;
@@ -232,7 +287,16 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           await snapshotEngine.recordActivation(existing.id, existing.provider, body.model);
         }
 
-        sendJson(res, 200, updated);
+        const response: Record<string, unknown> = { ...updated };
+
+        if (modelChanging && existing.isDefault && body.model) {
+          const warning = await checkContextOverflowRisk(body.model, existing.provider, vendorDir);
+          if (warning) {
+            response.contextWarning = warning;
+          }
+        }
+
+        sendJson(res, 200, response);
         return true;
       }
 
@@ -268,7 +332,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       sendJson(res, 400, { error: "Model fetching is only supported for OpenAI-compatible providers" });
       return true;
     }
-    const result = await fetchCustomProviderModels(body.baseUrl, body.apiKey, body.proxyUrl || undefined);
+    const result = await fetchCustomProviderModels(body.baseUrl, body.apiKey, ctx.proxyRouterPort, body.proxyUrl || undefined);
     if (result.error) {
       sendJson(res, 422, { error: result.error });
       return true;

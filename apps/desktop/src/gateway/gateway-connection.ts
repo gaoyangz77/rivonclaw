@@ -1,7 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { GatewayRpcClient, readExistingConfig } from "@rivonclaw/gateway";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
-import { resolveGatewayPort, getCsRelayWsUrl } from "@rivonclaw/core";
+import { getCsRelayWsUrl } from "@rivonclaw/core";
 import type { CatalogTool } from "@rivonclaw/core";
 import { join } from "node:path";
 import { setRpcClient, getRpcClient } from "./rpc-client-ref.js";
@@ -24,6 +24,7 @@ export interface GatewayConnectionDeps {
   configPath: string;
   stateDir: string;
   deviceId: string;
+  gatewayPort: number;
   storage: {
     mobilePairings: {
       getAllPairings(): Array<{
@@ -60,6 +61,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
     configPath,
     stateDir,
     deviceId,
+    gatewayPort,
     storage,
     toolCapability,
     dispatchGatewayEvent,
@@ -68,7 +70,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
 
   const config = readExistingConfig(configPath);
   const gw = config.gateway as Record<string, unknown> | undefined;
-  const port = (gw?.port as number) ?? resolveGatewayPort();
+  const port = (gw?.port as number) ?? gatewayPort;
   const auth = gw?.auth as Record<string, unknown> | undefined;
   const token = auth?.token as string | undefined;
 

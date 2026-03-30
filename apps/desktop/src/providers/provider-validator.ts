@@ -1,5 +1,5 @@
 import { createLogger } from "@rivonclaw/logger";
-import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, resolveProxyRouterPort, getAnthropicMessagesUrl } from "@rivonclaw/core";
+import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, getAnthropicMessagesUrl } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -23,6 +23,7 @@ function resolveValidationModel(provider: LLMProvider, userModel?: string): stri
 export async function validateProviderApiKey(
   provider: string,
   apiKey: string,
+  proxyRouterPort: number,
   proxyUrl?: string,
   userModel?: string,
 ): Promise<{ valid: boolean; error?: string }> {
@@ -47,7 +48,7 @@ export async function validateProviderApiKey(
 
   // Priority: per-key proxy > proxy router (system proxy) > direct
   const { ProxyAgent } = await import("undici");
-  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${resolveProxyRouterPort()}`);
+  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${proxyRouterPort}`);
 
   try {
     let res: Response;
@@ -186,13 +187,14 @@ export async function validateCustomProviderApiKey(
   apiKey: string,
   protocol: "openai" | "anthropic",
   model: string,
+  proxyRouterPort: number,
   proxyUrl?: string,
 ): Promise<{ valid: boolean; error?: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
   const { ProxyAgent } = await import("undici");
-  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${resolveProxyRouterPort()}`);
+  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${proxyRouterPort}`);
 
   try {
     let res: Response;
@@ -274,13 +276,14 @@ export async function validateCustomProviderApiKey(
 export async function fetchCustomProviderModels(
   baseUrl: string,
   apiKey: string,
+  proxyRouterPort: number,
   proxyUrl?: string,
 ): Promise<{ models?: string[]; error?: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
 
   const { ProxyAgent } = await import("undici");
-  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${resolveProxyRouterPort()}`);
+  const dispatcher: any = new ProxyAgent(proxyUrl || `http://127.0.0.1:${proxyRouterPort}`);
 
   // Normalize baseUrl: ensure it ends with /v1 and append /models
   let normalized = baseUrl.trim().replace(/\/+$/, "");

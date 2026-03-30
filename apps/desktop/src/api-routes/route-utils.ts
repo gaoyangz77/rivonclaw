@@ -2,7 +2,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
-import { resolveProxyRouterPort } from "@rivonclaw/core";
 import { resolveUserSkillsDir, resolveAgentSessionsDir } from "@rivonclaw/core/node";
 
 const log = createLogger("panel-server");
@@ -49,9 +48,9 @@ export function extractIdFromPath(pathname: string, prefix: string): string | nu
  * Fetch through local proxy router so GFW-blocked APIs (Telegram, LINE, etc.)
  * can reach their targets via the system proxy.
  */
-export async function proxiedFetch(url: string | URL, init?: RequestInit): Promise<Response> {
+export async function proxiedFetch(proxyRouterPort: number, url: string | URL, init?: RequestInit): Promise<Response> {
   const { ProxyAgent } = await import("undici");
-  return fetch(url, { ...init, dispatcher: new ProxyAgent(`http://127.0.0.1:${resolveProxyRouterPort()}`) as any });
+  return fetch(url, { ...init, dispatcher: new ProxyAgent(`http://127.0.0.1:${proxyRouterPort}`) as any });
 }
 
 /**

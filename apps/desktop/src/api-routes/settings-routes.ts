@@ -1,6 +1,6 @@
 import { writeFileSync, existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
-import { resolveGatewayPort, getApiBaseUrl } from "@rivonclaw/core";
+import { getApiBaseUrl } from "@rivonclaw/core";
 import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
 import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, syncPermissions } from "@rivonclaw/gateway";
 import type { RouteHandler } from "./api-context.js";
@@ -40,7 +40,7 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
   // --- Gateway Info ---
   if (pathname === "/api/app/gateway-info" && req.method === "GET") {
     const info = getGatewayInfo?.();
-    sendJson(res, 200, info ?? { wsUrl: `ws://127.0.0.1:${resolveGatewayPort()}` });
+    sendJson(res, 200, info ?? { wsUrl: `ws://127.0.0.1:${ctx.gatewayPort}` });
     return true;
   }
 
@@ -75,7 +75,7 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
       sendJson(res, 400, { valid: false, error: "Missing provider or apiKey" });
       return true;
     }
-    const result = await validateProviderApiKey(body.provider, body.apiKey, body.proxyUrl || undefined, body.model || undefined);
+    const result = await validateProviderApiKey(body.provider, body.apiKey, ctx.proxyRouterPort, body.proxyUrl || undefined, body.model || undefined);
     sendJson(res, 200, result);
     return true;
   }
@@ -88,7 +88,7 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
       return true;
     }
     const result = await validateCustomProviderApiKey(
-      body.baseUrl, body.apiKey, body.protocol as "openai" | "anthropic", body.model,
+      body.baseUrl, body.apiKey, body.protocol as "openai" | "anthropic", body.model, ctx.proxyRouterPort,
     );
     sendJson(res, 200, result);
     return true;

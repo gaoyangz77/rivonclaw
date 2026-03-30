@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { LLMProvider } from "@rivonclaw/core";
-import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, resolveGatewayPort, getOllamaOpenAiBaseUrl } from "@rivonclaw/core";
+import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, getOllamaOpenAiBaseUrl } from "@rivonclaw/core";
 import { resolveUserSkillsDir } from "@rivonclaw/core/node";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
 import type { Storage } from "@rivonclaw/storage";
@@ -104,7 +104,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return { compiledPolicy: policyFragments.join("\n"), guards };
   }
 
-  async function buildFullGatewayConfig(overrides?: { toolAllowlist?: string[] }): Promise<Parameters<typeof writeGatewayConfig>[0]> {
+  async function buildFullGatewayConfig(gatewayPort: number, overrides?: { toolAllowlist?: string[] }): Promise<Parameters<typeof writeGatewayConfig>[0]> {
     const activeKey = storage.providerKeys.getActive();
     const curProvider = activeKey?.provider as LLMProvider | undefined;
     const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
@@ -137,7 +137,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
 
     return {
       configPath,
-      gatewayPort: resolveGatewayPort(),
+      gatewayPort,
       enableChatCompletions: true,
       commandsRestart: true,
       enableFilePermissions: true,

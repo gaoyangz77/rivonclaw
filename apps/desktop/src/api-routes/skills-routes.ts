@@ -88,7 +88,7 @@ export const handleSkillsRoutes: RouteHandler = async (req, res, url, pathname, 
     const downloadUrl = `${apiBase}/api/skills/${encodeURIComponent(body.slug)}/download`;
 
     try {
-      const response = await proxiedFetch(downloadUrl, {
+      const response = await proxiedFetch(ctx.proxyRouterPort, downloadUrl, {
         signal: AbortSignal.timeout(30_000),
       });
       if (!response.ok) {

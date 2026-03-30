@@ -97,12 +97,6 @@ const mockSecretStore = {
   delete: async (key: string) => { secretMap.delete(key); },
 };
 
-function getPort(srv: Server): number {
-  const addr = srv.address();
-  if (addr && typeof addr === "object") return addr.port;
-  throw new Error("Server not listening");
-}
-
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<{ status: number; body: T }> {
   const res = await fetch(panelBaseUrl + path, {
     headers: { "Content-Type": "application/json" },
@@ -138,21 +132,21 @@ beforeAll(async () => {
   });
 
   // 4. Start panel server
-  panelServer = startPanelServer({
+  const panelResult = await startPanelServer({
     port: 0,
     panelDistDir: "/tmp/nonexistent-panel-dist",
     storage,
     secretStore: mockSecretStore as any,
+    proxyRouterPort: 18881,
+    gatewayPort: 18882,
     onRuleChange: () => {},
     onProviderChange: () => {},
     vendorDir: "/tmp/nonexistent-vendor",
     nodeBin: process.execPath,
   });
 
-  await new Promise<void>((resolve) => {
-    panelServer.on("listening", resolve);
-  });
-  panelBaseUrl = `http://127.0.0.1:${getPort(panelServer)}`;
+  panelServer = panelResult.server;
+  panelBaseUrl = `http://127.0.0.1:${panelResult.port}`;
 });
 
 afterAll(async () => {

@@ -8,15 +8,6 @@ let storage: Storage;
 let baseUrl: string;
 const ruleChanges: Array<{ action: string; ruleId: string }> = [];
 
-/**
- * Helper to find the randomly-assigned port after the server starts listening.
- */
-function getPort(srv: Server): number {
-  const addr = srv.address();
-  if (addr && typeof addr === "object") return addr.port;
-  throw new Error("Server not listening");
-}
-
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<{ status: number; body: T }> {
   const res = await fetch(baseUrl + path, {
     headers: { "Content-Type": "application/json" },
@@ -29,24 +20,22 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<{ status:
 beforeAll(async () => {
   storage = createStorage(":memory:");
 
-  server = startPanelServer({
+  const result = await startPanelServer({
     port: 0, // random port
     panelDistDir: "/tmp/nonexistent-panel-dist", // no static files needed for API tests
     storage,
     secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
     vendorDir: "/tmp/nonexistent-vendor",
     nodeBin: process.execPath,
+    proxyRouterPort: 18881,
+    gatewayPort: 18882,
     onRuleChange: (action, ruleId) => {
       ruleChanges.push({ action, ruleId });
     },
   });
 
-  // Wait for server to start listening
-  await new Promise<void>((resolve) => {
-    server.on("listening", resolve);
-  });
-
-  baseUrl = `http://127.0.0.1:${getPort(server)}`;
+  server = result.server;
+  baseUrl = `http://127.0.0.1:${result.port}`;
 });
 
 afterAll(async () => {

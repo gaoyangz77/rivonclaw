@@ -653,11 +653,11 @@ describe("config-writer", () => {
   describe("ensureGatewayConfig", () => {
     it("creates default config when no file exists", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      const result = ensureGatewayConfig({ configPath });
+      const result = ensureGatewayConfig({ configPath, gatewayPort: 18789 });
 
       expect(result).toBe(configPath);
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.gateway.port).toBe(DEFAULT_GATEWAY_PORT);
+      expect(config.gateway.port).toBe(18789);
       // ensureGatewayConfig enables file permissions plugin by default
       expect(config.plugins.entries["rivonclaw-file-permissions"].enabled).toBe(true);
       expect(config.plugins.load.paths[0]).toContain("rivonclaw-file-permissions.mjs");
@@ -775,8 +775,8 @@ describe("config-writer", () => {
   });
 
   describe("DEFAULT_GATEWAY_PORT", () => {
-    it("is 28789", () => {
-      expect(DEFAULT_GATEWAY_PORT).toBe(28789);
+    it("is 0 (OS-assigned at runtime)", () => {
+      expect(DEFAULT_GATEWAY_PORT).toBe(0);
     });
   });
 

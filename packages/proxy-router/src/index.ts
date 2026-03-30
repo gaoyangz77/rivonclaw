@@ -1,4 +1,4 @@
-import { createServer, Socket, type Server as NetServer } from "node:net";
+import { createServer, Socket, type Server as NetServer, type AddressInfo } from "node:net";
 import { readFileSync, existsSync, watch, type FSWatcher } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveProxyRouterPort } from "@rivonclaw/core";
@@ -26,6 +26,14 @@ export class ProxyRouter {
   }
 
   /**
+   * Return the actual port the server is bound to.
+   * Useful when the server was started with port 0 (OS-assigned).
+   */
+  getPort(): number {
+    return (this.server?.address() as AddressInfo)?.port ?? 0;
+  }
+
+  /**
    * Start the proxy router server.
    */
   async start(): Promise<void> {
@@ -42,7 +50,7 @@ export class ProxyRouter {
 
     await new Promise<void>((resolve, reject) => {
       this.server!.listen(this.options.port, "127.0.0.1", () => {
-        log.info(`Proxy router listening on 127.0.0.1:${this.options.port}`);
+        log.info(`Proxy router listening on 127.0.0.1:${this.getPort()}`);
         resolve();
       });
       this.server!.on("error", reject);

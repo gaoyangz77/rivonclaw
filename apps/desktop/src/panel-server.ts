@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import type { ServerResponse, Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { readFileSync, existsSync, statSync, watch } from "node:fs";
 import { join, extname, resolve, normalize } from "node:path";
 import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl } from "@rivonclaw/core";
@@ -104,7 +105,7 @@ const PAIRING_MESSAGES = {
   ].join("\n"),
 };
 
-function startPairingNotifier(): { stop: () => void } {
+function startPairingNotifier(proxyRouterPort: number): { stop: () => void } {
   const credentialsDir = resolveCredentialsDir();
   const knownCodes = new Set<string>();
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -146,7 +147,8 @@ function startPairingNotifier(): { stop: () => void } {
 
           const message = PAIRING_MESSAGES[getSystemLocale()];
           log.info(`Sending pairing follow-up to ${channelId} user ${req.id}`);
-          sendChannelMessage(channelId, req.id, message, proxiedFetch);
+          const boundFetch = (url: string | URL, init?: RequestInit) => proxiedFetch(proxyRouterPort, url, init);
+          sendChannelMessage(channelId, req.id, message, boundFetch);
           pushChatSSE("pairing-update", { channelId });
         }
       }
@@ -190,6 +192,8 @@ export interface PanelServerOptions {
   panelDistDir: string;
   storage: Storage;
   secretStore: SecretStore;
+  proxyRouterPort: number;
+  gatewayPort: number;
   onRuleChange?: (action: "created" | "updated" | "deleted" | "channel-created" | "channel-deleted", ruleId: string) => void;
   onProviderChange?: (hint?: { configOnly?: boolean; keyOnly?: boolean }) => void;
   onOpenFileDialog?: () => Promise<string | null>;
@@ -259,11 +263,15 @@ const routeHandlers: RouteHandler[] = [
 /**
  * Create and start a local HTTP server that serves the panel SPA
  * and provides REST API endpoints backed by real storage.
+ *
+ * Returns a promise that resolves once the server is bound, providing
+ * the Server instance and the actual port (useful when port 0 is used
+ * for OS-assigned dynamic allocation).
  */
-export function startPanelServer(options: PanelServerOptions): Server {
-  const port = options.port ?? resolvePanelPort();
+export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
+  const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
+  const { storage, secretStore, proxyRouterPort, gatewayPort, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -329,11 +337,12 @@ export function startPanelServer(options: PanelServerOptions): Server {
   }
 
   // Start pairing notifier
-  const pairingNotifier = startPairingNotifier();
+  const pairingNotifier = startPairingNotifier(proxyRouterPort);
 
   // Build the ApiContext object passed to all route handlers
   const ctx: ApiContext = {
-    storage, secretStore, onRuleChange, onProviderChange, onOpenFileDialog,
+    storage, secretStore, proxyRouterPort, gatewayPort,
+    onRuleChange, onProviderChange, onOpenFileDialog,
     sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange,
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
@@ -344,7 +353,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
   };
 
   const server = createServer(async (req, res) => {
-    const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+    const url = new URL(req.url ?? "/", `http://127.0.0.1:${requestedPort}`);
     const pathname = url.pathname;
 
     // CORS headers
@@ -472,13 +481,18 @@ export function startPanelServer(options: PanelServerOptions): Server {
     serveStatic(res, distDir, pathname);
   });
 
-  server.listen(port, "127.0.0.1", () => {
-    log.info("Panel server listening on http://127.0.0.1:" + port);
-  });
-
   server.on("close", () => pairingNotifier.stop());
 
-  return server;
+  const actualPort = await new Promise<number>((resolve, reject) => {
+    server.listen(requestedPort, "127.0.0.1", () => {
+      const addr = server.address() as AddressInfo;
+      log.info(`Panel server listening on http://127.0.0.1:${addr.port}`);
+      resolve(addr.port);
+    });
+    server.on("error", reject);
+  });
+
+  return { server, port: actualPort };
 }
 
 function serveStatic(

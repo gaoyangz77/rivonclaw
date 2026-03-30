@@ -155,6 +155,7 @@ export {
 } from "./endpoints.js";
 
 export {
+  findFreePort,
   DEFAULT_GATEWAY_PORT,
   CDP_PORT_OFFSET,
   DEFAULT_PANEL_PORT,

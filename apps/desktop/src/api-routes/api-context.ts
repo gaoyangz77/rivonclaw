@@ -12,6 +12,8 @@ import type { CloudClient } from "../clients/cloud-client.js";
 export interface ApiContext {
   storage: Storage;
   secretStore: SecretStore;
+  proxyRouterPort: number;
+  gatewayPort: number;
   onRuleChange?: (action: "created" | "updated" | "deleted" | "channel-created" | "channel-deleted", ruleId: string) => void;
   onProviderChange?: (hint?: { configOnly?: boolean; keyOnly?: boolean }) => void;
   onOpenFileDialog?: () => Promise<string | null>;

@@ -1,7 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { session } from "electron";
 import type { ProxyRouterConfig } from "@rivonclaw/proxy-router";
-import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, resolveProxyRouterPort, CHANNEL_NO_PROXY_DOMAINS } from "@rivonclaw/core";
+import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, CHANNEL_NO_PROXY_DOMAINS } from "@rivonclaw/core";
 import { resolveProxyRouterConfigPath } from "@rivonclaw/core/node";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -143,8 +143,8 @@ export async function writeProxyRouterConfig(
  * GFW-blocked channel domains (Telegram, Discord, Slack, LINE) go through
  * the proxy router so the system proxy can route them out.
  */
-export function buildProxyEnv(): Record<string, string> {
-  const localProxyUrl = `http://127.0.0.1:${resolveProxyRouterPort()}`;
+export function buildProxyEnv(proxyRouterPort: number): Record<string, string> {
+  const localProxyUrl = `http://127.0.0.1:${proxyRouterPort}`;
   const noProxy = [
     "localhost",
     "127.0.0.1",
