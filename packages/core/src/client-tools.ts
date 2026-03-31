@@ -98,7 +98,10 @@ export function getClientToolSpecs(): ToolSpec[] {
     operationType: def.operationType ?? "local",
     surfaces: def.surfaces,
     runProfiles: def.runProfiles,
-    parameters: [],
+    // Client tools use TypeBox schemas (Record<string, unknown>), not ToolParamSpec[].
+    // The gateway reads parameters directly from the TypeBox schema at registration time,
+    // so ToolSpec.parameters is not consumed for client tools. Cast to satisfy the type.
+    parameters: (def.parameters ?? []) as unknown as ToolSpec["parameters"],
     contextBindings: def.contextBindings,
     supportedPlatforms: def.supportedPlatforms,
     graphqlOperation: undefined,
