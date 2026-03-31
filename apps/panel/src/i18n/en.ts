@@ -1588,6 +1588,7 @@ export default {
         // E-commerce CS — Escalation
         cs_escalate: "Escalate",
         cs_continue: "Continue (Resume)",
+        cs_get_escalation_result: "Get Escalation Result",
         cs_start_session: "Start Session",
         // E-commerce Shop Management
         ECOMMERCE_LIST_SHOPS: "List Shops",

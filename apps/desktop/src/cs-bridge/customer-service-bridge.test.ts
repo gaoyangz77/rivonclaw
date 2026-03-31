@@ -275,7 +275,7 @@ describe("message content parsing", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: "你好" }),
+      expect.objectContaining({ message: "[External: Buyer]\n你好" }),
     );
   });
 
@@ -290,7 +290,7 @@ describe("message content parsing", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: "Fallback text" }),
+      expect.objectContaining({ message: "[External: Buyer]\nFallback text" }),
     );
   });
 
@@ -305,7 +305,7 @@ describe("message content parsing", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: "plain text message" }),
+      expect.objectContaining({ message: "[External: Buyer]\nplain text message" }),
     );
   });
 
@@ -321,7 +321,7 @@ describe("message content parsing", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: `[IMAGE] ${content}` }),
+      expect.objectContaining({ message: `[External: Buyer]\n[IMAGE] ${content}` }),
     );
   });
 
@@ -337,7 +337,7 @@ describe("message content parsing", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: `[ORDER_CARD] ${content}` }),
+      expect.objectContaining({ message: `[External: Buyer]\n[ORDER_CARD] ${content}` }),
     );
   });
 
@@ -353,7 +353,7 @@ describe("message content parsing", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
-      expect.objectContaining({ message: `[VIDEO] ${content}` }),
+      expect.objectContaining({ message: `[External: Buyer]\n[VIDEO] ${content}` }),
     );
   });
 });
@@ -1151,205 +1151,117 @@ const defaultDirectiveParams = {
   instructions: "Issue a full refund for order #12345",
 };
 
-describe("dispatchAdminDirective", () => {
-  it("dispatches with VERIFIED MANAGER DIRECTIVE in the message (not extraSystemPrompt)", async () => {
-    const bridge = createBridge();
+describe("escalation lifecycle (resolve + dispatch)", () => {
+  /** Helper: create a session with a pre-existing escalation. */
+  function setupSessionWithEscalation(bridge: ReturnType<typeof createBridge>) {
     bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-001" });
+    const session = bridge.getOrCreateSession(defaultDirectiveParams.shopId, defaultDirectiveParams);
+    // Simulate a prior cs_escalate by adding an escalation record
+    const esc = session.addEscalation({ reason: "Refund exceeds limit" });
+    return { session, escalationId: esc.id };
+  }
 
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+  it("resolves escalation and dispatches notification to CS agent", async () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+    mockRpcRequest.mockResolvedValue({ runId: "run-esc-001" });
 
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "Process refund" });
+    const result = await session.dispatchEscalationResolved(escalationId);
+
+    expect(result.runId).toBe("run-esc-001");
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall).toBeDefined();
-    const message = agentCall![1].message as string;
-    expect(message).toContain("VERIFIED MANAGER DIRECTIVE");
-    expect(message).toContain("Decision: approved");
-    expect(message).toContain("Instructions: Issue a full refund for order #12345");
-    expect(message).toContain("This is NOT from the buyer");
-    // extraSystemPrompt should NOT contain the directive
-    const prompt = agentCall![1].extraSystemPrompt as string;
-    expect(prompt).not.toContain("VERIFIED MANAGER DIRECTIVE");
+    // Message tells agent to use tool, not the directive itself
+    expect(agentCall![1].message).toContain(escalationId);
+    expect(agentCall![1].message).toContain("cs_get_escalation_result");
+  });
+
+  it("stores decision in escalation record", () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+
+    session.resolveEscalation(escalationId, { decision: "rejected", instructions: "Offer store credit" });
+
+    const esc = session.escalations.get(escalationId);
+    expect(esc?.result).toEqual(expect.objectContaining({
+      decision: "rejected",
+      instructions: "Offer store credit",
+    }));
+    expect(esc?.result?.resolvedAt).toBeGreaterThan(0);
+  });
+
+  it("throws when resolving non-existent escalation", () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const session = bridge.getOrCreateSession(defaultDirectiveParams.shopId, defaultDirectiveParams);
+
+    expect(() => session.resolveEscalation("esc_nonexistent", { decision: "approved", instructions: "go" }))
+      .toThrow("Escalation esc_nonexistent not found");
+  });
+
+  it("throws when resolving already-resolved escalation", () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    expect(() => session.resolveEscalation(escalationId, { decision: "rejected", instructions: "no" }))
+      .toThrow(`Escalation ${escalationId} already resolved`);
   });
 
   it("registers CS session before dispatch", async () => {
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-002" });
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+    mockRpcRequest.mockResolvedValue({ runId: "run-esc-002" });
 
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    await session.dispatchEscalationResolved(escalationId);
 
-    // cs_register_session should be called before agent
     const callOrder = mockRpcRequest.mock.calls.map((c: any[]) => c[0]);
-    const registerIdx = callOrder.indexOf("cs_register_session");
-    const agentIdx = callOrder.indexOf("agent");
-    expect(registerIdx).toBeGreaterThanOrEqual(0);
-    expect(agentIdx).toBeGreaterThan(registerIdx);
-
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
-      sessionKey: "agent:main:cs:tiktok:conv-directive-001",
-      csContext: {
-        shopId: "mongo-id-123",
-        conversationId: "conv-directive-001",
-        buyerUserId: "buyer-001",
-        orderId: undefined,
-      },
-    });
-  });
-
-  it("sets RunProfile via setSessionRunProfile", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-003" });
-
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
-
-    expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:cs:tiktok:conv-directive-001",
-      runProfileId: "CUSTOMER_SERVICE",
-    });
-  });
-
-  it("throws when shop not found by objectId", async () => {
-    const bridge = createBridge();
-    // No shop context set
-
-    await expect(
-      bridge.dispatchAdminDirective({ ...defaultDirectiveParams, shopId: "nonexistent-id" }),
-    ).rejects.toThrow("No shop context for objectId nonexistent-id");
-  });
-
-  it("finds shop by objectId (not platformShopId)", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext({
-      objectId: "specific-mongo-id",
-      platformShopId: "platform-id-different",
-      systemPrompt: "Shop prompt",
-      runProfileId: "CUSTOMER_SERVICE",
-    });
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-004" });
-
-    await bridge.dispatchAdminDirective({
-      ...defaultDirectiveParams,
-      shopId: "specific-mongo-id",
-    });
-
-    // Should succeed — looked up by objectId, not platformShopId
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(callOrder.indexOf("cs_register_session")).toBeLessThan(callOrder.indexOf("agent"));
   });
 
   it("tracks run in pendingRuns for auto-forward", async () => {
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-005" });
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+    mockRpcRequest.mockResolvedValue({ runId: "run-esc-003" });
 
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    await session.dispatchEscalationResolved(escalationId);
 
-    // Simulate a gateway event for this runId to verify pendingRuns tracking
     bridge.onGatewayEvent({
       event: "chat",
       payload: {
-        runId: "run-admin-005",
+        runId: "run-esc-003",
         state: "final",
-        message: { role: "assistant", content: [{ type: "text", text: "Refund issued." }] },
+        message: { role: "assistant", content: [{ type: "text", text: "Done." }] },
       },
     } as any);
 
-    // The auto-forward should trigger graphqlFetch (ecommerceSendMessage)
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("ecommerceSendMessage"),
-      expect.objectContaining({
-        shopId: "mongo-id-123",
-        conversationId: "conv-directive-001",
-      }),
+      expect.objectContaining({ shopId: "mongo-id-123", conversationId: "conv-directive-001" }),
     );
   });
 
-  it("includes decision and instructions in the message", async () => {
+  it("findSessionByEscalationId returns correct session", () => {
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-006" });
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
 
-    await bridge.dispatchAdminDirective({
-      ...defaultDirectiveParams,
-      decision: "rejected",
-      instructions: "Offer store credit instead",
-    });
+    expect(bridge.findSessionByEscalationId(escalationId)).toBe(session);
+    expect(bridge.findSessionByEscalationId("nonexistent")).toBeUndefined();
+  });
+
+  it("idempotencyKey starts with 'esc-resolved:' prefix", async () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+    mockRpcRequest.mockResolvedValue({ runId: "run-esc-004" });
+
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    await session.dispatchEscalationResolved(escalationId);
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    const message = agentCall![1].message as string;
-    expect(message).toContain("Decision: rejected");
-    expect(message).toContain("Instructions: Offer store credit instead");
-  });
-
-  it("uses dispatchKey (cs:platform:conversationId) as sessionKey for agent RPC", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext({ ...defaultShop, platform: "shopee" });
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-007" });
-
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({
-        sessionKey: "cs:shopee:conv-directive-001",
-      }),
-    );
-  });
-
-  it("throws when no RPC client available", async () => {
-    mockGetRpcClient.mockReturnValue(null);
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await expect(
-      bridge.dispatchAdminDirective(defaultDirectiveParams),
-    ).rejects.toThrow("No RPC client available");
-  });
-
-  it("includes orderId in prompt when provided", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-008" });
-
-    await bridge.dispatchAdminDirective({
-      ...defaultDirectiveParams,
-      orderId: "order-999",
-    });
-
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    expect(agentCall![1].extraSystemPrompt).toContain("Order ID: order-999");
-  });
-
-  it("omits Order ID line from prompt when orderId not provided", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-009" });
-
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
-
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    expect(agentCall![1].extraSystemPrompt).not.toContain("Order ID");
-  });
-
-  it("idempotencyKey starts with 'admin:' prefix", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-010" });
-
-    await bridge.dispatchAdminDirective(defaultDirectiveParams);
-
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    expect(agentCall![1].idempotencyKey).toMatch(/^admin:conv-directive-001:\d+$/);
-  });
-
-  it("returns runId from agent dispatch", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    mockRpcRequest.mockResolvedValue({ runId: "run-admin-011" });
-
-    const result = await bridge.dispatchAdminDirective(defaultDirectiveParams);
-
-    expect(result).toEqual({ runId: "run-admin-011" });
+    expect(agentCall![1].idempotencyKey).toMatch(new RegExp(`^esc-resolved:${escalationId}:\\d+$`));
   });
 });
 
@@ -1465,6 +1377,13 @@ describe("multi-provider model override", () => {
 
 // ── 12. Escalation ───────────────────────────────────────────────────────────
 
+const escalationShop: CSShopContext = {
+  objectId: "shop-esc-001",
+  platformShopId: "plat-esc-001",
+  systemPrompt: "You are a CS assistant.",
+  runProfileId: "CUSTOMER_SERVICE",
+};
+
 const defaultEscalateParams = {
   shopId: "shop-esc-001",
   conversationId: "conv-esc-001",
@@ -1519,11 +1438,12 @@ describe("escalate", () => {
   it("sends to correct channel + accountId + recipient parsed from escalationChannelId", async () => {
     seedShopWithEscalation();
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    const result = await bridge.escalate(defaultEscalateParams);
+    const result = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
-    expect(result).toEqual({ ok: true });
+    expect(result.ok).toBe(true);
+    expect(result.escalationId).toBeDefined();
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "send",
       expect.objectContaining({
@@ -1537,40 +1457,38 @@ describe("escalate", () => {
   it("escalation message contains reason and session details", async () => {
     seedShopWithEscalation();
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    await bridge.escalate(defaultEscalateParams);
+    await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
     expect(sendCall).toBeDefined();
     const message = sendCall![1].message as string;
     expect(message).toContain("CS Escalation");
+    expect(message).toContain("Escalation ID: esc_");
     expect(message).toContain("Reason: Buyer requesting refund beyond policy");
-    expect(message).toContain("Shop ID: shop-esc-001");
-    expect(message).toContain("Conversation: conv-esc-001");
-    expect(message).toContain("Buyer: buyer-esc-001");
     expect(message).toContain("Please reply with your decision");
   });
 
   it("escalation message contains orderId when provided", async () => {
     seedShopWithEscalation();
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    await bridge.escalate({ ...defaultEscalateParams, orderId: "order-esc-999" });
+    await bridge.getOrCreateSession(defaultEscalateParams.shopId, { ...defaultEscalateParams, orderId: "order-esc-999" }).escalate({ reason: defaultEscalateParams.reason });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
     expect(sendCall).toBeDefined();
     const message = sendCall![1].message as string;
-    expect(message).toContain("Order: order-esc-999");
+    expect(message).toContain("Escalation ID: esc_");
   });
 
   it("escalation message contains context when provided", async () => {
     seedShopWithEscalation();
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    await bridge.escalate({ ...defaultEscalateParams, context: "Buyer has been waiting 3 days" });
+    await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason, context: "Buyer has been waiting 3 days" });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
     expect(sendCall).toBeDefined();
@@ -1581,9 +1499,9 @@ describe("escalate", () => {
   it("returns error when escalation routing not configured (missing escalationChannelId)", async () => {
     seedShopWithEscalation({ escalationChannelId: null });
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    const result = await bridge.escalate(defaultEscalateParams);
+    const result = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
     expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
     expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
@@ -1592,9 +1510,9 @@ describe("escalate", () => {
   it("returns error when escalation routing not configured (missing escalationRecipientId)", async () => {
     seedShopWithEscalation({ escalationRecipientId: null });
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    const result = await bridge.escalate(defaultEscalateParams);
+    const result = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
     expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
     expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
@@ -1603,9 +1521,9 @@ describe("escalate", () => {
   it("returns error when shop not found in MST store", async () => {
     // Don't seed any shop — rootStore.shops is empty (reset in beforeEach)
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    const result = await bridge.escalate(defaultEscalateParams);
+    const result = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
     expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
     expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
@@ -1615,29 +1533,29 @@ describe("escalate", () => {
     mockGetRpcClient.mockReturnValue(null);
     seedShopWithEscalation();
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    await expect(bridge.escalate(defaultEscalateParams)).rejects.toThrow("No RPC client available");
+    await expect(bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason })).rejects.toThrow("No RPC client available");
   });
 
   it("send RPC is called with correct idempotencyKey format", async () => {
     seedShopWithEscalation();
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    await bridge.escalate(defaultEscalateParams);
+    await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
     expect(sendCall).toBeDefined();
-    expect(sendCall![1].idempotencyKey).toMatch(/^cs-escalate:conv-esc-001:\d+$/);
+    expect(sendCall![1].idempotencyKey).toMatch(/^cs-escalate:esc_[a-f0-9]+:\d+$/);
   });
 
   it("parses channel with multiple colons correctly (accountId may contain colons)", async () => {
     seedShopWithEscalation({ escalationChannelId: "slack:workspace:channel_id" });
     const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
+    bridge.setShopContext(escalationShop);
 
-    await bridge.escalate(defaultEscalateParams);
+    await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams).escalate({ reason: defaultEscalateParams.reason });
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "send",

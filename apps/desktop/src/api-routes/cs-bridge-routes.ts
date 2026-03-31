@@ -4,15 +4,13 @@ import { getCsBridge } from "../gateway/gateway-connection.js";
 
 /**
  * Routes for CS bridge management.
- * The bridge reactively syncs from the entity cache (populated by Panel's
- * GraphQL requests flowing through Desktop's proxy), so no explicit refresh
- * endpoint is needed for shop data. The routes below manage relay bindings.
+ *
+ * Session-level operations (escalate, escalation-result, start-conversation,
+ * get-escalation) get a session from the bridge and call session methods directly.
  */
 export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathname, _ctx) => {
 
-  // POST /api/cs-bridge/sync — trigger a manual re-sync from entity cache
-  // POST /api/cs-bridge/refresh-shop — backward-compatible alias (Panel calls this after mutations;
-  //   with the reactive architecture the entity cache already handled it, but a manual sync is harmless)
+  // POST /api/cs-bridge/sync
   if ((pathname === "/api/cs-bridge/sync" || pathname === "/api/cs-bridge/refresh-shop") && req.method === "POST") {
     const bridge = getCsBridge();
     if (!bridge) {
@@ -24,83 +22,39 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
     return true;
   }
 
-  // GET /api/cs-bridge/binding-status — get current shop binding conflicts
+  // GET /api/cs-bridge/binding-status
   if (pathname === "/api/cs-bridge/binding-status" && req.method === "GET") {
     const bridge = getCsBridge();
     if (!bridge) {
       sendJson(res, 200, { connected: false, conflicts: [] });
       return true;
     }
-    sendJson(res, 200, {
-      connected: true,
-      conflicts: bridge.getBindingConflicts(),
-    });
+    sendJson(res, 200, { connected: true, conflicts: bridge.getBindingConflicts() });
     return true;
   }
 
-  // POST /api/cs-bridge/force-bind — force-bind a shop (take over from another device)
+  // POST /api/cs-bridge/force-bind
   if (pathname === "/api/cs-bridge/force-bind" && req.method === "POST") {
     const body = await parseBody(req) as { shopId?: string };
-    if (!body.shopId) {
-      sendJson(res, 400, { error: "Missing shopId" });
-      return true;
-    }
+    if (!body.shopId) { sendJson(res, 400, { error: "Missing shopId" }); return true; }
     getCsBridge()?.forceBindShop(body.shopId);
     sendJson(res, 200, { ok: true });
     return true;
   }
 
-  // POST /api/cs-bridge/unbind — unbind a shop from this device
+  // POST /api/cs-bridge/unbind
   if (pathname === "/api/cs-bridge/unbind" && req.method === "POST") {
     const body = await parseBody(req) as { shopId?: string };
-    if (!body.shopId) {
-      sendJson(res, 400, { error: "Missing shopId" });
-      return true;
-    }
+    if (!body.shopId) { sendJson(res, 400, { error: "Missing shopId" }); return true; }
     getCsBridge()?.unbindShop(body.shopId);
     sendJson(res, 200, { ok: true });
     return true;
   }
 
-  // POST /api/cs-bridge/admin-directive — dispatch a verified manager directive to a CS agent session
-  if (pathname === "/api/cs-bridge/admin-directive" && req.method === "POST") {
-    const bridge = getCsBridge();
-    if (!bridge) {
-      sendJson(res, 503, { error: "CS bridge not available" });
-      return true;
-    }
-
-    const body = await parseBody(req) as Record<string, unknown>;
-    const missing = ["shopId", "conversationId", "buyerUserId", "decision", "instructions"]
-      .filter((f) => !body[f] || typeof body[f] !== "string");
-    if (missing.length > 0) {
-      sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
-      return true;
-    }
-
-    try {
-      const result = await bridge.dispatchAdminDirective({
-        shopId: body.shopId as string,
-        conversationId: body.conversationId as string,
-        buyerUserId: body.buyerUserId as string,
-        decision: body.decision as string,
-        instructions: body.instructions as string,
-        orderId: typeof body.orderId === "string" ? body.orderId : undefined,
-      });
-      sendJson(res, 200, result);
-    } catch (err) {
-      sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
-    }
-    return true;
-  }
-
-  // POST /api/cs-bridge/escalate — send escalation to merchant's configured channel
+  // POST /api/cs-bridge/escalate — CS agent escalates to merchant channel
   if (pathname === "/api/cs-bridge/escalate" && req.method === "POST") {
     const bridge = getCsBridge();
-    if (!bridge) {
-      sendJson(res, 503, { error: "CS bridge not available" });
-      return true;
-    }
+    if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return true; }
 
     const body = await parseBody(req) as Record<string, unknown>;
     const missing = ["shopId", "conversationId", "buyerUserId", "reason"]
@@ -111,11 +65,12 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
     }
 
     try {
-      const result = await bridge.escalate({
-        shopId: body.shopId as string,
+      const session = bridge.getOrCreateSession(body.shopId as string, {
         conversationId: body.conversationId as string,
         buyerUserId: body.buyerUserId as string,
         orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      });
+      const result = await session.escalate({
         reason: body.reason as string,
         context: typeof body.context === "string" ? body.context : undefined,
       });
@@ -126,13 +81,72 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
     return true;
   }
 
-  // POST /api/cs-bridge/start-session — manually start a CS session (catch-up for missed webhooks)
-  if (pathname === "/api/cs-bridge/start-session" && req.method === "POST") {
+  // POST /api/cs-bridge/escalation-result — ops agent writes approval + wakes CS agent
+  if (pathname === "/api/cs-bridge/escalation-result" && req.method === "POST") {
     const bridge = getCsBridge();
-    if (!bridge) {
-      sendJson(res, 503, { error: "CS bridge not available" });
+    if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return true; }
+
+    const body = await parseBody(req) as Record<string, unknown>;
+    const missing = ["escalationId", "decision", "instructions"]
+      .filter((f) => !body[f] || typeof body[f] !== "string");
+    if (missing.length > 0) {
+      sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
       return true;
     }
+
+    try {
+      const escalationId = body.escalationId as string;
+      const session = bridge.findSessionByEscalationId(escalationId);
+      if (!session) {
+        sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
+        return true;
+      }
+
+      session.resolveEscalation(escalationId, {
+        decision: body.decision as string,
+        instructions: body.instructions as string,
+      });
+
+      const result = await session.dispatchEscalationResolved(escalationId);
+      sendJson(res, 200, result);
+    } catch (err) {
+      sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    }
+    return true;
+  }
+
+  // GET /api/cs-bridge/escalation/:id — CS agent reads escalation result
+  if (pathname.startsWith("/api/cs-bridge/escalation/") && req.method === "GET") {
+    const bridge = getCsBridge();
+    if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return true; }
+
+    const escalationId = decodeURIComponent(pathname.slice("/api/cs-bridge/escalation/".length));
+    if (!escalationId) {
+      sendJson(res, 400, { error: "Missing escalation ID" });
+      return true;
+    }
+
+    const session = bridge.findSessionByEscalationId(escalationId);
+    if (!session) {
+      sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
+      return true;
+    }
+
+    const escalation = session.escalations.get(escalationId);
+    sendJson(res, 200, {
+      id: escalation!.id,
+      reason: escalation!.reason,
+      context: escalation!.context,
+      createdAt: escalation!.createdAt,
+      result: escalation!.result ?? null,
+    });
+    return true;
+  }
+
+  // POST /api/cs-bridge/start-conversation — manually start CS for a missed conversation
+  if (pathname === "/api/cs-bridge/start-conversation" && req.method === "POST") {
+    const bridge = getCsBridge();
+    if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return true; }
 
     const body = await parseBody(req) as Record<string, unknown>;
     const missing = ["shopId", "conversationId", "buyerUserId"]
@@ -143,12 +157,12 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
     }
 
     try {
-      const result = await bridge.startSession({
-        shopId: body.shopId as string,
+      const session = bridge.getOrCreateSession(body.shopId as string, {
         conversationId: body.conversationId as string,
         buyerUserId: body.buyerUserId as string,
         orderId: typeof body.orderId === "string" ? body.orderId : undefined,
       });
+      const result = await session.dispatchCatchUp();
       sendJson(res, 200, result);
     } catch (err) {
       sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });

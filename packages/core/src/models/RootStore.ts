@@ -55,10 +55,6 @@ export const RootStoreModel = types
     get toolSpecs() {
       return self.entitledTools;
     },
-    /** @deprecated Use clientTools */
-    get clientToolSpecs() {
-      return self.clientTools;
-    },
     getDerivedSurfaces() {
       // Surfaces are derived from entitled + client tools (system tools have no surfaces)
       const specs = this.mergedToolSpecs;
