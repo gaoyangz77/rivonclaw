@@ -2,6 +2,21 @@
 
 These rules govern how data flows between Panel, Desktop, and the cloud backend. They exist to maintain a single source of truth, prevent state drift, and keep the codebase auditable as it scales.
 
+## Domain Ownership — One Model, One Responsibility
+
+Each domain has a single MST model that owns all related operations. Do not scatter domain logic across components, API files, or ad-hoc helpers.
+
+| Domain | Owner (Desktop) | Owner (Panel) | Scope |
+|--------|----------------|---------------|-------|
+| LLM keys & models | `LLMProviderManagerModel` (`apps/desktop/src/store/llm-provider-manager.ts`) | `LLMProviderModel` (`apps/panel/src/store/models/LLMProviderModel.ts`) | Provider key CRUD, model switching, activation, OAuth save, local model detection, cloud key sync |
+| Tool capability | `ToolCapabilityModel` (`packages/core/src/models/ToolCapability.ts`) | (shared via core) | Surface/RunProfile resolution, effective tool computation, session profiles, scope trust evaluation |
+| User lifecycle | `UserModel` (core `packages/core/src/models/User.ts`) | `UserModel` (`apps/panel/src/store/models/UserModel.ts`) | Auth, module enrollment, default RunProfile, user-scoped settings |
+
+**Rules:**
+- All LLM provider key and model lifecycle operations (create, update, delete, activate, refresh, OAuth) must go through `LLMProviderManagerModel` (Desktop) / `LLMProviderModel` (Panel). No provider key manipulation outside these models.
+- All tool capability operations (effective tool computation, session profile management, surface/run-profile resolution) must go through `ToolCapabilityModel`. No tool list computation outside this model.
+- All user lifecycle operations (login, register, module enrollment, default profile) must go through `UserModel`. No user state mutation outside this model.
+
 ## GraphQL Gateway Rule
 
 **All business GraphQL requests must be Panel MST model actions.**
