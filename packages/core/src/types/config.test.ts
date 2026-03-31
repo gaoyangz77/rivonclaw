@@ -7,7 +7,7 @@ describe("rivonClawConfigSchema", () => {
       region: "cn",
       language: "zh",
       gatewayVersion: "2026.2.10",
-      panelPort: 3210,
+      panelPort: 4000,
     });
     expect(result.success).toBe(true);
   });
@@ -37,7 +37,7 @@ describe("rivonClawConfigSchema", () => {
       region: "us",
       language: "en",
       gatewayVersion: "0.0.0",
-      panelPort: 3210.5,
+      panelPort: 4000.5,
     });
     expect(result.success).toBe(false);
   });

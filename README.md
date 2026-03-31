@@ -111,7 +111,7 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 
 | Package                  | Description                                                                                                            |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `@rivonclaw/desktop`      | Electron 40 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite.           |
+| `@rivonclaw/desktop`      | Electron 40 tray app. Manages gateway lifecycle, hosts the panel server on a dynamic port, stores data in SQLite.      |
 | `@rivonclaw/panel`        | React 19 + Vite 6 SPA. Pages for chat, rules, providers, channels, permissions, STT, usage, skills marketplace, and a first-launch onboarding wizard. |
 
 ### Extensions
@@ -178,7 +178,7 @@ pnpm --filter @rivonclaw/gateway test
 ┌─────────────────────────────────────────┐
 │  System Tray (Electron main process)    │
 │  ├── GatewayLauncher → vendor/openclaw  │
-│  ├── Panel HTTP Server (:3210)          │
+│  ├── Panel HTTP Server (dynamic port)   │
 │  │   ├── Static files (panel dist/)     │
 │  │   └── REST API (/api/*)              │
 │  ├── SQLite Storage                     │

@@ -111,7 +111,7 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 
 | 包                       | 说明                                                                                   |
 | ------------------------ | -------------------------------------------------------------------------------------- |
-| `@rivonclaw/desktop`      | Electron 40 托盘应用。管理网关生命周期，在端口 3210 托管面板服务，数据存储于 SQLite。   |
+| `@rivonclaw/desktop`      | Electron 40 托盘应用。管理网关生命周期，在动态端口上托管面板服务，数据存储于 SQLite。   |
 | `@rivonclaw/panel`        | React 19 + Vite 6 SPA。包含聊天、规则、服务商、通道、权限、语音转文字、用量、技能市场页面，以及首次启动引导向导。  |
 
 ### 扩展
@@ -178,7 +178,7 @@ pnpm --filter @rivonclaw/gateway test
 ┌─────────────────────────────────────────┐
 │  系统托盘（Electron 主进程）             │
 │  ├── GatewayLauncher → vendor/openclaw  │
-│  ├── 面板 HTTP 服务器（:3210）           │
+│  ├── 面板 HTTP 服务器（动态端口）        │
 │  │   ├── 静态文件（panel dist/）         │
 │  │   └── REST API（/api/*）              │
 │  ├── SQLite 存储                         │
