@@ -48,6 +48,7 @@ export async function fetchCustomProviderModels(
 export interface CatalogModelEntry {
   id: string;
   name: string;
+  contextWindow?: number;
 }
 
 /**

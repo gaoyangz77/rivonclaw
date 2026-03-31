@@ -62,5 +62,99 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
     return true;
   }
 
+  // POST /api/cs-bridge/admin-directive — dispatch a verified manager directive to a CS agent session
+  if (pathname === "/api/cs-bridge/admin-directive" && req.method === "POST") {
+    const bridge = getCsBridge();
+    if (!bridge) {
+      sendJson(res, 503, { error: "CS bridge not available" });
+      return true;
+    }
+
+    const body = await parseBody(req) as Record<string, unknown>;
+    const missing = ["shopId", "conversationId", "buyerUserId", "decision", "instructions"]
+      .filter((f) => !body[f] || typeof body[f] !== "string");
+    if (missing.length > 0) {
+      sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
+      return true;
+    }
+
+    try {
+      const result = await bridge.dispatchAdminDirective({
+        shopId: body.shopId as string,
+        conversationId: body.conversationId as string,
+        buyerUserId: body.buyerUserId as string,
+        decision: body.decision as string,
+        instructions: body.instructions as string,
+        orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      });
+      sendJson(res, 200, result);
+    } catch (err) {
+      sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    }
+    return true;
+  }
+
+  // POST /api/cs-bridge/escalate — send escalation to merchant's configured channel
+  if (pathname === "/api/cs-bridge/escalate" && req.method === "POST") {
+    const bridge = getCsBridge();
+    if (!bridge) {
+      sendJson(res, 503, { error: "CS bridge not available" });
+      return true;
+    }
+
+    const body = await parseBody(req) as Record<string, unknown>;
+    const missing = ["shopId", "conversationId", "buyerUserId", "reason"]
+      .filter((f) => !body[f] || typeof body[f] !== "string");
+    if (missing.length > 0) {
+      sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
+      return true;
+    }
+
+    try {
+      const result = await bridge.escalate({
+        shopId: body.shopId as string,
+        conversationId: body.conversationId as string,
+        buyerUserId: body.buyerUserId as string,
+        orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+        reason: body.reason as string,
+        context: typeof body.context === "string" ? body.context : undefined,
+      });
+      sendJson(res, result.ok ? 200 : 400, result);
+    } catch (err) {
+      sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    }
+    return true;
+  }
+
+  // POST /api/cs-bridge/start-session — manually start a CS session (catch-up for missed webhooks)
+  if (pathname === "/api/cs-bridge/start-session" && req.method === "POST") {
+    const bridge = getCsBridge();
+    if (!bridge) {
+      sendJson(res, 503, { error: "CS bridge not available" });
+      return true;
+    }
+
+    const body = await parseBody(req) as Record<string, unknown>;
+    const missing = ["shopId", "conversationId", "buyerUserId"]
+      .filter((f) => !body[f] || typeof body[f] !== "string");
+    if (missing.length > 0) {
+      sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
+      return true;
+    }
+
+    try {
+      const result = await bridge.startSession({
+        shopId: body.shopId as string,
+        conversationId: body.conversationId as string,
+        buyerUserId: body.buyerUserId as string,
+        orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      });
+      sendJson(res, 200, result);
+    } catch (err) {
+      sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    }
+    return true;
+  }
+
   return false;
 };

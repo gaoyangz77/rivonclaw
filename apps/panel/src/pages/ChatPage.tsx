@@ -1,13 +1,15 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchGatewayInfo, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchChatCollapseMessages } from "../api/index.js";
+import { fetchGatewayInfo, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchChatCollapseMessages, fetchSettings, updateSettings } from "../api/index.js";
 import { entityStore } from "../store/index.js";
 import { formatError } from "@rivonclaw/core";
-import { configManager } from "../lib/config-manager.js";
+import { useToast } from "../components/Toast.js";
 import { Select } from "../components/inputs/Select.js";
+import { KeyModelSelector } from "../components/inputs/KeyModelSelector.js";
+import type { CatalogModelEntry } from "../api/providers.js";
 import { GatewayChatClient } from "../lib/gateway-client.js";
 import type { ChatMessage, ChatImage, PendingImage } from "./chat/chat-utils.js";
-import { INITIAL_VISIBLE, PAGE_SIZE, FETCH_BATCH, IMAGE_PLACEHOLDER, cleanMessageText, formatTimestamp, extractText, localizeError, parseRawMessages } from "./chat/chat-utils.js";
+import { INITIAL_VISIBLE, PAGE_SIZE, FETCH_BATCH, IMAGE_PLACEHOLDER, cleanMessageText, formatTimestamp, extractText, localizeError, parseRawMessages, checkContextOverflow, formatTokenCount } from "./chat/chat-utils.js";
 import type { SessionsListResult } from "./chat/chat-utils.js";
 import { MarkdownMessage, CopyButton, CollapsibleContent, ToolArgsDisplay } from "./chat/ChatMessage.js";
 import type { GatewayEvent, GatewayHelloOk } from "../lib/gateway-client.js";
@@ -20,6 +22,7 @@ import { SessionTabBar } from "./chat/SessionTabBar.js";
 import type { GatewaySessionInfo } from "./chat/SessionTabBar.js";
 import { ChatInputArea } from "./chat/ChatInputArea.js";
 import { RunProfileSelector } from "../components/inputs/RunProfileSelector.js";
+import { fetchModelCatalog } from "../api/providers.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { setRunProfileForScope } from "../api/tool-registry.js";
@@ -27,14 +30,20 @@ import "./chat/ChatPage.css";
 
 export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
   const tRef = useRef(t);
   tRef.current = t;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [agentName, setAgentName] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<{ keyId: string; provider: string; model: string } | null>(null);
-  const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([]);
+  const [activeModel, setActiveModel] = useState<{
+    provider: string;
+    model: string;
+    isOverridden: boolean;
+    contextWindow: number | null;
+  } | null>(null);
+  const [modelCatalog, setModelCatalog] = useState<Record<string, CatalogModelEntry[]>>({});
   const [hasProviderKeys, setHasProviderKeys] = useState(true);
   const [thinkingLevel, setThinkingLevel] = useState("");
   const [allFetched, setAllFetched] = useState(false);
@@ -60,6 +69,9 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
   const [preserveToolEvents, setPreserveToolEvents] = useState(false);
   const [collapseMessages, setCollapseMessages] = useState(true);
   const [chatExamplesExpanded, setChatExamplesExpanded] = useState(() => localStorage.getItem("chat-examples-collapsed") !== "1");
+  const [customExamples, setCustomExamples] = useState<Record<string, string>>({});
+  const [editingExample, setEditingExample] = useState<string | null>(null);
+  const [editingExampleDraft, setEditingExampleDraft] = useState("");
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const clientRef = useRef<GatewayChatClient | null>(null);
   const bridgeRef = useRef<ChatEventBridge | null>(null);
@@ -73,6 +85,12 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
   const shouldInstantScrollRef = useRef(true);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [pendingModelSwitch, setPendingModelSwitch] = useState<{
+    provider: string;
+    model: string;
+    currentTokens: number;
+    newContextWindow: number;
+  } | null>(null);
   const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
   const selectedRunProfileIdRef = useRef(selectedRunProfileId);
   const entityStore = useEntityStore();
@@ -145,6 +163,8 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
   const initialConnectDoneRef = useRef(false);
   const lastAgentStreamRef = useRef<string | null>(null);
   const showAgentEventsRef = useRef(true);
+  /** Generation counter for refreshModel — prevents stale async results from overwriting newer state. */
+  const modelRefreshGenRef = useRef(0);
 
   // "Sticky to bottom" — an explicit pinned state drives auto-scroll.
   // • User scrolls up → unpin (handled in handleScroll).
@@ -671,37 +691,54 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
         setPreserveToolEvents(preserveEvents);
         setCollapseMessages(collapse);
       });
-      // Refresh model label in case provider/model changed
-      refreshModelLabel();
+      // Refresh model info in case provider/model changed
+      refreshModel(sessionKeyRef.current);
     }
     window.addEventListener("chat-settings-changed", onSettingsChanged);
     return () => window.removeEventListener("chat-settings-changed", onSettingsChanged);
   }, []);
 
-  function refreshModelLabel() {
-    configManager.getActiveKey().then(async (info) => {
-      if (info) {
-        setActiveModel({ keyId: info.keyId, provider: info.provider, model: info.model });
-        setHasProviderKeys(true);
-        const models = await configManager.getModelsForProvider(info.provider);
-        setModelOptions(models.map((m) => ({ value: m.id, label: m.name })));
-      } else {
+  /** Fetch model info for the given session and update state.
+   *  Uses a generation counter to prevent stale async results from
+   *  overwriting newer state (Bug 3 fix — race condition). */
+  function refreshModel(sessionKey: string) {
+    const gen = ++modelRefreshGenRef.current;
+    (async () => {
+      const info = await entityStore.llmManager.getSessionModelInfo(sessionKey);
+      // Stale result — a newer refresh was triggered while we were awaiting
+      if (gen !== modelRefreshGenRef.current) return;
+      if (!info) {
         setActiveModel(null);
-        setModelOptions([]);
-        // Check if any provider keys exist at all (read from MST store)
+        setModelCatalog({});
         setHasProviderKeys(entityStore.providerKeys.length > 0);
+        return;
       }
-    }).catch(() => { setActiveModel(null); setModelOptions([]); });
+      setHasProviderKeys(true);
+      setActiveModel({
+        provider: info.provider,
+        model: info.model,
+        isOverridden: info.isOverridden,
+        contextWindow: info.contextWindow,
+      });
+      // Fetch full catalog for the cascading selector (all providers' models)
+      const catalog = await fetchModelCatalog();
+      if (gen !== modelRefreshGenRef.current) return;
+      setModelCatalog(catalog);
+    })().catch(() => {
+      if (gen !== modelRefreshGenRef.current) return;
+      setActiveModel(null);
+      setModelCatalog({});
+    });
   }
 
   // Fetch active model info when connection state changes to connected
   useEffect(() => {
-    if (connectionState === "connected") refreshModelLabel();
+    if (connectionState === "connected") refreshModel(sessionKeyRef.current);
   }, [connectionState]);
 
-  // Refresh model label when config changes (e.g. model switched from ProvidersPage)
+  // Refresh model info when config changes (e.g. model switched from ProvidersPage)
   useEffect(() => {
-    return configManager.onChange(() => refreshModelLabel());
+    return entityStore.llmManager.onChange(() => refreshModel(sessionKeyRef.current));
   }, []);
 
   function refreshAgentName(client: GatewayChatClient, cancelled?: boolean) {
@@ -731,6 +768,15 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
         setShowAgentEvents(showEvents);
         setPreserveToolEvents(preserveEvents);
         setCollapseMessages(collapse);
+
+        // Load custom example prompts from settings
+        fetchSettings().then((s) => {
+          if (cancelled) return;
+          try {
+            const raw = s["chat-example-prompts"];
+            if (raw) setCustomExamples(JSON.parse(raw));
+          } catch { /* ignore invalid JSON */ }
+        }).catch(() => {});
 
         const info = await fetchGatewayInfo();
         if (cancelled) return;
@@ -1018,15 +1064,100 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
     setShowResetConfirm(true);
   }
 
-  function handleModelChange(newModel: string) {
-    if (!activeModel || newModel === activeModel.model) return;
-    trackEvent("chat.model_switched", { provider: activeModel.provider, model: newModel });
-    configManager.switchModel(activeModel.keyId, newModel)
-      .then(() => setActiveModel((prev) => prev ? { ...prev, model: newModel } : null))
-      .catch((err) => {
-        const errText = formatError(err) || t("chat.unknownError");
-        setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
-      });
+  /** Execute a per-session model switch via llmManager (does NOT affect other sessions).
+   *  Keeps optimistic UI in ChatPage — it's a UI concern. */
+  function doModelSwitch(provider: string, model: string) {
+    if (!provider) return;
+    const oldModel = activeModel ? { ...activeModel } : null;
+    trackEvent("chat.model_switched", { provider, model });
+
+    // Optimistic UI update — update provider, model, isOverridden, and contextWindow
+    const models = modelCatalog[provider] ?? [];
+    const match = models.find((m) => m.id === model);
+    setActiveModel((prev) => prev ? {
+      ...prev,
+      provider,
+      model,
+      isOverridden: true,
+      contextWindow: match?.contextWindow ?? null,
+    } : null);
+
+    // Delegate the actual API call to llmManager
+    entityStore.llmManager.switchSessionModel(sessionKeyRef.current, provider, model).catch((err) => {
+      // Rollback entire optimistic state including isOverridden (Bug 2 fix)
+      setActiveModel(oldModel);
+      const errText = formatError(err) || t("chat.unknownError");
+      showToast(errText, "error");
+    });
+  }
+
+  async function handleKeyModelChange(newProvider: string, newModel: string) {
+    if (!activeModel) return;
+
+    // "Follow global default" — reset session override, refresh to show global default
+    if (!newProvider && !newModel) {
+      setActiveModel((prev) => prev ? { ...prev, isOverridden: false } : null);
+      entityStore.llmManager.resetSessionModel(sessionKeyRef.current).catch(() => {});
+      refreshModel(sessionKeyRef.current);
+      return;
+    }
+
+    // Skip only if same model AND already explicitly locked (not just following default)
+    if (newProvider === activeModel.provider && newModel === activeModel.model && activeModel.isOverridden) return;
+
+    // Pre-flight: look up the new model's context window from catalog
+    // Bug 1 fix: read currentTokens fresh from sessionManager.sessions to avoid
+    // stale closure over activeSessionTab which is computed during render.
+    const freshTab = sessionManager.sessions.find((s) => s.key === sessionManager.activeSessionKey);
+    const currentTokens = freshTab?.totalTokens ?? 0;
+    if (currentTokens > 0) {
+      try {
+        const providerModels = modelCatalog[newProvider] ?? [];
+        const newModelEntry = providerModels.find((m) => m.id === newModel);
+        const result = checkContextOverflow(currentTokens, newModelEntry?.contextWindow);
+
+        if (result.action === "block") {
+          setPendingModelSwitch({
+            provider: newProvider,
+            model: newModel,
+            currentTokens: result.currentTokens,
+            newContextWindow: result.newContextWindow,
+          });
+          return;
+        }
+      } catch {
+        // Catalog lookup failed — proceed with the switch, API-level warning handles it
+      }
+    }
+
+    // Scenario B (approaching) & normal: proceed with switch
+    doModelSwitch(newProvider, newModel);
+  }
+
+  function handleOverflowContinue() {
+    if (!pendingModelSwitch) return;
+    // Switch model — session persists (no restart), OpenClaw auto-compacts on next run
+    doModelSwitch(pendingModelSwitch.provider, pendingModelSwitch.model);
+    setPendingModelSwitch(null);
+  }
+
+  async function handleOverflowClear() {
+    if (!pendingModelSwitch || !clientRef.current) return;
+    // Switch first, then reset the session — suppress toast since user already acted via modal
+    doModelSwitch(pendingModelSwitch.provider, pendingModelSwitch.model);
+    setPendingModelSwitch(null);
+    // Reset session on gateway (same as confirmReset but without the abort check)
+    clientRef.current.request("sessions.reset", {
+      key: sessionKeyRef.current,
+    }).then(() => {
+      setMessages([]);
+      clearImages(sessionKeyRef.current).catch(() => {});
+      trackerRef.current.reset();
+      lastAgentStreamRef.current = null;
+    }).catch((err) => {
+      const errText = formatError(err) || t("chat.unknownError");
+      setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
+    });
   }
 
   function confirmReset() {
@@ -1087,6 +1218,8 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
     const client = clientRef.current;
     if (!client || connectionState !== "connected") return;
     loadHistory(client);
+    // Refresh model info for the new session (may have per-session override)
+    refreshModel(activeKey);
   }, [activeKey, connectionState, loadHistory]);
 
   function pushRunProfileToScope(profileId: string, scopeKey: string) {
@@ -1107,6 +1240,17 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
   const visibleMessages = messages.slice(Math.max(0, messages.length - visibleCount));
   const showHistoryEnd = allFetched && visibleCount >= messages.length && messages.length > 0;
   const isStreaming = runId !== null;
+  const activeSessionTab = sessionManager.sessions.find((s) => s.key === activeKey);
+  const totalTokens = activeSessionTab?.totalTokens ?? 0;
+  const contextWindow = activeModel?.contextWindow ?? null;
+  const contextUsageRatio = contextWindow && contextWindow > 0 && totalTokens > 0
+    ? totalTokens / contextWindow
+    : 0;
+  const contextUsageClass = contextUsageRatio >= 1
+    ? "chat-context-critical"
+    : contextUsageRatio >= 0.8
+      ? "chat-context-warning"
+      : "";
   const statusKey =
     connectionState === "connected"
       ? "chat.connected"
@@ -1254,15 +1398,30 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
           <>
             <div className="chat-examples-title">{t("chat.examplesTitle")}</div>
             <div className="chat-examples-grid">
-              {(["example1", "example2", "example3", "example4", "example5", "example6"] as const).map((key) => (
-                <button
-                  key={key}
-                  className="chat-example-card"
-                  onClick={() => setDraft(t(`chat.${key}`))}
-                >
-                  {t(`chat.${key}`)}
-                </button>
-              ))}
+              {(["example1", "example2", "example3", "example4", "example5", "example6"] as const).map((key) => {
+                const text = customExamples[key] || t(`chat.${key}`);
+                return (
+                  <button
+                    key={key}
+                    className="chat-example-card"
+                    onClick={() => setDraft(text)}
+                  >
+                    {text}
+                    <span
+                      className="chat-example-edit"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingExample(key);
+                        setEditingExampleDraft(customExamples[key] || t(`chat.${key}`));
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      </svg>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -1272,15 +1431,21 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
         <span className={`chat-status-dot chat-status-dot-${connectionState}`} />
         <span>{agentName ? `${agentName} · ${t(statusKey)}` : t(statusKey)}</span>
         {connectionState === "connected" && activeModel && (
-          <>
-            <span className="chat-status-model">{t(`providers.label_${activeModel.provider}`, { defaultValue: activeModel.provider })}</span>
-            <Select
-              className="chat-model-select"
-              value={activeModel.model}
-              onChange={handleModelChange}
-              options={modelOptions}
-            />
-          </>
+          <KeyModelSelector
+            keys={entityStore.providerKeys.map((k) => ({
+              id: k.id,
+              provider: k.provider,
+              label: k.label,
+              model: k.model,
+              isDefault: k.isDefault,
+            }))}
+            catalog={modelCatalog}
+            selectedProvider={activeModel.provider}
+            selectedModel={activeModel.model}
+            onChange={handleKeyModelChange}
+            allowDefault
+            isFollowingDefault={!activeModel.isOverridden}
+          />
         )}
         {connectionState === "connected" && (
           <Select
@@ -1294,6 +1459,17 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
               { value: "high", label: t("chat.thinkingHigh") },
             ]}
           />
+        )}
+        {totalTokens > 0 && contextWindow && contextWindow > 0 && (
+          <span
+            className={`chat-context-usage ${contextUsageClass}`}
+            title={t("chat.contextUsageTooltip")}
+          >
+            {t("chat.contextUsage", {
+              current: formatTokenCount(totalTokens),
+              max: formatTokenCount(contextWindow),
+            })}
+          </span>
         )}
         <span className="chat-status-spacer" />
         <RunProfileSelector
@@ -1338,6 +1514,95 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
             {t("chat.resetCommand")}
           </button>
         </div>
+      </Modal>
+      <Modal
+        isOpen={pendingModelSwitch !== null}
+        onClose={() => setPendingModelSwitch(null)}
+        title={t("chat.contextOverflowTitle")}
+        maxWidth={480}
+      >
+        {pendingModelSwitch && (
+          <>
+            <p>{t("chat.contextOverflowBody", {
+              current: formatTokenCount(pendingModelSwitch.currentTokens),
+              max: formatTokenCount(pendingModelSwitch.newContextWindow),
+            })}</p>
+            <div className="chat-overflow-actions">
+              <button
+                className="chat-overflow-card chat-overflow-card-primary"
+                onClick={handleOverflowContinue}
+              >
+                <span className="chat-overflow-card-label">{t("chat.contextOverflowContinue")}</span>
+                <span className="chat-overflow-card-hint">{t("chat.contextOverflowContinueHint")}</span>
+              </button>
+              <button
+                className="chat-overflow-card"
+                onClick={handleOverflowClear}
+              >
+                <span className="chat-overflow-card-label">{t("chat.contextOverflowClear")}</span>
+                <span className="chat-overflow-card-hint">{t("chat.contextOverflowClearHint")}</span>
+              </button>
+              <button
+                className="chat-overflow-cancel"
+                onClick={() => setPendingModelSwitch(null)}
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+      <Modal
+        isOpen={editingExample !== null}
+        onClose={() => setEditingExample(null)}
+        title={t("chat.editExample")}
+        maxWidth={480}
+      >
+        {editingExample && (
+          <>
+            <textarea
+              className="chat-example-edit-textarea"
+              value={editingExampleDraft}
+              onChange={(e) => setEditingExampleDraft(e.target.value)}
+              rows={3}
+              autoFocus
+            />
+            <div className="modal-actions">
+              {customExamples[editingExample] && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    const next = { ...customExamples };
+                    delete next[editingExample!];
+                    setCustomExamples(next);
+                    const json = JSON.stringify(next);
+                    updateSettings({ "chat-example-prompts": Object.keys(next).length ? json : "" }).catch(() => {});
+                    setEditingExample(null);
+                  }}
+                >
+                  {t("chat.restoreDefault")}
+                </button>
+              )}
+              <button className="btn btn-secondary" onClick={() => setEditingExample(null)}>
+                {t("common.cancel")}
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={!editingExampleDraft.trim()}
+                onClick={() => {
+                  const trimmed = editingExampleDraft.trim();
+                  if (!trimmed) return;
+                  const next = { ...customExamples, [editingExample!]: trimmed };
+                  setCustomExamples(next);
+                  updateSettings({ "chat-example-prompts": JSON.stringify(next) }).catch(() => {});
+                  setEditingExample(null);
+                }}
+              >
+                {t("common.save")}
+              </button>
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   );

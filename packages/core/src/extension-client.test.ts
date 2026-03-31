@@ -74,6 +74,7 @@ describe("extensionRestFetch", () => {
       ok: false,
       status: 404,
       statusText: "Not Found",
+      text: async () => "",
     });
 
     await expect(extensionRestFetch("/api/missing")).rejects.toThrow(

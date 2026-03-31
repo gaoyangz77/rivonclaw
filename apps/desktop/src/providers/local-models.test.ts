@@ -18,7 +18,7 @@ import {
   clearAllAuthProfiles,
 } from "@rivonclaw/gateway";
 import { startPanelServer } from "../panel-server.js";
-import { initDesktopStoreEnv } from "../store/desktop-store.js";
+import { initLLMProviderManagerEnv } from "../store/desktop-store.js";
 import { syncActiveKey } from "./provider-validator.js";
 import { toMstSnapshot, allKeysToMstSnapshots } from "./provider-key-utils.js";
 
@@ -121,14 +121,20 @@ beforeAll(async () => {
   stateDir = join(tmpdir(), `rivonclaw-test-${randomUUID()}`);
   mkdirSync(join(stateDir, "agents", "main", "agent"), { recursive: true });
 
-  // 3. Initialize desktop store env (provider key MST actions need this)
-  initDesktopStoreEnv({
+  // 3. Initialize LLM Provider Manager env (provider key actions need this)
+  initLLMProviderManagerEnv({
     storage,
     secretStore: mockSecretStore as any,
-    syncActiveKey,
+    getRpcClient: () => null,
     toMstSnapshot,
     allKeysToMstSnapshots,
-    handleProviderChange: null,
+    syncActiveKey,
+    syncAllAuthProfiles: async () => {},
+    writeProxyRouterConfig: async () => {},
+    writeDefaultModelToConfig: () => {},
+    writeFullGatewayConfig: async () => {},
+    stateDir,
+    getLastSystemProxy: () => null,
   });
 
   // 4. Start panel server

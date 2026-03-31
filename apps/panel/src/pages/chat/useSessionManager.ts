@@ -158,6 +158,9 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
           updatedAt: s.updatedAt,
           kind: s.kind,
           pinned: m?.pinned,
+          // Only use totalTokens when OpenClaw marks it as a fresh context snapshot.
+          // Stale values (totalTokensFresh === false) are misleading for context displays.
+          totalTokens: s.totalTokensFresh !== false ? s.totalTokens : undefined,
         };
       });
 

@@ -1,6 +1,5 @@
 import type { SecretStore } from "@rivonclaw/secrets";
 import type { Storage } from "@rivonclaw/storage";
-import { ALL_PROVIDERS, getProviderMeta, providerSecretKey } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("gateway:secret-injector");
@@ -45,36 +44,12 @@ export async function resolveSecretEnv(
 ): Promise<Record<string, string>> {
   const env: Record<string, string> = {};
 
-  // Inject all configured LLM provider API keys
-  for (const provider of ALL_PROVIDERS) {
-    const secretKey = providerSecretKey(provider);
-    const value = await store.get(secretKey);
-    if (value !== null) {
-      // For Anthropic: detect OAuth/setup tokens (sk-ant-oat01-...) and inject
-      // as ANTHROPIC_OAUTH_TOKEN instead of ANTHROPIC_API_KEY. OpenClaw checks
-      // ANTHROPIC_OAUTH_TOKEN first, so this ensures the right auth flow is used.
-      if ((provider === "anthropic" || provider === "claude") && value.startsWith("sk-ant-oat01-")) {
-        env["ANTHROPIC_OAUTH_TOKEN"] = value;
-        log.debug("Injecting secret: " + secretKey + " -> ANTHROPIC_OAUTH_TOKEN (OAuth token detected)");
-      } else {
-        const envVar = getProviderMeta(provider)!.envVar;
-        env[envVar] = value;
-        log.debug("Injecting secret: " + secretKey + " -> " + envVar);
-      }
-    }
-  }
+  // LLM provider API keys are NO LONGER injected as environment variables.
+  // All LLM authentication goes through auth-profiles.json (managed by
+  // syncAllAuthProfiles in LLMProviderManager). This ensures a single
+  // authentication path and avoids env vars masking auth-profile issues.
 
-  // Also check legacy "llm-api-key" for backwards compatibility
-  // (maps to OPENAI_API_KEY if no openai-specific key is set)
-  if (!env["OPENAI_API_KEY"]) {
-    const legacyKey = await store.get("llm-api-key");
-    if (legacyKey !== null) {
-      env["OPENAI_API_KEY"] = legacyKey;
-      log.debug("Injecting legacy secret: llm-api-key -> OPENAI_API_KEY");
-    }
-  }
-
-  // Inject non-LLM secrets
+  // Inject non-LLM secrets only (STT, web search, embedding)
   for (const [secretKey, envVar] of Object.entries(STATIC_SECRET_ENV_MAP)) {
     const value = await store.get(secretKey);
     if (value !== null) {

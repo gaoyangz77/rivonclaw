@@ -1,8 +1,5 @@
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import type { LLMProvider } from "@rivonclaw/core";
 import { getDefaultModelForProvider, reconstructProxyUrl, formatError } from "@rivonclaw/core";
-import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { readFullModelCatalog } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels } from "../providers/provider-validator.js";
@@ -20,49 +17,6 @@ const log = createLogger("panel-server");
  * Failures are silently swallowed — this is advisory-only and must never
  * block the model switch.
  */
-async function checkContextOverflowRisk(
-  newModelId: string,
-  provider: string,
-  vendorDir: string | undefined,
-): Promise<{ currentTokens: number; newContextWindow: number } | undefined> {
-  try {
-    // 1. Read the active session's totalTokens from sessions.json
-    const storePath = join(resolveAgentSessionsDir(), "sessions.json");
-    if (!existsSync(storePath)) return undefined;
-
-    const store = JSON.parse(readFileSync(storePath, "utf-8")) as
-      Record<string, { totalTokens?: number }>;
-
-    // Find the maximum totalTokens across all sessions — the "main" session
-    // is typically the one that matters, but the key name is opaque. Using
-    // the max is a safe heuristic.
-    let currentTokens = 0;
-    for (const entry of Object.values(store)) {
-      if (typeof entry.totalTokens === "number" && entry.totalTokens > currentTokens) {
-        currentTokens = entry.totalTokens;
-      }
-    }
-
-    if (currentTokens === 0) return undefined;
-
-    // 2. Look up the new model's contextWindow from the catalog
-    const catalog = await readFullModelCatalog(undefined, vendorDir);
-    const providerModels = catalog[provider];
-    if (!providerModels) return undefined;
-
-    const modelEntry = providerModels.find((m) => m.id === newModelId);
-    if (!modelEntry?.contextWindow) return undefined;
-
-    // 3. Warn if usage exceeds 80% of the new model's context window
-    if (currentTokens > modelEntry.contextWindow * 0.8) {
-      return { currentTokens, newContextWindow: modelEntry.contextWindow };
-    }
-
-    return undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
   const { storage, secretStore, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, snapshotEngine } = ctx;
@@ -155,8 +109,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       }
     }
 
-    // MST action: full create transaction (SQLite + Keychain + syncActiveKey + MST state + gateway sync)
-    const { entry, shouldActivate } = await rootStore.providerKeyCreate({
+    // LLM Manager action: full create transaction (SQLite + Keychain + syncActiveKey + MST state + auth-profiles + sessions.patch + config)
+    const { entry, shouldActivate } = await rootStore.llmManager.createKey({
       provider: body.provider,
       label,
       model,
@@ -193,8 +147,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       await snapshotEngine.recordActivation(entry.id, entry.provider, entry.model);
     }
 
-    // MST action: full activate transaction
-    await rootStore.providerKeyActivate(id);
+    // LLM Manager action: full activate transaction (sessions.patch + auth-profiles + config)
+    await rootStore.llmManager.activateProvider(id);
 
     onTelemetryTrack?.("provider.activated", { provider: entry.provider });
 
@@ -236,8 +190,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       return true;
     }
 
-    // MST action: refresh models transaction (FIX: now includes gateway sync for active keys)
-    const updated = await rootStore.providerKeyRefreshModels(id, result.models!);
+    // LLM Manager action: refresh models transaction (includes auth-profiles sync for active keys)
+    const updated = await rootStore.llmManager.refreshModels(id, result.models!);
 
     sendJson(res, 200, updated);
     return true;
@@ -272,8 +226,8 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           await snapshotEngine.recordDeactivation(existing.id, existing.provider, existing.model);
         }
 
-        // MST action: full update transaction
-        const { updated } = await rootStore.providerKeyUpdate(id, {
+        // LLM Manager action: full update transaction (sessions.patch + auth-profiles + config)
+        const { updated } = await rootStore.llmManager.updateKey(id, {
           label: body.label,
           model: body.model,
           apiKey: body.apiKey,
@@ -287,16 +241,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           await snapshotEngine.recordActivation(existing.id, existing.provider, body.model);
         }
 
-        const response: Record<string, unknown> = { ...updated };
-
-        if (modelChanging && existing.isDefault && body.model) {
-          const warning = await checkContextOverflowRisk(body.model, existing.provider, vendorDir);
-          if (warning) {
-            response.contextWarning = warning;
-          }
-        }
-
-        sendJson(res, 200, response);
+        sendJson(res, 200, updated);
         return true;
       }
 
@@ -307,13 +252,46 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
           return true;
         }
 
-        // MST action: full delete transaction (SQLite + Keychain + promotion + syncActiveKey + MST state + gateway sync)
-        await rootStore.providerKeyDelete(id);
+        // LLM Manager action: full delete transaction (SQLite + Keychain + promotion + syncActiveKey + MST state + auth-profiles + sessions.patch + config)
+        await rootStore.llmManager.deleteKey(id);
 
         sendJson(res, 200, { ok: true });
         return true;
       }
     }
+  }
+
+  // --- Per-Session Model ---
+  if (pathname === "/api/session-model" && req.method === "GET") {
+    const sessionKey = url.searchParams.get("sessionKey");
+    if (!sessionKey) {
+      sendJson(res, 400, { error: "Missing sessionKey query param" });
+      return true;
+    }
+    const info = rootStore.llmManager.getSessionModelInfo(sessionKey);
+    sendJson(res, 200, info);
+    return true;
+  }
+
+  if (pathname === "/api/session-model" && req.method === "PUT") {
+    const body = (await parseBody(req)) as { sessionKey?: string; provider?: string; model?: string };
+    if (!body.sessionKey) {
+      sendJson(res, 400, { error: "Missing required field: sessionKey" });
+      return true;
+    }
+    try {
+      if (!body.provider || !body.model) {
+        // Reset to global default
+        await rootStore.llmManager.resetSessionModel(body.sessionKey);
+        sendJson(res, 200, { ok: true, sessionKey: body.sessionKey, provider: null, model: null });
+      } else {
+        await rootStore.llmManager.switchModelForSession(body.sessionKey, body.provider, body.model);
+        sendJson(res, 200, { ok: true, sessionKey: body.sessionKey, provider: body.provider, model: body.model });
+      }
+    } catch (err) {
+      sendJson(res, 500, { error: formatError(err) || "Failed to switch session model" });
+    }
+    return true;
   }
 
   // --- Custom Provider: Fetch Models ---

@@ -1,13 +1,16 @@
 import { DEFAULTS } from "./defaults.js";
+import { resolvePanelPort } from "./ports.js";
 
-const PANEL_URL = `http://127.0.0.1:${DEFAULTS.ports.panel}`;
+function getPanelUrl(): string {
+  return `http://127.0.0.1:${resolvePanelPort()}`;
+}
 
 /** Send a GraphQL query through Desktop's Cloud proxy. */
 export async function extensionGraphqlFetch<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<{ data?: T | null; errors?: Array<{ message: string }> }> {
-  const res = await fetch(`${PANEL_URL}${DEFAULTS.api.cloudGraphql}`, {
+  const res = await fetch(`${getPanelUrl()}${DEFAULTS.api.cloudGraphql}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
@@ -18,10 +21,15 @@ export async function extensionGraphqlFetch<T>(
 
 /** Make a REST call to Desktop's panel-server. */
 export async function extensionRestFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${PANEL_URL}${path}`, {
+  const res = await fetch(`${getPanelUrl()}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  if (!res.ok) throw new Error(`Extension REST error: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(
+      `Extension REST error: ${res.status} ${res.statusText}${errBody ? ` — ${errBody}` : ""}`,
+    );
+  }
   return res.json() as Promise<T>;
 }

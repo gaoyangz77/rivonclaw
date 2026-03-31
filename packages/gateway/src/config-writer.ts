@@ -254,7 +254,7 @@ export function buildExtraProviderConfigs(): Record<string, {
         reasoning: false,
         input: (m.supportsVision ? ["text", "image"] : ["text"]) as Array<"text" | "image">,
         cost: m.cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 128000,
+        contextWindow: m.contextWindow ?? 128000,
         maxTokens: 8192,
       })),
     };
@@ -1158,3 +1158,4 @@ export function ensureGatewayConfig(options?: {
 
   return configPath;
 }
+

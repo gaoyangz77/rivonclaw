@@ -140,9 +140,22 @@ export async function syncAllAuthProfiles(
   const store: AuthProfileStore = { version: 1, profiles: {}, order: {} };
 
   const allKeys = storage.providerKeys.getAll();
-  const activeKeys = allKeys.filter((k) => k.isDefault);
 
-  for (const key of activeKeys) {
+  // Group keys by gateway provider, preferring the isDefault key for each provider.
+  // This ensures ALL providers with keys get written (not just the active/default one),
+  // so OpenClaw can use any provider when sessions.patch switches models.
+  const keysByProvider = new Map<string, (typeof allKeys)[0]>();
+  for (const k of allKeys) {
+    const gwProvider = k.authType === "custom"
+      ? k.provider
+      : resolveGatewayProvider(k.provider as LLMProvider);
+    const existing = keysByProvider.get(gwProvider);
+    if (!existing || k.isDefault) {
+      keysByProvider.set(gwProvider, k);
+    }
+  }
+
+  for (const key of keysByProvider.values()) {
     // Custom providers use their slug directly (registered in extraProviders under that slug).
     // Built-in providers resolve via the gateway provider map.
     const gwProvider = key.authType === "custom"
@@ -150,7 +163,8 @@ export async function syncAllAuthProfiles(
       : resolveGatewayProvider(key.provider as LLMProvider);
 
     if (key.authType === "oauth") {
-      // OAuth entry: read credential JSON from Keychain
+      // OAuth entry: try structured credential first (oauth-cred-{id}), then fall back
+      // to the per-key secret (provider-key-{id}) as a bare API key/token.
       const credJson = await secretStore.get(`oauth-cred-${key.id}`);
       if (credJson) {
         try {
@@ -180,6 +194,19 @@ export async function syncAllAuthProfiles(
           store.order![oauthProvider] = [profileId];
         } catch {
           log.warn(`Failed to parse OAuth credential for ${key.provider} (key ${key.id})`);
+        }
+      } else {
+        // Fallback: OAuth key without structured credential (e.g., Anthropic/Claude subscription
+        // stores a bare token in provider-key-{id}). Write as api_key type — works the same way.
+        const apiKey = await secretStore.get(`provider-key-${key.id}`);
+        if (apiKey) {
+          const profileId = `${gwProvider}:active`;
+          store.profiles[profileId] = {
+            type: "api_key",
+            provider: gwProvider,
+            key: apiKey,
+          };
+          store.order![gwProvider] = [profileId];
         }
       }
     } else if (key.authType === "local") {

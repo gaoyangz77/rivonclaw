@@ -42,6 +42,8 @@ export type {
   CSNewMessageFrame,
   CSWSFrame,
   PlatformAdapter,
+  CSAdminDirectiveParams,
+  CSEscalateParams,
 } from "./types/index.js";
 
 export type {
@@ -155,7 +157,6 @@ export {
 } from "./endpoints.js";
 
 export {
-  findFreePort,
   DEFAULT_GATEWAY_PORT,
   CDP_PORT_OFFSET,
   DEFAULT_PANEL_PORT,

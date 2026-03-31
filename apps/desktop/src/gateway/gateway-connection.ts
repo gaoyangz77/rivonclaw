@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { setRpcClient, getRpcClient } from "./rpc-client-ref.js";
 import { pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
+import { rootStore } from "../store/desktop-store.js";
 import type { GatewayEventHandler } from "./gateway-event-dispatcher.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { loadClientToolSpecs } from "../store/client-tool-loader.js";
@@ -152,7 +153,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
             relayUrl: getCsRelayWsUrl(),
             gatewayId: deviceId ?? "unknown",
           });
-          _csBridge.refreshModelCatalog().catch(() => {});
+          rootStore.llmManager.refreshModelCatalog().catch(() => {});
           _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
         }
       }

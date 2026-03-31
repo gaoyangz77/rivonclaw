@@ -4,7 +4,10 @@ export const CustomerServiceConfigModel = types.model("CustomerServiceConfig", {
   enabled: types.optional(types.boolean, false),
   businessPrompt: types.optional(types.string, ""),
   csDeviceId: types.maybeNull(types.string),
+  csProviderOverride: types.maybeNull(types.string),
   csModelOverride: types.maybeNull(types.string),
+  escalationChannelId: types.maybeNull(types.string),
+  escalationRecipientId: types.maybeNull(types.string),
   runProfileId: types.maybeNull(types.string),
   assembledPrompt: types.maybeNull(types.string),
 });

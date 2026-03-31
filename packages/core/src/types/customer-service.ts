@@ -227,6 +227,42 @@ export type CSWSFrame =
   | CSNewConversationFrame
   | CSNewMessageFrame;
 
+// ── Admin Directive (V0 escalation) ──────────────────────────────────────────
+
+/** Parameters for dispatching a verified manager directive to a CS agent session. */
+export interface CSAdminDirectiveParams {
+  /** MongoDB ObjectId of the shop. */
+  shopId: string;
+  /** The CS conversation to resume. */
+  conversationId: string;
+  /** The buyer in this conversation. */
+  buyerUserId: string;
+  /** Manager's decision: "approved" | "rejected" | free text. */
+  decision: string;
+  /** Manager's instructions for the agent. */
+  instructions: string;
+  /** Related order if any. */
+  orderId?: string;
+}
+
+// ── Escalation ───────────────────────────────────────────────────────────────
+
+/** Parameters for sending an escalation message to a merchant's configured channel. */
+export interface CSEscalateParams {
+  /** MongoDB ObjectId of the shop. */
+  shopId: string;
+  /** The CS conversation being escalated. */
+  conversationId: string;
+  /** The buyer in this conversation. */
+  buyerUserId: string;
+  /** Related order if any. */
+  orderId?: string;
+  /** Reason for escalation. */
+  reason: string;
+  /** Optional additional context for the merchant. */
+  context?: string;
+}
+
 // ── Adapter Interface ───────────────────────────────────────────────────────
 
 /**

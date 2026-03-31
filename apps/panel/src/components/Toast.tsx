@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-type ToastType = "success" | "error";
+type ToastType = "success" | "error" | "warning";
 
 interface ToastState {
   message: string;
@@ -28,12 +28,13 @@ function ToastItem({ toast, onDismiss }: { toast: ToastState; onDismiss: (key: n
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const duration = toast.type === "warning" ? 6000 : 3000;
     timerRef.current = setTimeout(() => {
       setExiting(true);
       exitTimerRef.current = setTimeout(() => {
         onDismiss(toast.key);
       }, 150);
-    }, 3000);
+    }, duration);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -41,7 +42,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastState; onDismiss: (key: n
     };
   }, [toast.key, onDismiss]);
 
-  const typeClass = toast.type === "error" ? "toast-error" : "toast-success";
+  const typeClass = toast.type === "error" ? "toast-error" : toast.type === "warning" ? "toast-warning" : "toast-success";
   const exitClass = exiting ? " toast-exit" : "";
 
   return (

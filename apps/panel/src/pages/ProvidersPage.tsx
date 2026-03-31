@@ -5,7 +5,6 @@ import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivoncla
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../api/index.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
-import { configManager } from "../lib/config-manager.js";
 import { ModelSelect } from "../components/inputs/ModelSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
@@ -78,7 +77,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
 
   async function handleActivate(keyId: string, provider: string) {
     try {
-      await configManager.activateProvider(keyId, provider);
+      await store.llmManager.activateProvider(keyId);
       trackEvent("provider.key_activated", { provider });
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
@@ -99,7 +98,21 @@ export const ProvidersPage = observer(function ProvidersPage() {
 
   async function handleModelChange(keyId: string, model: string) {
     try {
-      await configManager.switchModel(keyId, model);
+      const { contextWarning } = await store.llmManager.switchModel(keyId, model);
+      if (contextWarning) {
+        const fmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+        // Scenario A (exceeded) vs B (approaching): differentiate severity
+        const severity = contextWarning.currentTokens > contextWarning.newContextWindow
+          ? "error" as const
+          : "warning" as const;
+        showToast(
+          t("chat.contextWindowWarning", {
+            currentTokens: fmt(contextWarning.currentTokens),
+            newContextWindow: fmt(contextWarning.newContextWindow),
+          }),
+          severity,
+        );
+      }
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
     }

@@ -25,6 +25,10 @@
     "./client-tools": {
       "import": "./dist/client-tools.mjs",
       "types": "./dist/client-tools.d.mts"
+    },
+    "./cs-session": {
+      "import": "./dist/types/cs-session.mjs",
+      "types": "./dist/types/cs-session.d.mts"
     }
   },
   "scripts": {

@@ -200,9 +200,15 @@ export interface CustomerServiceSettings {
   assembledPrompt?: Maybe<Scalars['String']['output']>;
   businessPrompt?: Maybe<Scalars['String']['output']>;
   csDeviceId?: Maybe<Scalars['String']['output']>;
-  /** LLM model override for CS sessions (provider/modelId format). Null = use default. */
+  /** LLM model override for CS sessions (e.g. 'glm-5'). Null = use default model. */
   csModelOverride?: Maybe<Scalars['String']['output']>;
+  /** LLM provider override for CS sessions (e.g. 'zhipu'). Null = use default provider. */
+  csProviderOverride?: Maybe<Scalars['String']['output']>;
   enabled: Scalars['Boolean']['output'];
+  /** Channel ID for escalation messages. Null = not configured. */
+  escalationChannelId?: Maybe<Scalars['String']['output']>;
+  /** Recipient ID for escalation messages. Null = not configured. */
+  escalationRecipientId?: Maybe<Scalars['String']['output']>;
   /** RunProfile ID for CS agent sessions */
   runProfileId?: Maybe<Scalars['String']['output']>;
 }
@@ -212,7 +218,10 @@ export interface CustomerServiceSettingsInput {
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
   csModelOverride?: InputMaybe<Scalars['String']['input']>;
+  csProviderOverride?: InputMaybe<Scalars['String']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  escalationChannelId?: InputMaybe<Scalars['String']['input']>;
+  escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -1194,6 +1203,19 @@ export interface Surface {
   userId?: Maybe<Scalars['String']['output']>;
 }
 
+/** System run profile identifiers declared by tool metadata */
+export const SystemRunProfile = {
+  CustomerService: 'CUSTOMER_SERVICE',
+  ShopOperations: 'SHOP_OPERATIONS'
+} as const;
+
+export type SystemRunProfile = typeof SystemRunProfile[keyof typeof SystemRunProfile];
+/** System surface identifiers declared by tool metadata */
+export const SystemSurface = {
+  EcommerceSeller: 'ECOMMERCE_SELLER'
+} as const;
+
+export type SystemSurface = typeof SystemSurface[keyof typeof SystemSurface];
 /** Tool functional category */
 export const ToolCategory = {
   BrowserProfiles: 'BROWSER_PROFILES',
@@ -1281,9 +1303,9 @@ export interface ToolSpec {
   restEndpoint?: Maybe<Scalars['String']['output']>;
   /** REST HTTP method */
   restMethod?: Maybe<Scalars['String']['output']>;
-  runProfiles?: Maybe<Array<Scalars['String']['output']>>;
+  runProfiles?: Maybe<Array<SystemRunProfile>>;
   supportedPlatforms?: Maybe<Array<Scalars['String']['output']>>;
-  surfaces?: Maybe<Array<Scalars['String']['output']>>;
+  surfaces?: Maybe<Array<SystemSurface>>;
 }
 
 /** Update notification payload */

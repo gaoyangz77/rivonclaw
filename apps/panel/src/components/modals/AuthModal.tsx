@@ -26,7 +26,6 @@ const AUTH_ERROR_MAP: Record<string, string> = {
 /** Error messages that indicate the email is not registered — triggers auto-register. */
 const AUTO_REGISTER_ERRORS = new Set([
   "Email not registered",
-  "Invalid email or password",
 ]);
 
 function translateAuthError(err: unknown, t: TFunction): string {

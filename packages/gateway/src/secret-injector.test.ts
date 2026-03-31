@@ -34,81 +34,56 @@ describe("resolveSecretEnv", () => {
     expect(Object.keys(env)).toHaveLength(0);
   });
 
-  it("should map per-provider secret keys to env vars", async () => {
+  it("should NOT inject LLM provider API keys (auth-profiles handles these now)", async () => {
     const store = new MockSecretStore({
       "openai-api-key": "sk-openai-123",
       "anthropic-api-key": "sk-ant-456",
-      "stt-api-key": "stt-key-789",
     });
 
     const env = await resolveSecretEnv(store);
-    expect(env["OPENAI_API_KEY"]).toBe("sk-openai-123");
-    expect(env["ANTHROPIC_API_KEY"]).toBe("sk-ant-456");
-    expect(env["STT_API_KEY"]).toBe("stt-key-789");
-  });
-
-  it("should inject multiple LLM provider keys simultaneously", async () => {
-    const store = new MockSecretStore({
-      "openai-api-key": "sk-openai",
-      "deepseek-api-key": "sk-deepseek",
-      "moonshot-api-key": "sk-moonshot",
-    });
-
-    const env = await resolveSecretEnv(store);
-    expect(env["OPENAI_API_KEY"]).toBe("sk-openai");
-    expect(env["DEEPSEEK_API_KEY"]).toBe("sk-deepseek");
-    expect(env["MOONSHOT_API_KEY"]).toBe("sk-moonshot");
-  });
-
-  it("should fall back to legacy llm-api-key for OPENAI_API_KEY", async () => {
-    const store = new MockSecretStore({
-      "llm-api-key": "sk-legacy",
-    });
-
-    const env = await resolveSecretEnv(store);
-    expect(env["OPENAI_API_KEY"]).toBe("sk-legacy");
-  });
-
-  it("should prefer openai-api-key over legacy llm-api-key", async () => {
-    const store = new MockSecretStore({
-      "openai-api-key": "sk-new",
-      "llm-api-key": "sk-legacy",
-    });
-
-    const env = await resolveSecretEnv(store);
-    expect(env["OPENAI_API_KEY"]).toBe("sk-new");
-  });
-
-  it("should skip secrets that are not set", async () => {
-    const store = new MockSecretStore({
-      "openai-api-key": "sk-test",
-    });
-
-    const env = await resolveSecretEnv(store);
-    expect(env["OPENAI_API_KEY"]).toBe("sk-test");
+    // LLM keys should NOT be in env — they go through auth-profiles.json
+    expect(env).not.toHaveProperty("OPENAI_API_KEY");
     expect(env).not.toHaveProperty("ANTHROPIC_API_KEY");
   });
 
-  it("should inject non-LLM static secrets", async () => {
+  it("should inject non-LLM static secrets (STT, web search, embedding)", async () => {
+    const store = new MockSecretStore({
+      "stt-api-key": "stt-key-789",
+      "stt-groq-apikey": "groq-stt",
+      "websearch-brave-apikey": "brave-key",
+      "embedding-openai-apikey": "emb-key",
+    });
+
+    const env = await resolveSecretEnv(store);
+    expect(env["STT_API_KEY"]).toBe("stt-key-789");
+    expect(env["GROQ_API_KEY"]).toBe("groq-stt");
+    expect(env["RIVONCLAW_WS_BRAVE_APIKEY"]).toBe("brave-key");
+    expect(env["RIVONCLAW_EMB_OPENAI_APIKEY"]).toBe("emb-key");
+  });
+
+  it("should skip secrets that are not set", async () => {
     const store = new MockSecretStore({
       "stt-api-key": "stt-key",
     });
 
     const env = await resolveSecretEnv(store);
     expect(env["STT_API_KEY"]).toBe("stt-key");
+    expect(Object.keys(env)).toHaveLength(1);
   });
 });
 
 describe("buildGatewayEnv", () => {
-  it("should merge process env with secrets", async () => {
+  it("should merge process env with non-LLM secrets", async () => {
     const store = new MockSecretStore({
-      "openai-api-key": "sk-secret",
+      "stt-api-key": "stt-secret",
     });
 
     const env = await buildGatewayEnv(store);
-    expect(env["OPENAI_API_KEY"]).toBe("sk-secret");
+    expect(env["STT_API_KEY"]).toBe("stt-secret");
     // Should include process.env values
     expect(env["PATH"]).toBeDefined();
+    // Should NOT include LLM keys
+    expect(env).not.toHaveProperty("OPENAI_API_KEY");
   });
 
   it("should merge extra env vars", async () => {
@@ -119,10 +94,10 @@ describe("buildGatewayEnv", () => {
 
   it("should let secrets override extra env", async () => {
     const store = new MockSecretStore({
-      "openai-api-key": "from-secrets",
+      "stt-api-key": "from-secrets",
     });
 
-    const env = await buildGatewayEnv(store, { OPENAI_API_KEY: "from-extra" });
-    expect(env["OPENAI_API_KEY"]).toBe("from-secrets");
+    const env = await buildGatewayEnv(store, { STT_API_KEY: "from-extra" });
+    expect(env["STT_API_KEY"]).toBe("from-secrets");
   });
 });

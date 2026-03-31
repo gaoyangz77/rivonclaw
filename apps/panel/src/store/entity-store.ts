@@ -7,6 +7,7 @@ import {
   ShopModel,
   ProviderKeyModel,
   ServiceCreditModel,
+  LLMProviderModel,
 } from "./models/index.js";
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
@@ -62,6 +63,7 @@ const PanelRootStoreModel = RootStoreModel.props({
   shops: types.optional(types.array(ShopModel), []),
   providerKeys: types.optional(types.array(ProviderKeyModel), []),
   credits: types.optional(types.array(ServiceCreditModel), []),
+  llmManager: types.optional(LLMProviderModel, {}),
 }).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
@@ -316,6 +318,7 @@ interface PanelEntityOverrides {
   readonly shops: Instance<typeof ShopModel>[];
   readonly providerKeys: Instance<typeof ProviderKeyModel>[];
   readonly credits: Instance<typeof ServiceCreditModel>[];
+  readonly llmManager: Instance<typeof LLMProviderModel>;
 }
 export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
 

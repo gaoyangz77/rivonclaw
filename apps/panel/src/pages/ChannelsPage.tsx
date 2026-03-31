@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteChannelAccount, getChannelAccountConfig, trackEvent, type ChannelAccountSnapshot } from "../api/index.js";
+import { disconnectMobilePairing } from "../api/mobile-chat.js";
 import { pollGatewayReady } from "../lib/poll-gateway.js";
 import { AddChannelAccountModal } from "../components/modals/AddChannelAccountModal.js";
 import { MobileBindingModal } from "../components/modals/MobileBindingModal.js";
@@ -146,7 +147,6 @@ export function ChannelsPage() {
 
       if (channelId === "mobile") {
         // Disconnect all mobile pairings
-        const { disconnectMobilePairing } = await import("../api/mobile-chat.js");
         await disconnectMobilePairing();
         await pollGatewayReady(() => loadChannelStatus());
       } else {

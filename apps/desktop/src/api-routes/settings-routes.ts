@@ -201,7 +201,7 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
 
   if (pathname === "/api/settings" && req.method === "PUT") {
     const body = (await parseBody(req)) as Record<string, string>;
-    let providerChanged = false;
+    let legacyKeyChanged = false;
     let sttChanged = false;
     let permissionsChanged = false;
     let browserChanged = false;
@@ -213,12 +213,12 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
           } else {
             await secretStore.delete(key);
           }
-          providerChanged = true;
+          legacyKeyChanged = true;
         } else {
           storage.settings.set(key, value);
-          if (key === "llm-provider") {
-            providerChanged = true;
-          }
+          // Note: "llm-provider" setting changes no longer trigger onProviderChange here.
+          // Provider activation is now handled by llmManager.activateProvider() which
+          // does sessions.patch + auth-profiles + config write directly.
           if (key === "stt.enabled" || key === "stt.provider") {
             sttChanged = true;
           }
@@ -232,7 +232,8 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
       }
     }
     sendJson(res, 200, { ok: true });
-    if (providerChanged) onProviderChange?.();
+    // Legacy API key changes still need provider change handler for env var sync
+    if (legacyKeyChanged) onProviderChange?.();
     if (sttChanged) onSttChange?.();
     if (permissionsChanged) onPermissionsChange?.();
     if (browserChanged) onBrowserChange?.();

@@ -6345,6 +6345,13 @@ tbody td {
   background-color: var(--color-danger);
 }
 
+.toast-warning {
+  background-color: var(--color-warning);
+  white-space: normal;
+  max-width: 520px;
+  line-height: 1.4;
+}
+
 .toast-exit {
   animation: toast-fade-out 150ms ease-in both;
 }
@@ -7618,6 +7625,38 @@ tbody td {
   font-size: 11px;
   color: var(--color-text-muted);
   pointer-events: none;
+}
+
+/* Escalation Cascading Selector — side-by-side layout */
+
+.escalation-cascade-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.escalation-cascade-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.escalation-cascade-col-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Hint text inside shop-info-card — padded to align with card content */
+.shop-info-card-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.shop-info-card-hint-warning {
+  color: var(--color-warning);
 }
 
 /* RunProfile Selector in AI CS tab */

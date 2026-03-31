@@ -17,7 +17,10 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         businessPrompt
         runProfileId
         csDeviceId
+        csProviderOverride
         csModelOverride
+        escalationChannelId
+        escalationRecipientId
         assembledPrompt
       }
       customerServiceBilling {

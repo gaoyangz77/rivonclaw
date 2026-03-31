@@ -8,11 +8,16 @@
  *   → registered in global registry → rivonclaw-local-tools plugin collects for gateway
  *   → ToolSpec metadata injected into MST for capability resolver
  *
- * The ToolSpec shape is unified with the backend: same fields, same semantics.
- * Types are imported from GraphQL codegen (GQL namespace) — not redefined.
+ * ClientToolDef extends the codegen ToolSpec type directly — all metadata fields
+ * (category, surfaces, runProfiles, etc.) inherit their types from GQL.ToolSpec,
+ * ensuring compile-time consistency with the backend schema.
  */
 
-import type { ToolSpec, ToolParamSpec, ToolContextBinding, ToolId, ToolCategory } from "./generated/graphql.js";
+import type { ToolSpec, ToolId } from "./generated/graphql.js";
+
+// Re-export codegen enum consts for use by local tool definitions.
+// These are the same values the backend uses via @Tool decorators.
+export { ToolCategory, SystemSurface, SystemRunProfile } from "./generated/graphql.js";
 
 // ── Tool execution types (matches OpenClaw plugin-sdk ToolDef shape) ──────
 
@@ -25,32 +30,32 @@ type ToolExecuteFn = (toolCallId: string, args: unknown) => Promise<ToolResult>;
 // ── Client tool definition ───────────────────────────────────────────────
 
 /**
- * A client-side tool definition, combining ToolSpec metadata (for capability
- * resolver) with an execute function (for gateway plugin registration).
+ * A client-side tool definition, extending GQL.ToolSpec with execution fields.
  *
- * Metadata fields mirror GQL.ToolSpec — the same shape the backend produces
- * via @Tool decorators. This ensures client and backend tools participate
- * identically in the surface/runProfile system.
+ * Metadata fields come directly from ToolSpec (via Partial + required overrides).
+ * `id` is broadened to `string` because local tool IDs are not in the backend
+ * ToolId enum. All other fields (category, surfaces, runProfiles, etc.) keep
+ * their exact codegen types.
  */
-export interface ClientToolDef {
-  // ── ToolSpec metadata (mirrors GQL.ToolSpec) ──
+export interface ClientToolDef extends Omit<Partial<ToolSpec>, "id" | "parameters"> {
+  // ── Required metadata (same types as ToolSpec, id broadened for local tools) ──
   id: string;
   name: string;
   displayName: string;
   description: string;
-  category: string;
-  operationType?: string;
-  surfaces?: string[];
-  runProfiles?: string[];
-  parameters?: ToolParamSpec[];
-  contextBindings?: ToolContextBinding[];
-  supportedPlatforms?: string[];
+  category: ToolSpec["category"];
+
+  /**
+   * Tool parameter schema — TypeBox TObject for gateway registration.
+   * Gateway reads `.properties` from this to build the tool's input schema.
+   * This overrides ToolSpec.parameters (ToolParamSpec[]) because the gateway
+   * needs the TypeBox schema, not the GraphQL param spec array.
+   */
+  parameters?: Record<string, unknown>;
 
   // ── Gateway plugin fields (not in ToolSpec) ──
   /** If true, tool is only available to the device owner (not channel contacts). */
   ownerOnly?: boolean;
-  /** TypeBox schema for gateway parameter validation. */
-  gatewayParameters?: unknown;
   /** Tool implementation — called by the gateway when the agent invokes this tool. */
   execute: ToolExecuteFn;
 }
@@ -89,11 +94,11 @@ export function getClientToolSpecs(): ToolSpec[] {
     name: def.name,
     displayName: def.displayName,
     description: def.description,
-    category: def.category as ToolCategory,
+    category: def.category,
     operationType: def.operationType ?? "local",
     surfaces: def.surfaces,
     runProfiles: def.runProfiles,
-    parameters: def.parameters ?? [],
+    parameters: [],
     contextBindings: def.contextBindings,
     supportedPlatforms: def.supportedPlatforms,
     graphqlOperation: undefined,

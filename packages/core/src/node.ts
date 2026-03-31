@@ -4,6 +4,8 @@
 
 export * from "./index.js";
 
+export { findFreePort } from "./find-free-port.js";
+
 export {
   resolveRivonClawHome,
   resolveDbPath,

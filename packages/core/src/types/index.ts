@@ -53,6 +53,8 @@ export type {
   CSNewMessageFrame,
   CSWSFrame,
   PlatformAdapter,
+  CSAdminDirectiveParams,
+  CSEscalateParams,
 } from "./customer-service.js";
 export type {
   BrowserProfileId,

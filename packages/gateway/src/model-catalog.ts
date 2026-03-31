@@ -9,6 +9,7 @@ import { ALL_PROVIDERS, getProviderMeta, initKnownModels, PROVIDERS, type LLMPro
 export interface CatalogModelEntry {
   id: string;
   name: string;
+  contextWindow?: number;
 }
 
 function getSupplementalCatalogEntries(provider: LLMProvider): CatalogModelEntry[] {
@@ -20,7 +21,7 @@ function getSupplementalCatalogEntries(provider: LLMProvider): CatalogModelEntry
   for (const model of models) {
     if (seen.has(model.modelId)) continue;
     seen.add(model.modelId);
-    result.push({ id: model.modelId, name: model.displayName });
+    result.push({ id: model.modelId, name: model.displayName, contextWindow: model.contextWindow });
   }
 
   return result;
@@ -51,7 +52,7 @@ export function readGatewayModelCatalog(
     const data = JSON.parse(raw) as {
       providers?: Record<
         string,
-        { models?: Array<{ id?: string; name?: string }> }
+        { models?: Array<{ id?: string; name?: string; contextWindow?: number }> }
       >;
     };
 
@@ -69,6 +70,7 @@ export function readGatewayModelCatalog(
         entries.push({
           id,
           name: String(m.name ?? id).trim() || id,
+          contextWindow: typeof m.contextWindow === "number" && m.contextWindow > 0 ? m.contextWindow : undefined,
         });
       }
 
@@ -218,7 +220,7 @@ export async function readVendorModelCatalog(
     )) as {
       MODELS?: Record<
         string,
-        Record<string, { id?: string; name?: string }>
+        Record<string, { id?: string; name?: string; contextWindow?: number }>
       >;
     };
 
@@ -240,6 +242,7 @@ export async function readVendorModelCatalog(
         entries.push({
           id,
           name: String(model?.name ?? id).trim() || id,
+          contextWindow: typeof model?.contextWindow === "number" && model.contextWindow > 0 ? model.contextWindow : undefined,
         });
       }
 

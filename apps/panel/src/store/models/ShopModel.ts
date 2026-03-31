@@ -21,7 +21,10 @@ export const ShopModel = ShopModelBase.actions((self) => {
           businessPrompt?: string;
           runProfileId?: string;
           csDeviceId?: string | null;
+          csProviderOverride?: string | null;
           csModelOverride?: string | null;
+          escalationChannelId?: string | null;
+          escalationRecipientId?: string | null;
         };
       };
     }) {

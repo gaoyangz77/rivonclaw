@@ -4,3 +4,5 @@ export { RunProfileModel } from "./RunProfileModel.js";
 export { ShopModel } from "./ShopModel.js";
 export { ProviderKeyModel } from "./ProviderKeyModel.js";
 export { ServiceCreditModel } from "./ServiceCreditModel.js";
+export { LLMProviderModel } from "./LLMProviderModel.js";
+export type { SwitchModelResult, SessionModelInfo } from "./LLMProviderModel.js";

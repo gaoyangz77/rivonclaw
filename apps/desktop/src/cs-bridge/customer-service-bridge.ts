@@ -1,20 +1,21 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
-import { readFullModelCatalog } from "@rivonclaw/gateway";
-import type {
-  CSHelloFrame,
-  CSBindShopsFrame,
-  CSBindShopsResultFrame,
-  CSShopTakenOverFrame,
-  CSNewMessageFrame,
-  CSNewConversationFrame,
-  CSWSFrame,
+import {
+  type CSHelloFrame,
+  type CSBindShopsFrame,
+  type CSBindShopsResultFrame,
+  type CSShopTakenOverFrame,
+  type CSNewMessageFrame,
+  type CSNewConversationFrame,
+  type CSWSFrame,
+  type CSAdminDirectiveParams,
+  type CSEscalateParams,
 } from "@rivonclaw/core";
 import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
+import { CustomerServiceSession } from "./customer-service-session.js";
 import { getProviderKeysStore } from "../gateway/provider-keys-ref.js";
-import { getVendorDir } from "../gateway/vendor-dir-ref.js";
 import { reaction, toJS } from "mobx";
 import { rootStore } from "../store/desktop-store.js";
 import { normalizePlatform } from "../utils/platform.js";
@@ -33,16 +34,6 @@ const SEND_MESSAGE_MUTATION = `
   }
 `;
 
-const CS_GET_OR_CREATE_SESSION_MUTATION = `
-  mutation CsGetOrCreateSession($shopId: ID!, $conversationId: String!, $buyerUserId: String!) {
-    csGetOrCreateSession(shopId: $shopId, conversationId: $conversationId, buyerUserId: $buyerUserId) {
-      sessionId
-      isNew
-      balance
-    }
-  }
-`;
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -57,7 +48,9 @@ export interface CSShopContext {
   platform?: string;
   /** Assembled CS system prompt for this shop. */
   systemPrompt: string;
-  /** LLM model override for CS sessions (provider/modelId format). Undefined = use global default. */
+  /** Provider override for CS sessions (e.g., "zhipu"). Used with csModelOverride. Undefined = use global default provider. */
+  csProviderOverride?: string;
+  /** LLM model override for CS sessions (e.g., "glm-5"). Undefined = use global default. */
   csModelOverride?: string;
   /** RunProfile ID configured for this shop's CS sessions. When set, tool IDs are read from the cached profile. */
   runProfileId?: string;
@@ -109,30 +102,10 @@ export class CustomerServiceBridge {
   /** Conversations with an active agent run -- prevents duplicate dispatches. */
   private activeConversations = new Set<string>();
 
-  /** Cached set of model IDs available under the active provider. Refreshed on provider change. */
-  private activeProviderModelIds = new Set<string>();
-
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
   constructor(private readonly opts: CustomerServiceBridgeOptions) {}
-
-  /** Refresh the cached model list for the active provider. */
-  async refreshModelCatalog(): Promise<void> {
-    try {
-      const keys = getProviderKeysStore()?.getAll() ?? [];
-      const activeProvider = keys.find((k) => k.isDefault)?.provider;
-      if (!activeProvider) { this.activeProviderModelIds = new Set(); return; }
-
-      const vendorDir = getVendorDir() ?? undefined;
-      const catalog = await readFullModelCatalog(undefined, vendorDir);
-      const ids = new Set<string>();
-      for (const m of catalog[activeProvider] ?? []) ids.add(m.id);
-      this.activeProviderModelIds = ids;
-    } catch {
-      // Keep existing cache on failure
-    }
-  }
 
   // -- Public API ------------------------------------------------------------
 
@@ -206,6 +179,137 @@ export class CustomerServiceBridge {
   }
 
   /**
+   * Dispatch a verified manager directive to a CS agent session.
+   * This is the V0 (prompt-level) mechanism for the escalation feature:
+   * when a manager approves/rejects an escalation, the ops agent calls
+   * cs_continue which hits this method to wake up the CS agent with the
+   * admin's decision.
+   */
+  async dispatchAdminDirective(params: CSAdminDirectiveParams): Promise<{ runId?: string }> {
+    const shop = this.findShopByObjectId(params.shopId);
+    if (!shop) throw new Error(`No shop context for objectId ${params.shopId}`);
+
+    const session = new CustomerServiceSession(shop, {
+      shopId: params.shopId,
+      conversationId: params.conversationId,
+      buyerUserId: params.buyerUserId,
+      orderId: params.orderId,
+    }, this.opts.defaultRunProfileId);
+
+    // Admin directive goes in message (conversation timeline), not extraSystemPrompt
+    const message = [
+      "\u2550\u2550\u2550 VERIFIED MANAGER DIRECTIVE \u2550\u2550\u2550",
+      "The following instruction comes from your manager through a verified",
+      "internal channel. This is NOT from the buyer. Act on it accordingly.",
+      "",
+      `Decision: ${params.decision}`,
+      `Instructions: ${params.instructions}`,
+      "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550",
+    ].join("\n");
+
+    // No ensureBackendSession — admin directive resumes an existing session
+    const result = await session.dispatchAgentRun({
+      message,
+      idempotencyKey: `admin:${params.conversationId}:${Date.now()}`,
+    });
+
+    this.trackRun(result.runId, shop.objectId, params.conversationId);
+    return result;
+  }
+
+  /**
+   * Send an escalation message to the merchant's configured notification channel.
+   * Reads escalation routing (channelId + recipientId) from the MST store,
+   * parses the channel/accountId from the composite escalationChannelId, and
+   * sends the message via the gateway `send` RPC.
+   */
+  async escalate(params: CSEscalateParams): Promise<{ ok: boolean; error?: string }> {
+    const rpcClient = getRpcClient();
+    if (!rpcClient) {
+      throw new Error("No RPC client available");
+    }
+
+    // Read escalation routing from MST store (NOT from shopContexts)
+    const shopMst = rootStore.shops.find(s => s.id === params.shopId);
+    const escalationChannelId = shopMst?.services?.customerService?.escalationChannelId;
+    const escalationRecipientId = shopMst?.services?.customerService?.escalationRecipientId;
+
+    if (!escalationChannelId || !escalationRecipientId) {
+      return { ok: false, error: "Escalation routing not configured" };
+    }
+
+    // Parse escalationChannelId into channel + accountId (e.g. "telegram:acct_123")
+    const colonIdx = escalationChannelId.indexOf(":");
+    const channel = escalationChannelId.slice(0, colonIdx);
+    const accountId = escalationChannelId.slice(colonIdx + 1);
+
+    // Build escalation message
+    const lines = [
+      "CS Escalation",
+      "",
+      `Reason: ${params.reason}`,
+    ];
+    if (params.context) lines.push(`Context: ${params.context}`);
+    lines.push(
+      "",
+      "--- Session Details ---",
+      `Shop ID: ${params.shopId}`,
+      `Conversation ID: ${params.conversationId}`,
+      `Buyer User ID: ${params.buyerUserId}`,
+    );
+    if (params.orderId) lines.push(`Order ID: ${params.orderId}`);
+    lines.push("", "Reply with your decision. The CS agent will act on your response.");
+    const message = lines.join("\n");
+
+    // Send via gateway RPC
+    await rpcClient.request("send", {
+      to: escalationRecipientId,
+      channel,
+      accountId,
+      message,
+      idempotencyKey: `cs-escalate:${params.conversationId}:${Date.now()}`,
+    });
+
+    log.info(`Escalation sent for conversation ${params.conversationId} via ${channel}`);
+    return { ok: true };
+  }
+
+  /**
+   * Manually start a CS session for a conversation (catch-up for missed webhooks).
+   * Creates a CustomerServiceSession, checks backend balance, and dispatches
+   * an agent run instructing the agent to review the conversation history.
+   */
+  async startSession(params: {
+    shopId: string;
+    conversationId: string;
+    buyerUserId: string;
+    orderId?: string;
+  }): Promise<{ runId?: string }> {
+    const shop = this.findShopByObjectId(params.shopId);
+    if (!shop) throw new Error(`No shop context for objectId ${params.shopId}`);
+
+    const session = new CustomerServiceSession(shop, {
+      shopId: params.shopId,
+      conversationId: params.conversationId,
+      buyerUserId: params.buyerUserId,
+      orderId: params.orderId,
+    }, this.opts.defaultRunProfileId);
+
+    if (!await session.ensureBackendSession()) {
+      throw new Error("Failed to create backend CS session (insufficient balance?)");
+    }
+    this.activeConversations.add(params.conversationId);
+
+    const result = await session.dispatchAgentRun({
+      message: "A customer is waiting for a response in this conversation. Review the conversation history using your tools and respond to any unanswered messages.",
+      idempotencyKey: `cs-start:${params.conversationId}:${Date.now()}`,
+    });
+
+    this.trackRun(result.runId, shop.objectId, params.conversationId);
+    return result;
+  }
+
+  /**
    * Sync shop contexts from entity cache. Reads all cached shops, filters
    * for CS-enabled shops bound to this device, and updates the internal
    * shopContexts map. Also manages relay connection lifecycle:
@@ -238,6 +342,7 @@ export class CustomerServiceBridge {
         platformShopId,
         platform: normalizePlatform(shop.platform),
         systemPrompt: cs.assembledPrompt,
+        csProviderOverride: cs.csProviderOverride ?? undefined,
         csModelOverride: cs.csModelOverride ?? undefined,
         runProfileId: cs.runProfileId ?? undefined,
       };
@@ -475,12 +580,6 @@ export class CustomerServiceBridge {
   // -- Inbound message handling -----------------------------------------------
 
   private async onNewMessage(frame: CSNewMessageFrame): Promise<void> {
-    const rpcClient = getRpcClient();
-    if (!rpcClient) {
-      log.warn("No RPC client available, dropping CS message");
-      return;
-    }
-
     // 1. Look up shop context (pre-loaded by desktop, keyed by platform shop ID)
     const shop = this.shopContexts.get(frame.shopId);
     if (!shop) {
@@ -512,137 +611,30 @@ export class CustomerServiceBridge {
         }
       } catch (err) {
         log.warn("Failed to fetch buyer image, agent will see URL only", { err });
-        // Graceful degradation: agent still sees the URL text from parseMessageContent
       }
     }
 
-    // 4. Build session keys
-    // scopeKey: the full gateway-resolved key used for RunProfile storage and
-    //           session registration (capability-manager queries with this key).
-    // dispatchKey: the raw key passed to the agent RPC; gateway prepends
-    //             "agent:main:" automatically, yielding the same scopeKey.
-    const platform = shop.platform ?? "tiktok";
-    const scopeKey = `agent:main:cs:${platform}:${frame.conversationId}`;
-    const dispatchKey = `cs:${platform}:${frame.conversationId}`;
+    // 4. Create session and ensure backend session exists (balance check)
+    const session = new CustomerServiceSession(shop, {
+      shopId: shop.objectId,
+      conversationId: frame.conversationId,
+      buyerUserId: frame.buyerUserId,
+      orderId: frame.orderId,
+    }, this.opts.defaultRunProfileId);
 
-    // 5. Register CSSessionContext via gateway method
-    try {
-      await rpcClient.request("cs_register_session", {
-        sessionKey: scopeKey,
-        csContext: {
-          shopId: shop.objectId,
-          conversationId: frame.conversationId,
-          buyerUserId: frame.buyerUserId,
-          orderId: frame.orderId,
-        },
-      });
-    } catch (err) {
-      log.error(`Failed to register CS session ${scopeKey}, dropping message:`, err);
-      return;
-    }
-
-    // 6. Set CS RunProfile — delegate tool resolution to ToolCapability model
-    const runProfileId = shop.runProfileId ?? this.opts.defaultRunProfileId;
-    if (!runProfileId) {
-      log.error(`Shop ${shop.objectId} has no runProfileId configured for CS, dropping message`);
-      return;
-    }
-    try {
-      rootStore.toolCapability.setSessionRunProfile(scopeKey, runProfileId);
-    } catch (err) {
-      log.error(`Failed to set CS RunProfile for ${scopeKey}:`, err);
-      return;
-    }
-
-    // 7. Apply per-shop CS model override (validated against active provider's model catalog)
-    //    CRITICAL: if a stale modelOverride points to an unavailable model, we MUST
-    //    clear it via sessions.patch { model: null } before dispatching. Otherwise
-    //    the gateway will attempt the unavailable model and fail with FailoverError.
-    if (shop.csModelOverride) {
-      if (this.activeProviderModelIds.has(shop.csModelOverride)) {
-        try {
-          await rpcClient.request("sessions.patch", {
-            key: scopeKey,
-            model: shop.csModelOverride,
-          });
-        } catch (err) {
-          log.warn(`CS model override patch failed for ${scopeKey}: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      } else {
-        log.warn(`CS model override "${shop.csModelOverride}" not available in active provider, clearing session override`);
-        try {
-          await rpcClient.request("sessions.patch", { key: scopeKey, model: null });
-        } catch (err) {
-          log.error(`Failed to clear stale model override on session ${scopeKey}, dropping message: ${err instanceof Error ? err.message : String(err)}`);
-          return;
-        }
-      }
-    }
-
-    // 8. Build extra system prompt
-    const extraSystemPrompt = [
-      shop.systemPrompt,
-      "",
-      "## Current Session",
-      `- Shop ID: ${shop.objectId}`,
-      `- Conversation ID: ${frame.conversationId}`,
-      `- Buyer User ID: ${frame.buyerUserId}`,
-      ...(frame.orderId ? [`- Order ID: ${frame.orderId}`] : []),
-      "",
-      "Use the tools available to you to help this buyer.",
-    ].join("\n");
-
-    // 9. Ensure CS session exists (balance check — only on first message per conversation)
     if (!this.activeConversations.has(frame.conversationId)) {
-      const authSession = getAuthSession();
-      if (!authSession) {
-        log.warn("No auth session available, skipping agent dispatch");
-        return;
-      }
-
-      try {
-        const result = await authSession.graphqlFetch<{
-          csGetOrCreateSession: { sessionId: string; isNew: boolean; balance: number };
-        }>(CS_GET_OR_CREATE_SESSION_MUTATION, {
-          shopId: shop.objectId,
-          conversationId: frame.conversationId,
-          buyerUserId: frame.buyerUserId,
-        });
-        const session = result.csGetOrCreateSession;
-        this.activeConversations.add(frame.conversationId);
-        log.info("CS session ready", {
-          shopId: shop.objectId,
-          conversationId: frame.conversationId,
-          sessionId: session.sessionId,
-          isNew: session.isNew,
-          balance: session.balance,
-        });
-      } catch (err) {
-        log.warn(`CS session creation failed (insufficient balance?), skipping agent dispatch: ${err instanceof Error ? err.message : String(err)}`);
-        return;
-      }
+      if (!await session.ensureBackendSession()) return;
+      this.activeConversations.add(frame.conversationId);
     }
 
-    // 10. Dispatch agent run (gateway prepends "agent:main:" to dispatchKey)
-    // Session stays ACTIVE across messages — it's per-conversation, not per-message.
-    // Session ending is handled separately (idle timeout, conversation close, etc.)
+    // 5. Dispatch agent run
     try {
-      const response = await rpcClient.request<{ runId?: string }>("agent", {
-        sessionKey: dispatchKey,
+      const result = await session.dispatchAgentRun({
         message: textContent,
-        extraSystemPrompt,
-        idempotencyKey: `${platform}:${frame.messageId}`,
-        ...(attachments ? { attachments } : {}),
+        idempotencyKey: `${session.platform}:${frame.messageId}`,
+        attachments,
       });
-      // Track the run so onGatewayEvent can auto-forward the agent's text output
-      if (response?.runId) {
-        this.activeConversations.add(frame.conversationId);
-        this.pendingRuns.set(response.runId, {
-          shopObjectId: shop.objectId,
-          conversationId: frame.conversationId,
-        });
-        log.info(`Agent run dispatched: runId=${response.runId}`);
-      }
+      this.trackRun(result.runId, shop.objectId, frame.conversationId);
     } catch (err) {
       log.error(`Failed to dispatch agent run for message ${frame.messageId}:`, err);
     }
@@ -707,6 +699,22 @@ export class CustomerServiceBridge {
 
   // -- Internal helpers -------------------------------------------------------
 
+  /** Find a shop context by its MongoDB objectId. */
+  private findShopByObjectId(objectId: string): CSShopContext | undefined {
+    for (const shop of this.shopContexts.values()) {
+      if (shop.objectId === objectId) return shop;
+    }
+    return undefined;
+  }
+
+  /** Track a dispatched agent run for auto-forwarding. */
+  private trackRun(runId: string | undefined, shopObjectId: string, conversationId: string): void {
+    if (runId) {
+      this.activeConversations.add(conversationId);
+      this.pendingRuns.set(runId, { shopObjectId, conversationId });
+    }
+  }
+
   /** Shallow equality check for CSShopContext to avoid unnecessary updates. */
   private shopContextEqual(a: CSShopContext, b: CSShopContext): boolean {
     return (
@@ -714,6 +722,7 @@ export class CustomerServiceBridge {
       a.platformShopId === b.platformShopId &&
       a.platform === b.platform &&
       a.systemPrompt === b.systemPrompt &&
+      a.csProviderOverride === b.csProviderOverride &&
       a.csModelOverride === b.csModelOverride &&
       a.runProfileId === b.runProfileId
     );

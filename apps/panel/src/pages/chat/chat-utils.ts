@@ -31,6 +31,8 @@ export type SessionTabInfo = {
   pinned?: boolean;
   /** True for panel-created sessions not yet materialized on the gateway. */
   isLocal?: boolean;
+  /** Total tokens consumed in this session — from gateway `sessions.list`. */
+  totalTokens?: number;
 };
 
 /** Per-session cached state for tab switching. */
@@ -61,6 +63,7 @@ export type SessionsListResult = {
     updatedAt?: number;
     spawnedBy?: string;
     totalTokens?: number;
+    totalTokensFresh?: boolean;
     chatType?: string;
   }>;
 };
@@ -407,4 +410,44 @@ export function parseRawMessages(
     }
   }
   return parsed;
+}
+
+// ---------------------------------------------------------------------------
+// Context overflow detection for model switching
+// ---------------------------------------------------------------------------
+
+export type ContextOverflowCheck =
+  | { action: "block"; currentTokens: number; newContextWindow: number }
+  | { action: "warn" }
+  | { action: "ok" };
+
+/**
+ * Evaluate whether switching to a model with a given context window would
+ * overflow, given the current session's token count.
+ *
+ * - `block`: tokens already exceed the new model's window — must intervene
+ * - `warn`: tokens exceed 80% of the new window — advisory toast
+ * - `ok`: safe to switch
+ */
+export function checkContextOverflow(
+  currentTokens: number,
+  newContextWindow: number | undefined,
+): ContextOverflowCheck {
+  if (!newContextWindow || newContextWindow <= 0 || currentTokens <= 0) {
+    return { action: "ok" };
+  }
+  if (currentTokens > newContextWindow) {
+    return { action: "block", currentTokens, newContextWindow };
+  }
+  if (currentTokens > newContextWindow * 0.8) {
+    return { action: "warn" };
+  }
+  return { action: "ok" };
+}
+
+/** Format a token count as a compact "Xk" / "X.Xm" string. */
+export function formatTokenCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+  if (n >= 1000) return `${Math.round(n / 1000)}k`;
+  return String(n);
 }
