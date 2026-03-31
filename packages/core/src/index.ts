@@ -42,7 +42,6 @@ export type {
   CSNewMessageFrame,
   CSWSFrame,
   PlatformAdapter,
-  CSAdminDirectiveParams,
   CSEscalateParams,
 } from "./types/index.js";
 
@@ -180,5 +179,4 @@ export { toolName } from "./tool-utils.js";
 export { stripReasoningTagsFromText } from "./generated/reasoning-tags.js";
 export type { ReasoningTagMode, ReasoningTagTrim } from "./generated/reasoning-tags.js";
 
-export { defineClientTool, getClientTools, getClientToolSpecs } from "./client-tools.js";
 export type { ClientToolDef } from "./client-tools.js";

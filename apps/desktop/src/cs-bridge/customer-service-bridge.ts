@@ -9,52 +9,21 @@ import {
   type CSNewMessageFrame,
   type CSNewConversationFrame,
   type CSWSFrame,
-  type CSAdminDirectiveParams,
-  type CSEscalateParams,
 } from "@rivonclaw/core";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
-import { CustomerServiceSession } from "./customer-service-session.js";
-import { getProviderKeysStore } from "../gateway/provider-keys-ref.js";
+import { CustomerServiceSession, type CSShopContext } from "./customer-service-session.js";
 import { reaction, toJS } from "mobx";
+
+// Re-export for consumers that imported CSShopContext from this file
+export type { CSShopContext } from "./customer-service-session.js";
 import { rootStore } from "../store/desktop-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 
 const log = createLogger("cs-bridge");
 
-/**
- * GraphQL mutation for auto-forwarding agent text to buyer.
- * Must match EcommerceResolver.ecommerceSendMessage signature in the backend.
- */
-const SEND_MESSAGE_MUTATION = `
-  mutation($shopId: String!, $conversationId: String!, $type: String!, $content: String!) {
-    ecommerceSendMessage(shopId: $shopId, conversationId: $conversationId, type: $type, content: $content) {
-      code message data
-    }
-  }
-`;
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-/** Shop data needed by the CS bridge (resolved by desktop, not by bridge). */
-export interface CSShopContext {
-  /** MongoDB ObjectId -- used for backend API calls and prompt assembly. */
-  objectId: string;
-  /** Platform shop ID (TikTok's ID) -- matches webhook shop_id. */
-  platformShopId: string;
-  /** Normalized short platform name for session keys (e.g., "tiktok"). Defaults to "tiktok". */
-  platform?: string;
-  /** Assembled CS system prompt for this shop. */
-  systemPrompt: string;
-  /** Provider override for CS sessions (e.g., "zhipu"). Used with csModelOverride. Undefined = use global default provider. */
-  csProviderOverride?: string;
-  /** LLM model override for CS sessions (e.g., "glm-5"). Undefined = use global default. */
-  csModelOverride?: string;
-  /** RunProfile ID configured for this shop's CS sessions. When set, tool IDs are read from the cached profile. */
-  runProfileId?: string;
-}
 
 interface CustomerServiceBridgeOptions {
   relayUrl: string;
@@ -92,6 +61,9 @@ export class CustomerServiceBridge {
 
   /** Shop context keyed by platformShopId (from webhook). */
   private shopContexts = new Map<string, CSShopContext>();
+
+  /** Long-lived sessions keyed by conversationId. Reused across messages. */
+  private sessions = new Map<string, CustomerServiceSession>();
 
   /** Shops currently bound to other devices (from last cs_bind_shops_result). */
   private bindingConflicts: Array<{ shopId: string; gatewayId: string }> = [];
@@ -179,137 +151,6 @@ export class CustomerServiceBridge {
   }
 
   /**
-   * Dispatch a verified manager directive to a CS agent session.
-   * This is the V0 (prompt-level) mechanism for the escalation feature:
-   * when a manager approves/rejects an escalation, the ops agent calls
-   * cs_continue which hits this method to wake up the CS agent with the
-   * admin's decision.
-   */
-  async dispatchAdminDirective(params: CSAdminDirectiveParams): Promise<{ runId?: string }> {
-    const shop = this.findShopByObjectId(params.shopId);
-    if (!shop) throw new Error(`No shop context for objectId ${params.shopId}`);
-
-    const session = new CustomerServiceSession(shop, {
-      shopId: params.shopId,
-      conversationId: params.conversationId,
-      buyerUserId: params.buyerUserId,
-      orderId: params.orderId,
-    }, this.opts.defaultRunProfileId);
-
-    // Admin directive goes in message (conversation timeline), not extraSystemPrompt
-    const message = [
-      "\u2550\u2550\u2550 VERIFIED MANAGER DIRECTIVE \u2550\u2550\u2550",
-      "The following instruction comes from your manager through a verified",
-      "internal channel. This is NOT from the buyer. Act on it accordingly.",
-      "",
-      `Decision: ${params.decision}`,
-      `Instructions: ${params.instructions}`,
-      "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550",
-    ].join("\n");
-
-    // No ensureBackendSession — admin directive resumes an existing session
-    const result = await session.dispatchAgentRun({
-      message,
-      idempotencyKey: `admin:${params.conversationId}:${Date.now()}`,
-    });
-
-    this.trackRun(result.runId, shop.objectId, params.conversationId);
-    return result;
-  }
-
-  /**
-   * Send an escalation message to the merchant's configured notification channel.
-   * Reads escalation routing (channelId + recipientId) from the MST store,
-   * parses the channel/accountId from the composite escalationChannelId, and
-   * sends the message via the gateway `send` RPC.
-   */
-  async escalate(params: CSEscalateParams): Promise<{ ok: boolean; error?: string }> {
-    const rpcClient = getRpcClient();
-    if (!rpcClient) {
-      throw new Error("No RPC client available");
-    }
-
-    // Read escalation routing from MST store (NOT from shopContexts)
-    const shopMst = rootStore.shops.find(s => s.id === params.shopId);
-    const escalationChannelId = shopMst?.services?.customerService?.escalationChannelId;
-    const escalationRecipientId = shopMst?.services?.customerService?.escalationRecipientId;
-
-    if (!escalationChannelId || !escalationRecipientId) {
-      return { ok: false, error: "Escalation routing not configured" };
-    }
-
-    // Parse escalationChannelId into channel + accountId (e.g. "telegram:acct_123")
-    const colonIdx = escalationChannelId.indexOf(":");
-    const channel = escalationChannelId.slice(0, colonIdx);
-    const accountId = escalationChannelId.slice(colonIdx + 1);
-
-    // Build escalation message
-    const lines = [
-      "CS Escalation",
-      "",
-      `Reason: ${params.reason}`,
-    ];
-    if (params.context) lines.push(`Context: ${params.context}`);
-    lines.push(
-      "",
-      "--- Session Details ---",
-      `Shop ID: ${params.shopId}`,
-      `Conversation: ${params.conversationId}`,
-      `Buyer: ${params.buyerUserId}`,
-    );
-    if (params.orderId) lines.push(`Order: ${params.orderId}`);
-    lines.push("", "Please reply with your decision (e.g., \"Approved, process full refund\").");
-    const message = lines.join("\n");
-
-    // Send via gateway RPC
-    await rpcClient.request("send", {
-      to: escalationRecipientId,
-      channel,
-      accountId,
-      message,
-      idempotencyKey: `cs-escalate:${params.conversationId}:${Date.now()}`,
-    });
-
-    log.info(`Escalation sent for conversation ${params.conversationId} via ${channel}`);
-    return { ok: true };
-  }
-
-  /**
-   * Manually start a CS session for a conversation (catch-up for missed webhooks).
-   * Creates a CustomerServiceSession, checks backend balance, and dispatches
-   * an agent run instructing the agent to review the conversation history.
-   */
-  async startSession(params: {
-    shopId: string;
-    conversationId: string;
-    buyerUserId: string;
-    orderId?: string;
-  }): Promise<{ runId?: string }> {
-    const shop = this.findShopByObjectId(params.shopId);
-    if (!shop) throw new Error(`No shop context for objectId ${params.shopId}`);
-
-    const session = new CustomerServiceSession(shop, {
-      shopId: params.shopId,
-      conversationId: params.conversationId,
-      buyerUserId: params.buyerUserId,
-      orderId: params.orderId,
-    }, this.opts.defaultRunProfileId);
-
-    if (!await session.ensureBackendSession()) {
-      throw new Error("Failed to create backend CS session (insufficient balance?)");
-    }
-    this.activeConversations.add(params.conversationId);
-
-    const result = await session.dispatchAgentRun({
-      message: "A customer is waiting for a response in this conversation. Review the conversation history using your tools and respond to any unanswered messages.",
-      idempotencyKey: `cs-start:${params.conversationId}:${Date.now()}`,
-    });
-
-    this.trackRun(result.runId, shop.objectId, params.conversationId);
-    return result;
-  }
-
-  /**
    * Sync shop contexts from entity cache. Reads all cached shops, filters
    * for CS-enabled shops bound to this device, and updates the internal
    * shopContexts map. Also manages relay connection lifecycle:
@@ -393,8 +234,11 @@ export class CustomerServiceBridge {
         .trim();
 
       if (agentText) {
-        this.forwardTextToBuyer(pending.shopObjectId, pending.conversationId, agentText)
-          .catch((err) => log.error("Failed to auto-forward agent text:", err));
+        const session = this.sessions.get(pending.conversationId);
+        if (session) {
+          session.forwardTextToBuyer(agentText)
+            .catch((err) => log.error("Failed to auto-forward agent text:", err));
+        }
       }
     } else if (payload.state === "error") {
       this.activeConversations.delete(pending.conversationId);
@@ -580,121 +424,25 @@ export class CustomerServiceBridge {
   // -- Inbound message handling -----------------------------------------------
 
   private async onNewMessage(frame: CSNewMessageFrame): Promise<void> {
-    // 1. Look up shop context (pre-loaded by desktop, keyed by platform shop ID)
     const shop = this.shopContexts.get(frame.shopId);
     if (!shop) {
       log.error(`No shop context for platform shopId ${frame.shopId}, dropping message`);
       return;
     }
 
-    // 2. Skip if conversation already has an active agent run
     if (this.activeConversations.has(frame.conversationId)) {
       log.info(`Conversation ${frame.conversationId} already has active run, queuing message`);
       return;
     }
 
-    // 3. Parse text content
-    const textContent = this.parseMessageContent(frame);
+    const session = this.getOrCreateSessionFromShop(shop, frame);
 
-    // 3a. Extract image attachment for multimodal LLM input
-    let attachments: Array<{ mimeType: string; content: string }> | undefined;
-    if (frame.messageType.toUpperCase() === "IMAGE") {
-      try {
-        const parsed = JSON.parse(frame.content) as { url?: string };
-        if (parsed.url) {
-          const res = await fetch(parsed.url);
-          if (res.ok) {
-            const buffer = Buffer.from(await res.arrayBuffer());
-            const mimeType = res.headers.get("content-type") ?? "image/jpeg";
-            attachments = [{ mimeType, content: buffer.toString("base64") }];
-          }
-        }
-      } catch (err) {
-        log.warn("Failed to fetch buyer image, agent will see URL only", { err });
-      }
-    }
-
-    // 4. Create session and ensure backend session exists (balance check)
-    const session = new CustomerServiceSession(shop, {
-      shopId: shop.objectId,
-      conversationId: frame.conversationId,
-      buyerUserId: frame.buyerUserId,
-      orderId: frame.orderId,
-    }, this.opts.defaultRunProfileId);
-
-    if (!this.activeConversations.has(frame.conversationId)) {
-      if (!await session.ensureBackendSession()) return;
-      this.activeConversations.add(frame.conversationId);
-    }
-
-    // 5. Dispatch agent run
     try {
-      const result = await session.dispatchAgentRun({
-        message: textContent,
-        idempotencyKey: `${session.platform}:${frame.messageId}`,
-        attachments,
-      });
-      this.trackRun(result.runId, shop.objectId, frame.conversationId);
+      await session.handleBuyerMessage(frame);
+      // onRunDispatched callback handles activeConversations + pendingRuns
     } catch (err) {
-      log.error(`Failed to dispatch agent run for message ${frame.messageId}:`, err);
+      log.error(`Failed to handle buyer message ${frame.messageId}:`, err);
     }
-  }
-
-  /**
-   * Parse buyer message content from a relay frame.
-   *
-   * Platform-specific parsers can be dispatched here by shop.platform.
-   * For now, all supported platforms use the same message type schema
-   * (TEXT, IMAGE, ORDER_CARD).  When a platform with different message
-   * types is added, extract per-platform parsers and dispatch here.
-   *
-   * Note: ORDER_CARD is currently TikTok-specific. If another platform
-   * sends a different card format, it will fall through to the default
-   * "[{messageType} message received]" branch, which is safe.
-   */
-  private parseMessageContent(frame: CSNewMessageFrame): string {
-    if (frame.messageType.toUpperCase() === "TEXT") {
-      // TEXT content is {"content": "simple text"} — extract the plain string
-      try {
-        const parsed = JSON.parse(frame.content) as Record<string, unknown>;
-        if (typeof parsed.content === "string") return parsed.content;
-        if (typeof parsed.text === "string") return parsed.text;
-      } catch {
-        // Not JSON — use raw content
-      }
-      return frame.content;
-    }
-
-    // All other types (IMAGE, ORDER_CARD, PRODUCT_CARD, VIDEO, LOGISTICS_CARD,
-    // COUPON_CARD, BUYER_ENTER_FROM_*, ALLOCATED_SERVICE, etc.)
-    // — pass raw content JSON prefixed with type so the agent knows what it is.
-    return `[${frame.messageType}] ${frame.content}`;
-  }
-
-  // -- Auto-forward agent text to buyer ----------------------------------------
-
-  /**
-   * Send agent text output to the buyer via the backend GraphQL proxy.
-   * Uses the platform-agnostic `ecommerceSendMessage` mutation -- the backend
-   * resolver routes by shop.platform, so no platform dispatch is needed here.
-   */
-  private async forwardTextToBuyer(
-    shopId: string,
-    conversationId: string,
-    text: string,
-  ): Promise<void> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn("No auth session available, cannot forward text to buyer");
-      return;
-    }
-    await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
-      shopId,
-      conversationId,
-      type: "TEXT",
-      content: JSON.stringify({ content: text }),
-    });
-    log.info(`Auto-forwarded agent text to buyer (${text.length} chars)`);
   }
 
   // -- Internal helpers -------------------------------------------------------
@@ -707,12 +455,61 @@ export class CustomerServiceBridge {
     return undefined;
   }
 
-  /** Track a dispatched agent run for auto-forwarding. */
-  private trackRun(runId: string | undefined, shopObjectId: string, conversationId: string): void {
-    if (runId) {
-      this.activeConversations.add(conversationId);
-      this.pendingRuns.set(runId, { shopObjectId, conversationId });
+  /** Find session that owns a given escalation ID (searches all sessions). */
+  findSessionByEscalationId(escalationId: string): CustomerServiceSession | undefined {
+    for (const session of this.sessions.values()) {
+      if (session.escalations.has(escalationId)) return session;
     }
+    return undefined;
+  }
+
+  /** Get existing session or create a new one, by shopObjectId + conversation params. */
+  getOrCreateSession(
+    shopObjectId: string,
+    params: { conversationId: string; buyerUserId: string; orderId?: string },
+  ): CustomerServiceSession {
+    const existing = this.sessions.get(params.conversationId);
+    if (existing) return existing;
+
+    const shop = this.findShopByObjectId(shopObjectId);
+    if (!shop) throw new Error(`No shop context for objectId ${shopObjectId}`);
+
+    return this.createAndStoreSession(shop, shopObjectId, params);
+  }
+
+  /** Get existing session or create from a resolved shop context (relay message path). */
+  private getOrCreateSessionFromShop(
+    shop: CSShopContext,
+    params: { conversationId: string; buyerUserId: string; orderId?: string },
+  ): CustomerServiceSession {
+    const existing = this.sessions.get(params.conversationId);
+    if (existing) return existing;
+
+    return this.createAndStoreSession(shop, shop.objectId, params);
+  }
+
+  private createAndStoreSession(
+    shop: CSShopContext,
+    shopObjectId: string,
+    params: { conversationId: string; buyerUserId: string; orderId?: string },
+  ): CustomerServiceSession {
+    const csContext = {
+      shopId: shopObjectId,
+      conversationId: params.conversationId,
+      buyerUserId: params.buyerUserId,
+      orderId: params.orderId,
+    };
+
+    const session = new CustomerServiceSession(shop, csContext, {
+      defaultRunProfileId: this.opts.defaultRunProfileId,
+      onRunDispatched: (runId) => {
+        this.activeConversations.add(params.conversationId);
+        this.pendingRuns.set(runId, { shopObjectId, conversationId: params.conversationId });
+      },
+    });
+
+    this.sessions.set(params.conversationId, session);
+    return session;
   }
 
   /** Shallow equality check for CSShopContext to avoid unnecessary updates. */

@@ -1,19 +1,15 @@
 /**
- * Client tool registry — declarative tool definitions for local (Desktop) tools.
- *
- * Pattern mirrors backend's @Tool decorator (server/backend/src/decorators/tool.ts):
- * - Backend: @Tool(id, { category, surfaces, runProfiles, ... }) on resolver methods
- *   → metadata extracted → served via GraphQL ToolSpec
- * - Client: defineClientTool({ id, category, surfaces, ... , execute })
- *   → registered in global registry → rivonclaw-local-tools plugin collects for gateway
- *   → ToolSpec metadata injected into MST for capability resolver
+ * Client tool type definitions for local (Desktop) tools.
  *
  * ClientToolDef extends the codegen ToolSpec type directly — all metadata fields
  * (category, surfaces, runProfiles, etc.) inherit their types from GQL.ToolSpec,
  * ensuring compile-time consistency with the backend schema.
+ *
+ * Codegen enum consts (ToolCategory, SystemSurface, SystemRunProfile) are
+ * re-exported here so local tool plugins can import them from a single subpath.
  */
 
-import type { ToolSpec, ToolId } from "./generated/graphql.js";
+import type { ToolSpec } from "./generated/graphql.js";
 
 // Re-export codegen enum consts for use by local tool definitions.
 // These are the same values the backend uses via @Tool decorators.
@@ -58,55 +54,4 @@ export interface ClientToolDef extends Omit<Partial<ToolSpec>, "id" | "parameter
   ownerOnly?: boolean;
   /** Tool implementation — called by the gateway when the agent invokes this tool. */
   execute: ToolExecuteFn;
-}
-
-// ── Registry ─────────────────────────────────────────────────────────────
-
-const registry: ClientToolDef[] = [];
-
-/**
- * Define and register a client-side tool.
- * Call at module scope — the tool is added to the global registry
- * and will be picked up by rivonclaw-local-tools plugin.
- */
-export function defineClientTool(def: ClientToolDef): ClientToolDef {
-  registry.push(def);
-  return def;
-}
-
-/**
- * Get all registered client tools (for gateway plugin registration).
- * Called by rivonclaw-local-tools to build the tools array.
- */
-export function getClientTools(): ClientToolDef[] {
-  return [...registry];
-}
-
-/**
- * Extract ToolSpec-compatible metadata from all registered client tools.
- * Called by Desktop to inject client tool specs into MST alongside
- * backend-provided toolSpecs, so the capability resolver can manage them
- * in the same surface/runProfile system.
- */
-export function getClientToolSpecs(): ToolSpec[] {
-  return registry.map((def) => ({
-    id: def.id as ToolId,
-    name: def.name,
-    displayName: def.displayName,
-    description: def.description,
-    category: def.category,
-    operationType: def.operationType ?? "local",
-    surfaces: def.surfaces,
-    runProfiles: def.runProfiles,
-    // Client tools use TypeBox schemas (Record<string, unknown>), not ToolParamSpec[].
-    // The gateway reads parameters directly from the TypeBox schema at registration time,
-    // so ToolSpec.parameters is not consumed for client tools. Cast to satisfy the type.
-    parameters: (def.parameters ?? []) as unknown as ToolSpec["parameters"],
-    contextBindings: def.contextBindings,
-    supportedPlatforms: def.supportedPlatforms,
-    graphqlOperation: undefined,
-    restMethod: undefined,
-    restEndpoint: undefined,
-    restContentType: undefined,
-  }));
 }

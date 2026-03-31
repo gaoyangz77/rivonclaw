@@ -1576,6 +1576,7 @@ export default {
         // 电商客服 — 升级
         cs_escalate: "升级处理",
         cs_continue: "继续（恢复）",
+        cs_get_escalation_result: "获取升级结果",
         cs_start_session: "启动客服会话",
         // 电商店铺管理
         ECOMMERCE_LIST_SHOPS: "店铺列表",
