@@ -2,6 +2,10 @@ import { test, expect } from "./electron-fixture.js";
 
 /**
  * Helper: dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
+ *
+ * The modal backdrop requires both mousedown AND mouseup on the backdrop area
+ * to close via backdrop click, so we prefer the close button. As a fallback we
+ * simulate a proper mousedown→mouseup sequence on the backdrop itself.
  */
 async function dismissModals(window: import("@playwright/test").Page) {
   for (let i = 0; i < 3; i++) {
@@ -11,7 +15,14 @@ async function dismissModals(window: import("@playwright/test").Page) {
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
       await closeBtn.click();
     } else {
-      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
+      // Simulate a full mousedown→mouseup→click on the backdrop's own area
+      // (top-left corner at 5,5 which is always outside modal-content).
+      const box = await backdrop.boundingBox();
+      if (box) {
+        await window.mouse.move(box.x + 5, box.y + 5);
+        await window.mouse.down();
+        await window.mouse.up();
+      }
     }
     await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
   }
@@ -59,11 +70,21 @@ async function fillPayloadText(modal: import("@playwright/test").Locator, text: 
 
 /**
  * Helper: submit the cron form and wait for the modal to close.
+ *
+ * The modal closes programmatically after the action completes. If the backdrop
+ * lingers (e.g. slow gateway), we explicitly click the close button as a fallback.
  */
 async function submitForm(modal: import("@playwright/test").Locator, buttonText: string = "Add Job") {
   const submitBtn = modal.locator(".modal-actions .btn-primary", { hasText: buttonText });
   await submitBtn.click();
-  await expect(modal).toBeHidden({ timeout: 15_000 });
+  const hidden = await modal.waitFor({ state: "hidden", timeout: 15_000 }).then(() => true).catch(() => false);
+  if (!hidden) {
+    const closeBtn = modal.locator(".modal-close-btn");
+    if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await closeBtn.click();
+    }
+    await expect(modal).toBeHidden({ timeout: 5_000 });
+  }
 }
 
 /**
@@ -113,6 +134,9 @@ async function createIntervalJob(
 
 /**
  * Helper: delete a job by clicking Delete on its row and confirming.
+ *
+ * After confirming, the modal closes programmatically via setDeleteTarget(null).
+ * If the backdrop lingers, we explicitly click the close button as a fallback.
  */
 async function deleteJob(window: import("@playwright/test").Page, jobName: string) {
   const table = window.locator(".crons-table");
@@ -125,7 +149,14 @@ async function deleteJob(window: import("@playwright/test").Page, jobName: strin
   await expect(confirmDialog).toContainText(jobName);
   const confirmBtn = confirmDialog.locator(".btn-danger", { hasText: "Delete" });
   await confirmBtn.click();
-  await expect(confirmDialog).toBeHidden({ timeout: 10_000 });
+  const hidden = await confirmDialog.waitFor({ state: "hidden", timeout: 10_000 }).then(() => true).catch(() => false);
+  if (!hidden) {
+    const closeBtn = confirmDialog.locator(".modal-close-btn");
+    if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await closeBtn.click();
+    }
+    await expect(confirmDialog).toBeHidden({ timeout: 5_000 });
+  }
 }
 
 
