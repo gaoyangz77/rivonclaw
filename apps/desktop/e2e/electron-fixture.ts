@@ -66,6 +66,30 @@ async function ensurePortFree(port: number): Promise<void> {
 }
 
 /**
+ * Wait for a TCP port to start accepting connections (gateway readiness check).
+ *
+ * The ChatPage's GatewayChatClient uses exponential backoff (800ms → 15s max)
+ * when reconnecting. Under parallel e2e load, the gateway may take several
+ * seconds to start listening, and the backoff schedule can misalign — the
+ * client sleeps 15s right when the gateway becomes ready. Waiting at the TCP
+ * level (500ms poll, no backoff) decouples the fixture from the browser-side
+ * retry schedule and makes the connection time deterministic.
+ */
+async function waitForPort(port: number, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const listening = await new Promise<boolean>((resolve) => {
+      const sock = createConnection({ port, host: "127.0.0.1" });
+      sock.once("connect", () => { sock.destroy(); resolve(true); });
+      sock.once("error", () => resolve(false));
+    });
+    if (listening) return;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Gateway port ${port} did not start listening within ${timeoutMs}ms`);
+}
+
+/**
  * Compute unique ports for a Playwright worker based on its index.
  *
  * Workers start at offset 100 (not 0) so worker-0 never collides with a
@@ -230,7 +254,7 @@ export const test = base.extend<ElectronFixtures>({
     await launchElectronApp(use, ports);
   },
 
-  window: async ({ electronApp, apiBase }, use) => {
+  window: async ({ electronApp, apiBase, ports }, use) => {
     const window = await electronApp.firstWindow({ timeout: 45_000 });
     await window.waitForLoadState("domcontentloaded");
 
@@ -250,12 +274,16 @@ export const test = base.extend<ElectronFixtures>({
       await window.waitForSelector(".sidebar-brand", { timeout: 45_000 });
     }
 
-    // Wait for the gateway to be fully connected before handing the window
-    // to tests. The gateway takes 6-7 s to bind on Windows (extensions load
-    // before the port opens) and can restart multiple times after a provider
-    // change. Waiting here removes the race from every individual test.
+    // Wait for the gateway port to accept TCP connections first.
+    // This decouples the fixture from ChatPage's WebSocket exponential backoff
+    // (800ms → 15s max), which can misalign with gateway readiness under load.
+    await waitForPort(ports.gateway, 45_000);
+
+    // Now that the gateway is listening, the ChatPage's next reconnect attempt
+    // will succeed. Worst case: one max-backoff cycle (15s) if the client is
+    // currently sleeping between retries, plus handshake time.
     await window.waitForSelector(".chat-status-dot-connected", {
-      timeout: 45_000,
+      timeout: 30_000,
     });
 
     await use(window);
