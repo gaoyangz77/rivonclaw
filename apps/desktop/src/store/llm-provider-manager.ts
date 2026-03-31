@@ -65,6 +65,8 @@ export const LLMProviderManagerModel = types
   .volatile(() => ({
     /** Per-session model overrides. Key = session key, value = { provider, model }. */
     sessionOverrides: new Map<string, SessionModelOverride>(),
+    /** Sessions that have had activity since app startup. Only these are patched on global default change. */
+    activeSessions: new Set<string>(),
     /** Cached model catalog for validation. Set of "provider/modelId" strings. */
     catalogModelIds: new Set<string>(),
   }))
@@ -107,6 +109,26 @@ export const LLMProviderManagerModel = types
       const rpc = getRpcClient();
       if (!rpc) throw new Error("RPC client not available");
       await rpc.request("sessions.patch", { key: sessionKey, model: modelRef });
+    }
+
+    /**
+     * Reset active sessions that are "following default" (no explicit volatile override)
+     * to pick up a new global default. Only sessions with activity since app startup
+     * are patched — avoids touching hundreds of dormant sessions.
+     * Best-effort: failures are logged but do not propagate.
+     */
+    async function resetDefaultFollowingSessions(): Promise<void> {
+      const toReset = [...self.activeSessions].filter((key) => !self.sessionOverrides.has(key));
+      if (toReset.length === 0) return;
+
+      await Promise.allSettled(
+        toReset.map((key) =>
+          patchSession(key, null).catch((err: unknown) => {
+            log.warn(`Failed to reset session ${key} to default:`, err);
+          }),
+        ),
+      );
+      log.info(`Reset ${toReset.length} active session(s) to new global default`);
     }
 
     /** Check if a provider/model combo is available in the cached catalog. */
@@ -205,6 +227,11 @@ export const LLMProviderManagerModel = types
         }
       }),
 
+      /** Mark a session as active (had activity since app startup). */
+      trackSessionActivity(sessionKey: string) {
+        self.activeSessions.add(sessionKey);
+      },
+
       /**
        * Switch the model for a single session only (per-session override).
        * Does NOT change the global default or other sessions.
@@ -213,6 +240,7 @@ export const LLMProviderManagerModel = types
         const modelRef = resolveModelRef(provider, model);
         yield patchSession(sessionKey, modelRef);
         self.sessionOverrides.set(sessionKey, { provider, model });
+        self.activeSessions.add(sessionKey);
         log.info(`Switched session ${sessionKey} to ${modelRef}`);
       }),
 
@@ -232,6 +260,8 @@ export const LLMProviderManagerModel = types
        * If a resolved model is unavailable in the catalog, falls through to the next layer.
        */
       applyModelForSession: flow(function* (sessionKey: string, scope?: ModelScope) {
+        self.activeSessions.add(sessionKey);
+
         // Layer 1: session-level override
         const sessionOverride = self.sessionOverrides.get(sessionKey);
         if (sessionOverride) {
@@ -281,6 +311,8 @@ export const LLMProviderManagerModel = types
         // Update OpenClaw config default (chokidar hot-reload, no restart)
         if (entry.isDefault) {
           writeDefaultModel(entry.provider, newModel, entry.authType);
+          // Reset sessions following default so they pick up the new model
+          resetDefaultFollowingSessions().catch(() => {});
         }
 
         return updated;
@@ -321,6 +353,8 @@ export const LLMProviderManagerModel = types
 
         // Update OpenClaw config default (chokidar hot-reload, no restart)
         writeDefaultModel(entry.provider, entry.model, entry.authType);
+        // Reset sessions following default so they pick up the new provider/model
+        resetDefaultFollowingSessions().catch(() => {});
 
         return { entry, oldActive };
       }),

@@ -268,6 +268,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       sendJson(res, 400, { error: "Missing sessionKey query param" });
       return true;
     }
+    rootStore.llmManager.trackSessionActivity(sessionKey);
     const info = rootStore.llmManager.getSessionModelInfo(sessionKey);
     sendJson(res, 200, info);
     return true;
