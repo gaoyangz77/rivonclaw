@@ -3,6 +3,7 @@ import { UserModel as UserModelBase } from "@rivonclaw/core/models";
 import {
   ENROLL_MODULE_MUTATION,
   UNENROLL_MODULE_MUTATION,
+  SET_DEFAULT_RUN_PROFILE_MUTATION,
 } from "../../api/auth-queries.js";
 import {
   SHOPS_QUERY,
@@ -37,6 +38,15 @@ export const UserModel = UserModelBase.actions((self) => {
         variables: { moduleId },
       });
       // Result ingested by Desktop via proxy -> MST -> SSE -> Panel auto-updates
+    }),
+
+    setDefaultRunProfile: flow(function* (runProfileId: string | null) {
+      // Persist to backend → returns full MeResponse → Desktop proxy ingests
+      // → currentUser.defaultRunProfileId updated → toolCapability reads it via view
+      yield client().mutate({
+        mutation: SET_DEFAULT_RUN_PROFILE_MUTATION,
+        variables: { runProfileId },
+      });
     }),
   };
 });

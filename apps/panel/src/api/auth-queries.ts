@@ -78,46 +78,56 @@ export const REFRESH_TOKEN_MUTATION = gql`
   }
 `;
 
+const ME_FIELDS_FRAGMENT = gql`
+  fragment MeFields on MeResponse {
+    userId
+    email
+    name
+    plan
+    createdAt
+    enrolledModules
+    entitlementKeys
+    defaultRunProfileId
+    llmKey {
+      key
+      suspendedUntil
+    }
+  }
+`;
+
 export const ME_QUERY = gql`
+  ${ME_FIELDS_FRAGMENT}
   query Me {
     me {
-      userId
-      email
-      name
-      plan
-      createdAt
-      enrolledModules
-      entitlementKeys
-      defaultRunProfileId
-      llmKey {
-        key
-        suspendedUntil
-      }
+      ...MeFields
     }
   }
 `;
 
 export const ENROLL_MODULE_MUTATION = gql`
+  ${ME_FIELDS_FRAGMENT}
   mutation EnrollModule($moduleId: ModuleId!) {
     enrollModule(moduleId: $moduleId) {
-      enrolledModules
-      entitlementKeys
+      ...MeFields
     }
   }
 `;
 
 export const UNENROLL_MODULE_MUTATION = gql`
+  ${ME_FIELDS_FRAGMENT}
   mutation UnenrollModule($moduleId: ModuleId!) {
     unenrollModule(moduleId: $moduleId) {
-      enrolledModules
-      entitlementKeys
+      ...MeFields
     }
   }
 `;
 
 export const SET_DEFAULT_RUN_PROFILE_MUTATION = gql`
+  ${ME_FIELDS_FRAGMENT}
   mutation SetDefaultRunProfile($runProfileId: String) {
-    setDefaultRunProfile(runProfileId: $runProfileId)
+    setDefaultRunProfile(runProfileId: $runProfileId) {
+      ...MeFields
+    }
   }
 `;
 

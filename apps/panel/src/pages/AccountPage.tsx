@@ -9,9 +9,6 @@ import { Select } from "../components/inputs/Select.js";
 import { ModuleIcon } from "../components/icons.js";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useToolDisplayLabel } from "../lib/tool-display.js";
-import { getClient } from "../api/apollo-client.js";
-import { SET_DEFAULT_RUN_PROFILE_MUTATION } from "../api/auth-queries.js";
-import { setDefaultRunProfile as notifyDesktopDefaultProfile } from "../api/tool-registry.js";
 import type { SnapshotIn } from "mobx-state-tree";
 import { SurfaceModel, RunProfileModel } from "@rivonclaw/core/models";
 
@@ -223,21 +220,7 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
     setSavingDefault(true);
     setDefaultProfileError(null);
     try {
-      // 1. Persist to backend
-      const runProfileId = profileId || null;
-      await getClient().mutate<{ setDefaultRunProfile: boolean }>({
-        mutation: SET_DEFAULT_RUN_PROFILE_MUTATION,
-        variables: { runProfileId },
-      });
-
-      // 2. Notify desktop runtime
-      await notifyDesktopDefaultProfile(runProfileId);
-
-      // 3. Update local user state with the new defaultRunProfileId
-      // Desktop MST will be updated via the GraphQL proxy; but also update locally for immediate UI feedback
-      if (entityStore.currentUser) {
-        (entityStore.currentUser as any).defaultRunProfileId = runProfileId;
-      }
+      await entityStore.currentUser!.setDefaultRunProfile(profileId || null);
     } catch {
       setDefaultProfileError(t("surfaces.failedToSaveProfile"));
     } finally {

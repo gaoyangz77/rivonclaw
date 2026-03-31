@@ -21,7 +21,6 @@ function jsonResponse(body: unknown, status = 200): Response {
 import {
   setRunProfileForScope,
   getRunProfileForScope,
-  setDefaultRunProfile,
 } from "../tool-registry.js";
 
 // ---------------------------------------------------------------------------
@@ -88,33 +87,6 @@ describe("tool-registry", () => {
     });
   });
 
-  describe("setDefaultRunProfile", () => {
-    it("calls PUT /tools/default-run-profile with runProfileId", async () => {
-      mockFetch.mockResolvedValue(jsonResponse({}));
-
-      await setDefaultRunProfile("p1");
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/tools/default-run-profile",
-        expect.objectContaining({
-          method: "PUT",
-          body: JSON.stringify({ runProfileId: "p1" }),
-        }),
-      );
-    });
-
-    it("passes null to clear default", async () => {
-      mockFetch.mockResolvedValue(jsonResponse({}));
-
-      await setDefaultRunProfile(null);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/tools/default-run-profile",
-        expect.objectContaining({
-          method: "PUT",
-          body: JSON.stringify({ runProfileId: null }),
-        }),
-      );
-    });
-  });
+  // setDefaultRunProfile removed — defaultRunProfileId is now read from
+  // currentUser (persisted via backend GraphQL, synced via SSE).
 });

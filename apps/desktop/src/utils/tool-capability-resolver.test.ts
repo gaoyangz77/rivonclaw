@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { applySnapshot } from "mobx-state-tree";
+import { applySnapshot, getSnapshot } from "mobx-state-tree";
 import { ScopeType } from "@rivonclaw/core";
 import type { CatalogTool } from "@rivonclaw/core";
 import { parseScopeType } from "../api-routes/tool-registry-routes.js";
@@ -59,7 +59,28 @@ describe("parseScopeType", () => {
  * Extension tool:       custom_ext_tool   (source=plugin, pluginId NOT in OUR_PLUGIN_IDS)
  * Entitled tools:       entitled_tool_1, entitled_tool_2  (from MST store)
  */
+/** Set the default RunProfile on currentUser (the canonical source). */
+function setDefaultRunProfile(runProfileId: string | null): void {
+  if (rootStore.currentUser) {
+    const snap = getSnapshot(rootStore.currentUser);
+    applySnapshot(rootStore.currentUser, { ...snap, defaultRunProfileId: runProfileId } as any);
+  }
+}
+
 function seedTestStore(): void {
+  // Seed currentUser so toolCapability.defaultRunProfileId view has a source
+  rootStore.setCurrentUser({
+    userId: "test-user",
+    email: "test@test.com",
+    name: "Test",
+    plan: "free",
+    createdAt: "2026-01-01T00:00:00Z",
+    enrolledModules: [],
+    entitlementKeys: [],
+    defaultRunProfileId: null as string | null,
+    llmKey: null,
+  });
+
   // Seed MST store with mock entitled tools
   rootStore.ingestGraphQLResponse({
     toolSpecs: [
@@ -95,7 +116,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
     seedTestStore();
     // Clear any session/default profiles
-    rootStore.toolCapability.setDefaultRunProfile(null);
+    setDefaultRunProfile(null);
   });
 
   // ── Trusted scopes ──
@@ -109,7 +130,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   });
 
   it("trusted scope + no RunProfile + has default → system + default's tools", () => {
-    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_1"]));
     expect(result).not.toContain("entitled_tool_2");
@@ -122,7 +143,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   });
 
   it("trusted scope + RunProfile overrides default", () => {
-    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    setDefaultRunProfile("profile-entitled-1");
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_2"]));
@@ -183,7 +204,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   });
 
   it("CS_SESSION ignores default RunProfile", () => {
-    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv3");
     expect(result).toEqual([]);
   });
@@ -198,7 +219,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   // ── CRON_JOB (trusted) ──
 
   it("CRON_JOB is trusted → same as CHAT_SESSION behavior", () => {
-    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.CRON_JOB,
       "agent:main:cron:job1:run:uuid",
@@ -209,7 +230,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   // ── Clear session RunProfile ──
 
   it("clear session RunProfile → falls back to default", () => {
-    rootStore.toolCapability.setDefaultRunProfile("profile-entitled-1");
+    setDefaultRunProfile("profile-entitled-1");
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
 
     // With session profile: entitled_tool_2
@@ -277,7 +298,7 @@ describe("deleted entity fallback", () => {
   beforeEach(() => {
     rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
     seedTestStore();
-    rootStore.toolCapability.setDefaultRunProfile(null);
+    setDefaultRunProfile(null);
   });
 
   it("session references deleted RunProfile → empty effectiveToolIds", () => {
@@ -362,7 +383,7 @@ describe("default profile + Surface filtering", () => {
   beforeEach(() => {
     rootStore.ingestGraphQLResponse({ toolSpecs: [], runProfiles: [], surfaces: [], shops: [] });
     seedTestStore();
-    rootStore.toolCapability.setDefaultRunProfile(null);
+    setDefaultRunProfile(null);
   });
 
   it("default profile's surface restriction is enforced", () => {
@@ -375,7 +396,7 @@ describe("default profile + Surface filtering", () => {
         { id: "profile-default-restricted", name: "Default Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "default-surface" },
       ],
     });
-    rootStore.toolCapability.setDefaultRunProfile("profile-default-restricted");
+    setDefaultRunProfile("profile-default-restricted");
 
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
     // entitled_tool_1 passes surface + profile
@@ -398,7 +419,7 @@ describe("default profile + Surface filtering", () => {
       ],
     });
 
-    rootStore.toolCapability.setDefaultRunProfile("profile-broad");
+    setDefaultRunProfile("profile-broad");
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "profile-narrow");
 
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
