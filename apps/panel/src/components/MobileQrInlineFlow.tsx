@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import { getInstallUrl } from "../api/mobile-chat.js";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { fetchPrivacyMode } from "../api/settings.js";
 
 export function MobileQrInlineFlow() {
     const { t } = useTranslation();
+    const entityStore = useEntityStore();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export function MobileQrInlineFlow() {
         (async () => {
             try {
                 setLoading(true);
-                const res = await getInstallUrl();
+                const res = await entityStore.getInstallUrl();
                 if (cancelled || !res.installUrl) return;
                 const qrData = await QRCode.toDataURL(res.installUrl, {
                     margin: 1,

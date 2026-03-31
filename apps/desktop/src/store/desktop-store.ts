@@ -179,17 +179,8 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
         continue;
       }
 
-      // 6. Module enroll/unenroll → partial user update
-      if (key === "enrollModule" || key === "unenrollModule") {
-        const result = sanitized as { enrolledModules?: string[]; entitlementKeys?: string[] };
-        if (self.currentUser && result.enrolledModules) {
-          applySnapshot(self.currentUser.enrolledModules, result.enrolledModules);
-        }
-        if (self.currentUser && result.entitlementKeys) {
-          applySnapshot(self.currentUser.entitlementKeys, result.entitlementKeys);
-        }
-        continue;
-      }
+      // enrollModule / unenrollModule / setDefaultRunProfile now return full MeResponse
+      // with __typename, so they are handled by the MeResponse singleton branch above (step 4).
     }
   },
 

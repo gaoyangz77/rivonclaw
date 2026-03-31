@@ -26,12 +26,5 @@ export async function getRunProfileForScope(
   }
 }
 
-/** Notify desktop of the user's default RunProfile (trusted scope fallback). */
-export async function setDefaultRunProfile(
-  runProfileId: string | null,
-): Promise<void> {
-  await fetchJson("/tools/default-run-profile", {
-    method: "PUT",
-    body: JSON.stringify({ runProfileId }),
-  });
-}
+// defaultRunProfileId is stored on the User entity (backend GraphQL).
+// Desktop reads it from currentUser via MST view — no separate REST endpoint needed.

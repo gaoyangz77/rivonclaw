@@ -48,13 +48,8 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
     return true;
   }
 
-  // PUT /api/tools/default-run-profile — set/clear the user's default RunProfile (by ID)
-  if (pathname === "/api/tools/default-run-profile" && req.method === "PUT") {
-    const body = await parseBody(req) as { runProfileId?: string | null };
-    rootStore.toolCapability.setDefaultRunProfile(body.runProfileId ?? null);
-    sendJson(res, 200, { ok: true });
-    return true;
-  }
+  // defaultRunProfileId is read from currentUser (persisted via backend GraphQL,
+  // synced to Desktop MST via SSE). No separate REST endpoint needed.
 
   // PUT /api/tools/run-profile — set RunProfile for a specific session (by ID)
   if (pathname === "/api/tools/run-profile" && req.method === "PUT") {

@@ -1,19 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
-import {
-  fetchBrowserProfiles,
-  createBrowserProfile,
-  updateBrowserProfile,
-  deleteBrowserProfile,
-  batchArchiveBrowserProfiles,
-  batchDeleteBrowserProfiles,
-  testBrowserProfileProxy,
-} from "../api/browser-profiles.js";
 import { trackEvent } from "../api/index.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { useToast } from "../components/Toast.js";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
 
 interface BrowserProfileFormState {
   name: string;
@@ -41,6 +33,7 @@ const EMPTY_FORM: BrowserProfileFormState = {
 
 export function BrowserProfilesPage() {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
 
   // Profile list state
   const [profiles, setProfiles] = useState<GQL.BrowserProfile[]>([]);
@@ -109,7 +102,7 @@ export function BrowserProfilesPage() {
       if (statusFilter !== "all") filter.status = [statusFilter];
       if (searchQuery) filter.query = searchQuery;
 
-      const data = await fetchBrowserProfiles(
+      const data = await entityStore.fetchBrowserProfiles(
         Object.keys(filter).length > 0 ? filter : undefined,
         { offset: currentPage * pageSize, limit: pageSize },
       );
@@ -203,7 +196,7 @@ export function BrowserProfilesPage() {
 
     try {
       if (editingId) {
-        await updateBrowserProfile(editingId, {
+        await entityStore.updateBrowserProfile(editingId, {
           name: form.name.trim(),
           proxyEnabled: form.proxyEnabled,
           proxyBaseUrl: form.proxyEnabled ? form.proxyBaseUrl.trim() || null : null,
@@ -214,7 +207,7 @@ export function BrowserProfilesPage() {
         });
         trackEvent("browser_profile.updated");
       } else {
-        await createBrowserProfile({
+        await entityStore.createBrowserProfile({
           name: form.name.trim(),
           proxyEnabled: form.proxyEnabled,
           proxyBaseUrl: form.proxyEnabled ? form.proxyBaseUrl.trim() || null : null,
@@ -237,7 +230,7 @@ export function BrowserProfilesPage() {
     setTestingProxy(id);
     setProxyTestResult(null);
     try {
-      const result = await testBrowserProfileProxy(id);
+      const result = await entityStore.testBrowserProfileProxy(id);
       trackEvent("browser_profile.proxy_tested", { success: result.ok });
       setProxyTestResult({ id, ok: result.ok, message: result.message });
     } catch (err) {
@@ -251,7 +244,7 @@ export function BrowserProfilesPage() {
   async function handleDeleteConfirm() {
     if (!deletingProfile) return;
     try {
-      await deleteBrowserProfile(deletingProfile.id);
+      await entityStore.deleteBrowserProfile(deletingProfile.id);
       trackEvent("browser_profile.deleted");
       setDeletingProfile(null);
       await loadProfiles();
@@ -264,7 +257,7 @@ export function BrowserProfilesPage() {
   async function handleArchiveConfirm() {
     if (!archivingProfile) return;
     try {
-      await updateBrowserProfile(archivingProfile.id, { status: "ARCHIVED" });
+      await entityStore.updateBrowserProfile(archivingProfile.id, { status: "ARCHIVED" });
       trackEvent("browser_profile.archived");
       setArchivingProfile(null);
       await loadProfiles();
@@ -276,7 +269,7 @@ export function BrowserProfilesPage() {
 
   async function handleUnarchive(profile: GQL.BrowserProfile) {
     try {
-      await updateBrowserProfile(profile.id, { status: "ACTIVE" });
+      await entityStore.updateBrowserProfile(profile.id, { status: "ACTIVE" });
       await loadProfiles();
     } catch (err) {
       showToast(String(err), "error");
@@ -304,9 +297,9 @@ export function BrowserProfilesPage() {
     if (!batchAction || selectedIds.size === 0) return;
     try {
       if (batchAction === "archive") {
-        await batchArchiveBrowserProfiles([...selectedIds]);
+        await entityStore.batchArchiveBrowserProfiles([...selectedIds]);
       } else {
-        await batchDeleteBrowserProfiles([...selectedIds]);
+        await entityStore.batchDeleteBrowserProfiles([...selectedIds]);
       }
       setSelectedIds(new Set());
       setBatchAction(null);

@@ -13,7 +13,6 @@ import { KeyModelSelector } from "../components/inputs/KeyModelSelector.js";
 import { fetchJson } from "../api/client.js";
 import { useToast } from "../components/Toast.js";
 import { fetchInstalledSkills, writeSkillTemplate } from "../api/skills.js";
-import { fetchCsSkillTemplate } from "../api/shops.js";
 import { fetchChannelStatus, fetchAllowlist, type AllowlistResult } from "../api/channels.js";
 import { KNOWN_CHANNELS } from "./channels/channel-defs.js";
 
@@ -443,7 +442,7 @@ export const EcommercePage = observer(function EcommercePage() {
         fetchInstalledSkills()
           .then(async (installed) => {
             if (installed.some((s) => s.slug === "customer-service")) return;
-            const content = await fetchCsSkillTemplate();
+            const content = await entityStore.fetchCsSkillTemplate();
             if (content) await writeSkillTemplate("customer-service", content);
           })
           .catch(() => {}); // Silent — skill template is optional

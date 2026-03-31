@@ -61,13 +61,17 @@ export const ToolCapabilityModel = types
     extensionToolIds: types.optional(types.array(types.string), []),
     initialized: types.optional(types.boolean, false),
     sessionProfiles: types.optional(types.map(SessionProfileModel), {}),
-    defaultRunProfileId: types.maybeNull(types.string),
   })
   .views((self) => {
     // Helper to access parent RootStore — typed loosely to avoid circular refs
     const root = () => getRoot(self) as any;
 
     return {
+      /** Default RunProfile ID — read from currentUser (persisted via backend, synced via SSE). */
+      get defaultRunProfileId(): string | null {
+        return root().currentUser?.defaultRunProfileId ?? null;
+      },
+
       /** System tool IDs from the parent RootStore's systemTools array. */
       get systemToolIds(): string[] {
         return root().systemTools.map((t: any) => t.id);
@@ -354,11 +358,6 @@ export const ToolCapabilityModel = types
       }
       applySnapshot(self.extensionToolIds, extensionsFromCatalog);
       self.initialized = true;
-    },
-
-    /** Set or clear the user's default RunProfile (by ID). */
-    setDefaultRunProfile(runProfileId: string | null): void {
-      self.defaultRunProfileId = runProfileId;
     },
 
     /** Set or clear a session-specific RunProfile (by ID). */

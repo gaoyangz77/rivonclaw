@@ -1,13 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import {
-    generateMobilePairingCode,
-    getMobilePairingStatus,
-    waitForPairing,
-    registerPairing,
-} from "../../api/mobile-chat.js";
+import { getMobilePairingStatus } from "../../api/mobile-chat.js";
 import { fetchPrivacyMode } from "../../api/settings.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { Modal } from "./Modal.js";
 
 const DEFAULT_TTL_MS = 60_000;
@@ -20,6 +16,7 @@ interface MobileBindingModalProps {
 
 export function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: MobileBindingModalProps) {
     const { t } = useTranslation();
+    const entityStore = useEntityStore();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,7 +77,7 @@ export function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: Mobile
                 return;
             }
 
-            const res = await generateMobilePairingCode(deviceId);
+            const res = await entityStore.generateMobilePairingCode(deviceId);
             setPairingCode(res.code || null);
 
             if (res.code) {
@@ -115,11 +112,11 @@ export function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: Mobile
                 (async () => {
                     while (!pollAbortRef.current) {
                         try {
-                            const result = await waitForPairing(code);
+                            const result = await entityStore.waitForPairing(code);
                             if (pollAbortRef.current) break;
                             if (result.paired && result.accessToken && result.relayUrl) {
                                 // Push the result to desktop for local side-effects
-                                await registerPairing({
+                                await entityStore.registerMobilePairing({
                                     pairingId: result.pairingId,
                                     desktopDeviceId: result.desktopDeviceId || deviceId,
                                     accessToken: result.accessToken,

@@ -254,11 +254,11 @@ export class CustomerServiceBridge {
       "",
       "--- Session Details ---",
       `Shop ID: ${params.shopId}`,
-      `Conversation ID: ${params.conversationId}`,
-      `Buyer User ID: ${params.buyerUserId}`,
+      `Conversation: ${params.conversationId}`,
+      `Buyer: ${params.buyerUserId}`,
     );
-    if (params.orderId) lines.push(`Order ID: ${params.orderId}`);
-    lines.push("", "Reply with your decision. The CS agent will act on your response.");
+    if (params.orderId) lines.push(`Order: ${params.orderId}`);
+    lines.push("", "Please reply with your decision (e.g., \"Approved, process full refund\").");
     const message = lines.join("\n");
 
     // Send via gateway RPC

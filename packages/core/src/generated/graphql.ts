@@ -354,7 +354,7 @@ export interface Mutation {
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
   /** Set or clear the default RunProfile for the current user */
-  setDefaultRunProfile: Scalars['Boolean']['output'];
+  setDefaultRunProfile: MeResponse;
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
   /** Update an existing run profile */

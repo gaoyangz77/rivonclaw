@@ -1547,9 +1547,9 @@ describe("escalate", () => {
     expect(message).toContain("CS Escalation");
     expect(message).toContain("Reason: Buyer requesting refund beyond policy");
     expect(message).toContain("Shop ID: shop-esc-001");
-    expect(message).toContain("Conversation ID: conv-esc-001");
-    expect(message).toContain("Buyer User ID: buyer-esc-001");
-    expect(message).toContain("Reply with your decision.");
+    expect(message).toContain("Conversation: conv-esc-001");
+    expect(message).toContain("Buyer: buyer-esc-001");
+    expect(message).toContain("Please reply with your decision");
   });
 
   it("escalation message contains orderId when provided", async () => {
@@ -1562,7 +1562,7 @@ describe("escalate", () => {
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
     expect(sendCall).toBeDefined();
     const message = sendCall![1].message as string;
-    expect(message).toContain("Order ID: order-esc-999");
+    expect(message).toContain("Order: order-esc-999");
   });
 
   it("escalation message contains context when provided", async () => {

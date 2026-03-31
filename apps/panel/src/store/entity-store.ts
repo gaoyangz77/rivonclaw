@@ -16,7 +16,9 @@ import {
   PLATFORM_APPS_QUERY,
   MY_CREDITS_QUERY,
   INITIATE_TIKTOK_OAUTH_MUTATION,
+  CS_SKILL_TEMPLATE_QUERY,
 } from "../api/shops-queries.js";
+import { GENERATE_PAIRING_CODE, WAIT_FOR_PAIRING, GET_INSTALL_URL } from "../api/pairing-queries.js";
 import { SURFACES_QUERY } from "../api/surfaces-queries.js";
 import { RUN_PROFILES_QUERY } from "../api/run-profiles-queries.js";
 import {
@@ -24,9 +26,17 @@ import {
   SUBSCRIPTION_STATUS_QUERY,
   LLM_QUOTA_STATUS_QUERY,
 } from "../api/auth-queries.js";
-import { fetchJson, invalidateCache } from "../api/client.js";
+import {
+  BROWSER_PROFILES_QUERY,
+  CREATE_BROWSER_PROFILE_MUTATION,
+  UPDATE_BROWSER_PROFILE_MUTATION,
+  DELETE_BROWSER_PROFILE_MUTATION,
+  BATCH_ARCHIVE_BROWSER_PROFILES_MUTATION,
+  BATCH_DELETE_BROWSER_PROFILES_MUTATION,
+} from "../api/browser-profiles-queries.js";
+import { fetchJson, fetchVoid, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
-import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
+import type { BrowserProfileProxyTestResult, GQL, ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 import { gql } from "@apollo/client/core";
 import type { PanelStoreEnv } from "./types.js";
 
@@ -304,6 +314,187 @@ const PanelRootStoreModel = RootStoreModel.props({
         variables: { input },
       });
       return result.data!.createRunProfile;
+    }),
+
+    // ── CS skill template ──
+
+    /** Fetch CS skill template from backend. Returns template content or null. */
+    fetchCsSkillTemplate: flow(function* () {
+      const result = yield client().query({
+        query: CS_SKILL_TEMPLATE_QUERY,
+        fetchPolicy: "network-only",
+      });
+      return (result.data?.csSkillTemplate as string) ?? null;
+    }),
+
+    // ── Mobile pairing mutations (temporary data, not stored in MST) ──
+
+    generateMobilePairingCode: flow(function* (desktopDeviceId: string) {
+      const result = yield client().mutate({
+        mutation: GENERATE_PAIRING_CODE,
+        variables: { desktopDeviceId },
+      });
+      const data = result.data?.generatePairingCode;
+      return { code: data?.code, qrUrl: data?.qrUrl } as { code?: string; qrUrl?: string };
+    }),
+
+    waitForPairing: flow(function* (code: string) {
+      const result = yield client().query({
+        query: WAIT_FOR_PAIRING,
+        variables: { code },
+        fetchPolicy: "network-only",
+      });
+      return (result.data?.waitForPairing ?? { paired: false }) as {
+        paired: boolean;
+        pairingId?: string;
+        accessToken?: string;
+        relayUrl?: string;
+        desktopDeviceId?: string;
+        mobileDeviceId?: string;
+        reason?: string;
+      };
+    }),
+
+    getInstallUrl: flow(function* () {
+      const result = yield client().query({
+        query: GET_INSTALL_URL,
+        fetchPolicy: "network-only",
+      });
+      return { installUrl: result.data?.mobileInstallUrl } as { installUrl?: string };
+    }),
+
+    registerMobilePairing: flow(function* (body: {
+      pairingId?: string;
+      desktopDeviceId: string;
+      accessToken: string;
+      relayUrl: string;
+      mobileDeviceId?: string;
+    }) {
+      const response: { data?: { registerPairing: { success: boolean; pairingId: string } } | null; errors?: Array<{ message: string }> } =
+        yield fetchJson("/graphql/mobile", {
+          method: "POST",
+          body: JSON.stringify({
+            query: `mutation RegisterPairing($input: RegisterPairingInput!) {
+              registerPairing(input: $input) {
+                success
+                pairingId
+              }
+            }`,
+            variables: { input: body },
+          }),
+        });
+      if (response.errors?.length) {
+        return { error: response.errors[0]!.message } as { success?: boolean; error?: string };
+      }
+      return { success: response.data?.registerPairing?.success } as { success?: boolean; error?: string };
+    }),
+
+    // ── Browser profile operations (cloud-only, not in Desktop MST) ──
+
+    fetchBrowserProfiles: flow(function* (
+      filter?: { status?: string[]; tags?: string[]; query?: string },
+      pagination?: { offset?: number; limit?: number },
+    ) {
+      const result = yield client().query<{ browserProfiles: GQL.PaginatedBrowserProfiles }>({
+        query: BROWSER_PROFILES_QUERY,
+        variables: { filter, pagination },
+        fetchPolicy: "network-only",
+      });
+      if (!result.data) {
+        throw new Error("No data returned from browserProfiles query");
+      }
+      return result.data.browserProfiles as GQL.PaginatedBrowserProfiles;
+    }),
+
+    createBrowserProfile: flow(function* (input: {
+      name: string;
+      proxyEnabled?: boolean;
+      proxyBaseUrl?: string | null;
+      tags?: string[];
+      notes?: string | null;
+      sessionStatePolicy?: {
+        enabled?: boolean;
+        checkpointIntervalSec?: number;
+        mode?: string;
+        storage?: string;
+      };
+    }) {
+      const result = yield client().mutate<{ createBrowserProfile: GQL.BrowserProfile }>({
+        mutation: CREATE_BROWSER_PROFILE_MUTATION,
+        variables: { input },
+      });
+      if (!result.data?.createBrowserProfile) {
+        throw new Error("No data returned from createBrowserProfile mutation");
+      }
+      return result.data.createBrowserProfile as GQL.BrowserProfile;
+    }),
+
+    updateBrowserProfile: flow(function* (
+      id: string,
+      input: {
+        name?: string;
+        proxyEnabled?: boolean;
+        proxyBaseUrl?: string | null;
+        tags?: string[];
+        notes?: string | null;
+        status?: string;
+        sessionStatePolicy?: {
+          enabled?: boolean;
+          checkpointIntervalSec?: number;
+          mode?: string;
+          storage?: string;
+        };
+      },
+    ) {
+      const result = yield client().mutate<{ updateBrowserProfile: GQL.BrowserProfile }>({
+        mutation: UPDATE_BROWSER_PROFILE_MUTATION,
+        variables: { id, input },
+      });
+      if (!result.data?.updateBrowserProfile) {
+        throw new Error("No data returned from updateBrowserProfile mutation");
+      }
+      return result.data.updateBrowserProfile as GQL.BrowserProfile;
+    }),
+
+    deleteBrowserProfile: flow(function* (id: string) {
+      yield client().mutate<{ deleteBrowserProfile: boolean }>({
+        mutation: DELETE_BROWSER_PROFILE_MUTATION,
+        variables: { id },
+      });
+
+      // Fire-and-forget: clean up local Chrome profile directory
+      fetchVoid(`/browser-profiles/${id}/data`, { method: "DELETE" });
+    }),
+
+    batchArchiveBrowserProfiles: flow(function* (ids: string[]) {
+      const result = yield client().mutate<{ batchArchiveBrowserProfiles: number }>({
+        mutation: BATCH_ARCHIVE_BROWSER_PROFILES_MUTATION,
+        variables: { ids },
+      });
+      if (result.data?.batchArchiveBrowserProfiles == null) {
+        throw new Error("No data returned from batchArchiveBrowserProfiles mutation");
+      }
+      return result.data.batchArchiveBrowserProfiles as number;
+    }),
+
+    batchDeleteBrowserProfiles: flow(function* (ids: string[]) {
+      const result = yield client().mutate<{ batchDeleteBrowserProfiles: number }>({
+        mutation: BATCH_DELETE_BROWSER_PROFILES_MUTATION,
+        variables: { ids },
+      });
+      if (result.data?.batchDeleteBrowserProfiles == null) {
+        throw new Error("No data returned from batchDeleteBrowserProfiles mutation");
+      }
+      return result.data.batchDeleteBrowserProfiles as number;
+    }),
+
+    testBrowserProfileProxy: flow(function* (id: string) {
+      const result: BrowserProfileProxyTestResult =
+        yield fetchJson<BrowserProfileProxyTestResult>("/browser-profiles/test-proxy", {
+          method: "POST",
+          body: JSON.stringify({ id }),
+        });
+      return result;
     }),
 
   };
