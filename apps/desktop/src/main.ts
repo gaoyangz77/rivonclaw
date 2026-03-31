@@ -5,6 +5,7 @@ import {
   resolveVendorEntryPath,
   ensureGatewayConfig,
   resolveOpenClawStateDir,
+  resolveOpenClawConfigPath,
   writeGatewayConfig,
   buildGatewayEnv,
   readExistingConfig,
@@ -20,8 +21,8 @@ import {
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, findFreePort, DEFAULTS } from "@rivonclaw/core";
-import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir } from "@rivonclaw/core/node";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
+import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
 import { ArtifactPipeline, syncSkillsForRule, cleanupSkillsForDeletedRule } from "@rivonclaw/rules";
@@ -51,7 +52,7 @@ import { AuthSessionManager } from "./auth/auth-session.js";
 import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "./providers/provider-key-utils.js";
 import { syncActiveKey } from "./providers/provider-validator.js";
-import { rootStore, initDesktopStoreEnv } from "./store/desktop-store.js";
+import { rootStore, initLLMProviderManagerEnv } from "./store/desktop-store.js";
 import { OAuthSubscriptionClient } from "./cloud/oauth-subscription-client.js";
 import { UpdateSubscriptionClient } from "./cloud/update-subscription-client.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
@@ -1108,8 +1109,8 @@ app.whenReady().then(async () => {
       handleProviderChange(hint).catch((err) => {
         log.error("Failed to handle provider change:", err);
       });
-      // Refresh CS bridge model catalog so stale overrides are detected
-      getCsBridge()?.refreshModelCatalog().catch(() => {});
+      // Refresh LLM Manager's model catalog so stale overrides are detected
+      rootStore.llmManager.refreshModelCatalog().catch(() => {});
     },
     onOpenFileDialog: async () => {
       const result = await dialog.showOpenDialog({
@@ -1467,17 +1468,34 @@ app.whenReady().then(async () => {
   handleExtrasChange = configHandlers.handleExtrasChange;
   handlePermissionsChange = configHandlers.handlePermissionsChange;
 
-  // Initialize Desktop store environment — provider key MST actions use these deps.
-  // handleProviderChange uses optional chaining inside MST actions, so it's safe
-  // even though configHandlers was just created (actions are only called at runtime,
-  // never during init).
-  initDesktopStoreEnv({
+  // Initialize LLM Provider Manager environment — provider key actions use these deps
+  // for direct auth-profiles sync and sessions.patch (no config writes, no restart).
+  initLLMProviderManagerEnv({
     storage,
     secretStore,
-    syncActiveKey,
+    getRpcClient,
     toMstSnapshot,
     allKeysToMstSnapshots,
-    handleProviderChange: (hint) => configHandlers.handleProviderChange(hint),
+    syncActiveKey,
+    syncAllAuthProfiles,
+    writeProxyRouterConfig,
+    writeDefaultModelToConfig: (gwProvider: string, modelId: string) => {
+      // Targeted write: only agents.defaults.model.primary.
+      // Chokidar → hot reload (restart-heartbeat), NOT gateway restart.
+      const configPath = resolveOpenClawConfigPath();
+      const config = readExistingConfig(configPath);
+      const agents = (typeof config.agents === "object" && config.agents !== null ? config.agents : {}) as Record<string, unknown>;
+      const defaults = (typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}) as Record<string, unknown>;
+      const model = (typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}) as Record<string, unknown>;
+      model.primary = `${gwProvider}/${modelId}`;
+      defaults.model = model; agents.defaults = defaults; config.agents = agents;
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+    },
+    writeFullGatewayConfig: async () => {
+      writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
+    },
+    stateDir,
+    getLastSystemProxy: () => lastSystemProxy,
   });
 
   Promise.all([
@@ -1497,7 +1515,8 @@ app.whenReady().then(async () => {
       }
 
       // Set env vars: API keys + proxy (incl. NODE_OPTIONS) + file permissions
-      launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
+      // RIVONCLAW_PANEL_PORT lets gateway plugins (e.g. capability-manager) call Desktop APIs.
+      launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv(), RIVONCLAW_PANEL_PORT: String(actualPanelPort) });
 
       // If CDP browser mode was previously saved, ensure Chrome is running with
       // --remote-debugging-port.  This may kill and relaunch Chrome — an inherent

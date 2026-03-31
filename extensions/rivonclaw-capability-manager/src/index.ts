@@ -18,7 +18,8 @@
 
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
 
-const PANEL_BASE_URL = "http://127.0.0.1:3210";
+/** Desktop injects RIVONCLAW_PANEL_PORT into the gateway env at startup. */
+const PANEL_BASE_URL = `http://127.0.0.1:${process.env.RIVONCLAW_PANEL_PORT || "3210"}`;
 
 type PluginHookBeforeToolCallEvent = {
   toolName: string;

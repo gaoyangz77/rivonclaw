@@ -18,7 +18,7 @@ const log = createLogger("gateway:oauth-flow");
 export interface OAuthFlowCallbacks {
   openUrl: (url: string) => Promise<void>;
   onStatusUpdate?: (status: string) => void;
-  /** Local proxy router URL (e.g. "http://127.0.0.1:9999") for routing through system proxy. */
+  /** Local proxy router URL (e.g. "http://127.0.0.1:{port}") for routing through system proxy. */
   proxyUrl?: string;
 }
 

@@ -68,7 +68,7 @@ pnpm build
 pnpm --filter @rivonclaw/desktop dev
 ```
 
-启动 Electron 托盘应用后，它会拉起 OpenClaw 网关并在 `http://localhost:3210` 提供管理面板。
+启动 Electron 托盘应用后，它会拉起 OpenClaw 网关并在动态分配的本地端口上提供管理面板。
 
 ## 仓库结构
 
@@ -189,14 +189,14 @@ pnpm --filter @rivonclaw/gateway test
          ▼                    │
 ┌─────────────┐    ┌─────────────────┐
 │  OpenClaw   │    │  面板（React）   │
-│  网关进程    │    │  localhost:3210  │
+│  网关进程    │    │  面板（React）   │
 └─────────────┘    └─────────────────┘
 ```
 
 桌面应用以**纯托盘模式**运行（macOS 下隐藏 Dock 图标）。它会：
 
 1. 从 `vendor/openclaw/` 启动 OpenClaw 网关
-2. 在 `localhost:3210` 提供面板 UI 和 REST API
+2. 在动态分配的本地端口上提供面板 UI 和 REST API
 3. 将网关配置和认证配置写入 `~/.openclaw/`
 4. 运行时从系统密钥链注入密钥（API 密钥 + OAuth 令牌）
 5. 监听 `~/.openclaw/skills/` 目录以热重载规则生成的 Skill 文件

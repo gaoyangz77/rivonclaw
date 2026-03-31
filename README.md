@@ -68,7 +68,7 @@ pnpm build
 pnpm --filter @rivonclaw/desktop dev
 ```
 
-This starts the Electron tray app, which spawns the OpenClaw gateway and serves the management panel at `http://localhost:3210`.
+This starts the Electron tray app, which spawns the OpenClaw gateway and serves the management panel on a dynamically assigned localhost port.
 
 ## Repository Structure
 
@@ -189,7 +189,7 @@ pnpm --filter @rivonclaw/gateway test
          ▼                    │
 ┌─────────────┐    ┌─────────────────┐
 │  OpenClaw   │    │  Panel (React)  │
-│  Gateway    │    │  localhost:3210  │
+│  Gateway    │    │  Panel (React)  │
 │  Process    │    └─────────────────┘
 └─────────────┘
 ```
@@ -197,7 +197,7 @@ pnpm --filter @rivonclaw/gateway test
 The desktop app runs as a **tray-only** application (hidden from the dock on macOS). It:
 
 1. Spawns the OpenClaw gateway from `vendor/openclaw/`
-2. Serves the panel UI and REST API on `localhost:3210`
+2. Serves the panel UI and REST API on a dynamically assigned localhost port
 3. Writes gateway config and auth profiles to `~/.openclaw/`
 4. Injects secrets (API keys + OAuth tokens) from the system keychain at runtime
 5. Watches `~/.openclaw/skills/` for hot-reload of rule-generated skill files

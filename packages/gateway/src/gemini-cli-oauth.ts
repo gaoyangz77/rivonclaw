@@ -63,7 +63,7 @@ export type GeminiCliOAuthContext = {
   note: (message: string, title?: string) => Promise<void>;
   prompt: (message: string) => Promise<string>;
   progress: { update: (msg: string) => void; stop: (msg?: string) => void };
-  /** Local proxy router URL (e.g. "http://127.0.0.1:9999") for routing through system proxy. */
+  /** Local proxy router URL (e.g. "http://127.0.0.1:{port}") for routing through system proxy. */
   proxyUrl?: string;
 };
 

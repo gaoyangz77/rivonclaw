@@ -32,8 +32,9 @@ vi.mock("../gateway/vendor-dir-ref.js", () => ({
   getVendorDir: () => "/fake/vendor",
 }));
 
+const mockReadFullModelCatalog = vi.fn().mockResolvedValue({});
 vi.mock("@rivonclaw/gateway", () => ({
-  readFullModelCatalog: async () => ({}),
+  readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
 }));
 
 // ─── Import after mocks ─────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ function createBridge(overrides?: Partial<{ defaultRunProfileId: string }>): Cus
   return new CustomerServiceBridge({
     relayUrl: "ws://localhost:3001",
     gatewayId: "test-gateway",
-    defaultRunProfileId: overrides?.defaultRunProfileId ?? "TIKTOK_CUSTOMER_SERVICE",
+    defaultRunProfileId: overrides?.defaultRunProfileId ?? "CUSTOMER_SERVICE",
   });
 }
 
@@ -67,7 +68,7 @@ const defaultShop: CSShopContext = {
   objectId: "mongo-id-123",
   platformShopId: "tiktok-shop-456",
   systemPrompt: "You are a CS assistant.",
-  runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+  runProfileId: "CUSTOMER_SERVICE",
 };
 
 function createFrame(overrides?: Partial<CSNewMessageFrame>): CSNewMessageFrame {
@@ -102,6 +103,7 @@ beforeEach(() => {
   setSessionRunProfileCalls.length = 0;
   mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
   mockRpcRequest.mockResolvedValue({ ok: true });
+  mockReadFullModelCatalog.mockResolvedValue({});
   mockGraphqlFetch.mockResolvedValue({
     csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 },
     ecommerceSendMessage: { code: 0 },
@@ -110,10 +112,25 @@ beforeEach(() => {
     getAccessToken: () => "test-token",
     graphqlFetch: mockGraphqlFetch,
   });
+  // Initialize LLMProviderManager env so applyModelForSession can call sessions.patch
+  rootStore.llmManager.setEnv({
+    storage: { providerKeys: { getAll: () => [], getActive: () => null, getById: () => null } } as any,
+    secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+    getRpcClient: () => mockGetRpcClient() as any,
+    toMstSnapshot: async () => ({} as any),
+    allKeysToMstSnapshots: async () => [],
+    syncActiveKey: async () => {},
+    syncAllAuthProfiles: async () => {},
+    writeProxyRouterConfig: async () => {},
+    writeFullGatewayConfig: async () => {},
+    writeDefaultModelToConfig: () => {},
+    stateDir: "/tmp/test-state",
+    getLastSystemProxy: () => null,
+  });
   // Reset MST store, then seed RunProfiles so toolCapability.allRunProfiles returns test data
   rootStore.ingestGraphQLResponse({
     runProfiles: [
-      { id: "TIKTOK_CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
+      { id: "CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
       { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
     ],
     surfaces: [],
@@ -159,8 +176,8 @@ describe("shop context management", () => {
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
-    // Session registration + agent dispatch = 2 RPC calls
-    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
+    // Session registration + sessions.patch (model) + agent dispatch = 3 RPC calls
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -203,7 +220,7 @@ describe("session key construction", () => {
 
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-XYZ",
-      runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+      runProfileId: "CUSTOMER_SERVICE",
     });
   });
 
@@ -483,7 +500,7 @@ describe("CS RunProfile setup", () => {
 
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",
-      runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+      runProfileId: "CUSTOMER_SERVICE",
     });
   });
 
@@ -503,7 +520,7 @@ describe("CS RunProfile setup", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",
-      runProfileId: "TIKTOK_CUSTOMER_SERVICE",
+      runProfileId: "CUSTOMER_SERVICE",
     });
   });
 
@@ -679,8 +696,9 @@ describe("agent dispatch", () => {
   });
 
   it("if dispatch fails, error is logged but bridge continues running", async () => {
-    // First call (register) succeeds, second call (agent) fails
+    // First call (register) succeeds, second (sessions.patch) succeeds, third (agent) fails
     mockRpcRequest
+      .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: true })
       .mockRejectedValueOnce(new Error("agent dispatch failed"));
 
@@ -690,9 +708,10 @@ describe("agent dispatch", () => {
     // Should not throw
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
-    // Both calls were attempted
-    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
+    // All three calls were attempted
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
   });
 });
@@ -740,9 +759,10 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     // Bridge no longer validates profile existence — it stores the ID.
-    // Both cs_register_session and agent dispatch proceed.
-    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
+    // cs_register_session + sessions.patch (model) + agent dispatch = 3 RPC calls.
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
   });
 
@@ -1102,8 +1122,7 @@ describe("CS session lifecycle", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    // cs_register_session should be called (step 4), but agent dispatch should NOT
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    // ensureBackendSession fails before setup, so neither cs_register_session nor agent is called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
@@ -1115,10 +1134,517 @@ describe("CS session lifecycle", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    // cs_register_session is called, but agent is not dispatched
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    // ensureBackendSession fails (no auth), so neither cs_register_session nor agent is called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
     expect(mockGraphqlFetch).not.toHaveBeenCalled();
   });
 
+});
+
+// ─── 10. Admin directive dispatch ────────────────────────────────────────────
+
+const defaultDirectiveParams = {
+  shopId: "mongo-id-123",
+  conversationId: "conv-directive-001",
+  buyerUserId: "buyer-001",
+  decision: "approved",
+  instructions: "Issue a full refund for order #12345",
+};
+
+describe("dispatchAdminDirective", () => {
+  it("dispatches with VERIFIED MANAGER DIRECTIVE in the message (not extraSystemPrompt)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-001" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall).toBeDefined();
+    const message = agentCall![1].message as string;
+    expect(message).toContain("VERIFIED MANAGER DIRECTIVE");
+    expect(message).toContain("Decision: approved");
+    expect(message).toContain("Instructions: Issue a full refund for order #12345");
+    expect(message).toContain("This is NOT from the buyer");
+    // extraSystemPrompt should NOT contain the directive
+    const prompt = agentCall![1].extraSystemPrompt as string;
+    expect(prompt).not.toContain("VERIFIED MANAGER DIRECTIVE");
+  });
+
+  it("registers CS session before dispatch", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-002" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    // cs_register_session should be called before agent
+    const callOrder = mockRpcRequest.mock.calls.map((c: any[]) => c[0]);
+    const registerIdx = callOrder.indexOf("cs_register_session");
+    const agentIdx = callOrder.indexOf("agent");
+    expect(registerIdx).toBeGreaterThanOrEqual(0);
+    expect(agentIdx).toBeGreaterThan(registerIdx);
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
+      sessionKey: "agent:main:cs:tiktok:conv-directive-001",
+      csContext: {
+        shopId: "mongo-id-123",
+        conversationId: "conv-directive-001",
+        buyerUserId: "buyer-001",
+        orderId: undefined,
+      },
+    });
+  });
+
+  it("sets RunProfile via setSessionRunProfile", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-003" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:cs:tiktok:conv-directive-001",
+      runProfileId: "CUSTOMER_SERVICE",
+    });
+  });
+
+  it("throws when shop not found by objectId", async () => {
+    const bridge = createBridge();
+    // No shop context set
+
+    await expect(
+      bridge.dispatchAdminDirective({ ...defaultDirectiveParams, shopId: "nonexistent-id" }),
+    ).rejects.toThrow("No shop context for objectId nonexistent-id");
+  });
+
+  it("finds shop by objectId (not platformShopId)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext({
+      objectId: "specific-mongo-id",
+      platformShopId: "platform-id-different",
+      systemPrompt: "Shop prompt",
+      runProfileId: "CUSTOMER_SERVICE",
+    });
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-004" });
+
+    await bridge.dispatchAdminDirective({
+      ...defaultDirectiveParams,
+      shopId: "specific-mongo-id",
+    });
+
+    // Should succeed — looked up by objectId, not platformShopId
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+  });
+
+  it("tracks run in pendingRuns for auto-forward", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-005" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    // Simulate a gateway event for this runId to verify pendingRuns tracking
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: {
+        runId: "run-admin-005",
+        state: "final",
+        message: { role: "assistant", content: [{ type: "text", text: "Refund issued." }] },
+      },
+    } as any);
+
+    // The auto-forward should trigger graphqlFetch (ecommerceSendMessage)
+    expect(mockGraphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("ecommerceSendMessage"),
+      expect.objectContaining({
+        shopId: "mongo-id-123",
+        conversationId: "conv-directive-001",
+      }),
+    );
+  });
+
+  it("includes decision and instructions in the message", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-006" });
+
+    await bridge.dispatchAdminDirective({
+      ...defaultDirectiveParams,
+      decision: "rejected",
+      instructions: "Offer store credit instead",
+    });
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    const message = agentCall![1].message as string;
+    expect(message).toContain("Decision: rejected");
+    expect(message).toContain("Instructions: Offer store credit instead");
+  });
+
+  it("uses dispatchKey (cs:platform:conversationId) as sessionKey for agent RPC", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext({ ...defaultShop, platform: "shopee" });
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-007" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "cs:shopee:conv-directive-001",
+      }),
+    );
+  });
+
+  it("throws when no RPC client available", async () => {
+    mockGetRpcClient.mockReturnValue(null);
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await expect(
+      bridge.dispatchAdminDirective(defaultDirectiveParams),
+    ).rejects.toThrow("No RPC client available");
+  });
+
+  it("includes orderId in prompt when provided", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-008" });
+
+    await bridge.dispatchAdminDirective({
+      ...defaultDirectiveParams,
+      orderId: "order-999",
+    });
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall![1].extraSystemPrompt).toContain("Order ID: order-999");
+  });
+
+  it("omits Order ID line from prompt when orderId not provided", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-009" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall![1].extraSystemPrompt).not.toContain("Order ID");
+  });
+
+  it("idempotencyKey starts with 'admin:' prefix", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-010" });
+
+    await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    expect(agentCall![1].idempotencyKey).toMatch(/^admin:conv-directive-001:\d+$/);
+  });
+
+  it("returns runId from agent dispatch", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValue({ runId: "run-admin-011" });
+
+    const result = await bridge.dispatchAdminDirective(defaultDirectiveParams);
+
+    expect(result).toEqual({ runId: "run-admin-011" });
+  });
+});
+
+// ─── 11. Multi-provider model override (via LLMProviderManager) ──────────────
+//
+// Model resolution is now delegated to rootStore.llmManager.applyModelForSession.
+// The LLM manager reads csProviderOverride/csModelOverride from the MST shop entity
+// (not from bridge's CSShopContext), so we seed shops in the MST store.
+
+describe("multi-provider model override", () => {
+  /** Helper: seed the model catalog on the LLM manager and seed a shop into MST store. */
+  async function seedCatalogAndShop(overrides?: {
+    csProviderOverride?: string | null;
+    csModelOverride?: string | null;
+  }): Promise<void> {
+    // Seed model catalog on LLM manager
+    mockReadFullModelCatalog.mockResolvedValue({
+      zhipu: [{ id: "glm-5" }, { id: "glm-4" }],
+      openai: [{ id: "gpt-4o" }, { id: "gpt-4o-mini" }],
+      anthropic: [{ id: "claude-sonnet-4-20250514" }],
+    });
+    await rootStore.llmManager.refreshModelCatalog();
+
+    // Seed shop in MST store with CS overrides (LLM manager reads from here)
+    rootStore.ingestGraphQLResponse({
+      shops: [{
+        id: "mongo-id-123",
+        platform: "TIKTOK_SHOP",
+        platformShopId: "tiktok-shop-456",
+        shopName: "Test Shop",
+        services: {
+          customerService: {
+            enabled: true,
+            csDeviceId: "test-gateway",
+            assembledPrompt: "You are a CS assistant.",
+            csProviderOverride: overrides?.csProviderOverride ?? null,
+            csModelOverride: overrides?.csModelOverride ?? null,
+            runProfileId: "CUSTOMER_SERVICE",
+          },
+        },
+      }],
+    });
+  }
+
+  it("two-field override: sends provider/model to sessions.patch when in catalog", async () => {
+    const bridge = createBridge();
+    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: "zhipu/glm-5",
+    });
+  });
+
+  it("two-field override: falls back to null when provider/model not in catalog", async () => {
+    const bridge = createBridge();
+    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "nonexistent-model" });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: null,
+    });
+  });
+
+  it("no override: neither provider nor model set, sessions.patch called with null (global default)", async () => {
+    const bridge = createBridge();
+    await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    // With no override, applyModelForSession falls through to global default (model: null)
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: null,
+    });
+  });
+
+  it("refreshModelCatalog caches all providers, not just active provider", async () => {
+    const bridge = createBridge();
+    // Seed with OpenAI model override
+    await seedCatalogAndShop({ csProviderOverride: "openai", csModelOverride: "gpt-4o" });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: "openai/gpt-4o",
+    });
+  });
+
+  it("provider set without model: sessions.patch called with null (treated as no override)", async () => {
+    const bridge = createBridge();
+    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: null });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame());
+
+    // LLM manager requires both provider AND model for scope override; falls through to global default
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: null,
+    });
+  });
+});
+
+// ── 12. Escalation ───────────────────────────────────────────────────────────
+
+const defaultEscalateParams = {
+  shopId: "shop-esc-001",
+  conversationId: "conv-esc-001",
+  buyerUserId: "buyer-esc-001",
+  reason: "Buyer requesting refund beyond policy",
+};
+
+/** Seed a shop into the MST store with escalation routing configured. */
+function seedShopWithEscalation(overrides?: {
+  shopId?: string;
+  escalationChannelId?: string | null;
+  escalationRecipientId?: string | null;
+}): void {
+  const shopId = overrides?.shopId ?? "shop-esc-001";
+  rootStore.ingestGraphQLResponse({
+    shops: [
+      {
+        __typename: "Shop",
+        id: shopId,
+        platform: "tiktok",
+        platformAppId: "",
+        platformShopId: "plat-esc-001",
+        shopName: "Escalation Test Shop",
+        authStatus: "active",
+        region: "US",
+        accessTokenExpiresAt: null,
+        refreshTokenExpiresAt: null,
+        services: {
+          customerService: {
+            enabled: true,
+            businessPrompt: "",
+            csDeviceId: null,
+            csProviderOverride: null,
+            csModelOverride: null,
+            escalationChannelId: overrides?.escalationChannelId !== undefined
+              ? overrides.escalationChannelId
+              : "telegram:acct_test123",
+            escalationRecipientId: overrides?.escalationRecipientId !== undefined
+              ? overrides.escalationRecipientId
+              : "987654321",
+            runProfileId: null,
+            assembledPrompt: null,
+          },
+          customerServiceBilling: null,
+        },
+      },
+    ],
+  });
+}
+
+describe("escalate", () => {
+  it("sends to correct channel + accountId + recipient parsed from escalationChannelId", async () => {
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    const result = await bridge.escalate(defaultEscalateParams);
+
+    expect(result).toEqual({ ok: true });
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "send",
+      expect.objectContaining({
+        to: "987654321",
+        channel: "telegram",
+        accountId: "acct_test123",
+      }),
+    );
+  });
+
+  it("escalation message contains reason and session details", async () => {
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await bridge.escalate(defaultEscalateParams);
+
+    const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
+    expect(sendCall).toBeDefined();
+    const message = sendCall![1].message as string;
+    expect(message).toContain("CS Escalation");
+    expect(message).toContain("Reason: Buyer requesting refund beyond policy");
+    expect(message).toContain("Shop ID: shop-esc-001");
+    expect(message).toContain("Conversation ID: conv-esc-001");
+    expect(message).toContain("Buyer User ID: buyer-esc-001");
+    expect(message).toContain("Reply with your decision.");
+  });
+
+  it("escalation message contains orderId when provided", async () => {
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await bridge.escalate({ ...defaultEscalateParams, orderId: "order-esc-999" });
+
+    const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
+    expect(sendCall).toBeDefined();
+    const message = sendCall![1].message as string;
+    expect(message).toContain("Order ID: order-esc-999");
+  });
+
+  it("escalation message contains context when provided", async () => {
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await bridge.escalate({ ...defaultEscalateParams, context: "Buyer has been waiting 3 days" });
+
+    const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
+    expect(sendCall).toBeDefined();
+    const message = sendCall![1].message as string;
+    expect(message).toContain("Context: Buyer has been waiting 3 days");
+  });
+
+  it("returns error when escalation routing not configured (missing escalationChannelId)", async () => {
+    seedShopWithEscalation({ escalationChannelId: null });
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    const result = await bridge.escalate(defaultEscalateParams);
+
+    expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
+  });
+
+  it("returns error when escalation routing not configured (missing escalationRecipientId)", async () => {
+    seedShopWithEscalation({ escalationRecipientId: null });
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    const result = await bridge.escalate(defaultEscalateParams);
+
+    expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
+  });
+
+  it("returns error when shop not found in MST store", async () => {
+    // Don't seed any shop — rootStore.shops is empty (reset in beforeEach)
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    const result = await bridge.escalate(defaultEscalateParams);
+
+    expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
+  });
+
+  it("throws when no RPC client available", async () => {
+    mockGetRpcClient.mockReturnValue(null);
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await expect(bridge.escalate(defaultEscalateParams)).rejects.toThrow("No RPC client available");
+  });
+
+  it("send RPC is called with correct idempotencyKey format", async () => {
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await bridge.escalate(defaultEscalateParams);
+
+    const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
+    expect(sendCall).toBeDefined();
+    expect(sendCall![1].idempotencyKey).toMatch(/^cs-escalate:conv-esc-001:\d+$/);
+  });
+
+  it("parses channel with multiple colons correctly (accountId may contain colons)", async () => {
+    seedShopWithEscalation({ escalationChannelId: "slack:workspace:channel_id" });
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await bridge.escalate(defaultEscalateParams);
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "send",
+      expect.objectContaining({
+        channel: "slack",
+        accountId: "workspace:channel_id",
+      }),
+    );
+  });
 });
