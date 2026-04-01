@@ -1,0 +1,208 @@
+From 8c4679eea39817ba4ac4b6a72e4bdf8fc2e3fc81 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Tue, 31 Mar 2026 17:29:17 -0700
+Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
+ agents
+
+Why:
+- EasyClaw's customer-service agent must not reveal it is an AI, but
+  OpenClaw injects identity ("You are a personal assistant running
+  inside OpenClaw"), runtime info (model=..., default_model=...),
+  safety guidelines (Anthropic constitution reference), heartbeat/
+  silent-reply tokens, and documentation links into every system prompt.
+  These sections leak AI identity even when extraSystemPrompt explicitly
+  instructs otherwise, because they appear before the custom prompt.
+- promptMode "none" still injects the identity line.
+- promptMode "raw" returns *only* extraSystemPrompt with zero hardcoded
+  content, giving the caller full control over the agent persona.
+- Threads promptMode through the agent RPC schema, command opts, run
+  params, attempt, and compact paths so callers can pass it via RPC.
+
+Removal:
+- Drop when upstream OpenClaw adds a native way to fully suppress all
+  default system prompt sections (e.g. a "raw" or "custom" promptMode,
+  or a per-section suppression API).
+
+Tests:
+- apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts
+---
+ src/agents/pi-embedded-runner/compact.ts     |  6 ++++--
+ src/agents/pi-embedded-runner/run.ts         |  2 ++
+ src/agents/pi-embedded-runner/run/attempt.ts |  3 ++-
+ src/agents/pi-embedded-runner/run/params.ts  |  2 ++
+ src/agents/system-prompt.ts                  | 11 ++++++++++-
+ src/commands/agent.ts                        |  2 ++
+ src/commands/agent/types.ts                  |  1 +
+ src/gateway/protocol/schema/agent.ts         |  1 +
+ src/gateway/server-methods/agent.ts          |  2 ++
+ 9 files changed, 26 insertions(+), 4 deletions(-)
+
+diff --git a/src/agents/pi-embedded-runner/compact.ts b/src/agents/pi-embedded-runner/compact.ts
+index dac68d5e36..25abe59aac 100644
+--- a/src/agents/pi-embedded-runner/compact.ts
++++ b/src/agents/pi-embedded-runner/compact.ts
+@@ -142,6 +142,7 @@ export type CompactEmbeddedPiSessionParams = {
+   lane?: string;
+   enqueue?: typeof enqueueCommand;
+   extraSystemPrompt?: string;
++  promptMode?: string;
+   ownerNumbers?: string[];
+ };
+ 
+@@ -645,9 +646,10 @@ export async function compactEmbeddedPiSessionDirect(
+     });
+     const isDefaultAgent = sessionAgentId === defaultAgentId;
+     const promptMode =
+-      isSubagentSessionKey(params.sessionKey) || isCronSessionKey(params.sessionKey)
++      (params.promptMode as "raw" | undefined) ??
++      (isSubagentSessionKey(params.sessionKey) || isCronSessionKey(params.sessionKey)
+         ? "minimal"
+-        : "full";
++        : "full");
+     const docsPath = await resolveOpenClawDocsPath({
+       workspaceDir: effectiveWorkspace,
+       argv1: process.argv[1],
+diff --git a/src/agents/pi-embedded-runner/run.ts b/src/agents/pi-embedded-runner/run.ts
+index 1839a9df1b..9378d64f13 100644
+--- a/src/agents/pi-embedded-runner/run.ts
++++ b/src/agents/pi-embedded-runner/run.ts
+@@ -915,6 +915,7 @@ export async function runEmbeddedPiAgent(
+             onToolResult: params.onToolResult,
+             onAgentEvent: params.onAgentEvent,
+             extraSystemPrompt: params.extraSystemPrompt,
++            promptMode: params.promptMode,
+             inputProvenance: params.inputProvenance,
+             streamParams: params.streamParams,
+             ownerNumbers: params.ownerNumbers,
+@@ -1081,6 +1082,7 @@ export async function runEmbeddedPiAgent(
+                     reasoningLevel: params.reasoningLevel,
+                     bashElevated: params.bashElevated,
+                     extraSystemPrompt: params.extraSystemPrompt,
++                    promptMode: params.promptMode,
+                     ownerNumbers: params.ownerNumbers,
+                     trigger: "overflow",
+                     ...(observedOverflowTokens !== undefined
+diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
+index 49cd96effc..e4aabc6b68 100644
+--- a/src/agents/pi-embedded-runner/run/attempt.ts
++++ b/src/agents/pi-embedded-runner/run/attempt.ts
+@@ -1647,7 +1647,8 @@ export async function runEmbeddedAttempt(
+       },
+     });
+     const isDefaultAgent = sessionAgentId === defaultAgentId;
+-    const promptMode = resolvePromptModeForSession(params.sessionKey);
++    const promptMode =
++      (params.promptMode as "raw" | undefined) ?? resolvePromptModeForSession(params.sessionKey);
+     const docsPath = await resolveOpenClawDocsPath({
+       workspaceDir: effectiveWorkspace,
+       argv1: process.argv[1],
+diff --git a/src/agents/pi-embedded-runner/run/params.ts b/src/agents/pi-embedded-runner/run/params.ts
+index ba69d991dd..3def784dad 100644
+--- a/src/agents/pi-embedded-runner/run/params.ts
++++ b/src/agents/pi-embedded-runner/run/params.ts
+@@ -113,6 +113,8 @@ export type RunEmbeddedPiAgentParams = {
+   lane?: string;
+   enqueue?: typeof enqueueCommand;
+   extraSystemPrompt?: string;
++  /** Override promptMode for the system prompt builder (e.g. "raw" for custom persona agents). */
++  promptMode?: string;
+   inputProvenance?: InputProvenance;
+   streamParams?: AgentStreamParams;
+   ownerNumbers?: string[];
+diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
+index 848222b788..c3417ce41e 100644
+--- a/src/agents/system-prompt.ts
++++ b/src/agents/system-prompt.ts
+@@ -13,8 +13,9 @@ import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
+  * - "full": All sections (default, for main agent)
+  * - "minimal": Reduced sections (Tooling, Workspace, Runtime) - used for subagents
+  * - "none": Just basic identity line, no sections
++ * - "raw": Only extraSystemPrompt, no hardcoded sections (for custom persona agents)
+  */
+-export type PromptMode = "full" | "minimal" | "none";
++export type PromptMode = "full" | "minimal" | "none" | "raw";
+ type OwnerIdDisplay = "raw" | "hash";
+ 
+ function buildSkillsSection(params: { skillsPrompt?: string; readToolName: string }) {
+@@ -414,6 +415,14 @@ export function buildAgentSystemPrompt(params: {
+   });
+   const workspaceNotes = (params.workspaceNotes ?? []).map((note) => note.trim()).filter(Boolean);
+ 
++  // For "raw" mode, return only the caller-supplied extraSystemPrompt with no
++  // hardcoded identity, safety, runtime, or tooling sections. This lets the
++  // caller fully control the agent persona (e.g. customer-service agents that
++  // must not reveal they are AI).
++  if (promptMode === "raw") {
++    return extraSystemPrompt ?? "";
++  }
++
+   // For "none" mode, return just the basic identity line
+   if (promptMode === "none") {
+     return "You are a personal assistant running inside OpenClaw.";
+diff --git a/src/commands/agent.ts b/src/commands/agent.ts
+index ab690b3766..4ed02a7233 100644
+--- a/src/commands/agent.ts
++++ b/src/commands/agent.ts
+@@ -371,6 +371,7 @@ function runAgentAttempt(params: {
+         timeoutMs: params.timeoutMs,
+         runId: params.runId,
+         extraSystemPrompt: params.opts.extraSystemPrompt,
++        promptMode: params.opts.promptMode,
+         cliSessionId: nextCliSessionId,
+         bootstrapPromptWarningSignaturesSeen,
+         bootstrapPromptWarningSignature,
+@@ -491,6 +492,7 @@ function runAgentAttempt(params: {
+     lane: params.opts.lane,
+     abortSignal: params.opts.abortSignal,
+     extraSystemPrompt: params.opts.extraSystemPrompt,
++    promptMode: params.opts.promptMode,
+     inputProvenance: params.opts.inputProvenance,
+     streamParams: params.opts.streamParams,
+     agentDir: params.agentDir,
+diff --git a/src/commands/agent/types.ts b/src/commands/agent/types.ts
+index 66d0209bdf..bd0a8b8bc2 100644
+--- a/src/commands/agent/types.ts
++++ b/src/commands/agent/types.ts
+@@ -76,6 +76,7 @@ export type AgentCommandOpts = {
+   lane?: string;
+   runId?: string;
+   extraSystemPrompt?: string;
++  promptMode?: string;
+   internalEvents?: AgentInternalEvent[];
+   inputProvenance?: InputProvenance;
+   /** Per-call stream param overrides (best-effort). */
+diff --git a/src/gateway/protocol/schema/agent.ts b/src/gateway/protocol/schema/agent.ts
+index 11369a4ed4..b7be2e0cb7 100644
+--- a/src/gateway/protocol/schema/agent.ts
++++ b/src/gateway/protocol/schema/agent.ts
+@@ -94,6 +94,7 @@ export const AgentParamsSchema = Type.Object(
+     bestEffortDeliver: Type.Optional(Type.Boolean()),
+     lane: Type.Optional(Type.String()),
+     extraSystemPrompt: Type.Optional(Type.String()),
++    promptMode: Type.Optional(Type.String()),
+     internalEvents: Type.Optional(Type.Array(AgentInternalEventSchema)),
+     inputProvenance: Type.Optional(InputProvenanceSchema),
+     idempotencyKey: NonEmptyString,
+diff --git a/src/gateway/server-methods/agent.ts b/src/gateway/server-methods/agent.ts
+index 5a7507345d..c42e1225f3 100644
+--- a/src/gateway/server-methods/agent.ts
++++ b/src/gateway/server-methods/agent.ts
+@@ -184,6 +184,7 @@ export const agentHandlers: GatewayRequestHandlers = {
+       groupSpace?: string;
+       lane?: string;
+       extraSystemPrompt?: string;
++      promptMode?: string;
+       internalEvents?: AgentInternalEvent[];
+       idempotencyKey: string;
+       timeout?: number;
+@@ -611,6 +612,7 @@ export const agentHandlers: GatewayRequestHandlers = {
+         runId,
+         lane: request.lane,
+         extraSystemPrompt: request.extraSystemPrompt,
++        promptMode: request.promptMode,
+         internalEvents: request.internalEvents,
+         inputProvenance,
+         // Internal-only: allow workspace override for spawned subagent runs.
+-- 
+2.50.1 (Apple Git-155)
+

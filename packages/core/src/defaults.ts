@@ -147,6 +147,7 @@ export const DEFAULTS = {
     web: "www.rivonclaw.com",
     webCn: "www.zhuazhuaai.cn",
     staging: "stg.rivonclaw.com",
+    apiStaging: "api-stg.rivonclaw.com",
     telemetry: "t.rivonclaw.com",
     telemetryCn: "t.zhuazhuaai.cn",
     csRelay: "relay.rivonclaw.com",

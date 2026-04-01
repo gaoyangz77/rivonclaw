@@ -1,35 +1,40 @@
 import { DEFAULTS } from "./defaults.js";
 
 // ---------------------------------------------------------------------------
-// First-party service URLs — derived from DEFAULTS.domains
+// Staging mode
 // ---------------------------------------------------------------------------
 
-/** @deprecated Use `DEFAULTS.domains.api` or `getApiBaseUrl()` instead. */
-export const API_BASE_URL = `https://${DEFAULTS.domains.api}`;
-/** @deprecated Use `DEFAULTS.domains.apiCn` or `getApiBaseUrl()` instead. */
-export const API_BASE_URL_CN = `https://${DEFAULTS.domains.apiCn}`;
-/** @deprecated Use `DEFAULTS.domains.telemetry` or `getTelemetryUrl()` instead. */
-export const TELEMETRY_URL = `https://${DEFAULTS.domains.telemetry}/`;
-/** @deprecated Use `DEFAULTS.domains.telemetryCn` or `getTelemetryUrl()` instead. */
-export const TELEMETRY_URL_CN = `https://${DEFAULTS.domains.telemetryCn}/`;
-
 /**
- * Return the API base URL for the given language/locale.
- * Overridable for staging/testing:
- *   - Node.js (Desktop): set env RIVONCLAW_API_BASE_URL
- *   - Browser (Panel):   call setApiBaseUrlOverride() at init time
+ * Whether the current runtime is targeting the staging backend.
+ * Primary flag: RIVONCLAW_STAGING=1 (env var).
+ * Also settable at runtime via setStagingDevMode() for Panel init.
  */
+let _stagingOverride: boolean | undefined;
+
+export function setStagingDevMode(enabled: boolean): void {
+	_stagingOverride = enabled;
+}
+
+export function isStagingDevMode(): boolean {
+	if (_stagingOverride !== undefined) return _stagingOverride;
+	return typeof process !== "undefined" && process.env.RIVONCLAW_STAGING === "1";
+}
+
+// ---------------------------------------------------------------------------
+// API base URL
+// ---------------------------------------------------------------------------
+
 let _apiBaseUrlOverride: string | undefined;
 
-/** Override the API base URL globally (call from Panel init to support staging). */
+/** Override the API base URL globally (used by tests and Panel init). */
 export function setApiBaseUrlOverride(url: string): void {
 	_apiBaseUrlOverride = url;
 }
 
+/** Return the API base URL for the given language/locale. */
 export function getApiBaseUrl(lang: string): string {
 	if (_apiBaseUrlOverride) return _apiBaseUrlOverride;
-	const nodeOverride = typeof process !== "undefined" ? process.env.RIVONCLAW_API_BASE_URL : undefined;
-	if (nodeOverride) return nodeOverride;
+	if (isStagingDevMode()) return `https://${DEFAULTS.domains.apiStaging}`;
 	return lang === "zh" ? `https://${DEFAULTS.domains.apiCn}` : `https://${DEFAULTS.domains.api}`;
 }
 

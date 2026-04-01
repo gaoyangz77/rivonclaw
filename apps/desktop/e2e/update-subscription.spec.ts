@@ -18,12 +18,13 @@ import path from "node:path";
 import dotenv from "dotenv";
 import { createClient, type Client } from "graphql-ws";
 import WebSocket from "ws";
+import { DEFAULTS } from "@rivonclaw/core/defaults";
 
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
-const STAGING_API_BASE = process.env.RIVONCLAW_API_BASE_URL || "https://api-stg.rivonclaw.com";
+const STAGING_API_BASE = `https://${DEFAULTS.domains.apiStaging}`;
 const STAGING_GRAPHQL_URL = `${STAGING_API_BASE}/graphql`;
-const STAGING_WS_URL = STAGING_API_BASE.replace(/^http/, "ws") + "/graphql";
+const STAGING_WS_URL = `wss://${DEFAULTS.domains.apiStaging}/graphql`;
 
 const adminEmail = process.env.STAGING_ADMIN_USERNAME;
 const adminPassword = process.env.STAGING_ADMIN_PASSWORD;

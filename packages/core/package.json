@@ -29,6 +29,10 @@
     "./cs-session": {
       "import": "./dist/types/cs-session.mjs",
       "types": "./dist/types/cs-session.d.mts"
+    },
+    "./endpoints": {
+      "import": "./dist/endpoints.mjs",
+      "types": "./dist/endpoints.d.mts"
     }
   },
   "scripts": {

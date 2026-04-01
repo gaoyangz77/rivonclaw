@@ -8,10 +8,9 @@
  * Requires staging login for entitled tools (browser_profiles_*).
  */
 import { test, expect } from "./electron-fixture.js";
+import { DEFAULTS } from "@rivonclaw/core/defaults";
 
-const STAGING_GRAPHQL_URL = process.env.RIVONCLAW_API_BASE_URL
-  ? `${process.env.RIVONCLAW_API_BASE_URL}/graphql`
-  : "https://api-stg.rivonclaw.com/graphql";
+const STAGING_GRAPHQL_URL = `https://${DEFAULTS.domains.apiStaging}/graphql`;
 
 const LOGIN_MUTATION = `
   mutation Login($input: LoginInput!) {

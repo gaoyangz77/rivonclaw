@@ -71,6 +71,13 @@ export class CustomerServiceBridge {
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
 
+  /**
+   * Per-turn text forwarding buffer. Agent events stream `data.text` as the
+   * accumulated text for the current turn (resets after each tool call).
+   * On each turn boundary (tool-start or lifecycle-end) the buffer is
+   * forwarded to the buyer and cleared.
+   */
+  private turnTextBuffer = new Map<string, string>();
 
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
@@ -202,19 +209,27 @@ export class CustomerServiceBridge {
 
   /**
    * Handle gateway events forwarded from the RPC client's onEvent callback.
-   * Watches for `chat` events with `state: "final"` to auto-forward agent
-   * text output to the buyer -- removing the need for a dedicated send_message tool.
+   *
+   * Processes two event types:
+   * - `agent` events: per-turn text forwarding. On each turn boundary (tool-start
+   *   or lifecycle-end), the accumulated-but-unsent text is forwarded to the buyer
+   *   as a separate message. This gives the buyer incremental responses instead of
+   *   one large blob at run completion.
+   * - `chat` events with `state: "final"`: run lifecycle cleanup (pendingRuns,
+   *   session active run tracking, abortedRunIds). Text forwarding is handled by
+   *   agent events, so the chat handler no longer sends text.
    */
   onGatewayEvent(evt: GatewayEventFrame): void {
+    if (evt.event === "agent") {
+      this.onAgentEvent(evt);
+      return;
+    }
+
     if (evt.event !== "chat") return;
 
     const payload = evt.payload as {
       runId?: string;
       state?: string;
-      message?: {
-        role?: string;
-        content?: Array<{ type?: string; text?: string }>;
-      };
     } | undefined;
     if (!payload?.runId) return;
 
@@ -226,31 +241,94 @@ export class CustomerServiceBridge {
 
       const session = this.sessions.get(pending.conversationId);
 
-      // Skip auto-forward for runs that were aborted (a newer message replaced them)
+      // Clean up aborted run markers
       const wasAborted = session?.abortedRunIds.has(payload.runId);
       if (wasAborted) {
         session!.abortedRunIds.delete(payload.runId);
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
-      } else if (payload.state === "final") {
-        const agentText = payload.message?.content
-          ?.filter((c) => c.type === "text" && c.text)
-          .map((c) => c.text!.trim())
-          .join("\n")
-          .trim();
-
-        if (agentText && session) {
-          session.forwardTextToBuyer(agentText)
-            .catch((err) => log.error("Failed to auto-forward agent text:", err));
-        }
-      } else {
+      } else if (payload.state === "error") {
         log.warn(`Agent run ${payload.runId} ended with error, skipping auto-forward`);
       }
+
+      // Safety-net cleanup of turn buffer (normally already flushed by agent events)
+      this.turnTextBuffer.delete(payload.runId);
 
       // Clear session's active run tracking
       if (session) {
         session.onRunCompleted(payload.runId);
       }
     }
+  }
+
+  // -- Per-turn agent event handling ------------------------------------------
+
+  /**
+   * Process agent-level events for per-turn text forwarding.
+   *
+   * Agent events carry streaming data: `stream` identifies the sub-stream,
+   * and `data` contains stream-specific fields. We watch for:
+   * - `assistant` stream: update the accumulated text buffer
+   * - `tool` stream with `phase: "start"`: a turn boundary -- flush unsent text
+   * - `lifecycle` stream with `phase: "end"`: run completed -- flush remaining text
+   * - `lifecycle` stream with `phase: "error"`: run failed -- discard buffer
+   */
+  private onAgentEvent(evt: GatewayEventFrame): void {
+    const payload = evt.payload as {
+      runId?: string;
+      stream?: string;
+      data?: Record<string, unknown>;
+    } | undefined;
+    if (!payload?.runId) return;
+
+    const { runId, stream, data } = payload;
+    if (!stream || !data) return;
+
+    // Only process events for CS runs (those in pendingRuns)
+    const pending = this.pendingRuns.get(runId);
+    if (!pending) return;
+
+    if (stream === "assistant") {
+      const text = data.text;
+      if (typeof text === "string") {
+        this.turnTextBuffer.set(runId, text);
+      }
+      return;
+    }
+
+    if (stream === "tool" && data.phase === "start") {
+      this.flushTurnText(runId, pending.conversationId);
+      return;
+    }
+
+    if (stream === "lifecycle") {
+      if (data.phase === "end") {
+        this.flushTurnText(runId, pending.conversationId);
+      }
+      // On error, discard without forwarding
+      if (data.phase === "error" || data.phase === "end") {
+        this.turnTextBuffer.delete(runId);
+      }
+    }
+  }
+
+  /**
+   * Forward buffered text for a run to the buyer, then clear the buffer.
+   * `data.text` is accumulated per-turn (resets after each tool call),
+   * so we send the full buffer content each time.
+   */
+  private flushTurnText(runId: string, conversationId: string): void {
+    const text = this.turnTextBuffer.get(runId)?.trim();
+    this.turnTextBuffer.delete(runId);
+    if (!text) return;
+
+    const session = this.sessions.get(conversationId);
+    if (!session) return;
+
+    // Don't forward for aborted runs
+    if (session.abortedRunIds.has(runId)) return;
+
+    session.forwardTextToBuyer(text)
+      .catch((err) => log.error("Failed to forward per-turn text:", err));
   }
 
   // -- Entity cache subscription ---------------------------------------------

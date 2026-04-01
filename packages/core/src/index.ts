@@ -145,7 +145,6 @@ export {
 export { formatError, IMAGE_EXT_TO_MIME, IMAGE_MIME_TO_EXT } from "./error-utils.js";
 
 export {
-  API_BASE_URL, API_BASE_URL_CN, TELEMETRY_URL, TELEMETRY_URL_CN,
   getApiBaseUrl, getGraphqlUrl, getTelemetryUrl, setApiBaseUrlOverride,
   getReleaseFeedUrl,
   getTelegramSendUrl, getFeishuHost, getFeishuTokenUrl, getFeishuMessageUrl, getLinePushUrl,
@@ -153,6 +152,7 @@ export {
   getAnthropicMessagesUrl,
   getOllamaBaseUrl, getOllamaOpenAiBaseUrl,
   getCsRelayWsUrl,
+  isStagingDevMode, setStagingDevMode,
 } from "./endpoints.js";
 
 export {

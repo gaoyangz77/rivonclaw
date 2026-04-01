@@ -15,6 +15,7 @@ export default defineConfig({
       "@rivonclaw/gateway": resolve(__dirname, "../../packages/gateway/src/index.ts"),
       "@rivonclaw/core/node": resolve(__dirname, "../../packages/core/src/node.ts"),
       "@rivonclaw/core/models": resolve(__dirname, "../../packages/core/src/mst-models.ts"),
+      "@rivonclaw/core/endpoints": resolve(__dirname, "../../packages/core/src/endpoints.ts"),
       "@rivonclaw/core": resolve(__dirname, "../../packages/core/src/index.ts"),
       "@rivonclaw/storage": resolve(__dirname, "../../packages/storage/src/index.ts"),
       "@rivonclaw/updater": resolve(__dirname, "../../packages/updater/src/index.ts"),

@@ -123,3 +123,23 @@ in both `bash-tools.exec-host-gateway.ts` and `bash-tools.exec-host-node.ts`.
 
 **Removal:** Drop when upstream OpenClaw makes obfuscation detection respect the
 `ask` setting natively.
+
+### 0004 — `promptMode: "raw"` for custom persona agents
+
+**File:** `0004-vendor-openclaw-add-promptMode-raw-for-custom-perso.patch`
+
+**Why:** OpenClaw injects identity ("You are a personal assistant running
+inside OpenClaw"), runtime info (model=…, default_model=…), safety guidelines
+(Anthropic constitution reference), heartbeat/silent-reply tokens, and
+documentation links into every system prompt. For EasyClaw's customer-service
+agent, which must present a human persona, these sections leak AI identity and
+undermine the custom prompt. Even `promptMode: "none"` still injects the
+identity line. `promptMode: "raw"` returns only the caller-supplied
+`extraSystemPrompt` with zero hardcoded content.
+
+**Change:** Add `"raw"` to `PromptMode` union type and an early return in
+`buildAgentSystemPrompt()` that returns `extraSystemPrompt ?? ""` when
+`promptMode === "raw"`.
+
+**Removal:** Drop when upstream OpenClaw adds a native way to fully suppress
+all default system prompt sections.

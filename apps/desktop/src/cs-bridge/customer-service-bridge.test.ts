@@ -1229,13 +1229,14 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
     await session.dispatchEscalationResolved(escalationId);
 
+    // Simulate agent events: assistant text + lifecycle end (per-turn forwarding)
     bridge.onGatewayEvent({
-      event: "chat",
-      payload: {
-        runId: "run-esc-003",
-        state: "final",
-        message: { role: "assistant", content: [{ type: "text", text: "Done." }] },
-      },
+      event: "agent",
+      payload: { runId: "run-esc-003", stream: "assistant", data: { text: "Done." } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-esc-003", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
@@ -1632,10 +1633,19 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     // chat.abort should have been called (for A's placeholder)
     expect(mockRpcRequest).toHaveBeenCalledWith("chat.abort", expect.anything());
 
-    // Simulate gateway "final" event for run-A (completed before abort arrived)
+    // Simulate agent events for run-A (completed before abort arrived)
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-A", stream: "assistant", data: { text: "Stale response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-A", stream: "lifecycle", data: { phase: "end" } },
+    } as any);
+    // Chat final for cleanup
     bridge.onGatewayEvent({
       event: "chat",
-      payload: { runId: "run-A", state: "final", message: { role: "assistant", content: [{ type: "text", text: "Stale response" }] } },
+      payload: { runId: "run-A", state: "final" },
     } as any);
 
     // run-A was aborted — should NOT auto-forward
@@ -1644,10 +1654,14 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       expect.objectContaining({ content: expect.stringContaining("Stale response") }),
     );
 
-    // Simulate gateway "final" event for run-B
+    // Simulate agent events for run-B (per-turn forwarding)
     bridge.onGatewayEvent({
-      event: "chat",
-      payload: { runId: "run-B", state: "final", message: { role: "assistant", content: [{ type: "text", text: "Correct response" }] } },
+      event: "agent",
+      payload: { runId: "run-B", stream: "assistant", data: { text: "Correct response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-B", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
     // run-B should auto-forward
@@ -1713,10 +1727,14 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     // No abort should have been called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("chat.abort", expect.anything());
 
-    // Auto-forward works
+    // Auto-forward works via agent events (per-turn forwarding)
     bridge.onGatewayEvent({
-      event: "chat",
-      payload: { runId: "run-single", state: "final", message: { role: "assistant", content: [{ type: "text", text: "Reply" }] } },
+      event: "agent",
+      payload: { runId: "run-single", stream: "assistant", data: { text: "Reply" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-single", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
@@ -1753,18 +1771,47 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     ctrl.resolveNext("run-C");
     await promiseC;
 
-    // Only the final response (run-C) should auto-forward
+    // Only the final response (run-C) should auto-forward via agent events
+    // run-A: agent text + lifecycle end (aborted, should not forward)
     bridge.onGatewayEvent({
-      event: "chat",
-      payload: { runId: "run-A", state: "final", message: { role: "assistant", content: [{ type: "text", text: "A response" }] } },
+      event: "agent",
+      payload: { runId: "run-A", stream: "assistant", data: { text: "A response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-A", stream: "lifecycle", data: { phase: "end" } },
     } as any);
     bridge.onGatewayEvent({
       event: "chat",
-      payload: { runId: "run-B", state: "final", message: { role: "assistant", content: [{ type: "text", text: "B response" }] } },
+      payload: { runId: "run-A", state: "final" },
+    } as any);
+
+    // run-B: agent text + lifecycle end (aborted, should not forward)
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-B", stream: "assistant", data: { text: "B response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-B", stream: "lifecycle", data: { phase: "end" } },
     } as any);
     bridge.onGatewayEvent({
       event: "chat",
-      payload: { runId: "run-C", state: "final", message: { role: "assistant", content: [{ type: "text", text: "C response" }] } },
+      payload: { runId: "run-B", state: "final" },
+    } as any);
+
+    // run-C: agent text + lifecycle end (active, should forward)
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-C", stream: "assistant", data: { text: "C response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-C", stream: "lifecycle", data: { phase: "end" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: "run-C", state: "final" },
     } as any);
 
     // Only C's response should be forwarded
@@ -1830,10 +1877,18 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     mockRpcRequest.mockResolvedValue({ runId: "run-2" });
     await triggerMessage(bridge, createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }));
 
-    // Simulate successful delivery for run-2
+    // Simulate successful delivery for run-2 via agent events (per-turn forwarding)
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-2", stream: "assistant", data: { text: "Reply" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-2", stream: "lifecycle", data: { phase: "end" } },
+    } as any);
     bridge.onGatewayEvent({
       event: "chat",
-      payload: { runId: "run-2", state: "final", message: { role: "assistant", content: [{ type: "text", text: "Reply" }] } },
+      payload: { runId: "run-2", state: "final" },
     } as any);
 
     // Wait for async forwardTextToBuyer to complete
@@ -1866,5 +1921,236 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     expect(message).not.toContain("[Internal: System]");
     expect(message).not.toContain("not delivered");
     expect(message).toBe("[External: Buyer]\nHello");
+  });
+});
+
+// ─── 14. Per-turn message forwarding (agent events) ─────────────────────────
+
+describe("per-turn message forwarding", () => {
+  /**
+   * Helper: dispatch a buyer message and return the runId.
+   * Sets up the bridge with a shop context and dispatches the message.
+   */
+  async function dispatchAndGetRunId(
+    bridge: ReturnType<typeof createBridge>,
+    runId: string,
+    overrides?: Partial<CSNewMessageFrame>,
+  ): Promise<void> {
+    mockRpcRequest.mockResolvedValue({ runId });
+    await triggerMessage(bridge, createFrame(overrides));
+  }
+
+  /** Helper: send an agent event. */
+  function agentEvent(
+    bridge: ReturnType<typeof createBridge>,
+    runId: string,
+    stream: string,
+    data: Record<string, unknown>,
+  ): void {
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId, stream, data },
+    } as any);
+  }
+
+  /** Helper: send a chat final event for cleanup. */
+  function chatFinal(bridge: ReturnType<typeof createBridge>, runId: string): void {
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId, state: "final" },
+    } as any);
+  }
+
+  /** Helper: count ecommerceSendMessage calls and return their content args. */
+  function getForwardedTexts(): string[] {
+    return mockGraphqlFetch.mock.calls
+      .filter((c: any[]) => typeof c[0] === "string" && c[0].includes("ecommerceSendMessage"))
+      .map((c: any[]) => {
+        const parsed = JSON.parse(c[1].content as string);
+        return parsed.content as string;
+      });
+  }
+
+  it("single segment (no tool calls): text forwarded once on lifecycle end", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    agentEvent(bridge, "run-1", "assistant", { text: "Hello buyer!" });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Hello buyer!");
+  });
+
+  it("multiple segments (with tool calls): each segment forwarded separately", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    // First turn: assistant text, then tool start
+    agentEvent(bridge, "run-1", "assistant", { text: "Let me check." });
+    agentEvent(bridge, "run-1", "tool", { phase: "start", toolName: "search" });
+
+    // Second turn: text resets per-turn (not accumulated across whole run)
+    agentEvent(bridge, "run-1", "assistant", { text: "Here is the answer." });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(2);
+    expect(texts[0]).toBe("Let me check.");
+    expect(texts[1]).toBe("Here is the answer.");
+  });
+
+  it("three segments: text between two tool calls, plus final segment", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    // Segment 1
+    agentEvent(bridge, "run-1", "assistant", { text: "Segment one." });
+    agentEvent(bridge, "run-1", "tool", { phase: "start", toolName: "tool_a" });
+
+    // Segment 2 (text resets per-turn)
+    agentEvent(bridge, "run-1", "assistant", { text: "Segment two." });
+    agentEvent(bridge, "run-1", "tool", { phase: "start", toolName: "tool_b" });
+
+    // Segment 3 (text resets per-turn)
+    agentEvent(bridge, "run-1", "assistant", { text: "Segment three." });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(3);
+    expect(texts[0]).toBe("Segment one.");
+    expect(texts[1]).toBe("Segment two.");
+    expect(texts[2]).toBe("Segment three.");
+  });
+
+  it("aborted run: text NOT forwarded", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    // Second message arrives, aborting run-1
+    mockRpcRequest.mockResolvedValue({ runId: "run-2" });
+    await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
+
+    // Agent events for run-1 arrive after abort
+    agentEvent(bridge, "run-1", "assistant", { text: "Stale text" });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    // Cleanup
+    chatFinal(bridge, "run-1");
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(0);
+  });
+
+  it("empty text: tool call without any text does not forward", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    // Tool starts without any prior assistant text
+    agentEvent(bridge, "run-1", "tool", { phase: "start", toolName: "search" });
+
+    // Assistant text comes after tool, then lifecycle end
+    agentEvent(bridge, "run-1", "assistant", { text: "Result found." });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Result found.");
+  });
+
+  it("error lifecycle: text NOT forwarded", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    agentEvent(bridge, "run-1", "assistant", { text: "Partial output" });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "error" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(0);
+  });
+
+  it("non-CS run: agent events ignored (not in pendingRuns)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    // Don't dispatch any CS message — "run-other" is not in pendingRuns
+
+    agentEvent(bridge, "run-other", "assistant", { text: "Non-CS text" });
+    agentEvent(bridge, "run-other", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(0);
+  });
+
+  it("whitespace-only new segment is not forwarded", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    agentEvent(bridge, "run-1", "assistant", { text: "First part." });
+    agentEvent(bridge, "run-1", "tool", { phase: "start", toolName: "tool_a" });
+
+    // Second turn is whitespace-only (per-turn text resets)
+    agentEvent(bridge, "run-1", "assistant", { text: "   " });
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    // Only the first segment should be forwarded; the whitespace-only segment is skipped
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("First part.");
+  });
+
+  it("chat final event cleans up turn buffers as safety net", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    // Agent text arrives but lifecycle never fires (unusual)
+    agentEvent(bridge, "run-1", "assistant", { text: "Buffered text" });
+
+    // Chat final fires — should clean up buffers without forwarding
+    chatFinal(bridge, "run-1");
+
+    // No text forwarded (lifecycle end never fired)
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(0);
+  });
+
+  it("tool phase other than 'start' does not flush", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    agentEvent(bridge, "run-1", "assistant", { text: "Pending text" });
+    // tool phase "end" should NOT trigger a flush
+    agentEvent(bridge, "run-1", "tool", { phase: "end", toolName: "search" });
+
+    // Nothing forwarded yet — text still buffered
+    expect(getForwardedTexts()).toHaveLength(0);
+
+    // Now lifecycle end flushes
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Pending text");
+  });
+
+  it("data.text that is not a string is ignored", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    // data.text is a number — should be ignored
+    agentEvent(bridge, "run-1", "assistant", { text: 42 } as any);
+    agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    expect(getForwardedTexts()).toHaveLength(0);
   });
 });

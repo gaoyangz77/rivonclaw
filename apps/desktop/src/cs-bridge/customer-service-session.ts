@@ -19,6 +19,7 @@
 import crypto from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
 import { ScopeType, type CSNewMessageFrame } from "@rivonclaw/core";
+import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { rootStore } from "../store/desktop-store.js";
@@ -137,7 +138,21 @@ export class CustomerServiceSession {
 
   /** Assembled extraSystemPrompt for this session. */
   get extraSystemPrompt(): string {
-    const lines = [
+    const lines: string[] = [];
+
+    if (isStagingDevMode()) {
+      lines.push(
+        "## STAGING ENVIRONMENT — TEST MODE",
+        "You are a CS TEST agent in a staging environment, not a production agent.",
+        "The prompt below is the production CS agent prompt. As a test agent,",
+        "you should follow the developer's instructions over the production prompt.",
+        "If the developer asks you to behave differently from the production prompt,",
+        "comply with the developer's request.",
+        "",
+      );
+    }
+
+    lines.push(
       this.shop.systemPrompt,
       "",
       "## Current Session",
@@ -147,7 +162,7 @@ export class CustomerServiceSession {
       ...(this.csContext.orderId ? [`- Order ID: ${this.csContext.orderId}`] : []),
       "",
       "Use the tools available to you to help this buyer.",
-    ];
+    );
 
     return lines.join("\n");
   }
@@ -233,7 +248,8 @@ export class CustomerServiceSession {
     }
 
     // If previous runs were aborted, tell the agent its prior replies were not delivered.
-    let message = `[External: Buyer]\n${content}`;
+    const senderTag = isStagingDevMode() ? "[Internal: Developer]" : "[External: Buyer]";
+    let message = `${senderTag}\n${content}`;
     if (this.undeliveredCount > 0) {
       const notice = this.undeliveredCount === 1
         ? "[Internal: System]\nNote: Your previous reply was not delivered to the buyer because a new message arrived. The buyer has not seen it. Please incorporate all messages in your response."
@@ -438,6 +454,7 @@ export class CustomerServiceSession {
       sessionKey: this.dispatchKey,
       message: params.message,
       extraSystemPrompt: this.extraSystemPrompt,
+      promptMode: "raw",
       idempotencyKey: params.idempotencyKey,
       ...(params.attachments ? { attachments: params.attachments } : {}),
     });
