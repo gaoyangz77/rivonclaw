@@ -400,6 +400,7 @@ export class CustomerServiceSession {
    */
   async escalate(params: {
     reason: string;
+    orderId?: string;
     context?: string;
   }): Promise<{ ok: boolean; escalationId?: string; error?: string }> {
     const rpcClient = getRpcClient();
@@ -445,7 +446,8 @@ export class CustomerServiceSession {
       `Conversation: ${this.csContext.conversationId}`,
       `Buyer: ${buyerNickname ?? this.csContext.buyerUserId}`,
     ];
-    if (this.csContext.orderId) lines.push(`Order: ${this.csContext.orderId}`);
+    const orderId = params.orderId ?? this.csContext.orderId;
+    if (orderId) lines.push(`Order: ${orderId}`);
     lines.push(`Reason: ${params.reason}`);
     if (params.context) lines.push(`Context: ${params.context}`);
     lines.push("", "Please reply with your decision (e.g., \"Approved, process full refund\").");
