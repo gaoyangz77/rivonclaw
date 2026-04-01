@@ -72,6 +72,7 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       });
       const result = await session.escalate({
         reason: body.reason as string,
+        orderId: typeof body.orderId === "string" ? body.orderId : undefined,
         context: typeof body.context === "string" ? body.context : undefined,
       });
       sendJson(res, result.ok ? 200 : 400, result);
