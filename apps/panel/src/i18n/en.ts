@@ -1555,9 +1555,7 @@ export default {
         ECOM_GET_CONVERSATION_MESSAGES: "Get Messages",
         ECOM_GET_CONVERSATION_DETAILS: "Get Conversation Details",
         ECOM_GET_CS_PERFORMANCE: "CS Performance",
-        ECOM_GET_AGENT_SETTINGS: "Get Agent Settings",
         ECOM_SEARCH_SESSIONS: "Search Sessions",
-        ECOM_UPDATE_AGENT_SETTINGS: "Update Agent Settings",
         // E-commerce Ops — Orders
         ECOM_GET_ORDER: "Get Order",
         ECOM_LIST_ORDERS: "List Orders",

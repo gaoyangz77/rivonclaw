@@ -1543,9 +1543,7 @@ export default {
         ECOM_GET_CONVERSATION_MESSAGES: "获取会话消息",
         ECOM_GET_CONVERSATION_DETAILS: "获取会话详情",
         ECOM_GET_CS_PERFORMANCE: "客服绩效",
-        ECOM_GET_AGENT_SETTINGS: "获取客服设置",
         ECOM_SEARCH_SESSIONS: "搜索会话",
-        ECOM_UPDATE_AGENT_SETTINGS: "更新客服设置",
         // 电商运营 — 订单
         ECOM_GET_ORDER: "获取订单",
         ECOM_LIST_ORDERS: "订单列表",
