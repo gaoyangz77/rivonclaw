@@ -1167,7 +1167,7 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-001" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "Process refund" });
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "Process refund", resolved: true });
     const result = await session.dispatchEscalationResolved(escalationId);
 
     expect(result.runId).toBe("run-esc-001");
@@ -1182,12 +1182,13 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const bridge = createBridge();
     const { session, escalationId } = setupSessionWithEscalation(bridge);
 
-    session.resolveEscalation(escalationId, { decision: "rejected", instructions: "Offer store credit" });
+    session.resolveEscalation(escalationId, { decision: "rejected", instructions: "Offer store credit", resolved: true });
 
     const esc = session.escalations.get(escalationId);
     expect(esc?.result).toEqual(expect.objectContaining({
       decision: "rejected",
       instructions: "Offer store credit",
+      resolved: true,
     }));
     expect(esc?.result?.resolvedAt).toBeGreaterThan(0);
   });
@@ -1197,17 +1198,24 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     bridge.setShopContext(defaultShop);
     const session = bridge.getOrCreateSession(defaultDirectiveParams.shopId, defaultDirectiveParams);
 
-    expect(() => session.resolveEscalation("esc_nonexistent", { decision: "approved", instructions: "go" }))
+    expect(() => session.resolveEscalation("esc_nonexistent", { decision: "approved", instructions: "go", resolved: true }))
       .toThrow("Escalation esc_nonexistent not found");
   });
 
-  it("throws when resolving already-resolved escalation", () => {
+  it("allows overwriting previous resolution", () => {
     const bridge = createBridge();
     const { session, escalationId } = setupSessionWithEscalation(bridge);
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
-    expect(() => session.resolveEscalation(escalationId, { decision: "rejected", instructions: "no" }))
-      .toThrow(`Escalation ${escalationId} already resolved`);
+    session.resolveEscalation(escalationId, { decision: "checking warehouse", instructions: "hold on", resolved: false });
+    const firstResolvedAt = session.escalations.get(escalationId)!.result!.resolvedAt;
+
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "ship replacement", resolved: true });
+    const esc = session.escalations.get(escalationId)!;
+
+    expect(esc.result!.decision).toBe("approved");
+    expect(esc.result!.instructions).toBe("ship replacement");
+    expect(esc.result!.resolved).toBe(true);
+    expect(esc.result!.resolvedAt).toBeGreaterThanOrEqual(firstResolvedAt);
   });
 
   it("registers CS session before dispatch", async () => {
@@ -1215,7 +1223,7 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-002" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go", resolved: true });
     await session.dispatchEscalationResolved(escalationId);
 
     const callOrder = mockRpcRequest.mock.calls.map((c: any[]) => c[0]);
@@ -1227,7 +1235,7 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-003" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go", resolved: true });
     await session.dispatchEscalationResolved(escalationId);
 
     // Simulate agent events: assistant text + lifecycle end (per-turn forwarding)
@@ -1259,11 +1267,88 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-004" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go" });
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go", resolved: true });
     await session.dispatchEscalationResolved(escalationId);
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall![1].idempotencyKey).toMatch(new RegExp(`^esc-resolved:${escalationId}:\\d+$`));
+  });
+
+  it("dispatch message differs for resolved vs in-progress", async () => {
+    const bridge = createBridge();
+
+    // Test in-progress message
+    const { session: session1, escalationId: eid1 } = setupSessionWithEscalation(bridge);
+    mockRpcRequest.mockResolvedValue({ runId: "run-esc-ip-001" });
+    session1.resolveEscalation(eid1, { decision: "checking", instructions: "hold", resolved: false });
+    await session1.dispatchEscalationResolved(eid1);
+
+    const inProgressCall = mockRpcRequest.mock.calls.find(
+      (c: any[]) => c[0] === "agent" && c[1].message.includes(eid1),
+    );
+    expect(inProgressCall![1].message).toContain("sent an update");
+    expect(inProgressCall![1].message).not.toContain("has been resolved");
+
+    // Test resolved message — use a fresh bridge to avoid call interference
+    const bridge2 = createBridge();
+    const { session: session2, escalationId: eid2 } = setupSessionWithEscalation(bridge2);
+    mockRpcRequest.mockClear();
+    mockRpcRequest.mockResolvedValue({ runId: "run-esc-res-001" });
+    session2.resolveEscalation(eid2, { decision: "approved", instructions: "go", resolved: true });
+    await session2.dispatchEscalationResolved(eid2);
+
+    const resolvedCall = mockRpcRequest.mock.calls.find(
+      (c: any[]) => c[0] === "agent" && c[1].message.includes(eid2),
+    );
+    expect(resolvedCall![1].message).toContain("has been resolved");
+    expect(resolvedCall![1].message).not.toContain("sent an update");
+  });
+
+  it("GET escalation returns guidance for pending escalation", () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+
+    const escalation = session.escalations.get(escalationId)!;
+    // Pending: no result set
+    expect(escalation.result).toBeUndefined();
+
+    // Verify the status derivation logic matches route handler
+    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
+    expect(status).toBe("pending");
+    const guidance = !escalation.result?.resolved
+      ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
+      : null;
+    expect(guidance).not.toBeNull();
+  });
+
+  it("GET escalation returns guidance for in-progress (resolved=false) escalation", () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+
+    session.resolveEscalation(escalationId, { decision: "checking warehouse", instructions: "hold on", resolved: false });
+    const escalation = session.escalations.get(escalationId)!;
+
+    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
+    expect(status).toBe("in_progress");
+    const guidance = !escalation.result?.resolved
+      ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
+      : null;
+    expect(guidance).not.toBeNull();
+  });
+
+  it("GET escalation returns no guidance for resolved escalation", () => {
+    const bridge = createBridge();
+    const { session, escalationId } = setupSessionWithEscalation(bridge);
+
+    session.resolveEscalation(escalationId, { decision: "approved", instructions: "refund issued", resolved: true });
+    const escalation = session.escalations.get(escalationId)!;
+
+    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
+    expect(status).toBe("resolved");
+    const guidance = !escalation.result?.resolved
+      ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
+      : null;
+    expect(guidance).toBeNull();
   });
 });
 

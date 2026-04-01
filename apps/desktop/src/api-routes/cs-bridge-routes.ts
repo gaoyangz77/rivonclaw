@@ -105,6 +105,7 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       session.resolveEscalation(escalationId, {
         decision: body.decision as string,
         instructions: body.instructions as string,
+        resolved: body.resolved === true,
       });
 
       const result = await session.dispatchEscalationResolved(escalationId);
@@ -132,13 +133,18 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       return true;
     }
 
-    const escalation = session.escalations.get(escalationId);
+    const escalation = session.escalations.get(escalationId)!;
+    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
     sendJson(res, 200, {
-      id: escalation!.id,
-      reason: escalation!.reason,
-      context: escalation!.context,
-      createdAt: escalation!.createdAt,
-      result: escalation!.result ?? null,
+      id: escalation.id,
+      reason: escalation.reason,
+      context: escalation.context ?? null,
+      createdAt: escalation.createdAt,
+      status,
+      result: escalation.result ?? null,
+      guidance: !escalation.result?.resolved
+        ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
+        : null,
     });
     return true;
   }

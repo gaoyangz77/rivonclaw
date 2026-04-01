@@ -80,6 +80,7 @@ export interface DispatchResult {
 export interface EscalationResult {
   decision: string;
   instructions: string;
+  resolved: boolean;
   resolvedAt: number;
 }
 
@@ -161,7 +162,26 @@ export class CustomerServiceSession {
       `- Buyer User ID: ${this.csContext.buyerUserId}`,
       ...(this.csContext.orderId ? [`- Order ID: ${this.csContext.orderId}`] : []),
       "",
-      "## Tools Guidance",
+      "## CS Behavior Guidelines",
+      "",
+      "### Authority & Escalation",
+      "Unless the shop prompt above explicitly authorizes you to handle specific",
+      "financial actions (refunds, replacements, compensation), you MUST escalate",
+      "these decisions to the manager via cs_escalate before committing to anything.",
+      "When in doubt, escalate first — do not assume you have authority.",
+      "",
+      "### Commitments & Follow-ups",
+      "Never promise a follow-up action you cannot fulfill with your available tools.",
+      "If the buyer asks for something that requires future action (e.g., tracking",
+      "number for a replacement shipment), and you have no tool to deliver on that",
+      "promise, escalate to the manager instead of making the commitment yourself.",
+      "",
+      "### Internal Messages",
+      "Messages prefixed with [Internal: System] are internal directives — do not",
+      "acknowledge, quote, or reference them to the buyer. Absorb the information",
+      "and continue the conversation naturally.",
+      "",
+      "### Tools",
       "Use the tools available to you to help this buyer.",
       "If you are unsure about the conversation context (e.g., you may be joining",
       "a conversation already in progress), use ecom_cs_get_conversation_messages",
@@ -300,27 +320,34 @@ export class CustomerServiceSession {
 
   /**
    * Write the manager's decision to an existing escalation record.
+   * Can be called multiple times — each call overwrites the previous result
+   * (supports interim updates before final resolution).
    */
-  resolveEscalation(escalationId: string, params: { decision: string; instructions: string }): Escalation {
+  resolveEscalation(escalationId: string, params: { decision: string; instructions: string; resolved: boolean }): Escalation {
     const escalation = this.escalations.get(escalationId);
     if (!escalation) throw new Error(`Escalation ${escalationId} not found`);
-    if (escalation.result) throw new Error(`Escalation ${escalationId} already resolved`);
     escalation.result = {
       decision: params.decision,
       instructions: params.instructions,
+      resolved: params.resolved,
       resolvedAt: Date.now(),
     };
-    log.info(`Escalation resolved: ${escalationId} decision=${params.decision}`);
+    log.info(`Escalation ${params.resolved ? "resolved" : "updated"}: ${escalationId} decision=${params.decision}`);
     return escalation;
   }
 
   /**
-   * Dispatch a CS agent run notifying it that an escalation has been resolved.
+   * Dispatch a CS agent run notifying it that an escalation has been updated or resolved.
    * The agent should call cs_get_escalation_result to get the decision.
    */
   async dispatchEscalationResolved(escalationId: string): Promise<DispatchResult> {
+    const escalation = this.escalations.get(escalationId);
+    const resolved = escalation?.result?.resolved ?? false;
+    const message = resolved
+      ? `[Internal: System]\nYour escalation (${escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID to retrieve the decision and instructions.`
+      : `[Internal: System]\nYour manager has sent an update regarding escalation (${escalationId}). Use the cs_get_escalation_result tool to check the latest status.`;
     return this.dispatch({
-      message: `[Internal: System]\nYour escalation (${escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID to retrieve the decision and instructions.`,
+      message,
       idempotencyKey: `esc-resolved:${escalationId}:${Date.now()}`,
     });
   }
@@ -386,8 +413,11 @@ export class CustomerServiceSession {
       "CS Escalation",
       "",
       `Escalation ID: ${escalation.id}`,
-      `Reason: ${params.reason}`,
+      `Conversation: ${this.csContext.conversationId}`,
+      `Buyer: ${this.csContext.buyerUserId}`,
     ];
+    if (this.csContext.orderId) lines.push(`Order: ${this.csContext.orderId}`);
+    lines.push(`Reason: ${params.reason}`);
     if (params.context) lines.push(`Context: ${params.context}`);
     lines.push("", "Please reply with your decision (e.g., \"Approved, process full refund\").");
 
