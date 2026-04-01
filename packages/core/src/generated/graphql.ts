@@ -327,8 +327,6 @@ export interface Mutation {
   ecommerceCreateConversation: EcommerceApiResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: EcommerceApiResult;
-  /** Update agent settings for a shop */
-  ecommerceUpdateAgentSettings: EcommerceApiResult;
   /** Enroll in a product module */
   enrollModule: MeResponse;
   /** Generate a 6-character pairing code for QR display */
@@ -344,7 +342,7 @@ export interface Mutation {
   /** Publish an update notification to all connected clients (admin only) */
   publishUpdate: Scalars['Boolean']['output'];
   /** Redeem a service credit to a shop */
-  redeemCredit: Scalars['Boolean']['output'];
+  redeemCredit: Shop;
   /** Refresh an expired access token */
   refreshToken: AuthPayload;
   /** Register a new user account */
@@ -446,12 +444,6 @@ export interface MutationEcommerceSendMessageArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
   type: Scalars['String']['input'];
-}
-
-
-export interface MutationEcommerceUpdateAgentSettingsArgs {
-  settings: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
 }
 
 
@@ -663,8 +655,6 @@ export interface Query {
   csSessionStats: CsSessionStats;
   /** Get the platform CS skill template content (markdown). Returns null if not configured. */
   csSkillTemplate?: Maybe<Scalars['String']['output']>;
-  /** Get agent settings for a shop */
-  ecommerceGetAgentSettings: EcommerceApiResult;
   /** Get customer service performance metrics */
   ecommerceGetCSPerformance: EcommerceApiResult;
   /** Get conversation details */
@@ -771,11 +761,6 @@ export interface QueryCsAssemblePromptArgs {
 
 export interface QueryCsSessionStatsArgs {
   shopId: Scalars['ID']['input'];
-}
-
-
-export interface QueryEcommerceGetAgentSettingsArgs {
-  shopId: Scalars['String']['input'];
 }
 
 
@@ -1256,7 +1241,6 @@ export const ToolId = {
   EcomCsSearchProducts: 'ECOM_CS_SEARCH_PRODUCTS',
   EcomCsSendCard: 'ECOM_CS_SEND_CARD',
   EcomCsSendMedia: 'ECOM_CS_SEND_MEDIA',
-  EcomGetAgentSettings: 'ECOM_GET_AGENT_SETTINGS',
   EcomGetConversations: 'ECOM_GET_CONVERSATIONS',
   EcomGetConversationDetails: 'ECOM_GET_CONVERSATION_DETAILS',
   EcomGetConversationMessages: 'ECOM_GET_CONVERSATION_MESSAGES',
@@ -1269,8 +1253,7 @@ export const ToolId = {
   EcomListOrders: 'ECOM_LIST_ORDERS',
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
-  EcomSearchSessions: 'ECOM_SEARCH_SESSIONS',
-  EcomUpdateAgentSettings: 'ECOM_UPDATE_AGENT_SETTINGS'
+  EcomSearchSessions: 'ECOM_SEARCH_SESSIONS'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];

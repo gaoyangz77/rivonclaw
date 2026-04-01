@@ -644,6 +644,7 @@ export const EcommercePage = observer(function EcommercePage() {
       if (!creditInstance) throw new Error(`Credit ${credit.id} not found`);
       await creditInstance.redeem(selectedShopId);
       showToast(t("ecommerce.shopDrawer.billing.redeemSuccess"), "success");
+      handleFetchCredits();
       handleFetchSessionStats(selectedShopId);
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");

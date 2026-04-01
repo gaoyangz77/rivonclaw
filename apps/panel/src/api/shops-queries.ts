@@ -100,9 +100,10 @@ export const INITIATE_TIKTOK_OAUTH_MUTATION = gql`
 `;
 
 export const COMPLETE_TIKTOK_OAUTH_MUTATION = gql`
+  ${SHOP_FIELDS_FRAGMENT}
   mutation CompleteTikTokOAuth($code: String!, $state: String!) {
     completeTikTokOAuth(code: $code, state: $state) {
-      shopId
+      ...ShopFields
     }
   }
 `;
@@ -132,8 +133,11 @@ export const CS_SESSION_STATS_QUERY = gql`
 `;
 
 export const REDEEM_CREDIT_MUTATION = gql`
+  ${SHOP_FIELDS_FRAGMENT}
   mutation RedeemCredit($creditId: ID!, $shopId: ID!) {
-    redeemCredit(creditId: $creditId, shopId: $shopId)
+    redeemCredit(creditId: $creditId, shopId: $shopId) {
+      ...ShopFields
+    }
   }
 `;
 

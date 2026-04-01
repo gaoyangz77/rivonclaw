@@ -161,7 +161,11 @@ export class CustomerServiceSession {
       `- Buyer User ID: ${this.csContext.buyerUserId}`,
       ...(this.csContext.orderId ? [`- Order ID: ${this.csContext.orderId}`] : []),
       "",
+      "## Tools Guidance",
       "Use the tools available to you to help this buyer.",
+      "If you are unsure about the conversation context (e.g., you may be joining",
+      "a conversation already in progress), use ecom_cs_get_conversation_messages",
+      "to review the chat history before responding.",
     );
 
     return lines.join("\n");
