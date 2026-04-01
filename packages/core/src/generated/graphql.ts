@@ -629,7 +629,7 @@ export interface Query {
   ecommerceGetCSPerformance: EcommerceApiResult;
   /** Get conversation details */
   ecommerceGetConversationDetails: EcommerceApiResult;
-  /** Get messages of a conversation */
+  /** Get messages in a conversation */
   ecommerceGetConversationMessages: EcommerceApiResult;
   /** Get conversations for a shop */
   ecommerceGetConversations: EcommerceApiResult;
@@ -643,8 +643,6 @@ export interface Query {
   ecommerceGetPackageDetail: EcommerceApiResult;
   /** Get shipping document for a package */
   ecommerceGetPackageShippingDocument: EcommerceApiResult;
-  /** Get conversations pending seller reply */
-  ecommerceGetPendingConversations: EcommerceApiResult;
   /** Get product details */
   ecommerceGetProduct: EcommerceApiResult;
   /** Search fulfillment packages with optional filters */
@@ -798,12 +796,6 @@ export interface QueryEcommerceGetPackageShippingDocumentArgs {
   documentSize?: InputMaybe<Scalars['String']['input']>;
   documentType: Scalars['String']['input'];
   packageId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryEcommerceGetPendingConversationsArgs {
-  locale?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
 }
 
@@ -1219,7 +1211,6 @@ export const ToolId = {
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetOrder: 'ECOM_GET_ORDER',
   EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',
-  EcomGetPendingConversations: 'ECOM_GET_PENDING_CONVERSATIONS',
   EcomGetProduct: 'ECOM_GET_PRODUCT',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomListOrders: 'ECOM_LIST_ORDERS',
