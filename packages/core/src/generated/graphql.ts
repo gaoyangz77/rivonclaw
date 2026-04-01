@@ -325,6 +325,8 @@ export interface Mutation {
   deleteSurface: Scalars['Boolean']['output'];
   /** Create a new conversation with a buyer */
   ecommerceCreateConversation: EcommerceApiResult;
+  /** Mark a conversation as read */
+  ecommerceMarkConversationRead: EcommerceApiResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: EcommerceApiResult;
   /** Enroll in a product module */
@@ -424,6 +426,12 @@ export interface MutationDeleteSurfaceArgs {
 export interface MutationEcommerceCreateConversationArgs {
   buyerUserId: Scalars['String']['input'];
   orderId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceMarkConversationReadArgs {
+  conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
 
@@ -1237,6 +1245,7 @@ export const ToolId = {
   EcomGetProduct: 'ECOM_GET_PRODUCT',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomListOrders: 'ECOM_LIST_ORDERS',
+  EcomMarkConversationRead: 'ECOM_MARK_CONVERSATION_READ',
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchSessions: 'ECOM_SEARCH_SESSIONS'
