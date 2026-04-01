@@ -30,6 +30,11 @@
       "file": "packages/gateway/src/exec-obfuscation-ask-off.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/exec-approvals.js",
       "reason": "Drift guard — validates requiresExecApproval returns false when ask=off (vendor patch 0003)"
+    },
+    {
+      "file": "apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/system-prompt.ts",
+      "reason": "Drift guard — validates promptMode 'raw' support exists (vendor patch 0004)"
     }
   ],
   "allowlist": []
