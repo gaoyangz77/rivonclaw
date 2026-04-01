@@ -42,6 +42,15 @@ export const SHOPS_QUERY = gql`
   }
 `;
 
+export const SHOP_QUERY = gql`
+  ${SHOP_FIELDS_FRAGMENT}
+  query Shop($id: ID!) {
+    shop(id: $id) {
+      ...ShopFields
+    }
+  }
+`;
+
 export const SHOP_AUTH_STATUS_QUERY = gql`
   query ShopAuthStatus($id: ID!) {
     shopAuthStatus(id: $id) {
@@ -66,15 +75,6 @@ export const PLATFORM_APPS_QUERY = gql`
   }
 `;
 
-export const CREATE_SHOP_MUTATION = gql`
-  ${SHOP_FIELDS_FRAGMENT}
-  mutation CreateShop($input: CreateShopInput!) {
-    createShop(input: $input) {
-      ...ShopFields
-    }
-  }
-`;
-
 export const UPDATE_SHOP_MUTATION = gql`
   ${SHOP_FIELDS_FRAGMENT}
   mutation UpdateShop($id: ID!, $input: UpdateShopInput!) {
@@ -95,15 +95,6 @@ export const INITIATE_TIKTOK_OAUTH_MUTATION = gql`
     initiateTikTokOAuth(platformAppId: $platformAppId) {
       authUrl
       state
-    }
-  }
-`;
-
-export const COMPLETE_TIKTOK_OAUTH_MUTATION = gql`
-  ${SHOP_FIELDS_FRAGMENT}
-  mutation CompleteTikTokOAuth($code: String!, $state: String!) {
-    completeTikTokOAuth(code: $code, state: $state) {
-      ...ShopFields
     }
   }
 `;

@@ -13,6 +13,7 @@ import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
   SHOPS_QUERY,
+  SHOP_QUERY,
   PLATFORM_APPS_QUERY,
   MY_CREDITS_QUERY,
   INITIATE_TIKTOK_OAUTH_MUTATION,
@@ -275,6 +276,11 @@ const PanelRootStoreModel = RootStoreModel.props({
     /** Fire shops query to populate MST via Desktop proxy. */
     fetchShops: flow(function* () {
       yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+    }),
+
+    /** Fire single shop query to refresh one shop via Desktop proxy. */
+    fetchShop: flow(function* (shopId: string) {
+      yield client().query({ query: SHOP_QUERY, variables: { id: shopId }, fetchPolicy: "network-only" });
     }),
 
     /** Fire platform apps query to populate MST via Desktop proxy. */

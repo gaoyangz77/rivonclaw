@@ -154,16 +154,6 @@ export interface CreateRunProfileInput {
   surfaceId: Scalars['String']['input'];
 }
 
-/** Input for creating a new shop connection */
-export interface CreateShopInput {
-  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
-  platform: ShopPlatform;
-  platformAppId: Scalars['String']['input'];
-  platformShopId: Scalars['String']['input'];
-  region: ShopRegion;
-  shopName: Scalars['String']['input'];
-}
-
 /** Input for creating a new Surface */
 export interface CreateSurfaceInput {
   allowedCategories: Array<Scalars['String']['input']>;
@@ -301,12 +291,8 @@ export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
   /** Allocate a new seat to a gateway */
   allocateSeat: CsSeat;
-  /** Handle TikTok OAuth callback (exchange code for tokens) */
-  completeTikTokOAuth: Shop;
   /** Create a new run profile */
   createRunProfile: RunProfile;
-  /** Create a new shop connection */
-  createShop: Shop;
   /** Create a new surface */
   createSurface: Surface;
   /** End an active CS session for a conversation (idempotent) */
@@ -373,19 +359,8 @@ export interface MutationAllocateSeatArgs {
 }
 
 
-export interface MutationCompleteTikTokOAuthArgs {
-  code: Scalars['String']['input'];
-  state: Scalars['String']['input'];
-}
-
-
 export interface MutationCreateRunProfileArgs {
   input: CreateRunProfileInput;
-}
-
-
-export interface MutationCreateShopArgs {
-  input: CreateShopInput;
 }
 
 
@@ -654,7 +629,7 @@ export interface Query {
   ecommerceGetCSPerformance: EcommerceApiResult;
   /** Get conversation details */
   ecommerceGetConversationDetails: EcommerceApiResult;
-  /** Get messages in a conversation */
+  /** Get messages of a conversation */
   ecommerceGetConversationMessages: EcommerceApiResult;
   /** Get conversations for a shop */
   ecommerceGetConversations: EcommerceApiResult;
@@ -668,6 +643,8 @@ export interface Query {
   ecommerceGetPackageDetail: EcommerceApiResult;
   /** Get shipping document for a package */
   ecommerceGetPackageShippingDocument: EcommerceApiResult;
+  /** Get conversations pending seller reply */
+  ecommerceGetPendingConversations: EcommerceApiResult;
   /** Get product details */
   ecommerceGetProduct: EcommerceApiResult;
   /** Search fulfillment packages with optional filters */
@@ -726,8 +703,6 @@ export interface Query {
   toolSpecs: Array<ToolSpec>;
   /** Batch-verify relay access tokens */
   verifyRelayTokens: Array<RelayTokenResult>;
-  /** Verify whether the authenticated user has access to the given shops */
-  verifyShopAccess: VerifyShopAccessResult;
   /** Long-poll for pairing completion (30s timeout) */
   waitForPairing: WaitPairingResult;
 }
@@ -823,6 +798,12 @@ export interface QueryEcommerceGetPackageShippingDocumentArgs {
   documentSize?: InputMaybe<Scalars['String']['input']>;
   documentType: Scalars['String']['input'];
   packageId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetPendingConversationsArgs {
+  locale?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
 }
 
@@ -931,11 +912,6 @@ export interface QuerySystemSurfacesArgs {
 
 export interface QueryVerifyRelayTokensArgs {
   tokens: Array<Scalars['String']['input']>;
-}
-
-
-export interface QueryVerifyShopAccessArgs {
-  shopIds: Array<Scalars['String']['input']>;
 }
 
 
@@ -1243,6 +1219,7 @@ export const ToolId = {
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetOrder: 'ECOM_GET_ORDER',
   EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',
+  EcomGetPendingConversations: 'ECOM_GET_PENDING_CONVERSATIONS',
   EcomGetProduct: 'ECOM_GET_PRODUCT',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomListOrders: 'ECOM_LIST_ORDERS',
@@ -1344,12 +1321,6 @@ export interface VerifyPairingResult {
   desktopDeviceId: Scalars['String']['output'];
   pairingId: Scalars['String']['output'];
   relayUrl: Scalars['String']['output'];
-}
-
-/** Result of shop access verification */
-export interface VerifyShopAccessResult {
-  authorized: Array<Scalars['String']['output']>;
-  unauthorized: Array<Scalars['String']['output']>;
 }
 
 export interface WaitPairingResult {

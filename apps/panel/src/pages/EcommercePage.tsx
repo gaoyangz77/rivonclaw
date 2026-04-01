@@ -318,8 +318,9 @@ export const EcommercePage = observer(function EcommercePage() {
         cleanupOAuthWait();
         setConnectModalOpen(false);
         showToast(t("ecommerce.oauthSuccess"), "success");
-        // completeTikTokOAuth now returns full Shop → Desktop proxy ingests
-        // via ingestGraphQLResponse → SSE patch → Panel MST auto-updates.
+        // OAuth callback created the shop on backend; fetch it so Desktop
+        // proxy ingests via ingestGraphQLResponse → SSE patch → table updates.
+        entityStore.fetchShop(data.shopId).catch(() => {});
       } catch {
         // Ignore malformed data
       }
@@ -1386,7 +1387,7 @@ export const EcommercePage = observer(function EcommercePage() {
                       className="input-full textarea-resize-vertical shop-prompt-textarea"
                       value={editBusinessPrompt}
                       onChange={(e) => setEditBusinessPrompt(e.target.value)}
-                      rows={4}
+                      rows={15}
                       maxLength={2000}
                     />
                     <span className="shop-prompt-charcount">
