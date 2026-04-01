@@ -318,9 +318,8 @@ export const EcommercePage = observer(function EcommercePage() {
         cleanupOAuthWait();
         setConnectModalOpen(false);
         showToast(t("ecommerce.oauthSuccess"), "success");
-        // Trigger shops refresh — OAuth callback creates the shop on backend,
-        // but Desktop proxy only sees data when Panel fires a query.
-        entityStore.fetchShops().catch(() => {});
+        // completeTikTokOAuth now returns full Shop → Desktop proxy ingests
+        // via ingestGraphQLResponse → SSE patch → Panel MST auto-updates.
       } catch {
         // Ignore malformed data
       }
@@ -644,8 +643,8 @@ export const EcommercePage = observer(function EcommercePage() {
       if (!creditInstance) throw new Error(`Credit ${credit.id} not found`);
       await creditInstance.redeem(selectedShopId);
       showToast(t("ecommerce.shopDrawer.billing.redeemSuccess"), "success");
-      handleFetchCredits();
-      handleFetchSessionStats(selectedShopId);
+      // Credits list is refreshed inside redeem() action.
+      // Shop billing data auto-syncs via mutation response → Desktop proxy → SSE patch.
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {

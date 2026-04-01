@@ -302,7 +302,7 @@ export interface Mutation {
   /** Allocate a new seat to a gateway */
   allocateSeat: CsSeat;
   /** Handle TikTok OAuth callback (exchange code for tokens) */
-  completeTikTokOAuth: OAuthCallbackResponse;
+  completeTikTokOAuth: Shop;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a new shop connection */
@@ -540,11 +540,6 @@ export interface MutationUploadSessionStateBackupArgs {
 export interface MutationVerifyPairingCodeArgs {
   mobileDeviceId: Scalars['String']['input'];
   pairingCode: Scalars['String']['input'];
-}
-
-/** OAuth callback result */
-export interface OAuthCallbackResponse {
-  shopId: Scalars['String']['output'];
 }
 
 /** OAuth flow completed payload (e.g. TikTok shop authorization) */
