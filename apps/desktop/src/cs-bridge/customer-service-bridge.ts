@@ -61,6 +61,12 @@ export class CustomerServiceBridge {
   /** Set to true when the last WebSocket close was code 4003 (auth failure). */
   private lastCloseWasAuthFailure = false;
 
+  /** Ping/pong keepalive — detects silent connection death. */
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private awaitingPong = false;
+  private static readonly PING_INTERVAL_MS = 30_000;
+  private static readonly PONG_TIMEOUT_MS = 10_000;
+
   /** Shop context keyed by platformShopId (from webhook). */
   private shopContexts = new Map<string, CSShopContext>();
 
@@ -114,6 +120,7 @@ export class CustomerServiceBridge {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    this.stopPingInterval();
     this.reconnectAttempt = 0;
     this.lastCloseWasAuthFailure = false;
     if (this.ws) {
@@ -426,6 +433,7 @@ export class CustomerServiceBridge {
 
       ws.on("close", (code, reason) => {
         log.info(`CS relay WebSocket closed: ${code} ${reason.toString()}`);
+        this.stopPingInterval();
         this.ws = null;
         this.authenticated = false;
         this.lastCloseWasAuthFailure = code === 4003;
@@ -437,6 +445,10 @@ export class CustomerServiceBridge {
 
       ws.on("error", (err) => {
         log.warn(`CS relay WebSocket error: ${err.message}`);
+      });
+
+      ws.on("pong", () => {
+        this.awaitingPong = false;
       });
     });
   }
@@ -459,6 +471,35 @@ export class CustomerServiceBridge {
     }, delay);
   }
 
+  // -- Ping/pong keepalive ---------------------------------------------------
+
+  private startPingInterval(): void {
+    this.stopPingInterval();
+    this.awaitingPong = false;
+
+    this.pingInterval = setInterval(() => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+      if (this.awaitingPong) {
+        // Previous ping never got a pong — connection is dead
+        log.warn("CS relay pong timeout — terminating dead connection");
+        this.ws.terminate();
+        return;
+      }
+
+      this.awaitingPong = true;
+      this.ws.ping();
+    }, CustomerServiceBridge.PING_INTERVAL_MS);
+  }
+
+  private stopPingInterval(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    this.awaitingPong = false;
+  }
+
   // -- Frame dispatch --------------------------------------------------------
 
   private onFrame(frame: CSWSFrame): void {
@@ -479,6 +520,7 @@ export class CustomerServiceBridge {
         this.reconnectAttempt = 0;
         this.authenticated = true;
         log.info("CS relay connection confirmed (cs_ack)");
+        this.startPingInterval();
         // Bind all CS-enabled shops after relay confirms connection
         this.sendShopBindings();
         break;
