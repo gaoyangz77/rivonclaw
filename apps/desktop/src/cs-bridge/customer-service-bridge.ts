@@ -582,6 +582,8 @@ export class CustomerServiceBridge {
   // -- Inbound message handling -----------------------------------------------
 
   private async onNewMessage(frame: CSNewMessageFrame): Promise<void> {
+    log.info(`Incoming message: shop=${frame.shopId} conv=${frame.conversationId} msg=${frame.messageId} sender=${frame.senderRole}`);
+
     const shop = this.shopContexts.get(frame.shopId);
     if (!shop) {
       log.error(`No shop context for platform shopId ${frame.shopId}, dropping message`);
