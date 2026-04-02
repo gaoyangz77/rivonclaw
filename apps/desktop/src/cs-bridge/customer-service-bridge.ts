@@ -11,7 +11,8 @@ import {
   type CSWSFrame,
 } from "@rivonclaw/core";
 import { getAuthSession } from "../auth/auth-session-ref.js";
-import { CustomerServiceSession, type CSShopContext } from "./customer-service-session.js";
+import { getStorageRef } from "../storage-ref.js";
+import { CustomerServiceSession, type CSShopContext, type Escalation } from "./customer-service-session.js";
 import { reaction, toJS } from "mobx";
 
 // Re-export for consumers that imported CSShopContext from this file
@@ -617,6 +618,42 @@ export class CustomerServiceBridge {
       if (session.escalations.has(escalationId)) return session;
     }
     return undefined;
+  }
+
+  /**
+   * Find escalation data by ID, checking in-memory sessions first, then storage.
+   * Returns the escalation plus its conversation/shop/buyer context.
+   */
+  findEscalationById(escalationId: string): { escalation: Escalation; conversationId: string; shopId: string; buyerUserId: string } | undefined {
+    // Check in-memory sessions first (fast path)
+    for (const session of this.sessions.values()) {
+      const esc = session.escalations.get(escalationId);
+      if (esc) {
+        return {
+          escalation: esc,
+          conversationId: session.csContext.conversationId,
+          shopId: session.csContext.shopId,
+          buyerUserId: session.csContext.buyerUserId,
+        };
+      }
+    }
+    // Fall back to storage (survives restart)
+    const storage = getStorageRef();
+    if (!storage) return undefined;
+    const stored = storage.csEscalations.getById(escalationId);
+    if (!stored) return undefined;
+    return {
+      escalation: {
+        id: stored.id,
+        reason: stored.reason,
+        context: stored.context,
+        createdAt: stored.createdAt,
+        result: stored.result,
+      },
+      conversationId: stored.conversationId,
+      shopId: stored.shopId,
+      buyerUserId: stored.buyerUserId,
+    };
   }
 
   /** Get existing session or create a new one, by shopObjectId + conversation params. */

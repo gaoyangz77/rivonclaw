@@ -97,11 +97,20 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
 
     try {
       const escalationId = body.escalationId as string;
-      const session = bridge.findSessionByEscalationId(escalationId);
-      if (!session) {
+
+      // Look up escalation data (in-memory first, then storage fallback)
+      const found = bridge.findEscalationById(escalationId);
+      if (!found) {
         sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
         return true;
       }
+
+      // Get existing session or create one from stored context
+      const session = bridge.findSessionByEscalationId(escalationId)
+        ?? bridge.getOrCreateSession(found.shopId, {
+          conversationId: found.conversationId,
+          buyerUserId: found.buyerUserId,
+        });
 
       session.resolveEscalation(escalationId, {
         decision: body.decision as string,
@@ -128,13 +137,13 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
       return true;
     }
 
-    const session = bridge.findSessionByEscalationId(escalationId);
-    if (!session) {
+    const found = bridge.findEscalationById(escalationId);
+    if (!found) {
       sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
       return true;
     }
 
-    const escalation = session.escalations.get(escalationId)!;
+    const escalation = found.escalation;
     const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
     sendJson(res, 200, {
       id: escalation.id,

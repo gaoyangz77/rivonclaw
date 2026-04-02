@@ -67,6 +67,7 @@ import { createGatewayConfigHandlers } from "./gateway/gateway-config-handlers.j
 import { connectGateway, disconnectGateway, getCsBridge } from "./gateway/gateway-connection.js";
 import { getRpcClient } from "./gateway/rpc-client-ref.js";
 import { setAuthSession } from "./auth/auth-session-ref.js";
+import { setStorageRef } from "./storage-ref.js";
 import { setProviderKeysStore } from "./gateway/provider-keys-ref.js";
 import { setVendorDir } from "./gateway/vendor-dir-ref.js";
 
@@ -322,6 +323,7 @@ app.whenReady().then(async () => {
 
   // Initialize storage and secrets
   const storage = createStorage();
+  setStorageRef(storage);
   setProviderKeysStore(storage.providerKeys);
   const secretStore = createSecretStore();
 
