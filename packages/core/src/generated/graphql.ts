@@ -725,6 +725,8 @@ export interface Query {
   toolSpecs: Array<ToolSpec>;
   /** Batch-verify relay access tokens */
   verifyRelayTokens: Array<RelayTokenResult>;
+  /** Verify whether the authenticated user has access to the given shops */
+  verifyShopAccess: VerifyShopAccessResult;
   /** Long-poll for pairing completion (30s timeout) */
   waitForPairing: WaitPairingResult;
 }
@@ -934,6 +936,11 @@ export interface QuerySystemSurfacesArgs {
 
 export interface QueryVerifyRelayTokensArgs {
   tokens: Array<Scalars['String']['input']>;
+}
+
+
+export interface QueryVerifyShopAccessArgs {
+  shopIds: Array<Scalars['String']['input']>;
 }
 
 
@@ -1344,6 +1351,12 @@ export interface VerifyPairingResult {
   desktopDeviceId: Scalars['String']['output'];
   pairingId: Scalars['String']['output'];
   relayUrl: Scalars['String']['output'];
+}
+
+/** Result of shop access verification */
+export interface VerifyShopAccessResult {
+  authorized: Array<Scalars['String']['output']>;
+  unauthorized: Array<Scalars['String']['output']>;
 }
 
 export interface WaitPairingResult {
