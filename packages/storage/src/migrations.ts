@@ -316,4 +316,24 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN source TEXT NOT NULL DEFAULT 'local';
     `,
   },
+  {
+    id: 25,
+    name: "add_cs_escalations_table",
+    sql: `
+      CREATE TABLE IF NOT EXISTS cs_escalations (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        shop_id TEXT NOT NULL,
+        buyer_user_id TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        context TEXT,
+        created_at INTEGER NOT NULL,
+        decision TEXT,
+        instructions TEXT,
+        resolved INTEGER NOT NULL DEFAULT 0,
+        resolved_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_cs_escalations_conversation ON cs_escalations(conversation_id);
+    `,
+  },
 ];

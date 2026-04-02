@@ -22,6 +22,7 @@ import { ScopeType, type CSNewMessageFrame } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
+import { getStorageRef } from "../storage-ref.js";
 import { rootStore } from "../store/desktop-store.js";
 
 const log = createLogger("cs-session");
@@ -146,6 +147,7 @@ export class CustomerServiceSession {
     this.platform = shop.platform ?? "tiktok";
     this.scopeKey = `agent:main:cs:${this.platform}:${csContext.conversationId}`;
     this.dispatchKey = `cs:${this.platform}:${csContext.conversationId}`;
+    this.hydrateEscalations();
   }
 
   /** Assembled extraSystemPrompt for this session. */
@@ -325,6 +327,21 @@ export class CustomerServiceSession {
       createdAt: Date.now(),
     };
     this.escalations.set(id, escalation);
+
+    // Persist to storage
+    const storage = getStorageRef();
+    if (storage) {
+      storage.csEscalations.save({
+        id: escalation.id,
+        conversationId: this.csContext.conversationId,
+        shopId: this.csContext.shopId,
+        buyerUserId: this.csContext.buyerUserId,
+        reason: params.reason,
+        context: params.context,
+        createdAt: escalation.createdAt,
+      });
+    }
+
     log.info(`Escalation created: ${id} for conv=${this.csContext.conversationId}`);
     return escalation;
   }
@@ -343,8 +360,42 @@ export class CustomerServiceSession {
       resolved: params.resolved,
       resolvedAt: Date.now(),
     };
+
+    // Persist to storage
+    const storage = getStorageRef();
+    if (storage) {
+      storage.csEscalations.updateResult(escalationId, {
+        decision: params.decision,
+        instructions: params.instructions,
+        resolved: params.resolved,
+        resolvedAt: escalation.result.resolvedAt,
+      });
+    }
+
     log.info(`Escalation ${params.resolved ? "resolved" : "updated"}: ${escalationId} decision=${params.decision}`);
     return escalation;
+  }
+
+  /**
+   * Load escalations from storage into the in-memory Map.
+   * Called once from the constructor to restore state after app restart.
+   * Only adds records not already present in memory (memory is the fast path).
+   */
+  private hydrateEscalations(): void {
+    const storage = getStorageRef();
+    if (!storage) return;
+    const rows = storage.csEscalations.getByConversationId(this.csContext.conversationId);
+    for (const row of rows) {
+      if (!this.escalations.has(row.id)) {
+        this.escalations.set(row.id, {
+          id: row.id,
+          reason: row.reason,
+          context: row.context,
+          createdAt: row.createdAt,
+          result: row.result,
+        });
+      }
+    }
   }
 
   /**

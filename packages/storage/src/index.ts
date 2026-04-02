@@ -13,6 +13,7 @@ import { ChannelRecipientsRepository } from "./repo-channel-recipients.js";
 import { RepoMobilePairings } from "./repo-mobile-pairings.js";
 import { ToolSelectionsRepository } from "./repo-tool-selections.js";
 import { ChannelAccountsRepository } from "./repo-channel-accounts.js";
+import { CsEscalationsRepository } from "./repo-cs-escalations.js";
 export interface Storage {
   db: Database.Database;
   rules: RulesRepository;
@@ -28,6 +29,7 @@ export interface Storage {
   mobilePairings: RepoMobilePairings;
   toolSelections: ToolSelectionsRepository;
   channelAccounts: ChannelAccountsRepository;
+  csEscalations: CsEscalationsRepository;
   close(): void;
 }
 
@@ -49,6 +51,7 @@ export function createStorage(dbPath?: string): Storage {
     mobilePairings: new RepoMobilePairings(db),
     toolSelections: new ToolSelectionsRepository(db),
     channelAccounts: new ChannelAccountsRepository(db),
+    csEscalations: new CsEscalationsRepository(db),
     close() {
       closeDatabase(db);
     },
@@ -69,8 +72,10 @@ export { ChannelRecipientsRepository } from "./repo-channel-recipients.js";
 export { RepoMobilePairings } from "./repo-mobile-pairings.js";
 export { ToolSelectionsRepository } from "./repo-tool-selections.js";
 export { ChannelAccountsRepository } from "./repo-channel-accounts.js";
+export { CsEscalationsRepository } from "./repo-cs-escalations.js";
 export type { MobilePairing } from "./repo-mobile-pairings.js";
 export type { ChatSession } from "./repo-chat-sessions.js";
 export type { ChannelRecipient } from "./repo-channel-recipients.js";
 export type { ChannelAccount } from "./repo-channel-accounts.js";
+export type { CsEscalation } from "./repo-cs-escalations.js";
 export type { Migration } from "./migrations.js";
