@@ -526,11 +526,20 @@ export class CustomerServiceBridge {
         break;
       case "cs_bind_shops_result": {
         const result = frame as CSBindShopsResultFrame;
+        const boundSet = new Set(result.bound);
+        const conflictSet = new Set(result.conflicts.map(c => c.shopId));
+        const requested = [...this.shopContexts.keys()];
+        const rejected = requested.filter(id => !boundSet.has(id) && !conflictSet.has(id));
+
+        log.info(`Shop binding result: ${result.bound.length} bound, ${result.conflicts.length} conflicts, ${rejected.length} rejected`);
         if (result.bound.length > 0) {
-          log.info(`Shops bound: ${result.bound.join(", ")}`);
+          log.info(`  Bound: ${result.bound.join(", ")}`);
         }
         if (result.conflicts.length > 0) {
-          log.warn(`Shop binding conflicts: ${result.conflicts.map(c => c.shopId).join(", ")}`);
+          log.warn(`  Conflicts (bound to other device): ${result.conflicts.map(c => `${c.shopId} → ${c.gatewayId}`).join(", ")}`);
+        }
+        if (rejected.length > 0) {
+          log.error(`  Rejected (not bound, no conflict — check relay server auth): ${rejected.join(", ")}`);
         }
         this.bindingConflicts = result.conflicts;
         break;
