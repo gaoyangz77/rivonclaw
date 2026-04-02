@@ -389,7 +389,10 @@ export class CustomerServiceSession {
       throw new Error("Failed to create backend CS session (insufficient balance?)");
     }
     return this.dispatch({
-      message: "[Internal: System]\nA customer is waiting for a response in this conversation. Review the conversation history using your tools and respond to any unanswered messages.",
+      message: "[Internal: System]\nA customer may be waiting for a response in this conversation. " +
+        "WARNING: There may have been messages exchanged since your last interaction that you did not receive. " +
+        "You MUST call ecom_cs_get_conversation_messages to check the latest conversation state before responding. " +
+        "Do not rely on your existing context — verify what the buyer actually said most recently.",
       idempotencyKey: `cs-start:${this.csContext.conversationId}:${Date.now()}`,
     });
   }
