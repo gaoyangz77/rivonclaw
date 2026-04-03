@@ -5,7 +5,7 @@ import path from "node:path";
 test.describe("Telegram Pairing Flow", () => {
   test("add account, simulate pairing request, and approve", async ({ window, electronApp }) => {
     test.slow();
-    test.skip(!process.env.TELEGRAM_BOT_TOKEN, "TELEGRAM_BOT_TOKEN required");
+    test.skip(!process.env.E2E_TELEGRAM_BOT_TOKEN, "E2E_TELEGRAM_BOT_TOKEN required");
 
     // --- Step 1: Dismiss any blocking modals ---
     for (let i = 0; i < 3; i++) {
@@ -53,7 +53,7 @@ test.describe("Telegram Pairing Flow", () => {
 
     const botTokenInput = window.locator("input[name='botToken']");
     await expect(botTokenInput).toBeVisible();
-    await botTokenInput.fill(process.env.TELEGRAM_BOT_TOKEN!);
+    await botTokenInput.fill(process.env.E2E_TELEGRAM_BOT_TOKEN!);
 
     // --- Step 6: Click Save/Create ---
     const createBtn = window.locator(".modal-actions .btn.btn-primary");

@@ -19,7 +19,7 @@ export function resolveDbPath(
 export function resolveLogDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return join(resolveRivonClawHome(env), "logs");
+  return env.RIVONCLAW_LOG_DIR?.trim() || join(resolveRivonClawHome(env), "logs");
 }
 
 /** Resolve the secrets directory. */

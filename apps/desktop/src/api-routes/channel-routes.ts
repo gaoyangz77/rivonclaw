@@ -7,7 +7,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { sendChannelMessage } from "../channels/channel-senders.js";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
+import { getRpcClient, waitForGatewayReady } from "../gateway/rpc-client-ref.js";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody, proxiedFetch } from "./route-utils.js";
 
@@ -125,9 +125,10 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
   // GET /api/channels/status
   if (pathname === "/api/channels/status" && req.method === "GET") {
-    const rpcClient = getRpcClient();
-
-    if (!rpcClient || !rpcClient.isConnected()) {
+    let rpcClient: import("@rivonclaw/gateway").GatewayRpcClient;
+    try {
+      rpcClient = await waitForGatewayReady(15_000);
+    } catch {
       sendJson(res, 503, { error: "Gateway not connected", snapshot: null });
       return true;
     }
@@ -362,6 +363,11 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
           await fs.writeFile(indexPath, JSON.stringify(updated, null, 2), "utf-8");
         } catch { /* index file may not exist */ }
       }
+
+      // Remove account-scoped allowFrom file to prevent orphaned recipients
+      // when the account is re-created later.
+      const allowFromPath = resolveAllowFromPath(channelId, accountId);
+      await fs.rm(allowFromPath, { force: true });
 
       // Remove from SQLite
       storage.channelAccounts.delete(channelId, accountId);
@@ -615,8 +621,10 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
   // POST /api/channels/qr-login/start
   if (pathname === "/api/channels/qr-login/start" && req.method === "POST") {
-    const rpcClient = getRpcClient();
-    if (!rpcClient || !rpcClient.isConnected()) {
+    let rpcClient: import("@rivonclaw/gateway").GatewayRpcClient;
+    try {
+      rpcClient = await waitForGatewayReady(15_000);
+    } catch {
       sendJson(res, 503, { error: "Gateway not connected" });
       return true;
     }
@@ -638,8 +646,10 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
   // POST /api/channels/qr-login/wait
   if (pathname === "/api/channels/qr-login/wait" && req.method === "POST") {
-    const rpcClient = getRpcClient();
-    if (!rpcClient || !rpcClient.isConnected()) {
+    let rpcClient: import("@rivonclaw/gateway").GatewayRpcClient;
+    try {
+      rpcClient = await waitForGatewayReady(15_000);
+    } catch {
       sendJson(res, 503, { error: "Gateway not connected" });
       return true;
     }
