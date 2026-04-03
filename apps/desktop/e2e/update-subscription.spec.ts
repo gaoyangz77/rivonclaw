@@ -10,7 +10,7 @@
  * Requires staging credentials in e2e/.env:
  *   STAGING_TEST_USERNAME, STAGING_TEST_PASSWORD     — regular user
  *   STAGING_ADMIN_USERNAME, STAGING_ADMIN_PASSWORD    — admin user (for publishUpdate)
- *   STAGING_CAPTCHA_BYPASS_TOKEN, RIVONCLAW_API_BASE_URL
+ *   STAGING_CAPTCHA_BYPASS_TOKEN, RIVONCLAW_STAGING=1
  */
 import { test, expect } from "./electron-fixture.js";
 import { test as rawTest, expect as rawExpect } from "@playwright/test";

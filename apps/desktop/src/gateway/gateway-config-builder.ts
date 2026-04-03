@@ -8,6 +8,22 @@ import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { buildOwnerAllowFrom } from "../auth/owner-sync.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
+
+/**
+ * Build plugin entries for channels that have at least one account in SQLite.
+ * This makes SQLite the source of truth for which channel plugins should be
+ * enabled, instead of relying on config file state that can be overwritten.
+ */
+function buildChannelPluginEntries(storage: Storage): Record<string, { enabled: boolean }> {
+  const accounts = storage.channelAccounts.list();
+  const channelIds = new Set(accounts.map(a => a.channelId));
+  const entries: Record<string, { enabled: boolean }> = {};
+  for (const channelId of channelIds) {
+    entries[channelId] = { enabled: true };
+  }
+  return entries;
+}
+
 export interface GatewayConfigDeps {
   storage: Storage;
   secretStore: SecretStore;
@@ -163,7 +179,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         allow: [
           ...OUR_PLUGIN_IDS,
           // Vendor-bundled plugins that are not in extensions/ but need to be allowed
-          "google-gemini-cli-auth",
           "memory-core",
         ],
         entries: {
@@ -175,6 +190,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           "rivonclaw-policy": {
             config: buildPolicyPluginConfig(),
           },
+          // Derive channel plugin entries from SQLite — each channel with at
+          // least one account gets enabled so the vendor's two-phase plugin
+          // loader includes it. SQLite is the source of truth for channel setup.
+          ...buildChannelPluginEntries(storage),
         },
       },
       skipBootstrap: false,

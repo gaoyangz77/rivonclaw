@@ -2,6 +2,7 @@ import { ScopeType } from "@rivonclaw/core";
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { rootStore } from "../store/desktop-store.js";
+import { waitForGatewayReady } from "../gateway/rpc-client-ref.js";
 
 
 // ── Session key parsing ─────────────────────────────────────────────────────
@@ -38,8 +39,22 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
       return true;
     }
     if (!rootStore.toolCapability.initialized) {
-      sendJson(res, 200, { effectiveToolIds: [] });
-      return true;
+      // Wait for gateway RPC to connect and tool catalog to load.
+      // v2026.4.1 gateway startup is ~10s; without this wait the API
+      // returns [] before tools are available.
+      try {
+        await waitForGatewayReady(15_000);
+        // After gateway is ready, tool catalog init runs asynchronously.
+        // Poll briefly for it to complete.
+        const deadline = Date.now() + 5_000;
+        while (!rootStore.toolCapability.initialized && Date.now() < deadline) {
+          await new Promise(r => setTimeout(r, 200));
+        }
+      } catch { /* timeout — fall through to return [] */ }
+      if (!rootStore.toolCapability.initialized) {
+        sendJson(res, 200, { effectiveToolIds: [] });
+        return true;
+      }
     }
 
     const scopeType = parseScopeType(sessionKey);

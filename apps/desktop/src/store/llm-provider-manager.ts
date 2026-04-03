@@ -730,10 +730,14 @@ export const LLMProviderManagerModel = types
 
         // Full gateway restart — plugins (including cloud-tools) need to re-initialize
         // to discover the new provider and fetch dynamic tools from backend.
+        // Await the restart so callers (e.g. store-tokens) know the gateway is
+        // ready before responding to the client.
         const { restartGateway } = getEnvDeps();
-        restartGateway().catch((err: unknown) => {
+        try {
+          yield restartGateway();
+        } catch (err) {
           log.warn("Gateway restart after cloud key creation failed (best-effort):", err);
-        });
+        }
 
         log.info(`Created cloud provider key (activated: ${shouldActivate})`);
       }),

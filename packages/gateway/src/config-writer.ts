@@ -708,9 +708,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       };
     }
 
-    // Merge plugin entries
+    // Merge plugin entries — preserve entries added by channel setup
+    // (e.g. telegram: { enabled: true }) while overlaying our entries.
     if (options.plugins?.entries !== undefined) {
-      merged.entries = options.plugins.entries;
+      const existingEntries =
+        typeof merged.entries === "object" && merged.entries !== null
+          ? (merged.entries as Record<string, unknown>)
+          : {};
+      merged.entries = { ...existingEntries, ...options.plugins.entries };
     }
 
     // Merge plugin allowlist — keep entries added by the gateway doctor

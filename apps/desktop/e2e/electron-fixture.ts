@@ -1,8 +1,8 @@
-import { test as base, type ElectronApplication, type Page } from "@playwright/test";
+import { test as base, type ElectronApplication, type Page, type TestInfo } from "@playwright/test";
 import { _electron } from "playwright";
 import path from "node:path";
 import dotenv from "dotenv";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { execSync } from "node:child_process";
 import { createConnection } from "node:net";
@@ -121,6 +121,8 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   env.RIVONCLAW_DB_PATH = path.join(tempDir, "db.sqlite");
   env.RIVONCLAW_SECRETS_DIR = path.join(tempDir, "secrets");
   env.OPENCLAW_STATE_DIR = path.join(tempDir, "openclaw");
+  // Isolate logs per worker so parallel test failures can be diagnosed independently.
+  env.RIVONCLAW_LOG_DIR = path.join(tempDir, "logs");
 
   // Assign unique ports so parallel workers don't collide
   env.RIVONCLAW_GATEWAY_PORT = String(ports.gateway);
@@ -148,10 +150,63 @@ type ElectronFixtures = {
   window: Page;
 };
 
+/** Shared state for the current Electron instance. */
+let _currentTempDir: string | null = null;
+
+/** Get the temp dir of the current Electron instance (for log access). */
+export function getCurrentTempDir(): string | null {
+  return _currentTempDir;
+}
+
+/** Dump Desktop logs from the isolated per-test log directory. */
+/** Attach Desktop logs to the Playwright test report on failure. */
+async function attachDesktopLogs(
+  tempDir: string,
+  testInfo: TestInfo,
+): Promise<void> {
+  // Always attach logs — testInfo.status may not be set yet during fixture
+  // teardown. The HTML report will show them for all tests; the cost is minimal.
+
+  const logFile = path.join(tempDir, "logs", "rivonclaw.log");
+  if (!existsSync(logFile)) {
+    await testInfo.attach("desktop-log", {
+      body: `(no log file at ${logFile})`,
+      contentType: "text/plain",
+    });
+    return;
+  }
+
+  // Attach full log file — visible in Playwright HTML report's Attachments tab
+  await testInfo.attach("desktop-log-full", {
+    path: logFile,
+    contentType: "text/plain",
+  });
+
+  // Also attach a filtered summary for quick diagnosis
+  const log = readFileSync(logFile, "utf-8");
+  const lines = log.split("\n");
+  const keyLines = lines.filter((l: string) =>
+    /ERROR|WARN|Gateway ready|startup-timer.*READY|Gateway process/.test(l),
+  );
+  const summary = [
+    `=== Key log lines (${keyLines.length}) ===`,
+    ...keyLines.slice(-30),
+    "",
+    "=== Last 20 log lines ===",
+    ...lines.slice(-20),
+  ].join("\n");
+
+  await testInfo.attach("desktop-log-summary", {
+    body: summary,
+    contentType: "text/plain",
+  });
+}
+
 /** Shared logic to launch Electron with data + port isolation. */
 async function launchElectronApp(
   use: (app: ElectronApplication) => Promise<void>,
   ports: WorkerPorts,
+  testInfo: TestInfo,
 ) {
   // Kill any leftover gateway from a previous test or test-suite run
   // BEFORE launching Electron, so the new gateway never hits EADDRINUSE.
@@ -159,6 +214,7 @@ async function launchElectronApp(
   await ensurePortFree(ports.panel);
 
   const tempDir = createTempDir();
+  _currentTempDir = tempDir;
   const env = buildEnv(tempDir, ports);
   const execPath = process.env.E2E_EXECUTABLE_PATH;
   let app: ElectronApplication;
@@ -184,12 +240,8 @@ async function launchElectronApp(
     });
   }
 
-  let testFailed = false;
   try {
     await use(app);
-  } catch (err) {
-    testFailed = true;
-    throw err;
   } finally {
     await app.close();
     // The gateway runs detached and may outlive the Electron process.
@@ -197,13 +249,12 @@ async function launchElectronApp(
     // different ports).
     await ensurePortFree(ports.gateway);
 
-    // NOTE: Chrome cleanup removed — session-state-agent tests (the only
-    // tests that launched Chrome via ManagedBrowserService) have been deleted.
-    // If browser-profile tests return, track spawned PIDs in a file under
-    // tempDir instead of scanning all processes (pkill/pgrep -f takes 20-50s
-    // on macOS due to slow proc_info kernel calls).
-    if (testFailed) {
-      // Keep temp dir for debugging — print its path
+    // Attach Desktop logs to the Playwright report on failure (covers failures
+    // in ANY fixture, not just inside use(app)).
+    await attachDesktopLogs(tempDir, testInfo);
+
+    const failed = testInfo.status !== "passed";
+    if (failed) {
       console.log(`[e2e] Test FAILED — temp dir preserved: ${tempDir}`);
     } else {
       // Retry once: detached gateway processes may still hold file handles
@@ -215,6 +266,7 @@ async function launchElectronApp(
         rmSync(tempDir, { recursive: true, force: true });
       }
     }
+    _currentTempDir = null;
   }
 }
 
@@ -250,8 +302,8 @@ export const test = base.extend<ElectronFixtures>({
     await use(`http://127.0.0.1:${ports.panel}`);
   },
 
-  electronApp: async ({ ports }, use) => {
-    await launchElectronApp(use, ports);
+  electronApp: async ({ ports }, use, testInfo) => {
+    await launchElectronApp(use, ports, testInfo);
   },
 
   window: async ({ electronApp, apiBase, ports }, use) => {
@@ -303,8 +355,8 @@ export const freshTest = base.extend<ElectronFixtures>({
     await use(`http://127.0.0.1:${ports.panel}`);
   },
 
-  electronApp: async ({ ports }, use) => {
-    await launchElectronApp(use, ports);
+  electronApp: async ({ ports }, use, testInfo) => {
+    await launchElectronApp(use, ports, testInfo);
   },
 
   window: async ({ electronApp }, use) => {

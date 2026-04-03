@@ -273,7 +273,7 @@ test.describe("Crons Page", () => {
     await deleteJob(window, "E2E CRUD Job Edited");
 
     // Back to empty state
-    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
+    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
   });
 
   // ──────────────────────────────────────────────────────────
@@ -613,7 +613,7 @@ test.describe("Crons Page", () => {
     // Cleanup
     await deleteJob(window, "Alpha Job");
     await deleteJob(window, "Beta Job");
-    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
+    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
   });
 
   // ──────────────────────────────────────────────────────────
@@ -975,7 +975,7 @@ test.describe("Crons Page", () => {
     await expect(statusBar).toContainText("Connected");
 
     // Empty state since no jobs exist
-    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
+    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
 
     // Toolbar with search, filters, and Add Job button
     const toolbar = window.locator(".crons-toolbar");
@@ -995,7 +995,7 @@ test.describe("Crons Page", () => {
     await navigateToCrons(window);
 
     // Verify empty state
-    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 10_000 });
+    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
 
     // Open create form
     const modal = await openCreateForm(window);
@@ -1007,7 +1007,7 @@ test.describe("Crons Page", () => {
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
     // Still empty state
-    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 5_000 });
+    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────
@@ -1026,7 +1026,7 @@ test.describe("Crons Page", () => {
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
     // No job created
-    await expect(window.locator(".empty-cell")).toBeVisible({ timeout: 5_000 });
+    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────
