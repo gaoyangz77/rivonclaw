@@ -355,6 +355,9 @@ export interface WriteGatewayConfigOptions {
   };
   /** Array of extra skill directories for OpenClaw to load. */
   extraSkillDirs?: string[];
+  /** Channel accounts from SQLite — written back into config.channels so the
+   *  config file can be fully reconstructed from SQLite (source of truth). */
+  channelAccounts?: Array<{ channelId: string; accountId: string; config: Record<string, unknown> }>;
   /** Enable the OpenAI-compatible /v1/chat/completions endpoint (disabled by default in OpenClaw). */
   enableChatCompletions?: boolean;
   /** Enable commands.restart so SIGUSR1 graceful reload is authorized. */
@@ -1106,6 +1109,33 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       existingChannels[channelId] = { ...existing, managed: true };
     }
     config.channels = existingChannels;
+  }
+
+  // Write channel accounts from SQLite back into config.channels so the config
+  // file can be fully reconstructed from the database (SQLite = source of truth).
+  // This ensures that even if the config file is deleted or corrupted, all
+  // channel accounts are restored on the next startup.
+  if (options.channelAccounts && options.channelAccounts.length > 0) {
+    const channels =
+      typeof config.channels === "object" && config.channels !== null
+        ? (config.channels as Record<string, Record<string, unknown>>)
+        : {};
+    for (const acct of options.channelAccounts) {
+      if (!channels[acct.channelId] || typeof channels[acct.channelId] !== "object") {
+        channels[acct.channelId] = {};
+      }
+      const channel = channels[acct.channelId] as Record<string, unknown>;
+      if (!channel.accounts || typeof channel.accounts !== "object") {
+        channel.accounts = {};
+      }
+      const accounts = channel.accounts as Record<string, unknown>;
+      // Only write if missing — don't overwrite config that may have been
+      // updated by writeChannelAccount() more recently than the SQLite snapshot.
+      if (!accounts[acct.accountId]) {
+        accounts[acct.accountId] = acct.config;
+      }
+    }
+    config.channels = channels;
   }
 
   // Migrate old single-account channel configs (top-level botToken, etc.)

@@ -1,4 +1,4 @@
-From ec3a9365d1e6a91d4d79c0a3eafc7b8bf9c0ea0f Mon Sep 17 00:00:00 2001
+From ef9cf702d1a8c943d6e6d29055edd5e20c4ecba4 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 2 Apr 2026 01:13:06 -0700
 Subject: [PATCH 2/4] vendor(openclaw): add before_tool_resolve hook for

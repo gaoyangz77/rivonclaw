@@ -18,6 +18,11 @@ type PromptBuildEvent = {
   messages?: unknown[];
 };
 
+type PromptBuildContext = {
+  promptMode?: string;
+  [key: string]: unknown;
+};
+
 type PromptBuildResult = {
   prependSystemContext?: string;
 };
@@ -39,8 +44,13 @@ const RIVONCLAW_CONTEXT = [
   "--- End RivonClaw Runtime ---",
 ].join("\n");
 
-export function createRivonClawContext(): (event: PromptBuildEvent) => PromptBuildResult {
-  return function handlePromptBuild(_event: PromptBuildEvent): PromptBuildResult {
+export function createRivonClawContext(): (event: PromptBuildEvent, ctx?: PromptBuildContext) => PromptBuildResult {
+  return function handlePromptBuild(_event: PromptBuildEvent, ctx?: PromptBuildContext): PromptBuildResult {
+    // In "raw" promptMode the caller owns the entire system prompt (e.g.
+    // customer-service agents that must not reveal AI identity). The
+    // RivonClaw context only exists to override OpenClaw's CLI Quick
+    // Reference section — when that section is absent, skip injection.
+    if (ctx?.promptMode === "raw") return {};
     return { prependSystemContext: RIVONCLAW_CONTEXT };
   };
 }

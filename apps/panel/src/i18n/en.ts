@@ -416,6 +416,7 @@ export default {
     refreshing: "Refreshing...",
     loading: "Loading channels...",
     gatewayNotConnected: "Gateway not connected. Please ensure the gateway is running.",
+    connectingToGateway: "Connecting to gateway...",
     errorLoadingChannels: "Error loading channels:",
     retry: "Retry",
     lastUpdated: "Last updated:",

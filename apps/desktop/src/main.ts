@@ -508,15 +508,7 @@ app.whenReady().then(async () => {
   const { backfillOwnerMigration } = await import("./auth/owner-migration.js");
   await backfillOwnerMigration(storage, stateDir, configPath);
 
-  // Migration: import channel accounts from config into SQLite.
-  // Before this change, channel plugin entries lived only in openclaw.json and
-  // were lost whenever writeGatewayConfig regenerated the file.  Now SQLite is
-  // the source of truth.  On first run after upgrade, import any accounts that
-  // exist in the config but not yet in SQLite.
-  {
-    const { migrateChannelAccountsFromConfig } = await import("./migrations/migrate-channel-accounts.js");
-    migrateChannelAccountsFromConfig(storage, configPath);
-  }
+
 
   // Clean up any stale openclaw processes before starting.
   // With dynamic ports, orphaned processes won't block new instances,

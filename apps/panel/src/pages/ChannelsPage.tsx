@@ -181,6 +181,20 @@ export function ChannelsPage() {
   }
 
   if (error) {
+    // Gateway never connected yet — show a gentle "connecting" indicator
+    // instead of a red error banner. The hook retries every 2s automatically.
+    if (!snapshot) {
+      return (
+        <div>
+          <h1>{t("channels.title")}</h1>
+          <div className="centered-muted">
+            {t("channels.connectingToGateway")}
+          </div>
+        </div>
+      );
+    }
+
+    // Lost connection after being connected — show the real error
     return (
       <div>
         <h1>{t("channels.title")}</h1>

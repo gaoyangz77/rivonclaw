@@ -231,12 +231,12 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
         accountConfig.name = body.name;
       }
 
+      // Merge secrets into the account config — secrets are stored alongside
+      // other config in both SQLite and openclaw.json.  No keychain needed;
+      // the vendor gateway reads secrets from the config file directly.
       if (body.secrets && typeof body.secrets === "object") {
         for (const [secretKey, secretValue] of Object.entries(body.secrets)) {
           if (secretValue) {
-            const storeKey = `channel-${body.channelId}-${body.accountId}-${secretKey}`;
-            await secretStore.set(storeKey, secretValue);
-            log.info(`Stored secret for ${body.channelId}/${body.accountId}: ${secretKey}`);
             accountConfig[secretKey] = secretValue;
           }
         }
@@ -249,8 +249,10 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
         config: accountConfig,
       });
 
-      // Persist non-secret config to SQLite (source of truth for EasyClaw read-back)
-      storage.channelAccounts.upsert(body.channelId, body.accountId, body.name ?? null, body.config);
+      // Persist full config (including secrets) to SQLite — source of truth
+      // for EasyClaw.  On restart, writeGatewayConfig rebuilds openclaw.json
+      // from SQLite.
+      storage.channelAccounts.upsert(body.channelId, body.accountId, body.name ?? null, accountConfig);
 
       sendJson(res, 201, { ok: true, channelId: body.channelId, accountId: body.accountId });
       onProviderChange?.({ configOnly: true });
@@ -298,22 +300,18 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
       if (body.secrets && typeof body.secrets === "object") {
         for (const [secretKey, secretValue] of Object.entries(body.secrets)) {
-          const storeKey = `channel-${channelId}-${accountId}-${secretKey}`;
           if (secretValue) {
-            await secretStore.set(storeKey, secretValue);
-            log.info(`Updated secret for ${channelId}/${accountId}: ${secretKey}`);
             accountConfig[secretKey] = secretValue;
           } else {
-            await secretStore.delete(storeKey);
-            log.info(`Deleted secret for ${channelId}/${accountId}: ${secretKey}`);
+            delete accountConfig[secretKey];
           }
         }
       }
 
       writeChannelAccount({ configPath, channelId, accountId, config: accountConfig });
 
-      // Persist non-secret config to SQLite (source of truth for EasyClaw read-back)
-      storage.channelAccounts.upsert(channelId, accountId, body.name ?? null, body.config);
+      // Persist full config (including secrets) to SQLite — source of truth
+      storage.channelAccounts.upsert(channelId, accountId, body.name ?? null, accountConfig);
 
       sendJson(res, 200, { ok: true, channelId, accountId });
       onProviderChange?.({ configOnly: true });
@@ -337,14 +335,6 @@ export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname,
 
     try {
       const configPath = resolveOpenClawConfigPath();
-      const allSecretKeys = await secretStore.listKeys();
-      const accountSecretPrefix = `channel-${channelId}-${accountId}-`;
-      for (const key of allSecretKeys) {
-        if (key.startsWith(accountSecretPrefix)) {
-          await secretStore.delete(key);
-          log.info(`Deleted secret: ${key}`);
-        }
-      }
 
       removeChannelAccount({ configPath, channelId, accountId });
 

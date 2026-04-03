@@ -1,4 +1,4 @@
-From 3e20ec2ffd8ea60f515cea21387b1cc2508aafb8 Mon Sep 17 00:00:00 2001
+From 01b7675ac6a2ab8f29f22005f3dbea184b1ee854 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 2 Apr 2026 01:14:07 -0700
 Subject: [PATCH 3/4] vendor(openclaw): respect ask=off for

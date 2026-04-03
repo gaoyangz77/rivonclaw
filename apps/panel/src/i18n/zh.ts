@@ -414,6 +414,7 @@ export default {
     refreshing: "刷新中...",
     loading: "正在加载通道...",
     gatewayNotConnected: "网关未连接。请确保网关正在运行。",
+    connectingToGateway: "正在连接网关…",
     errorLoadingChannels: "加载通道时出错：",
     retry: "重试",
     lastUpdated: "最后更新：",

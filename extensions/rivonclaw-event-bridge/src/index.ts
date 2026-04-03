@@ -104,6 +104,18 @@ export default defineRivonClawPlugin({
     // sessionKey. We store the message in a per-channelId FIFO queue so the
     // subsequent `before_agent_start` hook (which has sessionKey) can consume
     // it and broadcast to the Chat Page.
+    //
+    // Skip list: channels whose messages are already broadcast to the Chat
+    // Page by the vendor's server-chat.ts (i.e. NOT suppressed by the
+    // `isControlUiVisible` gate). Broadcasting them again here would cause
+    // duplicates — the agent sees the same message twice and replies twice.
+    //   - "mobile"          — has a dedicated mobile.inbound pathway
+    //   - "webchat"         — browser-based chat, natively visible in the UI
+    //   - "openclaw-weixin" — vendor broadcasts natively (confirmed: messages
+    //                         still appear on Chat Page with this skip active)
+    // Channels like Telegram / Feishu are suppressed by the vendor, so the
+    // event bridge is their ONLY path to the Chat Page — they must NOT be
+    // in this list.
     api.on(
       "message_received",
       (
@@ -111,8 +123,7 @@ export default defineRivonClawPlugin({
         ctx: { channelId?: string; conversationId?: string },
       ) => {
         if (!gatewayBroadcast || !ctx?.channelId || !evt?.content) return;
-        // Skip channels that already show user messages natively.
-        if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
+        if (ctx.channelId === "mobile" || ctx.channelId === "webchat" || ctx.channelId === "openclaw-weixin") return;
 
         const queue = pendingInboundMessages.get(ctx.channelId) ?? [];
         queue.push({
@@ -138,8 +149,7 @@ export default defineRivonClawPlugin({
         ctx: { sessionKey?: string; channelId?: string; trigger?: string },
       ) => {
         if (!gatewayBroadcast || !ctx?.sessionKey || !ctx?.channelId) return;
-        // Skip channels that already show user messages natively.
-        if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
+        if (ctx.channelId === "mobile" || ctx.channelId === "webchat" || ctx.channelId === "openclaw-weixin") return;
 
         const queue = pendingInboundMessages.get(ctx.channelId);
         if (!queue || queue.length === 0) return;

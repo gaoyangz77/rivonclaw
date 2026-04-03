@@ -1,4 +1,4 @@
-From bb60f74f5e05426f0a024e7cd569caac609da287 Mon Sep 17 00:00:00 2001
+From d9ba88576df5ffc6170b406c44b35a314ec6c101 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 2 Apr 2026 01:21:53 -0700
 Subject: [PATCH 4/4] vendor(openclaw): add promptMode "raw" for custom persona
@@ -31,12 +31,12 @@ Tests:
  src/agents/command/types.ts                  |  2 ++
  src/agents/pi-embedded-runner/compact.ts     |  7 +++++--
  src/agents/pi-embedded-runner/run.ts         |  1 +
- src/agents/pi-embedded-runner/run/attempt.ts |  3 ++-
+ src/agents/pi-embedded-runner/run/attempt.ts |  4 +++-
  src/agents/pi-embedded-runner/run/params.ts  |  2 ++
  src/agents/system-prompt.ts                  | 10 +++++++++-
  src/gateway/protocol/schema/agent.ts         |  1 +
  src/gateway/server-methods/agent.ts          |  2 ++
- 10 files changed, 27 insertions(+), 4 deletions(-)
+ 10 files changed, 28 insertions(+), 4 deletions(-)
 
 diff --git a/src/agents/cli-runner/types.ts b/src/agents/cli-runner/types.ts
 index b138206c66..d2b89315e2 100644
@@ -122,7 +122,7 @@ index 1b9963fac2..a88ecfe91a 100644
              streamParams: params.streamParams,
              ownerNumbers: params.ownerNumbers,
 diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
-index e88b7430f2..5b2b2a5987 100644
+index e88b7430f2..1989220c3b 100644
 --- a/src/agents/pi-embedded-runner/run/attempt.ts
 +++ b/src/agents/pi-embedded-runner/run/attempt.ts
 @@ -636,7 +636,8 @@ export async function runEmbeddedAttempt(
@@ -135,6 +135,14 @@ index e88b7430f2..5b2b2a5987 100644
  
      // When toolsAllow is set, use minimal prompt and strip skills catalog
      const effectivePromptMode = params.toolsAllow?.length ? ("minimal" as const) : promptMode;
+@@ -1430,6 +1431,7 @@ export async function runEmbeddedAttempt(
+           messageProvider: params.messageProvider ?? undefined,
+           trigger: params.trigger,
+           channelId: params.messageChannel ?? params.messageProvider ?? undefined,
++          promptMode,
+         };
+         const hookResult = await resolvePromptBuildHookResult({
+           prompt: params.prompt,
 diff --git a/src/agents/pi-embedded-runner/run/params.ts b/src/agents/pi-embedded-runner/run/params.ts
 index d8e9d8bdfd..82492112a2 100644
 --- a/src/agents/pi-embedded-runner/run/params.ts
