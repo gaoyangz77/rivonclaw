@@ -139,7 +139,9 @@ identity line. `promptMode: "raw"` returns only the caller-supplied
 
 **Change:** Add `"raw"` to `PromptMode` union type and an early return in
 `buildAgentSystemPrompt()` that returns `extraSystemPrompt ?? ""` when
-`promptMode === "raw"`.
+`promptMode === "raw"`. Also passes `promptMode` into the `before_prompt_build`
+hook context so plugins (e.g. `rivonclaw-tools`) can skip their own system
+prompt injections in raw mode.
 
 **Removal:** Drop when upstream OpenClaw adds a native way to fully suppress
 all default system prompt sections.
