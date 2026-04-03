@@ -26,9 +26,37 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Clone OpenClaw vendor
+        shell: bash
+        run: |
+          HASH=$(tr -d '[:space:]' < .openclaw-version)
+          git clone https://github.com/openclaw/openclaw.git vendor/openclaw
+          cd vendor/openclaw
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache vendor node_modules
+        id: cache-vendor-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/node_modules
+          key: vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor/openclaw/pnpm-lock.yaml') }}
+          restore-keys: |
+            vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-
+
+      - name: Cache vendor dist
+        id: cache-vendor-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/dist
+          key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
+
       - name: Setup OpenClaw vendor
         shell: bash
-        run: ./scripts/setup-vendor.sh --prod
+        run: ./scripts/setup-vendor.sh --prod --skip-clone
+        env:
+          SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
+          SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -95,8 +123,35 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Clone OpenClaw vendor
+        run: |
+          HASH=$(tr -d '[:space:]' < .openclaw-version)
+          git clone https://github.com/openclaw/openclaw.git vendor/openclaw
+          cd vendor/openclaw
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache vendor node_modules
+        id: cache-vendor-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/node_modules
+          key: vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor/openclaw/pnpm-lock.yaml') }}
+          restore-keys: |
+            vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-
+
+      - name: Cache vendor dist
+        id: cache-vendor-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/dist
+          key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
+
       - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh --prod
+        run: ./scripts/setup-vendor.sh --prod --skip-clone
+        env:
+          SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
+          SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -162,8 +217,35 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Clone OpenClaw vendor
+        run: |
+          HASH=$(tr -d '[:space:]' < .openclaw-version)
+          git clone https://github.com/openclaw/openclaw.git vendor/openclaw
+          cd vendor/openclaw
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache vendor node_modules
+        id: cache-vendor-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/node_modules
+          key: vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor/openclaw/pnpm-lock.yaml') }}
+          restore-keys: |
+            vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-
+
+      - name: Cache vendor dist
+        id: cache-vendor-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/dist
+          key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
+
       - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh --prod
+        run: ./scripts/setup-vendor.sh --prod --skip-clone
+        env:
+          SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
+          SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

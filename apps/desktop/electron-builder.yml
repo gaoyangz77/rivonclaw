@@ -33,6 +33,11 @@ extraResources:
       - "!extensions/**/node_modules/**"
       - "packages/**"
       - "!packages/**/node_modules/**"
+      # Exclude CLAUDE.md symlinks (→ AGENTS.md) — dev-only Claude Code
+      # instructions that break Windows 7zip packaging (NTFS can't handle
+      # the symlinks created by git clone without elevated permissions).
+      - "!**/CLAUDE.md"
+      - "!**/AGENTS.md"
   # Pre-bundled vendor extensions (CJS format, tree-shaken by bundle-vendor-deps.cjs).
   # Written directly to .prebundled-extensions/ by Phase 0.5b — overlays vendor
   # extensions with bundled .js + updated package.json in release builds.

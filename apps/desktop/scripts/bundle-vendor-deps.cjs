@@ -605,7 +605,7 @@ function bundlePluginSdk() {
 // NOTE: Must run BEFORE Phase 0.5a because esbuild needs the original
 // plugin-sdk chunk files to follow imports and tree-shake effectively.
 
-function prebundleExtensions() {
+async function prebundleExtensions() {
   console.log("[bundle-vendor-deps] Phase 0.5b: Pre-bundling vendor extensions...");
 
   if (!fs.existsSync(extensionsDir)) {
@@ -656,21 +656,15 @@ function prebundleExtensions() {
     }
   }
 
-  let bundled = 0;
-  let inlinedCount = 0;
-  let skipped = 0;
-  const errors = [];
-  const allExtPkgs = new Set();
-
   /**
-   * Build a single extension with esbuild.
+   * Build a single extension with esbuild (async).
    * @param {string} entryPoint
    * @param {string} outfile
    * @param {{inline: boolean}} opts
-   * @returns {import("esbuild").BuildResult}
+   * @returns {Promise<import("esbuild").BuildResult>}
    */
-  function buildExtension(entryPoint, outfile, opts) {
-    return esbuild.buildSync({
+  function buildExtensionAsync(entryPoint, outfile, opts) {
+    return esbuild.build({
       entryPoints: [entryPoint],
       outfile,
       bundle: true,
@@ -694,6 +688,38 @@ function prebundleExtensions() {
     });
   }
 
+  /**
+   * Collect external package names from an esbuild metafile result.
+   * @param {import("esbuild").BuildResult} result
+   * @returns {string[]}
+   */
+  function collectExternals(result) {
+    const pkgs = [];
+    if (result.metafile) {
+      for (const output of Object.values(result.metafile.outputs)) {
+        for (const imp of output.imports || []) {
+          if (imp.external) {
+            const parts = imp.path.split("/");
+            const pkgName = imp.path.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+            pkgs.push(pkgName);
+          }
+        }
+      }
+    }
+    return pkgs;
+  }
+
+  // ── Parallel extension index.ts builds ──
+  // Each extension is independent (writes to its own staging dir), so we
+  // run all builds concurrently.  The two-step inline→external fallback
+  // remains sequential per-extension.
+
+  // Pre-create staging dirs and filter extensions synchronously (cheap I/O)
+  // before launching parallel async builds.
+  /** @type {Array<{ext: {name: string, dir: string}, indexTs: string, stagingExtDir: string, indexJs: string}>} */
+  const extBuildInputs = [];
+  let skipped = 0;
+
   for (const ext of extDirs) {
     const indexTs = path.join(ext.dir, "index.ts");
     if (!fs.existsSync(indexTs)) {
@@ -701,64 +727,89 @@ function prebundleExtensions() {
       continue;
     }
 
-    // Write bundled output to staging dir, not vendor.
     const stagingExtDir = path.join(extStagingDir, ext.name);
     fs.mkdirSync(stagingExtDir, { recursive: true });
     const indexJs = path.join(stagingExtDir, "index.js");
+    extBuildInputs.push({ ext, indexTs, stagingExtDir, indexJs });
+  }
 
-    try {
-      // First attempt: inline plugin-sdk (tree-shaken).
-      let result = buildExtension(indexTs, indexJs, { inline: true });
+  /**
+   * @typedef {{
+   *   status: "ok",
+   *   inlined: boolean,
+   *   externals: string[],
+   * } | {
+   *   status: "error",
+   *   name: string,
+   *   error: string,
+   * }} ExtBuildResult
+   */
 
-      // If the output exceeds the threshold, the extension uses too many
-      // plugin-sdk internals — rebuild with plugin-sdk as external to
-      // avoid inflating the installer.
-      const outSize = fs.statSync(indexJs).size;
-      if (outSize > INLINE_SIZE_LIMIT) {
-        result = buildExtension(indexTs, indexJs, { inline: false });
-      } else {
-        inlinedCount++;
-      }
+  const extBuildResults = await Promise.all(
+    extBuildInputs.map(async ({ ext, indexTs, stagingExtDir, indexJs }) => {
+      try {
+        // First attempt: inline plugin-sdk (tree-shaken).
+        let result = await buildExtensionAsync(indexTs, indexJs, { inline: true });
 
-      // Collect external packages from metafile
-      if (result.metafile) {
-        for (const output of Object.values(result.metafile.outputs)) {
-          for (const imp of output.imports || []) {
-            if (imp.external) {
-              const parts = imp.path.split("/");
-              const pkgName = imp.path.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
-              allExtPkgs.add(pkgName);
-            }
+        // If the output exceeds the threshold, the extension uses too many
+        // plugin-sdk internals — rebuild with plugin-sdk as external to
+        // avoid inflating the installer.
+        let inlined = true;
+        const outSize = fs.statSync(indexJs).size;
+        if (outSize > INLINE_SIZE_LIMIT) {
+          result = await buildExtensionAsync(indexTs, indexJs, { inline: false });
+          inlined = false;
+        }
+
+        const externals = collectExternals(result);
+
+        // Copy manifest to staging dir so the gateway can discover the extension.
+        const manifestSrc = path.join(ext.dir, "openclaw.plugin.json");
+        fs.copyFileSync(manifestSrc, path.join(stagingExtDir, "openclaw.plugin.json"));
+
+        // Write package.json to staging dir (read from source, fix entry refs,
+        // remove "type": "module" so jiti/Node.js treat the CJS .js as CJS).
+        const srcPkgPath = path.join(ext.dir, "package.json");
+        if (fs.existsSync(srcPkgPath)) {
+          const pkgJson = JSON.parse(fs.readFileSync(srcPkgPath, "utf-8"));
+          const raw = JSON.stringify(pkgJson);
+          if (raw.includes("./index.ts")) {
+            Object.assign(pkgJson, JSON.parse(raw.replace(/\.\/index\.ts/g, "./index.js")));
           }
+          if (pkgJson.type === "module") {
+            delete pkgJson.type;
+          }
+          fs.writeFileSync(path.join(stagingExtDir, "package.json"), JSON.stringify(pkgJson, null, 2) + "\n", "utf-8");
         }
+
+        return /** @type {ExtBuildResult} */ ({ status: "ok", inlined, externals });
+      } catch (err) {
+        return /** @type {ExtBuildResult} */ ({
+          status: "error",
+          name: ext.name,
+          error: /** @type {Error} */ (err).message,
+        });
       }
+    }),
+  );
 
-      // Copy manifest to staging dir so the gateway can discover the extension.
-      const manifestSrc = path.join(ext.dir, "openclaw.plugin.json");
-      fs.copyFileSync(manifestSrc, path.join(stagingExtDir, "openclaw.plugin.json"));
+  // Aggregate extension build results
+  let bundled = 0;
+  let inlinedCount = 0;
+  const errors = [];
+  const allExtPkgs = new Set();
 
-      // Write package.json to staging dir (read from source, fix entry refs,
-      // remove "type": "module" so jiti/Node.js treat the CJS .js as CJS).
-      const srcPkgPath = path.join(ext.dir, "package.json");
-      if (fs.existsSync(srcPkgPath)) {
-        const pkgJson = JSON.parse(fs.readFileSync(srcPkgPath, "utf-8"));
-        const raw = JSON.stringify(pkgJson);
-        if (raw.includes("./index.ts")) {
-          Object.assign(pkgJson, JSON.parse(raw.replace(/\.\/index\.ts/g, "./index.js")));
-        }
-        if (pkgJson.type === "module") {
-          delete pkgJson.type;
-        }
-        fs.writeFileSync(path.join(stagingExtDir, "package.json"), JSON.stringify(pkgJson, null, 2) + "\n", "utf-8");
-      }
-
+  for (const result of extBuildResults) {
+    if (result.status === "ok") {
       bundled++;
-    } catch (err) {
-      errors.push({ name: ext.name, error: /** @type {Error} */ (err).message });
+      if (result.inlined) inlinedCount++;
+      for (const pkg of result.externals) allExtPkgs.add(pkg);
+    } else {
+      errors.push({ name: result.name, error: result.error });
     }
   }
 
-  // ── Pre-bundle public surface artifacts ──
+  // ── Pre-bundle public surface artifacts (parallel) ──
   // plugin-sdk facades load surface artifacts at runtime via
   // loadBundledPluginPublicSurfaceModuleSync().  Bundle each known
   // surface file into the staging dir so dist/extensions/<ext>/api.js
@@ -767,8 +818,10 @@ function prebundleExtensions() {
     "api", "runtime-api", "helper-api", "light-runtime-api",
     "session-key-api", "timeouts", "constants", "thread-bindings-runtime",
   ];
-  let surfaceBundled = 0;
-  let surfaceWarnings = 0;
+
+  // Collect all surface build tasks synchronously, then run in parallel.
+  /** @type {Array<{ext: {name: string, dir: string}, baseName: string, surfaceTs: string, surfaceJs: string}>} */
+  const surfaceBuildInputs = [];
 
   for (const ext of extDirs) {
     for (const baseName of SURFACE_BASENAMES) {
@@ -778,39 +831,61 @@ function prebundleExtensions() {
       const stagingExtDir = path.join(extStagingDir, ext.name);
       fs.mkdirSync(stagingExtDir, { recursive: true });
       const surfaceJs = path.join(stagingExtDir, `${baseName}.js`);
+      surfaceBuildInputs.push({ ext, baseName, surfaceTs, surfaceJs });
+    }
+  }
 
+  /**
+   * @typedef {{
+   *   status: "ok",
+   *   externals: string[],
+   * } | {
+   *   status: "warning",
+   *   name: string,
+   *   baseName: string,
+   *   error: string,
+   * }} SurfaceBuildResult
+   */
+
+  const surfaceBuildResults = await Promise.all(
+    surfaceBuildInputs.map(async ({ ext, baseName, surfaceTs, surfaceJs }) => {
       try {
         // First attempt: inline plugin-sdk (tree-shaken).
-        let result = buildExtension(surfaceTs, surfaceJs, { inline: true });
+        let result = await buildExtensionAsync(surfaceTs, surfaceJs, { inline: true });
 
         // If too large, rebuild with plugin-sdk external.
         const outSize = fs.statSync(surfaceJs).size;
         if (outSize > INLINE_SIZE_LIMIT) {
-          result = buildExtension(surfaceTs, surfaceJs, { inline: false });
+          result = await buildExtensionAsync(surfaceTs, surfaceJs, { inline: false });
         }
 
-        // Collect externals from metafile
-        if (result.metafile) {
-          for (const output of Object.values(result.metafile.outputs)) {
-            for (const imp of output.imports || []) {
-              if (imp.external) {
-                const parts = imp.path.split("/");
-                const pkgName = imp.path.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
-                allExtPkgs.add(pkgName);
-              }
-            }
-          }
-        }
-
-        surfaceBundled++;
+        return /** @type {SurfaceBuildResult} */ ({ status: "ok", externals: collectExternals(result) });
       } catch (err) {
         // Non-fatal: warn but do not fail the build
         console.warn(
           `[bundle-vendor-deps] WARN: Failed to bundle surface artifact ${ext.name}/${baseName}.ts: ` +
             /** @type {Error} */ (err).message.substring(0, 200),
         );
-        surfaceWarnings++;
+        return /** @type {SurfaceBuildResult} */ ({
+          status: "warning",
+          name: ext.name,
+          baseName,
+          error: /** @type {Error} */ (err).message,
+        });
       }
+    }),
+  );
+
+  // Aggregate surface build results
+  let surfaceBundled = 0;
+  let surfaceWarnings = 0;
+
+  for (const result of surfaceBuildResults) {
+    if (result.status === "ok") {
+      surfaceBundled++;
+      for (const pkg of result.externals) allExtPkgs.add(pkg);
+    } else {
+      surfaceWarnings++;
     }
   }
 
@@ -1885,7 +1960,7 @@ if (!fs.existsSync(nmDir)) {
   const t0 = Date.now();
   await extractVendorModelCatalog();
   extractVendorCodexOAuthHelper();
-  const { externals: extExternals, inlinedCount } = prebundleExtensions();
+  const { externals: extExternals, inlinedCount } = await prebundleExtensions();
   bundlePluginSdk();
   prebundleDistBundledHandlers();
   patchVendorConstants();
