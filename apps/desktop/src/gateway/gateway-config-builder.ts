@@ -52,8 +52,13 @@ function syncChannelAccounts(
   const sqliteAccounts = storage.channelAccounts.list();
   const sqliteMap = new Map(sqliteAccounts.map(a => [`${a.channelId}:${a.accountId}`, a]));
 
+  // Channels managed outside of channel_accounts (e.g. mobile uses mobile_pairings).
+  // These should not be synced to/from SQLite channel_accounts.
+  const EXCLUDED_CHANNELS = new Set(["mobile"]);
+
   if (channels && typeof channels === "object") {
     for (const [channelId, channelData] of Object.entries(channels as Record<string, unknown>)) {
+      if (EXCLUDED_CHANNELS.has(channelId)) continue;
       if (!channelData || typeof channelData !== "object") continue;
       const accounts = (channelData as Record<string, unknown>).accounts;
       if (!accounts || typeof accounts !== "object") continue;
