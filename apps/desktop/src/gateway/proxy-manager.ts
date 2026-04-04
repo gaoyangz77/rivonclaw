@@ -219,17 +219,15 @@ try {
     }));
   }
 
-  // Delete ALL proxy env vars so vendor code (hasProxyEnvConfigured,
-  // resolveProxyFetchFromEnv, telegram/fetch.ts) never sees them and
-  // never replaces our global dispatcher.
-  delete process.env.HTTP_PROXY;
-  delete process.env.HTTPS_PROXY;
-  delete process.env.http_proxy;
-  delete process.env.https_proxy;
+  // Delete only ALL_PROXY (prevents vendor from using it as a catch-all
+  // that bypasses our EnvHttpProxyAgent config).
+  // KEEP HTTP_PROXY, HTTPS_PROXY, NO_PROXY — the vendor's
+  // ensureGlobalUndiciStreamTimeouts() re-creates EnvHttpProxyAgent to set
+  // bodyTimeout/headersTimeout, and it reads proxy URLs from env vars.
+  // Without them, the new dispatcher has no proxy config and fetch goes
+  // direct, causing model-pricing and other outbound HTTPS to time out.
   delete process.env.ALL_PROXY;
   delete process.env.all_proxy;
-  delete process.env.NO_PROXY;
-  delete process.env.no_proxy;
 } catch (_) {}
 `;
   writeFileSync(setupPath, code, "utf-8");
