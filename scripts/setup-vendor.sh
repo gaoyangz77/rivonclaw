@@ -49,6 +49,11 @@ fi
 # to source so git state matches the built artifacts.
 if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
   echo "Skipping pnpm run build (cache hit)"
+  # Remove the .bundled marker so bundle-vendor-deps.cjs runs its full
+  # pipeline (Phase 0.5b pre-bundling, Phase 4 node_modules pruning, etc.).
+  # The cached dist/ is the raw build output — the bundle pipeline must
+  # still process it during electron-builder packaging.
+  rm -f "$REPO_ROOT/vendor/openclaw/dist/.bundled"
   if [ "$HAS_PATCHES" = true ]; then
     echo "Applying patches to source (dist already cached with patches)..."
     git config user.email "ci@rivonclaw.com"
