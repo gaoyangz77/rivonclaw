@@ -132,6 +132,10 @@ const REMOVED_PLUGIN_IDS = new Set([
   // v2026.4.1: google-gemini-cli-auth merged into the google extension plugin;
   // qwen-portal-auth removed (Qwen provider restructured).
   "google-gemini-cli-auth", "qwen-portal-auth",
+  // v2026.4.3: channel-manager previously wrote the bare channel ID "mobile"
+  // into plugins.entries instead of the full plugin ID "rivonclaw-mobile-chat-channel".
+  // Clean up the stale entry so the gateway stops warning about it.
+  "mobile",
 ]);
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.

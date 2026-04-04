@@ -166,7 +166,7 @@ export const ChannelManagerModel = types
       // Mobile channel uses a separate pairing system (mobile_pairings table)
       const pairings = env.storage.mobilePairings.getAllPairings();
       if (pairings.length > 0) {
-        entries.mobile = { enabled: true };
+        entries["rivonclaw-mobile-chat-channel"] = { enabled: true };
       }
 
       return entries;

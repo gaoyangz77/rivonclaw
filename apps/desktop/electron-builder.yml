@@ -38,6 +38,11 @@ extraResources:
       # the symlinks created by git clone without elevated permissions).
       - "!**/CLAUDE.md"
       - "!**/AGENTS.md"
+      # Re-include workspace templates that the runtime reads at dispatch
+      # time (e.g. AGENTS.md, CLAUDE.md used as template content, not
+      # symlinks).  These are real files, not symlinks.
+      - "docs/reference/templates/**"
+      - "docs/zh-CN/reference/templates/**"
   # Pre-bundled vendor extensions (CJS format, tree-shaken by bundle-vendor-deps.cjs).
   # Written directly to .prebundled-extensions/ by Phase 0.5b — overlays vendor
   # extensions with bundled .js + updated package.json in release builds.

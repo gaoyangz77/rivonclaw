@@ -6,6 +6,55 @@ import type { ProxyRouterConfig, ProxyRouterOptions } from "./types.js";
 
 const log = createLogger("proxy-router");
 
+/** Timeout for establishing a TCP connection (ms). */
+const CONNECT_TIMEOUT_MS = 10_000;
+
+/** Timeout for completing a proxy handshake after TCP connect (ms). */
+const HANDSHAKE_TIMEOUT_MS = 10_000;
+
+/**
+ * Connect a socket with a timeout. Rejects if the connection is not
+ * established within `timeoutMs`. On timeout, the socket is destroyed
+ * and an ETIMEDOUT-style error is thrown.
+ */
+function connectWithTimeout(
+  socket: Socket,
+  port: number,
+  host: string,
+  timeoutMs: number,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const onConnect = () => {
+      if (settled) return;
+      settled = true;
+      socket.removeListener("error", onError);
+      socket.removeListener("timeout", onTimeout);
+      socket.setTimeout(0); // clear connect-phase timeout
+      resolve();
+    };
+    const onError = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      socket.removeListener("timeout", onTimeout);
+      reject(err);
+    };
+    const onTimeout = () => {
+      if (settled) return;
+      settled = true;
+      socket.removeListener("error", onError);
+      socket.destroy();
+      const err = new Error(`Connect to ${host}:${port} timed out after ${timeoutMs}ms`);
+      (err as NodeJS.ErrnoException).code = "ETIMEDOUT";
+      reject(err);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once("timeout", onTimeout);
+    socket.connect(port, host, onConnect);
+    socket.on("error", onError);
+  });
+}
+
 /**
  * Local proxy router that routes requests to different upstream proxies
  * based on domain name and current provider key configuration.
@@ -157,7 +206,8 @@ export class ProxyRouter {
       const targetPort = parseInt(targetPortStr ?? "443", 10);
 
       clientSocket.off("data", onData);
-      this.handleConnect(clientSocket, targetHost ?? "", targetPort);
+      this.handleConnect(clientSocket, targetHost ?? "", targetPort)
+        .catch((err) => { log.error("CONNECT handler failed", err); });
     };
 
     clientSocket.on("data", onData);
@@ -237,10 +287,7 @@ export class ProxyRouter {
     if (!systemProxy) {
       // Direct TCP connection
       const socket = new Socket();
-      await new Promise<void>((resolve, reject) => {
-        socket.connect(port, host, () => resolve());
-        socket.on("error", reject);
-      });
+      await connectWithTimeout(socket, port, host, CONNECT_TIMEOUT_MS);
       return socket;
     }
 
@@ -267,10 +314,7 @@ export class ProxyRouter {
     proxyPort: number,
   ): Promise<Socket> {
     const socket = new Socket();
-    await new Promise<void>((resolve, reject) => {
-      socket.connect(proxyPort, proxyHost, () => resolve());
-      socket.on("error", reject);
-    });
+    await connectWithTimeout(socket, proxyPort, proxyHost, CONNECT_TIMEOUT_MS);
 
     socket.write(
       `CONNECT ${targetHost}:${targetPort} HTTP/1.1\r\n` +
@@ -278,12 +322,29 @@ export class ProxyRouter {
     );
 
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
       let buf = Buffer.alloc(0);
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        socket.off("data", onData);
+        socket.off("error", onError);
+        socket.destroy();
+        reject(new Error(
+          `HTTP CONNECT handshake to ${proxyHost}:${proxyPort} for ${targetHost}:${targetPort} timed out after ${HANDSHAKE_TIMEOUT_MS}ms`,
+        ));
+      }, HANDSHAKE_TIMEOUT_MS);
+
       const onData = (chunk: Buffer) => {
         buf = Buffer.concat([buf, chunk]);
         const end = buf.indexOf("\r\n\r\n");
         if (end !== -1) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
           socket.off("data", onData);
+          socket.off("error", onError);
           const resp = buf.subarray(0, end).toString("utf-8");
           if (resp.includes("200")) {
             resolve();
@@ -292,8 +353,17 @@ export class ProxyRouter {
           }
         }
       };
+
+      const onError = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        socket.off("data", onData);
+        reject(err);
+      };
+
       socket.on("data", onData);
-      socket.on("error", reject);
+      socket.on("error", onError);
     });
 
     return socket;
@@ -309,10 +379,7 @@ export class ProxyRouter {
     proxyPort: number,
   ): Promise<Socket> {
     const socket = new Socket();
-    await new Promise<void>((resolve, reject) => {
-      socket.connect(proxyPort, proxyHost, () => resolve());
-      socket.on("error", reject);
-    });
+    await connectWithTimeout(socket, proxyPort, proxyHost, CONNECT_TIMEOUT_MS);
 
     // Greeting: SOCKS5, 1 auth method, no-auth
     socket.write(Buffer.from([0x05, 0x01, 0x00]));
@@ -389,12 +456,29 @@ export class ProxyRouter {
 
     // Wait for proxy response
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
       let responseBuffer = Buffer.alloc(0);
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        proxySocket.off("data", onData);
+        proxySocket.off("error", onError);
+        proxySocket.destroy();
+        reject(new Error(
+          `Upstream proxy ${proxyHost}:${proxyPort} CONNECT handshake for ${targetHost}:${targetPort} timed out after ${HANDSHAKE_TIMEOUT_MS}ms`,
+        ));
+      }, HANDSHAKE_TIMEOUT_MS);
+
       const onData = (chunk: Buffer) => {
         responseBuffer = Buffer.concat([responseBuffer, chunk]);
         const headerEnd = responseBuffer.indexOf("\r\n\r\n");
         if (headerEnd !== -1) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
           proxySocket.off("data", onData);
+          proxySocket.off("error", onError);
           const response = responseBuffer.subarray(0, headerEnd).toString("utf-8");
           if (response.includes("200")) {
             resolve();
@@ -403,8 +487,17 @@ export class ProxyRouter {
           }
         }
       };
+
+      const onError = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        proxySocket.off("data", onData);
+        reject(err);
+      };
+
       proxySocket.on("data", onData);
-      proxySocket.on("error", reject);
+      proxySocket.on("error", onError);
     });
 
     // Tunnel established, send success to client

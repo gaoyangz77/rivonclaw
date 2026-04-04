@@ -48,6 +48,6 @@ export default defineRivonClawPlugin({
     // This plugin uses the registerHook API pattern (OpenClawPluginAPI)
     // rather than the standard api.on pattern.
     const hookApi = api as unknown as OpenClawPluginAPI;
-    hookApi.registerHook("before_agent_start", policyHandler);
+    hookApi.registerHook("before_agent_start", policyHandler, { name: "rivonclaw-policy-guard" });
   },
 });

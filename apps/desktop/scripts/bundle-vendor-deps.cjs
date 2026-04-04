@@ -59,6 +59,7 @@ const EXTERNAL_PACKAGES = [
   "playwright",
   "chromium-bidi",
   "chromium-bidi/*",
+  "@homebridge/ciao", // mDNS/bonjour — dynamically imported by gateway at runtime
 
   // Optional/missing (may not be installed, referenced in try/catch)
   "ffmpeg-static",
@@ -105,6 +106,9 @@ const KEEP_DIST_FILES = new Set([
 // Subdirectories of dist/ to preserve.  plugin-sdk/ is kept because its
 // index.js is bundled into a single file (Phase 0.5a) that third-party
 // plugins import at runtime via jiti's alias.
+// plugins/ is kept because the plugin loader resolves plugins/runtime/index.js
+// at runtime via jiti — if it's missing, plugins like rivonclaw-event-bridge
+// fail with "Unable to resolve plugin runtime module".
 const KEEP_DIST_DIRS = new Set([
   "bundled",
   "canvas-host",
@@ -112,6 +116,7 @@ const KEEP_DIST_DIRS = new Set([
   "control-ui",
   "export-html",
   "plugin-sdk",
+  "plugins",
 ]);
 
 // ─── Helpers ───
@@ -991,12 +996,16 @@ function prebundleDistBundledHandlers() {
         banner: {
           js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;',
         },
+        footer: {
+          js: 'if(module.exports&&module.exports.__esModule&&module.exports.default)module.exports=module.exports.default;',
+        },
         external: EXTERNAL_PACKAGES,
         minify: true,
         logLevel: "warning",
       });
       fs.unlinkSync(handlerPath);
       fs.renameSync(tmpOut, handlerPath);
+      fs.writeFileSync(path.join(bundledDir, entry.name, "package.json"), '{"type":"commonjs"}\n', "utf-8");
       count++;
     } catch (err) {
       // Clean up temp file on failure
@@ -1011,6 +1020,77 @@ function prebundleDistBundledHandlers() {
   if (count > 0) {
     console.log(`[bundle-vendor-deps] Pre-bundled ${count} dist/bundled/ hook handler(s)`);
   }
+}
+
+// ─── Phase 0.5d: Pre-bundle dist/plugins/runtime/index.js ───
+// v2026.4.1 introduced dist/plugins/runtime/index.js as a secondary entry
+// point loaded by the plugin loader via jiti at runtime.  Like plugin-sdk,
+// it imports from sibling chunk files (e.g. runtime-BrN1b16b.js) that
+// Phase 2 deletes when it replaces dist/ with code-split output.
+// Pre-bundle it into a self-contained CJS file so it survives Phase 2.
+
+function prebundlePluginsRuntime() {
+  const pluginsRuntimeDir = path.join(distDir, "plugins", "runtime");
+  const pluginsRuntimeIndex = path.join(pluginsRuntimeDir, "index.js");
+
+  if (!fs.existsSync(pluginsRuntimeIndex)) {
+    console.log("[bundle-vendor-deps] dist/plugins/runtime/index.js not found, skipping.");
+    return;
+  }
+
+  console.log("[bundle-vendor-deps] Phase 0.5d: Bundling plugins/runtime...");
+
+  const esbuild = loadEsbuild();
+
+  const tmpOut = path.join(pluginsRuntimeDir, "index.bundled.cjs");
+  esbuild.buildSync({
+    entryPoints: [pluginsRuntimeIndex],
+    outfile: tmpOut,
+    bundle: true,
+    format: "cjs",
+    platform: "node",
+    target: "node22",
+    define: { "import.meta.url": "__import_meta_url" },
+    banner: {
+      js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;',
+    },
+    external: EXTERNAL_PACKAGES,
+    minify: true,
+    logLevel: "warning",
+  });
+
+  const bundleSize = fs.statSync(tmpOut).size;
+
+  // Replace index.js with the bundle
+  fs.unlinkSync(pluginsRuntimeIndex);
+  fs.renameSync(tmpOut, pluginsRuntimeIndex);
+
+  // Delete orphaned chunk files (keep only index.js and package.json)
+  const keepFiles = new Set(["index.js", "package.json"]);
+  let deleted = 0;
+  for (const entry of fs.readdirSync(pluginsRuntimeDir, { withFileTypes: true })) {
+    if (keepFiles.has(entry.name)) continue;
+    const fullPath = path.join(pluginsRuntimeDir, entry.name);
+    if (entry.isDirectory()) {
+      fs.rmSync(fullPath, { recursive: true, force: true });
+      deleted++;
+    } else {
+      fs.unlinkSync(fullPath);
+      deleted++;
+    }
+  }
+
+  // Write {"type": "commonjs"} package.json so require() works despite
+  // the vendor root package.json having "type": "module".
+  fs.writeFileSync(
+    path.join(pluginsRuntimeDir, "package.json"),
+    '{"type":"commonjs"}\n',
+    "utf-8",
+  );
+
+  console.log(
+    `[bundle-vendor-deps] plugins/runtime bundled: ${(bundleSize / 1024).toFixed(1)}KB, deleted ${deleted} chunk file(s)`,
+  );
 }
 
 // ─── Phase 1: esbuild bundle with code splitting ───
@@ -1783,13 +1863,23 @@ function generateCompileCache() {
       "const { pathToFileURL } = require('url');",
       "const mod = require('module');",
       "const flush = () => { try { mod.flushCompileCache?.(); } catch {} };",
+      "// Enable V8 compile cache before importing entry.js — openclaw.mjs does",
+      "// this normally, but the warmup imports entry.js directly.",
+      "if (mod.enableCompileCache && !process.env.NODE_DISABLE_COMPILE_CACHE) {",
+      "  try { mod.enableCompileCache(); } catch {}",
+      "}",
       "const entryPath = process.argv[2];",
+      "// Fake argv so the CLI parser sees 'gateway' as the command.",
+      "process.argv = [process.execPath, entryPath, 'gateway'];",
       "let ready = false;",
+      "let accumulated = '';",
       "// Intercept gateway stdout/stderr to detect 'listening on'.",
       "const origStdoutWrite = process.stdout.write.bind(process.stdout);",
       "const origStderrWrite = process.stderr.write.bind(process.stderr);",
       "const check = (chunk) => {",
-      "  if (!ready && chunk && chunk.toString().includes('listening on')) {",
+      "  if (ready) return;",
+      "  accumulated += (chunk || '').toString();",
+      "  if (accumulated.includes('listening on')) {",
       "    ready = true;",
       "    // Give V8 2s to flush compile cache, then exit.",
       "    setTimeout(() => { flush(); process.exit(0); }, 2000);",
@@ -1805,8 +1895,9 @@ function generateCompileCache() {
     "utf-8",
   );
 
+  let warmUpOutput = "";
   try {
-    execFileSync(electronPath, [warmUpScript, ENTRY_FILE], {
+    const stdout = execFileSync(electronPath, [warmUpScript, ENTRY_FILE], {
       cwd: tmpDir,
       timeout: 130_000,
       env: {
@@ -1820,10 +1911,27 @@ function generateCompileCache() {
       stdio: ["ignore", "pipe", "pipe"],
       killSignal: "SIGTERM",
     });
+    warmUpOutput = (stdout || "").toString();
   } catch (err) {
     const killed = /** @type {any} */ (err).killed ?? false;
+    const stderr = (/** @type {any} */ (err).stderr || "").toString();
+    const stdout = (/** @type {any} */ (err).stdout || "").toString();
+    warmUpOutput = stdout + "\n" + stderr;
     if (killed) {
       console.log("[bundle-vendor-deps] Compile cache warm-up timed out (cache may be incomplete).");
+    }
+  }
+  // Diagnostic: show warm-up output to understand why cache is small
+  const warmUpLines = warmUpOutput.split("\n").filter(Boolean);
+  if (warmUpLines.length > 0) {
+    const hasListening = warmUpOutput.includes("listening on");
+    const hasError = warmUpOutput.includes("Error") || warmUpOutput.includes("error");
+    console.log(`[bundle-vendor-deps] Warm-up output: ${warmUpLines.length} lines, listening=${hasListening}, errors=${hasError}`);
+    if (!hasListening || hasError) {
+      // Show first 20 lines for debugging
+      for (const line of warmUpLines.slice(0, 20)) {
+        console.log(`[bundle-vendor-deps]   ${line.substring(0, 200)}`);
+      }
     }
   }
 
@@ -1986,6 +2094,7 @@ if (!fs.existsSync(nmDir)) {
   const { externals: extExternals, inlinedCount } = await prebundleExtensions();
   bundlePluginSdk();
   prebundleDistBundledHandlers();
+  prebundlePluginsRuntime();
   patchVendorConstants();
   const bundleExternals = bundleWithEsbuild();
   replaceEntryWithBundle();

@@ -62,6 +62,7 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
   fi
 else
   pnpm run build
+  pnpm ui:build
   # Replay EasyClaw vendor patches (if any exist)
   if [ "$HAS_PATCHES" = true ]; then
     echo "Replaying vendor patches from $PATCH_DIR..."
@@ -73,6 +74,7 @@ else
     # chunks with stale references that trigger ERR_INTERNAL_ASSERTION in
     # Electron's CJS/ESM module loader.
     pnpm run build
+    pnpm ui:build
     echo "Vendor patches applied and rebuilt."
   fi
 fi
