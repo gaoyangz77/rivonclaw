@@ -53,7 +53,13 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
   # pipeline (Phase 0.5b pre-bundling, Phase 4 node_modules pruning, etc.).
   # The cached dist/ is the raw build output — the bundle pipeline must
   # still process it during electron-builder packaging.
-  rm -f "$REPO_ROOT/vendor/openclaw/dist/.bundled"
+  # EXCEPTION: when the post-bundle cache hits (SKIP_BUNDLED_MARKER_REMOVAL=true),
+  # the dist/ is already fully bundled — keep the marker so the pipeline skips.
+  if [ "${SKIP_BUNDLED_MARKER_REMOVAL:-}" != "true" ]; then
+    rm -f "$REPO_ROOT/vendor/openclaw/dist/.bundled"
+  else
+    echo "Post-bundle cache hit — keeping .bundled marker"
+  fi
   if [ "$HAS_PATCHES" = true ]; then
     echo "Applying patches to source (dist already cached with patches)..."
     git config user.email "ci@rivonclaw.com"
