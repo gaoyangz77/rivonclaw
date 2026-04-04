@@ -2,6 +2,9 @@ import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { rootStore } from "../store/desktop-store.js";
 import { DEFAULTS } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+
+const log = createLogger("cloud-graphql-proxy");
 
 // ── Deletion mutation map ────────────────────────────────────────────────────
 // Maps GraphQL operation names to __typename so the proxy can remove entities
@@ -99,8 +102,11 @@ export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pat
       sendJson(res, 200, { data });
     } catch (err) {
       if (opName === TOOLSPECS_OP_NAME) toolSpecsCache = null;
-      const message = err instanceof Error ? err.message : "Cloud GraphQL request failed";
-      sendJson(res, 200, { errors: [{ message }] });
+      // undici's "fetch failed" TypeError hides the real error in .cause
+      const cause = err instanceof Error && "cause" in err ? (err as Error & { cause?: unknown }).cause : undefined;
+      const detail = cause instanceof Error ? `${(err as Error).message}: ${cause.message}` : (err instanceof Error ? err.message : "Cloud GraphQL request failed");
+      log.warn(`Cloud GraphQL proxy error (op=${opName ?? "unknown"}): ${detail}`);
+      sendJson(res, 200, { errors: [{ message: detail }] });
     }
     return true;
   }
