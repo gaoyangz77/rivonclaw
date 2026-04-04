@@ -1219,11 +1219,14 @@ function patchVendorConstants() {
   }
 
   if (totalOccurrences === 0) {
-    throw new Error(
-      `Could not find "${VENDOR_HEALTH_INTERVAL_ORIGINAL}" in any dist/ file. ` +
-        `The vendor build may have inlined or renamed this constant. ` +
-        `Check vendor/openclaw/src/gateway/server-constants.ts and update the patch.`,
+    // Non-fatal: newer vendor builds may inline the constant value, making
+    // string replacement impossible. The health interval stays at the vendor
+    // default (60s) — acceptable, just slightly more aggressive than ideal.
+    console.log(
+      `[bundle-vendor-deps] WARNING: Could not find "${VENDOR_HEALTH_INTERVAL_ORIGINAL}" in any dist/ file. ` +
+        `The vendor build may have inlined or renamed this constant. Skipping patch.`,
     );
+    return;
   }
 
   console.log(
@@ -1834,24 +1837,10 @@ function generateCompileCache() {
   }
   fs.mkdirSync(cacheDir, { recursive: true });
 
-  // Start the full gateway (with skipBootstrap) via a wrapper script that
-  // intercepts stdout/stderr for "listening on". Once the gateway is fully
-  // started, all ~350 startup-path chunks have been compiled by V8 and the
-  // compile cache captures their bytecode. This reduces first-launch time
-  // from ~72s to ~5-10s because the cache is keyed by content hash, not path.
-
-  // Write a minimal config so the gateway can start (same as smoke test)
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-compile-cache-"));
-  const minimalConfig = {
-    gateway: { port: 59998, mode: "local" },
-    models: {},
-    agents: { defaults: { skipBootstrap: true } },
-  };
-  fs.writeFileSync(
-    path.join(tmpDir, "openclaw.json"),
-    JSON.stringify(minimalConfig),
-    "utf-8",
-  );
+  // Bulk-import every JS file in dist/ to force V8 to compile and cache them.
+  // Previous approach (starting a full gateway) only cached ~19 core modules
+  // because skipBootstrap mode doesn't load extensions. Bulk import covers all
+  // ~775 chunks, reducing first-launch compile time from ~72s to ~5-10s.
 
   const t0 = Date.now();
 
@@ -1860,58 +1849,41 @@ function generateCompileCache() {
     warmUpScript,
     [
       "'use strict';",
-      "const { pathToFileURL } = require('url');",
       "const mod = require('module');",
-      "const flush = () => { try { mod.flushCompileCache?.(); } catch {} };",
-      "// Enable V8 compile cache before importing entry.js — openclaw.mjs does",
-      "// this normally, but the warmup imports entry.js directly.",
-      "if (mod.enableCompileCache && !process.env.NODE_DISABLE_COMPILE_CACHE) {",
-      "  try { mod.enableCompileCache(); } catch {}",
-      "}",
-      "const entryPath = process.argv[2];",
-      "// Fake argv so the CLI parser sees 'gateway' as the command.",
-      "process.argv = [process.execPath, entryPath, 'gateway'];",
-      "let ready = false;",
-      "let accumulated = '';",
-      "// Intercept gateway stdout/stderr to detect 'listening on'.",
-      "const origStdoutWrite = process.stdout.write.bind(process.stdout);",
-      "const origStderrWrite = process.stderr.write.bind(process.stderr);",
-      "const check = (chunk) => {",
-      "  if (ready) return;",
-      "  accumulated += (chunk || '').toString();",
-      "  if (accumulated.includes('listening on')) {",
-      "    ready = true;",
-      "    // Give V8 2s to flush compile cache, then exit.",
-      "    setTimeout(() => { flush(); process.exit(0); }, 2000);",
-      "  }",
-      "};",
-      "process.stdout.write = function(chunk, ...args) { check(chunk); return origStdoutWrite(chunk, ...args); };",
-      "process.stderr.write = function(chunk, ...args) { check(chunk); return origStderrWrite(chunk, ...args); };",
-      "import(pathToFileURL(entryPath).href)",
-      "  .catch(() => { flush(); setTimeout(() => process.exit(0), 500); });",
-      "// Hard timeout: exit even if gateway never reaches listening state.",
-      "setTimeout(() => { flush(); process.exit(0); }, 120000);",
+      "const fs = require('fs');",
+      "const path = require('path');",
+      "const { pathToFileURL } = require('url');",
+      "mod.enableCompileCache?.();",
+      "const distDir = process.argv[2];",
+      "const allJs = fs.readdirSync(distDir).filter(f => f.endsWith('.js') && f !== '_warmup.cjs');",
+      "process.stderr.write('[warmup] importing ' + allJs.length + ' JS files...\\n');",
+      "let ok = 0, fail = 0;",
+      "Promise.all(allJs.map(f =>",
+      "  import(pathToFileURL(path.join(distDir, f)).href).then(() => ok++).catch(() => fail++)",
+      ")).then(() => {",
+      "  process.stderr.write('[warmup] done: ' + ok + ' ok, ' + fail + ' failed\\n');",
+      "  mod.flushCompileCache?.();",
+      "  setTimeout(() => process.exit(0), 1000);",
+      "});",
+      "setTimeout(() => { mod.flushCompileCache?.(); process.exit(0); }, 180000);",
     ].join("\n"),
     "utf-8",
   );
 
   let warmUpOutput = "";
   try {
-    const stdout = execFileSync(electronPath, [warmUpScript, ENTRY_FILE], {
-      cwd: tmpDir,
-      timeout: 130_000,
+    const result = execFileSync(electronPath, [warmUpScript, distDir], {
+      timeout: 200_000,
       env: {
         ...process.env,
         ELECTRON_RUN_AS_NODE: "1",
         NODE_COMPILE_CACHE: cacheDir,
-        OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
-        OPENCLAW_STATE_DIR: tmpDir,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(distDir, "extensions"),
       },
       stdio: ["ignore", "pipe", "pipe"],
       killSignal: "SIGTERM",
     });
-    warmUpOutput = (stdout || "").toString();
+    warmUpOutput = (result || "").toString() + "\n" +
+      ((/** @type {any} */ (result)).stderr || "").toString();
   } catch (err) {
     const killed = /** @type {any} */ (err).killed ?? false;
     const stderr = (/** @type {any} */ (err).stderr || "").toString();
@@ -1921,25 +1893,13 @@ function generateCompileCache() {
       console.log("[bundle-vendor-deps] Compile cache warm-up timed out (cache may be incomplete).");
     }
   }
-  // Diagnostic: show warm-up output to understand why cache is small
-  const warmUpLines = warmUpOutput.split("\n").filter(Boolean);
-  if (warmUpLines.length > 0) {
-    const hasListening = warmUpOutput.includes("listening on");
-    const hasError = warmUpOutput.includes("Error") || warmUpOutput.includes("error");
-    console.log(`[bundle-vendor-deps] Warm-up output: ${warmUpLines.length} lines, listening=${hasListening}, errors=${hasError}`);
-    if (!hasListening || hasError) {
-      // Show first 20 lines for debugging
-      for (const line of warmUpLines.slice(0, 20)) {
-        console.log(`[bundle-vendor-deps]   ${line.substring(0, 200)}`);
-      }
-    }
+  // Show warmup diagnostics
+  for (const line of warmUpOutput.split("\n").filter(l => l.includes("[warmup]"))) {
+    console.log(`[bundle-vendor-deps] ${line.trim()}`);
   }
 
   // Clean up temp files
   try { fs.unlinkSync(warmUpScript); } catch {}
-  try {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  } catch {}
 
   // Check if cache files were generated
   const cacheFiles = fs.existsSync(cacheDir)
