@@ -539,12 +539,16 @@ function bundlePluginSdk() {
 
   const bundleSize = fs.statSync(tmpOut).size;
 
-  // Replace index.js with the CJS bundle, using .cjs extension so it works
-  // in a "type": "module" directory (subpath files are ESM code-split output).
+  // Replace index.js with the CJS bundle at .cjs extension, plus an ESM
+  // wrapper at the original .js path for jiti alias resolution compatibility.
   fs.unlinkSync(pluginSdkIndex);
   fs.renameSync(tmpOut, pluginSdkIndex.replace(/\.js$/, ".cjs"));
+  fs.writeFileSync(pluginSdkIndex, 'export * from "./index.cjs";\nexport { default } from "./index.cjs";\n', "utf-8");
 
-  // Also bundle account-id.js as CJS with .cjs extension (same reason as index).
+  // Also bundle account-id.js as CJS with .cjs extension, plus an ESM wrapper
+  // at the original .js path. jiti's alias map resolves openclaw/plugin-sdk/account-id
+  // to the explicit .js path — without the wrapper, plugins fail with
+  // "Cannot find module 'openclaw/plugin-sdk/account-id'" on Windows.
   const accountIdPath = path.join(pluginSdkDir, "account-id.js");
   if (fs.existsSync(accountIdPath)) {
     const accountIdTmp = path.join(pluginSdkDir, "account-id.bundled.cjs");
@@ -553,7 +557,9 @@ function bundlePluginSdk() {
       banner: {},
     });
     fs.unlinkSync(accountIdPath);
-    fs.renameSync(accountIdTmp, accountIdPath.replace(/\.js$/, ".cjs"));
+    fs.renameSync(accountIdTmp, path.join(pluginSdkDir, "account-id.cjs"));
+    // ESM wrapper so jiti alias resolution (which uses .js path) still works
+    fs.writeFileSync(accountIdPath, 'export * from "./account-id.cjs";\nexport { default } from "./account-id.cjs";\n', "utf-8");
   }
 
   // Bundle scoped plugin-sdk subpath files with code splitting (ESM).
@@ -604,7 +610,7 @@ function bundlePluginSdk() {
   const splitOutputFiles = fs.existsSync(splitTmpDir)
     ? fs.readdirSync(splitTmpDir)
     : [];
-  const keepFiles = new Set(["index.cjs", "account-id.cjs", "package.json", "__split_tmp"]);
+  const keepFiles = new Set(["index.js", "index.cjs", "account-id.js", "account-id.cjs", "package.json", "__split_tmp"]);
   for (const subFile of scopedSubpathFiles) keepFiles.add(subFile);
 
   // Delete original chunk files and subdirs (not needed after bundling)
