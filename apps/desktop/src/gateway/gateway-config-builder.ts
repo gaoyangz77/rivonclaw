@@ -188,6 +188,11 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       // Channel accounts from ChannelManager for config write-back.
       // ChannelManager owns the SQLite source of truth and handles migration.
       channelAccounts: deps.channelConfigAccounts(),
+      // Disable mDNS/Bonjour discovery — desktop app manages its own device
+      // pairing. Bonjour's mDNS probing blocks the event loop for 14-16s on
+      // Windows (name conflict resolution + re-advertise watchdog), delaying
+      // RPC handshake and chat.history responses.
+      discovery: { mdns: { mode: "off" as const } },
       skipBootstrap: false,
       filePermissionsPluginPath,
       defaultModel: resolveGeminiOAuthModel(curModel.provider, curModel.modelId),

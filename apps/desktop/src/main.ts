@@ -564,10 +564,24 @@ app.whenReady().then(async () => {
 
   writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
 
+  // Disable mDNS/Bonjour — desktop app manages its own device pairing.
+  // Bonjour's mDNS probing blocks the gateway event loop for 14-16s on
+  // Windows (name conflict resolution), delaying RPC handshake.
+  {
+    const { readFileSync, writeFileSync } = await import("node:fs");
+    try {
+      const raw = JSON.parse(readFileSync(configPath, "utf-8"));
+      if (!raw.discovery) raw.discovery = {};
+      if (!raw.discovery.mdns) raw.discovery.mdns = {};
+      raw.discovery.mdns.mode = "off";
+      writeFileSync(configPath, JSON.stringify(raw, null, 2), "utf-8");
+    } catch { /* non-critical */ }
+  }
+
   const launcher = new GatewayLauncher({
     entryPath: resolveVendorEntryPath(vendorDir),
     nodeBin: process.execPath,
-    env: { ELECTRON_RUN_AS_NODE: "1" },
+    env: { ELECTRON_RUN_AS_NODE: "1", OPENCLAW_DISABLE_BONJOUR: "1" },
     configPath,
     stateDir,
   });
