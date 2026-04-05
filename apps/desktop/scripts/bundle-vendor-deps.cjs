@@ -459,11 +459,13 @@ function resolvePluginSdkAliasAndExternals() {
     alias[importSpec] = path.join(pluginSdkDir, subFile);
     externals.push(importSpec);
   }
-  // Add account-id
-  alias["openclaw/plugin-sdk/account-id"] = path.join(pluginSdkDir, "account-id.js");
+  // Add account-id — point to .cjs directly (the .js wrapper re-exports from
+  // .cjs, but esbuild inlining through a re-export wrapper causes the 9.6MB
+  // CJS bundle to be re-parsed for every extension build).
+  alias["openclaw/plugin-sdk/account-id"] = path.join(pluginSdkDir, "account-id.cjs");
   externals.push("openclaw/plugin-sdk/account-id");
-  // Add root alias last
-  alias["openclaw/plugin-sdk"] = path.join(pluginSdkDir, "index.js");
+  // Add root alias last — same: point to .cjs directly for build performance
+  alias["openclaw/plugin-sdk"] = path.join(pluginSdkDir, "index.cjs");
   externals.push("openclaw/plugin-sdk");
   return { alias, externals };
 }
