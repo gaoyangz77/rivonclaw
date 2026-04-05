@@ -689,6 +689,14 @@ async function prebundleExtensions() {
       banner: {
         js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;',
       },
+      footer: {
+        // Unwrap ESM default export for CJS interop: dist-runtime/ ESM stubs
+        // re-export from these CJS files via `export default module.default`,
+        // which double-wraps the default.  Flattening here ensures the plugin
+        // loader's resolvePluginModuleExport() finds register/activate at the
+        // first .default level.
+        js: 'if(module.exports&&module.exports.__esModule&&module.exports.default)module.exports=module.exports.default;',
+      },
       external: opts.inline ? extExternalsBase : extExternalsWithSdk,
       ...(opts.inline ? { alias: pluginSdkAlias } : {}),
       metafile: true,
@@ -955,11 +963,11 @@ async function prebundleExtensions() {
   }
 
   if (errors.length > 0) {
-    console.error(`\n[bundle-vendor-deps] ✗ ${errors.length} extension(s) failed to bundle:\n`);
+    console.warn(`\n[bundle-vendor-deps] ⚠ ${errors.length} extension(s) failed to bundle (non-fatal):\n`);
     for (const { name, error } of errors) {
-      console.error(`  ${name}: ${error.substring(0, 200)}\n`);
+      console.warn(`  ${name}: ${error.substring(0, 200)}\n`);
     }
-    process.exit(1);
+    // Continue despite failures — unbundled extensions fall back to jiti at runtime
   }
 
   return { externals: allExtPkgs, inlinedCount };
