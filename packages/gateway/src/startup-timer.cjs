@@ -148,8 +148,10 @@ let pluginSdkPreloadSkipped = false;
 try {
   const entryDir = path.dirname(process.argv[1] || "");
   const candidates = [
-    path.join(entryDir, "dist", "plugin-sdk", "index.js"),  // openclaw.mjs → dist/
-    path.join(entryDir, "plugin-sdk", "index.js"),           // if entry is already in dist/
+    path.join(entryDir, "dist", "plugin-sdk", "index.cjs"),  // production: CJS bundle
+    path.join(entryDir, "dist", "plugin-sdk", "index.js"),   // dev: original ESM (loaded by jiti)
+    path.join(entryDir, "plugin-sdk", "index.cjs"),           // if entry is already in dist/
+    path.join(entryDir, "plugin-sdk", "index.js"),            // fallback
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {

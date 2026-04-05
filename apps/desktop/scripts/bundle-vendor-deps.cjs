@@ -539,13 +539,12 @@ function bundlePluginSdk() {
 
   const bundleSize = fs.statSync(tmpOut).size;
 
-  // Replace index.js with the bundle
+  // Replace index.js with the CJS bundle, using .cjs extension so it works
+  // in a "type": "module" directory (subpath files are ESM code-split output).
   fs.unlinkSync(pluginSdkIndex);
-  fs.renameSync(tmpOut, pluginSdkIndex);
+  fs.renameSync(tmpOut, pluginSdkIndex.replace(/\.js$/, ".cjs"));
 
-  // Also bundle account-id.js as CJS (it's originally ESM).
-  // We need both files to be CJS so the {"type":"commonjs"} package.json
-  // (which enables the require() preload) doesn't break ESM imports.
+  // Also bundle account-id.js as CJS with .cjs extension (same reason as index).
   const accountIdPath = path.join(pluginSdkDir, "account-id.js");
   if (fs.existsSync(accountIdPath)) {
     const accountIdTmp = path.join(pluginSdkDir, "account-id.bundled.cjs");
@@ -554,26 +553,61 @@ function bundlePluginSdk() {
       banner: {},
     });
     fs.unlinkSync(accountIdPath);
-    fs.renameSync(accountIdTmp, accountIdPath);
+    fs.renameSync(accountIdTmp, accountIdPath.replace(/\.js$/, ".cjs"));
   }
 
-  // Bundle all scoped plugin-sdk subpath files as CJS.
+  // Bundle scoped plugin-sdk subpath files with code splitting (ESM).
   // These are new in v2026.3.7: openclaw/plugin-sdk/core, /compat, /telegram, etc.
+  //
+  // Previously each subpath was bundled independently into CJS, inlining ALL
+  // transitive dependencies.  With 239 subpaths sharing the same dependency
+  // tree, this duplicated ~11MB × 239 = ~2.6GB of code, causing:
+  //   - CI build timeout (10+ minutes of esbuild)
+  //   - V8 parsing the same code 239 times at startup
+  //   - Huge dist size
+  //
+  // Fix: use esbuild code splitting to produce shared chunks.  Each subpath
+  // becomes a small ESM entry (~1KB) referencing shared chunks (~12MB total).
   const scopedSubpathFiles = resolvePluginSdkSubpathFiles();
-  const keepFiles = new Set(["index.js", "account-id.js", "package.json"]);
+  const splitTmpDir = path.join(pluginSdkDir, "__split_tmp");
+  fs.mkdirSync(splitTmpDir, { recursive: true });
+
+  const splitEntryPoints = {};
   for (const subFile of scopedSubpathFiles) {
-    keepFiles.add(subFile);
     const subPath = path.join(pluginSdkDir, subFile);
     if (fs.existsSync(subPath)) {
-      const subTmp = path.join(pluginSdkDir, subFile.replace(".js", ".bundled.cjs"));
-      bundleSingleFile(subPath, subTmp);
-
-      fs.unlinkSync(subPath);
-      fs.renameSync(subTmp, subPath);
+      splitEntryPoints[subFile.replace(".js", "")] = subPath;
     }
   }
 
-  // Delete chunk files and subdirs (keep bundled files)
+  if (Object.keys(splitEntryPoints).length > 0) {
+    esbuild.buildSync({
+      entryPoints: splitEntryPoints,
+      outdir: splitTmpDir,
+      bundle: true,
+      splitting: true,
+      format: "esm",
+      platform: "node",
+      target: "node22",
+      // ESM output can't use bare require() — inject createRequire polyfill
+      // so chunks that reference Node built-ins via require() still work.
+      banner: {
+        js: 'import{createRequire as __cr}from"module";const require=__cr(import.meta.url);',
+      },
+      external: EXTERNAL_PACKAGES,
+      minify: true,
+      logLevel: "warning",
+    });
+  }
+
+  // Collect the set of files to keep: CJS bundles + split output
+  const splitOutputFiles = fs.existsSync(splitTmpDir)
+    ? fs.readdirSync(splitTmpDir)
+    : [];
+  const keepFiles = new Set(["index.cjs", "account-id.cjs", "package.json", "__split_tmp"]);
+  for (const subFile of scopedSubpathFiles) keepFiles.add(subFile);
+
+  // Delete original chunk files and subdirs (not needed after bundling)
   let deleted = 0;
   for (const entry of fs.readdirSync(pluginSdkDir, { withFileTypes: true })) {
     if (keepFiles.has(entry.name)) continue;
@@ -587,16 +621,34 @@ function bundlePluginSdk() {
     }
   }
 
-  // Write {"type": "commonjs"} package.json so require() works despite
-  // the vendor root package.json having "type": "module".
-  fs.writeFileSync(
-    path.join(pluginSdkDir, "package.json"),
-    '{"type":"commonjs"}\n',
-    "utf-8",
-  );
+  // Move split output into plugin-sdk/ (replacing original subpath files)
+  let splitSize = 0;
+  for (const f of splitOutputFiles) {
+    const src = path.join(splitTmpDir, f);
+    const dest = path.join(pluginSdkDir, f);
+    // Entry files replace originals; chunk-*.js files are new
+    if (fs.existsSync(dest)) fs.unlinkSync(dest);
+    fs.renameSync(src, dest);
+    splitSize += fs.statSync(dest).size;
+  }
+  fs.rmSync(splitTmpDir, { recursive: true, force: true });
+
+  // No package.json type override needed: .cjs files (index, account-id)
+  // are always loaded as CJS regardless of parent type, and .js files
+  // (ESM code-split subpaths + chunks) inherit "type": "module" from
+  // the vendor root package.json.
+  //
+  // Remove the old {"type":"commonjs"} package.json if it exists from
+  // a prior build, so the ESM split output loads correctly.
+  const sdkPkgPath = path.join(pluginSdkDir, "package.json");
+  if (fs.existsSync(sdkPkgPath)) {
+    fs.unlinkSync(sdkPkgPath);
+  }
 
   console.log(
-    `[bundle-vendor-deps] plugin-sdk bundled: ${(bundleSize / 1024 / 1024).toFixed(1)}MB, deleted ${deleted} chunk files`,
+    `[bundle-vendor-deps] plugin-sdk bundled: index=${(bundleSize / 1024 / 1024).toFixed(1)}MB, ` +
+    `${Object.keys(splitEntryPoints).length} subpaths code-split into ${splitOutputFiles.length} files (${(splitSize / 1024 / 1024).toFixed(1)}MB), ` +
+    `deleted ${deleted} original chunks`,
   );
 }
 
