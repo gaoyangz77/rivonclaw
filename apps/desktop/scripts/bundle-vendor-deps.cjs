@@ -756,11 +756,21 @@ async function prebundleExtensions() {
 
   // Pre-create staging dirs and filter extensions synchronously (cheap I/O)
   // before launching concurrent builds.
+  //
+  // Skip extensions known to be incompatible with the current vendor version.
+  // These have build errors (missing exports, changed APIs) that cannot be
+  // resolved without vendor-side fixes.  They fall back to jiti at runtime.
+  const SKIP_EXTENSIONS = new Set(["mattermost", "zalo", "zalouser"]);
+
   /** @type {Array<{ext: {name: string, dir: string}, indexTs: string, stagingExtDir: string, indexJs: string}>} */
   const extBuildInputs = [];
   let skipped = 0;
 
   for (const ext of extDirs) {
+    if (SKIP_EXTENSIONS.has(ext.name)) {
+      skipped++;
+      continue;
+    }
     const indexTs = path.join(ext.dir, "index.ts");
     if (!fs.existsSync(indexTs)) {
       skipped++;
@@ -963,11 +973,11 @@ async function prebundleExtensions() {
   }
 
   if (errors.length > 0) {
-    console.warn(`\n[bundle-vendor-deps] ⚠ ${errors.length} extension(s) failed to bundle (non-fatal):\n`);
+    console.error(`\n[bundle-vendor-deps] ✗ ${errors.length} extension(s) failed to bundle:\n`);
     for (const { name, error } of errors) {
-      console.warn(`  ${name}: ${error.substring(0, 200)}\n`);
+      console.error(`  ${name}: ${error.substring(0, 200)}\n`);
     }
-    // Continue despite failures — unbundled extensions fall back to jiti at runtime
+    process.exit(1);
   }
 
   return { externals: allExtPkgs, inlinedCount };
