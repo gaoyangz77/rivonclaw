@@ -100,11 +100,13 @@ exports.default = async function copyVendorDeps(context) {
       ], {
         env: { ...process.env, VENDOR_DIR_OVERRIDE: vendorDestRoot },
         stdio: "inherit",
-        // 20 min — macOS CI shared ARM runners need ~15 min for Phase 0.5b
-        // (85+ extension builds + 104 surface artifacts) on cache miss.
-        // Linux does it in ~5 min. Cache misses happen whenever
-        // bundle-vendor-deps.cjs changes (hash is part of CI cache key).
-        timeout: 1_200_000,
+        // 30 min — on CI cache miss, the full bundle pipeline (Phase 0.5b +
+        // 0.5a + 1 + 2 + 4 + 5) can take 20+ min on macOS shared ARM runners.
+        // The timeout covers the ENTIRE bundle-vendor-deps.cjs execution,
+        // not individual phases. Cache misses happen whenever
+        // bundle-vendor-deps.cjs or prune-vendor-deps.cjs changes.
+        // With cache hit, the script exits in <1s (.bundled marker skip).
+        timeout: 1_800_000,
       });
     } catch (err) {
       console.error("[copy-vendor-deps] bundle-vendor-deps failed:", err.message);
