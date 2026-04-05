@@ -2151,7 +2151,11 @@ if (!fs.existsSync(nmDir)) {
   const allExternals = new Set([...extExternals, ...bundleExternals]);
   verifyExternalImports(allExternals, keepSet);
   smokeTestGateway();
-  generateCompileCache();
+  // Skip compile cache warmup — V8 cache is populated naturally by
+  // vendor's own module.enableCompileCache() on first real startup.
+  // Bulk-import warmup adds 5+ min to CI build but only saves ~0.5s
+  // on first launch (second launch is fast regardless).
+  // generateCompileCache();
   generateSizeReport(inlinedCount);
 
   // Write marker so re-runs are skipped (idempotency guard).
