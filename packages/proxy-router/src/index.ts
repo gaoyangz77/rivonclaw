@@ -284,7 +284,7 @@ export class ProxyRouter {
    */
   private async connectToHost(host: string, port: number): Promise<Socket> {
     const systemProxy = this.config?.systemProxy;
-    if (!systemProxy) {
+    if (!systemProxy || systemProxy === "(none)") {
       // Direct TCP connection
       const socket = new Socket();
       await connectWithTimeout(socket, port, host, CONNECT_TIMEOUT_MS);
