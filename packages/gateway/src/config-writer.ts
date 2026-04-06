@@ -451,6 +451,9 @@ export interface WriteGatewayConfigOptions {
    * Entries can be tool names (e.g. "browser_profiles_list") or plugin IDs.
    */
   toolAllowlist?: string[];
+  /** mDNS/Bonjour discovery configuration. Set mode to "off" to disable
+   *  network discovery (desktop app manages its own device pairing). */
+  discovery?: { mdns?: { mode?: "off" | "on" } };
 }
 
 
@@ -518,6 +521,11 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     merged.controlUi = controlUiConfig;
 
     config.gateway = merged;
+  }
+
+  // mDNS/Bonjour discovery configuration
+  if (options.discovery) {
+    config.discovery = options.discovery;
   }
 
   // Enable /v1/chat/completions endpoint (used by rule compilation pipeline)

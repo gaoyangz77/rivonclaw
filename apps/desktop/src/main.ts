@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, shell, dialog, nativeImage } from "electron";
+import { app, BrowserWindow, Menu, Tray, shell, dialog, nativeImage, net } from "electron";
 import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   GatewayLauncher,
@@ -345,11 +345,15 @@ app.whenReady().then(async () => {
   const { client: telemetryClient, heartbeatTimer } = initTelemetry(storage, deviceId, locale);
 
   // Initialize auth session manager
-  const authSession = new AuthSessionManager(secretStore, locale, fetch);
+  // Use Electron's net.fetch instead of Node.js undici fetch — net.fetch
+  // routes through Chromium's network stack which respects system proxy
+  // settings (e.g. Clash, V2Ray).  Undici ignores system proxy, causing
+  // ECONNRESET for users behind proxy-based GFW circumvention tools.
+  const authSession = new AuthSessionManager(secretStore, locale, net.fetch as unknown as typeof fetch);
   setAuthSession(authSession);
   authSession.onUserChanged((user) => syncCloudProviderKey(user, storage, secretStore));
   await authSession.loadFromKeychain();
-  // Validate session on startup (auth uses native fetch, no proxy dependency)
+  // Validate session on startup (auth uses Electron net.fetch, respects system proxy)
   authSession.validate().catch(() => {});
 
   // Initialize cloud OAuth subscription client (GraphQL Subscription via graphql-ws)
