@@ -6,7 +6,7 @@ import {
   type AccessMode,
 } from "@rivonclaw/core";
 
-export const handleCreditsRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
+export const handleCreditsRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
   const { storage, creditsClient, creditsToken, onProviderChange } = ctx;
 
   // GET /api/credits/balance
@@ -33,7 +33,9 @@ export const handleCreditsRoutes: RouteHandler = async (req, res, _url, pathname
       return true;
     }
     try {
-      const data = await creditsClient.getHistory(token);
+      const page = parseInt(url.searchParams.get("page") ?? "1", 10) || 1;
+      const limit = parseInt(url.searchParams.get("limit") ?? "20", 10) || 20;
+      const data = await creditsClient.getHistory(token, page, limit);
       sendJson(res, 200, data);
     } catch {
       sendJson(res, 200, { entries: [], total: 0 });

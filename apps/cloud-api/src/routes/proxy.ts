@@ -31,7 +31,6 @@ proxyRoute.post("/openrouter/chat/completions", async (c) => {
   const estimatedTokens = estimateInputTokens(payload.messages ?? []);
   const creditCost = creditsForTokens(estimatedTokens);
 
-  let deducted = false;
   try {
     await sql.begin(async (tx) => {
       const [updated] = await tx<{ balance: number }[]>`
@@ -50,7 +49,6 @@ proxyRoute.post("/openrouter/chat/completions", async (c) => {
         INSERT INTO credit_ledger (user_id, delta, reason, model, tokens)
         VALUES (${userId}, ${-creditCost}, 'consumption', ${payload.model}, ${estimatedTokens})
       `;
-      deducted = true;
     });
   } catch (err: unknown) {
     if (err instanceof Error && err.message === "insufficient") {

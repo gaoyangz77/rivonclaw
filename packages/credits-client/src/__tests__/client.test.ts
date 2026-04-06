@@ -41,7 +41,7 @@ describe("createCreditsClient", () => {
     await expect(client.getBalance("bad-token")).rejects.toThrow("Unauthorized");
   });
 
-  it("proxyStream: returns Response from POST /api/proxy/openrouter", async () => {
+  it("proxyStream: returns Response from POST /api/proxy/openrouter/chat/completions", async () => {
     const mockRes = new Response("data: {}\n\n", { status: 200 });
     fetchMock.mockResolvedValueOnce(mockRes);
     const res = await client.proxyStream("jwt-token", { model: "openai/gpt-4o", messages: [] });

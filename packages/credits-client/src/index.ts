@@ -54,7 +54,7 @@ export function createCreditsClient(baseUrl: string): CreditsClient {
     },
 
     async proxyStream(token, payload) {
-      const res = await fetch(`${baseUrl}/api/proxy/openrouter`, {
+      const res = await fetch(`${baseUrl}/api/proxy/openrouter/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
