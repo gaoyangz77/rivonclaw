@@ -71,7 +71,7 @@ const FREE_MODELS = [
 
 Free users may only use models in this list. Requests to other models return `403 Forbidden`.
 
-**Free users do not see the model name** — the proxy strips the `model` field from response metadata and consumption records show `null` as model name.
+**Free users see the model name normally** — no stripping of model metadata.
 
 ---
 
@@ -102,12 +102,9 @@ Decision flow per request:
       - Deduct estimated tokens optimistically
 
 5. Forward to OpenRouter (use master OPENROUTER_API_KEY)
-   - Strip model name from request if free user (use internally but don't echo back)
 
 6. On response: update actual token usage from usage.total_tokens
    - Correct optimistic deduction with actual value
-
-7. Strip model field from streaming response metadata if free user
 ```
 
 ---
@@ -131,7 +128,7 @@ Response: {
     limit: number,
     period_end: string,
   } | null,
-  show_model: boolean,     // false for free users
+  show_model: true,        // always true — model name always visible
 }
 ```
 
@@ -204,11 +201,12 @@ Replace `fetchCreditsInfo()` with `fetchQuota()` returning the new quota shape.
 
 ---
 
-## 7. Model Name Hiding
+## 7. Access Mode Scope
 
-- **Proxy**: when a free user's request is processed, record `model = null` in `credit_ledger`
-- **Panel**: consumption history shows `—` in model column for null entries
-- **CreditsBalance widget**: no model name shown anywhere in free tier
+This entire credits system only applies when `access_mode = "credits"`.
+
+- `coding-plan` and `subscription` modes use the user's own configured provider keys (set in the Providers page) — the cloud-api proxy and quota system are bypassed entirely for those modes.
+- The credits initializer in the desktop app already skips setup when mode is not "credits".
 
 ---
 
