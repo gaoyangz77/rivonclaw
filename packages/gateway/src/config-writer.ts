@@ -509,13 +509,16 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     // preserving self-declared scopes. Without this flag the vendor clears
     // scopes to [] for non-device connections.
     //
-    // When controlUiRoot is provided, set gateway.controlUi.root so the
-    // gateway skips its expensive auto-resolution + auto-build check that
-    // costs ~2 s on every startup.
+    // Control UI is disabled by default — EasyClaw's Panel provides the UI.
+    // This prevents the gateway's expensive auto-build check (~30 s in dev
+    // when dist/control-ui/ doesn't exist). When controlUiRoot is explicitly
+    // provided, re-enable and set the root path.
     const controlUiConfig: Record<string, unknown> = {
+      enabled: false,
       dangerouslyDisableDeviceAuth: true,
     };
     if (options.controlUiRoot) {
+      controlUiConfig.enabled = true;
       controlUiConfig.root = options.controlUiRoot;
     }
     merged.controlUi = controlUiConfig;

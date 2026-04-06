@@ -277,7 +277,7 @@ describe("config-writer", () => {
       expect(() => JSON.parse(raw)).not.toThrow();
     });
 
-    it("writes controlUi.root when controlUiRoot is provided", () => {
+    it("writes controlUi.root and enabled=true when controlUiRoot is provided", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({
         configPath,
@@ -286,11 +286,12 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.gateway.controlUi.enabled).toBe(true);
       expect(config.gateway.controlUi.root).toBe("/vendor/openclaw/dist/control-ui");
       expect(config.gateway.controlUi.dangerouslyDisableDeviceAuth).toBe(true);
     });
 
-    it("omits controlUi.root when controlUiRoot is not provided", () => {
+    it("disables controlUi when controlUiRoot is not provided", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({
         configPath,
@@ -298,6 +299,7 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.gateway.controlUi.enabled).toBe(false);
       expect(config.gateway.controlUi.dangerouslyDisableDeviceAuth).toBe(true);
       expect(config.gateway.controlUi.root).toBeUndefined();
     });
