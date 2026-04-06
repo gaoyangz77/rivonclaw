@@ -24,11 +24,11 @@ describe("POST /device", () => {
 
     const sqlMock = sql as unknown as ReturnType<typeof vi.fn>;
     sqlMock
-      .mockResolvedValueOnce([mockUser])           // upsert user
-      .mockResolvedValueOnce(undefined)             // INSERT ledger (signup_bonus)
-      .mockResolvedValueOnce(undefined)             // UPSERT credit_balance
-      .mockResolvedValueOnce(undefined)             // UPDATE users SET credits_init
-      .mockResolvedValueOnce([{ balance: 100 }]);   // SELECT balance
+      .mockResolvedValueOnce([mockUser])              // upsert user
+      .mockResolvedValueOnce([{ id: "uuid-123" }])    // atomic UPDATE (claimed = true)
+      .mockResolvedValueOnce(undefined)                // INSERT ledger
+      .mockResolvedValueOnce(undefined)                // UPSERT balance
+      .mockResolvedValueOnce([{ balance: 100 }]);      // SELECT balance
 
     const client = testClient(authRoute);
     const res = await client.device.$post({ json: { deviceId: "device-abc" } });
@@ -37,6 +37,12 @@ describe("POST /device", () => {
     const body = await res.json();
     expect(body).toMatchObject({ balance: 100 });
     expect(typeof body.token).toBe("string");
+
+    // Verify JWT claims
+    const { decodeJwt } = await import("jose");
+    const payload = decodeJwt(body.token);
+    expect(payload.sub).toBe("uuid-123");
+    expect(payload.did).toBe("device-abc");
   });
 
   it("returns 400 when deviceId is missing", async () => {
