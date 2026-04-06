@@ -47,4 +47,12 @@ describe("createCreditsClient", () => {
     const res = await client.proxyStream("jwt-token", { model: "openai/gpt-4o", messages: [] });
     expect(res.status).toBe(200);
   });
+
+  it("proxyStream: returns raw Response without throwing on non-ok status", async () => {
+    const mockRes = new Response(JSON.stringify({ error: "Insufficient credits" }), { status: 402 });
+    fetchMock.mockResolvedValueOnce(mockRes);
+    const res = await client.proxyStream("jwt-token", { model: "openai/gpt-4o", messages: [] });
+    expect(res.status).toBe(402);
+    // Must NOT throw — proxyStream returns raw Response regardless of status
+  });
 });

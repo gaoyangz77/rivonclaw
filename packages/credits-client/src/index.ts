@@ -21,11 +21,12 @@ async function apiRequest<T>(
   init: RequestInit & { token?: string } = {}
 ): Promise<T> {
   const { token, ...fetchInit } = init;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  if (fetchInit.body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${baseUrl}${path}`, {
     ...fetchInit,
-    headers: { ...headers, ...(fetchInit.headers as Record<string, string> | undefined) },
+    headers: { ...(fetchInit.headers as Record<string, string> | undefined), ...headers },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { error?: string };
