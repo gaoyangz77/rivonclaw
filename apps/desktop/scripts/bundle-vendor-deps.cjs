@@ -545,7 +545,13 @@ function bundlePluginSdk() {
   // Replace index.js with the CJS bundle at .cjs extension, plus an ESM
   // wrapper at the original .js path for jiti alias resolution compatibility.
   fs.unlinkSync(pluginSdkIndex);
-  fs.renameSync(tmpOut, pluginSdkIndex.replace(/\.js$/, ".cjs"));
+  const indexCjs = pluginSdkIndex.replace(/\.js$/, ".cjs");
+  fs.renameSync(tmpOut, indexCjs);
+  // Fix jiti babel.cjs path (same issue as code-split chunks)
+  const indexContent = fs.readFileSync(indexCjs, "utf-8");
+  if (indexContent.includes("../dist/babel.cjs")) {
+    fs.writeFileSync(indexCjs, indexContent.replaceAll("../dist/babel.cjs", "../babel.cjs"), "utf-8");
+  }
   fs.writeFileSync(pluginSdkIndex, 'export * from "./index.cjs";\nexport { default } from "./index.cjs";\n', "utf-8");
 
   // Also bundle account-id.js as CJS with .cjs extension, plus an ESM wrapper
