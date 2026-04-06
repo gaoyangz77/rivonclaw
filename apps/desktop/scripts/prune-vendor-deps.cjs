@@ -1,16 +1,19 @@
 // @ts-check
-// Prunes vendor/openclaw/node_modules to production-only dependencies
-// before electron-builder packages the app.
+// Prunes vendor/openclaw to production-only dependencies before
+// electron-builder packages the app.
 //
-// Three-phase pruning:
+// Five-phase pruning:
 // 1. `pnpm install --prod` removes devDependencies and their transitive deps
 // 2. Manual removal of packages that survive the prune due to pnpm workspace
 //    hoisting (e.g. vite is a prod dep of ui/ but not needed by the gateway)
-// 3. Strip non-runtime files (docs, tests, source maps, etc.) to reduce file
-//    count — critical for HFS+ DMGs where each file takes ≥4KB due to block
+// 3. Strip non-runtime files (docs, tests, source maps, etc.) from node_modules
+//    — critical for HFS+ DMGs where each file takes ≥4KB due to block
 //    allocation, and excessive file count can overflow the DMG volume.
+// 4. Strip non-runtime files from dist-runtime/ and extensions/, remove nested
+//    node_modules (symlinked), and delete dist/control-ui/ (Panel provides UI)
+// 5. Write .pruned marker for idempotency
 //
-// Idempotent: skips if already pruned (detected by absence of typescript).
+// Idempotent: skips if already pruned (detected by .pruned marker).
 
 const { execSync } = require("child_process");
 const fs = require("fs");
@@ -26,9 +29,9 @@ if (!fs.existsSync(nmDir)) {
   process.exit(0);
 }
 
-// Idempotency: if typescript is already gone, we've already pruned.
-if (!fs.existsSync(path.join(nmDir, "typescript"))) {
-  console.log("[prune-vendor-deps] Already pruned (typescript absent), skipping.");
+// Idempotency: if .pruned marker exists, we've already pruned.
+if (fs.existsSync(path.join(vendorDir, "dist", ".pruned"))) {
+  console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
   process.exit(0);
 }
 
@@ -283,6 +286,78 @@ stripDir(nmDir, 0);
 console.log(
   `  stripped ${strippedFiles} files (${(strippedBytes / 1024 / 1024).toFixed(0)}MB)`,
 );
+
+// ─── Phase 4: strip non-runtime files from dist-runtime/ and extensions/ ───
+console.log("[prune-vendor-deps] Phase 4: stripping non-runtime files from dist-runtime/ and extensions/ ...");
+let phase4Files = 0;
+let phase4Bytes = 0;
+
+// Helper: recursively remove all node_modules/ directories (real or symlinked)
+function removeNestedNodeModules(dir) {
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) {
+      if (entry.name === "node_modules") {
+        fs.unlinkSync(full);
+        phase4Files++;
+      }
+      continue;
+    }
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules") {
+        const size = dirSize(full);
+        const count = fileCount(full);
+        fs.rmSync(full, { recursive: true, force: true });
+        phase4Bytes += size;
+        phase4Files += count;
+        continue;
+      }
+      removeNestedNodeModules(full);
+    }
+  }
+}
+
+// 4a: Remove nested node_modules from dist/, dist-runtime/, and extensions/
+// These are symlinked or duplicated — runtime resolves deps from the top-level
+// node_modules/ which copy-vendor-deps.cjs copies separately.
+for (const subdir of ["dist", "dist-runtime", "extensions"]) {
+  const target = path.join(vendorDir, subdir);
+  if (fs.existsSync(target)) {
+    removeNestedNodeModules(target);
+  }
+}
+
+// 4b: Strip .d.ts, .map, .md, .mdx from dist-runtime/ and extensions/
+const distRuntimeDir = path.join(vendorDir, "dist-runtime");
+if (fs.existsSync(distRuntimeDir)) {
+  stripDir(distRuntimeDir, 0);
+}
+
+// 4b: Strip .d.ts, .map, .md, .mdx from extensions/ (vendor extensions)
+const extensionsDir = path.join(vendorDir, "extensions");
+if (fs.existsSync(extensionsDir)) {
+  stripDir(extensionsDir, 0);
+}
+
+// 4c: Remove dist/control-ui/ (runtime doesn't need it — Panel provides UI)
+const controlUiDir = path.join(vendorDir, "dist", "control-ui");
+if (fs.existsSync(controlUiDir)) {
+  const size = dirSize(controlUiDir);
+  const count = fileCount(controlUiDir);
+  fs.rmSync(controlUiDir, { recursive: true, force: true });
+  phase4Bytes += size;
+  phase4Files += count;
+  console.log(`  removed dist/control-ui/ (${(size / 1024 / 1024).toFixed(1)}MB, ${count} files)`);
+}
+
+console.log(`  stripped ${phase4Files} files (${(phase4Bytes / 1024 / 1024).toFixed(0)}MB) from dist-runtime/ and extensions/`);
+
+// ─── Phase 5: write .pruned marker ───
+const prunedMarker = path.join(vendorDir, "dist", ".pruned");
+fs.writeFileSync(prunedMarker, new Date().toISOString() + "\n", "utf-8");
+console.log("[prune-vendor-deps] Wrote .pruned marker");
 
 // ─── Summary ───
 const sizeAfter = dirSize(nmDir);

@@ -51,19 +51,16 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      # Post-bundle cache: contains the fully processed dist/ (esbuild bundled,
-      # extensions pre-bundled, node_modules pruned, compile cache warmed).
-      # When this cache hits, bundle-vendor-deps.cjs sees the .bundled marker
-      # and skips its entire ~4min pipeline.
-      - name: Cache vendor bundle
-        id: cache-vendor-bundle
+      # Post-prune cache: contains the production-ready dist/ and pruned
+      # node_modules after vendor setup scripts have run.
+      - name: Cache vendor prod
+        id: cache-vendor-prod
         uses: actions/cache@v4
         with:
           path: |
             vendor/openclaw/dist
             vendor/openclaw/node_modules
-            apps/desktop/.prebundled-extensions
-          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
+          key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
         shell: bash
@@ -71,9 +68,6 @@ jobs:
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
-          # If post-bundle cache hit, skip the .bundled marker removal so
-          # bundle-vendor-deps.cjs can short-circuit safely.
-          SKIP_BUNDLED_MARKER_REMOVAL: ${{ steps.cache-vendor-bundle.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -164,22 +158,22 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      - name: Cache vendor bundle
-        id: cache-vendor-bundle
+      # Post-prune cache: contains the production-ready dist/ and pruned
+      # node_modules after vendor setup scripts have run.
+      - name: Cache vendor prod
+        id: cache-vendor-prod
         uses: actions/cache@v4
         with:
           path: |
             vendor/openclaw/dist
             vendor/openclaw/node_modules
-            apps/desktop/.prebundled-extensions
-          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
+          key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
         run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
-          SKIP_BUNDLED_MARKER_REMOVAL: ${{ steps.cache-vendor-bundle.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -269,22 +263,22 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      - name: Cache vendor bundle
-        id: cache-vendor-bundle
+      # Post-prune cache: contains the production-ready dist/ and pruned
+      # node_modules after vendor setup scripts have run.
+      - name: Cache vendor prod
+        id: cache-vendor-prod
         uses: actions/cache@v4
         with:
           path: |
             vendor/openclaw/dist
             vendor/openclaw/node_modules
-            apps/desktop/.prebundled-extensions
-          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
+          key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
         run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
-          SKIP_BUNDLED_MARKER_REMOVAL: ${{ steps.cache-vendor-bundle.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

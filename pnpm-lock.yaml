@@ -145,9 +145,6 @@ importers:
       electron-builder:
         specifier: ^26.0.12
         version: 26.7.0(electron-builder-squirrel-windows@26.7.0)
-      esbuild:
-        specifier: ^0.25.0
-        version: 0.25.12
       graphql:
         specifier: ^16.13.1
         version: 16.13.1

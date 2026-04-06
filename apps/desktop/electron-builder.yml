@@ -28,34 +28,20 @@ extraResources:
       - "openclaw.mjs"
       - "package.json"
       - "dist/**"
+      - "!dist/**/node_modules/**"
+      - "dist-runtime/**"
+      - "!dist-runtime/**/node_modules/**"
       - "docs/**"
       - "extensions/**"
       - "!extensions/**/node_modules/**"
-      # Exclude dist-runtime/ — contains symlinked node_modules (~7K files)
-      # that inflate installer and cause runtime errors (stubs point to
-      # dist/extensions/ chunks that don't exist after bundling).
-      - "!dist-runtime/**"
       - "packages/**"
       - "!packages/**/node_modules/**"
-      # Exclude CLAUDE.md symlinks (→ AGENTS.md) — dev-only Claude Code
-      # instructions that break Windows 7zip packaging (NTFS can't handle
-      # the symlinks created by git clone without elevated permissions).
       - "!**/CLAUDE.md"
       - "!**/AGENTS.md"
-      # Re-include workspace templates that the runtime reads at dispatch
-      # time (e.g. AGENTS.md used as template content).
       - "docs/reference/templates/**"
       - "docs/zh-CN/reference/templates/**"
-      # Re-exclude CLAUDE.md inside templates — these are symlinks (→ AGENTS.md)
-      # that break Windows packaging (NTFS treats them as invalid directories).
       - "!docs/reference/templates/CLAUDE.md"
       - "!docs/zh-CN/reference/templates/CLAUDE.md"
-  # Pre-bundled vendor extensions (CJS format, tree-shaken by bundle-vendor-deps.cjs).
-  # Written directly to .prebundled-extensions/ by Phase 0.5b — overlays vendor
-  # extensions with bundled .js + updated package.json in release builds.
-  # In pack-only builds (no bundle step), this dir doesn't exist and is skipped.
-  - from: ".prebundled-extensions"
-    to: "vendor/openclaw/extensions"
   # RivonClaw extensions — auto-discovered by OpenClaw at runtime
   - from: "../../extensions"
     to: "extensions"

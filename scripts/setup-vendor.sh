@@ -62,17 +62,6 @@ fi
 
 if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
   echo "Skipping pnpm run build (cache hit, dist verified)"
-  # Remove the .bundled marker so bundle-vendor-deps.cjs runs its full
-  # pipeline (Phase 0.5b pre-bundling, Phase 4 node_modules pruning, etc.).
-  # The cached dist/ is the raw build output — the bundle pipeline must
-  # still process it during electron-builder packaging.
-  # EXCEPTION: when the post-bundle cache hits (SKIP_BUNDLED_MARKER_REMOVAL=true),
-  # the dist/ is already fully bundled — keep the marker so the pipeline skips.
-  if [ "${SKIP_BUNDLED_MARKER_REMOVAL:-}" != "true" ]; then
-    rm -f "$REPO_ROOT/vendor/openclaw/dist/.bundled"
-  else
-    echo "Post-bundle cache hit — keeping .bundled marker"
-  fi
   if [ "$HAS_PATCHES" = true ]; then
     echo "Applying patches to source (dist already cached with patches)..."
     git config user.email "ci@rivonclaw.com"
@@ -112,12 +101,11 @@ fi
 # Prod pruning happens later in prune-vendor-deps.cjs (afterPack) on the
 # release COPY, not the original vendor.
 
-# Make dist/ and node_modules/ visible to electron-builder by removing them
-# from .gitignore, while keeping other ignore rules (e.g. dist-runtime which
-# should NOT be copied by extraResources — it contains symlinked node_modules
-# that inflate the installer by ~13K files and cause slow startup on Windows).
+# Make dist/ and dist-runtime/ visible to electron-builder's extraResources by
+# removing them from .gitignore. node_modules/ stays ignored — copy-vendor-deps.cjs
+# (afterPack hook) handles copying it manually because .gitignore blocks it.
 # Copy original .gitignore to .git/info/exclude so git status stays clean.
 cp .gitignore .git/info/exclude
-sed -i.bak '/^dist$/d; /^node_modules$/d; /^\*\*\/node_modules\/$/d' .gitignore
+sed -i.bak '/^dist$/d; /^dist-runtime\/$/d' .gitignore
 rm -f .gitignore.bak
 echo "OpenClaw vendor ready ($HASH)"

@@ -12,7 +12,6 @@ dist/
 server/
 apps/desktop/release/
 apps/desktop/runtime-archive/
-apps/desktop/.prebundled-extensions/
 playwright-report/
 test-results/
 .venv/
