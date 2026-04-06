@@ -73,14 +73,6 @@ Audits provider/model sync between RivonClaw and vendor. Compares the pi-ai vend
 node scripts/audit-provider-sync.mjs   # exit 0 = no gaps, exit 1 = critical gaps
 ```
 
-### verify-proxy-domains.mjs
-
-Verifies that `DOMAIN_TO_PROVIDER` in `apps/desktop/src/main.ts` includes all domains from `PROVIDER_BASE_URLS` in `packages/core/src/models.ts`. Exposed as `pnpm verify-proxy`.
-
-```bash
-pnpm verify-proxy   # exit 0 = all present, exit 1 = missing domains
-```
-
 ## Developer Utilities
 
 ### reset-user-data.sh
@@ -90,28 +82,4 @@ Wipes all RivonClaw + OpenClaw user data to simulate fresh onboarding. Cleans SQ
 ```bash
 ./scripts/reset-user-data.sh           # interactive (asks for confirmation)
 ./scripts/reset-user-data.sh --force   # skip confirmation
-```
-
-### test-proxy.mjs
-
-Starts a local HTTP CONNECT proxy server for testing proxy-router functionality. Hardcoded test credentials (`testuser`/`testpass`). Referenced in ADR-015.
-
-```bash
-node scripts/test-proxy.mjs [port]     # default port: 8888
-```
-
-### test-proxy-auth.mjs
-
-Tests authenticated proxy connections against the test proxy started by `test-proxy.mjs`. Verifies both valid and invalid credential handling.
-
-```bash
-node scripts/test-proxy-auth.mjs
-```
-
-### test-vector-integration.sh
-
-Integration test for Vector telemetry pipeline. Sends test events to Vector and verifies they appear in ClickHouse. Requires `docker compose up -d clickhouse vector` in `server/`.
-
-```bash
-./scripts/test-vector-integration.sh
 ```
