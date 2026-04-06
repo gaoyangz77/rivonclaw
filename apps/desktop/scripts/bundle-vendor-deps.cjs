@@ -1803,25 +1803,53 @@ function smokeTestGateway() {
   let exitCode = null;
   let killed = false;
 
+  // Windows file I/O is 2-3x slower than Linux; with 700+ code-split chunks
+  // the gateway can take well over 90s to parse on Windows CI runners.
+  const smokeTimeout = process.platform === "win32" ? 180_000 : 90_000;
+
+  // ── Sanitize environment for the child process ──
+  // The parent process may have NODE_OPTIONS set by pnpm, electron-builder,
+  // CI runners, or the test framework.  Common inherited values include
+  // --require or --import flags pointing to files that exist in the parent's
+  // context but not in the child's tmpDir cwd.
+  //
+  // On Windows, an invalid --require path crashes Node.js immediately with
+  // exit code null and empty output — the error happens so early that stdio
+  // pipes are never written to.  This is the root cause of the "Gateway
+  // exited with code null" CI failure on Windows.
+  //
+  // NODE_V8_COVERAGE can also hang the child if the output dir is missing.
+  const smokeEnv = {
+    ...process.env,
+    OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
+    OPENCLAW_STATE_DIR: tmpDir,
+    OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(distDir, "extensions"),
+    NODE_COMPILE_CACHE: undefined,
+    NODE_OPTIONS: undefined,
+    NODE_V8_COVERAGE: undefined,
+  };
+
+  // On Windows, SIGTERM is emulated via TerminateProcess() which can report
+  // inconsistent exit status/killed/signal values.  SIGKILL is more reliable
+  // as a killSignal because Node.js doesn't attempt graceful shutdown.
+  const killSignal = process.platform === "win32" ? "SIGKILL" : "SIGTERM";
+
   try {
     const stdout = execFileSync(process.execPath, [openclawMjs, "gateway"], {
       cwd: tmpDir,
-      timeout: 90_000,
-      env: {
-        ...process.env,
-        OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
-        OPENCLAW_STATE_DIR: tmpDir,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(distDir, "extensions"),
-        NODE_COMPILE_CACHE: undefined,
-      },
+      timeout: smokeTimeout,
+      env: smokeEnv,
       stdio: ["ignore", "pipe", "pipe"],
-      killSignal: "SIGTERM",
+      killSignal,
     });
     exitCode = 0;
     allOutput = (stdout || "").toString();
   } catch (err) {
     exitCode = /** @type {any} */ (err).status ?? null;
-    killed = /** @type {any} */ (err).killed ?? false;
+    // Node.js execFileSync sets err.signal (not err.killed) on timeout kill.
+    // err.killed is undefined in practice; use err.signal to detect timeout.
+    const errSignal = /** @type {any} */ (err).signal;
+    killed = errSignal === killSignal || /** @type {any} */ (err).killed === true;
     const stderrStr = (/** @type {any} */ (err).stderr || "").toString();
     const stdoutStr = (/** @type {any} */ (err).stdout || "").toString();
     allOutput = stdoutStr + "\n" + stderrStr;
@@ -1889,7 +1917,7 @@ function smokeTestGateway() {
 
   if (killed) {
     console.error(
-      `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: Gateway process timed out (90 s).\n` +
+      `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: Gateway process timed out (${smokeTimeout / 1000} s).\n` +
         `\n  The gateway did not print "[gateway]" before the timeout.\n` +
         `  This may indicate the bundled entry.js is too large to parse on this CI runner.\n` +
         `\n  Output (first 3000 chars):\n  ${(filteredOutput || "(empty)").substring(0, 3000)}\n`,
@@ -1897,8 +1925,22 @@ function smokeTestGateway() {
     process.exit(1);
   }
 
+  // Provide platform-specific diagnostic hints for common failure modes.
+  const hints = [];
+  if (exitCode === null && !filteredOutput) {
+    hints.push(
+      "  The process exited with code=null and no output — this typically means",
+      "  it crashed before stdio was established. Common causes:",
+      "    - NODE_OPTIONS inherited from parent with invalid --require/--import paths",
+      "    - Windows antivirus quarantining newly-written JS files in dist/",
+      "    - Insufficient memory for V8 to parse the bundled entry.js",
+    );
+  }
+
   console.error(
     `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: Gateway exited with code ${exitCode}.\n` +
+      `\n  Platform: ${process.platform}, killSignal: ${killSignal}\n` +
+      (hints.length ? `\n${hints.join("\n")}\n` : "") +
       `\n  Output (first 3000 chars):\n  ${(filteredOutput || "(empty)").substring(0, 3000)}\n`,
   );
   process.exit(1);
