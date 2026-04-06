@@ -2262,7 +2262,7 @@ if (!fs.existsSync(nmDir)) {
   // vendor's own module.enableCompileCache() on first real startup.
   // Bulk-import warmup adds 5+ min to CI build but only saves ~0.5s
   // on first launch (second launch is fast regardless).
-  // generateCompileCache();
+  generateCompileCache();
   generateSizeReport(inlinedCount);
 
   // Write marker so re-runs are skipped (idempotency guard).
