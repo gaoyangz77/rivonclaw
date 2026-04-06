@@ -205,7 +205,7 @@ jobs:
       - name: Build macOS app
         run: |
           cd apps/desktop
-          pnpm run dist:mac:arm64
+          pnpm run dist:mac
         env:
           # Notarization credentials (optional, only if configured)
           APPLE_ID: ${{ secrets.APPLE_ID }}
