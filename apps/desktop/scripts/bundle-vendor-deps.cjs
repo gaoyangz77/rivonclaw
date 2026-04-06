@@ -545,13 +545,7 @@ function bundlePluginSdk() {
   // Replace index.js with the CJS bundle at .cjs extension, plus an ESM
   // wrapper at the original .js path for jiti alias resolution compatibility.
   fs.unlinkSync(pluginSdkIndex);
-  const indexCjs = pluginSdkIndex.replace(/\.js$/, ".cjs");
-  fs.renameSync(tmpOut, indexCjs);
-  // Fix jiti babel.cjs path (same issue as code-split chunks)
-  const indexContent = fs.readFileSync(indexCjs, "utf-8");
-  if (indexContent.includes("../dist/babel.cjs")) {
-    fs.writeFileSync(indexCjs, indexContent.replaceAll("../dist/babel.cjs", "../babel.cjs"), "utf-8");
-  }
+  fs.renameSync(tmpOut, pluginSdkIndex.replace(/\.js$/, ".cjs"));
   fs.writeFileSync(pluginSdkIndex, 'export * from "./index.cjs";\nexport { default } from "./index.cjs";\n', "utf-8");
 
   // Also bundle account-id.js as CJS with .cjs extension, plus an ESM wrapper
@@ -644,15 +638,6 @@ function bundlePluginSdk() {
     // Entry files replace originals; chunk-*.js files are new
     if (fs.existsSync(dest)) fs.unlinkSync(dest);
     fs.renameSync(src, dest);
-    // Fix jiti's babel.cjs path: esbuild preserves the original relative
-    // path "../dist/babel.cjs" (relative to jiti's src/), but chunks live
-    // in dist/plugin-sdk/ so the correct path is "../babel.cjs".
-    if (f.endsWith(".js")) {
-      const content = fs.readFileSync(dest, "utf-8");
-      if (content.includes("../dist/babel.cjs")) {
-        fs.writeFileSync(dest, content.replaceAll("../dist/babel.cjs", "../babel.cjs"), "utf-8");
-      }
-    }
     splitSize += fs.statSync(dest).size;
   }
   fs.rmSync(splitTmpDir, { recursive: true, force: true });
@@ -2107,6 +2092,43 @@ function generateCompileCache() {
 // After code-splitting and moving files around, relative paths like
 // require("../dist/babel.cjs") can break if the file was relocated.
 // Scan all .js files in dist/ for relative paths and verify the targets exist.
+// ─── Fix jiti babel.cjs paths across ALL bundled files ───
+// jiti hardcodes require("../dist/babel.cjs") relative to its original src/
+// location. After bundling, files in dist/plugin-sdk/, dist/extensions/,
+// dist/bundled/, etc. end up with this broken relative path. The correct
+// path depends on the file's depth: files in dist/*.js need "./babel.cjs",
+// files in dist/foo/*.js need "../babel.cjs", files in dist/foo/bar/*.js
+// need "../../babel.cjs". Simplest fix: rewrite all to absolute-ish path
+// relative to each file's actual location.
+function fixBabelCjsPaths() {
+  const babelCjs = path.join(distDir, "babel.cjs");
+  if (!fs.existsSync(babelCjs)) return;
+
+  let fixed = 0;
+  function scanAndFix(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) { scanAndFix(full); continue; }
+      if (!entry.name.endsWith(".js") && !entry.name.endsWith(".cjs")) continue;
+      let content;
+      try { content = fs.readFileSync(full, "utf-8"); } catch { continue; }
+      if (!content.includes("../dist/babel.cjs")) continue;
+      // Compute correct relative path from this file to dist/babel.cjs
+      const correctRel = path.relative(path.dirname(full), babelCjs).replace(/\\/g, "/");
+      fs.writeFileSync(full, content.replaceAll("../dist/babel.cjs", correctRel), "utf-8");
+      fixed++;
+    }
+  }
+
+  scanAndFix(distDir);
+  if (fixed > 0) {
+    console.log(`[bundle-vendor-deps] Fixed babel.cjs paths in ${fixed} file(s)`);
+  }
+}
+
 function verifyRelativeRequires() {
   console.log("[bundle-vendor-deps] Verifying relative require/import paths...");
 
@@ -2342,6 +2364,7 @@ if (!fs.existsSync(nmDir)) {
   // Merge all external packages from extensions + main bundle for verification
   const allExternals = new Set([...extExternals, ...bundleExternals]);
   verifyExternalImports(allExternals, keepSet);
+  fixBabelCjsPaths();
   verifyRelativeRequires();
   stripNonRuntimeFiles();
   smokeTestGateway();
