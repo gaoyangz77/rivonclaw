@@ -2083,6 +2083,48 @@ function generateCompileCache() {
   );
 }
 
+// ─── Strip non-runtime files from dist-runtime/ and extensions/ ───
+// Vendor extensions ship .d.ts type declarations, .map source maps, .ts source
+// files, and .md docs.  These are not needed at runtime and inflate the NSIS
+// installer file count (28K → ~17K).  NSIS writes files one-by-one, so fewer
+// files = faster install.
+function stripNonRuntimeFiles() {
+  const STRIP_EXTS = [".map", ".md", ".mdx"];
+  const STRIP_DTS_RE = /\.d\.[cm]?ts$/;
+
+  let stripped = 0;
+  function stripDir(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        stripDir(full);
+        continue;
+      }
+      if (STRIP_DTS_RE.test(entry.name) || (entry.name.endsWith(".ts") && !entry.name.endsWith(".js"))) {
+        try { fs.unlinkSync(full); stripped++; } catch {}
+        continue;
+      }
+      for (const ext of STRIP_EXTS) {
+        if (entry.name.endsWith(ext)) {
+          try { fs.unlinkSync(full); stripped++; } catch {}
+          break;
+        }
+      }
+    }
+  }
+
+  const targets = ["dist-runtime", "extensions"].map((d) => path.join(vendorDir, d));
+  for (const t of targets) {
+    if (fs.existsSync(t)) stripDir(t);
+  }
+  if (stripped > 0) {
+    console.log(`[bundle-vendor-deps] Stripped ${stripped} non-runtime files (.d.ts/.ts/.map/.md) from dist-runtime/ and extensions/`);
+  }
+}
+
 // ─── Size Report ───
 // Collects sizes of key pipeline outputs and writes a JSON report to tmp/.
 // Used by the update-vendor skill to detect size regressions across upgrades.
@@ -2214,6 +2256,7 @@ if (!fs.existsSync(nmDir)) {
   // Merge all external packages from extensions + main bundle for verification
   const allExternals = new Set([...extExternals, ...bundleExternals]);
   verifyExternalImports(allExternals, keepSet);
+  stripNonRuntimeFiles();
   smokeTestGateway();
   // Skip compile cache warmup — V8 cache is populated naturally by
   // vendor's own module.enableCompileCache() on first real startup.
