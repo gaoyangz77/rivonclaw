@@ -60,8 +60,40 @@ exports.default = async function copyVendorDeps(context) {
   const destDistDir = path.join(vendorDestRoot, "dist");
   const destBundledMarker = path.join(destDistDir, ".bundled");
 
+  // For universal macOS builds, afterPack runs twice (arm64 + x64) with
+  // different vendorDestRoot directories. The bundle pipeline must produce
+  // identical dist/ output for both archs — otherwise electron-builder's
+  // universal merge fails ("mismatch in mach-o files"). Cache the bundled
+  // vendor from the first arch and reuse it for the second.
+  const bundleCache = path.resolve(__dirname, "..", ".vendor-bundle-cache");
+
   if (!fs.existsSync(destBundledMarker) && fs.existsSync(vendorDestRoot)) {
     const vendorSrcRoot = path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
+
+    // Reuse cached bundle from a previous afterPack run (same build session)
+    if (fs.existsSync(bundleCache)) {
+      console.log("[copy-vendor-deps] Reusing cached vendor bundle from previous arch build...");
+      // Copy cached dist/ over the current copy
+      const cachedDist = path.join(bundleCache, "dist");
+      const cachedNm = path.join(bundleCache, "node_modules");
+      if (fs.existsSync(cachedDist)) {
+        fs.rmSync(path.join(vendorDestRoot, "dist"), { recursive: true, force: true });
+        fs.cpSync(cachedDist, path.join(vendorDestRoot, "dist"), { recursive: true });
+      }
+      if (fs.existsSync(cachedNm)) {
+        fs.rmSync(vendorDest, { recursive: true, force: true });
+        fs.cpSync(cachedNm, vendorDest, { recursive: true });
+      }
+      // Copy dist-runtime if cached
+      const cachedDistRuntime = path.join(bundleCache, "dist-runtime");
+      if (fs.existsSync(cachedDistRuntime)) {
+        const destDR = path.join(vendorDestRoot, "dist-runtime");
+        fs.rmSync(destDR, { recursive: true, force: true });
+        fs.cpSync(cachedDistRuntime, destDR, { recursive: true });
+      }
+      await compileMerchantBytecode(context, resourcesDir);
+      return;
+    }
 
     console.log("[copy-vendor-deps] Running prune + bundle on copied vendor...");
 
@@ -111,6 +143,17 @@ exports.default = async function copyVendorDeps(context) {
     } catch (err) {
       console.error("[copy-vendor-deps] bundle-vendor-deps failed:", err.message);
       throw err;
+    }
+
+    // Cache the bundled vendor for the next arch's afterPack (universal builds)
+    console.log("[copy-vendor-deps] Caching bundled vendor for next arch...");
+    fs.rmSync(bundleCache, { recursive: true, force: true });
+    fs.mkdirSync(bundleCache, { recursive: true });
+    fs.cpSync(path.join(vendorDestRoot, "dist"), path.join(bundleCache, "dist"), { recursive: true });
+    fs.cpSync(vendorDest, path.join(bundleCache, "node_modules"), { recursive: true });
+    const destDR = path.join(vendorDestRoot, "dist-runtime");
+    if (fs.existsSync(destDR)) {
+      fs.cpSync(destDR, path.join(bundleCache, "dist-runtime"), { recursive: true });
     }
 
     // Restore original vendor node_modules (undo prune)
