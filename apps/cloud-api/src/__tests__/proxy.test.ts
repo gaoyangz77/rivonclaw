@@ -29,10 +29,15 @@ describe("POST /api/proxy/openrouter", () => {
   });
 
   it("returns 402 when balance is insufficient", async () => {
-    const sqlMock = sql as unknown as ReturnType<typeof vi.fn>;
-    sqlMock
-      .mockResolvedValueOnce([{ jwt_secret: "test-user-secret-32-chars-padded!!" }])
-      .mockResolvedValueOnce([{ balance: 0 }]);
+    const sqlMock = sql as unknown as ReturnType<typeof vi.fn> & { begin: ReturnType<typeof vi.fn> };
+    sqlMock.mockResolvedValueOnce([{ jwt_secret: "test-user-secret-32-chars-padded!!" }]);
+
+    sqlMock.begin = vi.fn(async (fn: (tx: unknown) => Promise<void>) => {
+      const tx = vi.fn()
+        .mockResolvedValueOnce([])              // UPDATE returns empty (balance insufficient)
+        .mockResolvedValueOnce([{ balance: 0 }]); // SELECT balance for error message
+      await fn(tx);
+    });
 
     const token = await makeToken();
     const res = await app.request("/api/proxy/openrouter", {
@@ -44,12 +49,17 @@ describe("POST /api/proxy/openrouter", () => {
   });
 
   it("deducts credits and proxies request when balance sufficient", async () => {
-    const sqlMock = sql as unknown as ReturnType<typeof vi.fn>;
-    sqlMock
-      .mockResolvedValueOnce([{ jwt_secret: "test-user-secret-32-chars-padded!!" }])
-      .mockResolvedValueOnce([{ balance: 50 }])
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce(undefined);
+    const sqlMock = sql as unknown as ReturnType<typeof vi.fn> & { begin: ReturnType<typeof vi.fn> };
+    // auth middleware lookup
+    sqlMock.mockResolvedValueOnce([{ jwt_secret: "test-user-secret-32-chars-padded!!" }]);
+
+    // mock sql.begin to execute the callback with a mock tx
+    sqlMock.begin = vi.fn(async (fn: (tx: unknown) => Promise<void>) => {
+      const tx = vi.fn()
+        .mockResolvedValueOnce([{ balance: 49 }])  // UPDATE RETURNING
+        .mockResolvedValueOnce(undefined);           // INSERT ledger
+      await fn(tx);
+    });
 
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ choices: [{ message: { content: "Hi" } }] }), {

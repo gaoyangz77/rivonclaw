@@ -31,23 +31,34 @@ proxyRoute.post("/openrouter", async (c) => {
   const estimatedTokens = estimateInputTokens(payload.messages ?? []);
   const creditCost = creditsForTokens(estimatedTokens);
 
-  const [balanceRow] = await sql<{ balance: number }[]>`
-    SELECT balance FROM credit_balance WHERE user_id = ${userId}
-  `;
-  const balance = balanceRow?.balance ?? 0;
-
-  if (balance < creditCost) {
-    return c.json({ error: "Insufficient credits", balance, required: creditCost }, 402);
+  let deducted = false;
+  try {
+    await sql.begin(async (tx) => {
+      const [updated] = await tx<{ balance: number }[]>`
+        UPDATE credit_balance
+        SET balance = balance - ${creditCost}, updated_at = now()
+        WHERE user_id = ${userId} AND balance >= ${creditCost}
+        RETURNING balance
+      `;
+      if (!updated) {
+        const [row] = await tx<{ balance: number }[]>`
+          SELECT balance FROM credit_balance WHERE user_id = ${userId}
+        `;
+        throw Object.assign(new Error("insufficient"), { balance: row?.balance ?? 0, required: creditCost });
+      }
+      await tx`
+        INSERT INTO credit_ledger (user_id, delta, reason, model, tokens)
+        VALUES (${userId}, ${-creditCost}, 'consumption', ${payload.model}, ${estimatedTokens})
+      `;
+      deducted = true;
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === "insufficient") {
+      const e = err as Error & { balance: number; required: number };
+      return c.json({ error: "Insufficient credits", balance: e.balance, required: e.required }, 402);
+    }
+    throw err;
   }
-
-  await sql`
-    INSERT INTO credit_ledger (user_id, delta, reason, model, tokens)
-    VALUES (${userId}, ${-creditCost}, 'consumption', ${payload.model}, ${estimatedTokens})
-  `;
-  await sql`
-    UPDATE credit_balance SET balance = balance - ${creditCost}, updated_at = now()
-    WHERE user_id = ${userId}
-  `;
 
   const upstreamRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -61,7 +72,7 @@ proxyRoute.post("/openrouter", async (c) => {
   });
 
   const isStreaming = payload.stream === true;
-  if (isStreaming && upstreamRes.body) {
+  if (isStreaming && upstreamRes.ok && upstreamRes.body) {
     c.header("Content-Type", "text/event-stream");
     c.header("Cache-Control", "no-cache");
     return stream(c, async (s) => {
