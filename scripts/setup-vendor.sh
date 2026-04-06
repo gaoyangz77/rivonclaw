@@ -105,9 +105,12 @@ else
   echo "$HASH" > dist/.dist-complete
 fi
 
-if [ "$PROD" = true ]; then
-  npm_config_node_linker=hoisted pnpm install --prod --frozen-lockfile
-fi
+# NOTE: Do NOT run pnpm install --prod here. The vendor node_modules cache
+# saves the state at job end — if we prune dev deps here, the cache stores
+# prod-only modules, and subsequent CI runs fail TypeScript compilation
+# (EasyClaw packages reference vendor extension types that need dev deps).
+# Prod pruning happens later in prune-vendor-deps.cjs (afterPack) on the
+# release COPY, not the original vendor.
 
 # Remove .gitignore so dist/ and node_modules/ are visible to electron-builder
 # during CI packaging. Replicate the ignore rules in .git/info/exclude so that

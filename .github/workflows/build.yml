@@ -67,7 +67,7 @@ jobs:
 
       - name: Setup OpenClaw vendor
         shell: bash
-        run: ./scripts/setup-vendor.sh --prod --skip-clone
+        run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
@@ -175,7 +175,7 @@ jobs:
           key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh --prod --skip-clone
+        run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
@@ -280,7 +280,7 @@ jobs:
           key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
-        run: ./scripts/setup-vendor.sh --prod --skip-clone
+        run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
