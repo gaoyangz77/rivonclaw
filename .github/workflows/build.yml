@@ -63,7 +63,7 @@ jobs:
             vendor/openclaw/dist
             vendor/openclaw/node_modules
             apps/desktop/.prebundled-extensions
-          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs') }}
+          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
         shell: bash
@@ -172,7 +172,7 @@ jobs:
             vendor/openclaw/dist
             vendor/openclaw/node_modules
             apps/desktop/.prebundled-extensions
-          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs') }}
+          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
         run: ./scripts/setup-vendor.sh --prod --skip-clone
@@ -277,7 +277,7 @@ jobs:
             vendor/openclaw/dist
             vendor/openclaw/node_modules
             apps/desktop/.prebundled-extensions
-          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs') }}
+          key: vendor-bundle-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/bundle-vendor-deps.cjs', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
         run: ./scripts/setup-vendor.sh --prod --skip-clone
