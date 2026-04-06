@@ -145,10 +145,15 @@ exports.default = async function copyVendorDeps(context) {
       console.log("[copy-vendor-deps] node_modules copied.");
     }
     // Copy dist-runtime/ (gitignored, contains extension re-export proxies)
+    // Use verbatimSymlinks to preserve symlinks instead of dereferencing them.
+    // dist-runtime/ contains symlinks like extensions/discord/node_modules →
+    // dist/extensions/discord/node_modules. Without verbatimSymlinks, cpSync
+    // follows these and copies ~19K node_modules files into the app, causing
+    // universal merge mismatch (one arch has them, the other doesn't).
     const distRuntimeSrc = path.join(vendorSrcRoot, "dist-runtime");
     const distRuntimeDest = path.join(vendorDestRoot, "dist-runtime");
     if (fs.existsSync(distRuntimeSrc) && !fs.existsSync(distRuntimeDest)) {
-      fs.cpSync(distRuntimeSrc, distRuntimeDest, { recursive: true });
+      fs.cpSync(distRuntimeSrc, distRuntimeDest, { recursive: true, verbatimSymlinks: true });
     }
 
     // Step 3: Bundle on the COPY (modifies dist/, safe for original)
