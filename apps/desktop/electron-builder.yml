@@ -31,6 +31,10 @@ extraResources:
       - "docs/**"
       - "extensions/**"
       - "!extensions/**/node_modules/**"
+      # Exclude dist-runtime/ — contains symlinked node_modules (~7K files)
+      # that inflate installer and cause runtime errors (stubs point to
+      # dist/extensions/ chunks that don't exist after bundling).
+      - "!dist-runtime/**"
       - "packages/**"
       - "!packages/**/node_modules/**"
       # Exclude CLAUDE.md symlinks (→ AGENTS.md) — dev-only Claude Code
