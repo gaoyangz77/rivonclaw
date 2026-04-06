@@ -48,7 +48,7 @@ export function ThemeToggle() {
   useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", effectiveTheme);
     localStorage.setItem("theme", themePreference);
-    syncSettingToBackend("panel_theme", effectiveTheme);
+    syncSettingToBackend("panel_theme", themePreference);
   }, [effectiveTheme, themePreference]);
 
   // Apply accent color from localStorage

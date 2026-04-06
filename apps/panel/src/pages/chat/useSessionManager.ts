@@ -6,7 +6,7 @@ import { DEFAULTS } from "@rivonclaw/core";
 import { restoreImages } from "../../lib/image-cache.js";
 import { fetchChatSessions, updateChatSession } from "../../api/chat-sessions.js";
 import type { ChatSessionMeta } from "../../api/chat-sessions.js";
-import { trackEvent } from "../../api/index.js";
+import { trackEvent, updateSettings } from "../../api/index.js";
 
 const REFRESH_DEBOUNCE = DEFAULTS.chat.sessionRefreshDebounceMs;
 const MAX_CACHED_SESSIONS = DEFAULTS.chat.maxCachedSessions;
@@ -36,11 +36,17 @@ function loadCustomOrder(): string[] | null {
   return null;
 }
 
-/** Save custom tab order to localStorage. */
+/** Save custom tab order to localStorage and backend. */
 function saveCustomOrder(order: string[] | null): void {
   try {
-    if (order) localStorage.setItem("chat-tab-order", JSON.stringify(order));
-    else localStorage.removeItem("chat-tab-order");
+    if (order) {
+      const val = JSON.stringify(order);
+      localStorage.setItem("chat-tab-order", val);
+      updateSettings({ chat_tab_order: val }).catch(() => {});
+    } else {
+      localStorage.removeItem("chat-tab-order");
+      updateSettings({ chat_tab_order: "" }).catch(() => {});
+    }
   } catch { /* quota exceeded or similar */ }
 }
 

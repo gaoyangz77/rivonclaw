@@ -7,6 +7,7 @@ import {
   cancelUpdateDownload,
   fetchUpdateDownloadStatus,
   triggerUpdateInstall,
+  updateSettings,
 } from "../api/index.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { formatError } from "@rivonclaw/core";
@@ -189,6 +190,7 @@ export const Layout = observer(function Layout({
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem("sidebar-collapsed", String(next));
+    updateSettings({ sidebar_collapsed: String(next) }).catch(() => {});
   }
 
   const handleMouseDown = useCallback(() => {

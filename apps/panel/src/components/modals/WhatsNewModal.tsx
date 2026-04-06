@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "./Modal.js";
+import { updateSettings } from "../../api/settings.js";
 import type { ChangelogEntry } from "../../api/index.js";
 
 export function WhatsNewModal({
@@ -22,6 +23,7 @@ export function WhatsNewModal({
 
   function handleClose() {
     localStorage.setItem("whatsNew.lastSeenVersion", currentVersion);
+    updateSettings({ whats_new_last_seen_version: currentVersion }).catch(() => {});
     onClose();
   }
 

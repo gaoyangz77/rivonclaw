@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 import type { ReactNode } from "react"
 import { DEFAULTS } from "@rivonclaw/core"
+import { updateSettings } from "../api/settings.js"
 import type { TutorialStep } from "./types.js"
 import { getStepsForRoute } from "./steps/index.js"
 
@@ -48,6 +49,7 @@ export function TutorialProvider({ currentPath, children }: { currentPath: strin
 
   const setEnabled = useCallback((v: boolean) => {
     localStorage.setItem("tutorial.enabled", String(v))
+    updateSettings({ tutorial_enabled: String(v) }).catch(() => {})
     setEnabledState(v)
     if (!v) {
       setIsPlaying(false)

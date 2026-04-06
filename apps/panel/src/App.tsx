@@ -50,6 +50,27 @@ function pageNameFromRoute(route: string): string {
   return route === "/" ? "chat" : route.slice(1);
 }
 
+/** Hydrate localStorage from backend settings so UI preferences survive port changes. */
+function hydrateLocalStorage(settings: Record<string, string>) {
+  const mapping: Record<string, string> = {
+    whats_new_last_seen_version: "whatsNew.lastSeenVersion",
+    telemetry_consent_shown: "telemetry.consentShown",
+    sidebar_collapsed: "sidebar-collapsed",
+    show_agent_name: "showAgentName",
+    panel_theme: "theme",
+    panel_accent: "accentColor",
+    tutorial_enabled: "tutorial.enabled",
+    chat_examples_collapsed: "chat-examples-collapsed",
+    chat_tab_order: "chat-tab-order",
+  };
+  for (const [backendKey, localKey] of Object.entries(mapping)) {
+    const val = settings[backendKey];
+    if (val !== undefined) {
+      localStorage.setItem(localKey, val);
+    }
+  }
+}
+
 export function App() {
   const { t } = useTranslation();
   const [currentPath, setCurrentPath] = useState(() => resolveRoute(window.location.pathname));
@@ -96,6 +117,8 @@ export function App() {
   async function checkOnboarding() {
     try {
       const settings = await fetchSettings();
+      hydrateLocalStorage(settings);
+
       const provider = settings["llm-provider"];
       // API keys are masked to "configured" by the server when present
       const hasApiKey = provider

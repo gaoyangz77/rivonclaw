@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchTelemetrySetting, updateTelemetrySetting, trackEvent, fetchAgentSettings, updateAgentSettings, fetchChatShowAgentEvents, updateChatShowAgentEvents, fetchChatPreserveToolEvents, updateChatPreserveToolEvents, fetchChatCollapseMessages, updateChatCollapseMessages, fetchBrowserMode, updateBrowserMode, fetchAutoLaunchSetting, updateAutoLaunchSetting, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, fetchPrivacyMode, updatePrivacyMode, fetchSessionStateCdpEnabled, updateSessionStateCdpEnabled, provisionDeps, openFileDialog } from "../api/index.js";
+import { fetchTelemetrySetting, updateTelemetrySetting, trackEvent, fetchAgentSettings, updateAgentSettings, fetchChatShowAgentEvents, updateChatShowAgentEvents, fetchChatPreserveToolEvents, updateChatPreserveToolEvents, fetchChatCollapseMessages, updateChatCollapseMessages, fetchBrowserMode, updateBrowserMode, fetchAutoLaunchSetting, updateAutoLaunchSetting, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, fetchPrivacyMode, updatePrivacyMode, fetchSessionStateCdpEnabled, updateSessionStateCdpEnabled, provisionDeps, openFileDialog, updateSettings } from "../api/index.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import type { OpenClawStateDirInfo } from "../api/index.js";
 import { Select } from "../components/inputs/Select.js";
@@ -271,18 +271,21 @@ export function SettingsPage() {
   function handleAccentColorChange(color: string) {
     setAccentColor(color);
     localStorage.setItem("accentColor", color);
+    updateSettings({ panel_accent: color }).catch(() => {});
     window.dispatchEvent(new CustomEvent("accent-color-changed"));
     trackEvent("settings.accent_color_changed", { color });
   }
 
   function handleToggleTutorial(enabled: boolean) {
     localStorage.setItem("tutorial.enabled", String(enabled));
+    updateSettings({ tutorial_enabled: String(enabled) }).catch(() => {});
     setTutorialEnabled(enabled);
     window.dispatchEvent(new CustomEvent("tutorial-settings-changed"));
   }
 
   function handleToggleShowAgentName(enabled: boolean) {
     localStorage.setItem("showAgentName", String(enabled));
+    updateSettings({ show_agent_name: String(enabled) }).catch(() => {});
     setShowAgentName(enabled);
     window.dispatchEvent(new CustomEvent("brand-display-changed"));
   }
