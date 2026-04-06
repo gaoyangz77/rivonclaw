@@ -24,6 +24,7 @@ import type { ManagedBrowserService } from "./browser-profiles/managed-browser-s
 import { CloudClient } from "./clients/cloud-client.js";
 import { sendChannelMessage } from "./channels/channel-senders.js";
 import type { ApiContext, RouteHandler } from "./api-routes/api-context.js";
+import type { CreditsClient } from "@rivonclaw/credits-client";
 import { sendJson } from "./api-routes/route-utils.js";
 import { proxiedFetch } from "./api-routes/route-utils.js";
 import { handleRulesRoutes } from "./api-routes/rules-routes.js";
@@ -241,6 +242,8 @@ export interface PanelServerOptions {
   sessionLifecycleManager?: SessionLifecycleManager;
   managedBrowserService?: ManagedBrowserService;
   channelManager?: import("./store/channel-manager.js").ChannelManagerInstance;
+  creditsClient?: CreditsClient;
+  creditsToken?: () => string | undefined;
 }
 
 // --- Route handlers (dispatched in order, first match wins) ---
@@ -276,7 +279,7 @@ const routeHandlers: RouteHandler[] = [
 export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
   const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, proxyRouterPort, gatewayPort, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService, channelManager } = options;
+  const { storage, secretStore, proxyRouterPort, gatewayPort, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService, channelManager, creditsClient, creditsToken } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -361,6 +364,8 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     sessionLifecycleManager,
     managedBrowserService,
     channelManager,
+    creditsClient,
+    creditsToken,
   };
 
   const server = createServer(async (req, res) => {

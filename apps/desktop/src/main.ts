@@ -70,6 +70,7 @@ import { setAuthSession } from "./auth/auth-session-ref.js";
 import { setStorageRef } from "./storage-ref.js";
 import { setProviderKeysStore } from "./gateway/provider-keys-ref.js";
 import { setVendorDir } from "./gateway/vendor-dir-ref.js";
+import { initializeCredits } from "./credits/credits-initializer.js";
 
 const log = createLogger("desktop");
 
@@ -508,7 +509,13 @@ app.whenReady().then(async () => {
   const { backfillOwnerMigration } = await import("./auth/owner-migration.js");
   await backfillOwnerMigration(storage, stateDir, configPath);
 
-
+  // --- Credits initialization ---
+  // Must run after storage and secretStore are ready.
+  // Authenticates the device with cloud-api, caches the JWT, and configures
+  // the openrouter provider to route through the credits proxy.
+  const creditsInit = await initializeCredits(storage, secretStore, deviceId);
+  // creditsToken is a live getter so routes always see the latest cached value
+  const creditsTokenGetter = () => storage.settings.get("credits_token") ?? creditsInit.token ?? undefined;
 
   // Clean up any stale openclaw processes before starting.
   // With dynamic ports, orphaned processes won't block new instances,
@@ -1453,6 +1460,8 @@ app.whenReady().then(async () => {
     },
     authSession,
     channelManager: rootStore.channelManager,
+    creditsClient: creditsInit.client ?? undefined,
+    creditsToken: creditsTokenGetter,
   });
 
   // Now that the panel server is bound, set the actual URL for BrowserWindow.
