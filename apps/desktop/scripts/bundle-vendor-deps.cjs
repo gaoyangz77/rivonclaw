@@ -1641,11 +1641,28 @@ function cleanupNodeModules() {
     console.log(`[bundle-vendor-deps] Removed ${brokenSymlinks} broken symlinks`);
   }
 
-  // Remove .bin/ directory (not needed at runtime)
+  // Remove ALL .bin/ directories (not needed at runtime).
+  // Top-level and nested — nested .bin dirs contain symlinks that break
+  // electron-builder's universal binary merge on macOS (ENOENT on stat).
   const binDir = path.join(nmDir, ".bin");
   if (fs.existsSync(binDir)) {
     fs.rmSync(binDir, { recursive: true, force: true });
   }
+  // Recursively remove nested .bin dirs (e.g. make-dir/node_modules/.bin/)
+  function removeNestedBinDirs(dir) {
+    try {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const full = path.join(dir, entry.name);
+        if (entry.name === ".bin") {
+          fs.rmSync(full, { recursive: true, force: true });
+        } else if (entry.name === "node_modules") {
+          removeNestedBinDirs(full);
+        }
+      }
+    } catch {}
+  }
+  removeNestedBinDirs(nmDir);
 
   // Also clean .pnpm/node_modules/ broken symlinks
   const pnpmNmDir = path.join(pnpmDir, "node_modules");
