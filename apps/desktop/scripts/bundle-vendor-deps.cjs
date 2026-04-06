@@ -2097,6 +2097,77 @@ function generateCompileCache() {
 // files, and .md docs.  These are not needed at runtime and inflate the NSIS
 // installer file count (28K → ~17K).  NSIS writes files one-by-one, so fewer
 // files = faster install.
+// ─── Verify relative require/import paths in bundled JS files ───
+// After code-splitting and moving files around, relative paths like
+// require("../dist/babel.cjs") can break if the file was relocated.
+// Scan all .js files in dist/ for relative paths and verify the targets exist.
+function verifyRelativeRequires() {
+  console.log("[bundle-vendor-deps] Verifying relative require/import paths...");
+
+  const broken = [];
+
+  function scanDir(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        scanDir(full);
+        continue;
+      }
+      if (!entry.name.endsWith(".js") && !entry.name.endsWith(".cjs")) continue;
+      let content;
+      try { content = fs.readFileSync(full, "utf-8"); } catch { continue; }
+
+      // Match require("../something") and import("../something") patterns
+      const re = /(?:require|import)\(["'](\.\.[^"']+)["']\)/g;
+      let match;
+      while ((match = re.exec(content)) !== null) {
+        const relPath = match[1];
+        // Skip node: protocol and bare specifiers
+        if (relPath.startsWith("node:")) continue;
+        const resolved = path.resolve(path.dirname(full), relPath);
+        // Check with and without extensions
+        const candidates = [
+          resolved,
+          resolved + ".js",
+          resolved + ".cjs",
+          resolved + ".mjs",
+        ];
+        if (!candidates.some((c) => fs.existsSync(c))) {
+          broken.push({
+            file: path.relative(distDir, full),
+            ref: relPath,
+            resolved: path.relative(distDir, resolved),
+          });
+        }
+      }
+    }
+  }
+
+  scanDir(distDir);
+
+  if (broken.length > 0) {
+    console.error(
+      `\n[bundle-vendor-deps] ✗ BROKEN RELATIVE PATHS: ${broken.length} reference(s) point to missing files.\n`,
+    );
+    for (const b of broken.slice(0, 20)) {
+      console.error(`  ${b.file}: require("${b.ref}") → ${b.resolved} NOT FOUND`);
+    }
+    if (broken.length > 20) {
+      console.error(`  ... and ${broken.length - 20} more`);
+    }
+    console.error(
+      `\n  These will cause runtime errors when the referenced code is loaded.\n` +
+      `  Fix: patch the broken paths in bundle-vendor-deps.cjs after code-split.\n`,
+    );
+    process.exit(1);
+  }
+
+  console.log("[bundle-vendor-deps] All relative paths verified.");
+}
+
 function stripNonRuntimeFiles() {
   const STRIP_EXTS = [".map", ".md", ".mdx"];
   const STRIP_DTS_RE = /\.d\.[cm]?ts$/;
@@ -2265,6 +2336,7 @@ if (!fs.existsSync(nmDir)) {
   // Merge all external packages from extensions + main bundle for verification
   const allExternals = new Set([...extExternals, ...bundleExternals]);
   verifyExternalImports(allExternals, keepSet);
+  verifyRelativeRequires();
   stripNonRuntimeFiles();
   smokeTestGateway();
   // Skip compile cache warmup — V8 cache is populated naturally by
