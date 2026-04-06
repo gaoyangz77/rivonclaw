@@ -47,7 +47,20 @@ fi
 # When dist is cached, the cached output already includes patched builds
 # (the cache key incorporates patch file hashes). We still apply patches
 # to source so git state matches the built artifacts.
-if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ -f dist/.dist-complete ]; then
+# If dist cache claims to be valid but .dist-complete marker is missing,
+# the cache is incomplete (e.g. stale from a prior vendor version).
+# Force a full rebuild by unsetting SKIP_VENDOR_BUILD.
+if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ ! -f dist/.dist-complete ]; then
+  echo "WARNING: dist cache hit but .dist-complete marker missing — forcing rebuild"
+  SKIP_VENDOR_BUILD=false
+  # Dev dependencies are needed for build but cached node_modules may be
+  # prod-only. pnpm won't re-install dev deps if it thinks the lockfile is
+  # already satisfied, so remove node_modules first to force a clean install.
+  rm -rf node_modules
+  pnpm install --frozen-lockfile
+fi
+
+if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
   echo "Skipping pnpm run build (cache hit, dist verified)"
   # Remove the .bundled marker so bundle-vendor-deps.cjs runs its full
   # pipeline (Phase 0.5b pre-bundling, Phase 4 node_modules pruning, etc.).
@@ -67,6 +80,9 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ -f dist/.dist-complete ]; then
     git am --3way "$PATCH_DIR"/*.patch
   fi
 else
+  # Ensure dev dependencies are available — node_modules cache may be prod-only
+  # (SKIP_VENDOR_INSTALL=true only skips the first install, not this one).
+  pnpm install --frozen-lockfile 2>/dev/null || true
   pnpm run build
   pnpm ui:build
   # Replay EasyClaw vendor patches (if any exist)
