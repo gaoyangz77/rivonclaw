@@ -28,8 +28,6 @@ extraResources:
       - "openclaw.mjs"
       - "package.json"
       - "dist/**"
-      - "dist-runtime/**"
-      - "!dist-runtime/**/node_modules/**"
       - "docs/**"
       - "extensions/**"
       - "!extensions/**/node_modules/**"
