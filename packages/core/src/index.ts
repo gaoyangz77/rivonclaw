@@ -180,3 +180,12 @@ export { stripReasoningTagsFromText } from "./generated/reasoning-tags.js";
 export type { ReasoningTagMode, ReasoningTagTrim } from "./generated/reasoning-tags.js";
 
 export type { ClientToolDef } from "./client-tools.js";
+
+export type { AccessMode } from "./access-mode.js";
+export {
+  ACCESS_MODE_KEY,
+  DEFAULT_ACCESS_MODE,
+  CREDITS_TOKEN_KEY,
+  CLOUD_API_URL_KEY,
+  DEFAULT_CLOUD_API_URL,
+} from "./access-mode.js";

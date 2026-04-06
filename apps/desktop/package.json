@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@rivonclaw/core": "workspace:*",
+    "@rivonclaw/credits-client": "workspace:*",
     "@rivonclaw/device-id": "workspace:*",
     "@rivonclaw/gateway": "workspace:*",
     "@rivonclaw/logger": "workspace:*",

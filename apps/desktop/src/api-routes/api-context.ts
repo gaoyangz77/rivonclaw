@@ -9,6 +9,7 @@ import type { SessionLifecycleManager } from "../browser-profiles/session-lifecy
 import type { ManagedBrowserService } from "../browser-profiles/managed-browser-service.js";
 import type { CloudClient } from "../clients/cloud-client.js";
 import type { ChannelManagerInstance } from "../store/channel-manager.js";
+import type { CreditsClient } from "@rivonclaw/credits-client";
 
 export interface ApiContext {
   storage: Storage;
@@ -56,6 +57,8 @@ export interface ApiContext {
   sessionLifecycleManager?: SessionLifecycleManager;
   managedBrowserService?: ManagedBrowserService;
   channelManager?: ChannelManagerInstance;
+  creditsClient?: CreditsClient;
+  creditsToken?: () => string | undefined;
 }
 
 export type RouteHandler = (

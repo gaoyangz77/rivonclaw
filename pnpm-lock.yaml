@@ -64,6 +64,9 @@ importers:
       '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@rivonclaw/credits-client':
+        specifier: workspace:*
+        version: link:../../packages/credits-client
       '@rivonclaw/device-id':
         specifier: workspace:*
         version: link:../../packages/device-id

@@ -43,6 +43,7 @@ import { handleDepsRoutes } from "./api-routes/deps-routes.js";
 import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
 import { handleCSBridgeRoutes } from "./api-routes/cs-bridge-routes.js";
 import { handleStoreStream } from "./api-routes/store-stream-routes.js";
+import { handleCreditsRoutes } from "./api-routes/credits-routes.js";
 
 const log = createLogger("panel-server");
 
@@ -248,6 +249,7 @@ const routeHandlers: RouteHandler[] = [
   handleAuthRoutes,
   handleCloudGraphqlRoutes,
   handleCloudRestRoutes,
+  handleCreditsRoutes,
   handleRulesRoutes,
   handleSettingsRoutes,
   handleProviderRoutes,
