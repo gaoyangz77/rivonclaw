@@ -172,23 +172,31 @@ console.log(
 // ─── Phase 1: pnpm install --prod ───
 console.log("[prune-vendor-deps] Phase 1: pnpm install --prod ...");
 try {
-  // When running on a copy (VENDOR_DIR_OVERRIDE), pnpm traverses upward and
-  // finds the monorepo workspace root, causing lockfile mismatch errors.
-  // Place an empty pnpm-workspace.yaml in vendorDir to make pnpm treat it
-  // as the workspace root, preventing upward traversal.
-  const isOverride = !!process.env.VENDOR_DIR_OVERRIDE;
+  // pnpm traverses upward and finds the monorepo workspace root, causing it
+  // to hoist ALL workspace dependencies into vendor/node_modules (inflating
+  // from ~2K to 30K+ files). Place an empty pnpm-workspace.yaml to make pnpm
+  // treat vendorDir as its own workspace root, preventing upward traversal.
+  // Override vendor's own pnpm-workspace.yaml which lists ui/, packages/*,
+  // extensions/* — causing pnpm to install all sub-package deps into the
+  // hoisted node_modules. With packages: [] only the root package.json deps
+  // are installed.
   const wsMarker = path.join(vendorDir, "pnpm-workspace.yaml");
+  const wsBackup = path.join(vendorDir, "pnpm-workspace.yaml.bak");
   const hadWsMarker = fs.existsSync(wsMarker);
-  if (isOverride && !hadWsMarker) {
-    fs.writeFileSync(wsMarker, "packages: []\n", "utf-8");
+  if (hadWsMarker) {
+    fs.renameSync(wsMarker, wsBackup);
   }
+  fs.writeFileSync(wsMarker, "packages: []\n", "utf-8");
   execSync("pnpm install --prod --no-frozen-lockfile --ignore-scripts", {
     cwd: vendorDir,
     stdio: "inherit",
     timeout: 120_000,
     env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
   });
-  if (isOverride && !hadWsMarker) {
+  // Restore original workspace yaml
+  if (hadWsMarker && fs.existsSync(wsBackup)) {
+    fs.renameSync(wsBackup, wsMarker);
+  } else {
     try { fs.unlinkSync(wsMarker); } catch {}
   }
 } catch (err) {
@@ -319,13 +327,36 @@ function removeNestedNodeModules(dir) {
   }
 }
 
-// 4a: Remove nested node_modules from dist/, dist-runtime/, and extensions/
-// These are symlinked or duplicated — runtime resolves deps from the top-level
-// node_modules/ which copy-vendor-deps.cjs copies separately.
+// 4a: Remove nested node_modules AND all symlinks from dist/, dist-runtime/,
+// and extensions/. node_modules are symlinked or duplicated — runtime resolves
+// deps from the top-level node_modules/. Other symlinks (SKILL.md, .json stamp
+// files) break Windows 7-Zip packaging.
+function removeSymlinksRecursive(dir) {
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) {
+      try { fs.unlinkSync(full); phase4Files++; } catch {}
+      continue;
+    }
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules") {
+        const size = dirSize(full);
+        const count = fileCount(full);
+        fs.rmSync(full, { recursive: true, force: true });
+        phase4Bytes += size;
+        phase4Files += count;
+        continue;
+      }
+      removeSymlinksRecursive(full);
+    }
+  }
+}
 for (const subdir of ["dist", "dist-runtime", "extensions"]) {
   const target = path.join(vendorDir, subdir);
   if (fs.existsSync(target)) {
-    removeNestedNodeModules(target);
+    removeSymlinksRecursive(target);
   }
 }
 
@@ -350,6 +381,55 @@ if (fs.existsSync(controlUiDir)) {
   phase4Bytes += size;
   phase4Files += count;
   console.log(`  removed dist/control-ui/ (${(size / 1024 / 1024).toFixed(1)}MB, ${count} files)`);
+}
+
+// 4d: Remove CLAUDE.md symlinks — git stores them as text files containing
+// the symlink target. On CI with core.symlinks=true they become real symlinks.
+// Windows 7-Zip treats them as invalid directories, crashing NSIS packaging.
+function removeCLAUDEmdSymlinks(dir) {
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removeCLAUDEmdSymlinks(full);
+    } else if (entry.name === "CLAUDE.md" || entry.name === "AGENTS.md") {
+      // Check if it's a symlink or a small file containing a symlink target
+      try {
+        if (entry.isSymbolicLink()) {
+          fs.unlinkSync(full);
+          phase4Files++;
+        } else {
+          const content = fs.readFileSync(full, "utf-8").trim();
+          // Git symlink files contain just the target filename
+          if (content.length < 100 && /^[A-Z][A-Z_-]+\.md$/.test(content)) {
+            fs.unlinkSync(full);
+            phase4Files++;
+          }
+        }
+      } catch {}
+    }
+  }
+}
+removeCLAUDEmdSymlinks(vendorDir);
+
+// 4e: Make dist/ and dist-runtime/ visible to electron-builder.
+// vendor/.gitignore excludes them but electron-builder needs to copy them.
+// Remove these lines from .gitignore (keep everything else like node_modules).
+const gitignorePath = path.join(vendorDir, ".gitignore");
+if (fs.existsSync(gitignorePath)) {
+  const original = fs.readFileSync(gitignorePath, "utf-8");
+  const filtered = original
+    .split("\n")
+    .filter((line) => line.trim() !== "dist" && line.trim() !== "dist-runtime")
+    .join("\n");
+  if (filtered !== original) {
+    // Save original to .git/info/exclude so git status stays clean
+    const excludePath = path.join(vendorDir, ".git", "info", "exclude");
+    try { fs.writeFileSync(excludePath, original, "utf-8"); } catch {}
+    fs.writeFileSync(gitignorePath, filtered, "utf-8");
+    console.log("  updated .gitignore: removed dist and dist-runtime exclusions");
+  }
 }
 
 console.log(`  stripped ${phase4Files} files (${(phase4Bytes / 1024 / 1024).toFixed(0)}MB) from dist-runtime/ and extensions/`);
