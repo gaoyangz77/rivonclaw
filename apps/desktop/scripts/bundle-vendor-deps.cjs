@@ -733,16 +733,21 @@ async function prebundleExtensions() {
    * @param {{inline: boolean}} opts
    * @returns {Promise<import("esbuild").BuildResult>}
    */
-  function buildExtensionAsync(entryPoint, outfile, opts) {
-    return esbuild.build({
+  /**
+   * @param {string} entryPoint
+   * @param {string} outfile
+   * @param {{inline: boolean}} opts
+   * @returns {import("esbuild").BuildResult}
+   */
+  function buildExtension(entryPoint, outfile, opts) {
+    // Use buildSync instead of build(). The async build() spawns a Go child
+    // process; if it gets killed (OOM, signal) the returned Promise never
+    // settles, hanging the entire pipeline forever. buildSync() throws
+    // immediately on crash. (Root cause of TS-006 CI hang.)
+    return esbuild.buildSync({
       entryPoints: [entryPoint],
       outfile,
       bundle: true,
-      // CJS format so jiti can require() directly without babel ESM→CJS transform.
-      // ESM format caused jiti to babel-transform every extension on load — the
-      // 20 MB llm-task extension alone took ~5 s on macOS, totalling 12+ s startup.
-      // The `define` replaces import.meta.url (ESM-only) with a CJS-compatible
-      // polyfill variable, and the banner provides the polyfill value.
       format: "cjs",
       platform: "node",
       target: "node22",
@@ -751,11 +756,6 @@ async function prebundleExtensions() {
         js: 'var __import_meta_url = require("url").pathToFileURL(__filename).href;',
       },
       footer: {
-        // Unwrap ESM default export for CJS interop: dist-runtime/ ESM stubs
-        // re-export from these CJS files via `export default module.default`,
-        // which double-wraps the default.  Flattening here ensures the plugin
-        // loader's resolvePluginModuleExport() finds register/activate at the
-        // first .default level.
         js: 'if(module.exports&&module.exports.__esModule&&module.exports.default)module.exports=module.exports.default;',
       },
       external: opts.inline ? extExternalsBase : extExternalsWithSdk,
@@ -793,7 +793,12 @@ async function prebundleExtensions() {
   // esbuild processes exhausts CI runner memory (GitHub Actions ≤ 7 GB),
   // causing swap thrashing and timeouts.  os.cpus().length keeps pressure
   // proportional to the machine.
-  const CONCURRENCY = require("os").cpus().length;
+  // Cap at 2: each esbuild build spawns a Go process that uses 200-500MB.
+  // With cpus().length=4 on CI (7GB RAM), 4 parallel Go processes + Node.js
+  // + node_modules memory mappings can OOM, causing the Go process to be
+  // killed silently. The async Promise then never settles, hanging the
+  // pipeline forever. (Root cause of TS-006 Linux CI hang.)
+  const CONCURRENCY = Math.min(2, require("os").cpus().length);
 
   /**
    * Map an array through an async fn with bounded concurrency.
@@ -860,7 +865,7 @@ async function prebundleExtensions() {
     extBuildInputs, async ({ ext, indexTs, stagingExtDir, indexJs }) => {
       try {
         // First attempt: inline plugin-sdk (tree-shaken).
-        let result = await buildExtensionAsync(indexTs, indexJs, { inline: true });
+        let result = buildExtension(indexTs, indexJs, { inline: true });
 
         // If the output exceeds the threshold, the extension uses too many
         // plugin-sdk internals — rebuild with plugin-sdk as external to
@@ -868,7 +873,7 @@ async function prebundleExtensions() {
         let inlined = true;
         const outSize = fs.statSync(indexJs).size;
         if (outSize > INLINE_SIZE_LIMIT) {
-          result = await buildExtensionAsync(indexTs, indexJs, { inline: false });
+          result = buildExtension(indexTs, indexJs, { inline: false });
           inlined = false;
         }
 
@@ -962,12 +967,12 @@ async function prebundleExtensions() {
     surfaceBuildInputs, async ({ ext, baseName, surfaceTs, surfaceJs }) => {
       try {
         // First attempt: inline plugin-sdk (tree-shaken).
-        let result = await buildExtensionAsync(surfaceTs, surfaceJs, { inline: true });
+        let result = buildExtension(surfaceTs, surfaceJs, { inline: true });
 
         // If too large, rebuild with plugin-sdk external.
         const outSize = fs.statSync(surfaceJs).size;
         if (outSize > INLINE_SIZE_LIMIT) {
-          result = await buildExtensionAsync(surfaceTs, surfaceJs, { inline: false });
+          result = buildExtension(surfaceTs, surfaceJs, { inline: false });
         }
 
         return /** @type {SurfaceBuildResult} */ ({ status: "ok", externals: collectExternals(result) });
