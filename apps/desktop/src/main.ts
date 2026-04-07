@@ -70,6 +70,7 @@ import { setAuthSession } from "./auth/auth-session-ref.js";
 import { setStorageRef } from "./storage-ref.js";
 import { setProviderKeysStore } from "./gateway/provider-keys-ref.js";
 import { setVendorDir } from "./gateway/vendor-dir-ref.js";
+import { proxyNetwork } from "./gateway/proxy-aware-network.js";
 
 const log = createLogger("desktop");
 
@@ -344,13 +345,14 @@ app.whenReady().then(async () => {
   const locale = app.getLocale().startsWith("zh") ? "zh" : "en";
   const { client: telemetryClient, heartbeatTimer } = initTelemetry(storage, deviceId, locale);
 
-  // Initialize auth session manager
-  const authSession = new AuthSessionManager(secretStore, locale, fetch);
+  // Initialize auth session manager.
+  // proxyNetwork.fetch routes through the proxy-router once it is ready,
+  // falling back to direct fetch before the router starts.
+  const authSession = new AuthSessionManager(secretStore, locale, (url, init) => proxyNetwork.fetch(url, init));
   setAuthSession(authSession);
   authSession.onUserChanged((user) => syncCloudProviderKey(user, storage, secretStore));
   await authSession.loadFromKeychain();
-  // Validate session on startup (auth uses native fetch, no proxy dependency)
-  authSession.validate().catch(() => {});
+  // NOTE: validate() is deferred until after proxy router starts (see below).
 
   // Initialize cloud OAuth subscription client (GraphQL Subscription via graphql-ws)
   const oauthSubscription = new OAuthSubscriptionClient(locale, (payload) => {
@@ -454,7 +456,11 @@ app.whenReady().then(async () => {
   // Resolve actual ports after services bind to OS-assigned ephemeral ports.
   // Proxy router port is now known (server is listening).
   const actualProxyRouterPort = proxyRouter.getPort();
+  proxyNetwork.setProxyRouterPort(actualProxyRouterPort);
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
+
+  // Now that proxy router is up, validate auth session through it.
+  authSession.validate().catch(() => {});
 
   // Gateway port: use env override if set (nonzero), otherwise ask OS for a free port.
   const envGatewayPort = resolveGatewayPort();

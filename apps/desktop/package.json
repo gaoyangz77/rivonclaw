@@ -41,6 +41,7 @@
     "better-sqlite3": "^12.6.2",
     "electron-updater": "^6.3.0",
     "graphql-ws": "^6.0.7",
+    "https-proxy-agent": "^7.0.6",
     "mobx": "^6.15.0",
     "mobx-state-tree": "^7.1.0",
     "undici": "^7.21.0",

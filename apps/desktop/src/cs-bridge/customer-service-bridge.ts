@@ -1,5 +1,6 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
+import { proxyNetwork } from "../gateway/proxy-aware-network.js";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
   type CSHelloFrame,
@@ -410,7 +411,7 @@ export class CustomerServiceBridge {
     return new Promise<void>((resolve) => {
       log.info(`Connecting to CS relay at ${this.opts.relayUrl}...`);
 
-      const ws = new WebSocket(this.opts.relayUrl);
+      const ws = proxyNetwork.createWebSocket(this.opts.relayUrl);
       this.ws = ws;
 
       ws.on("open", () => {

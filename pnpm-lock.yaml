@@ -84,6 +84,9 @@ importers:
       graphql-ws:
         specifier: ^6.0.7
         version: 6.0.7(graphql@16.13.1)(ws@8.19.0)
+      https-proxy-agent:
+        specifier: ^7.0.6
+        version: 7.0.6
       mobx:
         specifier: ^6.15.0
         version: 6.15.0
