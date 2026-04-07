@@ -627,9 +627,6 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
             setMessages((prev) => [...prev, { role: "assistant", text: extNewText, timestamp: Date.now() }]);
           }
         }
-        // DEBUG: log external final that triggers history reload
-        console.info("[chat] external final → reloading history: runId=%s localRunId=%s",
-          chatRunId, tracker.getLocalRunId());
         // External run finished — reload history to show the full conversation
         const client = clientRef.current;
         if (client) loadHistory(client);
