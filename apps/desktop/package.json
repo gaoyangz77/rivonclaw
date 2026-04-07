@@ -20,6 +20,10 @@
     "pack": "electron-builder --dir",
     "dist:mac": "node scripts/prune-vendor-deps.cjs && electron-builder --mac --publish never",
     "dist:mac:arm64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac dmg --arm64 --publish never && node scripts/sign-arm64.cjs",
+    "dist:mac:dir:arm64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac --dir --arm64 --publish never",
+    "dist:mac:dir:x64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac --dir --x64 --publish never",
+    "dist:mac:universal:merge": "node scripts/merge-universal-mac.cjs",
+    "dist:mac:universal:package": "electron-builder --mac --prepackaged release/mac-universal --publish never",
     "dist:win": "node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.yml --publish never",
     "dist:linux": "node scripts/prune-vendor-deps.cjs && electron-builder --linux --config electron-builder.linux.yml --publish never"
   },
@@ -50,6 +54,7 @@
   },
   "devDependencies": {
     "@electron/notarize": "^3.0.0",
+    "@electron/universal": "^2.0.1",
     "@electron/rebuild": "^4.0.3",
     "@playwright/test": "^1.58.2",
     "@rivonclaw/rivonclaw-browser-profiles-tools": "workspace:*",
