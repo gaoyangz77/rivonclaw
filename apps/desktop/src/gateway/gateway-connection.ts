@@ -165,24 +165,10 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
         log.warn("Failed to load client tool specs:", e),
       );
 
-      // Start CS Bridge if user has e-commerce module
-      // The bridge subscribes to the entity cache on start() and reactively
-      // syncs shop contexts when Panel's fetchShops flows through the proxy.
-      // No direct backend fetch is needed.
-      const authSession = getAuthSession();
-      if (authSession?.getAccessToken()) {
-        const user = authSession.getCachedUser();
-        const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
-        if (hasEcommerce) {
-          if (_csBridge) _csBridge.stop();
-          _csBridge = new CustomerServiceBridge({
-            relayUrl: getCsRelayWsUrl(),
-            gatewayId: deviceId ?? "unknown",
-          });
-          rootStore.llmManager.refreshModelCatalog().catch(() => {});
-          _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
-        }
-      }
+      // Start CS Bridge if user has e-commerce module.
+      // Also registers a listener so the bridge starts when user data arrives
+      // after gateway connect (e.g. ME_QUERY was slow or failed on first try).
+      tryStartCsBridge(deviceId ?? "unknown");
 
       // Push locally-stored cookies for managed profiles to the gateway plugin
       pushStoredCookiesToGateway()
@@ -211,5 +197,48 @@ export function disconnectGateway(): void {
   if (rpcClient) {
     rpcClient.stop();
     setRpcClient(null);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CS Bridge reactive startup
+// ---------------------------------------------------------------------------
+// The bridge must start when BOTH conditions are met:
+//   1. Gateway RPC is connected (we can dispatch agent runs)
+//   2. User data shows ecommerce module enrolled
+// These can arrive in any order (ME_QUERY may fail on first try due to
+// network issues). We register an onUserChanged listener so the bridge
+// starts as soon as user data arrives, even if gateway connected earlier.
+
+let _csBridgeListenerRegistered = false;
+
+function tryStartCsBridge(gatewayId: string): void {
+  const authSession = getAuthSession();
+  if (!authSession) return;
+
+  const attemptStart = () => {
+    // Both conditions: RPC connected + user has ecommerce
+    if (!getRpcClient()) return;
+    const user = authSession.getCachedUser();
+    const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
+    if (!hasEcommerce) return;
+    if (_csBridge) return; // Already running
+
+    _csBridge = new CustomerServiceBridge({
+      relayUrl: getCsRelayWsUrl(),
+      gatewayId,
+    });
+    rootStore.llmManager.refreshModelCatalog().catch(() => {});
+    _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
+    log.info("CS bridge started (ecommerce module detected)");
+  };
+
+  // Try immediately (user data may already be cached)
+  attemptStart();
+
+  // Register listener for when user data arrives later (only once)
+  if (!_csBridgeListenerRegistered) {
+    _csBridgeListenerRegistered = true;
+    authSession.onUserChanged(() => attemptStart());
   }
 }
