@@ -291,7 +291,7 @@ jobs:
 
   package-macos:
     runs-on: macos-latest
-    needs: [build-macos-arm64, build-macos-x64]
+    needs: [build-macos-arm64, build-macos-x64, build-windows, build-linux]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -462,7 +462,7 @@ jobs:
           retention-days: 30
 
   create-release:
-    needs: [build-windows, package-macos, build-linux]
+    needs: [package-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
