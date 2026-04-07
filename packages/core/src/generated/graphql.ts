@@ -1284,6 +1284,8 @@ export type SkillLabel = typeof SkillLabel[keyof typeof SkillLabel];
 export interface Subscription {
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
   oauthComplete: OAuthCompletePayload;
+  /** Fires when a shop is updated. Only receives updates for shops owned by the authenticated user. */
+  shopUpdated: Shop;
   updateAvailable: UpdatePayload;
 }
 
