@@ -29,7 +29,7 @@ import { proxyNetwork } from "../gateway/proxy-aware-network.js";
 const log = createLogger("cs-session");
 
 const SEND_MESSAGE_MUTATION = `
-  mutation($shopId: String!, $conversationId: String!, $type: String!, $content: String!) {
+  mutation($shopId: String!, $conversationId: String!, $type: EcomMessageType!, $content: String!) {
     ecommerceSendMessage(shopId: $shopId, conversationId: $conversationId, type: $type, content: $content) {
       code message data
     }

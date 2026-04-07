@@ -265,14 +265,6 @@ export interface CustomerServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
-/** Rich card message type for CS conversations */
-export const EcomCardType = {
-  LogisticsCard: 'LOGISTICS_CARD',
-  OrderCard: 'ORDER_CARD',
-  ProductCard: 'PRODUCT_CARD'
-} as const;
-
-export type EcomCardType = typeof EcomCardType[keyof typeof EcomCardType];
 /** Shipping document format */
 export const EcomDocumentFormat = {
   Pdf: 'PDF',
@@ -298,6 +290,18 @@ export const EcomDocumentType = {
 } as const;
 
 export type EcomDocumentType = typeof EcomDocumentType[keyof typeof EcomDocumentType];
+/** Message content type for CS conversations */
+export const EcomMessageType = {
+  CouponCard: 'COUPON_CARD',
+  Image: 'IMAGE',
+  LogisticsCard: 'LOGISTICS_CARD',
+  OrderCard: 'ORDER_CARD',
+  ProductCard: 'PRODUCT_CARD',
+  Text: 'TEXT',
+  Video: 'VIDEO'
+} as const;
+
+export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageType];
 /** Order status filter values */
 export const EcomOrderStatus = {
   AwaitingCollection: 'AWAITING_COLLECTION',
@@ -562,7 +566,7 @@ export interface MutationEcommerceSendMessageArgs {
   content: Scalars['String']['input'];
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
-  type: EcomCardType;
+  type: EcomMessageType;
 }
 
 
