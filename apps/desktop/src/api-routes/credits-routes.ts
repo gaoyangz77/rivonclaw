@@ -133,5 +133,58 @@ export const handleCreditsRoutes: RouteHandler = async (req, res, url, pathname,
     return true;
   }
 
+  // POST /api/auth/register
+  if (pathname === "/api/auth/register" && req.method === "POST") {
+    const body = await parseBody(req) as { email?: string; password?: string };
+    if (!creditsClient) {
+      sendJson(res, 503, { error: "Credits service not configured" });
+      return true;
+    }
+    try {
+      const result = await creditsClient.register(body.email ?? "", body.password ?? "");
+      sendJson(res, 200, result);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = msg.includes("already") ? 409 : 400;
+      sendJson(res, status, { error: msg });
+    }
+    return true;
+  }
+
+  // POST /api/auth/login
+  if (pathname === "/api/auth/login" && req.method === "POST") {
+    const body = await parseBody(req) as { email?: string; password?: string };
+    if (!creditsClient) {
+      sendJson(res, 503, { error: "Credits service not configured" });
+      return true;
+    }
+    try {
+      const result = await creditsClient.login(body.email ?? "", body.password ?? "");
+      sendJson(res, 200, result);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = msg.includes("Invalid") ? 401 : 400;
+      sendJson(res, status, { error: msg });
+    }
+    return true;
+  }
+
+  // GET /api/auth/me
+  if (pathname === "/api/auth/me" && req.method === "GET") {
+    const authHeader = req.headers["authorization"] as string | undefined;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token || !creditsClient) {
+      sendJson(res, 401, { error: "Unauthorized" });
+      return true;
+    }
+    try {
+      const data = await creditsClient.me(token);
+      sendJson(res, 200, data);
+    } catch {
+      sendJson(res, 401, { error: "Unauthorized" });
+    }
+    return true;
+  }
+
   return false;
 };
