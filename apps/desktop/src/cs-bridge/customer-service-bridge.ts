@@ -523,13 +523,17 @@ export class CustomerServiceBridge {
       case "cs_bind_shops_result": {
         const result = frame as CSBindShopsResultFrame;
         const boundSet = new Set(result.bound);
+        const takenOverSet = new Set(result.takenOver ?? []);
         const conflictSet = new Set(result.conflicts.map(c => c.shopId));
         const requested = [...this.shopContexts.keys()];
-        const rejected = requested.filter(id => !boundSet.has(id) && !conflictSet.has(id));
+        const rejected = requested.filter(id => !boundSet.has(id) && !takenOverSet.has(id) && !conflictSet.has(id));
 
-        log.info(`Shop binding result: ${result.bound.length} bound, ${result.conflicts.length} conflicts, ${rejected.length} rejected`);
+        log.info(`Shop binding result: ${result.bound.length} bound, ${(result.takenOver ?? []).length} takenOver, ${result.conflicts.length} conflicts, ${rejected.length} rejected`);
         if (result.bound.length > 0) {
           log.info(`  Bound: ${result.bound.join(", ")}`);
+        }
+        if ((result.takenOver ?? []).length > 0) {
+          log.info(`  Taken over from other device: ${result.takenOver!.join(", ")}`);
         }
         if (result.conflicts.length > 0) {
           log.warn(`  Conflicts (bound to other device): ${result.conflicts.map(c => `${c.shopId} → ${c.gatewayId}`).join(", ")}`);

@@ -122,6 +122,9 @@ export interface CSBindShopsFrame {
 export interface CSBindShopsResultFrame {
   type: "cs_bind_shops_result";
   bound: string[];
+  /** Shop IDs that were taken over from another gateway during binding. */
+  takenOver?: string[];
+  /** @deprecated Always empty — kept for backwards compatibility. */
   conflicts: Array<{ shopId: string; gatewayId: string }>;
 }
 
