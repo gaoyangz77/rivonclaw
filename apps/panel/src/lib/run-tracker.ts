@@ -498,6 +498,14 @@ export class RunTracker {
    * the next gateway delta event (~150ms) will re-register it automatically.
    */
   restoreDropStale(snapshot: RunTrackerSnapshot): void {
+    // Clear timers and state from the previous session before restoring
+    this.clearAllFallbackTimers();
+    for (const timer of this.recentlyCompletedTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.recentlyCompletedTimers.clear();
+    this.recentlyCompleted.clear();
+
     const filtered = snapshot.runs.filter(([, run]) => !ACTIVE_PHASES.has(run.phase));
     this.runs = new Map(filtered);
     // Preserve localRunId only if its run survived filtering
