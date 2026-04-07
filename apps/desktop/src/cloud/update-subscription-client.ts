@@ -1,8 +1,8 @@
 import { createClient, type Client } from "graphql-ws/client";
-import WebSocket from "ws";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { isNewerVersion } from "@rivonclaw/updater";
 import { createLogger } from "@rivonclaw/logger";
+import { proxyNetwork } from "../gateway/proxy-aware-network.js";
 
 const log = createLogger("update-subscription");
 
@@ -58,7 +58,7 @@ export class UpdateSubscriptionClient {
 
     this.client = createClient({
       url: wsUrl,
-      webSocketImpl: WebSocket as any,
+      webSocketImpl: proxyNetwork.createProxiedWebSocketClass() as any,
       connectionParams: () => {
         const token = this.getToken?.();
         return token ? { authorization: `Bearer ${token}` } : {};

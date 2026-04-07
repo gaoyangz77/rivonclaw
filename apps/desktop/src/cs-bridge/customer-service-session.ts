@@ -24,6 +24,7 @@ import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { getStorageRef } from "../storage-ref.js";
 import { rootStore } from "../store/desktop-store.js";
+import { proxyNetwork } from "../gateway/proxy-aware-network.js";
 
 const log = createLogger("cs-session");
 
@@ -630,7 +631,7 @@ export class CustomerServiceSession {
     try {
       const parsed = JSON.parse(frame.content) as { url?: string };
       if (!parsed.url) return undefined;
-      const res = await fetch(parsed.url);
+      const res = await proxyNetwork.fetch(parsed.url);
       if (!res.ok) return undefined;
       const buffer = Buffer.from(await res.arrayBuffer());
       const mimeType = res.headers.get("content-type") ?? "image/jpeg";

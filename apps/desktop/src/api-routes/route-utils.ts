@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveUserSkillsDir, resolveAgentSessionsDir } from "@rivonclaw/core/node";
+import { proxyNetwork } from "../gateway/proxy-aware-network.js";
 
 const log = createLogger("panel-server");
 
@@ -47,10 +48,12 @@ export function extractIdFromPath(pathname: string, prefix: string): string | nu
 /**
  * Fetch through local proxy router so GFW-blocked APIs (Telegram, LINE, etc.)
  * can reach their targets via the system proxy.
+ *
+ * The port parameter is kept for call-site compatibility but is ignored —
+ * proxyNetwork manages the proxy-router port centrally.
  */
 export async function proxiedFetch(proxyRouterPort: number, url: string | URL, init?: RequestInit): Promise<Response> {
-  const { ProxyAgent } = await import("undici");
-  return fetch(url, { ...init, dispatcher: new ProxyAgent(`http://127.0.0.1:${proxyRouterPort}`) as any });
+  return proxyNetwork.fetch(url, init);
 }
 
 /**

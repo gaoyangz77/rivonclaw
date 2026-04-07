@@ -1,7 +1,7 @@
 import { createClient, type Client } from "graphql-ws/client";
-import WebSocket from "ws";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
+import { proxyNetwork } from "../gateway/proxy-aware-network.js";
 
 const log = createLogger("oauth-subscription");
 
@@ -57,7 +57,7 @@ export class OAuthSubscriptionClient {
 
     this.client = createClient({
       url: wsUrl,
-      webSocketImpl: WebSocket as any,
+      webSocketImpl: proxyNetwork.createProxiedWebSocketClass() as any,
       connectionParams: () => {
         const token = this.getToken?.();
         return token ? { authorization: `Bearer ${token}` } : {};

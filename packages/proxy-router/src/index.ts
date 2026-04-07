@@ -285,11 +285,12 @@ export class ProxyRouter {
   private async connectToHost(host: string, port: number): Promise<Socket> {
     const systemProxy = this.config?.systemProxy;
     if (!systemProxy || systemProxy === "(none)") {
-      // Direct TCP connection
+      log.debug(`connectToHost ${host}:${port} → direct (no system proxy)`);
       const socket = new Socket();
       await connectWithTimeout(socket, port, host, CONNECT_TIMEOUT_MS);
       return socket;
     }
+    log.debug(`connectToHost ${host}:${port} → system proxy ${systemProxy}`);
 
     const proxyUrl = new URL(systemProxy);
     const proxyHost = proxyUrl.hostname;
