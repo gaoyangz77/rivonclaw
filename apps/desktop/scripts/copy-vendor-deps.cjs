@@ -44,7 +44,6 @@ exports.default = async function copyVendorDeps(context) {
 
   if (!fs.existsSync(vendorSrc)) {
     console.log(`[copy-vendor-deps] vendor/openclaw/node_modules not found at ${vendorSrc}, skipping.`);
-    // Still run bytecode compilation
     return;
   }
 
@@ -130,6 +129,4 @@ exports.default = async function copyVendorDeps(context) {
   const filesCopied = countFiles(vendorDest);
   console.log(`[copy-vendor-deps] Done — ${filesCopied} files copied, ${symlinkCount} symlinks recreated, ${skippedCount} entries skipped.`);
 
-  // Compile merchant extensions to V8 bytecode
-  await compileMerchantBytecode(context, resourcesDir);
 };
