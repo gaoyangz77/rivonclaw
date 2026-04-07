@@ -47,9 +47,11 @@ export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pat
 
     // ToolSpecs-only dedup: coalesce concurrent requests for this stable query
     if (opName === TOOLSPECS_OP_NAME && toolSpecsCache) {
+      const isExtension = req.headers["x-request-source"] === "extension";
       if (toolSpecsCache.inflight) {
         try {
           const data = await toolSpecsCache.inflight;
+          if (!isExtension) rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
           sendJson(res, 200, { data });
         } catch (err) {
           sendJson(res, 200, { errors: [{ message: err instanceof Error ? err.message : "Cloud GraphQL request failed" }] });
@@ -57,6 +59,7 @@ export const handleCloudGraphqlRoutes: RouteHandler = async (req, res, _url, pat
         return true;
       }
       if (Date.now() - toolSpecsCache.ts < TOOLSPECS_CACHE_TTL_MS) {
+        if (!isExtension) rootStore.ingestGraphQLResponse(toolSpecsCache.data as Record<string, unknown>);
         sendJson(res, 200, { data: toolSpecsCache.data });
         return true;
       }
