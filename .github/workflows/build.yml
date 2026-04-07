@@ -286,7 +286,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: macos-x64-app
-          path: apps/desktop/release/mac-x64/
+          path: apps/desktop/release/mac/
           retention-days: 7
 
   package-macos:
@@ -328,7 +328,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: macos-x64-app
-          path: apps/desktop/release/mac-x64/
+          path: apps/desktop/release/mac/
 
       - name: Merge universal app
         run: |

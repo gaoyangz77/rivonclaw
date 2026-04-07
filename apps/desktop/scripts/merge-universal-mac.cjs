@@ -4,7 +4,7 @@
 //
 // Expected directory layout:
 //   release/mac-arm64/RivonClaw.app  (from electron-builder --dir --arm64)
-//   release/mac-x64/RivonClaw.app    (from electron-builder --dir --x64)
+//   release/mac/RivonClaw.app         (from electron-builder --dir --x64)
 //
 // Output:
 //   release/mac-universal/RivonClaw.app
@@ -17,7 +17,7 @@ const releaseDir = path.resolve(__dirname, "..", "release");
 const productName = "RivonClaw";
 
 const arm64AppPath = path.join(releaseDir, "mac-arm64", `${productName}.app`);
-const x64AppPath = path.join(releaseDir, "mac-x64", `${productName}.app`);
+const x64AppPath = path.join(releaseDir, "mac", `${productName}.app`);
 const universalDir = path.join(releaseDir, "mac-universal");
 const outAppPath = path.join(universalDir, `${productName}.app`);
 
