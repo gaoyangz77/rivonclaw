@@ -260,6 +260,7 @@ export function isSystemEventMessage(text: string): boolean {
  */
 const INTERNAL_PROMPT_SENTINELS = [
   "Pre-compaction memory flush.",
+  "Read HEARTBEAT.md",
 ];
 
 /** Returns true if the message is an internal gateway maintenance prompt. */
