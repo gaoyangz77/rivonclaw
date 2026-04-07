@@ -933,9 +933,9 @@ export interface QueryShopAuthStatusArgs {
 
 
 export interface QueryShopsArgs {
-  platform?: InputMaybe<Scalars['String']['input']>;
+  platform?: InputMaybe<ShopPlatform>;
   refreshTokenExpiringBefore?: InputMaybe<Scalars['String']['input']>;
-  region?: InputMaybe<Scalars['String']['input']>;
+  region?: InputMaybe<ShopRegion>;
 }
 
 
