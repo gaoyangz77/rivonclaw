@@ -8,7 +8,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { compileMerchantBytecode } = require("./compile-merchant-bytecode.cjs");
+
 
 /** Recursively count files in a directory. */
 function countFiles(/** @type {string} */ dir) {
@@ -45,13 +45,11 @@ exports.default = async function copyVendorDeps(context) {
   if (!fs.existsSync(vendorSrc)) {
     console.log(`[copy-vendor-deps] vendor/openclaw/node_modules not found at ${vendorSrc}, skipping.`);
     // Still run bytecode compilation
-    await compileMerchantBytecode(context, resourcesDir);
     return;
   }
 
   if (fs.existsSync(vendorDest)) {
     console.log("[copy-vendor-deps] vendor/openclaw/node_modules already present, skipping.");
-    await compileMerchantBytecode(context, resourcesDir);
     return;
   }
 
