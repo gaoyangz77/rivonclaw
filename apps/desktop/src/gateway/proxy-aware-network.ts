@@ -1,8 +1,12 @@
 import { createLogger } from "@rivonclaw/logger";
+import { DEFAULTS } from "@rivonclaw/core";
 import WebSocket from "ws";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 const log = createLogger("proxy-network");
+
+const MAX_RETRIES = DEFAULTS.proxyNetwork.maxRetries;
+const RETRY_BASE_DELAY_MS = DEFAULTS.proxyNetwork.retryBaseDelayMs;
 
 /**
  * Centralized network layer that routes all outbound connections through
@@ -24,8 +28,42 @@ export class ProxyAwareNetwork {
     return this.proxyRouterPort;
   }
 
-  /** Fetch that routes through the proxy-router when available. */
+  /** Fetch that routes through the proxy-router when available, with retry on network errors. */
   async fetch(url: string | URL, init?: RequestInit): Promise<Response> {
+    const sanitizedUrl = this.sanitizeUrl(url);
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await this.doFetch(url, init);
+      } catch (err) {
+        lastError = err;
+
+        // Never retry intentional cancellation
+        if (this.isAbortError(err, init?.signal)) break;
+
+        if (attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+          log.warn(
+            `Fetch attempt ${attempt}/${MAX_RETRIES} failed for ${sanitizedUrl}: ${err instanceof Error ? err.message : String(err)} — retrying in ${delay}ms`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
+          // Re-check abort after sleeping — the caller may have cancelled while we waited
+          if (init?.signal?.aborted) break;
+        } else {
+          log.warn(
+            `Fetch attempt ${attempt}/${MAX_RETRIES} failed for ${sanitizedUrl}: ${err instanceof Error ? err.message : String(err)} — all retries exhausted`,
+          );
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /** Execute a single fetch, routing through the proxy-router when available. */
+  private async doFetch(url: string | URL, init?: RequestInit): Promise<Response> {
     if (this.proxyRouterPort) {
       const { ProxyAgent } = await import("undici");
       return fetch(url, {
@@ -36,6 +74,24 @@ export class ProxyAwareNetwork {
     // Avoid passing undefined as second arg so callers that spy on fetch
     // see the same arity as a direct fetch(url) call.
     return init ? fetch(url, init) : fetch(url);
+  }
+
+  /** Check if an error is an intentional abort (not a retryable network error). */
+  private isAbortError(err: unknown, signal?: AbortSignal | null): boolean {
+    if (signal?.aborted) return true;
+    if (err instanceof DOMException && err.name === "AbortError") return true;
+    if (err instanceof Error && err.name === "AbortError") return true;
+    return false;
+  }
+
+  /** Strip query params from a URL for privacy-safe logging. */
+  private sanitizeUrl(url: string | URL): string {
+    try {
+      const parsed = new URL(url.toString());
+      return `${parsed.origin}${parsed.pathname}`;
+    } catch {
+      return String(url);
+    }
   }
 
   /**

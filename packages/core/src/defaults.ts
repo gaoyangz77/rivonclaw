@@ -32,6 +32,11 @@ export const DEFAULTS = {
     retryBaseDelayMs: 1_000,
   },
 
+  proxyNetwork: {
+    maxRetries: 3,
+    retryBaseDelayMs: 500,
+  },
+
   logger: {
     maxFileSizeBytes: 5 * 1024 * 1024, // 5 MB
   },
