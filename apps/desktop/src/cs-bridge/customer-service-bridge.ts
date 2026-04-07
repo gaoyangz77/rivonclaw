@@ -154,12 +154,6 @@ export class CustomerServiceBridge {
     return this.bindingConflicts;
   }
 
-  /** Force-bind a shop (take over from another device). */
-  forceBindShop(shopId: string): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    this.ws.send(JSON.stringify({ type: "cs_force_bind_shop", shopId }));
-  }
-
   /** Unbind a shop from this device. */
   unbindShop(shopId: string): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;

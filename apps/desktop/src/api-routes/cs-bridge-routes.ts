@@ -33,15 +33,6 @@ export const handleCSBridgeRoutes: RouteHandler = async (req, res, _url, pathnam
     return true;
   }
 
-  // POST /api/cs-bridge/force-bind
-  if (pathname === "/api/cs-bridge/force-bind" && req.method === "POST") {
-    const body = await parseBody(req) as { shopId?: string };
-    if (!body.shopId) { sendJson(res, 400, { error: "Missing shopId" }); return true; }
-    getCsBridge()?.forceBindShop(body.shopId);
-    sendJson(res, 200, { ok: true });
-    return true;
-  }
-
   // POST /api/cs-bridge/unbind
   if (pathname === "/api/cs-bridge/unbind" && req.method === "POST") {
     const body = await parseBody(req) as { shopId?: string };
