@@ -302,8 +302,9 @@ export const EcomMessageType = {
 } as const;
 
 export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageType];
-/** Order status filter values */
+/** Order status filter. Use ALL to return all statuses. */
 export const EcomOrderStatus = {
+  All: 'ALL',
   AwaitingCollection: 'AWAITING_COLLECTION',
   AwaitingShipment: 'AWAITING_SHIPMENT',
   Cancelled: 'CANCELLED',
@@ -316,8 +317,9 @@ export const EcomOrderStatus = {
 } as const;
 
 export type EcomOrderStatus = typeof EcomOrderStatus[keyof typeof EcomOrderStatus];
-/** Package status filter values */
+/** Package status filter. Use ALL to return all statuses. */
 export const EcomPackageStatus = {
+  All: 'ALL',
   Cancelled: 'CANCELLED',
   Completed: 'COMPLETED',
   Fulfilling: 'FULFILLING',
@@ -325,9 +327,10 @@ export const EcomPackageStatus = {
 } as const;
 
 export type EcomPackageStatus = typeof EcomPackageStatus[keyof typeof EcomPackageStatus];
-/** Product status filter values */
+/** Product status filter. Use ALL to return all statuses. */
 export const EcomProductStatus = {
   Activate: 'ACTIVATE',
+  All: 'ALL',
   Deleted: 'DELETED',
   Draft: 'DRAFT',
   Failed: 'FAILED',
