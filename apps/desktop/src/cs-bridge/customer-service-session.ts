@@ -18,7 +18,7 @@
 
 import crypto from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
-import { ScopeType, type CSNewMessageFrame } from "@rivonclaw/core";
+import { ScopeType, GQL, type CSNewMessageFrame } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { getAuthSession } from "../auth/auth-session-ref.js";
@@ -428,7 +428,7 @@ export class CustomerServiceSession {
     await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
       shopId: this.csContext.shopId,
       conversationId: this.csContext.conversationId,
-      type: "TEXT",
+      type: GQL.EcomMessageType.Text,
       content: JSON.stringify({ content: text }),
     });
     this.undeliveredCount = 0;
