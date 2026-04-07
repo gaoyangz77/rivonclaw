@@ -1,40 +1,66 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { observer } from "mobx-react-lite";
-import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { AuthModal } from "./modals/AuthModal.js";
+import { useState, useRef, useEffect } from "react";
+import { useCreditsAuth } from "../hooks/useCreditsAuth.js";
+import { CreditsAuthModal } from "./CreditsAuthModal.js";
 import { UserPlusIcon } from "./icons.js";
-import { getUserInitial } from "../lib/user-manager.js";
 
 interface UserAvatarButtonProps {
   onNavigate: (path: string) => void;
 }
 
-export const UserAvatarButton = observer(function UserAvatarButton({ onNavigate }: UserAvatarButtonProps) {
-  const { t } = useTranslation();
-  const user = useEntityStore().currentUser;
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+export function UserAvatarButton({ onNavigate: _ }: UserAvatarButtonProps) {
+  const { me, logout } = useCreditsAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  function handleClick() {
-    if (user) {
-      onNavigate("/account");
-    } else {
-      setAuthModalOpen(true);
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showMenu) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
     }
-  }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
 
-  const initial = user ? getUserInitial(user) : "";
+  if (me) {
+    const initial = me.email?.[0]?.toUpperCase() ?? "?";
+    return (
+      <div className="user-avatar-wrapper" ref={wrapperRef}>
+        <button
+          className="user-avatar-btn user-avatar-btn-active"
+          onClick={() => setShowMenu((v) => !v)}
+          title={me.email ?? undefined}
+        >
+          <span className="user-avatar-circle">{initial}</span>
+        </button>
+        {showMenu && (
+          <div className="user-avatar-menu">
+            <div className="user-avatar-menu-email">{me.email}</div>
+            <button
+              className="user-avatar-menu-logout"
+              onClick={() => { logout(); setShowMenu(false); }}
+            >
+              退出登录
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="user-avatar-wrapper">
       <button
-        className={`user-avatar-btn${user ? " user-avatar-btn-active" : ""}`}
-        onClick={handleClick}
-        title={user ? user.email : t("auth.login")}
+        className="user-avatar-btn"
+        onClick={() => setModalOpen(true)}
+        title="登录"
       >
-        {user ? <span className="user-avatar-circle">{initial}</span> : <UserPlusIcon />}
+        <UserPlusIcon />
       </button>
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <CreditsAuthModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
-});
+}

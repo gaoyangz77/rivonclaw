@@ -20,10 +20,6 @@ import {
   AuthIcon, MenuIcon, ShopIcon, EcommerceIcon,
 } from "../components/icons.js";
 import { observer } from "mobx-react-lite";
-import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { AuthModal } from "../components/modals/AuthModal.js";
-
-const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles", "/tiktok-shops", "/ecommerce"]);
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -38,7 +34,6 @@ const NAV_ICONS: Record<string, ReactNode> = {
   "/extras": <ExtrasIcon />,
   "/usage": <UsageIcon />,
   "/credits": <UsageIcon />,
-  "/access-mode": <SettingsIcon />,
   "/skills": <SkillsIcon />,
   "/browser-profiles": <BrowserProfilesIcon />,
   "/tiktok-shops": <ShopIcon />,
@@ -61,10 +56,6 @@ export const Layout = observer(function Layout({
   agentName?: string | null;
 }) {
   const { t } = useTranslation();
-  const entityStore = useEntityStore();
-  const user = entityStore.currentUser;
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [pendingAuthPath, setPendingAuthPath] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<UpdateDownloadStatus>({
     status: "idle",
@@ -226,19 +217,10 @@ export const Layout = observer(function Layout({
     { path: "/", label: t("nav.chat") },
     { path: "/providers", label: t("nav.providers") },
     { path: "/channels", label: t("nav.channels") },
-    { path: "/rules", label: t("nav.rules") },
-    { path: "/permissions", label: t("nav.permissions") },
-    { path: "/extras", label: t("nav.extras") },
     { path: "/skills", label: t("nav.skills") },
-    { path: "/browser-profiles", label: t("nav.browserProfiles") },
     { path: "/crons", label: t("nav.crons") },
-    // { path: "/tiktok-shops", label: t("nav.tiktokShops") },  // temporarily hidden
-    ...(entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")
-      ? [{ path: "/ecommerce", label: t("nav.ecommerce") }]
-      : []),
     { path: "/usage", label: t("nav.usage") },
     { path: "/credits", label: "积分中心" },
-    { path: "/access-mode", label: "接入模式" },
     { path: "/settings", label: t("nav.settings") },
   ];
 
@@ -340,14 +322,7 @@ export const Layout = observer(function Layout({
                 <li key={item.path}>
                   <button
                     className={`nav-btn ${active ? "nav-active" : "nav-item"}`}
-                    onClick={() => {
-                      if (AUTH_REQUIRED_PATHS.has(item.path) && !user) {
-                        setPendingAuthPath(item.path);
-                        setAuthModalOpen(true);
-                      } else {
-                        onNavigate(item.path);
-                      }
-                    }}
+                    onClick={() => onNavigate(item.path)}
                     title={collapsed ? item.label : undefined}
                   >
                     <span className="nav-icon">{NAV_ICONS[item.path]}</span>
@@ -372,11 +347,6 @@ export const Layout = observer(function Layout({
           <main>{children}</main>
         </div>
       </div>
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => { setAuthModalOpen(false); setPendingAuthPath(null); }}
-        onSuccess={() => { if (pendingAuthPath) onNavigate(pendingAuthPath); }}
-      />
     </div>
   );
 });
