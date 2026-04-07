@@ -117,7 +117,7 @@ jobs:
             apps/desktop/release/latest.yml
           retention-days: 30
 
-  build-macos:
+  build-macos-arm64:
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -191,6 +191,140 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
+      - name: Build macOS arm64 app
+        run: |
+          cd apps/desktop
+          pnpm run dist:mac:dir:arm64
+
+      - name: Upload arm64 app
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-arm64-app
+          path: apps/desktop/release/mac-arm64/
+          retention-days: 7
+
+  build-macos-x64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Checkout merchant extensions
+        uses: actions/checkout@v5
+        with:
+          repository: gaoyangz77/rivonclaw-merchant-extensions
+          token: ${{ secrets.PRIVATE_EXTENSIONS_PAT }}
+          path: extensions-merchant
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Clone OpenClaw vendor
+        run: |
+          HASH=$(tr -d '[:space:]' < .openclaw-version)
+          git clone https://github.com/openclaw/openclaw.git vendor/openclaw
+          cd vendor/openclaw
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache vendor node_modules
+        id: cache-vendor-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/node_modules
+          key: vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor/openclaw/pnpm-lock.yaml') }}
+          restore-keys: |
+            vendor-nm-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-
+
+      - name: Cache vendor dist
+        id: cache-vendor-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/openclaw/dist
+          key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
+
+      # Post-prune cache: contains the production-ready dist/, pruned
+      # node_modules, modified .gitignore, and stripped dist-runtime/ after
+      # prune-vendor-deps.cjs has run. When this hits, prune sees .pruned
+      # marker and skips, saving ~2-5 min per build.
+      - name: Cache vendor prod
+        id: cache-vendor-prod
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor/openclaw/dist
+            vendor/openclaw/node_modules
+            vendor/openclaw/.gitignore
+            vendor/openclaw/dist-runtime
+          key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
+
+      - name: Setup OpenClaw vendor
+        if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
+        run: ./scripts/setup-vendor.sh --skip-clone
+        env:
+          SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
+          SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Build macOS x64 app
+        run: |
+          cd apps/desktop
+          pnpm run dist:mac:dir:x64
+
+      - name: Upload x64 app
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-x64-app
+          path: apps/desktop/release/mac-x64/
+          retention-days: 7
+
+  package-macos:
+    runs-on: macos-latest
+    needs: [build-macos-arm64, build-macos-x64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download arm64 app
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-arm64-app
+          path: apps/desktop/release/mac-arm64/
+
+      - name: Download x64 app
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-x64-app
+          path: apps/desktop/release/mac-x64/
+
+      - name: Merge universal app
+        run: |
+          cd apps/desktop
+          pnpm run dist:mac:universal:merge
+
       # Import code signing certificate (when secrets are configured)
       - name: Import Code Signing Certificate
         if: ${{ env.MACOS_CERTIFICATE != '' }}
@@ -206,10 +340,10 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
-      - name: Build macOS app
+      - name: Package DMG + ZIP
         run: |
           cd apps/desktop
-          pnpm run dist:mac
+          pnpm run dist:mac:universal:package
         env:
           # Notarization credentials (optional, only if configured)
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -318,7 +452,7 @@ jobs:
           retention-days: 30
 
   create-release:
-    needs: [build-windows, build-macos, build-linux]
+    needs: [build-windows, package-macos, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
