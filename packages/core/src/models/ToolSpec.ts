@@ -1,14 +1,17 @@
 import { types, type Instance } from "mobx-state-tree";
 
-export const ToolParamSpecModel = types.model("ToolParamSpec", {
-  name: types.string,
-  type: types.string,
-  description: types.string,
-  graphqlVar: types.string,
-  required: types.boolean,
-  defaultValue: types.maybeNull(types.string),
-  enumValues: types.optional(types.array(types.string), []),
-});
+export const ToolParamSpecModel: any = types.late(() =>
+  types.model("ToolParamSpec", {
+    name: types.string,
+    type: types.string,
+    description: types.string,
+    graphqlVar: types.string,
+    required: types.boolean,
+    defaultValue: types.maybeNull(types.string),
+    enumValues: types.optional(types.array(types.string), []),
+    children: types.optional(types.array(ToolParamSpecModel), []),
+  }),
+);
 
 export const ToolContextBindingModel = types.model("ToolContextBinding", {
   paramName: types.string,

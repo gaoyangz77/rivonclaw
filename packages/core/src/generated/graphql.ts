@@ -16,6 +16,24 @@ export interface Scalars {
   DateTimeISO: { input: any; output: any; }
 }
 
+/** Agent-facing CS settings (no device-level fields) */
+export interface AgentCsSettingsInput {
+  /** Business-specific instructions appended to the platform CS prompt (e.g. return policy, greeting style). Shown to the AI agent as 'Store Instructions'. */
+  businessPrompt?: InputMaybe<Scalars['String']['input']>;
+  /** LLM model override for CS sessions (e.g. 'claude-opus-4-5-20251101'). Null or empty = use the account default model. Must be available in the provider's catalog. */
+  csModelOverride?: InputMaybe<Scalars['String']['input']>;
+  /** LLM provider override for CS sessions (e.g. 'claude', 'zhipu'). Null or empty = use the account default provider. */
+  csProviderOverride?: InputMaybe<Scalars['String']['input']>;
+  /** Enable or disable CS for this shop. When enabled together with a device assignment, the shop goes online for customer service. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Channel ID for human escalation messages, format: 'channel:accountId' (e.g. 'telegram:acct_abc123'). Null = escalation not configured. */
+  escalationChannelId?: InputMaybe<Scalars['String']['input']>;
+  /** Recipient ID who receives escalation messages (e.g. a Telegram user ID or group ID). Null = escalation not configured. */
+  escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
+  /** RunProfile ID that controls which tools the CS agent can use. Must reference a valid system preset (e.g. CUSTOMER_SERVICE) or a user-created RunProfile. */
+  runProfileId?: InputMaybe<Scalars['String']['input']>;
+}
+
 /** Assembled CS system prompt with version */
 export interface AssembledPromptResult {
   systemPrompt: Scalars['String']['output'];
@@ -217,15 +235,23 @@ export interface CustomerServiceSettings {
   runProfileId?: Maybe<Scalars['String']['output']>;
 }
 
-/** Input for updating customer service settings */
+/** Full CS settings including device-level fields (Panel/backend use) */
 export interface CustomerServiceSettingsInput {
+  /** Business-specific instructions appended to the platform CS prompt (e.g. return policy, greeting style). Shown to the AI agent as 'Store Instructions'. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
+  /** Device ID (machine fingerprint) of the desktop instance handling CS. Set by desktop app via Panel UI. Null = no device assigned. */
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
+  /** LLM model override for CS sessions (e.g. 'claude-opus-4-5-20251101'). Null or empty = use the account default model. Must be available in the provider's catalog. */
   csModelOverride?: InputMaybe<Scalars['String']['input']>;
+  /** LLM provider override for CS sessions (e.g. 'claude', 'zhipu'). Null or empty = use the account default provider. */
   csProviderOverride?: InputMaybe<Scalars['String']['input']>;
+  /** Enable or disable CS for this shop. When enabled together with a device assignment, the shop goes online for customer service. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Channel ID for human escalation messages, format: 'channel:accountId' (e.g. 'telegram:acct_abc123'). Null = escalation not configured. */
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
+  /** Recipient ID who receives escalation messages (e.g. a Telegram user ID or group ID). Null = escalation not configured. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
+  /** RunProfile ID that controls which tools the CS agent can use. Must reference a valid system preset (e.g. CUSTOMER_SERVICE) or a user-created RunProfile. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -329,6 +355,8 @@ export interface Mutation {
   ecommerceMarkConversationRead: EcommerceApiResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: EcommerceApiResult;
+  /** Update shop settings (agent-facing, flat params) */
+  ecommerceUpdateShop: EcommerceApiResult;
   /** Enroll in a product module */
   enrollModule: MeResponse;
   /** Generate a 6-character pairing code for QR display */
@@ -441,6 +469,12 @@ export interface MutationEcommerceSendMessageArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
   type: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceUpdateShopArgs {
+  customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
+  shopId: Scalars['String']['input'];
 }
 
 
@@ -1255,12 +1289,14 @@ export const ToolId = {
   EcomMarkConversationRead: 'ECOM_MARK_CONVERSATION_READ',
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
-  EcomSearchSessions: 'ECOM_SEARCH_SESSIONS'
+  EcomSearchSessions: 'ECOM_SEARCH_SESSIONS',
+  EcomUpdateShop: 'ECOM_UPDATE_SHOP'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];
 /** Parameter specification for a dynamically registered tool */
 export interface ToolParamSpec {
+  children?: Maybe<Array<ToolParamSpec>>;
   defaultValue?: Maybe<Scalars['String']['output']>;
   description: Scalars['String']['output'];
   enumValues?: Maybe<Array<Scalars['String']['output']>>;
