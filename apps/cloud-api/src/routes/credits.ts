@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { sql } from "../db/client.js";
+import { getActiveSubscription } from "../db/quota.js";
 
 export const creditsRoute = new Hono<{ Variables: { userId: string } }>();
 
@@ -40,4 +41,33 @@ creditsRoute.get("/history", async (c) => {
   `;
 
   return c.json({ entries, total: Number(countRow?.total ?? 0) });
+});
+
+creditsRoute.get("/quota", async (c) => {
+  const userId = c.get("userId");
+  const today = new Date().toISOString().slice(0, 10);
+  const dailyLimit = parseInt(process.env.DAILY_FREE_TOKENS ?? "100000", 10);
+
+  const [quotaRow] = await sql<{ date: string; tokens_used: number }[]>`
+    SELECT date::text, tokens_used FROM daily_quota WHERE user_id = ${userId}
+  `;
+  const dailyUsed = quotaRow?.date === today ? (quotaRow?.tokens_used ?? 0) : 0;
+
+  const sub = await getActiveSubscription(userId);
+
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+
+  return c.json({
+    plan: sub ? sub.tier : "free",
+    show_model: !!sub,
+    daily: {
+      used: dailyUsed,
+      limit: dailyLimit,
+      resets_at: midnight.toISOString(),
+    },
+    monthly: sub
+      ? { used: sub.tokens_used, limit: sub.tokens_monthly, period_end: sub.period_end }
+      : null,
+  });
 });
