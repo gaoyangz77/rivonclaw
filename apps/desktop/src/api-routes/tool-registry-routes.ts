@@ -1,8 +1,14 @@
 import { ScopeType } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
 import type { RouteHandler } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 import { rootStore } from "../store/desktop-store.js";
 import { waitForGatewayReady } from "../gateway/rpc-client-ref.js";
+
+const log = createLogger("tool-registry");
+
+/** Track last known tool list per session to only log on first resolve or change. */
+const lastToolSignature = new Map<string, string>();
 
 
 // ── Session key parsing ─────────────────────────────────────────────────────
@@ -59,6 +65,23 @@ export const handleToolRegistryRoutes: RouteHandler = async (req, res, url, path
 
     const scopeType = parseScopeType(sessionKey);
     const effectiveToolIds = rootStore.toolCapability.getEffectiveToolsForScope(scopeType, sessionKey);
+
+    // Log on first resolve or when tool list changes for a session
+    const sig = effectiveToolIds.join(",");
+    const prev = lastToolSignature.get(sessionKey);
+    if (prev !== sig) {
+      lastToolSignature.set(sessionKey, sig);
+      const sessionProfile = rootStore.toolCapability.getSessionRunProfileId(sessionKey);
+      const defaultProfile = rootStore.toolCapability.defaultRunProfileId;
+      log.info(
+        `effective-tools ${prev === undefined ? "(first)" : "(changed)"}: ` +
+        `session=${sessionKey} scope=${scopeType} ` +
+        `sessionProfile=${sessionProfile ?? "null"} defaultProfile=${defaultProfile ?? "null"} ` +
+        `entitled=${rootStore.entitledTools?.length ?? 0} runProfiles=${rootStore.runProfiles?.length ?? 0} ` +
+        `result=${effectiveToolIds.length} tools=[${effectiveToolIds.join(", ")}]`,
+      );
+    }
+
     sendJson(res, 200, { effectiveToolIds });
     return true;
   }

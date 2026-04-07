@@ -112,7 +112,10 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
       rpcClient.request("event_bridge_init", {})
         .catch((e: unknown) => log.debug("Event bridge init (may not be loaded):", e));
 
-      // Initialize ToolCapability with gateway tool catalog + entitlements
+      // Initialize ToolCapability with gateway tool catalog + entitlements.
+      // After loading the catalog, fetch essential entity data (ToolSpecs,
+      // user, RunProfiles, Surfaces) so the capability resolver has complete
+      // data before the first agent dispatch — not dependent on Panel loading.
       (async () => {
         try {
           const catalog = await rpcClient.request<{
@@ -125,6 +128,29 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
           for (const group of catalog.groups ?? []) {
             for (const tool of group.tools ?? []) {
               catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
+            }
+          }
+
+          // Fetch essential entity data before marking initialized.
+          // These are the same queries Panel sends in initSession(), but
+          // Desktop needs them independently in case Panel hasn't loaded yet.
+          const authSession = getAuthSession();
+          if (authSession) {
+            const essentials = [
+              "query ToolSpecsSync { toolSpecs { id name category displayName description surfaces runProfiles graphqlOperation operationType parameters { name type description graphqlVar required defaultValue enumValues } contextBindings { paramName contextField } restMethod restEndpoint restContentType supportedPlatforms } }",
+              "query { me { id email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } }",
+              "query { surfaces { id name userId allowedToolIds } }",
+              "query { runProfiles { id name userId surfaceId selectedToolIds } }",
+            ];
+            const results = await Promise.allSettled(
+              essentials.map(q => authSession.graphqlFetch(q)),
+            );
+            for (const r of results) {
+              if (r.status === "fulfilled" && r.value && typeof r.value === "object") {
+                try {
+                  rootStore.ingestGraphQLResponse(r.value as Record<string, unknown>);
+                } catch { /* best-effort — don't block init */ }
+              }
             }
           }
 
