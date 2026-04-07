@@ -16,6 +16,8 @@ export default defineConfig({
   ],
   noExternal: [
     /^@rivonclaw\//,
+    "https-proxy-agent",
+    "agent-base",
   ],
   treeshake: true,
   inlineOnly: false,
