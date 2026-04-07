@@ -6,6 +6,8 @@ import {
   type QuotaInfo,
   type LedgerEntry,
 } from "../api/credits.js";
+import { useCreditsAuth } from "../hooks/useCreditsAuth.js";
+import { CreditsAuthModal } from "../components/CreditsAuthModal.js";
 
 const PLAN_LABELS: Record<string, string> = {
   free: "免费版",
@@ -14,6 +16,8 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 export function CreditsPage() {
+  const { me } = useCreditsAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [total, setTotal] = useState(0);
@@ -99,16 +103,22 @@ export function CreditsPage() {
               <div className="credits-page__plan-name">基础版</div>
               <div className="credits-page__plan-price">¥19 / 月</div>
               <div className="credits-page__plan-desc">500 万 token/月 · 所有模型</div>
-              <button className="btn btn-primary" onClick={() => handleSubscribe("basic")}>
-                订阅
+              <button
+                className="btn btn-primary"
+                onClick={() => me ? handleSubscribe("basic") : setAuthModalOpen(true)}
+              >
+                {me ? "订阅" : "登录后订阅"}
               </button>
             </div>
             <div className="credits-page__plan-card credits-page__plan-card--featured">
               <div className="credits-page__plan-name">专业版</div>
               <div className="credits-page__plan-price">¥49 / 月</div>
               <div className="credits-page__plan-desc">2000 万 token/月 · 所有模型</div>
-              <button className="btn btn-primary" onClick={() => handleSubscribe("pro")}>
-                订阅
+              <button
+                className="btn btn-primary"
+                onClick={() => me ? handleSubscribe("pro") : setAuthModalOpen(true)}
+              >
+                {me ? "订阅" : "登录后订阅"}
               </button>
             </div>
           </div>
@@ -160,6 +170,7 @@ export function CreditsPage() {
           <button disabled={page >= totalPages} onClick={() => loadData(page + 1)}>下一页</button>
         </div>
       )}
+      <CreditsAuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }
