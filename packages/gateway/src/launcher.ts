@@ -208,6 +208,13 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     // gateway process that blocks all future startups.
     env["OPENCLAW_NO_RESPAWN"] = "1";
 
+    // Skip browser control server at startup.  The browser plugin service
+    // blocks the event loop for 15-30 s on Windows during express/route
+    // initialization, causing RPC handshake timeouts and delayed webchat.
+    // Browser tools remain functional — the browser-request handler calls
+    // startBrowserControlServiceFromConfig() on first use.
+    env["OPENCLAW_SKIP_BROWSER_CONTROL_SERVER"] = "1";
+
     log.debug("[spawn:1] env built, seeding compile cache...");
 
     // Sanitize env vars inherited from the parent (Electron main process) or
