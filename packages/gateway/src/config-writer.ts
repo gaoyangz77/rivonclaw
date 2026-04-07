@@ -866,6 +866,20 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
 
 
+    // Deny Ollama plugin to prevent startup event-loop blocking.
+    // Vendor's prewarmConfiguredPrimaryModel() triggers resolveImplicitProviders()
+    // which probes localhost:11434 for Ollama. When Ollama is not running, the
+    // connection attempt blocks the event loop for 15-25s on Windows.
+    // Known vendor issues:
+    //   - https://github.com/openclaw/openclaw/issues/50370 (uncached provider discovery)
+    //   - https://github.com/openclaw/openclaw/issues/56939 (unexpected Ollama probing)
+    //   - https://github.com/openclaw/openclaw/issues/38486 (no flag to disable discovery)
+    // TODO: Remove once vendor adds a provider-discovery cache or skip flag.
+    const existingDeny = Array.isArray(merged.deny) ? (merged.deny as string[]) : [];
+    if (!existingDeny.includes("ollama")) {
+      merged.deny = [...existingDeny, "ollama"];
+    }
+
     config.plugins = merged;
   }
 
