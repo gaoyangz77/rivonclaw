@@ -106,6 +106,6 @@ fi
 # (afterPack hook) handles copying it manually because .gitignore blocks it.
 # Copy original .gitignore to .git/info/exclude so git status stays clean.
 cp .gitignore .git/info/exclude
-sed -i.bak '/^dist$/d; /^dist-runtime\/$/d' .gitignore
+sed -i.bak '/^dist$/d; /^dist-runtime$/d' .gitignore
 rm -f .gitignore.bak
 echo "OpenClaw vendor ready ($HASH)"
