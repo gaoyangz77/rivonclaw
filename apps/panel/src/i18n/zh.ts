@@ -2344,5 +2344,6 @@ export default {
     deleteFailed: "断开店铺失败，请重试。",
     updateFailed: "更新店铺设置失败，请重试。",
     upgradeRequired: "此功能需要订阅。请升级你的套餐。",
+    shopUpdatedToast: "店铺「{{shopName}}」已更新。",
   },
 } as const;

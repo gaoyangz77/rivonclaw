@@ -11,9 +11,9 @@ import {
 import { EventEmitter } from "node:events";
 import { setApiBaseUrlOverride } from "@rivonclaw/core";
 import {
-  UpdateSubscriptionClient,
+  BackendSubscriptionClient,
   type UpdatePayload,
-} from "../src/cloud/update-subscription-client.js";
+} from "../src/cloud/backend-subscription-client.js";
 
 /* ---------- mock GraphQL server ---------- */
 
@@ -125,13 +125,13 @@ function buildMockServer() {
 
 /* ---------- test suite ---------- */
 
-describe("UpdateSubscriptionClient", () => {
+describe("BackendSubscriptionClient", () => {
   let httpServer: Server;
   let wsServer: WebSocketServer;
   let gqlServerCleanup: { dispose: () => Promise<void> };
   let port: number;
   let mockServer: ReturnType<typeof buildMockServer>;
-  let client: UpdateSubscriptionClient | null = null;
+  let client: BackendSubscriptionClient | null = null;
 
   beforeAll(
     async () => {
@@ -182,7 +182,7 @@ describe("UpdateSubscriptionClient", () => {
   function waitForUpdate(
     currentVersion: string,
     timeoutMs: number = 3_000,
-  ): { client: UpdateSubscriptionClient; result: Promise<UpdatePayload | null> } {
+  ): { client: BackendSubscriptionClient; result: Promise<UpdatePayload | null> } {
     let resolveFn: (value: UpdatePayload | null) => void;
     const result = new Promise<UpdatePayload | null>((resolve) => {
       resolveFn = resolve;
@@ -195,8 +195,9 @@ describe("UpdateSubscriptionClient", () => {
       resolveFn(payload);
     };
 
-    const c = new UpdateSubscriptionClient("en", currentVersion, onUpdate);
+    const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.subscribeToUpdates(currentVersion, onUpdate);
     client = c;
 
     return { client: c, result };
@@ -228,8 +229,9 @@ describe("UpdateSubscriptionClient", () => {
     mockServer.setStoredUpdate(null);
 
     const onUpdate = vi.fn<(payload: UpdatePayload) => void>();
-    const c = new UpdateSubscriptionClient("en", "1.0.0", onUpdate);
+    const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.subscribeToUpdates("1.0.0", onUpdate);
     client = c;
 
     // Wait for the subscription to be established
@@ -257,8 +259,9 @@ describe("UpdateSubscriptionClient", () => {
     mockServer.setStoredUpdate(null);
 
     const onUpdate = vi.fn<(payload: UpdatePayload) => void>();
-    const c = new UpdateSubscriptionClient("en", "2.0.0", onUpdate);
+    const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.subscribeToUpdates("2.0.0", onUpdate);
     client = c;
 
     // Wait for the subscription to be established

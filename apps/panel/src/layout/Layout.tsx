@@ -21,6 +21,7 @@ import {
 } from "../components/icons.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { useToast } from "../components/Toast.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 
 const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles", "/tiktok-shops", "/ecommerce"]);
@@ -60,6 +61,7 @@ export const Layout = observer(function Layout({
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
+  const { showToast } = useToast();
   const user = entityStore.currentUser;
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAuthPath, setPendingAuthPath] = useState<string | null>(null);
@@ -116,13 +118,22 @@ export const Layout = observer(function Layout({
       }
     });
 
+    sse.addEventListener("shop-updated", (e: MessageEvent) => {
+      try {
+        const { shopName } = JSON.parse(e.data) as { shopId: string; shopName: string };
+        showToast(t("ecommerce.shopUpdatedToast", { shopName }), "success");
+      } catch {
+        // Ignore malformed SSE data
+      }
+    });
+
     return () => {
       clearTimeout(firstTimer);
       clearTimeout(retryTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       sse.close();
     };
-  }, []);
+  }, [showToast, t]);
 
   useEffect(() => {
     function onBrandDisplayChanged() {

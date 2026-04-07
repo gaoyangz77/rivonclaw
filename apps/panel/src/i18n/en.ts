@@ -2362,5 +2362,6 @@ export default {
     deleteFailed: "Failed to disconnect shop. Please try again.",
     updateFailed: "Failed to update shop settings. Please try again.",
     upgradeRequired: "This feature requires a subscription. Please upgrade your plan.",
+    shopUpdatedToast: "Shop \"{{shopName}}\" has been updated.",
   },
 } as const;

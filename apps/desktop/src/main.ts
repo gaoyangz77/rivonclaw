@@ -52,9 +52,8 @@ import { AuthSessionManager } from "./auth/auth-session.js";
 import { syncCloudProviderKey } from "./providers/cloud-provider-sync.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "./providers/provider-key-utils.js";
 import { syncActiveKey } from "./providers/provider-validator.js";
-import { rootStore, initLLMProviderManagerEnv, initChannelManagerEnv } from "./store/desktop-store.js";
-import { OAuthSubscriptionClient } from "./cloud/oauth-subscription-client.js";
-import { UpdateSubscriptionClient } from "./cloud/update-subscription-client.js";
+import { rootStore, getSnapshot, initLLMProviderManagerEnv, initChannelManagerEnv } from "./store/desktop-store.js";
+import { BackendSubscriptionClient } from "./cloud/backend-subscription-client.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
@@ -354,22 +353,42 @@ app.whenReady().then(async () => {
   await authSession.loadFromKeychain();
   // NOTE: validate() is deferred until after proxy router starts (see below).
 
-  // Initialize cloud OAuth subscription client (GraphQL Subscription via graphql-ws)
-  const oauthSubscription = new OAuthSubscriptionClient(locale, (payload) => {
-    log.info("OAuth complete notification received, forwarding to Panel", { payload });
-    pushChatSSE("oauth-complete", payload);
-  });
-  // Connect when user is authenticated, disconnect on logout
+  // Initialize unified backend subscription client (single shared graphql-ws connection)
+  const backendSubscription = new BackendSubscriptionClient(locale);
+
+  // Connect/disconnect with auth lifecycle
   authSession.onUserChanged((user) => {
     if (user) {
-      oauthSubscription.connect(() => authSession.getAccessToken());
+      backendSubscription.connect(() => authSession.getAccessToken());
     } else {
-      oauthSubscription.disconnect();
+      backendSubscription.disconnect();
     }
   });
 
   // Initial connect if already authenticated
-  oauthSubscription.connect(() => authSession.getAccessToken());
+  backendSubscription.connect(() => authSession.getAccessToken());
+
+  // Subscribe to OAuth completion events
+  backendSubscription.subscribeToOAuthComplete((payload) => {
+    log.info("OAuth complete notification received, forwarding to Panel", { payload });
+    pushChatSSE("oauth-complete", payload);
+  });
+
+  // Subscribe to shop-updated events (server push → MST upsert → SSE → Panel auto-updates)
+  backendSubscription.subscribeToShopUpdated((shopData) => {
+    const shopId = (shopData as any).id as string;
+    const existing = rootStore.shops.find((s: any) => s.id === shopId);
+    const before = existing ? JSON.stringify(getSnapshot(existing)) : null;
+
+    rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
+
+    const updated = rootStore.shops.find((s: any) => s.id === shopId);
+    const after = updated ? JSON.stringify(getSnapshot(updated)) : null;
+
+    if (before !== after) {
+      pushChatSSE("shop-updated", { shopId, shopName: updated?.shopName ?? shopId });
+    }
+  });
 
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
@@ -806,7 +825,7 @@ app.whenReady().then(async () => {
   });
 
   // Real-time update push via GraphQL subscription (replaces 4h polling)
-  const updateSubscription = new UpdateSubscriptionClient(locale, app.getVersion(), (payload) => {
+  backendSubscription.subscribeToUpdates(app.getVersion(), (payload) => {
     log.info(`Server pushed update: v${payload.version}`);
     updater.setServerPushInfo(payload);
     pushChatSSE("update-available", {
@@ -828,16 +847,6 @@ app.whenReady().then(async () => {
       downloadUrl: null,
     });
   });
-  // Connect/disconnect update subscription with auth lifecycle
-  authSession.onUserChanged((user) => {
-    if (user) {
-      updateSubscription.connect(() => authSession.getAccessToken());
-    } else {
-      updateSubscription.disconnect();
-    }
-  });
-  // Initial connect if already authenticated
-  updateSubscription.connect(() => authSession.getAccessToken());
 
   // Create main panel window (hidden initially, loaded when gateway starts)
   const isDev = !!process.env.PANEL_DEV_URL;
@@ -1618,7 +1627,7 @@ app.whenReady().then(async () => {
     // Stop all periodic timers
     clearInterval(proxyPollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    updateSubscription.disconnect();
+    backendSubscription.disconnect();
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
@@ -1660,14 +1669,11 @@ app.whenReady().then(async () => {
     // Stop all periodic timers so they don't keep the event loop alive
     clearInterval(proxyPollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    updateSubscription.disconnect();
+    backendSubscription.disconnect();
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
     const cleanup = async () => {
-      // Disconnect cloud OAuth subscription
-      oauthSubscription.disconnect();
-
       // Shutdown managed browser service (ends all managed profile sessions)
       await managedBrowserService.shutdown();
 
