@@ -489,4 +489,21 @@ export class RunTracker {
     this.localRunId = snapshot.localRunId;
     this.onChange();
   }
+
+  /**
+   * Restore a snapshot but drop runs still in active phases.
+   * Active-phase runs in a cached snapshot may be stale (their terminal event
+   * arrived while a different tab was focused and was filtered out).  Dropping
+   * them prevents a stuck streaming cursor.  If a run is genuinely still active,
+   * the next gateway delta event (~150ms) will re-register it automatically.
+   */
+  restoreDropStale(snapshot: RunTrackerSnapshot): void {
+    const filtered = snapshot.runs.filter(([, run]) => !ACTIVE_PHASES.has(run.phase));
+    this.runs = new Map(filtered);
+    // Preserve localRunId only if its run survived filtering
+    this.localRunId = snapshot.localRunId && this.runs.has(snapshot.localRunId)
+      ? snapshot.localRunId
+      : null;
+    this.onChange();
+  }
 }

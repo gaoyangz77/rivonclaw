@@ -124,17 +124,16 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
       fetchLimitRef.current = FETCH_BATCH;
       isFetchingRef.current = false;
       setExternalPending(false); externalPendingRef.current = false;
-      // Always reset the tracker on session switch rather than restoring a
-      // cached snapshot.  Cached snapshots can contain stale active runs
-      // whose terminal events (CHAT_FINAL, CHAT_ERROR) arrived while a
-      // different tab was active and were therefore filtered out.  Restoring
-      // such a snapshot causes an infinitely-stuck streaming cursor.
-      //
-      // If a run is genuinely still active for this session, the gateway will
-      // send new events (chat.delta, agent lifecycle) that auto-register the
-      // run in the tracker, so the streaming indicator will reappear within
-      // one delta interval (~150ms).
-      trackerRef.current.reset();
+      // Restore the cached tracker snapshot but drop runs still in active
+      // phases.  Active-phase runs may be stale (their terminal event arrived
+      // while a different tab was focused), which would cause a stuck cursor.
+      // Genuinely active runs will be re-registered by the next gateway delta
+      // event (~150ms).  Completed runs are preserved so they don't flash away.
+      if (state.trackerSnapshot) {
+        trackerRef.current.restoreDropStale(state.trackerSnapshot);
+      } else {
+        trackerRef.current.reset();
+      }
     },
   });
 
