@@ -51,8 +51,10 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      # Post-prune cache: contains the production-ready dist/ and pruned
-      # node_modules after vendor setup scripts have run.
+      # Post-prune cache: contains the production-ready dist/, pruned
+      # node_modules, modified .gitignore, and stripped dist-runtime/ after
+      # prune-vendor-deps.cjs has run. When this hits, prune sees .pruned
+      # marker and skips, saving ~2-5 min per build.
       - name: Cache vendor prod
         id: cache-vendor-prod
         uses: actions/cache@v4
@@ -60,9 +62,12 @@ jobs:
           path: |
             vendor/openclaw/dist
             vendor/openclaw/node_modules
+            vendor/openclaw/.gitignore
+            vendor/openclaw/dist-runtime
           key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
+        if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
         shell: bash
         run: ./scripts/setup-vendor.sh --skip-clone
         env:
@@ -158,8 +163,10 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      # Post-prune cache: contains the production-ready dist/ and pruned
-      # node_modules after vendor setup scripts have run.
+      # Post-prune cache: contains the production-ready dist/, pruned
+      # node_modules, modified .gitignore, and stripped dist-runtime/ after
+      # prune-vendor-deps.cjs has run. When this hits, prune sees .pruned
+      # marker and skips, saving ~2-5 min per build.
       - name: Cache vendor prod
         id: cache-vendor-prod
         uses: actions/cache@v4
@@ -167,9 +174,12 @@ jobs:
           path: |
             vendor/openclaw/dist
             vendor/openclaw/node_modules
+            vendor/openclaw/.gitignore
+            vendor/openclaw/dist-runtime
           key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
+        if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
         run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
@@ -263,8 +273,10 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      # Post-prune cache: contains the production-ready dist/ and pruned
-      # node_modules after vendor setup scripts have run.
+      # Post-prune cache: contains the production-ready dist/, pruned
+      # node_modules, modified .gitignore, and stripped dist-runtime/ after
+      # prune-vendor-deps.cjs has run. When this hits, prune sees .pruned
+      # marker and skips, saving ~2-5 min per build.
       - name: Cache vendor prod
         id: cache-vendor-prod
         uses: actions/cache@v4
@@ -272,9 +284,12 @@ jobs:
           path: |
             vendor/openclaw/dist
             vendor/openclaw/node_modules
+            vendor/openclaw/.gitignore
+            vendor/openclaw/dist-runtime
           key: vendor-prod-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs') }}
 
       - name: Setup OpenClaw vendor
+        if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
         run: ./scripts/setup-vendor.sh --skip-clone
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
