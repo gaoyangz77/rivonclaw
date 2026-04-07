@@ -29,10 +29,19 @@ if (!fs.existsSync(nmDir)) {
   process.exit(0);
 }
 
-// Idempotency: if .pruned marker exists, we've already pruned.
-if (fs.existsSync(path.join(vendorDir, "dist", ".pruned"))) {
-  console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
-  process.exit(0);
+// Idempotency: if .pruned marker exists and node_modules looks pruned, skip.
+// If marker exists but node_modules is full (e.g. after vendor restore), the
+// marker is stale — delete it and re-prune.
+const prunedMarkerPath = path.join(vendorDir, "dist", ".pruned");
+if (fs.existsSync(prunedMarkerPath)) {
+  // Quick check: if typescript exists, node_modules was restored (not pruned)
+  const hasDevDeps = fs.existsSync(path.join(nmDir, "typescript"));
+  if (!hasDevDeps) {
+    console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
+    process.exit(0);
+  }
+  console.log("[prune-vendor-deps] Stale .pruned marker (dev deps present), re-pruning...");
+  fs.unlinkSync(prunedMarkerPath);
 }
 
 // --- Phase 2 config: packages not needed by the gateway runtime ---
@@ -176,29 +185,16 @@ try {
   // to hoist ALL workspace dependencies into vendor/node_modules (inflating
   // from ~2K to 30K+ files). Place an empty pnpm-workspace.yaml to make pnpm
   // treat vendorDir as its own workspace root, preventing upward traversal.
-  // Override vendor's own pnpm-workspace.yaml which lists ui/, packages/*,
-  // extensions/* — causing pnpm to install all sub-package deps into the
-  // hoisted node_modules. With packages: [] only the root package.json deps
-  // are installed.
-  const wsMarker = path.join(vendorDir, "pnpm-workspace.yaml");
-  const wsBackup = path.join(vendorDir, "pnpm-workspace.yaml.bak");
-  const hadWsMarker = fs.existsSync(wsMarker);
-  if (hadWsMarker) {
-    fs.renameSync(wsMarker, wsBackup);
-  }
-  fs.writeFileSync(wsMarker, "packages: []\n", "utf-8");
+  // Keep vendor's own pnpm-workspace.yaml as-is. It lists extensions/* whose
+  // runtime dependencies (grammy, @aws-sdk/*, etc.) must be hoisted into
+  // node_modules/. Overriding this causes missing module errors at runtime.
   execSync("pnpm install --prod --no-frozen-lockfile --ignore-scripts", {
     cwd: vendorDir,
     stdio: "inherit",
     timeout: 120_000,
     env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
   });
-  // Restore original workspace yaml
-  if (hadWsMarker && fs.existsSync(wsBackup)) {
-    fs.renameSync(wsBackup, wsMarker);
-  } else {
-    try { fs.unlinkSync(wsMarker); } catch {}
-  }
+  // No workspace yaml restoration needed (using vendor's original)
 } catch (err) {
   console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
   process.exit(1);
