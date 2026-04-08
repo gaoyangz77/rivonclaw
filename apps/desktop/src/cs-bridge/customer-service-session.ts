@@ -672,10 +672,15 @@ export class CustomerServiceSession {
 
     await this.setup();
 
+    const prompt = this.extraSystemPrompt;
+    // Dump the Current Session block to verify recentOrders is present
+    const sessionBlock = prompt.split("## Current Session")[1]?.split("##")[0] ?? "NOT FOUND";
+    log.info(`Dispatch prompt Current Session block:\n${sessionBlock.trim()}`);
+
     const response = await rpcClient.request<DispatchResult>("agent", {
       sessionKey: this.dispatchKey,
       message: params.message,
-      extraSystemPrompt: this.extraSystemPrompt,
+      extraSystemPrompt: prompt,
       promptMode: "raw",
       idempotencyKey: params.idempotencyKey,
       ...(params.attachments ? { attachments: params.attachments } : {}),
