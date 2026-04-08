@@ -46,27 +46,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return { provider: "google-gemini-cli", modelId };
   }
 
-  /** For extra providers without an API key, strip models to avoid Pi SDK
-   *  validateConfig rejecting the entire models.json. Providers with models
-   *  but no apiKey cause a fatal "apiKey is required" error that drops ALL
-   *  custom models from the catalog (including rivonclaw-pro). */
-  function sanitizeExtraProviders<T extends { baseUrl: string; api?: string; models: unknown[] }>(
-    providers: Record<string, T>,
-  ): Record<string, T> {
-    const configuredProviders = new Set(storage.providerKeys.getAll().map((k) => k.provider));
-    const result: Record<string, T> = {};
-    for (const [provider, config] of Object.entries(providers)) {
-      if (configuredProviders.has(provider)) {
-        result[provider] = config;
-      } else {
-        // Override-only entry (no models) — preserves baseUrl for overrides
-        // without triggering Pi SDK's apiKey validation.
-        result[provider] = { ...config, models: [] };
-      }
-    }
-    return result;
-  }
-
   function buildLocalProviderOverrides(): Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> {
     const overrides: Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> = {};
     for (const localProvider of LOCAL_PROVIDER_IDS) {
@@ -236,7 +215,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         provider: curEmbeddingProvider,
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
-      extraProviders: { ...sanitizeExtraProviders(buildExtraProviderConfigs()), ...buildCustomProviderOverrides() },
+      extraProviders: { ...buildExtraProviderConfigs(), ...buildCustomProviderOverrides() },
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
