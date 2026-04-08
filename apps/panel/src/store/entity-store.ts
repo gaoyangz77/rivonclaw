@@ -301,6 +301,13 @@ const PanelRootStoreModel = RootStoreModel.props({
       yield client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" });
     }),
 
+    // ── Tool specs refresh ──
+
+    /** Re-fetch toolSpecs from backend via Desktop proxy. */
+    refreshToolSpecs: flow(function* () {
+      yield client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" });
+    }),
+
     // ── Surface mutations ──
 
     createSurface: flow(function* (input: {

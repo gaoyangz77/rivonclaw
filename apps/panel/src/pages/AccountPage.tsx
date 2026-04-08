@@ -42,6 +42,9 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
   // ── Module toggle state ──
   const [moduleToggling, setModuleToggling] = useState(false);
 
+  // ── Refresh tools state ──
+  const [refreshingTools, setRefreshingTools] = useState(false);
+
   // ── Surface modal state ──
   const [surfaceError, setSurfaceError] = useState<string | null>(null);
   const [surfaceModalOpen, setSurfaceModalOpen] = useState(false);
@@ -69,6 +72,16 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
   // ── Default RunProfile state ──
   const [savingDefault, setSavingDefault] = useState(false);
   const [defaultProfileError, setDefaultProfileError] = useState<string | null>(null);
+
+  // ── Refresh tools handler ──
+  async function handleRefreshTools() {
+    setRefreshingTools(true);
+    try {
+      await entityStore.refreshToolSpecs();
+    } finally {
+      setRefreshingTools(false);
+    }
+  }
 
   // ── Surface handlers ──
   function openCreateSurface() {
@@ -335,6 +348,13 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
             <p className="acct-section-desc">{t("surfaces.description")}</p>
           </div>
           <div className="td-actions">
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={handleRefreshTools}
+              disabled={refreshingTools}
+            >
+              {refreshingTools ? t("common.loading") : t("surfaces.refreshTools")}
+            </button>
             <button className="btn btn-primary btn-sm" onClick={openCreateSurface}>
               {t("surfaces.createSurface")}
             </button>

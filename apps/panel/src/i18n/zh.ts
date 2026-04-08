@@ -78,7 +78,7 @@ export default {
     sendError: "消息发送失败。",
     errorRateLimit: "当前模型已达到使用上限，请稍后再试或切换到其他模型。",
     errorBilling: "API 密钥余额不足，请前往提供商后台充值或切换其他密钥。",
-    errorTimeout: "请求超时，模型可能暂时不可用，请重试或切换到其他模型。",
+    errorTimeout: "请求超时。",
     errorContextOverflow: "对话太长，超出了模型的上下文限制。请使用 /reset 开始新对话，或切换到支持更长上下文的模型。",
     errorAuth: "认证失败，请前往「模型」页面检查 API 密钥或重新登录。",
     disconnectedError: "连接中断，正在重连，稍后可重新发送消息。",
@@ -2071,6 +2071,7 @@ export default {
     title: "场景与运行配置",
     description: "场景定义了某个使用场景中可用的工具集。运行配置在场景内为具体运行选择特定工具。",
     surfacesTitle: "场景",
+    refreshTools: "刷新工具",
     createSurface: "新建场景",
     createFromPreset: "从预设创建",
     editSurface: "编辑场景",
@@ -2190,6 +2191,11 @@ export default {
       businessPrompt: "业务提示词",
       businessPromptHint: "描述你的业务背景，帮助 AI 提供更好的客服回复。",
       balanceExpiry: "余额到期时间",
+      escalationRouting: "升级路由",
+      escalationChannel: "渠道",
+      escalationChannelHint: "发送升级告警的消息渠道。",
+      escalationRecipient: "接收方",
+      escalationRecipientHint: "接收升级通知的群组或个人。选择渠道后可用。",
     },
     // Modal tabs
     modal: {
