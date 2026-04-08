@@ -866,57 +866,18 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
 
 
-    // Deny unused provider plugins to prevent startup event-loop blocking.
-    //
-    // Vendor's prewarmConfiguredPrimaryModel() triggers resolveImplicitProviders()
-    // which runs provider discovery for ALL registered plugins serially (29 plugins,
-    // ~250-500ms each = 12-25s total). Each discovery round also reloads all plugins
-    // from disk because resolvePluginProviders defaults cache:false.
-    //
-    // RivonClaw only uses providers configured in the desktop UI (routed through
-    // openrouter or direct API keys). We deny all bundled provider plugins that
-    // we don't need, reducing discovery from 12s to <1s.
-    //
-    // Known vendor issues:
-    //   - https://github.com/openclaw/openclaw/issues/50370 (uncached provider discovery)
-    //   - https://github.com/openclaw/openclaw/issues/56939 (unexpected Ollama probing)
-    //   - https://github.com/openclaw/openclaw/issues/38486 (no flag to disable discovery)
-    // TODO: Remove once vendor fixes provider-discovery caching (#50370).
-    const DENIED_PROVIDER_PLUGINS = [
-      "ollama",              // probes localhost:11434, blocks event loop 15s when not running
-      "amazon-bedrock",
-      "anthropic-vertex",
-      "byteplus",
-      "chutes",
-      "cloudflare-ai-gateway",
-      "deepseek",
-      "github-copilot",
-      "huggingface",
-      "kilocode",
-      "kimi",
-      "litellm",
-      "minimax",
-      "mistral",
-      "modelstudio",
-      "moonshot",
-      "nvidia",
-      "qianfan",
-      "sglang",
-      "synthetic",
-      "together",
-      "venice",
-      "vercel-ai-gateway",
-      "vllm",
-      "volcengine",
-      "xai",
-      "xiaomi",
-    ];
+    // Deny Ollama plugin to prevent startup event-loop blocking.
+    // Ollama discovery probes localhost:11434 synchronously — when Ollama is not
+    // running the connection attempt blocks the Node.js event loop for 15s.
+    // Unlike other providers (which are slow but async), Ollama's probe is the
+    // only one that causes a hard event-loop freeze.
+    // See: https://github.com/openclaw/openclaw/issues/56939
+    // TODO: Remove once vendor adds a config flag to disable Ollama discovery
+    // (https://github.com/openclaw/openclaw/issues/38486).
     const existingDeny = Array.isArray(merged.deny) ? (merged.deny as string[]) : [];
-    const denySet = new Set(existingDeny);
-    for (const id of DENIED_PROVIDER_PLUGINS) {
-      denySet.add(id);
+    if (!existingDeny.includes("ollama")) {
+      merged.deny = [...existingDeny, "ollama"];
     }
-    merged.deny = [...denySet];
 
     config.plugins = merged;
   }
