@@ -616,7 +616,8 @@ export class CustomerServiceBridge {
             const parsed = JSON.parse(raw.data) as { orders?: Array<{ id?: string; create_time?: number }> };
             const orders = (parsed.orders ?? [])
               .filter((o): o is { id: string; create_time: number } => !!o.id && !!o.create_time)
-              .map(o => ({ orderId: o.id, createTime: o.create_time }));
+              .map(o => ({ orderId: o.id, createTime: o.create_time }))
+              .sort((a, b) => b.createTime - a.createTime);
             session.csContext.recentOrders = orders.length > 0 ? orders : null;
             session.csContext.orderId = orders.length > 0 ? orders[0].orderId : null;
             if (orders.length > 0) {
