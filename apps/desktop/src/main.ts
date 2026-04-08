@@ -1558,6 +1558,7 @@ app.whenReady().then(async () => {
       await launcher.stop();
       await launcher.start();
     },
+    proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     stateDir,
     getLastSystemProxy: () => lastSystemProxy,
   });

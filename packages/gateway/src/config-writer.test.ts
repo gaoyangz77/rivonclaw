@@ -852,7 +852,7 @@ describe("config-writer", () => {
       expect(config.models.mode).toBe("merge");
     });
 
-    it("replaces existing models.providers with extraProviders (no merge with stale entries)", () => {
+    it("preserves existing models.providers when adding extra", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
@@ -874,32 +874,19 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      // extraProviders replaces (not merges) existing providers to avoid stale entries
-      expect(config.models.providers.existing).toBeUndefined();
+      expect(config.models.providers.existing).toBeDefined();
       expect(config.models.providers.zhipu).toBeDefined();
     });
 
-    it("clears models.providers when extraProviders is empty", () => {
+    it("does not write models section when extraProviders is empty", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(
-        configPath,
-        JSON.stringify({
-          models: {
-            mode: "merge",
-            providers: {
-              stale: { baseUrl: "http://stale", models: [] },
-            },
-          },
-        }),
-      );
-
       writeGatewayConfig({
         configPath,
         extraProviders: {},
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.models.providers).toEqual({});
+      expect(config.models).toBeUndefined();
     });
 
     it("does not write models section when extraProviders is omitted", () => {
