@@ -866,19 +866,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
 
 
-    // Deny Ollama plugin to prevent startup event-loop blocking.
-    // Ollama discovery probes localhost:11434 synchronously — when Ollama is not
-    // running the connection attempt blocks the Node.js event loop for 15s.
-    // Unlike other providers (which are slow but async), Ollama's probe is the
-    // only one that causes a hard event-loop freeze.
-    // See: https://github.com/openclaw/openclaw/issues/56939
-    // TODO: Remove once vendor adds a config flag to disable Ollama discovery
-    // (https://github.com/openclaw/openclaw/issues/38486).
-    const existingDeny = Array.isArray(merged.deny) ? (merged.deny as string[]) : [];
-    if (!existingDeny.includes("ollama")) {
-      merged.deny = [...existingDeny, "ollama"];
-    }
-
     config.plugins = merged;
   }
 
