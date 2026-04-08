@@ -177,9 +177,9 @@ export class CustomerServiceSession {
       `- Shop ID: ${this.csContext.shopId}`,
       `- Conversation ID: ${this.csContext.conversationId}`,
       `- Buyer User ID: ${this.csContext.buyerUserId}`,
-      ...(this.csContext.recentOrders?.length
+      ...(this.csContext.recentOrders !== undefined
         ? [
-            "- Buyer's Recent Orders:",
+            `- Buyer's Recent Orders: ${this.csContext.recentOrders.length === 0 ? "[]" : ""}`,
             ...this.csContext.recentOrders.map(o =>
               `  - Order ${o.orderId} (placed ${new Date(o.createTime * 1000).toISOString().slice(0, 10)})`
             ),
