@@ -580,10 +580,14 @@ export class CustomerServiceSession {
 
     await this.setup();
 
+    const prompt = this.extraSystemPrompt;
+    const orderLine = prompt.split("\n").find(l => l.includes("Recent Orders"));
+    log.info(`Dispatch prompt check: recentOrders=${JSON.stringify(this.csContext.recentOrders)}, orderLine=${JSON.stringify(orderLine ?? "NOT FOUND")}`);
+
     const response = await rpcClient.request<DispatchResult>("agent", {
       sessionKey: this.dispatchKey,
       message: params.message,
-      extraSystemPrompt: this.extraSystemPrompt,
+      extraSystemPrompt: prompt,
       promptMode: "raw",
       idempotencyKey: params.idempotencyKey,
       ...(params.attachments ? { attachments: params.attachments } : {}),
