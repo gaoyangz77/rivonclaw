@@ -601,10 +601,14 @@ export class CustomerServiceBridge {
     const session = this.getOrCreateSessionFromShop(shop, frame);
 
     // Backfill recent orders if never fetched (undefined = not yet fetched)
+    log.info(`Order backfill check: recentOrders=${JSON.stringify(session.csContext.recentOrders)} for conv=${frame.conversationId}`);
     if (session.csContext.recentOrders === undefined) {
-      try {
-        const authSession = getAuthSession();
-        if (authSession) {
+      const authSession = getAuthSession();
+      if (!authSession) {
+        log.error(`Order backfill failed: no auth session for conv=${frame.conversationId}`);
+      } else {
+        try {
+          log.info(`Order backfill: fetching orders for shop=${shop.objectId} buyer=${frame.buyerUserId}`);
           const ordersResult = await authSession.graphqlFetch<{
             ecommerceGetOrders: { code: number; data?: string };
           }>(GET_BUYER_ORDERS_QUERY, {
@@ -620,17 +624,16 @@ export class CustomerServiceBridge {
               .sort((a, b) => b.createTime - a.createTime);
             session.csContext.recentOrders = orders;
             session.csContext.orderId = orders[0]?.orderId ?? null;
-            if (orders.length > 0) {
-              log.info(`Backfilled ${orders.length} recent order(s) for conv=${frame.conversationId}, latest=${orders[0].orderId}`);
-            }
+            log.info(`Order backfill done: ${orders.length} order(s) for conv=${frame.conversationId}${orders.length > 0 ? `, latest=${orders[0].orderId}` : ""}`);
           } else {
             session.csContext.recentOrders = [];
             session.csContext.orderId = null;
+            log.info(`Order backfill: API returned code=${raw.code}, no orders for conv=${frame.conversationId}`);
           }
+        } catch (err) {
+          log.warn("Order backfill failed:", err);
+          // Keep undefined so next message retries the fetch
         }
-      } catch (err) {
-        log.warn("Failed to fetch buyer orders for session:", err);
-        // Keep undefined so next message retries the fetch
       }
     }
 
