@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.7.9",
+    "date": "2026-04-08",
+    "en": [
+      "Fix startup freezes and long launch delays, especially on machines with Ollama or browser-control related slowdown",
+      "Improve proxy-aware networking so cloud features follow system proxy more reliably, including retries and image-capability sync",
+      "Improve customer service and ecommerce flows, including better session startup, order backfill, and takeover state handling",
+      "Improve chat stability with better timeout errors, restored session trackers on tab switch, and hidden heartbeat prompts",
+      "Speed up CI packaging and restore reliable macOS universal builds",
+      "Add a Refresh Tools button on the account page"
+    ],
+    "zh": [
+      "修复启动卡顿和长时间转圈，尤其是装了 Ollama 或受浏览器控制模块影响时的启动变慢问题",
+      "增强代理网络兼容性，云端功能更稳定跟随系统代理，并补上重试与图片能力同步",
+      "优化客服与电商流程，包括会话启动、订单号回填和接管状态处理",
+      "提升聊天稳定性：超时错误更明确，切换标签页后能正确恢复会话状态，并隐藏心跳提示",
+      "加快 CI 打包流程，并恢复稳定的 macOS 通用包构建",
+      "账户页新增“刷新工具”按钮"
+    ]
+  },
+  {
     "version": "1.7.8",
     "date": "2026-04-01",
     "en": [
