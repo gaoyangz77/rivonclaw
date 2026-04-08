@@ -40,7 +40,6 @@ export const GET_CONVERSATION_DETAILS_QUERY = `
   query($shopId: String!, $conversationId: String!) {
     ecommerceGetConversationDetails(shopId: $shopId, conversationId: $conversationId) {
       code message
-      orderId
       customer { userId nickname }
     }
   }
@@ -84,8 +83,10 @@ export interface CSContext {
   shopId: string;
   conversationId: string;
   buyerUserId: string;
-  /** undefined = not yet fetched; null = fetched but no order; string = known orderId */
+  /** undefined = not yet fetched; null = fetched but no order; string = most recent orderId */
   orderId?: string | null;
+  /** All recent orders for prompt context. undefined = not fetched yet. */
+  recentOrders?: Array<{ orderId: string; createTime: number }> | null;
 }
 
 export interface DispatchResult {
@@ -176,7 +177,14 @@ export class CustomerServiceSession {
       `- Shop ID: ${this.csContext.shopId}`,
       `- Conversation ID: ${this.csContext.conversationId}`,
       `- Buyer User ID: ${this.csContext.buyerUserId}`,
-      ...(this.csContext.orderId ? [`- Order ID: ${this.csContext.orderId}`] : []),
+      ...(this.csContext.recentOrders?.length
+        ? [
+            "- Buyer's Recent Orders:",
+            ...this.csContext.recentOrders.map(o =>
+              `  - Order ${o.orderId} (placed ${new Date(o.createTime * 1000).toISOString().slice(0, 10)})`
+            ),
+          ]
+        : []),
       "",
       "## CS Behavior Guidelines",
       "",

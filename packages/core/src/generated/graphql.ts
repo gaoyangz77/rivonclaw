@@ -187,8 +187,6 @@ export interface ConversationDetailsResult {
   customer?: Maybe<ConversationCustomer>;
   data?: Maybe<Scalars['String']['output']>;
   message: Scalars['String']['output'];
-  /** Order ID for order-scoped conversations */
-  orderId?: Maybe<Scalars['String']['output']>;
 }
 
 /** Input for creating a new RunProfile */

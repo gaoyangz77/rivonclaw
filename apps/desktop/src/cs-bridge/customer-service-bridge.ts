@@ -13,7 +13,7 @@ import {
 } from "@rivonclaw/core";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { getStorageRef } from "../storage-ref.js";
-import { CustomerServiceSession, GET_CONVERSATION_DETAILS_QUERY, type CSShopContext, type Escalation } from "./customer-service-session.js";
+import { CustomerServiceSession, type CSShopContext, type Escalation } from "./customer-service-session.js";
 import { reaction, toJS } from "mobx";
 
 // Re-export for consumers that imported CSShopContext from this file
@@ -22,6 +22,14 @@ import { rootStore } from "../store/desktop-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 
 const log = createLogger("cs-bridge");
+
+const GET_BUYER_ORDERS_QUERY = `
+  query($shopId: String!, $buyerUserId: String) {
+    ecommerceGetOrders(shopId: $shopId, buyerUserId: $buyerUserId) {
+      code message data
+    }
+  }
+`;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -592,27 +600,36 @@ export class CustomerServiceBridge {
 
     const session = this.getOrCreateSessionFromShop(shop, frame);
 
-    // Backfill orderId if never fetched (undefined = not yet fetched, null = fetched but none)
-    if (session.csContext.orderId === undefined) {
+    // Backfill recent orders if never fetched (undefined = not yet fetched)
+    if (session.csContext.recentOrders === undefined) {
       try {
         const authSession = getAuthSession();
         if (authSession) {
-          const detailsResult = await authSession.graphqlFetch<{
-            ecommerceGetConversationDetails: { orderId?: string };
-          }>(GET_CONVERSATION_DETAILS_QUERY, {
+          const ordersResult = await authSession.graphqlFetch<{
+            ecommerceGetOrders: { code: number; data?: string };
+          }>(GET_BUYER_ORDERS_QUERY, {
             shopId: shop.objectId,
-            conversationId: frame.conversationId,
+            buyerUserId: frame.buyerUserId,
           });
-          const fetchedOrderId = detailsResult.ecommerceGetConversationDetails.orderId;
-          session.csContext.orderId = fetchedOrderId ?? null;
-          if (fetchedOrderId) {
-            log.info(`Backfilled orderId=${fetchedOrderId} for conv=${frame.conversationId}`);
+          const raw = ordersResult.ecommerceGetOrders;
+          if (raw.code === 0 && raw.data) {
+            const parsed = JSON.parse(raw.data) as { orders?: Array<{ id?: string; create_time?: number }> };
+            const orders = (parsed.orders ?? [])
+              .filter((o): o is { id: string; create_time: number } => !!o.id && !!o.create_time)
+              .map(o => ({ orderId: o.id, createTime: o.create_time }));
+            session.csContext.recentOrders = orders.length > 0 ? orders : null;
+            session.csContext.orderId = orders.length > 0 ? orders[0].orderId : null;
+            if (orders.length > 0) {
+              log.info(`Backfilled ${orders.length} recent order(s) for conv=${frame.conversationId}, latest=${orders[0].orderId}`);
+            }
+          } else {
+            session.csContext.recentOrders = null;
+            session.csContext.orderId = null;
           }
         }
       } catch (err) {
-        log.warn("Failed to fetch orderId for session:", err);
-        // Mark as fetched (null) so we don't retry on every message
-        session.csContext.orderId = null;
+        log.warn("Failed to fetch buyer orders for session:", err);
+        // Keep undefined so next message retries the fetch
       }
     }
 
