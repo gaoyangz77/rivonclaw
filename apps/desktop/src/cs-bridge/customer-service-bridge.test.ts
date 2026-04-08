@@ -126,6 +126,7 @@ beforeEach(() => {
     writeFullGatewayConfig: async () => {},
     writeDefaultModelToConfig: () => {},
     restartGateway: async () => {},
+    proxyFetch: globalThis.fetch,
     stateDir: "/tmp/test-state",
     getLastSystemProxy: () => null,
   });

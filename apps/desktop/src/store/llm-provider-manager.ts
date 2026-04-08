@@ -28,6 +28,8 @@ export interface LLMProviderManagerEnv {
   writeFullGatewayConfig: () => Promise<void>;
   /** Full gateway restart (stop + start). Reloads plugins. */
   restartGateway: () => Promise<void>;
+  /** Proxy-aware fetch (routes through proxy-router for users behind a proxy). */
+  proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
   stateDir: string;
   getLastSystemProxy: () => string | null;
 }
@@ -662,7 +664,8 @@ export const LLMProviderManagerModel = types
           interface CloudModel { id: string; input_modalities?: string[] }
           try {
             const effectiveBaseUrl = baseUrlChanged ? currentBaseUrl : existing.baseUrl!;
-            const res: Response = yield fetch(effectiveBaseUrl + "/models", {
+            const { proxyFetch } = getEnvDeps();
+            const res: Response = yield proxyFetch(effectiveBaseUrl + "/models", {
               headers: { Authorization: `Bearer ${llmKey}` },
             });
             if (res.ok) {
@@ -701,7 +704,8 @@ export const LLMProviderManagerModel = types
         interface CloudModel { id: string; input_modalities?: string[] }
         let cloudModels: CloudModel[] = [];
         try {
-          const res: Response = yield fetch(baseUrl + "/models", {
+          const { proxyFetch } = getEnvDeps();
+          const res: Response = yield proxyFetch(baseUrl + "/models", {
             headers: { Authorization: `Bearer ${llmKey}` },
           });
           if (res.ok) {

@@ -46,17 +46,25 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return { provider: "google-gemini-cli", modelId };
   }
 
-  /** Only keep extra providers that the user has actually configured (has a provider key in DB).
-   *  Providers without an API key cause Pi SDK validateConfig to reject the entire models.json. */
-  function filterConfiguredExtraProviders<T>(providers: Record<string, T>): Record<string, T> {
+  /** For extra providers without an API key, strip models to avoid Pi SDK
+   *  validateConfig rejecting the entire models.json. Providers with models
+   *  but no apiKey cause a fatal "apiKey is required" error that drops ALL
+   *  custom models from the catalog (including rivonclaw-pro). */
+  function sanitizeExtraProviders<T extends { baseUrl: string; api?: string; models: unknown[] }>(
+    providers: Record<string, T>,
+  ): Record<string, T> {
     const configuredProviders = new Set(storage.providerKeys.getAll().map((k) => k.provider));
-    const filtered: Record<string, T> = {};
+    const result: Record<string, T> = {};
     for (const [provider, config] of Object.entries(providers)) {
       if (configuredProviders.has(provider)) {
-        filtered[provider] = config;
+        result[provider] = config;
+      } else {
+        // Override-only entry (no models) — preserves baseUrl for overrides
+        // without triggering Pi SDK's apiKey validation.
+        result[provider] = { ...config, models: [] };
       }
     }
-    return filtered;
+    return result;
   }
 
   function buildLocalProviderOverrides(): Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> {
@@ -228,7 +236,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         provider: curEmbeddingProvider,
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
-      extraProviders: { ...filterConfiguredExtraProviders(buildExtraProviderConfigs()), ...buildCustomProviderOverrides() },
+      extraProviders: { ...sanitizeExtraProviders(buildExtraProviderConfigs()), ...buildCustomProviderOverrides() },
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
