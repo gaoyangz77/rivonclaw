@@ -1106,21 +1106,32 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
   }
 
-  // Mobile channel uses a separate pairing system (mobile_pairings table),
-  // not channel_accounts. Mark it as managed so the vendor's plugin loader
-  // recognises it as a configured channel. Other channels (e.g. openclaw-weixin)
-  // are managed by ChannelManager and get their config presence via
-  // channelAccounts written below.
+  // Some channels need to be recognised by the vendor's plugin loader even
+  // before any accounts exist:
+  // - Mobile uses a separate pairing system (mobile_pairings table), not
+  //   channel_accounts, so it never appears in the channelAccounts loop below.
+  // - openclaw-weixin requires its plugin loaded for QR login bootstrap —
+  //   accounts are only created *after* QR login succeeds, so the plugin must
+  //   be available before any account config exists.
+  // Mark both as managed so listPotentialConfiguredChannelIds() includes them.
   {
     const existingChannels =
       typeof config.channels === "object" && config.channels !== null
         ? (config.channels as Record<string, unknown>)
         : {};
-    const existing =
+
+    const existingMobile =
       typeof existingChannels.mobile === "object" && existingChannels.mobile !== null
         ? (existingChannels.mobile as Record<string, unknown>)
         : {};
-    existingChannels.mobile = { ...existing, managed: true };
+    existingChannels.mobile = { ...existingMobile, managed: true };
+
+    const existingWeixin =
+      typeof existingChannels["openclaw-weixin"] === "object" && existingChannels["openclaw-weixin"] !== null
+        ? (existingChannels["openclaw-weixin"] as Record<string, unknown>)
+        : {};
+    existingChannels["openclaw-weixin"] = { ...existingWeixin, managed: true };
+
     config.channels = existingChannels;
   }
 
