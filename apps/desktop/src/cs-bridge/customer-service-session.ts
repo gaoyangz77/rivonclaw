@@ -36,10 +36,11 @@ const SEND_MESSAGE_MUTATION = `
   }
 `;
 
-const GET_CONVERSATION_DETAILS_QUERY = `
+export const GET_CONVERSATION_DETAILS_QUERY = `
   query($shopId: String!, $conversationId: String!) {
     ecommerceGetConversationDetails(shopId: $shopId, conversationId: $conversationId) {
       code message
+      orderId
       customer { userId nickname }
     }
   }
@@ -83,7 +84,8 @@ export interface CSContext {
   shopId: string;
   conversationId: string;
   buyerUserId: string;
-  orderId?: string;
+  /** undefined = not yet fetched; null = fetched but no order; string = known orderId */
+  orderId?: string | null;
 }
 
 export interface DispatchResult {

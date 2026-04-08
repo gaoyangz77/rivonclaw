@@ -13,7 +13,7 @@ import {
 } from "@rivonclaw/core";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { getStorageRef } from "../storage-ref.js";
-import { CustomerServiceSession, type CSShopContext, type Escalation } from "./customer-service-session.js";
+import { CustomerServiceSession, GET_CONVERSATION_DETAILS_QUERY, type CSShopContext, type Escalation } from "./customer-service-session.js";
 import { reaction, toJS } from "mobx";
 
 // Re-export for consumers that imported CSShopContext from this file
@@ -591,6 +591,30 @@ export class CustomerServiceBridge {
     }
 
     const session = this.getOrCreateSessionFromShop(shop, frame);
+
+    // Backfill orderId if never fetched (undefined = not yet fetched, null = fetched but none)
+    if (session.csContext.orderId === undefined) {
+      try {
+        const authSession = getAuthSession();
+        if (authSession) {
+          const detailsResult = await authSession.graphqlFetch<{
+            ecommerceGetConversationDetails: { orderId?: string };
+          }>(GET_CONVERSATION_DETAILS_QUERY, {
+            shopId: shop.objectId,
+            conversationId: frame.conversationId,
+          });
+          const fetchedOrderId = detailsResult.ecommerceGetConversationDetails.orderId;
+          session.csContext.orderId = fetchedOrderId ?? null;
+          if (fetchedOrderId) {
+            log.info(`Backfilled orderId=${fetchedOrderId} for conv=${frame.conversationId}`);
+          }
+        }
+      } catch (err) {
+        log.warn("Failed to fetch orderId for session:", err);
+        // Mark as fetched (null) so we don't retry on every message
+        session.csContext.orderId = null;
+      }
+    }
 
     try {
       await session.handleBuyerMessage(frame);
