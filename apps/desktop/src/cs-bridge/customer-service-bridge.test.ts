@@ -574,7 +574,7 @@ describe("session registration", () => {
         shopId: "mongo-id-123",
         conversationId: "conv-100",
         buyerUserId: "buyer-200",
-        orderId: undefined,
+        orderId: null,
       },
     });
   });
@@ -1121,15 +1121,17 @@ describe("CS session lifecycle", () => {
   });
 
   it("skips agent dispatch when csGetOrCreateSession fails (insufficient balance)", async () => {
-    mockGraphqlFetch.mockRejectedValueOnce(new Error("Insufficient balance"));
-
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockClear();
+    // Reject ALL graphqlFetch calls so ensureBackendSession always fails
+    mockGraphqlFetch.mockRejectedValue(new Error("Insufficient balance"));
 
     await triggerMessage(bridge, createFrame());
 
     // ensureBackendSession fails before setup, so neither cs_register_session nor agent is called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
   });
 
   it("skips agent dispatch when no auth session available", async () => {
