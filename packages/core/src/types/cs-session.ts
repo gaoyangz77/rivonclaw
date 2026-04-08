@@ -17,11 +17,12 @@ export interface CSSessionContext {
   // ── Security context (tool-layer enforcement) ──
   shopId: string;
   conversationId: string;
+  /** Platform buyer user ID (resolved from conversation details). Used by tools and order queries. */
   buyerUserId: string;
+  /** IM user ID from the webhook. Preserved for CS messaging context. */
+  imUserId?: string;
   // ── Informational context (prompt-layer hints, NOT tool locks) ──
-  /** Most recent order ID for this buyer, if any. Injected into the
-   *  system prompt so the agent can proactively look it up — but does NOT
-   *  restrict the agent from querying the buyer's other orders. */
+  /** Most recent order ID for this buyer, if any. */
   orderId?: string | null;
   /** All recent orders for this buyer. undefined = not fetched, [] = no orders. */
   recentOrders?: Array<{ orderId: string; createTime: number }>;

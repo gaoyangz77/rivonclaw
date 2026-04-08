@@ -82,7 +82,11 @@ export interface CSShopContext {
 export interface CSContext {
   shopId: string;
   conversationId: string;
+  /** Platform buyer user ID. Initially set to IM user ID from webhook, then
+   *  corrected to the real platform buyer ID during backfill. */
   buyerUserId: string;
+  /** IM user ID from the webhook (preserved as-is). */
+  imUserId: string;
   /** undefined = not yet fetched; null = fetched but no order; string = most recent orderId */
   orderId?: string | null;
   /** undefined = not fetched yet; [] = fetched, no orders; non-empty = has orders */

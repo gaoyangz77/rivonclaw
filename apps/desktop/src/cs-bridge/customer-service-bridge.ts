@@ -622,15 +622,11 @@ export class CustomerServiceBridge {
             session.csContext.recentOrders = [];
             session.csContext.orderId = null;
           } else {
-            // Replace IM user ID with platform buyer user ID in session context
-            // so all downstream uses (tools, prompts, backend) get the correct ID
-            if (session.csContext.buyerUserId !== platformBuyerId) {
-              log.info(`Replacing IM buyerUserId=${session.csContext.buyerUserId} with platform buyerId=${platformBuyerId}`);
-              session.csContext.buyerUserId = platformBuyerId;
-            }
+            // Correct buyerUserId from IM user ID to platform buyer user ID
+            session.csContext.buyerUserId = platformBuyerId;
+            log.info(`Resolved platform buyerId=${platformBuyerId} (im=${session.csContext.imUserId}) for conv=${frame.conversationId}`);
 
             // Step 2: fetch orders using platform buyer user ID
-            log.info(`Order backfill: fetching orders for shop=${shop.objectId} platformBuyer=${platformBuyerId}`);
             const ordersResult = await authSession.graphqlFetch<{
               ecommerceGetOrders: { code: number; data?: string };
             }>(GET_BUYER_ORDERS_QUERY, {
@@ -756,7 +752,9 @@ export class CustomerServiceBridge {
     const csContext = {
       shopId: shopObjectId,
       conversationId: params.conversationId,
+      // Initially IM user ID from webhook; corrected to platform buyer ID during backfill
       buyerUserId: params.buyerUserId,
+      imUserId: params.buyerUserId,
       orderId: params.orderId,
     };
 
