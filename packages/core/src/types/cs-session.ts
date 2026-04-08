@@ -19,10 +19,12 @@ export interface CSSessionContext {
   conversationId: string;
   buyerUserId: string;
   // ── Informational context (prompt-layer hints, NOT tool locks) ──
-  /** The order that triggered this conversation, if any. Injected into the
+  /** Most recent order ID for this buyer, if any. Injected into the
    *  system prompt so the agent can proactively look it up — but does NOT
    *  restrict the agent from querying the buyer's other orders. */
-  orderId?: string;
+  orderId?: string | null;
+  /** All recent orders for this buyer. undefined = not fetched, [] = no orders. */
+  recentOrders?: Array<{ orderId: string; createTime: number }>;
 }
 
 // ── Session store ──────────────────────────────────────────────────
