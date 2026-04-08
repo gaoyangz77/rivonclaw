@@ -275,7 +275,8 @@ export const ProvidersPage = observer(function ProvidersPage() {
                             value={k.model}
                             onChange={(model) => handleModelChange(k.id, model)}
                             options={
-                              (JSON.parse(k.customModelsJson) as string[])
+                              (JSON.parse(k.customModelsJson) as Array<string | { id: string }>)
+                                .map((m) => typeof m === "string" ? m : m.id)
                                 .sort((a, b) => b.localeCompare(a))
                                 .map((m) => ({ value: m, label: m }))
                             }

@@ -46,6 +46,19 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return { provider: "google-gemini-cli", modelId };
   }
 
+  /** Only keep extra providers that the user has actually configured (has a provider key in DB).
+   *  Providers without an API key cause Pi SDK validateConfig to reject the entire models.json. */
+  function filterConfiguredExtraProviders<T>(providers: Record<string, T>): Record<string, T> {
+    const configuredProviders = new Set(storage.providerKeys.getAll().map((k) => k.provider));
+    const filtered: Record<string, T> = {};
+    for (const [provider, config] of Object.entries(providers)) {
+      if (configuredProviders.has(provider)) {
+        filtered[provider] = config;
+      }
+    }
+    return filtered;
+  }
+
   function buildLocalProviderOverrides(): Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> {
     const overrides: Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> = {};
     for (const localProvider of LOCAL_PROVIDER_IDS) {
@@ -74,14 +87,17 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
 
     for (const key of customKeys) {
       if (!key.baseUrl || !key.customModelsJson || !key.customProtocol) continue;
-      let models: string[];
-      try { models = JSON.parse(key.customModelsJson); } catch { continue; }
+      let rawModels: Array<string | { id: string; input_modalities?: string[] }>;
+      try { rawModels = JSON.parse(key.customModelsJson); } catch { continue; }
       const api = key.customProtocol === "anthropic" ? "anthropic-messages" : "openai-completions";
-      const input = (key.inputModalities ?? ["text"]) as Array<"text" | "image">;
+      const keyLevelInput = (key.inputModalities ?? ["text"]) as Array<"text" | "image">;
       overrides[key.provider] = {
         baseUrl: key.baseUrl,
         api,
-        models: models.map((m) => ({ id: m, name: m, input })),
+        models: rawModels.map((m) => {
+          if (typeof m === "string") return { id: m, name: m, input: keyLevelInput };
+          return { id: m.id, name: m.id, input: (m.input_modalities ?? ["text"]) as Array<"text" | "image"> };
+        }),
       };
     }
     return overrides;
@@ -212,7 +228,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         provider: curEmbeddingProvider,
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
-      extraProviders: { ...buildExtraProviderConfigs(), ...buildCustomProviderOverrides() },
+      extraProviders: { ...filterConfiguredExtraProviders(buildExtraProviderConfigs()), ...buildCustomProviderOverrides() },
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,

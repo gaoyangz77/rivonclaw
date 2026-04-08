@@ -72,16 +72,17 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
         sendJson(res, 400, { error: "Custom providers require baseUrl, customProtocol, and customModelsJson" });
         return true;
       }
-      let models: string[];
+      let rawModels: Array<string | { id: string }>;
       try {
-        models = JSON.parse(body.customModelsJson);
-        if (!Array.isArray(models) || models.length === 0) throw new Error("empty");
+        rawModels = JSON.parse(body.customModelsJson);
+        if (!Array.isArray(rawModels) || rawModels.length === 0) throw new Error("empty");
       } catch {
         sendJson(res, 400, { error: "customModelsJson must be a non-empty JSON array of model IDs" });
         return true;
       }
+      const firstModelId = typeof rawModels[0] === "string" ? rawModels[0] : rawModels[0].id;
       const validation = await validateCustomProviderApiKey(
-        body.baseUrl, body.apiKey!, body.customProtocol, models[0], ctx.proxyRouterPort, body.proxyUrl || undefined,
+        body.baseUrl, body.apiKey!, body.customProtocol, firstModelId, ctx.proxyRouterPort, body.proxyUrl || undefined,
       );
       if (!validation.valid) {
         sendJson(res, 422, { error: validation.error || "Invalid API key" });
@@ -365,10 +366,11 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
     for (const key of allKeys) {
       if (key.customModelsJson) {
         try {
-          const models: string[] = JSON.parse(key.customModelsJson);
+          const rawModels: Array<string | { id: string }> = JSON.parse(key.customModelsJson);
           const existing = catalog[key.provider] ?? [];
           const existingIds = new Set(existing.map((e) => e.id));
-          const extras = models
+          const extras = rawModels
+            .map((m) => typeof m === "string" ? m : m.id)
             .filter((id) => !existingIds.has(id))
             .map((id) => ({ id, name: id }));
           if (extras.length > 0) {

@@ -968,22 +968,21 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Extra providers → models.providers (for providers not built into OpenClaw)
-  if (options.extraProviders !== undefined && Object.keys(options.extraProviders).length > 0) {
+  // Use extraProviders as the authoritative set — do not merge with existing
+  // providers from the previous config. Stale providers (e.g. user deleted
+  // their API key) must not persist, otherwise Pi SDK rejects the entire
+  // models.json when it encounters a provider with models but no apiKey.
+  // Local provider overrides are written separately in the next block and
+  // will merge into this set.
+  if (options.extraProviders !== undefined) {
     const existingModels =
       typeof config.models === "object" && config.models !== null
         ? (config.models as Record<string, unknown>)
         : {};
-    const existingProviders =
-      typeof existingModels.providers === "object" && existingModels.providers !== null
-        ? (existingModels.providers as Record<string, unknown>)
-        : {};
     config.models = {
       ...existingModels,
       mode: existingModels.mode ?? "merge",
-      providers: {
-        ...existingProviders,
-        ...options.extraProviders,
-      },
+      providers: { ...options.extraProviders },
     };
   }
 

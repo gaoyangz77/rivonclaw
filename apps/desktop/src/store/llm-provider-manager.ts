@@ -644,11 +644,6 @@ export const LLMProviderManagerModel = types
           const keyChanged = currentKey !== llmKey;
           const baseUrlChanged = existing.baseUrl !== currentBaseUrl;
 
-          if (!keyChanged && !baseUrlChanged) {
-            log.info("Cloud provider key unchanged, skipping sync");
-            return;
-          }
-
           // Update secret if changed
           if (keyChanged) {
             yield secretStore.set(`provider-key-${existing.id}`, llmKey);
@@ -663,19 +658,38 @@ export const LLMProviderManagerModel = types
             log.info(`Updated cloud provider baseUrl: ${existing.baseUrl} -> ${currentBaseUrl}`);
           }
 
+          // Always refresh model list (capabilities may have changed on the backend)
+          interface CloudModel { id: string; input_modalities?: string[] }
+          try {
+            const effectiveBaseUrl = baseUrlChanged ? currentBaseUrl : existing.baseUrl!;
+            const res: Response = yield fetch(effectiveBaseUrl + "/models", {
+              headers: { Authorization: `Bearer ${llmKey}` },
+            });
+            if (res.ok) {
+              const data = (yield res.json()) as { data?: CloudModel[] };
+              const cloudModels = data.data ?? [];
+              if (cloudModels.length > 0) {
+                storage.providerKeys.update(existing.id, {
+                  customModelsJson: JSON.stringify(cloudModels),
+                  inputModalities: cloudModels.some((m) => m.input_modalities?.includes("image"))
+                    ? ["text", "image"]
+                    : ["text"],
+                });
+              }
+            }
+          } catch {
+            // Model refresh failed — keep existing list
+          }
+
           // MST state
           const freshEntry = storage.providerKeys.getById(existing.id)!;
           const mstEntry: MstProviderKeySnapshot = yield toMstSnapshot(freshEntry, secretStore);
           self.root.upsertProviderKey(mstEntry);
 
-          // Sync auth profiles + config (baseUrl change needs config rewrite)
-          if (baseUrlChanged) {
-            yield syncAuthProxyAndConfig();
-          } else {
-            yield syncAuthAndProxy();
-          }
+          // Sync auth profiles + config (model capabilities may have changed)
+          yield syncAuthProxyAndConfig();
 
-          log.info("Updated cloud provider key secret (rotated)");
+          log.info("Synced cloud provider (key/baseUrl/models refreshed)");
           return;
         }
 
@@ -683,15 +697,16 @@ export const LLMProviderManagerModel = types
         const baseUrl = `${getApiBaseUrl("en")}/llm/v1`;
         const shouldActivate = !storage.providerKeys.getActive();
 
-        // Fetch available models from cloud endpoint
-        let modelIds: string[] = [];
+        // Fetch available models from cloud endpoint (preserving per-model capabilities)
+        interface CloudModel { id: string; input_modalities?: string[] }
+        let cloudModels: CloudModel[] = [];
         try {
           const res: Response = yield fetch(baseUrl + "/models", {
             headers: { Authorization: `Bearer ${llmKey}` },
           });
           if (res.ok) {
-            const data = (yield res.json()) as { data?: Array<{ id: string }> };
-            modelIds = data.data?.map((m) => m.id) ?? [];
+            const data = (yield res.json()) as { data?: CloudModel[] };
+            cloudModels = data.data ?? [];
           }
         } catch {
           // Model fetch failed — create entry with empty models
@@ -701,13 +716,15 @@ export const LLMProviderManagerModel = types
           id: `cloud-${CLOUD_PROVIDER_ID}`,
           provider: CLOUD_PROVIDER_ID,
           label: CLOUD_KEY_LABEL,
-          model: modelIds[0] ?? "",
+          model: cloudModels[0]?.id ?? "",
           isDefault: shouldActivate,
           authType: "custom",
           baseUrl,
           customProtocol: "openai",
-          customModelsJson: modelIds.length > 0 ? JSON.stringify(modelIds) : null,
-          inputModalities: undefined,
+          customModelsJson: cloudModels.length > 0 ? JSON.stringify(cloudModels) : null,
+          inputModalities: cloudModels.some((m) => m.input_modalities?.includes("image"))
+            ? ["text", "image"]
+            : ["text"],
           source: "cloud",
           createdAt: "",
           updatedAt: "",
