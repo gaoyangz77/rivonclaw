@@ -641,6 +641,18 @@ export class CustomerServiceSession {
     const rpcClient = getRpcClient();
     if (!rpcClient) throw new Error("No RPC client available");
 
+    // Delete any stale gateway session so the agent starts fresh with the
+    // current system prompt (context-resolved buyer ID, recent orders, etc.)
+    // rather than reusing a cached prompt from a previous run.
+    try {
+      await rpcClient.request("sessions.delete", {
+        key: this.scopeKey,
+        deleteTranscript: true,
+      });
+    } catch {
+      // Best-effort — session may not exist yet
+    }
+
     await rpcClient.request("cs_register_session", {
       sessionKey: this.scopeKey,
       csContext: this.csContext,
@@ -672,15 +684,10 @@ export class CustomerServiceSession {
 
     await this.setup();
 
-    const prompt = this.extraSystemPrompt;
-    // Dump the Current Session block to verify recentOrders is present
-    const sessionBlock = prompt.split("## Current Session")[1]?.split("##")[0] ?? "NOT FOUND";
-    log.info(`Dispatch prompt Current Session block:\n${sessionBlock.trim()}`);
-
     const response = await rpcClient.request<DispatchResult>("agent", {
       sessionKey: this.dispatchKey,
       message: params.message,
-      extraSystemPrompt: prompt,
+      extraSystemPrompt: this.extraSystemPrompt,
       promptMode: "raw",
       idempotencyKey: params.idempotencyKey,
       ...(params.attachments ? { attachments: params.attachments } : {}),
