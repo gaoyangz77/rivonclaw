@@ -13,7 +13,7 @@ import {
 } from "@rivonclaw/core";
 import { getAuthSession } from "../auth/auth-session-ref.js";
 import { getStorageRef } from "../storage-ref.js";
-import { CustomerServiceSession, type CSShopContext, type Escalation } from "./customer-service-session.js";
+import { CustomerServiceSession, GET_CONVERSATION_DETAILS_QUERY, type CSShopContext, type Escalation } from "./customer-service-session.js";
 import { reaction, toJS } from "mobx";
 
 // Re-export for consumers that imported CSShopContext from this file
@@ -601,34 +601,50 @@ export class CustomerServiceBridge {
     const session = this.getOrCreateSessionFromShop(shop, frame);
 
     // Backfill recent orders if never fetched (undefined = not yet fetched)
-    log.info(`Order backfill check: recentOrders=${JSON.stringify(session.csContext.recentOrders)} for conv=${frame.conversationId}`);
+    // Step 1: resolve platform buyer user ID (IM user ID ≠ order buyer user ID)
+    // Step 2: fetch orders using the platform buyer user ID
     if (session.csContext.recentOrders === undefined) {
       const authSession = getAuthSession();
       if (!authSession) {
         log.error(`Order backfill failed: no auth session for conv=${frame.conversationId}`);
       } else {
         try {
-          log.info(`Order backfill: fetching orders for shop=${shop.objectId} buyer=${frame.buyerUserId}`);
-          const ordersResult = await authSession.graphqlFetch<{
-            ecommerceGetOrders: { code: number; data?: string };
-          }>(GET_BUYER_ORDERS_QUERY, {
+          // Step 1: get platform buyer user ID from conversation details
+          const detailsResult = await authSession.graphqlFetch<{
+            ecommerceGetConversationDetails: { code: number; customer?: { userId: string } };
+          }>(GET_CONVERSATION_DETAILS_QUERY, {
             shopId: shop.objectId,
-            buyerUserId: frame.buyerUserId,
+            conversationId: frame.conversationId,
           });
-          const raw = ordersResult.ecommerceGetOrders;
-          if (raw.code === 0 && raw.data) {
-            const parsed = JSON.parse(raw.data) as { orders?: Array<{ id?: string; create_time?: number }> };
-            const orders = (parsed.orders ?? [])
-              .filter((o): o is { id: string; create_time: number } => !!o.id && !!o.create_time)
-              .map(o => ({ orderId: o.id, createTime: o.create_time }))
-              .sort((a, b) => b.createTime - a.createTime);
-            session.csContext.recentOrders = orders;
-            session.csContext.orderId = orders[0]?.orderId ?? null;
-            log.info(`Order backfill done: ${orders.length} order(s) for conv=${frame.conversationId}${orders.length > 0 ? `, latest=${orders[0].orderId}` : ""}`);
-          } else {
+          const platformBuyerId = detailsResult.ecommerceGetConversationDetails.customer?.userId;
+          if (!platformBuyerId) {
+            log.warn(`Order backfill: could not resolve platform buyer ID for conv=${frame.conversationId}`);
             session.csContext.recentOrders = [];
             session.csContext.orderId = null;
-            log.info(`Order backfill: API returned code=${raw.code}, no orders for conv=${frame.conversationId}`);
+          } else {
+            // Step 2: fetch orders using platform buyer user ID
+            log.info(`Order backfill: fetching orders for shop=${shop.objectId} platformBuyer=${platformBuyerId} (im=${frame.buyerUserId})`);
+            const ordersResult = await authSession.graphqlFetch<{
+              ecommerceGetOrders: { code: number; data?: string };
+            }>(GET_BUYER_ORDERS_QUERY, {
+              shopId: shop.objectId,
+              buyerUserId: platformBuyerId,
+            });
+            const raw = ordersResult.ecommerceGetOrders;
+            if (raw.code === 0 && raw.data) {
+              const parsed = JSON.parse(raw.data) as { orders?: Array<{ id?: string; create_time?: number }> };
+              const orders = (parsed.orders ?? [])
+                .filter((o): o is { id: string; create_time: number } => !!o.id && !!o.create_time)
+                .map(o => ({ orderId: o.id, createTime: o.create_time }))
+                .sort((a, b) => b.createTime - a.createTime);
+              session.csContext.recentOrders = orders;
+              session.csContext.orderId = orders[0]?.orderId ?? null;
+              log.info(`Order backfill done: ${orders.length} order(s) for conv=${frame.conversationId}${orders.length > 0 ? `, latest=${orders[0].orderId}` : ""}`);
+            } else {
+              session.csContext.recentOrders = [];
+              session.csContext.orderId = null;
+              log.info(`Order backfill: no orders for conv=${frame.conversationId}`);
+            }
           }
         } catch (err) {
           log.warn("Order backfill failed:", err);
