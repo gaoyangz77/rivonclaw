@@ -30,7 +30,7 @@ const vendorNM = ["vendor", "openclaw", "node_modules"].join("/");
 // failing the identical-SHA check.
 const vendorDist = ["vendor", "openclaw", "dist"].join("/");
 const x64ArchFiles =
-  `Contents/Resources/{${vendorNM}/.pnpm/**,${vendorNM}/**,${vendorDist}/build-info.json,app.asar.unpacked/node_modules/better-sqlite3/**}`;
+  `Contents/Resources/{${vendorNM}/.pnpm/**,${vendorNM}/**,${vendorDist}/build-info.json,${vendorDist}/.buildstamp,${vendorDist}/.dist-complete,app.asar.unpacked/node_modules/better-sqlite3/**}`;
 
 async function main() {
   if (!fs.existsSync(arm64AppPath)) {
