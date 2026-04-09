@@ -25,6 +25,11 @@ const VENDOR_FILE = resolve(
   "../../../../vendor/openclaw/src/agents/system-prompt.ts",
 );
 
+const ATTEMPT_FILE = resolve(
+  __dirname,
+  "../../../../vendor/openclaw/src/agents/pi-embedded-runner/run/attempt.ts",
+);
+
 /** Check if the vendor source has the promptMode raw patch applied. */
 function isVendorPatched(): boolean {
   try {
@@ -51,6 +56,30 @@ runOrSkip("vendor patch 0004: promptMode raw", () => {
     expect(rawIndex).toBeGreaterThan(-1);
     expect(noneIndex).toBeGreaterThan(-1);
     expect(rawIndex).toBeLessThan(noneIndex);
+  });
+
+  it("attempt.ts re-applies system prompt override before activeSession.prompt()", () => {
+    const attemptSrc = readFileSync(ATTEMPT_FILE, "utf-8");
+
+    // Find the final applySystemPromptOverrideToSession call that guards the prompt
+    const lines = attemptSrc.split("\n");
+    let lastOverrideIdx = -1;
+    let promptCallIdx = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("applySystemPromptOverrideToSession(activeSession, systemPromptText)")) {
+        lastOverrideIdx = i;
+      }
+      if (lines[i].includes("activeSession.prompt(effectivePrompt")) {
+        if (promptCallIdx === -1) promptCallIdx = i;
+      }
+    }
+
+    expect(lastOverrideIdx).toBeGreaterThan(-1);
+    expect(promptCallIdx).toBeGreaterThan(-1);
+    // The last override must appear shortly before the first prompt call (within 15 lines)
+    expect(lastOverrideIdx).toBeLessThan(promptCallIdx);
+    expect(promptCallIdx - lastOverrideIdx).toBeLessThan(15);
   });
 
   it("raw mode returns extraSystemPrompt only", () => {

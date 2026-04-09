@@ -1,0 +1,49 @@
+From 900829e14dc8d60ecb02745d6db63d59777ff3fd Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Wed, 8 Apr 2026 17:43:36 -0700
+Subject: [PATCH 6/6] vendor(openclaw): re-apply system prompt override before
+ LLM call
+
+Why:
+- pi-coding-agent internal session management (tool refresh, compaction,
+  extension lifecycle) can reset _baseSystemPrompt between the initial
+  applySystemPromptOverrideToSession and the actual activeSession.prompt()
+  call, especially when the session JSONL has existing history.
+- This causes extraSystemPrompt callers (e.g. EasyClaw CS agents using
+  promptMode raw) to silently lose their custom system prompt on the
+  second and subsequent runs within the same gateway session.
+
+Removal:
+- Drop when pi-coding-agent AgentSession.prompt() natively respects
+  external _baseSystemPrompt overrides across session reuse, or when
+  upstream adds a dedicated system-prompt-override API that survives
+  internal prompt rebuilds.
+
+Tests:
+- apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts
+---
+ src/agents/pi-embedded-runner/run/attempt.ts | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
+index 1989220c3b..56af55cd88 100644
+--- a/src/agents/pi-embedded-runner/run/attempt.ts
++++ b/src/agents/pi-embedded-runner/run/attempt.ts
+@@ -1580,6 +1580,14 @@ export async function runEmbeddedAttempt(
+             inFlightPrompt: effectivePrompt,
+           });
+ 
++          // Re-apply system prompt override immediately before the LLM call.
++          // pi-coding-agent's internal prompt management (tool refresh, compaction,
++          // extension events) can reset _baseSystemPrompt between the initial
++          // applySystemPromptOverrideToSession and here, especially when the
++          // session has existing history. This final re-apply ensures callers
++          // using promptMode "raw" always get their extraSystemPrompt delivered.
++          applySystemPromptOverrideToSession(activeSession, systemPromptText);
++
+           // Only pass images option if there are actually images to pass
+           // This avoids potential issues with models that don't expect the images parameter
+           if (imageResult.images.length > 0) {
+-- 
+2.50.1 (Apple Git-155)
+
