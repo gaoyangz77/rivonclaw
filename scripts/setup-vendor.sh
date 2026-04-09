@@ -71,7 +71,8 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
 else
   # Ensure dev dependencies are available — node_modules cache may be prod-only
   # (SKIP_VENDOR_INSTALL=true only skips the first install, not this one).
-  pnpm install --frozen-lockfile 2>/dev/null || true
+  # npm_config_node_linker=hoisted is already exported at the top of this script.
+  pnpm install --frozen-lockfile
   pnpm run build
   pnpm ui:build
   # Replay EasyClaw vendor patches (if any exist)
