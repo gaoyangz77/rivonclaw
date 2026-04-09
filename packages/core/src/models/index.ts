@@ -26,6 +26,8 @@ export { SessionStatsModel } from "./SessionStats.js";
 export type { SessionStats } from "./SessionStats.js";
 export { RootStoreModel } from "./RootStore.js";
 export type { RootStore } from "./RootStore.js";
+export { RuntimeStatusStoreModel, CsBridgeStatusModel } from "./RuntimeStatus.js";
+export type { RuntimeStatusStore, CsBridgeStatus } from "./RuntimeStatus.js";
 
 // Compile-time GQL ↔ MST drift detection (side-effect only, no runtime exports)
 import "./type-guards.js";

@@ -22,15 +22,18 @@ import { ApolloWrapper } from "./providers/ApolloWrapper.js";
 import { ToastProvider } from "./components/Toast.js";
 import { GraphQLLoadingProvider } from "./contexts/GraphQLLoadingContext.js";
 import { EntityStoreProvider } from "./store/EntityStoreProvider.js";
+import { RuntimeStatusProvider } from "./store/RuntimeStatusProvider.js";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ApolloWrapper>
       <GraphQLLoadingProvider>
         <EntityStoreProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
+          <RuntimeStatusProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </RuntimeStatusProvider>
         </EntityStoreProvider>
       </GraphQLLoadingProvider>
     </ApolloWrapper>

@@ -21,6 +21,7 @@ import {
 } from "../components/icons.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { useToast } from "../components/Toast.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 
@@ -61,6 +62,7 @@ export const Layout = observer(function Layout({
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
+  const runtimeStatus = useRuntimeStatus();
   const { showToast } = useToast();
   const user = entityStore.currentUser;
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -253,6 +255,13 @@ export const Layout = observer(function Layout({
   const showBanner = !!updateInfo;
   const ds = downloadStatus;
 
+  // CS bridge warning: show when ecommerce module is active, shops have CS enabled, and bridge is not connected
+  const csBridgeState = runtimeStatus.csBridge.state;
+  const showCsBridgeBanner =
+    csBridgeState !== "connected" &&
+    entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER") &&
+    entityStore.shops.some((s) => s.services?.customerService?.enabled);
+
   return (
     <div className="layout-root">
       {showBanner && (
@@ -308,6 +317,14 @@ export const Layout = observer(function Layout({
               </>
             )}
           </span>
+        </div>
+      )}
+      {showCsBridgeBanner && (
+        <div className="warning-banner">
+          {csBridgeState === "reconnecting" && <span className="spinner" />}
+          {csBridgeState === "reconnecting"
+            ? t("ecommerce.shopDrawer.aiCS.bridgeReconnecting", { attempt: runtimeStatus.csBridge.reconnectAttempt })
+            : t("ecommerce.shopDrawer.aiCS.bridgeDisconnected")}
         </div>
       )}
       <div className="layout-body">

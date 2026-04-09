@@ -2349,6 +2349,8 @@ export default {
         csModelOverrideHint: "Select a specific model for customer service sessions. Default uses the globally active model.",
         csModelDefault: "Default (global model)",
         csModelUnavailable: "Selected model is no longer available",
+        bridgeDisconnected: "CS bridge disconnected — customer messages will not be received.",
+        bridgeReconnecting: "CS bridge reconnecting (attempt {{attempt}})…",
       },
     },
     noShops: "No shops connected yet. Click \"Add Shop\" to get started.",

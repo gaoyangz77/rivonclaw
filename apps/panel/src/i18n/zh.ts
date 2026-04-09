@@ -2336,6 +2336,8 @@ export default {
         csModelOverrideHint: "为客服会话选择专用模型。默认使用全局活跃模型。",
         csModelDefault: "默认（全局模型）",
         csModelUnavailable: "所选模型已不可用",
+        bridgeDisconnected: "客服桥已断开连接 — 将无法接收客户消息。",
+        bridgeReconnecting: "客服桥正在重新连接（第 {{attempt}} 次尝试）…",
       },
     },
     noShops: "尚未连接任何店铺。点击「添加店铺」开始。",

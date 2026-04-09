@@ -883,6 +883,24 @@ tbody td {
   margin-top: 8px;
 }
 
+/* ===== 11b. Warning Alert ===== */
+.warning-alert {
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  color: var(--color-warning, #b45309);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-alert .spinner {
+  border-top-color: var(--color-warning, #b45309);
+}
+
 /* ===== 12. Loading Spinner ===== */
 .spinner {
   display: inline-block;
@@ -2530,6 +2548,26 @@ tbody td {
 .update-banner-action-primary:hover {
   background-color: var(--color-primary-hover);
   text-decoration: none;
+}
+
+/* ===== 34b. Warning Banner (global, top-level) ===== */
+.warning-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: rgba(245, 158, 11, 0.1);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  font-size: 13px;
+  color: var(--color-warning, #b45309);
+}
+
+.warning-banner .spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  border-top-color: var(--color-warning, #b45309);
 }
 
 .update-progress-bar {
@@ -4539,6 +4577,13 @@ tbody td {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* ===== D22b. Warning Alert ===== */
+[data-theme="dark"] .warning-alert {
+  background-color: rgba(255, 176, 32, 0.1);
+  border-color: rgba(255, 176, 32, 0.25);
+  color: var(--color-warning, #ffb020);
+}
+
 /* ===== D23. Empty States ===== */
 [data-theme="dark"] .empty-state {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
@@ -4595,6 +4640,13 @@ tbody td {
 
 [data-theme="dark"] .update-progress-bar {
   background: var(--color-bg-alt);
+}
+
+/* ===== D24b. Warning Banner ===== */
+[data-theme="dark"] .warning-banner {
+  background-color: rgba(255, 176, 32, 0.1);
+  border-bottom-color: rgba(255, 176, 32, 0.2);
+  color: var(--color-warning, #ffb020);
 }
 
 [data-theme="dark"] .update-banner-action-primary {

@@ -19,6 +19,7 @@ import { reaction, toJS } from "mobx";
 // Re-export for consumers that imported CSShopContext from this file
 export type { CSShopContext } from "./customer-service-session.js";
 import { rootStore } from "../store/desktop-store.js";
+import { runtimeStatusStore } from "../store/runtime-status-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 
 const log = createLogger("cs-bridge");
@@ -129,6 +130,7 @@ export class CustomerServiceBridge {
       this.ws.close();
       this.ws = null;
     }
+    runtimeStatusStore.setCsBridgeDisconnected();
     log.info("CS bridge stopped");
   }
 
@@ -369,6 +371,7 @@ export class CustomerServiceBridge {
       this.ws.close();
       this.ws = null;
       this.authenticated = false;
+      runtimeStatusStore.setCsBridgeDisconnected();
     }
   }
 
@@ -388,10 +391,29 @@ export class CustomerServiceBridge {
         token = await getAuthSession()!.refresh();
         this.lastCloseWasAuthFailure = false;
       } catch (err) {
-        // Refresh failed — auth is permanently broken (e.g. refresh token
-        // expired/revoked). Stop reconnecting to avoid an infinite loop.
-        log.error("Token refresh failed, stopping CS bridge reconnect:", err);
-        this.lastCloseWasAuthFailure = false;
+        // Distinguish auth errors (permanent) from network errors (transient),
+        // following the same pattern as AuthSession.validate() in auth-session.ts.
+        const msg = err instanceof Error ? err.message : String(err);
+        const isAuthError =
+          msg.includes("Not authenticated") ||
+          msg.includes("Authentication required") ||
+          msg.includes("Invalid token") ||
+          msg.includes("Token expired") ||
+          msg.includes("No refresh token");
+
+        if (isAuthError) {
+          // Auth is permanently broken (e.g. refresh token expired/revoked).
+          // Stop reconnecting to avoid an infinite loop.
+          log.error("Token refresh failed (auth error), stopping CS bridge reconnect:", err);
+          this.lastCloseWasAuthFailure = false;
+          return;
+        }
+
+        // Network/transient error — keep lastCloseWasAuthFailure so the next
+        // reconnect attempt will retry the refresh, and schedule a reconnect
+        // with backoff instead of connecting with a potentially expired token.
+        log.warn("Token refresh failed (transient error), scheduling reconnect:", err);
+        this.scheduleReconnect();
         return;
       }
     }
@@ -432,6 +454,7 @@ export class CustomerServiceBridge {
         this.stopPingInterval();
         this.ws = null;
         this.authenticated = false;
+        runtimeStatusStore.setCsBridgeDisconnected();
         this.lastCloseWasAuthFailure = code === 4003;
         if (!this.closed) {
           this.scheduleReconnect();
@@ -456,6 +479,7 @@ export class CustomerServiceBridge {
     const maxDelay = 5000;
     const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
     this.reconnectAttempt++;
+    runtimeStatusStore.setCsBridgeReconnecting(this.reconnectAttempt);
 
     log.info(`CS bridge reconnect in ${delay}ms (attempt ${this.reconnectAttempt})`);
 
@@ -515,6 +539,7 @@ export class CustomerServiceBridge {
       case "cs_ack":
         this.reconnectAttempt = 0;
         this.authenticated = true;
+        runtimeStatusStore.setCsBridgeConnected();
         log.info("CS relay connection confirmed (cs_ack)");
         this.startPingInterval();
         // Bind all CS-enabled shops after relay confirms connection
