@@ -105,9 +105,14 @@ beforeEach(() => {
   mockGetRpcClient.mockReturnValue({ request: mockRpcRequest });
   mockRpcRequest.mockResolvedValue({ ok: true });
   mockReadFullModelCatalog.mockResolvedValue({});
-  mockGraphqlFetch.mockResolvedValue({
-    csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 },
-    ecommerceSendMessage: { code: 0 },
+  mockGraphqlFetch.mockImplementation(async (query: string) => {
+    if (query.includes("ecommerceGetConversationDetails")) {
+      return { ecommerceGetConversationDetails: { code: 0, message: "success" } };
+    }
+    if (query.includes("csGetOrCreateSession")) {
+      return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+    }
+    return { ecommerceSendMessage: { code: 0 } };
   });
   mockGetAuthSession.mockReturnValue({
     getAccessToken: () => "test-token",
@@ -574,8 +579,10 @@ describe("session registration", () => {
       csContext: {
         shopId: "mongo-id-123",
         conversationId: "conv-100",
+        buyerUserId: "buyer-200",
         imUserId: "buyer-200",
         orderId: null,
+        recentOrders: [],
       },
     });
   });
@@ -598,11 +605,21 @@ describe("session registration", () => {
     expect(registerCall![1].csContext.shopId).toBe("actual-mongo-object-id");
   });
 
-  it("csContext includes orderId when frame has one", async () => {
+  it("csContext includes orderId when orders are returned from backend", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    await triggerMessage(bridge, createFrame({ orderId: "order-555" }));
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { code: 0, customer: { userId: "buyer-001", nickname: "Buyer" } } };
+      }
+      if (query.includes("ecommerceGetOrders")) {
+        return { ecommerceGetOrders: { code: 0, data: JSON.stringify({ orders: [{ id: "order-555", create_time: 1700000000 }] }) } };
+      }
+      return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+    });
+
+    await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "cs_register_session",
@@ -669,7 +686,17 @@ describe("agent dispatch", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    await triggerMessage(bridge, createFrame({ orderId: "order-in-prompt" }));
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { code: 0, customer: { userId: "buyer-001", nickname: "Buyer" } } };
+      }
+      if (query.includes("ecommerceGetOrders")) {
+        return { ecommerceGetOrders: { code: 0, data: JSON.stringify({ orders: [{ id: "order-in-prompt", create_time: 1700000000 }] }) } };
+      }
+      return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+    });
+
+    await triggerMessage(bridge, createFrame());
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall![1].extraSystemPrompt).toContain("order-in-prompt");
@@ -1116,7 +1143,7 @@ describe("CS session lifecycle", () => {
       {
         shopId: "mongo-id-123",
         conversationId: "conv-lifecycle",
-        imUserId: "buyer-lifecycle",
+        buyerUserId: "buyer-lifecycle",
       },
     );
   });
@@ -1483,6 +1510,7 @@ const escalationShop: CSShopContext = {
 const defaultEscalateParams = {
   shopId: "shop-esc-001",
   conversationId: "conv-esc-001",
+  buyerUserId: "buyer-esc-001",
   imUserId: "buyer-esc-001",
   reason: "Buyer requesting refund beyond policy",
 };
