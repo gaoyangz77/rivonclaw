@@ -69,9 +69,11 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
     git am --3way "$PATCH_DIR"/*.patch
   fi
 else
-  # Ensure dev dependencies are available — node_modules cache may be prod-only
-  # (SKIP_VENDOR_INSTALL=true only skips the first install, not this one).
-  # npm_config_node_linker=hoisted is already exported at the top of this script.
+  # Ensure dev dependencies are available with hoisted layout.
+  # The node_modules cache may have been created with a different linker mode
+  # or may be prod-only. Force a clean install to guarantee @types/* and other
+  # dev deps are resolvable in the flat hoisted layout that the build expects.
+  rm -rf node_modules
   pnpm install --frozen-lockfile
   pnpm run build
   pnpm ui:build
