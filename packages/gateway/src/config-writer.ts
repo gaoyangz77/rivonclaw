@@ -439,6 +439,9 @@ export interface WriteGatewayConfigOptions {
       maxTokens?: number;
     }>;
   }>;
+  /** Provider keys managed by RivonClaw (the full set from buildExtraProviderConfigs).
+   *  Used to clean up stale providers from previous configs that are no longer active. */
+  managedProviderKeys?: string[];
   /** Override base URLs and models for local providers (e.g. Ollama with user-configured endpoint). */
   localProviderOverrides?: Record<string, {
     baseUrl: string;
@@ -975,8 +978,19 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         : {};
     const existingProviders =
       typeof existingModels.providers === "object" && existingModels.providers !== null
-        ? (existingModels.providers as Record<string, unknown>)
+        ? { ...(existingModels.providers as Record<string, unknown>) }
         : {};
+    // Remove stale managed providers that are no longer in extraProviders
+    // (e.g. user deleted their API key). Without this, stale providers with
+    // models but no apiKey persist from previous configs and cause Pi SDK to
+    // reject the entire models.json.
+    if (options.managedProviderKeys) {
+      for (const key of options.managedProviderKeys) {
+        if (!(key in options.extraProviders)) {
+          delete existingProviders[key];
+        }
+      }
+    }
     config.models = {
       ...existingModels,
       mode: existingModels.mode ?? "merge",
