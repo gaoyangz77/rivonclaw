@@ -163,3 +163,24 @@ re-login of an existing account, not for new-account logins.
 
 **Removal:** Drop when upstream OpenClaw makes `stopChannel` conditional on
 re-login vs new-account login, or adds an option to skip channel stop.
+
+### 0006 — Re-apply system prompt override before LLM call
+
+**File:** `0006-vendor-openclaw-re-apply-system-prompt-override-befo.patch`
+
+**Why:** `pi-coding-agent`'s `AgentSession` internally rebuilds `_baseSystemPrompt`
+via `_rebuildSystemPrompt()` during tool refresh, compaction, and extension
+lifecycle events. When a gateway session JSONL file already exists (second message
+onwards in the same conversation), these internal rebuilds can overwrite the
+`_baseSystemPrompt` that `applySystemPromptOverrideToSession` set, causing
+`extraSystemPrompt` callers (e.g. EasyClaw CS agents using `promptMode: "raw"`)
+to silently lose their custom system prompt.
+
+**Change:** Add a single `applySystemPromptOverrideToSession(activeSession,
+systemPromptText)` call in `attempt.ts` immediately before `activeSession.prompt()`,
+ensuring the caller's system prompt is always the last one applied before the
+LLM call.
+
+**Removal:** Drop when `pi-coding-agent`'s `AgentSession.prompt()` natively
+respects external `_baseSystemPrompt` overrides across session reuse, or when
+upstream adds a dedicated system-prompt-override API.
