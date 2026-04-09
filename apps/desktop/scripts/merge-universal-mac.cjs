@@ -25,8 +25,12 @@ const outAppPath = path.join(universalDir, `${productName}.app`);
 // Must stay in sync with electron-builder.yml mac.x64ArchFiles.
 // Built dynamically to avoid tripping the vendor boundary checker (ADR-030).
 const vendorNM = ["vendor", "openclaw", "node_modules"].join("/");
+// build-info.json contains a builtAt timestamp that differs between arm64/x64
+// runners. Include it in x64ArchFiles so the merger takes one copy instead of
+// failing the identical-SHA check.
+const vendorDist = ["vendor", "openclaw", "dist"].join("/");
 const x64ArchFiles =
-  `Contents/Resources/{${vendorNM}/.pnpm/**,${vendorNM}/**,app.asar.unpacked/node_modules/better-sqlite3/**}`;
+  `Contents/Resources/{${vendorNM}/.pnpm/**,${vendorNM}/**,${vendorDist}/build-info.json,app.asar.unpacked/node_modules/better-sqlite3/**}`;
 
 async function main() {
   if (!fs.existsSync(arm64AppPath)) {
