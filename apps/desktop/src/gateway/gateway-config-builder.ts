@@ -153,6 +153,11 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     const curBrowserMode = (storage.settings.get("browser-mode") || "standalone") as "standalone" | "cdp";
     const curBrowserCdpPort = parseInt(storage.settings.get("browser-cdp-port") || "9222", 10);
 
+    // Build the full set of extra providers (all built-in non-OpenClaw providers).
+    // filterConfiguredExtraProviders narrows to those with API keys;
+    // managedProviderKeys tells config-writer which stale entries to clean from old configs.
+    const allExtraProviders = buildExtraProviderConfigs();
+
     // Only reference apiKey env var if key exists in keychain
     const wsKeyExists = curWebSearchEnabled
       ? !!(await secretStore.get(`websearch-${curWebSearchProvider}-apikey`))
@@ -229,7 +234,8 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         provider: curEmbeddingProvider,
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
-      extraProviders: { ...filterConfiguredExtraProviders(buildExtraProviderConfigs()), ...buildCustomProviderOverrides() },
+      extraProviders: { ...filterConfiguredExtraProviders(allExtraProviders), ...buildCustomProviderOverrides() },
+      managedProviderKeys: Object.keys(allExtraProviders),
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
