@@ -70,12 +70,6 @@ export interface RunTrackerView {
   displayFlushedOffset: number;
 }
 
-/** Serialisable snapshot of RunTracker state for per-session caching. */
-export interface RunTrackerSnapshot {
-  runs: Array<[string, RunState]>;
-  localRunId: string | null;
-}
-
 // ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
@@ -475,28 +469,6 @@ export class RunTracker {
     this.onChange();
   }
 
-  /** Snapshot current state for per-session caching. */
-  serialize(): RunTrackerSnapshot {
-    return {
-      runs: Array.from(this.runs.entries()),
-      localRunId: this.localRunId,
-    };
-  }
-
-  /** Restore state from a snapshot (e.g. after tab switch). Calls onChange once. */
-  restore(snapshot: RunTrackerSnapshot): void {
-    this.runs = new Map(snapshot.runs);
-    this.localRunId = snapshot.localRunId;
-    this.onChange();
-  }
-
-  /**
-   * Restore a snapshot but drop runs still in active phases.
-   * @deprecated Use SessionTrackerMap instead of snapshot restore.
-   */
-  restoreDropStale(snapshot: RunTrackerSnapshot): void {
-    this.restore(snapshot);
-  }
 }
 
 // ---------------------------------------------------------------------------

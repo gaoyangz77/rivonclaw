@@ -108,7 +108,7 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
   const cacheRef = useRef<Map<string, SessionChatState>>(new Map());
 
   // Panel-created sessions not yet materialized on the gateway.
-  // These are merged with gateway results during poll so they don't disappear.
+  // These are merged with gateway results during refresh so they don't disappear.
   const localSessionsRef = useRef<Map<string, SessionTabInfo>>(new Map());
 
   // User-defined tab order (persisted in localStorage). When non-null, overrides default sort.
@@ -224,7 +224,7 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
     }, REFRESH_DEBOUNCE);
   }, []);
 
-  // Fetch sessions once on connect (replaces 15s polling)
+  // Fetch sessions once on connect
   useEffect(() => {
     if (!connected) return;
     cancelledRef.current = false;
@@ -274,7 +274,6 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
       // Fetch from gateway
       const freshState: SessionChatState = {
         messages: [],
-        trackerSnapshot: null,
         draft: "",
         pendingImages: [],
         visibleCount: INITIAL_VISIBLE,
@@ -330,7 +329,6 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
 
     const freshState: SessionChatState = {
       messages: [],
-      trackerSnapshot: null,
       draft: "",
       pendingImages: [],
       visibleCount: INITIAL_VISIBLE,
@@ -340,7 +338,7 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
     cacheRef.current.set(newKey, freshState);
     setStateRef.current(freshState);
 
-    // Track as local session — survives poll until materialized on gateway
+    // Track as local session — survives refresh until materialized on gateway
     const localTab: SessionTabInfo = { key: newKey, updatedAt: Date.now(), isLocal: true };
     localSessionsRef.current.set(newKey, localTab);
 
@@ -387,7 +385,6 @@ export function useSessionManager(opts: UseSessionManagerOptions): UseSessionMan
       } else {
         setStateRef.current({
           messages: [],
-          trackerSnapshot: null,
           draft: "",
           pendingImages: [],
           visibleCount: INITIAL_VISIBLE,
