@@ -2,7 +2,7 @@ import { createClient, type Client } from "graphql-ws/client";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { isNewerVersion } from "@rivonclaw/updater";
 import { createLogger } from "@rivonclaw/logger";
-import { proxyNetwork } from "../gateway/proxy-aware-network.js";
+import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 
 const log = createLogger("backend-subscription");
 

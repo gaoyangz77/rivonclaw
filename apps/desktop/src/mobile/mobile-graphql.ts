@@ -4,7 +4,7 @@ import type {
   RegisterPairingInput,
   RegisterPairingResult,
 } from "@rivonclaw/core";
-import type { ApiContext } from "../api-routes/api-context.js";
+import type { ApiContext } from "../app/api-context.js";
 
 interface RegisterPairingData extends Record<string, unknown> {
   registerPairing: RegisterPairingResult;

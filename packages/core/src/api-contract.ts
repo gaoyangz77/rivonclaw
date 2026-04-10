@@ -1,3 +1,5 @@
+import { DEFAULTS } from "./defaults.js";
+
 /**
  * Shared API contract — single source of truth for all Desktop↔Panel endpoints.
  *
@@ -207,14 +209,14 @@ export const API = {
   "deps.provision":          { method: "POST",   path: "/api/deps/provision",             desc: "Trigger dependency provisioner" },
 
   // ── Cloud Proxy ──
-  "cloud.graphql":           { method: "POST",   path: "/api/cloud/graphql",              desc: "Cloud GraphQL proxy (JWT injected)" },
+  "cloud.graphql":           { method: "POST",   path: DEFAULTS.api.cloudGraphql,          desc: "Cloud GraphQL proxy (JWT injected)" },
   // cloud.rest is a prefix-based wildcard — see PrefixRouteEntry
 } as const satisfies Record<string, RouteEntry>;
 
 /** Cloud REST proxy — matches any method, any path under this prefix. */
 export const CLOUD_REST_PREFIX: PrefixRouteEntry = {
   method: "*",
-  pathPrefix: "/api/cloud/",
+  pathPrefix: DEFAULTS.api.cloudRestPrefix,
   desc: "Cloud REST proxy (strips /cloud, forwards with JWT)",
 } as const;
 

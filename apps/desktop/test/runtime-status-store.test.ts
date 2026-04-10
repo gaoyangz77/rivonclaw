@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { getSnapshot, onPatch, type IJsonPatch } from "mobx-state-tree";
-import { createRuntimeStatusStore } from "../src/store/runtime-status-store.js";
+import { createRuntimeStatusStore } from "../src/app/store/runtime-status-store.js";
 
 type Store = ReturnType<typeof createRuntimeStatusStore>;
 

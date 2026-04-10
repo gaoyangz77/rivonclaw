@@ -21,10 +21,10 @@ import { createLogger } from "@rivonclaw/logger";
 import { ScopeType, GQL, type CSNewMessageFrame } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { getRpcClient } from "../gateway/rpc-client-ref.js";
-import { getAuthSession } from "../auth/auth-session-ref.js";
-import { getStorageRef } from "../storage-ref.js";
-import { rootStore } from "../store/desktop-store.js";
-import { proxyNetwork } from "../gateway/proxy-aware-network.js";
+import { getAuthSession } from "../auth/session-ref.js";
+import { getStorageRef } from "../app/storage-ref.js";
+import { rootStore } from "../app/store/desktop-store.js";
+import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 
 const log = createLogger("cs-session");
 

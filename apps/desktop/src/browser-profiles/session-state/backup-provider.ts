@@ -1,5 +1,5 @@
 import { createLogger } from "@rivonclaw/logger";
-import type { AuthSessionManager } from "../../auth/auth-session.js";
+import type { AuthSessionManager } from "../../auth/session.js";
 import type { SnapshotManifest } from "./store.js";
 
 const log = createLogger("session-backup");

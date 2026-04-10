@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
-import { proxyNetwork } from "../gateway/proxy-aware-network.js";
+import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
   type CSHelloFrame,
@@ -11,15 +11,15 @@ import {
   type CSNewConversationFrame,
   type CSWSFrame,
 } from "@rivonclaw/core";
-import { getAuthSession } from "../auth/auth-session-ref.js";
-import { getStorageRef } from "../storage-ref.js";
+import { getAuthSession } from "../auth/session-ref.js";
+import { getStorageRef } from "../app/storage-ref.js";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "./customer-service-session.js";
 import { reaction, toJS } from "mobx";
 
 // Re-export for consumers that imported CSShopContext from this file
 export type { CSShopContext } from "./customer-service-session.js";
-import { rootStore } from "../store/desktop-store.js";
-import { runtimeStatusStore } from "../store/runtime-status-store.js";
+import { rootStore } from "../app/store/desktop-store.js";
+import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 
 const log = createLogger("cs-bridge");

@@ -1,7 +1,7 @@
 import type { GQL } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
-import { rootStore } from "../store/desktop-store.js";
+import { rootStore } from "../app/store/desktop-store.js";
 
 /**
  * Sync the cloud LLM provider key into SQLite + secretStore.

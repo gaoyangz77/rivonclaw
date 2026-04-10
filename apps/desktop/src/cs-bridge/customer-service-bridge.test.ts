@@ -20,7 +20,7 @@ const mockGraphqlFetch = vi.fn();
 const { mockGetAuthSession } = vi.hoisted(() => ({
   mockGetAuthSession: vi.fn(),
 }));
-vi.mock("../auth/auth-session-ref.js", () => ({
+vi.mock("../auth/session-ref.js", () => ({
   getAuthSession: mockGetAuthSession,
 }));
 
@@ -40,7 +40,7 @@ vi.mock("@rivonclaw/gateway", () => ({
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
-import { rootStore } from "../store/desktop-store.js";
+import { rootStore } from "../app/store/desktop-store.js";
 import { onAction } from "mobx-state-tree";
 
 // Track setSessionRunProfile calls via MST's onAction middleware (no spy mutation needed)

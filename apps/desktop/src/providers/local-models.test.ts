@@ -17,8 +17,8 @@ import {
   resolveAuthProfilePath,
   clearAllAuthProfiles,
 } from "@rivonclaw/gateway";
-import { startPanelServer } from "../panel-server.js";
-import { initLLMProviderManagerEnv } from "../store/desktop-store.js";
+import { startPanelServer } from "../app/panel-server.js";
+import { initLLMProviderManagerEnv } from "../app/store/desktop-store.js";
 import { syncActiveKey } from "./provider-validator.js";
 import { toMstSnapshot, allKeysToMstSnapshots } from "./provider-key-utils.js";
 

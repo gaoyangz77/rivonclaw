@@ -21,19 +21,19 @@ const { mockRuntimeStatusStore, mockGetAuthSession, mockShops } = vi.hoisted(() 
 
 let lastCreatedWs: EventEmitter | null = null;
 
-vi.mock("../src/store/runtime-status-store.js", () => ({
+vi.mock("../src/app/store/runtime-status-store.js", () => ({
   runtimeStatusStore: mockRuntimeStatusStore,
 }));
 
-vi.mock("../src/store/desktop-store.js", () => ({
+vi.mock("../src/app/store/desktop-store.js", () => ({
   rootStore: { get shops() { return mockShops; } },
 }));
 
-vi.mock("../src/auth/auth-session-ref.js", () => ({
+vi.mock("../src/auth/session-ref.js", () => ({
   getAuthSession: mockGetAuthSession,
 }));
 
-vi.mock("../src/storage-ref.js", () => ({
+vi.mock("../src/app/storage-ref.js", () => ({
   getStorageRef: () => null,
 }));
 
@@ -41,7 +41,7 @@ vi.mock("../src/utils/platform.js", () => ({
   normalizePlatform: (p: string) => p,
 }));
 
-vi.mock("../src/gateway/proxy-aware-network.js", () => ({
+vi.mock("../src/infra/proxy/proxy-aware-network.js", () => ({
   proxyNetwork: {
     createWebSocket: vi.fn(() => {
       const ws = new EventEmitter();

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { types, applySnapshot } from "mobx-state-tree";
 import { MobilePairingModel } from "@rivonclaw/core/models";
-import { MobileManagerModel } from "../src/store/mobile-manager.js";
+import { MobileManagerModel } from "../src/mobile/mobile-manager.js";
 
 /**
  * Build a minimal MST tree that mirrors the desktop store structure
