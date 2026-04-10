@@ -11,6 +11,7 @@ import { registerSkillsHandlers } from "../skills/api.js";
 import { registerUsageHandlers } from "../usage/api.js";
 import { registerCloudHandlers } from "../cloud/api.js";
 import { registerDepsHandlers } from "../deps/api.js";
+import { registerLogsHandlers } from "../logs/api.js";
 import { registerDoctorHandlers } from "../doctor/api.js";
 import { registerToolRegistryHandlers } from "../gateway/api.js";
 import { registerRulesHandlers } from "../rules/api.js";
@@ -28,6 +29,7 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerUsageHandlers(registry);
   registerCloudHandlers(registry);
   registerDepsHandlers(registry);
+  registerLogsHandlers(registry);
   registerDoctorHandlers(registry);
   registerToolRegistryHandlers(registry);
   registerRulesHandlers(registry);

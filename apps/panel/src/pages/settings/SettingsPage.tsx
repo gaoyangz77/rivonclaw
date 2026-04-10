@@ -6,6 +6,8 @@ import { useAppSettingsToggles } from "./hooks/useAppSettingsToggles.js";
 import { useAppearanceSettings } from "./hooks/useAppearanceSettings.js";
 import { useOpenClawStateDir } from "./hooks/useOpenClawStateDir.js";
 import { useDoctorRunner } from "./hooks/useDoctorRunner.js";
+import { useLogUpload } from "./hooks/useLogUpload.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { AgentSettingsSection } from "./components/AgentSettingsSection.js";
 import { ChatSettingsSection } from "./components/ChatSettingsSection.js";
 import { AppSettingsSection } from "./components/AppSettingsSection.js";
@@ -23,6 +25,8 @@ export const SettingsPage = observer(function SettingsPage() {
   const appearance = useAppearanceSettings();
   const stateDir = useOpenClawStateDir();
   const doctor = useDoctorRunner();
+  const logUpload = useLogUpload();
+  const entityStore = useEntityStore();
 
   if (agentSettings.loading) {
     return (
@@ -89,8 +93,11 @@ export const SettingsPage = observer(function SettingsPage() {
           dataDirInfo={stateDir.dataDirInfo}
           dataDirRestartNeeded={stateDir.dataDirRestartNeeded}
           saving={stateDir.saving}
+          isLoggedIn={entityStore.currentUser !== null}
+          uploading={logUpload.uploading}
           handleChangeDataDir={stateDir.handleChangeDataDir}
           handleResetDataDir={stateDir.handleResetDataDir}
+          handleUpload={logUpload.handleUpload}
         />
       )}
 

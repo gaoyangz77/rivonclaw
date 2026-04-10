@@ -5,6 +5,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
+import { CloudRestError } from "./cloud-client.js";
 
 const log = createLogger("cloud-graphql-proxy");
 
@@ -177,10 +178,12 @@ const cloudRest: EndpointHandler = async (req, res, _url, params, ctx: ApiContex
     });
     sendJson(res, 200, data);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Cloud REST proxy error";
-    const statusMatch = message.match(/Cloud REST error: (\d+)/);
-    const status = statusMatch ? Number(statusMatch[1]) : 502;
-    sendJson(res, status, { error: message });
+    if (err instanceof CloudRestError) {
+      sendJson(res, err.status, err.body ?? { error: err.message });
+    } else {
+      const message = err instanceof Error ? err.message : "Cloud REST proxy error";
+      sendJson(res, 502, { error: message });
+    }
   }
 };
 
