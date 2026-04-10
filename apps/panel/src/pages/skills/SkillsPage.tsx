@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
-import { SKILLS_QUERY } from "../api/skills-queries.js";
+import { SKILLS_QUERY } from "../../api/skills-queries.js";
 import {
   fetchInstalledSkills,
   fetchBundledSlugs,
@@ -10,12 +10,12 @@ import {
   deleteSkill,
   openSkillsFolder,
   trackEvent,
-} from "../api/index.js";
-import type { InstalledSkill } from "../api/index.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { SkillCard } from "../components/SkillCard.js";
+} from "../../api/index.js";
+import type { InstalledSkill } from "../../api/index.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { SkillCard } from "../../components/SkillCard.js";
 import { DEFAULTS } from "@rivonclaw/core";
-import { useToast } from "../components/Toast.js";
+import { useToast } from "../../components/Toast.js";
 
 const PAGE_SIZE = DEFAULTS.pagination.skills;
 

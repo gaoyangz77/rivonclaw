@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fetchJson, fetchVoid, cachedFetch, invalidateCache } from "../client.js";
 
 // ---------------------------------------------------------------------------
@@ -16,10 +16,6 @@ function jsonResponse(body: unknown, status = 200): Response {
     statusText: status === 200 ? "OK" : "Error",
     json: () => Promise.resolve(body),
   } as unknown as Response;
-}
-
-function networkError(): never {
-  throw new TypeError("Failed to fetch");
 }
 
 // ---------------------------------------------------------------------------

@@ -2,13 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 import { SSE } from "@rivonclaw/core/api-contract";
-import { Modal } from "../components/modals/Modal.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { Select } from "../components/inputs/Select.js";
+import { Modal } from "../../components/modals/Modal.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { Select } from "../../components/inputs/Select.js";
 import { observer } from "mobx-react-lite";
-import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
-import { useToast } from "../components/Toast.js";
+import { useToast } from "../../components/Toast.js";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;

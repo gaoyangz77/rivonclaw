@@ -20,7 +20,7 @@ import "./i18n/index.js";
 import { App } from "./App.js";
 import { ApolloWrapper } from "./providers/ApolloWrapper.js";
 import { ToastProvider } from "./components/Toast.js";
-import { GraphQLLoadingProvider } from "./contexts/GraphQLLoadingContext.js";
+import { GraphQLLoadingProvider } from "./providers/GraphQLLoadingContext.js";
 import { EntityStoreProvider } from "./store/EntityStoreProvider.js";
 import { RuntimeStatusProvider } from "./store/RuntimeStatusProvider.js";
 

@@ -6,7 +6,7 @@
  * and merges them back when loading history.
  */
 
-import type { ChatImage, ChatMessage } from "../pages/chat/chat-utils.js";
+import type { ChatImage, ChatMessage } from "./chat-utils.js";
 
 // ---------------------------------------------------------------------------
 // Schema

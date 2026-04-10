@@ -13,7 +13,7 @@ const CHANNEL_CHANGED_EVENT = "channel-changed";
  */
 export const ChannelManagerModel = types
   .model("ChannelManager", {})
-  .actions((self) => {
+  .actions((_self) => {
     function broadcast(): void {
       window.dispatchEvent(new CustomEvent(CHANNEL_CHANGED_EVENT));
     }

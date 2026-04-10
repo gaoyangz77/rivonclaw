@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "lint": "oxlint",
+    "lint": "oxlint && node ../../scripts/check-panel-architecture.mjs",
     "test": "vitest run"
   },
   "dependencies": {

@@ -140,12 +140,7 @@ export function ChatInputArea({
     onPendingImagesChange(pendingImages.filter((_, i) => i !== index));
   }
 
-  /** Reset textarea height (called externally via ref after send). */
-  const resetHeight = useCallback(() => {
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
-  }, []);
-
-  // Expose resetHeight and focus to parent
+  // Auto-reset height when draft becomes empty (after parent calls onDraftChange(""))
   // We use a simpler approach: parent calls onDraftChange("") which triggers re-render,
   // and we auto-reset height when draft becomes empty.
   useEffect(() => {

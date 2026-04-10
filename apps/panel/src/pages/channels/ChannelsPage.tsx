@@ -1,17 +1,18 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteChannelAccount, getChannelAccountConfig, trackEvent, type ChannelAccountSnapshot } from "../api/index.js";
-import { disconnectMobilePairing } from "../api/mobile-chat.js";
-import { pollGatewayReady } from "../lib/poll-gateway.js";
-import { AddChannelAccountModal } from "../components/modals/AddChannelAccountModal.js";
-import { MobileBindingModal } from "../components/modals/MobileBindingModal.js";
-import { MobileQrInlineFlow } from "../components/MobileQrInlineFlow.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { Select } from "../components/inputs/Select.js";
-import { KNOWN_CHANNELS, QR_LOGIN_CHANNELS, getVisibleChannels, buildAccountsList } from "./channels/channel-defs.jsx";
-import { useChannelsData } from "./channels/use-channels-data.js";
-import { ChannelAccountsTable } from "./channels/ChannelAccountsTable.js";
-import { QrLoginModal } from "../components/modals/QrLoginModal.js";
+import { deleteChannelAccount, getChannelAccountConfig, trackEvent, type ChannelAccountSnapshot } from "../../api/index.js";
+import { disconnectMobilePairing } from "../../api/mobile-chat.js";
+import { pollGatewayReady } from "./poll-gateway.js";
+import { AddChannelAccountModal } from "../../components/modals/AddChannelAccountModal.js";
+import { MobileBindingModal } from "../../components/modals/MobileBindingModal.js";
+import { MobileQrInlineFlow } from "../../components/MobileQrInlineFlow.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { Select } from "../../components/inputs/Select.js";
+import { KNOWN_CHANNELS, QR_LOGIN_CHANNELS } from "../../lib/channel-defs.js";
+import { getVisibleChannels, buildAccountsList } from "./channel-defs.jsx";
+import { useChannelsData } from "./use-channels-data.js";
+import { ChannelAccountsTable } from "./ChannelAccountsTable.js";
+import { QrLoginModal } from "../../components/modals/QrLoginModal.js";
 
 export function ChannelsPage() {
   const { t, i18n } = useTranslation();

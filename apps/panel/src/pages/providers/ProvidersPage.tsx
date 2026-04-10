@@ -3,14 +3,14 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
-import { trackEvent } from "../api/index.js";
-import { fetchJson, invalidateCache } from "../api/client.js";
+import { trackEvent } from "../../api/index.js";
+import { fetchJson, invalidateCache } from "../../api/client.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
-import { ModelSelect } from "../components/inputs/ModelSelect.js";
-import { Select } from "../components/inputs/Select.js";
-import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
-import { useEntityStore } from "../store/index.js";
-import { useToast } from "../components/Toast.js";
+import { ModelSelect } from "../../components/inputs/ModelSelect.js";
+import { Select } from "../../components/inputs/Select.js";
+import { ProviderSetupForm } from "../../components/ProviderSetupForm.js";
+import { useEntityStore } from "../../store/index.js";
+import { useToast } from "../../components/Toast.js";
 
 export const ProvidersPage = observer(function ProvidersPage() {
   const { t } = useTranslation();

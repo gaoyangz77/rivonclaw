@@ -7,10 +7,10 @@ import {
   fetchWorkspacePath,
   trackEvent,
   type Permissions,
-} from "../api/index.js";
-import { useToast } from "../components/Toast.js";
+} from "../../api/index.js";
+import { useToast } from "../../components/Toast.js";
 import { observer } from "mobx-react-lite";
-import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
+import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 
 type PermLevel = "read" | "readwrite";
 

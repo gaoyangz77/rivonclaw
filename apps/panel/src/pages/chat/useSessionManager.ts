@@ -3,7 +3,7 @@ import type { GatewayChatClient } from "../../lib/gateway-client.js";
 import type { SessionTabInfo, SessionChatState, SessionsListResult } from "./chat-utils.js";
 import { DEFAULT_SESSION_KEY, INITIAL_VISIBLE, FETCH_BATCH, parseRawMessages, cleanDerivedTitle } from "./chat-utils.js";
 import { DEFAULTS } from "@rivonclaw/core";
-import { restoreImages } from "../../lib/image-cache.js";
+import { restoreImages } from "./image-cache.js";
 import { fetchChatSessions, updateChatSession } from "../../api/chat-sessions.js";
 import type { ChatSessionMeta } from "../../api/chat-sessions.js";
 import { trackEvent, updateSettings } from "../../api/index.js";

@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { trackEvent, fetchAgentSettings, updateAgentSettings, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, provisionDeps, openFileDialog, updateSettings } from "../api/index.js";
+import { trackEvent, fetchAgentSettings, updateAgentSettings, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, provisionDeps, openFileDialog, updateSettings } from "../../api/index.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { SSE } from "@rivonclaw/core/api-contract";
-import type { OpenClawStateDirInfo } from "../api/index.js";
-import { Select } from "../components/inputs/Select.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { useToast } from "../components/Toast.js";
+import type { OpenClawStateDirInfo } from "../../api/index.js";
+import { Select } from "../../components/inputs/Select.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { useToast } from "../../components/Toast.js";
 import { observer } from "mobx-react-lite";
-import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
+import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 
 const DM_SCOPE_OPTIONS = [
   { value: "main", labelKey: "settings.agent.dmScopeMain" },

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../api/index.js";
+import { trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
-import { Select } from "../components/inputs/Select.js";
-import { useToast } from "../components/Toast.js";
+import { Select } from "../../components/inputs/Select.js";
+import { useToast } from "../../components/Toast.js";
 import { observer } from "mobx-react-lite";
-import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
+import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 
 type WebSearchProvider = "brave" | "perplexity" | "grok" | "gemini" | "kimi";
 type EmbeddingProvider = "openai" | "gemini" | "voyage" | "mistral" | "ollama";

@@ -5,15 +5,15 @@ import type { GQL } from "@rivonclaw/core";
 import {
   fetchKeyUsage, fetchActiveKeyUsage, fetchKeyUsageTimeseries,
   type KeyModelUsageSummary, type ActiveKeyInfo, type KeyUsageDailyBucket,
-} from "../api/index.js";
-import { fetchJson } from "../api/client.js";
-import { PRICING_QUERY } from "../api/pricing-queries.js";
+} from "../../api/index.js";
+import { fetchJson } from "../../api/client.js";
+import { PRICING_QUERY } from "../../api/pricing-queries.js";
 import {
   type TimeRange, type PricingMap,
   buildPricingMap, buildGroups, ensureActiveKey, buildChartData,
-} from "./usage/usage-utils.js";
-import { UsageTable } from "./usage/UsageTable.js";
-import { UsageChart } from "./usage/UsageChart.js";
+} from "./usage-utils.js";
+import { UsageTable } from "./UsageTable.js";
+import { UsageChart } from "./UsageChart.js";
 
 export function KeyUsagePage() {
   const { t, i18n } = useTranslation();

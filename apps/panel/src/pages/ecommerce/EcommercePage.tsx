@@ -2,19 +2,19 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
 import { SSE } from "@rivonclaw/core/api-contract";
-import { Modal } from "../components/modals/Modal.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { Select } from "../components/inputs/Select.js";
-import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from "../components/icons.js";
+import { Modal } from "../../components/modals/Modal.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { Select } from "../../components/inputs/Select.js";
+import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from "../../components/icons.js";
 import { observer } from "mobx-react-lite";
-import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
-import { KeyModelSelector } from "../components/inputs/KeyModelSelector.js";
-import { fetchJson } from "../api/client.js";
-import { useToast } from "../components/Toast.js";
-import { fetchInstalledSkills, writeSkillTemplate } from "../api/skills.js";
-import { fetchChannelStatus, fetchAllowlist, type AllowlistResult } from "../api/channels.js";
-import { KNOWN_CHANNELS } from "./channels/channel-defs.js";
+import { KeyModelSelector } from "../../components/inputs/KeyModelSelector.js";
+import { fetchJson } from "../../api/client.js";
+import { useToast } from "../../components/Toast.js";
+import { fetchInstalledSkills, writeSkillTemplate } from "../../api/skills.js";
+import { fetchChannelStatus, fetchAllowlist, type AllowlistResult } from "../../api/channels.js";
+import { KNOWN_CHANNELS } from "../../lib/channel-defs.js";
 
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -73,7 +73,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const sessionStats = entityStore.sessionStats;
 
   // Loading flags and selectedShopId are pure UI state
-  const [platformAppsLoading, setPlatformAppsLoading] = useState(false);
+  const [_platformAppsLoading, setPlatformAppsLoading] = useState(false);
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [sessionStatsLoading, setSessionStatsLoading] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
@@ -724,9 +724,6 @@ export const EcommercePage = observer(function EcommercePage() {
 
   const selectedCSProvider = selectedShop?.services?.customerService?.csProviderOverride ?? "";
   const selectedCSModel = selectedShop?.services?.customerService?.csModelOverride ?? "";
-
-  const selectedEscalationChannelId = selectedShop?.services?.customerService?.escalationChannelId ?? "";
-  const selectedEscalationRecipientId = selectedShop?.services?.customerService?.escalationRecipientId ?? "";
 
   // Fetch allowlist from Desktop API when the draft escalation channel changes
   useEffect(() => {

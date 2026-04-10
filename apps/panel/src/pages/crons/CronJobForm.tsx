@@ -5,8 +5,8 @@ import { Modal } from "../../components/modals/Modal.js";
 import { Select } from "../../components/inputs/Select.js";
 import { RunProfileSelector } from "../../components/inputs/RunProfileSelector.js";
 import { ChevronRightIcon } from "../../components/icons.js";
-import { fetchChannelStatus, fetchAllowlist, setRecipientLabel, type ChannelsStatusSnapshot } from "../../api/channels.js";
-import { KNOWN_CHANNELS } from "../channels/channel-defs.js";
+import { fetchChannelStatus, fetchAllowlist, type ChannelsStatusSnapshot } from "../../api/channels.js";
+import { KNOWN_CHANNELS } from "../../lib/channel-defs.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { setRunProfileForScope } from "../../api/tool-registry.js";
@@ -108,9 +108,8 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
   // Allowlist for the currently selected delivery channel
   const [allowlist, setAllowlist] = useState<string[]>([]);
   const [recipientLabels, setRecipientLabels] = useState<Record<string, string>>({});
-  const [allowlistLoading, setAllowlistLoading] = useState(false);
+  const [_allowlistLoading, setAllowlistLoading] = useState(false);
   const entityStore = useEntityStore();
-  const tools = entityStore.availableTools;
   const runProfiles = entityStore.allRunProfiles;
   const [selectedRunProfileId, setSelectedRunProfileId] = useState("");
 

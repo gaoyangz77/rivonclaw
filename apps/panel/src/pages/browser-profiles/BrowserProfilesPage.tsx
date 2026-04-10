@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
-import { trackEvent } from "../api/index.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
+import { trackEvent } from "../../api/index.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { DEFAULTS } from "@rivonclaw/core";
-import { useToast } from "../components/Toast.js";
-import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { useToast } from "../../components/Toast.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
 
 interface BrowserProfileFormState {
   name: string;

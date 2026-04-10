@@ -1,22 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import type { ReactNode, ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { Layout } from "./layout/Layout.js";
-import { ChatPage } from "./pages/ChatPage.js";
-import { RulesPage } from "./pages/RulesPage.js";
-import { ProvidersPage } from "./pages/ProvidersPage.js";
-import { ChannelsPage } from "./pages/ChannelsPage.js";
-import { PermissionsPage } from "./pages/PermissionsPage.js";
-import { ExtrasPage } from "./pages/ExtrasPage.js";
-import { KeyUsagePage } from "./pages/KeyUsagePage.js";
-import { SkillsPage } from "./pages/SkillsPage.js";
-import { CronsPage } from "./pages/CronsPage.js";
-import { SettingsPage } from "./pages/SettingsPage.js";
-import { OnboardingPage } from "./pages/OnboardingPage.js";
-import { AccountPage } from "./pages/AccountPage.js";
-import { BrowserProfilesPage } from "./pages/BrowserProfilesPage.js";
-import { TikTokShopsPage } from "./pages/TikTokShopsPage.js";
-import { EcommercePage } from "./pages/EcommercePage.js";
+import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
@@ -24,30 +9,13 @@ import { fetchSettings, fetchChangelog, trackEvent } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
 import { entityStore } from "./store/entity-store.js";
 
-const PAGES: Record<string, ComponentType | (() => ReactNode)> = {
-  "/": () => null, // ChatPage is always rendered directly (not via PAGES) to keep its WS alive
-  "/rules": RulesPage,
-  "/providers": ProvidersPage,
-  "/channels": ChannelsPage,
-  "/permissions": PermissionsPage,
-  "/extras": ExtrasPage,
-  "/usage": KeyUsagePage,
-  "/skills": SkillsPage,
-  "/crons": CronsPage,
-  "/tiktok-shops": () => null, // Rendered separately below (auth-gated)
-  "/ecommerce": () => null, // Rendered separately below (auth-gated)
-  "/browser-profiles": () => null, // Rendered separately below (needs onNavigate prop)
-  "/settings": SettingsPage,
-  "/account": () => null, // Rendered separately below (needs onNavigate prop)
-};
-
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
-  return pathname in PAGES ? pathname : "/";
+  return VALID_PATHS.has(pathname) ? pathname : "/";
 }
 
-function pageNameFromRoute(route: string): string {
-  return route === "/" ? "chat" : route.slice(1);
+function pageNameFromRoute(path: string): string {
+  return ROUTE_MAP.get(path)?.pageKey ?? "chat";
 }
 
 /** Hydrate localStorage from backend settings so UI preferences survive port changes. */
@@ -177,28 +145,36 @@ export function App() {
   }
 
   if (showOnboarding) {
-    return <OnboardingPage onComplete={handleOnboardingComplete} />;
+    const OnboardingComponent = ROUTE_MAP.get("/onboarding")!.component;
+    return <OnboardingComponent onComplete={handleOnboardingComplete} />;
   }
 
-  const skipPages = new Set(["/", "/channels", "/tiktok-shops", "/ecommerce", "/account"]);
-  const OtherPage = !skipPages.has(currentPath) ? PAGES[currentPath] : null;
+  const ChatComponent = ROUTE_MAP.get("/")!.component;
+  const ChannelsComponent = ROUTE_MAP.get("/channels")!.component;
+  const currentRoute = ROUTE_MAP.get(currentPath);
+  const isKeepMounted = currentRoute?.keepMounted;
+  const isAccount = currentPath === "/account";
+  const StandardPage = currentRoute?.component && !isKeepMounted && !isAccount
+    ? currentRoute.component
+    : null;
+
   return (
     <TutorialProvider currentPath={currentPath}>
       <Layout currentPath={currentPath} onNavigate={navigate} agentName={agentName}>
         {/* Keep ChatPage always mounted so its WebSocket connection and pending
             message state survive navigation to other pages (e.g. ProvidersPage). */}
         <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
-          <ChatPage onAgentNameChange={setAgentName} />
+          <ChatComponent onAgentNameChange={setAgentName} />
         </div>
         {/* Keep ChannelsPage mounted to avoid re-fetching channel status on every visit. */}
         <div className={currentPath === "/channels" ? "contents-toggle" : "hidden-toggle"}>
-          <ChannelsPage />
+          <ChannelsComponent />
         </div>
-        {currentPath === "/tiktok-shops" && <TikTokShopsPage />}
-        {currentPath === "/ecommerce" && <EcommercePage />}
-        {currentPath === "/browser-profiles" && <BrowserProfilesPage />}
-        {currentPath === "/account" && <AccountPage onNavigate={navigate} />}
-        {OtherPage && <OtherPage />}
+        {isAccount && (() => {
+          const AccountComponent = currentRoute!.component;
+          return <AccountComponent onNavigate={navigate} />;
+        })()}
+        {StandardPage && <StandardPage />}
         <WhatsNewModal
           isOpen={showWhatsNew}
           onClose={() => setShowWhatsNew(false)}

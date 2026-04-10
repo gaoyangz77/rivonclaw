@@ -1,4 +1,4 @@
-import { fetchChannelStatus } from "../api/index.js";
+import { fetchChannelStatus } from "../../api/index.js";
 
 /**
  * Poll until the gateway responds with fresh channel data after a config change.

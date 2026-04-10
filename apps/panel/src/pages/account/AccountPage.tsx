@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { getUserInitial } from "../lib/user-manager.js";
-import { Modal } from "../components/modals/Modal.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { ToolMultiSelect } from "../components/inputs/ToolMultiSelect.js";
-import { Select } from "../components/inputs/Select.js";
-import { ModuleIcon } from "../components/icons.js";
-import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { useToolDisplayLabel } from "../lib/tool-display.js";
+import { getUserInitial } from "../../lib/user-manager.js";
+import { Modal } from "../../components/modals/Modal.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { ToolMultiSelect } from "../../components/inputs/ToolMultiSelect.js";
+import { Select } from "../../components/inputs/Select.js";
+import { ModuleIcon } from "../../components/icons.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { useToolDisplayLabel } from "../../lib/tool-display.js";
 import type { SnapshotIn } from "mobx-state-tree";
 import { SurfaceModel, RunProfileModel } from "@rivonclaw/core/models";
 

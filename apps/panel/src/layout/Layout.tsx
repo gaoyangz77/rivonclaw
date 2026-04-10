@@ -14,41 +14,17 @@ import { formatError } from "@rivonclaw/core";
 import { SSE } from "@rivonclaw/core/api-contract";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
-import {
-  ChatIcon, RulesIcon, ProvidersIcon, ChannelsIcon,
-  PermissionsIcon, ExtrasIcon, UsageIcon, SkillsIcon,
-  BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
-  AuthIcon, MenuIcon, ShopIcon, EcommerceIcon,
-} from "../components/icons.js";
+import { MenuIcon } from "../components/icons.js";
+import { ROUTES } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { useToast } from "../components/Toast.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 
-const AUTH_REQUIRED_PATHS = new Set(["/browser-profiles", "/tiktok-shops", "/ecommerce"]);
-
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
 const SIDEBAR_DEFAULT = 200;
-
-const NAV_ICONS: Record<string, ReactNode> = {
-  "/": <ChatIcon />,
-  "/rules": <RulesIcon />,
-  "/providers": <ProvidersIcon />,
-  "/channels": <ChannelsIcon />,
-  "/permissions": <PermissionsIcon />,
-  "/extras": <ExtrasIcon />,
-  "/usage": <UsageIcon />,
-  "/skills": <SkillsIcon />,
-  "/browser-profiles": <BrowserProfilesIcon />,
-  "/tiktok-shops": <ShopIcon />,
-  "/ecommerce": <EcommerceIcon />,
-  "/crons": <CronsIcon />,
-  "/settings": <SettingsIcon />,
-  "/account": <AccountIcon />,
-  "/auth": <AuthIcon />,
-};
 
 export const Layout = observer(function Layout({
   children,
@@ -235,23 +211,11 @@ export const Layout = observer(function Layout({
     };
   }, []);
 
-  const NAV_ITEMS = [
-    { path: "/", label: t("nav.chat") },
-    { path: "/providers", label: t("nav.providers") },
-    { path: "/channels", label: t("nav.channels") },
-    { path: "/rules", label: t("nav.rules") },
-    { path: "/permissions", label: t("nav.permissions") },
-    { path: "/extras", label: t("nav.extras") },
-    { path: "/skills", label: t("nav.skills") },
-    { path: "/browser-profiles", label: t("nav.browserProfiles") },
-    { path: "/crons", label: t("nav.crons") },
-    // { path: "/tiktok-shops", label: t("nav.tiktokShops") },  // temporarily hidden
-    ...(entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")
-      ? [{ path: "/ecommerce", label: t("nav.ecommerce") }]
-      : []),
-    { path: "/usage", label: t("nav.usage") },
-    { path: "/settings", label: t("nav.settings") },
-  ];
+  const navRoutes = ROUTES.filter(r =>
+    r.navLabelKey &&
+    !r.navHidden &&
+    (!r.moduleGate || entityStore.isModuleEnrolled(r.moduleGate))
+  );
 
   const showBanner = !!updateInfo;
   const ds = downloadStatus;
@@ -360,25 +324,25 @@ export const Layout = observer(function Layout({
             )}
           </h2>
           <ul className="nav-list">
-            {NAV_ITEMS.map((item) => {
-              const active = currentPath === item.path;
+            {navRoutes.map((route) => {
+              const active = currentPath === route.path;
               return (
-                <li key={item.path}>
+                <li key={route.path}>
                   <button
                     className={`nav-btn ${active ? "nav-active" : "nav-item"}`}
                     onClick={() => {
-                      if (AUTH_REQUIRED_PATHS.has(item.path) && !user) {
-                        setPendingAuthPath(item.path);
+                      if (route.authRequired && !user) {
+                        setPendingAuthPath(route.path);
                         setAuthModalOpen(true);
                       } else {
-                        onNavigate(item.path);
+                        onNavigate(route.path);
                       }
                     }}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed ? t(route.navLabelKey!) : undefined}
                   >
-                    <span className="nav-icon">{NAV_ICONS[item.path]}</span>
+                    <span className="nav-icon">{route.icon}</span>
                     {!collapsed && (
-                      <span className="nav-label">{item.label}</span>
+                      <span className="nav-label">{t(route.navLabelKey!)}</span>
                     )}
                   </button>
                 </li>

@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { RunTracker, FINAL_FALLBACK_MS, RECENTLY_COMPLETED_TTL_MS } from "./run-tracker.js";
-import type { RunAction } from "./run-tracker.js";
-
 function createTracker() {
   const onChange = vi.fn();
   const tracker = new RunTracker(onChange);

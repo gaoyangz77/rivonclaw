@@ -1,15 +1,15 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { trackEvent } from "../api/index.js";
-import { getRunProfileForScope, setRunProfileForScope } from "../api/tool-registry.js";
-import { Select } from "../components/inputs/Select.js";
-import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
-import { useCronManager } from "./crons/useCronManager.js";
-import { CronJobForm, TEMP_CRON_SCOPE_KEY } from "./crons/CronJobForm.js";
-import { CronRunHistory } from "./crons/CronRunHistory.js";
-import type { CronJob, CronListParams } from "./crons/cron-utils.js";
-import { formatSchedule, formatRelativeTime, getTzI18nKey } from "./crons/cron-utils.js";
-import "./crons/CronsPage.css";
+import { trackEvent } from "../../api/index.js";
+import { getRunProfileForScope, setRunProfileForScope } from "../../api/tool-registry.js";
+import { Select } from "../../components/inputs/Select.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { useCronManager } from "./useCronManager.js";
+import { CronJobForm, TEMP_CRON_SCOPE_KEY } from "./CronJobForm.js";
+import { CronRunHistory } from "./CronRunHistory.js";
+import type { CronJob, CronListParams } from "./cron-utils.js";
+import { formatSchedule, formatRelativeTime, getTzI18nKey } from "./cron-utils.js";
+import "./CronsPage.css";
 
 const ENABLED_OPTIONS = [
   { value: "all", label: "All" },

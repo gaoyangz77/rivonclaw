@@ -16,7 +16,8 @@
     "check:ext-externals": "node scripts/check-extension-externals.mjs",
     "generate:vendor-artifacts": "node scripts/generate-vendor-artifacts.mjs",
     "check:vendor-boundary": "node scripts/check-vendor-boundary.mjs",
-    "check:tools": "node scripts/check-tool-consistency.mjs"
+    "check:tools": "node scripts/check-tool-consistency.mjs",
+    "check:panel-arch": "node scripts/check-panel-architecture.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

@@ -13,7 +13,7 @@ const MOBILE_CHANGED_EVENT = "mobile-changed";
  */
 export const MobileManagerModel = types
   .model("MobileManager", {})
-  .actions((self) => {
+  .actions((_self) => {
     function broadcast(): void {
       window.dispatchEvent(new CustomEvent(MOBILE_CHANGED_EVENT));
     }
