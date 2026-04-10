@@ -1,6 +1,12 @@
 import type { AuthSessionManager } from "../auth/session.js";
 import { getApiBaseUrl } from "@rivonclaw/core";
 
+export class CloudRestError extends Error {
+  constructor(public readonly status: number, public readonly body: unknown) {
+    super(`Cloud REST error: ${status}`);
+  }
+}
+
 export class CloudClient {
   constructor(
     private authSession: AuthSessionManager,
@@ -33,7 +39,11 @@ export class CloudClient {
       });
     }
 
-    if (!res.ok) throw new Error(`Cloud REST error: ${res.status}`);
+    if (!res.ok) {
+      let body: unknown;
+      try { body = await res.json(); } catch { body = null; }
+      throw new CloudRestError(res.status, body);
+    }
     return res.json() as Promise<T>;
   }
 }

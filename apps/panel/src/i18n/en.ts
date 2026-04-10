@@ -1007,6 +1007,17 @@ export default {
         disagree: "Disagree",
       },
     },
+    logUpload: {
+      title: "Upload Logs",
+      description: "Upload the application log file to help the support team diagnose issues.",
+      button: "Upload Log File",
+      uploading: "Uploading...",
+      success: "Log file uploaded successfully",
+      notFound: "Log file does not exist yet — try again after the app has been running for a while",
+      tooLarge: "Log file exceeds the 10 MB upload limit",
+      rateLimited: "Upload rate limit exceeded — please try again later",
+      failed: "Upload failed: ",
+    },
     deps: {
       title: "System Dependencies",
       description: "Check and install system dependencies (Git, Python, Node.js, uv) required by the agent engine.",

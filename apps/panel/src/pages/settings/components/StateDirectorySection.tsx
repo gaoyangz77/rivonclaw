@@ -5,11 +5,14 @@ interface StateDirectorySectionProps {
   dataDirInfo: OpenClawStateDirInfo;
   dataDirRestartNeeded: boolean;
   saving: boolean;
+  isLoggedIn: boolean;
+  uploading: boolean;
   handleChangeDataDir: () => void;
   handleResetDataDir: () => void;
+  handleUpload: () => void;
 }
 
-export function StateDirectorySection({ dataDirInfo, dataDirRestartNeeded, saving, handleChangeDataDir, handleResetDataDir }: StateDirectorySectionProps) {
+export function StateDirectorySection({ dataDirInfo, dataDirRestartNeeded, saving, isLoggedIn, uploading, handleChangeDataDir, handleResetDataDir, handleUpload }: StateDirectorySectionProps) {
   const { t } = useTranslation();
 
   return (
@@ -44,6 +47,24 @@ export function StateDirectorySection({ dataDirInfo, dataDirRestartNeeded, savin
       {dataDirRestartNeeded && (
         <div className="data-dir-restart-notice">
           {t("settings.dataDir.restartNotice")}
+        </div>
+      )}
+
+      {isLoggedIn && (
+        <div>
+          <div className="settings-toggle-label settings-toggle-label-static">
+            <span>{t("settings.logUpload.title")}</span>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={handleUpload}
+              disabled={uploading}
+            >
+              {uploading ? t("settings.logUpload.uploading") : t("settings.logUpload.button")}
+            </button>
+          </div>
+          <div className="form-hint">
+            {t("settings.logUpload.description")}
+          </div>
         </div>
       )}
     </div>

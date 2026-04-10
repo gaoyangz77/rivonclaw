@@ -208,6 +208,9 @@ export const API = {
   // ── Dependencies ──
   "deps.provision":          { method: "POST",   path: "/api/deps/provision",             desc: "Trigger dependency provisioner" },
 
+  // ── Logs ──
+  "logs.upload":             { method: "POST",   path: "/api/logs/upload",                desc: "Upload rivonclaw.log to cloud backend" },
+
   // ── Cloud Proxy ──
   "cloud.graphql":           { method: "POST",   path: DEFAULTS.api.cloudGraphql,          desc: "Cloud GraphQL proxy (JWT injected)" },
   // cloud.rest is a prefix-based wildcard — see PrefixRouteEntry

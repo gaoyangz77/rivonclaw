@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { CloudClient } from "../cloud-client.js";
+import { CloudClient, CloudRestError } from "../cloud-client.js";
 import type { AuthSessionManager } from "../../auth/session.js";
 
 // ---------------------------------------------------------------------------
@@ -86,13 +86,38 @@ describe("CloudClient", () => {
       expect(result).toEqual({ data: "refreshed" });
     });
 
-    it("throws on non-2xx non-401 response", async () => {
+    it("throws CloudRestError with status and body on non-2xx non-401 response", async () => {
       const authSession = makeAuthSession();
       const client = new CloudClient(authSession, "en");
       mockFetch.mockResolvedValueOnce(jsonResponse(500, { error: "Server error" }));
 
-      await expect(client.rest("/api/test")).rejects.toThrow("Cloud REST error: 500");
+      await expect(client.rest("/api/test")).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(CloudRestError);
+        const restErr = err as CloudRestError;
+        expect(restErr.status).toBe(500);
+        expect(restErr.body).toEqual({ error: "Server error" });
+        expect(restErr.message).toBe("Cloud REST error: 500");
+        return true;
+      });
       expect(authSession.refresh).not.toHaveBeenCalled();
+    });
+
+    it("throws CloudRestError with null body when response is not JSON", async () => {
+      const authSession = makeAuthSession();
+      const client = new CloudClient(authSession, "en");
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: () => Promise.reject(new Error("not JSON")),
+      } as Response);
+
+      await expect(client.rest("/api/test")).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(CloudRestError);
+        const restErr = err as CloudRestError;
+        expect(restErr.status).toBe(503);
+        expect(restErr.body).toBeNull();
+        return true;
+      });
     });
 
     it("passes through custom init options", async () => {

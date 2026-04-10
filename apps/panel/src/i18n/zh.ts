@@ -995,6 +995,17 @@ export default {
         disagree: "不同意",
       },
     },
+    logUpload: {
+      title: "上传日志",
+      description: "上传应用日志文件以帮助支持团队诊断问题。",
+      button: "上传日志文件",
+      uploading: "上传中...",
+      success: "日志文件上传成功",
+      notFound: "日志文件尚未生成，请在应用运行一段时间后重试",
+      tooLarge: "日志文件超过 10 MB 上传限制",
+      rateLimited: "上传频率超限，请稍后再试",
+      failed: "上传失败：",
+    },
     deps: {
       title: "系统依赖",
       description: "检查并安装 Agent 引擎所需的系统依赖（Git、Python、Node.js、uv），国内用户自动切换镜像加速。",
