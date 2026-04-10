@@ -1,5 +1,6 @@
 import { types, flow } from "mobx-state-tree";
 import { fetchJson } from "../../api/client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 /** Fired after any channel configuration change. */
 const CHANNEL_CHANGED_EVENT = "channel-changed";
@@ -26,7 +27,7 @@ export const ChannelManagerModel = types
         config: Record<string, unknown>;
         secrets?: Record<string, string>;
       }) {
-        yield fetchJson("/channels/accounts", {
+        yield fetchJson(clientPath(API["channels.accounts.create"]), {
           method: "POST",
           body: JSON.stringify(data),
         });
@@ -37,7 +38,7 @@ export const ChannelManagerModel = types
       /** Get full account config (including secrets) from Desktop SQLite. */
       getAccountConfig: flow(function* (channelId: string, accountId: string) {
         return yield fetchJson(
-          `/channels/accounts/${encodeURIComponent(channelId)}/${encodeURIComponent(accountId)}`,
+          clientPath(API["channels.accounts.get"], { channelId, accountId }),
         );
       }),
 

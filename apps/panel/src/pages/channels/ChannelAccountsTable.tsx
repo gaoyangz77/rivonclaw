@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { SSE } from "@rivonclaw/core/api-contract";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import {
@@ -122,7 +123,7 @@ export function ChannelAccountsTable({
     const nonMobileExpanded = Array.from(expandedAccounts).filter(key => !key.startsWith("mobile:"));
     if (nonMobileExpanded.length === 0) return;
 
-    const sse = new EventSource("/api/chat/events");
+    const sse = new EventSource(SSE["chat.events"].path);
 
     sse.addEventListener("pairing-update", (e: MessageEvent) => {
       try {

@@ -17,33 +17,35 @@ import type { ModelUsageTotals } from "./usage/usage-snapshot-engine.js";
 import { UsageQueryService } from "./usage/usage-query-service.js";
 import { initMobileManagerEnv } from "./store/desktop-store.js";
 import { rootStore } from "./store/desktop-store.js";
+import { runtimeStatusStore } from "./store/runtime-status-store.js";
 import { getRpcClient } from "./gateway/rpc-client-ref.js";
 import type { AuthSessionManager } from "./auth/auth-session.js";
 import type { SessionLifecycleManager } from "./browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { CloudClient } from "./clients/cloud-client.js";
 import { sendChannelMessage } from "./channels/channel-senders.js";
-import type { ApiContext, RouteHandler } from "./api-routes/api-context.js";
+import type { ApiContext } from "./api-routes/api-context.js";
 import { sendJson } from "./api-routes/route-utils.js";
 import { proxiedFetch } from "./api-routes/route-utils.js";
-import { handleRulesRoutes } from "./api-routes/rules-routes.js";
-import { handleSettingsRoutes } from "./api-routes/settings-routes.js";
-import { handleProviderRoutes } from "./api-routes/provider-routes.js";
-import { handleChannelRoutes } from "./api-routes/channel-routes.js";
-import { handleUsageRoutes } from "./api-routes/usage-routes.js";
-import { handleSkillsRoutes } from "./api-routes/skills-routes.js";
-import { handleChatSessionRoutes } from "./api-routes/chat-session-routes.js";
-import { handleMobileChatRoutes } from "./api-routes/mobile-chat-routes.js";
-import { handleBrowserProfilesRoutes } from "./api-routes/browser-profiles-routes.js";
-import { handleAuthRoutes } from "./api-routes/auth-routes.js";
-import { handleCloudGraphqlRoutes } from "./api-routes/cloud-graphql-routes.js";
-import { handleCloudRestRoutes } from "./api-routes/cloud-rest-routes.js";
-import { handleDoctorRoutes } from "./api-routes/doctor-routes.js";
-import { handleDepsRoutes } from "./api-routes/deps-routes.js";
-import { handleToolRegistryRoutes } from "./api-routes/tool-registry-routes.js";
-import { handleCSBridgeRoutes } from "./api-routes/cs-bridge-routes.js";
 import { handleStoreStream } from "./api-routes/store-stream-routes.js";
 import { handleRuntimeStatusStream } from "./api-routes/runtime-status-stream-routes.js";
+import { RouteRegistry } from "./api-routes/route-registry.js";
+import { registerDepsHandlers } from "./api-routes/handlers/deps.js";
+import { registerRulesHandlers } from "./api-routes/handlers/rules.js";
+import { registerChatSessionsHandlers } from "./api-routes/handlers/chat-sessions.js";
+import { registerUsageHandlers } from "./api-routes/handlers/usage.js";
+import { registerToolRegistryHandlers } from "./api-routes/handlers/tool-registry.js";
+import { registerAuthHandlers } from "./api-routes/handlers/auth.js";
+import { registerSkillsHandlers } from "./api-routes/handlers/skills.js";
+import { registerSettingsHandlers } from "./api-routes/handlers/settings.js";
+import { registerProviderHandlers } from "./api-routes/handlers/providers.js";
+import { registerCsBridgeHandlers } from "./api-routes/handlers/cs-bridge.js";
+import { registerChannelsHandlers } from "./api-routes/handlers/channels.js";
+import { registerBrowserProfilesHandlers } from "./api-routes/handlers/browser-profiles.js";
+import { registerMobileChatHandlers } from "./api-routes/handlers/mobile-chat.js";
+import { registerCloudGraphqlHandlers } from "./api-routes/handlers/cloud-graphql.js";
+import { registerCloudRestHandlers } from "./api-routes/handlers/cloud-rest.js";
+import { registerDoctorHandlers } from "./api-routes/handlers/doctor.js";
 
 const log = createLogger("panel-server");
 
@@ -243,26 +245,24 @@ export interface PanelServerOptions {
   channelManager?: import("./store/channel-manager.js").ChannelManagerInstance;
 }
 
-// --- Route handlers (dispatched in order, first match wins) ---
-
-const routeHandlers: RouteHandler[] = [
-  handleAuthRoutes,
-  handleCloudGraphqlRoutes,
-  handleCloudRestRoutes,
-  handleRulesRoutes,
-  handleSettingsRoutes,
-  handleProviderRoutes,
-  handleChannelRoutes,
-  handleUsageRoutes,
-  handleSkillsRoutes,
-  handleChatSessionRoutes,
-  handleMobileChatRoutes,
-  handleBrowserProfilesRoutes,
-  handleToolRegistryRoutes,
-  handleCSBridgeRoutes,
-  handleDoctorRoutes,
-  handleDepsRoutes,
-];
+// --- Route registry (all endpoints registered here) ---
+const registry = new RouteRegistry();
+registerAuthHandlers(registry);
+registerDepsHandlers(registry);
+registerRulesHandlers(registry);
+registerChatSessionsHandlers(registry);
+registerUsageHandlers(registry);
+registerToolRegistryHandlers(registry);
+registerSkillsHandlers(registry);
+registerSettingsHandlers(registry);
+registerProviderHandlers(registry);
+registerCsBridgeHandlers(registry);
+registerChannelsHandlers(registry);
+registerBrowserProfilesHandlers(registry);
+registerMobileChatHandlers(registry);
+registerCloudGraphqlHandlers(registry);
+registerCloudRestHandlers(registry);
+registerDoctorHandlers(registry);
 
 /**
  * Create and start a local HTTP server that serves the panel SPA
@@ -336,6 +336,9 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     stateDir: resolveOpenClawStateDir(),
     getRpcClient,
   });
+
+  // Hydrate runtime-status AppSettings from persisted storage
+  runtimeStatusStore.loadAppSettings(storage.settings.getAll());
 
   // Reconcile usage snapshot for the active key on startup
   const activeKeyOnStartup = storage.providerKeys.getActive();
@@ -478,13 +481,8 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
         return;
       }
 
-      // Dispatch to route handlers
       try {
-        for (const handler of routeHandlers) {
-          const handled = await handler(req, res, url, pathname, ctx);
-          if (handled) return;
-        }
-        // No handler matched
+        if (await registry.dispatch(req, res, url, pathname, ctx)) return;
         sendJson(res, 404, { error: "Not found" });
       } catch (err) {
         log.error("API error:", err);

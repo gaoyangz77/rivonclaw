@@ -1,4 +1,5 @@
 import { fetchJson } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 // --- STT Credentials ---
 
@@ -8,11 +9,11 @@ export interface SttCredentialStatus {
 }
 
 export async function fetchSttCredentials(): Promise<SttCredentialStatus> {
-  return fetchJson<SttCredentialStatus>("/stt/credentials");
+  return fetchJson<SttCredentialStatus>(clientPath(API["stt.credentials.get"]));
 }
 
 export async function saveSttCredentials(body: Record<string, string>): Promise<void> {
-  await fetchJson("/stt/credentials", {
+  await fetchJson(clientPath(API["stt.credentials.set"]), {
     method: "PUT",
     body: JSON.stringify(body),
   });
@@ -26,7 +27,7 @@ export interface ExtrasCredentialStatus {
 }
 
 export async function fetchExtrasCredentials(): Promise<ExtrasCredentialStatus> {
-  return fetchJson<ExtrasCredentialStatus>("/extras/credentials");
+  return fetchJson<ExtrasCredentialStatus>(clientPath(API["extras.credentials.get"]));
 }
 
 export async function saveExtrasCredentials(body: {
@@ -34,7 +35,7 @@ export async function saveExtrasCredentials(body: {
   provider: string;
   apiKey: string;
 }): Promise<void> {
-  await fetchJson("/extras/credentials", {
+  await fetchJson(clientPath(API["extras.credentials.set"]), {
     method: "PUT",
     body: JSON.stringify(body),
   });

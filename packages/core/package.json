@@ -38,6 +38,10 @@
       "import": "./dist/defaults.mjs",
       "default": "./dist/defaults.mjs",
       "types": "./dist/defaults.d.mts"
+    },
+    "./api-contract": {
+      "import": "./dist/api-contract.mjs",
+      "types": "./dist/api-contract.d.mts"
     }
   },
   "scripts": {

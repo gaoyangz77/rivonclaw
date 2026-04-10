@@ -11,6 +11,7 @@ import {
 } from "../api/index.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { formatError } from "@rivonclaw/core";
+import { SSE } from "@rivonclaw/core/api-contract";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
 import {
@@ -105,7 +106,7 @@ export const Layout = observer(function Layout({
     const retryTimer = setTimeout(check, 20_000);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    const sse = new EventSource("/api/chat/events");
+    const sse = new EventSource(SSE["chat.events"].path);
     sse.addEventListener("update-available", (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data) as UpdateInfo & { currentVersion?: string };

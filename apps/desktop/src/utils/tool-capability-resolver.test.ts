@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { applySnapshot, getSnapshot } from "mobx-state-tree";
 import { ScopeType } from "@rivonclaw/core";
 import type { CatalogTool } from "@rivonclaw/core";
-import { parseScopeType } from "../api-routes/tool-registry-routes.js";
+import { parseScopeType } from "../api-routes/handlers/tool-registry.js";
 import { rootStore } from "../store/desktop-store.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
+import { SSE } from "@rivonclaw/core/api-contract";
 import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
@@ -8,7 +9,6 @@ import { CloseIcon, CopyIcon, CheckIcon, InfoIcon, ShopIcon, RefreshIcon } from 
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
-import { fetchModelCatalog } from "../api/providers.js";
 import { KeyModelSelector } from "../components/inputs/KeyModelSelector.js";
 import { fetchJson } from "../api/client.js";
 import { useToast } from "../components/Toast.js";
@@ -183,14 +183,12 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }, [user]);
 
-  // Load full model catalog for cascading key+model selector (all providers)
-  const [fullModelCatalog, setFullModelCatalog] = useState<Record<string, Array<{ id: string; name: string; contextWindow?: number }>>>({});
+  // Model catalog is read from entityStore.llmManager.catalog (shared, auto-refreshed).
+  // Trigger initial catalog load if not yet populated.
   useEffect(() => {
-    function refreshCatalog() {
-      fetchModelCatalog().then(setFullModelCatalog).catch(() => setFullModelCatalog({}));
+    if (!entityStore.llmManager.catalogReady) {
+      entityStore.llmManager.refreshCatalog();
     }
-    refreshCatalog();
-    return entityStore.llmManager.onChange(refreshCatalog);
   }, []);
 
   // Fetch channel accounts for escalation channel selector
@@ -309,7 +307,7 @@ export const EcommercePage = observer(function EcommercePage() {
   }
 
   function startOAuthSSEListener() {
-    const sse = new EventSource("/api/chat/events");
+    const sse = new EventSource(SSE["chat.events"].path);
     sseRef.current = sse;
 
     sse.addEventListener("oauth-complete", (e: MessageEvent) => {
@@ -1337,7 +1335,7 @@ export const EcommercePage = observer(function EcommercePage() {
                         model: k.model,
                         isDefault: k.isDefault,
                       }))}
-                      catalog={fullModelCatalog}
+                      catalog={entityStore.llmManager.catalog}
                       selectedProvider={selectedCSProvider}
                       selectedModel={selectedCSModel}
                       onChange={handleCSModelChange}

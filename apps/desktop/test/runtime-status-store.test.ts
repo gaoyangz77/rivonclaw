@@ -1,33 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { getSnapshot, onPatch, type IJsonPatch } from "mobx-state-tree";
-import { RuntimeStatusStoreModel } from "@rivonclaw/core/models";
+import { createRuntimeStatusStore } from "../src/store/runtime-status-store.js";
 
-/**
- * Create a Desktop-equivalent runtime status store with actions.
- * Mirrors the production DesktopRuntimeStatusModel from runtime-status-store.ts.
- */
-function createTestStore() {
-  const Model = RuntimeStatusStoreModel.actions((self) => ({
-    setCsBridgeConnected() {
-      self.csBridge.state = "connected";
-      self.csBridge.reconnectAttempt = 0;
-    },
-    setCsBridgeDisconnected() {
-      self.csBridge.state = "disconnected";
-    },
-    setCsBridgeReconnecting(attempt: number) {
-      self.csBridge.state = "reconnecting";
-      self.csBridge.reconnectAttempt = attempt;
-    },
-  }));
-  return Model.create({});
-}
+type Store = ReturnType<typeof createRuntimeStatusStore>;
 
-describe("RuntimeStatusStore", () => {
-  let store: ReturnType<typeof createTestStore>;
+describe("RuntimeStatusStore — CsBridge", () => {
+  let store: Store;
 
   beforeEach(() => {
-    store = createTestStore();
+    store = createRuntimeStatusStore();
   });
 
   it("should initialize with disconnected state", () => {
@@ -62,14 +43,13 @@ describe("RuntimeStatusStore", () => {
 
   it("should produce correct snapshots", () => {
     store.setCsBridgeConnected();
-    expect(getSnapshot(store)).toEqual({
-      csBridge: { state: "connected", reconnectAttempt: 0 },
-    });
+    const snap1 = getSnapshot(store);
+    expect(snap1.csBridge).toEqual({ state: "connected", reconnectAttempt: 0 });
+    expect(snap1.appSettings).toBeDefined();
 
     store.setCsBridgeReconnecting(2);
-    expect(getSnapshot(store)).toEqual({
-      csBridge: { state: "reconnecting", reconnectAttempt: 2 },
-    });
+    const snap2 = getSnapshot(store);
+    expect(snap2.csBridge).toEqual({ state: "reconnecting", reconnectAttempt: 2 });
   });
 
   it("should emit MST patches on state changes", () => {
@@ -107,5 +87,62 @@ describe("RuntimeStatusStore", () => {
 
     store.setCsBridgeDisconnected();
     expect(store.csBridge.state).toBe("disconnected");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AppSettings default-value tests — each test gets a fresh store
+// ---------------------------------------------------------------------------
+
+describe("AppSettings defaults — loadAppSettings({})", () => {
+  let store: Store;
+
+  beforeEach(() => {
+    store = createRuntimeStatusStore();
+  });
+
+  it("absent-value semantics match old REST getters and main.ts", () => {
+    store.loadAppSettings({});
+
+    const s = store.appSettings;
+
+    // isNotFalse → absent = true (opt-out settings)
+    expect(s.telemetryEnabled).toBe(true);
+    expect(s.sessionStateCdpEnabled).toBe(true);
+    expect(s.chatShowAgentEvents).toBe(true);
+    expect(s.chatCollapseMessages).toBe(true);
+    expect(s.filePermissionsFullAccess).toBe(true);
+
+    // isTrue → absent = false (opt-in settings)
+    expect(s.chatPreserveToolEvents).toBe(false);
+    expect(s.privacyMode).toBe(false);
+    expect(s.autoLaunchEnabled).toBe(false);
+    expect(s.sttEnabled).toBe(false);
+    expect(s.webSearchEnabled).toBe(false);
+    expect(s.embeddingEnabled).toBe(false);
+  });
+
+  it("explicit 'false' disables isNotFalse settings", () => {
+    store.loadAppSettings({
+      telemetry_enabled: "false",
+      "session-state-cdp-enabled": "false",
+      chat_show_agent_events: "false",
+    });
+
+    expect(store.appSettings.telemetryEnabled).toBe(false);
+    expect(store.appSettings.sessionStateCdpEnabled).toBe(false);
+    expect(store.appSettings.chatShowAgentEvents).toBe(false);
+  });
+
+  it("explicit 'true' enables isTrue settings", () => {
+    store.loadAppSettings({
+      chat_preserve_tool_events: "true",
+      privacy_mode: "true",
+      auto_launch_enabled: "true",
+    });
+
+    expect(store.appSettings.chatPreserveToolEvents).toBe(true);
+    expect(store.appSettings.privacyMode).toBe(true);
+    expect(store.appSettings.autoLaunchEnabled).toBe(true);
   });
 });

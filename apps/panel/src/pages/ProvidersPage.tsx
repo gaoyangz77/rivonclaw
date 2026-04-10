@@ -5,6 +5,7 @@ import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivoncla
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../api/index.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { ModelSelect } from "../components/inputs/ModelSelect.js";
 import { Select } from "../components/inputs/Select.js";
 import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
@@ -59,7 +60,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
         if (newKey) {
           await newKey.activate();
         } else {
-          await fetchJson("/provider-keys/" + entry.id + "/activate", { method: "POST" });
+          await fetchJson(clientPath(API["providerKeys.activate"], { id: entry.id }), { method: "POST" });
           invalidateCache("models");
         }
       }

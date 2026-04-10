@@ -1,4 +1,5 @@
 import { fetchJson, cachedFetch } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 // --- Status ---
 
@@ -9,7 +10,7 @@ export interface GatewayStatus {
 }
 
 export async function fetchStatus(): Promise<GatewayStatus> {
-  return fetchJson<GatewayStatus>("/status");
+  return fetchJson<GatewayStatus>(clientPath(API["app.status"]));
 }
 
 // --- App Update ---
@@ -22,7 +23,7 @@ export interface UpdateInfo {
 }
 
 export async function fetchUpdateInfo(): Promise<UpdateInfo> {
-  return fetchJson<UpdateInfo>("/app/update");
+  return fetchJson<UpdateInfo>(clientPath(API["app.update"]));
 }
 
 export interface UpdateDownloadStatus {
@@ -35,19 +36,19 @@ export interface UpdateDownloadStatus {
 }
 
 export async function startUpdateDownload(): Promise<void> {
-  await fetchJson("/app/update/download", { method: "POST" });
+  await fetchJson(clientPath(API["app.updateDownload"]), { method: "POST" });
 }
 
 export async function cancelUpdateDownload(): Promise<void> {
-  await fetchJson("/app/update/cancel", { method: "POST" });
+  await fetchJson(clientPath(API["app.updateCancel"]), { method: "POST" });
 }
 
 export async function fetchUpdateDownloadStatus(): Promise<UpdateDownloadStatus> {
-  return fetchJson<UpdateDownloadStatus>("/app/update/download-status");
+  return fetchJson<UpdateDownloadStatus>(clientPath(API["app.updateDownloadStatus"]));
 }
 
 export async function triggerUpdateInstall(): Promise<void> {
-  await fetchJson("/app/update/install", { method: "POST" });
+  await fetchJson(clientPath(API["app.updateInstall"]), { method: "POST" });
 }
 
 // --- Changelog ---
@@ -64,7 +65,7 @@ export async function fetchChangelog(): Promise<{
   entries: ChangelogEntry[];
 }> {
   return cachedFetch("changelog", async () => {
-    return fetchJson("/app/changelog");
+    return fetchJson(clientPath(API["app.changelog"]));
   }, 86_400_000); // 24h — only changes on app update
 }
 
@@ -76,5 +77,5 @@ export interface GatewayInfo {
 }
 
 export async function fetchGatewayInfo(): Promise<GatewayInfo> {
-  return fetchJson<GatewayInfo>("/app/gateway-info");
+  return fetchJson<GatewayInfo>(clientPath(API["app.gatewayInfo"]));
 }

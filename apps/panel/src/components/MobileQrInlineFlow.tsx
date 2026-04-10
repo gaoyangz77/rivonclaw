@@ -2,27 +2,19 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { fetchPrivacyMode } from "../api/settings.js";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
+import { observer } from "mobx-react-lite";
 
-export function MobileQrInlineFlow() {
+export const MobileQrInlineFlow = observer(function MobileQrInlineFlow() {
     const { t } = useTranslation();
     const entityStore = useEntityStore();
+    const runtimeStatus = useRuntimeStatus();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [installQrDataUrl, setInstallQrDataUrl] = useState<string | null>(null);
-    const [privacyMode, setPrivacyMode] = useState(false);
+    const privacyMode = runtimeStatus.appSettings.privacyMode;
     const [qrRevealed, setQrRevealed] = useState(false);
-
-    useEffect(() => {
-        fetchPrivacyMode().then(setPrivacyMode).catch(() => {});
-
-        function onPrivacyChanged() {
-            fetchPrivacyMode().then(setPrivacyMode).catch(() => {});
-        }
-        window.addEventListener("privacy-settings-changed", onPrivacyChanged);
-        return () => window.removeEventListener("privacy-settings-changed", onPrivacyChanged);
-    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -79,4 +71,4 @@ export function MobileQrInlineFlow() {
             )}
         </div>
     );
-}
+});

@@ -1,3 +1,4 @@
+export { AppSettingsModel } from "./AppSettingsModel.js";
 export { UserModel } from "./UserModel.js";
 export { SurfaceModel } from "./SurfaceModel.js";
 export { RunProfileModel } from "./RunProfileModel.js";

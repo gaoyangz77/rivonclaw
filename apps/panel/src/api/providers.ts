@@ -1,4 +1,5 @@
 import { fetchJson, cachedFetch } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 // --- Local Models ---
 
@@ -10,20 +11,20 @@ export interface LocalModelServer {
 }
 
 export async function detectLocalModels(): Promise<LocalModelServer[]> {
-  const data = await fetchJson<{ servers: LocalModelServer[] }>("/local-models/detect");
+  const data = await fetchJson<{ servers: LocalModelServer[] }>(clientPath(API["localModels.detect"]));
   return data.servers;
 }
 
 export async function fetchLocalModels(baseUrl: string): Promise<Array<{ id: string; name: string }>> {
   const data = await fetchJson<{ models: Array<{ id: string; name: string }> }>(
-    "/local-models/models?baseUrl=" + encodeURIComponent(baseUrl),
+    clientPath(API["localModels.models"]) + "?baseUrl=" + encodeURIComponent(baseUrl),
   );
   return data.models;
 }
 
 export async function checkLocalModelHealth(baseUrl: string): Promise<{ ok: boolean; version?: string; error?: string }> {
   return fetchJson<{ ok: boolean; version?: string; error?: string }>(
-    "/local-models/health",
+    clientPath(API["localModels.health"]),
     { method: "POST", body: JSON.stringify({ baseUrl }) },
   );
 }
@@ -36,7 +37,7 @@ export async function fetchCustomProviderModels(
   protocol: string,
   proxyUrl?: string,
 ): Promise<string[]> {
-  const data = await fetchJson<{ models: string[] }>("/custom-provider/fetch-models", {
+  const data = await fetchJson<{ models: string[] }>(clientPath(API["models.fetchCustom"]), {
     method: "POST",
     body: JSON.stringify({ baseUrl, apiKey, protocol, proxyUrl }),
   });
@@ -58,7 +59,7 @@ export interface CatalogModelEntry {
  */
 export async function fetchModelCatalog(): Promise<Record<string, CatalogModelEntry[]>> {
   return cachedFetch("models", async () => {
-    const data = await fetchJson<{ models: Record<string, CatalogModelEntry[]> }>("/models");
+    const data = await fetchJson<{ models: Record<string, CatalogModelEntry[]> }>(clientPath(API["models.catalog"]));
     return data.models;
   }, 30000);
 }

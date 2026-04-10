@@ -1,6 +1,7 @@
 import { types, flow, getRoot } from "mobx-state-tree";
 import { fetchJson } from "../../api/client.js";
-import { fetchModelCatalog } from "../../api/providers.js";
+import { fetchModelCatalog, type CatalogModelEntry } from "../../api/providers.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 export interface SwitchModelResult {
   contextWarning?: { currentTokens: number; newContextWindow: number };
@@ -20,21 +21,55 @@ const CONFIG_CHANGED_EVENT = "config-changed";
 /**
  * LLM provider/model operations as MST actions on the Panel entity store.
  *
- * Holds no observable state — session overrides live on the Desktop side.
- * This is an action container mounted as `entityStore.llmManager`.
+ * Holds a volatile `catalog` property (the full model catalog from all providers),
+ * which is refreshed automatically when provider config changes.
  *
  * `switchModel` and `activateProvider` delegate to ProviderKeyModel actions
  * (accessed via `getRoot`), which issue REST calls to Desktop.
  */
 export const LLMProviderModel = types
   .model("LLMProvider", {})
+  .volatile(() => ({
+    /** Full model catalog: provider -> model list. Populated by refreshCatalog. */
+    catalog: {} as Record<string, CatalogModelEntry[]>,
+    /** True once the first catalog fetch has completed. */
+    catalogReady: false,
+  }))
   .actions((self) => {
     /** Broadcast config change to all listeners. */
     function broadcast(): void {
       window.dispatchEvent(new CustomEvent(CONFIG_CHANGED_EVENT));
     }
 
+    /** Handler for config-changed events — refreshes catalog. */
+    function onConfigChanged(): void {
+      // Fire-and-forget: re-fetch catalog when provider config changes
+      fetchModelCatalog()
+        .then((data) => { self.catalog = data; self.catalogReady = true; })
+        .catch(() => {});
+    }
+
     return {
+      afterCreate() {
+        // Auto-refresh catalog when provider config changes (model switch, provider activation, etc.)
+        window.addEventListener(CONFIG_CHANGED_EVENT, onConfigChanged);
+      },
+
+      beforeDestroy() {
+        window.removeEventListener(CONFIG_CHANGED_EVENT, onConfigChanged);
+      },
+
+      /** Fetch (or re-fetch) the full model catalog from Desktop. */
+      refreshCatalog: flow(function* () {
+        try {
+          const data: Record<string, CatalogModelEntry[]> = yield fetchModelCatalog();
+          self.catalog = data;
+          self.catalogReady = true;
+        } catch {
+          // Non-fatal — catalog may not be available before gateway starts
+        }
+      }),
+
       /** Switch the global default model on a provider key (affects new sessions only). */
       switchModel: flow(function* (
         keyId: string,
@@ -61,7 +96,7 @@ export const LLMProviderModel = types
 
       /** Switch model for a specific session (does not affect global default). */
       switchSessionModel: flow(function* (sessionKey: string, provider: string, model: string) {
-        yield fetchJson("/session-model", {
+        yield fetchJson(clientPath(API["sessionModel.set"]), {
           method: "PUT",
           body: JSON.stringify({ sessionKey, provider, model }),
         });
@@ -69,7 +104,7 @@ export const LLMProviderModel = types
 
       /** Reset a session to follow the global default model. */
       resetSessionModel: flow(function* (sessionKey: string) {
-        yield fetchJson("/session-model", {
+        yield fetchJson(clientPath(API["sessionModel.set"]), {
           method: "PUT",
           body: JSON.stringify({ sessionKey, provider: "", model: "" }),
         });
@@ -82,12 +117,17 @@ export const LLMProviderModel = types
         sessionKey: string,
       ): Generator<Promise<unknown>, SessionModelInfo | null, any> {
         const info: { provider: string; model: string; isOverridden: boolean } | null =
-          yield fetchJson(`/session-model?sessionKey=${encodeURIComponent(sessionKey)}`);
+          yield fetchJson(clientPath(API["sessionModel.get"]) + `?sessionKey=${encodeURIComponent(sessionKey)}`);
         if (!info?.provider) return null;
 
-        // Catalog lookup stays client-side (display name + contextWindow)
-        const catalog: Record<string, Array<{ id: string; name: string; contextWindow?: number }>> =
-          yield fetchModelCatalog();
+        // Catalog lookup stays client-side (display name + contextWindow).
+        // Use the cached catalog if available, otherwise fetch fresh.
+        let catalog = self.catalog;
+        if (!self.catalogReady || Object.keys(catalog).length === 0) {
+          catalog = yield fetchModelCatalog();
+          self.catalog = catalog;
+          self.catalogReady = true;
+        }
         const models = catalog[info.provider] ?? [];
         const match = models.find((m) => m.id === info.model);
 

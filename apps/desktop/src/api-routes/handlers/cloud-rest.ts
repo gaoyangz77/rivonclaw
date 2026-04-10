@@ -1,7 +1,6 @@
 import type { IncomingMessage } from "node:http";
-import type { RouteHandler } from "./api-context.js";
-import { sendJson } from "./route-utils.js";
-import { DEFAULTS } from "@rivonclaw/core";
+import type { RouteRegistry, EndpointHandler } from "../route-registry.js";
+import { sendJson } from "../route-utils.js";
 
 /**
  * Parse raw binary body from an incoming request.
@@ -19,24 +18,29 @@ function parseRawBody(req: IncomingMessage): Promise<Buffer> {
  * Generic REST proxy for cloud backend.
  *
  * Convention: strip "/cloud" from the path to get the backend endpoint.
- *   /api/cloud/tiktok/send-image  →  /api/tiktok/send-image
- *   /api/cloud/foo/bar            →  /api/foo/bar
+ *   /api/cloud/tiktok/send-image  ->  /api/tiktok/send-image
+ *   /api/cloud/foo/bar            ->  /api/foo/bar
  *
  * Extensions cannot call the cloud backend directly (no auth token),
  * so they POST to the panel-server which forwards with the JWT.
  */
-export const handleCloudRestRoutes: RouteHandler = async (req, res, _url, pathname, ctx) => {
-  if (!pathname.startsWith(DEFAULTS.api.cloudRestPrefix) || pathname === DEFAULTS.api.cloudGraphql) {
-    return false;
+const cloudRest: EndpointHandler = async (req, res, _url, params, ctx) => {
+  // Safety guard: if the remainder is "graphql", reject it.
+  // The registry checks exact matches first (cloud.graphql is registered
+  // separately), but this guard catches edge cases.
+  if (params._rest === "graphql") {
+    sendJson(res, 404, { error: "Not found" });
+    return;
   }
 
   if (!ctx.cloudClient) {
     sendJson(res, 401, { error: "Not authenticated" });
-    return true;
+    return;
   }
 
-  // Strip "/cloud" → /api/cloud/tiktok/send-image → /api/tiktok/send-image
-  const backendPath = pathname.replace("/cloud", "");
+  // Reconstruct the backend path from the prefix remainder.
+  // /api/cloud/tiktok/send-image -> _rest = "tiktok/send-image" -> /api/tiktok/send-image
+  const backendPath = `/api/${params._rest}`;
 
   const body = await parseRawBody(req);
 
@@ -64,5 +68,10 @@ export const handleCloudRestRoutes: RouteHandler = async (req, res, _url, pathna
     const status = statusMatch ? Number(statusMatch[1]) : 502;
     sendJson(res, status, { error: message });
   }
-  return true;
 };
+
+// ── Registration ──
+
+export function registerCloudRestHandlers(registry: RouteRegistry): void {
+  registry.registerPrefix("/api/cloud/", cloudRest);
+}

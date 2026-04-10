@@ -42,6 +42,7 @@ import {
 import { fetchJson, fetchVoid, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
 import type { BrowserProfileProxyTestResult, GQL, ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
+import { API, SSE, clientPath } from "@rivonclaw/core/api-contract";
 import { gql } from "@apollo/client/core";
 import type { PanelStoreEnv } from "./types.js";
 
@@ -92,7 +93,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     /** Initialize the session: check Desktop auth state, validate via ME query if needed, trigger entity sync. */
     initSession: flow(function* () {
       try {
-        const session: { user: any; authenticated: boolean } = yield fetchJson("/auth/session");
+        const session: { user: any; authenticated: boolean } = yield fetchJson(clientPath(API["auth.session"]));
         if (session.authenticated && session.user) {
           // User data already ingested into Desktop MST via auth-routes, arrives via SSE.
           // Trigger entity sync via Desktop proxy (toolSpecs + surfaces + runProfiles + subscription + quota)
@@ -146,7 +147,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     }),
 
     login: flow(function* (input: { email: string; password: string; captchaToken?: string; captchaAnswer?: string }) {
-      const { user }: { user: any } = yield fetchJson("/auth/login", {
+      const { user }: { user: any } = yield fetchJson(clientPath(API["auth.login"]), {
         method: "POST",
         body: JSON.stringify(input),
       });
@@ -171,7 +172,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     }),
 
     register: flow(function* (input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string }) {
-      const { user }: { user: any } = yield fetchJson("/auth/register", {
+      const { user }: { user: any } = yield fetchJson(clientPath(API["auth.register"]), {
         method: "POST",
         body: JSON.stringify(input),
       });
@@ -196,7 +197,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     }),
 
     logout: flow(function* () {
-      yield fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+      yield fetch(API["auth.logout"].path, { method: "POST" }).catch(() => {});
       trackEvent("auth.logout");
       // Desktop clears user in MST -> SSE -> Panel auto-updates
     }),
@@ -221,7 +222,7 @@ const PanelRootStoreModel = RootStoreModel.props({
       customModelsJson?: string;
       inputModalities?: string[];
     }): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
-      const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>("/provider-keys", {
+      const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(clientPath(API["providerKeys.create"]), {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -234,7 +235,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     startOAuthFlow: flow(function* (provider: string) {
       const result: { ok: boolean; email?: string; tokenPreview?: string; providerKeyId?: string; provider?: string; manualMode?: boolean; authUrl?: string; flowId?: string } =
         yield fetchJson<{ ok: boolean; email?: string; tokenPreview?: string; providerKeyId?: string; provider?: string; manualMode?: boolean; authUrl?: string; flowId?: string }>(
-          "/oauth/start",
+          clientPath(API["oauth.start"]),
           { method: "POST", body: JSON.stringify({ provider }) },
         );
       return result;
@@ -242,7 +243,7 @@ const PanelRootStoreModel = RootStoreModel.props({
 
     completeManualOAuth: flow(function* (provider: string, callbackUrl: string) {
       const result: { email?: string; tokenPreview?: string } =
-        yield fetchJson<{ email?: string; tokenPreview?: string }>("/oauth/manual-complete", {
+        yield fetchJson<{ email?: string; tokenPreview?: string }>(clientPath(API["oauth.manualComplete"]), {
           method: "POST",
           body: JSON.stringify({ provider, callbackUrl }),
         });
@@ -252,7 +253,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     pollOAuthStatus: flow(function* (flowId: string) {
       const result: { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string } =
         yield fetchJson<{ status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string }>(
-          `/oauth/status?flowId=${encodeURIComponent(flowId)}`,
+          clientPath(API["oauth.status"]) + `?flowId=${encodeURIComponent(flowId)}`,
           { method: "GET" },
         );
       return result;
@@ -264,7 +265,7 @@ const PanelRootStoreModel = RootStoreModel.props({
     ) {
       const result: { providerKeyId: string; email?: string; provider: string } =
         yield fetchJson<{ ok: boolean; providerKeyId: string; email?: string; provider: string }>(
-          "/oauth/save",
+          clientPath(API["oauth.save"]),
           { method: "POST", body: JSON.stringify({ provider, ...options }) },
         );
       invalidateCache("models");
@@ -392,7 +393,7 @@ const PanelRootStoreModel = RootStoreModel.props({
       mobileDeviceId?: string;
     }) {
       const response: { data?: { registerPairing: { success: boolean; pairingId: string } } | null; errors?: Array<{ message: string }> } =
-        yield fetchJson("/graphql/mobile", {
+        yield fetchJson(clientPath(API["mobile.graphql"]), {
           method: "POST",
           body: JSON.stringify({
             query: `mutation RegisterPairing($input: RegisterPairingInput!) {
@@ -484,7 +485,7 @@ const PanelRootStoreModel = RootStoreModel.props({
       });
 
       // Fire-and-forget: clean up local Chrome profile directory
-      fetchVoid(`/browser-profiles/${id}/data`, { method: "DELETE" });
+      fetchVoid(clientPath(API["browserProfiles.deleteData"], { id }), { method: "DELETE" });
     }),
 
     batchArchiveBrowserProfiles: flow(function* (ids: string[]) {
@@ -511,7 +512,7 @@ const PanelRootStoreModel = RootStoreModel.props({
 
     testBrowserProfileProxy: flow(function* (id: string) {
       const result: BrowserProfileProxyTestResult =
-        yield fetchJson<BrowserProfileProxyTestResult>("/browser-profiles/test-proxy", {
+        yield fetchJson<BrowserProfileProxyTestResult>(clientPath(API["browserProfiles.testProxy"]), {
           method: "POST",
           body: JSON.stringify({ id }),
         });
@@ -562,7 +563,7 @@ export function connectEntityStore(): void {
     eventSource.close();
   }
 
-  eventSource = new EventSource("/api/store/stream");
+  eventSource = new EventSource(SSE["store.stream"].path);
 
   eventSource.addEventListener("snapshot", (e: MessageEvent) => {
     const snapshot = JSON.parse(e.data);

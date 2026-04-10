@@ -2,9 +2,10 @@ import { spawn, execSync } from "node:child_process";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { DEFAULTS } from "@rivonclaw/core";
+import { SSE } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveOpenClawStateDir, resolveOpenClawConfigPath } from "@rivonclaw/core/node";
-import type { RouteHandler } from "./api-context.js";
+import type { RouteRegistry, EndpointHandler } from "../route-registry.js";
 
 const log = createLogger("doctor");
 
@@ -13,11 +14,9 @@ const isWindows = process.platform === "win32";
 
 let doctorRunning = false;
 
-export const handleDoctorRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
-  if (pathname !== "/api/doctor/run" || req.method !== "GET") {
-    return false;
-  }
+// ── GET /api/doctor/run (SSE) ──
 
+const doctorRun: EndpointHandler = async (req, res, url, _params, ctx) => {
   const sendSSE = (data: object) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
@@ -32,7 +31,7 @@ export const handleDoctorRoutes: RouteHandler = async (req, res, url, pathname, 
   if (doctorRunning) {
     sendSSE({ type: "error", message: "Doctor is already running" });
     res.end();
-    return true;
+    return;
   }
 
   const entryPath = join(ctx.vendorDir, "openclaw.mjs");
@@ -40,13 +39,13 @@ export const handleDoctorRoutes: RouteHandler = async (req, res, url, pathname, 
   if (!existsSync(ctx.nodeBin)) {
     sendSSE({ type: "error", message: `Node binary not found: ${ctx.nodeBin}` });
     res.end();
-    return true;
+    return;
   }
 
   if (!existsSync(entryPath)) {
     sendSSE({ type: "error", message: `OpenClaw entry point not found: ${entryPath}` });
     res.end();
-    return true;
+    return;
   }
 
   const fix = url.searchParams.get("fix") === "true";
@@ -151,6 +150,10 @@ export const handleDoctorRoutes: RouteHandler = async (req, res, url, pathname, 
     clearTimeout(timeout);
     cleanup();
   });
-
-  return true;
 };
+
+// ── Registration ──
+
+export function registerDoctorHandlers(registry: RouteRegistry): void {
+  registry.register(SSE["doctor.run"], doctorRun);
+}

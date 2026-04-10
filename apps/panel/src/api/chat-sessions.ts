@@ -1,4 +1,5 @@
 import { fetchJson } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 export interface ChatSessionMeta {
   key: string;
@@ -15,7 +16,7 @@ export async function fetchChatSessions(opts?: {
   if (opts?.archived != null) params.set("archived", String(opts.archived));
   const qs = params.toString();
   const { sessions } = await fetchJson<{ sessions: ChatSessionMeta[] }>(
-    `/chat-sessions${qs ? `?${qs}` : ""}`,
+    clientPath(API["chatSessions.list"]) + (qs ? `?${qs}` : ""),
   );
   return sessions;
 }
@@ -25,14 +26,14 @@ export async function updateChatSession(
   fields: Partial<Pick<ChatSessionMeta, "customTitle" | "pinned" | "archivedAt">>,
 ): Promise<ChatSessionMeta> {
   const { session } = await fetchJson<{ session: ChatSessionMeta }>(
-    `/chat-sessions/${encodeURIComponent(key)}`,
+    clientPath(API["chatSessions.update"], { key }),
     { method: "PUT", body: JSON.stringify(fields) },
   );
   return session;
 }
 
 export async function deleteChatSession(key: string): Promise<void> {
-  await fetchJson(`/chat-sessions/${encodeURIComponent(key)}`, {
+  await fetchJson(clientPath(API["chatSessions.delete"], { key }), {
     method: "DELETE",
   });
 }

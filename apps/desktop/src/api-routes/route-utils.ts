@@ -36,16 +36,6 @@ export function parseBody(req: IncomingMessage): Promise<unknown> {
 }
 
 /**
- * Extract a route parameter from a pathname pattern like /api/rules/:id
- */
-export function extractIdFromPath(pathname: string, prefix: string): string | null {
-  if (!pathname.startsWith(prefix)) return null;
-  const rest = pathname.slice(prefix.length);
-  if (rest.length === 0 || rest.includes("/")) return null;
-  return rest;
-}
-
-/**
  * Fetch through local proxy router so GFW-blocked APIs (Telegram, LINE, etc.)
  * can reach their targets via the system proxy.
  *

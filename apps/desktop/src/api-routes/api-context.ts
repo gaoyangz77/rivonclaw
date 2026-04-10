@@ -57,11 +57,3 @@ export interface ApiContext {
   managedBrowserService?: ManagedBrowserService;
   channelManager?: ChannelManagerInstance;
 }
-
-export type RouteHandler = (
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL,
-  pathname: string,
-  ctx: ApiContext,
-) => Promise<boolean>;

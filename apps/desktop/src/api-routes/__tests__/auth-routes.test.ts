@@ -2,7 +2,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../api-context.js";
-import { handleAuthRoutes } from "../auth-routes.js";
+import { RouteRegistry } from "../route-registry.js";
+import { registerAuthHandlers } from "../handlers/auth.js";
+
+// ---------------------------------------------------------------------------
+// Test registry — mimics production dispatch
+// ---------------------------------------------------------------------------
+
+let registry: RouteRegistry;
+
+beforeEach(() => {
+  registry = new RouteRegistry();
+  registerAuthHandlers(registry);
+});
+
+async function dispatch(method: string, path: string, ctx: ApiContext, body?: unknown) {
+  const req = makeReq(method, body);
+  const res = makeRes();
+  const url = new URL(`http://localhost${path}`);
+  const handled = await registry.dispatch(req, res, url, path, ctx);
+  return { handled, res };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,10 +53,6 @@ function makeRes(): ServerResponse & { _status: number; _body: unknown } {
   return res;
 }
 
-function makeUrl(path: string): URL {
-  return new URL(`http://localhost${path}`);
-}
-
 const mockUser = {
   userId: "u1",
   email: "test@example.com",
@@ -59,8 +75,6 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 200 with user on successful login", async () => {
-    const req = makeReq("POST", { email: "test@example.com", password: "pass123" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         loginWithCredentials: vi.fn().mockResolvedValue(mockUser),
@@ -68,7 +82,7 @@ describe("POST /api/auth/login", () => {
       onAuthChange,
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/login"), "/api/auth/login", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com", password: "pass123" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -81,13 +95,11 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 400 when email is missing", async () => {
-    const req = makeReq("POST", { password: "pass123" });
-    const res = makeRes();
     const ctx = {
       authSession: { loginWithCredentials: vi.fn() },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/login"), "/api/auth/login", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { password: "pass123" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -95,13 +107,11 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 400 when password is missing", async () => {
-    const req = makeReq("POST", { email: "test@example.com" });
-    const res = makeRes();
     const ctx = {
       authSession: { loginWithCredentials: vi.fn() },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/login"), "/api/auth/login", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -109,15 +119,13 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 400 when cloud returns an error", async () => {
-    const req = makeReq("POST", { email: "test@example.com", password: "wrong" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         loginWithCredentials: vi.fn().mockRejectedValue(new Error("Invalid credentials")),
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/login"), "/api/auth/login", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com", password: "wrong" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -137,8 +145,6 @@ describe("POST /api/auth/register", () => {
   });
 
   it("returns 200 with user on successful registration", async () => {
-    const req = makeReq("POST", { email: "new@example.com", password: "securepass", name: "New User" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         registerWithCredentials: vi.fn().mockResolvedValue(mockUser),
@@ -146,7 +152,7 @@ describe("POST /api/auth/register", () => {
       onAuthChange,
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/register"), "/api/auth/register", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "new@example.com", password: "securepass", name: "New User" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -160,13 +166,11 @@ describe("POST /api/auth/register", () => {
   });
 
   it("returns 400 when email or password is missing", async () => {
-    const req = makeReq("POST", { email: "new@example.com" });
-    const res = makeRes();
     const ctx = {
       authSession: { registerWithCredentials: vi.fn() },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/register"), "/api/auth/register", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "new@example.com" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -174,15 +178,13 @@ describe("POST /api/auth/register", () => {
   });
 
   it("returns 400 when cloud returns an error", async () => {
-    const req = makeReq("POST", { email: "dup@example.com", password: "pass" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         registerWithCredentials: vi.fn().mockRejectedValue(new Error("Email already exists")),
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/register"), "/api/auth/register", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "dup@example.com", password: "pass" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -196,8 +198,6 @@ describe("POST /api/auth/register", () => {
 
 describe("GET /api/auth/session", () => {
   it("returns user and authenticated flag (no accessToken exposed)", async () => {
-    const req = makeReq("GET");
-    const res = makeRes();
     const ctx = {
       authSession: {
         getCachedUser: vi.fn().mockReturnValue(mockUser),
@@ -205,18 +205,15 @@ describe("GET /api/auth/session", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/session"), "/api/auth/session", ctx);
+    const { handled, res } = await dispatch("GET", "/api/auth/session", ctx);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
     expect(res._body).toEqual({ user: mockUser, authenticated: true });
-    // Ensure accessToken is NOT in the response
     expect((res._body as any).accessToken).toBeUndefined();
   });
 
   it("returns authenticated: false when no token exists", async () => {
-    const req = makeReq("GET");
-    const res = makeRes();
     const ctx = {
       authSession: {
         getCachedUser: vi.fn().mockReturnValue(null),
@@ -224,7 +221,7 @@ describe("GET /api/auth/session", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/session"), "/api/auth/session", ctx);
+    const { handled, res } = await dispatch("GET", "/api/auth/session", ctx);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -239,15 +236,13 @@ describe("GET /api/auth/session", () => {
 describe("POST /api/auth/request-captcha", () => {
   it("returns captcha data on success", async () => {
     const captchaData = { token: "cap-tok", svg: "<svg>...</svg>" };
-    const req = makeReq("POST");
-    const res = makeRes();
     const ctx = {
       authSession: {
         requestCaptcha: vi.fn().mockResolvedValue(captchaData),
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/request-captcha"), "/api/auth/request-captcha", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/request-captcha", ctx);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -255,15 +250,13 @@ describe("POST /api/auth/request-captcha", () => {
   });
 
   it("returns 500 on captcha failure", async () => {
-    const req = makeReq("POST");
-    const res = makeRes();
     const ctx = {
       authSession: {
         requestCaptcha: vi.fn().mockRejectedValue(new Error("Rate limited")),
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/request-captcha"), "/api/auth/request-captcha", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/request-captcha", ctx);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(500);
@@ -277,8 +270,6 @@ describe("POST /api/auth/request-captcha", () => {
 
 describe("backward compatibility", () => {
   it("POST /api/auth/store-tokens still works", async () => {
-    const req = makeReq("POST", { accessToken: "at", refreshToken: "rt" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         storeTokens: vi.fn().mockResolvedValue(undefined),
@@ -288,7 +279,7 @@ describe("backward compatibility", () => {
       onAuthChange: vi.fn(),
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/store-tokens"), "/api/auth/store-tokens", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/store-tokens", ctx, { accessToken: "at", refreshToken: "rt" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -297,28 +288,26 @@ describe("backward compatibility", () => {
   });
 
   it("POST /api/auth/refresh still works", async () => {
-    const req = makeReq("POST");
-    const res = makeRes();
     const ctx = {
       authSession: {
         refresh: vi.fn().mockResolvedValue("new-at"),
       },
     } as unknown as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/refresh"), "/api/auth/refresh", ctx);
+    const { handled, res } = await dispatch("POST", "/api/auth/refresh", ctx);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
     expect((res._body as any).accessToken).toBe("new-at");
   });
 
-  it("returns false when authSession is not present", async () => {
-    const req = makeReq("GET");
-    const res = makeRes();
+  it("returns unauthenticated when authSession is not present", async () => {
     const ctx = {} as ApiContext;
 
-    const handled = await handleAuthRoutes(req, res, makeUrl("/api/auth/session"), "/api/auth/session", ctx);
+    const { handled, res } = await dispatch("GET", "/api/auth/session", ctx);
 
-    expect(handled).toBe(false);
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual({ user: null, authenticated: false });
   });
 });

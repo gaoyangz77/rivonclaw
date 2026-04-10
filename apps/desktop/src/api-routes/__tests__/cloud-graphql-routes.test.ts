@@ -2,7 +2,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../api-context.js";
-import { handleCloudGraphqlRoutes } from "../cloud-graphql-routes.js";
+import { RouteRegistry } from "../route-registry.js";
+import { registerCloudGraphqlHandlers } from "../handlers/cloud-graphql.js";
+
+// ---------------------------------------------------------------------------
+// Test registry
+// ---------------------------------------------------------------------------
+
+let registry: RouteRegistry;
+
+beforeEach(() => {
+  registry = new RouteRegistry();
+  registerCloudGraphqlHandlers(registry);
+});
+
+async function dispatch(method: string, path: string, ctx: ApiContext, body?: unknown) {
+  const req = makeReq(method, body);
+  const res = makeRes();
+  const url = new URL(`http://localhost${path}`);
+  const handled = await registry.dispatch(req, res, url, path, ctx);
+  return { handled, res };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -34,39 +54,28 @@ function makeRes(): ServerResponse & { _status: number; _body: unknown } {
   return res;
 }
 
-function makeUrl(path: string): URL {
-  return new URL(`http://localhost${path}`);
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("handleCloudGraphqlRoutes", () => {
+describe("cloud-graphql handler", () => {
   const pathname = "/api/cloud/graphql";
 
   it("returns false for non-matching routes", async () => {
-    const req = makeReq("POST", { query: "{ me { id } }" });
-    const res = makeRes();
     const ctx = {} as ApiContext;
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl("/api/other"), "/api/other", ctx);
+    const { handled } = await dispatch("POST", "/api/other", ctx, { query: "{ me { id } }" });
     expect(handled).toBe(false);
   });
 
   it("returns false for non-POST requests", async () => {
-    const req = makeReq("GET");
-    const res = makeRes();
     const ctx = {} as ApiContext;
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled } = await dispatch("GET", pathname, ctx);
     expect(handled).toBe(false);
   });
 
   it("returns 200 with errors when authSession is not available", async () => {
-    const req = makeReq("POST", { query: "{ me { id } }" });
-    const res = makeRes();
     const ctx = {} as ApiContext;
-
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { id } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -74,13 +83,11 @@ describe("handleCloudGraphqlRoutes", () => {
   });
 
   it("returns 200 with errors when body is missing query field", async () => {
-    const req = makeReq("POST", { variables: {} });
-    const res = makeRes();
     const ctx = {
       authSession: { getAccessToken: () => "valid-token" },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { variables: {} });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -89,8 +96,6 @@ describe("handleCloudGraphqlRoutes", () => {
 
   it("forwards public queries without token (transparent proxy)", async () => {
     const mockData = { skills: [{ slug: "1password" }] };
-    const req = makeReq("POST", { query: "{ skills { slug } }" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         getAccessToken: () => null,
@@ -98,7 +103,7 @@ describe("handleCloudGraphqlRoutes", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ skills { slug } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -107,8 +112,6 @@ describe("handleCloudGraphqlRoutes", () => {
 
   it("returns { data } on successful graphqlFetch", async () => {
     const mockData = { me: { id: "1", email: "test@example.com" } };
-    const req = makeReq("POST", { query: "{ me { id email } }" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         getAccessToken: () => "valid-token",
@@ -116,7 +119,7 @@ describe("handleCloudGraphqlRoutes", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { id email } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -124,8 +127,6 @@ describe("handleCloudGraphqlRoutes", () => {
   });
 
   it("returns 200 with errors on auth-related errors", async () => {
-    const req = makeReq("POST", { query: "{ me { id } }" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         getAccessToken: () => "expired-token",
@@ -133,7 +134,7 @@ describe("handleCloudGraphqlRoutes", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { id } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -141,8 +142,6 @@ describe("handleCloudGraphqlRoutes", () => {
   });
 
   it("returns 200 with errors for 'Not authenticated'", async () => {
-    const req = makeReq("POST", { query: "{ me { id } }" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         getAccessToken: () => null,
@@ -150,7 +149,7 @@ describe("handleCloudGraphqlRoutes", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { id } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -158,8 +157,6 @@ describe("handleCloudGraphqlRoutes", () => {
   });
 
   it("returns 200 with errors on non-auth errors", async () => {
-    const req = makeReq("POST", { query: "{ shop { id } }" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         getAccessToken: () => "valid-token",
@@ -167,7 +164,7 @@ describe("handleCloudGraphqlRoutes", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ shop { id } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -175,8 +172,6 @@ describe("handleCloudGraphqlRoutes", () => {
   });
 
   it("handles non-Error thrown values", async () => {
-    const req = makeReq("POST", { query: "{ me { id } }" });
-    const res = makeRes();
     const ctx = {
       authSession: {
         getAccessToken: () => "valid-token",
@@ -184,7 +179,7 @@ describe("handleCloudGraphqlRoutes", () => {
       },
     } as unknown as ApiContext;
 
-    const handled = await handleCloudGraphqlRoutes(req, res, makeUrl(pathname), pathname, ctx);
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { id } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);

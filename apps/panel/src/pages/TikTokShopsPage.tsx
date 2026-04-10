@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { JSX } from "react";
 import { useTranslation } from "react-i18next";
+import { SSE } from "@rivonclaw/core/api-contract";
 import { Modal } from "../components/modals/Modal.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { Select } from "../components/inputs/Select.js";
@@ -166,7 +167,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   }
 
   function startOAuthSSEListener() {
-    const sse = new EventSource("/api/chat/events");
+    const sse = new EventSource(SSE["chat.events"].path);
     sseRef.current = sse;
 
     sse.addEventListener("oauth-complete", (e: MessageEvent) => {

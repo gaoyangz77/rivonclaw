@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchTelemetrySetting, updateTelemetrySetting, trackEvent, fetchAgentSettings, updateAgentSettings, fetchChatShowAgentEvents, updateChatShowAgentEvents, fetchChatPreserveToolEvents, updateChatPreserveToolEvents, fetchChatCollapseMessages, updateChatCollapseMessages, fetchBrowserMode, updateBrowserMode, fetchAutoLaunchSetting, updateAutoLaunchSetting, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, fetchPrivacyMode, updatePrivacyMode, fetchSessionStateCdpEnabled, updateSessionStateCdpEnabled, provisionDeps, openFileDialog, updateSettings } from "../api/index.js";
+import { trackEvent, fetchAgentSettings, updateAgentSettings, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, provisionDeps, openFileDialog, updateSettings } from "../api/index.js";
 import { DEFAULTS } from "@rivonclaw/core";
+import { SSE } from "@rivonclaw/core/api-contract";
 import type { OpenClawStateDirInfo } from "../api/index.js";
 import { Select } from "../components/inputs/Select.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 import { useToast } from "../components/Toast.js";
+import { observer } from "mobx-react-lite";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 
 const DM_SCOPE_OPTIONS = [
   { value: "main", labelKey: "settings.agent.dmScopeMain" },
@@ -34,21 +37,14 @@ function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onCha
   );
 }
 
-export function SettingsPage() {
+export const SettingsPage = observer(function SettingsPage() {
   const { t } = useTranslation();
-  const [telemetryEnabled, setTelemetryEnabled] = useState(false);
+  const runtimeStatus = useRuntimeStatus();
   const [dmScope, setDmScope] = useState("main");
-  const [showAgentEvents, setShowAgentEvents] = useState(DEFAULTS.settings.showAgentEvents);
-  const [preserveToolEvents, setPreserveToolEvents] = useState(DEFAULTS.settings.preserveToolEvents);
-  const [collapseMessages, setCollapseMessages] = useState(DEFAULTS.settings.collapseMessages);
-  const [autoLaunchEnabled, setAutoLaunchEnabled] = useState(false);
-  const [browserMode, setBrowserMode] = useState<"standalone" | "cdp">(DEFAULTS.settings.browserMode);
-  const [sessionStateCdpEnabled, setSessionStateCdpEnabled] = useState(DEFAULTS.settings.sessionStateCdpEnabled);
   const [cdpConfirmOpen, setCdpConfirmOpen] = useState(false);
   const [dataDirInfo, setDataDirInfo] = useState<OpenClawStateDirInfo | null>(null);
   const [dataDirRestartNeeded, setDataDirRestartNeeded] = useState(false);
   const [accentColor, setAccentColor] = useState(() => localStorage.getItem("accentColor") || "blue");
-  const [privacyMode, setPrivacyMode] = useState(false);
   const [tutorialEnabled, setTutorialEnabled] = useState(() => {
     const stored = localStorage.getItem("tutorial.enabled");
     if (stored === null) return DEFAULTS.settings.tutorialEnabled;
@@ -61,7 +57,6 @@ export function SettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { showToast } = useToast();
   const [depsInstalling, setDepsInstalling] = useState(false);
   const [doctorStatus, setDoctorStatus] = useState<"idle" | "running" | "done" | "error">("idle");
@@ -69,6 +64,20 @@ export function SettingsPage() {
   const [doctorExitCode, setDoctorExitCode] = useState<number | null>(null);
   const doctorOutputRef = useRef<HTMLPreElement>(null);
   const doctorSseRef = useRef<EventSource | null>(null);
+
+  // Controls backed by appSettings are disabled until the first SSE snapshot arrives,
+  // so users never see or submit MST default values as if they were persisted.
+  const settingsReady = runtimeStatus.snapshotReceived;
+
+  // Read settings reactively from MST store (populated via SSE from Desktop)
+  const telemetryEnabled = runtimeStatus.appSettings.telemetryEnabled;
+  const showAgentEvents = runtimeStatus.appSettings.chatShowAgentEvents;
+  const preserveToolEvents = runtimeStatus.appSettings.chatPreserveToolEvents;
+  const collapseMessages = runtimeStatus.appSettings.chatCollapseMessages;
+  const autoLaunchEnabled = runtimeStatus.appSettings.autoLaunchEnabled;
+  const browserMode = runtimeStatus.appSettings.browserMode as "standalone" | "cdp";
+  const sessionStateCdpEnabled = runtimeStatus.appSettings.sessionStateCdpEnabled;
+  const privacyMode = runtimeStatus.appSettings.privacyMode;
 
   useEffect(() => {
     loadSettings();
@@ -103,7 +112,7 @@ export function SettingsPage() {
     setDoctorOutput([]);
     setDoctorExitCode(null);
 
-    const sse = new EventSource(`/api/doctor/run${fix ? "?fix=true" : ""}`);
+    const sse = new EventSource(SSE["doctor.run"].path + (fix ? "?fix=true" : ""));
     doctorSseRef.current = sse;
 
     sse.onmessage = (e) => {
@@ -133,31 +142,14 @@ export function SettingsPage() {
   async function loadSettings() {
     try {
       setLoading(true);
-      const [enabled, agentSettings, chatEvents, toolEvents, collapse, curBrowserMode, cdpSessionState, autoLaunch, dirInfo, privacy] = await Promise.all([
-        fetchTelemetrySetting(),
+      const [agentSettings, dirInfo] = await Promise.all([
         fetchAgentSettings(),
-        fetchChatShowAgentEvents(),
-        fetchChatPreserveToolEvents(),
-        fetchChatCollapseMessages(),
-        fetchBrowserMode(),
-        fetchSessionStateCdpEnabled(),
-        fetchAutoLaunchSetting(),
         fetchOpenClawStateDir(),
-        fetchPrivacyMode(),
       ]);
-      setTelemetryEnabled(enabled);
       setDmScope(agentSettings.dmScope);
-      setShowAgentEvents(chatEvents);
-      setPreserveToolEvents(toolEvents);
-      setCollapseMessages(collapse);
-      setBrowserMode(curBrowserMode);
-      setSessionStateCdpEnabled(cdpSessionState);
-      setAutoLaunchEnabled(autoLaunch);
       setDataDirInfo(dirInfo);
-      setPrivacyMode(privacy);
-      setLoadError(null);
     } catch (err) {
-      setLoadError(t("settings.agent.failedToLoad") + String(err));
+      console.error("Failed to load settings:", err);
     } finally {
       setLoading(false);
     }
@@ -179,45 +171,33 @@ export function SettingsPage() {
   }
 
   async function handleToggleShowAgentEvents(enabled: boolean) {
-    const previous = showAgentEvents;
-    setShowAgentEvents(enabled);
     try {
       setSaving(true);
-      await updateChatShowAgentEvents(enabled);
-      window.dispatchEvent(new CustomEvent("chat-settings-changed"));
+      await runtimeStatus.appSettings.setChatShowAgentEvents(enabled);
     } catch (err) {
       showToast(t("settings.chat.failedToSave") + String(err), "error");
-      setShowAgentEvents(previous);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleTogglePreserveToolEvents(enabled: boolean) {
-    const previous = preserveToolEvents;
-    setPreserveToolEvents(enabled);
     try {
       setSaving(true);
-      await updateChatPreserveToolEvents(enabled);
-      window.dispatchEvent(new CustomEvent("chat-settings-changed"));
+      await runtimeStatus.appSettings.setChatPreserveToolEvents(enabled);
     } catch (err) {
       showToast(t("settings.chat.failedToSave") + String(err), "error");
-      setPreserveToolEvents(previous);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleToggleCollapseMessages(enabled: boolean) {
-    const previous = collapseMessages;
-    setCollapseMessages(enabled);
     try {
       setSaving(true);
-      await updateChatCollapseMessages(enabled);
-      window.dispatchEvent(new CustomEvent("chat-settings-changed"));
+      await runtimeStatus.appSettings.setChatCollapseMessages(enabled);
     } catch (err) {
       showToast(t("settings.chat.failedToSave") + String(err), "error");
-      setCollapseMessages(previous);
     } finally {
       setSaving(false);
     }
@@ -226,43 +206,34 @@ export function SettingsPage() {
   async function handleToggleTelemetry(enabled: boolean) {
     try {
       setSaving(true);
-      await updateTelemetrySetting(enabled);
-      setTelemetryEnabled(enabled);
+      await runtimeStatus.appSettings.setTelemetryEnabled(enabled);
       trackEvent("telemetry.toggled", { enabled });
     } catch (err) {
       showToast(t("settings.telemetry.failedToSave") + String(err), "error");
-      setTelemetryEnabled(!enabled);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleToggleAutoLaunch(enabled: boolean) {
-    const previous = autoLaunchEnabled;
-    setAutoLaunchEnabled(enabled);
     try {
       setSaving(true);
-      await updateAutoLaunchSetting(enabled);
+      await runtimeStatus.appSettings.setAutoLaunchEnabled(enabled);
       trackEvent("settings.auto_launch_toggled", { enabled });
     } catch (err) {
       showToast(t("settings.autoLaunch.failedToSave") + String(err), "error");
-      setAutoLaunchEnabled(previous);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleTogglePrivacyMode(enabled: boolean) {
-    const previous = privacyMode;
-    setPrivacyMode(enabled);
     try {
       setSaving(true);
-      await updatePrivacyMode(enabled);
+      await runtimeStatus.appSettings.setPrivacyMode(enabled);
       trackEvent("settings.privacy_mode_toggled", { enabled });
-      window.dispatchEvent(new CustomEvent("privacy-settings-changed"));
     } catch (err) {
       showToast(t("settings.app.title") + ": " + String(err), "error");
-      setPrivacyMode(previous);
     } finally {
       setSaving(false);
     }
@@ -291,15 +262,12 @@ export function SettingsPage() {
   }
 
   async function handleToggleSessionStateCdp(enabled: boolean) {
-    const previous = sessionStateCdpEnabled;
-    setSessionStateCdpEnabled(enabled);
     try {
       setSaving(true);
-      await updateSessionStateCdpEnabled(enabled);
+      await runtimeStatus.appSettings.setSessionStateCdpEnabled(enabled);
       trackEvent("settings.session_state_cdp_toggled", { enabled });
     } catch (err) {
       showToast(t("settings.browser.failedToSave") + String(err), "error");
-      setSessionStateCdpEnabled(previous);
     } finally {
       setSaving(false);
     }
@@ -315,15 +283,12 @@ export function SettingsPage() {
   }
 
   async function applyBrowserMode(newMode: "standalone" | "cdp") {
-    const previous = browserMode;
-    setBrowserMode(newMode);
     try {
       setSaving(true);
-      await updateBrowserMode(newMode);
+      await runtimeStatus.appSettings.setBrowserMode(newMode);
       trackEvent("settings.browser_mode_changed", { mode: newMode });
     } catch (err) {
       showToast(t("settings.browser.failedToSave") + String(err), "error");
-      setBrowserMode(previous);
     } finally {
       setSaving(false);
     }
@@ -373,12 +338,6 @@ export function SettingsPage() {
       <h1>{t("settings.title")}</h1>
       <p className="page-description">{t("settings.description")}</p>
 
-      {loadError && (
-        <div className="error-alert">
-          {loadError}
-        </div>
-      )}
-
       {/* Agent Settings Section */}
       <div className="section-card">
         <h3>{t("settings.agent.title")}</h3>
@@ -412,7 +371,7 @@ export function SettingsPage() {
               { value: "standalone", label: t("settings.browser.modeStandalone"), description: t("settings.browser.modeStandaloneDesc") },
               { value: "cdp", label: t("settings.browser.modeCdp"), description: t("settings.browser.modeCdpDesc") },
             ]}
-            disabled={saving}
+            disabled={saving || !settingsReady}
           />
           <div className="form-hint">
             {t("settings.browser.modeHint")}
@@ -423,7 +382,7 @@ export function SettingsPage() {
           <div className="settings-toggle-card">
             <div className="settings-toggle-label">
               <span>{t("settings.browser.sessionStateCdp")}</span>
-              <ToggleSwitch checked={sessionStateCdpEnabled} onChange={handleToggleSessionStateCdp} disabled={saving} />
+              <ToggleSwitch checked={sessionStateCdpEnabled} onChange={handleToggleSessionStateCdp} disabled={saving || !settingsReady} />
             </div>
             <div className="form-hint">
               {t("settings.browser.sessionStateCdpHint")}
@@ -439,7 +398,7 @@ export function SettingsPage() {
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.chat.showAgentEvents")}</span>
-            <ToggleSwitch checked={showAgentEvents} onChange={handleToggleShowAgentEvents} disabled={saving} />
+            <ToggleSwitch checked={showAgentEvents} onChange={handleToggleShowAgentEvents} disabled={saving || !settingsReady} />
           </div>
           <div className="form-hint">
             {t("settings.chat.showAgentEventsHint")}
@@ -449,7 +408,7 @@ export function SettingsPage() {
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.chat.preserveToolEvents")}</span>
-            <ToggleSwitch checked={preserveToolEvents} onChange={handleTogglePreserveToolEvents} disabled={saving} />
+            <ToggleSwitch checked={preserveToolEvents} onChange={handleTogglePreserveToolEvents} disabled={saving || !settingsReady} />
           </div>
           <div className="form-hint">
             {t("settings.chat.preserveToolEventsHint")}
@@ -459,7 +418,7 @@ export function SettingsPage() {
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.chat.collapseMessages")}</span>
-            <ToggleSwitch checked={collapseMessages} onChange={handleToggleCollapseMessages} disabled={saving} />
+            <ToggleSwitch checked={collapseMessages} onChange={handleToggleCollapseMessages} disabled={saving || !settingsReady} />
           </div>
           <div className="form-hint">
             {t("settings.chat.collapseMessagesHint")}
@@ -527,7 +486,7 @@ export function SettingsPage() {
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.app.privacyMode")}</span>
-            <ToggleSwitch checked={privacyMode} onChange={handleTogglePrivacyMode} disabled={saving} />
+            <ToggleSwitch checked={privacyMode} onChange={handleTogglePrivacyMode} disabled={saving || !settingsReady} />
           </div>
           <div className="form-hint">
             {t("settings.app.privacyModeHint")}
@@ -567,7 +526,7 @@ export function SettingsPage() {
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.autoLaunch.toggle")}</span>
-            <ToggleSwitch checked={autoLaunchEnabled} onChange={handleToggleAutoLaunch} disabled={saving} />
+            <ToggleSwitch checked={autoLaunchEnabled} onChange={handleToggleAutoLaunch} disabled={saving || !settingsReady} />
           </div>
           {t("settings.autoLaunch.hint") && (
             <div className="form-hint">
@@ -625,7 +584,7 @@ export function SettingsPage() {
         <div className="settings-toggle-card">
           <div className="settings-toggle-label">
             <span>{t("settings.telemetry.toggle")}</span>
-            <ToggleSwitch checked={telemetryEnabled} onChange={handleToggleTelemetry} disabled={saving} />
+            <ToggleSwitch checked={telemetryEnabled} onChange={handleToggleTelemetry} disabled={saving || !settingsReady} />
           </div>
         </div>
 
@@ -728,4 +687,4 @@ export function SettingsPage() {
       />
     </div>
   );
-}
+});

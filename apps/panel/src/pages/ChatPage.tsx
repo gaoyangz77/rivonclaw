@@ -1,12 +1,13 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchGatewayInfo, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchChatCollapseMessages, fetchSettings, updateSettings } from "../api/index.js";
+import { fetchGatewayInfo, trackEvent, fetchSettings, updateSettings } from "../api/index.js";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { entityStore } from "../store/index.js";
 import { formatError } from "@rivonclaw/core";
+import { SSE } from "@rivonclaw/core/api-contract";
 import { useToast } from "../components/Toast.js";
 import { Select } from "../components/inputs/Select.js";
 import { KeyModelSelector } from "../components/inputs/KeyModelSelector.js";
-import type { CatalogModelEntry } from "../api/providers.js";
 import { GatewayChatClient } from "../lib/gateway-client.js";
 import type { ChatMessage, ChatImage, PendingImage } from "./chat/chat-utils.js";
 import { INITIAL_VISIBLE, PAGE_SIZE, FETCH_BATCH, IMAGE_PLACEHOLDER, cleanMessageText, formatTimestamp, extractText, localizeError, parseRawMessages, checkContextOverflow, formatTokenCount } from "./chat/chat-utils.js";
@@ -22,7 +23,6 @@ import { SessionTabBar } from "./chat/SessionTabBar.js";
 import type { GatewaySessionInfo } from "./chat/SessionTabBar.js";
 import { ChatInputArea } from "./chat/ChatInputArea.js";
 import { RunProfileSelector } from "../components/inputs/RunProfileSelector.js";
-import { fetchModelCatalog } from "../api/providers.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { setRunProfileForScope } from "../api/tool-registry.js";
@@ -31,6 +31,7 @@ import "./chat/ChatPage.css";
 export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const runtimeStatus = useRuntimeStatus();
   const tRef = useRef(t);
   tRef.current = t;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -43,7 +44,7 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
     isOverridden: boolean;
     contextWindow: number | null;
   } | null>(null);
-  const [modelCatalog, setModelCatalog] = useState<Record<string, CatalogModelEntry[]>>({});
+  // Model catalog is read from entityStore.llmManager.catalog (shared, auto-refreshed)
   const [hasProviderKeys, setHasProviderKeys] = useState(true);
   const [thinkingLevel, setThinkingLevel] = useState("");
   const [allFetched, setAllFetched] = useState(false);
@@ -53,9 +54,10 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
   // It is reassigned after useSessionManager provides the activeSessionKey.
   const trackerRef = useRef(trackerMapRef.current.get("agent:main:main"));
   // view, runId, streaming are derived after useSessionManager (see below)
-  const [showAgentEvents, setShowAgentEvents] = useState(true);
-  const [preserveToolEvents, setPreserveToolEvents] = useState(false);
-  const [collapseMessages, setCollapseMessages] = useState(true);
+  // Chat display settings — read reactively from MST store (populated via SSE)
+  const showAgentEvents = runtimeStatus.appSettings.chatShowAgentEvents;
+  const preserveToolEvents = runtimeStatus.appSettings.chatPreserveToolEvents;
+  const collapseMessages = runtimeStatus.appSettings.chatCollapseMessages;
   const [chatExamplesExpanded, setChatExamplesExpanded] = useState(() => localStorage.getItem("chat-examples-collapsed") !== "1");
   const [customExamples, setCustomExamples] = useState<Record<string, string>>({});
   const [editingExample, setEditingExample] = useState<string | null>(null);
@@ -150,7 +152,6 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
   const needsDisconnectErrorRef = useRef(false);
   const initialConnectDoneRef = useRef(false);
   const lastAgentStreamRef = useRef<string | null>(null);
-  const showAgentEventsRef = useRef(true);
   /** Generation counter for refreshModel — prevents stale async results from overwriting newer state. */
   const modelRefreshGenRef = useRef(0);
 
@@ -696,26 +697,9 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
     return () => clearInterval(timer);
   }, []);
 
-  // Re-fetch chat display settings when changed in SettingsPage.
-  // ChatPage stays mounted (display:none) so the init effect won't re-run.
-  useEffect(() => {
-    function onSettingsChanged() {
-      Promise.all([
-        fetchChatShowAgentEvents().catch(() => true),
-        fetchChatPreserveToolEvents().catch(() => false),
-        fetchChatCollapseMessages().catch(() => true),
-      ]).then(([showEvents, preserveEvents, collapse]) => {
-        showAgentEventsRef.current = showEvents;
-        setShowAgentEvents(showEvents);
-        setPreserveToolEvents(preserveEvents);
-        setCollapseMessages(collapse);
-      });
-      // Refresh model info in case provider/model changed
-      refreshModel(sessionKeyRef.current);
-    }
-    window.addEventListener("chat-settings-changed", onSettingsChanged);
-    return () => window.removeEventListener("chat-settings-changed", onSettingsChanged);
-  }, []);
+  // NOTE: Chat display settings (showAgentEvents, preserveToolEvents,
+  // collapseMessages) are now read reactively from the MST store via
+  // runtimeStatus.appSettings — no polling or event listener needed.
 
   /** Fetch model info for the given session and update state.
    *  Uses a generation counter to prevent stale async results from
@@ -728,7 +712,6 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
       if (gen !== modelRefreshGenRef.current) return;
       if (!info) {
         setActiveModel(null);
-        setModelCatalog({});
         setHasProviderKeys(entityStore.providerKeys.length > 0);
         return;
       }
@@ -739,14 +722,14 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
         isOverridden: info.isOverridden,
         contextWindow: info.contextWindow,
       });
-      // Fetch full catalog for the cascading selector (all providers' models)
-      const catalog = await fetchModelCatalog();
-      if (gen !== modelRefreshGenRef.current) return;
-      setModelCatalog(catalog);
+      // Ensure catalog is populated (getSessionModelInfo already populates it
+      // if not yet ready, but trigger a refresh for full coverage)
+      if (!entityStore.llmManager.catalogReady) {
+        await entityStore.llmManager.refreshCatalog();
+      }
     })().catch(() => {
       if (gen !== modelRefreshGenRef.current) return;
       setActiveModel(null);
-      setModelCatalog({});
     });
   }
 
@@ -777,16 +760,7 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
 
     async function init() {
       try {
-        const [showEvents, preserveEvents, collapse] = await Promise.all([
-          fetchChatShowAgentEvents().catch(() => false),
-          fetchChatPreserveToolEvents().catch(() => false),
-          fetchChatCollapseMessages().catch(() => true),
-        ]);
-        if (cancelled) return;
-        showAgentEventsRef.current = showEvents;
-        setShowAgentEvents(showEvents);
-        setPreserveToolEvents(preserveEvents);
-        setCollapseMessages(collapse);
+        // Chat display settings (showAgentEvents, etc.) come from MST store now.
 
         // Load custom example prompts from settings
         fetchSettings().then((s) => {
@@ -856,7 +830,7 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
 
         // Connect SSE bridge for inbound messages and tool events (see ADR-022)
         // SSE endpoint is on the panel-server (same origin as the panel UI)
-        const sseUrl = new URL("/api/chat/events", window.location.origin).href;
+        const sseUrl = new URL(SSE["chat.events"].path, window.location.origin).href;
         const bridge = new ChatEventBridge(sseUrl, {
           onAction: (action) => {
             if (cancelled) return;
@@ -1080,7 +1054,7 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
     trackEvent("chat.model_switched", { provider, model });
 
     // Optimistic UI update — update provider, model, isOverridden, and contextWindow
-    const models = modelCatalog[provider] ?? [];
+    const models = entityStore.llmManager.catalog[provider] ?? [];
     const match = models.find((m) => m.id === model);
     setActiveModel((prev) => prev ? {
       ...prev,
@@ -1120,7 +1094,7 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
     const currentTokens = freshTab?.totalTokens ?? 0;
     if (currentTokens > 0) {
       try {
-        const providerModels = modelCatalog[newProvider] ?? [];
+        const providerModels = entityStore.llmManager.catalog[newProvider] ?? [];
         const newModelEntry = providerModels.find((m) => m.id === newModel);
         const result = checkContextOverflow(currentTokens, newModelEntry?.contextWindow);
 
@@ -1448,7 +1422,7 @@ export const ChatPage = observer(function ChatPage({ onAgentNameChange }: { onAg
               model: k.model,
               isDefault: k.isDefault,
             }))}
-            catalog={modelCatalog}
+            catalog={entityStore.llmManager.catalog}
             selectedProvider={activeModel.provider}
             selectedModel={activeModel.model}
             onChange={handleKeyModelChange}

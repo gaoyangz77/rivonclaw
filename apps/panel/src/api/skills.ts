@@ -1,4 +1,5 @@
 import { fetchJson, cachedFetch, invalidateCache } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 // --- Skills Marketplace (local operations) ---
 
@@ -21,7 +22,7 @@ export interface SkillCategory {
 
 export async function fetchInstalledSkills(): Promise<InstalledSkill[]> {
   return cachedFetch("installed-skills", async () => {
-    const data = await fetchJson<{ skills: InstalledSkill[] }>("/skills/installed");
+    const data = await fetchJson<{ skills: InstalledSkill[] }>(clientPath(API["skills.installed"]));
     return data.skills;
   }, 5000);
 }
@@ -31,7 +32,7 @@ export async function installSkill(
   lang?: string,
   meta?: { name?: string; description?: string; author?: string; version?: string },
 ): Promise<{ ok: boolean; error?: string }> {
-  const result = await fetchJson<{ ok: boolean; error?: string }>("/skills/install", {
+  const result = await fetchJson<{ ok: boolean; error?: string }>(clientPath(API["skills.install"]), {
     method: "POST",
     body: JSON.stringify({ slug, lang, meta }),
   });
@@ -40,7 +41,7 @@ export async function installSkill(
 }
 
 export async function writeSkillTemplate(slug: string, content: string): Promise<{ ok: boolean; error?: string }> {
-  const result = await fetchJson<{ ok: boolean; error?: string }>("/skills/write-template", {
+  const result = await fetchJson<{ ok: boolean; error?: string }>(clientPath(API["skills.writeTemplate"]), {
     method: "POST",
     body: JSON.stringify({ slug, content }),
   });
@@ -49,7 +50,7 @@ export async function writeSkillTemplate(slug: string, content: string): Promise
 }
 
 export async function deleteSkill(slug: string): Promise<{ ok: boolean; error?: string }> {
-  const result = await fetchJson<{ ok: boolean; error?: string }>("/skills/delete", {
+  const result = await fetchJson<{ ok: boolean; error?: string }>(clientPath(API["skills.delete"]), {
     method: "POST",
     body: JSON.stringify({ slug }),
   });
@@ -58,12 +59,12 @@ export async function deleteSkill(slug: string): Promise<{ ok: boolean; error?: 
 }
 
 export async function openSkillsFolder(): Promise<void> {
-  await fetchJson("/skills/open-folder", { method: "POST" });
+  await fetchJson(clientPath(API["skills.openFolder"]), { method: "POST" });
 }
 
 export async function fetchBundledSlugs(): Promise<Set<string>> {
   return cachedFetch("bundled-slugs", async () => {
-    const data = await fetchJson<{ slugs: string[] }>("/skills/bundled-slugs");
+    const data = await fetchJson<{ slugs: string[] }>(clientPath(API["skills.bundledSlugs"]));
     return new Set(data.slugs);
   }, 60_000);
 }

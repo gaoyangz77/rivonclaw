@@ -1,4 +1,5 @@
 import { fetchJson } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 import type { ChannelAccountSnapshot, ChannelsStatusSnapshot } from "@rivonclaw/core";
 export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
 
@@ -8,7 +9,7 @@ export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
  */
 export async function fetchChannelStatus(probe = false): Promise<ChannelsStatusSnapshot | null> {
   const data = await fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
-    `/channels/status?probe=${probe}`
+    clientPath(API["channels.status"]) + `?probe=${probe}`
   );
   if (data.error) {
     console.warn("Failed to fetch channel status:", data.error);
@@ -27,7 +28,7 @@ export async function createChannelAccount(data: {
   config: Record<string, unknown>;
   secrets?: Record<string, string>;
 }): Promise<{ ok: boolean; channelId: string; accountId: string }> {
-  return fetchJson("/channels/accounts", {
+  return fetchJson(clientPath(API["channels.accounts.create"]), {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -46,7 +47,7 @@ export async function updateChannelAccount(
     secrets?: Record<string, string>;
   }
 ): Promise<{ ok: boolean; channelId: string; accountId: string }> {
-  return fetchJson(`/channels/accounts/${channelId}/${accountId}`, {
+  return fetchJson(clientPath(API["channels.accounts.update"], { channelId, accountId }), {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -60,7 +61,7 @@ export async function deleteChannelAccount(
   channelId: string,
   accountId: string
 ): Promise<{ ok: boolean; channelId: string; accountId: string }> {
-  return fetchJson(`/channels/accounts/${channelId}/${accountId}`, {
+  return fetchJson(clientPath(API["channels.accounts.delete"], { channelId, accountId }), {
     method: "DELETE",
   });
 }
@@ -72,7 +73,7 @@ export async function getChannelAccountConfig(
   channelId: string,
   accountId: string,
 ): Promise<{ channelId: string; accountId: string; name: string | null; config: Record<string, unknown> }> {
-  return fetchJson(`/channels/accounts/${encodeURIComponent(channelId)}/${encodeURIComponent(accountId)}`);
+  return fetchJson(clientPath(API["channels.accounts.get"], { channelId, accountId }));
 }
 
 // --- Pairing ---
@@ -86,7 +87,7 @@ export interface PairingRequest {
 }
 
 export async function fetchPairingRequests(channelId: string): Promise<PairingRequest[]> {
-  const data = await fetchJson<{ requests: PairingRequest[] }>(`/pairing/requests/${channelId}`);
+  const data = await fetchJson<{ requests: PairingRequest[] }>(clientPath(API["pairing.requests"], { channelId }));
   return data.requests;
 }
 
@@ -98,25 +99,25 @@ export interface AllowlistResult {
 
 export async function fetchAllowlist(channelId: string, accountId?: string): Promise<AllowlistResult> {
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-  return fetchJson<AllowlistResult>(`/pairing/allowlist/${channelId}${qs}`);
+  return fetchJson<AllowlistResult>(clientPath(API["pairing.allowlist.get"], { channelId }) + qs);
 }
 
 export async function setRecipientLabel(channelId: string, recipientId: string, label: string): Promise<void> {
-  await fetchJson(`/pairing/allowlist/${channelId}/${encodeURIComponent(recipientId)}/label`, {
+  await fetchJson(clientPath(API["pairing.allowlist.setLabel"], { channelId, recipientId }), {
     method: "PUT",
     body: JSON.stringify({ label }),
   });
 }
 
 export async function setRecipientOwner(channelId: string, recipientId: string, isOwner: boolean): Promise<void> {
-  await fetchJson(`/pairing/allowlist/${channelId}/${encodeURIComponent(recipientId)}/owner`, {
+  await fetchJson(clientPath(API["pairing.allowlist.setOwner"], { channelId, recipientId }), {
     method: "PUT",
     body: JSON.stringify({ isOwner }),
   });
 }
 
 export async function approvePairing(channelId: string, code: string, locale?: string): Promise<{ id: string }> {
-  const data = await fetchJson<{ id: string }>("/pairing/approve", {
+  const data = await fetchJson<{ id: string }>(clientPath(API["pairing.approve"]), {
     method: "POST",
     body: JSON.stringify({ channelId, code, locale }),
   });
@@ -124,7 +125,7 @@ export async function approvePairing(channelId: string, code: string, locale?: s
 }
 
 export async function removeFromAllowlist(channelId: string, entry: string): Promise<void> {
-  await fetchJson(`/pairing/allowlist/${channelId}/${encodeURIComponent(entry)}`, {
+  await fetchJson(clientPath(API["pairing.allowlist.remove"], { channelId, recipientId: entry }), {
     method: "DELETE",
   });
 }
@@ -132,14 +133,14 @@ export async function removeFromAllowlist(channelId: string, entry: string): Pro
 // --- QR Login (WeChat) ---
 
 export async function startQrLogin(accountId?: string): Promise<{ qrDataUrl?: string; message: string }> {
-  return fetchJson<{ qrDataUrl?: string; message: string }>("/channels/qr-login/start", {
+  return fetchJson<{ qrDataUrl?: string; message: string }>(clientPath(API["channels.qrLogin.start"]), {
     method: "POST",
     body: JSON.stringify({ accountId }),
   });
 }
 
 export async function waitQrLogin(accountId?: string, timeoutMs?: number): Promise<{ connected: boolean; message: string; accountId?: string }> {
-  return fetchJson<{ connected: boolean; message: string; accountId?: string }>("/channels/qr-login/wait", {
+  return fetchJson<{ connected: boolean; message: string; accountId?: string }>(clientPath(API["channels.qrLogin.wait"]), {
     method: "POST",
     body: JSON.stringify({ accountId, timeoutMs }),
   });

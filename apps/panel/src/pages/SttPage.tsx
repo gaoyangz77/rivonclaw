@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchSettings, updateSettings, trackEvent, fetchSttCredentials, saveSttCredentials } from "../api/index.js";
+import { trackEvent, fetchSttCredentials, saveSttCredentials } from "../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
 import { useToast } from "../components/Toast.js";
+import { observer } from "mobx-react-lite";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 
-export function SttPage() {
+export const SttPage = observer(function SttPage() {
   const { t, i18n } = useTranslation();
+  const runtimeStatus = useRuntimeStatus();
   const defaultProvider: SttProvider = i18n.language === "zh" ? "volcengine" : "groq";
+
+  // Local draft state — synced from MST store until user edits, then persisted on Save
   const [enabled, setEnabled] = useState(false);
   const [provider, setProvider] = useState<SttProvider>(defaultProvider);
   const [groqApiKey, setGroqApiKey] = useState("");
@@ -18,30 +23,29 @@ export function SttPage() {
   const { showToast } = useToast();
   const [hasGroqKey, setHasGroqKey] = useState(false);
   const [hasVolcengineKeys, setHasVolcengineKeys] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  // Keep draft in sync with MST store until user starts editing.
+  // This handles the race where the page mounts before SSE snapshot arrives.
+  useEffect(() => {
+    if (dirty || !runtimeStatus.snapshotReceived) return;
+    setEnabled(runtimeStatus.appSettings.sttEnabled);
+    const storeProvider = runtimeStatus.appSettings.sttProvider;
+    if (storeProvider) setProvider(storeProvider as SttProvider);
+  }, [dirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.sttEnabled, runtimeStatus.appSettings.sttProvider]);
 
   useEffect(() => {
-    loadSettings();
+    loadCredentials();
   }, []);
 
-  async function loadSettings() {
+  async function loadCredentials() {
     try {
-      const settings = await fetchSettings();
-      setEnabled(settings["stt.enabled"] === "true");
-      setProvider((settings["stt.provider"] as SttProvider) || defaultProvider);
-
-      // Check if credentials exist in keychain
-      try {
-        const credentials = await fetchSttCredentials();
-        setHasGroqKey(credentials.groq);
-        setHasVolcengineKeys(credentials.volcengine);
-      } catch (credErr) {
-        // Silently ignore credential check errors (might happen if desktop app isn't running yet)
-        console.warn("Failed to check credentials:", credErr);
-      }
-
+      const credentials = await fetchSttCredentials();
+      setHasGroqKey(credentials.groq);
+      setHasVolcengineKeys(credentials.volcengine);
       setLoadError(null);
-    } catch (err) {
-      setLoadError(t("stt.failedToLoad") + String(err));
+    } catch (credErr) {
+      console.warn("Failed to check credentials:", credErr);
     }
   }
 
@@ -65,8 +69,8 @@ export function SttPage() {
         }
       }
 
-      // Save settings
-      await updateSettings({
+      // Save settings via MST model actions
+      await runtimeStatus.appSettings.updateBulk({
         "stt.enabled": enabled.toString(),
         "stt.provider": provider,
       });
@@ -95,6 +99,7 @@ export function SttPage() {
         }
       }
 
+      setDirty(false);
       showToast(t("common.saved"), "success");
       trackEvent("stt.provider_saved", { provider, enabled });
     } catch (err) {
@@ -120,7 +125,7 @@ export function SttPage() {
             <input
               type="checkbox"
               checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
+              onChange={(e) => { setEnabled(e.target.checked); setDirty(true); }}
             />
             <span className="stt-enable-text">{t("stt.enableStt")}</span>
           </label>
@@ -134,7 +139,7 @@ export function SttPage() {
               <div className="form-label">{t("stt.provider")}</div>
               <Select
                 value={provider}
-                onChange={(v) => setProvider(v as SttProvider)}
+                onChange={(v) => { setProvider(v as SttProvider); setDirty(true); }}
                 options={[
                   { value: "groq", label: "Groq (Whisper)" },
                   { value: "volcengine", label: "Volcengine (\u706B\u5C71\u5F15\u64CE)" },
@@ -276,4 +281,4 @@ export function SttPage() {
       </div>
     </div>
   );
-}
+});

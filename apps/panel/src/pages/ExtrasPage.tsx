@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchSettings, updateSettings, trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../api/index.js";
+import { trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../components/inputs/Select.js";
 import { useToast } from "../components/Toast.js";
+import { observer } from "mobx-react-lite";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 
 type WebSearchProvider = "brave" | "perplexity" | "grok" | "gemini" | "kimi";
 type EmbeddingProvider = "openai" | "gemini" | "voyage" | "mistral" | "ollama";
 
-export function ExtrasPage() {
+export const ExtrasPage = observer(function ExtrasPage() {
   const { t, i18n } = useTranslation();
+  const runtimeStatus = useRuntimeStatus();
   const defaultSttProvider: SttProvider = i18n.language === "zh" ? "volcengine" : "groq";
 
-  // STT state
+  // Local draft state — initialized from MST store, user edits locally, persisted on Save
   const [sttEnabled, setSttEnabled] = useState(false);
   const [sttProvider, setSttProvider] = useState<SttProvider>(defaultSttProvider);
   const [groqApiKey, setGroqApiKey] = useState("");
@@ -21,13 +24,11 @@ export function ExtrasPage() {
   const [hasGroqKey, setHasGroqKey] = useState(false);
   const [hasVolcengineKeys, setHasVolcengineKeys] = useState(false);
 
-  // Web Search state
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [webSearchProvider, setWebSearchProvider] = useState<WebSearchProvider>("brave");
   const [webSearchApiKey, setWebSearchApiKey] = useState("");
   const [hasWebSearchKeys, setHasWebSearchKeys] = useState<Record<string, boolean>>({});
 
-  // Embedding state
   const [embeddingEnabled, setEmbeddingEnabled] = useState(false);
   const [embeddingProvider, setEmbeddingProvider] = useState<EmbeddingProvider>("openai");
   const [embeddingApiKey, setEmbeddingApiKey] = useState("");
@@ -39,21 +40,40 @@ export function ExtrasPage() {
   const [embeddingSaving, setEmbeddingSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { showToast } = useToast();
+  // Per-section dirty flags — stop syncing from store once user edits
+  const [sttDirty, setSttDirty] = useState(false);
+  const [webSearchDirty, setWebSearchDirty] = useState(false);
+  const [embeddingDirty, setEmbeddingDirty] = useState(false);
+
+  // Keep draft in sync with MST store until user starts editing each section.
+  // Handles the race where the page mounts before SSE snapshot arrives.
+  useEffect(() => {
+    if (sttDirty || !runtimeStatus.snapshotReceived) return;
+    setSttEnabled(runtimeStatus.appSettings.sttEnabled);
+    const sp = runtimeStatus.appSettings.sttProvider;
+    if (sp) setSttProvider(sp as SttProvider);
+  }, [sttDirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.sttEnabled, runtimeStatus.appSettings.sttProvider]);
 
   useEffect(() => {
-    loadSettings();
+    if (webSearchDirty || !runtimeStatus.snapshotReceived) return;
+    setWebSearchEnabled(runtimeStatus.appSettings.webSearchEnabled);
+    const wp = runtimeStatus.appSettings.webSearchProvider;
+    if (wp) setWebSearchProvider(wp as WebSearchProvider);
+  }, [webSearchDirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.webSearchEnabled, runtimeStatus.appSettings.webSearchProvider]);
+
+  useEffect(() => {
+    if (embeddingDirty || !runtimeStatus.snapshotReceived) return;
+    setEmbeddingEnabled(runtimeStatus.appSettings.embeddingEnabled);
+    const ep = runtimeStatus.appSettings.embeddingProvider;
+    if (ep) setEmbeddingProvider(ep as EmbeddingProvider);
+  }, [embeddingDirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.embeddingEnabled, runtimeStatus.appSettings.embeddingProvider]);
+
+  useEffect(() => {
+    loadCredentials();
   }, []);
 
-  async function loadSettings() {
+  async function loadCredentials() {
     try {
-      const settings = await fetchSettings();
-      setSttEnabled(settings["stt.enabled"] === "true");
-      setSttProvider((settings["stt.provider"] as SttProvider) || defaultSttProvider);
-      setWebSearchEnabled(settings["webSearch.enabled"] === "true");
-      setWebSearchProvider((settings["webSearch.provider"] as WebSearchProvider) || "brave");
-      setEmbeddingEnabled(settings["embedding.enabled"] === "true");
-      setEmbeddingProvider((settings["embedding.provider"] as EmbeddingProvider) || "openai");
-
       // Check STT credentials
       try {
         const credentials = await fetchSttCredentials();
@@ -98,8 +118,8 @@ export function ExtrasPage() {
         }
       }
 
-      // Save settings
-      await updateSettings({
+      // Save settings via MST model actions
+      await runtimeStatus.appSettings.updateBulk({
         "stt.enabled": sttEnabled.toString(),
         "stt.provider": sttProvider,
       });
@@ -126,6 +146,7 @@ export function ExtrasPage() {
         }
       }
 
+      setSttDirty(false);
       showToast(t("common.saved"), "success");
       trackEvent("extras.stt.saved", { provider: sttProvider, enabled: sttEnabled });
     } catch (err) {
@@ -146,8 +167,8 @@ export function ExtrasPage() {
         return;
       }
 
-      // Save settings
-      await updateSettings({
+      // Save settings via MST model actions
+      await runtimeStatus.appSettings.updateBulk({
         "webSearch.enabled": webSearchEnabled.toString(),
         "webSearch.provider": webSearchProvider,
       });
@@ -163,6 +184,7 @@ export function ExtrasPage() {
         setWebSearchApiKey("");
       }
 
+      setWebSearchDirty(false);
       showToast(t("common.saved"), "success");
       trackEvent("extras.webSearch.saved", { provider: webSearchProvider, enabled: webSearchEnabled });
     } catch (err) {
@@ -183,8 +205,8 @@ export function ExtrasPage() {
         return;
       }
 
-      // Save settings
-      await updateSettings({
+      // Save settings via MST model actions
+      await runtimeStatus.appSettings.updateBulk({
         "embedding.enabled": embeddingEnabled.toString(),
         "embedding.provider": embeddingProvider,
       });
@@ -200,6 +222,7 @@ export function ExtrasPage() {
         setEmbeddingApiKey("");
       }
 
+      setEmbeddingDirty(false);
       showToast(t("common.saved"), "success");
       trackEvent("extras.embedding.saved", { provider: embeddingProvider, enabled: embeddingEnabled });
     } catch (err) {
@@ -230,7 +253,7 @@ export function ExtrasPage() {
               <p className="extras-card-desc">{t("stt.enableHelp")}</p>
             </div>
             <label className="extras-toggle">
-              <input type="checkbox" checked={sttEnabled} onChange={(e) => setSttEnabled(e.target.checked)} />
+              <input type="checkbox" checked={sttEnabled} onChange={(e) => { setSttEnabled(e.target.checked); setSttDirty(true); }} />
               <span className="extras-toggle-track" />
             </label>
           </div>
@@ -242,7 +265,7 @@ export function ExtrasPage() {
                   <div className="form-label">{t("stt.provider")}</div>
                   <Select
                     value={sttProvider}
-                    onChange={(v) => setSttProvider(v as SttProvider)}
+                    onChange={(v) => { setSttProvider(v as SttProvider); setSttDirty(true); }}
                     options={[
                       { value: "groq", label: t("stt.providerGroq") },
                       { value: "volcengine", label: t("stt.providerVolcengine") },
@@ -332,7 +355,7 @@ export function ExtrasPage() {
               <p className="extras-card-desc">{t("extras.webSearchDescription")}</p>
             </div>
             <label className="extras-toggle">
-              <input type="checkbox" checked={webSearchEnabled} onChange={(e) => setWebSearchEnabled(e.target.checked)} />
+              <input type="checkbox" checked={webSearchEnabled} onChange={(e) => { setWebSearchEnabled(e.target.checked); setWebSearchDirty(true); }} />
               <span className="extras-toggle-track" />
             </label>
           </div>
@@ -344,7 +367,7 @@ export function ExtrasPage() {
                   <div className="form-label">{t("extras.webSearchProvider")}</div>
                   <Select
                     value={webSearchProvider}
-                    onChange={(v) => setWebSearchProvider(v as WebSearchProvider)}
+                    onChange={(v) => { setWebSearchProvider(v as WebSearchProvider); setWebSearchDirty(true); }}
                     options={[
                       { value: "brave", label: t("extras.webSearchProviderBrave") },
                       { value: "perplexity", label: t("extras.webSearchProviderPerplexity") },
@@ -398,7 +421,7 @@ export function ExtrasPage() {
               <p className="extras-card-desc">{t("extras.embeddingDescription")}</p>
             </div>
             <label className="extras-toggle">
-              <input type="checkbox" checked={embeddingEnabled} onChange={(e) => setEmbeddingEnabled(e.target.checked)} />
+              <input type="checkbox" checked={embeddingEnabled} onChange={(e) => { setEmbeddingEnabled(e.target.checked); setEmbeddingDirty(true); }} />
               <span className="extras-toggle-track" />
             </label>
           </div>
@@ -410,7 +433,7 @@ export function ExtrasPage() {
                   <div className="form-label">{t("extras.embeddingProvider")}</div>
                   <Select
                     value={embeddingProvider}
-                    onChange={(v) => setEmbeddingProvider(v as EmbeddingProvider)}
+                    onChange={(v) => { setEmbeddingProvider(v as EmbeddingProvider); setEmbeddingDirty(true); }}
                     options={[
                       { value: "openai", label: t("extras.embeddingProviderOpenai") },
                       { value: "gemini", label: t("extras.embeddingProviderGemini") },
@@ -455,4 +478,4 @@ export function ExtrasPage() {
       </div>
     </div>
   );
-}
+});

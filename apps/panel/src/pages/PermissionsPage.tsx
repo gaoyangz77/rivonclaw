@@ -5,12 +5,12 @@ import {
   updatePermissions,
   openFileDialog,
   fetchWorkspacePath,
-  fetchSettings,
-  updateSettings,
   trackEvent,
   type Permissions,
 } from "../api/index.js";
 import { useToast } from "../components/Toast.js";
+import { observer } from "mobx-react-lite";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 
 type PermLevel = "read" | "readwrite";
 
@@ -85,8 +85,9 @@ function PermissionSwitcher({
   );
 }
 
-export function PermissionsPage() {
+export const PermissionsPage = observer(function PermissionsPage() {
   const { t } = useTranslation();
+  const runtimeStatus = useRuntimeStatus();
   const [entries, setEntries] = useState<PathEntry[]>([]);
   const [loadError, setLoadError] = useState<{ key: string; detail?: string } | null>(null);
   const { showToast } = useToast();
@@ -94,32 +95,24 @@ export function PermissionsPage() {
   const [selectedPath, setSelectedPath] = useState<string>("");
   const [selectedPerm, setSelectedPerm] = useState<PermLevel>("read");
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
-  const [fullAccess, setFullAccess] = useState(true);
+
+  // Read full-access setting reactively from MST store (populated via SSE).
+  // Disable the toggle until the first SSE snapshot arrives to avoid submitting defaults.
+  const settingsReady = runtimeStatus.snapshotReceived;
+  const fullAccess = runtimeStatus.appSettings.filePermissionsFullAccess;
 
   useEffect(() => {
     loadPermissions();
     loadWorkspacePath();
-    loadFullAccess();
   }, []);
 
-  async function loadFullAccess() {
-    try {
-      const settings = await fetchSettings();
-      setFullAccess(settings["file-permissions-full-access"] !== "false");
-    } catch (err) {
-      console.error("Failed to load full-access setting:", err);
-    }
-  }
-
   async function handleToggleFullAccess(enabled: boolean) {
-    setFullAccess(enabled);
     setSaving(true);
     try {
-      await updateSettings({ "file-permissions-full-access": enabled ? "true" : "false" });
+      await runtimeStatus.appSettings.setFilePermissionsFullAccess(enabled);
       trackEvent("permission.full_access_toggled", { enabled });
     } catch (err) {
       showToast(t("permissions.failedToSave") + (String(err)), "error");
-      setFullAccess(!enabled); // revert on failure
     } finally {
       setSaving(false);
     }
@@ -234,10 +227,10 @@ export function PermissionsPage() {
               type="checkbox"
               checked={fullAccess}
               onChange={(e) => handleToggleFullAccess(e.target.checked)}
-              disabled={saving}
+              disabled={saving || !settingsReady}
             />
             <span
-              className={`toggle-track ${fullAccess ? "toggle-track-on" : "toggle-track-off"} ${saving ? "toggle-track-disabled" : ""}`}
+              className={`toggle-track ${fullAccess ? "toggle-track-on" : "toggle-track-off"} ${saving || !settingsReady ? "toggle-track-disabled" : ""}`}
             >
               <span
                 className={`toggle-thumb ${fullAccess ? "toggle-thumb-on" : "toggle-thumb-off"}`}
@@ -357,4 +350,4 @@ export function PermissionsPage() {
       </div>
     </div>
   );
-}
+});

@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
 import { getMobilePairingStatus } from "../../api/mobile-chat.js";
-import { fetchPrivacyMode } from "../../api/settings.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
+import { observer } from "mobx-react-lite";
 import { Modal } from "./Modal.js";
 
 const DEFAULT_TTL_MS = 60_000;
@@ -14,16 +15,17 @@ interface MobileBindingModalProps {
     onBindingSuccess: () => void;
 }
 
-export function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: MobileBindingModalProps) {
+export const MobileBindingModal = observer(function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: MobileBindingModalProps) {
     const { t } = useTranslation();
     const entityStore = useEntityStore();
+    const runtimeStatus = useRuntimeStatus();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [pairingCode, setPairingCode] = useState<string | null>(null);
     const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
     const [existingCount, setExistingCount] = useState(0);
-    const [privacyMode, setPrivacyMode] = useState(false);
+    const privacyMode = runtimeStatus.appSettings.privacyMode;
     const [qrRevealed, setQrRevealed] = useState(false);
     const [expired, setExpired] = useState(false);
     const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -35,17 +37,6 @@ export function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: Mobile
     const onBindingSuccessRef = useRef(onBindingSuccess);
     onBindingSuccessRef.current = onBindingSuccess;
     const desktopDeviceIdRef = useRef<string | null>(null);
-
-    // Load privacy mode setting and listen for changes
-    useEffect(() => {
-        fetchPrivacyMode().then(setPrivacyMode).catch(() => {});
-
-        function onPrivacyChanged() {
-            fetchPrivacyMode().then(setPrivacyMode).catch(() => {});
-        }
-        window.addEventListener("privacy-settings-changed", onPrivacyChanged);
-        return () => window.removeEventListener("privacy-settings-changed", onPrivacyChanged);
-    }, []);
 
     // Reset state when modal opens
     useEffect(() => {
@@ -243,4 +234,4 @@ export function MobileBindingModal({ isOpen, onClose, onBindingSuccess }: Mobile
             </div>
         </Modal>
     );
-}
+});

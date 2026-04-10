@@ -1,5 +1,6 @@
 import { types, flow } from "mobx-state-tree";
 import { fetchJson } from "../../api/client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 /** Fired after any mobile pairing configuration change. */
 const MOBILE_CHANGED_EVENT = "mobile-changed";
@@ -20,27 +21,27 @@ export const MobileManagerModel = types
     return {
       /** Request a new pairing code from the control plane. */
       requestPairingCode: flow(function* () {
-        return yield fetchJson("/mobile/pairing-code/generate", { method: "POST" });
+        return yield fetchJson(clientPath(API["mobile.pairingCode"]), { method: "POST" });
       }),
 
       /** Get install URL for the mobile PWA. */
       getInstallUrl: flow(function* () {
-        return yield fetchJson("/mobile/install-url");
+        return yield fetchJson(clientPath(API["mobile.installUrl"]));
       }),
 
       /** Get pairing status (pairings list, activeCode, desktopDeviceId). */
       getStatus: flow(function* () {
-        return yield fetchJson("/mobile/status");
+        return yield fetchJson(clientPath(API["mobile.status"]));
       }),
 
       /** Get device-level presence status. */
       getDeviceStatus: flow(function* () {
-        return yield fetchJson("/mobile/device-status");
+        return yield fetchJson(clientPath(API["mobile.deviceStatus"]));
       }),
 
       /** Disconnect all pairings. */
       disconnectAll: flow(function* () {
-        yield fetchJson("/mobile/disconnect", { method: "DELETE" });
+        yield fetchJson(clientPath(API["mobile.disconnect"]), { method: "DELETE" });
         broadcast();
       }),
 

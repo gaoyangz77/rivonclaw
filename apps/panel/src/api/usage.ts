@@ -1,4 +1,5 @@
 import { fetchJson } from "./client.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 // --- Usage ---
 
@@ -39,7 +40,7 @@ export async function fetchUsage(
   if (filter?.model) params.set("model", filter.model);
   if (filter?.provider) params.set("provider", filter.provider);
   const query = params.toString();
-  return fetchJson<UsageSummary>("/usage" + (query ? "?" + query : ""));
+  return fetchJson<UsageSummary>(clientPath(API["usage.summary"]) + (query ? "?" + query : ""));
 }
 
 // --- Per-Key/Model Usage ---
@@ -79,11 +80,11 @@ export async function fetchKeyUsage(filter?: {
   if (filter?.provider) params.set("provider", filter.provider);
   if (filter?.model) params.set("model", filter.model);
   const query = params.toString();
-  return fetchJson<KeyModelUsageSummary[]>("/key-usage" + (query ? "?" + query : ""));
+  return fetchJson<KeyModelUsageSummary[]>(clientPath(API["usage.keyUsage"]) + (query ? "?" + query : ""));
 }
 
 export async function fetchActiveKeyUsage(): Promise<ActiveKeyInfo | null> {
-  return fetchJson<ActiveKeyInfo | null>("/key-usage/active");
+  return fetchJson<ActiveKeyInfo | null>(clientPath(API["usage.activeKey"]));
 }
 
 export interface KeyUsageDailyBucket {
@@ -105,5 +106,5 @@ export async function fetchKeyUsageTimeseries(filter?: {
   if (filter?.windowStart) params.set("windowStart", String(filter.windowStart));
   if (filter?.windowEnd) params.set("windowEnd", String(filter.windowEnd));
   const query = params.toString();
-  return fetchJson<KeyUsageDailyBucket[]>("/key-usage/timeseries" + (query ? "?" + query : ""));
+  return fetchJson<KeyUsageDailyBucket[]>(clientPath(API["usage.timeseries"]) + (query ? "?" + query : ""));
 }
