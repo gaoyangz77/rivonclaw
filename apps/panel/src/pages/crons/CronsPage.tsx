@@ -5,10 +5,11 @@ import { getRunProfileForScope, setRunProfileForScope } from "../../api/tool-reg
 import { Select } from "../../components/inputs/Select.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { useCronManager } from "./useCronManager.js";
-import { CronJobForm, TEMP_CRON_SCOPE_KEY } from "./CronJobForm.js";
+import { CronJobForm } from "./CronJobForm.js";
+import { TEMP_CRON_SCOPE_KEY } from "./hooks/useCronForm.js";
 import { CronRunHistory } from "./CronRunHistory.js";
+import { CronJobTable } from "./components/CronJobTable.js";
 import type { CronJob, CronListParams } from "./cron-utils.js";
-import { formatSchedule, formatRelativeTime, getTzI18nKey } from "./cron-utils.js";
 import "./CronsPage.css";
 
 const ENABLED_OPTIONS = [
@@ -127,16 +128,6 @@ export function CronsPage() {
     setHistoryJobName(job.name);
   }, []);
 
-  function getStatusBadge(job: CronJob) {
-    if (job.state?.runningAtMs) {
-      return <span className="badge badge-info"><span className="crons-running-indicator" />{t("crons.statusRunning")}</span>;
-    }
-    const status = job.state?.lastRunStatus ?? job.state?.lastStatus;
-    if (!status) return <span className="badge badge-default">{t("crons.neverRun")}</span>;
-    const cls = status === "ok" ? "badge-success" : status === "error" ? "badge-danger" : "badge-warning";
-    return <span className={`badge ${cls}`}>{t(`crons.status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}</span>;
-  }
-
   return (
     <div className="page-enter">
       <h1>{t("crons.title")}</h1>
@@ -191,110 +182,17 @@ export function CronsPage() {
       </div>
 
       {/* Job list */}
-      <div className="section-card">
-        {cron.loading && cron.jobs.length === 0 ? (
-          <div className="loading-state">
-            <span className="spinner" />
-            <span>{t("common.loading")}</span>
-          </div>
-        ) : cron.jobs.length === 0 ? (
-          <div className="empty-cell">
-            {t("crons.emptyState")}
-          </div>
-        ) : (
-          <div className="table-scroll-wrap">
-            <table className="crons-table">
-              <thead>
-                <tr>
-                  <th>{t("crons.colName")}</th>
-                  <th>{t("crons.colSchedule")}</th>
-                  <th>{t("crons.colEnabled")}</th>
-                  <th>{t("crons.colLastRun")}</th>
-                  <th>{t("crons.colNextRun")}</th>
-                  <th>{t("crons.colActions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cron.jobs.map((job) => (
-                  <tr key={job.id} className="table-hover-row">
-                    <td>
-                      <div className="crons-job-name">{job.name}</div>
-                      {job.description && <div className="crons-job-desc" title={job.description}>{job.description}</div>}
-                    </td>
-                    <td>
-                      {!job.schedule ? (
-                        <span className="crons-schedule-text text-muted">—</span>
-                      ) : job.schedule.kind === "cron" ? (
-                        <>
-                          <span className="crons-schedule-text">{job.schedule.expr}</span>
-                          {job.schedule.tz && (
-                            <div className="crons-schedule-tz">
-                              {(() => {
-                                const key = getTzI18nKey(job.schedule.tz);
-                                return key ? t(`crons.${key}`) : job.schedule.tz;
-                              })()}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <span className="crons-schedule-text">{formatSchedule(job.schedule)}</span>
-                      )}
-                    </td>
-                    <td>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={job.enabled}
-                          onChange={() => handleToggle(job)}
-                        />
-                        <span className={`toggle-track ${job.enabled ? "toggle-track-on" : "toggle-track-off"}`}>
-                          <span className={`toggle-thumb ${job.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
-                        </span>
-                      </label>
-                    </td>
-                    <td>
-                      <div className="crons-time-cell">
-                        {getStatusBadge(job)}
-                        {job.state?.lastRunAtMs && (
-                          <div className="text-muted" title={new Date(job.state.lastRunAtMs).toLocaleString()}>
-                            {formatRelativeTime(job.state.lastRunAtMs, now)}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="crons-time-cell">
-                        {job.state?.nextRunAtMs
-                          ? <span title={new Date(job.state.nextRunAtMs).toLocaleString()}>{formatRelativeTime(job.state.nextRunAtMs, now)}</span>
-                          : <span className="text-muted">—</span>
-                        }
-                      </div>
-                    </td>
-                    <td className="td-actions">
-                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(job)}>
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleRun(job.id)}
-                        disabled={runningJobId === job.id}
-                      >
-                        {runningJobId === job.id ? "..." : t("crons.runNow")}
-                      </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => openHistory(job)}>
-                        {t("crons.viewHistory")}
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => setDeleteTarget({ id: job.id, name: job.name })}>
-                        {t("common.delete")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <CronJobTable
+        jobs={cron.jobs}
+        loading={cron.loading}
+        now={now}
+        runningJobId={runningJobId}
+        onEdit={openEdit}
+        onToggle={handleToggle}
+        onRun={handleRun}
+        onHistory={openHistory}
+        onDelete={setDeleteTarget}
+      />
 
       {/* Create/Edit modal */}
       {formOpen && (
