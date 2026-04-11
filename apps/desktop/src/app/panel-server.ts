@@ -119,6 +119,7 @@ export interface PanelServerOptions {
   onUpdateInstall?: () => Promise<void>;
   getUpdateDownloadState?: () => { status: string;[key: string]: unknown };
   authSession?: AuthSessionManager;
+  proxyFetch?: (url: string | URL, init?: RequestInit) => Promise<Response>;
   sessionLifecycleManager?: SessionLifecycleManager;
   managedBrowserService?: ManagedBrowserService;
   channelManager?: import("../channels/channel-manager.js").ChannelManagerInstance;
@@ -187,7 +188,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
-    cloudClient: authSession ? new CloudClient(authSession, getSystemLocale()) : undefined,
+    cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,
     sessionLifecycleManager,
     managedBrowserService,
     channelManager,

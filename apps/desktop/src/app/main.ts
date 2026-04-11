@@ -1249,6 +1249,7 @@ app.whenReady().then(async () => {
       telemetryClient?.track(eventType, metadata);
     },
     authSession,
+    proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     channelManager: rootStore.channelManager,
   });
 

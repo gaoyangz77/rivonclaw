@@ -7,11 +7,18 @@ export class CloudRestError extends Error {
   }
 }
 
+type FetchFn = (url: string | URL, init?: RequestInit) => Promise<Response>;
+
 export class CloudClient {
+  private fetchFn: FetchFn;
+
   constructor(
     private authSession: AuthSessionManager,
     private locale: string,
-  ) {}
+    fetchFn?: FetchFn,
+  ) {
+    this.fetchFn = fetchFn ?? fetch;
+  }
 
   /** GraphQL query/mutation to Cloud backend (with auto-refresh). */
   async graphql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -26,14 +33,14 @@ export class CloudClient {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     });
 
-    let res = await fetch(url, {
+    let res = await this.fetchFn(url, {
       ...init,
       headers: makeHeaders(this.authSession.getAccessToken()),
     });
 
     if (res.status === 401) {
       const newToken = await this.authSession.refresh();
-      res = await fetch(url, {
+      res = await this.fetchFn(url, {
         ...init,
         headers: makeHeaders(newToken),
       });
