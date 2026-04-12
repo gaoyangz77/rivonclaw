@@ -85,6 +85,14 @@ export class OpenClawConnector {
   private deps: OpenClawConnectorDeps | null = null;
   private rpcConnectionDeps: RpcConnectionDeps | null = null;
 
+  /**
+   * Monotonic generation counter for startup connect attempts.
+   * Incremented on every launcher "ready" event AND on stop/disconnect.
+   * The probe→connect chain checks that its captured generation is still
+   * current before proceeding, preventing stale/duplicate connects.
+   */
+  private connectGeneration = 0;
+
   /** Callbacks fired when the RPC client connects (for CS bridge, tool catalog, etc.). */
   private rpcConnectedCallbacks: RpcConnectedCallback[] = [];
 
@@ -109,10 +117,21 @@ export class OpenClawConnector {
       // but the vendor's WebSocket upgrade handler is registered ~60-200ms
       // later (synchronous plugin setup after listen).  We probe the WS
       // endpoint first so the real RPC handshake never hits a 503.
+      //
+      // A monotonic generation counter guards against stale/duplicate
+      // connects: if stop/restart/new-ready fires while the probe is
+      // still running, the old chain sees a generation mismatch and bails.
       if (this.rpcConnectionDeps) {
+        const gen = ++this.connectGeneration;
         const deps = this.rpcConnectionDeps;
-        this.waitForWsReady(deps.url)
-          .then(() => this.connectRpc(deps))
+        this.waitForWsReady(deps.url, gen)
+          .then(() => {
+            if (this.connectGeneration !== gen) {
+              log.info("Skipping stale connectRpc (generation mismatch after probe)");
+              return;
+            }
+            return this.connectRpc(deps);
+          })
           .catch((err: unknown) => {
             log.error("Failed to connect RPC after gateway ready:", err);
           });
@@ -120,6 +139,7 @@ export class OpenClawConnector {
     });
 
     launcher.on("stopped", () => {
+      this.connectGeneration++; // invalidate any in-flight probe
       runtimeStatusStore.setConnectorProcessState("stopped");
       this.disconnectRpc();
     });
@@ -200,6 +220,7 @@ export class OpenClawConnector {
     if (!this.launcher) {
       throw new Error("OpenClawConnector: launcher not initialized (call initLauncher first)");
     }
+    this.connectGeneration++; // invalidate any in-flight probe
     runtimeStatusStore.setConnectorProcessState("stopping");
     this.disconnectRpc();
     await this.launcher.stop();
@@ -225,8 +246,9 @@ export class OpenClawConnector {
    * connection attempt and retries on failure, so the real RPC handshake
    * only starts once the gate is open.
    */
-  private async waitForWsReady(url: string): Promise<void> {
+  private async waitForWsReady(url: string, generation: number): Promise<void> {
     for (let attempt = 1; attempt <= WS_READY_MAX_ATTEMPTS; attempt++) {
+      if (this.connectGeneration !== generation) return; // stale — bail early
       const ok = await new Promise<boolean>((resolve) => {
         const ws = new WebSocket(url);
         const timer = setTimeout(() => { ws.terminate(); resolve(false); }, 1000);
@@ -238,7 +260,7 @@ export class OpenClawConnector {
         await new Promise((r) => setTimeout(r, WS_READY_INTERVAL_MS));
       }
     }
-    // Proceed anyway — connectRpc's own retry will handle residual failures.
+    // Proceed anyway — the caller's generation check will still gate connectRpc.
     log.warn("WebSocket readiness probe exhausted; proceeding with connectRpc");
   }
 

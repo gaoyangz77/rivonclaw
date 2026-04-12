@@ -715,20 +715,16 @@ describe("OpenClawConnector", () => {
 
   describe("launcher 'ready' event", () => {
     it("auto-connects RPC when rpcConnectionDeps are set", async () => {
-      // Mock waitForWsReady so it resolves immediately (no real WebSocket)
       const spy = vi.spyOn(connector as any, "waitForWsReady").mockResolvedValue(undefined);
 
       connector.initLauncher(launcher as any);
       connector.initDeps(deps);
       connector.setRpcConnectionDeps(rpcDeps);
 
-      // Simulate launcher emitting "ready"
       launcher.emit("ready");
-
-      // Give the async chain (waitForWsReady → connectRpc) a tick to fire
       await new Promise((r) => setTimeout(r, 10));
 
-      expect(spy).toHaveBeenCalledWith("ws://127.0.0.1:3212");
+      expect(spy).toHaveBeenCalledWith("ws://127.0.0.1:3212", expect.any(Number));
       expect(MockGatewayRpcClient).toHaveBeenCalledWith(
         expect.objectContaining({ url: "ws://127.0.0.1:3212" }),
       );
@@ -739,9 +735,82 @@ describe("OpenClawConnector", () => {
 
     it("does not crash when rpcConnectionDeps are not set", () => {
       connector.initLauncher(launcher as any);
-
-      // Should not throw
       expect(() => launcher.emit("ready")).not.toThrow();
+    });
+
+    it("skips stale connectRpc when stop() fires during probe", async () => {
+      // Probe resolves after a delay, simulating in-flight probe
+      let resolveProbe!: () => void;
+      const probePromise = new Promise<void>((r) => { resolveProbe = r; });
+      const spy = vi.spyOn(connector as any, "waitForWsReady").mockReturnValue(probePromise);
+
+      connector.initLauncher(launcher as any);
+      connector.initDeps(deps);
+      connector.setRpcConnectionDeps(rpcDeps);
+
+      launcher.emit("ready");
+      // stop() invalidates the generation before probe completes
+      await connector.stop();
+      MockGatewayRpcClient.mockClear();
+      mockRpcClientInstance.start.mockClear();
+
+      // Now let the old probe complete
+      resolveProbe();
+      await new Promise((r) => setTimeout(r, 10));
+
+      // connectRpc should NOT have been called — generation mismatch
+      expect(MockGatewayRpcClient).not.toHaveBeenCalled();
+      expect(mockRpcClientInstance.start).not.toHaveBeenCalled();
+
+      spy.mockRestore();
+    });
+
+    it("skips stale connectRpc when a new ready fires during probe", async () => {
+      let resolveFirstProbe!: () => void;
+      const firstProbe = new Promise<void>((r) => { resolveFirstProbe = r; });
+      const spy = vi.spyOn(connector as any, "waitForWsReady")
+        .mockReturnValueOnce(firstProbe)
+        .mockResolvedValueOnce(undefined);
+
+      connector.initLauncher(launcher as any);
+      connector.initDeps(deps);
+      connector.setRpcConnectionDeps(rpcDeps);
+
+      // First ready → starts probe
+      launcher.emit("ready");
+      // Second ready → invalidates first generation, starts new probe
+      launcher.emit("ready");
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Second probe completed → connectRpc called once
+      expect(MockGatewayRpcClient).toHaveBeenCalledTimes(1);
+
+      // Now resolve the first (stale) probe
+      MockGatewayRpcClient.mockClear();
+      resolveFirstProbe();
+      await new Promise((r) => setTimeout(r, 10));
+
+      // No additional connectRpc — stale generation
+      expect(MockGatewayRpcClient).not.toHaveBeenCalled();
+
+      spy.mockRestore();
+    });
+
+    it("probe failure still proceeds to connectRpc (fallback)", async () => {
+      // waitForWsReady exhausted but resolves (warn + proceed)
+      const spy = vi.spyOn(connector as any, "waitForWsReady").mockResolvedValue(undefined);
+
+      connector.initLauncher(launcher as any);
+      connector.initDeps(deps);
+      connector.setRpcConnectionDeps(rpcDeps);
+
+      launcher.emit("ready");
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(MockGatewayRpcClient).toHaveBeenCalled();
+      expect(mockRpcClientInstance.start).toHaveBeenCalled();
+
+      spy.mockRestore();
     });
   });
 });
