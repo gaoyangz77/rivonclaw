@@ -1,5 +1,5 @@
 import { API } from "@rivonclaw/core/api-contract";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
+import { openClawConnector } from "../openclaw/index.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { sendJson, parseBody } from "../infra/api/route-utils.js";
@@ -46,16 +46,13 @@ const deleteChatSession: EndpointHandler = async (_req, res, _url, params, ctx: 
   storage.chatSessions.delete(key);
 
   // Also delete from gateway (transcript + session entry)
-  const rpcClient = getRpcClient();
-  if (rpcClient?.isConnected()) {
-    try {
-      await rpcClient.request("sessions.delete", {
-        key,
-        deleteTranscript: true,
-      });
-    } catch {
-      // Gateway deletion is best-effort; local metadata is already removed
-    }
+  try {
+    await openClawConnector.request("sessions.delete", {
+      key,
+      deleteTranscript: true,
+    });
+  } catch {
+    // Gateway deletion is best-effort; local metadata is already removed
   }
 
   sendJson(res, 200, { ok: true });

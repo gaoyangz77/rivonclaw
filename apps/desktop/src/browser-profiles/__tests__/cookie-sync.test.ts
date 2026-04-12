@@ -11,9 +11,14 @@ vi.mock("@rivonclaw/logger", () => ({
   }),
 }));
 
-const mockGetRpcClient = vi.fn<() => any>();
-vi.mock("../../gateway/rpc-client-ref.js", () => ({
-  getRpcClient: () => mockGetRpcClient(),
+const mockIsReady = vi.fn<() => boolean>();
+const mockRequest = vi.fn<(...args: any[]) => any>();
+
+vi.mock("../../openclaw/index.js", () => ({
+  openClawConnector: {
+    get isReady() { return mockIsReady(); },
+    request: (...args: any[]) => mockRequest(...args),
+  },
 }));
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
@@ -26,10 +31,6 @@ function createMockStore() {
   };
 }
 
-function createMockRpcClient() {
-  return { request: vi.fn() };
-}
-
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("pushStoredCookiesToGateway", () => {
@@ -38,11 +39,11 @@ describe("pushStoredCookiesToGateway", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore = createMockStore();
-    mockGetRpcClient.mockReturnValue(null);
+    mockIsReady.mockReturnValue(false);
   });
 
-  it("does nothing when getRpcClient returns null", async () => {
-    mockGetRpcClient.mockReturnValue(null);
+  it("does nothing when connector is not ready", async () => {
+    mockIsReady.mockReturnValue(false);
     initCookieSync({
       getSessionStateStack: () => ({ store: mockStore }) as any,
       getManagedBrowserEntries: () => [],
@@ -54,8 +55,7 @@ describe("pushStoredCookiesToGateway", () => {
   });
 
   it("does nothing when sessionStateStack is null", async () => {
-    const rpcClient = createMockRpcClient();
-    mockGetRpcClient.mockReturnValue(rpcClient);
+    mockIsReady.mockReturnValue(true);
     initCookieSync({
       getSessionStateStack: () => null,
       getManagedBrowserEntries: () => [],
@@ -63,12 +63,11 @@ describe("pushStoredCookiesToGateway", () => {
 
     await pushStoredCookiesToGateway();
 
-    expect(rpcClient.request).not.toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 
-  it("calls rpcClient.request for each entry with stored cookies", async () => {
-    const rpcClient = createMockRpcClient();
-    mockGetRpcClient.mockReturnValue(rpcClient);
+  it("calls openClawConnector.request for each entry with stored cookies", async () => {
+    mockIsReady.mockReturnValue(true);
 
     const cookies1 = [{ name: "session", value: "abc" }];
     const cookies2 = [{ name: "token", value: "xyz" }];
@@ -87,13 +86,13 @@ describe("pushStoredCookiesToGateway", () => {
 
     await pushStoredCookiesToGateway();
 
-    expect(rpcClient.request).toHaveBeenCalledTimes(2);
-    expect(rpcClient.request).toHaveBeenCalledWith("browser_profiles_push_cookies", {
+    expect(mockRequest).toHaveBeenCalledTimes(2);
+    expect(mockRequest).toHaveBeenCalledWith("browser_profiles_push_cookies", {
       profileName: "profile-1",
       cookies: cookies1,
       cdpPort: 9222,
     });
-    expect(rpcClient.request).toHaveBeenCalledWith("browser_profiles_push_cookies", {
+    expect(mockRequest).toHaveBeenCalledWith("browser_profiles_push_cookies", {
       profileName: "profile-2",
       cookies: cookies2,
       cdpPort: 9223,
@@ -101,8 +100,7 @@ describe("pushStoredCookiesToGateway", () => {
   });
 
   it("skips entries with no stored cookies (readCookieSnapshot returns null)", async () => {
-    const rpcClient = createMockRpcClient();
-    mockGetRpcClient.mockReturnValue(rpcClient);
+    mockIsReady.mockReturnValue(true);
 
     mockStore.readCookieSnapshot.mockResolvedValueOnce(null);
 
@@ -115,7 +113,7 @@ describe("pushStoredCookiesToGateway", () => {
 
     await pushStoredCookiesToGateway();
 
-    expect(rpcClient.request).not.toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 });
 
@@ -125,11 +123,11 @@ describe("pullAndPersistCookies", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore = createMockStore();
-    mockGetRpcClient.mockReturnValue(null);
+    mockIsReady.mockReturnValue(false);
   });
 
-  it("does nothing when getRpcClient returns null", async () => {
-    mockGetRpcClient.mockReturnValue(null);
+  it("does nothing when connector is not ready", async () => {
+    mockIsReady.mockReturnValue(false);
     initCookieSync({
       getSessionStateStack: () => ({ store: mockStore }) as any,
       getManagedBrowserEntries: () => [],
@@ -141,11 +139,10 @@ describe("pullAndPersistCookies", () => {
   });
 
   it("pulls cookies and writes to store", async () => {
-    const rpcClient = createMockRpcClient();
-    mockGetRpcClient.mockReturnValue(rpcClient);
+    mockIsReady.mockReturnValue(true);
 
     const cookies = [{ name: "auth", value: "token123", domain: ".example.com" }];
-    rpcClient.request.mockResolvedValue({ cookies });
+    mockRequest.mockResolvedValue({ cookies });
 
     initCookieSync({
       getSessionStateStack: () => ({ store: mockStore }) as any,
@@ -154,7 +151,7 @@ describe("pullAndPersistCookies", () => {
 
     await pullAndPersistCookies("my-profile");
 
-    expect(rpcClient.request).toHaveBeenCalledWith("browser_profiles_pull_cookies", {
+    expect(mockRequest).toHaveBeenCalledWith("browser_profiles_pull_cookies", {
       profileName: "my-profile",
     });
     expect(mockStore.ensureDir).toHaveBeenCalledWith("managed_profile", "my-profile");
@@ -166,10 +163,9 @@ describe("pullAndPersistCookies", () => {
   });
 
   it("skips when gateway returns empty cookies array", async () => {
-    const rpcClient = createMockRpcClient();
-    mockGetRpcClient.mockReturnValue(rpcClient);
+    mockIsReady.mockReturnValue(true);
 
-    rpcClient.request.mockResolvedValue({ cookies: [] });
+    mockRequest.mockResolvedValue({ cookies: [] });
 
     initCookieSync({
       getSessionStateStack: () => ({ store: mockStore }) as any,

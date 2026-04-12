@@ -56,7 +56,6 @@ import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
 import { initCookieSync, pullAndPersistCookies, pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
 import { tryStartCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
@@ -403,7 +402,7 @@ app.whenReady().then(async () => {
     storage,
     configPath,
     stateDir,
-    getRpcClient,
+    getRpcClient: () => { try { return openClawConnector.ensureRpcReady(); } catch { return null; } },
   });
 
   // Setup gateway: launcher, config builder, event dispatcher, connection deps
@@ -990,9 +989,8 @@ app.whenReady().then(async () => {
       // Entitled tools come from MST store (populated by Panel's warmToolSpecs via proxy).
       (async () => {
         try {
-          const rpc = getRpcClient();
-          if (rpc?.isConnected()) {
-            const catalog = await rpc.request<{
+          if (openClawConnector.isReady) {
+            const catalog = await openClawConnector.request<{
               groups: Array<{ tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> }>;
             }>("tools.catalog", { includePlugins: true });
             const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
@@ -1305,7 +1303,7 @@ app.whenReady().then(async () => {
   initLLMProviderManagerEnv({
     storage,
     secretStore,
-    getRpcClient,
+    getRpcClient: () => { try { return openClawConnector.ensureRpcReady(); } catch { return null; } },
     toMstSnapshot,
     allKeysToMstSnapshots,
     syncActiveKey,

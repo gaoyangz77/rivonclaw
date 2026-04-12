@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { reaction } from "mobx";
 import type { ChatMessage } from "../chat-utils.js";
 import type { GatewayEvent, GatewayHelloOk } from "../../../lib/gateway-client.js";
 import { GatewayChatClient } from "../../../lib/gateway-client.js";
@@ -6,6 +7,7 @@ import { ChatEventBridge } from "../chat-event-bridge.js";
 import type { ChatMirrorSSEPayload } from "../chat-event-bridge.js";
 import { SSE } from "@rivonclaw/core/api-contract";
 import { fetchGatewayInfo } from "../../../api/index.js";
+import { runtimeStatusStore } from "../../../store/runtime-status-store.js";
 import type { RunTracker } from "../run-tracker.js";
 import type { SessionTrackerMap } from "../run-tracker.js";
 import type { TFunction } from "i18next";
@@ -55,6 +57,7 @@ export function useChatConnection({
   const bridgeRef = useRef<ChatEventBridge | null>(null);
   const initialConnectDoneRef = useRef(false);
   const needsDisconnectErrorRef = useRef(false);
+  const sidecarDisposerRef = useRef<(() => void) | null>(null);
 
   // Keep onAgentNameChange in a ref so the effect doesn't depend on it
   const onAgentNameChangeRef = useRef(onAgentNameChange);
@@ -102,10 +105,10 @@ export function useChatConnection({
             }
             setConnectionState("connected");
 
-            // Gateway v2026.4.10+ holds chat.history UNAVAILABLE until
-            // sidecars finish. Retry with backoff when that happens.
-            let historyRetries = 0;
-            const doLoadHistory = () => {
+            // Gate history loading on sidecar readiness. The OpenClaw
+            // gateway holds chat.history UNAVAILABLE until sidecars finish.
+            // Instead of blind retries, observe the sidecarState from MST.
+            const onSidecarReady = () => {
               loadHistory(client).then(() => {
                 if (needsDisconnectErrorRef.current) {
                   needsDisconnectErrorRef.current = false;
@@ -116,14 +119,28 @@ export function useChatConnection({
                   }]);
                 }
               }).catch(() => {
-                // loadHistory re-throws UNAVAILABLE errors; retry up to 5 times
-                if (!cancelled && historyRetries < 5) {
-                  historyRetries++;
-                  setTimeout(doLoadHistory, 2000);
-                }
+                // Non-fatal — history load failed after sidecar was ready
               });
             };
-            doLoadHistory();
+
+            const sidecar = runtimeStatusStore.openClawConnector.sidecarState;
+            if (sidecar === "ready") {
+              onSidecarReady();
+            } else {
+              // Wait for sidecarState to become "ready" via MST SSE patches
+              const dispose = reaction(
+                () => runtimeStatusStore.openClawConnector.sidecarState,
+                (state, _prev, r) => {
+                  if (cancelled) { r.dispose(); return; }
+                  if (state === "ready") {
+                    r.dispose();
+                    onSidecarReady();
+                  }
+                },
+              );
+              // Register for cleanup if the effect tears down before ready
+              sidecarDisposerRef.current = dispose;
+            }
 
             // Fetch agent display name
             refreshAgentName(client, cancelled);
@@ -280,6 +297,8 @@ export function useChatConnection({
     return () => {
       cancelled = true;
       clearInterval(nameTimer);
+      sidecarDisposerRef.current?.();
+      sidecarDisposerRef.current = null;
       clientRef.current?.stop();
       clientRef.current = null;
       bridgeRef.current?.disconnect();

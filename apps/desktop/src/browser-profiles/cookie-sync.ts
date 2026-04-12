@@ -1,5 +1,5 @@
 import { createLogger } from "@rivonclaw/logger";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
+import { openClawConnector } from "../openclaw/index.js";
 import type { SessionStateStack } from "./session-state-wiring.js";
 import type { ManagedBrowserEntry } from "./managed-browser-service.js";
 
@@ -23,8 +23,7 @@ export function initCookieSync(deps: CookieSyncDeps): void {
  * Best-effort: errors are logged and swallowed.
  */
 export async function pushStoredCookiesToGateway(): Promise<void> {
-  const rpcClient = getRpcClient();
-  if (!rpcClient) return;
+  if (!openClawConnector.isReady) return;
   const stack = _deps?.getSessionStateStack() ?? null;
   if (!stack) return;
 
@@ -37,7 +36,7 @@ export async function pushStoredCookiesToGateway(): Promise<void> {
       const cookies = JSON.parse(raw.toString("utf-8"));
       if (!Array.isArray(cookies) || cookies.length === 0) continue;
 
-      await rpcClient.request("browser_profiles_push_cookies", {
+      await openClawConnector.request("browser_profiles_push_cookies", {
         profileName: entry.profileId,
         cookies,
         cdpPort: entry.port,
@@ -56,13 +55,12 @@ export async function pushStoredCookiesToGateway(): Promise<void> {
  * Best-effort: errors are logged and swallowed.
  */
 export async function pullAndPersistCookies(profileName: string): Promise<void> {
-  const rpcClient = getRpcClient();
-  if (!rpcClient) return;
+  if (!openClawConnector.isReady) return;
   const stack = _deps?.getSessionStateStack() ?? null;
   if (!stack) return;
 
   try {
-    const result = await rpcClient.request<{ cookies: Array<Record<string, unknown>> }>(
+    const result = await openClawConnector.request<{ cookies: Array<Record<string, unknown>> }>(
       "browser_profiles_pull_cookies",
       { profileName },
     );
