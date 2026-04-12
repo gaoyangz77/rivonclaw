@@ -1,7 +1,7 @@
-From a389144084606918eb1a34ec304e7817d35552cc Mon Sep 17 00:00:00 2001
+From dd2883dd5b8be8d81c588ad8130135a9f9a798fc Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
-Date: Thu, 2 Apr 2026 01:21:53 -0700
-Subject: [PATCH 4/5] vendor(openclaw): add promptMode "raw" for custom persona
+Date: Fri, 10 Apr 2026 18:17:24 -0700
+Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
  agents
 
 Why:
@@ -26,23 +26,25 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts
 ---
- src/agents/cli-runner/types.ts               |  1 +
- src/agents/command/attempt-execution.ts      |  2 ++
- src/agents/command/types.ts                  |  2 ++
- src/agents/pi-embedded-runner/compact.ts     |  7 +++++--
- src/agents/pi-embedded-runner/run.ts         |  1 +
- src/agents/pi-embedded-runner/run/attempt.ts |  4 +++-
- src/agents/pi-embedded-runner/run/params.ts  |  2 ++
- src/agents/system-prompt.ts                  | 10 +++++++++-
- src/gateway/protocol/schema/agent.ts         |  1 +
- src/gateway/server-methods/agent.ts          |  2 ++
- 10 files changed, 28 insertions(+), 4 deletions(-)
+ src/agents/cli-runner/types.ts                 | 1 +
+ src/agents/command/attempt-execution.ts        | 2 ++
+ src/agents/command/types.ts                    | 2 ++
+ src/agents/pi-embedded-runner/compact.ts       | 5 +++--
+ src/agents/pi-embedded-runner/compact.types.ts | 2 ++
+ src/agents/pi-embedded-runner/run.ts           | 1 +
+ src/agents/pi-embedded-runner/run/attempt.ts   | 4 +++-
+ src/agents/pi-embedded-runner/run/params.ts    | 2 ++
+ src/agents/system-prompt.ts                    | 8 ++++++++
+ src/agents/system-prompt.types.ts              | 2 +-
+ src/gateway/protocol/schema/agent.ts           | 1 +
+ src/gateway/server-methods/agent.ts            | 2 ++
+ 12 files changed, 28 insertions(+), 4 deletions(-)
 
 diff --git a/src/agents/cli-runner/types.ts b/src/agents/cli-runner/types.ts
-index b138206c66..d2b89315e2 100644
+index 4a6dded8b5..b438ae8355 100644
 --- a/src/agents/cli-runner/types.ts
 +++ b/src/agents/cli-runner/types.ts
-@@ -21,6 +21,7 @@ export type RunCliAgentParams = {
+@@ -23,6 +23,7 @@ export type RunCliAgentParams = {
    timeoutMs: number;
    runId: string;
    extraSystemPrompt?: string;
@@ -51,10 +53,10 @@ index b138206c66..d2b89315e2 100644
    ownerNumbers?: string[];
    cliSessionId?: string;
 diff --git a/src/agents/command/attempt-execution.ts b/src/agents/command/attempt-execution.ts
-index d53ece66e1..340768f73a 100644
+index 69e2c50fbd..7caada30a9 100644
 --- a/src/agents/command/attempt-execution.ts
 +++ b/src/agents/command/attempt-execution.ts
-@@ -361,6 +361,7 @@ export function runAgentAttempt(params: {
+@@ -383,6 +383,7 @@ export function runAgentAttempt(params: {
          timeoutMs: params.timeoutMs,
          runId: params.runId,
          extraSystemPrompt: params.opts.extraSystemPrompt,
@@ -62,19 +64,19 @@ index d53ece66e1..340768f73a 100644
          cliSessionId: nextCliSessionId,
          cliSessionBinding:
            nextCliSessionId === cliSessionBinding?.sessionId ? cliSessionBinding : undefined,
-@@ -469,6 +470,7 @@ export function runAgentAttempt(params: {
+@@ -496,6 +497,7 @@ export function runAgentAttempt(params: {
      lane: params.opts.lane,
      abortSignal: params.opts.abortSignal,
      extraSystemPrompt: params.opts.extraSystemPrompt,
 +    promptMode: params.opts.promptMode,
-     inputProvenance: params.opts.inputProvenance,
-     streamParams: params.opts.streamParams,
-     agentDir: params.agentDir,
+     bootstrapContextMode: params.opts.bootstrapContextMode,
+     bootstrapContextRunKind: params.opts.bootstrapContextRunKind,
+     internalEvents: params.opts.internalEvents,
 diff --git a/src/agents/command/types.ts b/src/agents/command/types.ts
-index 8c3e1f209b..a1cdee55ad 100644
+index b051800f80..6a32252007 100644
 --- a/src/agents/command/types.ts
 +++ b/src/agents/command/types.ts
-@@ -93,6 +93,8 @@ export type AgentCommandOpts = {
+@@ -90,6 +90,8 @@ export type AgentCommandOpts = {
    workspaceDir?: SpawnedRunMetadata["workspaceDir"];
    /** Force bundled MCP teardown when a one-shot local run completes. */
    cleanupBundleMcpOnRunEnd?: boolean;
@@ -84,21 +86,12 @@ index 8c3e1f209b..a1cdee55ad 100644
  
  export type AgentCommandIngressOpts = Omit<
 diff --git a/src/agents/pi-embedded-runner/compact.ts b/src/agents/pi-embedded-runner/compact.ts
-index ab49786326..c67b2adc21 100644
+index 234daf21f7..cef162faf8 100644
 --- a/src/agents/pi-embedded-runner/compact.ts
 +++ b/src/agents/pi-embedded-runner/compact.ts
-@@ -175,6 +175,8 @@ export type CompactEmbeddedPiSessionParams = {
-   abortSignal?: AbortSignal;
-   /** Allow runtime plugins for this compaction to late-bind the gateway subagent. */
-   allowGatewaySubagentBinding?: boolean;
-+  /** Override the automatic promptMode resolution (e.g. "raw" for custom persona agents). */
-+  promptMode?: string;
- };
- 
- type CompactionMessageMetrics = {
-@@ -589,9 +591,10 @@ export async function compactEmbeddedPiSessionDirect(
+@@ -662,9 +662,10 @@ export async function compactEmbeddedPiSessionDirect(
+     const userTimeFormat = resolveUserTimeFormat(params.config?.agents?.defaults?.timeFormat);
      const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
-     const isDefaultAgent = sessionAgentId === defaultAgentId;
      const promptMode =
 -      isSubagentSessionKey(params.sessionKey) || isCronSessionKey(params.sessionKey)
 +      (params.promptMode as "raw" | undefined) ??
@@ -109,11 +102,24 @@ index ab49786326..c67b2adc21 100644
      const docsPath = await resolveOpenClawDocsPath({
        workspaceDir: effectiveWorkspace,
        argv1: process.argv[1],
+diff --git a/src/agents/pi-embedded-runner/compact.types.ts b/src/agents/pi-embedded-runner/compact.types.ts
+index e0dbd86b2c..c4544858f8 100644
+--- a/src/agents/pi-embedded-runner/compact.types.ts
++++ b/src/agents/pi-embedded-runner/compact.types.ts
+@@ -56,6 +56,8 @@ export type CompactEmbeddedPiSessionParams = {
+   abortSignal?: AbortSignal;
+   /** Allow runtime plugins for this compaction to late-bind the gateway subagent. */
+   allowGatewaySubagentBinding?: boolean;
++  /** Override the automatic promptMode resolution (e.g. "raw" for custom persona agents). */
++  promptMode?: string;
+ };
+ 
+ export type CompactionMessageMetrics = {
 diff --git a/src/agents/pi-embedded-runner/run.ts b/src/agents/pi-embedded-runner/run.ts
-index 1b9963fac2..a88ecfe91a 100644
+index 492db8882e..18ebc96c6a 100644
 --- a/src/agents/pi-embedded-runner/run.ts
 +++ b/src/agents/pi-embedded-runner/run.ts
-@@ -548,6 +548,7 @@ export async function runEmbeddedPiAgent(
+@@ -703,6 +703,7 @@ export async function runEmbeddedPiAgent(
              onToolResult: params.onToolResult,
              onAgentEvent: params.onAgentEvent,
              extraSystemPrompt: params.extraSystemPrompt,
@@ -122,10 +128,10 @@ index 1b9963fac2..a88ecfe91a 100644
              streamParams: params.streamParams,
              ownerNumbers: params.ownerNumbers,
 diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
-index e88b7430f2..1989220c3b 100644
+index 91b7014da0..cfa7209be9 100644
 --- a/src/agents/pi-embedded-runner/run/attempt.ts
 +++ b/src/agents/pi-embedded-runner/run/attempt.ts
-@@ -636,7 +636,8 @@ export async function runEmbeddedAttempt(
+@@ -715,7 +715,8 @@ export async function runEmbeddedAttempt(
        },
      });
      const isDefaultAgent = sessionAgentId === defaultAgentId;
@@ -135,7 +141,7 @@ index e88b7430f2..1989220c3b 100644
  
      // When toolsAllow is set, use minimal prompt and strip skills catalog
      const effectivePromptMode = params.toolsAllow?.length ? ("minimal" as const) : promptMode;
-@@ -1430,6 +1431,7 @@ export async function runEmbeddedAttempt(
+@@ -1656,6 +1657,7 @@ export async function runEmbeddedAttempt(
            messageProvider: params.messageProvider ?? undefined,
            trigger: params.trigger,
            channelId: params.messageChannel ?? params.messageProvider ?? undefined,
@@ -144,10 +150,10 @@ index e88b7430f2..1989220c3b 100644
          const hookResult = await resolvePromptBuildHookResult({
            prompt: params.prompt,
 diff --git a/src/agents/pi-embedded-runner/run/params.ts b/src/agents/pi-embedded-runner/run/params.ts
-index d8e9d8bdfd..82492112a2 100644
+index 74d6839d57..6c25279527 100644
 --- a/src/agents/pi-embedded-runner/run/params.ts
 +++ b/src/agents/pi-embedded-runner/run/params.ts
-@@ -142,4 +142,6 @@ export type RunEmbeddedPiAgentParams = {
+@@ -138,4 +138,6 @@ export type RunEmbeddedPiAgentParams = {
     * exit promptly after emitting the final JSON result.
     */
    cleanupBundleMcpOnRunEnd?: boolean;
@@ -155,19 +161,10 @@ index d8e9d8bdfd..82492112a2 100644
 +  promptMode?: string;
  };
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 5a0ef6f871..c11b9b5b0b 100644
+index 33fcb7045d..1e75ca21a8 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -15,7 +15,7 @@ import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
-  * - "minimal": Reduced sections (Tooling, Workspace, Runtime) - used for subagents
-  * - "none": Just basic identity line, no sections
-  */
--export type PromptMode = "full" | "minimal" | "none";
-+export type PromptMode = "full" | "minimal" | "none" | "raw";
- type OwnerIdDisplay = "raw" | "hash";
- 
- function buildSkillsSection(params: { skillsPrompt?: string; readToolName: string }) {
-@@ -413,6 +413,14 @@ export function buildAgentSystemPrompt(params: {
+@@ -623,6 +623,14 @@ export function buildAgentSystemPrompt(params: {
    });
    const workspaceNotes = (params.workspaceNotes ?? []).map((note) => note.trim()).filter(Boolean);
  
@@ -182,38 +179,45 @@ index 5a0ef6f871..c11b9b5b0b 100644
    // For "none" mode, return just the basic identity line
    if (promptMode === "none") {
      return "You are a personal assistant running inside OpenClaw.";
+diff --git a/src/agents/system-prompt.types.ts b/src/agents/system-prompt.types.ts
+index 331832c02f..7eea67a46d 100644
+--- a/src/agents/system-prompt.types.ts
++++ b/src/agents/system-prompt.types.ts
+@@ -1 +1 @@
+-export type PromptMode = "full" | "minimal" | "none";
++export type PromptMode = "full" | "minimal" | "none" | "raw";
 diff --git a/src/gateway/protocol/schema/agent.ts b/src/gateway/protocol/schema/agent.ts
-index b9c844b135..52a650f85c 100644
+index 173aab3757..b65da0f304 100644
 --- a/src/gateway/protocol/schema/agent.ts
 +++ b/src/gateway/protocol/schema/agent.ts
-@@ -96,6 +96,7 @@ export const AgentParamsSchema = Type.Object(
+@@ -147,6 +147,7 @@ export const AgentParamsSchema = Type.Object(
      bestEffortDeliver: Type.Optional(Type.Boolean()),
      lane: Type.Optional(Type.String()),
      extraSystemPrompt: Type.Optional(Type.String()),
 +    promptMode: Type.Optional(Type.String()),
-     internalEvents: Type.Optional(Type.Array(AgentInternalEventSchema)),
-     inputProvenance: Type.Optional(InputProvenanceSchema),
-     idempotencyKey: NonEmptyString,
+     bootstrapContextMode: Type.Optional(
+       Type.Union([Type.Literal("full"), Type.Literal("lightweight")]),
+     ),
 diff --git a/src/gateway/server-methods/agent.ts b/src/gateway/server-methods/agent.ts
-index 4f244f1c7c..6865ef03ca 100644
+index 5a35a9dd1e..f4c6e468f8 100644
 --- a/src/gateway/server-methods/agent.ts
 +++ b/src/gateway/server-methods/agent.ts
-@@ -301,6 +301,7 @@ export const agentHandlers: GatewayRequestHandlers = {
+@@ -312,6 +312,7 @@ export const agentHandlers: GatewayRequestHandlers = {
        groupSpace?: string;
        lane?: string;
        extraSystemPrompt?: string;
 +      promptMode?: string;
+       bootstrapContextMode?: "full" | "lightweight";
+       bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
        internalEvents?: AgentInternalEvent[];
-       idempotencyKey: string;
-       timeout?: number;
-@@ -836,6 +837,7 @@ export const agentHandlers: GatewayRequestHandlers = {
+@@ -853,6 +854,7 @@ export const agentHandlers: GatewayRequestHandlers = {
          runId,
          lane: request.lane,
          extraSystemPrompt: request.extraSystemPrompt,
 +        promptMode: request.promptMode,
+         bootstrapContextMode: request.bootstrapContextMode,
+         bootstrapContextRunKind: request.bootstrapContextRunKind,
          internalEvents: request.internalEvents,
-         inputProvenance,
-         // Internal-only: allow workspace override for spawned subagent runs.
 -- 
 2.50.1 (Apple Git-155)
 

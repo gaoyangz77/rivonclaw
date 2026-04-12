@@ -94,7 +94,7 @@ browser lifecycle.
 
 ### 0002 — `before_tool_resolve` hook for per-session tool filtering
 
-**File:** `0002-vendor-openclaw-add-before-tool-resolve-hook-for-per.patch`
+**File:** `0002-vendor-openclaw-add-before_tool_resolve-hook-for-per.patch`
 
 **Why:** OpenClaw resolves the full tool list once at agent startup and does not
 support per-session or per-turn filtering. EasyClaw's capability manager
@@ -106,31 +106,12 @@ resolution and filter the list before it reaches the LLM.
 **Removal:** Drop when upstream OpenClaw provides a native tool-filtering hook
 or plugin API that supports per-session tool visibility.
 
-### 0003 — Respect `ask=off` for obfuscation-triggered approvals
+### 0003 — `promptMode: "raw"` for custom persona agents
 
-**File:** `0003-vendor-openclaw-respect-ask-off-for-obfuscation-trig.patch`
-
-**Why:** OpenClaw's exec obfuscation detector (commands >10k chars or matching
-known obfuscation patterns) unconditionally forces human approval, ignoring the
-`exec.ask` config. EasyClaw sets `ask: "off"` and `security: "full"` for the
-local Chat Page — a localhost-only surface where physical access implies full
-trust. Without this patch, long but legitimate commands (e.g. writing a .docx
-file inline) trigger approval prompts that EasyClaw has no UI to handle,
-causing the request to time out and fail.
-
-**Change:** `obfuscation.detected` → `(obfuscation.detected && hostAsk !== "off")`
-in both `bash-tools.exec-host-gateway.ts` and `bash-tools.exec-host-node.ts`.
-
-**Removal:** Drop when upstream OpenClaw makes obfuscation detection respect the
-`ask` setting natively.
-
-### 0004 — `promptMode: "raw"` for custom persona agents
-
-**File:** `0004-vendor-openclaw-add-promptMode-raw-for-custom-perso.patch`
+**File:** `0003-vendor-openclaw-add-promptMode-raw-for-custom-person.patch`
 
 **Why:** OpenClaw injects identity ("You are a personal assistant running
-inside OpenClaw"), runtime info (model=…, default_model=…), safety guidelines
-(Anthropic constitution reference), heartbeat/silent-reply tokens, and
+inside OpenClaw"), runtime info, safety guidelines, heartbeat tokens, and
 documentation links into every system prompt. For EasyClaw's customer-service
 agent, which must present a human persona, these sections leak AI identity and
 undermine the custom prompt. Even `promptMode: "none"` still injects the
@@ -146,14 +127,14 @@ prompt injections in raw mode.
 **Removal:** Drop when upstream OpenClaw adds a native way to fully suppress
 all default system prompt sections.
 
-### 0005 — Skip `stopChannel` for new-account QR logins
+### 0004 — Skip `stopChannel` for new-account QR logins
 
-**File:** `0005-vendor-openclaw-skip-stopChannel-for-new-account-QR-.patch`
+**File:** `0004-vendor-openclaw-skip-stopChannel-for-new-account-QR-.patch`
 
 **Why:** OpenClaw's `web.login.start` RPC handler unconditionally calls
 `context.stopChannel(provider.id, accountId)` before generating a QR code.
 When `accountId` is undefined (new account login), this stops ALL running
-accounts for the channel — killing live WeChat bots the moment the QR code
+accounts for the channel -- killing live WeChat bots the moment the QR code
 is displayed, before anyone scans it. EasyClaw supports multiple WeChat
 accounts; starting a QR login for a new account must not disconnect existing
 accounts.
@@ -164,9 +145,9 @@ re-login of an existing account, not for new-account logins.
 **Removal:** Drop when upstream OpenClaw makes `stopChannel` conditional on
 re-login vs new-account login, or adds an option to skip channel stop.
 
-### 0006 — Re-apply system prompt override before LLM call
+### 0005 — Re-apply system prompt override before LLM call
 
-**File:** `0006-vendor-openclaw-re-apply-system-prompt-override-befo.patch`
+**File:** `0005-vendor-openclaw-re-apply-system-prompt-override-befo.patch`
 
 **Why:** `pi-coding-agent`'s `AgentSession` internally rebuilds `_baseSystemPrompt`
 via `_rebuildSystemPrompt()` during tool refresh, compaction, and extension
@@ -184,3 +165,58 @@ LLM call.
 **Removal:** Drop when `pi-coding-agent`'s `AgentSession.prompt()` natively
 respects external `_baseSystemPrompt` overrides across session reuse, or when
 upstream adds a dedicated system-prompt-override API.
+
+### 0006 — Bypass SSRF-guarded fetch for FormData audio transcription
+
+**File:** `0006-vendor-openclaw-bypass-ssrf-guard-for-formdata-audio.patch`
+
+**Why:** OpenClaw's `fetchWithSsrFGuard` routes requests through
+`fetchWithRuntimeDispatcher` (bundled `undici.fetch`) whenever any dispatcher
+is active. Node's native `FormData` and bundled `undici.fetch` come from
+different runtime realms, so undici cannot serialize the multipart boundary
+correctly. The server receives a request without a valid
+`Content-Type: multipart/form-data` header and returns HTTP 400. This breaks
+all OpenAI-compatible audio transcription providers (Groq, OpenAI, Mistral).
+
+Upstream #64766 added `pinDns: false` which disables the pinned DNS
+dispatcher, but does not prevent other dispatcher paths (e.g.
+`createPolicyDispatcherWithoutPinnedDns` from `dispatcherPolicy`) from
+triggering `undici.fetch`.
+
+**Change:** Replace `postTranscriptionRequest()` call in
+`transcribeOpenAiCompatibleAudio()` with a direct `globalThis.fetch()` call.
+This preserves correct FormData serialization and still routes through the
+global `EnvHttpProxyAgent` dispatcher set by EasyClaw's `proxy-setup.cjs`,
+so proxy/firewall configurations (including GFW bypass) are honored.
+
+**Upstream issues:**
+- openclaw/openclaw#64312 — guarded runtime fetch drops multipart FormData fields
+- openclaw/openclaw#64762 — SSRF guard pinned DNS corrupts FormData
+- openclaw/openclaw#64766 — incomplete fix (pinDns only)
+
+**Removal:** Drop when upstream openclaw/openclaw#64312 is resolved in a
+released version AND verified that FormData multipart encoding works
+end-to-end through the SSRF guard without corruption. Test by sending a
+voice message via Feishu or Telegram and confirming the agent receives
+the transcript text.
+
+## Dropped Patches
+
+### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
+
+Previously patch 0003. Upstream commit `a74fb94fa3` ("fix(exec): remove host
+obfuscation gating") removed the obfuscation detection from both
+`bash-tools.exec-host-gateway.ts` and `bash-tools.exec-host-node.ts` entirely,
+making this patch unnecessary. The `requiresExecApproval` function with
+`ask=off` still returns `false` natively, satisfying the core EasyClaw
+requirement.
+
+### (Dropped in v2026.4.11 upgrade) Defer `prewarmConfiguredPrimaryModel`
+
+Previously patch 0006. Wrapped `prewarmConfiguredPrimaryModel()` in
+`setTimeout(15s)` to prevent `ensureOpenClawModelsJson()` from blocking the
+event loop ~8.5s during channel startup. v2026.4.11 refactored gateway startup
+(`server-startup.ts` → `server-startup-post-attach.ts`) and resolved the
+blocking behavior — `prewarmConfiguredPrimaryModel` no longer blocks channel
+connections. Verified by manual testing: startup without the patch shows no
+measurable delay.

@@ -1,8 +1,7 @@
-From 21b830d43c2d94af7f34c94526ce59c6e89faeba Mon Sep 17 00:00:00 2001
-From: Gaoyang Zhang <younglobalization@gmail.com>
-Date: Fri, 3 Apr 2026 02:46:19 -0700
-Subject: [PATCH 5/5] vendor(openclaw): skip stopChannel for new-account QR
- logins
+From 69f51b9e59f21717dc05d29f632bb4edb3b2b881 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Fri, 10 Apr 2026 18:17:51 -0700
+Subject: [PATCH] vendor(openclaw): skip stopChannel for new-account QR logins
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

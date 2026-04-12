@@ -1,0 +1,129 @@
+From 813052f748acc3da35915c3a009f24ff8db44f4b Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Sun, 12 Apr 2026 03:59:46 -0700
+Subject: [PATCH] vendor(openclaw): bypass SSRF-guarded fetch for FormData
+ audio transcription
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Why:
+- fetchWithSsrFGuard routes FormData bodies through undici.fetch
+  (fetchWithRuntimeDispatcher) when any dispatcher is active. Node's
+  native FormData and bundled undici.fetch come from different realms,
+  so undici cannot serialize the multipart boundary correctly. The
+  server receives a request without a valid Content-Type
+  multipart/form-data header and returns HTTP 400.
+- Affects all OpenAI-compatible audio transcription providers (Groq,
+  OpenAI, Mistral) via transcribeOpenAiCompatibleAudio().
+- upstream #64766 (pinDns: false) is insufficient — it only disables
+  the pinned DNS dispatcher but does not prevent other dispatcher
+  paths from triggering undici.fetch.
+
+Removal:
+- Drop when upstream openclaw/openclaw#64312 is resolved in a released
+  version AND verified that FormData multipart encoding works end-to-end
+  through the SSRF guard without corruption.
+
+Tests:
+- Manual: send a voice message via Feishu or Telegram, verify agent
+  receives transcript text (not raw file_key JSON).
+---
+ .../openai-compatible-audio.ts                | 60 ++++++++++---------
+ 1 file changed, 32 insertions(+), 28 deletions(-)
+
+diff --git a/src/media-understanding/openai-compatible-audio.ts b/src/media-understanding/openai-compatible-audio.ts
+index e967faf4f9..3e893f9373 100644
+--- a/src/media-understanding/openai-compatible-audio.ts
++++ b/src/media-understanding/openai-compatible-audio.ts
+@@ -1,7 +1,6 @@
+ import path from "node:path";
+ import {
+   assertOkOrThrowHttpError,
+-  postTranscriptionRequest,
+   resolveProviderHttpRequestConfig,
+   requireTranscriptionText,
+ } from "./shared.js";
+@@ -21,21 +20,19 @@ function resolveModel(model: string | undefined, fallback: string): string {
+ export async function transcribeOpenAiCompatibleAudio(
+   params: OpenAiCompatibleAudioParams,
+ ): Promise<AudioTranscriptionResult> {
+-  const fetchFn = params.fetchFn ?? fetch;
+-  const { baseUrl, allowPrivateNetwork, headers, dispatcherPolicy } =
+-    resolveProviderHttpRequestConfig({
+-      baseUrl: params.baseUrl,
+-      defaultBaseUrl: params.defaultBaseUrl,
+-      headers: params.headers,
+-      request: params.request,
+-      defaultHeaders: {
+-        authorization: `Bearer ${params.apiKey}`,
+-      },
+-      provider: params.provider,
+-      api: "openai-audio-transcriptions",
+-      capability: "audio",
+-      transport: "media-understanding",
+-    });
++  const { baseUrl, headers } = resolveProviderHttpRequestConfig({
++    baseUrl: params.baseUrl,
++    defaultBaseUrl: params.defaultBaseUrl,
++    headers: params.headers,
++    request: params.request,
++    defaultHeaders: {
++      authorization: `Bearer ${params.apiKey}`,
++    },
++    provider: params.provider,
++    api: "openai-audio-transcriptions",
++    capability: "audio",
++    transport: "media-understanding",
++  });
+   const url = `${baseUrl}/audio/transcriptions`;
+ 
+   const model = resolveModel(params.model, params.defaultModel);
+@@ -54,18 +51,25 @@ export async function transcribeOpenAiCompatibleAudio(
+     form.append("prompt", params.prompt.trim());
+   }
+ 
+-  const { response: res, release } = await postTranscriptionRequest({
+-    url,
+-    headers,
+-    body: form,
+-    timeoutMs: params.timeoutMs,
+-    fetchFn,
+-    pinDns: false,
+-    allowPrivateNetwork,
+-    dispatcherPolicy,
+-  });
+-
++  // Bypass the SSRF-guarded fetch pipeline for FormData bodies.
++  // fetchWithSsrFGuard routes through undici.fetch (fetchWithRuntimeDispatcher)
++  // whenever a dispatcher is active. Node's native FormData and undici.fetch
++  // come from different realms, so undici cannot serialize the multipart
++  // boundary correctly — the server receives a request without a valid
++  // Content-Type multipart/form-data header and returns HTTP 400.
++  // Using globalThis.fetch preserves correct FormData serialization and still
++  // routes through the global undici EnvHttpProxyAgent dispatcher set by
++  // EasyClaw's proxy-setup.cjs, so proxy/firewall configurations are honored.
++  // See: https://github.com/openclaw/openclaw/issues/64312
++  const controller = new AbortController();
++  const timeout = setTimeout(() => controller.abort(), params.timeoutMs ?? 300_000);
+   try {
++    const res = await globalThis.fetch(url, {
++      method: "POST",
++      headers: { authorization: headers.get("authorization") ?? "" },
++      body: form,
++      signal: controller.signal,
++    });
+     await assertOkOrThrowHttpError(res, "Audio transcription failed");
+ 
+     const payload = (await res.json()) as { text?: string };
+@@ -75,6 +79,6 @@ export async function transcribeOpenAiCompatibleAudio(
+     );
+     return { text, model };
+   } finally {
+-    await release();
++    clearTimeout(timeout);
+   }
+ }
+-- 
+2.50.1 (Apple Git-155)
+

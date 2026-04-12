@@ -47,5 +47,36 @@
       "reason": "Drift guard — validates system prompt override is re-applied before LLM call (vendor patch 0006)"
     }
   ],
-  "allowlist": []
+  "allowlist": [
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/jiti/dist/jiti.cjs",
+      "reason": "Auto-generated schema bundles vendor jiti (v2026.4.11 config loading)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/json5/lib/unicode.js",
+      "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/json5/lib/util.js",
+      "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/json5/lib/parse.js",
+      "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/json5/lib/stringify.js",
+      "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/json5/lib/index.js",
+      "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
+    }
+  ]
 }
