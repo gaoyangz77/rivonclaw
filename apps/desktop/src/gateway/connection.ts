@@ -8,6 +8,7 @@ import { setRpcClient, getRpcClient } from "./rpc-client-ref.js";
 import { pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
 import { rootStore } from "../app/store/desktop-store.js";
+import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import type { GatewayEventHandler } from "./event-dispatcher.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import { loadClientToolSpecs } from "./client-tool-loader.js";
@@ -81,6 +82,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
     deviceIdentityPath: join(stateDir, "identity", "device.json"),
     onConnect: () => {
       log.info("Gateway RPC client connected");
+      runtimeStatusStore.setGatewayRpcConnected(true);
 
       // Start Mobile Sync engines for all active pairings (skip stale)
       const allPairings = storage.mobilePairings.getAllPairings();
@@ -176,6 +178,7 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
     },
     onClose: () => {
       log.info("Gateway RPC client disconnected");
+      runtimeStatusStore.setGatewayRpcConnected(false);
     },
     onEvent: (evt: GatewayEventFrame) => {
       // Forward events to CS bridge for auto-forwarding agent text to buyer

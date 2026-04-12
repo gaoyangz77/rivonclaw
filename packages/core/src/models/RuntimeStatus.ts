@@ -1,5 +1,6 @@
 import { types, type Instance } from "mobx-state-tree";
 import { DEFAULTS } from "../defaults.js";
+import { OpenClawConnectorModel } from "./OpenClawConnector.js";
 
 export const CsBridgeStatusModel = types.model("CsBridgeStatus", {
   state: types.optional(
@@ -54,6 +55,8 @@ export const AppSettingsModel = types.model("AppSettings", {
 export const RuntimeStatusStoreModel = types.model("RuntimeStatusStore", {
   csBridge: types.optional(CsBridgeStatusModel, {}),
   appSettings: types.optional(AppSettingsModel, {}),
+  gatewayRpcConnected: types.optional(types.boolean, false),
+  openClawConnector: types.optional(OpenClawConnectorModel, {}),
 });
 
 export interface AppSettings extends Instance<typeof AppSettingsModel> {}
