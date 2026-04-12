@@ -20,6 +20,8 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
   const [profileToolIds, setProfileToolIds] = useState<Set<string>>(new Set());
   const [profileSurfaceId, setProfileSurfaceId] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [presetModalOpen, setPresetModalOpen] = useState(false);
+  const [selectedPresetId, setSelectedPresetId] = useState("");
 
   function openCreateProfile() {
     setEditingProfile(null);
@@ -40,6 +42,27 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
   function closeProfileModal() {
     setProfileModalOpen(false);
     setEditingProfile(null);
+  }
+
+  function openPresetModal() {
+    setSelectedPresetId("");
+    setPresetModalOpen(true);
+  }
+
+  function closePresetModal() {
+    setPresetModalOpen(false);
+  }
+
+  function handleCreateFromPreset(allProfiles: RunProfile[]) {
+    const source = allProfiles.find((p) => p.id === selectedPresetId);
+    if (!source) return;
+    setPresetModalOpen(false);
+    setSelectedPresetId("");
+    setEditingProfile(null);
+    setProfileName(`${source.name} ${t("surfaces.copySuffix")}`);
+    setProfileSurfaceId(source.surfaceId);
+    setProfileToolIds(new Set(source.selectedToolIds));
+    setProfileModalOpen(true);
   }
 
   async function handleSaveProfile() {
@@ -100,5 +123,11 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
     closeProfileModal,
     handleSaveProfile,
     handleDeleteProfile,
+    presetModalOpen,
+    selectedPresetId,
+    setSelectedPresetId,
+    openPresetModal,
+    closePresetModal,
+    handleCreateFromPreset,
   };
 }

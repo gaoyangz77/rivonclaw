@@ -1529,6 +1529,7 @@ export default {
         ECOM_ORDER: "电商订单",
         ECOM_FULFILLMENT: "电商履约",
         ECOM_PRODUCT: "电商商品",
+        ECOM_RETURN_REFUND: "电商售后",
         ECOMMERCE_SHOP_MGMT: "电商店铺管理",
         SYSTEM: "系统工具",
         EXTENSION: "扩展工具",
@@ -1570,8 +1571,22 @@ export default {
         // 电商运营 — 商品
         ECOM_GET_PRODUCT: "获取商品",
         ECOM_SEARCH_PRODUCTS: "搜索商品",
-        // 电商运营 — 操作
+        // 电商运营 — 会话操作
+        ECOM_MARK_CONVERSATION_READ: "标记已读",
         ECOM_CREATE_CONVERSATION: "创建会话",
+        // 电商运营 — 店铺
+        ECOM_UPDATE_SHOP: "更新店铺",
+        // 电商运营 — 售后退款
+        ECOM_SEARCH_RETURNS: "搜索退货",
+        ECOM_SEARCH_CANCELLATIONS: "搜索取消单",
+        ECOM_GET_AFTERSALE_ELIGIBILITY: "查询售后资格",
+        ECOM_GET_RETURN_RECORDS: "获取退货记录",
+        ECOM_GET_REJECT_REASONS: "获取拒绝原因",
+        ECOM_APPROVE_RETURN: "同意退货",
+        ECOM_APPROVE_REFUND: "同意退款",
+        ECOM_REJECT_RETURN: "拒绝退货",
+        ECOM_APPROVE_CANCELLATION: "同意取消",
+        ECOM_REJECT_CANCELLATION: "拒绝取消",
         // 电商客服 — 会话级工具
         ECOM_CS_SEND_MEDIA: "发送图片",
         ECOM_CS_SEND_CARD: "发送卡片",
@@ -1587,6 +1602,17 @@ export default {
         ECOM_CS_GET_PRODUCT: "获取商品",
         ECOM_CS_SEARCH_PRODUCTS: "搜索商品",
         ECOM_CS_CREATE_CONVERSATION: "创建会话",
+        // 电商客服 — 售后退款
+        ECOM_CS_SEARCH_RETURNS: "搜索退货",
+        ECOM_CS_SEARCH_CANCELLATIONS: "搜索取消单",
+        ECOM_CS_GET_AFTERSALE_ELIGIBILITY: "查询售后资格",
+        ECOM_CS_GET_RETURN_RECORDS: "获取退货记录",
+        ECOM_CS_GET_REJECT_REASONS: "获取拒绝原因",
+        ECOM_CS_APPROVE_RETURN: "同意退货",
+        ECOM_CS_APPROVE_REFUND: "同意退款",
+        ECOM_CS_REJECT_RETURN: "拒绝退货",
+        ECOM_CS_APPROVE_CANCELLATION: "同意取消",
+        ECOM_CS_REJECT_CANCELLATION: "拒绝取消",
         // 电商客服 — 升级
         cs_escalate: "升级处理",
         cs_continue: "继续（恢复）",
