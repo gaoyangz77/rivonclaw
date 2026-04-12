@@ -334,6 +334,32 @@ describe("OpenClawConnector", () => {
       expect(cb2).toHaveBeenCalled();
     });
 
+    it("keeps the active client across server-initiated close so auto-reconnect can reuse it", async () => {
+      connector.initDeps(deps);
+
+      const callback = vi.fn(() => {
+        connector.ensureRpcReady();
+      });
+      connector.onRpcConnected(callback);
+
+      await connector.connectRpc(rpcDeps);
+
+      const onClose = mockRpcClientInstance._opts!.onClose as () => void;
+      const onConnect = mockRpcClientInstance._opts!.onConnect as () => void;
+
+      // Initial successful connect.
+      onConnect();
+
+      mockRpcClientInstance.isConnected.mockReturnValue(false);
+      onClose();
+
+      // Same GatewayRpcClient instance auto-reconnects internally.
+      mockRpcClientInstance.isConnected.mockReturnValue(true);
+      onConnect();
+
+      expect(callback).toHaveBeenCalledTimes(2);
+    });
+
     it("dispatches events via eventDispatcher on onEvent", async () => {
       connector.initDeps(deps);
       await connector.connectRpc(rpcDeps);
@@ -355,6 +381,45 @@ describe("OpenClawConnector", () => {
       await connector.connectRpc(rpcDeps);
 
       expect(firstStop).toHaveBeenCalled();
+    });
+
+    it("ignores stale onClose from a replaced client", async () => {
+      connector.initDeps(deps);
+      const firstClient = {
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn(),
+        isConnected: vi.fn().mockReturnValue(true),
+        request: vi.fn().mockResolvedValue(undefined),
+        _opts: null as Record<string, unknown> | null,
+      };
+      const secondClient = {
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn(),
+        isConnected: vi.fn().mockReturnValue(true),
+        request: vi.fn().mockResolvedValue(undefined),
+        _opts: null as Record<string, unknown> | null,
+      };
+      MockGatewayRpcClient
+        .mockImplementationOnce(function (this: unknown, opts: Record<string, unknown>) {
+          firstClient._opts = opts;
+          return firstClient;
+        })
+        .mockImplementationOnce(function (this: unknown, opts: Record<string, unknown>) {
+          secondClient._opts = opts;
+          return secondClient;
+        });
+
+      await connector.connectRpc(rpcDeps);
+
+      const firstOnClose = firstClient._opts!.onClose as () => void;
+
+      await connector.connectRpc(rpcDeps);
+
+      // Old client closes after the new one is already active.
+      firstOnClose();
+
+      // The new client should still be considered ready.
+      expect(() => connector.ensureRpcReady()).not.toThrow();
     });
   });
 
@@ -650,6 +715,9 @@ describe("OpenClawConnector", () => {
 
   describe("launcher 'ready' event", () => {
     it("auto-connects RPC when rpcConnectionDeps are set", async () => {
+      // Mock waitForWsReady so it resolves immediately (no real WebSocket)
+      const spy = vi.spyOn(connector as any, "waitForWsReady").mockResolvedValue(undefined);
+
       connector.initLauncher(launcher as any);
       connector.initDeps(deps);
       connector.setRpcConnectionDeps(rpcDeps);
@@ -657,13 +725,16 @@ describe("OpenClawConnector", () => {
       // Simulate launcher emitting "ready"
       launcher.emit("ready");
 
-      // Give the async connectRpc a tick to fire
-      await new Promise((r) => setTimeout(r, 0));
+      // Give the async chain (waitForWsReady → connectRpc) a tick to fire
+      await new Promise((r) => setTimeout(r, 10));
 
+      expect(spy).toHaveBeenCalledWith("ws://127.0.0.1:3212");
       expect(MockGatewayRpcClient).toHaveBeenCalledWith(
         expect.objectContaining({ url: "ws://127.0.0.1:3212" }),
       );
       expect(mockRpcClientInstance.start).toHaveBeenCalled();
+
+      spy.mockRestore();
     });
 
     it("does not crash when rpcConnectionDeps are not set", () => {

@@ -2,6 +2,7 @@ import { createLogger } from "@rivonclaw/logger";
 import { GatewayRpcClient } from "@rivonclaw/gateway";
 import type { GatewayLauncher, GatewayEventFrame } from "@rivonclaw/gateway";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
+import WebSocket from "ws";
 
 const log = createLogger("openclaw-connector");
 
@@ -46,6 +47,13 @@ const SIDECAR_PROBE_METHOD = "chat.history";
 const SIDECAR_PROBE_PARAMS = { sessionKey: "probe", limit: 1 };
 const SIDECAR_PROBE_MAX_ATTEMPTS = 10;
 const SIDECAR_PROBE_INTERVAL_MS = 500;
+
+// WebSocket readiness probe: the vendor's "listening on" stdout arrives before
+// attachGatewayWsHandlers() finishes (~60-200ms of synchronous plugin setup).
+// We probe with a lightweight WebSocket connect attempt before starting the
+// full RPC handshake to avoid the startup 503.
+const WS_READY_MAX_ATTEMPTS = 10;
+const WS_READY_INTERVAL_MS = 100;
 
 // ---------------------------------------------------------------------------
 // OpenClawConnector
@@ -97,12 +105,17 @@ export class OpenClawConnector {
     });
 
     launcher.on("ready", () => {
-      // The launcher emits "ready" when the gateway process prints
-      // "listening on".  At this point we can connect the RPC client.
+      // The launcher emits "ready" when the gateway prints "listening on",
+      // but the vendor's WebSocket upgrade handler is registered ~60-200ms
+      // later (synchronous plugin setup after listen).  We probe the WS
+      // endpoint first so the real RPC handshake never hits a 503.
       if (this.rpcConnectionDeps) {
-        this.connectRpc(this.rpcConnectionDeps).catch((err) => {
-          log.error("Failed to connect RPC after gateway ready:", err);
-        });
+        const deps = this.rpcConnectionDeps;
+        this.waitForWsReady(deps.url)
+          .then(() => this.connectRpc(deps))
+          .catch((err: unknown) => {
+            log.error("Failed to connect RPC after gateway ready:", err);
+          });
       }
     });
 
@@ -201,6 +214,34 @@ export class OpenClawConnector {
     await this.start();
   }
 
+  // ── WebSocket Readiness Probe ──────────────────────────────────────────
+
+  /**
+   * Wait until the gateway's WebSocket upgrade handler is ready.
+   *
+   * The vendor prints "listening on" before `attachGatewayWsHandlers()`
+   * finishes (~60-200ms of synchronous plugin setup). Connecting during
+   * that window yields a 503. This probe makes a throwaway WebSocket
+   * connection attempt and retries on failure, so the real RPC handshake
+   * only starts once the gate is open.
+   */
+  private async waitForWsReady(url: string): Promise<void> {
+    for (let attempt = 1; attempt <= WS_READY_MAX_ATTEMPTS; attempt++) {
+      const ok = await new Promise<boolean>((resolve) => {
+        const ws = new WebSocket(url);
+        const timer = setTimeout(() => { ws.terminate(); resolve(false); }, 1000);
+        ws.on("open", () => { clearTimeout(timer); ws.close(); resolve(true); });
+        ws.on("error", () => { clearTimeout(timer); resolve(false); });
+      });
+      if (ok) return;
+      if (attempt < WS_READY_MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, WS_READY_INTERVAL_MS));
+      }
+    }
+    // Proceed anyway — connectRpc's own retry will handle residual failures.
+    log.warn("WebSocket readiness probe exhausted; proceeding with connectRpc");
+  }
+
   // ── RPC Connection ─────────────────────────────────────────────────────
 
   /**
@@ -250,10 +291,11 @@ export class OpenClawConnector {
         log.info("RPC client disconnected");
         runtimeStatusStore.setConnectorRpcConnected(false);
         runtimeStatusStore.setConnectorSidecarState("unknown");
-        // If disconnectRpc() already nulled rpcClient and fired callbacks,
-        // skip the duplicate fire. Only fire here for server-initiated closes.
-        if (this.rpcClient) {
-          this.rpcClient = null;
+        // Ignore late close events from an older client that was already
+        // replaced. For the active client, keep the reference intact so the
+        // same GatewayRpcClient instance can auto-reconnect and later fire
+        // onConnect successfully.
+        if (this.rpcClient === client) {
           this.fireRpcDisconnectedCallbacks();
         }
       },
