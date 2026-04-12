@@ -1,46 +1,37 @@
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import { openClawConnector } from "../openclaw/index.js";
 
-let _client: GatewayRpcClient | null = null;
-
-export function setRpcClient(client: GatewayRpcClient | null): void {
-  _client = client;
-}
-
 /**
- * Get the active RPC client.
+ * Get the active RPC client via the OpenClawConnector.
  *
- * Tries the OpenClawConnector first (new path); falls back to the legacy
- * module-level singleton during the migration period.
+ * Returns null if the connector's RPC client is not connected.
  */
 export function getRpcClient(): GatewayRpcClient | null {
   try {
     return openClawConnector.ensureRpcReady();
   } catch {
-    return _client; // fallback to old singleton during migration
+    return null;
   }
 }
 
-/**
- * Wait until the Desktop → Gateway RPC connection is established and ready.
- *
- * - **Idempotent**: resolves immediately if already connected.
- * - **Timeout-aware**: rejects with an error if the connection is not ready
- *   within `timeoutMs` milliseconds.
- *
- * Uses polling (200 ms interval) because the RPC client exposes an
- * `onConnect` callback but no event emitter that external callers can
- * subscribe to after construction.
- */
-export async function waitForGatewayReady(timeoutMs = 30_000): Promise<GatewayRpcClient> {
-  const rpc = getRpcClient();
-  if (rpc?.isConnected()) return rpc;
+/** @deprecated Use openClawConnector directly. Retained as a no-op stub during migration. */
+export function setRpcClient(_client: GatewayRpcClient | null): void {}
 
+/**
+ * Wait for the gateway RPC client to become ready.
+ * Polls the connector at 200ms intervals until connected or timeout.
+ *
+ * @deprecated Callers should migrate to openClawConnector.ensureRpcReady()
+ *   and observe runtimeStatusStore.openClawConnector.sidecarState.
+ */
+export async function waitForGatewayReady(timeoutMs = 15_000): Promise<GatewayRpcClient> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 200));
-    const rpc = getRpcClient();
-    if (rpc?.isConnected()) return rpc;
+    try {
+      return openClawConnector.ensureRpcReady();
+    } catch {
+      await new Promise((r) => setTimeout(r, 200));
+    }
   }
-  throw new Error(`Gateway not ready within ${timeoutMs}ms`);
+  throw new Error("Gateway RPC client not ready within timeout");
 }

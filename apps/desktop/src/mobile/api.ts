@@ -1,7 +1,7 @@
 import type { MobileGraphQLRequest } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
 import { executeMobileGraphQL } from "./mobile-graphql.js";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
+import { openClawConnector } from "../openclaw/index.js";
 import { PAIRING_CODE_TTL_MS } from "./mobile-manager.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -102,14 +102,13 @@ const deviceStatus: EndpointHandler = async (_req, res, _url, _params, ctx: ApiC
     ctx.mobileManager.runMigration();
   }
 
-  const rpcClient = getRpcClient();
-  if (!rpcClient?.isConnected()) {
+  if (!openClawConnector.isReady) {
     sendJson(res, 200, { devices: {} });
     return;
   }
 
   try {
-    const result = (await rpcClient.request("mobile_chat_device_status", {})) as {
+    const result = (await openClawConnector.request("mobile_chat_device_status", {})) as {
       devices: Record<string, any>;
     };
 

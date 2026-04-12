@@ -13,7 +13,7 @@ import { createUsageRuntime } from "../usage/runtime.js";
 import { initMobileManagerEnv } from "./store/desktop-store.js";
 import { rootStore } from "./store/desktop-store.js";
 import { runtimeStatusStore } from "./store/runtime-status-store.js";
-import { getRpcClient } from "../gateway/rpc-client-ref.js";
+import { openClawConnector } from "../openclaw/index.js";
 import type { AuthSessionManager } from "../auth/session.js";
 import type { SessionLifecycleManager } from "../browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "../browser-profiles/managed-browser-service.js";
@@ -163,7 +163,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     storage,
     controlPlaneUrl: getApiBaseUrl(getSystemLocale()),
     stateDir: resolveOpenClawStateDir(),
-    getRpcClient,
+    getRpcClient: () => { try { return openClawConnector.ensureRpcReady(); } catch { return null; } },
   });
 
   // Hydrate runtime-status AppSettings from persisted storage

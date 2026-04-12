@@ -45,9 +45,6 @@ export function SurfacesSection({
           >
             {refreshingTools ? t("common.loading") : t("surfaces.refreshTools")}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={onCreateSurface}>
-            {t("surfaces.createSurface")}
-          </button>
           {surfaces.length > 0 && (
             <button
               className="btn btn-secondary btn-sm"
@@ -56,6 +53,9 @@ export function SurfacesSection({
               {t("surfaces.createFromPreset")}
             </button>
           )}
+          <button className="btn btn-primary btn-sm" onClick={onCreateSurface}>
+            {t("surfaces.createSurface")}
+          </button>
         </div>
       </div>
 

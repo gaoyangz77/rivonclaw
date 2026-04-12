@@ -147,12 +147,9 @@ export function useChatTranscript({ clientRef, sessionKeyRef, renderTick }: UseC
       shouldInstantScrollRef.current = true; stickyRef.current = true;
       setMessages(parsed);
       setVisibleCount(INITIAL_VISIBLE);
-    } catch (err) {
-      // Gateway returns UNAVAILABLE while sidecars are still starting (v2026.4.10+).
-      // Re-throw so the caller (useChatConnection) can schedule a retry.
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("unavailable")) throw err;
-      // Other failures are non-fatal (network blip, etc.)
+    } catch {
+      // Non-fatal — sidecar readiness is now gated by sidecarState reaction
+      // in useChatConnection, so no re-throw needed here.
     } finally {
       isFetchingRef.current = false;
     }

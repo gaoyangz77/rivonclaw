@@ -1,29 +1,44 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { getRpcClient, setRpcClient } from "../rpc-client-ref.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { getRpcClient, setRpcClient, waitForGatewayReady } from "../rpc-client-ref.js";
+
+// ─── Mocks ──────────────────────────────────────────────────────────────────
+
+const mockEnsureRpcReady = vi.fn<() => any>();
+
+vi.mock("../../openclaw/index.js", () => ({
+  openClawConnector: {
+    ensureRpcReady: () => mockEnsureRpcReady(),
+  },
+}));
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("rpc-client-ref", () => {
   beforeEach(() => {
-    setRpcClient(null);
+    vi.clearAllMocks();
   });
 
-  it("returns null initially", () => {
+  it("returns null when connector throws (not connected)", () => {
+    mockEnsureRpcReady.mockImplementation(() => {
+      throw new Error("RPC not connected");
+    });
     expect(getRpcClient()).toBeNull();
   });
 
-  it("returns the mock client after setRpcClient()", () => {
-    const mockClient = { request: () => {} } as any;
-    setRpcClient(mockClient);
+  it("returns the rpc client from the connector when connected", () => {
+    const mockClient = { request: () => {}, isConnected: () => true };
+    mockEnsureRpcReady.mockReturnValue(mockClient);
     expect(getRpcClient()).toBe(mockClient);
   });
 
-  it("clears back to null after setRpcClient(null)", () => {
-    const mockClient = { request: () => {} } as any;
-    setRpcClient(mockClient);
-    expect(getRpcClient()).toBe(mockClient);
-
+  it("setRpcClient is a deprecated no-op", () => {
+    // Should not throw
     setRpcClient(null);
-    expect(getRpcClient()).toBeNull();
+    setRpcClient({ request: () => {} } as any);
+  });
+
+  it("waitForGatewayReady is a deprecated no-op", async () => {
+    // Should resolve immediately
+    await waitForGatewayReady();
   });
 });

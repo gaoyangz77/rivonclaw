@@ -5,6 +5,7 @@ import { getCsRelayWsUrl } from "@rivonclaw/core";
 import type { CatalogTool } from "@rivonclaw/core";
 import { join } from "node:path";
 import { setRpcClient, getRpcClient } from "./rpc-client-ref.js";
+import { openClawConnector } from "../openclaw/index.js";
 import { pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
 import { rootStore } from "../app/store/desktop-store.js";
@@ -53,6 +54,10 @@ export function getCsBridge(): CustomerServiceBridge | null {
   return _csBridge;
 }
 
+/**
+ * @deprecated Use openClawConnector instead. This function is kept for backward
+ * compatibility during migration.
+ */
 export async function connectGateway(deps: GatewayConnectionDeps): Promise<void> {
   const existing = getRpcClient();
   if (existing) {
@@ -191,6 +196,10 @@ export async function connectGateway(deps: GatewayConnectionDeps): Promise<void>
   await rpcClient.start();
 }
 
+/**
+ * @deprecated Use openClawConnector instead. This function is kept for backward
+ * compatibility during migration.
+ */
 export function disconnectGateway(): void {
   if (_csBridge) {
     _csBridge.stop();
@@ -221,7 +230,9 @@ export function tryStartCsBridge(gatewayId: string): void {
 
   const attemptStart = () => {
     // Both conditions: RPC connected + user has ecommerce
-    if (!getRpcClient()) return;
+    let rpc: unknown;
+    try { rpc = openClawConnector.ensureRpcReady(); } catch { rpc = null; }
+    if (!rpc) return;
     const user = authSession.getCachedUser();
     const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
     if (!hasEcommerce) return;
