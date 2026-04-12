@@ -77,6 +77,7 @@ export class GatewayRpcClient {
   private reconnectAttempt = 0;
   private deviceIdentity: DeviceIdentity | null = null;
   private connectNonce: string | null = null;
+  private _last503 = false;
 
   constructor(private opts: GatewayRpcClientOptions) {
     if (opts.deviceIdentityPath) {
@@ -236,7 +237,13 @@ export class GatewayRpcClient {
       });
 
       this.ws.on("error", (err) => {
-        log.warn(`Gateway WebSocket error: ${(err as Error).message ?? err}`);
+        const msg = (err as Error).message ?? String(err);
+        log.warn(`Gateway WebSocket error: ${msg}`);
+        // Track 503 so the close handler can use fast retry instead of backoff.
+        // The gateway returns 503 during sidecar startup (v2026.4.10+).
+        if (msg.includes("503")) {
+          this._last503 = true;
+        }
         if (!settled) {
           settled = true;
           reject(err);
@@ -250,12 +257,20 @@ export class GatewayRpcClient {
       return;
     }
 
+    // 503 means gateway is still starting sidecars (v2026.4.10+) — use a
+    // short fixed interval so we reconnect as soon as the gate opens,
+    // instead of exponential backoff that adds 10+ seconds of delay.
+    const was503 = this._last503;
+    this._last503 = false;
+
     const baseDelay = this.opts.reconnectDelay ?? 1000;
     const maxDelay = this.opts.maxReconnectDelay ?? 30000;
-    const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
-    this.reconnectAttempt++;
+    const delay = was503
+      ? 500
+      : Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
+    if (!was503) this.reconnectAttempt++;
 
-    log.info(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempt})`);
+    log.info(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempt}${was503 ? ", 503 fast-retry" : ""})`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

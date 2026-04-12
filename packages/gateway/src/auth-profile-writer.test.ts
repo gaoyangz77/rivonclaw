@@ -396,15 +396,22 @@ describe("vendor contract: auth profile format", () => {
     // Our auth profiles use provider="google-gemini-cli" for Google OAuth.
     // The vendor's google plugin formatApiKey must wrap this as JSON {token, projectId}
     // for the google-gemini-cli streaming function to parse.
-    // In v2026.4.1 this moved from core oauth.ts to the google extension plugin.
+    // In v2026.4.9 formatApiKey delegates to formatGoogleOauthApiKey in oauth-token-shared.ts.
     const pluginSrc = readFileSync(
       join(VENDOR_ROOT, "extensions/google/gemini-cli-provider.ts"),
       "utf-8",
     );
     // Plugin registers formatApiKey for "google-gemini-cli"
     expect(pluginSrc).toContain("formatApiKey");
-    expect(pluginSrc).toContain("cred.access");
-    expect(pluginSrc).toContain("cred.projectId");
+    expect(pluginSrc).toContain("formatGoogleOauthApiKey");
+
+    // The actual cred.access → JSON wrapping lives in the shared helper
+    const sharedSrc = readFileSync(
+      join(VENDOR_ROOT, "extensions/google/oauth-token-shared.ts"),
+      "utf-8",
+    );
+    expect(sharedSrc).toContain("cred.access");
+    expect(sharedSrc).toContain("cred.projectId");
   });
 
   it("vendor's normalizeProviderId preserves google-gemini-cli", () => {

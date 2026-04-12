@@ -80,7 +80,10 @@ export function Select({ value, onChange, options, placeholder, disabled, classN
       // If an ancestor of the select scrolled (e.g. modal backdrop), reposition via
       // direct DOM update to avoid re-render → scroll → reposition loop.
       const scrollTarget = e.target as Node;
-      if (scrollTarget instanceof Element && scrollTarget.contains(ref.current)) {
+      // Ancestor check: covers both Element ancestors and the Document node itself
+      // (focus-induced scrolls, e.g. when auto-focusing the search input, can fire
+      // scroll events on `document` which is not an Element).
+      if (scrollTarget.contains(ref.current)) {
         if (triggerRef.current && dropdownRef.current) {
           const rect = triggerRef.current.getBoundingClientRect();
           const spaceBelow = window.innerHeight - rect.bottom;

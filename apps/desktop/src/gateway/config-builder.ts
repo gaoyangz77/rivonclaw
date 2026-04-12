@@ -191,8 +191,16 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           ...OUR_PLUGIN_IDS,
           // Vendor-bundled plugins that are not in extensions/ but need to be allowed
           "memory-core",
+          // Groq audio transcription provider — moved from core to bundled plugin
+          // in vendor v2026.3.28 (commit 3dcc802fe5). Without allow, the gateway's
+          // plugin loader blocks it ("not in allowlist") and STT stops working.
+          "groq",
         ],
         entries: {
+          // Groq audio transcription — must be explicitly enabled because bundled
+          // plugins without enabledByDefault in their manifest are disabled.
+          // Vendor moved groq from core to plugin in v2026.3.28 (3dcc802fe5).
+          ...(curSttEnabled && curSttProvider === "groq" ? { groq: { enabled: true } } : {}),
           "rivonclaw-tools": {
             config: {
               browserMode: curBrowserMode,
