@@ -1,4 +1,5 @@
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
+import { openClawConnector } from "../openclaw/index.js";
 
 let _client: GatewayRpcClient | null = null;
 
@@ -6,8 +7,18 @@ export function setRpcClient(client: GatewayRpcClient | null): void {
   _client = client;
 }
 
+/**
+ * Get the active RPC client.
+ *
+ * Tries the OpenClawConnector first (new path); falls back to the legacy
+ * module-level singleton during the migration period.
+ */
 export function getRpcClient(): GatewayRpcClient | null {
-  return _client;
+  try {
+    return openClawConnector.ensureRpcReady();
+  } catch {
+    return _client; // fallback to old singleton during migration
+  }
 }
 
 /**

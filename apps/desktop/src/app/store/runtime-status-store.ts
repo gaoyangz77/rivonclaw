@@ -69,6 +69,27 @@ export const DesktopRuntimeStatusModel = RuntimeStatusStoreModel.actions((self) 
     self.csBridge.reconnectAttempt = attempt;
   },
 
+  setGatewayRpcConnected(connected: boolean) {
+    self.gatewayRpcConnected = connected;
+  },
+
+  setConnectorProcessState(state: string) {
+    self.openClawConnector.processState = state as typeof self.openClawConnector.processState;
+  },
+  setConnectorRpcConnected(connected: boolean) {
+    self.openClawConnector.rpcConnected = connected;
+    self.gatewayRpcConnected = connected; // backward compat
+  },
+  setConnectorSidecarState(state: string) {
+    self.openClawConnector.sidecarState = state as typeof self.openClawConnector.sidecarState;
+  },
+  setConnectorRestartAttempt(attempt: number) {
+    self.openClawConnector.restartAttempt = attempt;
+  },
+  setConnectorLastError(error: string) {
+    self.openClawConnector.lastError = error;
+  },
+
   /** Bulk-load all app settings from storage on startup. */
   loadAppSettings(settings: Record<string, string>) {
     for (const [storageKey, apply] of Object.entries(SETTING_APPLIERS)) {

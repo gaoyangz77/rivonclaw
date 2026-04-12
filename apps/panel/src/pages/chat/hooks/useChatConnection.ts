@@ -101,18 +101,30 @@ export function useChatConnection({
               setActiveSessionKeyRef.current(mainKey);
             }
             setConnectionState("connected");
-            loadHistory(client).then(() => {
-              // Show deferred disconnect error AFTER history is loaded,
-              // otherwise loadHistory's setMessages would overwrite the error.
-              if (needsDisconnectErrorRef.current) {
-                needsDisconnectErrorRef.current = false;
-                setMessages((prev) => [...prev, {
-                  role: "assistant",
-                  text: `\u26A0 ${tRef.current("chat.disconnectedError")}`,
-                  timestamp: Date.now(),
-                }]);
-              }
-            });
+
+            // Gateway v2026.4.10+ holds chat.history UNAVAILABLE until
+            // sidecars finish. Retry with backoff when that happens.
+            let historyRetries = 0;
+            const doLoadHistory = () => {
+              loadHistory(client).then(() => {
+                if (needsDisconnectErrorRef.current) {
+                  needsDisconnectErrorRef.current = false;
+                  setMessages((prev) => [...prev, {
+                    role: "assistant",
+                    text: `\u26A0 ${tRef.current("chat.disconnectedError")}`,
+                    timestamp: Date.now(),
+                  }]);
+                }
+              }).catch(() => {
+                // loadHistory re-throws UNAVAILABLE errors; retry up to 5 times
+                if (!cancelled && historyRetries < 5) {
+                  historyRetries++;
+                  setTimeout(doLoadHistory, 2000);
+                }
+              });
+            };
+            doLoadHistory();
+
             // Fetch agent display name
             refreshAgentName(client, cancelled);
           },

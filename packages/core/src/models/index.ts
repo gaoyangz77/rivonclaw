@@ -28,6 +28,8 @@ export { RootStoreModel } from "./RootStore.js";
 export type { RootStore } from "./RootStore.js";
 export { RuntimeStatusStoreModel, CsBridgeStatusModel, AppSettingsModel } from "./RuntimeStatus.js";
 export type { RuntimeStatusStore, CsBridgeStatus, AppSettings } from "./RuntimeStatus.js";
+export { OpenClawConnectorModel, SidecarState, GatewayProcessState } from "./OpenClawConnector.js";
+export type { OpenClawConnector } from "./OpenClawConnector.js";
 
 // Compile-time GQL ↔ MST drift detection (side-effect only, no runtime exports)
 import "./type-guards.js";

@@ -147,8 +147,12 @@ export function useChatTranscript({ clientRef, sessionKeyRef, renderTick }: UseC
       shouldInstantScrollRef.current = true; stickyRef.current = true;
       setMessages(parsed);
       setVisibleCount(INITIAL_VISIBLE);
-    } catch {
-      // History load failure is non-fatal
+    } catch (err) {
+      // Gateway returns UNAVAILABLE while sidecars are still starting (v2026.4.10+).
+      // Re-throw so the caller (useChatConnection) can schedule a retry.
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("unavailable")) throw err;
+      // Other failures are non-fatal (network blip, etc.)
     } finally {
       isFetchingRef.current = false;
     }

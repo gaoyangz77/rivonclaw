@@ -2,6 +2,7 @@ import {
   GatewayLauncher,
   resolveVendorEntryPath,
   writeGatewayConfig,
+  readExistingConfig,
 } from "@rivonclaw/gateway";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -15,6 +16,7 @@ import type { GatewayConnectionDeps } from "../gateway/connection.js";
 import { rootStore } from "./store/desktop-store.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 import type { pushChatSSE as PushChatSSEFn } from "./panel-server.js";
+import { openClawConnector } from "../openclaw/index.js";
 
 export interface SetupGatewayDeps {
   storage: Storage;
@@ -101,6 +103,39 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     ourPluginIds: OUR_PLUGIN_IDS,
     dispatchGatewayEvent,
   };
+
+  // ── Wire OpenClawConnector ──────────────────────────────────────────────
+  // The connector manages launcher lifecycle events and RPC connections.
+  // Business logic registers callbacks via onRpcConnected() in main.ts.
+
+  openClawConnector.initLauncher(launcher);
+
+  openClawConnector.initDeps({
+    writeConfig: () => {
+      // writeConfig is synchronous in the connector interface (returns config path).
+      // buildFullGatewayConfig is async, but the initial config was already written
+      // above. This closure is a best-effort sync bridge — callers that need fresh
+      // async config writes should use buildConfig + writeGatewayConfig directly.
+      return configPath;
+    },
+    buildConfig: () => buildFullGatewayConfig(gatewayPort),
+    buildEnv: async () => ({}), // Env is managed externally via launcher.setEnv()
+    eventDispatcher: dispatchGatewayEvent,
+  });
+
+  // Derive RPC connection deps from the gateway config on disk — same values
+  // that connectGateway() computes at call-time.
+  const config = readExistingConfig(configPath);
+  const gw = config.gateway as Record<string, unknown> | undefined;
+  const port = (gw?.port as number) ?? gatewayPort;
+  const auth = gw?.auth as Record<string, unknown> | undefined;
+  const token = auth?.token as string | undefined;
+
+  openClawConnector.setRpcConnectionDeps({
+    url: `ws://127.0.0.1:${port}`,
+    token,
+    deviceIdentityPath: join(stateDir, "identity", "device.json"),
+  });
 
   return {
     launcher,
