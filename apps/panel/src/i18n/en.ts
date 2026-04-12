@@ -1541,6 +1541,7 @@ export default {
         ECOM_ORDER: "E-com Orders",
         ECOM_FULFILLMENT: "E-com Fulfillment",
         ECOM_PRODUCT: "E-com Products",
+        ECOM_RETURN_REFUND: "E-com Returns",
         ECOMMERCE_SHOP_MGMT: "E-com Shop Mgmt",
         SYSTEM: "System",
         EXTENSION: "Extensions",
@@ -1582,8 +1583,22 @@ export default {
         // E-commerce Ops — Products
         ECOM_GET_PRODUCT: "Get Product",
         ECOM_SEARCH_PRODUCTS: "Search Products",
-        // E-commerce Ops — Write
+        // E-commerce Ops — Conversations (Write)
+        ECOM_MARK_CONVERSATION_READ: "Mark Read",
         ECOM_CREATE_CONVERSATION: "Create Conversation",
+        // E-commerce Ops — Shop
+        ECOM_UPDATE_SHOP: "Update Shop",
+        // E-commerce Ops — Return & Refund
+        ECOM_SEARCH_RETURNS: "Search Returns",
+        ECOM_SEARCH_CANCELLATIONS: "Search Cancellations",
+        ECOM_GET_AFTERSALE_ELIGIBILITY: "Get Aftersale Eligibility",
+        ECOM_GET_RETURN_RECORDS: "Get Return Records",
+        ECOM_GET_REJECT_REASONS: "Get Reject Reasons",
+        ECOM_APPROVE_RETURN: "Approve Return",
+        ECOM_APPROVE_REFUND: "Approve Refund",
+        ECOM_REJECT_RETURN: "Reject Return",
+        ECOM_APPROVE_CANCELLATION: "Approve Cancellation",
+        ECOM_REJECT_CANCELLATION: "Reject Cancellation",
         // E-commerce CS — Session-scoped tools
         ECOM_CS_SEND_MEDIA: "Send Image",
         ECOM_CS_SEND_CARD: "Send Card",
@@ -1599,6 +1614,17 @@ export default {
         ECOM_CS_GET_PRODUCT: "Get Product",
         ECOM_CS_SEARCH_PRODUCTS: "Search Products",
         ECOM_CS_CREATE_CONVERSATION: "Create Conversation",
+        // E-commerce CS — Return & Refund
+        ECOM_CS_SEARCH_RETURNS: "Search Returns",
+        ECOM_CS_SEARCH_CANCELLATIONS: "Search Cancellations",
+        ECOM_CS_GET_AFTERSALE_ELIGIBILITY: "Get Aftersale Eligibility",
+        ECOM_CS_GET_RETURN_RECORDS: "Get Return Records",
+        ECOM_CS_GET_REJECT_REASONS: "Get Reject Reasons",
+        ECOM_CS_APPROVE_RETURN: "Approve Return",
+        ECOM_CS_APPROVE_REFUND: "Approve Refund",
+        ECOM_CS_REJECT_RETURN: "Reject Return",
+        ECOM_CS_APPROVE_CANCELLATION: "Approve Cancellation",
+        ECOM_CS_REJECT_CANCELLATION: "Reject Cancellation",
         // E-commerce CS — Escalation
         cs_escalate: "Escalate",
         cs_continue: "Continue (Resume)",

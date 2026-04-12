@@ -14,6 +14,7 @@ import { SurfaceFormModal } from "./components/SurfaceFormModal.js";
 import { SurfacePresetModal } from "./components/SurfacePresetModal.js";
 import { RunProfilesSection } from "./components/RunProfilesSection.js";
 import { RunProfileFormModal } from "./components/RunProfileFormModal.js";
+import { RunProfilePresetModal } from "./components/RunProfilePresetModal.js";
 import { ModulesSection } from "./components/ModulesSection.js";
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
@@ -145,6 +146,7 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
         defaultProfileError={defaultProfileError}
         onDefaultProfileChange={handleDefaultProfileChange}
         onCreateProfile={profileForm.openCreateProfile}
+        onOpenPreset={profileForm.openPresetModal}
         onEditProfile={profileForm.openEditProfile}
         onDeleteProfile={(id) => setConfirmDeleteProfileId(id)}
       />
@@ -204,6 +206,19 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
         cancelLabel={t("common.cancel")}
         onConfirm={() => { if (confirmDeleteProfileId) { setConfirmDeleteProfileId(null); profileForm.handleDeleteProfile(confirmDeleteProfileId); } }}
         onCancel={() => setConfirmDeleteProfileId(null)}
+      />
+
+      {/* ── RunProfile Preset Modal ── */}
+      <RunProfilePresetModal
+        isOpen={profileForm.presetModalOpen}
+        profiles={profiles}
+        selectedPresetId={profileForm.selectedPresetId}
+        savingProfile={profileForm.savingProfile}
+        resolveSystemName={resolveSystemName}
+        surfaceNameById={surfaceNameById}
+        onSelectedPresetIdChange={profileForm.setSelectedPresetId}
+        onCreateFromPreset={() => profileForm.handleCreateFromPreset(profiles)}
+        onClose={profileForm.closePresetModal}
       />
 
       {/* ── RunProfile Modal ── */}

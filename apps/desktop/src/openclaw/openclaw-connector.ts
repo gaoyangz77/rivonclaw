@@ -43,7 +43,7 @@ export type RpcConnectedCallback = () => void | Promise<void>;
 // ---------------------------------------------------------------------------
 
 const SIDECAR_PROBE_METHOD = "chat.history";
-const SIDECAR_PROBE_PARAMS = { sessionKey: "probe", limit: 0 };
+const SIDECAR_PROBE_PARAMS = { sessionKey: "probe", limit: 1 };
 const SIDECAR_PROBE_MAX_ATTEMPTS = 10;
 const SIDECAR_PROBE_INTERVAL_MS = 500;
 

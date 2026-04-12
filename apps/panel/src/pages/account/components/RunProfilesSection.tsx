@@ -14,6 +14,7 @@ interface RunProfilesSectionProps {
   defaultProfileError: string | null;
   onDefaultProfileChange: (profileId: string) => void;
   onCreateProfile: () => void;
+  onOpenPreset: () => void;
   onEditProfile: (p: RunProfile) => void;
   onDeleteProfile: (id: string) => void;
 }
@@ -30,6 +31,7 @@ export function RunProfilesSection({
   defaultProfileError,
   onDefaultProfileChange,
   onCreateProfile,
+  onOpenPreset,
   onEditProfile,
   onDeleteProfile,
 }: RunProfilesSectionProps) {
@@ -43,6 +45,13 @@ export function RunProfilesSection({
           <p className="acct-section-desc">{t("account.runProfilesDesc")}</p>
         </div>
         <div className="td-actions">
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onOpenPreset}
+            disabled={profiles.length === 0}
+          >
+            {t("surfaces.createFromPreset")}
+          </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={onCreateProfile}

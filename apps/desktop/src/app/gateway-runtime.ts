@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { createGatewayConfigBuilder } from "../gateway/config-builder.js";
 import { createGatewayEventDispatcher } from "../gateway/event-dispatcher.js";
 import type { GatewayEventHandler } from "../gateway/event-dispatcher.js";
-import { connectGateway, disconnectGateway } from "../gateway/connection.js";
+import { connectGateway, disconnectGateway, getCsBridge } from "../gateway/connection.js";
 import type { GatewayConnectionDeps } from "../gateway/connection.js";
 import { rootStore } from "./store/desktop-store.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
@@ -91,6 +91,11 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     pushChatSSE,
     chatSessions: storage.chatSessions,
   });
+  const handleGatewayEvent: GatewayEventHandler = (evt) => {
+    // CS bridge still needs the raw gateway stream for per-turn forwarding.
+    getCsBridge()?.onGatewayEvent(evt);
+    dispatchGatewayEvent(evt);
+  };
 
   // Gateway connection deps — passed to connectGateway() on each "ready" event
   const gatewayConnectionDeps = {
@@ -120,7 +125,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     },
     buildConfig: () => buildFullGatewayConfig(gatewayPort),
     buildEnv: async () => ({}), // Env is managed externally via launcher.setEnv()
-    eventDispatcher: dispatchGatewayEvent,
+    eventDispatcher: handleGatewayEvent,
   });
 
   // Derive RPC connection deps from the gateway config on disk — same values
