@@ -1,0 +1,61 @@
+From 36a1e258b3fa85718bc5dfce07c21935db23c072 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 13 Apr 2026 03:07:37 -0700
+Subject: [PATCH] vendor(openclaw): defer prewarmConfiguredPrimaryModel to
+ unblock event loop
+
+Why:
+- ensureOpenClawModelsJson() inside prewarmConfiguredPrimaryModel() runs
+  ~9s of synchronous provider discovery that blocks the Node.js event loop
+  after gateway READY. This starves all channel WebSocket/polling callbacks,
+  delaying webchat connection by ~9s and preventing channels from processing
+  inbound messages during the block.
+- Moving startChannels() before prewarm and wrapping prewarm in
+  setTimeout(15s) lets channels fully establish connections first.
+
+Removal:
+- Drop when upstream resolves the synchronous event-loop blocking in
+  ensureOpenClawModelsJson / provider discovery, or when prewarm is
+  made truly async without blocking the event loop.
+- Tracked: openclaw/openclaw#62364 (slow startup with multiple providers),
+  openclaw/openclaw#62051 (worker processes load all plugins).
+
+Tests:
+- apps/desktop/test/vendor-patch-prewarm-defer.test.ts
+---
+ src/gateway/server-startup-post-attach.ts | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
+index 3f5a5ef674..0dc4bdcc3b 100644
+--- a/src/gateway/server-startup-post-attach.ts
++++ b/src/gateway/server-startup-post-attach.ts
+@@ -170,11 +170,19 @@ export async function startGatewaySidecars(params: {
+     isTruthyEnvValue(process.env.OPENCLAW_SKIP_PROVIDERS);
+   if (!skipChannels) {
+     try {
+-      await prewarmConfiguredPrimaryModel({
+-        cfg: params.cfg,
+-        log: params.log,
+-      });
+       await params.startChannels();
++      // Defer prewarm: ensureOpenClawModelsJson() inside prewarm runs ~9s of
++      // synchronous provider discovery that blocks the event loop, starving
++      // channel WebSocket/polling callbacks. setTimeout pushes it to a later
++      // macrotask so channels fully establish connections first.
++      // 15s gives channels enough time to complete probes (up to 2.5s each),
++      // establish monitors, and process initial messages before the block hits.
++      setTimeout(() => {
++        prewarmConfiguredPrimaryModel({
++          cfg: params.cfg,
++          log: params.log,
++        }).catch((err) => {
++          params.log.warn(`deferred model warmup failed: ${String(err)}`);
++        });
++      }, 15_000);
+     } catch (err) {
+       params.logChannels.error(`channel startup failed: ${String(err)}`);
+     }
+-- 
+2.50.1 (Apple Git-155)
+
