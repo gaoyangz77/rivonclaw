@@ -55,7 +55,7 @@ const TOOL_SPECS_SYNC_QUERY = gql`
     toolSpecs {
       id name category displayName description surfaces runProfiles
       graphqlOperation operationType
-      parameters { name type description graphqlVar required defaultValue enumValues }
+      parameters { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList } } }
       contextBindings { paramName contextField }
       restMethod restEndpoint restContentType supportedPlatforms
     }

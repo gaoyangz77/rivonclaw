@@ -1410,7 +1410,7 @@ app.whenReady().then(async () => {
         // Desktop needs them independently in case Panel hasn't loaded yet.
         if (authSession) {
           const essentials = [
-            "query ToolSpecsSync { toolSpecs { id name category displayName description surfaces runProfiles graphqlOperation operationType parameters { name type description graphqlVar required defaultValue enumValues } contextBindings { paramName contextField } restMethod restEndpoint restContentType supportedPlatforms } }",
+            "query ToolSpecsSync { toolSpecs { id name category displayName description surfaces runProfiles graphqlOperation operationType parameters { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList } } } contextBindings { paramName contextField } restMethod restEndpoint restContentType supportedPlatforms } }",
             "query { me { id email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } }",
             "query { surfaces { id name userId allowedToolIds } }",
             "query { runProfiles { id name userId surfaceId selectedToolIds } }",
