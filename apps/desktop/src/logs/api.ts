@@ -2,10 +2,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { API } from "@rivonclaw/core/api-contract";
 import { LOG_DIR } from "@rivonclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { sendJson } from "../infra/api/route-utils.js";
 import { CloudRestError } from "../cloud/cloud-client.js";
+
+const log = createLogger("log-upload");
 
 const LOG_FILENAME = "rivonclaw.log";
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -43,9 +46,11 @@ const uploadLog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiCont
     sendJson(res, 200, data);
   } catch (err) {
     if (err instanceof CloudRestError) {
+      log.error("Cloud REST error during log upload", { status: err.status, body: err.body });
       sendJson(res, err.status, err.body ?? { error: err.message });
     } else {
       const message = err instanceof Error ? err.message : "Log upload failed";
+      log.error("Log upload failed", { error: message, stack: err instanceof Error ? err.stack : undefined });
       sendJson(res, 500, { error: message });
     }
   }
