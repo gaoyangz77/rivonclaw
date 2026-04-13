@@ -249,9 +249,15 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
       extraSkillDirs: [resolveUserSkillsDir()],
-      // ADR-031: allow all plugin tools by default (visibility controlled at runtime by capability-manager).
-      // "group:plugins" is an OpenClaw allowlist keyword that permits all optional plugin tools.
-      toolAllowlist: overrides?.toolAllowlist ?? ["group:plugins"],
+      // ADR-031: allow all core + plugin tools by default (visibility controlled at runtime by capability-manager).
+      // Core tool section groups cover all system tools; "group:plugins" covers all optional plugin tools.
+      // All groups are needed because v2026.4.11+ treats a plugin-only allowlist as excluding core tools.
+      toolAllowlist: overrides?.toolAllowlist ?? [
+        "group:fs", "group:runtime", "group:web", "group:memory",
+        "group:sessions", "group:ui", "group:messaging", "group:automation",
+        "group:nodes", "group:agents", "group:media",
+        "group:plugins",
+      ],
     };
   }
 
