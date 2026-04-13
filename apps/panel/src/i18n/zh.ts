@@ -82,6 +82,8 @@ export default {
     errorContextOverflow: "对话太长，超出了模型的上下文限制。请使用 /reset 开始新对话，或切换到支持更长上下文的模型。",
     errorAuth: "认证失败，请前往「模型」页面检查 API 密钥或重新登录。",
     disconnectedError: "连接中断，正在重连，稍后可重新发送消息。",
+    stalledError: "回复中断 — 未收到最终回复。任务可能已在服务端完成，请尝试上滑查看或重新发送。",
+    watchdogError: "5 分钟内无响应活动，连接可能已静默断开。请尝试重新发送消息。",
     contextWindowWarning: "当前对话已使用约 {{currentTokens}} tokens，超过新模型上下文窗口 ({{newContextWindow}}) 的 80%。建议开始新对话以避免错误。",
     contextOverflowTitle: "上下文窗口已超出",
     contextOverflowBody: "当前对话已使用约 {{current}} tokens，超过新模型的上下文窗口 ({{max}} tokens)。请选择处理方式：",

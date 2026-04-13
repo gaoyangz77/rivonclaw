@@ -84,6 +84,8 @@ export default {
     errorContextOverflow: "The conversation is too long for this model. Use /reset to start fresh, or switch to a model with a larger context window.",
     errorAuth: "Authentication failed. Please check your API key or re-authenticate in the Models page.",
     disconnectedError: "Connection interrupted. Reconnecting — you can resend your message shortly.",
+    stalledError: "Response stalled — no final reply received. The task may have completed on the server. Try scrolling up or resending.",
+    watchdogError: "No response activity for 5 minutes. The connection may have been lost silently. You can try resending your message.",
     contextWindowWarning: "Current conversation (~{{currentTokens}} tokens) exceeds 80% of the new model's context window ({{newContextWindow}}). Consider starting a new conversation.",
     contextOverflowTitle: "Context window exceeded",
     contextOverflowBody: "Current conversation (~{{current}} tokens) exceeds the new model's context window ({{max}} tokens). Choose how to proceed:",
