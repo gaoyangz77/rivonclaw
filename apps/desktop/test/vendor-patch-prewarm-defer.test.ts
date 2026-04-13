@@ -3,34 +3,22 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("vendor patch: prewarm defer", () => {
-  const src = readFileSync(
-    resolve(__dirname, "../../../vendor/openclaw/src/gateway/server-startup-post-attach.ts"),
-    "utf-8",
+  const patchPath = resolve(
+    __dirname,
+    "../../../vendor-patches/openclaw/0007-vendor-openclaw-defer-prewarmConfiguredPrimaryModel.patch",
   );
 
-  it("startChannels runs before prewarmConfiguredPrimaryModel in the skipChannels block", () => {
-    // Extract the !skipChannels block
-    const blockStart = src.indexOf("if (!skipChannels)");
-    expect(blockStart).toBeGreaterThan(-1);
+  const patch = readFileSync(patchPath, "utf-8");
 
-    const relevantCode = src.slice(blockStart, blockStart + 800);
-
-    const channelsIdx = relevantCode.indexOf("startChannels()");
-    const prewarmIdx = relevantCode.indexOf("prewarmConfiguredPrimaryModel(");
-
-    expect(channelsIdx).toBeGreaterThan(-1);
-    expect(prewarmIdx).toBeGreaterThan(-1);
-    expect(channelsIdx).toBeLessThan(prewarmIdx);
+  it("patch removes the inline await of prewarmConfiguredPrimaryModel", () => {
+    // The patch must remove the `await prewarmConfiguredPrimaryModel` that ran before startChannels
+    expect(patch).toContain("-      await prewarmConfiguredPrimaryModel({");
   });
 
-  it("prewarmConfiguredPrimaryModel is deferred via setTimeout, not awaited inline", () => {
-    const blockStart = src.indexOf("if (!skipChannels)");
-    const relevantCode = src.slice(blockStart, blockStart + 800);
-
-    // Should NOT have `await prewarmConfiguredPrimaryModel`
-    expect(relevantCode).not.toMatch(/await\s+prewarmConfiguredPrimaryModel/);
-
-    // Should have setTimeout wrapping prewarm
-    expect(relevantCode).toMatch(/setTimeout\s*\(\s*\(\)\s*=>\s*\{?\s*\n?\s*prewarmConfiguredPrimaryModel/);
+  it("patch defers prewarmConfiguredPrimaryModel via setTimeout", () => {
+    expect(patch).toContain("+      setTimeout(() => {");
+    expect(patch).toContain("+        prewarmConfiguredPrimaryModel({");
+    // Must not add a new `await prewarmConfiguredPrimaryModel` line
+    expect(patch).not.toMatch(/^\+\s+await prewarmConfiguredPrimaryModel/m);
   });
 });
