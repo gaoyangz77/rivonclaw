@@ -39,6 +39,7 @@ export type GatewayChatClientOptions = {
 type Pending = {
   resolve: (value: unknown) => void;
   reject: (err: unknown) => void;
+  timeout?: ReturnType<typeof setTimeout>;
 };
 
 /** Application-level keepalive interval (ms). */
@@ -76,14 +77,18 @@ export class GatewayChatClient {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
-  request<T = unknown>(method: string, params?: unknown): Promise<T> {
+  request<T = unknown>(method: string, params?: unknown, timeoutMs = 30_000): Promise<T> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("gateway not connected"));
     }
     const id = crypto.randomUUID();
     const frame = { type: "req", id, method, params };
     return new Promise<T>((resolve, reject) => {
-      this.pending.set(id, { resolve: (v) => resolve(v as T), reject });
+      const timeout = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`RPC timeout after ${timeoutMs}ms: ${method}`));
+      }, timeoutMs);
+      this.pending.set(id, { resolve: (v) => resolve(v as T), reject, timeout });
       this.ws!.send(JSON.stringify(frame));
     });
   }
@@ -220,6 +225,7 @@ export class GatewayChatClient {
       const pending = this.pending.get(res.id);
       if (!pending) return;
       this.pending.delete(res.id);
+      if (pending.timeout) clearTimeout(pending.timeout);
       if (res.ok) {
         pending.resolve(res.payload);
       } else {
@@ -230,6 +236,7 @@ export class GatewayChatClient {
 
   private flushPending(err: Error): void {
     for (const [, p] of this.pending) {
+      if (p.timeout) clearTimeout(p.timeout);
       p.reject(err);
     }
     this.pending.clear();

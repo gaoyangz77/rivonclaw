@@ -784,7 +784,27 @@ export class ChatGatewayController {
     this.clearFallbackTimer(runId);
     const timer = setTimeout(() => {
       this.finalFallbackTimers.delete(runId);
-      this.runStateFor(sessionKey).forceDone(runId);
+      const targetRs = this.runStateFor(sessionKey);
+      const run = targetRs.getRun(runId);
+
+      // Synthesize terminal message so the user sees why the run ended
+      const session = this.store.sessions.get(sessionKey);
+      if (session && run && ACTIVE_PHASES.has(run.phase as RunPhase)) {
+        // Flush any partial streaming text
+        const rawStreaming = run.streaming ?? null;
+        const offset = run.flushedOffset ?? 0;
+        const partialText = rawStreaming && offset > 0 ? rawStreaming.slice(offset) : rawStreaming;
+        if (partialText?.trim()) {
+          session.appendMessage({ role: "assistant", text: partialText, timestamp: Date.now() });
+        }
+        session.appendMessage({
+          role: "assistant",
+          text: `\u26A0 ${this.t("chat.stalledError")}`,
+          timestamp: Date.now(),
+        });
+      }
+
+      targetRs.forceDone(runId);
       this.markRunRecentlyCompleted(sessionKey, runId);
     }, FINAL_FALLBACK_MS);
     this.finalFallbackTimers.set(runId, timer);
@@ -875,12 +895,37 @@ export class ChatGatewayController {
       const stuck = session.runState.isActive || session.runState.externalPending;
       if (stuck && Date.now() - session.runState.lastActivityAt > WATCHDOG_TIMEOUT) {
         console.warn("[chat] watchdog: no events for 5 min -- force-resetting run state");
+
+        // Synthesize terminal message before resetting
+        const localId = session.runState.localRunId;
+        if (localId) {
+          const run = session.runState.getRun(localId);
+          if (run && ACTIVE_PHASES.has(run.phase as RunPhase)) {
+            // Flush partial streaming
+            const rawStreaming = run.streaming ?? null;
+            const offset = run.flushedOffset ?? 0;
+            const partialText = rawStreaming && offset > 0 ? rawStreaming.slice(offset) : rawStreaming;
+            if (partialText?.trim()) {
+              session.appendMessage({ role: "assistant", text: partialText, timestamp: Date.now() });
+            }
+            session.appendMessage({
+              role: "assistant",
+              text: `\u26A0 ${this.t("chat.watchdogError")}`,
+              timestamp: Date.now(),
+            });
+          }
+        } else if (session.runState.externalPending || session.runState.isActive) {
+          // External run was stuck
+          session.appendMessage({
+            role: "assistant",
+            text: `\u26A0 ${this.t("chat.watchdogError")}`,
+            timestamp: Date.now(),
+          });
+        }
+
         this.clearTimersForSession(this.store.activeSessionKey);
         session.runState.resetAll();
         session.runState.setLastAgentStream(null);
-        if (session.runState.externalPending) {
-          session.runState.setExternalPending(false);
-        }
       }
     }, WATCHDOG_INTERVAL);
   }
@@ -1253,7 +1298,7 @@ export class ChatGatewayController {
     }
     if (thinkingLevel) params.thinking = thinkingLevel;
 
-    this.client.request("chat.send", params).catch((err) => {
+    this.client.request("chat.send", params, 300_000).catch((err) => {
       const raw = formatError(err) || this.t("chat.sendError");
       const errText = localizeError(raw, this.tFn!);
       session.appendMessage({ role: "assistant", text: `\u26A0 ${errText}`, timestamp: Date.now() });
