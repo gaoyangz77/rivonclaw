@@ -1436,12 +1436,14 @@ export interface QueryEcommerceGetOrdersArgs {
 
 
 export interface QueryEcommerceGetPackageDetailArgs {
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
   packageId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
 
 
 export interface QueryEcommerceGetPackageShippingDocumentArgs {
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
   documentFormat?: InputMaybe<EcomDocumentFormat>;
   documentSize?: InputMaybe<EcomDocumentSize>;
   documentType: EcomDocumentType;
