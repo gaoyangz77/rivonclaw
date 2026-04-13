@@ -454,6 +454,7 @@ describe("config-writer", () => {
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
       expect(config.agents.defaults.blockStreamingDefault).toBe("on");
       expect(config.agents.defaults.blockStreamingBreak).toBe("text_end");
+      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
     });
 
     it("overwrites pre-existing block streaming values", () => {
@@ -475,6 +476,51 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.blockStreamingDefault).toBe("on");
       expect(config.agents.defaults.blockStreamingBreak).toBe("text_end");
+    });
+  });
+
+  describe("writeGatewayConfig - llm idleTimeoutSeconds", () => {
+    it("sets agents.defaults.llm.idleTimeoutSeconds to 300", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
+    });
+
+    it("preserves existing agents.defaults fields alongside llm config", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "openai", modelId: "gpt-4o" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
+      expect(config.agents.defaults.blockStreamingDefault).toBe("on");
+      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
+    });
+
+    it("overwrites pre-existing idleTimeoutSeconds value", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              llm: { idleTimeoutSeconds: 60 },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
     });
   });
 

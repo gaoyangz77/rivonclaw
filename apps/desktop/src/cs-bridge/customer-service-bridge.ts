@@ -90,6 +90,14 @@ export class CustomerServiceBridge {
    */
   private turnTextBuffer = new Map<string, string>();
 
+  /**
+   * Run IDs for which at least one text delivery was initiated.
+   * Added synchronously when `flushTurnText` starts a forward so the chat
+   * error handler knows not to send a duplicate fallback.  If the delivery
+   * later fails, the `flushTurnText` catch handler sends the fallback itself.
+   */
+  private forwardedRuns = new Set<string>();
+
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
@@ -256,11 +264,19 @@ export class CustomerServiceBridge {
         session!.abortedRunIds.delete(payload.runId);
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
       } else if (payload.state === "error") {
-        log.warn(`Agent run ${payload.runId} ended with error, skipping auto-forward`);
+        // Non-aborted error: send fallback if no text was forwarded during this run
+        if (!this.forwardedRuns.has(payload.runId) && session) {
+          log.warn(`Agent run ${payload.runId} ended with error and no text was forwarded, sending fallback to buyer`);
+          session.forwardTextToBuyer("I'm sorry, I wasn't able to complete my response. Please try again.")
+            .catch((err) => log.error("Failed to forward fallback error message:", err));
+        } else {
+          log.warn(`Agent run ${payload.runId} ended with error (text was previously forwarded)`);
+        }
       }
 
       // Safety-net cleanup of turn buffer (normally already flushed by agent events)
       this.turnTextBuffer.delete(payload.runId);
+      this.forwardedRuns.delete(payload.runId);
 
       // Clear session's active run tracking
       if (session) {
@@ -279,7 +295,8 @@ export class CustomerServiceBridge {
    * - `assistant` stream: update the accumulated text buffer
    * - `tool` stream with `phase: "start"`: a turn boundary -- flush unsent text
    * - `lifecycle` stream with `phase: "end"`: run completed -- flush remaining text
-   * - `lifecycle` stream with `phase: "error"`: run failed -- discard buffer
+   * - `lifecycle` stream with `phase: "error"`: run failed -- flush any buffered
+   *   text (partial responses still reach the buyer), then clear the buffer
    */
   private onAgentEvent(evt: GatewayEventFrame): void {
     const payload = evt.payload as {
@@ -310,23 +327,36 @@ export class CustomerServiceBridge {
     }
 
     if (stream === "lifecycle") {
-      if (data.phase === "end") {
+      if (data.phase === "end" || data.phase === "error") {
+        // Flush any buffered text before clearing — ensures partial
+        // responses reach the buyer even when the run errors out.
         this.flushTurnText(runId, pending.conversationId);
-      }
-      // On error, discard without forwarding
-      if (data.phase === "error" || data.phase === "end") {
         this.turnTextBuffer.delete(runId);
       }
     }
   }
 
+  /** Known runtime error/timeout patterns that should not be forwarded as-is. */
+  private static readonly RUNTIME_ERROR_PATTERNS = [
+    /increase [`']?agents\.defaults/i,
+    /timed out before a response was generated/i,
+    /LLM idle timeout/i,
+  ];
+
+  private static readonly FALLBACK_MESSAGE = "I'm sorry, I wasn't able to complete my response. Please try again.";
+
   /**
    * Forward buffered text for a run to the buyer, then clear the buffer.
    * `data.text` is accumulated per-turn (resets after each tool call),
    * so we send the full buffer content each time.
+   *
+   * Before forwarding, sanitizes known runtime error/timeout patterns:
+   * - If the entire text is a timeout/error message, replaces with a
+   *   user-friendly fallback.
+   * - If real content has a timeout suffix appended, strips the suffix.
    */
   private flushTurnText(runId: string, conversationId: string): void {
-    const text = this.turnTextBuffer.get(runId)?.trim();
+    let text = this.turnTextBuffer.get(runId)?.trim();
     this.turnTextBuffer.delete(runId);
     if (!text) return;
 
@@ -336,8 +366,64 @@ export class CustomerServiceBridge {
     // Don't forward for aborted runs
     if (session.abortedRunIds.has(runId)) return;
 
+    // Sanitize runtime error/timeout patterns
+    text = this.sanitizeRuntimeErrors(text);
+
+    // Mark delivery initiated synchronously so the chat error handler (which
+    // may fire before the network call resolves) defers to us instead of
+    // sending a duplicate fallback.  If the delivery fails, we send the
+    // fallback ourselves in the catch handler below.
+    this.forwardedRuns.add(runId);
     session.forwardTextToBuyer(text)
-      .catch((err) => log.error("Failed to forward per-turn text:", err));
+      .catch((err) => {
+        log.error("Failed to forward per-turn text:", err);
+        // Re-check abort status: a newer buyer message may have aborted this
+        // run while the outbound send was in flight.  Aborted runs must not
+        // produce any terminal output for the buyer.
+        if (session.abortedRunIds.has(runId)) {
+          log.info(`Run ${runId} was aborted during delivery, skipping fallback`);
+          return;
+        }
+        // Delivery failed — buyer didn't receive the text.  The chat error
+        // handler already deferred to us (it saw forwardedRuns), so we are
+        // responsible for sending the fallback.
+        log.warn(`Delivery failed for run ${runId}, sending fallback to buyer`);
+        session.forwardTextToBuyer(CustomerServiceBridge.FALLBACK_MESSAGE)
+          .catch((fallbackErr) => log.error("Failed to send fallback after delivery failure:", fallbackErr));
+      });
+  }
+
+  /**
+   * Sanitize known runtime error/timeout patterns from agent text.
+   * Returns the cleaned text, or a fallback message if the entire text
+   * was a runtime error message.
+   */
+  private sanitizeRuntimeErrors(text: string): string {
+    const hasErrorPattern = CustomerServiceBridge.RUNTIME_ERROR_PATTERNS.some(
+      (pattern) => pattern.test(text),
+    );
+    if (!hasErrorPattern) return text;
+
+    // Split into lines and find where the error message starts
+    const lines = text.split("\n");
+    const cleanLines: string[] = [];
+    for (const line of lines) {
+      const isErrorLine = CustomerServiceBridge.RUNTIME_ERROR_PATTERNS.some(
+        (pattern) => pattern.test(line),
+      );
+      if (isErrorLine) break;
+      cleanLines.push(line);
+    }
+
+    const cleaned = cleanLines.join("\n").trim();
+    if (cleaned) {
+      log.info(`Stripped runtime error suffix from agent text (${text.length} → ${cleaned.length} chars)`);
+      return cleaned;
+    }
+
+    // Entire text was a runtime error message
+    log.info("Agent text was entirely a runtime error message, replacing with fallback");
+    return CustomerServiceBridge.FALLBACK_MESSAGE;
   }
 
   // -- Entity cache subscription ---------------------------------------------

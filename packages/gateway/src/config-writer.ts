@@ -286,6 +286,7 @@ export interface OpenClawGatewayConfig {
       };
       blockStreamingDefault?: "off" | "on";
       blockStreamingBreak?: "text_end" | "message_end";
+      llm?: { idleTimeoutSeconds?: number };
     };
   };
   tools?: {
@@ -642,6 +643,11 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // Block streaming defaults — RivonClaw always enables block streaming so that
   // channel integrations can segment responses at text boundaries rather than
   // forwarding raw token-by-token SSE chunks.
+  //
+  // LLM idle timeout — increase from OpenClaw's default 120s to 300s (5 minutes)
+  // to prevent premature timeouts for slower models under load. Raw timeout
+  // messages from the engine leak to external chat channel users, so a generous
+  // idle timeout is important for production reliability.
   {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
@@ -651,12 +657,17 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
         ? (existingAgents.defaults as Record<string, unknown>)
         : {};
+    const existingLlm =
+      typeof existingDefaults.llm === "object" && existingDefaults.llm !== null
+        ? (existingDefaults.llm as Record<string, unknown>)
+        : {};
     config.agents = {
       ...existingAgents,
       defaults: {
         ...existingDefaults,
         blockStreamingDefault: "on",
         blockStreamingBreak: "text_end",
+        llm: { ...existingLlm, idleTimeoutSeconds: 300 },
       },
     };
   }

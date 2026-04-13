@@ -2198,7 +2198,7 @@ describe("per-turn message forwarding", () => {
     expect(texts[0]).toBe("Result found.");
   });
 
-  it("error lifecycle: text NOT forwarded", async () => {
+  it("error lifecycle: buffered text IS flushed to buyer (partial response delivery)", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-1");
@@ -2207,7 +2207,8 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "lifecycle", { phase: "error" });
 
     const texts = getForwardedTexts();
-    expect(texts).toHaveLength(0);
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Partial output");
   });
 
   it("non-CS run: agent events ignored (not in pendingRuns)", async () => {
@@ -2286,5 +2287,341 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
     expect(getForwardedTexts()).toHaveLength(0);
+  });
+});
+
+// ─── 15. Terminal guarantee: error/timeout handling ──────────────────────────
+
+describe("terminal guarantee (error/timeout)", () => {
+  /**
+   * Helper: dispatch a buyer message and return the runId.
+   */
+  async function dispatchAndGetRunId(
+    bridge: ReturnType<typeof createBridge>,
+    runId: string,
+    overrides?: Partial<CSNewMessageFrame>,
+  ): Promise<void> {
+    mockRpcRequest.mockResolvedValue({ runId });
+    await triggerMessage(bridge, createFrame(overrides));
+  }
+
+  /** Helper: send an agent event. */
+  function agentEvent(
+    bridge: ReturnType<typeof createBridge>,
+    runId: string,
+    stream: string,
+    data: Record<string, unknown>,
+  ): void {
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId, stream, data },
+    } as any);
+  }
+
+  /** Helper: send a chat error event. */
+  function chatError(bridge: ReturnType<typeof createBridge>, runId: string): void {
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId, state: "error" },
+    } as any);
+  }
+
+  /** Helper: count ecommerceSendMessage calls and return their content args. */
+  function getForwardedTexts(): string[] {
+    return mockGraphqlFetch.mock.calls
+      .filter((c: any[]) => typeof c[0] === "string" && c[0].includes("ecommerceSendMessage"))
+      .map((c: any[]) => {
+        const parsed = JSON.parse(c[1].content as string);
+        return parsed.content as string;
+      });
+  }
+
+  it("lifecycle error with buffered text: text is flushed to buyer", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-err-1");
+
+    agentEvent(bridge, "run-err-1", "assistant", { text: "Here is your answer so far" });
+    agentEvent(bridge, "run-err-1", "lifecycle", { phase: "error" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Here is your answer so far");
+  });
+
+  it("chat error with no forwarded text: fallback message sent to buyer", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-err-2");
+
+    // No agent text events — run errored before producing output
+    chatError(bridge, "run-err-2");
+
+    // Wait for async fallback send
+    await new Promise((r) => setTimeout(r, 10));
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+  });
+
+  it("chat error with previously forwarded text: no fallback sent", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-err-3");
+
+    // Agent produces text in first turn, then a tool call
+    agentEvent(bridge, "run-err-3", "assistant", { text: "Let me look that up." });
+    agentEvent(bridge, "run-err-3", "tool", { phase: "start", toolName: "search" });
+
+    // Wait for async forwardTextToBuyer to complete (populates forwardedRuns)
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Run errors after the tool call (no lifecycle end)
+    chatError(bridge, "run-err-3");
+
+    // Wait for potential fallback
+    await new Promise((r) => setTimeout(r, 10));
+
+    const texts = getForwardedTexts();
+    // Only the first turn's text should be forwarded; no fallback
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Let me look that up.");
+  });
+
+  it("aborted run error: no fallback sent", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-abort-1");
+
+    // Second message arrives, aborting run-abort-1
+    mockRpcRequest.mockResolvedValue({ runId: "run-abort-2" });
+    await triggerMessage(bridge, createFrame({ messageId: "msg-abort-2" }));
+
+    // Chat error for the aborted run
+    chatError(bridge, "run-abort-1");
+
+    // Wait for potential fallback
+    await new Promise((r) => setTimeout(r, 10));
+
+    // No text should be forwarded for the aborted run
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(0);
+  });
+
+  it("timeout message sanitization: raw timeout text replaced with user-friendly message", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-timeout-1");
+
+    agentEvent(bridge, "run-timeout-1", "assistant", {
+      text: "Request timed out before a response was generated. You may want to increase `agents.defaults.timeoutSeconds` in your configuration.",
+    });
+    agentEvent(bridge, "run-timeout-1", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+  });
+
+  it("timeout message sanitization: LLM idle timeout replaced", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-timeout-2");
+
+    agentEvent(bridge, "run-timeout-2", "assistant", {
+      text: "LLM idle timeout — no response received within the configured period.",
+    });
+    agentEvent(bridge, "run-timeout-2", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+  });
+
+  it("timeout suffix stripped from real content", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-timeout-3");
+
+    agentEvent(bridge, "run-timeout-3", "assistant", {
+      text: "Here is your order status: shipped on April 10.\nRequest timed out before a response was generated.",
+    });
+    agentEvent(bridge, "run-timeout-3", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Here is your order status: shipped on April 10.");
+  });
+
+  it("normal text passes through sanitization unchanged", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-normal");
+
+    agentEvent(bridge, "run-normal", "assistant", { text: "Your refund has been processed!" });
+    agentEvent(bridge, "run-normal", "lifecycle", { phase: "end" });
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Your refund has been processed!");
+  });
+
+  it("lifecycle error flushes text then chat error does NOT send fallback (text was forwarded)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-err-flush");
+
+    // Agent produces text, then lifecycle error flushes it
+    agentEvent(bridge, "run-err-flush", "assistant", { text: "Partial response before error" });
+    agentEvent(bridge, "run-err-flush", "lifecycle", { phase: "error" });
+
+    // Wait for async forwardTextToBuyer to complete
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Chat error arrives — should NOT send fallback because text was already forwarded
+    chatError(bridge, "run-err-flush");
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    const texts = getForwardedTexts();
+    // Only the flushed text, no fallback
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Partial response before error");
+  });
+
+  // ─── Delivery failure scenarios ──────────────────────────────────────────
+
+  /**
+   * Make mockGraphqlFetch reject the first N ecommerceSendMessage calls,
+   * then succeed for subsequent ones.  Non-send queries keep working.
+   */
+  function failFirstNSends(n: number): void {
+    let sendCount = 0;
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceSendMessage")) {
+        sendCount++;
+        if (sendCount <= n) throw new Error("simulated delivery failure");
+        return { ecommerceSendMessage: { messageId: "ok" } };
+      }
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      return {};
+    });
+  }
+
+  it("forward rejects → catch handler sends fallback (buyer not left in silence)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-fwd-fail-1");
+
+    // First send rejects, fallback send succeeds
+    failFirstNSends(1);
+
+    agentEvent(bridge, "run-fwd-fail-1", "assistant", { text: "Some answer" });
+    agentEvent(bridge, "run-fwd-fail-1", "lifecycle", { phase: "end" });
+
+    // Wait for forward rejection + catch fallback to settle
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Chat error arrives — should NOT duplicate fallback (forwardedRuns has the id)
+    chatError(bridge, "run-fwd-fail-1");
+    await new Promise((r) => setTimeout(r, 10));
+
+    const texts = getForwardedTexts();
+    // 2 attempts: failed "Some answer" + successful fallback; no 3rd (duplicate)
+    expect(texts).toHaveLength(2);
+    expect(texts[0]).toBe("Some answer");          // attempted but failed
+    expect(texts[1]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+  });
+
+  it("lifecycle error flush fails → catch handler sends fallback, chat error does not duplicate", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-fwd-fail-2");
+
+    failFirstNSends(1);
+
+    agentEvent(bridge, "run-fwd-fail-2", "assistant", { text: "Partial output" });
+    agentEvent(bridge, "run-fwd-fail-2", "lifecycle", { phase: "error" });
+
+    // Wait for forward rejection + catch fallback
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Chat error arrives — forwardedRuns has the id, so no duplicate
+    chatError(bridge, "run-fwd-fail-2");
+    await new Promise((r) => setTimeout(r, 10));
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(2);
+    expect(texts[0]).toBe("Partial output");        // attempted but failed
+    expect(texts[1]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+  });
+
+  it("forward succeeds → chat error does not send fallback (no duplicate)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-fwd-ok");
+
+    agentEvent(bridge, "run-fwd-ok", "assistant", { text: "Successful response" });
+    agentEvent(bridge, "run-fwd-ok", "lifecycle", { phase: "error" });
+
+    // Wait for forward to succeed
+    await new Promise((r) => setTimeout(r, 10));
+
+    chatError(bridge, "run-fwd-ok");
+    await new Promise((r) => setTimeout(r, 10));
+
+    const texts = getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Successful response");
+  });
+
+  it("run aborted after send starts + forward rejects → no fallback (abort-after-send-start)", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-abort-race");
+
+    // Make the first send hang, then reject after a delay
+    let rejectSend!: (err: Error) => void;
+    let sendCount = 0;
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceSendMessage")) {
+        sendCount++;
+        if (sendCount === 1) {
+          // First send: return a promise we control
+          return new Promise((_resolve, reject) => { rejectSend = reject; });
+        }
+        return { ecommerceSendMessage: { messageId: "ok" } };
+      }
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      return {};
+    });
+
+    // Agent produces text, lifecycle ends → flushTurnText starts send (hangs)
+    agentEvent(bridge, "run-abort-race", "assistant", { text: "Stale answer" });
+    agentEvent(bridge, "run-abort-race", "lifecycle", { phase: "end" });
+
+    // A new buyer message arrives, aborting run-abort-race
+    mockRpcRequest.mockResolvedValue({ runId: "run-abort-race-2" });
+    await triggerMessage(bridge, createFrame({ messageId: "msg-abort-race-2" }));
+
+    // Now reject the original send
+    rejectSend(new Error("network failure"));
+    await new Promise((r) => setTimeout(r, 50));
+
+    const texts = getForwardedTexts();
+    // Only the original failed attempt; NO fallback (run was aborted)
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Stale answer");  // attempted but failed, no fallback
   });
 });
