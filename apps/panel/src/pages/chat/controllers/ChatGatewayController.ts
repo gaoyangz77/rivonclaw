@@ -15,7 +15,7 @@
  * and manages timers as side effects.
  */
 
-import { reaction } from "mobx";
+import { reaction, when } from "mobx";
 import type { TFunction } from "i18next";
 import { formatError, DEFAULTS } from "@rivonclaw/core";
 import { SSE } from "@rivonclaw/core/api-contract";
@@ -99,6 +99,7 @@ export class ChatGatewayController {
   private nameRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private refreshDebounceTimer: ReturnType<typeof setTimeout> | undefined = undefined;
   private sidecarDisposer: (() => void) | null = null;
+  private rpcReadyDisposer: (() => void) | null = null;
   private initialConnectDone = false;
   private needsDisconnectError = false;
   private archivedKeys = new Set<string>();
@@ -113,9 +114,9 @@ export class ChatGatewayController {
   // Timer maps — timers are side effects that don't belong in MST
   private finalFallbackTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private recentlyCompletedTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  // Scroll hints — read by ChatPage for auto-scroll
+  // Scroll hints — one-shot flags consumed by ChatPage on each render
   shouldInstantScroll = false;
-  sticky = true;
+  stickyHint = false;
 
   constructor(store: IChatStore) {
     this.store = store;
@@ -174,6 +175,8 @@ export class ChatGatewayController {
       this.nameRefreshTimer = null;
     }
     clearTimeout(this.refreshDebounceTimer);
+    this.rpcReadyDisposer?.();
+    this.rpcReadyDisposer = null;
     this.sidecarDisposer?.();
     this.sidecarDisposer = null;
     this.client?.stop();
@@ -203,6 +206,20 @@ export class ChatGatewayController {
 
   private async initConnection(): Promise<void> {
     try {
+      // Wait for Desktop RPC to connect before attempting the webchat WebSocket.
+      // Without this gate the Panel blindly connects while the gateway is still
+      // starting, accumulating exponential backoff (~9 s wasted on startup).
+      const connector = runtimeStatusStore.openClawConnector;
+      if (!connector.rpcConnected) {
+        const cancel = when(
+          () => connector.rpcConnected || this.cancelled,
+        );
+        this.rpcReadyDisposer = () => cancel.cancel();
+        try { await cancel; } catch { return; } // cancelled via stop()
+        finally { this.rpcReadyDisposer = null; }
+        if (this.cancelled) return;
+      }
+
       const info = await fetchGatewayInfo();
       if (this.cancelled) return;
 
@@ -977,7 +994,7 @@ export class ChatGatewayController {
 
     // Reset scroll state
     this.shouldInstantScroll = true;
-    this.sticky = true;
+    this.stickyHint = true;
   }
 
   async createNewChat(): Promise<void> {
@@ -1008,7 +1025,7 @@ export class ChatGatewayController {
 
     // Reset scroll state
     this.shouldInstantScroll = true;
-    this.sticky = true;
+    this.stickyHint = true;
   }
 
   async archiveSession(key: string): Promise<void> {
@@ -1037,7 +1054,7 @@ export class ChatGatewayController {
       this.store.setActiveSessionKey(DEFAULT_SESSION_KEY);
       this.store.getOrCreateSession(DEFAULT_SESSION_KEY);
       this.shouldInstantScroll = true;
-      this.sticky = true;
+      this.stickyHint = true;
       // Load history for main if not loaded
       const mainSession = this.store.sessions.get(DEFAULT_SESSION_KEY);
       if (mainSession && mainSession.messages.length === 0 && !mainSession.allFetched && this.client) {
@@ -1270,8 +1287,12 @@ export class ChatGatewayController {
     if (optimisticImages) {
       saveImages(activeKey, idempotencyKey, sentAt, optimisticImages).catch(() => {});
     }
+    // Auto-title: use first message text until gateway derivedTitle arrives
+    if (!session.customTitle && !session.derivedTitle && !session.localTitle && trimmedText) {
+      session.setLocalTitle(trimmedText.length > 30 ? trimmedText.slice(0, 30) + "…" : trimmedText);
+    }
     this.shouldInstantScroll = true;
-    this.sticky = true;
+    this.stickyHint = true;
     session.setDraft("");
     session.clearPendingImages();
 
@@ -1423,7 +1444,7 @@ export class ChatGatewayController {
       parsed = await restoreImages(activeKey, parsed).catch(() => parsed);
       session.setAllFetched(parsed.length < FETCH_BATCH);
       this.shouldInstantScroll = true;
-      this.sticky = true;
+      this.stickyHint = true;
       session.setMessages(parsed);
       session.setVisibleCount(INITIAL_VISIBLE);
     } catch {

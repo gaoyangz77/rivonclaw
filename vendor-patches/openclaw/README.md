@@ -200,6 +200,45 @@ end-to-end through the SSRF guard without corruption. Test by sending a
 voice message via Feishu or Telegram and confirming the agent receives
 the transcript text.
 
+### 0007 — Defer `prewarmConfiguredPrimaryModel` to unblock event loop
+
+**File:** `0007-vendor-openclaw-defer-prewarmConfiguredPrimaryModel.patch`
+
+**Why:** `prewarmConfiguredPrimaryModel()` calls `ensureOpenClawModelsJson()`
+which runs ~9 seconds of synchronous provider discovery (loading all provider
+plugins, running each provider's catalog hook serially, schema validation).
+This completely blocks the Node.js event loop. In the vendor's startup sequence,
+`prewarmConfiguredPrimaryModel()` runs **before** `startChannels()`, so all
+channel connections (webchat, Telegram, WeChat, Feishu) are starved for the
+entire duration. With 7+ configured providers, the webchat connection is
+delayed by ~9 seconds after gateway READY.
+
+**Change:** Swap the call order so `startChannels()` runs first, then defer
+`prewarmConfiguredPrimaryModel()` via `setTimeout(15000)`. The 15-second
+delay gives channels enough time to complete probes (each up to 2.5s),
+establish monitors, and process initial messages before the synchronous
+provider discovery blocks the event loop. Prewarm errors are caught by a
+`.catch()` handler and logged as warnings rather than failing channel
+startup.
+
+**History:** This patch was previously carried as 0007 in the v2026.4.11 stack,
+dropped in commit `e322752` based on warm-cache testing that showed 375ms
+sidecars→webchat. Re-added after production logs confirmed the ~9s event loop
+block persists with multiple providers configured (7 auth profiles, OpenRouter,
+Gemini, Groq, Volcengine, Brave, Perplexity). The warm-cache test was
+misleading — the bottleneck is CPU-bound provider discovery, not V8 compilation.
+
+**Upstream issues:**
+- openclaw/openclaw#62364 — slow startup with multiple providers
+- openclaw/openclaw#62051 — worker processes load all plugins
+
+**Removal:** Drop when upstream makes `ensureOpenClawModelsJson` / provider
+discovery truly async (yielding the event loop between providers), or moves
+prewarm to after channel startup natively, or offloads provider discovery
+to a worker thread. Verify by measuring time from "starting channels and
+sidecars…" to "webchat connected" in vendor log — should be <1s without
+this patch if upstream fixed the blocking.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
@@ -211,12 +250,8 @@ making this patch unnecessary. The `requiresExecApproval` function with
 `ask=off` still returns `false` natively, satisfying the core EasyClaw
 requirement.
 
-### (Dropped in v2026.4.11 upgrade) Defer `prewarmConfiguredPrimaryModel`
+### (Restored) Defer `prewarmConfiguredPrimaryModel`
 
-Wrapped `prewarmConfiguredPrimaryModel()` in `setTimeout(15s)`. Initially
-thought necessary for v2026.4.11, but further testing showed: (a) the ~9s
-delay was non-deterministic and correlated with specific build artifacts
-rather than the patch presence, (b) clean builds without the patch show
-375ms sidecars→webchat, (c) the patch actually caused slower startups in
-some builds. Root cause of sporadic slowness remains under investigation
-but is not consistently reproducible and not solved by this patch.
+Previously dropped in commit `e322752` based on warm-cache testing.
+Restored as 0007 after production logs confirmed the ~9s event loop block
+persists with multiple providers. See 0007 entry above for full context.
