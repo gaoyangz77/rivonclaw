@@ -1952,6 +1952,8 @@ export interface ToolParamSpec {
   description: Scalars['String']['output'];
   enumValues?: Maybe<Array<Scalars['String']['output']>>;
   graphqlVar: Scalars['String']['output'];
+  /** True when the parameter accepts a list/array of values */
+  isList?: Maybe<Scalars['Boolean']['output']>;
   name: Scalars['String']['output'];
   required: Scalars['Boolean']['output'];
   type: Scalars['String']['output'];
