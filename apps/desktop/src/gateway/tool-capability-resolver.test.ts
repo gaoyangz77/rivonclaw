@@ -39,12 +39,12 @@ describe("parseScopeType", () => {
     expect(parseScopeType("agent:main:cs:tiktok:conv123")).toBe(ScopeType.CS_SESSION);
   });
 
-  it("returns UNKNOWN for unrecognized format", () => {
-    expect(parseScopeType("random:unknown:key")).toBe(ScopeType.UNKNOWN);
+  it("defaults to CHAT_SESSION for unrecognized format", () => {
+    expect(parseScopeType("random:unknown:key")).toBe(ScopeType.CHAT_SESSION);
   });
 
-  it("returns UNKNOWN for empty string", () => {
-    expect(parseScopeType("")).toBe(ScopeType.UNKNOWN);
+  it("defaults to CHAT_SESSION for empty string", () => {
+    expect(parseScopeType("")).toBe(ScopeType.CHAT_SESSION);
   });
 });
 

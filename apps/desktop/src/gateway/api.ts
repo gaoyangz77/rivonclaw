@@ -26,8 +26,7 @@ const lastToolSignature = new Map<string, string>();
 export function parseScopeType(sessionKey: string): ScopeType {
   if (sessionKey.includes(":cron:")) return ScopeType.CRON_JOB;
   if (sessionKey.includes(":cs:")) return ScopeType.CS_SESSION;
-  if (sessionKey.startsWith("agent:")) return ScopeType.CHAT_SESSION;
-  return ScopeType.UNKNOWN;
+  return ScopeType.CHAT_SESSION;
 }
 
 const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx) => {
