@@ -1,6 +1,11 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { AuthSessionManager } from "../../auth/session.js";
 import type { SnapshotManifest } from "./store.js";
+import {
+  UPLOAD_SESSION_STATE_BACKUP_MUTATION,
+  SESSION_STATE_BACKUP_QUERY,
+  DELETE_SESSION_STATE_BACKUP_MUTATION,
+} from "../../cloud/browser-profile-queries.js";
 
 const log = createLogger("session-backup");
 
@@ -77,9 +82,7 @@ export function createCloudBackupProvider(authSession: AuthSessionManager): Sess
       if (!authSession.getAccessToken()) return false;
       try {
         await authSession.graphqlFetch(
-          `mutation ($profileId: ID!, $manifest: SessionStateBackupManifestInput!, $payload: String!) {
-            uploadSessionStateBackup(profileId: $profileId, manifest: $manifest, payload: $payload)
-          }`,
+          UPLOAD_SESSION_STATE_BACKUP_MUTATION,
           {
             profileId,
             manifest: {
@@ -105,12 +108,7 @@ export function createCloudBackupProvider(authSession: AuthSessionManager): Sess
         const data = await authSession.graphqlFetch<{
           sessionStateBackup: { manifest: SnapshotManifest; payload: string } | null;
         }>(
-          `query ($profileId: ID!) {
-            sessionStateBackup(profileId: $profileId) {
-              manifest { profileId target updatedAt hash cookieCount }
-              payload
-            }
-          }`,
+          SESSION_STATE_BACKUP_QUERY,
           { profileId },
         );
         if (!data.sessionStateBackup) return null;
@@ -128,7 +126,7 @@ export function createCloudBackupProvider(authSession: AuthSessionManager): Sess
       if (!authSession.getAccessToken()) return;
       try {
         await authSession.graphqlFetch(
-          `mutation ($profileId: ID!) { deleteSessionStateBackup(profileId: $profileId) }`,
+          DELETE_SESSION_STATE_BACKUP_MUTATION,
           { profileId },
         );
       } catch (err) {

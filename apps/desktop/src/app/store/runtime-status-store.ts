@@ -68,6 +68,9 @@ export const DesktopRuntimeStatusModel = RuntimeStatusStoreModel.actions((self) 
     self.csBridge.state = "reconnecting";
     self.csBridge.reconnectAttempt = attempt;
   },
+  setDeviceId(id: string) {
+    self.deviceId = id;
+  },
 
   setGatewayRpcConnected(connected: boolean) {
     self.gatewayRpcConnected = connected;

@@ -100,7 +100,6 @@ export function useEscalation(
             },
           },
         });
-        showToast(t("common.saved"), "success");
       } catch (err) {
         handleError(err, "ecommerce.updateFailed");
       } finally {
@@ -129,7 +128,6 @@ export function useEscalation(
           },
         },
       });
-      showToast(t("common.saved"), "success");
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -173,7 +171,6 @@ export function useEscalation(
                   },
                 },
               })
-                .then(() => showToast(t("common.saved"), "success"))
                 .catch((err: unknown) => handleError(err, "ecommerce.updateFailed"))
                 .finally(() => setSavingEscalation(false));
             }

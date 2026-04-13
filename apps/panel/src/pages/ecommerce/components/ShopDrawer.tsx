@@ -1,3 +1,4 @@
+import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
@@ -48,7 +49,7 @@ interface ShopDrawerProps {
   sessionStats: { activeSessions: number; totalSessions: number } | null;
 }
 
-export function ShopDrawer({
+export const ShopDrawer = observer(function ShopDrawer({
   shop,
   isOpen,
   onClose,
@@ -265,4 +266,4 @@ export function ShopDrawer({
       </div>
     </>
   );
-}
+});

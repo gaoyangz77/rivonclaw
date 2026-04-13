@@ -25,6 +25,8 @@ interface StoredUpdate {
 function buildMockServer() {
   /** The version the server considers "latest" at connect time. */
   let storedUpdate: StoredUpdate | null = null;
+  let completeImmediately = false;
+  let subscribeCount = 0;
 
   /** Emitter for runtime (admin) pushes. */
   const pushEmitter = new EventEmitter();
@@ -53,6 +55,22 @@ function buildMockServer() {
             clientVersion: { type: new GraphQLNonNull(GraphQLString) },
           },
           subscribe: (_root, args) => {
+            subscribeCount += 1;
+            if (completeImmediately) {
+              const iterator: AsyncIterableIterator<StoredUpdate> = {
+                next() {
+                  return Promise.resolve({ value: undefined as any, done: true });
+                },
+                return() {
+                  return Promise.resolve({ value: undefined as any, done: true });
+                },
+                [Symbol.asyncIterator]() {
+                  return this;
+                },
+              };
+              return iterator;
+            }
+
             const clientVersion = args.clientVersion as string;
             let done = false;
 
@@ -117,6 +135,15 @@ function buildMockServer() {
     setStoredUpdate(update: StoredUpdate | null) {
       storedUpdate = update;
     },
+    setCompleteImmediately(value: boolean) {
+      completeImmediately = value;
+    },
+    getSubscribeCount() {
+      return subscribeCount;
+    },
+    resetSubscribeCount() {
+      subscribeCount = 0;
+    },
     pushUpdate(payload: StoredUpdate) {
       pushEmitter.emit("push", payload);
     },
@@ -164,6 +191,8 @@ describe("BackendSubscriptionClient", () => {
     client?.disconnect();
     client = null;
     mockServer.setStoredUpdate(null);
+    mockServer.setCompleteImmediately(false);
+    mockServer.resetSubscribeCount();
   });
 
   afterAll(async () => {
@@ -273,5 +302,18 @@ describe("BackendSubscriptionClient", () => {
     await new Promise((r) => setTimeout(r, 1_000));
 
     expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("does not re-subscribe in a loop when the server completes the subscription", async () => {
+    mockServer.setCompleteImmediately(true);
+
+    const c = new BackendSubscriptionClient("en");
+    c.connect(() => "test-token");
+    c.subscribeToUpdates("1.0.0", vi.fn());
+    client = c;
+
+    await new Promise((r) => setTimeout(r, 1500));
+
+    expect(mockServer.getSubscribeCount()).toBe(1);
   });
 });

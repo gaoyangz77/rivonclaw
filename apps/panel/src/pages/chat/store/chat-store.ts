@@ -36,7 +36,7 @@ export const ChatStoreModel = types
         tabs.push({
           key: session.key,
           displayName: session.displayName ?? undefined,
-          derivedTitle: session.customTitle ?? session.derivedTitle ?? undefined,
+          derivedTitle: session.customTitle ?? session.derivedTitle ?? session.localTitle ?? undefined,
           channel: session.channel ?? undefined,
           updatedAt: session.updatedAt ?? undefined,
           kind: session.kind ?? undefined,

@@ -37,7 +37,6 @@ export function useDeviceBinding(shops: Shop[]) {
       await shop.update({
         services: { customerService: { csDeviceId: myDeviceId } },
       });
-      showToast(t("ecommerce.deviceBound"), "success");
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {
@@ -56,7 +55,6 @@ export function useDeviceBinding(shops: Shop[]) {
       await shop.update({
         services: { customerService: { csDeviceId: myDeviceId } },
       });
-      showToast(t("ecommerce.deviceBound"), "success");
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {
@@ -72,7 +70,6 @@ export function useDeviceBinding(shops: Shop[]) {
       await shop.update({
         services: { customerService: { csDeviceId: null } },
       });
-      showToast(t("ecommerce.deviceUnbound"), "success");
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {

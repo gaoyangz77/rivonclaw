@@ -2349,7 +2349,7 @@ describe("terminal guarantee (error/timeout)", () => {
     expect(texts[0]).toBe("Here is your answer so far");
   });
 
-  it("chat error with no forwarded text: fallback message sent to buyer", async () => {
+  it("chat error with no forwarded text: no fallback sent (fail fast)", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-err-2");
@@ -2357,12 +2357,11 @@ describe("terminal guarantee (error/timeout)", () => {
     // No agent text events — run errored before producing output
     chatError(bridge, "run-err-2");
 
-    // Wait for async fallback send
+    // Wait for any async side effects
     await new Promise((r) => setTimeout(r, 10));
 
     const texts = getForwardedTexts();
-    expect(texts).toHaveLength(1);
-    expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+    expect(texts).toHaveLength(0);
   });
 
   it("chat error with previously forwarded text: no fallback sent", async () => {

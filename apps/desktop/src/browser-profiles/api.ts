@@ -6,6 +6,12 @@ import { deleteMaterialized } from "./materializer.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
+import {
+  BROWSER_PROFILE_PROXY_POLICY_QUERY,
+  BROWSER_PROFILE_SESSION_STATE_POLICY_QUERY,
+  UPDATE_BROWSER_PROFILE_MUTATION,
+  DELETE_SESSION_STATE_BACKUP_MUTATION,
+} from "../cloud/browser-profile-queries.js";
 
 /** Find the default Chrome executable path for the current platform. */
 function findDefaultChromePath(): string | null {
@@ -121,7 +127,7 @@ const testProxy: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
     const data = await ctx.authSession.graphqlFetch<{
       browserProfile: { id: string; proxyPolicy?: { enabled: boolean; baseUrl?: string } } | null;
     }>(
-      `query ($id: ID!) { browserProfile(id: $id) { id proxyPolicy { enabled baseUrl } } }`,
+      BROWSER_PROFILE_PROXY_POLICY_QUERY,
       { id: body.id },
     );
 
@@ -225,7 +231,7 @@ const sessionPolicyGet: EndpointHandler = async (_req, res, _url, params, ctx: A
     const data = await ctx.authSession.graphqlFetch<{
       browserProfile: { id: string; sessionStatePolicy: { enabled: boolean; checkpointIntervalSec: number; mode: string; storage: string } } | null;
     }>(
-      `query ($id: ID!) { browserProfile(id: $id) { id sessionStatePolicy { enabled checkpointIntervalSec mode storage } } }`,
+      BROWSER_PROFILE_SESSION_STATE_POLICY_QUERY,
       { id: profileId },
     );
     sendJson(res, 200, data.browserProfile?.sessionStatePolicy ?? defaultPolicy);
@@ -255,7 +261,7 @@ const sessionPolicySet: EndpointHandler = async (req, res, _url, params, ctx: Ap
     const data = await ctx.authSession.graphqlFetch<{
       updateBrowserProfile: { id: string; sessionStatePolicy: { enabled: boolean; checkpointIntervalSec: number; mode: string; storage: string } };
     }>(
-      `mutation ($id: ID!, $input: UpdateBrowserProfileInput!) { updateBrowserProfile(id: $id, input: $input) { id sessionStatePolicy { enabled checkpointIntervalSec mode storage } } }`,
+      UPDATE_BROWSER_PROFILE_MUTATION,
       { id: profileId, input: { sessionStatePolicy: body } },
     );
     sendJson(res, 200, { ok: true, sessionStatePolicy: data.updateBrowserProfile.sessionStatePolicy });
@@ -281,7 +287,7 @@ const deleteData: EndpointHandler = async (_req, res, _url, params, ctx: ApiCont
     // Best-effort cloud backup cleanup
     if (ctx.authSession?.getAccessToken()) {
       ctx.authSession.graphqlFetch(
-        `mutation ($profileId: ID!) { deleteSessionStateBackup(profileId: $profileId) }`,
+        DELETE_SESSION_STATE_BACKUP_MUTATION,
         { profileId },
       ).catch(() => {}); // best-effort
     }

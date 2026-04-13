@@ -190,7 +190,6 @@ export const EcommercePage = observer(function EcommercePage() {
       await shop.update({
         services: { customerService: { enabled: !currentValue } },
       });
-      showToast(t(!currentValue ? "ecommerce.csEnabled" : "ecommerce.csDisabled"), "success");
       // If disabling CS while on the AI CS tab, switch back to overview
       if (currentValue && activeTab === "aiCustomerService") {
         setActiveTab("overview");
@@ -212,7 +211,6 @@ export const EcommercePage = observer(function EcommercePage() {
       await shop.update({
         services: { customerService: { businessPrompt: editBusinessPrompt } },
       });
-      showToast(t("common.saved"), "success");
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -230,7 +228,6 @@ export const EcommercePage = observer(function EcommercePage() {
       await shop.update({
         services: { customerService: { runProfileId: profileId } },
       });
-      showToast(t("common.saved"), "success");
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -252,7 +249,6 @@ export const EcommercePage = observer(function EcommercePage() {
           csModelOverride: model || null,
         } },
       });
-      showToast(t("common.saved"), "success");
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {

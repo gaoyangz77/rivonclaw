@@ -75,6 +75,8 @@ import {
 } from "./lifecycle.js";
 import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
+import { BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY } from "../cloud/browser-profile-queries.js";
+import { TOOL_SPECS_SYNC_QUERY, INIT_ME_QUERY, INIT_SURFACES_QUERY, INIT_RUN_PROFILES_QUERY } from "../cloud/init-queries.js";
 
 const log = createLogger("desktop");
 
@@ -303,8 +305,9 @@ app.whenReady().then(async () => {
   proxyNetwork.setProxyRouterPort(actualProxyRouterPort);
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
 
-  // Now that proxy router is up, validate auth session through it.
+  // Now that proxy router is up, validate auth session and connect backend subscriptions.
   authSession.validate().catch(() => {});
+  backendSubscription.connect(() => authSession.getAccessToken());
 
   // Gateway port: use env override if set (nonzero), otherwise ask OS for a free port.
   const envGatewayPort = resolveGatewayPort();
@@ -850,7 +853,7 @@ app.whenReady().then(async () => {
       const data = await authSession.graphqlFetch<{
         browserProfile: { sessionStatePolicy: BrowserProfileSessionStatePolicy } | null;
       }>(
-        `query ($id: ID!) { browserProfile(id: $id) { sessionStatePolicy { enabled checkpointIntervalSec mode storage } } }`,
+        BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY,
         { id: profileId },
       );
       if (!data.browserProfile?.sessionStatePolicy) return null;
@@ -1410,10 +1413,10 @@ app.whenReady().then(async () => {
         // Desktop needs them independently in case Panel hasn't loaded yet.
         if (authSession) {
           const essentials = [
-            "query ToolSpecsSync { toolSpecs { id name category displayName description surfaces runProfiles graphqlOperation operationType parameters { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList } } } contextBindings { paramName contextField } restMethod restEndpoint restContentType supportedPlatforms } }",
-            "query { me { id email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } }",
-            "query { surfaces { id name userId allowedToolIds } }",
-            "query { runProfiles { id name userId surfaceId selectedToolIds } }",
+            TOOL_SPECS_SYNC_QUERY,
+            INIT_ME_QUERY,
+            INIT_SURFACES_QUERY,
+            INIT_RUN_PROFILES_QUERY,
           ];
           const results = await Promise.allSettled(
             essentials.map(q => authSession.graphqlFetch(q)),

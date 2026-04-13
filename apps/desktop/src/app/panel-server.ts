@@ -169,6 +169,9 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
   // Hydrate runtime-status AppSettings from persisted storage
   runtimeStatusStore.loadAppSettings(storage.settings.getAll());
 
+  // Publish device identity so Panel can derive CS bridge eligibility
+  if (deviceId) runtimeStatusStore.setDeviceId(deviceId);
+
   // Reconcile usage snapshot for the active key on startup
   const activeKeyOnStartup = storage.providerKeys.getActive();
   if (activeKeyOnStartup) {

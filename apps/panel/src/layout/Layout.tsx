@@ -220,12 +220,16 @@ export const Layout = observer(function Layout({
   const showBanner = !!updateInfo;
   const ds = downloadStatus;
 
-  // CS bridge warning: show when ecommerce module is active, shops have CS enabled, and bridge is not connected
+  // CS bridge warning: show when shops need CS on this device but bridge isn't connected.
+  // Derived from entity store + device identity — mirrors CS bridge's syncFromCache() filter.
   const csBridgeState = runtimeStatus.csBridge.state;
   const showCsBridgeBanner =
     csBridgeState !== "connected" &&
-    entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER") &&
-    entityStore.shops.some((s) => s.services?.customerService?.enabled);
+    runtimeStatus.deviceId !== "" &&
+    entityStore.shops.some((s) => {
+      const cs = s.services?.customerService;
+      return cs?.enabled && cs.csDeviceId === runtimeStatus.deviceId && cs.assembledPrompt;
+    });
 
   return (
     <div className="layout-root">

@@ -25,42 +25,14 @@ import { getAuthSession } from "../auth/session-ref.js";
 import { getStorageRef } from "../app/storage-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
+import {
+  SEND_MESSAGE_MUTATION,
+  GET_CONVERSATION_DETAILS_QUERY,
+  GET_BUYER_ORDERS_QUERY,
+  CS_GET_OR_CREATE_SESSION_MUTATION,
+} from "../cloud/cs-queries.js";
 
 const log = createLogger("cs-session");
-
-const SEND_MESSAGE_MUTATION = `
-  mutation($shopId: String!, $conversationId: String!, $type: EcomMessageType!, $content: String!) {
-    ecommerceSendMessage(shopId: $shopId, conversationId: $conversationId, type: $type, content: $content) {
-      messageId
-    }
-  }
-`;
-
-export const GET_CONVERSATION_DETAILS_QUERY = `
-  query($shopId: String!, $conversationId: String!) {
-    ecommerceGetConversationDetails(shopId: $shopId, conversationId: $conversationId) {
-      buyer { userId nickname }
-    }
-  }
-`;
-
-const GET_BUYER_ORDERS_QUERY = `
-  query($shopId: String!, $buyerUserId: String) {
-    ecommerceGetOrders(shopId: $shopId, buyerUserId: $buyerUserId) {
-      items { orderId createTime }
-    }
-  }
-`;
-
-const CS_GET_OR_CREATE_SESSION_MUTATION = `
-  mutation CsGetOrCreateSession($shopId: ID!, $conversationId: String!, $buyerUserId: String!) {
-    csGetOrCreateSession(shopId: $shopId, conversationId: $conversationId, buyerUserId: $buyerUserId) {
-      sessionId
-      isNew
-      balance
-    }
-  }
-`;
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,19 +1,19 @@
 import type { SecretStore } from "@rivonclaw/secrets";
 import { getGraphqlUrl, GQL } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
+import {
+  REFRESH_TOKEN_MUTATION,
+  ME_QUERY,
+  LOGOUT_MUTATION,
+  LOGIN_MUTATION,
+  REGISTER_MUTATION,
+  REQUEST_CAPTCHA_MUTATION,
+} from "../cloud/auth-queries.js";
 
 const log = createLogger("auth-session");
 
 const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
-
-// GraphQL operations (same as panel uses, but as raw strings)
-const REFRESH_TOKEN_MUTATION = `mutation RefreshToken($refreshToken: String!) { refreshToken(refreshToken: $refreshToken) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
-const ME_QUERY = `query Me { me { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } }`;
-const LOGOUT_MUTATION = `mutation Logout($refreshToken: String!) { logout(refreshToken: $refreshToken) }`;
-const LOGIN_MUTATION = `mutation Login($input: LoginInput!) { login(input: $input) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
-const REGISTER_MUTATION = `mutation Register($input: RegisterInput!) { register(input: $input) { accessToken refreshToken user { userId email name plan createdAt enrolledModules entitlementKeys defaultRunProfileId llmKey { key suspendedUntil } } } }`;
-const REQUEST_CAPTCHA_MUTATION = `mutation RequestCaptcha { requestCaptcha { token svg } }`;
 export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
 
 export class AuthSessionManager {

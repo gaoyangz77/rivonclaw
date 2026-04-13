@@ -57,6 +57,8 @@ export const RuntimeStatusStoreModel = types.model("RuntimeStatusStore", {
   appSettings: types.optional(AppSettingsModel, {}),
   gatewayRpcConnected: types.optional(types.boolean, false),
   openClawConnector: types.optional(OpenClawConnectorModel, {}),
+  /** Device identity — set by Desktop at startup, flows to Panel via SSE. */
+  deviceId: types.optional(types.string, ""),
 });
 
 export interface AppSettings extends Instance<typeof AppSettingsModel> {}

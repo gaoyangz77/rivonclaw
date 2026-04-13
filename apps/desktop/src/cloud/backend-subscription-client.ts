@@ -96,7 +96,14 @@ export class BackendSubscriptionClient {
   /** Stored configs for re-subscribing after reconnect. */
   private subscriptionConfigs = new Map<string, SubscriptionConfig>();
 
+  /** Monotonic per-subscription attempt counters for log correlation. */
+  private subscriptionAttemptCounters = new Map<string, number>();
+
   constructor(private readonly locale: string) {}
+
+  isConnected(): boolean {
+    return this.client !== null;
+  }
 
   connect(getToken: () => string | null): void {
     if (this.client) return;
@@ -105,7 +112,6 @@ export class BackendSubscriptionClient {
   }
 
   disconnect(): void {
-    // Unsubscribe all active subscriptions
     for (const unsub of this.activeUnsubscribes.values()) {
       unsub();
     }
@@ -120,6 +126,59 @@ export class BackendSubscriptionClient {
     this.doConnect();
   }
 
+  private nextAttempt(key: string): number {
+    const next = (this.subscriptionAttemptCounters.get(key) ?? 0) + 1;
+    this.subscriptionAttemptCounters.set(key, next);
+    return next;
+  }
+
+  private formatUnknownError(err: unknown): Record<string, unknown> {
+    if (err instanceof Error) {
+      return {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+      };
+    }
+
+    if (typeof err === "object" && err !== null) {
+      const record = err as Record<string, unknown>;
+      return {
+        type: err.constructor?.name ?? "object",
+        message: typeof record.message === "string" ? record.message : undefined,
+        code: record.code,
+        reason: record.reason,
+        details: JSON.stringify(record),
+      };
+    }
+
+    return { value: String(err) };
+  }
+
+  private logUnexpectedResult(
+    key: string,
+    attempt: number,
+    fieldName: string,
+    result: { data?: Record<string, unknown> | null; errors?: Array<{ message?: string }>; extensions?: unknown },
+  ): void {
+    const dataKeys = result.data ? Object.keys(result.data) : [];
+    const errorMessages = result.errors?.map((err) => err.message ?? "(no message)") ?? [];
+    const extensionKeys =
+      result.extensions && typeof result.extensions === "object"
+        ? Object.keys(result.extensions as Record<string, unknown>)
+        : [];
+
+    log.warn("Backend subscription next payload missing expected field", {
+      subscription: key,
+      attempt,
+      expectedField: fieldName,
+      hasData: !!result.data,
+      dataKeys,
+      errorMessages,
+      extensionKeys,
+    });
+  }
+
   /**
    * Subscribe to update-available events. Returns an unsubscribe function.
    */
@@ -132,6 +191,7 @@ export class BackendSubscriptionClient {
 
     const subscribe = (): () => void => {
       if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
 
       return this.client.subscribe<{ updateAvailable: UpdatePayload }>(
         {
@@ -140,22 +200,32 @@ export class BackendSubscriptionClient {
         },
         {
           next: (result) => {
+            if (result.errors?.length) {
+              log.warn("Update subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
             const payload = result.data?.updateAvailable;
-            if (!payload) return;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "updateAvailable", result as any);
+              return;
+            }
             if (!isNewerVersion(currentVersion, payload.version)) {
-              log.info(`Update dismissed: v${payload.version} is not newer than v${currentVersion}`);
               onDismiss?.();
               return;
             }
-            log.info(`Update available via subscription: v${payload.version}`);
             onUpdate(payload);
           },
           error: (err) => {
-            log.error("Update subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
+            log.warn("Update subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
           },
-          complete: () => {
-            log.warn("Update subscription completed by server");
-          },
+          complete: () => {},
         },
       );
     };
@@ -183,6 +253,7 @@ export class BackendSubscriptionClient {
 
     const subscribe = (): () => void => {
       if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
 
       return this.client.subscribe<{ oauthComplete: OAuthCompletePayload }>(
         {
@@ -190,17 +261,28 @@ export class BackendSubscriptionClient {
         },
         {
           next: (result) => {
+            if (result.errors?.length) {
+              log.warn("OAuth subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
             const payload = result.data?.oauthComplete;
-            if (!payload) return;
-            log.info("OAuth complete event received via subscription", { payload });
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "oauthComplete", result as any);
+              return;
+            }
             onComplete(payload);
           },
           error: (err) => {
-            log.error("OAuth subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
+            log.warn("OAuth subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
           },
-          complete: () => {
-            log.warn("OAuth subscription completed by server");
-          },
+          complete: () => {},
         },
       );
     };
@@ -229,6 +311,7 @@ export class BackendSubscriptionClient {
 
     const subscribe = (): () => void => {
       if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
 
       return this.client.subscribe<{ shopUpdated: Record<string, unknown> }>(
         {
@@ -236,17 +319,28 @@ export class BackendSubscriptionClient {
         },
         {
           next: (result) => {
+            if (result.errors?.length) {
+              log.warn("Shop updated subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
             const payload = result.data?.shopUpdated;
-            if (!payload) return;
-            log.info("Shop updated event received via subscription", { shopId: payload.id });
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "shopUpdated", result as any);
+              return;
+            }
             onShopUpdated(payload);
           },
           error: (err) => {
-            log.error("Shop updated subscription error", { error: err instanceof Error ? err.message : JSON.stringify(err) });
+            log.warn("Shop updated subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
           },
-          complete: () => {
-            log.warn("Shop updated subscription completed by server");
-          },
+          complete: () => {},
         },
       );
     };
@@ -283,13 +377,13 @@ export class BackendSubscriptionClient {
         await new Promise((r) => setTimeout(r, delay));
       },
       on: {
-        connected: () => log.info("Backend subscription WebSocket connected"),
-        closed: () => log.info("Backend subscription WebSocket closed"),
-        error: (err) => log.error("Backend subscription WebSocket error", { error: err instanceof Error ? err.message : JSON.stringify(err) }),
+        connected: () => {},
+        closed: () => {},
+        error: (err) => log.warn("Backend subscription WebSocket error (will auto-retry)", this.formatUnknownError(err)),
       },
     });
 
-    // Re-establish previously registered subscriptions (e.g. after disconnect → connect cycle)
+    // Establish previously registered subscriptions (e.g. after disconnect → connect cycle)
     for (const config of this.subscriptionConfigs.values()) {
       const unsub = config.subscribe();
       this.activeUnsubscribes.set(config.key, unsub);

@@ -1,14 +1,11 @@
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
-import { createLogger } from "@rivonclaw/logger";
 import { AuthSessionManager } from "../auth/session.js";
 import { setAuthSession } from "../auth/session-ref.js";
 import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
-import { rootStore, getSnapshot } from "./store/desktop-store.js";
+import { rootStore } from "./store/desktop-store.js";
 import type { pushChatSSE as PushChatSSEFn } from "./panel-server.js";
-
-const log = createLogger("auth-runtime");
 
 export interface SetupAuthDeps {
   storage: Storage;
@@ -39,39 +36,41 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
 
   // Initialize unified backend subscription client (single shared graphql-ws connection)
   const backendSubscription = new BackendSubscriptionClient(locale);
+  let lastSubscriptionToken = authSession.getAccessToken();
 
-  // Connect/disconnect with auth lifecycle
+  // Reconnect/disconnect on auth lifecycle changes (login/logout while app is running).
+  // The initial connect() is deferred until after proxy-router starts (main.ts),
+  // so we skip onUserChanged events that fire before then (e.g. during loadFromKeychain).
   authSession.onUserChanged((user) => {
+    const currentToken = authSession.getAccessToken();
+
+    if (!backendSubscription.isConnected()) {
+      lastSubscriptionToken = currentToken;
+      return; // not yet initialized by main.ts
+    }
+
     if (user) {
-      backendSubscription.connect(() => authSession.getAccessToken());
+      const tokenChanged = currentToken !== lastSubscriptionToken;
+      lastSubscriptionToken = currentToken;
+      if (!tokenChanged) return;
+      backendSubscription.reconnect();
     } else {
+      lastSubscriptionToken = currentToken;
       backendSubscription.disconnect();
     }
   });
 
-  // Initial connect if already authenticated
-  backendSubscription.connect(() => authSession.getAccessToken());
-
   // Subscribe to OAuth completion events
   backendSubscription.subscribeToOAuthComplete((payload) => {
-    log.info("OAuth complete notification received, forwarding to Panel", { payload });
     pushChatSSE("oauth-complete", payload);
   });
 
   // Subscribe to shop-updated events (server push → MST upsert → SSE → Panel auto-updates)
   backendSubscription.subscribeToShopUpdated((shopData) => {
     const shopId = (shopData as any).id as string;
-    const existing = rootStore.shops.find((s: any) => s.id === shopId);
-    const before = existing ? JSON.stringify(getSnapshot(existing)) : null;
-
     rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
-
-    const updated = rootStore.shops.find((s: any) => s.id === shopId);
-    const after = updated ? JSON.stringify(getSnapshot(updated)) : null;
-
-    if (before !== after) {
-      pushChatSSE("shop-updated", { shopId, shopName: updated?.shopName ?? shopId });
-    }
+    const shop = rootStore.shops.find((s: any) => s.id === shopId);
+    pushChatSSE("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
   });
 
   return { authSession, backendSubscription };

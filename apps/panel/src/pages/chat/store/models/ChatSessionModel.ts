@@ -43,6 +43,8 @@ export const ChatSessionModel = types
 
     // Custom user-given title (null = use gateway derivedTitle)
     customTitle: types.maybeNull(types.string),
+    /** Auto-generated from first message text — used until gateway derivedTitle arrives. */
+    localTitle: types.maybeNull(types.string),
 
     // Per-session run state
     runState: types.optional(ChatRunStateModel, {}),
@@ -110,6 +112,9 @@ export const ChatSessionModel = types
     },
     setKind(k: string | null) {
       self.kind = k;
+    },
+    setLocalTitle(t: string | null) {
+      self.localTitle = t;
     },
     setPendingImages(imgs: PendingImage[]) {
       self.pendingImages.replace(imgs);

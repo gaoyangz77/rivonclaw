@@ -264,11 +264,9 @@ export class CustomerServiceBridge {
         session!.abortedRunIds.delete(payload.runId);
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
       } else if (payload.state === "error") {
-        // Non-aborted error: send fallback if no text was forwarded during this run
-        if (!this.forwardedRuns.has(payload.runId) && session) {
-          log.warn(`Agent run ${payload.runId} ended with error and no text was forwarded, sending fallback to buyer`);
-          session.forwardTextToBuyer("I'm sorry, I wasn't able to complete my response. Please try again.")
-            .catch((err) => log.error("Failed to forward fallback error message:", err));
+        // Non-aborted error: log only, no fallback — fail fast so issues surface immediately
+        if (!this.forwardedRuns.has(payload.runId)) {
+          log.warn(`Agent run ${payload.runId} ended with error and no text was forwarded`);
         } else {
           log.warn(`Agent run ${payload.runId} ended with error (text was previously forwarded)`);
         }
@@ -465,6 +463,7 @@ export class CustomerServiceBridge {
 
   private async connect(): Promise<void> {
     if (this.closed) return;
+    if (this.shopContexts.size === 0) return; // no shops need CS
 
     let token = getAuthSession()?.getAccessToken() ?? null;
 
@@ -560,6 +559,7 @@ export class CustomerServiceBridge {
 
   private scheduleReconnect(): void {
     if (this.closed) return;
+    if (this.shopContexts.size === 0) return; // intentional disconnect, no shops need CS
 
     const baseDelay = 1000;
     const maxDelay = 5000;

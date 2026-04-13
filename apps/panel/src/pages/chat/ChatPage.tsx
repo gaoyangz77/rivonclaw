@@ -101,6 +101,7 @@ const ChatPageInner = observer(function ChatPageInner({
   // --- Auto-scroll ---
   const stickyRef = useRef(true);
   const shouldInstantScrollRef = useRef(true);
+  const lastAutoScrollRef = useRef(0);
 
   const scrollToBottom = useCallback(() => {
     const el = messagesContainerRef.current;
@@ -108,20 +109,22 @@ const ChatPageInner = observer(function ChatPageInner({
       el.scrollTop = el.scrollHeight - el.clientHeight;
     }
     stickyRef.current = true;
+    lastAutoScrollRef.current = Date.now();
   }, []);
 
-  // Sync scroll hints from controller
+  // Sync scroll hints from controller (one-shot flags, consumed on read)
   useEffect(() => {
     if (controller.shouldInstantScroll) {
       shouldInstantScrollRef.current = true;
       controller.shouldInstantScroll = false;
     }
-    if (controller.sticky) {
+    if (controller.stickyHint) {
       stickyRef.current = true;
+      controller.stickyHint = false;
     }
   });
 
-  // Scroll on new messages or streaming changes
+  // Scroll on new committed messages (not streaming deltas)
   useEffect(() => {
     if (isLoadingMoreRef.current) return;
     if (shouldInstantScrollRef.current) {
@@ -130,7 +133,16 @@ const ChatPageInner = observer(function ChatPageInner({
     } else if (stickyRef.current) {
       scrollToBottom();
     }
-  }, [messages.length, streaming, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
+
+  // Throttled scroll during streaming — keep up with output without
+  // fighting the user's scroll position.  Only fires when sticky.
+  useEffect(() => {
+    if (!streaming || !stickyRef.current || isLoadingMoreRef.current) return;
+    const now = Date.now();
+    if (now - lastAutoScrollRef.current < 300) return; // throttle to ~3 Hz
+    scrollToBottom();
+  }, [streaming, scrollToBottom]);
 
   // Preserve scroll position after revealing older messages
   useLayoutEffect(() => {
