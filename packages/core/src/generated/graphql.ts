@@ -306,6 +306,22 @@ export interface EcomCsPerformance {
   uniqueBuyers?: Maybe<Scalars['Int']['output']>;
 }
 
+/** Cancellation status filter for searching cancellations */
+export const EcomCancelStatusFilter = {
+  CancellationRequestCancel: 'CANCELLATION_REQUEST_CANCEL',
+  CancellationRequestComplete: 'CANCELLATION_REQUEST_COMPLETE',
+  CancellationRequestPending: 'CANCELLATION_REQUEST_PENDING',
+  CancellationRequestSuccess: 'CANCELLATION_REQUEST_SUCCESS'
+} as const;
+
+export type EcomCancelStatusFilter = typeof EcomCancelStatusFilter[keyof typeof EcomCancelStatusFilter];
+/** Cancellation type filter for searching cancellations */
+export const EcomCancelTypeFilter = {
+  BuyerCancel: 'BUYER_CANCEL',
+  Cancel: 'CANCEL'
+} as const;
+
+export type EcomCancelTypeFilter = typeof EcomCancelTypeFilter[keyof typeof EcomCancelTypeFilter];
 /** Buyer- or system-initiated order cancellation request */
 export interface EcomCancellation {
   cancelId: Scalars['String']['output'];
@@ -716,6 +732,28 @@ export interface EcomReturnRecord {
   role?: Maybe<Scalars['String']['output']>;
 }
 
+/** Return status filter for searching returns */
+export const EcomReturnStatusFilter = {
+  AwaitingBuyerResponse: 'AWAITING_BUYER_RESPONSE',
+  AwaitingBuyerShip: 'AWAITING_BUYER_SHIP',
+  BuyerShippedItem: 'BUYER_SHIPPED_ITEM',
+  RefundOrReturnRequestReject: 'REFUND_OR_RETURN_REQUEST_REJECT',
+  RejectReceivePackage: 'REJECT_RECEIVE_PACKAGE',
+  ReturnOrRefundRequestCancel: 'RETURN_OR_REFUND_REQUEST_CANCEL',
+  ReturnOrRefundRequestComplete: 'RETURN_OR_REFUND_REQUEST_COMPLETE',
+  ReturnOrRefundRequestPending: 'RETURN_OR_REFUND_REQUEST_PENDING',
+  ReturnOrRefundRequestSuccess: 'RETURN_OR_REFUND_REQUEST_SUCCESS'
+} as const;
+
+export type EcomReturnStatusFilter = typeof EcomReturnStatusFilter[keyof typeof EcomReturnStatusFilter];
+/** Return type filter for searching returns */
+export const EcomReturnTypeFilter = {
+  Refund: 'REFUND',
+  Replacement: 'REPLACEMENT',
+  ReturnAndRefund: 'RETURN_AND_REFUND'
+} as const;
+
+export type EcomReturnTypeFilter = typeof EcomReturnTypeFilter[keyof typeof EcomReturnTypeFilter];
 /** Send message result */
 export interface EcomSendMessageResult {
   /** Platform message ID of the sent message, if returned */
@@ -747,8 +785,8 @@ export type EcomSortOrder = typeof EcomSortOrder[keyof typeof EcomSortOrder];
 /** Tracking event */
 export interface EcomTrackingEvent {
   description?: Maybe<Scalars['String']['output']>;
-  /** Update time in Unix milliseconds (TikTok returns `update_time_millis`; preserved as-is). */
-  updateTimeMillis?: Maybe<Scalars['Int']['output']>;
+  /** Update time in Unix milliseconds (TikTok returns `update_time_millis`; preserved as-is). Float because millis exceed 32-bit Int range. */
+  updateTimeMillis?: Maybe<Scalars['Float']['output']>;
 }
 
 /** Result of updating a shop through the agent-facing resolver */
@@ -1435,8 +1473,8 @@ export interface QueryEcommerceGetReturnRecordsArgs {
 
 export interface QueryEcommerceSearchCancellationsArgs {
   cancelIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  cancelStatus?: InputMaybe<Array<Scalars['String']['input']>>;
-  cancelTypes?: InputMaybe<Array<Scalars['String']['input']>>;
+  cancelStatus?: InputMaybe<Array<EcomCancelStatusFilter>>;
+  cancelTypes?: InputMaybe<Array<EcomCancelTypeFilter>>;
   createTimeGe?: InputMaybe<Scalars['Float']['input']>;
   createTimeLt?: InputMaybe<Scalars['Float']['input']>;
   orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -1477,8 +1515,8 @@ export interface QueryEcommerceSearchReturnsArgs {
   pageSize?: InputMaybe<Scalars['Float']['input']>;
   pageToken?: InputMaybe<Scalars['String']['input']>;
   returnIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  returnStatus?: InputMaybe<Array<Scalars['String']['input']>>;
-  returnTypes?: InputMaybe<Array<Scalars['String']['input']>>;
+  returnStatus?: InputMaybe<Array<EcomReturnStatusFilter>>;
+  returnTypes?: InputMaybe<Array<EcomReturnTypeFilter>>;
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
