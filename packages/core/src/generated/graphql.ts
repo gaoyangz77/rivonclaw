@@ -308,6 +308,7 @@ export interface EcomCsPerformance {
 
 /** Cancellation status filter for searching cancellations */
 export const EcomCancelStatusFilter = {
+  All: 'ALL',
   CancellationRequestCancel: 'CANCELLATION_REQUEST_CANCEL',
   CancellationRequestComplete: 'CANCELLATION_REQUEST_COMPLETE',
   CancellationRequestPending: 'CANCELLATION_REQUEST_PENDING',
@@ -317,6 +318,7 @@ export const EcomCancelStatusFilter = {
 export type EcomCancelStatusFilter = typeof EcomCancelStatusFilter[keyof typeof EcomCancelStatusFilter];
 /** Cancellation type filter for searching cancellations */
 export const EcomCancelTypeFilter = {
+  All: 'ALL',
   BuyerCancel: 'BUYER_CANCEL',
   Cancel: 'CANCEL'
 } as const;
@@ -734,6 +736,7 @@ export interface EcomReturnRecord {
 
 /** Return status filter for searching returns */
 export const EcomReturnStatusFilter = {
+  All: 'ALL',
   AwaitingBuyerResponse: 'AWAITING_BUYER_RESPONSE',
   AwaitingBuyerShip: 'AWAITING_BUYER_SHIP',
   BuyerShippedItem: 'BUYER_SHIPPED_ITEM',
@@ -748,6 +751,7 @@ export const EcomReturnStatusFilter = {
 export type EcomReturnStatusFilter = typeof EcomReturnStatusFilter[keyof typeof EcomReturnStatusFilter];
 /** Return type filter for searching returns */
 export const EcomReturnTypeFilter = {
+  All: 'ALL',
   Refund: 'REFUND',
   Replacement: 'REPLACEMENT',
   ReturnAndRefund: 'RETURN_AND_REFUND'
