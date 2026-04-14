@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -22,9 +22,14 @@ const VENDOR_FILE = resolve(
   "../../../../vendor/openclaw/src/agents/pi-model-discovery.ts",
 );
 
-/** Guard: skip the entire suite when the vendor source is absent. */
-function isVendorAvailable(): boolean {
-  return existsSync(VENDOR_FILE);
+/** Guard: skip when vendor source is absent or patch 0008 is not applied. */
+function isVendorPatched(): boolean {
+  try {
+    const src = readFileSync(VENDOR_FILE, "utf-8");
+    return src.includes("OC_COMPAT_AUTH_MODES") && src.includes("_origValidateConfig");
+  } catch {
+    return false;
+  }
 }
 
 // ── Stub out transitive vendor dependencies ──────────────────────────
@@ -55,7 +60,7 @@ vi.mock("../../../../vendor/openclaw/src/agents/pi-auth-credentials.js", () => (
   resolvePiCredentialMapFromStore: () => ({}),
 }));
 
-const runOrSkip = isVendorAvailable() ? describe : describe.skip;
+const runOrSkip = isVendorPatched() ? describe : describe.skip;
 
 // Minimal model entry shape returned by Pi SDK ModelRegistry.getAll()
 interface PiModelEntry {
@@ -206,6 +211,59 @@ runOrSkip(
         (m) => m.provider === "oauth-provider",
       );
       expect(oauthModels.length).toBeGreaterThanOrEqual(1);
+    });
+
+    /**
+     * Scenario C: auth: "aws-sdk" provider does not break custom models
+     *
+     * Proves the compat shim covers all three auth modes, not just token.
+     */
+    it('auth: "aws-sdk" provider does not prevent custom models from loading', async () => {
+      const piDiscovery = await import(VENDOR_FILE);
+
+      tmpDir = mkdtempSync(join(tmpdir(), "pi-compat-aws-"));
+      const modelsJson = {
+        providers: {
+          "bedrock": {
+            baseUrl: "https://bedrock-runtime.us-east-1.amazonaws.com",
+            auth: "aws-sdk",
+            api: "anthropic-messages",
+            models: [
+              { id: "anthropic.claude-sonnet", name: "Claude Sonnet", input: ["text", "image"] },
+            ],
+          },
+          "test-custom-3": {
+            baseUrl: "https://api.example.com/v1",
+            api: "openai-completions",
+            apiKey: "test-key-789",
+            models: [
+              { id: "vision-model", name: "Vision Model", input: ["text", "image"] },
+            ],
+          },
+        },
+      };
+      writeFileSync(
+        join(tmpDir, "models.json"),
+        JSON.stringify(modelsJson, null, 2),
+      );
+
+      const authStorage = (piDiscovery.AuthStorage as { inMemory: (data: object) => unknown }).inMemory({});
+      const registry = piDiscovery.discoverModels(authStorage as never, tmpDir);
+      const all = registry.getAll() as PiModelEntry[];
+
+      // test-custom-3 models must survive
+      const testCustomModels = all.filter(
+        (m) => m.provider === "test-custom-3",
+      );
+      expect(testCustomModels.length).toBeGreaterThanOrEqual(1);
+
+      const visionModel = testCustomModels.find((m) => m.id === "vision-model");
+      expect(visionModel).toBeDefined();
+      expect(visionModel!.input).toContain("image");
+
+      // bedrock models should also be present
+      const bedrockModels = all.filter((m) => m.provider === "bedrock");
+      expect(bedrockModels.length).toBeGreaterThanOrEqual(1);
     });
   },
 );
