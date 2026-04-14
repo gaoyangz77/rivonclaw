@@ -42,6 +42,7 @@ import {
   PAGE_SIZE,
   extractText,
   localizeError,
+  mergeTerminalError,
   parseRawMessages,
   cleanDerivedTitle,
   isHiddenSession,
@@ -105,6 +106,13 @@ export class ChatGatewayController {
   private onAgentNameChange: ((name: string | null) => void) | null = null;
   // Timer maps — timers are side effects that don't belong in MST
   private finalFallbackTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private lifecycleErrors = new Map<string, string>();
+  /**
+   * Panel-memory cache of terminal run errors that should survive message list
+   * replacements (loadHistory/switchSession/fetchMore).  Keyed by sessionKey.
+   * Cleared when a new run starts for the session or on session reset.
+   */
+  private terminalErrors = new Map<string, { runId: string; text: string; timestamp: number }>();
   private recentlyCompletedTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // Scroll hints — one-shot flags consumed by ChatPage on each render
   shouldInstantScroll = false;
@@ -335,6 +343,7 @@ export class ChatGatewayController {
             }]);
           }
           clearImages(sessionKey).catch(() => {});
+          this.terminalErrors.delete(sessionKey);
           this.clearTimersForSession(sessionKey);
           this.runStateFor(sessionKey).resetAll();
         },
@@ -483,7 +492,13 @@ export class ChatGatewayController {
             const phase = agentPayload.data?.phase;
             if (phase === "start") bgRs.markLifecycleStart(bgRunId);
             else if (phase === "end") this.startFallbackTimer(agentPayload.sessionKey!, bgRunId);
-            else if (phase === "error") this.startFallbackTimer(agentPayload.sessionKey!, bgRunId);
+            else if (phase === "error") {
+              const lcError = agentPayload.data?.error;
+              if (typeof lcError === "string" && lcError) {
+                this.lifecycleErrors.set(bgRunId, lcError);
+              }
+              this.startFallbackTimer(agentPayload.sessionKey!, bgRunId);
+            }
           } else if (stream === "assistant") {
             bgRs.markAssistantStream(bgRunId);
           }
@@ -571,7 +586,13 @@ export class ChatGatewayController {
         const phase = agentPayload.data?.phase;
         if (phase === "start") rs.markLifecycleStart(agentRunId);
         else if (phase === "end") this.startFallbackTimer(activeKey, agentRunId);
-        else if (phase === "error") this.startFallbackTimer(activeKey, agentRunId);
+        else if (phase === "error") {
+          const lcError = agentPayload.data?.error;
+          if (typeof lcError === "string" && lcError) {
+            this.lifecycleErrors.set(agentRunId, lcError);
+          }
+          this.startFallbackTimer(activeKey, agentRunId);
+        }
       } else if (stream === "assistant") {
         rs.markAssistantStream(agentRunId);
       }
@@ -640,6 +661,7 @@ export class ChatGatewayController {
             break;
           case "error":
             this.clearFallbackTimer(bgRunId);
+            this.lifecycleErrors.delete(bgRunId);
             bgRs.failRun(bgRunId);
             this.markRunRecentlyCompleted(payload.sessionKey, bgRunId);
             break;
@@ -681,6 +703,7 @@ export class ChatGatewayController {
           break;
         case "error":
           this.clearFallbackTimer(chatRunId);
+          this.lifecycleErrors.delete(chatRunId);
           rs.failRun(chatRunId);
           this.markRunRecentlyCompleted(activeKey, chatRunId);
           break;
@@ -732,7 +755,10 @@ export class ChatGatewayController {
           console.error("[chat] error event:", payload.errorMessage ?? "unknown error", "runId:", chatRunId);
           const raw = payload.errorMessage ?? this.t("chat.unknownError");
           const errText = localizeError(raw, this.tFn!);
-          session.appendMessage({ role: "assistant", text: `\u26A0 ${errText}`, timestamp: Date.now() });
+          const renderedText = `\u26A0 ${errText}`;
+          const errorTs = Date.now();
+          session.appendMessage({ role: "assistant", text: renderedText, timestamp: errorTs });
+          this.terminalErrors.set(activeKey, { runId: chatRunId!, text: renderedText, timestamp: errorTs });
           session.runState.setLastAgentStream(null);
           if (session.runState.externalPending) {
             session.runState.setExternalPending(false);
@@ -823,11 +849,18 @@ export class ChatGatewayController {
         if (partialText?.trim()) {
           session.appendMessage({ role: "assistant", text: partialText, timestamp: Date.now() });
         }
-        session.appendMessage({
-          role: "assistant",
-          text: `\u26A0 ${this.t("chat.stalledError")}`,
-          timestamp: Date.now(),
-        });
+        const lifecycleError = this.lifecycleErrors.get(runId);
+        this.lifecycleErrors.delete(runId);
+        const errorText = lifecycleError
+          ? localizeError(lifecycleError, this.tFn!)
+          : this.t("chat.stalledError");
+        const renderedText = `\u26A0 ${errorText}`;
+        const errorTs = Date.now();
+        session.appendMessage({ role: "assistant", text: renderedText, timestamp: errorTs });
+        // Cache so the error survives loadHistory/switchSession message replacement
+        if (lifecycleError) {
+          this.terminalErrors.set(sessionKey, { runId, text: renderedText, timestamp: errorTs });
+        }
       }
 
       targetRs.forceDone(runId);
@@ -851,6 +884,8 @@ export class ChatGatewayController {
       clearTimeout(timer);
     }
     this.finalFallbackTimers.clear();
+    this.lifecycleErrors.clear();
+    this.terminalErrors.clear();
   }
 
   /**
@@ -990,7 +1025,8 @@ export class ChatGatewayController {
 
           let parsed = parseRawMessages(result?.messages);
           parsed = await restoreImages(key, parsed).catch(() => parsed);
-          session.setMessages(parsed);
+          const merged = mergeTerminalError(parsed, this.terminalErrors.get(key));
+          session.setMessages(merged);
           session.setAllFetched(parsed.length < FETCH_BATCH);
         } catch {
           // Fetch failure — start with empty
@@ -1308,6 +1344,7 @@ export class ChatGatewayController {
     session.clearPendingImages();
 
     const sendRs = this.activeRunState;
+    this.terminalErrors.delete(activeKey);
     sendRs.beginLocalRun(idempotencyKey, activeKey);
 
     session.runState.setLastActivity(Date.now());
@@ -1387,6 +1424,7 @@ export class ChatGatewayController {
         }]);
       }
       clearImages(activeKey).catch(() => {});
+      this.terminalErrors.delete(activeKey);
       this.clearTimersForSession(activeKey);
       this.activeRunState.resetAll();
       const sess = this.store.activeSession;
@@ -1408,6 +1446,7 @@ export class ChatGatewayController {
         session.setMessages([]);
       }
       clearImages(sessionKey).catch(() => {});
+      this.terminalErrors.delete(sessionKey);
       this.clearTimersForSession(sessionKey);
       this.runStateFor(sessionKey).resetAll();
       const sess = this.store.sessions.get(sessionKey);
@@ -1456,7 +1495,8 @@ export class ChatGatewayController {
       session.setAllFetched(parsed.length < FETCH_BATCH);
       this.shouldInstantScroll = true;
       this.stickyHint = true;
-      session.setMessages(parsed);
+      const merged = mergeTerminalError(parsed, this.terminalErrors.get(activeKey));
+      session.setMessages(merged);
       session.setVisibleCount(INITIAL_VISIBLE);
     } catch {
       // Non-fatal
@@ -1489,7 +1529,8 @@ export class ChatGatewayController {
       }
 
       if (parsed.length > oldCount) {
-        session.setMessages(parsed);
+        const merged = mergeTerminalError(parsed, this.terminalErrors.get(this.store.activeSessionKey));
+        session.setMessages(merged);
         session.setVisibleCount(oldCount + PAGE_SIZE);
       }
     } catch {

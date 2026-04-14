@@ -3,7 +3,8 @@
  * injection when the gateway strips image data from history.
  */
 import { describe, it, expect } from "vitest";
-import { parseRawMessages, IMAGE_EXPIRED_PLACEHOLDER } from "../../src/pages/chat/chat-utils.js";
+import { parseRawMessages, IMAGE_EXPIRED_PLACEHOLDER, localizeError, mergeTerminalError } from "../../src/pages/chat/chat-utils.js";
+import type { ChatMessage } from "../../src/pages/chat/chat-utils.js";
 
 describe("parseRawMessages — stripped image handling", () => {
   it("appends expired placeholder when content has image blocks with empty data", () => {
@@ -94,5 +95,108 @@ describe("parseRawMessages — stripped image handling", () => {
     const textMsg = result.find((m) => m.role === "assistant" && m.text.includes("here is the image"));
     expect(textMsg).toBeDefined();
     expect(textMsg!.text).toContain(IMAGE_EXPIRED_PLACEHOLDER);
+  });
+});
+
+describe("localizeError", () => {
+  const t = (key: string) => key;
+
+  it("maps Anthropic extra usage error to billing i18n key", () => {
+    const result = localizeError(
+      "LLM request rejected: You're out of extra usage. Add more at claude.ai/settings/usage",
+      t,
+    );
+    expect(result).toBe("chat.errorBilling");
+  });
+
+  it("maps 'run out of credits' to billing i18n key", () => {
+    expect(localizeError("run out of credits", t)).toBe("chat.errorBilling");
+  });
+
+  it("maps 'insufficient balance' to billing i18n key", () => {
+    expect(localizeError("insufficient balance on your account", t)).toBe("chat.errorBilling");
+  });
+
+  it("maps rate limit error to rate limit i18n key", () => {
+    expect(localizeError("temporarily overloaded, try again", t)).toBe("chat.errorRateLimit");
+  });
+
+  it("maps auth failure to auth i18n key", () => {
+    expect(localizeError("unauthorized: invalid API key", t)).toBe("chat.errorAuth");
+  });
+
+  it("maps timeout error to timeout i18n key", () => {
+    expect(localizeError("request timed out after 30s", t)).toBe("chat.errorTimeout");
+  });
+
+  it("maps context overflow to context overflow i18n key", () => {
+    expect(localizeError("context length exceeded", t)).toBe("chat.errorContextOverflow");
+  });
+
+  it("returns raw error string when no pattern matches", () => {
+    const raw = "Something completely unexpected happened";
+    expect(localizeError(raw, t)).toBe(raw);
+  });
+});
+
+describe("mergeTerminalError", () => {
+  it("appends error when not present in messages", () => {
+    const messages: ChatMessage[] = [
+      { role: "user", text: "hello", timestamp: 1000 },
+    ];
+    const error = { runId: "r1", text: "\u26A0 billing error", timestamp: 2000 };
+    const result = mergeTerminalError(messages, error);
+    expect(result).toHaveLength(2);
+    expect(result[1].text).toBe("\u26A0 billing error");
+    expect(result[1].role).toBe("assistant");
+    expect(result[1].timestamp).toBe(2000);
+  });
+
+  it("does not duplicate when error text already present", () => {
+    const messages: ChatMessage[] = [
+      { role: "user", text: "hello", timestamp: 1000 },
+      { role: "assistant", text: "\u26A0 billing error", timestamp: 2000 },
+    ];
+    const error = { runId: "r1", text: "\u26A0 billing error", timestamp: 2000 };
+    const result = mergeTerminalError(messages, error);
+    expect(result).toHaveLength(2);
+    expect(result).toBe(messages); // same reference — no copy made
+  });
+
+  it("returns original array unchanged when no cached error", () => {
+    const messages: ChatMessage[] = [
+      { role: "user", text: "hello", timestamp: 1000 },
+    ];
+    const result = mergeTerminalError(messages, undefined);
+    expect(result).toBe(messages);
+  });
+
+  it("re-adds error after loadHistory replaces messages (simulated)", () => {
+    // Gateway history never contains synthesized errors, so loadHistory
+    // wipes them.  mergeTerminalError restores the cached error.
+    const gatewayHistory: ChatMessage[] = [
+      { role: "user", text: "hello", timestamp: 1000 },
+    ];
+    const cachedError = { runId: "r1", text: "\u26A0 API key expired", timestamp: 2000 };
+    const result = mergeTerminalError(gatewayHistory, cachedError);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBe(gatewayHistory[0]); // original msg preserved
+    expect(result[1].text).toBe("\u26A0 API key expired");
+  });
+
+  it("does not match user messages for dedup (only assistant)", () => {
+    // A user message with the same text should not prevent the error from being added
+    const messages: ChatMessage[] = [
+      { role: "user", text: "\u26A0 billing error", timestamp: 1000 },
+    ];
+    const error = { runId: "r1", text: "\u26A0 billing error", timestamp: 2000 };
+    const result = mergeTerminalError(messages, error);
+    expect(result).toHaveLength(2);
+  });
+
+  it("handles empty message list", () => {
+    const result = mergeTerminalError([], { runId: "r1", text: "\u26A0 error", timestamp: 1000 });
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("\u26A0 error");
   });
 });

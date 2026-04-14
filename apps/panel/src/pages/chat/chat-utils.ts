@@ -301,7 +301,7 @@ export const NO_PROVIDER_RE = /no\s+(llm\s+)?provider|no\s+api\s*key|provider\s+
 const ERROR_I18N_MAP: Array<{ pattern: RegExp; key: string }> = [
   { pattern: NO_PROVIDER_RE, key: "chat.noProviderError" },
   { pattern: /temporarily overloaded|rate.?limit/i, key: "chat.errorRateLimit" },
-  { pattern: /billing error|run out of credits|insufficient balance/i, key: "chat.errorBilling" },
+  { pattern: /billing error|run out of credits|insufficient balance|out of extra usage/i, key: "chat.errorBilling" },
   { pattern: /timed?\s*out/i, key: "chat.errorTimeout" },
   { pattern: /context overflow|prompt too large|context length exceeded/i, key: "chat.errorContextOverflow" },
   { pattern: /unauthorized|invalid.*(?:key|token)|authentication/i, key: "chat.errorAuth" },
@@ -454,6 +454,23 @@ export function parseRawMessages(
     }
   }
   return parsed;
+}
+
+/**
+ * Merge a cached terminal error back into a message list after history reload.
+ * Returns a new array with the error appended if it's not already present;
+ * returns the original array unchanged if the error is already there or cache is empty.
+ */
+export function mergeTerminalError(
+  messages: ChatMessage[],
+  error: { text: string; timestamp: number } | undefined,
+): ChatMessage[] {
+  if (!error) return messages;
+  const alreadyPresent = messages.some(
+    (m) => m.role === "assistant" && m.text === error.text,
+  );
+  if (alreadyPresent) return messages;
+  return [...messages, { role: "assistant", text: error.text, timestamp: error.timestamp }];
 }
 
 // ---------------------------------------------------------------------------
