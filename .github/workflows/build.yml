@@ -204,6 +204,7 @@ jobs:
 
       - name: Build macOS arm64 DMG + ZIP
         run: |
+          ulimit -n 65536
           cd apps/desktop
           pnpm run dist:mac:arm64
         env:
@@ -308,6 +309,7 @@ jobs:
 
       - name: Build macOS x64 DMG + ZIP
         run: |
+          ulimit -n 65536
           cd apps/desktop
           pnpm run dist:mac:x64
         env:
