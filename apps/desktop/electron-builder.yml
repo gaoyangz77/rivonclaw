@@ -80,23 +80,15 @@ mac:
   extendInfo:
     LSUIElement: true
   target:
-    - target: dmg
-      arch: universal
-    - target: zip
-      arch: universal
+    - dmg
+    - zip
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: entitlements.mac.plist
   entitlementsInherit: entitlements.mac.plist
   identity: null
   notarize: false
-  # Vendor node_modules may contain Mach-O binaries (sharp, koffi, etc.)
-  # that are identical in both x64/arm64 builds. Tell the universal
-  # merge to skip lipo for these files. Two vendor patterns are needed:
-  # 1) .pnpm/** — minimatch doesn't match dotfiles with **, so .pnpm
-  #    must be named explicitly
-  # 2) **     — covers non-dotfile paths (@img/sharp-*, etc.)
-  x64ArchFiles: "Contents/Resources/{vendor/openclaw/node_modules/.pnpm/**,vendor/openclaw/node_modules/**,app.asar.unpacked/node_modules/better-sqlite3/**}"
+  artifactName: "${productName}-${version}-${arch}.${ext}"
 dmg:
   background: build/dmg-background.png
   iconSize: 80

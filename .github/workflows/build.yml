@@ -163,10 +163,6 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      # Post-prune cache: contains the production-ready dist/, pruned
-      # node_modules, modified .gitignore, and stripped dist-runtime/ after
-      # prune-vendor-deps.cjs has run. When this hits, prune sees .pruned
-      # marker and skips, saving ~2-5 min per build.
       - name: Cache vendor prod
         id: cache-vendor-prod
         uses: actions/cache@v4
@@ -191,17 +187,39 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Build macOS arm64 app
+      # Import code signing certificate (when secrets are configured)
+      - name: Import Code Signing Certificate
+        if: ${{ env.MACOS_CERTIFICATE != '' }}
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+      - name: Build macOS arm64 DMG + ZIP
         run: |
           cd apps/desktop
-          pnpm run dist:mac:dir:arm64
+          pnpm run dist:mac:arm64
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Upload arm64 app
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: macos-arm64-app
-          path: apps/desktop/release/mac-arm64/
-          retention-days: 7
+          name: macos-arm64-installers
+          path: |
+            apps/desktop/release/*-arm64*.dmg
+            apps/desktop/release/*-arm64*.zip
+            apps/desktop/release/*-arm64*.blockmap
+          retention-days: 30
 
   build-macos-x64:
     runs-on: macos-latest
@@ -249,10 +267,6 @@ jobs:
           path: vendor/openclaw/dist
           key: vendor-dist-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}
 
-      # Post-prune cache: contains the production-ready dist/, pruned
-      # node_modules, modified .gitignore, and stripped dist-runtime/ after
-      # prune-vendor-deps.cjs has run. When this hits, prune sees .pruned
-      # marker and skips, saving ~2-5 min per build.
       - name: Cache vendor prod
         id: cache-vendor-prod
         uses: actions/cache@v4
@@ -277,69 +291,6 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Build macOS x64 app
-        run: |
-          cd apps/desktop
-          pnpm run dist:mac:dir:x64
-
-      - name: Upload x64 app
-        uses: actions/upload-artifact@v6
-        with:
-          name: macos-x64-app
-          path: apps/desktop/release/mac/
-          retention-days: 7
-
-  package-macos:
-    runs-on: macos-latest
-    needs: [build-macos-arm64, build-macos-x64]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-
-      # pnpm needs vendor/openclaw to exist (lockfile has file:vendor/openclaw)
-      - name: Clone OpenClaw vendor
-        run: |
-          HASH=$(tr -d '[:space:]' < .openclaw-version)
-          git clone --depth 1 https://github.com/openclaw/openclaw.git vendor/openclaw
-          cd vendor/openclaw
-          git fetch --depth 1 origin "$HASH"
-          git checkout "$HASH"
-          git checkout -B main
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download arm64 app
-        uses: actions/download-artifact@v6
-        with:
-          name: macos-arm64-app
-          path: apps/desktop/release/mac-arm64/
-
-      - name: Download x64 app
-        uses: actions/download-artifact@v6
-        with:
-          name: macos-x64-app
-          path: apps/desktop/release/mac/
-
-      - name: Restore macOS binary permissions
-        run: |
-          chmod +x "apps/desktop/release/mac-arm64/RivonClaw.app/Contents/MacOS/RivonClaw"
-          chmod +x "apps/desktop/release/mac/RivonClaw.app/Contents/MacOS/RivonClaw"
-
-      - name: Merge universal app
-        run: |
-          cd apps/desktop
-          pnpm run dist:mac:universal:merge
-
       # Import code signing certificate (when secrets are configured)
       - name: Import Code Signing Certificate
         if: ${{ env.MACOS_CERTIFICATE != '' }}
@@ -355,12 +306,11 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
-      - name: Package DMG + ZIP
+      - name: Build macOS x64 DMG + ZIP
         run: |
           cd apps/desktop
-          pnpm run dist:mac:universal:package
+          pnpm run dist:mac:x64
         env:
-          # Notarization credentials (optional, only if configured)
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -368,12 +318,11 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: macos-installers
+          name: macos-x64-installers
           path: |
-            apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
-            apps/desktop/release/*.zip.blockmap
-            apps/desktop/release/latest-mac.yml
+            apps/desktop/release/*-x64*.dmg
+            apps/desktop/release/*-x64*.zip
+            apps/desktop/release/*-x64*.blockmap
           retention-days: 30
 
   build-linux:
@@ -467,7 +416,7 @@ jobs:
           retention-days: 30
 
   create-release:
-    needs: [build-windows, package-macos, build-linux]
+    needs: [build-windows, build-macos-arm64, build-macos-x64, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -493,10 +442,16 @@ jobs:
           name: windows-installers
           path: artifacts/windows
 
-      - name: Download macOS artifacts
+      - name: Download macOS arm64 artifacts
         uses: actions/download-artifact@v6
         with:
-          name: macos-installers
+          name: macos-arm64-installers
+          path: artifacts/macos
+
+      - name: Download macOS x64 artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-x64-installers
           path: artifacts/macos
 
       - name: Download Linux artifacts
