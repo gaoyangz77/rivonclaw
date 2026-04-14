@@ -99,6 +99,8 @@ export const DEFAULTS = {
     defaultBrowserCdpPort: 9222,
     audioMaxBytes: 25 * 1024 * 1024, // 25 MB
     audioTimeoutSeconds: 300, // 5 min
+    compactionNotifyUser: false,
+    messagesSuppressToolErrors: true,
   },
 
   permissions: {

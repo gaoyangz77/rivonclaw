@@ -672,6 +672,35 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
+  // Compaction defaults — pin user-visible behavior so upstream default
+  // changes don't silently alter the product experience on messaging channels.
+  // notifyUser: false prevents "🧹 Compacting context..." messages from
+  // reaching external channel users (Telegram, WhatsApp, etc.).
+  {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    const existingCompaction =
+      typeof existingDefaults.compaction === "object" && existingDefaults.compaction !== null
+        ? (existingDefaults.compaction as Record<string, unknown>)
+        : {};
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        compaction: {
+          ...existingCompaction,
+          notifyUser: DEFAULTS.gatewayConfig.compactionNotifyUser,
+        },
+      },
+    };
+  }
+
   // Tools profile — RivonClaw is a desktop app with full agent capabilities.
   // OpenClaw v2026.3.2 defaults new installs to "messaging" (no file/exec tools).
   // RivonClaw needs "full" so file permissions, rules, and exec all work.
@@ -1122,6 +1151,20 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         rotateBytes: DEFAULTS.gatewayConfig.sessionMaintenanceRotateBytes,
         maxDiskBytes: DEFAULTS.gatewayConfig.sessionMaintenanceMaxDiskBytes,
       },
+    };
+  }
+
+  // Messages defaults — suppress internal tool error details from reaching
+  // external channel users. Without this, stack traces and internal paths
+  // from failed tool executions are forwarded to Telegram/WhatsApp/etc.
+  {
+    const existingMessages =
+      typeof config.messages === "object" && config.messages !== null
+        ? (config.messages as Record<string, unknown>)
+        : {};
+    config.messages = {
+      ...existingMessages,
+      suppressToolErrors: DEFAULTS.gatewayConfig.messagesSuppressToolErrors,
     };
   }
 

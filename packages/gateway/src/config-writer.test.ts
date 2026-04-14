@@ -1491,4 +1491,120 @@ describe("config-writer", () => {
       expect(config.session.reset.mode).toBe("idle");
     });
   });
+
+  describe("writeGatewayConfig - compaction defaults", () => {
+    it("writes agents.defaults.compaction.notifyUser as false", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+    });
+
+    it("preserves existing compaction fields alongside notifyUser", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              compaction: {
+                mode: "safeguard",
+                recentTurnsPreserve: 5,
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+      expect(config.agents.defaults.compaction.mode).toBe("safeguard");
+      expect(config.agents.defaults.compaction.recentTurnsPreserve).toBe(5);
+    });
+
+    it("overwrites pre-existing notifyUser value", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              compaction: {
+                notifyUser: true,
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+    });
+
+    it("preserves other agents.defaults fields alongside compaction", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "openai", modelId: "gpt-4o" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
+      expect(config.agents.defaults.blockStreamingDefault).toBe("on");
+      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
+      expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+    });
+  });
+
+  describe("writeGatewayConfig - messages defaults", () => {
+    it("writes messages.suppressToolErrors as true", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.messages.suppressToolErrors).toBe(true);
+    });
+
+    it("preserves existing messages fields alongside suppressToolErrors", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          messages: {
+            ackReaction: "👀",
+            queue: { mode: "collect" },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.messages.suppressToolErrors).toBe(true);
+      expect(config.messages.ackReaction).toBe("👀");
+      expect(config.messages.queue.mode).toBe("collect");
+    });
+
+    it("overwrites pre-existing suppressToolErrors value", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          messages: {
+            suppressToolErrors: false,
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.messages.suppressToolErrors).toBe(true);
+    });
+  });
 });
