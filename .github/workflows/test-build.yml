@@ -74,6 +74,7 @@ jobs:
 
       - name: Test macOS build (no signing)
         run: |
+          ulimit -n 65536
           cd apps/desktop
           pnpm run pack
         env:
