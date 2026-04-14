@@ -1,0 +1,82 @@
+From bd219b6c61b10d5f3a7293b2d40988f132f97769 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 13 Apr 2026 18:23:52 -0700
+Subject: [PATCH] vendor(openclaw): narrow monkey-patch Pi validateConfig for
+ auth-mode providers
+
+Why:
+- Pi SDK ModelRegistry.validateConfig() requires apiKey for any provider
+  with models, but OpenClaw generates providers with auth: "token"/"oauth"/
+  "aws-sdk" and no apiKey (e.g. codex OAuth provider).
+- This all-or-nothing rejection drops ALL custom models from the catalog,
+  breaking image capability detection for unrelated providers.
+- The patch temporarily injects synthetic apiKey during validation only,
+  removing it in a finally block before parseModels runs, so the registry
+  runtime state never sees fake credentials.
+
+Removal:
+- When Pi SDK accepts auth: "token"/"oauth"/"aws-sdk" as valid
+  alternatives to apiKey in validateConfig
+
+Tests:
+- apps/desktop/src/gateway/vendor-pi-compat-validation.sentinel.test.ts
+---
+ src/agents/pi-model-discovery.ts | 42 ++++++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/src/agents/pi-model-discovery.ts b/src/agents/pi-model-discovery.ts
+index a8b9453789..836275bfbc 100644
+--- a/src/agents/pi-model-discovery.ts
++++ b/src/agents/pi-model-discovery.ts
+@@ -23,6 +23,48 @@ import { resolvePiCredentialMapFromStore, type PiCredentialMap } from "./pi-auth
+ const PiAuthStorageClass = PiCodingAgent.AuthStorage;
+ const PiModelRegistryClass = PiCodingAgent.ModelRegistry;
+ 
++// Pi SDK compatibility: ModelRegistry.validateConfig() requires apiKey for
++// any provider with models, but OpenClaw legitimately generates providers
++// with auth: "token"/"oauth"/"aws-sdk" and no apiKey (e.g. codex OAuth).
++// This all-or-nothing rejection drops ALL custom models from the catalog.
++// Patch: temporarily inject a synthetic apiKey during validation only,
++// then remove it immediately after so it never enters runtime state.
++const OC_COMPAT_AUTH_MODES = new Set(["token", "oauth", "aws-sdk"]);
++type OcCompatProviderCfg = { models?: unknown[]; apiKey?: string; auth?: string };
++type OcCompatValidateConfig = (config: { providers: Record<string, OcCompatProviderCfg> }) => void;
++const _origValidateConfig = (PiModelRegistryClass.prototype as unknown as Record<string, unknown>)
++  .validateConfig as OcCompatValidateConfig | undefined;
++if (typeof _origValidateConfig === "function") {
++  (PiModelRegistryClass.prototype as unknown as Record<string, OcCompatValidateConfig>)
++    .validateConfig = function validateConfig(
++    this: unknown,
++    config: { providers: Record<string, OcCompatProviderCfg> },
++  ): void {
++    // Collect providers that need temporary apiKey for validation
++    const shimmed: Array<{ cfg: OcCompatProviderCfg; hadKey: boolean }> = [];
++    for (const providerCfg of Object.values(config.providers)) {
++      if (
++        Array.isArray(providerCfg.models) &&
++        providerCfg.models.length > 0 &&
++        !providerCfg.apiKey &&
++        typeof providerCfg.auth === "string" &&
++        OC_COMPAT_AUTH_MODES.has(providerCfg.auth)
++      ) {
++        shimmed.push({ cfg: providerCfg, hadKey: false });
++        providerCfg.apiKey = `__oc_compat_${providerCfg.auth}`;
++      }
++    }
++    try {
++      _origValidateConfig.call(this, config);
++    } finally {
++      // Always restore: remove synthetic apiKey so it never enters runtime state
++      for (const { cfg } of shimmed) {
++        delete cfg.apiKey;
++      }
++    }
++  };
++}
++
+ export { PiAuthStorageClass as AuthStorage, PiModelRegistryClass as ModelRegistry };
+ 
+ type ProviderRuntimeModelLike = Model<Api> & {
+-- 
+2.50.1 (Apple Git-155)
+
