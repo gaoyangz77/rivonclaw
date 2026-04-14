@@ -234,6 +234,16 @@ jobs:
             apps/desktop/release/*-arm64*.blockmap
           retention-days: 30
 
+      - name: Rename latest-mac.yml for arm64
+        run: mv apps/desktop/release/latest-mac.yml apps/desktop/release/latest-mac-arm64.yml
+
+      - name: Upload update metadata
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-arm64-update-meta
+          path: apps/desktop/release/latest-mac-arm64.yml
+          retention-days: 30
+
   build-macos-x64:
     runs-on: macos-latest
     steps:
@@ -349,6 +359,16 @@ jobs:
             apps/desktop/release/*-x64*.dmg
             apps/desktop/release/*-x64*.zip
             apps/desktop/release/*-x64*.blockmap
+          retention-days: 30
+
+      - name: Rename latest-mac.yml for x64
+        run: mv apps/desktop/release/latest-mac.yml apps/desktop/release/latest-mac-x64.yml
+
+      - name: Upload update metadata
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-x64-update-meta
+          path: apps/desktop/release/latest-mac-x64.yml
           retention-days: 30
 
   build-linux:
@@ -478,6 +498,18 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: macos-x64-installers
+          path: artifacts/macos
+
+      - name: Download macOS arm64 update metadata
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-arm64-update-meta
+          path: artifacts/macos
+
+      - name: Download macOS x64 update metadata
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-x64-update-meta
           path: artifacts/macos
 
       - name: Download Linux artifacts
