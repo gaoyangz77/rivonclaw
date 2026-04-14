@@ -28,6 +28,13 @@ export const RunEntryModel = types
      */
     flushedOffset: 0,
     startedAt: types.number,
+    /**
+     * True for runs whose terminal event arrives via mirror SSE (non-webchat
+     * channels like Telegram, Feishu, Mobile).  The controller should NOT
+     * start a FINAL_FALLBACK timer for these runs — their lifecycle.end is
+     * converted into a synthetic chat.final by the mirror handler.
+     */
+    expectsMirrorFinal: false,
   });
 
 export type IRunEntry = Instance<typeof RunEntryModel>;
@@ -175,7 +182,7 @@ export const ChatRunStateModel = types
       });
     },
 
-    beginExternalRun(runId: string, sessionKey: string, source: RunSource) {
+    beginExternalRun(runId: string, sessionKey: string, source: RunSource, expectsMirrorFinal = false) {
       self.runs.put({
         runId,
         source,
@@ -185,6 +192,7 @@ export const ChatRunStateModel = types
         streaming: null,
         flushedOffset: 0,
         startedAt: Date.now(),
+        expectsMirrorFinal,
       });
     },
 

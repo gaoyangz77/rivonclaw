@@ -790,4 +790,45 @@ describe("ChatRunStateModel", () => {
       expect(rs.getRun("r1")!.phase).toBe("done");
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // expectsMirrorFinal flag
+  // ---------------------------------------------------------------------------
+  describe("expectsMirrorFinal", () => {
+    it("defaults to false for local runs", () => {
+      const rs = createRunState();
+      rs.beginLocalRun("r1", "s1");
+      expect(rs.getRun("r1")!.expectsMirrorFinal).toBe(false);
+    });
+
+    it("defaults to false for external runs without flag", () => {
+      const rs = createRunState();
+      rs.beginExternalRun("r1", "s1", "telegram");
+      expect(rs.getRun("r1")!.expectsMirrorFinal).toBe(false);
+    });
+
+    it("is true when explicitly set on external run", () => {
+      const rs = createRunState();
+      rs.beginExternalRun("r1", "s1", "unknown", true);
+      expect(rs.getRun("r1")!.expectsMirrorFinal).toBe(true);
+    });
+
+    it("mirror-final run can still be finalized normally", () => {
+      const rs = createRunState();
+      rs.beginExternalRun("r1", "s1", "unknown", true);
+      rs.markLifecycleStart("r1");
+      rs.finalizeRun("r1");
+      expect(rs.getRun("r1")!.phase).toBe("done");
+      expect(rs.isActive).toBe(false);
+    });
+
+    it("mirror-final run that is already done is not affected by forceDone", () => {
+      const rs = createRunState();
+      rs.beginExternalRun("r1", "s1", "unknown", true);
+      rs.markLifecycleStart("r1");
+      rs.finalizeRun("r1");
+      rs.forceDone("r1"); // should be no-op since already done
+      expect(rs.getRun("r1")!.phase).toBe("done");
+    });
+  });
 });
