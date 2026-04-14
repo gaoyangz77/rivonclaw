@@ -160,7 +160,8 @@ pnpm format:fix         # Auto-fix formatting (oxfmt, runs directly)
 pnpm --filter @rivonclaw/desktop dev        # Launch Electron in dev mode
 pnpm --filter @rivonclaw/desktop build      # Bundle main process
 pnpm --filter @rivonclaw/desktop test       # Run desktop tests
-pnpm --filter @rivonclaw/desktop dist:mac   # Build macOS DMG (universal)
+pnpm --filter @rivonclaw/desktop dist:mac:arm64  # Build macOS DMG (arm64)
+pnpm --filter @rivonclaw/desktop dist:mac:x64    # Build macOS DMG (x64)
 pnpm --filter @rivonclaw/desktop dist:win   # Build Windows NSIS installer
 
 # Panel
@@ -238,12 +239,14 @@ The panel server exposes these endpoints:
 
 The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces the vendor file count and size via esbuild bundling and node_modules pruning. Vendor is copied into the installer via `extraResources` — the source `vendor/openclaw/` is never modified.
 
-### macOS (DMG, universal arm64+x64)
+### macOS (DMG, per-arch)
 
 ```bash
 pnpm build
-pnpm --filter @rivonclaw/desktop dist:mac
-# Output: apps/desktop/release/RivonClaw-<version>-universal.dmg
+pnpm --filter @rivonclaw/desktop dist:mac:arm64   # Apple Silicon
+pnpm --filter @rivonclaw/desktop dist:mac:x64     # Intel
+# Output: apps/desktop/release/RivonClaw-<version>-arm64.dmg
+#         apps/desktop/release/RivonClaw-<version>-x64.dmg
 ```
 
 For code signing and notarization, set these environment variables:

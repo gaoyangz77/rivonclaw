@@ -160,7 +160,8 @@ pnpm format:fix         # 自动修复格式（oxfmt，直接运行）
 pnpm --filter @rivonclaw/desktop dev        # 以开发模式启动 Electron
 pnpm --filter @rivonclaw/desktop build      # 打包主进程
 pnpm --filter @rivonclaw/desktop test       # 运行 desktop 测试
-pnpm --filter @rivonclaw/desktop dist:mac   # 构建 macOS DMG（universal）
+pnpm --filter @rivonclaw/desktop dist:mac:arm64  # 构建 macOS DMG（arm64）
+pnpm --filter @rivonclaw/desktop dist:mac:x64    # 构建 macOS DMG（x64）
 pnpm --filter @rivonclaw/desktop dist:win   # 构建 Windows NSIS 安装包
 
 # Panel
@@ -237,12 +238,14 @@ pnpm --filter @rivonclaw/gateway test
 
 `dist:mac` 和 `dist:win` 脚本会在打包前自动剪裁并打包 `vendor/openclaw`。通过 esbuild 打包和 node_modules 裁剪来减少 vendor 文件数量和体积。Vendor 通过 `extraResources` 复制进安装包——源目录 `vendor/openclaw/` 不会被修改。
 
-### macOS（DMG，universal arm64+x64）
+### macOS（DMG，按架构分别构建）
 
 ```bash
 pnpm build
-pnpm --filter @rivonclaw/desktop dist:mac
-# 输出：apps/desktop/release/RivonClaw-<version>-universal.dmg
+pnpm --filter @rivonclaw/desktop dist:mac:arm64   # Apple Silicon
+pnpm --filter @rivonclaw/desktop dist:mac:x64     # Intel
+# 输出：apps/desktop/release/RivonClaw-<version>-arm64.dmg
+#       apps/desktop/release/RivonClaw-<version>-x64.dmg
 ```
 
 代码签名和公证需设置以下环境变量：

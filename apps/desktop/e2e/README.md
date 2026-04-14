@@ -117,7 +117,7 @@ pnpm run pack
 E2E_EXECUTABLE_PATH=release/mac-arm64/RivonClaw.app/Contents/MacOS/RivonClaw \
   pnpm run test:e2e:prod
 
-# macOS (universal/x64):
+# macOS (arm64/x64):
 E2E_EXECUTABLE_PATH=release/mac/RivonClaw.app/Contents/MacOS/RivonClaw \
   pnpm run test:e2e:prod
 

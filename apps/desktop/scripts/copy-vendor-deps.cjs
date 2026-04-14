@@ -101,7 +101,7 @@ exports.default = async function copyVendorDeps(context) {
   console.log(`  from: ${vendorSrc}`);
   console.log(`  to:   ${vendorDest}`);
 
-  // Native binaries (.node, .dylib) that break macOS universal merge.
+  // Native binaries (.node, .dylib) that are architecture-specific.
   // Exception: sharp/koffi/davey are required at runtime.
   const SKIP_NATIVE_EXTS = new Set([".node", ".dylib"]);
   const ALLOWED_NATIVE_PATTERNS = [
