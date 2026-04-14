@@ -86,7 +86,7 @@ mac:
   gatekeeperAssess: false
   entitlements: entitlements.mac.plist
   entitlementsInherit: entitlements.mac.plist
-  identity: null
+  identity: "-"
   notarize: false
   artifactName: "${productName}-${version}-${arch}.${ext}"
 dmg:
