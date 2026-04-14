@@ -82,11 +82,17 @@ mac:
   target:
     - dmg
     - zip
-  hardenedRuntime: true
+  hardenedRuntime: false
   gatekeeperAssess: false
   entitlements: entitlements.mac.plist
   entitlementsInherit: entitlements.mac.plist
+  # Ad-hoc sign so macOS doesn't reject the app as "damaged".
   identity: "-"
+  # Skip signing files that can't be signed (vendor binaries with
+  # unsupported formats, git objects, etc.)
+  signIgnore:
+    - "vendor/openclaw/node_modules"
+    - "extensions-merchant"
   notarize: false
   artifactName: "${productName}-${version}-${arch}.${ext}"
 dmg:
