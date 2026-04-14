@@ -1445,4 +1445,50 @@ describe("config-writer", () => {
       expect(config.channels.feishu.accounts.default.streaming).toBe("off");
     });
   });
+
+  describe("writeGatewayConfig - session maintenance", () => {
+    it("writes session.maintenance with enforce mode and limits", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.session.maintenance).toEqual({
+        mode: "enforce",
+        pruneAfter: "30d",
+        maxEntries: 200,
+        rotateBytes: "10mb",
+        maxDiskBytes: "50mb",
+      });
+    });
+
+    it("preserves session.reset alongside maintenance", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.session.reset).toEqual({
+        mode: "idle",
+        idleMinutes: 43200,
+      });
+      expect(config.session.maintenance.mode).toBe("enforce");
+    });
+
+    it("preserves existing session fields not managed by EasyClaw", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          session: { dmScope: "per-account-channel-peer", scope: "global" },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.session.dmScope).toBe("per-account-channel-peer");
+      expect(config.session.scope).toBe("global");
+      expect(config.session.maintenance.mode).toBe("enforce");
+      expect(config.session.reset.mode).toBe("idle");
+    });
+  });
 });

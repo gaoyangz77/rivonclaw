@@ -1099,10 +1099,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
   }
 
-  // Session reset policy — RivonClaw is a desktop app; users expect chat
-  // history to persist across days.  Override OpenClaw's default "daily"
-  // reset (which clears context at 04:00 local time) with a long idle
+  // Session policy — reset + maintenance.
+  // Reset: RivonClaw is a desktop app; users expect chat history to persist
+  // across days.  Override OpenClaw's default "daily" reset with a long idle
   // timeout so sessions only reset after extended inactivity.
+  // Maintenance: enable "enforce" mode so OpenClaw automatically prunes stale
+  // sessions, caps entry count, rotates oversized store files, and enforces a
+  // disk budget.  Without this, the default "warn" mode never cleans up,
+  // causing sessions.json and transcript files to grow indefinitely.
   {
     const existingSession =
       typeof config.session === "object" && config.session !== null
@@ -1111,6 +1115,13 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     config.session = {
       ...existingSession,
       reset: { mode: DEFAULTS.gatewayConfig.sessionResetMode, idleMinutes: DEFAULTS.gatewayConfig.sessionResetIdleMinutes },
+      maintenance: {
+        mode: DEFAULTS.gatewayConfig.sessionMaintenanceMode,
+        pruneAfter: DEFAULTS.gatewayConfig.sessionMaintenancePruneAfter,
+        maxEntries: DEFAULTS.gatewayConfig.sessionMaintenanceMaxEntries,
+        rotateBytes: DEFAULTS.gatewayConfig.sessionMaintenanceRotateBytes,
+        maxDiskBytes: DEFAULTS.gatewayConfig.sessionMaintenanceMaxDiskBytes,
+      },
     };
   }
 
