@@ -8,7 +8,7 @@
  *   - "agent:*"   → CHAT_SESSION (trusted — system tools fallback)
  *   - "*:cron:*"  → CRON_JOB    (trusted)
  *   - "*:cs:*"    → CS_SESSION  (untrusted)
- *   - everything else → UNKNOWN (untrusted — empty tools)
+ *   - everything else → CHAT_SESSION (trusted — system tools fallback)
  *
  * Without backend auth, no RunProfiles exist in the store, so these tests
  * exercise scope trust logic and the run-profile binding API contract.
@@ -20,8 +20,8 @@ test.describe("Tool Visibility — Capability Resolver", () => {
     window: _window,
     apiBase,
   }) => {
-    // Session key without "agent:" prefix → UNKNOWN scope (untrusted).
-    // No session profile, no default profile → empty tools.
+    // Any session key defaults to CHAT_SESSION (trusted scope).
+    // No session profile, no default profile → trusted fallback returns system tools.
     const res = await fetch(
       `${apiBase}/api/tools/effective-tools?sessionKey=test-no-selection`,
     );
@@ -30,8 +30,11 @@ test.describe("Tool Visibility — Capability Resolver", () => {
     const body = (await res.json()) as { effectiveToolIds: string[] };
     const ids = body.effectiveToolIds;
 
-    // Untrusted scope without a RunProfile → no tools
-    expect(ids).toHaveLength(0);
+    // Trusted scope without a RunProfile → system tools returned
+    expect(ids).toContain("read");
+    expect(ids).toContain("write");
+    expect(ids).toContain("exec");
+    expect(ids.length).toBeGreaterThan(0);
   });
 
   test("only read tools selected → write not in effective tools", async ({
