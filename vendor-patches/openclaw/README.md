@@ -239,6 +239,29 @@ to a worker thread. Verify by measuring time from "starting channels and
 sidecars…" to "webchat connected" in vendor log — should be <1s without
 this patch if upstream fixed the blocking.
 
+### 0008 — Id-only catalog fallback in `resolveGatewayModelSupportsImages`
+
+**File:** `0008-vendor-openclaw-fallback-to-id-only-catalog-match-in.patch`
+
+**Why:** Pi SDK's `ModelRegistry.validateConfig()` has an all-or-nothing
+behavior: if ANY provider in models.json has models but no `apiKey` (e.g.
+codex with `auth:token`), it rejects the ENTIRE models.json. This silently
+drops ALL custom models from the catalog, including correctly configured
+providers like `rivonclaw-pro`. When `resolveGatewayModelSupportsImages`
+cannot find the custom provider's entry, it returns `false` and images are
+dropped from messages.
+
+**Change:** Add a nullish coalescing fallback to the catalog lookup in
+`resolveGatewayModelSupportsImages`. When exact provider+model match fails
+AND a provider was specified, try a second id-only lookup. This allows the
+function to find the same model under a built-in provider (e.g.
+`openai/gpt-5.4` instead of `rivonclaw-pro/gpt-5.4`) and use its `input`
+capabilities.
+
+**Removal:** Drop when Pi SDK fixes `validateConfig` to accept `auth:token`
+as an alternative to `apiKey`, or stops using all-or-nothing rejection for
+the models.json catalog (upstream issue TBD).
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
