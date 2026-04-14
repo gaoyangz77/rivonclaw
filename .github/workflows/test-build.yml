@@ -75,6 +75,17 @@ jobs:
       - name: Test macOS build (no signing)
         run: |
           cd apps/desktop
-          npx electron-builder --dir --config.mac.identity=null
+          pnpm run pack:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Validate macOS bundle
+        run: |
+          APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
+          VENDOR="$APP/Contents/Resources/vendor/openclaw"
+          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
+          test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
+          FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
+          echo "Vendor dir: $FILE_COUNT files"
+          test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
+          echo "PASS"

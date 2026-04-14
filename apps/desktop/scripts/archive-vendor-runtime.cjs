@@ -62,12 +62,36 @@ const version = hash.digest("hex").slice(0, 12);
 console.log(`[archive-vendor-runtime] Version key: ${version}`);
 
 // ─── Create tar.gz archive ───
-// Archive from WITHIN vendor/openclaw so paths are relative (openclaw.mjs, node_modules/..., etc.)
+// Explicit include list: only runtime-required payload. This avoids shipping
+// .git (455MB), .github, CI configs, and other repo metadata.
+const RUNTIME_INCLUDES = [
+  "openclaw.mjs",
+  "package.json",
+  "dist",
+  "dist-runtime",
+  "docs",
+  "extensions",
+  "packages",
+  "node_modules",
+];
+
+// Verify at least the entry point exists before archiving
+if (!fs.existsSync(path.join(vendorDir, "openclaw.mjs"))) {
+  console.error("[archive-vendor-runtime] FAIL: vendor/openclaw/openclaw.mjs not found. Is vendor set up?");
+  process.exit(1);
+}
+
+// Build the include arguments — only add paths that actually exist
+const includeArgs = RUNTIME_INCLUDES
+  .filter((p) => fs.existsSync(path.join(vendorDir, p)))
+  .map((p) => `"${p}"`)
+  .join(" ");
+
 console.log(`[archive-vendor-runtime] Creating archive at ${archivePath}...`);
 const startMs = Date.now();
 
 execSync(
-  `tar -czf "${archivePath}" -C "${vendorDir}" --exclude="./vendor-runtime.tar.gz" --exclude="./vendor-runtime-manifest.json" .`,
+  `tar -czf "${archivePath}" -C "${vendorDir}" ${includeArgs}`,
   { stdio: "inherit", timeout: 300_000 },
 );
 
