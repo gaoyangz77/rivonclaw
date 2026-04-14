@@ -1021,8 +1021,14 @@ test.describe("Crons Page", () => {
     const modal = await openCreateForm(window);
     await fillName(modal, "Backdrop Close Test");
 
-    // Click outside modal content (top-left of backdrop)
-    await modal.click({ position: { x: 5, y: 5 } });
+    // Click outside modal content (top-left of backdrop).
+    // The modal backdrop requires both mousedown AND mouseup on the backdrop
+    // area — use the same explicit sequence as dismissModals().
+    const box = await modal.boundingBox();
+    expect(box).toBeTruthy();
+    await window.mouse.move(box!.x + 5, box!.y + 5);
+    await window.mouse.down();
+    await window.mouse.up();
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
     // No job created
