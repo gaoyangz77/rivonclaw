@@ -428,6 +428,36 @@ if (fs.existsSync(gitignorePath)) {
   }
 }
 
+// 4f: Remove orphaned dist-runtime extension wrappers.
+// dist-runtime/extensions/ contains ESM wrappers that re-export from
+// dist/extensions/. If an extension is removed from dist/ but its wrapper
+// survives in dist-runtime/, the gateway logs repeated "failed to load"
+// warnings. Compare the two directories and remove any dist-runtime entry
+// that has no corresponding dist entry.
+const distRuntimeExtDir = path.join(vendorDir, "dist-runtime", "extensions");
+const distExtDir = path.join(vendorDir, "dist", "extensions");
+if (fs.existsSync(distRuntimeExtDir)) {
+  const runtimeEntries = fs.readdirSync(distRuntimeExtDir, { withFileTypes: true });
+  const distEntries = fs.existsSync(distExtDir)
+    ? new Set(
+        fs.readdirSync(distExtDir, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => e.name),
+      )
+    : new Set();
+  for (const entry of runtimeEntries) {
+    if (!entry.isDirectory()) continue;
+    if (distEntries.has(entry.name)) continue;
+    const full = path.join(distRuntimeExtDir, entry.name);
+    const size = dirSize(full);
+    const count = fileCount(full);
+    fs.rmSync(full, { recursive: true, force: true });
+    phase4Bytes += size;
+    phase4Files += count;
+    console.log(`  removed orphaned dist-runtime wrapper: ${entry.name}`);
+  }
+}
+
 console.log(`  stripped ${phase4Files} files (${(phase4Bytes / 1024 / 1024).toFixed(0)}MB) from dist-runtime/ and extensions/`);
 
 // ─── Phase 5: write .pruned marker ───

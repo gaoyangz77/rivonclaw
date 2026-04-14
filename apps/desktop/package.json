@@ -19,14 +19,14 @@
     "test:e2e:prod": "playwright test --config e2e/playwright.config.ts",
     "pack:__NOTE__": "WARNING: 'pack' skips rebuild-native and prune-vendor-deps, so vendor/openclaw/node_modules will be incomplete and the gateway will fail to start. Use scripts/test-local.sh for a working packaged build.",
     "pack": "electron-builder --dir",
-    "dist:mac": "node scripts/prune-vendor-deps.cjs && electron-builder --mac --publish never",
-    "dist:mac:arm64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac dmg --arm64 --publish never && node scripts/sign-arm64.cjs",
-    "dist:mac:dir:arm64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac --dir --arm64 --publish never",
-    "dist:mac:dir:x64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac --dir --x64 --publish never",
+    "dist:mac": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --mac --publish never",
+    "dist:mac:arm64": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --mac dmg --arm64 --publish never && node scripts/sign-arm64.cjs",
+    "dist:mac:dir:arm64": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --mac --dir --arm64 --publish never",
+    "dist:mac:dir:x64": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --mac --dir --x64 --publish never",
     "dist:mac:universal:merge": "node scripts/merge-universal-mac.cjs",
     "dist:mac:universal:package": "electron-builder --mac --prepackaged release/mac-universal/RivonClaw.app --publish never",
-    "dist:win": "node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.yml --publish never",
-    "dist:linux": "node scripts/prune-vendor-deps.cjs && electron-builder --linux --config electron-builder.linux.yml --publish never"
+    "dist:win": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.yml --publish never",
+    "dist:linux": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --linux --config electron-builder.linux.yml --publish never"
   },
   "dependencies": {
     "@rivonclaw/core": "workspace:*",
