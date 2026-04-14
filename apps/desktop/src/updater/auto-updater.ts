@@ -208,7 +208,8 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     // TODO: remove this block once Apple developer certificate is approved.
     if (process.platform === "darwin") {
       const file = latestUpdateInfo.files.find(f => f.url.endsWith(".dmg"));
-      const fileName = file?.url ?? `RivonClaw-${latestUpdateInfo.version}-universal.dmg`;
+      const arch = process.arch === "arm64" ? "arm64" : "x64";
+      const fileName = file?.url ?? `RivonClaw-${latestUpdateInfo.version}-${arch}.dmg`;
       const downloadUrl = `${updateFeedUrl}/${fileName}`;
       log.info(`macOS: opening browser for update download: ${downloadUrl}`);
       shell.openExternal(downloadUrl);
