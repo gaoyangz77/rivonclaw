@@ -29,16 +29,12 @@ const vendorNM = ["vendor", "openclaw", "node_modules"].join("/");
 const x64ArchFiles =
   `Contents/Resources/{${vendorNM}/.pnpm/**,${vendorNM}/**,app.asar.unpacked/node_modules/better-sqlite3/**}`;
 
-// Plain (non-Mach-O) files that differ between arm64/x64 builds due to
-// timestamps or runner-specific values. @electron/universal's x64ArchFiles
-// only exempts Mach-O binaries, so we must manually sync these before merge
-// by copying the x64 version over the arm64 version.
+// Vendor dist files can differ between arm64/x64 CI runners (timestamps,
+// metadata, etc.). @electron/universal's x64ArchFiles only exempts Mach-O
+// binaries, so we sync the entire vendor dist directory from x64 → arm64
+// before merge to ensure all plain files have identical SHAs.
 const vendorDist = ["vendor", "openclaw", "dist"].join("/");
-const PLAIN_FILES_TO_SYNC = [
-  `Contents/Resources/${vendorDist}/build-info.json`,
-  `Contents/Resources/${vendorDist}/.buildstamp`,
-  `Contents/Resources/${vendorDist}/.dist-complete`,
-];
+const VENDOR_DIST_RESOURCE_PATH = `Contents/Resources/${vendorDist}`;
 
 async function main() {
   if (!fs.existsSync(arm64AppPath)) {
@@ -53,15 +49,15 @@ async function main() {
   }
   fs.mkdirSync(universalDir, { recursive: true });
 
-  // Sync plain files that differ between builds (timestamps, etc.)
-  // so @electron/universal doesn't reject them during SHA comparison.
-  for (const rel of PLAIN_FILES_TO_SYNC) {
-    const src = path.join(x64AppPath, rel);
-    const dst = path.join(arm64AppPath, rel);
-    if (fs.existsSync(src) && fs.existsSync(dst)) {
-      fs.cpSync(src, dst);
-      console.log(`[merge-universal] Synced ${path.basename(rel)} from x64 → arm64`);
-    }
+  // Sync entire vendor dist directory from x64 → arm64 so all plain files
+  // (build-info.json, cli-startup-metadata.json, timestamps, etc.) have
+  // identical SHAs. Without this, @electron/universal rejects the merge.
+  const vendorDistSrc = path.join(x64AppPath, VENDOR_DIST_RESOURCE_PATH);
+  const vendorDistDst = path.join(arm64AppPath, VENDOR_DIST_RESOURCE_PATH);
+  if (fs.existsSync(vendorDistSrc) && fs.existsSync(vendorDistDst)) {
+    fs.rmSync(vendorDistDst, { recursive: true });
+    fs.cpSync(vendorDistSrc, vendorDistDst, { recursive: true });
+    console.log("[merge-universal] Synced vendor/openclaw/dist from x64 → arm64");
   }
 
   console.log("[merge-universal] Merging:");
