@@ -24,7 +24,7 @@ import { GatewayChatClient } from "../../../lib/gateway-client.js";
 import type { GatewayEvent, GatewayHelloOk } from "../../../lib/gateway-client.js";
 import { ChatEventBridge } from "../chat-event-bridge.js";
 import type { ChatMirrorSSEPayload } from "../chat-event-bridge.js";
-import { ACTIVE_PHASES, FINAL_FALLBACK_MS, RECENTLY_COMPLETED_TTL_MS } from "../run-tracker.js";
+import { ACTIVE_PHASES, FINAL_FALLBACK_MS, MIRROR_FINAL_FALLBACK_MS, RECENTLY_COMPLETED_TTL_MS } from "../run-tracker.js";
 import type { RunPhase } from "../run-tracker.js";
 import { fetchGatewayInfo, trackEvent, updateSettings } from "../../../api/index.js";
 import { fetchChatSessions, updateChatSession } from "../../../api/chat-sessions.js";
@@ -379,7 +379,7 @@ export class ChatGatewayController {
             const phase = data.phase as string | undefined;
             if (phase === "start") {
               const mirrorRs = this.runStateFor(mirror.sessionKey);
-              mirrorRs.beginExternalRun(mirror.runId, mirror.sessionKey, "unknown");
+              mirrorRs.beginExternalRun(mirror.runId, mirror.sessionKey, "unknown", true);
               mirrorRs.markLifecycleStart(mirror.runId);
             } else if (phase === "end" || phase === "error") {
               if (isActiveMirror) {
@@ -792,12 +792,23 @@ export class ChatGatewayController {
 
   /**
    * Start a fallback timer for a run after LIFECYCLE_END/LIFECYCLE_ERROR.
-   * If CHAT_FINAL does not arrive within FINAL_FALLBACK_MS, force-transition to done.
+   * If CHAT_FINAL does not arrive in time, force-transition to done.
+   *
+   * For mirror-final runs (non-webchat channels), the terminal event arrives
+   * via mirror SSE as a synthetic chat.final.  These get a longer timeout
+   * (MIRROR_FINAL_FALLBACK_MS = 60s) because mirror SSE can be significantly
+   * slower than the WS agent broadcast.  The longer timer still provides a
+   * fallback for background sessions where the watchdog (active-session-only)
+   * cannot reach.
+   *
+   * For local runs, the standard FINAL_FALLBACK_MS (5s) applies — chat.final
+   * should arrive promptly via the gateway WS chat stream.
    */
   private startFallbackTimer(sessionKey: string, runId: string): void {
     const targetRs = this.runStateFor(sessionKey);
     const run = targetRs.getRun(runId);
     if (!run || !ACTIVE_PHASES.has(run.phase as RunPhase)) return;
+    const timeoutMs = run.expectsMirrorFinal ? MIRROR_FINAL_FALLBACK_MS : FINAL_FALLBACK_MS;
     this.clearFallbackTimer(runId);
     const timer = setTimeout(() => {
       this.finalFallbackTimers.delete(runId);
@@ -823,7 +834,7 @@ export class ChatGatewayController {
 
       targetRs.forceDone(runId);
       this.markRunRecentlyCompleted(sessionKey, runId);
-    }, FINAL_FALLBACK_MS);
+    }, timeoutMs);
     this.finalFallbackTimers.set(runId, timer);
   }
 

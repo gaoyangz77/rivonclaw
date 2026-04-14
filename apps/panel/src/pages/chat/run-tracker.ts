@@ -42,6 +42,13 @@ export type RunAction =
 /** How long to wait after LIFECYCLE_END before force-transitioning to done. */
 export const FINAL_FALLBACK_MS = 5_000;
 
+/**
+ * Longer fallback for runs whose terminal event arrives via mirror SSE.
+ * Mirror SSE can be slower than WS agent broadcasts; 60s gives plenty of
+ * margin while still cleaning up background sessions that lose their mirror.
+ */
+export const MIRROR_FINAL_FALLBACK_MS = 60_000;
+
 /** How long a completed runId stays in the "recently completed" set to suppress phantom runs. */
 export const RECENTLY_COMPLETED_TTL_MS = 10_000;
 
