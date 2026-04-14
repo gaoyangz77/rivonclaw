@@ -538,6 +538,7 @@ describe("OpenClawConnector", () => {
       expect(mockRpcClientInstance.request).toHaveBeenCalledTimes(1);
       expect(mockRuntimeStatusStore.setConnectorSidecarState).toHaveBeenCalledWith("failed");
     });
+
   });
 
   // ── Unified RPC Facade ─────────────────────────────────────────────────
