@@ -136,6 +136,7 @@ export default {
     globalDefault: "全局默认",
     followGlobalDefault: "跟随全局默认",
     imageAttachment: "[ 图片 ]",
+    imageExpired: "[ 图片已过期 ]",
     channelTelegram: "TG",
     channelFeishu: "飞书",
     channelLark: "飞书",

@@ -96,6 +96,10 @@ export const FETCH_BATCH = DEFAULTS.chat.fetchBatch;
  *  Replaced with i18n text at render time. */
 export const IMAGE_PLACEHOLDER = "\u200B[__IMAGE__]\u200B";
 
+/** Marker for image blocks whose data was stripped by the gateway and not
+ *  restored from cache (expired / cleared). Replaced with i18n text at render time. */
+export const IMAGE_EXPIRED_PLACEHOLDER = "\u200B[__IMAGE_EXPIRED__]\u200B";
+
 /**
  * Clean up raw gateway message text:
  * - Strip "Conversation info (untrusted metadata):" blocks
@@ -253,6 +257,12 @@ export function extractImages(content: unknown): ChatImage[] {
     .filter((img) => img.data);
 }
 
+/** Returns true if content contains any image-type blocks, regardless of data. */
+export function hasImageBlocks(content: unknown): boolean {
+  if (!Array.isArray(content)) return false;
+  return content.some((b: { type?: string }) => b.type === "image");
+}
+
 /**
  * Detect heartbeat/cron system-event user messages injected by the gateway.
  * These are NOT typed by the user — they're system-generated prompts for the agent.
@@ -394,10 +404,14 @@ export function parseRawMessages(
       // so the text bubble should appear above tool-event markers.
       const text = extractText(msg.content);
       const images = extractImages(msg.content);
+      const strippedImages = images.length === 0 && hasImageBlocks(msg.content);
       // Skip internal gateway maintenance prompts (e.g. pre-compaction memory flush)
       if (msg.role === "user" && isInternalPrompt(text)) continue;
-      if (text.trim() || images.length > 0) {
+      if (text.trim() || images.length > 0 || strippedImages) {
         const entry: ChatMessage = { role: msg.role, text, timestamp: msg.timestamp ?? 0, images: images.length > 0 ? images : undefined };
+        if (strippedImages) {
+          entry.text = entry.text ? `${entry.text}\n${IMAGE_EXPIRED_PLACEHOLDER}` : IMAGE_EXPIRED_PLACEHOLDER;
+        }
         if (msg.idempotencyKey) entry.idempotencyKey = msg.idempotencyKey;
         // Mark system-generated user messages (cron events, heartbeat prompts)
         // as external so they render on the left/agent side.

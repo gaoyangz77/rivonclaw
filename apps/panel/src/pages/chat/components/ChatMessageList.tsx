@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "../chat-utils.js";
-import { cleanMessageText, IMAGE_PLACEHOLDER, formatTimestamp } from "../chat-utils.js";
+import { cleanMessageText, IMAGE_PLACEHOLDER, IMAGE_EXPIRED_PLACEHOLDER, formatTimestamp } from "../chat-utils.js";
 import { MarkdownMessage, CopyButton, CollapsibleContent, ToolArgsDisplay } from "../ChatMessage.js";
 
 export interface ChatMessageListProps {
@@ -60,7 +60,9 @@ export function ChatMessageList({
             </div>
           ) : null;
         }
-        const cleaned = cleanMessageText(msg.text).replaceAll(IMAGE_PLACEHOLDER, t("chat.imageAttachment"));
+        const cleaned = cleanMessageText(msg.text)
+          .replaceAll(IMAGE_PLACEHOLDER, t("chat.imageAttachment"))
+          .replaceAll(IMAGE_EXPIRED_PLACEHOLDER, t("chat.imageExpired"));
         const hasImages = msg.images && msg.images.length > 0;
         // Skip empty bubbles (text stripped by cleanMessageText and no images)
         if (!cleaned && !hasImages) return null;
@@ -128,7 +130,7 @@ export function ChatMessageList({
           ) : null}
           <div className="chat-bubble-wrap chat-bubble-wrap-assistant">
             <div className="chat-bubble chat-bubble-assistant chat-streaming-cursor">
-              <MarkdownMessage text={cleanMessageText(streaming).replaceAll(IMAGE_PLACEHOLDER, t("chat.imageAttachment"))} />
+              <MarkdownMessage text={cleanMessageText(streaming).replaceAll(IMAGE_PLACEHOLDER, t("chat.imageAttachment")).replaceAll(IMAGE_EXPIRED_PLACEHOLDER, t("chat.imageExpired"))} />
             </div>
           </div>
         </>

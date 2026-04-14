@@ -138,6 +138,7 @@ export default {
     globalDefault: "Global default",
     followGlobalDefault: "Follow global default",
     imageAttachment: "[ Image ]",
+    imageExpired: "[ Image expired ]",
     channelTelegram: "TG",
     channelFeishu: "Feishu",
     channelLark: "Lark",

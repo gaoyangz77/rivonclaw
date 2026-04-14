@@ -985,7 +985,7 @@ export class ChatGatewayController {
       if (client) {
         try {
           const result = await client.request<{
-            messages?: Array<{ role?: string; content?: unknown; timestamp?: number }>;
+            messages?: Array<{ role?: string; content?: unknown; timestamp?: number; idempotencyKey?: string }>;
           }>("chat.history", { sessionKey: key, limit: FETCH_BATCH });
 
           let parsed = parseRawMessages(result?.messages);
@@ -1446,7 +1446,7 @@ export class ChatGatewayController {
 
     try {
       const result = await client.request<{
-        messages?: Array<{ role?: string; content?: unknown; timestamp?: number }>;
+        messages?: Array<{ role?: string; content?: unknown; timestamp?: number; idempotencyKey?: string }>;
       }>("chat.history", { sessionKey: activeKey, limit: FETCH_BATCH });
 
       let parsed = parseRawMessages(result?.messages);
@@ -1475,7 +1475,7 @@ export class ChatGatewayController {
 
     try {
       const result = await client.request<{
-        messages?: Array<{ role?: string; content?: unknown; timestamp?: number }>;
+        messages?: Array<{ role?: string; content?: unknown; timestamp?: number; idempotencyKey?: string }>;
       }>("chat.history", {
         sessionKey: this.store.activeSessionKey,
         limit: this.fetchLimit,

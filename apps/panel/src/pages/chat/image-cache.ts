@@ -6,7 +6,7 @@
  * and merges them back when loading history.
  */
 
-import type { ChatImage, ChatMessage } from "./chat-utils.js";
+import { IMAGE_EXPIRED_PLACEHOLDER, type ChatImage, type ChatMessage } from "./chat-utils.js";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -17,14 +17,14 @@ interface CachedImageRecord {
   idempotencyKey: string;  // unique per send — primary matching key
   timestamp: number;       // fallback for old records without idempotencyKey
   images: ChatImage[];
-  savedAt: number;         // for 30-day expiry
+  savedAt: number;         // for 7-day expiry
 }
 
 const DB_NAME = "rivonclaw-image-cache";
 const DB_VERSION = 1;
 const STORE = "images";
 const TIMESTAMP_TOLERANCE_MS = 5_000;
-const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // ---------------------------------------------------------------------------
 // Internal helper
@@ -74,10 +74,63 @@ export async function saveImages(
 }
 
 /**
- * Merge cached images into parsed history messages.
+ * Pure matching logic extracted for testability.
  *
  * Primary matching: by `idempotencyKey` (exact, no tolerance needed).
- * Fallback: by timestamp (±5 s) for old cache records without a key.
+ * Fallback: closest timestamp match within ±5 s tolerance.
+ * Each cache record is used at most once. Returns a new array.
+ */
+export function matchCachedImages(
+  cached: CachedImageRecord[],
+  messages: ChatMessage[],
+): ChatMessage[] {
+  if (cached.length === 0) return messages;
+
+  // Build a lookup by idempotencyKey for O(1) matching
+  const byKey = new Map<string, number>();
+  for (let i = 0; i < cached.length; i++) {
+    if (cached[i].idempotencyKey) byKey.set(cached[i].idempotencyKey, i);
+  }
+
+  const used = new Set<number>();
+
+  return messages.map((msg) => {
+    if (msg.role !== "user" || (msg.images && msg.images.length > 0)) return msg;
+
+    // 1) Exact match by idempotencyKey
+    if (msg.idempotencyKey) {
+      const idx = byKey.get(msg.idempotencyKey);
+      if (idx !== undefined && !used.has(idx)) {
+        used.add(idx);
+        return { ...msg, images: cached[idx].images, text: msg.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim() };
+      }
+    }
+
+    // 2) Fallback: closest timestamp match within tolerance
+    let bestIdx = -1;
+    let bestDelta = Infinity;
+    for (let i = 0; i < cached.length; i++) {
+      if (used.has(i)) continue;
+      const delta = Math.abs(cached[i].timestamp - msg.timestamp);
+      if (delta <= TIMESTAMP_TOLERANCE_MS && delta < bestDelta) {
+        bestDelta = delta;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx !== -1) {
+      used.add(bestIdx);
+      return { ...msg, images: cached[bestIdx].images, text: msg.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim() };
+    }
+
+    return msg;
+  });
+}
+
+/**
+ * Merge cached images into parsed history messages.
+ *
+ * Fetches cached records from IndexedDB, then delegates to
+ * `matchCachedImages` for the actual matching logic.
  * Returns a new array — does not mutate the input.
  */
 export async function restoreImages(
@@ -92,42 +145,7 @@ export async function restoreImages(
   return new Promise((resolve, reject) => {
     req.onsuccess = () => {
       db.close();
-      const cached: CachedImageRecord[] = req.result;
-      if (cached.length === 0) { resolve(messages); return; }
-
-      // Build a lookup by idempotencyKey for O(1) matching
-      const byKey = new Map<string, number>();
-      for (let i = 0; i < cached.length; i++) {
-        if (cached[i].idempotencyKey) byKey.set(cached[i].idempotencyKey, i);
-      }
-
-      const used = new Set<number>();
-
-      const result = messages.map((msg) => {
-        if (msg.role !== "user" || (msg.images && msg.images.length > 0)) return msg;
-
-        // 1) Exact match by idempotencyKey
-        if (msg.idempotencyKey) {
-          const idx = byKey.get(msg.idempotencyKey);
-          if (idx !== undefined && !used.has(idx)) {
-            used.add(idx);
-            return { ...msg, images: cached[idx].images };
-          }
-        }
-
-        // 2) Fallback: timestamp tolerance (for old records without key)
-        for (let i = 0; i < cached.length; i++) {
-          if (used.has(i)) continue;
-          if (cached[i].idempotencyKey) continue; // already tried via byKey
-          if (Math.abs(cached[i].timestamp - msg.timestamp) <= TIMESTAMP_TOLERANCE_MS) {
-            used.add(i);
-            return { ...msg, images: cached[i].images };
-          }
-        }
-        return msg;
-      });
-
-      resolve(result);
+      resolve(matchCachedImages(req.result, messages));
     };
     req.onerror = () => { db.close(); reject(req.error); };
   });
@@ -136,7 +154,7 @@ export async function restoreImages(
 /**
  * Clear cached images.
  * - With `sessionKey`: delete all entries for that session (conversation reset).
- * - Without: delete entries older than 30 days (startup cleanup).
+ * - Without: delete entries older than 7 days (startup cleanup).
  */
 export async function clearImages(sessionKey?: string): Promise<void> {
   const db = await openDB();
