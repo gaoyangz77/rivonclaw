@@ -135,7 +135,7 @@ const STRIP_DIRS = new Set([
   "benchmarks",
   ".nyc_output",
   "coverage",
-  ".bin", // Not needed at runtime; nested .bin/ symlinks break electron-builder universal merge
+  ".bin", // Not needed at runtime
 ]);
 
 const STRIP_EXTS = [".map", ".md", ".mdx", ".c", ".h", ".cc", ".cpp", ".gyp", ".gypi"];
