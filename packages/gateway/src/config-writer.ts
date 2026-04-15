@@ -1105,6 +1105,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ...cleanBrowser,
         defaultProfile: "openclaw",
         attachOnly: true,
+        // EasyClaw is a desktop app where the user controls the browser.
+        // The SSRF private-network guard is designed for server-hosted
+        // deployments; on desktop it conflicts with user-configured proxies
+        // (HTTP_PROXY / HTTPS_PROXY injected by proxy-manager) and blocks
+        // all browser navigation.  Always allow private-network access.
+        ssrfPolicy: { dangerouslyAllowPrivateNetwork: true },
         profiles: {
           ...cleanProfiles,
           openclaw: { cdpUrl: `http://127.0.0.1:${cdpPort}`, color: "#4A90D9" },
@@ -1120,6 +1126,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       config.browser = {
         ...cleanBrowser,
         defaultProfile: "openclaw",
+        // See comment above — always allow private-network access on desktop.
+        ssrfPolicy: { dangerouslyAllowPrivateNetwork: true },
         profiles: {
           ...cleanProfiles,
           chrome: { driver: "clawd", cdpPort: (options.gatewayPort ?? DEFAULT_GATEWAY_PORT) + CDP_PORT_OFFSET, color: "#00AA00" },

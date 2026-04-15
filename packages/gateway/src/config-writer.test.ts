@@ -1251,6 +1251,35 @@ describe("config-writer", () => {
       expect(config.browser.remoteCdpTimeoutMs).toBe(3000);
       expect(config.browser.defaultProfile).toBe("openclaw");
     });
+
+    it("always sets ssrfPolicy.dangerouslyAllowPrivateNetwork in standalone mode", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, browserMode: "standalone" });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.browser.ssrfPolicy).toEqual({ dangerouslyAllowPrivateNetwork: true });
+    });
+
+    it("always sets ssrfPolicy.dangerouslyAllowPrivateNetwork in CDP mode", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath, browserMode: "cdp" });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.browser.ssrfPolicy).toEqual({ dangerouslyAllowPrivateNetwork: true });
+    });
+
+    it("ssrfPolicy overrides any pre-existing value", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({
+        browser: { ssrfPolicy: { dangerouslyAllowPrivateNetwork: false, allowedHostnames: ["example.com"] } },
+      }));
+
+      writeGatewayConfig({ configPath, browserMode: "standalone" });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      // Our explicit setting should override the spread of cleanBrowser
+      expect(config.browser.ssrfPolicy).toEqual({ dangerouslyAllowPrivateNetwork: true });
+    });
   });
 
   describe("fixSemanticErrors guard tests", () => {
