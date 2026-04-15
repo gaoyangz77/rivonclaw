@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.7.11",
+    "date": "2026-04-15",
+    "en": [
+      "Fix chat images disappearing after page switches and preserve provider errors when switching tabs or reloading history",
+      "Improve startup and external-channel reliability with stronger RPC connection handling, timeout guarantees, and better recovery from stale states",
+      "Fix browser and cloud networking behind system proxies, including browser relay SSRF guard bypass when proxy env vars are set",
+      "Improve macOS auto-update and packaging by fully switching to separate Apple Silicon and Intel update feeds",
+      "Upgrade the bundled OpenClaw engine and harden desktop build, release, and test pipelines"
+    ],
+    "zh": [
+      "修复聊天图片在切页后消失的问题，并保留切换标签页或重载历史后的服务商报错提示",
+      "增强启动与外部频道运行稳定性：改进 RPC 连接、超时兜底和陈旧状态恢复",
+      "修复系统代理场景下的浏览器与云端网络问题，包括开启代理环境变量时放行浏览器中继请求",
+      "完善 macOS 自动更新与打包流程，全面切换为 Apple Silicon / Intel 分离更新通道",
+      "升级内置 OpenClaw 引擎，并加固桌面端构建、发布和测试链路"
+    ]
+  },
+  {
     "version": "1.7.10",
     "date": "2026-04-10",
     "en": [
