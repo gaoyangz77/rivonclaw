@@ -1030,7 +1030,6 @@ export interface MutationEcommerceApproveReturnArgs {
 
 export interface MutationEcommerceCreateConversationArgs {
   buyerUserId: Scalars['String']['input'];
-  orderId?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
 }
 
