@@ -473,4 +473,109 @@ describe("RemoteTelemetryClient", () => {
       expect(new Date(event.timestamp).toISOString()).toBe(event.timestamp);
     });
   });
+
+  describe("identify/reset", () => {
+    it("should set userId on subsequent events", async () => {
+      const config: TelemetryConfig = {
+        endpoint: "https://example.com/api/telemetry",
+        enabled: true,
+        version: "0.1.0",
+        platform: "darwin",
+        locale: "en",
+      };
+
+      const client = new RemoteTelemetryClient(config);
+      client.identify("user-123");
+      client.track("app.started");
+
+      await client.flush();
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.events[0]).toHaveProperty("userId", "user-123");
+    });
+
+    it("should clear userId after reset", async () => {
+      const config: TelemetryConfig = {
+        endpoint: "https://example.com/api/telemetry",
+        enabled: true,
+        version: "0.1.0",
+        platform: "darwin",
+        locale: "en",
+        userId: "initial-user",
+      };
+
+      const client = new RemoteTelemetryClient(config);
+      client.reset();
+      client.track("app.started");
+
+      await client.flush();
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.events[0].userId).toBeUndefined();
+    });
+
+    it("should override config userId with identify", async () => {
+      const config: TelemetryConfig = {
+        endpoint: "https://example.com/api/telemetry",
+        enabled: true,
+        version: "0.1.0",
+        platform: "darwin",
+        locale: "en",
+        userId: "config-user",
+      };
+
+      const client = new RemoteTelemetryClient(config);
+      client.identify("runtime-user");
+      client.track("app.started");
+
+      await client.flush();
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.events[0]).toHaveProperty("userId", "runtime-user");
+    });
+
+    it("should use config userId before identify is called", async () => {
+      const config: TelemetryConfig = {
+        endpoint: "https://example.com/api/telemetry",
+        enabled: true,
+        version: "0.1.0",
+        platform: "darwin",
+        locale: "en",
+        userId: "config-user",
+      };
+
+      const client = new RemoteTelemetryClient(config);
+      client.track("app.started");
+
+      await client.flush();
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.events[0]).toHaveProperty("userId", "config-user");
+    });
+
+    it("should track userId transitions across events", async () => {
+      const config: TelemetryConfig = {
+        endpoint: "https://example.com/api/telemetry",
+        enabled: true,
+        version: "0.1.0",
+        platform: "darwin",
+        locale: "en",
+      };
+
+      const client = new RemoteTelemetryClient(config);
+
+      client.track("before.login");
+      client.identify("user-123");
+      client.track("after.login");
+      client.reset();
+      client.track("after.logout");
+
+      await client.flush();
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.events[0].userId).toBeUndefined();
+      expect(requestBody.events[1]).toHaveProperty("userId", "user-123");
+      expect(requestBody.events[2].userId).toBeUndefined();
+    });
+  });
 });

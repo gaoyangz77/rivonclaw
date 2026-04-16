@@ -15,7 +15,7 @@ export interface TelemetryEvent {
   /** Anonymous device identifier (SHA-256 of hardware ID, survives reinstalls) */
   deviceId?: string;
 
-  /** Optional user account ID (reserved for future login feature) */
+  /** User account ID, set dynamically via identify() */
   userId?: string;
 
   /** Application version (e.g., "0.1.0") */
@@ -59,7 +59,7 @@ export interface TelemetryConfig {
   /** Anonymous device identifier (SHA-256 of hardware ID) */
   deviceId?: string;
 
-  /** Optional user account ID (reserved for future login feature) */
+  /** Initial user account ID (can be updated at runtime via identify/reset) */
   userId?: string;
 
   /** Optional custom fetch function for proxy support */

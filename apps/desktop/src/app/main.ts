@@ -48,6 +48,7 @@ import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch } from "../gate
 import { initTelemetry } from "../telemetry/telemetry-init.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-utils.js";
 import { syncActiveKey } from "../providers/provider-validator.js";
+import { reaction } from "mobx";
 import { rootStore, initLLMProviderManagerEnv, initChannelManagerEnv } from "./store/desktop-store.js";
 import { createSessionStateStack, type SessionStateStack } from "../browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "../browser-profiles/session-state/backup-provider.js";
@@ -210,6 +211,18 @@ app.whenReady().then(async () => {
   const { client: telemetryClient, heartbeatTimer } = initTelemetry(
     storage, deviceId, locale, (url, init) => proxyNetwork.fetch(url, init),
   );
+
+  // Bridge MST user identity → telemetry client
+  if (telemetryClient) {
+    reaction(
+      () => rootStore.currentUser?.userId,
+      (userId) => {
+        if (userId) telemetryClient.identify(userId);
+        else telemetryClient.reset();
+      },
+      { fireImmediately: true },
+    );
+  }
 
   // Initialize auth session manager and backend subscription client
   const { authSession, backendSubscription } = await setupAuth({
