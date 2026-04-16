@@ -87,9 +87,9 @@ export const DEFAULTS = {
 
   gatewayConfig: {
     sessionResetMode: "idle" as "idle",
-    sessionResetIdleMinutes: 43200, // 30 days
+    sessionResetIdleMinutes: 10080, // 7 days
     sessionMaintenanceMode: "enforce" as "enforce",
-    sessionMaintenancePruneAfter: "30d",
+    sessionMaintenancePruneAfter: "7d",
     sessionMaintenanceMaxEntries: 200,
     sessionMaintenanceRotateBytes: "10mb",
     sessionMaintenanceMaxDiskBytes: "50mb",

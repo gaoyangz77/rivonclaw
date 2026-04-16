@@ -1483,7 +1483,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.session.maintenance).toEqual({
         mode: "enforce",
-        pruneAfter: "30d",
+        pruneAfter: "7d",
         maxEntries: 200,
         rotateBytes: "10mb",
         maxDiskBytes: "50mb",
@@ -1497,7 +1497,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.session.reset).toEqual({
         mode: "idle",
-        idleMinutes: 43200,
+        idleMinutes: 10080,
       });
       expect(config.session.maintenance.mode).toBe("enforce");
     });
