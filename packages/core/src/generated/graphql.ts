@@ -419,6 +419,35 @@ export interface EcomCreateConversationResult {
   conversationId: Scalars['String']['output'];
 }
 
+/** Customer service support session */
+export interface EcomCustomerServiceSession {
+  /** Unix seconds when the session began */
+  beginTime?: Maybe<Scalars['Int']['output']>;
+  /** Buyer's nickname */
+  buyerNickname?: Maybe<Scalars['String']['output']>;
+  /** Chat tags such as AfterSale, Logistics, or Presale */
+  chatTags?: Maybe<Array<Scalars['String']['output']>>;
+  /** Associated conversation ID */
+  conversationId?: Maybe<Scalars['String']['output']>;
+  /** Reason for low satisfaction, localized by the request locale */
+  dissatisfactionReason?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds when the session ended */
+  endTime?: Maybe<Scalars['Int']['output']>;
+  /** Whether the first response missed the expected SLA */
+  firstResponseLate?: Maybe<Scalars['Boolean']['output']>;
+  /** Seconds until the seller's first response */
+  firstResponseTime?: Maybe<Scalars['Int']['output']>;
+  /** Customer satisfaction score (for example 1-5) */
+  satisfactionScore?: Maybe<Scalars['Int']['output']>;
+  sessionId: Scalars['String']['output'];
+}
+
+/** Page of customer service support sessions */
+export interface EcomCustomerServiceSessionPage {
+  items: Array<EcomCustomerServiceSession>;
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+}
+
 /** Shipping document format */
 export const EcomDocumentFormat = {
   Pdf: 'PDF',
@@ -1299,6 +1328,8 @@ export interface Query {
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
+  /** Search customer service sessions for a shop */
+  ecommerceSearchCSSessions: EcomCustomerServiceSessionPage;
   /** Search order cancellation requests */
   ecommerceSearchCancellations: EcomCancellationPage;
   /** Search fulfillment packages with optional filters */
@@ -1470,7 +1501,6 @@ export interface QueryEcommerceGetPackageShippingDocumentArgs {
 
 
 export interface QueryEcommerceGetPendingConversationsArgs {
-  locale?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
 }
 
@@ -1490,6 +1520,16 @@ export interface QueryEcommerceGetRejectReasonsArgs {
 export interface QueryEcommerceGetReturnRecordsArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   returnId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceSearchCsSessionsArgs {
+  beginTimeGe: Scalars['Float']['input'];
+  beginTimeLt: Scalars['Float']['input'];
+  buyerNickname?: InputMaybe<Scalars['String']['input']>;
+  pageSize: Scalars['Float']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
 }
 
@@ -1955,6 +1995,7 @@ export const ToolId = {
   EcomRejectCancellation: 'ECOM_REJECT_CANCELLATION',
   EcomRejectReturn: 'ECOM_REJECT_RETURN',
   EcomSearchCancellations: 'ECOM_SEARCH_CANCELLATIONS',
+  EcomSearchCsSessions: 'ECOM_SEARCH_CS_SESSIONS',
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchReturns: 'ECOM_SEARCH_RETURNS',
