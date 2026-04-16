@@ -19,6 +19,7 @@ export class RemoteTelemetryClient {
   private readonly queue: TelemetryEvent[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
   private isShuttingDown = false;
+  private userId: string | undefined;
 
   constructor(config: TelemetryConfig) {
     // Normalize config with defaults
@@ -31,6 +32,7 @@ export class RemoteTelemetryClient {
     // Generate unique session ID for this app run
     this.sessionId = randomUUID();
     this.startTime = Date.now();
+    this.userId = config.userId;
 
     // Start auto-flush timer if enabled
     if (this.config.enabled) {
@@ -54,7 +56,7 @@ export class RemoteTelemetryClient {
       timestamp: new Date().toISOString(),
       sessionId: this.sessionId,
       deviceId: this.config.deviceId,
-      userId: this.config.userId,
+      userId: this.userId,
       version: this.config.version,
       platform: this.config.platform,
       locale: this.config.locale,
@@ -144,6 +146,22 @@ export class RemoteTelemetryClient {
    */
   getQueueSize(): number {
     return this.queue.length;
+  }
+
+  /**
+   * Set the authenticated user ID for all subsequent events.
+   * Call when a user logs in.
+   */
+  identify(userId: string): void {
+    this.userId = userId;
+  }
+
+  /**
+   * Clear the user ID (e.g., on logout).
+   * Subsequent events will have no user association.
+   */
+  reset(): void {
+    this.userId = undefined;
   }
 
   /**
