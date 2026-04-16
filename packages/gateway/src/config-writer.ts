@@ -136,6 +136,8 @@ const REMOVED_PLUGIN_IDS = new Set([
   // into plugins.entries instead of the full plugin ID "rivonclaw-mobile-chat-channel".
   // Clean up the stale entry so the gateway stops warning about it.
   "mobile",
+  // v2026.4.11: modelstudio merged into the qwen extension plugin.
+  "modelstudio",
 ]);
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
@@ -905,6 +907,19 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           log.info(`Renamed plugin IDs in plugins.allow: ${renamed.map((id) => `${id} → ${RENAMED_PLUGIN_IDS[id]}`).join(", ")}`);
         }
         merged.allow = [...new Set(after)];
+      }
+
+      // Clean up the denylist: remove permanently-removed IDs.
+      // If a denied plugin no longer exists, the gateway rejects the config
+      // with "plugin not found" (e.g. modelstudio after qwen merge).
+      if (Array.isArray(merged.deny)) {
+        const before = merged.deny as string[];
+        const after = before.filter((id) => !REMOVED_PLUGIN_IDS.has(id));
+        const removed = before.filter((id) => REMOVED_PLUGIN_IDS.has(id));
+        if (removed.length > 0) {
+          log.warn(`Removed stale plugin IDs from plugins.deny: ${removed.join(", ")}`);
+        }
+        merged.deny = after.length > 0 ? after : undefined;
       }
     }
 
