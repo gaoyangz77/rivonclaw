@@ -7,7 +7,7 @@
     "build": "node scripts/check-extension-deps.mjs && node scripts/generate-vendor-artifacts.mjs && turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "predev": "bash -c 'for p in 5180 3210; do lsof -ti :$p | xargs kill -9 2>/dev/null; done; true'",
+    "predev": "node scripts/kill-dev-ports.mjs",
     "dev": "turbo run dev",
     "format": "oxfmt --check",
     "format:fix": "oxfmt --write",
