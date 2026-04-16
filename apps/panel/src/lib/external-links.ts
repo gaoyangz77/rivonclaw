@@ -3,10 +3,12 @@
  * All outbound URLs should be managed here for easy maintenance.
  */
 export const EXTERNAL_LINKS = {
-    /** Project homepage / GitHub repo */
-    homepage: "https://www.rivonclaw.com/",
+    /** Project homepage */
+    homepage: "https://dlxai.ai/",
+    /** Docs / help portal (used by the ? help button in the panel header) */
+    help: "https://dlxai.ai/docs/",
     /** Terms of Service page */
-    termsOfService: "https://www.rivonclaw.com/terms",
+    termsOfService: "https://dlxai.ai/terms",
     /** Privacy Policy page */
-    privacyPolicy: "https://www.rivonclaw.com/privacy",
+    privacyPolicy: "https://dlxai.ai/privacy",
 } as const;

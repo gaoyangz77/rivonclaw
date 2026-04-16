@@ -25,7 +25,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Restart Gateway",
     checkForUpdates: "Check for Updates",
     updateAvailable: "Update Available: v{{version}}",
-    quit: "Quit RivonClaw",
+    quit: "Quit DlxAI",
   },
   zh: {
     state: {
@@ -38,7 +38,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "重启网关",
     checkForUpdates: "检查更新",
     updateAvailable: "有新版本: v{{version}}",
-    quit: "退出爪爪",
+    quit: "退出 DlxAI",
   },
 };
 

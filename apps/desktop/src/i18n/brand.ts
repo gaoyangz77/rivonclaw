@@ -1,7 +1,7 @@
 /** Locale-aware brand name for the Electron main process. */
 const BRAND: Record<string, string> = {
-  zh: "爪爪",
-  en: "RivonClaw",
+  zh: "DlxAI",
+  en: "DlxAI",
 };
 
 /** Get the brand name for the given locale. */

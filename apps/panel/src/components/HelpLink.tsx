@@ -8,7 +8,7 @@ export function HelpLink() {
     return (
         <a
             className="help-link-trigger"
-            href={EXTERNAL_LINKS.homepage}
+            href={EXTERNAL_LINKS.help}
             target="_blank"
             rel="noopener noreferrer"
             title={t("common.help")}

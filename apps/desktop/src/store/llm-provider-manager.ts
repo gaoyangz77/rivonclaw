@@ -603,7 +603,7 @@ export const LLMProviderManagerModel = types
         const { storage, secretStore, syncActiveKey, toMstSnapshot, allKeysToMstSnapshots } = getEnvDeps();
 
         const CLOUD_PROVIDER_ID = "rivonclaw-pro";
-        const CLOUD_KEY_LABEL = "RivonClaw Pro";
+        const CLOUD_KEY_LABEL = "DlxAI Pro";
         const llmKey = user?.llmKey?.key;
         const existing = storage.providerKeys.getAll().find((k) => k.provider === CLOUD_PROVIDER_ID);
 

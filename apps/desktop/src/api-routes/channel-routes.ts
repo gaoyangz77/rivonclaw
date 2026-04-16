@@ -8,8 +8,8 @@ import { sendJson, parseBody, proxiedFetch } from "./route-utils.js";
 const log = createLogger("panel-server");
 
 const APPROVAL_MESSAGES = {
-  zh: "✅ [RivonClaw] 您的访问已获批准！现在可以开始和我对话了。",
-  en: "✅ [RivonClaw] Your access has been approved! You can start chatting now.",
+  zh: "✅ [DlxAI] 您的访问已获批准！现在可以开始和我对话了。",
+  en: "✅ [DlxAI] Your access has been approved! You can start chatting now.",
 };
 
 export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {
