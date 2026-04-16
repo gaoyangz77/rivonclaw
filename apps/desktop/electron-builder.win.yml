@@ -29,10 +29,10 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   installerSidebar: build/installerSidebar.png
-  uninstallDisplayName: "RivonClaw"
+  uninstallDisplayName: "DlxAI"
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: "RivonClaw"
+  shortcutName: "DlxAI"
   # Simplified to single language to avoid NSIS language detection issues
   # Multi-language support can be re-enabled after verifying language codes
   # installerLanguages:

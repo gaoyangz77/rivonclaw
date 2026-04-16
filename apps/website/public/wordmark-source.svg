@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" fill="none">
+  <rect width="1200" height="320" fill="#f5f4ed"/>
+
+  <!-- Icon mark on the left -->
+  <rect x="40" y="40" width="240" height="240" rx="52" fill="#c96442"/>
+  <g fill="#faf9f5" transform="translate(40, 40) scale(0.469)">
+    <path d="M 312 168 L 312 344 L 286 344 L 286 324 Q 270 348 240 348 Q 204 348 180 322 Q 158 298 158 262 Q 158 226 180 202 Q 204 176 240 176 Q 270 176 286 200 L 286 168 L 312 168 Z M 238 322 Q 262 322 276 306 Q 290 290 290 262 Q 290 234 276 218 Q 262 202 238 202 Q 214 202 198 220 Q 184 236 184 262 Q 184 288 198 304 Q 214 322 238 322 Z"/>
+  </g>
+  <circle cx="243" cy="248" r="9" fill="#d97757"/>
+
+  <!-- Wordmark: "DlxAI" -->
+  <text x="320" y="220"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-weight="600"
+        font-size="168"
+        fill="#141413"
+        letter-spacing="-4">DlxAI</text>
+</svg>

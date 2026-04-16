@@ -1,5 +1,5 @@
-appId: com.easyclaw.desktop
-productName: RivonClaw
+appId: ai.dlxai.desktop
+productName: DlxAI
 
 directories:
   output: release
@@ -122,7 +122,7 @@ dmg:
 
 publish:
   - provider: generic
-    url: https://www.rivonclaw.com/releases/
+    url: https://dlxai.ai/releases/
 
 afterPack: scripts/copy-vendor-deps.cjs
 afterSign: scripts/notarize.cjs

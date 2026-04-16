@@ -7,7 +7,7 @@ extends: electron-builder.yml
 linux:
   icon: build/icon
   category: Utility
-  maintainer: RivonClaw
+  maintainer: DlxAI
   target:
     - target: AppImage
       arch:

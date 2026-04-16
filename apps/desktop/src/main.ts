@@ -183,7 +183,7 @@ if (!gotTheLock) {
     let killedStale = false;
     try {
       if (process.platform === "win32") {
-        const out = execSync('wmic process where "name=\'RivonClaw.exe\'" get ProcessId 2>nul', {
+        const out = execSync('wmic process where "name=\'DlxAI.exe\'" get ProcessId 2>nul', {
           encoding: "utf-8",
           timeout: 3000,
         }).trim();

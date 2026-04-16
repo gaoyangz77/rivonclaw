@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "main": "dist/main.cjs",
-  "author": "RivonClaw",
-  "homepage": "https://www.rivonclaw.com",
-  "description": "Desktop runtime manager for OpenClaw",
+  "author": "DlxAI",
+  "homepage": "https://dlxai.ai",
+  "description": "DlxAI — 本地优先的个人 AI 助理",
   "scripts": {
     "prebuild": "node ../../scripts/generate-plugin-ids.mjs",
     "build": "tsdown",
