@@ -202,7 +202,7 @@ server {
     index index.html;
 
     location / {
-        try_files \$uri \$uri/ \$uri/index.html =404;
+        try_files \$uri \$uri/index.html \$uri/ =404;
     }
 
     # cloud-api 反代
