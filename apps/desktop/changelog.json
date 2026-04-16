@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.7.12",
+    "date": "2026-04-16",
+    "en": [
+      "Improve app update reliability by moving update checks to the backend as the single source of truth",
+      "Fix Windows upgrades leaving behind stale runtime files that could break startup after updating",
+      "Shorten chat session retention to keep recent conversations cleaner and reduce stale history buildup",
+      "Polish the cron job editor layout for a cleaner and easier scheduling experience"
+    ],
+    "zh": [
+      "统一应用更新流程，由后端作为唯一可信来源，提升更新检查与升级稳定性",
+      "修复 Windows 升级后残留旧运行时文件、导致更新后启动异常的问题",
+      "缩短聊天会话保留时间，减少陈旧历史堆积，让最近会话更清爽",
+      "优化定时任务编辑界面布局，创建和调整计划任务更顺手"
+    ]
+  },
+  {
     "version": "1.7.11",
     "date": "2026-04-15",
     "en": [
