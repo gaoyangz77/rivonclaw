@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.7.13",
+    "date": "2026-04-16",
+    "en": [
+      "Fix plugin deny-list cleanup so removed plugin IDs do not remain in generated config",
+      "Improve telemetry identity handling so user IDs update and reset correctly during runtime changes"
+    ],
+    "zh": [
+      "修复插件禁用列表清理问题：已移除的插件 ID 不会再残留在生成配置里",
+      "改进遥测身份切换逻辑，运行时用户 ID 的更新与重置更准确"
+    ]
+  },
+  {
     "version": "1.7.12",
     "date": "2026-04-16",
     "en": [
