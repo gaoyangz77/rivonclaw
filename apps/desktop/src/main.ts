@@ -22,7 +22,7 @@ import {
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, DEFAULT_CLOUD_API_URL } from "@rivonclaw/core";
 import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome, resolveSessionStateDir, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -853,7 +853,7 @@ app.whenReady().then(async () => {
       log.warn("Update check after cloud-api push failed:", err);
     });
   }, () => {
-    return (storage.settings.get("cloud_api_url") ?? "http://localhost:3100").replace(/\/+$/, "");
+    return (storage.settings.get("cloud_api_url") ?? DEFAULT_CLOUD_API_URL).replace(/\/+$/, "");
   });
   cloudUpdateClient.start();
 
