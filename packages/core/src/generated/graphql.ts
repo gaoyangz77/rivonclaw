@@ -1014,7 +1014,6 @@ export interface MutationCsEndSessionArgs {
 
 
 export interface MutationCsGetOrCreateSessionArgs {
-  buyerUserId: Scalars['String']['input'];
   conversationId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
 }

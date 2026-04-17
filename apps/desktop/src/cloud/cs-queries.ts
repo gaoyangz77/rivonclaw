@@ -23,8 +23,8 @@ export const GET_BUYER_ORDERS_QUERY = `
 `;
 
 export const CS_GET_OR_CREATE_SESSION_MUTATION = `
-  mutation CsGetOrCreateSession($shopId: ID!, $conversationId: String!, $buyerUserId: String!) {
-    csGetOrCreateSession(shopId: $shopId, conversationId: $conversationId, buyerUserId: $buyerUserId) {
+  mutation CsGetOrCreateSession($shopId: ID!, $conversationId: String!) {
+    csGetOrCreateSession(shopId: $shopId, conversationId: $conversationId) {
       sessionId
       isNew
       balance

@@ -233,7 +233,6 @@ export class CustomerServiceSession {
       }>(CS_GET_OR_CREATE_SESSION_MUTATION, {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
-        buyerUserId: this.csContext.buyerUserId,
       });
 
       const session = result.csGetOrCreateSession;
