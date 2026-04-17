@@ -45,4 +45,30 @@ export const ProviderKeyModel = ProviderKeyModelBase.actions((self) => ({
   fetchUsage: flow(function* () {
     yield fetchJson(clientPath(API["providerKeys.fetchUsage"], { id: self.id }), { method: "POST" });
   }),
+
+  /**
+   * Re-authenticate an OAuth key: the caller must first drive the OAuth flow
+   * (startOAuthFlow → auto callback or completeManualOAuth). This action then
+   * tells Desktop to consume the completed flow and rotate the stored credential
+   * on THIS key in place — no new row, no change to label/model/isDefault/proxy.
+   *
+   * The updated row (with refreshed `oauthExpiresAt` / `updatedAt`) flows back
+   * via SSE patch; observers re-render automatically.
+   *
+   * Returns `idTokenCaptureFailed`: when true, the Desktop attempted but
+   * couldn't capture the id_token (network / HTTP error). OAuth state may be
+   * server-side-rotated past our last read — callers should show a warning
+   * so the user knows to retry Re-auth if their next LLM call 401s.
+   */
+  reauth: flow(function* (): Generator<
+    Promise<{ ok: true; idTokenCaptureFailed: boolean }>,
+    { ok: true; idTokenCaptureFailed: boolean },
+    { ok: true; idTokenCaptureFailed: boolean }
+  > {
+    const result: { ok: true; idTokenCaptureFailed: boolean } = yield fetchJson<{
+      ok: true;
+      idTokenCaptureFailed: boolean;
+    }>(clientPath(API["providerKeys.reauth"], { id: self.id }), { method: "POST" });
+    return result;
+  }),
 }));

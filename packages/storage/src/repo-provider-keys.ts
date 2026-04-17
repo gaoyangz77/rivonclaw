@@ -14,6 +14,7 @@ interface ProviderKeyRow {
   custom_models_json: string | null;
   input_modalities_json: string | null;
   source: string;
+  oauth_expires_at: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +33,7 @@ function rowToEntry(row: ProviderKeyRow): ProviderKeyEntry {
     customModelsJson: row.custom_models_json,
     inputModalities: row.input_modalities_json ? JSON.parse(row.input_modalities_json) as string[] : undefined,
     source: (row.source as "local" | "cloud") ?? "local",
+    oauthExpiresAt: row.oauth_expires_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -44,7 +46,7 @@ export class ProviderKeysRepository {
     const now = new Date().toISOString();
     this.db
       .prepare(
-        "INSERT INTO provider_keys (id, provider, label, model, is_default, proxy_base_url, auth_type, base_url, custom_protocol, custom_models_json, input_modalities_json, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO provider_keys (id, provider, label, model, is_default, proxy_base_url, auth_type, base_url, custom_protocol, custom_models_json, input_modalities_json, source, oauth_expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         entry.id,
@@ -59,6 +61,7 @@ export class ProviderKeysRepository {
         entry.customModelsJson ?? null,
         entry.inputModalities ? JSON.stringify(entry.inputModalities) : null,
         entry.source ?? "local",
+        entry.oauthExpiresAt ?? null,
         now,
         now,
       );
@@ -96,7 +99,7 @@ export class ProviderKeysRepository {
 
   update(
     id: string,
-    fields: Partial<Pick<ProviderKeyEntry, "label" | "model" | "isDefault" | "proxyBaseUrl" | "authType" | "baseUrl" | "customProtocol" | "customModelsJson" | "inputModalities" | "source">>,
+    fields: Partial<Pick<ProviderKeyEntry, "label" | "model" | "isDefault" | "proxyBaseUrl" | "authType" | "baseUrl" | "customProtocol" | "customModelsJson" | "inputModalities" | "source" | "oauthExpiresAt">>,
   ): ProviderKeyEntry | undefined {
     const existing = this.getById(id);
     if (!existing) return undefined;
@@ -113,12 +116,13 @@ export class ProviderKeysRepository {
       customModelsJson: fields.customModelsJson !== undefined ? fields.customModelsJson : existing.customModelsJson,
       inputModalities: fields.inputModalities !== undefined ? fields.inputModalities : existing.inputModalities,
       source: fields.source ?? existing.source,
+      oauthExpiresAt: fields.oauthExpiresAt !== undefined ? fields.oauthExpiresAt : existing.oauthExpiresAt,
       updatedAt: new Date().toISOString(),
     };
 
     this.db
       .prepare(
-        "UPDATE provider_keys SET label = ?, model = ?, is_default = ?, proxy_base_url = ?, auth_type = ?, base_url = ?, custom_protocol = ?, custom_models_json = ?, input_modalities_json = ?, source = ?, updated_at = ? WHERE id = ?",
+        "UPDATE provider_keys SET label = ?, model = ?, is_default = ?, proxy_base_url = ?, auth_type = ?, base_url = ?, custom_protocol = ?, custom_models_json = ?, input_modalities_json = ?, source = ?, oauth_expires_at = ?, updated_at = ? WHERE id = ?",
       )
       .run(
         updated.label,
@@ -131,6 +135,7 @@ export class ProviderKeysRepository {
         updated.customModelsJson ?? null,
         updated.inputModalities ? JSON.stringify(updated.inputModalities) : null,
         updated.source ?? "local",
+        updated.oauthExpiresAt ?? null,
         updated.updatedAt,
         id,
       );

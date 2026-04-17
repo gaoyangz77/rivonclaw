@@ -20,6 +20,11 @@ export interface ProviderKeyEntry {
   inputModalities?: string[] | null;
   /** Origin of this key: "local" for user-managed, "cloud" for Pro subscription keys. */
   source?: "local" | "cloud";
+  /** Refresh-token expiry (ms since epoch) for OAuth subscription keys where the
+   *  token is introspectable (e.g. openai-codex JWT). Undefined for keys where
+   *  expiry is opaque (e.g. Gemini) or the key is not OAuth. Null when the row
+   *  was created before this column existed. */
+  oauthExpiresAt?: number | null;
   createdAt: string;
   updatedAt: string;
 }

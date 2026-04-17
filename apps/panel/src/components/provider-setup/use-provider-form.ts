@@ -296,7 +296,9 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
               stopPolling();
               setOauthTokenPreview(status.tokenPreview || "oauth-token-••••••••");
               setLabel((prev) => prev.trim() ? prev : (status.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth"));
-              setModel(getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? "");
+              // Respect a model the user picked *before* clicking "Sign in".
+              // Only seed the provider default when the user hasn't chosen anything yet.
+              setModel((prev) => prev || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""));
               setOauthManualMode(false);
               setOauthAuthUrl("");
               setOauthCallbackUrl("");
@@ -327,7 +329,8 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
       const result = await entityStore.completeManualOAuth(provider, oauthCallbackUrl.trim());
       setOauthTokenPreview(result.tokenPreview || "oauth-token-••••••••");
       setLabel((prev) => prev.trim() ? prev : (result.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth"));
-      setModel(getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? "");
+      // Respect a model the user picked *before* completing manual OAuth.
+      setModel((prev) => prev || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""));
       setOauthManualMode(false);
       setOauthAuthUrl("");
       setOauthCallbackUrl("");

@@ -98,6 +98,10 @@ export interface PanelServerOptions {
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
   onOAuthAcquire?: (provider: string) => Promise<{ email?: string; tokenPreview: string; manualMode?: boolean; authUrl?: string; flowId?: string }>;
   onOAuthSave?: (provider: string, options: { proxyUrl?: string; label?: string; model?: string }) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
+  /** Rotate stored OAuth credentials for an existing key in place (no new row).
+   *  `idTokenCaptureFailed` propagates back to the Panel so the Reauth modal
+   *  can warn the user about the narrow OAuth server-side rotation race. */
+  onOAuthReauth?: (keyId: string) => Promise<{ ok: true; idTokenCaptureFailed: boolean }>;
   onOAuthManualComplete?: (provider: string, callbackUrl: string) => Promise<{ email?: string; tokenPreview: string }>;
   onOAuthPoll?: (flowId: string) => { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string };
   onTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
@@ -139,7 +143,7 @@ registerAllHandlers(registry);
 export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
   const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, proxyRouterPort, gatewayPort, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService, channelManager } = options;
+  const { storage, secretStore, proxyRouterPort, gatewayPort, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService, channelManager } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -187,7 +191,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     storage, secretStore, proxyRouterPort, gatewayPort,
     onRuleChange, onProviderChange, onOpenFileDialog,
     sttManager, onSttChange, onExtrasChange, onPermissionsChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange,
-    onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll,
+    onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
     cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,

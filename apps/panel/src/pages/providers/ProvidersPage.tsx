@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS, USAGE_QUERYABLE_PROVIDERS } from "@rivonclaw/core";
+import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS, isUsageQueryableProvider, isReauthSupportedProvider } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../../api/index.js";
 import { fetchJson, invalidateCache } from "../../api/client.js";
@@ -11,10 +11,60 @@ import { Select } from "../../components/inputs/Select.js";
 import { ProviderSetupForm } from "../../components/ProviderSetupForm.js";
 import { useEntityStore } from "../../store/index.js";
 import { useToast } from "../../components/Toast.js";
+import { formatShortDate } from "../../lib/format-datetime.js";
 import { KeyUsageModal } from "./components/KeyUsageModal.js";
+import { ReauthModal } from "./components/ReauthModal.js";
+
+/** Threshold below which we switch "Expires {date}" → red "Expires in N days". */
+const EXPIRY_WARNING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+/**
+ * Render the refresh-token expiry hint next to a key label.
+ *
+ * Four states (returning null for the first so the caller can inline it without
+ * conditional JSX gymnastics):
+ *   - null/undefined → render nothing (provider doesn't expose introspectable expiry)
+ *   - expiresAt > now + 3 days → gray "Expires <date>"
+ *   - 0 < expiresAt - now <= 3 days → red "Expires in N days" / "Expires today"
+ *   - expiresAt <= now → red "Expired"
+ */
+function renderExpiry(
+  oauthExpiresAt: number | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  locale: string,
+): ReactElement | null {
+  if (oauthExpiresAt == null) return null;
+  const now = Date.now();
+  const diff = oauthExpiresAt - now;
+
+  if (diff <= 0) {
+    return <span className="key-expiry key-expiry-warning">{t("providers.expired")}</span>;
+  }
+
+  if (diff <= EXPIRY_WARNING_WINDOW_MS) {
+    // Round UP so "in 6 hours" reads as "Expires in 1 day" rather than "0 days".
+    // "Expires today" covers <24h to avoid "Expires in 1 day" when reset is tonight.
+    const dayMs = 24 * 60 * 60 * 1000;
+    if (diff < dayMs) {
+      return <span className="key-expiry key-expiry-warning">{t("providers.expiresToday")}</span>;
+    }
+    const days = Math.ceil(diff / dayMs);
+    return (
+      <span className="key-expiry key-expiry-warning">
+        {t("providers.expiresInDays", { count: days })}
+      </span>
+    );
+  }
+
+  return (
+    <span className="key-expiry">
+      {t("providers.expiresOn", { date: formatShortDate(oauthExpiresAt, locale) })}
+    </span>
+  );
+}
 
 export const ProvidersPage = observer(function ProvidersPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const store = useEntityStore();
   const keys = store.providerKeys;
   const [expandedKeyId, setExpandedKeyId] = useState<string | null>(null);
@@ -28,6 +78,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
   const [editBaseUrl, setEditBaseUrl] = useState("");
   const [refreshingModelsId, setRefreshingModelsId] = useState<string | null>(null);
   const [usageKeyId, setUsageKeyId] = useState<string | null>(null);
+  const [reauthKeyId, setReauthKeyId] = useState<string | null>(null);
 
   async function handleUpdateKey(keyId: string, provider: string) {
     if (!updateApiKey.trim()) return;
@@ -195,7 +246,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
             {t("providers.noKeys")}
           </div>
         ) : (
-          <div className="flex-col-gap-1">
+          <div className="pk-grid">
             {keys.map((k) => {
               const isActive = k.isDefault;
               const isExp = expandedKeyId === k.id;
@@ -204,11 +255,13 @@ export const ProvidersPage = observer(function ProvidersPage() {
                   key={k.id}
                   className={`key-card ${isActive ? "key-card-active" : "key-card-inactive"}`}
                 >
-                  {/* Row: info left, actions right */}
-                  <div className="key-row">
-                    {/* Left: provider info */}
-                    <div className="key-info">
-                      <div className="key-meta">
+                  {/* Header: meta info on left, Activate CTA on right (hidden
+                      when already active — the tile's accent + gradient cues
+                      do that work). Activate is the only state-changing
+                      action so it gets top-right solo prominence; everything
+                      else is administrative and lives in the footer. */}
+                  <div className="key-header">
+                    <div className="key-meta">
                         <strong className="text-sm">
                           {k.provider === "rivonclaw-pro" && (
                             <span className="provider-crown" aria-label="Premium">👑</span>
@@ -226,11 +279,6 @@ export const ProvidersPage = observer(function ProvidersPage() {
                                   : t("providers.authTypeApiKey")}
                           </span>
                         )}
-                        {isActive && (
-                          <span className="badge badge-active">
-                            {t("providers.active")}
-                          </span>
-                        )}
                         {k.proxyUrl && (
                           <span className="has-tooltip inline-flex-center" data-tooltip={t("providers.proxyTooltip")}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -242,8 +290,18 @@ export const ProvidersPage = observer(function ProvidersPage() {
                         {(k.authType === "local" || k.authType === "custom") && k.baseUrl && k.provider !== "rivonclaw-pro" && (
                           <span className="text-secondary text-sm">{k.baseUrl}</span>
                         )}
-                      </div>
-                      <div className="key-details">
+                        {renderExpiry(k.oauthExpiresAt, t, i18n.language)}
+                    </div>
+                    {!isActive && (
+                      <button
+                        className="btn btn-outline btn-sm key-activate-btn"
+                        onClick={() => handleActivate(k.id, k.provider)}
+                      >
+                        {t("providers.activate")}
+                      </button>
+                    )}
+                  </div>
+                  <div className="key-details">
                         {editingLabelId === k.id ? (
                           <input
                             className="key-label-input"
@@ -291,52 +349,55 @@ export const ProvidersPage = observer(function ProvidersPage() {
                             onChange={(model) => handleModelChange(k.id, model)}
                           />
                         )}
-                      </div>
-                    </div>
+                  </div>
 
-                    {/* Right: action buttons */}
-                    <div className="td-actions">
-                      {k.authType === "custom" && k.customProtocol === "openai" && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => handleRefreshModels(k.id)}
-                          disabled={refreshingModelsId === k.id}
-                        >
-                          {refreshingModelsId === k.id ? t("providers.fetchingModels") : t("providers.refreshModels")}
-                        </button>
-                      )}
-                      {USAGE_QUERYABLE_PROVIDERS.includes(k.provider as LLMProvider) && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => setUsageKeyId(k.id)}
-                        >
-                          {t("providers.usage")}
-                        </button>
-                      )}
-                      {!isActive && (
-                        <button className="btn btn-outline btn-sm" onClick={() => handleActivate(k.id, k.provider)}>
-                          {t("providers.activate")}
-                        </button>
-                      )}
-                      {k.provider !== "rivonclaw-pro" && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setExpandedKeyId(isExp ? null : k.id);
-                            setUpdateApiKey("");
-                            setEditProxyUrl(k.proxyUrl || "");
-                            setEditBaseUrl(k.baseUrl || "");
-                          }}
-                        >
-                          {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
-                        </button>
-                      )}
-                      {k.provider !== "rivonclaw-pro" && (
-                        <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
-                          {t("providers.removeKey")}
-                        </button>
-                      )}
-                    </div>
+                  {/* Footer: administrative actions, right-aligned. Activate
+                      is NOT here — it sits in `.key-header` because it's the
+                      one state-changing action and deserves separate prominence. */}
+                  <div className="td-actions">
+                    {k.authType === "custom" && k.customProtocol === "openai" && (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleRefreshModels(k.id)}
+                        disabled={refreshingModelsId === k.id}
+                      >
+                        {refreshingModelsId === k.id ? t("providers.fetchingModels") : t("providers.refreshModels")}
+                      </button>
+                    )}
+                    {isUsageQueryableProvider(k.provider as LLMProvider) && (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setUsageKeyId(k.id)}
+                      >
+                        {t("providers.usage")}
+                      </button>
+                    )}
+                    {k.authType === "oauth" && isReauthSupportedProvider(k.provider as LLMProvider) && (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setReauthKeyId(k.id)}
+                      >
+                        {t("providers.reauthenticate")}
+                      </button>
+                    )}
+                    {k.provider !== "rivonclaw-pro" && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setExpandedKeyId(isExp ? null : k.id);
+                          setUpdateApiKey("");
+                          setEditProxyUrl(k.proxyUrl || "");
+                          setEditBaseUrl(k.baseUrl || "");
+                        }}
+                      >
+                        {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
+                      </button>
+                    )}
+                    {k.provider !== "rivonclaw-pro" && (
+                      <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
+                        {t("providers.removeKey")}
+                      </button>
+                    )}
                   </div>
 
                   {/* Expanded: update key / proxy / baseUrl form */}
@@ -403,6 +464,32 @@ export const ProvidersPage = observer(function ProvidersPage() {
                             </div>
                           </div>
                         </>
+                      ) : k.authType === "oauth" && isReauthSupportedProvider(k.provider as LLMProvider) ? (
+                        // Codex / Gemini OAuth: Update panel collapses to proxy-only.
+                        // Token rotation happens via the dedicated "Re-authenticate"
+                        // button, NOT through an API key input (the key is OAuth, not
+                        // a paste-in token). Anthropic-claude keeps the token input
+                        // because `claude setup-token` IS a pasteable long-lived token.
+                        <>
+                          <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
+                          <div className="form-row">
+                            <input
+                              type="text"
+                              value={editProxyUrl}
+                              onChange={(e) => setEditProxyUrl(e.target.value)}
+                              placeholder={t("providers.proxyPlaceholder")}
+                              className="flex-1 input-mono"
+                            />
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => handleProxyChange(k.id, editProxyUrl)}
+                              disabled={saving || editProxyUrl === (k.proxyUrl || "")}
+                            >
+                              {saving ? "..." : t("common.save")}
+                            </button>
+                          </div>
+                          <small className="form-help-sm">{t("providers.proxyHelp")}</small>
+                        </>
                       ) : (
                         <>
                           <div className="form-row">
@@ -461,6 +548,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
       </div>
 
       <KeyUsageModal keyId={usageKeyId} onClose={() => setUsageKeyId(null)} />
+      <ReauthModal keyId={reauthKeyId} onClose={() => setReauthKeyId(null)} />
     </div>
   );
 });

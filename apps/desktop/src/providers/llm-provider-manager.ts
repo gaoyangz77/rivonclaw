@@ -1,6 +1,6 @@
 import { types, flow, getRoot, getEnv } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
-import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, USAGE_QUERYABLE_PROVIDERS } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, isUsageQueryableProvider } from "@rivonclaw/core";
 import type { LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -8,7 +8,6 @@ import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import type { MstProviderKeySnapshot } from "./provider-key-utils.js";
 import {
-  fetchClaudeUsage,
   fetchCodexUsage,
   fetchGeminiUsage,
   extractCodexAccountId,
@@ -787,13 +786,13 @@ export const LLMProviderManagerModel = types
        *   5. Commit the snapshot via `setUsage`, which also clears `fetching`.
        */
       fetchKeyUsage: flow(function* (keyId: string) {
-        const { secretStore } = getEnvDeps();
+        const { secretStore, proxyFetch } = getEnvDeps();
 
         const mstKey = self.root.providerKeys.find((k: any) => k.id === keyId);
         if (!mstKey) throw new Error("Provider key not found");
 
         const provider = mstKey.provider as LLMProvider;
-        if (!USAGE_QUERYABLE_PROVIDERS.includes(provider)) {
+        if (!isUsageQueryableProvider(provider)) {
           throw new Error(`Provider '${provider}' does not expose a usage API`);
         }
 
@@ -826,21 +825,35 @@ export const LLMProviderManagerModel = types
           return;
         }
 
-        // Map provider id → fetcher. Kept in sync with USAGE_QUERYABLE_PROVIDERS.
+        // Map provider id → fetcher. `provider` is narrowed to `UsageQueryableProvider`
+        // by the type-guard above, so adding a new id in core without a matching
+        // branch here fails the exhaustive-never check at compile time.
+        // Claude is intentionally absent from `USAGE_QUERYABLE_PROVIDERS` — see
+        // the comment on that constant in `packages/core/src/models.ts` for the
+        // `user:profile` scope rationale.
         let snapshot: ProviderUsageSnapshot;
         try {
-          if (provider === "claude") {
-            snapshot = yield fetchClaudeUsage(token);
-          } else if (provider === "openai-codex") {
-            const accountId = extractCodexAccountId(token);
-            snapshot = yield fetchCodexUsage(token, accountId);
-          } else if (provider === "gemini") {
-            snapshot = yield fetchGeminiUsage(unwrapGeminiToken(token));
-          } else {
-            // USAGE_QUERYABLE_PROVIDERS gate above makes this unreachable; keep
-            // an explicit branch so future additions to the constant fail the
-            // type check instead of silently returning empty data.
-            throw new Error(`Unhandled usage-queryable provider '${provider}'`);
+          // Thread `proxyFetch` through so per-key / system proxies apply.
+          // Users in regions where chatgpt.com or googleapis.com are blocked
+          // have the gateway's LLM calls working because they go via proxy-
+          // router; usage queries must go through the same path to be reachable.
+          // Narrow cast: env.proxyFetch is typed `(url: string | URL, init?) =>
+          // Promise<Response>`; `typeof fetch` also accepts `Request` objects,
+          // but our fetchers never pass one — safe at this boundary.
+          const usageFetch = proxyFetch as unknown as typeof fetch;
+          switch (provider) {
+            case "openai-codex": {
+              const accountId = extractCodexAccountId(token);
+              snapshot = yield fetchCodexUsage(token, accountId, usageFetch);
+              break;
+            }
+            case "gemini":
+              snapshot = yield fetchGeminiUsage(unwrapGeminiToken(token), usageFetch);
+              break;
+            default: {
+              const _exhaustive: never = provider;
+              throw new Error(`Unhandled usage-queryable provider '${String(_exhaustive)}'`);
+            }
           }
         } catch (err) {
           const hint = accessExpiresAt && accessExpiresAt < Date.now() ? " (token expired)" : "";

@@ -115,7 +115,7 @@ export type {
 export type { ChannelType } from "./channels.js";
 export { ALL_CHANNELS, BUILTIN_CHANNELS, CUSTOM_CHANNELS } from "./channels.js";
 
-export type { LLMProvider, RootProvider, ModelConfig, Region, ProviderMeta, SubscriptionPlan, ResolvedProviderMeta } from "./models.js";
+export type { LLMProvider, RootProvider, ModelConfig, Region, ProviderMeta, SubscriptionPlan, ResolvedProviderMeta, UsageQueryableProvider, ReauthSupportedProvider } from "./models.js";
 export {
   PROVIDERS,
   KNOWN_MODELS,
@@ -125,6 +125,9 @@ export {
   API_PROVIDER_IDS,
   LOCAL_PROVIDER_IDS,
   USAGE_QUERYABLE_PROVIDERS,
+  isUsageQueryableProvider,
+  REAUTH_SUPPORTED_PROVIDERS,
+  isReauthSupportedProvider,
   CNY_USD,
   providerSecretKey,
   getProviderMeta,
@@ -144,6 +147,8 @@ export {
 } from "./proxy-utils.js";
 
 export { formatError, IMAGE_EXT_TO_MIME, IMAGE_MIME_TO_EXT } from "./error-utils.js";
+
+export { decodeJwtPayload } from "./jwt-utils.js";
 
 export {
   getApiBaseUrl, getGraphqlUrl, getTelemetryUrl, setApiBaseUrlOverride,
