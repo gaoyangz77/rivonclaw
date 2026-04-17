@@ -1587,7 +1587,6 @@ tbody td {
 .page-col-main {
   flex: 1;
   min-width: 320px;
-  max-width: 680px;
 }
 
 .page-col-side {

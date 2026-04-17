@@ -16,7 +16,7 @@ export const ChatStoreModel = types
     ),
     agentName: types.maybeNull(types.string),
     sessions: types.map(ChatSessionModel),
-    /** User-defined tab order persisted in localStorage. Null = default sort. */
+    /** User-defined tab order persisted via appSettings (SQLite + SSE). Null = default sort. */
     customOrder: types.maybeNull(types.array(types.string)),
   })
   .views((self) => ({

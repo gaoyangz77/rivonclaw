@@ -3,6 +3,7 @@ import { reaction } from "mobx";
 import { useTranslation } from "react-i18next";
 import { useChatPreferenceStore } from "../ChatPreferenceStoreProvider.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { useRuntimeStatus } from "../../../store/RuntimeStatusProvider.js";
 import { fetchSettings, updateSettings } from "../../../api/index.js";
 import { EXAMPLE_KEYS, getPresetExamples } from "../store/chat-example-presets.js";
 
@@ -25,12 +26,13 @@ function isNewFormat(parsed: unknown): parsed is NewOverridesFormat {
  *
  * These are the 6 customizable quick-send message templates shown below
  * the chat input. They are NOT session-scoped state and do NOT belong
- * in ChatStore. Source: ChatPreferenceStore + settings API + localStorage.
+ * in ChatStore. Source: ChatPreferenceStore + settings API + runtimeStatus appSettings.
  */
 export function useChatExamples() {
   const { t, i18n } = useTranslation();
   const prefStore = useChatPreferenceStore();
   const entityStore = useEntityStore();
+  const runtimeStatus = useRuntimeStatus();
 
   const [editingExample, setEditingExample] = useState<string | null>(null);
   const [editingExampleDraft, setEditingExampleDraft] = useState("");
@@ -72,12 +74,8 @@ export function useChatExamples() {
           prefStore.loadOverrides(migrated);
         }
       } catch { /* ignore invalid JSON */ }
-
-      // Load collapsed state from settings (synced across devices)
-      const collapsed = s["chat_examples_collapsed"];
-      if (collapsed !== undefined) {
-        prefStore.setExpanded(collapsed !== "1");
-      }
+      // Expand/collapse state is now sourced from runtimeStatus.appSettings
+      // (MST + SSE) — no separate hydration needed.
     }).catch(() => {});
   }, [prefStore]);
 
@@ -111,11 +109,11 @@ export function useChatExamples() {
     }).catch(() => {});
   }
 
+  const chatExamplesExpanded = !runtimeStatus.appSettings.chatExamplesCollapsed;
+
   function toggleExpanded() {
-    const next = !prefStore.chatExamplesExpanded;
-    prefStore.setExpanded(next);
-    localStorage.setItem("chat-examples-collapsed", next ? "0" : "1");
-    updateSettings({ chat_examples_collapsed: next ? "0" : "1" }).catch(() => {});
+    const nextCollapsed = chatExamplesExpanded; // expanded now -> will be collapsed
+    runtimeStatus.appSettings.setChatExamplesCollapsed(nextCollapsed).catch(() => {});
   }
 
   /** Begin editing — pin the current preset so mid-edit preset changes don't misroute. */
@@ -149,7 +147,7 @@ export function useChatExamples() {
   }
 
   return {
-    chatExamplesExpanded: prefStore.chatExamplesExpanded,
+    chatExamplesExpanded,
     resolvedExamples,
     customExamples: activeOverrides,
     editingExample,

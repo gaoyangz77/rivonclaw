@@ -53,6 +53,19 @@ const SETTING_APPLIERS: Record<string, Applier> = {
   "embedding.enabled":            (s, v) => { s.embeddingEnabled         = isTrue(v); },
   "embedding.provider":           (s, v) => { s.embeddingProvider        = v ?? ""; },
   "file-permissions-full-access": (s, v) => { s.filePermissionsFullAccess = isNotFalse(v); },
+
+  // Panel UI preferences (previously localStorage-only, see ADR/PROGRESS).
+  "telemetry_consent_shown":      (s, v) => { s.telemetryConsentShown     = v === "1"; },
+  "whats_new_last_seen_version":  (s, v) => { s.whatsNewLastSeenVersion   = v ?? ""; },
+  "panel_theme":                  (s, v) => {
+    s.panelTheme = (v === "light" || v === "dark" || v === "system") ? v : "system";
+  },
+  "panel_accent":                 (s, v) => { s.panelAccent               = v || "blue"; },
+  "show_agent_name":              (s, v) => { s.showAgentName              = isNotFalse(v); },
+  "tutorial_enabled":             (s, v) => { s.tutorialEnabled            = isNotFalse(v); },
+  "chat_examples_collapsed":      (s, v) => { s.chatExamplesCollapsed      = v === "1"; },
+  "chat_tab_order":               (s, v) => { s.chatTabOrder               = v ?? ""; },
+  "sidebar_collapsed":            (s, v) => { s.sidebarCollapsed           = isTrue(v); },
 };
 
 /** Desktop-specific model with mutation actions. Exported for test factory use. */

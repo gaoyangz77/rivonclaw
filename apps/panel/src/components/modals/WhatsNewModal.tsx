@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "./Modal.js";
-import { updateSettings } from "../../api/settings.js";
+import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import type { ChangelogEntry } from "../../api/index.js";
 
 export function WhatsNewModal({
@@ -15,6 +15,7 @@ export function WhatsNewModal({
   currentVersion: string;
 }) {
   const { i18n } = useTranslation();
+  const runtimeStatus = useRuntimeStatus();
   const isZh = i18n.language === "zh";
 
   // Find the entry matching the current version
@@ -22,8 +23,7 @@ export function WhatsNewModal({
   const changes = entry ? (isZh ? entry.zh : entry.en) : [];
 
   function handleClose() {
-    localStorage.setItem("whatsNew.lastSeenVersion", currentVersion);
-    updateSettings({ whats_new_last_seen_version: currentVersion }).catch(() => {});
+    runtimeStatus.appSettings.setWhatsNewLastSeenVersion(currentVersion).catch(() => {});
     onClose();
   }
 

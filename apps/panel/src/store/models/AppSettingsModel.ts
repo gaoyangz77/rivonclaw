@@ -136,4 +136,82 @@ export const AppSettingsModel = AppSettingsModelBase.actions(() => ({
     });
     invalidateCache("settings");
   }),
+
+  // ---------------------------------------------------------------------------
+  // Panel UI preferences (previously localStorage-backed; migrated to MST+SSE
+  // because Panel's dynamic-port origin makes localStorage non-durable).
+  // ---------------------------------------------------------------------------
+
+  setTelemetryConsentShown: flow(function* () {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ telemetry_consent_shown: "1" }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setWhatsNewLastSeenVersion: flow(function* (version: string) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ whats_new_last_seen_version: version }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setPanelTheme: flow(function* (theme: "system" | "light" | "dark") {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ panel_theme: theme }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setPanelAccent: flow(function* (accent: string) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ panel_accent: accent }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setShowAgentName: flow(function* (enabled: boolean) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ show_agent_name: enabled ? "true" : "false" }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setTutorialEnabled: flow(function* (enabled: boolean) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ tutorial_enabled: enabled ? "true" : "false" }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setChatExamplesCollapsed: flow(function* (collapsed: boolean) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ chat_examples_collapsed: collapsed ? "1" : "0" }),
+    });
+    invalidateCache("settings");
+  }),
+
+  /** Accepts a JSON-stringified array of session keys, or "" to clear. */
+  setChatTabOrder: flow(function* (orderJson: string) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ chat_tab_order: orderJson }),
+    });
+    invalidateCache("settings");
+  }),
+
+  setSidebarCollapsed: flow(function* (collapsed: boolean) {
+    yield fetchJson(clientPath(API["settings.update"]), {
+      method: "PUT",
+      body: JSON.stringify({ sidebar_collapsed: collapsed ? "true" : "false" }),
+    });
+    invalidateCache("settings");
+  }),
 }));

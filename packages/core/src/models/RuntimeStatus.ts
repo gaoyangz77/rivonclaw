@@ -50,6 +50,27 @@ export const AppSettingsModel = types.model("AppSettings", {
   embeddingProvider: types.optional(types.string, ""),
   // Permissions (isNotFalse → absent = true)
   filePermissionsFullAccess: types.optional(types.boolean, true),
+
+  // Panel UI preferences (previously localStorage, now MST-backed to survive
+  // Panel's dynamic-port origin changes across restarts/updates)
+  /** Whether the telemetry consent modal has been shown ("1" in storage). */
+  telemetryConsentShown: types.optional(types.boolean, false),
+  /** Last changelog version the user dismissed in "What's New". */
+  whatsNewLastSeenVersion: types.optional(types.string, ""),
+  /** User's panel theme preference: "system" | "light" | "dark". */
+  panelTheme: types.optional(types.string, "system"),
+  /** User's accent color name (e.g. "blue"). */
+  panelAccent: types.optional(types.string, "blue"),
+  /** Show agent name in sidebar brand (isNotFalse → absent = true). */
+  showAgentName: types.optional(types.boolean, true),
+  /** Tutorial bubble enabled (isNotFalse → absent = true). */
+  tutorialEnabled: types.optional(types.boolean, true),
+  /** Whether the chat examples panel is collapsed ("1" collapsed / "0" expanded). */
+  chatExamplesCollapsed: types.optional(types.boolean, false),
+  /** JSON-stringified array of session keys in user-defined order, or "" when unset. */
+  chatTabOrder: types.optional(types.string, ""),
+  /** Whether the sidebar is collapsed (isTrue → absent = false). */
+  sidebarCollapsed: types.optional(types.boolean, false),
 });
 
 export const RuntimeStatusStoreModel = types.model("RuntimeStatusStore", {
