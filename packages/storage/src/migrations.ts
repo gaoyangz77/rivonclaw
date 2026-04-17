@@ -336,4 +336,14 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_cs_escalations_conversation ON cs_escalations(conversation_id);
     `,
   },
+  {
+    id: 26,
+    name: "add_oauth_expires_at_to_provider_keys",
+    // Refresh-token expiry (ms since epoch) for OAuth subscription keys where
+    // the refresh token is introspectable (e.g. openai-codex JWT). Populated
+    // on OAuth save / re-auth. Null for keys where expiry is opaque or not OAuth.
+    sql: `
+      ALTER TABLE provider_keys ADD COLUMN oauth_expires_at INTEGER DEFAULT NULL;
+    `,
+  },
 ];

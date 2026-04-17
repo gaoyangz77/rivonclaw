@@ -876,8 +876,60 @@ export const API_PROVIDER_IDS: LLMProvider[] = (() => {
  * Kept separate from `SUBSCRIPTION_PROVIDER_IDS` on purpose: a provider can be
  * authenticable via OAuth without exposing a quota API. Adding an id here
  * requires a matching fetcher branch in Desktop's `LLMProviderManager.fetchKeyUsage`.
+ *
+ * Declared as a `readonly` literal tuple so `UsageQueryableProvider` below is a
+ * narrow union — adding an id without a matching dispatch branch fails the
+ * exhaustive-switch check at compile time.
+ *
+ * ## Why Claude is NOT here
+ *
+ * Our UI lets users paste the token output by `claude setup-token`. That token
+ * is scoped for the Anthropic Messages API (inference) but lacks `user:profile`,
+ * which Anthropic's OAuth quota endpoint (`/api/oauth/usage`) requires — so
+ * fetching quota for such tokens fails with HTTP 403 "OAuth token does not meet
+ * scope requirement user:profile".
+ *
+ * OpenClaw upstream has the same primary OAuth path and falls back to the
+ * claude.ai browser sessionKey cookie when the env vars `CLAUDE_AI_SESSION_KEY`
+ * / `CLAUDE_WEB_COOKIE` are set — see `vendor/openclaw/src/infra/provider-usage.fetch.claude.ts`.
+ * EasyClaw's target audience is non-developers who shouldn't be expected to
+ * harvest cookies from DevTools, so we'd rather hide the button than ship a
+ * power-user-only workaround or a misleading error. Re-adding `claude` here
+ * requires either (a) a full Anthropic OAuth authorization-code flow that
+ * requests `user:profile`, or (b) a Panel UX for pasting the session cookie.
  */
-export const USAGE_QUERYABLE_PROVIDERS: LLMProvider[] = ["claude", "openai-codex", "gemini"];
+export const USAGE_QUERYABLE_PROVIDERS = [
+  "openai-codex",
+  "gemini",
+] as const satisfies readonly LLMProvider[];
+
+export type UsageQueryableProvider = (typeof USAGE_QUERYABLE_PROVIDERS)[number];
+
+export function isUsageQueryableProvider(p: LLMProvider): p is UsageQueryableProvider {
+  return (USAGE_QUERYABLE_PROVIDERS as readonly LLMProvider[]).includes(p);
+}
+
+/**
+ * Subscription providers for which EasyClaw drives a full OAuth authorization-
+ * code flow end-to-end (not manual token paste). Only these keys show the
+ * "Re-authenticate" button and accept the `POST /api/provider-keys/:id/reauth`
+ * endpoint — Claude is NOT here because our UI accepts tokens from
+ * `claude setup-token` rather than running the OAuth flow itself.
+ *
+ * Single source of truth consumed by Panel UI, Desktop REST handler, and the
+ * Desktop action implementation — keeping them in sync prevents silent drift
+ * where one surface allows re-auth and another rejects it.
+ */
+export const REAUTH_SUPPORTED_PROVIDERS = [
+  "openai-codex",
+  "gemini",
+] as const satisfies readonly LLMProvider[];
+
+export type ReauthSupportedProvider = (typeof REAUTH_SUPPORTED_PROVIDERS)[number];
+
+export function isReauthSupportedProvider(p: LLMProvider): p is ReauthSupportedProvider {
+  return (REAUTH_SUPPORTED_PROVIDERS as readonly LLMProvider[]).includes(p);
+}
 
 /** Provider IDs that appear in the Local LLM tab. */
 export const LOCAL_PROVIDER_IDS: LLMProvider[] = ["ollama"];

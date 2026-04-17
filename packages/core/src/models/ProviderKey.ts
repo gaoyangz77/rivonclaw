@@ -44,6 +44,12 @@ export const ProviderKeyModel = types.model("ProviderKey", {
   customModelsJson: types.maybeNull(types.string),
   inputModalities: types.maybeNull(types.array(types.string)),
   source: types.optional(types.string, "local"),
+  /**
+   * Refresh-token expiry for OAuth subscription keys (ms since epoch). Null when
+   * the key is not OAuth, when the token is opaque, or the row pre-dates the
+   * column. The Providers page uses this to render an "Expires ..." hint.
+   */
+  oauthExpiresAt: types.optional(types.maybeNull(types.number), null),
   createdAt: types.string,
   updatedAt: types.string,
   /**

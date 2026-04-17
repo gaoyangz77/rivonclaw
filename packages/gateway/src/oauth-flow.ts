@@ -155,6 +155,27 @@ export async function validateGeminiAccessToken(
 }
 
 /**
+ * Write OAuth credentials for an existing Gemini key — overwrite the keychain
+ * credential JSON in place. Does NOT touch the provider_keys row's
+ * label/model/isDefault/proxy; only the stored credential is rotated.
+ *
+ * Gemini refresh tokens are opaque, so `oauthExpiresAt` is always `undefined`.
+ * The return shape mirrors `refreshCodexOAuthCredentials` for call-site symmetry
+ * in Desktop's `onOAuthReauth`.
+ */
+export async function refreshGeminiOAuthCredentials(
+  keyId: string,
+  credentials: GeminiCliOAuthCredentials,
+  secretStore: {
+    set(key: string, value: string): Promise<void>;
+  },
+): Promise<{ oauthExpiresAt: number | undefined }> {
+  await secretStore.set(`oauth-cred-${keyId}`, JSON.stringify(credentials));
+  log.info(`Wrote Gemini OAuth credentials for key ${keyId}`);
+  return { oauthExpiresAt: undefined };
+}
+
+/**
  * Step 3: Store OAuth credentials in keychain and create provider_keys row.
  * Call after validation succeeds.
  */
@@ -181,15 +202,17 @@ export async function saveGeminiOAuthCredentials(
   const model = options?.model || "google-gemini-cli/gemini-3-pro-preview";
   const id = randomUUID();
 
-  // Store credential JSON in Keychain
-  await secretStore.set(`oauth-cred-${id}`, JSON.stringify(credentials));
+  // Store credential JSON in Keychain (Gemini refresh token is opaque → no expiry)
+  const { oauthExpiresAt } = await refreshGeminiOAuthCredentials(id, credentials, secretStore);
 
   // Store proxy credentials if provided
   if (options?.proxyCredentials) {
     await secretStore.set(`proxy-auth-${id}`, options.proxyCredentials);
   }
 
-  // Create provider_keys row
+  // Create provider_keys row — oauthExpiresAt is undefined for Gemini but
+  // passed explicitly so the row shape is consistent with Codex (and future
+  // providers that surface expiry).
   const label = options?.label || credentials.email || "Gemini OAuth";
   const entry = storage.providerKeys.create({
     id,
@@ -199,6 +222,7 @@ export async function saveGeminiOAuthCredentials(
     isDefault: false,
     authType: "oauth",
     proxyBaseUrl: options?.proxyBaseUrl ?? null,
+    oauthExpiresAt,
     createdAt: "",
     updatedAt: "",
   });

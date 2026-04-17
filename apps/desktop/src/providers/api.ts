@@ -1,5 +1,5 @@
 import type { LLMProvider } from "@rivonclaw/core";
-import { getDefaultModelForProvider, reconstructProxyUrl, formatError } from "@rivonclaw/core";
+import { getDefaultModelForProvider, reconstructProxyUrl, formatError, isReauthSupportedProvider } from "@rivonclaw/core";
 import { readFullModelCatalog } from "@rivonclaw/gateway";
 import { API } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
@@ -284,6 +284,41 @@ const deleteKey: EndpointHandler = async (_req, res, _url, params, ctx: ApiConte
   sendJson(res, 200, { ok: true });
 };
 
+// ── POST /api/provider-keys/:id/reauth ──
+
+const reauthKey: EndpointHandler = async (_req, res, _url, params, ctx: ApiContext) => {
+  const { storage } = ctx;
+  const id = params.id!;
+  const entry = storage.providerKeys.getById(id);
+  if (!entry) {
+    sendJson(res, 404, { error: "Key not found" });
+    return;
+  }
+  if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
+    sendJson(res, 400, { error: "Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)" });
+    return;
+  }
+  if (!ctx.onOAuthReauth) {
+    sendJson(res, 501, { error: "OAuth re-auth not available" });
+    return;
+  }
+  try {
+    const result = await ctx.onOAuthReauth(id);
+    // The updated row (refreshed oauthExpiresAt + updatedAt) flows back via
+    // SSE. We still echo `idTokenCaptureFailed` here so the Panel can warn
+    // the user about the narrow OAuth-rotation race window.
+    sendJson(res, 200, { ok: true, idTokenCaptureFailed: result.idTokenCaptureFailed });
+  } catch (err) {
+    log.error("OAuth re-auth failed:", err);
+    const message = formatError(err);
+    const detail = err instanceof Error ? (err as Error & { detail?: string }).detail : undefined;
+    // "No pending OAuth" is a user-fixable 400 (they need to sign in first).
+    // Anything else is a genuine 500 from credential rotation.
+    const status = message.includes("No pending OAuth") ? 400 : 500;
+    sendJson(res, status, { error: message, detail });
+  }
+};
+
 // ── GET /api/session-model ──
 
 const getSessionModel: EndpointHandler = async (_req, res, url, _params, _ctx) => {
@@ -523,6 +558,7 @@ export function registerProviderHandlers(registry: RouteRegistry): void {
   registry.register(API["providerKeys.activate"], activateKey);
   registry.register(API["providerKeys.refreshModels"], refreshModels);
   registry.register(API["providerKeys.fetchUsage"], fetchKeyUsage);
+  registry.register(API["providerKeys.reauth"], reauthKey);
 
   // Session model
   registry.register(API["sessionModel.get"], getSessionModel);

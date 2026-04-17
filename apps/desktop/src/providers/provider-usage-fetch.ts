@@ -35,7 +35,7 @@ export interface UsageWindow {
 }
 
 /** Discriminated on the matching entry in `USAGE_QUERYABLE_PROVIDERS`. */
-export type UsageProviderKind = "anthropic" | "openai-codex" | "google-gemini-cli";
+export type UsageProviderKind = "openai-codex" | "google-gemini-cli";
 
 export interface ProviderUsageSnapshot {
   windows: UsageWindow[];
@@ -49,15 +49,25 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
 }
 
+/**
+ * The provider-facing hosts here (chatgpt.com, cloudcode-pa.googleapis.com,
+ * auth.openai.com) are blocked or slow in several regions and require per-key
+ * or system-wide proxy routing. All fetchers in this module accept a
+ * `fetchFn` so the caller can thread `proxyNetwork.fetch` through — that
+ * routes via the local proxy-router which already handles per-key / system /
+ * direct dispatch. Defaulting to global `fetch` keeps tests and direct-connect
+ * environments working out of the box.
+ */
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
+  fetchFn: typeof fetch,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetchFn(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -69,77 +79,20 @@ function buildHttpErrorSnapshot(status: number, message?: string): ProviderUsage
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Claude (Anthropic OAuth)
+// Note: Claude (Anthropic) usage fetch intentionally NOT implemented here.
+//
+// The UI lets users paste tokens from `claude setup-token`, which are scoped
+// for the Messages API but omit the `user:profile` scope required by
+// Anthropic's OAuth usage endpoint (`/api/oauth/usage`). Querying usage with
+// such a token returns HTTP 403 "does not meet scope requirement user:profile".
+// OpenClaw's own claude fetcher has the same primary path and falls back to a
+// claude.ai browser sessionKey cookie set via env vars — see
+// `vendor/openclaw/src/infra/provider-usage.fetch.claude.ts`. That fallback is
+// a power-user workaround unsuitable for EasyClaw's non-developer audience.
+// Re-adding support requires either a full Anthropic OAuth flow that requests
+// `user:profile`, or a Panel UX for pasting the session cookie.
+// See also: `USAGE_QUERYABLE_PROVIDERS` in `packages/core/src/models.ts`.
 // ──────────────────────────────────────────────────────────────────────────
-
-type ClaudeUsageResponse = {
-  five_hour?: { utilization?: number; resets_at?: string };
-  seven_day?: { utilization?: number; resets_at?: string };
-  seven_day_sonnet?: { utilization?: number };
-  seven_day_opus?: { utilization?: number };
-};
-
-export async function fetchClaudeUsage(
-  token: string,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-): Promise<ProviderUsageSnapshot> {
-  const res = await fetchWithTimeout(
-    "https://api.anthropic.com/api/oauth/usage",
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "openclaw",
-        Accept: "application/json",
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "oauth-2025-04-20",
-      },
-    },
-    timeoutMs,
-  );
-
-  if (!res.ok) {
-    let message: string | undefined;
-    try {
-      const data = (await res.json()) as { error?: { message?: unknown } | null };
-      const raw = data?.error?.message;
-      if (typeof raw === "string" && raw.trim()) message = raw.trim();
-    } catch {
-      // body is not JSON — fall through with no message
-    }
-    return buildHttpErrorSnapshot(res.status, message);
-  }
-
-  const data = (await res.json()) as ClaudeUsageResponse;
-  const windows: UsageWindow[] = [];
-
-  if (data.five_hour?.utilization !== undefined) {
-    windows.push({
-      label: "5h",
-      usedPercent: clampPercent(data.five_hour.utilization),
-      resetAt: data.five_hour.resets_at
-        ? new Date(data.five_hour.resets_at).getTime()
-        : undefined,
-    });
-  }
-  if (data.seven_day?.utilization !== undefined) {
-    windows.push({
-      label: "Week",
-      usedPercent: clampPercent(data.seven_day.utilization),
-      resetAt: data.seven_day.resets_at
-        ? new Date(data.seven_day.resets_at).getTime()
-        : undefined,
-    });
-  }
-  const modelWindow = data.seven_day_sonnet || data.seven_day_opus;
-  if (modelWindow?.utilization !== undefined) {
-    windows.push({
-      label: data.seven_day_sonnet ? "Sonnet" : "Opus",
-      usedPercent: clampPercent(modelWindow.utilization),
-    });
-  }
-
-  return { windows };
-}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Codex (OpenAI Codex OAuth)
@@ -213,6 +166,7 @@ export function extractCodexAccountId(accessToken: string): string | undefined {
 export async function fetchCodexUsage(
   token: string,
   accountId: string | undefined,
+  fetchFn: typeof fetch = fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<ProviderUsageSnapshot> {
   const headers: Record<string, string> = {
@@ -222,10 +176,13 @@ export async function fetchCodexUsage(
   };
   if (accountId) headers["ChatGPT-Account-Id"] = accountId;
 
+  // `chatgpt.com` is blocked in several regions — callers in Desktop must
+  // pass `proxyNetwork.fetch` for the per-key / system-proxy routing to apply.
   const res = await fetchWithTimeout(
     "https://chatgpt.com/backend-api/wham/usage",
     { method: "GET", headers },
     timeoutMs,
+    fetchFn,
   );
 
   if (!res.ok) {
@@ -285,8 +242,10 @@ type GeminiUsageResponse = {
 
 export async function fetchGeminiUsage(
   token: string,
+  fetchFn: typeof fetch = fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<ProviderUsageSnapshot> {
+  // Same proxy-routing requirement as Codex — see note on `fetchWithTimeout`.
   const res = await fetchWithTimeout(
     "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
     {
@@ -298,6 +257,7 @@ export async function fetchGeminiUsage(
       body: "{}",
     },
     timeoutMs,
+    fetchFn,
   );
 
   if (!res.ok) return buildHttpErrorSnapshot(res.status);

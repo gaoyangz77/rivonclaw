@@ -33,6 +33,19 @@ export interface ApiContext {
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
   onOAuthAcquire?: (provider: string) => Promise<{ email?: string; tokenPreview: string; manualMode?: boolean; authUrl?: string; flowId?: string }>;
   onOAuthSave?: (provider: string, options: { proxyUrl?: string; label?: string; model?: string }) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
+  /**
+   * Re-authenticate an existing OAuth provider key: consume the most recently
+   * completed OAuth flow for the key's provider, overwrite the stored credential
+   * in place (no new row, no change to label/model/isDefault/proxy), refresh the
+   * derived token expiry, and sync auth-profiles so the gateway picks up the new
+   * token on the next LLM turn. No gateway restart — keys hot-reload from auth-profiles.
+   */
+  /**
+   * `idTokenCaptureFailed` is `true` when the post-OAuth token-endpoint call
+   * (used to capture id_token → subscription expiry) failed. Panel uses this
+   * to warn the user about a narrow OAuth server-side rotation race.
+   */
+  onOAuthReauth?: (keyId: string) => Promise<{ ok: true; idTokenCaptureFailed: boolean }>;
   onOAuthManualComplete?: (provider: string, callbackUrl: string) => Promise<{ email?: string; tokenPreview: string }>;
   onOAuthPoll?: (flowId: string) => { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string };
   onTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;

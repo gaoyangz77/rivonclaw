@@ -19,6 +19,7 @@ export interface MstProviderKeySnapshot {
   customModelsJson: string | null;
   inputModalities: string[] | null;
   source: string;
+  oauthExpiresAt: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +54,7 @@ export async function toMstSnapshot(
     customModelsJson: entry.customModelsJson ?? null,
     inputModalities: entry.inputModalities ?? null,
     source: entry.source ?? "local",
+    oauthExpiresAt: entry.oauthExpiresAt ?? null,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
   };

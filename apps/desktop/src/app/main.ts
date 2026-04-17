@@ -11,15 +11,17 @@ import {
   syncBackOAuthCredentials,
   clearAllAuthProfiles,
   saveGeminiOAuthCredentials,
+  refreshGeminiOAuthCredentials,
   validateGeminiAccessToken,
   completeManualOAuthFlow,
   saveCodexOAuthCredentials,
+  refreshCodexOAuthCredentials,
   startHybridCodexOAuthFlow,
   startHybridGeminiOAuthFlow,
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, type LLMProvider } from "@rivonclaw/core";
 import { resolveRivonClawHome, resolveSessionStateDir, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -360,6 +362,30 @@ app.whenReady().then(async () => {
     completionPromise?: Promise<AcquiredOAuthCredentials | AcquiredCodexOAuthCredentials>;
   }
   const pendingOAuthFlows = new Map<string, PendingOAuthFlow>();
+
+  /**
+   * Pick the most recently completed flow for a provider.
+   *
+   * Both `onOAuthSave` and `onOAuthReauth` consume a completed flow from the
+   * shared map, and a user can have multiple in the 10-minute GC window (e.g.
+   * abandoned auto-callback from a prior session). `Map` iterates in insertion
+   * order, so the naive "break on first match" ends up consuming the OLDEST
+   * flow — which in a two-flow scenario cross-wires save vs. reauth. Sorting
+   * by `_createdAt` desc gives us the one the user most likely just initiated.
+   */
+  function findLatestCompletedFlow(
+    flows: Map<string, PendingOAuthFlow>,
+    provider: string,
+  ): { flowId: string; flow: PendingOAuthFlow } | undefined {
+    let best: { flowId: string; flow: PendingOAuthFlow } | undefined;
+    for (const [flowId, flow] of flows) {
+      if (flow.provider !== provider || flow.status !== "completed" || !flow.creds) continue;
+      if (!best || flow._createdAt > best.flow._createdAt) {
+        best = { flowId, flow };
+      }
+    }
+    return best;
+  }
 
   // Clean up abandoned OAuth flows every 5 minutes
   setInterval(() => {
@@ -1231,19 +1257,15 @@ app.whenReady().then(async () => {
       return { email: acquired.email, tokenPreview: acquired.tokenPreview };
     },
     onOAuthSave: async (provider: string, options: { proxyUrl?: string; label?: string; model?: string }): Promise<OAuthFlowResult> => {
-      // Find completed flow for this provider
-      let flowId: string | undefined;
-      let flow: PendingOAuthFlow | undefined;
-      for (const [id, f] of pendingOAuthFlows) {
-        if (f.provider === provider && f.status === "completed" && f.creds) {
-          flowId = id;
-          flow = f;
-          break;
-        }
-      }
-      if (!flow || !flow.creds || !flowId) {
+      // Find the MOST RECENT completed flow for this provider. Map iteration
+      // is insertion-ordered, so a plain break-on-first-match would pick the
+      // oldest — which can be a stale, abandoned flow still in the 10-min
+      // GC window. Sort candidates by _createdAt desc.
+      const picked = findLatestCompletedFlow(pendingOAuthFlows, provider);
+      if (!picked) {
         throw new Error("No pending OAuth credentials. Please sign in first.");
       }
+      const { flowId, flow } = picked;
       const creds = flow.creds;
 
       // Parse proxy URL if provided
@@ -1268,6 +1290,9 @@ app.whenReady().then(async () => {
           proxyCredentials,
           label: options.label,
           model: options.model,
+          // Narrow cast: `typeof fetch` accepts `Request` objects, but our
+          // gateway helpers only ever pass string URLs. Safe at this seam.
+          fetchFn: ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
         });
         activeProvider = "openai-codex";
       } else {
@@ -1303,6 +1328,98 @@ app.whenReady().then(async () => {
       await launcher.stop();
       await launcher.start();
       return result;
+    },
+    /**
+     * Re-authenticate an existing OAuth key (Issue B2 — see docs/PROGRESS).
+     *
+     * Pipeline:
+     *   1. Look up the existing key; require OAuth + (codex | gemini).
+     *   2. Find the most recently completed pendingOAuthFlow for that provider.
+     *   3. Rotate credentials in place via the gateway's refresh* helpers.
+     *   4. Persist the new refresh-token expiry on the existing row.
+     *   5. Sync auth-profiles (gateway picks up on next LLM turn — no restart).
+     *   6. Push the updated row to MST → SSE patch → Panel auto-update.
+     *
+     * Intentionally does NOT change label/model/isDefault/proxyBaseUrl and does
+     * NOT create a new row — only the stored OAuth credential + expiry rotate.
+     */
+    onOAuthReauth: async (keyId: string): Promise<{ ok: true; idTokenCaptureFailed: boolean }> => {
+      const entry = storage.providerKeys.getById(keyId);
+      if (!entry) {
+        throw new Error(`Provider key ${keyId} not found`);
+      }
+      if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
+        throw new Error("Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)");
+      }
+
+      // Find the MOST RECENT completed flow for this provider — see the note
+      // on `findLatestCompletedFlow` re: why we can't break on first match.
+      const picked = findLatestCompletedFlow(pendingOAuthFlows, entry.provider);
+      if (!picked) {
+        throw new Error("No pending OAuth credentials. Please sign in first.");
+      }
+      const { flowId, flow } = picked;
+
+      // Rotate credentials in-place and derive new refresh-token expiry.
+      // `idTokenCaptureFailed` is propagated back to the Panel so the Reauth
+      // modal can warn the user that the OAuth token MAY be server-side-rotated
+      // past our last successful read — if so they'll hit 401 on next use.
+      let oauthExpiresAt: number | undefined;
+      let idTokenCaptureFailed = false;
+      if (entry.provider === "openai-codex") {
+        const codexCreds = flow.creds as AcquiredCodexOAuthCredentials;
+        // Thread proxyNetwork.fetch so id_token capture (hits auth.openai.com)
+        // respects per-key / system proxies for users in blocked regions.
+        // Narrow cast (see saveCodexOAuthCredentials call above for rationale).
+        ({ oauthExpiresAt, idTokenCaptureFailed } = await refreshCodexOAuthCredentials(
+          keyId,
+          codexCreds.credentials,
+          secretStore,
+          ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
+        ));
+      } else {
+        const geminiCreds = flow.creds as AcquiredOAuthCredentials;
+        // Validate the new Gemini token before committing — matches the guard in
+        // onOAuthSave so an invalid token never silently replaces a working one.
+        const validationProxy = `http://127.0.0.1:${actualProxyRouterPort}`;
+        const validation = await validateGeminiAccessToken(
+          geminiCreds.credentials.access,
+          validationProxy,
+          geminiCreds.credentials.projectId,
+        );
+        if (!validation.valid) {
+          throw new Error(validation.error || "Token validation failed");
+        }
+        ({ oauthExpiresAt } = await refreshGeminiOAuthCredentials(keyId, geminiCreds.credentials, secretStore));
+        // Gemini has no id_token capture step — `idTokenCaptureFailed` stays false.
+      }
+
+      // Persist the new expiry on the existing row. Pass `null` (not undefined)
+      // so the repo overwrites a stale value — `undefined` would be preserved.
+      storage.providerKeys.update(keyId, {
+        oauthExpiresAt: oauthExpiresAt ?? null,
+      });
+
+      // Consume the flow — a re-auth cannot be reused accidentally.
+      pendingOAuthFlows.delete(flowId);
+
+      // Hot-reload: gateway reads auth-profiles.json on each LLM turn, so no
+      // restart is needed (canonical pattern — see data-flow.md LLM Key Lifecycle).
+      await syncAllAuthProfiles(stateDir, storage, secretStore);
+
+      // MST push: single-entry update via toMstSnapshot is enough (isDefault
+      // didn't change, so sibling rows are untouched).
+      const updated = storage.providerKeys.getById(keyId);
+      if (updated) {
+        const mstEntry = await toMstSnapshot(updated, secretStore);
+        rootStore.upsertProviderKey(mstEntry);
+      }
+
+      log.info(
+        `Re-authenticated OAuth key ${keyId} (${entry.provider})` +
+          (idTokenCaptureFailed ? " [id_token capture failed]" : ""),
+      );
+      return { ok: true, idTokenCaptureFailed };
     },
     onOAuthPoll: (flowId: string) => {
       const flow = pendingOAuthFlows.get(flowId);

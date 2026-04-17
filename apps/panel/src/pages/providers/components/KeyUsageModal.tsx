@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../../../components/modals/Modal.js";
 import { useEntityStore } from "../../../store/index.js";
+import { formatShortDateTime } from "../../../lib/format-datetime.js";
 
 export interface KeyUsageModalProps {
   keyId: string | null;
@@ -20,7 +21,7 @@ export interface KeyUsageModalProps {
  * economy, so there's no caching; reopening refetches.
  */
 export const KeyUsageModal = observer(function KeyUsageModal({ keyId, onClose }: KeyUsageModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const store = useEntityStore();
   const key = keyId ? store.providerKeys.find((k) => k.id === keyId) : null;
 
@@ -71,7 +72,7 @@ export const KeyUsageModal = observer(function KeyUsageModal({ keyId, onClose }:
                   usedPercent={w.usedPercent}
                   resetAt={w.resetAt}
                   refreshesAtLabel={t("providers.usageModal.refreshesAt", {
-                    time: w.resetAt ? formatResetTime(w.resetAt) : "",
+                    time: w.resetAt ? formatShortDateTime(w.resetAt, i18n.language) : "",
                   })}
                 />
               ))}
@@ -119,22 +120,4 @@ function UsageWindowRow({
       </div>
     </div>
   );
-}
-
-/**
- * Format a Unix-ms reset timestamp as a short locale-aware date/time string.
- * Falls back to ISO date if Intl formatting throws (shouldn't happen in
- * Electron/Chromium but cheap to guard).
- */
-function formatResetTime(resetAtMs: number): string {
-  try {
-    return new Date(resetAtMs).toLocaleString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return new Date(resetAtMs).toISOString();
-  }
 }
