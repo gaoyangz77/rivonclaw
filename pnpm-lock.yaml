@@ -87,6 +87,9 @@ importers:
       https-proxy-agent:
         specifier: ^7.0.6
         version: 7.0.6
+      jimp:
+        specifier: ^1.6.1
+        version: 1.6.1
       mobx:
         specifier: ^6.15.0
         version: 6.15.0

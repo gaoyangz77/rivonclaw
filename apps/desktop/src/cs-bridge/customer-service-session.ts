@@ -25,6 +25,7 @@ import { getAuthSession } from "../auth/session-ref.js";
 import { getStorageRef } from "../app/storage-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
+import { compressImageForAgent } from "./image-compressor.js";
 import {
   SEND_MESSAGE_MUTATION,
   GET_CONVERSATION_DETAILS_QUERY,
@@ -700,8 +701,12 @@ export class CustomerServiceSession {
       if (!parsed.url) return undefined;
       const res = await proxyNetwork.fetch(parsed.url);
       if (!res.ok) return undefined;
-      const buffer = Buffer.from(await res.arrayBuffer());
-      const mimeType = res.headers.get("content-type") ?? "image/jpeg";
+      const rawBuffer = Buffer.from(await res.arrayBuffer());
+      const rawMimeType = res.headers.get("content-type") ?? "image/jpeg";
+      // Off-thread compression: resize + re-encode as JPEG so the main
+      // Electron event loop doesn't block when multiple shops receive images
+      // concurrently. Fail-open: on worker failure we send the original buffer.
+      const { buffer, mimeType } = await compressImageForAgent(rawBuffer, rawMimeType);
       return [{ mimeType, content: buffer.toString("base64") }];
     } catch (err) {
       log.warn("Failed to fetch buyer image, agent will see URL only", { err });
