@@ -1144,7 +1144,6 @@ describe("CS session lifecycle", () => {
       {
         shopId: "mongo-id-123",
         conversationId: "conv-lifecycle",
-        buyerUserId: "buyer-lifecycle",
       },
     );
   });
