@@ -1,21 +1,15 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { observer } from "mobx-react-lite";
 import { trackEvent } from "../api/index.js";
-import { updateSettings } from "../api/settings.js";
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { MonitorIcon, SunIcon, MoonIcon } from "./icons.js";
 import type { IconProps } from "./icons.js";
 
-/** Fire-and-forget sync of a theme-related setting to the backend SQLite store. */
-function syncSettingToBackend(key: string, value: string): void {
-  updateSettings({ [key]: value }).catch(() => {/* best-effort */});
-}
-
 type ThemePreference = "system" | "light" | "dark";
 
-function getInitialPreference(): ThemePreference {
-  const stored = localStorage.getItem("theme");
-  if (stored === "system" || stored === "dark" || stored === "light") return stored;
-  return "system";
+function isThemePreference(v: string): v is ThemePreference {
+  return v === "system" || v === "light" || v === "dark";
 }
 
 function getSystemTheme(): "light" | "dark" {
@@ -28,9 +22,12 @@ const THEME_ICON: Record<ThemePreference, (props: IconProps) => React.JSX.Elemen
   dark: MoonIcon,
 };
 
-export function ThemeToggle() {
+export const ThemeToggle = observer(function ThemeToggle() {
   const { t } = useTranslation();
-  const [themePreference, setThemePreference] = useState<ThemePreference>(getInitialPreference);
+  const runtimeStatus = useRuntimeStatus();
+  const rawTheme = runtimeStatus.appSettings.panelTheme;
+  const themePreference: ThemePreference = isThemePreference(rawTheme) ? rawTheme : "system";
+  const accent = runtimeStatus.appSettings.panelAccent;
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(getSystemTheme);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -45,27 +42,19 @@ export function ThemeToggle() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
+  // Apply theme attribute whenever effective theme changes (driven by MST).
   useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", effectiveTheme);
-    localStorage.setItem("theme", themePreference);
-    syncSettingToBackend("panel_theme", themePreference);
-  }, [effectiveTheme, themePreference]);
+  }, [effectiveTheme]);
 
-  // Apply accent color from localStorage
+  // Apply accent color reactively from MST (SSE-synced).
   useLayoutEffect(() => {
-    function applyAccent() {
-      const accent = localStorage.getItem("accentColor") || "blue";
-      if (accent !== "blue") {
-        document.documentElement.setAttribute("data-accent", accent);
-      } else {
-        document.documentElement.removeAttribute("data-accent");
-      }
-      syncSettingToBackend("panel_accent", accent);
+    if (accent && accent !== "blue") {
+      document.documentElement.setAttribute("data-accent", accent);
+    } else {
+      document.documentElement.removeAttribute("data-accent");
     }
-    applyAccent();
-    window.addEventListener("accent-color-changed", applyAccent);
-    return () => window.removeEventListener("accent-color-changed", applyAccent);
-  }, []);
+  }, [accent]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -78,6 +67,14 @@ export function ThemeToggle() {
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [menuOpen]);
+
+  function chooseTheme(mode: ThemePreference) {
+    setMenuOpen(false);
+    trackEvent("ui.theme_changed", { theme: mode });
+    // MST action writes through Desktop -> SQLite -> SSE patch back;
+    // the useLayoutEffect above reacts to the updated panelTheme.
+    runtimeStatus.appSettings.setPanelTheme(mode).catch(() => {});
+  }
 
   const TriggerIcon = THEME_ICON[themePreference];
 
@@ -98,7 +95,7 @@ export function ThemeToggle() {
               <button
                 key={mode}
                 className={`theme-menu-option${themePreference === mode ? " theme-menu-option-active" : ""}`}
-                onClick={() => { setThemePreference(mode); setMenuOpen(false); trackEvent("ui.theme_changed", { theme: mode }); }}
+                onClick={() => chooseTheme(mode)}
               >
                 <span className="theme-menu-option-icon"><Icon /></span>
                 <span>{t(`theme.${mode}`)}</span>
@@ -109,4 +106,4 @@ export function ThemeToggle() {
       )}
     </div>
   );
-}
+});

@@ -146,3 +146,98 @@ describe("AppSettings defaults — loadAppSettings({})", () => {
     expect(store.appSettings.autoLaunchEnabled).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Panel UI preference appliers (migrated from localStorage)
+// ---------------------------------------------------------------------------
+
+describe("AppSettings — Panel UI preferences", () => {
+  let store: Store;
+
+  beforeEach(() => {
+    store = createRuntimeStatusStore();
+  });
+
+  it("defaults match Panel absent-value semantics", () => {
+    store.loadAppSettings({});
+    const s = store.appSettings;
+    // Opt-in (absent = false)
+    expect(s.telemetryConsentShown).toBe(false);
+    expect(s.chatExamplesCollapsed).toBe(false);
+    expect(s.sidebarCollapsed).toBe(false);
+    // Opt-out (absent = true)
+    expect(s.showAgentName).toBe(true);
+    expect(s.tutorialEnabled).toBe(true);
+    // String defaults
+    expect(s.whatsNewLastSeenVersion).toBe("");
+    expect(s.panelTheme).toBe("system");
+    expect(s.panelAccent).toBe("blue");
+    expect(s.chatTabOrder).toBe("");
+  });
+
+  it("telemetry_consent_shown is true only when value is \"1\"", () => {
+    store.loadAppSettings({ telemetry_consent_shown: "1" });
+    expect(store.appSettings.telemetryConsentShown).toBe(true);
+
+    store.updateAppSetting("telemetry_consent_shown", "0");
+    expect(store.appSettings.telemetryConsentShown).toBe(false);
+
+    store.updateAppSetting("telemetry_consent_shown", "true"); // anything ≠ "1"
+    expect(store.appSettings.telemetryConsentShown).toBe(false);
+  });
+
+  it("panel_theme coerces invalid values to \"system\"", () => {
+    store.loadAppSettings({ panel_theme: "light" });
+    expect(store.appSettings.panelTheme).toBe("light");
+
+    store.updateAppSetting("panel_theme", "dark");
+    expect(store.appSettings.panelTheme).toBe("dark");
+
+    store.updateAppSetting("panel_theme", "garbage");
+    expect(store.appSettings.panelTheme).toBe("system");
+  });
+
+  it("panel_accent falls back to \"blue\" for empty strings", () => {
+    store.loadAppSettings({ panel_accent: "purple" });
+    expect(store.appSettings.panelAccent).toBe("purple");
+
+    store.updateAppSetting("panel_accent", "");
+    expect(store.appSettings.panelAccent).toBe("blue");
+  });
+
+  it("show_agent_name and tutorial_enabled are isNotFalse (opt-out)", () => {
+    store.loadAppSettings({ show_agent_name: "false", tutorial_enabled: "false" });
+    expect(store.appSettings.showAgentName).toBe(false);
+    expect(store.appSettings.tutorialEnabled).toBe(false);
+
+    store.updateAppSetting("show_agent_name", "true");
+    store.updateAppSetting("tutorial_enabled", "true");
+    expect(store.appSettings.showAgentName).toBe(true);
+    expect(store.appSettings.tutorialEnabled).toBe(true);
+  });
+
+  it("chat_examples_collapsed uses \"1\" encoding", () => {
+    store.loadAppSettings({ chat_examples_collapsed: "1" });
+    expect(store.appSettings.chatExamplesCollapsed).toBe(true);
+
+    store.updateAppSetting("chat_examples_collapsed", "0");
+    expect(store.appSettings.chatExamplesCollapsed).toBe(false);
+  });
+
+  it("chat_tab_order preserves the raw JSON string", () => {
+    const orderJson = JSON.stringify(["agent:main:one", "agent:main:two"]);
+    store.loadAppSettings({ chat_tab_order: orderJson });
+    expect(store.appSettings.chatTabOrder).toBe(orderJson);
+
+    store.updateAppSetting("chat_tab_order", "");
+    expect(store.appSettings.chatTabOrder).toBe("");
+  });
+
+  it("sidebar_collapsed is isTrue (opt-in)", () => {
+    store.loadAppSettings({ sidebar_collapsed: "true" });
+    expect(store.appSettings.sidebarCollapsed).toBe(true);
+
+    store.updateAppSetting("sidebar_collapsed", "false");
+    expect(store.appSettings.sidebarCollapsed).toBe(false);
+  });
+});

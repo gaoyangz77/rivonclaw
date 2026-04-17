@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "./Modal.js";
-import { updateTelemetrySetting, trackEvent, updateSettings } from "../../api/index.js";
+import { updateTelemetrySetting, trackEvent } from "../../api/index.js";
+import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 
 export function TelemetryConsentModal({
   isOpen,
@@ -10,12 +11,15 @@ export function TelemetryConsentModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const runtimeStatus = useRuntimeStatus();
 
   function dismiss(enabled: boolean) {
     updateTelemetrySetting(enabled).catch(() => {});
     trackEvent("telemetry.toggled", { enabled });
-    localStorage.setItem("telemetry.consentShown", "1");
-    updateSettings({ telemetry_consent_shown: "1" }).catch(() => {});
+    // Record consent via MST -> Desktop -> SQLite -> SSE patch back.
+    // Best-effort: a backend failure shouldn't block the user; the modal
+    // remains dismissed visually and will reappear next launch if unpersisted.
+    runtimeStatus.appSettings.setTelemetryConsentShown().catch(() => {});
     onClose();
   }
 

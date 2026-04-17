@@ -7,9 +7,7 @@ import {
   cancelUpdateDownload,
   fetchUpdateDownloadStatus,
   triggerUpdateInstall,
-  updateSettings,
 } from "../api/index.js";
-import { DEFAULTS } from "@rivonclaw/core";
 import { formatError } from "@rivonclaw/core";
 import { SSE } from "@rivonclaw/core/api-contract";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
@@ -50,14 +48,10 @@ export const Layout = observer(function Layout({
   });
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem("sidebar-collapsed") === "true",
-  );
-  const [showAgentName, setShowAgentName] = useState(() => {
-    const stored = localStorage.getItem("showAgentName");
-    if (stored === null) return DEFAULTS.settings.showAgentName;
-    return stored === "true";
-  });
+  // Sidebar-collapsed and show-agent-name are MST-backed (SSE-synced) —
+  // read reactively; the `observer()` wrapper below handles re-renders.
+  const collapsed = runtimeStatus.appSettings.sidebarCollapsed;
+  const showAgentName = runtimeStatus.appSettings.showAgentName;
   const isDragging = useRef(false);
 
   // Check for updates after 5s + retry once at 20s to handle startup race.
@@ -114,15 +108,6 @@ export const Layout = observer(function Layout({
     };
   }, [showToast, t]);
 
-  useEffect(() => {
-    function onBrandDisplayChanged() {
-      const stored = localStorage.getItem("showAgentName");
-      setShowAgentName(stored === null ? true : stored === "true");
-    }
-    window.addEventListener("brand-display-changed", onBrandDisplayChanged);
-    return () => window.removeEventListener("brand-display-changed", onBrandDisplayChanged);
-  }, []);
-
   // Poll download status: fast (500ms) when actively downloading, slow (3s) when banner is visible.
   // Also fetch immediately when the window becomes visible so progress appears instantly
   // after a tray-triggered download.
@@ -177,10 +162,8 @@ export const Layout = observer(function Layout({
   }
 
   function handleToggleCollapse() {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem("sidebar-collapsed", String(next));
-    updateSettings({ sidebar_collapsed: String(next) }).catch(() => {});
+    // MST action -> Desktop -> SQLite -> SSE patch back; observer re-renders.
+    runtimeStatus.appSettings.setSidebarCollapsed(!collapsed).catch(() => {});
   }
 
   const handleMouseDown = useCallback(() => {

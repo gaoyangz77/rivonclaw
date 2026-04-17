@@ -4,14 +4,18 @@ import { types, type Instance } from "mobx-state-tree";
  * ChatPreferenceStore — chat feature-level preference state.
  *
  * NOT session-scoped. Holds:
- *   - Example prompt presets, user overrides, and expanded/collapsed state
+ *   - Example prompt presets and per-preset user overrides
  *
  * Separate from ChatStore (which holds per-session state) because examples
  * are a feature-level UI/settings concern shared across all sessions.
+ *
+ * Note: `chatExamplesCollapsed` (examples panel expand/collapse) lives in
+ * the global runtime-status store's appSettings, not here — it is a user
+ * preference persisted to SQLite and synced across devices/sessions via
+ * Desktop -> SSE. Consumers should read it from `runtimeStatus.appSettings`.
  */
 export const ChatPreferenceStoreModel = types
   .model("ChatPreferenceStore", {
-    chatExamplesExpanded: true,
     activePresetId: "default",
     /** Per-preset user overrides. Key: presetId, Value: map of exampleKey -> custom text. */
     overridesByPreset: types.map(types.map(types.string)),
@@ -27,9 +31,6 @@ export const ChatPreferenceStoreModel = types
     },
   }))
   .actions((self) => ({
-    setExpanded(v: boolean) {
-      self.chatExamplesExpanded = v;
-    },
     setActivePresetId(id: string) {
       self.activePresetId = id;
     },
@@ -59,11 +60,5 @@ export const ChatPreferenceStoreModel = types
 export type IChatPreferenceStore = Instance<typeof ChatPreferenceStoreModel>;
 
 export function createChatPreferenceStore(): IChatPreferenceStore {
-  // Sync-read localStorage for instant collapsed state (no flash).
-  // Settings API load in useChatExamples provides cross-device sync later.
-  const collapsed = typeof localStorage !== "undefined"
-    && localStorage.getItem("chat-examples-collapsed") === "1";
-  return ChatPreferenceStoreModel.create({
-    chatExamplesExpanded: !collapsed,
-  });
+  return ChatPreferenceStoreModel.create({});
 }

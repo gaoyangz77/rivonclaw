@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { observer } from "mobx-react-lite";
 import { Layout } from "./layout/Layout.js";
 import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
@@ -8,6 +9,7 @@ import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/in
 import { fetchSettings, fetchChangelog, trackEvent } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
 import { entityStore } from "./store/entity-store.js";
+import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -18,29 +20,9 @@ function pageNameFromRoute(path: string): string {
   return ROUTE_MAP.get(path)?.pageKey ?? "chat";
 }
 
-/** Hydrate localStorage from backend settings so UI preferences survive port changes. */
-function hydrateLocalStorage(settings: Record<string, string>) {
-  const mapping: Record<string, string> = {
-    whats_new_last_seen_version: "whatsNew.lastSeenVersion",
-    telemetry_consent_shown: "telemetry.consentShown",
-    sidebar_collapsed: "sidebar-collapsed",
-    show_agent_name: "showAgentName",
-    panel_theme: "theme",
-    panel_accent: "accentColor",
-    tutorial_enabled: "tutorial.enabled",
-    chat_examples_collapsed: "chat-examples-collapsed",
-    chat_tab_order: "chat-tab-order",
-  };
-  for (const [backendKey, localKey] of Object.entries(mapping)) {
-    const val = settings[backendKey];
-    if (val !== undefined) {
-      localStorage.setItem(localKey, val);
-    }
-  }
-}
-
-export function App() {
+export const App = observer(function App() {
   const { t, i18n } = useTranslation();
+  const runtimeStatus = useRuntimeStatus();
   const [currentPath, setCurrentPath] = useState(() => resolveRoute(window.location.pathname));
 
   // Sync <html lang="..."> so CSS :lang() / [lang] selectors work
@@ -90,7 +72,6 @@ export function App() {
   async function checkOnboarding() {
     try {
       const settings = await fetchSettings();
-      hydrateLocalStorage(settings);
 
       const provider = settings["llm-provider"];
       // API keys are masked to "configured" by the server when present
@@ -105,13 +86,16 @@ export function App() {
     }
   }
 
-  // Check for "What's New" after onboarding is resolved
+  // Check for "What's New" after onboarding is resolved.
+  // Wait for the SSE snapshot so we compare against the persisted MST value,
+  // not the empty default (which would show "What's New" on every launch).
   useEffect(() => {
     if (showOnboarding !== false) return;
+    if (!runtimeStatus.snapshotReceived) return;
     fetchChangelog()
       .then((data) => {
         if (!data.currentVersion || data.entries.length === 0) return;
-        const lastSeen = localStorage.getItem("whatsNew.lastSeenVersion");
+        const lastSeen = runtimeStatus.appSettings.whatsNewLastSeenVersion;
         if (lastSeen !== data.currentVersion) {
           setChangelogEntries(data.entries);
           setCurrentVersion(data.currentVersion);
@@ -119,15 +103,18 @@ export function App() {
         }
       })
       .catch(() => { });
-  }, [showOnboarding]);
+  }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.whatsNewLastSeenVersion]);
 
-  // Show telemetry consent dialog on first launch (after onboarding)
+  // Show telemetry consent dialog on first launch (after onboarding).
+  // Gate on snapshotReceived so we don't flash the modal based on the MST
+  // default before the real persisted value arrives via SSE.
   useEffect(() => {
     if (showOnboarding !== false) return;
-    if (!localStorage.getItem("telemetry.consentShown")) {
+    if (!runtimeStatus.snapshotReceived) return;
+    if (!runtimeStatus.appSettings.telemetryConsentShown) {
       setShowTelemetryConsent(true);
     }
-  }, [showOnboarding]);
+  }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.telemetryConsentShown]);
 
   // Track initial page view when main app mounts (not during onboarding)
   useEffect(() => {
@@ -195,4 +182,4 @@ export function App() {
       <TutorialBubble />
     </TutorialProvider>
   );
-}
+});

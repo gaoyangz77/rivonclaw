@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 import type { ReactNode } from "react"
-import { DEFAULTS } from "@rivonclaw/core"
-import { updateSettings } from "../api/settings.js"
+import { observer } from "mobx-react-lite"
+import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js"
 import type { TutorialStep } from "./types.js"
 import { getStepsForRoute } from "./steps/index.js"
 
@@ -19,14 +19,15 @@ interface TutorialContextValue {
 
 const TutorialContext = createContext<TutorialContextValue | null>(null)
 
-function readEnabled(): boolean {
-  const stored = localStorage.getItem("tutorial.enabled")
-  if (stored === null) return DEFAULTS.settings.tutorialEnabled
-  return stored === "true"
-}
-
-export function TutorialProvider({ currentPath, children }: { currentPath: string; children: ReactNode }) {
-  const [enabled, setEnabledState] = useState(readEnabled)
+export const TutorialProvider = observer(function TutorialProvider({
+  currentPath,
+  children,
+}: {
+  currentPath: string
+  children: ReactNode
+}) {
+  const runtimeStatus = useRuntimeStatus()
+  const enabled = runtimeStatus.appSettings.tutorialEnabled
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
 
@@ -38,23 +39,16 @@ export function TutorialProvider({ currentPath, children }: { currentPath: strin
     setCurrentStepIndex(0)
   }, [currentPath])
 
-  // Listen for settings toggle from SettingsPage
+  // Auto-stop playback when the feature is disabled via settings.
   useEffect(() => {
-    function onSettingsChanged() {
-      setEnabledState(readEnabled())
-    }
-    window.addEventListener("tutorial-settings-changed", onSettingsChanged)
-    return () => window.removeEventListener("tutorial-settings-changed", onSettingsChanged)
-  }, [])
+    if (!enabled) setIsPlaying(false)
+  }, [enabled])
 
   const setEnabled = useCallback((v: boolean) => {
-    localStorage.setItem("tutorial.enabled", String(v))
-    updateSettings({ tutorial_enabled: String(v) }).catch(() => {})
-    setEnabledState(v)
-    if (!v) {
-      setIsPlaying(false)
-    }
-  }, [])
+    runtimeStatus.appSettings.setTutorialEnabled(v).catch(() => {})
+    // Local side effect (optimistic): stop playback immediately if disabled.
+    if (!v) setIsPlaying(false)
+  }, [runtimeStatus])
 
   const start = useCallback(() => {
     if (steps.length === 0) return
@@ -98,7 +92,7 @@ export function TutorialProvider({ currentPath, children }: { currentPath: strin
       {children}
     </TutorialContext.Provider>
   )
-}
+})
 
 export function useTutorial(): TutorialContextValue {
   const ctx = useContext(TutorialContext)

@@ -26,7 +26,7 @@ import { ChatEventBridge } from "../chat-event-bridge.js";
 import type { ChatMirrorSSEPayload } from "../chat-event-bridge.js";
 import { ACTIVE_PHASES, FINAL_FALLBACK_MS, MIRROR_FINAL_FALLBACK_MS, RECENTLY_COMPLETED_TTL_MS } from "../run-tracker.js";
 import type { RunPhase } from "../run-tracker.js";
-import { fetchGatewayInfo, trackEvent, updateSettings } from "../../../api/index.js";
+import { fetchGatewayInfo, trackEvent } from "../../../api/index.js";
 import { fetchChatSessions, updateChatSession } from "../../../api/chat-sessions.js";
 import type { ChatSessionMeta } from "../../../api/chat-sessions.js";
 import { setRunProfileForScope } from "../../../api/tool-registry.js";
@@ -54,25 +54,27 @@ import {
 
 const REFRESH_DEBOUNCE = DEFAULTS.chat.sessionRefreshDebounceMs;
 
+/**
+ * Read the user's custom session tab order from the MST-backed appSettings
+ * (sourced from SQLite via SSE). Returns null when no custom order is set.
+ */
 function loadCustomOrder(): string[] | null {
+  const raw = runtimeStatusStore.appSettings.chatTabOrder;
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem("chat-tab-order");
-    if (raw) return JSON.parse(raw) as string[];
-  } catch { /* ignore invalid JSON */ }
-  return null;
+    return JSON.parse(raw) as string[];
+  } catch {
+    return null;
+  }
 }
 
+/**
+ * Persist the user's custom session tab order through the MST setter action
+ * (which routes to Desktop -> SQLite -> SSE patch back). Pass null to clear.
+ */
 function saveCustomOrder(order: string[] | null): void {
-  try {
-    if (order) {
-      const val = JSON.stringify(order);
-      localStorage.setItem("chat-tab-order", val);
-      updateSettings({ chat_tab_order: val }).catch(() => {});
-    } else {
-      localStorage.removeItem("chat-tab-order");
-      updateSettings({ chat_tab_order: "" }).catch(() => {});
-    }
-  } catch { /* quota exceeded or similar */ }
+  const value = order ? JSON.stringify(order) : "";
+  runtimeStatusStore.appSettings.setChatTabOrder(value).catch(() => {});
 }
 
 function generateSessionKey(): string {
