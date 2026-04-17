@@ -151,6 +151,33 @@ const activateKey: EndpointHandler = async (_req, res, _url, params, ctx: ApiCon
   sendJson(res, 200, { ok: true });
 };
 
+// ── POST /api/provider-keys/:id/usage/fetch ──
+
+const fetchKeyUsage: EndpointHandler = async (_req, res, _url, params, ctx: ApiContext) => {
+  const { storage } = ctx;
+  const id = params.id!;
+  const entry = storage.providerKeys.getById(id);
+  if (!entry) {
+    sendJson(res, 404, { error: "Key not found" });
+    return;
+  }
+
+  try {
+    // LLM Manager action: fetches the provider quota, writes the result into
+    // MST on the matching key entry. The snapshot reaches Panel via SSE patch —
+    // this endpoint's only job is to return 200 on a successful trigger.
+    await rootStore.llmManager.fetchKeyUsage(id);
+    sendJson(res, 200, { ok: true });
+  } catch (err) {
+    // Configuration errors (unsupported provider, key not found) — surface as 400
+    // so the Panel can log/toast. Network/HTTP errors are captured into MST.usage.error
+    // by fetchKeyUsage itself and do NOT reach this catch.
+    const message = formatError(err);
+    log.warn(`fetchKeyUsage failed for ${id}: ${message}`);
+    sendJson(res, 400, { error: message });
+  }
+};
+
 // ── POST /api/provider-keys/:id/refresh-models ──
 
 const refreshModels: EndpointHandler = async (_req, res, _url, params, ctx: ApiContext) => {
@@ -495,6 +522,7 @@ export function registerProviderHandlers(registry: RouteRegistry): void {
   registry.register(API["providerKeys.delete"], deleteKey);
   registry.register(API["providerKeys.activate"], activateKey);
   registry.register(API["providerKeys.refreshModels"], refreshModels);
+  registry.register(API["providerKeys.fetchUsage"], fetchKeyUsage);
 
   // Session model
   registry.register(API["sessionModel.get"], getSessionModel);

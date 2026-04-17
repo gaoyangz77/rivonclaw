@@ -102,6 +102,7 @@ export const API = {
   "providerKeys.delete":     { method: "DELETE", path: "/api/provider-keys/:id",          desc: "Delete provider key" },
   "providerKeys.activate":   { method: "POST",   path: "/api/provider-keys/:id/activate", desc: "Set as global default key" },
   "providerKeys.refreshModels": { method: "POST", path: "/api/provider-keys/:id/refresh-models", desc: "Refresh models for custom provider" },
+  "providerKeys.fetchUsage": { method: "POST", path: "/api/provider-keys/:id/usage/fetch", desc: "Fetch subscription quota usage for a key (writes into MST)" },
 
   // ── Session Model ──
   "sessionModel.get":        { method: "GET",    path: "/api/session-model",              desc: "Get per-session model override" },

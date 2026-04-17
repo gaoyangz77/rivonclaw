@@ -867,6 +867,18 @@ export const API_PROVIDER_IDS: LLMProvider[] = (() => {
   return ALL_PROVIDERS.filter((p) => !subSet.has(p) && !localSet.has(p));
 })();
 
+/**
+ * Subscription providers for which OpenClaw's plugin-sdk exposes a usage fetcher
+ * (`openclaw/plugin-sdk/provider-usage`). Only keys whose provider id is in this
+ * set are allowed to show the "Usage" button on the Providers page. Any other
+ * subscription-type key (no fetcher) is excluded — the button is hidden.
+ *
+ * Kept separate from `SUBSCRIPTION_PROVIDER_IDS` on purpose: a provider can be
+ * authenticable via OAuth without exposing a quota API. Adding an id here
+ * requires a matching fetcher branch in Desktop's `LLMProviderManager.fetchKeyUsage`.
+ */
+export const USAGE_QUERYABLE_PROVIDERS: LLMProvider[] = ["claude", "openai-codex", "gemini"];
+
 /** Provider IDs that appear in the Local LLM tab. */
 export const LOCAL_PROVIDER_IDS: LLMProvider[] = ["ollama"];
 

@@ -6158,6 +6158,57 @@ tbody td {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Providers: per-key subscription usage modal ── */
+
+.key-usage-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 8px;
+}
+
+.key-usage-plan {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.key-usage-windows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.key-usage-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.key-usage-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.key-usage-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.key-usage-error {
+  font-size: 13px;
+  color: var(--color-danger);
+  background: var(--color-danger-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  line-height: 1.4;
+}
+
 /* ── Account: Section headers ── */
 
 .acct-section-header {

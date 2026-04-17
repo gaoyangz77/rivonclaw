@@ -34,4 +34,15 @@ export const ProviderKeyModel = ProviderKeyModelBase.actions((self) => ({
     invalidateCache("models");
     return result;
   }),
+
+  /**
+   * Trigger a subscription-quota fetch for this key on Desktop. The result is
+   * written into MST by `LLMProviderManager.fetchKeyUsage` and arrives in Panel
+   * via SSE patch — no need to read the response body here beyond error checking.
+   *
+   * Callers just fire and forget; components read `self.usage` reactively.
+   */
+  fetchUsage: flow(function* () {
+    yield fetchJson(clientPath(API["providerKeys.fetchUsage"], { id: self.id }), { method: "POST" });
+  }),
 }));

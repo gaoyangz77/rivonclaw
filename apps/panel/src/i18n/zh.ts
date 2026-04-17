@@ -223,6 +223,13 @@ export default {
     colActions: "操作",
     activate: "激活",
     removeKey: "移除",
+    usage: "用量",
+    usageModal: {
+      title: "订阅用量 — {{label}}",
+      loading: "正在加载用量…",
+      empty: "该提供商未返回任何配额数据。",
+      refreshesAt: "{{time}} 重置",
+    },
     modelLabel: "模型",
     labelPlaceholder: "标签（可选）",
     labelDefault: "默认",

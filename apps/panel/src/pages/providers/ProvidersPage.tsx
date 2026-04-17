@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
+import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS, USAGE_QUERYABLE_PROVIDERS } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../../api/index.js";
 import { fetchJson, invalidateCache } from "../../api/client.js";
@@ -11,6 +11,7 @@ import { Select } from "../../components/inputs/Select.js";
 import { ProviderSetupForm } from "../../components/ProviderSetupForm.js";
 import { useEntityStore } from "../../store/index.js";
 import { useToast } from "../../components/Toast.js";
+import { KeyUsageModal } from "./components/KeyUsageModal.js";
 
 export const ProvidersPage = observer(function ProvidersPage() {
   const { t } = useTranslation();
@@ -26,6 +27,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
   const [editLabelValue, setEditLabelValue] = useState("");
   const [editBaseUrl, setEditBaseUrl] = useState("");
   const [refreshingModelsId, setRefreshingModelsId] = useState<string | null>(null);
+  const [usageKeyId, setUsageKeyId] = useState<string | null>(null);
 
   async function handleUpdateKey(keyId: string, provider: string) {
     if (!updateApiKey.trim()) return;
@@ -303,6 +305,14 @@ export const ProvidersPage = observer(function ProvidersPage() {
                           {refreshingModelsId === k.id ? t("providers.fetchingModels") : t("providers.refreshModels")}
                         </button>
                       )}
+                      {USAGE_QUERYABLE_PROVIDERS.includes(k.provider as LLMProvider) && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setUsageKeyId(k.id)}
+                        >
+                          {t("providers.usage")}
+                        </button>
+                      )}
                       {!isActive && (
                         <button className="btn btn-outline btn-sm" onClick={() => handleActivate(k.id, k.provider)}>
                           {t("providers.activate")}
@@ -449,6 +459,8 @@ export const ProvidersPage = observer(function ProvidersPage() {
           </div>
         )}
       </div>
+
+      <KeyUsageModal keyId={usageKeyId} onClose={() => setUsageKeyId(null)} />
     </div>
   );
 });

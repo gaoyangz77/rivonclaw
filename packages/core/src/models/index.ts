@@ -8,8 +8,8 @@ export { ShopModel, CustomerServiceConfigModel, CustomerServiceBillingModel, Sho
 export type { Shop, CustomerServiceConfig, CustomerServiceBilling, ShopServiceConfig } from "./Shop.js";
 export { QuotaCircleModel, LlmQuotaStatusModel, UserSubscriptionModel } from "./Subscription.js";
 export type { QuotaCircle, LlmQuotaStatus, UserSubscription } from "./Subscription.js";
-export { ProviderKeyModel } from "./ProviderKey.js";
-export type { ProviderKey } from "./ProviderKey.js";
+export { ProviderKeyModel, ProviderKeyUsageModel, ProviderKeyUsageWindowModel } from "./ProviderKey.js";
+export type { ProviderKey, ProviderKeyUsage, ProviderKeyUsageWindow } from "./ProviderKey.js";
 export { ChannelAccountModel } from "./ChannelAccount.js";
 export type { ChannelAccount } from "./ChannelAccount.js";
 export { MobilePairingModel } from "./MobilePairing.js";

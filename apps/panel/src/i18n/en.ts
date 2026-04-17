@@ -225,6 +225,13 @@ export default {
     colActions: "Actions",
     activate: "Activate",
     removeKey: "Remove",
+    usage: "Usage",
+    usageModal: {
+      title: "Subscription Usage — {{label}}",
+      loading: "Loading usage…",
+      empty: "No quota windows reported by this provider.",
+      refreshesAt: "Refreshes at {{time}}",
+    },
     modelLabel: "Model",
     labelPlaceholder: "Label (optional)",
     labelDefault: "Default",

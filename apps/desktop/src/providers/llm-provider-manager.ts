@@ -1,12 +1,20 @@
 import { types, flow, getRoot, getEnv } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
-import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, USAGE_QUERYABLE_PROVIDERS } from "@rivonclaw/core";
 import type { LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import type { MstProviderKeySnapshot } from "./provider-key-utils.js";
+import {
+  fetchClaudeUsage,
+  fetchCodexUsage,
+  fetchGeminiUsage,
+  extractCodexAccountId,
+  unwrapGeminiToken,
+  type ProviderUsageSnapshot,
+} from "./provider-usage-fetch.js";
 
 const log = createLogger("llm-provider-manager");
 
@@ -761,6 +769,100 @@ export const LLMProviderManagerModel = types
         }
 
         log.info(`Created cloud provider key (activated: ${shouldActivate})`);
+      }),
+
+      /**
+       * Fetch subscription quota for a single key and write the result into MST.
+       *
+       * Flow:
+       *   1. Resolve the MST key entry and validate it's usage-queryable.
+       *   2. Mark the entry as fetching (Panel shows a spinner via SSE).
+       *   3. Load the OAuth token from the secret store — structured OAuth
+       *      credential under `oauth-cred-{id}` when present, else bare token
+       *      under `provider-key-{id}` (matches `syncAllAuthProfiles` fallback).
+       *   4. Call the matching provider fetcher. Network/HTTP errors are
+       *      captured into `usage.error` (user-visible data); only configuration
+       *      errors ("unsupported provider", "key not found", "no token") throw
+       *      so the REST handler can return a 4xx.
+       *   5. Commit the snapshot via `setUsage`, which also clears `fetching`.
+       */
+      fetchKeyUsage: flow(function* (keyId: string) {
+        const { secretStore } = getEnvDeps();
+
+        const mstKey = self.root.providerKeys.find((k: any) => k.id === keyId);
+        if (!mstKey) throw new Error("Provider key not found");
+
+        const provider = mstKey.provider as LLMProvider;
+        if (!USAGE_QUERYABLE_PROVIDERS.includes(provider)) {
+          throw new Error(`Provider '${provider}' does not expose a usage API`);
+        }
+
+        mstKey.beginUsageFetch();
+
+        // Resolve token: prefer structured OAuth credential, fall back to bare token
+        let token: string | null = null;
+        let accessExpiresAt: number | undefined;
+        const credJson: string | null = yield secretStore.get(`oauth-cred-${keyId}`);
+        if (credJson) {
+          try {
+            const cred = JSON.parse(credJson) as { access?: string; expires?: number };
+            if (typeof cred.access === "string" && cred.access.trim()) {
+              token = cred.access;
+              accessExpiresAt = cred.expires;
+            }
+          } catch {
+            // Malformed credential — fall through to bare-token lookup
+          }
+        }
+        if (!token) {
+          token = yield secretStore.get(`provider-key-${keyId}`);
+        }
+        if (!token) {
+          mstKey.setUsage({
+            updatedAt: Date.now(),
+            windows: [],
+            error: "No OAuth token stored for this key",
+          });
+          return;
+        }
+
+        // Map provider id → fetcher. Kept in sync with USAGE_QUERYABLE_PROVIDERS.
+        let snapshot: ProviderUsageSnapshot;
+        try {
+          if (provider === "claude") {
+            snapshot = yield fetchClaudeUsage(token);
+          } else if (provider === "openai-codex") {
+            const accountId = extractCodexAccountId(token);
+            snapshot = yield fetchCodexUsage(token, accountId);
+          } else if (provider === "gemini") {
+            snapshot = yield fetchGeminiUsage(unwrapGeminiToken(token));
+          } else {
+            // USAGE_QUERYABLE_PROVIDERS gate above makes this unreachable; keep
+            // an explicit branch so future additions to the constant fail the
+            // type check instead of silently returning empty data.
+            throw new Error(`Unhandled usage-queryable provider '${provider}'`);
+          }
+        } catch (err) {
+          const hint = accessExpiresAt && accessExpiresAt < Date.now() ? " (token expired)" : "";
+          const message = err instanceof Error ? err.message : String(err);
+          mstKey.setUsage({
+            updatedAt: Date.now(),
+            windows: [],
+            error: `Request failed: ${message}${hint}`,
+          });
+          return;
+        }
+
+        mstKey.setUsage({
+          updatedAt: Date.now(),
+          windows: snapshot.windows.map((w) => ({
+            label: w.label,
+            usedPercent: w.usedPercent,
+            resetAt: w.resetAt,
+          })),
+          plan: snapshot.plan,
+          error: snapshot.error,
+        });
       }),
     };
   });
