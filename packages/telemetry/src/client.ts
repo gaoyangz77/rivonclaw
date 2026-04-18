@@ -92,16 +92,26 @@ export class RemoteTelemetryClient {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.sendBatch(eventsToSend);
+        console.debug(
+          `[RemoteTelemetryClient] Sent batch of ${eventsToSend.length} events to ${this.config.endpoint} (attempt ${attempt})`
+        );
         return; // Success
       } catch (error) {
         if (attempt === maxAttempts) {
           // Final attempt failed, log and give up
           console.error(
-            `[RemoteTelemetryClient] Failed to send ${eventsToSend.length} events after ${maxAttempts} attempts`,
+            `[RemoteTelemetryClient] Failed to send ${eventsToSend.length} events to ${this.config.endpoint} after ${maxAttempts} attempts`,
             error
           );
           return;
         }
+
+        // Per-attempt warn so a single transient failure is visible (not
+        // just the final give-up).
+        console.warn(
+          `[RemoteTelemetryClient] Send attempt ${attempt}/${maxAttempts} to ${this.config.endpoint} failed (${eventsToSend.length} events); retrying`,
+          error
+        );
 
         // Calculate backoff delay: 1s, 2s, 4s
         const backoffMs = Math.pow(2, attempt - 1) * 1000;

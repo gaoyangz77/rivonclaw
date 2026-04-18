@@ -102,10 +102,14 @@ export function initTelemetry(
         batchSize: 20,
         flushInterval: 15_000,
       });
-      log.info("CS business telemetry client initialized");
+      log.info(`CS business telemetry client initialized — endpoint=${csTelemetryEndpoint}`);
     } catch (error) {
       log.error("Failed to initialize CS telemetry client:", error);
     }
+  } else {
+    log.warn(
+      `CS telemetry client NOT initialized (csEnabledGate=false: isPackaged=${app.isPackaged}, DEV_TELEMETRY=${process.env.DEV_TELEMETRY ?? "<unset>"}) — cs.* events will be dropped`,
+    );
   }
 
   // Track app.started event (product telemetry only — CS stream is business
