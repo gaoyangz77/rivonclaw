@@ -273,11 +273,28 @@ const CS_EVENT_ALLOWLIST = new Set(["cs.message", "cs.token_snapshot", "cs.tool_
 const telemetryCsTrack: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const body = (await parseBody(req)) as { eventType?: string; metadata?: Record<string, unknown> };
   if (!body.eventType || !CS_EVENT_ALLOWLIST.has(body.eventType)) {
+    log.warn(
+      `cs-track: rejecting event with unknown eventType=${body.eventType ?? "<missing>"}`,
+    );
     res.writeHead(204);
     res.end();
     return;
   }
-  ctx.onCsTelemetryTrack?.(body.eventType, body.metadata);
+  if (!ctx.onCsTelemetryTrack) {
+    // Defensive: the ctx wiring is configured in panel-server.ts. If the
+    // handler is somehow absent at runtime, fail loudly — we know someone
+    // posted a valid event and we just dropped it on the floor.
+    log.error(
+      `cs-track: eventType=${body.eventType} dropped — onCsTelemetryTrack handler NOT wired into ctx`,
+    );
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  log.debug(
+    `cs-track: relaying eventType=${body.eventType} metadata-keys=${Object.keys(body.metadata ?? {}).join(",")}`,
+  );
+  ctx.onCsTelemetryTrack(body.eventType, body.metadata);
   res.writeHead(204);
   res.end();
 };
