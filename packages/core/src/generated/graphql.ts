@@ -599,9 +599,11 @@ export interface EcomOrderSummaryPage {
 export interface EcomOrderTracking {
   events?: Maybe<Array<EcomTrackingEvent>>;
   orderId?: Maybe<Scalars['String']['output']>;
-  /** Name of the shipping carrier (e.g. 'USPS', 'FedEx'). Surfaced when TikTok includes it in the Get Tracking response — the field is not in the public docs but appears in actual wire payloads (same as trackingNumber/trackingStatus). */
+  /** Name of the shipping carrier (e.g. 'USPS', 'FedEx'). Sourced from the order record (Get Order) and composed in at Layer 2. */
   shippingProvider?: Maybe<Scalars['String']['output']>;
+  /** Carrier tracking number. Sourced from the order record (Get Order) and composed into this tracking payload at Layer 2 — the TikTok Get Tracking endpoint does not return it. */
   trackingNumber?: Maybe<Scalars['String']['output']>;
+  /** Current tracking status. Derived from the most recent event's description (the entry with the greatest updateTimeMillis) — TikTok does not expose a separate tracking_status field on either endpoint. */
   trackingStatus?: Maybe<Scalars['String']['output']>;
 }
 
