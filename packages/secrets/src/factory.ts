@@ -1,7 +1,7 @@
 import { platform } from "node:os";
 import type { SecretStore } from "./types.js";
-import { KeychainSecretStore } from "./keychain.js";
-import { FileSecretStore } from "./file-store.js";
+import { KeychainSecretStore } from "./stores/keychain.js";
+import { FileSecretStore } from "./stores/file-store.js";
 import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("secrets:factory");

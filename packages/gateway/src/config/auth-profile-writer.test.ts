@@ -14,7 +14,7 @@ import {
  * Vendor source paths — used to verify our auth-profile format
  * matches what the vendor code actually accepts.
  */
-const VENDOR_ROOT = resolve(import.meta.dirname, "../../../vendor/openclaw");
+const VENDOR_ROOT = resolve(import.meta.dirname, "../../../../vendor/openclaw");
 
 function createTempDir(): string {
   const dir = join(tmpdir(), `auth-profile-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);

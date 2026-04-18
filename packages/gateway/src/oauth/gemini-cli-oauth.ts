@@ -12,7 +12,7 @@ import { createServer } from "node:http";
 import { execFile, execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { resolveRivonClawHome } from "@rivonclaw/core/node";
-import { enrichedPath, findInPath } from "./cli-utils.js";
+import { enrichedPath, findInPath } from "../utils/cli-utils.js";
 
 /** Error that carries a user-friendly message plus technical detail for hover tooltip. */
 export class DetailedError extends Error {

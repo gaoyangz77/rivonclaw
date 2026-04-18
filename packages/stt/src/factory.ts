@@ -1,6 +1,6 @@
 import type { SttConfig, SttProvider } from "./types.js";
-import { VolcengineSttProvider } from "./volcengine.js";
-import { GroqSttProvider } from "./groq.js";
+import { VolcengineSttProvider } from "./providers/volcengine.js";
+import { GroqSttProvider } from "./providers/groq.js";
 
 /**
  * Creates an STT provider based on the given configuration.

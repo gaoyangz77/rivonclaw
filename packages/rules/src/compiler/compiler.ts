@@ -1,7 +1,7 @@
 import type { ArtifactType } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
-import type { LLMConfig } from "./llm-client.js";
-import { chatCompletion } from "./llm-client.js";
+import type { LLMConfig } from "../llm/llm-client.js";
+import { chatCompletion } from "../llm/llm-client.js";
 
 const log = createLogger("rules:compiler");
 

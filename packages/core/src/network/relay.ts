@@ -1,4 +1,4 @@
-import { DEFAULTS } from "./defaults.js";
+import { DEFAULTS } from "../defaults.js";
 
 /**
  * Relay WebSocket payload limits.

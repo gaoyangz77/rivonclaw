@@ -1,4 +1,4 @@
-import { DEFAULTS } from "./defaults.js";
+import { DEFAULTS } from "../defaults.js";
 
 /**
  * Shared API contract — single source of truth for all Desktop↔Panel endpoints.

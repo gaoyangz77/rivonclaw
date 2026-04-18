@@ -1,4 +1,4 @@
-import { DEFAULTS } from "./defaults.js";
+import { DEFAULTS } from "../defaults.js";
 
 /** Supported LLM providers (cloud APIs, subscriptions, and local servers). */
 export type LLMProvider =

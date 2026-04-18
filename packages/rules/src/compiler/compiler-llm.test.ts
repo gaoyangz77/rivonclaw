@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { compileRuleWithLLM } from "./compiler.js";
-import type { LLMConfig } from "./llm-client.js";
+import type { LLMConfig } from "../llm/llm-client.js";
 
 // ---------------------------------------------------------------------------
 // Mock the LLM client
 // ---------------------------------------------------------------------------
 
 const mockChatCompletion = vi.fn();
-vi.mock("./llm-client.js", () => ({
+vi.mock("../llm/llm-client.js", () => ({
   chatCompletion: (...args: unknown[]) => mockChatCompletion(...args),
 }));
 

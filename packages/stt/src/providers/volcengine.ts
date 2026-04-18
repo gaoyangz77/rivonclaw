@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
-import type { SttProvider, SttResult } from "./types.js";
+import type { SttProvider, SttResult } from "../types.js";
 
 const log = createLogger("stt:volcengine");
 

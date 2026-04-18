@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { selectSttProvider } from "./region.js";
 import { createSttProvider } from "./factory.js";
-import { GroqSttProvider } from "./groq.js";
-import { VolcengineSttProvider } from "./volcengine.js";
+import { GroqSttProvider } from "./providers/groq.js";
+import { VolcengineSttProvider } from "./providers/volcengine.js";
 import type { SttConfig } from "./types.js";
 
 // ─── selectSttProvider ──────────────────────────────────────────────────────

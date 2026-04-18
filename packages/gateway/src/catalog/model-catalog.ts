@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveAgentConfigDir } from "@rivonclaw/core/node";
-import { resolveVendorDir } from "./vendor.js";
+import { resolveVendorDir } from "../vendor/vendor.js";
 import { ALL_PROVIDERS, getProviderMeta, initKnownModels, PROVIDERS, type LLMProvider, type RootProvider } from "@rivonclaw/core";
 
 /** A minimal model entry for the UI (no secrets, no cost data). */

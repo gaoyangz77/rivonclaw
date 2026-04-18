@@ -1,11 +1,11 @@
-export { GatewayLauncher, calculateBackoff } from "./launcher.js";
+export { GatewayLauncher, calculateBackoff } from "./runtime/launcher.js";
 export {
   resolveVendorDir,
   resolveVendorEntryPath,
   resolveVendorVersion,
   assertVendorExists,
   getGatewayCommand,
-} from "./vendor.js";
+} from "./vendor/vendor.js";
 export {
   writeGatewayConfig,
   ensureGatewayConfig,
@@ -15,36 +15,36 @@ export {
   generateGatewayToken,
   buildExtraProviderConfigs,
   DEFAULT_GATEWAY_PORT,
-} from "./config-writer.js";
+} from "./config/config-writer.js";
 export type {
   OpenClawGatewayConfig,
   WriteGatewayConfigOptions,
-} from "./config-writer.js";
+} from "./config/config-writer.js";
 export type {
   GatewayState,
   GatewayLaunchOptions,
   GatewayStatus,
   GatewayEvents,
-} from "./types.js";
+} from "./runtime/types.js";
 export {
   resolveSecretEnv,
   buildGatewayEnv,
   buildFilePermissionsEnv,
-} from "./secret-injector.js";
-export type { FilePermissions } from "./secret-injector.js";
+} from "./secrets/secret-injector.js";
+export type { FilePermissions } from "./secrets/secret-injector.js";
 export {
   resolveSkillsDir,
   ensureSkillsDir,
   watchSkillsDir,
   isSkillFile,
-} from "./skill-reload.js";
+} from "./skills/skill-reload.js";
 export {
   readGatewayModelCatalog,
   readVendorModelCatalog,
   readFullModelCatalog,
   normalizeCatalog,
-} from "./model-catalog.js";
-export type { CatalogModelEntry } from "./model-catalog.js";
+} from "./catalog/model-catalog.js";
+export type { CatalogModelEntry } from "./catalog/model-catalog.js";
 export {
   resolveAuthProfilePath,
   syncAuthProfile,
@@ -52,35 +52,35 @@ export {
   syncAllAuthProfiles,
   syncBackOAuthCredentials,
   clearAllAuthProfiles,
-} from "./auth-profile-writer.js";
-export { GatewayRpcClient } from "./rpc-client.js";
+} from "./config/auth-profile-writer.js";
+export { GatewayRpcClient } from "./runtime/rpc-client.js";
 export type {
   GatewayRpcClientOptions,
   GatewayEventFrame,
   GatewayResponseFrame,
-} from "./rpc-client.js";
+} from "./runtime/rpc-client.js";
 export {
   writeChannelAccount,
   removeChannelAccount,
   listChannelAccounts,
-} from "./channel-config-writer.js";
+} from "./config/channel-config-writer.js";
 export type {
   ChannelAccountConfig,
   WriteChannelAccountOptions,
   RemoveChannelAccountOptions,
-} from "./channel-config-writer.js";
+} from "./config/channel-config-writer.js";
 export {
   syncPermissions,
   clearPermissions,
-} from "./permissions-writer.js";
-export type { PermissionsConfig } from "./permissions-writer.js";
+} from "./config/permissions-writer.js";
+export type { PermissionsConfig } from "./config/permissions-writer.js";
 export {
   generateAudioConfig,
   mergeAudioConfig,
-} from "./audio-config-writer.js";
-export { resolveVolcengineSttCliPath } from "./volcengine-stt-cli-path.js";
-export { runGeminiOAuthFlow, acquireGeminiOAuthToken, saveGeminiOAuthCredentials, refreshGeminiOAuthCredentials, validateGeminiAccessToken, startManualOAuthFlow, completeManualOAuthFlow, startHybridGeminiOAuthFlow } from "./oauth-flow.js";
-export type { OAuthFlowCallbacks, OAuthFlowResult, AcquiredOAuthCredentials, HybridGeminiOAuthFlow } from "./oauth-flow.js";
-export { acquireCodexOAuthToken, saveCodexOAuthCredentials, refreshCodexOAuthCredentials, validateCodexAccessToken, startHybridCodexOAuthFlow } from "./openai-codex-oauth.js";
-export type { AcquiredCodexOAuthCredentials, OpenAICodexOAuthCredentials, HybridCodexOAuthFlow } from "./openai-codex-oauth.js";
-export { enrichedPath, findInPath, ensureCliAvailable } from "./cli-utils.js";
+} from "./config/audio-config-writer.js";
+export { resolveVolcengineSttCliPath } from "./stt/volcengine-stt-cli-path.js";
+export { runGeminiOAuthFlow, acquireGeminiOAuthToken, saveGeminiOAuthCredentials, refreshGeminiOAuthCredentials, validateGeminiAccessToken, startManualOAuthFlow, completeManualOAuthFlow, startHybridGeminiOAuthFlow } from "./oauth/oauth-flow.js";
+export type { OAuthFlowCallbacks, OAuthFlowResult, AcquiredOAuthCredentials, HybridGeminiOAuthFlow } from "./oauth/oauth-flow.js";
+export { acquireCodexOAuthToken, saveCodexOAuthCredentials, refreshCodexOAuthCredentials, validateCodexAccessToken, startHybridCodexOAuthFlow } from "./oauth/openai-codex-oauth.js";
+export type { AcquiredCodexOAuthCredentials, OpenAICodexOAuthCredentials, HybridCodexOAuthFlow } from "./oauth/openai-codex-oauth.js";
+export { enrichedPath, findInPath, ensureCliAvailable } from "./utils/cli-utils.js";

@@ -4,8 +4,8 @@ import { DEFAULTS } from "@rivonclaw/core";
 import type { Rule, RuleArtifact } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import { createLogger } from "@rivonclaw/logger";
-import { compileRule, compileRuleWithLLM } from "./compiler.js";
-import type { LLMConfig } from "./llm-client.js";
+import { compileRule, compileRuleWithLLM } from "../compiler/compiler.js";
+import type { LLMConfig } from "../llm/llm-client.js";
 
 const log = createLogger("rules:pipeline");
 

@@ -14,7 +14,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-const EXTENSIONS_DIR = join(import.meta.dirname, "../../../extensions");
+const EXTENSIONS_DIR = join(import.meta.dirname, "../../../../extensions");
 const AUTO_DISCOVERY_ENTRIES = ["index.ts", "index.js", "index.mjs", "index.cjs"];
 
 function getExtensionDirs(): string[] {

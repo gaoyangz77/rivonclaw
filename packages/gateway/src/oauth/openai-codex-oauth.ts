@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { createLogger } from "@rivonclaw/logger";
 import { decodeJwtPayload, type ProviderKeyEntry } from "@rivonclaw/core";
 import type { OAuthFlowCallbacks, OAuthFlowResult } from "./oauth-flow.js";
-import { resolveVendorDir } from "./vendor.js";
+import { resolveVendorDir } from "../vendor/vendor.js";
 
 const log = createLogger("gateway:openai-codex-oauth");
 

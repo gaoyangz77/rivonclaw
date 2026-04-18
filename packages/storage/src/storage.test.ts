@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createStorage, type Storage } from "./index.js";
-import { migrations } from "./migrations.js";
+import { migrations } from "./db/migrations.js";
 
 let storage: Storage;
 

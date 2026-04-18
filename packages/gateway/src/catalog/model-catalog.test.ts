@@ -18,7 +18,7 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("./vendor.js", () => ({
+vi.mock("../vendor/vendor.js", () => ({
   resolveVendorDir: () => "/tmp/fake-vendor",
 }));
 

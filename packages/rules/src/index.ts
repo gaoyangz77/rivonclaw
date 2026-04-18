@@ -1,18 +1,18 @@
-export { compileRule, compileRuleWithLLM } from "./compiler.js";
-export type { CompileResult } from "./compiler.js";
-export { ArtifactPipeline } from "./pipeline.js";
-export type { ArtifactPipelineEvents, ArtifactPipelineOptions } from "./pipeline.js";
-export { chatCompletion } from "./llm-client.js";
-export type { LLMConfig } from "./llm-client.js";
+export { compileRule, compileRuleWithLLM } from "./compiler/compiler.js";
+export type { CompileResult } from "./compiler/compiler.js";
+export { ArtifactPipeline } from "./pipeline/pipeline.js";
+export type { ArtifactPipelineEvents, ArtifactPipelineOptions } from "./pipeline/pipeline.js";
+export { chatCompletion } from "./llm/llm-client.js";
+export type { LLMConfig } from "./llm/llm-client.js";
 export {
   resolveSkillsDir,
   extractSkillName,
   writeSkillFile,
   removeSkillFile,
-} from "./skill-writer.js";
+} from "./skills/skill-writer.js";
 export {
   materializeSkill,
   dematerializeSkill,
   syncSkillsForRule,
   cleanupSkillsForDeletedRule,
-} from "./skill-lifecycle.js";
+} from "./skills/skill-lifecycle.js";

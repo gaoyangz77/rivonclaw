@@ -112,10 +112,10 @@ export type {
   ToolCapabilityResult,
 } from "./types/index.js";
 
-export type { ChannelType } from "./channels.js";
-export { ALL_CHANNELS, BUILTIN_CHANNELS, CUSTOM_CHANNELS } from "./channels.js";
+export type { ChannelType } from "./providers/channels.js";
+export { ALL_CHANNELS, BUILTIN_CHANNELS, CUSTOM_CHANNELS } from "./providers/channels.js";
 
-export type { LLMProvider, RootProvider, ModelConfig, Region, ProviderMeta, SubscriptionPlan, ResolvedProviderMeta, UsageQueryableProvider, ReauthSupportedProvider } from "./models.js";
+export type { LLMProvider, RootProvider, ModelConfig, Region, ProviderMeta, SubscriptionPlan, ResolvedProviderMeta, UsageQueryableProvider, ReauthSupportedProvider } from "./providers/models.js";
 export {
   PROVIDERS,
   KNOWN_MODELS,
@@ -137,18 +137,18 @@ export {
   getModelsForProvider,
   resolveModelConfig,
   getProvidersForRegion,
-} from "./models.js";
+} from "./providers/models.js";
 
-export type { ProxyConfig } from "./proxy-utils.js";
+export type { ProxyConfig } from "./utils/proxy-utils.js";
 export {
   parseProxyUrl,
   reconstructProxyUrl,
   isValidProxyUrl,
-} from "./proxy-utils.js";
+} from "./utils/proxy-utils.js";
 
-export { formatError, IMAGE_EXT_TO_MIME, IMAGE_MIME_TO_EXT } from "./error-utils.js";
+export { formatError, IMAGE_EXT_TO_MIME, IMAGE_MIME_TO_EXT } from "./utils/error-utils.js";
 
-export { decodeJwtPayload } from "./jwt-utils.js";
+export { decodeJwtPayload } from "./utils/jwt-utils.js";
 
 export {
   getApiBaseUrl, getGraphqlUrl, getTelemetryUrl, setApiBaseUrlOverride,
@@ -159,7 +159,7 @@ export {
   getOllamaBaseUrl, getOllamaOpenAiBaseUrl,
   getCsRelayWsUrl,
   isStagingDevMode, setStagingDevMode,
-} from "./endpoints.js";
+} from "./api/endpoints.js";
 
 export {
   DEFAULT_GATEWAY_PORT,
@@ -170,22 +170,22 @@ export {
   resolveGatewayPort,
   resolvePanelPort,
   resolveProxyRouterPort,
-} from "./ports.js";
+} from "./node-utils/ports.js";
 
-export { RELAY_MAX_CLIENT_BYTES, RELAY_MAX_CLIENT_MB, RELAY_MAX_PAYLOAD_BYTES } from "./relay.js";
+export { RELAY_MAX_CLIENT_BYTES, RELAY_MAX_CLIENT_MB, RELAY_MAX_PAYLOAD_BYTES } from "./network/relay.js";
 
 export { DEFAULTS } from "./defaults.js";
 
-export { extensionGraphqlFetch, extensionRestFetch } from "./extension-client.js";
+export { extensionGraphqlFetch, extensionRestFetch } from "./api/extension-client.js";
 
 export * as GQL from "./generated/graphql.js";
 
-export { toolName } from "./tool-utils.js";
+export { toolName } from "./utils/tool-utils.js";
 
 export { stripReasoningTagsFromText } from "./generated/reasoning-tags.js";
 export type { ReasoningTagMode, ReasoningTagTrim } from "./generated/reasoning-tags.js";
 
 export type { ClientToolDef } from "./client-tools.js";
 
-export { assembleCsPrompt } from "./cs-prompt.js";
-export type { AssembleCsPromptInput } from "./cs-prompt.js";
+export { assembleCsPrompt } from "./prompts/cs-prompt.js";
+export type { AssembleCsPromptInput } from "./prompts/cs-prompt.js";

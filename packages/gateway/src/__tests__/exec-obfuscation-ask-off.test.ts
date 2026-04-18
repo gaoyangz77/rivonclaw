@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { requiresExecApproval } from "../../../vendor/openclaw/src/infra/exec-approvals.js";
+import { requiresExecApproval } from "../../../../vendor/openclaw/src/infra/exec-approvals.js";
 
 /**
  * Validates that EasyClaw's ask=off + security=full configuration works

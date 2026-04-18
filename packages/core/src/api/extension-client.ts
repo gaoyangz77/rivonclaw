@@ -1,5 +1,5 @@
-import { DEFAULTS } from "./defaults.js";
-import { resolvePanelPort } from "./ports.js";
+import { DEFAULTS } from "../defaults.js";
+import { resolvePanelPort } from "../node-utils/ports.js";
 
 function getPanelUrl(): string {
   return `http://127.0.0.1:${resolvePanelPort()}`;

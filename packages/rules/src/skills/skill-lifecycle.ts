@@ -1,6 +1,6 @@
 import type { Rule, RuleArtifact } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
-import type { ArtifactPipeline } from "./pipeline.js";
+import type { ArtifactPipeline } from "../pipeline/pipeline.js";
 import {
   writeSkillFile,
   removeSkillFile,

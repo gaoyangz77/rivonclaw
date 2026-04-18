@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { MemorySecretStore } from "./memory-store.js";
-import { FileSecretStore } from "./file-store.js";
+import { MemorySecretStore } from "./stores/memory-store.js";
+import { FileSecretStore } from "./stores/file-store.js";
 import { createSecretStore } from "./factory.js";
 import type { SecretStore } from "./types.js";
 import { mkdtempSync, rmSync } from "node:fs";

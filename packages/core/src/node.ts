@@ -4,7 +4,7 @@
 
 export * from "./index.js";
 
-export { findFreePort } from "./find-free-port.js";
+export { findFreePort } from "./node-utils/find-free-port.js";
 
 export {
   resolveRivonClawHome,
@@ -24,4 +24,4 @@ export {
   resolveAgentConfigDir,
   resolveAgentSessionsDir,
   resolveSessionStateDir,
-} from "./paths.js";
+} from "./node-utils/paths.js";

@@ -1,5 +1,5 @@
 import { types, type Instance } from "mobx-state-tree";
-import { assembleCsPrompt } from "../cs-prompt.js";
+import { assembleCsPrompt } from "../prompts/cs-prompt.js";
 
 export const CustomerServiceConfigModel = types
   .model("CustomerServiceConfig", {

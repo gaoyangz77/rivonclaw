@@ -15,7 +15,7 @@ import {
 import { generateAudioConfig, mergeAudioConfig } from "./audio-config-writer.js";
 import { migrateSingleAccountChannels } from "./channel-config-writer.js";
 import { sanitizeWindowsBinds } from "./windows-bind-sanitizer.js";
-import { OpenClawSchema } from "./generated/openclaw-schema.js";
+import { OpenClawSchema } from "../generated/openclaw-schema.js";
 
 const log = createLogger("gateway:config");
 

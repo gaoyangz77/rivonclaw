@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { SecretKey, SecretStore } from "./types.js";
+import type { SecretKey, SecretStore } from "../types.js";
 import { createLogger } from "@rivonclaw/logger";
 
 const execFileAsync = promisify(execFile);

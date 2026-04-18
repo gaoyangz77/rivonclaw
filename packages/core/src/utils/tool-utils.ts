@@ -7,7 +7,7 @@
  * tool name strings.
  */
 
-import type { ToolId } from "./generated/graphql.js";
+import type { ToolId } from "../generated/graphql.js";
 
 /**
  * Convert a ToolId enum value to the lowercase tool name used by extensions.

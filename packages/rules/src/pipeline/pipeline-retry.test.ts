@@ -9,7 +9,7 @@ import { ArtifactPipeline } from "./pipeline.js";
 // ---------------------------------------------------------------------------
 
 const mockChatCompletion = vi.fn();
-vi.mock("./llm-client.js", () => ({
+vi.mock("../llm/llm-client.js", () => ({
   chatCompletion: (...args: unknown[]) => mockChatCompletion(...args),
 }));
 

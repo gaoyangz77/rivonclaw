@@ -1,15 +1,32 @@
 import { readFileSync, existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Relative path from this source file (packages/gateway/src/) to the vendor directory.
- * After build (packages/gateway/dist/), the same relative path applies since
- * both src/ and dist/ are one level below packages/gateway/.
+ * Relative path from the `packages/gateway/` package directory to the vendor
+ * directory. We anchor on the package root (found by walking up from this
+ * file's URL) so the resolver works regardless of source depth — this file
+ * may live at `src/vendor/vendor.ts` in dev/test or inside the bundled
+ * `dist/index.mjs` at runtime.
  */
-const VENDOR_RELATIVE_PATH = "../../../vendor/openclaw";
+const VENDOR_RELATIVE_PATH_FROM_PACKAGE = "../../vendor/openclaw";
 const VENDOR_ENTRY_FILE = "openclaw.mjs";
 const VENDOR_PACKAGE_JSON = "package.json";
+
+/**
+ * Walk up from `startDir` until a directory whose path ends in
+ * `packages/gateway` is found. Falls back to `startDir` if not found.
+ */
+function findGatewayPackageDir(startDir: string): string {
+  const suffix = `${sep}packages${sep}gateway`;
+  let current = startDir;
+  while (true) {
+    if (current.endsWith(suffix)) return current;
+    const parent = resolve(current, "..");
+    if (parent === current) return startDir;
+    current = parent;
+  }
+}
 
 /**
  * Resolves the absolute path to the vendored OpenClaw directory.
@@ -22,7 +39,8 @@ export function resolveVendorDir(vendorDir?: string): string {
     return resolve(vendorDir);
   }
   const thisDir = fileURLToPath(new URL(".", import.meta.url));
-  return resolve(thisDir, VENDOR_RELATIVE_PATH);
+  const pkgDir = findGatewayPackageDir(thisDir);
+  return resolve(pkgDir, VENDOR_RELATIVE_PATH_FROM_PACKAGE);
 }
 
 /**

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import type { Rule } from "@rivonclaw/core";
 import { createStorage, type Storage } from "@rivonclaw/storage";
-import { ArtifactPipeline } from "./pipeline.js";
+import { ArtifactPipeline } from "../pipeline/pipeline.js";
 import {
   materializeSkill,
   dematerializeSkill,

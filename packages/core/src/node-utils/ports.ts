@@ -1,4 +1,4 @@
-import { DEFAULTS } from "./defaults.js";
+import { DEFAULTS } from "../defaults.js";
 
 /** Default port for the OpenClaw gateway (WebSocket + HTTP). */
 export const DEFAULT_GATEWAY_PORT = DEFAULTS.ports.gateway;

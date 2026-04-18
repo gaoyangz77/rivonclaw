@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { extensionGraphqlFetch, extensionRestFetch } from "./extension-client.js";
-import { DEFAULTS } from "./defaults.js";
+import { DEFAULTS } from "../defaults.js";
 
 const fetchSpy = vi.fn();
 
