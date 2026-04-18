@@ -140,35 +140,12 @@ export interface BrowserProfilesPaginationInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
 }
 
-/** Customer service seat allocation */
-export interface CsSeat {
-  connectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  createdAt: Scalars['DateTimeISO']['output'];
-  gatewayId: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  status: SeatStatus;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['String']['output'];
-}
-
 /** Session statistics for a shop */
 export interface CsSessionStats {
   activeSessions: Scalars['Int']['output'];
   balance: Scalars['Int']['output'];
   balanceExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   totalSessions: Scalars['Int']['output'];
-}
-
-/** Per-seat usage record for a billing period */
-export interface CsUsageRecord {
-  createdAt: Scalars['DateTimeISO']['output'];
-  inputTokens: Scalars['Int']['output'];
-  messageCount: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  period: Scalars['String']['output'];
-  seatId: Scalars['String']['output'];
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['String']['output'];
 }
 
 /** Captcha challenge response */
@@ -192,7 +169,7 @@ export interface CreateSurfaceInput {
   name: Scalars['String']['input'];
 }
 
-/** Cumulative per-conversation LLM usage snapshot. Both token fields are totals since session creation (NOT deltas). Backend computes the delta against the last reported snapshot before incrementing cs_usage_records. */
+/** Cumulative per-conversation LLM usage snapshot. Both token fields are totals since session creation (NOT deltas). Backend advances the session token counters via $max before computing the per-call delta. */
 export interface CsSendUsageInput {
   /** Cumulative LLM input tokens for this conversation (>= 0). */
   inputTokens: Scalars['Int']['input'];
@@ -202,8 +179,6 @@ export interface CsSendUsageInput {
   outputTokens: Scalars['Int']['input'];
   /** Most recent turn's provider name (display-only). */
   provider?: InputMaybe<Scalars['String']['input']>;
-  /** Seat id to charge. Must be allocated to the calling user. Backend asserts ownership — a mismatch fails the billing write but does not fail the send. */
-  seatId: Scalars['ID']['input'];
 }
 
 /** Result of getting or creating a CS session */
@@ -969,8 +944,6 @@ export const ModuleId = {
 
 export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
-  /** Allocate a new seat to a gateway */
-  allocateSeat: CsSeat;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a new surface */
@@ -981,10 +954,6 @@ export interface Mutation {
   csGetOrCreateSession: CsSessionResult;
   /** Increment messageCount on the active CS session for a conversation. Throws if no active session exists (fail-fast so Desktop can detect drift). */
   csIncrementMessageCount: Scalars['Boolean']['output'];
-  /** Record per-seat billing-turn usage (messageCount) for the current billing period. Called by Desktop after each successful agent run. Token usage fields (inputTokens / outputTokens) are written on the same cs_usage_records document by a separate path: ecommerceSendMessage accepts an optional cumulative `usage` snapshot and a service turns the snapshot into a delta. */
-  csRecordUsage: Scalars['Boolean']['output'];
-  /** Deallocate a seat by ID */
-  deallocateSeat: Scalars['Boolean']['output'];
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
   /** Delete the session state backup for a profile */
@@ -1048,11 +1017,6 @@ export interface Mutation {
 }
 
 
-export interface MutationAllocateSeatArgs {
-  gatewayId: Scalars['String']['input'];
-}
-
-
 export interface MutationCreateRunProfileArgs {
   input: CreateRunProfileInput;
 }
@@ -1078,17 +1042,6 @@ export interface MutationCsGetOrCreateSessionArgs {
 export interface MutationCsIncrementMessageCountArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
-}
-
-
-export interface MutationCsRecordUsageArgs {
-  messageCount: Scalars['Int']['input'];
-  seatId: Scalars['ID']['input'];
-}
-
-
-export interface MutationDeallocateSeatArgs {
-  seatId: Scalars['String']['input'];
 }
 
 
@@ -1428,10 +1381,6 @@ export interface Query {
   runProfile?: Maybe<RunProfile>;
   /** List run profiles for the authenticated user, optionally filtered by surface */
   runProfiles: Array<RunProfile>;
-  /** Get seat usage records for a billing period */
-  seatUsage: Array<CsUsageRecord>;
-  /** List all allocated seats for the current user */
-  seats: Array<CsSeat>;
   /** Download the encrypted session state backup for a profile */
   sessionStateBackup?: Maybe<SessionStateBackupDownload>;
   /** Get a single shop by ID */
@@ -1679,11 +1628,6 @@ export interface QueryRunProfilesArgs {
 }
 
 
-export interface QuerySeatUsageArgs {
-  period?: InputMaybe<Scalars['String']['input']>;
-}
-
-
 export interface QuerySessionStateBackupArgs {
   profileId: Scalars['ID']['input'];
 }
@@ -1783,13 +1727,6 @@ export interface RunProfile {
   userId?: Maybe<Scalars['String']['output']>;
 }
 
-/** Seat connection states */
-export const SeatStatus = {
-  Active: 'ACTIVE',
-  Suspended: 'SUSPENDED'
-} as const;
-
-export type SeatStatus = typeof SeatStatus[keyof typeof SeatStatus];
 /** A one-time service credit (top-up) that can be redeemed to a shop */
 export interface ServiceCredit {
   createdAt: Scalars['DateTimeISO']['output'];

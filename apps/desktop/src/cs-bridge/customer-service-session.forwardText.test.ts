@@ -65,10 +65,9 @@ function makeContext(overrides?: Partial<CSContext>): CSContext {
   };
 }
 
-function makeSession(opts?: { getSeatId?: () => string | null }): CustomerServiceSession {
+function makeSession(): CustomerServiceSession {
   return new CustomerServiceSession(defaultShop, makeContext(), {
     defaultRunProfileId: "CUSTOMER_SERVICE",
-    getSeatId: opts?.getSeatId ?? (() => "seat-abc"),
   });
 }
 
@@ -147,23 +146,10 @@ describe("CustomerServiceSession.forwardTextToBuyer — usage piggyback", () => 
       outputTokens: 567,
       provider: "anthropic",
       model: "claude-sonnet-4.6",
-      seatId: "seat-abc",
     });
     // Path-resolution RPC was hit; JSONL summary was read with no time window.
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.list", { agentId: "main" });
     expect(mockLoadSessionCostSummary).toHaveBeenCalledWith({ sessionFile });
-  });
-
-  it("omits usage when getSeatId returns null (seat not resolved yet)", async () => {
-    const session = makeSession({ getSeatId: () => null });
-
-    await session.forwardTextToBuyer("hello");
-
-    const { variables } = findSendCall();
-    expect(variables.usage).toBeUndefined();
-    // No RPC call at all on the no-seat path (early return keeps it cheap).
-    expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockLoadSessionCostSummary).not.toHaveBeenCalled();
   });
 
   it("omits usage when scopeKey resolution finds no matching session row", async () => {

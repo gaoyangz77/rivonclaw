@@ -135,13 +135,6 @@ export class CustomerServiceSession {
       defaultRunProfileId?: string;
       /** Called after a successful agent dispatch, so the Bridge can track the run globally. */
       onRunDispatched?: (runId: string) => void;
-      /**
-       * Live getter for the bridge-level seat id. Returns null when no seat
-       * has been resolved yet (e.g. before `cs_ack`, or when the gateway is
-       * not allocated a seat on this user). When null, the session skips the
-       * cs_send usage piggyback — never blocks the send.
-       */
-      getSeatId?: () => string | null;
     },
   ) {
     this.platform = shop.platform ?? "tiktok";
@@ -450,15 +443,9 @@ export class CustomerServiceSession {
    * Called by the Bridge when an agent run completes with text output.
    *
    * Piggybacks a cumulative LLM usage snapshot on the `cs_send` mutation so
-   * the backend can accumulate token totals onto `cs_usage_records`. Usage
-   * collection failures never block the send — the snapshot is simply
-   * omitted from the mutation variables.
-   *
-   * Note: we only await usage collection when we actually have a seat to
-   * charge. The seat check is synchronous; skipping the async collector
-   * entirely in the no-seat path avoids adding a microtask on the hot path
-   * (matters for legacy callers that don't await forwardTextToBuyer — see
-   * `CustomerServiceBridge.flushTurnText`).
+   * the backend can advance `cs_sessions.inputTokens` / `outputTokens` via
+   * `$max`. Usage collection failures never block the send — the snapshot
+   * is simply omitted from the mutation variables.
    */
   async forwardTextToBuyer(text: string): Promise<void> {
     const authSession = getAuthSession();
@@ -466,8 +453,7 @@ export class CustomerServiceSession {
       log.warn("No auth session available, cannot forward text to buyer");
       return;
     }
-    const seatId = this.opts?.getSeatId?.() ?? null;
-    const usage = seatId ? await this.collectUsageSnapshot(seatId) : null;
+    const usage = await this.collectUsageSnapshot();
     await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
       shopId: this.csContext.shopId,
       conversationId: this.csContext.conversationId,
@@ -498,9 +484,9 @@ export class CustomerServiceSession {
    * Build the cumulative LLM usage snapshot to piggyback on `cs_send`.
    *
    * Semantics: both token fields are cumulative per-conversation totals since
-   * session creation (NOT deltas). The backend diffs each report against the
-   * session's previously-stored snapshot before incrementing
-   * `cs_usage_records`. See `server/backend/src/services/CSUsageService.ts`.
+   * session creation (NOT deltas). The backend advances
+   * `cs_sessions.inputTokens` / `outputTokens` via `$max` and returns the
+   * per-call delta to the caller. See `CSUsageService.ts` on the server.
    *
    * Strategy: read the session's JSONL transcript via `loadSessionCostSummary`,
    * which sums `usage` fields across all assistant messages. The gateway's
@@ -524,7 +510,7 @@ export class CustomerServiceSession {
    * field and the core send proceeds unaffected. This matches the system
    * boundary rule: billing-statistics must never block core business.
    */
-  private async collectUsageSnapshot(seatId: string): Promise<GQL.CsSendUsageInput | null> {
+  private async collectUsageSnapshot(): Promise<GQL.CsSendUsageInput | null> {
     try {
       // 1) scopeKey → sessionId via sessions.list (path resolution only;
       //    NOT a token data source). Filtering by agentId="main" keeps the
@@ -586,7 +572,6 @@ export class CustomerServiceSession {
           typeof dominantModel === "string" && dominantModel.length > 0
             ? dominantModel
             : undefined,
-        seatId,
       };
     } catch (err) {
       // System boundary: never throw upstream. The send MUST succeed even if
@@ -604,9 +589,7 @@ export class CustomerServiceSession {
    * Fire-and-forget increment of cs_sessions.messageCount.
    *
    * Semantics: this counts *each* message that crosses the wire — one call per
-   * inbound buyer message, one per outbound agent reply. It is NOT a
-   * billing-turn counter (billing turns = 1 per successful agent run; those
-   * are recorded via csRecordUsage on the seat).
+   * inbound buyer message, one per outbound agent reply.
    *
    * Failures are logged but not rethrown — this is at a system boundary with
    * the cloud backend, and the buyer message flow must not be blocked by

@@ -1283,6 +1283,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
       payload: { runId: "run-esc-003", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
+    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // chain before asserting on mockGraphqlFetch.
+    await Promise.resolve();
+    await Promise.resolve();
+
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("ecommerceSendMessage"),
       expect.objectContaining({ shopId: "mongo-id-123", conversationId: "conv-directive-001" }),
@@ -1797,6 +1802,11 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       payload: { runId: "run-B", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
+    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // chain before asserting on mockGraphqlFetch.
+    await Promise.resolve();
+    await Promise.resolve();
+
     // run-B should auto-forward
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("ecommerceSendMessage"),
@@ -1869,6 +1879,11 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       event: "agent",
       payload: { runId: "run-single", stream: "lifecycle", data: { phase: "end" } },
     } as any);
+
+    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // chain before asserting on mockGraphqlFetch.
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("ecommerceSendMessage"),
@@ -1946,6 +1961,11 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       event: "chat",
       payload: { runId: "run-C", state: "final" },
     } as any);
+
+    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // chain before asserting on mockGraphqlFetch.
+    await Promise.resolve();
+    await Promise.resolve();
 
     // Only C's response should be forwarded
     const forwardCalls = mockGraphqlFetch.mock.calls.filter(
@@ -2094,8 +2114,21 @@ describe("per-turn message forwarding", () => {
     } as any);
   }
 
-  /** Helper: count ecommerceSendMessage calls and return their content args. */
-  function getForwardedTexts(): string[] {
+  /**
+   * Helper: count ecommerceSendMessage calls and return their content args.
+   *
+   * `async` so callers can await the microtask queue before asserting —
+   * `forwardTextToBuyer` awaits `collectUsageSnapshot` (a `sessions.list`
+   * RPC) before firing graphqlFetch, so the mutation mock is recorded one
+   * microtask cycle later than the agent event that triggered it. Without
+   * this flush, synchronous assertions right after an `agentEvent(...)` call
+   * would read an empty mock.calls array.
+   */
+  async function getForwardedTexts(): Promise<string[]> {
+    // Two rounds of microtask flushing cover the nested awaits inside
+    // forwardTextToBuyer → collectUsageSnapshot → sessions.list → graphqlFetch.
+    await Promise.resolve();
+    await Promise.resolve();
     return mockGraphqlFetch.mock.calls
       .filter((c: any[]) => typeof c[0] === "string" && c[0].includes("ecommerceSendMessage"))
       .map((c: any[]) => {
@@ -2112,7 +2145,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: "Hello buyer!" });
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Hello buyer!");
   });
@@ -2130,7 +2163,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: "Here is the answer." });
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(2);
     expect(texts[0]).toBe("Let me check.");
     expect(texts[1]).toBe("Here is the answer.");
@@ -2153,7 +2186,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: "Segment three." });
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(3);
     expect(texts[0]).toBe("Segment one.");
     expect(texts[1]).toBe("Segment two.");
@@ -2176,7 +2209,7 @@ describe("per-turn message forwarding", () => {
     // Cleanup
     chatFinal(bridge, "run-1");
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(0);
   });
 
@@ -2192,7 +2225,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: "Result found." });
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Result found.");
   });
@@ -2205,7 +2238,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: "Partial output" });
     agentEvent(bridge, "run-1", "lifecycle", { phase: "error" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Partial output");
   });
@@ -2218,7 +2251,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-other", "assistant", { text: "Non-CS text" });
     agentEvent(bridge, "run-other", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(0);
   });
 
@@ -2234,7 +2267,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: "   " });
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     // Only the first segment should be forwarded; the whitespace-only segment is skipped
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("First part.");
@@ -2252,7 +2285,7 @@ describe("per-turn message forwarding", () => {
     chatFinal(bridge, "run-1");
 
     // No text forwarded (lifecycle end never fired)
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(0);
   });
 
@@ -2266,12 +2299,12 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "tool", { phase: "end", toolName: "search" });
 
     // Nothing forwarded yet — text still buffered
-    expect(getForwardedTexts()).toHaveLength(0);
+    expect(await getForwardedTexts()).toHaveLength(0);
 
     // Now lifecycle end flushes
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Pending text");
   });
@@ -2285,7 +2318,7 @@ describe("per-turn message forwarding", () => {
     agentEvent(bridge, "run-1", "assistant", { text: 42 } as any);
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
 
-    expect(getForwardedTexts()).toHaveLength(0);
+    expect(await getForwardedTexts()).toHaveLength(0);
   });
 });
 
@@ -2325,8 +2358,14 @@ describe("terminal guarantee (error/timeout)", () => {
     } as any);
   }
 
-  /** Helper: count ecommerceSendMessage calls and return their content args. */
-  function getForwardedTexts(): string[] {
+  /**
+   * Helper: count ecommerceSendMessage calls and return their content args.
+   * Async to flush the collectUsageSnapshot → sessions.list microtask chain
+   * before assertions — see the describe-14 helper's doc for full context.
+   */
+  async function getForwardedTexts(): Promise<string[]> {
+    await Promise.resolve();
+    await Promise.resolve();
     return mockGraphqlFetch.mock.calls
       .filter((c: any[]) => typeof c[0] === "string" && c[0].includes("ecommerceSendMessage"))
       .map((c: any[]) => {
@@ -2343,7 +2382,7 @@ describe("terminal guarantee (error/timeout)", () => {
     agentEvent(bridge, "run-err-1", "assistant", { text: "Here is your answer so far" });
     agentEvent(bridge, "run-err-1", "lifecycle", { phase: "error" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Here is your answer so far");
   });
@@ -2359,7 +2398,7 @@ describe("terminal guarantee (error/timeout)", () => {
     // Wait for any async side effects
     await new Promise((r) => setTimeout(r, 10));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(0);
   });
 
@@ -2381,7 +2420,7 @@ describe("terminal guarantee (error/timeout)", () => {
     // Wait for potential fallback
     await new Promise((r) => setTimeout(r, 10));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     // Only the first turn's text should be forwarded; no fallback
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Let me look that up.");
@@ -2403,7 +2442,7 @@ describe("terminal guarantee (error/timeout)", () => {
     await new Promise((r) => setTimeout(r, 10));
 
     // No text should be forwarded for the aborted run
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(0);
   });
 
@@ -2417,7 +2456,7 @@ describe("terminal guarantee (error/timeout)", () => {
     });
     agentEvent(bridge, "run-timeout-1", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
   });
@@ -2432,7 +2471,7 @@ describe("terminal guarantee (error/timeout)", () => {
     });
     agentEvent(bridge, "run-timeout-2", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
   });
@@ -2447,7 +2486,7 @@ describe("terminal guarantee (error/timeout)", () => {
     });
     agentEvent(bridge, "run-timeout-3", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Here is your order status: shipped on April 10.");
   });
@@ -2460,7 +2499,7 @@ describe("terminal guarantee (error/timeout)", () => {
     agentEvent(bridge, "run-normal", "assistant", { text: "Your refund has been processed!" });
     agentEvent(bridge, "run-normal", "lifecycle", { phase: "end" });
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Your refund has been processed!");
   });
@@ -2482,7 +2521,7 @@ describe("terminal guarantee (error/timeout)", () => {
 
     await new Promise((r) => setTimeout(r, 10));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     // Only the flushed text, no fallback
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Partial response before error");
@@ -2530,7 +2569,7 @@ describe("terminal guarantee (error/timeout)", () => {
     chatError(bridge, "run-fwd-fail-1");
     await new Promise((r) => setTimeout(r, 10));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     // 2 attempts: failed "Some answer" + successful fallback; no 3rd (duplicate)
     expect(texts).toHaveLength(2);
     expect(texts[0]).toBe("Some answer");          // attempted but failed
@@ -2554,7 +2593,7 @@ describe("terminal guarantee (error/timeout)", () => {
     chatError(bridge, "run-fwd-fail-2");
     await new Promise((r) => setTimeout(r, 10));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(2);
     expect(texts[0]).toBe("Partial output");        // attempted but failed
     expect(texts[1]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
@@ -2574,7 +2613,7 @@ describe("terminal guarantee (error/timeout)", () => {
     chatError(bridge, "run-fwd-ok");
     await new Promise((r) => setTimeout(r, 10));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Successful response");
   });
@@ -2617,194 +2656,10 @@ describe("terminal guarantee (error/timeout)", () => {
     rejectSend(new Error("network failure"));
     await new Promise((r) => setTimeout(r, 50));
 
-    const texts = getForwardedTexts();
+    const texts = await getForwardedTexts();
     // Only the original failed attempt; NO fallback (run was aborted)
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Stale answer");  // attempted but failed, no fallback
-  });
-});
-
-// ─── 16. Seat resolution & per-run usage recording (P0-1) ────────────────────
-
-describe("seat resolution and csRecordUsage", () => {
-  /** Helper: dispatch a CS message so a `pendingRuns` entry exists. */
-  async function dispatchCsRun(
-    bridge: ReturnType<typeof createBridge>,
-    runId: string,
-  ): Promise<void> {
-    mockRpcRequest.mockResolvedValue({ runId });
-    await triggerMessage(bridge, createFrame({ messageId: `msg-${runId}` }));
-  }
-
-  /** Helper: fire a chat final event for a runId. */
-  function chatFinal(bridge: ReturnType<typeof createBridge>, runId: string): void {
-    bridge.onGatewayEvent({
-      event: "chat",
-      payload: { runId, state: "final" },
-    } as any);
-  }
-
-  /** Helper: fire a chat error event. */
-  function chatError(bridge: ReturnType<typeof createBridge>, runId: string): void {
-    bridge.onGatewayEvent({
-      event: "chat",
-      payload: { runId, state: "error" },
-    } as any);
-  }
-
-  /** Collect all csRecordUsage calls (variables) observed on mockGraphqlFetch. */
-  function getRecordUsageCalls(): Array<{ seatId: string; messageCount: number }> {
-    return mockGraphqlFetch.mock.calls
-      .filter((c: any[]) => typeof c[0] === "string" && c[0].includes("csRecordUsage"))
-      .map((c: any[]) => c[1] as { seatId: string; messageCount: number });
-  }
-
-  /** Install a default graphql mock that returns a seat for "test-gateway" and supports all flows. */
-  function installDefaultGraphqlMock(opts: { seatMatches?: boolean } = {}): void {
-    const seatMatches = opts.seatMatches ?? true;
-    mockGraphqlFetch.mockImplementation(async (query: string, _vars?: unknown) => {
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("query Seats")) {
-        return {
-          seats: seatMatches
-            ? [{ id: "seat-abc", userId: "u-1", gatewayId: "test-gateway", status: "ACTIVE" }]
-            : [{ id: "seat-other", userId: "u-1", gatewayId: "some-other-gateway", status: "ACTIVE" }],
-        };
-      }
-      if (query.includes("csRecordUsage")) {
-        return { csRecordUsage: true };
-      }
-      if (query.includes("csIncrementMessageCount")) {
-        return { csIncrementMessageCount: true };
-      }
-      return { ecommerceSendMessage: { messageId: "msg-default" } };
-    });
-  }
-
-  it("resolves seatId on cs_ack and records messageCount=1 on final success (tokens are tracked separately via cs_send)", async () => {
-    installDefaultGraphqlMock();
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    // Simulate cs_ack
-    (bridge as any).onFrame({ type: "cs_ack" });
-
-    // Give ensureSeatResolved a chance to finish
-    await new Promise((r) => setTimeout(r, 10));
-
-    await dispatchCsRun(bridge, "run-final-1");
-
-    chatFinal(bridge, "run-final-1");
-
-    // Let the fire-and-forget recordRunUsage settle
-    await new Promise((r) => setTimeout(r, 10));
-
-    const calls = getRecordUsageCalls();
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toEqual({ seatId: "seat-abc", messageCount: 1 });
-  });
-
-  it("does NOT record usage when run ends in error", async () => {
-    installDefaultGraphqlMock();
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    (bridge as any).onFrame({ type: "cs_ack" });
-    await new Promise((r) => setTimeout(r, 10));
-
-    await dispatchCsRun(bridge, "run-err-1");
-    chatError(bridge, "run-err-1");
-    await new Promise((r) => setTimeout(r, 10));
-
-    expect(getRecordUsageCalls()).toHaveLength(0);
-  });
-
-  it("does NOT record usage when run was aborted (newer buyer message took over)", async () => {
-    installDefaultGraphqlMock();
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    (bridge as any).onFrame({ type: "cs_ack" });
-    await new Promise((r) => setTimeout(r, 10));
-
-    await dispatchCsRun(bridge, "run-abort-1");
-    // Second message → aborts run-abort-1 and dispatches a replacement.
-    mockRpcRequest.mockResolvedValue({ runId: "run-abort-2" });
-    await triggerMessage(bridge, createFrame({ messageId: "msg-replacement" }));
-
-    // Simulate aborted run finishing late (we still see a final event).
-    chatFinal(bridge, "run-abort-1");
-    await new Promise((r) => setTimeout(r, 10));
-
-    expect(getRecordUsageCalls()).toHaveLength(0);
-  });
-
-  it("skips recording when no seat matches gatewayId (no seat allocated)", async () => {
-    installDefaultGraphqlMock({ seatMatches: false });
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    (bridge as any).onFrame({ type: "cs_ack" });
-    await new Promise((r) => setTimeout(r, 10));
-
-    await dispatchCsRun(bridge, "run-no-seat");
-    chatFinal(bridge, "run-no-seat");
-    await new Promise((r) => setTimeout(r, 10));
-
-    expect(getRecordUsageCalls()).toHaveLength(0);
-  });
-
-  it("skips recording when cs_ack was never received (seatId never resolved)", async () => {
-    installDefaultGraphqlMock();
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    // NO cs_ack
-
-    await dispatchCsRun(bridge, "run-preack");
-    chatFinal(bridge, "run-preack");
-    await new Promise((r) => setTimeout(r, 10));
-
-    expect(getRecordUsageCalls()).toHaveLength(0);
-  });
-
-  it("failed csRecordUsage call does not throw (system-boundary swallow)", async () => {
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("query Seats")) {
-        return {
-          seats: [{ id: "seat-abc", userId: "u-1", gatewayId: "test-gateway", status: "ACTIVE" }],
-        };
-      }
-      if (query.includes("csRecordUsage")) {
-        throw new Error("backend temporarily unavailable");
-      }
-      return { ecommerceSendMessage: { messageId: "ok" } };
-    });
-
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    (bridge as any).onFrame({ type: "cs_ack" });
-    await new Promise((r) => setTimeout(r, 10));
-
-    await dispatchCsRun(bridge, "run-rec-fail");
-
-    // Should not throw — the record failure is logged as warn but swallowed
-    expect(() => chatFinal(bridge, "run-rec-fail")).not.toThrow();
-    await new Promise((r) => setTimeout(r, 10));
-
-    // The mutation was attempted
-    expect(
-      mockGraphqlFetch.mock.calls.some(
-        (c: any[]) => typeof c[0] === "string" && c[0].includes("csRecordUsage"),
-      ),
-    ).toBe(true);
   });
 });
 
@@ -2825,9 +2680,6 @@ describe("csIncrementMessageCount wiring", () => {
       }
       if (query.includes("csGetOrCreateSession")) {
         return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("query Seats")) {
-        return { seats: [] };
       }
       if (query.includes("csIncrementMessageCount")) {
         if (opts.incrementFails) throw new Error("backend down");

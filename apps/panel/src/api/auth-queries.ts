@@ -169,48 +169,6 @@ export const CHECKOUT_MUTATION = gql`
   }
 `;
 
-export const SEATS_QUERY = gql`
-  query Seats {
-    seats {
-      userId
-      gatewayId
-      status
-      connectedAt
-      createdAt
-    }
-  }
-`;
-
-export const SEAT_USAGE_QUERY = gql`
-  query SeatUsage($period: String) {
-    seatUsage(period: $period) {
-      userId
-      seatId
-      period
-      messageCount
-      inputTokens
-      outputTokens
-    }
-  }
-`;
-
-export const ALLOCATE_SEAT_MUTATION = gql`
-  mutation AllocateSeat($gatewayId: String!) {
-    allocateSeat(gatewayId: $gatewayId) {
-      userId
-      gatewayId
-      status
-      connectedAt
-    }
-  }
-`;
-
-export const DEALLOCATE_SEAT_MUTATION = gql`
-  mutation DeallocateSeat($seatId: String!) {
-    deallocateSeat(seatId: $seatId)
-  }
-`;
-
 export const LLM_QUOTA_STATUS_QUERY = gql`
   query LlmQuotaStatus {
     llmQuotaStatus {
