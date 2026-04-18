@@ -14,8 +14,11 @@ export const UserSubscriptionModel = types.model("UserSubscription", {
   userId: types.string,
   plan: types.string, // UserPlan enum value
   status: types.string, // SubscriptionStatus enum value
-  seatsMax: types.integer,
-  seatsUsed: types.integer,
+  // seatsMax/seatsUsed remain on the backend GraphQL type but are not
+  // consumed by any Panel / Desktop surface. MST accepts them when present
+  // (so nothing breaks if a caller re-selects them) and tolerates absence.
+  seatsMax: types.maybe(types.integer),
+  seatsUsed: types.maybe(types.integer),
   validUntil: types.string, // ISO DateTime
   stripeSubscriptionId: types.maybeNull(types.string),
 });
