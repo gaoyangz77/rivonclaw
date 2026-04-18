@@ -145,6 +145,7 @@ export interface CsSeat {
   connectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   gatewayId: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
   status: SeatStatus;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['String']['output'];
