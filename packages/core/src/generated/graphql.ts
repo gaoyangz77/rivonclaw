@@ -227,6 +227,160 @@ export interface CustomerServiceBilling {
   tier?: Maybe<Scalars['String']['output']>;
 }
 
+/** A CS conversation between buyer and seller */
+export interface CustomerServiceConversation {
+  /** Whether the seller can send messages in this conversation */
+  canSendMessage?: Maybe<Scalars['Boolean']['output']>;
+  conversationId: Scalars['String']['output'];
+  /** Unix seconds when the conversation was created */
+  createTime?: Maybe<Scalars['Int']['output']>;
+  latestMessage?: Maybe<CustomerServiceMessagePreview>;
+  /** Unix seconds of last update */
+  latestMessageTime?: Maybe<Scalars['Int']['output']>;
+  /** Associated order ID if any */
+  orderId?: Maybe<Scalars['String']['output']>;
+  /** Number of participants in the conversation */
+  participantCount?: Maybe<Scalars['Int']['output']>;
+  participants?: Maybe<Array<CustomerServiceConversationParticipant>>;
+  /** Conversation status per platform */
+  status?: Maybe<Scalars['String']['output']>;
+  unreadCount?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Conversation details: the full conversation entity plus a normalized buyer participant slice for convenience. */
+export interface CustomerServiceConversationDetails {
+  /** The buyer participant, if resolvable from the conversation's participant list. */
+  buyer?: Maybe<CustomerServiceConversationParticipant>;
+  conversation: CustomerServiceConversation;
+}
+
+/** Participant in a CS conversation */
+export interface CustomerServiceConversationParticipant {
+  avatar?: Maybe<Scalars['String']['output']>;
+  /** IM-specific user ID (may differ from userId on some platforms) */
+  imUserId?: Maybe<Scalars['String']['output']>;
+  nickname?: Maybe<Scalars['String']['output']>;
+  /** BUYER, SELLER, SYSTEM, ROBOT */
+  role?: Maybe<Scalars['String']['output']>;
+  /** Platform user ID for this participant */
+  userId?: Maybe<Scalars['String']['output']>;
+}
+
+/** A customer service conversation, trimmed for agent-facing tool output. */
+export interface CustomerServiceConversationSummary {
+  conversationId: Scalars['String']['output'];
+  /** Unix seconds of last update */
+  latestMessageTime?: Maybe<Scalars['Int']['output']>;
+  unreadCount?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Page of customer service conversation summaries */
+export interface CustomerServiceConversationSummaryPage {
+  items: Array<CustomerServiceConversationSummary>;
+  /** Pagination cursor — pass back to fetch the next page */
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+  /** True when pagination aborted mid-scan due to an API error. Results may be incomplete. */
+  partial?: Maybe<Scalars['Boolean']['output']>;
+  /** Total number of conversations matching the query */
+  totalCount?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Create conversation result */
+export interface CustomerServiceCreateConversationResult {
+  conversationId: Scalars['String']['output'];
+}
+
+/** Preview of the latest message in a conversation */
+export interface CustomerServiceMessagePreview {
+  /** JSON-stringified message content per message type */
+  content?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds */
+  createTime?: Maybe<Scalars['Int']['output']>;
+  messageId?: Maybe<Scalars['String']['output']>;
+  sender?: Maybe<CustomerServiceConversationParticipant>;
+  /** Message type (TEXT, IMAGE, ...) — see EcomMessageType */
+  type?: Maybe<Scalars['String']['output']>;
+}
+
+/** Sender of a customer service message */
+export interface CustomerServiceMessageSender {
+  /** Display name. For shops, the shop name; for CS agents, the agent name; for buyers, their TikTok nickname. */
+  nickname?: Maybe<Scalars['String']['output']>;
+  /** BUYER, SHOP, CUSTOMER_SERVICE, SYSTEM, ROBOT */
+  role?: Maybe<Scalars['String']['output']>;
+}
+
+/** A message in a CS conversation, trimmed for agent-facing tool output. */
+export interface CustomerServiceMessageSummary {
+  /** Unix seconds */
+  createTime?: Maybe<Scalars['Int']['output']>;
+  sender?: Maybe<CustomerServiceMessageSender>;
+  /** Human-readable rendering. For TEXT this is the message body; for rich cards this is the platform-provided plaintext summary if available, otherwise the raw JSON content string. */
+  text?: Maybe<Scalars['String']['output']>;
+  /** Message type (TEXT, IMAGE, PRODUCT_CARD, ORDER_CARD, LOGISTICS_CARD, etc.) */
+  type?: Maybe<Scalars['String']['output']>;
+}
+
+/** Page of customer service message summaries */
+export interface CustomerServiceMessageSummaryPage {
+  items: Array<CustomerServiceMessageSummary>;
+  /** Pagination cursor — pass back to fetch the next page */
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+}
+
+/** Customer service performance metrics */
+export interface CustomerServicePerformance {
+  /** Conversion rate as a percentage string (e.g. '66.67') */
+  conversionRate?: Maybe<Scalars['String']['output']>;
+  /** CS-guided GMV as a decimal string (e.g. '36500') */
+  csGuidedGmv?: Maybe<Scalars['String']['output']>;
+  /** Currency code for GMV (e.g. 'USD') */
+  currency?: Maybe<Scalars['String']['output']>;
+  /** Exclusive end of the reported window (YYYY-MM-DD), injected from request params */
+  endDate?: Maybe<Scalars['String']['output']>;
+  /** Response rate as a percentage string (e.g. '93.4') */
+  responsePercentage?: Maybe<Scalars['String']['output']>;
+  /** Average response time in minutes as a string (e.g. '3.4') */
+  responseTimeMins?: Maybe<Scalars['String']['output']>;
+  /** Customer satisfaction as a percentage string (e.g. '95.2') */
+  satisfactionPercentage?: Maybe<Scalars['String']['output']>;
+  /** Start of the reported window (YYYY-MM-DD), injected from request params */
+  startDate?: Maybe<Scalars['String']['output']>;
+  /** Number of support sessions in the window */
+  supportSessionCount?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Send message result */
+export interface CustomerServiceSendMessageResult {
+  /** Platform message ID of the sent message, if returned */
+  messageId?: Maybe<Scalars['String']['output']>;
+}
+
+/** Customer service support session */
+export interface CustomerServiceSession {
+  /** Unix seconds when the session began */
+  beginTime?: Maybe<Scalars['Int']['output']>;
+  /** Buyer's nickname */
+  buyerNickname?: Maybe<Scalars['String']['output']>;
+  /** Chat tags such as AfterSale, Logistics, or Presale */
+  chatTags?: Maybe<Array<Scalars['String']['output']>>;
+  /** Associated conversation ID */
+  conversationId?: Maybe<Scalars['String']['output']>;
+  /** Reason for low satisfaction, localized by the request locale */
+  dissatisfactionReason?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds when the session ended */
+  endTime?: Maybe<Scalars['Int']['output']>;
+  /** Customer satisfaction score (for example 1-5) */
+  satisfactionScore?: Maybe<Scalars['Int']['output']>;
+  sessionId: Scalars['String']['output'];
+}
+
+/** Page of customer service support sessions */
+export interface CustomerServiceSessionPage {
+  items: Array<CustomerServiceSession>;
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+}
+
 /** Customer service settings per shop (user-configurable) */
 export interface CustomerServiceSettings {
   /** Assembled CS system prompt (platform prompt + business prompt). Computed at query time, not stored. */
@@ -303,28 +457,6 @@ export const EcomApproveReturnDecision = {
 } as const;
 
 export type EcomApproveReturnDecision = typeof EcomApproveReturnDecision[keyof typeof EcomApproveReturnDecision];
-/** Customer service performance metrics */
-export interface EcomCsPerformance {
-  /** Conversion rate as a percentage string (e.g. '66.67') */
-  conversionRate?: Maybe<Scalars['String']['output']>;
-  /** CS-guided GMV as a decimal string (e.g. '36500') */
-  csGuidedGmv?: Maybe<Scalars['String']['output']>;
-  /** Currency code for GMV (e.g. 'USD') */
-  currency?: Maybe<Scalars['String']['output']>;
-  /** Exclusive end of the reported window (YYYY-MM-DD), injected from request params */
-  endDate?: Maybe<Scalars['String']['output']>;
-  /** Response rate as a percentage string (e.g. '93.4') */
-  responsePercentage?: Maybe<Scalars['String']['output']>;
-  /** Average response time in minutes as a string (e.g. '3.4') */
-  responseTimeMins?: Maybe<Scalars['String']['output']>;
-  /** Customer satisfaction as a percentage string (e.g. '95.2') */
-  satisfactionPercentage?: Maybe<Scalars['String']['output']>;
-  /** Start of the reported window (YYYY-MM-DD), injected from request params */
-  startDate?: Maybe<Scalars['String']['output']>;
-  /** Number of support sessions in the window */
-  supportSessionCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Cancellation status filter for searching cancellations */
 export const EcomCancelStatusFilter = {
   All: 'ALL',
@@ -381,88 +513,6 @@ export interface EcomCancellationPage {
   totalCount?: Maybe<Scalars['Int']['output']>;
 }
 
-/** A CS conversation between buyer and seller */
-export interface EcomConversation {
-  /** Whether the seller can send messages in this conversation */
-  canSendMessage?: Maybe<Scalars['Boolean']['output']>;
-  conversationId: Scalars['String']['output'];
-  /** Unix seconds when the conversation was created */
-  createTime?: Maybe<Scalars['Int']['output']>;
-  latestMessage?: Maybe<EcomMessagePreview>;
-  /** Unix seconds of last update */
-  latestMessageTime?: Maybe<Scalars['Int']['output']>;
-  /** Associated order ID if any */
-  orderId?: Maybe<Scalars['String']['output']>;
-  /** Number of participants in the conversation */
-  participantCount?: Maybe<Scalars['Int']['output']>;
-  participants?: Maybe<Array<EcomConversationParticipant>>;
-  /** Conversation status per platform */
-  status?: Maybe<Scalars['String']['output']>;
-  unreadCount?: Maybe<Scalars['Int']['output']>;
-}
-
-/** Conversation details: the conversation itself plus a normalized buyer info slice pulled out of participants for convenience. */
-export interface EcomConversationDetails {
-  /** The buyer participant, if resolvable from the conversation's participant list. */
-  buyer?: Maybe<EcomConversationParticipant>;
-  conversation: EcomConversation;
-}
-
-/** Page of conversations */
-export interface EcomConversationPage {
-  items: Array<EcomConversation>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  /** Only set by ecommerceGetPendingConversations: true when pagination aborted mid-scan due to an API error. Results may be incomplete. */
-  partial?: Maybe<Scalars['Boolean']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
-/** Participant in a CS conversation */
-export interface EcomConversationParticipant {
-  avatar?: Maybe<Scalars['String']['output']>;
-  /** IM-specific user ID (may differ from userId on some platforms) */
-  imUserId?: Maybe<Scalars['String']['output']>;
-  nickname?: Maybe<Scalars['String']['output']>;
-  /** BUYER, SELLER, SYSTEM, ROBOT */
-  role?: Maybe<Scalars['String']['output']>;
-  /** Platform user ID for this participant */
-  userId?: Maybe<Scalars['String']['output']>;
-}
-
-/** Create conversation result */
-export interface EcomCreateConversationResult {
-  conversationId: Scalars['String']['output'];
-}
-
-/** Customer service support session */
-export interface EcomCustomerServiceSession {
-  /** Unix seconds when the session began */
-  beginTime?: Maybe<Scalars['Int']['output']>;
-  /** Buyer's nickname */
-  buyerNickname?: Maybe<Scalars['String']['output']>;
-  /** Chat tags such as AfterSale, Logistics, or Presale */
-  chatTags?: Maybe<Array<Scalars['String']['output']>>;
-  /** Associated conversation ID */
-  conversationId?: Maybe<Scalars['String']['output']>;
-  /** Reason for low satisfaction, localized by the request locale */
-  dissatisfactionReason?: Maybe<Scalars['String']['output']>;
-  /** Unix seconds when the session ended */
-  endTime?: Maybe<Scalars['Int']['output']>;
-  /** Whether the first response missed the expected SLA */
-  firstResponseLate?: Maybe<Scalars['Boolean']['output']>;
-  /** Seconds until the seller's first response */
-  firstResponseTime?: Maybe<Scalars['Int']['output']>;
-  /** Customer satisfaction score (for example 1-5) */
-  satisfactionScore?: Maybe<Scalars['Int']['output']>;
-  sessionId: Scalars['String']['output'];
-}
-
-/** Page of customer service support sessions */
-export interface EcomCustomerServiceSessionPage {
-  items: Array<EcomCustomerServiceSession>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-}
-
 /** Shipping document format */
 export const EcomDocumentFormat = {
   Pdf: 'PDF',
@@ -493,44 +543,6 @@ export interface EcomImage {
   height?: Maybe<Scalars['Int']['output']>;
   url?: Maybe<Scalars['String']['output']>;
   width?: Maybe<Scalars['Int']['output']>;
-}
-
-/** A single message in a CS conversation */
-export interface EcomMessage {
-  /** JSON-stringified message content per message type */
-  content?: Maybe<Scalars['String']['output']>;
-  /** Unix seconds */
-  createTime?: Maybe<Scalars['Int']['output']>;
-  /** JSON blob with package tracking enrichment */
-  data?: Maybe<Scalars['String']['output']>;
-  /** Opaque index for ordering (larger = newer) */
-  index?: Maybe<Scalars['String']['output']>;
-  /** Whether the message is visible to the CS agent */
-  isVisible?: Maybe<Scalars['Boolean']['output']>;
-  messageId: Scalars['String']['output'];
-  /** Plain-text rendering of rich messages */
-  plaintext?: Maybe<Scalars['String']['output']>;
-  sender?: Maybe<EcomConversationParticipant>;
-  /** Message type (TEXT, IMAGE, ...) — see EcomMessageType */
-  type?: Maybe<Scalars['String']['output']>;
-}
-
-/** Page of conversation messages */
-export interface EcomMessagePage {
-  items: Array<EcomMessage>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-}
-
-/** Preview of the latest message in a conversation */
-export interface EcomMessagePreview {
-  /** JSON-stringified message content per message type */
-  content?: Maybe<Scalars['String']['output']>;
-  /** Unix seconds */
-  createTime?: Maybe<Scalars['Int']['output']>;
-  messageId?: Maybe<Scalars['String']['output']>;
-  sender?: Maybe<EcomConversationParticipant>;
-  /** Message type (TEXT, IMAGE, ...) — see EcomMessageType */
-  type?: Maybe<Scalars['String']['output']>;
 }
 
 /** Message content type for CS conversations */
@@ -584,13 +596,6 @@ export interface EcomOrderLineItem {
   skuName?: Maybe<Scalars['String']['output']>;
 }
 
-/** Page of orders */
-export interface EcomOrderPage {
-  items: Array<EcomOrder>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Order status filter. Use ALL to return all statuses. */
 export const EcomOrderStatus = {
   All: 'ALL',
@@ -606,6 +611,30 @@ export const EcomOrderStatus = {
 } as const;
 
 export type EcomOrderStatus = typeof EcomOrderStatus[keyof typeof EcomOrderStatus];
+/** Trimmed order summary for list endpoints. Use ecommerceGetOrder for full details including recipient address and line items. */
+export interface EcomOrderSummary {
+  /** Unix seconds */
+  createTime?: Maybe<Scalars['Int']['output']>;
+  currency?: Maybe<Scalars['String']['output']>;
+  orderId: Scalars['String']['output'];
+  /** Unix seconds */
+  paidTime?: Maybe<Scalars['Int']['output']>;
+  shippingProvider?: Maybe<Scalars['String']['output']>;
+  /** Raw platform order status (e.g. AWAITING_SHIPMENT) */
+  status?: Maybe<Scalars['String']['output']>;
+  totalAmount?: Maybe<Scalars['String']['output']>;
+  trackingNumber?: Maybe<Scalars['String']['output']>;
+  /** Platform buyer user ID */
+  userId?: Maybe<Scalars['String']['output']>;
+}
+
+/** Page of order summaries */
+export interface EcomOrderSummaryPage {
+  items: Array<EcomOrderSummary>;
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+  totalCount?: Maybe<Scalars['Int']['output']>;
+}
+
 /** Tracking info for an order */
 export interface EcomOrderTracking {
   events?: Maybe<Array<EcomTrackingEvent>>;
@@ -683,13 +712,6 @@ export interface EcomProduct {
   updateTime?: Maybe<Scalars['Int']['output']>;
 }
 
-/** Page of products */
-export interface EcomProductPage {
-  items: Array<EcomProduct>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Product SKU */
 export interface EcomProductSku {
   currency?: Maybe<Scalars['String']['output']>;
@@ -713,6 +735,26 @@ export const EcomProductStatus = {
 } as const;
 
 export type EcomProductStatus = typeof EcomProductStatus[keyof typeof EcomProductStatus];
+/** Trimmed product summary for list endpoints. Use ecommerceGetProduct for full details including images. */
+export interface EcomProductSummary {
+  /** Unix seconds */
+  createTime?: Maybe<Scalars['Int']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  productId: Scalars['String']['output'];
+  skus?: Maybe<Array<EcomProductSku>>;
+  status?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds */
+  updateTime?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Page of product summaries */
+export interface EcomProductSummaryPage {
+  items: Array<EcomProductSummary>;
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+  totalCount?: Maybe<Scalars['Int']['output']>;
+}
+
 /** Shipping address on an order */
 export interface EcomRecipientAddress {
   city?: Maybe<Scalars['String']['output']>;
@@ -820,12 +862,6 @@ export const EcomReturnTypeFilter = {
 } as const;
 
 export type EcomReturnTypeFilter = typeof EcomReturnTypeFilter[keyof typeof EcomReturnTypeFilter];
-/** Send message result */
-export interface EcomSendMessageResult {
-  /** Platform message ID of the sent message, if returned */
-  messageId?: Maybe<Scalars['String']['output']>;
-}
-
 /** Shipping document URL */
 export interface EcomShippingDocument {
   /** URL of the document (label, packing slip, etc.) */
@@ -963,11 +999,11 @@ export interface Mutation {
   /** Approve a return/replacement request. Returns true on success. */
   ecommerceApproveReturn: Scalars['Boolean']['output'];
   /** Create a new conversation with a buyer */
-  ecommerceCreateConversation: EcomCreateConversationResult;
+  ecommerceCreateConversation: CustomerServiceCreateConversationResult;
   /** Mark a conversation as read. Returns true on success. */
   ecommerceMarkConversationRead: Scalars['Boolean']['output'];
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
-  ecommerceSendMessage: EcomSendMessageResult;
+  ecommerceSendMessage: CustomerServiceSendMessageResult;
   /** Update shop settings (agent-facing, flat params) */
   ecommerceUpdateShop: EcommerceUpdateShopResult;
   /** Enroll in a product module */
@@ -1336,25 +1372,25 @@ export interface Query {
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get customer service performance metrics */
-  ecommerceGetCSPerformance: EcomCsPerformance;
-  /** Get conversation details */
-  ecommerceGetConversationDetails: EcomConversationDetails;
+  ecommerceGetCSPerformance: CustomerServicePerformance;
+  /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
+  ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get messages of a conversation */
-  ecommerceGetConversationMessages: EcomMessagePage;
+  ecommerceGetConversationMessages: CustomerServiceMessageSummaryPage;
   /** Get conversations for a shop */
-  ecommerceGetConversations: EcomConversationPage;
+  ecommerceGetConversations: CustomerServiceConversationSummaryPage;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
-  /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional userId. */
+  /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
   ecommerceGetOrder?: Maybe<EcomOrder>;
-  /** List/search orders. Optional buyerUserId for buyer-scoped queries. */
-  ecommerceGetOrders: EcomOrderPage;
+  /** List/search orders (summary version). Optional buyerUserId for buyer-scoped queries. For full order details use ecommerceGetOrder. */
+  ecommerceGetOrders: EcomOrderSummaryPage;
   /** Get package detail by package ID */
   ecommerceGetPackageDetail: EcomPackageDetail;
   /** Get shipping document for a package */
   ecommerceGetPackageShippingDocument: EcomShippingDocument;
   /** Get conversations pending seller reply */
-  ecommerceGetPendingConversations: EcomConversationPage;
+  ecommerceGetPendingConversations: CustomerServiceConversationSummaryPage;
   /** Get product details */
   ecommerceGetProduct: EcomProduct;
   /** Get valid reject reasons for a return or cancellation */
@@ -1362,13 +1398,13 @@ export interface Query {
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Search customer service sessions for a shop */
-  ecommerceSearchCSSessions: EcomCustomerServiceSessionPage;
+  ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search order cancellation requests */
   ecommerceSearchCancellations: EcomCancellationPage;
   /** Search fulfillment packages with optional filters */
   ecommerceSearchPackages: EcomPackagePage;
-  /** Search/list products with optional filters */
-  ecommerceSearchProducts: EcomProductPage;
+  /** Search/list products with optional filters (summary version). For full product details including images use ecommerceGetProduct. */
+  ecommerceSearchProducts: EcomProductSummaryPage;
   /** Search return/refund/replacement requests */
   ecommerceSearchReturns: EcomReturnPage;
   /** Get LLM quota status for the current user */
@@ -1506,9 +1542,9 @@ export interface QueryEcommerceGetFulfillmentTrackingArgs {
 
 
 export interface QueryEcommerceGetOrderArgs {
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
-  userId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
