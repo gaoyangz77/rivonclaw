@@ -347,8 +347,6 @@ export class CustomerServiceBridge {
     /LLM idle timeout/i,
   ];
 
-  private static readonly FALLBACK_MESSAGE = "I'm sorry, I wasn't able to complete my response. Please try again.";
-
   /**
    * Forward buffered text for a run to the buyer, then clear the buffer.
    * `data.text` is accumulated per-turn (resets after each tool call),
@@ -370,30 +368,29 @@ export class CustomerServiceBridge {
     // Don't forward for aborted runs
     if (session.abortedRunIds.has(runId)) return;
 
-    // Sanitize runtime error/timeout patterns
+    // Sanitize runtime error/timeout patterns. If nothing is left, the turn
+    // is dropped silently — a real human CS wouldn't send "sorry, I couldn't
+    // answer" either.
     text = this.sanitizeRuntimeErrors(text);
+    if (!text) return;
 
     // Mark delivery initiated synchronously so the chat error handler (which
     // may fire before the network call resolves) defers to us instead of
-    // sending a duplicate fallback.  If the delivery fails, we send the
-    // fallback ourselves in the catch handler below.
+    // sending a duplicate message. On delivery failure we intentionally do
+    // NOT retry or send a boilerplate apology — keeps the "feels like a
+    // human" experience. The periodic unread-message sweep is responsible
+    // for catching the dropped turn and re-sending.
     this.forwardedRuns.add(runId);
     session.forwardTextToBuyer(text)
       .catch((err) => {
-        log.error("Failed to forward per-turn text:", err);
-        // Re-check abort status: a newer buyer message may have aborted this
-        // run while the outbound send was in flight.  Aborted runs must not
-        // produce any terminal output for the buyer.
         if (session.abortedRunIds.has(runId)) {
-          log.info(`Run ${runId} was aborted during delivery, skipping fallback`);
+          log.info(`Run ${runId} was aborted during delivery, skipping`);
           return;
         }
-        // Delivery failed — buyer didn't receive the text.  The chat error
-        // handler already deferred to us (it saw forwardedRuns), so we are
-        // responsible for sending the fallback.
-        log.warn(`Delivery failed for run ${runId}, sending fallback to buyer`);
-        session.forwardTextToBuyer(CustomerServiceBridge.FALLBACK_MESSAGE)
-          .catch((fallbackErr) => log.error("Failed to send fallback after delivery failure:", fallbackErr));
+        log.error(
+          `Failed to forward per-turn text for run ${runId} (shop=${session.csContext.shopId}, conversation=${session.csContext.conversationId}):`,
+          err,
+        );
       });
   }
 
@@ -425,9 +422,11 @@ export class CustomerServiceBridge {
       return cleaned;
     }
 
-    // Entire text was a runtime error message
-    log.info("Agent text was entirely a runtime error message, replacing with fallback");
-    return CustomerServiceBridge.FALLBACK_MESSAGE;
+    // Entire text was a runtime error message — drop silently. Forwarding a
+    // canned apology breaks the human feel; the cron-driven unread-message
+    // sweep will surface this conversation for recovery.
+    log.info("Agent text was entirely a runtime error message, dropping");
+    return "";
   }
 
   // -- Entity cache subscription ---------------------------------------------

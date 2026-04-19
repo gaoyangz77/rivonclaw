@@ -2458,7 +2458,7 @@ describe("terminal guarantee (error/timeout)", () => {
     expect(texts).toHaveLength(0);
   });
 
-  it("timeout message sanitization: raw timeout text replaced with user-friendly message", async () => {
+  it("timeout message sanitization: raw timeout text dropped silently (no forward)", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-timeout-1");
@@ -2469,11 +2469,12 @@ describe("terminal guarantee (error/timeout)", () => {
     agentEvent(bridge, "run-timeout-1", "lifecycle", { phase: "end" });
 
     const texts = await getForwardedTexts();
-    expect(texts).toHaveLength(1);
-    expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+    // Entire text was a runtime error → dropped, no forward. Cron sweep
+    // will re-surface the turn.
+    expect(texts).toHaveLength(0);
   });
 
-  it("timeout message sanitization: LLM idle timeout replaced", async () => {
+  it("timeout message sanitization: LLM idle timeout dropped silently", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-timeout-2");
@@ -2484,8 +2485,7 @@ describe("terminal guarantee (error/timeout)", () => {
     agentEvent(bridge, "run-timeout-2", "lifecycle", { phase: "end" });
 
     const texts = await getForwardedTexts();
-    expect(texts).toHaveLength(1);
-    expect(texts[0]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+    expect(texts).toHaveLength(0);
   });
 
   it("timeout suffix stripped from real content", async () => {
@@ -2563,32 +2563,33 @@ describe("terminal guarantee (error/timeout)", () => {
     });
   }
 
-  it("forward rejects → catch handler sends fallback (buyer not left in silence)", async () => {
+  it("forward rejects → silent drop (cron sweep handles recovery, no boilerplate to buyer)", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-fwd-fail-1");
 
-    // First send rejects, fallback send succeeds
+    // First send rejects; anything subsequent would also succeed, but we
+    // expect no second attempt.
     failFirstNSends(1);
 
     agentEvent(bridge, "run-fwd-fail-1", "assistant", { text: "Some answer" });
     agentEvent(bridge, "run-fwd-fail-1", "lifecycle", { phase: "end" });
 
-    // Wait for forward rejection + catch fallback to settle
+    // Wait for forward rejection to settle
     await new Promise((r) => setTimeout(r, 50));
 
-    // Chat error arrives — should NOT duplicate fallback (forwardedRuns has the id)
+    // Chat error arrives — still no duplicate
     chatError(bridge, "run-fwd-fail-1");
     await new Promise((r) => setTimeout(r, 10));
 
     const texts = await getForwardedTexts();
-    // 2 attempts: failed "Some answer" + successful fallback; no 3rd (duplicate)
-    expect(texts).toHaveLength(2);
-    expect(texts[0]).toBe("Some answer");          // attempted but failed
-    expect(texts[1]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+    // Only the original (failed) attempt is visible to the forwarder; no
+    // follow-up "sorry I couldn't" apology is sent.
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Some answer");
   });
 
-  it("lifecycle error flush fails → catch handler sends fallback, chat error does not duplicate", async () => {
+  it("lifecycle error flush fails → silent drop, chat error does not send apology", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-fwd-fail-2");
@@ -2598,17 +2599,16 @@ describe("terminal guarantee (error/timeout)", () => {
     agentEvent(bridge, "run-fwd-fail-2", "assistant", { text: "Partial output" });
     agentEvent(bridge, "run-fwd-fail-2", "lifecycle", { phase: "error" });
 
-    // Wait for forward rejection + catch fallback
+    // Wait for forward rejection
     await new Promise((r) => setTimeout(r, 50));
 
-    // Chat error arrives — forwardedRuns has the id, so no duplicate
+    // Chat error arrives — no duplicate, no apology
     chatError(bridge, "run-fwd-fail-2");
     await new Promise((r) => setTimeout(r, 10));
 
     const texts = await getForwardedTexts();
-    expect(texts).toHaveLength(2);
-    expect(texts[0]).toBe("Partial output");        // attempted but failed
-    expect(texts[1]).toBe("I'm sorry, I wasn't able to complete my response. Please try again.");
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("Partial output");
   });
 
   it("forward succeeds → chat error does not send fallback (no duplicate)", async () => {
