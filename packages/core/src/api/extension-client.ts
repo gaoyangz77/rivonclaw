@@ -19,8 +19,16 @@ export async function extensionGraphqlFetch<T>(
   return res.json() as Promise<{ data?: T | null; errors?: Array<{ message: string }> }>;
 }
 
-/** Make a REST call to Desktop's panel-server. */
-export async function extensionRestFetch<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Make a REST call to Desktop's panel-server.
+ *
+ * Returns the parsed JSON body, or `undefined` when the response carries no
+ * body (`204 No Content` or empty-body 200). Callers that don't consume the
+ * return value (fire-and-forget emits) can ignore the result; callers that
+ * type the generic as a concrete shape should only use it on routes known
+ * to return JSON.
+ */
+export async function extensionRestFetch<T>(path: string, init?: RequestInit): Promise<T | undefined> {
   const res = await fetch(`${getPanelUrl()}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...init,
@@ -31,5 +39,9 @@ export async function extensionRestFetch<T>(path: string, init?: RequestInit): P
       `Extension REST error: ${res.status} ${res.statusText}${errBody ? ` — ${errBody}` : ""}`,
     );
   }
-  return res.json() as Promise<T>;
+  // 204 (or any empty body) → no JSON to parse.
+  if (res.status === 204) return undefined;
+  const text = await res.text();
+  if (!text) return undefined;
+  return JSON.parse(text) as T;
 }
