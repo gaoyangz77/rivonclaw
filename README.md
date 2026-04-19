@@ -78,10 +78,11 @@ rivonclaw/
 │   ├── desktop/          # Electron tray app (main process)
 │   └── panel/            # React management UI (served by desktop)
 ├── packages/
-│   ├── core/             # Shared types & Zod schemas
+│   ├── core/             # Shared types, Zod schemas, API contract, MST models
 │   ├── device-id/        # Machine fingerprinting for device identity
 │   ├── gateway/          # Gateway lifecycle, config writer, secret injection, OAuth flows
-│   ├── logger/           # Structured logging (tslog)
+│   ├── logger/           # Structured logging (tslog) with DEBUG_* flag gating
+│   ├── plugin-sdk/       # Thin SDK for RivonClaw-authored OpenClaw plugins
 │   ├── storage/          # SQLite persistence (better-sqlite3)
 │   ├── rules/            # Rule compilation & skill file writer
 │   ├── secrets/          # Keychain / DPAPI / file-based secret stores
@@ -91,10 +92,14 @@ rivonclaw/
 │   ├── telemetry/        # Privacy-first anonymous analytics client
 │   └── policy/           # Policy injector & guard evaluator logic
 ├── extensions/
-│   ├── rivonclaw-policy/      # OpenClaw plugin shell for policy injection
-│   ├── rivonclaw-tools/       # Owner-only custom tools plugin
-│   ├── rivonclaw-file-permissions/  # OpenClaw plugin for file access control
-│   └── rivonclaw-mobile-chat-channel/  # Mobile messaging relay plugin
+│   ├── rivonclaw-policy/                   # OpenClaw plugin shell for policy injection
+│   ├── rivonclaw-tools/                    # Owner-only custom tools plugin
+│   ├── rivonclaw-file-permissions/         # OpenClaw plugin for file access control
+│   ├── rivonclaw-mobile-chat-channel/      # Mobile messaging relay plugin
+│   ├── rivonclaw-browser-profiles-tools/   # Browser profile CDP tool integration
+│   ├── rivonclaw-capability-manager/       # Tool capability / surface availability
+│   ├── rivonclaw-event-bridge/             # Bridges gateway agent events to Chat UI
+│   └── rivonclaw-search-browser-fallback/  # Web-search fallback via headless browser
 ├── scripts/
 │   ├── test-local.sh             # Local test pipeline (build + unit + e2e tests)
 │   ├── publish-release.sh        # Publish draft GitHub Release
@@ -118,10 +123,14 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 
 | Package              | Description                                                                                                                    |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `@rivonclaw/rivonclaw-policy`      | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                     |
-| `@rivonclaw/rivonclaw-tools`       | Owner-only custom tools plugin (e.g. system control, desktop integration).                                              |
-| `@rivonclaw/file-permissions`     | OpenClaw plugin that enforces file access permissions by intercepting and validating tool calls before execution.        |
-| `@rivonclaw/rivonclaw-mobile-chat-channel`  | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                                  |
+| `@rivonclaw/rivonclaw-policy`                  | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                |
+| `@rivonclaw/rivonclaw-tools`                   | Owner-only custom tools plugin (e.g. system control, desktop integration).                                          |
+| `@rivonclaw/rivonclaw-file-permissions`        | Enforces file access permissions by intercepting and validating tool calls before execution.                        |
+| `@rivonclaw/rivonclaw-mobile-chat-channel`     | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                              |
+| `@rivonclaw/rivonclaw-browser-profiles-tools`  | CDP-based browser profile tool integration for the agent.                                                           |
+| `@rivonclaw/rivonclaw-capability-manager`      | Tool capability and surface availability resolver.                                                                  |
+| `@rivonclaw/rivonclaw-event-bridge`            | Mirrors selected gateway agent events onto the Chat UI stream.                                                      |
+| `@rivonclaw/rivonclaw-search-browser-fallback` | Web-search fallback that uses a headless browser when direct search API fails.                                      |
 
 ### Packages
 
@@ -129,7 +138,8 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@rivonclaw/core`                   | Zod-validated types: `Rule`, `ChannelConfig`, `PermissionConfig`, `ModelConfig`, LLM provider definitions (20+ providers including subscription/coding plans and Ollama), region-aware defaults. |
 | `@rivonclaw/gateway`                | `GatewayLauncher` (spawn/stop/restart with exponential backoff), config writer, secret injection from system keychain, Gemini CLI OAuth flow, auth profile sync, skills directory watcher for hot reload. |
-| `@rivonclaw/logger`                 | tslog-based logger. Writes to `~/.rivonclaw/logs/`.                                                                                                                                                  |
+| `@rivonclaw/logger`                 | tslog-based logger. Writes to `~/.rivonclaw/logs/`. Supports `DEBUG_*` env flags via `createQuietLogger` for noisy modules (see [Debug Flags](#debug-flags)).                                       |
+| `@rivonclaw/plugin-sdk`             | Thin runtime helpers and shared types for RivonClaw-authored OpenClaw plugins under `extensions/`.                                                                                                  |
 | `@rivonclaw/storage`                | SQLite via better-sqlite3. Repositories for rules, artifacts, channels, permissions, settings. Migration system included. DB at `~/.rivonclaw/rivonclaw.db`.                                          |
 | `@rivonclaw/rules`                  | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw.                                                                  |
 | `@rivonclaw/secrets`                | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests.                                                                                                            |
@@ -206,34 +216,38 @@ The desktop app runs as a **tray-only** application (hidden from the dock on mac
 
 ### REST API
 
-The panel server exposes these endpoints:
+All Desktop ↔ Panel REST endpoints, SSE streams, and path parameters are declared as a single typed contract in [`packages/core/src/api/api-contract.ts`](packages/core/src/api/api-contract.ts) — both Desktop (route registry) and Panel (`fetchJson` / `EventSource`) import from it, so it stays the source of truth.
 
-| Endpoint               | Methods                | Description                               |
-| ---------------------- | ---------------------- | ----------------------------------------- |
-| `/api/rules`           | GET, POST, PUT, DELETE | CRUD for rules                            |
-| `/api/channels`        | GET, POST, PUT, DELETE | Channel management                        |
-| `/api/permissions`     | GET, POST, PUT, DELETE | Permission management                     |
-| `/api/settings`        | GET, PUT               | Key-value settings store                  |
-| `/api/agent-settings`  | GET, PUT               | Agent settings (DM scope, browser mode)   |
-| `/api/providers`       | GET                    | Available LLM providers                   |
-| `/api/provider-keys`   | GET, POST, PUT, DELETE | API key and OAuth credential management   |
-| `/api/oauth`           | POST                   | Gemini CLI OAuth flow (acquire/save)      |
-| `/api/skills`          | GET, POST, DELETE      | Skills marketplace and installed skills   |
-| `/api/usage`           | GET                    | Token usage statistics                    |
-| `/api/stt`             | GET, PUT               | Speech-to-text configuration              |
-| `/api/telemetry`       | POST                   | Anonymous telemetry events                |
-| `/api/status`          | GET                    | System status (rule count, gateway state) |
+Endpoints today span the following categories:
+
+| Category                | Examples                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| Auth & session          | `/api/auth/login`, `/api/auth/refresh`, `/api/auth/session`                  |
+| Rules & skills          | `/api/rules`, `/api/skills`                                                  |
+| Providers & OAuth       | `/api/providers`, `/api/provider-keys`, `/api/oauth/*`                       |
+| Channels & mobile chat  | `/api/channels/*`, `/api/channels/accounts`, `/api/mobile/*`                 |
+| Browser profiles        | `/api/browser-profiles/*` (managed launch/connect, sessions, proxy test)    |
+| Customer-service bridge | `/api/cs-bridge/*` (binding, escalation, conversations)                      |
+| Chat & streaming        | `/api/chat/events` (SSE), `/api/chat-sessions`                               |
+| Settings & status       | `/api/settings`, `/api/agent-settings`, `/api/status`, `/api/doctor/*`       |
+| Usage, telemetry, STT   | `/api/usage`, `/api/telemetry`, `/api/stt`                                   |
+| App lifecycle           | `/api/app/update/*`, `/api/app/changelog`, `/api/app/api-base-url`           |
+| Cloud GraphQL proxy     | `/api/cloud/graphql`, `/api/cloud/*`                                         |
 
 ### Data Directories
 
-| Path                             | Purpose                    |
-| -------------------------------- | -------------------------- |
-| `~/.rivonclaw/rivonclaw.db`        | SQLite database            |
-| `~/.rivonclaw/logs/`              | Application logs           |
-| `~/.openclaw/`                   | OpenClaw state directory   |
-| `~/.openclaw/gateway/config.yml` | Gateway configuration      |
-| `~/.openclaw/sessions/`          | WhatsApp sessions          |
-| `~/.openclaw/skills/`            | Auto-generated skill files |
+Defaults below; each path can be overridden via the matching `RIVONCLAW_*` / `OPENCLAW_*` env var (see `packages/core/src/node-utils/paths.ts`).
+
+| Path                                                | Purpose                                                     |
+| --------------------------------------------------- | ----------------------------------------------------------- |
+| `~/.rivonclaw/db.sqlite`                            | SQLite database (rules, channels, provider keys, settings)  |
+| `~/.rivonclaw/logs/`                                | Application logs (rotated at 5 MB)                          |
+| `~/.rivonclaw/secrets/`                             | File-based secret store (non-macOS fallback)                |
+| `~/.rivonclaw/openclaw/`                            | OpenClaw state directory                                    |
+| `~/.rivonclaw/openclaw/openclaw.json`               | Gateway configuration (written by `@rivonclaw/gateway`)     |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/`  | Agent session transcripts (JSONL)                           |
+| `~/.rivonclaw/openclaw/skills/`                     | Auto-generated skill files materialized from rules          |
+| `~/.rivonclaw/openclaw/credentials/`                | OAuth credential cache (Gemini CLI, Codex)                  |
 
 ## Building Installers
 
@@ -323,6 +337,23 @@ Run tests for a specific package:
 pnpm --filter @rivonclaw/storage test
 pnpm --filter @rivonclaw/gateway test
 ```
+
+## Debug Flags
+
+Chatty modules default to INFO+ and emit DEBUG only when the matching `DEBUG_*` env var is set to `1`. Flags are registered centrally in [`packages/logger/src/debug-flags.ts`](packages/logger/src/debug-flags.ts) and consumed via `createQuietLogger(name, DEBUG_FLAGS.X)`.
+
+| Flag            | Unmutes DEBUG for                                           |
+| --------------- | ----------------------------------------------------------- |
+| `DEBUG_PROXY`   | `proxy-router`, `proxy-manager` (system proxy discovery, upstream connects) |
+| `DEBUG_SECRETS` | `secrets:keychain`, `gateway:secret-injector` (keychain reads, env injection) |
+
+```bash
+DEBUG_PROXY=1 pnpm dev                      # trace proxy routing
+DEBUG_SECRETS=1 pnpm dev                    # trace secret reads
+DEBUG_PROXY=1 DEBUG_SECRETS=1 pnpm dev      # both
+```
+
+To add a new flag: append an entry to `DEBUG_FLAGS` and switch the relevant `createLogger(...)` call to `createQuietLogger(name, DEBUG_FLAGS.NEW_FLAG)`.
 
 ## Code Style
 

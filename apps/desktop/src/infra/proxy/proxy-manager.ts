@@ -1,4 +1,4 @@
-import { createLogger } from "@rivonclaw/logger";
+import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 import { session } from "electron";
 import type { ProxyRouterConfig } from "@rivonclaw/proxy-router";
 import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, CHANNEL_NO_PROXY_DOMAINS } from "@rivonclaw/core";
@@ -8,7 +8,7 @@ import type { SecretStore } from "@rivonclaw/secrets";
 import { join, dirname } from "node:path";
 import { writeFileSync, mkdirSync } from "node:fs";
 
-const log = createLogger("proxy-manager");
+const log = createQuietLogger("proxy-manager", DEBUG_FLAGS.PROXY);
 
 // Re-export from @rivonclaw/core for backward compatibility.
 export { resolveProxyRouterConfigPath } from "@rivonclaw/core/node";

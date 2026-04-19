@@ -1,10 +1,10 @@
 import { createServer, Socket, type Server as NetServer, type AddressInfo } from "node:net";
 import { readFileSync, existsSync, watch, type FSWatcher } from "node:fs";
-import { createLogger } from "@rivonclaw/logger";
+import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 import { resolveProxyRouterPort } from "@rivonclaw/core";
 import type { ProxyRouterConfig, ProxyRouterOptions } from "./types.js";
 
-const log = createLogger("proxy-router");
+const log = createQuietLogger("proxy-router", DEBUG_FLAGS.PROXY);
 
 /** Timeout for establishing a TCP connection (ms). */
 const CONNECT_TIMEOUT_MS = 10_000;

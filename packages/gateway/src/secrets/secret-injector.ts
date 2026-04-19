@@ -1,8 +1,8 @@
 import type { SecretStore } from "@rivonclaw/secrets";
 import type { Storage } from "@rivonclaw/storage";
-import { createLogger } from "@rivonclaw/logger";
+import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 
-const log = createLogger("gateway:secret-injector");
+const log = createQuietLogger("gateway:secret-injector", DEBUG_FLAGS.SECRETS);
 
 /**
  * Static mapping for non-LLM secrets (channel tokens, STT keys, etc.).

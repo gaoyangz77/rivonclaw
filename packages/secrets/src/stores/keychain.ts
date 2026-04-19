@@ -1,10 +1,10 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { SecretKey, SecretStore } from "../types.js";
-import { createLogger } from "@rivonclaw/logger";
+import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 
 const execFileAsync = promisify(execFile);
-const log = createLogger("secrets:keychain");
+const log = createQuietLogger("secrets:keychain", DEBUG_FLAGS.SECRETS);
 
 /** Account name used for all RivonClaw keychain items. */
 const ACCOUNT = "rivonclaw";
