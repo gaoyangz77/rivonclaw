@@ -92,7 +92,7 @@ export class RemoteTelemetryClient {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.sendBatch(eventsToSend);
-        console.debug(
+        console.log(
           `[RemoteTelemetryClient] Sent batch of ${eventsToSend.length} events to ${this.config.endpoint} (attempt ${attempt})`
         );
         return; // Success

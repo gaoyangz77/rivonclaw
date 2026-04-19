@@ -50,7 +50,7 @@ export function emitCsTelemetry(
     }
     return;
   }
-  log.debug(
+  log.info(
     `emit ${eventType} metadata-keys=${Object.keys(metadata).join(",")} queue-after=${client.getQueueSize() + 1}`,
   );
   client.track(eventType, metadata);
