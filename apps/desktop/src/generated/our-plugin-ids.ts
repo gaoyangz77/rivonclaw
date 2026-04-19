@@ -5,6 +5,7 @@ export const OUR_PLUGIN_IDS: ReadonlySet<string> = new Set([
   "rivonclaw-capability-manager",
   "rivonclaw-cloud-tools",
   "rivonclaw-cs",
+  "rivonclaw-ecom",
   "rivonclaw-event-bridge",
   "rivonclaw-file-permissions",
   "rivonclaw-local-tools",
