@@ -738,6 +738,13 @@ export class CustomerServiceBridge {
     const shop = this.shopContexts.get(frame.shopId);
     if (!shop) {
       log.error(`No shop context for platform shopId ${frame.shopId}, dropping message`);
+      // Relay routed us a message for a shop we aren't bound to (stale
+      // binding / race / relay bug). Buyer sees silence; surface to ops.
+      emitCsError(CS_ERROR_STAGE.DISPATCH, {
+        platformShopId: frame.shopId,
+        conversationId: frame.conversationId,
+        reason: "no_shop_context",
+      });
       return;
     }
 
@@ -755,7 +762,7 @@ export class CustomerServiceBridge {
     } catch (err) {
       log.error(`Failed to handle buyer message ${frame.messageId}:`, err);
       session.emitError(CS_ERROR_STAGE.DISPATCH, {
-        reason: "handle_buyer_message",
+        reason: "unhandled_exception",
         errorMessage: err,
       });
     }
