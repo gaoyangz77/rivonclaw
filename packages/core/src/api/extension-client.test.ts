@@ -57,7 +57,8 @@ describe("extensionRestFetch", () => {
   it("sends request with correct URL and default headers", async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ result: "ok" }),
+      status: 200,
+      text: async () => JSON.stringify({ result: "ok" }),
     });
 
     const result = await extensionRestFetch("/api/test");
@@ -85,7 +86,8 @@ describe("extensionRestFetch", () => {
   it("merges custom init options with default headers", async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ created: true }),
+      status: 200,
+      text: async () => JSON.stringify({ created: true }),
     });
 
     await extensionRestFetch("/api/create", {
