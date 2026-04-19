@@ -291,7 +291,7 @@ const telemetryCsTrack: EndpointHandler = async (req, res, _url, _params, ctx: A
     res.end();
     return;
   }
-  log.info(
+  log.debug(
     `cs-track: relaying eventType=${body.eventType} metadata-keys=${Object.keys(body.metadata ?? {}).join(",")}`,
   );
   ctx.onCsTelemetryTrack(body.eventType, body.metadata);

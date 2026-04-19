@@ -78,10 +78,11 @@ rivonclaw/
 │   ├── desktop/          # Electron 托盘应用（主进程）
 │   └── panel/            # React 管理界面（由 desktop 提供服务）
 ├── packages/
-│   ├── core/             # 共享类型 & Zod schemas
+│   ├── core/             # 共享类型、Zod schemas、API 契约、MST 模型
 │   ├── device-id/        # 设备指纹（用于设备标识）
 │   ├── gateway/          # 网关生命周期、配置写入、密钥注入、OAuth 流程
-│   ├── logger/           # 结构化日志（tslog）
+│   ├── logger/           # 结构化日志（tslog），支持 DEBUG_* 开关
+│   ├── plugin-sdk/       # RivonClaw 自研 OpenClaw 插件的薄 SDK
 │   ├── storage/          # SQLite 持久化（better-sqlite3）
 │   ├── rules/            # 规则编译 & Skill 文件写入
 │   ├── secrets/          # Keychain / DPAPI / 文件密钥存储
@@ -91,10 +92,14 @@ rivonclaw/
 │   ├── telemetry/        # 隐私优先的匿名分析客户端
 │   └── policy/           # 策略注入器 & 守卫评估器逻辑
 ├── extensions/
-│   ├── rivonclaw-policy/      # OpenClaw 策略注入插件壳
-│   ├── rivonclaw-tools/       # 仅限所有者的自定义工具插件
-│   ├── rivonclaw-file-permissions/  # OpenClaw 文件访问控制插件
-│   └── rivonclaw-mobile-chat-channel/  # 移动端消息中继插件
+│   ├── rivonclaw-policy/                   # OpenClaw 策略注入插件壳
+│   ├── rivonclaw-tools/                    # 仅限所有者的自定义工具插件
+│   ├── rivonclaw-file-permissions/         # 文件访问控制插件
+│   ├── rivonclaw-mobile-chat-channel/      # 移动端消息中继插件
+│   ├── rivonclaw-browser-profiles-tools/   # 浏览器 Profile CDP 工具集成
+│   ├── rivonclaw-capability-manager/       # 工具能力 / Surface 可用性
+│   ├── rivonclaw-event-bridge/             # 将网关 agent 事件桥接到 Chat UI
+│   └── rivonclaw-search-browser-fallback/  # 网页搜索的无头浏览器兜底
 ├── scripts/
 │   ├── test-local.sh             # 本地测试流程（构建 + 单元测试 + E2E 测试）
 │   ├── publish-release.sh        # 发布 GitHub Release 草稿
@@ -118,10 +123,14 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 
 | 包                   | 说明                                                                                         |
 | -------------------- | -------------------------------------------------------------------------------------------- |
-| `@rivonclaw/rivonclaw-policy`      | 薄 OpenClaw 插件壳，将策略注入接入网关的 `before_agent_start` 钩子。                    |
-| `@rivonclaw/rivonclaw-tools`       | 仅限所有者的自定义工具插件（如系统控制、桌面集成）。                                    |
-| `@rivonclaw/file-permissions`     | OpenClaw 插件，通过在工具调用执行前拦截和验证来强制执行文件访问权限。                    |
-| `@rivonclaw/rivonclaw-mobile-chat-channel`  | 移动端 PWA 消息中继 — 通过 WebSocket 将移动端聊天客户端桥接到网关。                     |
+| `@rivonclaw/rivonclaw-policy`                  | 薄 OpenClaw 插件壳，将策略注入接入网关的 `before_agent_start` 钩子。                |
+| `@rivonclaw/rivonclaw-tools`                   | 仅限所有者的自定义工具插件（如系统控制、桌面集成）。                                |
+| `@rivonclaw/rivonclaw-file-permissions`        | 通过在工具调用执行前拦截和验证来强制执行文件访问权限。                              |
+| `@rivonclaw/rivonclaw-mobile-chat-channel`     | 移动端 PWA 消息中继 — 通过 WebSocket 将移动端聊天客户端桥接到网关。                 |
+| `@rivonclaw/rivonclaw-browser-profiles-tools`  | 基于 CDP 的浏览器 Profile 工具集成。                                                |
+| `@rivonclaw/rivonclaw-capability-manager`      | 工具能力和 Surface 可用性解析器。                                                   |
+| `@rivonclaw/rivonclaw-event-bridge`            | 将部分网关 agent 事件镜像到 Chat UI 流。                                            |
+| `@rivonclaw/rivonclaw-search-browser-fallback` | 当搜索 API 失败时使用无头浏览器兜底。                                               |
 
 ### 包
 
@@ -129,8 +138,9 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `@rivonclaw/core`                   | Zod 校验类型：`Rule`、`ChannelConfig`、`PermissionConfig`、`ModelConfig`，LLM 服务商定义（20+ 服务商，含订阅/编程计划及 Ollama），区域感知默认值。 |
 | `@rivonclaw/gateway`                | `GatewayLauncher`（支持指数退避的启动/停止/重启）、配置写入器、从系统密钥链注入密钥、Gemini CLI OAuth 流程、认证配置同步、Skills 目录监听实现热重载。 |
-| `@rivonclaw/logger`                 | 基于 tslog 的日志模块。写入 `~/.rivonclaw/logs/`。                                                                              |
-| `@rivonclaw/storage`                | 基于 better-sqlite3 的 SQLite 存储。包含规则、产物、通道、权限、设置的 Repository，内置迁移系统。数据库位于 `~/.rivonclaw/rivonclaw.db`。 |
+| `@rivonclaw/logger`                 | 基于 tslog 的日志模块。写入 `~/.rivonclaw/logs/`。通过 `createQuietLogger` 支持 `DEBUG_*` 环境变量开关（见 [Debug 开关](#debug-开关)）。                  |
+| `@rivonclaw/plugin-sdk`             | RivonClaw 自研 OpenClaw 插件（`extensions/` 下）共享的运行时 helper 和类型。                                                     |
+| `@rivonclaw/storage`                | 基于 better-sqlite3 的 SQLite 存储。包含规则、产物、通道、权限、设置的 Repository，内置迁移系统。数据库位于 `~/.rivonclaw/db.sqlite`。 |
 | `@rivonclaw/rules`                  | 规则编译、Skill 生命周期（激活/停用）、Skill 文件写入器（将规则具象化为 OpenClaw 的 SKILL.md 文件）。                           |
 | `@rivonclaw/secrets`                | 平台感知的密钥存储。macOS Keychain、文件回退方案、测试用内存存储。                                                             |
 | `@rivonclaw/updater`                | 检查网站上的 `update-manifest.json`，通知用户新版本。                                                                          |
@@ -198,41 +208,45 @@ pnpm --filter @rivonclaw/gateway test
 
 1. 从 `vendor/openclaw/` 启动 OpenClaw 网关
 2. 在动态分配的本地端口上提供面板 UI 和 REST API
-3. 将网关配置和认证配置写入 `~/.openclaw/`
+3. 将网关配置和认证配置写入 `~/.rivonclaw/openclaw/`
 4. 运行时从系统密钥链注入密钥（API 密钥 + OAuth 令牌）
-5. 监听 `~/.openclaw/skills/` 目录以热重载规则生成的 Skill 文件
+5. 监听 `~/.rivonclaw/openclaw/skills/` 目录以热重载规则生成的 Skill 文件
 6. 关闭时将刷新后的 OAuth 令牌同步回密钥链
 
 ### REST API
 
-面板服务器暴露以下端点：
+Desktop ↔ Panel 的全部 REST 端点、SSE 流及路径参数以单一类型化契约声明在 [`packages/core/src/api/api-contract.ts`](packages/core/src/api/api-contract.ts)。Desktop（路由注册）和 Panel（`fetchJson` / `EventSource`）都从该文件导入，作为唯一事实来源。
 
-| 端点                   | 方法                   | 说明                              |
-| ---------------------- | ---------------------- | --------------------------------- |
-| `/api/rules`           | GET, POST, PUT, DELETE | 规则增删改查                      |
-| `/api/channels`        | GET, POST, PUT, DELETE | 通道管理                          |
-| `/api/permissions`     | GET, POST, PUT, DELETE | 权限管理                          |
-| `/api/settings`        | GET, PUT               | 键值对设置存储                    |
-| `/api/agent-settings`  | GET, PUT               | Agent 设置（DM 范围、浏览器模式） |
-| `/api/providers`       | GET                    | 可用 LLM 服务商                   |
-| `/api/provider-keys`   | GET, POST, PUT, DELETE | API 密钥和 OAuth 凭据管理         |
-| `/api/oauth`           | POST                   | Gemini CLI OAuth 流程（获取/保存） |
-| `/api/skills`          | GET, POST, DELETE      | 技能市场与已安装技能              |
-| `/api/usage`           | GET                    | Token 用量统计                    |
-| `/api/stt`             | GET, PUT               | 语音转文字配置                    |
-| `/api/telemetry`       | POST                   | 匿名遥测事件                     |
-| `/api/status`          | GET                    | 系统状态（规则数、网关状态）      |
+当前端点按类别分布如下：
+
+| 类别                   | 示例                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| 鉴权 & 会话             | `/api/auth/login`、`/api/auth/refresh`、`/api/auth/session`                   |
+| 规则 & 技能             | `/api/rules`、`/api/skills`                                                  |
+| 服务商 & OAuth          | `/api/providers`、`/api/provider-keys`、`/api/oauth/*`                        |
+| 通道 & 移动聊天         | `/api/channels/*`、`/api/channels/accounts`、`/api/mobile/*`                 |
+| 浏览器 Profile          | `/api/browser-profiles/*`（托管启动/连接、会话、代理测试）                     |
+| 客服桥接                | `/api/cs-bridge/*`（绑定、升级、对话）                                        |
+| 聊天 & 流                | `/api/chat/events`（SSE）、`/api/chat-sessions`                               |
+| 设置 & 状态             | `/api/settings`、`/api/agent-settings`、`/api/status`、`/api/doctor/*`        |
+| 用量、遥测、STT         | `/api/usage`、`/api/telemetry`、`/api/stt`                                   |
+| 应用生命周期             | `/api/app/update/*`、`/api/app/changelog`、`/api/app/api-base-url`            |
+| 云端 GraphQL 代理       | `/api/cloud/graphql`、`/api/cloud/*`                                         |
 
 ### 数据目录
 
-| 路径                             | 用途                   |
-| -------------------------------- | ---------------------- |
-| `~/.rivonclaw/rivonclaw.db`        | SQLite 数据库          |
-| `~/.rivonclaw/logs/`              | 应用日志               |
-| `~/.openclaw/`                   | OpenClaw 状态目录      |
-| `~/.openclaw/gateway/config.yml` | 网关配置               |
-| `~/.openclaw/sessions/`          | WhatsApp 会话          |
-| `~/.openclaw/skills/`            | 自动生成的 Skill 文件  |
+下列为默认路径；每个路径都可通过对应的 `RIVONCLAW_*` / `OPENCLAW_*` 环境变量覆写（详见 `packages/core/src/node-utils/paths.ts`）。
+
+| 路径                                                  | 用途                                                     |
+| ----------------------------------------------------- | -------------------------------------------------------- |
+| `~/.rivonclaw/db.sqlite`                              | SQLite 数据库（规则、通道、服务商 Key、设置）             |
+| `~/.rivonclaw/logs/`                                  | 应用日志（5 MB 滚动）                                     |
+| `~/.rivonclaw/secrets/`                               | 文件密钥存储（非 macOS 回退方案）                         |
+| `~/.rivonclaw/openclaw/`                              | OpenClaw 状态目录                                         |
+| `~/.rivonclaw/openclaw/openclaw.json`                 | 网关配置（由 `@rivonclaw/gateway` 写入）                  |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/`    | Agent 会话日志（JSONL）                                   |
+| `~/.rivonclaw/openclaw/skills/`                       | 规则具象化产生的 Skill 文件                               |
+| `~/.rivonclaw/openclaw/credentials/`                  | OAuth 凭据缓存（Gemini CLI、Codex）                       |
 
 ## 构建安装包
 
@@ -322,6 +336,23 @@ pnpm test
 pnpm --filter @rivonclaw/storage test
 pnpm --filter @rivonclaw/gateway test
 ```
+
+## Debug 开关
+
+噪音较多的模块默认只输出 INFO+ 级别日志，只有当对应的 `DEBUG_*` 环境变量被设为 `1` 时才会打开 DEBUG 输出。所有开关集中注册在 [`packages/logger/src/debug-flags.ts`](packages/logger/src/debug-flags.ts)，通过 `createQuietLogger(name, DEBUG_FLAGS.X)` 消费。
+
+| 开关            | 启用 DEBUG 的模块                                            |
+| --------------- | ------------------------------------------------------------ |
+| `DEBUG_PROXY`   | `proxy-router`、`proxy-manager`（系统代理发现、上游连接）    |
+| `DEBUG_SECRETS` | `secrets:keychain`、`gateway:secret-injector`（密钥读取、环境变量注入） |
+
+```bash
+DEBUG_PROXY=1 pnpm dev                      # 追踪代理路由
+DEBUG_SECRETS=1 pnpm dev                    # 追踪密钥读取
+DEBUG_PROXY=1 DEBUG_SECRETS=1 pnpm dev      # 两个都开
+```
+
+新增开关的步骤：在 `DEBUG_FLAGS` 里加一个条目，然后把相关的 `createLogger(...)` 改成 `createQuietLogger(name, DEBUG_FLAGS.NEW_FLAG)`。
 
 ## 代码风格
 

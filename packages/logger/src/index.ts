@@ -10,6 +10,10 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { resolveLogDir } from "@rivonclaw/core/node";
+import { isDebugFlagEnabled } from "./debug-flags.js";
+
+export { DEBUG_FLAGS, isDebugFlagEnabled } from "./debug-flags.js";
+export type { DebugFlag } from "./debug-flags.js";
 
 export const LOG_DIR = resolveLogDir();
 
@@ -120,11 +124,24 @@ function formatLogLine(logObj: Record<string, unknown>): string {
   return `${ts} ${level} [${name}] ${parts.join(" ")}`;
 }
 
-export function createLogger(name: string): Logger<unknown> {
+export interface CreateLoggerOptions {
+  /**
+   * Override the minimum tslog level (0 = SILLY, 2 = DEBUG, 3 = INFO, 4 = WARN, 5 = ERROR).
+   * Defaults to 0 in dev and 3 in production. Useful for noisy modules that
+   * should stay quiet unless an opt-in debug flag is set.
+   */
+  minLevel?: number;
+}
+
+export function createLogger(
+  name: string,
+  options?: CreateLoggerOptions,
+): Logger<unknown> {
   const logger = new Logger({
     name,
     type: "pretty",
-    minLevel: process.env.NODE_ENV === "production" ? 3 : 0,
+    minLevel:
+      options?.minLevel ?? (process.env.NODE_ENV === "production" ? 3 : 0),
   });
 
   registeredLoggers.push(logger);
@@ -134,4 +151,17 @@ export function createLogger(name: string): Logger<unknown> {
   }
 
   return logger;
+}
+
+/**
+ * Create a logger that stays at INFO+ unless the named DEBUG_* env var is "1".
+ * Use for chatty modules that you only want to hear from when troubleshooting.
+ */
+export function createQuietLogger(
+  name: string,
+  debugEnvVar: string,
+): Logger<unknown> {
+  return createLogger(name, {
+    minLevel: isDebugFlagEnabled(debugEnvVar) ? undefined : 3,
+  });
 }

@@ -192,7 +192,7 @@ export default defineRivonClawPlugin({
 
       // If sessionKey is present, server-chat.ts is already broadcasting — skip.
       if (evt.sessionKey) {
-        if (shouldLog) api.logger.info(`[event-bridge] skip: vendor-broadcasted (stream=${evt.stream} runId=${evt.runId} seq=${evt.seq})`);
+        if (shouldLog) api.logger.debug?.(`[event-bridge] skip: vendor-broadcasted (stream=${evt.stream} runId=${evt.runId} seq=${evt.seq})`);
         return;
       }
 
