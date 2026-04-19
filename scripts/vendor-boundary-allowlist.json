@@ -22,12 +22,12 @@
       "reason": "Drift guard — reads vendor source to verify tool description"
     },
     {
-      "file": "packages/gateway/src/exec-obfuscation-ask-off.test.ts",
+      "file": "packages/gateway/src/__tests__/exec-obfuscation-ask-off.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/exec-obfuscation-detect.js",
       "reason": "Drift guard — validates obfuscation detection respects ask=off (vendor patch 0003)"
     },
     {
-      "file": "packages/gateway/src/exec-obfuscation-ask-off.test.ts",
+      "file": "packages/gateway/src/__tests__/exec-obfuscation-ask-off.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/exec-approvals.js",
       "reason": "Drift guard — validates requiresExecApproval returns false when ask=off (vendor patch 0003)"
     },
