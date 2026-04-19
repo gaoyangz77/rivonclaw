@@ -598,13 +598,13 @@ export interface EcomOrderSummaryPage {
 /** Tracking info for an order */
 export interface EcomOrderTracking {
   events?: Maybe<Array<EcomTrackingEvent>>;
+  /** Human-readable description of the most recent tracking event — the `description` of the entry with the greatest `updateTimeMillis` in `events`. This is free-form carrier text (e.g. "Order packed and ready for pickup."), not a standardized status enum. TikTok does not expose a separate status enum on either tracking endpoint. */
+  latestEventDescription?: Maybe<Scalars['String']['output']>;
   orderId?: Maybe<Scalars['String']['output']>;
   /** Name of the shipping carrier (e.g. 'USPS', 'FedEx'). Sourced from the order record (Get Order) and composed in at Layer 2. */
   shippingProvider?: Maybe<Scalars['String']['output']>;
   /** Carrier tracking number. Sourced from the order record (Get Order) and composed into this tracking payload at Layer 2 — the TikTok Get Tracking endpoint does not return it. */
   trackingNumber?: Maybe<Scalars['String']['output']>;
-  /** Current tracking status. Derived from the most recent event's description (the entry with the greatest updateTimeMillis) — TikTok does not expose a separate tracking_status field on either endpoint. */
-  trackingStatus?: Maybe<Scalars['String']['output']>;
 }
 
 /** Fulfillment package (search hit) */
