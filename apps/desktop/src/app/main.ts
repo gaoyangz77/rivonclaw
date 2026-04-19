@@ -224,9 +224,11 @@ app.whenReady().then(async () => {
         if (userId) {
           telemetryClient?.identify(userId);
           csTelemetryClient?.identify(userId);
+          log.info(`telemetry identified userId=${userId}`);
         } else {
           telemetryClient?.reset();
           csTelemetryClient?.reset();
+          log.info("telemetry reset (no currentUser.userId)");
         }
       },
       { fireImmediately: true },
