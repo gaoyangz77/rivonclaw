@@ -398,7 +398,7 @@ export class CustomerServiceBridge {
     // human" experience. The periodic unread-message sweep is responsible
     // for catching the dropped turn and re-sending.
     this.forwardedRuns.add(runId);
-    session.forwardTextToBuyer(text)
+    session.forwardTextToBuyer(text, runId)
       .catch((err) => {
         if (session.abortedRunIds.has(runId)) {
           log.info(`Run ${runId} was aborted during delivery, skipping`);
