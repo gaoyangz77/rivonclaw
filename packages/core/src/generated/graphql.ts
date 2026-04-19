@@ -287,6 +287,13 @@ export interface CustomerServiceMessageSummaryPage {
   nextPageToken?: Maybe<Scalars['String']['output']>;
 }
 
+/** Scan result of CS conversations needing a seller reply. Not a paginated page — items is the complete scan output, capped by the platform's 24-hour SLA window. */
+export interface CustomerServicePendingConversationsResult {
+  items: Array<CustomerServiceConversationSummary>;
+  /** True when the scan aborted mid-way due to an API error or internal max-page cap. Results returned are still valid but may be incomplete. */
+  partial?: Maybe<Scalars['Boolean']['output']>;
+}
+
 /** Customer service performance metrics */
 export interface CustomerServicePerformance {
   /** Average first-response time in minutes across chat support sessions in the window, as a string (e.g. '3.4'). */
@@ -1322,7 +1329,7 @@ export interface Query {
   /** Get shipping document for a package */
   ecommerceGetPackageShippingDocument: EcomShippingDocument;
   /** Get conversations pending seller reply */
-  ecommerceGetPendingConversations: CustomerServiceConversationSummaryPage;
+  ecommerceGetPendingConversations: CustomerServicePendingConversationsResult;
   /** Get product details */
   ecommerceGetProduct: EcomProduct;
   /** Get valid reject reasons for a return or cancellation */
