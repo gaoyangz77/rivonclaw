@@ -462,7 +462,7 @@ export class CustomerServiceSession {
    *
    * Telemetry emits are fire-and-forget and NEVER block the send.
    */
-  async forwardTextToBuyer(text: string): Promise<void> {
+  async forwardTextToBuyer(text: string, runId: string = ""): Promise<void> {
     const authSession = getAuthSession();
     if (!authSession) {
       log.warn("No auth session available, cannot forward text to buyer");
@@ -484,9 +484,13 @@ export class CustomerServiceSession {
     // BI emits (fire-and-forget). Collect the cumulative token snapshot from
     // the JSONL transcript first; if it's unavailable (RPC down, file miss)
     // we simply skip the token event — the `cs.message` event is still emitted.
-    // Capture runId at the moment of send — activeRunId holds the run that
-    // produced this reply. Cleared by onRunCompleted which fires after send.
-    const runId = this.activeRunId ?? "";
+    //
+    // runId is passed in by the caller (bridge's flushTurnText already holds
+    // it) rather than read from `this.activeRunId`. The session's activeRunId
+    // would race: the bridge fires `forwardTextToBuyer(...)` async then
+    // synchronously continues to `onRunCompleted(runId)` which clears
+    // activeRunId before our `await graphqlFetch` resumes — so reading it
+    // post-await yields "".
     void this.collectAndEmitTokenSnapshot(runId);
     emitCsTelemetry("cs.message", {
       shopId: this.csContext.shopId,
