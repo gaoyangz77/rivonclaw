@@ -150,11 +150,15 @@ export function ChannelsPage() {
       if (channelId === "mobile") {
         // Disconnect all mobile pairings
         await entityStore.mobileManager.disconnectAll();
-        await pollGatewayReady(() => loadChannelStatus());
       } else {
         await entityStore.channelManager.deleteAccount(channelId, accountId);
-        await pollGatewayReady(() => loadChannelStatus());
       }
+      // REST write is authoritative and already updated Desktop MST; the SSE patch
+      // will re-render the table without blocking the button state. Fire-and-forget
+      // the gateway-readiness poll so a slow/stuck gateway can't freeze the UI.
+      void pollGatewayReady(() => loadChannelStatus()).catch((err) => {
+        console.warn("[channels] background status refresh failed:", err);
+      });
     } catch (err) {
       setDeleteError(`${t("channels.failedToDelete")} ${String(err)}`);
     } finally {
@@ -168,7 +172,12 @@ export function ChannelsPage() {
   }
 
   async function handleModalSuccess(): Promise<void> {
-    await pollGatewayReady(() => loadChannelStatus());
+    // REST write is authoritative and already updated Desktop MST; the SSE patch
+    // will re-render the table without blocking the modal close. Fire-and-forget
+    // the gateway-readiness poll — errors only log, they never freeze the UI.
+    void pollGatewayReady(() => loadChannelStatus()).catch((err) => {
+      console.warn("[channels] background status refresh failed:", err);
+    });
   }
 
   if (loading) {
