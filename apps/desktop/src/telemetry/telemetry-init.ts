@@ -73,43 +73,37 @@ export function initTelemetry(
     log.info("Telemetry disabled (user preference)");
   }
 
-  // ---- CS business-event client (separate opt-out, different gate) ---------
-  // Runs on the same gate as product telemetry in DEV (DEV_TELEMETRY=1) so
-  // local runs don't leak into staging, but in packaged builds it is NOT
-  // tied to the user opt-in — the commercial tenant's contract authorizes
-  // collection. We still create it lazily so test/headless paths that never
-  // call `initTelemetry` aren't touched.
-  const csEnabledGate = !app.isPackaged
-    ? process.env.DEV_TELEMETRY === "1"
-    : true;
+  // ---- CS business-event client ---------
+  // Always on (dev + packaged). CS events are authorized by the commercial
+  // tenant's contract, not the end-user opt-in toggle, so there is no
+  // privacy gate. Dev-machine traffic lands in staging ClickHouse alongside
+  // real user events; the data-warehouse filters internal IPs out in
+  // Airflow before BI aggregation, so developer noise is priced in.
+  //
+  // `CS_TELEMETRY_ENDPOINT` env var still overrides the default endpoint
+  // when you need to point at a local mock or a staging variant.
   const csTelemetryEndpoint =
     process.env.CS_TELEMETRY_ENDPOINT || getCsTelemetryUrl(locale);
 
   let csClient: RemoteTelemetryClient | null = null;
-  if (csEnabledGate) {
-    try {
-      csClient = new RemoteTelemetryClient({
-        endpoint: csTelemetryEndpoint,
-        enabled: true,
-        version: app.getVersion(),
-        platform: process.platform,
-        locale,
-        deviceId,
-        fetchFn,
-        // Tuned tighter than product telemetry: CS events are lower volume
-        // per user but higher per-event business value, so we flush more
-        // aggressively to narrow the dashboard-lag window.
-        batchSize: 20,
-        flushInterval: 15_000,
-      });
-      log.info(`CS business telemetry client initialized — endpoint=${csTelemetryEndpoint}`);
-    } catch (error) {
-      log.error("Failed to initialize CS telemetry client:", error);
-    }
-  } else {
-    log.warn(
-      `CS telemetry client NOT initialized (csEnabledGate=false: isPackaged=${app.isPackaged}, DEV_TELEMETRY=${process.env.DEV_TELEMETRY ?? "<unset>"}) — cs.* events will be dropped`,
-    );
+  try {
+    csClient = new RemoteTelemetryClient({
+      endpoint: csTelemetryEndpoint,
+      enabled: true,
+      version: app.getVersion(),
+      platform: process.platform,
+      locale,
+      deviceId,
+      fetchFn,
+      // Tuned tighter than product telemetry: CS events are lower volume
+      // per user but higher per-event business value, so we flush more
+      // aggressively to narrow the dashboard-lag window.
+      batchSize: 20,
+      flushInterval: 15_000,
+    });
+    log.info(`CS business telemetry client initialized — endpoint=${csTelemetryEndpoint}`);
+  } catch (error) {
+    log.error("Failed to initialize CS telemetry client:", error);
   }
 
   // Track app.started event (product telemetry only — CS stream is business
