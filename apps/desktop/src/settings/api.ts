@@ -264,11 +264,14 @@ const telemetryTrack: EndpointHandler = async (req, res, _url, _params, ctx: Api
 // the Desktop `RemoteTelemetryClient` directly, so they POST here through
 // the existing extension→panel-server HTTP path.
 //
-// The route applies a small, deliberate allowlist: only the three BI event
+// The route applies a small, deliberate allowlist: only the four BI event
 // types we ingest into dedicated CH tables (`cs.message`, `cs.token_snapshot`,
-// `cs.tool_call`) are accepted. Anything else is a silent 204 drop. This
-// prevents a misconfigured plugin from flooding the CS stream with noise.
-const CS_EVENT_ALLOWLIST = new Set(["cs.message", "cs.token_snapshot", "cs.tool_call", "cs.error"]);
+// `ecom.tool_call`, `cs.error`) are accepted. Anything else is a silent 204
+// drop. This prevents a misconfigured plugin from flooding the stream with
+// noise. `cs.*` vs `ecom.*` follows the CH table scoping: `cs.*` carries
+// conversation-scoped signals, `ecom.*` carries e-commerce-domain tool-call
+// observations (which a CS conversation is only one source of).
+const CS_EVENT_ALLOWLIST = new Set(["cs.message", "cs.token_snapshot", "ecom.tool_call", "cs.error"]);
 
 const telemetryCsTrack: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const body = (await parseBody(req)) as { eventType?: string; metadata?: Record<string, unknown> };

@@ -37,7 +37,7 @@ export function getCsTelemetryClient(): RemoteTelemetryClient | null {
 export type CsTelemetryEventType =
   | "cs.message"
   | "cs.token_snapshot"
-  | "cs.tool_call"
+  | "ecom.tool_call"
   | "cs.error";
 
 export function emitCsTelemetry(
