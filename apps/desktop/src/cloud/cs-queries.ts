@@ -2,7 +2,7 @@
  * Sends one CS message. The mutation is purposely minimal — no BI counters
  * piggyback. All per-conversation analytics (message count, token totals,
  * tool-call argsJson) now flow through the CS business telemetry stream
- * (`cs.message`, `cs.token_snapshot`, `cs.tool_call` events in ClickHouse),
+ * (`cs.message`, `cs.token_snapshot`, `ecom.tool_call` events in ClickHouse),
  * not through MongoDB. See `packages/telemetry` + `CustomerServiceSession`.
  */
 export const SEND_MESSAGE_MUTATION = `
