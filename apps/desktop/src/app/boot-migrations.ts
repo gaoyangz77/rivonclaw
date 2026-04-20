@@ -31,6 +31,11 @@ const log = createLogger("boot-migrations");
 // ── Phase B: post-config ────────────────────────────────────────────────
 // Runs AFTER `ensureGatewayConfig()` returns `configPath`, but BEFORE the
 // first `writeGatewayConfig` so the gateway reads the migrated file.
+//
+// Invariant relied on: only Desktop mutates openclaw.json (via
+// channel-config-writer). Gateway subprocesses read but never write it.
+// If that ever changes, move the stale-gateway-killall in main.ts to run
+// BEFORE this phase — otherwise a stale gateway could race the migration.
 export async function runPostConfigMigrations(configPath: string): Promise<void> {
   // [1] v1.7.14 · remove after v1.9.0
   // Canonicalize WeChat account keys in openclaw.json from the plugin's
