@@ -19,6 +19,7 @@ const log = createLogger("boot-migrations");
  * │ #  │ Name                          │ Phase        │ Introduced │ Remove after │
  * │────│───────────────────────────────│──────────────│────────────│──────────────│
  * │ 1  │ migrateWeixinAccountKeys      │ postConfig   │ v1.7.14    │ v1.9.0       │
+ * │ 2  │ migrateFeishuBotName          │ postConfig   │ v1.7.14    │ v1.9.0       │
  *
  * When removing a migration:
  *   1. Delete the corresponding entry from the phase body below.
@@ -45,6 +46,13 @@ export async function runPostConfigMigrations(configPath: string): Promise<void>
   // Idempotent — no-op once all keys are canonical.
   const { migrateWeixinAccountKeys } = await import("../channels/weixin-account-id-migration.js");
   migrateWeixinAccountKeys(configPath);
+
+  // [2] v1.7.14 · remove after v1.9.0
+  // Older builds persisted `channels.feishu.accounts.*.botName`, but the
+  // current Feishu runtime schema validates account configs strictly and
+  // rejects that stale field. Strip it before the gateway reads the file.
+  const { migrateFeishuBotName } = await import("../channels/feishu-bot-name-migration.js");
+  migrateFeishuBotName(configPath);
 
   log.debug("post-config migrations complete");
 }

@@ -4,6 +4,28 @@ export interface Migration {
   sql: string;
 }
 
+/**
+ * SQLite migrations for Desktop local storage.
+ *
+ * Cleanup policy:
+ * - Schema / baseline migrations (CREATE TABLE / ALTER TABLE / new indexes)
+ *   must stay in this file until their effects are folded into
+ *   `initial_schema` (and any necessary table-rebuild baseline) in one
+ *   deliberate squash. Do not delete them standalone just because they are
+ *   old, or fresh databases and upgraded databases will diverge.
+ * - One-shot compatibility / data-repair migrations may be tagged with
+ *   `introduced` and `remove after`. Those can be deleted once the oldest
+ *   supported install has upgraded past `remove after`.
+ *
+ * Current cleanup plan:
+ * - `27 canonicalize_weixin_account_ids`: introduced v1.7.14, remove after
+ *   v1.9.0.
+ * - `28 remove_stale_feishu_bot_name`: introduced v1.7.14, remove after
+ *   v1.9.0.
+ * - `22`-`26` are schema migrations added during the v1.7.x line. After
+ *   v1.9.0, they are good candidates for a baseline squash into
+ *   `initial_schema`, but should not be deleted directly.
+ */
 export const migrations: Migration[] = [
   {
     id: 1,
@@ -270,16 +292,9 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN input_modalities_json TEXT DEFAULT NULL;
     `,
   },
-  {
-    id: 20,
-    name: "add_browser_profiles_table",
-    sql: `-- no-op: browser profiles moved to cloud backend`,
-  },
-  {
-    id: 21,
-    name: "drop_runtime_kind_and_browser_type_from_browser_profiles",
-    sql: `-- no-op: browser profiles moved to cloud backend`,
-  },
+  // Baseline-fold candidates after v1.9.0.
+  // These are schema migrations from the v1.7.x line, so they are only
+  // removable as part of a deliberate baseline squash into migration 1.
   {
     id: 22,
     name: "add_tool_selections_table",
@@ -346,9 +361,14 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN oauth_expires_at INTEGER DEFAULT NULL;
     `,
   },
+  // One-shot compatibility migrations.
+  // Safe to delete after the app has shipped past the recorded `remove after`
+  // boundary and all supported installs have crossed it.
   {
     id: 27,
     name: "canonicalize_weixin_account_ids",
+    // Introduced: v1.7.14
+    // Remove after: v1.9.0
     // The upstream weixin plugin uses `xxx-im-bot` / `xxx-im-wechat` internally
     // and in its `channels.status` RPC, but `loginWithQrWait` returns the raw
     // `xxx@im.bot` / `xxx@im.wechat` form. Older installs stored the raw form,
@@ -390,6 +410,24 @@ export const migrations: Migration[] = [
             updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000
         WHERE channel_id = 'openclaw-weixin'
           AND account_id LIKE '%@im.wechat';
+    `,
+  },
+  {
+    id: 28,
+    name: "remove_stale_feishu_bot_name",
+    // Introduced: v1.7.14
+    // Remove after: v1.9.0
+    // Older builds persisted `botName` inside per-account Feishu config blobs.
+    // The current Feishu runtime schema validates those blobs strictly and
+    // rejects that legacy key. Strip it once from SQLite so future config
+    // write-backs do not resurrect the invalid field.
+    sql: `
+      UPDATE channel_accounts
+        SET config = json_remove(config, '$.botName'),
+            updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000
+        WHERE channel_id = 'feishu'
+          AND json_valid(config)
+          AND json_type(config, '$.botName') IS NOT NULL;
     `,
   },
 ];

@@ -902,34 +902,22 @@ describe("Database", () => {
     const rows = storage.db
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string; applied_at: string }>;
+    const byId = new Map(rows.map((row) => [row.id, row.name]));
 
     expect(rows).toHaveLength(migrations.length);
-    expect(rows[0].id).toBe(1);
-    expect(rows[0].name).toBe("initial_schema");
-    expect(rows[1].id).toBe(2);
-    expect(rows[1].name).toBe("add_provider_keys_table");
-    expect(rows[5].id).toBe(6);
-    expect(rows[5].name).toBe("add_auth_type_to_provider_keys");
-    expect(rows[6].id).toBe(7);
-    expect(rows[6].name).toBe("add_budget_columns_to_provider_keys");
-    expect(rows[7].id).toBe(8);
-    expect(rows[7].name).toBe("add_usage_snapshots_and_history");
-    expect(rows[8].id).toBe(9);
-    expect(rows[8].name).toBe("add_base_url_to_provider_keys");
-    expect(rows[9].id).toBe(10);
-    expect(rows[9].name).toBe("add_custom_provider_columns");
-    expect(rows[11].id).toBe(12);
-    expect(rows[11].name).toBe("add_chat_sessions_table");
-    expect(rows[14].id).toBe(15);
-    expect(rows[14].name).toBe("add_is_owner_to_channel_recipients");
-    expect(rows[15].id).toBe(16);
-    expect(rows[15].name).toBe("add_multi_phone_columns_to_mobile_pairings");
-    expect(rows[16].id).toBe(17);
-    expect(rows[16].name).toBe("add_pairing_id_to_mobile_pairings");
-    expect(rows[17].id).toBe(18);
-    expect(rows[17].name).toBe("add_status_to_mobile_pairings");
-    expect(rows[21].id).toBe(22);
-    expect(rows[21].name).toBe("add_tool_selections_table");
+    expect(byId.get(1)).toBe("initial_schema");
+    expect(byId.get(2)).toBe("add_provider_keys_table");
+    expect(byId.get(6)).toBe("add_auth_type_to_provider_keys");
+    expect(byId.get(7)).toBe("add_budget_columns_to_provider_keys");
+    expect(byId.get(8)).toBe("add_usage_snapshots_and_history");
+    expect(byId.get(9)).toBe("add_base_url_to_provider_keys");
+    expect(byId.get(10)).toBe("add_custom_provider_columns");
+    expect(byId.get(12)).toBe("add_chat_sessions_table");
+    expect(byId.get(15)).toBe("add_is_owner_to_channel_recipients");
+    expect(byId.get(16)).toBe("add_multi_phone_columns_to_mobile_pairings");
+    expect(byId.get(17)).toBe("add_pairing_id_to_mobile_pairings");
+    expect(byId.get(18)).toBe("add_status_to_mobile_pairings");
+    expect(byId.get(22)).toBe("add_tool_selections_table");
   });
 
   it("should not re-apply migrations on second open", () => {
@@ -1285,6 +1273,67 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
       .prepare("SELECT account_id FROM channel_accounts WHERE channel_id = 'telegram'")
       .get() as { account_id: string };
     expect(row.account_id).toBe("bot@im.bot");
+    s.close();
+  });
+});
+
+describe("migration 28: remove_stale_feishu_bot_name", () => {
+  function runMigration28(): Storage {
+    const s = createStorage(":memory:");
+    const migration = migrations.find((m) => m.id === 28);
+    if (!migration) throw new Error("migration 28 not found");
+    return s;
+  }
+
+  it("removes botName from feishu channel account configs", () => {
+    const s = runMigration28();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("feishu", "default", "Feishu", '{"appId":"cli_test","botName":"My Bot","enabled":true}', 1, 1);
+
+    const migration = migrations.find((m) => m.id === 28)!;
+    s.db.exec(migration.sql);
+
+    const row = s.db
+      .prepare("SELECT config FROM channel_accounts WHERE channel_id = 'feishu' AND account_id = 'default'")
+      .get() as { config: string };
+    expect(row.config).toBe('{"appId":"cli_test","enabled":true}');
+    s.close();
+  });
+
+  it("does not touch already-clean feishu configs", () => {
+    const s = runMigration28();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("feishu", "default", null, '{"appId":"cli_test","enabled":true}', 42, 42);
+
+    const migration = migrations.find((m) => m.id === 28)!;
+    s.db.exec(migration.sql);
+
+    const row = s.db
+      .prepare("SELECT config, updated_at FROM channel_accounts WHERE channel_id = 'feishu' AND account_id = 'default'")
+      .get() as { config: string; updated_at: number };
+    expect(row.config).toBe('{"appId":"cli_test","enabled":true}');
+    expect(row.updated_at).toBe(42);
+    s.close();
+  });
+
+  it("does not touch non-feishu channels", () => {
+    const s = runMigration28();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("telegram", "default", null, '{"botName":"Keep Me"}', 1, 1);
+
+    const migration = migrations.find((m) => m.id === 28)!;
+    s.db.exec(migration.sql);
+
+    const row = s.db
+      .prepare("SELECT config FROM channel_accounts WHERE channel_id = 'telegram' AND account_id = 'default'")
+      .get() as { config: string };
+    expect(row.config).toBe('{"botName":"Keep Me"}');
     s.close();
   });
 });
