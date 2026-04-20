@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.1",
+    "date": "2026-04-20",
+    "en": [
+      "Improve Feishu channel migration so bot names carry over correctly after upgrade",
+      "Refine customer-service usage tracking with cache-token reporting in token snapshots"
+    ],
+    "zh": [
+      "完善飞书渠道升级迁移，升级后 bot 名称继承更准确",
+      "补全客服用量统计，token snapshot 现在会记录 cache token"
+    ]
+  },
+  {
     "version": "1.8.0",
     "date": "2026-04-19",
     "en": [
