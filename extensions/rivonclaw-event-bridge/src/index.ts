@@ -138,6 +138,43 @@ export default defineRivonClawPlugin({
       },
     );
 
+    // ── Broadcast recipient-seen for Desktop-side persistence ───────
+    // Separate from the `channel-inbound` broadcast above: this path exists
+    // purely so Desktop can persist `{ channelId, recipientId }` into SQLite
+    // `channel_recipients` for channels that have no pairing flow (primarily
+    // WeChat). Consumers on Desktop treat the row as the source of truth for
+    // the allowlist; pairing-flow channels (Telegram/Feishu) still populate
+    // the same table via `approvePairing`, so everything converges.
+    //
+    // Skip list: `mobile` and `webchat` only. Unlike the `channel-inbound`
+    // handler above, we DO include `openclaw-weixin` here — that is precisely
+    // the channel this signal was added for. Mobile has its own pairing
+    // plumbing via `mobile_pairings`; webchat is ephemeral and has no
+    // recipient to persist.
+    //
+    // This event does NOT touch the Chat Page — it is a pure persistence
+    // signal consumed only by Desktop's gateway event dispatcher.
+    api.on(
+      "message_received",
+      (
+        evt: { from?: string },
+        ctx: { channelId?: string },
+      ) => {
+        if (!gatewayBroadcast || !ctx?.channelId) return;
+        if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
+        const recipientId = evt?.from;
+        if (!recipientId) return;
+
+        api.logger.info(
+          `[event-bridge] recipient-seen: channel=${ctx.channelId} recipient=${recipientId}`,
+        );
+        gatewayBroadcast("rivonclaw.recipient-seen", {
+          channelId: ctx.channelId,
+          recipientId,
+        });
+      },
+    );
+
     // ── Resolve sessionKey and broadcast inbound messages ─────────────
     // `before_agent_start` fires after session routing, so ctx.sessionKey is
     // available. For external channel runs, consume the pending message and

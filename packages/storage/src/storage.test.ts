@@ -1052,6 +1052,17 @@ describe("ChannelRecipientsRepository", () => {
     expect(meta["12345"].isOwner).toBe(false);
   });
 
+  it("should return true on first ensureExists and false on repeat", () => {
+    // First call inserts a fresh row → true
+    expect(storage.channelRecipients.ensureExists("telegram", "42")).toBe(true);
+    // Second call with the same (channelId, recipientId) is a no-op → false
+    expect(storage.channelRecipients.ensureExists("telegram", "42")).toBe(false);
+    // Different recipient on same channel → true
+    expect(storage.channelRecipients.ensureExists("telegram", "43")).toBe(true);
+    // Same recipient on a different channel → true (composite key differs)
+    expect(storage.channelRecipients.ensureExists("discord", "42")).toBe(true);
+  });
+
   it("should ensureExists with isOwner flag", () => {
     storage.channelRecipients.ensureExists("telegram", "12345", true);
     const meta = storage.channelRecipients.getRecipientMeta("telegram");
@@ -1133,5 +1144,147 @@ describe("ChannelRecipientsRepository", () => {
     const nonOwner = list.find((r) => r.recipientId === "222");
     expect(owner?.isOwner).toBe(true);
     expect(nonOwner?.isOwner).toBe(false);
+  });
+});
+
+describe("migration 27: canonicalize_weixin_account_ids", () => {
+  // Exercises the migration SQL directly against a fresh in-memory DB with
+  // pre-seeded @-form and dash-form rows. Uses the migration definition from
+  // `migrations.ts` so this test stays in lock-step with the real SQL.
+  function runMigration27(): Storage {
+    const s = createStorage(":memory:");
+    const migration = migrations.find((m) => m.id === 27);
+    if (!migration) throw new Error("migration 27 not found");
+    // Seed rows BEFORE re-running the migration so we can observe the rewrite.
+    // (The migration already ran once during openDatabase; re-running is
+    // idempotent — that's the property we're verifying as a side effect.)
+    return s;
+  }
+
+  it("rewrites @im.bot suffix rows to -im-bot dash form", () => {
+    const s = runMigration27();
+    // Seed legacy @-form row directly (bypassing the repo so we can insert
+    // the raw form without any caller-side normalization).
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("openclaw-weixin", "abc123@im.bot", "abc123@im.bot", "{}", 1, 1);
+
+    // Re-run migration 27 (idempotent)
+    const migration = migrations.find((m) => m.id === 27)!;
+    s.db.exec(migration.sql);
+
+    const got = s.db
+      .prepare("SELECT account_id FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .all() as Array<{ account_id: string }>;
+    expect(got).toHaveLength(1);
+    expect(got[0].account_id).toBe("abc123-im-bot");
+    s.close();
+  });
+
+  it("rewrites @im.wechat suffix rows to -im-wechat dash form", () => {
+    const s = runMigration27();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("openclaw-weixin", "abc123@im.wechat", null, "{}", 1, 1);
+
+    const migration = migrations.find((m) => m.id === 27)!;
+    s.db.exec(migration.sql);
+
+    const got = s.db
+      .prepare("SELECT account_id FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .all() as Array<{ account_id: string }>;
+    expect(got).toHaveLength(1);
+    expect(got[0].account_id).toBe("abc123-im-wechat");
+    s.close();
+  });
+
+  it("leaves already-canonical dash-form rows untouched", () => {
+    const s = runMigration27();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("openclaw-weixin", "xyz-im-bot", null, '{"foo":"bar"}', 42, 42);
+
+    const migration = migrations.find((m) => m.id === 27)!;
+    s.db.exec(migration.sql);
+
+    const row = s.db
+      .prepare("SELECT account_id, created_at, updated_at, config FROM channel_accounts WHERE account_id = 'xyz-im-bot'")
+      .get() as { account_id: string; created_at: number; updated_at: number; config: string };
+    expect(row.account_id).toBe("xyz-im-bot");
+    // Neither timestamp nor config should have been rewritten
+    expect(row.created_at).toBe(42);
+    expect(row.updated_at).toBe(42);
+    expect(row.config).toBe('{"foo":"bar"}');
+    s.close();
+  });
+
+  it("resolves conflict by dropping @ form and keeping dash form", () => {
+    const s = runMigration27();
+    // Both forms co-exist: dash wins, @ is dropped.
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("openclaw-weixin", "collide-im-bot", "dash-wins", '{"keep":"dash"}', 100, 100);
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("openclaw-weixin", "collide@im.bot", "at-loses", '{"keep":"at"}', 200, 200);
+
+    const migration = migrations.find((m) => m.id === 27)!;
+    s.db.exec(migration.sql);
+
+    const rows = s.db
+      .prepare("SELECT account_id, name, config FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .all() as Array<{ account_id: string; name: string | null; config: string }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].account_id).toBe("collide-im-bot");
+    expect(rows[0].name).toBe("dash-wins");
+    expect(rows[0].config).toBe('{"keep":"dash"}');
+    s.close();
+  });
+
+  it("is idempotent: a second run of the SQL is a no-op", () => {
+    const s = runMigration27();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("openclaw-weixin", "idem@im.bot", null, "{}", 1, 1);
+
+    const migration = migrations.find((m) => m.id === 27)!;
+    s.db.exec(migration.sql); // first rewrite
+    const after1 = s.db
+      .prepare("SELECT account_id, updated_at FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .get() as { account_id: string; updated_at: number };
+    expect(after1.account_id).toBe("idem-im-bot");
+
+    s.db.exec(migration.sql); // second run
+    const after2 = s.db
+      .prepare("SELECT account_id, updated_at FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .get() as { account_id: string; updated_at: number };
+    // account_id must not change (already canonical) and updated_at must not
+    // be bumped because the UPDATE's WHERE clause excludes canonical rows.
+    expect(after2.account_id).toBe("idem-im-bot");
+    expect(after2.updated_at).toBe(after1.updated_at);
+    s.close();
+  });
+
+  it("does not touch non-weixin channels", () => {
+    const s = runMigration27();
+    s.db.prepare(
+      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run("telegram", "bot@im.bot", null, "{}", 1, 1);
+
+    const migration = migrations.find((m) => m.id === 27)!;
+    s.db.exec(migration.sql);
+
+    const row = s.db
+      .prepare("SELECT account_id FROM channel_accounts WHERE channel_id = 'telegram'")
+      .get() as { account_id: string };
+    expect(row.account_id).toBe("bot@im.bot");
+    s.close();
   });
 });

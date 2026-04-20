@@ -38,7 +38,7 @@ import { homedir } from "node:os";
 import { brandName } from "../i18n/brand.js";
 import { createTrayIcon } from "../tray/tray-icon.js";
 import { buildTrayMenu } from "../tray/tray-menu.js";
-import { startPanelServer, pushChatSSE } from "./panel-server.js";
+import { startPanelServer, broadcastEvent } from "./panel-server.js";
 import { SttManager } from "../stt/stt-manager.js";
 import { createCdpManager } from "../browser-profiles/cdp-manager.js";
 import { CdpCookieAdapter } from "../browser-profiles/cdp-cookie-adapter.js";
@@ -244,7 +244,7 @@ app.whenReady().then(async () => {
   const { authSession, backendSubscription } = await setupAuth({
     storage, secretStore, locale,
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
-    pushChatSSE,
+    broadcastEvent,
   });
   // NOTE: authSession.validate() is deferred until after proxy router starts (see below).
 
@@ -349,6 +349,14 @@ app.whenReady().then(async () => {
   const stateDir = resolveOpenClawStateDir();
   resetDevicePairing(stateDir);
   const configPath = ensureGatewayConfig();
+
+  // One-shot migration of legacy weixin account keys in openclaw.json.
+  // Rewrites `xxx@im.bot` → `xxx-im-bot` so every downstream consumer
+  // (SQLite migration 27, MST, gateway `channels.status`) agrees on the
+  // canonical dash form. Idempotent — runs on every boot but no-ops once
+  // keys are canonical.
+  const { migrateWeixinAccountKeys } = await import("../channels/weixin-account-id-migration.js");
+  migrateWeixinAccountKeys(configPath);
 
   // In packaged app, plugins/extensions live in Resources/.
   // In dev, config-writer auto-resolves via monorepo root.
@@ -470,7 +478,6 @@ app.whenReady().then(async () => {
     storage,
     configPath,
     stateDir,
-    getRpcClient: () => { try { return openClawConnector.ensureRpcReady(); } catch { return null; } },
   });
 
   // Setup gateway: launcher, config builder, event dispatcher, connection deps
@@ -480,7 +487,7 @@ app.whenReady().then(async () => {
   } = await setupGateway({
     storage, secretStore, locale, configPath, stateDir,
     extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir,
-    gatewayPort: actualGatewayPort, pushChatSSE,
+    gatewayPort: actualGatewayPort, broadcastEvent,
   });
 
   // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
@@ -705,7 +712,7 @@ app.whenReady().then(async () => {
       currentVersion: app.getVersion(),
       latestVersion: payload.version,
     });
-    pushChatSSE("update-available", {
+    broadcastEvent("update-available", {
       updateAvailable: true,
       currentVersion: app.getVersion(),
       latestVersion: payload.version,
@@ -716,7 +723,7 @@ app.whenReady().then(async () => {
 
   function clearUpdateBanner(): void {
     updater.clearUpdateInfo();
-    pushChatSSE("update-available", {
+    broadcastEvent("update-available", {
       updateAvailable: false,
       currentVersion: app.getVersion(),
       latestVersion: null,

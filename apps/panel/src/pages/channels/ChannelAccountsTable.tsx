@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
-import { SSE } from "@rivonclaw/core/api-contract";
+import { panelEventBus } from "../../lib/event-bus.js";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import {
@@ -120,27 +120,26 @@ export function ChannelAccountsTable({
     }
   }
 
-  // Listen for SSE pairing-update events to refresh expanded accounts in real-time
+  // Listen for SSE recipient-added events to refresh expanded accounts in real-time.
+  // The event is emitted by two desktop paths:
+  //   1. pairing-notifier (Telegram/Feishu pairing file watcher)
+  //   2. gateway event-dispatcher (rivonclaw.recipient-seen — WeChat etc.)
   useEffect(() => {
     const nonMobileExpanded = Array.from(expandedAccounts).filter(key => !key.startsWith("mobile:"));
     if (nonMobileExpanded.length === 0) return;
 
-    const sse = new EventSource(SSE["chat.events"].path);
-
-    sse.addEventListener("pairing-update", (e: MessageEvent) => {
-      try {
-        const { channelId } = JSON.parse(e.data) as { channelId: string };
-        // Find all expanded composite keys matching this channelId and refresh each
-        for (const key of nonMobileExpanded) {
-          const [keyChannelId, keyAccountId] = key.split(":", 2);
-          if (keyChannelId === channelId) {
-            refreshRecipientData(channelId, keyAccountId);
-          }
+    const unsubscribe = panelEventBus.subscribe("recipient-added", (raw) => {
+      const { channelId } = raw as { channelId: string };
+      // Find all expanded composite keys matching this channelId and refresh each
+      for (const key of nonMobileExpanded) {
+        const [keyChannelId, keyAccountId] = key.split(":", 2);
+        if (keyChannelId === channelId) {
+          refreshRecipientData(channelId, keyAccountId);
         }
-      } catch { /* ignore malformed events */ }
+      }
     });
 
-    return () => sse.close();
+    return () => unsubscribe();
   }, [expandedAccounts]);
 
   async function loadRecipientData(channelId: string, accountId: string) {

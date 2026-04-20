@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { SSE } from "@rivonclaw/core/api-contract";
+import { panelEventBus } from "../../../lib/event-bus.js";
 import { useToast } from "../../../components/Toast.js";
 import { useTranslation } from "react-i18next";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
@@ -16,16 +16,16 @@ export function useOAuthFlow() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sseRef = useRef<EventSource | null>(null);
+  const unsubscribeOAuthRef = useRef<(() => void) | null>(null);
 
   const cleanupOAuthWait = useCallback(() => {
     if (oauthTimeoutRef.current) {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
     }
-    if (sseRef.current) {
-      sseRef.current.close();
-      sseRef.current = null;
+    if (unsubscribeOAuthRef.current) {
+      unsubscribeOAuthRef.current();
+      unsubscribeOAuthRef.current = null;
     }
     setOauthWaiting(false);
     setOauthAuthUrl(null);
@@ -36,32 +36,19 @@ export function useOAuthFlow() {
   useEffect(() => {
     return () => {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
-      if (sseRef.current) sseRef.current.close();
+      if (unsubscribeOAuthRef.current) unsubscribeOAuthRef.current();
     };
   }, []);
 
   function startOAuthSSEListener(onOAuthComplete: () => void) {
-    const sse = new EventSource(SSE["chat.events"].path);
-    sseRef.current = sse;
-
-    sse.addEventListener("oauth-complete", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
-        cleanupOAuthWait();
-        onOAuthComplete();
-        showToast(t("ecommerce.oauthSuccess"), "success");
-        // OAuth callback created the shop on backend; fetch it so Desktop
-        // proxy ingests via ingestGraphQLResponse -> SSE patch -> table updates.
-        entityStore.fetchShop(data.shopId).catch(() => {});
-      } catch {
-        // Ignore malformed data
-      }
-    });
-
-    sse.addEventListener("error", () => {
-      if (sse.readyState === EventSource.CLOSED) {
-        console.warn("[EcommercePage] OAuth SSE connection closed");
-      }
+    unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
+      const data = raw as { shopId: string; shopName: string; platform: string };
+      cleanupOAuthWait();
+      onOAuthComplete();
+      showToast(t("ecommerce.oauthSuccess"), "success");
+      // OAuth callback created the shop on backend; fetch it so Desktop
+      // proxy ingests via ingestGraphQLResponse -> SSE patch -> table updates.
+      entityStore.fetchShop(data.shopId).catch(() => {});
     });
 
     oauthTimeoutRef.current = setTimeout(() => {

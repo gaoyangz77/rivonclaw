@@ -42,7 +42,8 @@ import {
 import { fetchJson, fetchVoid, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
 import type { BrowserProfileProxyTestResult, GQL, ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
-import { API, SSE, clientPath } from "@rivonclaw/core/api-contract";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
+import { panelEventBus } from "../lib/event-bus.js";
 import { gql } from "@apollo/client/core";
 import type { PanelStoreEnv } from "./types.js";
 
@@ -566,42 +567,40 @@ export const entityStore = PanelRootStoreModel.create(
   },
 ) as unknown as PanelRootStore;
 
-let eventSource: EventSource | null = null;
+let unsubscribeSnapshot: (() => void) | null = null;
+let unsubscribePatch: (() => void) | null = null;
 
 /**
- * Connect to Desktop's SSE endpoint and sync store state.
- * Safe to call multiple times -- reconnects if already connected.
+ * Subscribe to Desktop's unified event stream and sync store state.
+ * Safe to call multiple times -- re-subscribes if already connected.
+ *
+ * On every (re)connect of the underlying shared EventSource, Desktop
+ * re-emits `entity-snapshot` so the store self-heals without client logic.
  */
 export function connectEntityStore(): void {
-  if (eventSource) {
-    eventSource.close();
-  }
+  disconnectEntityStore();
 
-  eventSource = new EventSource(SSE["store.stream"].path);
-
-  eventSource.addEventListener("snapshot", (e: MessageEvent) => {
-    const snapshot = JSON.parse(e.data);
-    applySnapshot(entityStore, snapshot);
+  unsubscribeSnapshot = panelEventBus.subscribe("entity-snapshot", (data) => {
+    applySnapshot(entityStore, data as Parameters<typeof applySnapshot>[1]);
   });
 
-  eventSource.addEventListener("patch", (e: MessageEvent) => {
-    const patches: IJsonPatch[] = JSON.parse(e.data);
-    applyPatch(entityStore, patches);
+  unsubscribePatch = panelEventBus.subscribe("entity-patch", (data) => {
+    applyPatch(entityStore, data as IJsonPatch[]);
   });
-
-  // EventSource auto-reconnects on error. On reconnect, Desktop
-  // re-sends a full snapshot, so the store self-heals.
-  eventSource.onerror = (event: Event) => {
-    console.error("[entity-store] SSE connection error -- browser will auto-reconnect", event);
-  };
 }
 
 /**
- * Disconnect from the SSE stream. Call on logout or unmount.
+ * Unsubscribe from the shared event stream. Call on logout or unmount.
+ * Does NOT close the underlying EventSource — other subscribers may
+ * still need it (this is the point of the consolidation).
  */
 export function disconnectEntityStore(): void {
-  if (eventSource) {
-    eventSource.close();
-    eventSource = null;
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+    unsubscribeSnapshot = null;
+  }
+  if (unsubscribePatch) {
+    unsubscribePatch();
+    unsubscribePatch = null;
   }
 }

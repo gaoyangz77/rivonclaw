@@ -13,8 +13,9 @@ import { createGatewayEventDispatcher } from "../gateway/event-dispatcher.js";
 import type { GatewayEventHandler } from "../gateway/event-dispatcher.js";
 import { getCsBridge } from "../gateway/connection.js";
 import { rootStore } from "./store/desktop-store.js";
-import type { pushChatSSE as PushChatSSEFn } from "./panel-server.js";
+import type { BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
+import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
 
 export interface SetupGatewayDeps {
   storage: Storage;
@@ -27,7 +28,8 @@ export interface SetupGatewayDeps {
   filePermissionsPluginPath: string | undefined;
   vendorDir: string;
   gatewayPort: number;
-  pushChatSSE: typeof PushChatSSEFn;
+  /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
+  broadcastEvent: BroadcastEvent;
 }
 
 export interface GatewayRuntime {
@@ -43,7 +45,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   const {
     storage, secretStore, locale, configPath, stateDir,
     extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir,
-    gatewayPort, pushChatSSE,
+    gatewayPort, broadcastEvent,
   } = deps;
 
   // Force pre-compiled ESM extensions from dist-runtime/
@@ -82,8 +84,13 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
 
   // Create gateway event dispatcher — routes WS events to Panel SSE
   const dispatchGatewayEvent = createGatewayEventDispatcher({
-    pushChatSSE,
+    broadcastEvent,
     chatSessions: storage.chatSessions,
+    storage: { channelRecipients: storage.channelRecipients },
+    // New recipient-seen rows are provisioned as owners by default (single-operator
+    // is the common case). Keep `commands.ownerAllowFrom` in the OpenClaw config in
+    // sync with SQLite whenever a new owner row is inserted.
+    onOwnerAdded: () => syncOwnerAllowFrom(storage, configPath),
   });
   const handleGatewayEvent: GatewayEventHandler = (evt) => {
     // CS bridge still needs the raw gateway stream for per-turn forwarding.

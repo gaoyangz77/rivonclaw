@@ -9,7 +9,7 @@ import {
   triggerUpdateInstall,
 } from "../api/index.js";
 import { formatError } from "@rivonclaw/core";
-import { SSE } from "@rivonclaw/core/api-contract";
+import { panelEventBus } from "../lib/event-bus.js";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
 import { MenuIcon } from "../components/icons.js";
@@ -76,35 +76,27 @@ export const Layout = observer(function Layout({
     const retryTimer = setTimeout(check, 20_000);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    const sse = new EventSource(SSE["chat.events"].path);
-    sse.addEventListener("update-available", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as UpdateInfo & { currentVersion?: string };
-        if (data.currentVersion) setCurrentVersion(data.currentVersion);
-        if (data.updateAvailable) {
-          setUpdateInfo(data);
-        } else {
-          setUpdateInfo(null);
-        }
-      } catch {
-        // Ignore malformed SSE data
+    const unsubscribeUpdate = panelEventBus.subscribe("update-available", (raw) => {
+      const data = raw as UpdateInfo & { currentVersion?: string };
+      if (data.currentVersion) setCurrentVersion(data.currentVersion);
+      if (data.updateAvailable) {
+        setUpdateInfo(data);
+      } else {
+        setUpdateInfo(null);
       }
     });
 
-    sse.addEventListener("shop-updated", (e: MessageEvent) => {
-      try {
-        const { shopName } = JSON.parse(e.data) as { shopId: string; shopName: string };
-        showToast(t("ecommerce.shopUpdatedToast", { shopName }), "success");
-      } catch {
-        // Ignore malformed SSE data
-      }
+    const unsubscribeShop = panelEventBus.subscribe("shop-updated", (raw) => {
+      const { shopName } = raw as { shopId: string; shopName: string };
+      showToast(t("ecommerce.shopUpdatedToast", { shopName }), "success");
     });
 
     return () => {
       clearTimeout(firstTimer);
       clearTimeout(retryTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      sse.close();
+      unsubscribeUpdate();
+      unsubscribeShop();
     };
   }, [showToast, t]);
 

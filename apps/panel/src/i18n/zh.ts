@@ -764,6 +764,7 @@ export default {
     gatewayUnavailable: "网关未连接，请先启动网关。",
     autoRefresh: "{{seconds}}秒后自动刷新",
     refreshing: "正在刷新二维码...",
+    weixinActivationHint: "请在微信里向 bot 发送第一条消息以激活此 channel，自己会自动加入允许列表。",
   },
   mobile: {
     description: "扫码直连手机，零配置零门槛，随时随地与AI助手对话。",

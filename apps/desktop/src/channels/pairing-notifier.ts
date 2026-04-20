@@ -87,7 +87,11 @@ export function startPairingNotifier(
           log.info(`Sending pairing follow-up to ${channelId} user ${req.id}`);
           const boundFetch = (url: string | URL, init?: RequestInit) => proxiedFetch(proxyRouterPort, url, init);
           sendChannelMessage(channelId, req.id, message, boundFetch);
-          pushSSE("pairing-update", { channelId });
+          // Shared SSE event name with gateway event-dispatcher's
+          // `rivonclaw.recipient-seen` path. Payload `{ channelId }` stays
+          // identical to what was sent under the old "pairing-update" name so
+          // the Panel can subscribe once and refresh on both signals.
+          pushSSE("recipient-added", { channelId });
         }
       }
     } catch (err) {

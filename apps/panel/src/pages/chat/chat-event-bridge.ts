@@ -1,16 +1,22 @@
 /**
- * ChatEventBridge — SSE client that connects to panel-server's
- * `GET /api/chat/events` endpoint and converts server-sent events
- * into RunTracker actions.
+ * ChatEventBridge — subscribes to the shared Panel event bus and converts
+ * Desktop-emitted events into RunTracker actions for the chat UI.
  *
- * Two event types are handled:
- *  - "inbound"  — an external user message arrived (e.g. WeChat)
- *  - "tool"     — an agent tool event forwarded from the gateway
+ * Event types consumed (all multiplex over the unified `/api/events` SSE):
+ *  - "inbound"        — an external user message arrived (e.g. WeChat)
+ *  - "chat-mirror"    — agent event mirrored from the gateway
+ *  - "session-reset"  — gateway asked us to clear run state for a session
  *
- * See ADR-022 for design rationale.
+ * Historically the bridge also listened for a "tool" event; that event is
+ * no longer emitted anywhere on the Desktop side — tool start/result arrive
+ * via the gateway WebSocket and flow through ChatGatewayController — so the
+ * handler was removed during the SSE consolidation.
+ *
+ * See ADR-022 for the original design rationale.
  */
 
 import type { RunAction } from "./run-tracker.js";
+import { panelEventBus } from "../../lib/event-bus.js";
 
 // ---------------------------------------------------------------------------
 // SSE payload types
@@ -22,12 +28,6 @@ export interface InboundSSEPayload {
   channel: string;
   message: string;
   timestamp: number;
-}
-
-export interface ToolSSEPayload {
-  runId: string;
-  phase: "start" | "result";
-  toolName?: string;
 }
 
 /** Mirrors agent events for non-webchat channels (Telegram, Feishu, Mobile, etc.) */
@@ -54,24 +54,19 @@ export type ChatEventBridgeCallbacks = {
 };
 
 export class ChatEventBridge {
-  private sse: EventSource | null = null;
-  private url: string;
+  private unsubscribers: Array<() => void> = [];
   private callbacks: ChatEventBridgeCallbacks;
 
-  constructor(url: string, callbacks: ChatEventBridgeCallbacks) {
-    this.url = url;
+  constructor(callbacks: ChatEventBridgeCallbacks) {
     this.callbacks = callbacks;
   }
 
   connect(): void {
-    if (this.sse) return;
+    if (this.unsubscribers.length > 0) return;
 
-    const sse = new EventSource(this.url);
-    this.sse = sse;
-
-    sse.addEventListener("inbound", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as InboundSSEPayload;
+    this.unsubscribers.push(
+      panelEventBus.subscribe("inbound", (raw) => {
+        const data = raw as InboundSSEPayload;
         this.callbacks.onUserMessage({
           text: data.message,
           timestamp: data.timestamp,
@@ -83,68 +78,31 @@ export class ChatEventBridge {
         // the correct runId (see ChatPage.tsx ~line 441). Dispatching here
         // with a potentially mismatched runId created phantom "queued" runs
         // that never completed.
-      } catch (err) {
-        console.warn("[chat-event-bridge] malformed inbound SSE data:", err);
-      }
-    });
+      }),
+    );
 
-    sse.addEventListener("tool", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as ToolSSEPayload;
-        if (data.phase === "start" && data.toolName) {
-          this.callbacks.onAction({
-            type: "TOOL_START",
-            runId: data.runId,
-            toolName: data.toolName,
-          });
-        } else if (data.phase === "result") {
-          this.callbacks.onAction({
-            type: "TOOL_RESULT",
-            runId: data.runId,
-          });
-        }
-      } catch (err) {
-        console.warn("[chat-event-bridge] malformed tool SSE data:", err);
-      }
-    });
-
-    sse.addEventListener("session-reset", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as { sessionKey?: string };
+    this.unsubscribers.push(
+      panelEventBus.subscribe("session-reset", (raw) => {
+        const data = raw as { sessionKey?: string };
         if (data.sessionKey) {
           this.callbacks.onSessionReset?.(data.sessionKey);
         }
-      } catch (err) {
-        console.warn("[chat-event-bridge] malformed session-reset SSE data:", err);
-      }
-    });
+      }),
+    );
 
-    sse.addEventListener("chat-mirror", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as ChatMirrorSSEPayload;
-        this.callbacks.onMirrorEvent?.(data);
-      } catch (err) {
-        console.warn("[chat-event-bridge] malformed chat-mirror SSE data:", err);
-      }
-    });
-
-    sse.addEventListener("error", () => {
-      // EventSource auto-reconnects on transient errors. Log for debugging
-      // but don't take action — readyState tells us if it's fatal (CLOSED).
-      if (sse.readyState === EventSource.CLOSED) {
-        console.warn("[chat-event-bridge] SSE connection closed permanently");
-      }
-    });
+    this.unsubscribers.push(
+      panelEventBus.subscribe("chat-mirror", (raw) => {
+        this.callbacks.onMirrorEvent?.(raw as ChatMirrorSSEPayload);
+      }),
+    );
   }
 
   disconnect(): void {
-    if (this.sse) {
-      this.sse.close();
-      this.sse = null;
-    }
+    for (const unsubscribe of this.unsubscribers) unsubscribe();
+    this.unsubscribers = [];
   }
 
   get connected(): boolean {
-    return this.sse !== null && this.sse.readyState !== EventSource.CLOSED;
+    return this.unsubscribers.length > 0;
   }
 }

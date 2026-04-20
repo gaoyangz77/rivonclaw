@@ -5,6 +5,7 @@ import type { Storage } from "@rivonclaw/storage";
 import { readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
+import { normalizeWeixinAccountId } from "@rivonclaw/core";
 import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
@@ -19,7 +20,6 @@ export interface ChannelManagerEnv {
   storage: Storage;
   configPath: string;
   stateDir: string;
-  getRpcClient: () => GatewayRpcClient | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -314,6 +314,15 @@ export const ChannelManagerModel = types
       }) {
         const { storage, configPath } = getEnv();
 
+        // Defensive canonicalization: Panel normalizes at the QR-login write
+        // boundary, but URL-path callers (DELETE /api/channels/accounts/:id)
+        // and any future integration can still arrive with the raw
+        // `xxxx@im.bot` form. Normalize here so SQLite and openclaw.json
+        // always receive the canonical dash form.
+        if (params.channelId === "openclaw-weixin") {
+          params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
+        }
+
         const accountConfig: Record<string, unknown> = { ...params.config };
 
         // Merge secrets into config -- secrets are stored alongside other config
@@ -370,6 +379,11 @@ export const ChannelManagerModel = types
       }) {
         const { storage, configPath } = getEnv();
 
+        // Defensive canonicalization (see addAccount for rationale).
+        if (params.channelId === "openclaw-weixin") {
+          params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
+        }
+
         // Read existing config from file for merge
         const existingFullConfig = readExistingConfig(configPath);
         const existingChannels = (existingFullConfig.channels ?? {}) as Record<string, unknown>;
@@ -421,6 +435,11 @@ export const ChannelManagerModel = types
        */
       removeAccount(channelId: string, accountId: string) {
         const { storage, configPath, stateDir } = getEnv();
+
+        // Defensive canonicalization (see addAccount for rationale).
+        if (channelId === "openclaw-weixin") {
+          accountId = normalizeWeixinAccountId(accountId);
+        }
 
         // Remove from config file
         removeChannelAccount({ configPath, channelId, accountId });
@@ -539,11 +558,11 @@ export const ChannelManagerModel = types
           yield writeAllowFromList(params.channelId, allowlist, accountId);
         }
 
-        // Register recipient, auto-assign owner for first-ever recipient
+        // Every new recipient is provisioned as owner by default; single-operator is
+        // the common case. Users can demote via the Role toggle in the Channels page.
         const { storage, configPath } = getEnv();
-        const isFirstRecipient = !storage.channelRecipients.hasAnyOwner();
-        storage.channelRecipients.ensureExists(params.channelId, request.id, isFirstRecipient);
-        if (isFirstRecipient) {
+        const inserted = storage.channelRecipients.ensureExists(params.channelId, request.id, true);
+        if (inserted) {
           syncOwnerAllowFrom(storage, configPath);
         }
 
@@ -553,60 +572,40 @@ export const ChannelManagerModel = types
       }),
 
       /**
-       * Get the merged allowlist for a channel, enriched with labels, owner flags,
-       * and gateway session recipients (for channels like WeChat with no pairing flow).
+       * Get the merged allowlist for a channel, enriched with labels and owner flags.
+       *
+       * Two sources converge here:
+       *   1. AllowFrom files under the credentials dir — populated by pairing-flow
+       *      channels (Telegram, Feishu) via `approvePairing`.
+       *   2. SQLite `channel_recipients` rows — populated by BOTH pairing-flow
+       *      channels (same code path) AND non-pairing channels (WeChat) via the
+       *      gateway's `rivonclaw.recipient-seen` broadcast (see
+       *      `apps/desktop/src/gateway/event-dispatcher.ts`).
+       *
+       * Every SQLite row is added to the returned allowlist even when no
+       * allowFrom entry exists, so WeChat recipients that have no pairing file
+       * still show up in the Channels page.
+       *
+       * `_accountId` is kept in the signature for route compatibility but is not
+       * used: allowFrom lists are merged across all account-scoped files, and
+       * SQLite recipients are keyed by `(channelId, recipientId)` only.
        */
-      getAllowlist: flow(function* (channelId: string, accountId?: string) {
-        const { storage, getRpcClient: getRpc } = getEnv();
+      getAllowlist: flow(function* (channelId: string, _accountId?: string) {
+        const { storage } = getEnv();
 
-        const allowlist: string[] = yield readAllAllowFromLists(channelId);
+        const entries = new Set<string>(yield readAllAllowFromLists(channelId));
         const meta = storage.channelRecipients.getRecipientMeta(channelId);
         const labels: Record<string, string> = {};
         const owners: Record<string, boolean> = {};
         for (const [id, data] of Object.entries(meta)) {
           if (data.label) labels[id] = data.label;
           owners[id] = data.isOwner;
+          // Surface recipients persisted via the recipient-seen path even when
+          // they have no allowFrom file entry (WeChat has no pairing flow).
+          entries.add(id);
         }
 
-        // Merge recipients from gateway sessions (WeChat -- no pairing flow)
-        const rpcClient = getRpc();
-        if (rpcClient?.isConnected()) {
-          try {
-            type SessionRow = { lastChannel?: string; lastTo?: string; lastAccountId?: string };
-            const result: { sessions: SessionRow[] } = yield rpcClient.request(
-              "sessions.list",
-              { includeGlobal: false, includeUnknown: false },
-              5_000,
-            );
-            // Gateway session lastTo may use arbitrary prefixes set by each
-            // channel plugin (e.g. "telegram:12345", "user:ou_xxx").
-            // AllowFrom files store bare IDs ("12345", "ou_xxx").
-            // Build a lookup that matches both bare and any prefixed form.
-            const allowSet = new Set(allowlist);
-            // Also index bare IDs so "user:ou_xxx" can match "ou_xxx"
-            const bareIdSet = new Set(allowlist);
-
-            /** Extract the bare recipient ID by stripping any "prefix:" from a session lastTo. */
-            function toBareId(lastTo: string): string {
-              const colonIdx = lastTo.indexOf(":");
-              return colonIdx >= 0 ? lastTo.slice(colonIdx + 1) : lastTo;
-            }
-
-            for (const s of result.sessions) {
-              if (s.lastChannel !== channelId || !s.lastTo) continue;
-              const bare = toBareId(s.lastTo);
-              if (allowSet.has(s.lastTo) || bareIdSet.has(bare)) continue;
-              if (accountId && s.lastAccountId !== accountId) continue;
-              // Push bare ID to keep the allowlist in a consistent format
-              allowlist.push(bare);
-              bareIdSet.add(bare);
-            }
-          } catch (err) {
-            log.warn(`Failed to query gateway sessions for ${channelId} recipients:`, err);
-          }
-        }
-
-        return { allowlist, labels, owners };
+        return { allowlist: [...entries], labels, owners };
       }),
 
       /** Set a display label for a recipient. Empty label removes the recipient metadata. */

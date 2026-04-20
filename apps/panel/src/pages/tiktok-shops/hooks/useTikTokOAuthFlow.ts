@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { SSE } from "@rivonclaw/core/api-contract";
+import { panelEventBus } from "../../../lib/event-bus.js";
 import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { OAUTH_TIMEOUT_MS, hasUpgradeRequired } from "../tiktok-shops-utils.js";
@@ -20,16 +20,16 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   const [selectedPlatformAppId, setSelectedPlatformAppId] = useState<string>("");
 
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sseRef = useRef<EventSource | null>(null);
+  const unsubscribeOAuthRef = useRef<(() => void) | null>(null);
 
   const cleanupOAuthWait = useCallback(() => {
     if (oauthTimeoutRef.current) {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
     }
-    if (sseRef.current) {
-      sseRef.current.close();
-      sseRef.current = null;
+    if (unsubscribeOAuthRef.current) {
+      unsubscribeOAuthRef.current();
+      unsubscribeOAuthRef.current = null;
     }
     setOauthWaiting(false);
   }, []);
@@ -38,7 +38,7 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   useEffect(() => {
     return () => {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
-      if (sseRef.current) sseRef.current.close();
+      if (unsubscribeOAuthRef.current) unsubscribeOAuthRef.current();
     };
   }, []);
 
@@ -60,25 +60,11 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   }
 
   function startOAuthSSEListener() {
-    const sse = new EventSource(SSE["chat.events"].path);
-    sseRef.current = sse;
-
-    sse.addEventListener("oauth-complete", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as { shopId: string; shopName: string; platform: string };
-        cleanupOAuthWait();
-        showToast(t("tiktokShops.oauthSuccess"), "success");
-        // Shops auto-update via MST/SSE — no manual fetch needed
-        void data;
-      } catch {
-        // Ignore malformed data
-      }
-    });
-
-    sse.addEventListener("error", () => {
-      if (sse.readyState === EventSource.CLOSED) {
-        console.warn("[TikTokShopsPage] OAuth SSE connection closed");
-      }
+    unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
+      // Shops auto-update via MST/SSE — no manual fetch needed
+      void raw;
+      cleanupOAuthWait();
+      showToast(t("tiktokShops.oauthSuccess"), "success");
     });
 
     oauthTimeoutRef.current = setTimeout(() => {

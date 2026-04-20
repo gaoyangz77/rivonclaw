@@ -346,4 +346,50 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN oauth_expires_at INTEGER DEFAULT NULL;
     `,
   },
+  {
+    id: 27,
+    name: "canonicalize_weixin_account_ids",
+    // The upstream weixin plugin uses `xxx-im-bot` / `xxx-im-wechat` internally
+    // and in its `channels.status` RPC, but `loginWithQrWait` returns the raw
+    // `xxx@im.bot` / `xxx@im.wechat` form. Older installs stored the raw form,
+    // which never matches the gateway's status payload and breaks WeChat rows
+    // on the Channels page.
+    //
+    // Step 1: drop `@` rows that collide with an existing dash row (dash form
+    //         is plugin-internal and takes precedence).
+    // Step 2: rewrite remaining `@` rows to dash form.
+    // Both suffixes are handled for completeness. Mirrors
+    // `normalizeWeixinAccountId` in @rivonclaw/core.
+    sql: `
+      DELETE FROM channel_accounts
+      WHERE channel_id = 'openclaw-weixin'
+        AND account_id LIKE '%@im.bot'
+        AND EXISTS (
+          SELECT 1 FROM channel_accounts ca2
+          WHERE ca2.channel_id = 'openclaw-weixin'
+            AND ca2.account_id = REPLACE(channel_accounts.account_id, '@im.bot', '-im-bot')
+        );
+
+      DELETE FROM channel_accounts
+      WHERE channel_id = 'openclaw-weixin'
+        AND account_id LIKE '%@im.wechat'
+        AND EXISTS (
+          SELECT 1 FROM channel_accounts ca2
+          WHERE ca2.channel_id = 'openclaw-weixin'
+            AND ca2.account_id = REPLACE(channel_accounts.account_id, '@im.wechat', '-im-wechat')
+        );
+
+      UPDATE channel_accounts
+        SET account_id = REPLACE(account_id, '@im.bot', '-im-bot'),
+            updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000
+        WHERE channel_id = 'openclaw-weixin'
+          AND account_id LIKE '%@im.bot';
+
+      UPDATE channel_accounts
+        SET account_id = REPLACE(account_id, '@im.wechat', '-im-wechat'),
+            updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000
+        WHERE channel_id = 'openclaw-weixin'
+          AND account_id LIKE '%@im.wechat';
+    `,
+  },
 ];

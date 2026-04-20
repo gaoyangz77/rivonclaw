@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockSyncCloudProviderKey,
   mockSetAuthSession,
-  mockPushChatSSE,
+  mockBroadcastEvent,
   mockRootStore,
   authState,
   backendState,
 } = vi.hoisted(() => ({
   mockSyncCloudProviderKey: vi.fn(),
   mockSetAuthSession: vi.fn(),
-  mockPushChatSSE: vi.fn(),
+  mockBroadcastEvent: vi.fn(),
   mockRootStore: {
     ingestGraphQLResponse: vi.fn(),
     shops: [],
@@ -92,7 +92,7 @@ describe("setupAuth subscription lifecycle", () => {
       secretStore: {} as any,
       locale: "en",
       proxyFetch: vi.fn() as any,
-      pushChatSSE: mockPushChatSSE as any,
+      broadcastEvent: mockBroadcastEvent as any,
     });
 
     backendState.connected = true;
@@ -108,7 +108,7 @@ describe("setupAuth subscription lifecycle", () => {
       secretStore: {} as any,
       locale: "en",
       proxyFetch: vi.fn() as any,
-      pushChatSSE: mockPushChatSSE as any,
+      broadcastEvent: mockBroadcastEvent as any,
     });
 
     backendState.connected = true;
@@ -125,7 +125,7 @@ describe("setupAuth subscription lifecycle", () => {
       secretStore: {} as any,
       locale: "en",
       proxyFetch: vi.fn() as any,
-      pushChatSSE: mockPushChatSSE as any,
+      broadcastEvent: mockBroadcastEvent as any,
     });
 
     backendState.connected = true;

@@ -1,7 +1,7 @@
 import { applySnapshot, applyPatch, types, type Instance, type IJsonPatch } from "mobx-state-tree";
 import { RuntimeStatusStoreModel } from "@rivonclaw/core/models";
 import { AppSettingsModel } from "./models/AppSettingsModel.js";
-import { SSE } from "@rivonclaw/core/api-contract";
+import { panelEventBus } from "../lib/event-bus.js";
 
 /**
  * Panel-specific RuntimeStatusStore that overrides `appSettings` with the
@@ -33,45 +33,43 @@ export type PanelRuntimeStatusStore = Omit<Instance<typeof PanelRuntimeStatusSto
 /** Singleton runtime status store for the Panel process. */
 export const runtimeStatusStore = PanelRuntimeStatusStoreModel.create({}) as PanelRuntimeStatusStore;
 
-let eventSource: EventSource | null = null;
+let unsubscribeSnapshot: (() => void) | null = null;
+let unsubscribePatch: (() => void) | null = null;
 
 /**
- * Connect to Desktop's runtime status SSE endpoint and sync store state.
- * Safe to call multiple times -- reconnects if already connected.
+ * Subscribe to Desktop's unified event stream for runtime-status sync.
+ * Safe to call multiple times -- re-subscribes if already connected.
+ *
+ * On every (re)connect of the underlying shared EventSource, Desktop
+ * re-emits `status-snapshot` so the store self-heals without client logic.
  */
 export function connectRuntimeStatusStore(): void {
-  if (eventSource) {
-    eventSource.close();
-  }
+  disconnectRuntimeStatusStore();
 
-  eventSource = new EventSource(SSE["status.stream"].path);
-
-  eventSource.addEventListener("snapshot", (e: MessageEvent) => {
-    const snapshot = JSON.parse(e.data);
-    applySnapshot(runtimeStatusStore, snapshot);
+  unsubscribeSnapshot = panelEventBus.subscribe("status-snapshot", (data) => {
+    applySnapshot(runtimeStatusStore, data as Parameters<typeof applySnapshot>[1]);
     if (!runtimeStatusStore.snapshotReceived) {
       runtimeStatusStore.markSnapshotReceived();
     }
   });
 
-  eventSource.addEventListener("patch", (e: MessageEvent) => {
-    const patches: IJsonPatch[] = JSON.parse(e.data);
-    applyPatch(runtimeStatusStore, patches);
+  unsubscribePatch = panelEventBus.subscribe("status-patch", (data) => {
+    applyPatch(runtimeStatusStore, data as IJsonPatch[]);
   });
-
-  // EventSource auto-reconnects on error. On reconnect, Desktop
-  // re-sends a full snapshot, so the store self-heals.
-  eventSource.onerror = (event: Event) => {
-    console.error("[runtime-status-store] SSE connection error -- browser will auto-reconnect", event);
-  };
 }
 
 /**
- * Disconnect from the SSE stream. Call on logout or unmount.
+ * Unsubscribe from the shared event stream. Call on logout or unmount.
+ * Does NOT close the underlying EventSource — other subscribers may
+ * still need it.
  */
 export function disconnectRuntimeStatusStore(): void {
-  if (eventSource) {
-    eventSource.close();
-    eventSource = null;
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+    unsubscribeSnapshot = null;
+  }
+  if (unsubscribePatch) {
+    unsubscribePatch();
+    unsubscribePatch = null;
   }
 }

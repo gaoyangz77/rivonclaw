@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
-import type { ServerResponse, Server } from "node:http";
+import type { Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, resolve, normalize } from "node:path";
+import { getSnapshot } from "mobx-state-tree";
 import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
@@ -11,8 +12,8 @@ import { resolveOpenClawStateDir } from "@rivonclaw/gateway";
 import { resolveMediaBase } from "../utils/media-paths.js";
 import { createUsageRuntime } from "../usage/runtime.js";
 import { initMobileManagerEnv } from "./store/desktop-store.js";
-import { rootStore } from "./store/desktop-store.js";
-import { runtimeStatusStore } from "./store/runtime-status-store.js";
+import { rootStore, subscribeToPatch } from "./store/desktop-store.js";
+import { runtimeStatusStore, subscribeToRuntimeStatusPatch } from "./store/runtime-status-store.js";
 import { openClawConnector } from "../openclaw/index.js";
 import type { AuthSessionManager } from "../auth/session.js";
 import type { SessionLifecycleManager } from "../browser-profiles/session-lifecycle-manager.js";
@@ -21,10 +22,51 @@ import { CloudClient } from "../cloud/cloud-client.js";
 import { startPairingNotifier } from "../channels/pairing-notifier.js";
 import type { ApiContext } from "./api-context.js";
 import { sendJson } from "../infra/api/route-utils.js";
-import { handleStoreStream } from "./store-stream-routes.js";
-import { handleRuntimeStatusStream } from "./runtime-status-stream-routes.js";
+import { createPanelEventBus } from "./panel-event-bus.js";
 import { RouteRegistry } from "../infra/api/route-registry.js";
 import { registerAllHandlers } from "./register-all.js";
+
+/** Broadcast an event to every Panel SSE client. */
+export type BroadcastEvent = (event: string, data: unknown) => void;
+
+// ─── Unified Desktop → Panel SSE bus ─────────────────────────────────────
+// ONE EventSource (`/api/events`) multiplexes:
+//   - `entity-snapshot` / `entity-patch`  (MST rootStore)
+//   - `status-snapshot` / `status-patch`  (MST runtimeStatusStore)
+//   - discrete notifications: `inbound`, `chat-mirror`, `session-reset`,
+//     `recipient-added`, `oauth-complete`, `shop-updated`, `update-available`.
+//
+// Snapshots are written synchronously on connect. Patches are batched at
+// microtask granularity inside the store modules before landing here.
+//
+// The bus is module-scoped so callers (main.ts, auth-runtime, gateway,
+// pairing-notifier) can obtain a stable `broadcastEvent` reference BEFORE
+// startPanelServer() finishes binding — matching the old pushChatSSE DI
+// shape but routed through the unified bus.
+const panelEventBus = createPanelEventBus({
+  getEntitySnapshot: () => getSnapshot(rootStore),
+  getRuntimeStatusSnapshot: () => getSnapshot(runtimeStatusStore),
+});
+
+subscribeToPatch((patches) => {
+  panelEventBus.broadcast("entity-patch", patches);
+});
+
+subscribeToRuntimeStatusPatch((patches) => {
+  panelEventBus.broadcast("status-patch", patches);
+});
+
+/**
+ * Broadcast an event to every connected Panel. Safe to call with zero
+ * clients attached. Used by:
+ *   - main.ts               →  `update-available`
+ *   - auth-runtime.ts       →  `oauth-complete`, `shop-updated`
+ *   - event-dispatcher.ts   →  `inbound`, `chat-mirror`, `session-reset`, `recipient-added`
+ *   - pairing-notifier.ts   →  `recipient-added`
+ */
+export const broadcastEvent: BroadcastEvent = (event, data) => {
+  panelEventBus.broadcast(event, data);
+};
 
 const log = createLogger("panel-server");
 
@@ -39,25 +81,6 @@ const MIME_TYPES: Record<string, string> = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
 };
-
-// === Chat Event SSE Bridge ===
-const chatEventSSEClients = new Set<ServerResponse>();
-
-export function pushChatSSE(event: string, data: unknown): void {
-  const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  for (const res of chatEventSSEClients) {
-    if (!res.writable) {
-      chatEventSSEClients.delete(res);
-      continue;
-    }
-    res.write(msg, (err) => {
-      if (err) {
-        console.warn("[panel-server] SSE write failed, removing client:", err.message);
-        chatEventSSEClients.delete(res);
-      }
-    });
-  }
-}
 
 /** Detect system locale: "zh" for Chinese systems, "en" for everything else. */
 function getSystemLocale(): "zh" | "en" {
@@ -185,8 +208,8 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     });
   }
 
-  // Start pairing notifier
-  const pairingNotifier = startPairingNotifier(proxyRouterPort, pushChatSSE);
+  // Start pairing notifier — uses the module-scoped broadcastEvent.
+  const pairingNotifier = startPairingNotifier(proxyRouterPort, broadcastEvent);
 
   // Build the ApiContext object passed to all route handlers
   const ctx: ApiContext = {
@@ -217,30 +240,12 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
       return;
     }
 
-    // SSE endpoint for chat page real-time events
-    if (pathname === "/api/chat/events" && req.method === "GET") {
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      });
-      res.write(":ok\n\n");
-      chatEventSSEClients.add(res);
-      const cleanup = () => chatEventSSEClients.delete(res);
-      req.on("close", cleanup);
-      res.on("error", cleanup);
-      return;
-    }
-
-    // SSE endpoint for MST store patch sync (Desktop → Panel)
-    if (pathname === "/api/store/stream" && req.method === "GET") {
-      handleStoreStream(req, res);
-      return;
-    }
-
-    // SSE endpoint for runtime status patch sync (Desktop → Panel)
-    if (pathname === "/api/status/stream" && req.method === "GET") {
-      handleRuntimeStatusStream(req, res);
+    // Unified Panel event stream — entity/status snapshots + patches +
+    // discrete notification events all multiplex here. Replaces the three
+    // legacy endpoints (chat/events, store/stream, status/stream) so Panel
+    // opens exactly ONE EventSource per session.
+    if (pathname === "/api/events" && req.method === "GET") {
+      panelEventBus.addClient(req, res);
       return;
     }
 
@@ -332,7 +337,10 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     serveStatic(res, distDir, pathname);
   });
 
-  server.on("close", () => pairingNotifier.stop());
+  server.on("close", () => {
+    pairingNotifier.stop();
+    panelEventBus.shutdown();
+  });
 
   const actualPort = await new Promise<number>((resolve, reject) => {
     server.listen(requestedPort, "127.0.0.1", () => {
