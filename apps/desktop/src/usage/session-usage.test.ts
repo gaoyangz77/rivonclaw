@@ -261,6 +261,114 @@ describe("loadSessionCostSummary", () => {
     expect(result2).toBeNull();
   });
 
+  it("tracks latestAssistantModel as the largest-timestamp assistant-with-usage entry", async () => {
+    const filePath = await writeSession("latest-simple", [
+      makeEntry({
+        role: "assistant",
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+        timestamp: "2026-03-15T10:00:00Z",
+        input_tokens: 100,
+        output_tokens: 50,
+      }),
+      makeEntry({
+        role: "assistant",
+        provider: "openai",
+        model: "gpt-4o",
+        timestamp: "2026-03-15T11:00:00Z",
+        input_tokens: 200,
+        output_tokens: 100,
+      }),
+    ]);
+
+    const result = await loadSessionCostSummary({ sessionFile: filePath });
+    expect(result).not.toBeNull();
+    expect(result!.latestAssistantModel).toBeDefined();
+    expect(result!.latestAssistantModel!.provider).toBe("openai");
+    expect(result!.latestAssistantModel!.model).toBe("gpt-4o");
+    expect(result!.latestAssistantModel!.timestamp).toBe(
+      new Date("2026-03-15T11:00:00Z").getTime(),
+    );
+  });
+
+  it("latestAssistantModel reports the newest turn even when an older provider dominates by count (cross-provider session)", async () => {
+    // Motivating bug: same model under two different provider buckets, plus
+    // an old provider with more turns. Dominant-by-count would pick the old
+    // one; latest-by-timestamp correctly picks the current provider.
+    const filePath = await writeSession("cross-provider", [
+      makeEntry({
+        role: "assistant",
+        provider: "rivonclaw-pro",
+        model: "gpt-5.4",
+        timestamp: "2026-03-10T09:00:00Z",
+        input_tokens: 100,
+        output_tokens: 50,
+      }),
+      makeEntry({
+        role: "assistant",
+        provider: "rivonclaw-pro",
+        model: "gpt-5.4",
+        timestamp: "2026-03-10T10:00:00Z",
+        input_tokens: 100,
+        output_tokens: 50,
+      }),
+      makeEntry({
+        role: "assistant",
+        provider: "rivonclaw-pro",
+        model: "gpt-5.4",
+        timestamp: "2026-03-10T11:00:00Z",
+        input_tokens: 100,
+        output_tokens: 50,
+      }),
+      makeEntry({
+        role: "assistant",
+        provider: "openai-codex",
+        model: "gpt-5.4",
+        timestamp: "2026-03-15T12:00:00Z",
+        input_tokens: 200,
+        output_tokens: 100,
+      }),
+    ]);
+
+    const result = await loadSessionCostSummary({ sessionFile: filePath });
+    expect(result).not.toBeNull();
+    // Dominant-by-count is rivonclaw-pro (3 turns vs 1) — establish the contrast.
+    const counts = new Map(
+      (result!.modelUsage ?? []).map((mu) => [`${mu.provider}/${mu.model}`, mu.count]),
+    );
+    expect(counts.get("rivonclaw-pro/gpt-5.4")).toBe(3);
+    expect(counts.get("openai-codex/gpt-5.4")).toBe(1);
+    // latestAssistantModel follows timestamp, not count.
+    expect(result!.latestAssistantModel).toEqual({
+      provider: "openai-codex",
+      model: "gpt-5.4",
+      timestamp: new Date("2026-03-15T12:00:00Z").getTime(),
+    });
+  });
+
+  it("preserves undefined provider/model in latestAssistantModel (no coercion)", async () => {
+    const filePath = await writeSession("latest-undefined", [
+      jsonlLine({
+        timestamp: "2026-03-15T10:00:00Z",
+        message: {
+          role: "assistant",
+          content: "response",
+          // no provider, no model
+          usage: { input_tokens: 50, output_tokens: 25 },
+        },
+      }),
+    ]);
+
+    const result = await loadSessionCostSummary({ sessionFile: filePath });
+    expect(result).not.toBeNull();
+    expect(result!.latestAssistantModel).toBeDefined();
+    expect(result!.latestAssistantModel!.provider).toBeUndefined();
+    expect(result!.latestAssistantModel!.model).toBeUndefined();
+    expect(result!.latestAssistantModel!.timestamp).toBe(
+      new Date("2026-03-15T10:00:00Z").getTime(),
+    );
+  });
+
   it("handles multiple providers/models in one session", async () => {
     const filePath = await writeSession("multi-model", [
       makeEntry({ role: "assistant", provider: "anthropic", model: "claude-sonnet-4-20250514", input_tokens: 100, output_tokens: 50 }),

@@ -520,8 +520,12 @@ export class CustomerServiceSession {
    * `resolveAgentSessionsDir()` to get the JSONL path. The RPC is used only
    * for path resolution — never for token data.
    *
-   * provider / model: derived from the JSONL `modelUsage` aggregation, taking
-   * the entry with the highest `count` (ties resolve to first-seen).
+   * provider / model: the provider/model of the most recent assistant turn
+   * in the JSONL (largest-timestamp entry with a `usage` field). This
+   * represents "what model did we just use for this run" — distinct from
+   * aggregate dominance, which is bucketed by `${provider}::${model}` and
+   * can mis-report across provider switches inside a long session.
+   * Aggregate breakdowns belong in the downstream data pipeline, not here.
    *
    * Any failure yields a silent no-op. This path is at a system boundary with
    * a best-effort analytics emitter; the rule is "never let BI collection
@@ -551,26 +555,15 @@ export class CustomerServiceSession {
         Math.floor(Number.isFinite(summary.output) ? summary.output : 0),
       );
 
-      // Dominant-model tiebreaker: first-seen when counts tie.
-      let dominantProvider: string | undefined;
-      let dominantModel: string | undefined;
-      const modelUsage = summary.modelUsage ?? [];
-      let bestCount = -1;
-      for (const mu of modelUsage) {
-        if (mu.count > bestCount) {
-          bestCount = mu.count;
-          dominantProvider = mu.provider;
-          dominantModel = mu.model;
-        }
-      }
+      const latest = summary.latestAssistantModel;
 
       emitCsTelemetry("cs.token_snapshot", {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
         inputTokens,
         outputTokens,
-        provider: dominantProvider ?? "",
-        model: dominantModel ?? "",
+        provider: latest?.provider ?? "",
+        model: latest?.model ?? "",
         runId,
       });
     } catch (err) {

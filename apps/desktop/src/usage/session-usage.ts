@@ -54,6 +54,19 @@ export type SessionCostSummary = CostUsageTotals & {
   activityDates?: string[];
   dailyBreakdown?: Array<{ date: string; tokens: number; cost: number }>;
   modelUsage?: SessionModelUsage[];
+  /**
+   * Provider / model of the most recent assistant turn (largest timestamp
+   * among assistant entries with a `usage` field). Represents "what model
+   * did we just use", distinct from `modelUsage` which aggregates by count.
+   *
+   * `provider` / `model` may be undefined if the JSONL entry did not carry
+   * those fields — preserved as undefined rather than coerced.
+   */
+  latestAssistantModel?: {
+    provider?: string;
+    model?: string;
+    timestamp: number;
+  };
 };
 
 export type DiscoveredSession = {
@@ -368,6 +381,7 @@ export async function loadSessionCostSummary(params: {
   const activityDateSet = new Set<string>();
   const dailyMap = new Map<string, { tokens: number; cost: number }>();
   let entryCount = 0;
+  let latestAssistantModel: SessionCostSummary["latestAssistantModel"];
 
   for await (const entry of readJsonlLines(sessionFile)) {
     const msg = entry.message as Record<string, unknown> | undefined;
@@ -448,6 +462,9 @@ export async function loadSessionCostSummary(params: {
     if (ts !== null) {
       if (firstActivity === undefined || ts < firstActivity) firstActivity = ts;
       if (lastActivity === undefined || ts > lastActivity) lastActivity = ts;
+      if (latestAssistantModel === undefined || ts > latestAssistantModel.timestamp) {
+        latestAssistantModel = { provider, model, timestamp: ts };
+      }
       const dateKey = localDateKey(ts);
       activityDateSet.add(dateKey);
 
@@ -487,6 +504,7 @@ export async function loadSessionCostSummary(params: {
     activityDates: Array.from(activityDateSet).sort(),
     dailyBreakdown,
     modelUsage,
+    latestAssistantModel,
   };
 }
 

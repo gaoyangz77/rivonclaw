@@ -173,7 +173,7 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     });
   });
 
-  it("emits a cs.token_snapshot event carrying cumulative JSONL totals", async () => {
+  it("emits a cs.token_snapshot event carrying cumulative JSONL totals with the latest assistant model", async () => {
     const session = makeSession();
     primeScopeResolution();
     mockLoadSessionCostSummary.mockResolvedValueOnce({
@@ -196,6 +196,11 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
           totals: { input: 1234, output: 567 } as never,
         },
       ],
+      latestAssistantModel: {
+        provider: "anthropic",
+        model: "claude-sonnet-4.6",
+        timestamp: 1_700_000_000_000,
+      },
     });
 
     await session.forwardTextToBuyer("hi");
@@ -276,6 +281,7 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
       input: 100.9,
       output: -5,
       modelUsage: [{ provider: "p", model: "m", count: 1, totals: {} as never }],
+      latestAssistantModel: { provider: "p", model: "m", timestamp: 1 },
     });
 
     await session.forwardTextToBuyer("hi");
@@ -285,17 +291,24 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     expect(snapshot![1]).toMatchObject({ inputTokens: 100, outputTokens: 0 });
   });
 
-  it("picks the most-used model from modelUsage; ties resolve to first-seen", async () => {
+  it("reports the latest assistant turn's model, not the dominant one (handles cross-provider sessions)", async () => {
+    // Motivating case: session spanned a provider switch. The old provider
+    // has more turns (dominant by count), but the user wants to see the
+    // currently-active provider/model — the last assistant turn.
     const session = makeSession();
     primeScopeResolution();
     mockLoadSessionCostSummary.mockResolvedValueOnce({
       input: 100,
       output: 50,
       modelUsage: [
-        { provider: "anthropic", model: "claude-sonnet-4.6", count: 2, totals: {} as never },
-        { provider: "openai", model: "gpt-5.4", count: 5, totals: {} as never },
-        { provider: "google", model: "gemini-2.5", count: 5, totals: {} as never },
+        { provider: "rivonclaw-pro", model: "gpt-5.4", count: 7, totals: {} as never },
+        { provider: "openai-codex", model: "gpt-5.4", count: 1, totals: {} as never },
       ],
+      latestAssistantModel: {
+        provider: "openai-codex",
+        model: "gpt-5.4",
+        timestamp: 1_700_000_000_000,
+      },
     });
 
     await session.forwardTextToBuyer("hi");
@@ -303,8 +316,31 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
 
     const snapshot = mockEmitCsTelemetry.mock.calls.find(([t]) => t === "cs.token_snapshot");
     expect(snapshot![1]).toMatchObject({
-      provider: "openai",
+      provider: "openai-codex",
       model: "gpt-5.4",
+    });
+  });
+
+  it("emits empty provider/model strings when latestAssistantModel is missing from the summary", async () => {
+    const session = makeSession();
+    primeScopeResolution();
+    mockLoadSessionCostSummary.mockResolvedValueOnce({
+      input: 10,
+      output: 5,
+      modelUsage: [],
+      // latestAssistantModel intentionally omitted — e.g. summary came from
+      // an older code path or had no usage-bearing entries.
+    });
+
+    await session.forwardTextToBuyer("hi");
+    await flushMicrotasks();
+
+    const snapshot = mockEmitCsTelemetry.mock.calls.find(([t]) => t === "cs.token_snapshot");
+    expect(snapshot![1]).toMatchObject({
+      inputTokens: 10,
+      outputTokens: 5,
+      provider: "",
+      model: "",
     });
   });
 });
