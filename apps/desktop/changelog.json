@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-04-19",
+    "en": [
+      "Improve channel stability with cleaner WeChat account syncing, fewer ghost accounts, and more reliable QR login flows",
+      "Add provider usage details and re-auth flows so subscription status and key usage are easier to understand",
+      "Upgrade customer-service reliability with background image compression, richer usage tracking, and stronger delivery error reporting",
+      "Harden startup and install behavior across platforms, including safer plugin initialization and cross-platform postinstall handling"
+    ],
+    "zh": [
+      "提升渠道稳定性：微信账号同步更干净，减少幽灵账号，扫码登录流程更可靠",
+      "服务商页面新增用量明细和重新认证流程，订阅状态与密钥使用情况更清楚",
+      "增强客服链路稳定性：图片压缩移到后台处理，补全用量统计，并加强投递失败诊断",
+      "加固多平台启动和安装流程，包括更稳的插件初始化与跨平台安装处理"
+    ]
+  },
+  {
     "version": "1.7.13",
     "date": "2026-04-16",
     "en": [
