@@ -424,9 +424,11 @@ export const MobileManagerModel = types
               allowlist.push(recipientId);
               await writeMobileAllowlist(allowlist);
             }
-            const isFirstRecipient = !storage.channelRecipients.hasAnyOwner();
-            storage.channelRecipients.ensureExists("mobile", recipientId, isFirstRecipient);
-            if (isFirstRecipient) {
+            // Every new recipient is provisioned as owner by default; single-operator
+            // is the common case. Users can demote via the Role toggle in the
+            // Channels page.
+            const inserted = storage.channelRecipients.ensureExists("mobile", recipientId, true);
+            if (inserted) {
               const configPath = resolveOpenClawConfigPath();
               syncOwnerAllowFrom(storage, configPath);
             }

@@ -226,11 +226,16 @@ export const CLOUD_REST_PREFIX: PrefixRouteEntry = {
   desc: "Cloud REST proxy (strips /cloud, forwards with JWT)",
 } as const;
 
-/** SSE (Server-Sent Events) stream endpoints. */
+/** SSE (Server-Sent Events) stream endpoints.
+ *
+ * `events` is the unified Desktop → Panel stream — snapshots + patches +
+ * notification events all multiplex over a SINGLE EventSource. This keeps
+ * Panel well under Chrome's 6-connection per-origin HTTP/1.1 limit.
+ *
+ * `doctor.run` is a separate one-shot ephemeral diagnostic stream.
+ */
 export const SSE = {
-  "chat.events":     { method: "GET", path: "/api/chat/events",   sse: true, desc: "Real-time chat and pairing events" },
-  "store.stream":    { method: "GET", path: "/api/store/stream",  sse: true, desc: "MST entity store patch sync" },
-  "status.stream":   { method: "GET", path: "/api/status/stream", sse: true, desc: "Runtime status patch sync" },
+  "events":          { method: "GET", path: "/api/events",        sse: true, desc: "Unified Desktop → Panel event stream (snapshots, patches, notifications)" },
   "doctor.run":      { method: "GET", path: "/api/doctor/run",    sse: true, desc: "Run OpenClaw doctor diagnostics" },
 } as const satisfies Record<string, SSERouteEntry>;
 

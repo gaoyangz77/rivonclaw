@@ -776,6 +776,7 @@ export default {
     gatewayUnavailable: "Gateway is not connected. Please start the gateway first.",
     autoRefresh: "Auto-refresh in {{seconds}}s",
     refreshing: "Refreshing QR code...",
+    weixinActivationHint: "Please send your first WeChat message to the bot to activate this channel and add yourself to the allowlist.",
   },
   mobile: {
     description: "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",

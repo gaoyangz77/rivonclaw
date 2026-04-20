@@ -148,6 +148,8 @@ export {
 
 export { formatError, IMAGE_EXT_TO_MIME, IMAGE_MIME_TO_EXT } from "./utils/error-utils.js";
 
+export { normalizeWeixinAccountId } from "./utils/channel-utils.js";
+
 export { decodeJwtPayload } from "./utils/jwt-utils.js";
 
 export {

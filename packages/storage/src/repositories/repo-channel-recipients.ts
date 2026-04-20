@@ -70,15 +70,19 @@ export class ChannelRecipientsRepository {
     return { channelId, recipientId, label, isOwner: false, createdAt: now, updatedAt: now };
   }
 
-  /** Ensure a recipient row exists. Does nothing if the row already exists. */
-  ensureExists(channelId: string, recipientId: string, isOwner = false): void {
+  /**
+   * Ensure a recipient row exists.
+   * Returns true when a new row was inserted, false when the row already existed.
+   */
+  ensureExists(channelId: string, recipientId: string, isOwner = false): boolean {
     const now = Date.now();
-    this.db
+    const result = this.db
       .prepare(
         `INSERT OR IGNORE INTO channel_recipients (channel_id, recipient_id, label, is_owner, created_at, updated_at)
          VALUES (?, ?, '', ?, ?, ?)`,
       )
       .run(channelId, recipientId, isOwner ? 1 : 0, now, now);
+    return result.changes > 0;
   }
 
   /** Set or clear the owner flag for a recipient. */

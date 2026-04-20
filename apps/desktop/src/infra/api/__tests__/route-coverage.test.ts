@@ -9,10 +9,8 @@ import { registerAllHandlers } from "../../../app/register-all.js";
  * will fail if it's both registered AND in this list.
  */
 const PANEL_SERVER_CLOSURE_ROUTES = new Set([
-  // Inline SSE endpoints in panel-server.ts
-  "SSE:chat.events",
-  "SSE:store.stream",
-  "SSE:status.stream",
+  // Unified SSE stream — handled inline in panel-server.ts via panelEventBus.
+  "SSE:events",
   // Inline REST endpoints in panel-server.ts (use closure-captured callbacks)
   "API:app.changelog",
   "API:app.updateDownload",

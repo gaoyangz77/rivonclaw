@@ -5,14 +5,15 @@ import { setAuthSession } from "../auth/session-ref.js";
 import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
 import { rootStore } from "./store/desktop-store.js";
-import type { pushChatSSE as PushChatSSEFn } from "./panel-server.js";
+import type { BroadcastEvent } from "./panel-server.js";
 
 export interface SetupAuthDeps {
   storage: Storage;
   secretStore: SecretStore;
   locale: string;
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
-  pushChatSSE: typeof PushChatSSEFn;
+  /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
+  broadcastEvent: BroadcastEvent;
 }
 
 export interface AuthRuntime {
@@ -25,7 +26,7 @@ export interface AuthRuntime {
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { storage, secretStore, locale, proxyFetch, pushChatSSE } = deps;
+  const { storage, secretStore, locale, proxyFetch, broadcastEvent } = deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
@@ -62,7 +63,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
 
   // Subscribe to OAuth completion events
   backendSubscription.subscribeToOAuthComplete((payload) => {
-    pushChatSSE("oauth-complete", payload);
+    broadcastEvent("oauth-complete", payload);
   });
 
   // Subscribe to shop-updated events (server push → MST upsert → SSE → Panel auto-updates)
@@ -70,7 +71,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     const shopId = (shopData as any).id as string;
     rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
     const shop = rootStore.shops.find((s: any) => s.id === shopId);
-    pushChatSSE("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
+    broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
   });
 
   return { authSession, backendSubscription };

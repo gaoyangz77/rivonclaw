@@ -18,7 +18,6 @@
 import { reaction, when } from "mobx";
 import type { TFunction } from "i18next";
 import { formatError, DEFAULTS } from "@rivonclaw/core";
-import { SSE } from "@rivonclaw/core/api-contract";
 
 import { GatewayChatClient } from "../../../lib/gateway-client.js";
 import type { GatewayEvent, GatewayHelloOk } from "../../../lib/gateway-client.js";
@@ -306,9 +305,9 @@ export class ChatGatewayController {
       this.client = client;
       client.start();
 
-      // Connect SSE bridge
-      const sseUrl = new URL(SSE["chat.events"].path, window.location.origin).href;
-      const bridge = new ChatEventBridge(sseUrl, {
+      // Connect SSE bridge — now routed through the shared panelEventBus
+      // singleton, so no URL is needed here.
+      const bridge = new ChatEventBridge({
         onAction: (action) => {
           if (this.cancelled) return;
           const rs = this.activeRunState;

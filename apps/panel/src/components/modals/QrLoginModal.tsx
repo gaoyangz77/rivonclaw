@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
+import { normalizeWeixinAccountId } from "@rivonclaw/core";
 import { startQrLogin, waitQrLogin } from "../../api/channels.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { Modal } from "./Modal.js";
@@ -13,6 +14,17 @@ const POLL_TIMEOUT_MS = 30_000;
 const SESSION_TIMEOUT_MS = 2 * 60_000;
 /** Countdown display duration matching poll timeout. */
 const QR_REFRESH_SECONDS = 30;
+/** Auto-close delay after successful scan. */
+const SUCCESS_AUTO_CLOSE_MS = 1200;
+/**
+ * Auto-close delay for WeChat specifically. WeChat still requires the user to
+ * send an initial message from the phone to the bot before the recipient
+ * appears in the allowlist, so we keep the success view visible long enough
+ * for them to read the activation hint.
+ */
+const SUCCESS_AUTO_CLOSE_MS_WEIXIN = 4000;
+/** WeChat channel id — needed to branch success-view copy and auto-close timing. */
+const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 
 interface QrLoginModalProps {
   channelId: string;
@@ -128,21 +140,35 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
             // triggered by updateAccount's MST patch can't spawn a new loop.
             completedRef.current = true;
             clearCountdown();
-            // Set accountId as initial display name so the row isn't blank
+            // Set accountId as initial display name so the row isn't blank.
+            // This PUT also serves as the ONLY mechanism that writes the WeChat
+            // account into Desktop's SQLite + MST — without it, delete and other
+            // flows operating on MST state break.
+            //
+            // Canonicalize at the write boundary: `loginWithQrWait` returns the
+            // raw `xxxx@im.bot` form, but the plugin internally (and gateway
+            // `channels.status`) uses the `xxxx-im-bot` dash form. Store the
+            // dash form so every downstream consumer (SQLite, openclaw.json,
+            // MST, status merge, allowlist) agrees on one identifier.
             if (result.accountId) {
-              entityStore.channelManager.updateAccount(channelId, result.accountId, {
-                name: result.accountId,
+              const canonicalAccountId = normalizeWeixinAccountId(result.accountId);
+              entityStore.channelManager.updateAccount(channelId, canonicalAccountId, {
+                name: canonicalAccountId,
                 config: {},
               }).catch(() => { /* best-effort */ });
             }
             setPhase("success");
-            // Brief delay so user sees the success message
+            // Brief delay so user sees the success message. WeChat also renders
+            // an activation hint in the success view, so keep it visible longer.
+            const autoCloseMs = channelId === WEIXIN_CHANNEL_ID
+              ? SUCCESS_AUTO_CLOSE_MS_WEIXIN
+              : SUCCESS_AUTO_CLOSE_MS;
             setTimeout(() => {
               if (!myToken.aborted) {
                 onSuccessRef.current();
                 onCloseRef.current();
               }
-            }, 1200);
+            }, autoCloseMs);
             return;
           }
         } catch (e: any) {
@@ -221,6 +247,9 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
           {phase === "success" && (
             <div className="qr-login-scan-view">
               <div className="badge badge-success">{t("qrLogin.success")}</div>
+              {channelId === WEIXIN_CHANNEL_ID && (
+                <p className="qr-login-hint">{t("qrLogin.weixinActivationHint")}</p>
+              )}
             </div>
           )}
 

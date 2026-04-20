@@ -12,15 +12,33 @@ Panel never talks to the cloud backend directly — all cloud requests go throug
 
 Backend pushes real-time updates to Desktop via GraphQL subscriptions (`shopUpdated`, `oauthComplete`, `updateAvailable`). Desktop ingests these into MST the same way as query responses — patches flow to Panel via SSE automatically.
 
-### Three SSE Channels (Desktop → Panel)
+### Unified SSE Stream (Desktop → Panel)
 
-| Endpoint | Purpose | Content |
-|----------|---------|---------|
-| `/api/store/stream` | Entity store sync | MST snapshots + JSON patches (shops, tools, profiles, etc.) |
-| `/api/status/stream` | Runtime status sync | MST patches (appSettings, csBridge state, deviceId, connector state) |
-| `/api/chat/events` | Notification events | Named events: `shop-updated`, `oauth-complete`, `update-available` |
+A single endpoint — `/api/events` — multiplexes everything, so each Panel
+session opens EXACTLY ONE `EventSource` (keeping well under Chrome's
+6-connection per-origin HTTP/1.1 limit). A separate one-shot
+`/api/doctor/run` stream exists for diagnostics and is unaffected.
 
-The first two carry MST patches and are consumed by Panel's `entityStore` and `runtimeStatusStore` via `applyPatch()`. The third carries discrete notification events (e.g. for toast display) and is consumed by `Layout.tsx`.
+| Event name | Source store / emitter | Content |
+|------------|------------------------|---------|
+| `entity-snapshot` | MST `rootStore` (on connect) | Full entity-store snapshot |
+| `entity-patch` | MST `rootStore.onPatch` | JSON-Patch bundles (batched per microtask) |
+| `status-snapshot` | MST `runtimeStatusStore` (on connect) | Full runtime-status snapshot |
+| `status-patch` | MST `runtimeStatusStore.onPatch` | JSON-Patch bundles (batched per microtask) |
+| `inbound` | gateway event dispatcher | External user message arrived |
+| `chat-mirror` | gateway event dispatcher | Agent event mirrored for non-webchat channels |
+| `session-reset` | gateway event dispatcher | Clear run state for a session |
+| `recipient-added` | gateway / pairing notifier | New allowlisted recipient |
+| `oauth-complete` | backend GraphQL subscription | OAuth flow succeeded |
+| `shop-updated` | backend GraphQL subscription | Shop upsert |
+| `update-available` | updater | App update payload |
+
+Snapshots fire synchronously on connect BEFORE any patch, so reconnects
+self-heal without special client logic.
+
+Server side: `apps/desktop/src/app/panel-event-bus.ts` (fan-out) +
+`panel-server.ts` (module-scoped bus + `broadcastEvent` export).
+Client side: `apps/panel/src/lib/event-bus.ts` (singleton `panelEventBus`).
 
 ## API Contract
 
@@ -43,12 +61,16 @@ All endpoint paths are defined in `packages/core/src/api-contract.ts` — the si
 
 ## Two MST Stores
 
-| Store | Desktop file | Panel file | SSE endpoint | Purpose |
-|-------|-------------|------------|-------------|---------|
-| **Entity Store** | `desktop-store.ts` | `entity-store.ts` | `/api/store/stream` | Business entities (shops, users, provider keys, surfaces, etc.) |
-| **Runtime Status Store** | `runtime-status-store.ts` | `runtime-status-store.ts` | `/api/status/stream` | Transient runtime state (CS bridge status, app settings) |
+| Store | Desktop file | Panel file | SSE event names | Purpose |
+|-------|-------------|------------|-----------------|---------|
+| **Entity Store** | `desktop-store.ts` | `entity-store.ts` | `entity-snapshot` / `entity-patch` | Business entities (shops, users, provider keys, surfaces, etc.) |
+| **Runtime Status Store** | `runtime-status-store.ts` | `runtime-status-store.ts` | `status-snapshot` / `status-patch` | Transient runtime state (CS bridge status, app settings) |
 
-Do not mix concerns between the two stores. Entity data goes in the entity store; ephemeral/config state goes in the runtime status store.
+Both stores multiplex over the unified `/api/events` SSE stream (see section above). Do not mix concerns between the two stores. Entity data goes in the entity store; ephemeral/config state goes in the runtime status store.
+
+### WeChat accountId canonicalization
+
+WeChat (`openclaw-weixin`) uses `xxx-im-bot` / `xxx-im-wechat` as the canonical `accountId` form everywhere in Desktop (SQLite `channel_accounts`, `openclaw.json`, MST `channelAccounts`) and on Panel. The upstream plugin's `loginWithQrWait` returns the raw `xxx@im.bot` / `xxx@im.wechat` form, which is normalized by `normalizeWeixinAccountId` (from `@rivonclaw/core`) at the Panel write boundary inside `QrLoginModal`. Desktop's `ChannelManager.{add,update,remove}Account` apply the same normalization defensively for URL-path and future callers. Existing installs are upgraded by SQLite migration 27 (`canonicalize_weixin_account_ids`) plus a one-shot `openclaw.json` sweep (`migrateWeixinAccountKeys`) run during Desktop startup. Dash form wins on conflict.
 
 ## AppSettings Flow
 
