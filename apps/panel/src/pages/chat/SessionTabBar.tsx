@@ -35,8 +35,8 @@ function abbreviateKey(key: string): string {
 /** Derive the display label for a session tab. */
 function tabLabel(session: SessionTabInfo, t: (key: string) => string): string {
   if (session.key === DEFAULT_SESSION_KEY) return t("chat.sessionMain");
-  if (session.isLocal) return t("chat.newSessionTitle");
   if (session.derivedTitle) return session.derivedTitle;
+  if (session.isLocal) return t("chat.newSessionTitle");
   if (session.displayName) return session.displayName;
   const abbr = abbreviateKey(session.key);
   return abbr || t("chat.sessionUntitled");
