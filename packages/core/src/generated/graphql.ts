@@ -1261,7 +1261,6 @@ export interface MutationManageBrowserProfileArgs {
 
 
 export interface MutationPublishUpdateArgs {
-  downloadUrl?: InputMaybe<Scalars['String']['input']>;
   version: Scalars['String']['input'];
 }
 
@@ -2152,7 +2151,6 @@ export interface ToolSpec {
 
 /** Update notification payload */
 export interface UpdatePayload {
-  downloadUrl?: Maybe<Scalars['String']['output']>;
   version: Scalars['String']['output'];
 }
 

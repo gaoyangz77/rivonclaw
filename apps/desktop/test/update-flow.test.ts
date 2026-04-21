@@ -31,11 +31,11 @@ describe("queryCheckUpdate", () => {
   it("returns payload when backend has an update", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       jsonResponse(200, {
-        data: { checkUpdate: { version: "2.0.0", downloadUrl: "https://cdn.example.com/v2.dmg" } },
+        data: { checkUpdate: { version: "2.0.0" } },
       }),
     );
     const result = await queryCheckUpdate("en", "1.0.0", mockFetch);
-    expect(result).toEqual({ version: "2.0.0", downloadUrl: "https://cdn.example.com/v2.dmg" });
+    expect(result).toEqual({ version: "2.0.0" });
   });
 
   it("returns null when backend says no update", async () => {
@@ -66,7 +66,7 @@ describe("queryCheckUpdate", () => {
   it("throws on GraphQL 200 + errors even when data is present", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       jsonResponse(200, {
-        data: { checkUpdate: { version: "2.0.0", downloadUrl: "https://x.com/f" } },
+        data: { checkUpdate: { version: "2.0.0" } },
         errors: [{ message: "partial failure" }],
       }),
     );
@@ -105,12 +105,26 @@ function simulateProcessUpdatePayload(
   if (!isNewerVersion(currentVersion, payload.version)) {
     return { accepted: false, cleared: true };
   }
-  // Step 2: downloadUrl required
-  if (!payload.downloadUrl) {
-    return { accepted: false, cleared: true };
-  }
-  // Step 3: all checks passed — accepted
+  // Step 2: payload accepted — the client derives its own download URL
   return { accepted: true, cleared: false };
+}
+
+function simulateResolveDownloadUrl(
+  version: string,
+  platform: NodeJS.Platform,
+  arch: string,
+  updateFeedUrl: string,
+): string | null {
+  switch (platform) {
+    case "darwin":
+      return `${updateFeedUrl}/RivonClaw-${version}-${arch === "arm64" ? "arm64" : "x64"}.dmg`;
+    case "win32":
+      return `${updateFeedUrl}/RivonClaw.Setup.${version}.exe`;
+    case "linux":
+      return `${updateFeedUrl}/RivonClaw-${version}-${arch === "arm64" ? "arm64" : "x86_64"}.AppImage`;
+    default:
+      return null;
+  }
 }
 
 describe("processUpdatePayload logic", () => {
@@ -124,14 +138,29 @@ describe("processUpdatePayload logic", () => {
     expect(result).toEqual({ accepted: false, cleared: true });
   });
 
-  it("rejects and clears when downloadUrl is missing", () => {
+  it("accepts when version is newer even when downloadUrl is missing", () => {
     const result = simulateProcessUpdatePayload("1.0.0", { version: "2.0.0" });
-    expect(result).toEqual({ accepted: false, cleared: true });
+    expect(result).toEqual({ accepted: true, cleared: false });
   });
 
   it("accepts when version is newer and downloadUrl is present", () => {
     const result = simulateProcessUpdatePayload("1.0.0", { version: "2.0.0", downloadUrl: "https://cdn/v2.dmg" });
     expect(result).toEqual({ accepted: true, cleared: false });
+  });
+
+  it("builds the macOS arm64 download URL from the version", () => {
+    const result = simulateResolveDownloadUrl("2.0.0", "darwin", "arm64", "https://www.rivonclaw.com/releases");
+    expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw-2.0.0-arm64.dmg");
+  });
+
+  it("builds the Windows download URL from the version", () => {
+    const result = simulateResolveDownloadUrl("2.0.0", "win32", "x64", "https://www.rivonclaw.com/releases");
+    expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw.Setup.2.0.0.exe");
+  });
+
+  it("builds the Linux x64 download URL from the version", () => {
+    const result = simulateResolveDownloadUrl("2.0.0", "linux", "x64", "https://www.rivonclaw.com/releases");
+    expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw-2.0.0-x86_64.AppImage");
   });
 });
 
@@ -157,7 +186,7 @@ describe("check-then-process flow", () => {
   it("proceeds to processUpdatePayload when query returns a payload", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       jsonResponse(200, {
-        data: { checkUpdate: { version: "3.0.0", downloadUrl: "https://cdn/v3" } },
+        data: { checkUpdate: { version: "3.0.0" } },
       }),
     );
     const payload = await queryCheckUpdate("en", "1.0.0", mockFetch);
@@ -174,8 +203,7 @@ describe("check-then-process flow", () => {
       .rejects.toThrow("GraphQL errors");
   });
 
-  it("manual check shows correct dialog for payload without downloadUrl", async () => {
-    // Simulates: backend returns newer version but no downloadUrl
+  it("manual check still accepts payloads without downloadUrl", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       jsonResponse(200, {
         data: { checkUpdate: { version: "2.0.0" } },
@@ -184,13 +212,8 @@ describe("check-then-process flow", () => {
     const payload = await queryCheckUpdate("en", "1.0.0", mockFetch);
     expect(payload).not.toBeNull();
 
-    // processUpdatePayload rejects it → accepted = false
+    // processUpdatePayload accepts it and the client resolves the URL itself
     const { accepted } = simulateProcessUpdatePayload("1.0.0", payload!);
-    expect(accepted).toBe(false);
-
-    // Caller logic: payload is truthy but not accepted
-    // → should show "download info incomplete" dialog, NOT "already up to date"
-    const showedIncompleteWarning = payload && !accepted;
-    expect(showedIncompleteWarning).toBe(true);
+    expect(accepted).toBe(true);
   });
 });

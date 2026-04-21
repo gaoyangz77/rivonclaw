@@ -42,7 +42,6 @@ const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
       version
-      downloadUrl
     }
   }
 `;
@@ -55,7 +54,6 @@ const PUBLISH_UPDATE_MUTATION = `
 
 interface UpdatePayload {
   version: string;
-  downloadUrl?: string;
 }
 
 // ---------------------------------------------------------------------------

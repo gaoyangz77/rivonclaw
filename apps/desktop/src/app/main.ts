@@ -601,16 +601,6 @@ app.whenReady().then(async () => {
                 showMainWindow(mainWindow);
                 updater.download().catch((e: unknown) => log.error("Update download failed:", e));
               }
-            } else if (payload) {
-              // Backend returned a newer version but payload was invalid (e.g. missing downloadUrl)
-              dialog.showMessageBox({
-                type: "warning",
-                title: isZh ? "检查更新" : "Check for Updates",
-                message: isZh
-                  ? `发现新版本 v${payload.version}，但下载信息不完整，请稍后重试。`
-                  : `A new version v${payload.version} was found, but download info is incomplete. Please try again later.`,
-                buttons: isZh ? ["好"] : ["OK"],
-              });
             } else {
               dialog.showMessageBox({
                 type: "info",
@@ -688,13 +678,6 @@ app.whenReady().then(async () => {
       return false;
     }
 
-    // downloadUrl is required — an update without a downloadable file is not actionable
-    if (!payload.downloadUrl) {
-      log.warn(`Update v${payload.version} has no downloadUrl — treating as unavailable`);
-      clearUpdateBanner();
-      return false;
-    }
-
     updater.setUpdateInfo(payload);
     telemetryClient?.track("app.update_available", {
       currentVersion: app.getVersion(),
@@ -704,7 +687,7 @@ app.whenReady().then(async () => {
       updateAvailable: true,
       currentVersion: app.getVersion(),
       latestVersion: payload.version,
-      downloadUrl: payload.downloadUrl,
+      downloadUrl: updater.getLatestInfo()?.downloadUrl ?? null,
     });
     return true;
   }
