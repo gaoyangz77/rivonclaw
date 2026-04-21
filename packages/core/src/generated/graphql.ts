@@ -396,6 +396,20 @@ export interface EcomAftersaleSkuEligibility {
   skuId?: Maybe<Scalars['String']['output']>;
 }
 
+/** Money value used by ecommerce analytics metrics */
+export interface EcomAnalyticsMoney {
+  amount?: Maybe<Scalars['String']['output']>;
+  currency?: Maybe<Scalars['String']['output']>;
+}
+
+/** Product status filter for analytics SKU performance search. Use ALL to return all statuses. */
+export const EcomAnalyticsProductStatusFilter = {
+  All: 'ALL',
+  Inactive: 'INACTIVE',
+  Live: 'LIVE'
+} as const;
+
+export type EcomAnalyticsProductStatusFilter = typeof EcomAnalyticsProductStatusFilter[keyof typeof EcomAnalyticsProductStatusFilter];
 /** Decision for approving a refund request */
 export const EcomApproveRefundDecision = {
   ApproveRefund: 'APPROVE_REFUND',
@@ -933,6 +947,30 @@ export interface EcomShippingDocument {
   trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
+/** Per-SKU performance metrics for shop analytics */
+export interface EcomSkuPerformance {
+  /** Overall GMV for the SKU */
+  gmv?: Maybe<EcomAnalyticsMoney>;
+  /** Product ID that owns the SKU */
+  productId?: Maybe<Scalars['String']['output']>;
+  /** SKU ID */
+  skuId: Scalars['String']['output'];
+  /** Total orders for the SKU */
+  skuOrders?: Maybe<Scalars['Int']['output']>;
+  /** Total units sold for the SKU */
+  unitsSold?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Flat SKU performance search result with backend-managed pagination. This keeps analytics metadata like totalCount and latestAvailableDate but does not expose page tokens. */
+export interface EcomSkuPerformanceResult {
+  /** Aggregated SKU performance rows */
+  items: Array<EcomSkuPerformance>;
+  /** Latest date in shop local timezone where analytics data is ready (ISO 8601). */
+  latestAvailableDate?: Maybe<Scalars['String']['output']>;
+  /** Total number of matching SKUs reported by TikTok */
+  totalCount?: Maybe<Scalars['Int']['output']>;
+}
+
 /** Sort field for package search */
 export const EcomSortField = {
   CreateTime: 'CREATE_TIME',
@@ -1418,6 +1456,8 @@ export interface Query {
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
+  /** Get shop SKU performance analytics as a flat result set with backend-managed pagination. Returns full item fields plus totalCount and latestAvailableDate metadata. */
+  ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
@@ -1598,6 +1638,16 @@ export interface QueryEcommerceGetReturnRecordsArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   returnId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetShopSkuPerformanceListArgs {
+  endDateLt: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  productStatusFilter?: InputMaybe<EcomAnalyticsProductStatusFilter>;
+  shopId: Scalars['String']['input'];
+  startDateGe: Scalars['String']['input'];
 }
 
 
@@ -2042,6 +2092,7 @@ export const ToolId = {
   EcomGetReturnRecords: 'ECOM_GET_RETURN_RECORDS',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomGetShop: 'ECOM_GET_SHOP',
+  EcomGetShopSkuPerformanceList: 'ECOM_GET_SHOP_SKU_PERFORMANCE_LIST',
   EcomListOrders: 'ECOM_LIST_ORDERS',
   EcomListShops: 'ECOM_LIST_SHOPS',
   EcomMarkConversationRead: 'ECOM_MARK_CONVERSATION_READ',
