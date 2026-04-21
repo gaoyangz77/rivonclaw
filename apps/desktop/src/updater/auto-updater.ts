@@ -97,6 +97,28 @@ export interface AutoUpdaterDeps {
   telemetryTrack?: (event: string, meta?: Record<string, unknown>) => void;
 }
 
+function resolveReleaseAssetName(version: string): string | null {
+  switch (process.platform) {
+    case "darwin": {
+      const arch = process.arch === "arm64" ? "arm64" : "x64";
+      return `RivonClaw-${version}-${arch}.dmg`;
+    }
+    case "win32":
+      return `RivonClaw.Setup.${version}.exe`;
+    case "linux": {
+      const arch = process.arch === "arm64" ? "arm64" : "x86_64";
+      return `RivonClaw-${version}-${arch}.AppImage`;
+    }
+    default:
+      return null;
+  }
+}
+
+function resolveUpdateDownloadUrl(updateFeedUrl: string, version: string): string | null {
+  const assetName = resolveReleaseAssetName(version);
+  return assetName ? `${updateFeedUrl}/${assetName}` : null;
+}
+
 export function createAutoUpdater(deps: AutoUpdaterDeps) {
   let latestUpdateInfo: UpdateInfo | null = null;
   let backendUpdateInfo: GQL.UpdatePayload | null = null;
@@ -169,6 +191,16 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     deps.updateTray();
   }
 
+  function toClientUpdateInfo(info: GQL.UpdatePayload): GQL.UpdatePayload {
+    return {
+      ...info,
+      // Download artifacts are platform-specific, so derive the current
+      // client's URL from the published version instead of trusting a shared
+      // backend field.
+      downloadUrl: resolveUpdateDownloadUrl(updateFeedUrl, info.version),
+    };
+  }
+
   async function download(): Promise<void> {
     if (!backendUpdateInfo) {
       throw new Error("No update available");
@@ -192,9 +224,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     // user can download the DMG manually.
     // TODO: remove this block once Apple developer certificate is approved.
     if (process.platform === "darwin") {
-      const arch = process.arch === "arm64" ? "arm64" : "x64";
-      const downloadUrl = backendUpdateInfo.downloadUrl
-        ?? `${updateFeedUrl}/RivonClaw-${backendUpdateInfo.version}-${arch}.dmg`;
+      const downloadUrl = backendUpdateInfo.downloadUrl;
+      if (!downloadUrl) {
+        throw new Error(`No download URL could be resolved for update v${backendUpdateInfo.version}`);
+      }
       log.info(`macOS: opening browser for update download: ${downloadUrl}`);
       shell.openExternal(downloadUrl);
       const isZh = deps.systemLocale === "zh";
@@ -309,7 +342,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     },
     setUpdateInfo: (info: GQL.UpdatePayload) => {
       if (!isNewerVersion(app.getVersion(), info.version)) return;
-      backendUpdateInfo = info;
+      backendUpdateInfo = toClientUpdateInfo(info);
       deps.updateTray();
     },
     clearUpdateInfo: () => {

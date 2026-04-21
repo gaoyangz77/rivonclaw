@@ -19,7 +19,6 @@ import {
 
 interface StoredUpdate {
   version: string;
-  downloadUrl?: string;
 }
 
 function buildMockServer() {
@@ -35,7 +34,6 @@ function buildMockServer() {
     name: "UpdatePayload",
     fields: {
       version: { type: new GraphQLNonNull(GraphQLString) },
-      downloadUrl: { type: GraphQLString },
     },
   });
 
@@ -268,7 +266,6 @@ describe("BackendSubscriptionClient", () => {
 
     mockServer.pushUpdate({
       version: "3.0.0",
-      downloadUrl: "https://example.com/download",
     });
 
     // Wait for the pushed update to arrive
@@ -281,7 +278,6 @@ describe("BackendSubscriptionClient", () => {
 
     const payload = onUpdate.mock.calls[0][0];
     expect(payload.version).toBe("3.0.0");
-    expect(payload.downloadUrl).toBe("https://example.com/download");
   });
 
   it("stale push ignored: no callback when pushed version is not newer", async () => {

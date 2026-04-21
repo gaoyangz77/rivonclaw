@@ -10,7 +10,6 @@ const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
       version
-      downloadUrl
     }
   }
 `;
@@ -67,7 +66,6 @@ const CHECK_UPDATE_QUERY = `
   query CheckUpdate($clientVersion: String!) {
     checkUpdate(clientVersion: $clientVersion) {
       version
-      downloadUrl
     }
   }
 `;
