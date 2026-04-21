@@ -19,6 +19,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const runProfiles = entityStore.allRunProfiles;
   const platformApps = entityStore.platformApps;
@@ -293,6 +294,16 @@ export const EcommercePage = observer(function EcommercePage() {
   const csCredits = credits.filter((c) => c.service === "CUSTOMER_SERVICE" && c.status === "AVAILABLE");
 
   // ── Render ──
+
+  if (authChecking) {
+    return (
+      <div className="page-enter">
+        <div className="section-card">
+          <p>{t("common.loading")}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

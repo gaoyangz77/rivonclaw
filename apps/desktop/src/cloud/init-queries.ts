@@ -55,7 +55,7 @@ export const TOOL_SPECS_SYNC_QUERY = `
 export const INIT_ME_QUERY = `
   query {
     me {
-      id
+      userId
       email
       name
       plan

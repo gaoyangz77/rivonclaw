@@ -30,6 +30,7 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
   const resolveSystemName = useSystemName();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
 
   const toolDisplayLabel = useToolDisplayLabel();
 
@@ -112,6 +113,16 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
     } finally {
       setModuleToggling(false);
     }
+  }
+
+  if (authChecking) {
+    return (
+      <div className="account-page page-enter">
+        <div className="section-card">
+          <p>{t("common.loading")}</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {

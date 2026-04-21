@@ -14,6 +14,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const platformApps = entityStore.platformApps;
   const credits = entityStore.credits;
@@ -55,6 +56,16 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   } = useTikTokShopDetail({ handleError, setUpgradePrompt, fetchCredits });
 
   const csCredits = credits.filter((c) => c.service === "CUSTOMER_SERVICE" && c.status === "AVAILABLE");
+
+  if (authChecking) {
+    return (
+      <div className="page-enter">
+        <div className="section-card">
+          <p>{t("common.loading")}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

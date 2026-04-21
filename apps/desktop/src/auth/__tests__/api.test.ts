@@ -3,6 +3,7 @@ import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../../app/api-context.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
+import { rootStore } from "../../app/store/desktop-store.js";
 import { registerAuthHandlers } from "../api.js";
 
 // ---------------------------------------------------------------------------
@@ -14,6 +15,8 @@ let registry: RouteRegistry;
 beforeEach(() => {
   registry = new RouteRegistry();
   registerAuthHandlers(registry);
+  rootStore.clearCloudEntities();
+  rootStore.setAuthBootstrap("signed_out", null);
 });
 
 async function dispatch(method: string, path: string, ctx: ApiContext, body?: unknown) {
@@ -61,6 +64,8 @@ const mockUser = {
   createdAt: "2025-01-01T00:00:00Z",
   enrolledModules: [],
   entitlementKeys: [],
+  defaultRunProfileId: null,
+  llmKey: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -71,10 +76,10 @@ describe("POST /api/auth/login", () => {
   let onAuthChange: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    onAuthChange = vi.fn();
+    onAuthChange = vi.fn().mockResolvedValue(undefined);
   });
 
-  it("returns 200 with user on successful login", async () => {
+  it("returns 200 on successful login", async () => {
     const ctx = {
       authSession: {
         loginWithCredentials: vi.fn().mockResolvedValue(mockUser),
@@ -86,7 +91,7 @@ describe("POST /api/auth/login", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ user: mockUser });
+    expect(res._body).toEqual({ ok: true });
     expect(ctx.authSession!.loginWithCredentials).toHaveBeenCalledWith({
       email: "test@example.com",
       password: "pass123",
@@ -141,10 +146,10 @@ describe("POST /api/auth/register", () => {
   let onAuthChange: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    onAuthChange = vi.fn();
+    onAuthChange = vi.fn().mockResolvedValue(undefined);
   });
 
-  it("returns 200 with user on successful registration", async () => {
+  it("returns 200 on successful registration", async () => {
     const ctx = {
       authSession: {
         registerWithCredentials: vi.fn().mockResolvedValue(mockUser),
@@ -156,7 +161,7 @@ describe("POST /api/auth/register", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ user: mockUser });
+    expect(res._body).toEqual({ ok: true });
     expect(ctx.authSession!.registerWithCredentials).toHaveBeenCalledWith({
       email: "new@example.com",
       password: "securepass",
@@ -197,10 +202,12 @@ describe("POST /api/auth/register", () => {
 // ---------------------------------------------------------------------------
 
 describe("GET /api/auth/session", () => {
-  it("returns user and authenticated flag (no accessToken exposed)", async () => {
+  it("returns auth bootstrap state from the Desktop store", async () => {
+    rootStore.setCurrentUser(mockUser);
+    rootStore.setAuthBootstrap("ready", null);
+
     const ctx = {
       authSession: {
-        getCachedUser: vi.fn().mockReturnValue(mockUser),
         getAccessToken: vi.fn().mockReturnValue("some-token"),
       },
     } as unknown as ApiContext;
@@ -209,14 +216,18 @@ describe("GET /api/auth/session", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ user: mockUser, authenticated: true });
+    expect(res._body).toEqual({
+      authenticated: true,
+      bootstrapStatus: "ready",
+      error: null,
+      tokenPresent: true,
+    });
     expect((res._body as any).accessToken).toBeUndefined();
   });
 
   it("returns authenticated: false when no token exists", async () => {
     const ctx = {
       authSession: {
-        getCachedUser: vi.fn().mockReturnValue(null),
         getAccessToken: vi.fn().mockReturnValue(null),
       },
     } as unknown as ApiContext;
@@ -225,7 +236,12 @@ describe("GET /api/auth/session", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ user: null, authenticated: false });
+    expect(res._body).toEqual({
+      authenticated: false,
+      bootstrapStatus: "signed_out",
+      error: null,
+      tokenPresent: false,
+    });
   });
 });
 
@@ -276,7 +292,7 @@ describe("backward compatibility", () => {
         validate: vi.fn().mockResolvedValue(mockUser),
         setCachedUser: vi.fn(),
       },
-      onAuthChange: vi.fn(),
+      onAuthChange: vi.fn().mockResolvedValue(undefined),
     } as unknown as ApiContext;
 
     const { handled, res } = await dispatch("POST", "/api/auth/store-tokens", ctx, { accessToken: "at", refreshToken: "rt" });
@@ -284,7 +300,6 @@ describe("backward compatibility", () => {
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
     expect((res._body as any).ok).toBe(true);
-    expect((res._body as any).user).toEqual(mockUser);
   });
 
   it("POST /api/auth/refresh still works", async () => {
@@ -308,6 +323,10 @@ describe("backward compatibility", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ user: null, authenticated: false });
+    expect(res._body).toEqual({
+      authenticated: false,
+      bootstrapStatus: "signed_out",
+      error: null,
+    });
   });
 });

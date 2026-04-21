@@ -40,6 +40,7 @@ export const Layout = observer(function Layout({
   const runtimeStatus = useRuntimeStatus();
   const { showToast } = useToast();
   const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAuthPath, setPendingAuthPath] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -310,6 +311,7 @@ export const Layout = observer(function Layout({
                   <button
                     className={`nav-btn ${active ? "nav-active" : "nav-item"}`}
                     onClick={() => {
+                      if (route.authRequired && authChecking) return;
                       if (route.authRequired && !user) {
                         setPendingAuthPath(route.path);
                         setAuthModalOpen(true);

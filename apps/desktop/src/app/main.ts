@@ -82,7 +82,7 @@ import {
 import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
 import { BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY } from "../cloud/browser-profile-queries.js";
-import { TOOL_SPECS_SYNC_QUERY, INIT_ME_QUERY, INIT_SURFACES_QUERY, INIT_RUN_PROFILES_QUERY } from "../cloud/init-queries.js";
+import { TOOL_SPECS_SYNC_QUERY, INIT_SURFACES_QUERY, INIT_RUN_PROFILES_QUERY } from "../cloud/init-queries.js";
 
 const log = createLogger("desktop");
 
@@ -247,6 +247,64 @@ app.whenReady().then(async () => {
   });
   // NOTE: authSession.validate() is deferred until after proxy router starts (see below).
 
+  async function reinitializeToolCapabilityFromCatalog(): Promise<void> {
+    if (!openClawConnector.isReady) return;
+    const catalog = await openClawConnector.request<{
+      groups: Array<{
+        tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>;
+      }>;
+    }>("tools.catalog", { includePlugins: true });
+
+    const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
+    for (const group of catalog.groups ?? []) {
+      for (const tool of group.tools ?? []) {
+        catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
+      }
+    }
+
+    rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
+  }
+
+  async function bootstrapDesktopAuthState(): Promise<void> {
+    if (!authSession.getAccessToken()) {
+      rootStore.clearCloudEntities();
+      rootStore.setAuthBootstrap("signed_out", null);
+      return;
+    }
+
+    rootStore.setAuthBootstrap("loading", null);
+
+    try {
+      const me = await authSession.validate();
+      if (!me) {
+        if (!authSession.getAccessToken()) {
+          rootStore.clearCloudEntities();
+          rootStore.setAuthBootstrap("signed_out", null);
+          return;
+        }
+        throw new Error("Failed to load account profile");
+      }
+
+      rootStore.clearCloudDataExceptUser();
+      rootStore.ingestGraphQLResponse({ me });
+
+      const essentials = await Promise.all([
+        authSession.graphqlFetch(TOOL_SPECS_SYNC_QUERY),
+        authSession.graphqlFetch(INIT_SURFACES_QUERY),
+        authSession.graphqlFetch(INIT_RUN_PROFILES_QUERY),
+      ]);
+
+      for (const data of essentials) {
+        rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
+      }
+      rootStore.setAuthBootstrap("ready", null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      rootStore.setAuthBootstrap("error", message);
+      throw new Error(`Failed to load account state: ${message}`);
+    }
+  }
+
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
   //  1. openclaw_import_checked is not set (never checked before)
@@ -336,7 +394,9 @@ app.whenReady().then(async () => {
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
 
   // Now that proxy router is up, validate auth session and connect backend subscriptions.
-  authSession.validate().catch(() => {});
+  bootstrapDesktopAuthState().catch((err) => {
+    log.warn("Failed to bootstrap desktop auth state:", err);
+  });
   backendSubscription.connect(() => authSession.getAccessToken());
 
   // Gateway port: use env override if set (nonzero), otherwise ask OS for a free port.
@@ -1088,27 +1148,15 @@ app.whenReady().then(async () => {
         });
     },
     onAuthChange: () => {
-      // Re-init ToolCapability on auth change (refresh system + extension tools from gateway catalog).
-      // Entitled tools come from MST store (populated by Panel's warmToolSpecs via proxy).
-      (async () => {
+      return (async () => {
+        await bootstrapDesktopAuthState();
         try {
-          if (openClawConnector.isReady) {
-            const catalog = await openClawConnector.request<{
-              groups: Array<{ tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> }>;
-            }>("tools.catalog", { includePlugins: true });
-            const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
-            for (const group of catalog.groups ?? []) {
-              for (const tool of group.tools ?? []) {
-                catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
-              }
-            }
-            rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
-          }
-          log.info(`ToolCapability auth change: re-initialized`);
+          await reinitializeToolCapabilityFromCatalog();
+          log.info("ToolCapability auth change: re-initialized");
         } catch (e) {
           log.warn("Failed to re-init ToolCapability on auth change:", e);
         }
-      })().catch(() => {});
+      })();
     },
     onAutoLaunchChange: (enabled: boolean) => {
       applyAutoLaunch(enabled);
@@ -1582,28 +1630,6 @@ app.whenReady().then(async () => {
         for (const group of catalog.groups ?? []) {
           for (const tool of group.tools ?? []) {
             catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
-          }
-        }
-
-        // Fetch essential entity data before marking initialized.
-        // These are the same queries Panel sends in initSession(), but
-        // Desktop needs them independently in case Panel hasn't loaded yet.
-        if (authSession) {
-          const essentials = [
-            TOOL_SPECS_SYNC_QUERY,
-            INIT_ME_QUERY,
-            INIT_SURFACES_QUERY,
-            INIT_RUN_PROFILES_QUERY,
-          ];
-          const results = await Promise.allSettled(
-            essentials.map(q => authSession.graphqlFetch(q)),
-          );
-          for (const r of results) {
-            if (r.status === "fulfilled" && r.value && typeof r.value === "object") {
-              try {
-                rootStore.ingestGraphQLResponse(r.value as Record<string, unknown>);
-              } catch { /* best-effort — don't block init */ }
-            }
           }
         }
 

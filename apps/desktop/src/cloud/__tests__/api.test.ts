@@ -114,7 +114,19 @@ describe("cloud-graphql handler", () => {
   });
 
   it("returns { data } on successful graphqlFetch", async () => {
-    const mockData = { me: { id: "1", email: "test@example.com" } };
+    const mockData = {
+      me: {
+        userId: "1",
+        email: "test@example.com",
+        name: "Test",
+        plan: "FREE",
+        createdAt: "2025-01-01T00:00:00Z",
+        enrolledModules: [],
+        entitlementKeys: [],
+        defaultRunProfileId: null,
+        llmKey: null,
+      },
+    };
     const ctx = {
       authSession: {
         getAccessToken: () => "valid-token",
@@ -122,7 +134,7 @@ describe("cloud-graphql handler", () => {
       },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { id email } }" });
+    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { userId email } }" });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);

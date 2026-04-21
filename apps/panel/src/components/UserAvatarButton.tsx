@@ -12,12 +12,16 @@ interface UserAvatarButtonProps {
 
 export const UserAvatarButton = observer(function UserAvatarButton({ onNavigate }: UserAvatarButtonProps) {
   const { t } = useTranslation();
-  const user = useEntityStore().currentUser;
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   function handleClick() {
     if (user) {
       onNavigate("/account");
+    } else if (authChecking) {
+      return;
     } else {
       setAuthModalOpen(true);
     }
@@ -28,11 +32,15 @@ export const UserAvatarButton = observer(function UserAvatarButton({ onNavigate 
   return (
     <div className="user-avatar-wrapper">
       <button
-        className={`user-avatar-btn${user ? " user-avatar-btn-active" : ""}`}
+        className={`user-avatar-btn${user || authChecking ? " user-avatar-btn-active" : ""}`}
         onClick={handleClick}
-        title={user ? user.email : t("auth.login")}
+        title={user ? user.email : authChecking ? t("common.loading") : t("auth.login")}
       >
-        {user ? <span className="user-avatar-circle">{initial}</span> : <UserPlusIcon />}
+        {user
+          ? <span className="user-avatar-circle">{initial}</span>
+          : authChecking
+            ? <span className="user-avatar-circle">...</span>
+            : <UserPlusIcon />}
       </button>
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>

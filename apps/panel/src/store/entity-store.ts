@@ -27,7 +27,6 @@ import { GENERATE_PAIRING_CODE, WAIT_FOR_PAIRING, GET_INSTALL_URL } from "../api
 import { SURFACES_QUERY } from "../api/surfaces-queries.js";
 import { RUN_PROFILES_QUERY } from "../api/run-profiles-queries.js";
 import {
-  ME_QUERY,
   SUBSCRIPTION_STATUS_QUERY,
   LLM_QUOTA_STATUS_QUERY,
 } from "../api/auth-queries.js";
@@ -94,51 +93,18 @@ const PanelRootStoreModel = RootStoreModel.props({
     /** Initialize the session: check Desktop auth state, validate via ME query if needed, trigger entity sync. */
     initSession: flow(function* () {
       try {
-        const session: { user: any; authenticated: boolean } = yield fetchJson(clientPath(API["auth.session"]));
-        if (session.authenticated && session.user) {
-          // User data already ingested into Desktop MST via auth-routes, arrives via SSE.
-          // Trigger entity sync via Desktop proxy (toolSpecs + surfaces + runProfiles + subscription + quota)
+        const session: { authenticated: boolean; tokenPresent?: boolean } = yield fetchJson(clientPath(API["auth.session"]));
+        if (session.authenticated || session.tokenPresent) {
           yield Promise.all([
-              client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: SURFACES_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: RUN_PROFILES_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
-            ]).catch(() => {});
-          // Trigger shops sync if ecommerce module enrolled
-          const modules = (session.user.enrolledModules ?? []) as string[];
-          if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
+            client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
+          ]).catch(() => {});
+          if ((self as any).currentUser?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
             yield Promise.all([
               client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
               client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
               client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
             ]).catch(() => {});
-          }
-          return;
-        }
-        if (session.authenticated && !session.user) {
-          // Token exists but user not cached — validate via Desktop proxy ME query
-          try {
-            yield client().query({ query: ME_QUERY, fetchPolicy: "network-only" });
-            // User data arrives via SSE after Desktop ingests ME_QUERY response.
-            // Now trigger entity sync.
-            yield Promise.all([
-              client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: SURFACES_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: RUN_PROFILES_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
-            ]).catch(() => {});
-            // Check enrolled modules from the now-populated user
-            if ((self as any).currentUser?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
-              yield Promise.all([
-                client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
-                client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-                client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
-              ]).catch(() => {});
-            }
-          } catch {
-            // ME query failed — user is not authenticated
           }
           return;
         }
@@ -148,53 +114,19 @@ const PanelRootStoreModel = RootStoreModel.props({
     }),
 
     login: flow(function* (input: { email: string; password: string; captchaToken?: string; captchaAnswer?: string }) {
-      const { user }: { user: any } = yield fetchJson(clientPath(API["auth.login"]), {
+      yield fetchJson(clientPath(API["auth.login"]), {
         method: "POST",
         body: JSON.stringify(input),
       });
-      // User data ingested by Desktop auth-routes -> MST -> SSE -> auto-update
       trackEvent("auth.login");
-      // Trigger entity sync
-      yield Promise.all([
-        client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: SURFACES_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: RUN_PROFILES_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
-      ]).catch(() => {});
-      const modules = (user.enrolledModules ?? []) as string[];
-      if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
-        yield Promise.all([
-          client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
-        ]).catch(() => {});
-      }
     }),
 
     register: flow(function* (input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string }) {
-      const { user }: { user: any } = yield fetchJson(clientPath(API["auth.register"]), {
+      yield fetchJson(clientPath(API["auth.register"]), {
         method: "POST",
         body: JSON.stringify(input),
       });
-      // User data ingested by Desktop auth-routes -> MST -> SSE -> auto-update
       trackEvent("auth.register");
-      // Trigger entity sync
-      yield Promise.all([
-        client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: SURFACES_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: RUN_PROFILES_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
-      ]).catch(() => {});
-      const modules = (user.enrolledModules ?? []) as string[];
-      if (modules.includes("GLOBAL_ECOMMERCE_SELLER")) {
-        yield Promise.all([
-          client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
-        ]).catch(() => {});
-      }
     }),
 
     logout: flow(function* () {

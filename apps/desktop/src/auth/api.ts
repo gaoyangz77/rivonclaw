@@ -18,15 +18,20 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 }
 
 const getSession: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
+  const authBootstrap = (rootStore as any).authBootstrap as { status: string; error: string | null };
   if (!ctx.authSession) {
-    sendJson(res, 200, { user: null, authenticated: false });
+    sendJson(res, 200, {
+      authenticated: false,
+      bootstrapStatus: authBootstrap.status,
+      error: authBootstrap.error,
+    });
     return;
   }
-  const user = ctx.authSession.getCachedUser();
-  if (user) rootStore.setCurrentUser(user);
   sendJson(res, 200, {
-    user,
-    authenticated: !!ctx.authSession.getAccessToken(),
+    authenticated: rootStore.authenticated,
+    bootstrapStatus: authBootstrap.status,
+    error: authBootstrap.error,
+    tokenPresent: !!ctx.authSession.getAccessToken(),
   });
 };
 
@@ -41,10 +46,9 @@ const login: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) 
     return;
   }
   try {
-    const user = await ctx.authSession.loginWithCredentials(body);
-    rootStore.setCurrentUser(user);
-    ctx.onAuthChange?.();
-    sendJson(res, 200, { user });
+    await ctx.authSession.loginWithCredentials(body);
+    await ctx.onAuthChange?.();
+    sendJson(res, 200, { ok: true });
   } catch (err) {
     sendJson(res, 400, { error: err instanceof Error ? err.message : "Login failed" });
   }
@@ -61,10 +65,9 @@ const register: EndpointHandler = async (req, res, _url, _params, ctx: ApiContex
     return;
   }
   try {
-    const user = await ctx.authSession.registerWithCredentials(body);
-    rootStore.setCurrentUser(user);
-    ctx.onAuthChange?.();
-    sendJson(res, 200, { user });
+    await ctx.authSession.registerWithCredentials(body);
+    await ctx.onAuthChange?.();
+    sendJson(res, 200, { ok: true });
   } catch (err) {
     sendJson(res, 400, { error: err instanceof Error ? err.message : "Registration failed" });
   }
@@ -104,9 +107,8 @@ const storeTokens: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
       ctx.authSession.setCachedUser(user);
     }
   }
-  if (user) rootStore.setCurrentUser(user);
-  ctx.onAuthChange?.();
-  sendJson(res, 200, { ok: true, user });
+  await ctx.onAuthChange?.();
+  sendJson(res, 200, { ok: true });
 };
 
 const refresh: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
@@ -129,7 +131,7 @@ const logout: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
   }
   await ctx.authSession.logout();
   rootStore.clearUser();
-  ctx.onAuthChange?.();
+  await ctx.onAuthChange?.();
   sendJson(res, 200, { ok: true });
 };
 

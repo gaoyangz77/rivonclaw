@@ -12,6 +12,14 @@ import { UserModel } from "./User.js";
 import { PlatformAppModel } from "./PlatformApp.js";
 import { ServiceCreditModel } from "./ServiceCredit.js";
 
+const AuthBootstrapStateModel = types.model("AuthBootstrapState", {
+  status: types.optional(
+    types.enumeration("AuthBootstrapStatus", ["signed_out", "loading", "ready", "error"]),
+    "signed_out",
+  ),
+  error: types.maybeNull(types.string),
+});
+
 export const RootStoreModel = types
   .model("RootStore", {
     /** System (core) tools — pre-seeded from SYSTEM_TOOL_CATALOG, filtered on gateway init. */
@@ -30,6 +38,7 @@ export const RootStoreModel = types
     llmQuotaStatus: types.maybeNull(LlmQuotaStatusModel),
     toolCapability: types.optional(ToolCapabilityModel, {}),
     currentUser: types.maybeNull(UserModel),
+    authBootstrap: types.optional(AuthBootstrapStateModel, { status: "signed_out", error: null }),
     platformApps: types.optional(types.array(PlatformAppModel), []),
     credits: types.optional(types.array(ServiceCreditModel), []),
   })

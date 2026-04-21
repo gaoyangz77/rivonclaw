@@ -29,9 +29,7 @@ export const AuthGate = observer(function AuthGate({
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const subscription = entityStore.subscriptionStatus;
-  // authLoading is no longer needed — if currentUser is null during init,
-  // the SSE snapshot will populate it. Show login gate if user is null.
-  const authLoading = false;
+  const authLoading = (entityStore as any).authBootstrap?.status === "loading";
 
   if (authLoading) {
     if (loadingElement) return <>{loadingElement}</>;

@@ -94,7 +94,7 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
    * Handles reads (query arrays) and creates/updates (mutation objects).
    * Deletes are handled by Panel MST actions directly (optimistic removal after mutation succeeds).
    */
-  ingestGraphQLResponse(rawData: Record<string, unknown>) {
+    ingestGraphQLResponse(rawData: Record<string, unknown>) {
     // --- Entity collections: __typename → MST array ---
     const COLLECTIONS: Record<string, any> = {
       Shop: self.shops,
@@ -106,7 +106,7 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
     };
 
     // --- Nullable singletons: __typename → getter/setter ---
-    const SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
+      const SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
       UserSubscription: {
         get: () => self.subscriptionStatus,
         set: (v) => { self.subscriptionStatus = v; },
@@ -118,8 +118,14 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       MeResponse: {
         get: () => self.currentUser,
         set: (v) => { self.currentUser = v; },
-      },
-    };
+        },
+      };
+
+      const KEY_SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
+        me: SINGLETONS.MeResponse,
+        subscriptionStatus: SINGLETONS.UserSubscription,
+        llmQuotaStatus: SINGLETONS.LlmQuotaStatus,
+      };
 
     // --- Key-based fallback for arrays without __typename ---
     const KEY_FALLBACK: Record<string, any> = {
@@ -165,8 +171,9 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       }
 
       // 4. Singleton entity → set or update
-      if (typeName && SINGLETONS[typeName]) {
-        const s = SINGLETONS[typeName];
+      const singleton = (typeName && SINGLETONS[typeName]) || (!typeName && KEY_SINGLETONS[key]);
+      if (singleton) {
+        const s = singleton;
         if (s.get()) {
           applySnapshot(s.get(), sanitized);
         } else {
@@ -213,18 +220,46 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
   },
 
   /** Set the current user from auth REST routes (login/register/session). */
-  setCurrentUser(userData: any) {
-    if (self.currentUser) {
-      applySnapshot(self.currentUser, userData);
-    } else {
-      self.currentUser = userData;
-    }
-  },
+    setCurrentUser(userData: any) {
+      if (self.currentUser) {
+        applySnapshot(self.currentUser, userData);
+      } else {
+        self.currentUser = userData;
+      }
+    },
 
-  /** Clear user on logout. */
-  clearUser() {
-    self.currentUser = null;
-  },
+    setAuthBootstrap(status: "signed_out" | "loading" | "ready" | "error", error: string | null = null) {
+      (self as any).authBootstrap.status = status;
+      (self as any).authBootstrap.error = error;
+    },
+
+    clearCloudEntities() {
+      self.currentUser = null;
+      applySnapshot(self.entitledTools, []);
+      applySnapshot(self.surfaces, []);
+      applySnapshot(self.runProfiles, []);
+      applySnapshot(self.shops, []);
+      applySnapshot(self.platformApps, []);
+      applySnapshot(self.credits, []);
+      self.subscriptionStatus = null;
+      self.llmQuotaStatus = null;
+    },
+
+    clearCloudDataExceptUser() {
+      applySnapshot(self.entitledTools, []);
+      applySnapshot(self.surfaces, []);
+      applySnapshot(self.runProfiles, []);
+      applySnapshot(self.shops, []);
+      applySnapshot(self.platformApps, []);
+      applySnapshot(self.credits, []);
+      self.subscriptionStatus = null;
+      self.llmQuotaStatus = null;
+    },
+
+    /** Clear user on logout. */
+    clearUser() {
+      self.currentUser = null;
+    },
 
   /** Replace all client tool specs in the MST store (from gateway RPC). */
   loadClientToolSpecs(specs: any[]) {
