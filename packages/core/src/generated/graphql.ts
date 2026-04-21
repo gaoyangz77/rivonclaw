@@ -655,12 +655,140 @@ export interface EcomProduct {
 
 /** Product SKU */
 export interface EcomProductSku {
-  currency?: Maybe<Scalars['String']['output']>;
+  externalListPrices?: Maybe<Array<EcomProductSkuExternalListPrice>>;
+  fees?: Maybe<Array<EcomProductSkuFee>>;
+  /** Unique ID of this SKU */
+  id: Scalars['String']['output'];
+  inventory?: Maybe<Array<EcomProductSkuInventory>>;
+  listPrice?: Maybe<EcomProductSkuMoney>;
+  preSale?: Maybe<EcomProductSkuPreSale>;
+  price?: Maybe<EcomProductSkuPrice>;
+  sellerSku?: Maybe<Scalars['String']['output']>;
+  statusInfo?: Maybe<EcomProductSkuStatusInfo>;
+}
+
+/** Currency used by TikTok Shop product SKU pricing fields. */
+export const EcomProductSkuCurrency = {
+  Brl: 'BRL',
+  Eur: 'EUR',
+  Gbp: 'GBP',
+  Idr: 'IDR',
+  Jpy: 'JPY',
+  Mxn: 'MXN',
+  Myr: 'MYR',
+  Php: 'PHP',
+  Sgd: 'SGD',
+  Thb: 'THB',
+  Usd: 'USD',
+  Vnd: 'VND'
+} as const;
+
+export type EcomProductSkuCurrency = typeof EcomProductSkuCurrency[keyof typeof EcomProductSkuCurrency];
+/** Source that deactivated a product SKU. */
+export const EcomProductSkuDeactivationSource = {
+  ComboRelation: 'COMBO_RELATION',
+  Platform: 'PLATFORM',
+  Seller: 'SELLER'
+} as const;
+
+export type EcomProductSkuDeactivationSource = typeof EcomProductSkuDeactivationSource[keyof typeof EcomProductSkuDeactivationSource];
+/** External list price attached to a product SKU */
+export interface EcomProductSkuExternalListPrice {
+  amount?: Maybe<Scalars['String']['output']>;
+  currency?: Maybe<EcomProductSkuCurrency>;
+  source?: Maybe<EcomProductSkuExternalListPriceSource>;
+}
+
+/** External platform source for a SKU external list price. */
+export const EcomProductSkuExternalListPriceSource = {
+  ShopifyCompareAtPrice: 'SHOPIFY_COMPARE_AT_PRICE'
+} as const;
+
+export type EcomProductSkuExternalListPriceSource = typeof EcomProductSkuExternalListPriceSource[keyof typeof EcomProductSkuExternalListPriceSource];
+/** Platform fee attached to a product SKU */
+export interface EcomProductSkuFee {
+  additionalAttribute?: Maybe<EcomProductSkuFeeAdditionalAttribute>;
+  amount?: Maybe<Scalars['String']['output']>;
+  type?: Maybe<EcomProductSkuFeeType>;
+}
+
+/** Additional attribute for a product SKU fee. */
+export const EcomProductSkuFeeAdditionalAttribute = {
+  NotApplicable: 'NOT_APPLICABLE',
+  Reusable: 'REUSABLE',
+  SingleUse: 'SINGLE_USE'
+} as const;
+
+export type EcomProductSkuFeeAdditionalAttribute = typeof EcomProductSkuFeeAdditionalAttribute[keyof typeof EcomProductSkuFeeAdditionalAttribute];
+/** Fee type attached to a product SKU. */
+export const EcomProductSkuFeeType = {
+  Pfand: 'PFAND'
+} as const;
+
+export type EcomProductSkuFeeType = typeof EcomProductSkuFeeType[keyof typeof EcomProductSkuFeeType];
+/** Inventory entry for a product SKU in a warehouse */
+export interface EcomProductSkuInventory {
+  backorderQuantity?: Maybe<Scalars['Int']['output']>;
+  handlingTime?: Maybe<Scalars['Int']['output']>;
+  quantity?: Maybe<Scalars['Int']['output']>;
+  warehouseId?: Maybe<Scalars['String']['output']>;
+}
+
+/** Price-like amount with currency for product SKU fields */
+export interface EcomProductSkuMoney {
+  amount?: Maybe<Scalars['String']['output']>;
+  currency?: Maybe<EcomProductSkuCurrency>;
+}
+
+/** Pre-sale settings for a product SKU */
+export interface EcomProductSkuPreSale {
+  fulfillmentType?: Maybe<EcomProductSkuPreSaleFulfillmentType>;
+  type?: Maybe<EcomProductSkuPreSaleType>;
+}
+
+/** Pre-sale fulfillment settings for a product SKU */
+export interface EcomProductSkuPreSaleFulfillmentType {
+  handlingDurationDays?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds */
+  releaseDate?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Pre-sale type for a product SKU. */
+export const EcomProductSkuPreSaleType = {
+  Custom: 'CUSTOM',
+  MadeToOrder: 'MADE_TO_ORDER',
+  PreOrder: 'PRE_ORDER'
+} as const;
+
+export type EcomProductSkuPreSaleType = typeof EcomProductSkuPreSaleType[keyof typeof EcomProductSkuPreSaleType];
+/** Detailed price breakdown for a product SKU */
+export interface EcomProductSkuPrice {
+  currency?: Maybe<EcomProductSkuCurrency>;
+  salePrice?: Maybe<Scalars['String']['output']>;
+  taxExclusivePrice?: Maybe<Scalars['String']['output']>;
+}
+
+/** Lifecycle status for a product SKU. */
+export const EcomProductSkuStatus = {
+  Deactivated: 'DEACTIVATED',
+  Normal: 'NORMAL'
+} as const;
+
+export type EcomProductSkuStatus = typeof EcomProductSkuStatus[keyof typeof EcomProductSkuStatus];
+/** Status metadata for a product SKU */
+export interface EcomProductSkuStatusInfo {
+  deactivationSource?: Maybe<EcomProductSkuDeactivationSource>;
+  status?: Maybe<EcomProductSkuStatus>;
+}
+
+/** Trimmed product SKU summary for list endpoints. Use ecommerceGetProduct for the full product payload. */
+export interface EcomProductSkuSummary {
+  currency?: Maybe<EcomProductSkuCurrency>;
   price?: Maybe<Scalars['String']['output']>;
   sellerSku?: Maybe<Scalars['String']['output']>;
   /** Unique ID of this SKU */
   skuId: Scalars['String']['output'];
-  /** Buyer-visible variant label derived from the SKU's sales_attributes (e.g. 'Red / Large'). Joined in order, separated by ' / '. Absent when the product has no sales-attribute variants. */
+  /** Summary label for the SKU. Derived from sellerSku for list/search output. */
   skuName?: Maybe<Scalars['String']['output']>;
   stockQuantity?: Maybe<Scalars['Int']['output']>;
 }
@@ -691,7 +819,7 @@ export interface EcomProductSummary {
   /** Lowest SKU price across the product's variants, formatted to two decimals (e.g. '10.00'). Omitted when no SKU has a numeric price. When only one SKU exists, priceMin === priceMax. */
   priceMin?: Maybe<Scalars['String']['output']>;
   productId: Scalars['String']['output'];
-  skus?: Maybe<Array<EcomProductSku>>;
+  skus?: Maybe<Array<EcomProductSkuSummary>>;
   status?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
   /** Unix seconds */
