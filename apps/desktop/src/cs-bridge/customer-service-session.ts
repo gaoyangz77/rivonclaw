@@ -768,13 +768,12 @@ export class CustomerServiceSession {
 
       // Step 2: fetch buyer's recent orders using the platform buyer ID
       const ordersResult = await authSession.graphqlFetch<{
-        ecommerceGetOrders: { items: Array<{ orderId: string; createTime?: number }> };
+        ecommerceGetOrders: Array<{ orderId: string; createTime?: number }>;
       }>(GET_BUYER_ORDERS_QUERY, {
         shopId: this.csContext.shopId,
         buyerUserId: platformBuyerId,
       });
-      const items = ordersResult.ecommerceGetOrders?.items ?? [];
-      const orders = items
+      const orders = (ordersResult.ecommerceGetOrders ?? [])
         .filter((o): o is { orderId: string; createTime: number } => !!o.orderId && typeof o.createTime === "number")
         .map((o) => ({ orderId: o.orderId, createTime: o.createTime }))
         .sort((a, b) => b.createTime - a.createTime);

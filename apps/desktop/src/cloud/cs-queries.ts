@@ -34,7 +34,8 @@ export const GET_CONVERSATION_DETAILS_QUERY = `
 export const GET_BUYER_ORDERS_QUERY = `
   query($shopId: String!, $buyerUserId: String) {
     ecommerceGetOrders(shopId: $shopId, buyerUserId: $buyerUserId) {
-      items { orderId createTime }
+      orderId
+      createTime
     }
   }
 `;

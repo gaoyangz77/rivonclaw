@@ -10,6 +10,7 @@ import {
   type CSNewMessageFrame,
   type CSNewConversationFrame,
   type CSWSFrame,
+  stripReasoningTagsFromText,
 } from "@rivonclaw/core";
 import { getAuthSession } from "../auth/session-ref.js";
 import { getStorageRef } from "../app/storage-ref.js";
@@ -57,6 +58,17 @@ interface CustomerServiceBridgeOptions {
  * accordingly. No explicit push of shop contexts is needed.
  */
 export class CustomerServiceBridge {
+  private static readonly INTERNAL_PROTOCOL_LINE_PATTERNS = [
+    /^\s*```(?:json)?\s*$/i,
+    /^\s*`+\s*$/,
+    /^\s*\{[\s\S]*"(?:tool_uses|recipient_name|parameters|product_id|tool|arguments|name)"[\s\S]*\}\s*`?\s*$/,
+    /^\s*to=functions\.[\w.-]+.*$/i,
+    /^\s*But the tool name is shown in the line above:.*$/i,
+    /^\s*In this task, I should use:\s*$/i,
+    /^\s*and specify the tool with .*$/i,
+    /^\s*In the assistant interface, I can do:\s*$/i,
+  ];
+
   private ws: WebSocket | null = null;
   private closed = false;
   private authenticated = false;
@@ -376,6 +388,18 @@ export class CustomerServiceBridge {
     // Don't forward for aborted runs
     if (session.abortedRunIds.has(runId)) return;
 
+    // Strip internal protocol/tool scaffolding that occasionally leaks into
+    // assistant text streams before we evaluate whether anything meaningful
+    // remains to send to the buyer.
+    text = this.sanitizeForwardedText(text);
+    if (!text) {
+      session.emitError(CS_ERROR_STAGE.SANITIZE, {
+        reason: "internal_protocol",
+        runId,
+      });
+      return;
+    }
+
     // Sanitize runtime error/timeout patterns. If nothing is left, the turn
     // is dropped silently — a real human CS wouldn't send "sorry, I couldn't
     // answer" either. Emit a `cs.error` so ops can see how often a shop's
@@ -450,6 +474,41 @@ export class CustomerServiceBridge {
     // sweep will surface this conversation for recovery.
     log.info("Agent text was entirely a runtime error message, dropping");
     return "";
+  }
+
+  /**
+   * Remove internal tool/protocol scaffolding that should never reach buyers.
+   * This guards against models that accidentally surface tool-call JSON,
+   * channel/tool invocation hints, or markdown-fenced argument examples in the
+   * assistant text stream.
+   */
+  private sanitizeForwardedText(text: string): string {
+    let cleaned = stripReasoningTagsFromText(text, { mode: "preserve", trim: "both" });
+
+    // Drop fenced JSON/code examples entirely. Buyer-facing CS replies should
+    // never contain tool-call payload examples, and those blocks are a common
+    // way leaked protocol text shows up in the stream.
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, " ");
+
+    const keptLines = cleaned
+      .split("\n")
+      .map((line) => line.trim())
+      .map((line) => {
+        if (!line) return "";
+        if (CustomerServiceBridge.INTERNAL_PROTOCOL_LINE_PATTERNS.some((pattern) => pattern.test(line))) {
+          return "";
+        }
+        return line;
+      });
+
+    cleaned = keptLines.join("\n").trim();
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+
+    // If the remaining text is still overwhelmingly machine/protocol-like,
+    // drop it instead of risking an invalid or embarrassing buyer message.
+    if (!cleaned) return "";
+    if (!/[\p{L}\p{N}]/u.test(cleaned)) return "";
+    return cleaned;
   }
 
   // -- Entity cache subscription ---------------------------------------------

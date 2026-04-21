@@ -619,7 +619,7 @@ describe("session registration", () => {
         return { ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } } };
       }
       if (query.includes("ecommerceGetOrders")) {
-        return { ecommerceGetOrders: { items: [{ orderId: "order-555", createTime: 1700000000 }] } };
+        return { ecommerceGetOrders: [{ orderId: "order-555", createTime: 1700000000 }] };
       }
       return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
     });
@@ -696,7 +696,7 @@ describe("agent dispatch", () => {
         return { ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } } };
       }
       if (query.includes("ecommerceGetOrders")) {
-        return { ecommerceGetOrders: { items: [{ orderId: "order-in-prompt", createTime: 1700000000 }] } };
+        return { ecommerceGetOrders: [{ orderId: "order-in-prompt", createTime: 1700000000 }] };
       }
       return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
     });
@@ -2329,6 +2329,58 @@ describe("per-turn message forwarding", () => {
     // data.text is a number — should be ignored
     agentEvent(bridge, "run-1", "assistant", { text: 42 } as any);
     agentEvent(bridge, "run-1", "lifecycle", { phase: "end" });
+
+    expect(await getForwardedTexts()).toHaveLength(0);
+  });
+
+  it("strips leaked tool/protocol scaffolding before forwarding buyer-facing text", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-protocol-clean");
+
+    agentEvent(bridge, "run-protocol-clean", "assistant", {
+      text: `{"tool_uses":[{"recipient_name":"functions.ecom_cs_get_product","parameters":{"product_id":"1732306320036107219"}}]}
+{"product_id":"1732306320036107219"}
+{"tool":"functions.ecom_cs_get_product","product_id":"1732306320036107219"}{"name":"functions.ecom_cs_get_product","arguments":{"product_id":"1732306320036107219"}}
+But the tool name is shown in the line above: \`to=functions.ecom_cs_get_product\`. That is added by system because I included it.
+In this task, I should use:
+\`\`\`json
+{"product_id":"1732306320036107219"}
+\`\`\`
+and specify the tool with "to=functions.ecom_cs_get_product" but that's outside content. In the assistant interface, I can do:
+Gracias por enviar el producto.
+
+Ahora mismo no me está cargando la ficha de ese producto (para confirmar stock/variantes/precio). ¿Me puedes enviar una captura de pantalla donde se vean las variantes (mm y largo) o escribirme el nombre de la variante que quieres?
+
+Con eso te confirmo de inmediato si está disponible y cuál opción te conviene más.`,
+    });
+    agentEvent(bridge, "run-protocol-clean", "lifecycle", { phase: "end" });
+
+    const texts = await getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe(
+      `Gracias por enviar el producto.
+
+Ahora mismo no me está cargando la ficha de ese producto (para confirmar stock/variantes/precio). ¿Me puedes enviar una captura de pantalla donde se vean las variantes (mm y largo) o escribirme el nombre de la variante que quieres?
+
+Con eso te confirmo de inmediato si está disponible y cuál opción te conviene más.`,
+    );
+  });
+
+  it("drops text segments that are only leaked tool/protocol scaffolding", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-protocol-drop");
+
+    agentEvent(bridge, "run-protocol-drop", "assistant", {
+      text: `{"tool_uses":[{"recipient_name":"functions.ecom_cs_get_product","parameters":{"product_id":"1732306320036107219"}}]}
+{"product_id":"1732306320036107219"}
+But the tool name is shown in the line above: \`to=functions.ecom_cs_get_product\`.
+\`\`\`json
+{"product_id":"1732306320036107219"}
+\`\`\``,
+    });
+    agentEvent(bridge, "run-protocol-drop", "lifecycle", { phase: "end" });
 
     expect(await getForwardedTexts()).toHaveLength(0);
   });
