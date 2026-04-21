@@ -233,17 +233,6 @@ export interface CustomerServiceConversationSummary {
   unreadCount?: Maybe<Scalars['Int']['output']>;
 }
 
-/** Page of customer service conversation summaries */
-export interface CustomerServiceConversationSummaryPage {
-  items: Array<CustomerServiceConversationSummary>;
-  /** Pagination cursor — pass back to fetch the next page */
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  /** True when pagination aborted mid-scan due to an API error. Results may be incomplete. */
-  partial?: Maybe<Scalars['Boolean']['output']>;
-  /** Total number of conversations matching the query */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Create conversation result */
 export interface CustomerServiceCreateConversationResult {
   conversationId: Scalars['String']['output'];
@@ -472,13 +461,6 @@ export interface EcomCancellationLineItem {
   skuName?: Maybe<Scalars['String']['output']>;
 }
 
-/** Page of cancellations */
-export interface EcomCancellationPage {
-  items: Array<EcomCancellation>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Shipping document format */
 export const EcomDocumentFormat = {
   Pdf: 'PDF',
@@ -595,13 +577,6 @@ export interface EcomOrderSummary {
   trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
-/** Page of order summaries */
-export interface EcomOrderSummaryPage {
-  items: Array<EcomOrderSummary>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Tracking info for an order */
 export interface EcomOrderTracking {
   events?: Maybe<Array<EcomTrackingEvent>>;
@@ -644,13 +619,6 @@ export interface EcomPackageOrder {
   /** Unique ID of this order */
   orderId: Scalars['String']['output'];
   skus?: Maybe<Array<EcomPackageSku>>;
-}
-
-/** Page of fulfillment packages */
-export interface EcomPackagePage {
-  items: Array<EcomPackage>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
 }
 
 /** SKU contained in a package */
@@ -730,13 +698,6 @@ export interface EcomProductSummary {
   updateTime?: Maybe<Scalars['Int']['output']>;
 }
 
-/** Page of product summaries */
-export interface EcomProductSummaryPage {
-  items: Array<EcomProductSummary>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Shipping address on an order */
 export interface EcomRecipientAddress {
   city?: Maybe<Scalars['String']['output']>;
@@ -797,13 +758,6 @@ export interface EcomReturnLineItem {
   sellerSku?: Maybe<Scalars['String']['output']>;
   skuId?: Maybe<Scalars['String']['output']>;
   skuName?: Maybe<Scalars['String']['output']>;
-}
-
-/** Page of returns */
-export interface EcomReturnPage {
-  items: Array<EcomReturn>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-  totalCount?: Maybe<Scalars['Int']['output']>;
 }
 
 /** Return audit event */
@@ -1316,14 +1270,14 @@ export interface Query {
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get messages of a conversation */
   ecommerceGetConversationMessages: CustomerServiceMessageSummaryPage;
-  /** Get conversations for a shop */
-  ecommerceGetConversations: CustomerServiceConversationSummaryPage;
+  /** Get conversations for a shop as a flat summary list. Pagination is handled internally by the backend. */
+  ecommerceGetConversations: Array<CustomerServiceConversationSummary>;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
   ecommerceGetOrder?: Maybe<EcomOrder>;
-  /** List/search orders (summary version). Optional buyerUserId for buyer-scoped queries. For full order details use ecommerceGetOrder. */
-  ecommerceGetOrders: EcomOrderSummaryPage;
+  /** List/search orders as a flat summary list. Optional buyerUserId for buyer-scoped queries. Pagination is handled internally by the backend. For full order details use ecommerceGetOrder. */
+  ecommerceGetOrders: Array<EcomOrderSummary>;
   /** Get package detail by package ID */
   ecommerceGetPackageDetail: EcomPackageDetail;
   /** Get shipping document for a package */
@@ -1338,14 +1292,14 @@ export interface Query {
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
-  /** Search order cancellation requests */
-  ecommerceSearchCancellations: EcomCancellationPage;
-  /** Search fulfillment packages with optional filters */
-  ecommerceSearchPackages: EcomPackagePage;
-  /** Search/list products with optional filters (summary version). For full product details including images use ecommerceGetProduct. */
-  ecommerceSearchProducts: EcomProductSummaryPage;
-  /** Search return/refund/replacement requests */
-  ecommerceSearchReturns: EcomReturnPage;
+  /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
+  ecommerceSearchCancellations: Array<EcomCancellation>;
+  /** Search fulfillment packages with optional filters and return a flat list. Pagination is handled internally by the backend. */
+  ecommerceSearchPackages: Array<EcomPackage>;
+  /** Search/list products with optional filters and return a flat summary list. Pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
+  ecommerceSearchProducts: Array<EcomProductSummary>;
+  /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
+  ecommerceSearchReturns: Array<EcomReturn>;
   /** Get LLM quota status for the current user */
   llmQuotaStatus: LlmQuotaStatus;
   /** Get current authenticated user profile */
@@ -1450,9 +1404,8 @@ export interface QueryEcommerceGetConversationMessagesArgs {
 
 
 export interface QueryEcommerceGetConversationsArgs {
+  limit?: InputMaybe<Scalars['Int']['input']>;
   locale?: InputMaybe<Scalars['String']['input']>;
-  pageSize: Scalars['Float']['input'];
-  pageToken?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
 }
 
@@ -1473,8 +1426,7 @@ export interface QueryEcommerceGetOrderArgs {
 
 export interface QueryEcommerceGetOrdersArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
   status?: InputMaybe<EcomOrderStatus>;
 }
@@ -1537,9 +1489,8 @@ export interface QueryEcommerceSearchCancellationsArgs {
   cancelTypes?: InputMaybe<Array<EcomCancelTypeFilter>>;
   createTimeGe?: InputMaybe<Scalars['Float']['input']>;
   createTimeLt?: InputMaybe<Scalars['Float']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
   orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
@@ -1549,9 +1500,8 @@ export interface QueryEcommerceSearchCancellationsArgs {
 export interface QueryEcommerceSearchPackagesArgs {
   createTimeGe?: InputMaybe<Scalars['Float']['input']>;
   createTimeLt?: InputMaybe<Scalars['Float']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
   packageStatus?: InputMaybe<EcomPackageStatus>;
-  pageSize: Scalars['Float']['input'];
-  pageToken?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
   sortField?: InputMaybe<EcomSortField>;
   sortOrder?: InputMaybe<EcomSortOrder>;
@@ -1561,8 +1511,7 @@ export interface QueryEcommerceSearchPackagesArgs {
 
 
 export interface QueryEcommerceSearchProductsArgs {
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
   status?: InputMaybe<EcomProductStatus>;
 }
@@ -1571,9 +1520,8 @@ export interface QueryEcommerceSearchProductsArgs {
 export interface QueryEcommerceSearchReturnsArgs {
   createTimeGe?: InputMaybe<Scalars['Float']['input']>;
   createTimeLt?: InputMaybe<Scalars['Float']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
   orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  pageSize?: InputMaybe<Scalars['Float']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
   returnIds?: InputMaybe<Array<Scalars['String']['input']>>;
   returnStatus?: InputMaybe<Array<EcomReturnStatusFilter>>;
   returnTypes?: InputMaybe<Array<EcomReturnTypeFilter>>;
