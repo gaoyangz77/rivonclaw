@@ -329,16 +329,22 @@ function extractToolInputMessage(block: Record<string, unknown>): string | null 
     // Object form — Anthropic `input` or Pi Agent `arguments`
     if (typeof val === "object") {
       const obj = val as Record<string, unknown>;
-      if (typeof obj.message === "string" && obj.message.trim()) {
-        return obj.message.trim();
+      for (const key of ["message", "caption", "text", "content"] as const) {
+        const candidate = obj[key];
+        if (typeof candidate === "string" && candidate.trim()) {
+          return candidate.trim();
+        }
       }
     }
     // JSON string form — OpenAI `arguments`
     if (typeof val === "string") {
       try {
         const parsed = JSON.parse(val) as Record<string, unknown>;
-        if (typeof parsed.message === "string" && parsed.message.trim()) {
-          return parsed.message.trim();
+        for (const key of ["message", "caption", "text", "content"] as const) {
+          const candidate = parsed[key];
+          if (typeof candidate === "string" && candidate.trim()) {
+            return candidate.trim();
+          }
         }
       } catch { /* malformed JSON — skip */ }
     }

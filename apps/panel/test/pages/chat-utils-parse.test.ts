@@ -96,6 +96,38 @@ describe("parseRawMessages — stripped image handling", () => {
     expect(textMsg).toBeDefined();
     expect(textMsg!.text).toContain(IMAGE_EXPIRED_PLACEHOLDER);
   });
+
+  it("extracts caption text from message tool calls in assistant history", () => {
+    const raw = [
+      {
+        role: "assistant" as const,
+        content: [
+          {
+            type: "tool_use",
+            name: "message",
+            input: {
+              caption: "文件已经发给你了",
+              media: "/tmp/report.pdf",
+            },
+          },
+        ],
+        timestamp: 6000,
+      },
+    ];
+
+    const result = parseRawMessages(raw);
+    expect(result).toEqual([
+      expect.objectContaining({
+        role: "tool-event",
+        toolName: "message",
+      }),
+      expect.objectContaining({
+        role: "assistant",
+        text: "文件已经发给你了",
+        timestamp: 6000,
+      }),
+    ]);
+  });
 });
 
 describe("localizeError", () => {

@@ -418,7 +418,12 @@ export class ChatGatewayController {
               },
             });
             if (toolName === "message" && toolPhase === "start" && toolArgs && isActiveMirror) {
-              const msgText = (toolArgs.message ?? toolArgs.text ?? toolArgs.content) as string | undefined;
+              const msgText = (
+                toolArgs.message ??
+                toolArgs.caption ??
+                toolArgs.text ??
+                toolArgs.content
+              ) as string | undefined;
               if (msgText) {
                 const session = this.store.activeSession;
                 if (session) {
