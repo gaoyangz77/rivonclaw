@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.4",
+    "date": "2026-04-21",
+    "en": [
+      "Improve desktop sign-in and bootstrap reliability by separating auth state from desktop bootstrap and fixing surface bootstrap query fields",
+      "Fix cron run profile selector persistence so scheduled task configuration is saved more reliably",
+      "Fix desktop updater payload typing to reduce update-flow edge-case errors"
+    ],
+    "zh": [
+      "改进桌面端登录与初始化稳定性：拆分认证状态和启动初始化流程，并修复 surface bootstrap 查询字段",
+      "修复定时任务运行配置选择器的保存问题，计划任务设置更稳定",
+      "修复桌面端更新数据类型处理，减少更新流程里的边缘报错"
+    ]
+  },
+  {
     "version": "1.8.3",
     "date": "2026-04-21",
     "en": [
