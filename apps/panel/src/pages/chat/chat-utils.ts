@@ -2,14 +2,22 @@ import { stripReasoningTagsFromText, DEFAULTS } from "@rivonclaw/core";
 
 export type ChatImage = { data: string; mimeType: string };
 
+export type ToolEventStatus = "running" | "failed";
+
 export type ChatMessage = {
   role: "user" | "assistant" | "tool-event";
   text: string;
   timestamp: number;
   images?: ChatImage[];
   toolName?: string;
+  toolCallId?: string;
+  toolRunId?: string;
   /** Tool call arguments — present on tool-event messages when the gateway provides them. */
   toolArgs?: Record<string, unknown>;
+  /** Tool call lifecycle status for tool-event messages. */
+  toolStatus?: ToolEventStatus;
+  /** Tool error message when a tool-event failed. */
+  toolError?: string;
   /** Gateway-assigned idempotency key — present on user messages loaded from history. */
   idempotencyKey?: string;
   /** True for user messages from external channels (Telegram, Chrome, etc.), not typed in the panel. */
@@ -376,6 +384,97 @@ function extractToolArgs(block: Record<string, unknown>): Record<string, unknown
 }
 
 /**
+ * Extract the tool name from a tool-call block or agent event payload.
+ * Different producers use different field names (`name`, `toolName`).
+ */
+export function extractToolCallName(block: Record<string, unknown>): string | undefined {
+  for (const field of ["name", "toolName", "tool_name"]) {
+    const val = block[field];
+    if (typeof val === "string" && val.trim()) {
+      return val.trim();
+    }
+  }
+  return undefined;
+}
+
+export function extractToolError(block: Record<string, unknown>): string | undefined {
+  for (const field of ["error", "errorMessage", "toolError"]) {
+    const val = block[field];
+    if (typeof val === "string" && val.trim()) {
+      return val.trim();
+    }
+  }
+  if (block.is_error === true || block.isError === true || block.success === false || block.ok === false) {
+    return "Tool call failed";
+  }
+  return undefined;
+}
+
+export function createToolEventMessage(params: {
+  toolName: string;
+  timestamp: number;
+  toolArgs?: Record<string, unknown>;
+  toolStatus?: ToolEventStatus;
+  toolError?: string;
+  toolRunId?: string;
+  toolCallId?: string;
+}): ChatMessage {
+  return {
+    role: "tool-event",
+    text: params.toolName,
+    timestamp: params.timestamp,
+    toolName: params.toolName,
+    toolArgs: params.toolArgs,
+    toolStatus: params.toolStatus,
+    toolError: params.toolError,
+    toolRunId: params.toolRunId,
+    toolCallId: params.toolCallId,
+  };
+}
+
+export function settleActiveToolEvent(
+  messages: ChatMessage[],
+  params: {
+    runId: string;
+    status: Exclude<ToolEventStatus, "running">;
+    error?: string;
+  },
+): ChatMessage[] {
+  const idx = messages.findLastIndex((msg) =>
+    msg.role === "tool-event" &&
+    msg.toolRunId === params.runId &&
+    msg.toolStatus === "running");
+  if (idx === -1) return messages;
+  const next = [...messages];
+  const current = next[idx];
+  next[idx] = {
+    ...current,
+    toolStatus: params.status,
+    toolError: params.status === "failed" ? params.error ?? current.toolError : undefined,
+  };
+  return next;
+}
+
+export function clearActiveToolEvent(
+  messages: ChatMessage[],
+  runId: string,
+): ChatMessage[] {
+  const idx = messages.findLastIndex((msg) =>
+    msg.role === "tool-event" &&
+    msg.toolRunId === runId &&
+    msg.toolStatus === "running");
+  if (idx === -1) return messages;
+  const next = [...messages];
+  const current = next[idx];
+  next[idx] = {
+    ...current,
+    toolStatus: undefined,
+    toolError: undefined,
+  };
+  return next;
+}
+
+/**
  * Content block types that represent tool calls across different API formats:
  * - tool_use / tooluse: Anthropic format
  * - tool_call / toolcall: generic format
@@ -441,14 +540,22 @@ export function parseRawMessages(
       if (msg.role === "assistant" && Array.isArray(msg.content)) {
         for (const block of msg.content) {
           const b = block as Record<string, unknown>;
-          if (isToolCallBlock(b) && typeof b.name === "string") {
+          const toolName = isToolCallBlock(b) ? extractToolCallName(b) : undefined;
+          if (toolName) {
             const args = extractToolArgs(b);
-            parsed.push({ role: "tool-event", text: b.name, toolName: b.name, toolArgs: args, timestamp: msg.timestamp ?? 0 });
+            const toolError = extractToolError(b);
+            parsed.push(createToolEventMessage({
+              toolName,
+              toolArgs: args,
+              toolStatus: toolError ? "failed" : undefined,
+              toolError,
+              timestamp: msg.timestamp ?? 0,
+            }));
             // Extract delivered text from outbound message tool calls.
             // The "message" tool sends text to external channels; the actual
             // message content lives in input.message (Anthropic format) or
             // arguments JSON (OpenAI format), NOT in type:"text" blocks.
-            if (b.name === "message") {
+            if (toolName === "message") {
               const delivered = extractToolInputMessage(b);
               if (delivered) {
                 parsed.push({ role: "assistant", text: delivered, timestamp: msg.timestamp ?? 0 });

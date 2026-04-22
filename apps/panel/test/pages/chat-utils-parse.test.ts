@@ -128,6 +128,62 @@ describe("parseRawMessages — stripped image handling", () => {
       }),
     ]);
   });
+
+  it("extracts tool events when history uses toolName instead of name", () => {
+    const raw = [
+      {
+        role: "assistant" as const,
+        content: [
+          {
+            type: "tool_use",
+            toolName: "search",
+            input: {
+              query: "order 123",
+            },
+          },
+        ],
+        timestamp: 7000,
+      },
+    ];
+
+    const result = parseRawMessages(raw);
+    expect(result).toEqual([
+      expect.objectContaining({
+        role: "tool-event",
+        toolName: "search",
+        toolArgs: { query: "order 123" },
+        timestamp: 7000,
+      }),
+    ]);
+  });
+
+  it("marks historical tool events as failed when the block carries an error", () => {
+    const raw = [
+      {
+        role: "assistant" as const,
+        content: [
+          {
+            type: "tool_use",
+            name: "search",
+            input: { query: "refund" },
+            error: "backend timeout",
+          },
+        ],
+        timestamp: 8000,
+      },
+    ];
+
+    const result = parseRawMessages(raw);
+    expect(result).toEqual([
+      expect.objectContaining({
+        role: "tool-event",
+        toolName: "search",
+        toolStatus: "failed",
+        toolError: "backend timeout",
+        timestamp: 8000,
+      }),
+    ]);
+  });
 });
 
 describe("localizeError", () => {

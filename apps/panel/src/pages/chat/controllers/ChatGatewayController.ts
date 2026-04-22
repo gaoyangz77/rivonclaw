@@ -39,7 +39,9 @@ import {
   INITIAL_VISIBLE,
   FETCH_BATCH,
   PAGE_SIZE,
+  extractToolError,
   extractText,
+  extractToolCallName,
   localizeError,
   mergeTerminalError,
   parseRawMessages,
@@ -404,7 +406,7 @@ export class ChatGatewayController {
               });
             }
           } else if (mirror.stream === "tool") {
-            const toolName = data.name as string | undefined;
+            const toolName = extractToolCallName(data);
             const toolPhase = data.phase as string | undefined;
             const toolArgs = data.args as Record<string, unknown> | undefined;
             this.handleEvent({
@@ -491,9 +493,9 @@ export class ChatGatewayController {
           const stream = agentPayload.stream;
           if (stream === "tool") {
             const phase = agentPayload.data?.phase;
-            const name = agentPayload.data?.name as string | undefined;
+            const name = agentPayload.data ? extractToolCallName(agentPayload.data) : undefined;
             if (phase === "start" && name) bgRs.startTool(bgRunId, name);
-            else if (phase === "result") bgRs.finishTool(bgRunId);
+            else if (phase === "result" || phase === "end" || phase === "error") bgRs.finishTool(bgRunId);
           } else if (stream === "lifecycle") {
             const phase = agentPayload.data?.phase;
             if (phase === "start") bgRs.markLifecycleStart(bgRunId);
@@ -533,19 +535,22 @@ export class ChatGatewayController {
 
       if (stream === "tool") {
         const phase = agentPayload.data?.phase;
-        const name = agentPayload.data?.name as string | undefined;
+        const name = agentPayload.data ? extractToolCallName(agentPayload.data) : undefined;
         if (phase === "start" && name) {
           const flushRun = rs.getRun(agentRunId);
           const rawStreaming = flushRun?.streaming ?? null;
           const currentOffset = flushRun?.flushedOffset ?? 0;
           const flushedText = rawStreaming && currentOffset > 0 ? rawStreaming.slice(currentOffset) : rawStreaming;
           const args = agentPayload.data?.args as Record<string, unknown> | undefined;
-          const toolEvt: ChatMessage = { role: "tool-event", text: name, toolName: name, toolArgs: args, timestamp: Date.now() };
-          if (flushedText && session) {
-            session.appendMessage({ role: "assistant", text: flushedText, timestamp: Date.now() });
-            session.appendMessage(toolEvt);
+          if (session) {
+            session.startToolEvent({
+              runId: agentRunId,
+              toolName: name,
+              toolArgs: args,
+              flushedText,
+            });
             // History patch for throttle buffer recovery (first tool call only)
-            if (this.client && currentOffset === 0) {
+            if (this.client && currentOffset === 0 && flushedText) {
               const snap = flushedText;
               const runKey = agentRunId;
               const sessionKey = activeKey;
@@ -581,11 +586,15 @@ export class ChatGatewayController {
                 }
               }).catch((err) => { console.warn("[chat] history patch failed:", err); });
             }
-          } else if (session) {
-            session.appendMessage(toolEvt);
           }
           rs.startTool(agentRunId, name);
-        } else if (phase === "result") {
+        } else if (phase === "result" || phase === "end") {
+          const toolError = agentPayload.data ? extractToolError(agentPayload.data) : undefined;
+          if (toolError) session?.settleToolEvent(agentRunId, "failed", toolError);
+          else session?.completeToolEvent(agentRunId);
+          rs.finishTool(agentRunId);
+        } else if (phase === "error") {
+          session?.settleToolEvent(agentRunId, "failed", agentPayload.data ? extractToolError(agentPayload.data) : undefined);
           rs.finishTool(agentRunId);
         }
       } else if (stream === "lifecycle") {
@@ -695,6 +704,8 @@ export class ChatGatewayController {
     if (chatRunId) {
       const session = this.store.activeSession;
       if (session) session.runState.setLastActivity(Date.now());
+      const terminalRun = rs.getRun(chatRunId);
+      const terminalWhileTooling = terminalRun?.phase === "tooling";
       switch (payload.state) {
         case "delta": {
           const text = extractText(payload.message?.content);
@@ -703,18 +714,27 @@ export class ChatGatewayController {
         }
         case "final":
           this.clearFallbackTimer(chatRunId);
+          if (terminalWhileTooling) {
+            session?.completeToolEvent(chatRunId);
+          }
           rs.finalizeRun(chatRunId);
           this.markRunRecentlyCompleted(activeKey, chatRunId);
           this.refreshSessions();
           break;
         case "error":
           this.clearFallbackTimer(chatRunId);
+          if (terminalWhileTooling) {
+            session?.settleToolEvent(chatRunId, "failed", payload.errorMessage);
+          }
           this.lifecycleErrors.delete(chatRunId);
           rs.failRun(chatRunId);
           this.markRunRecentlyCompleted(activeKey, chatRunId);
           break;
         case "aborted":
           this.clearFallbackTimer(chatRunId);
+          if (terminalWhileTooling) {
+            session?.settleToolEvent(chatRunId, "failed", this.t("chat.stopCommandFeedback"));
+          }
           rs.abortRun(chatRunId);
           this.markRunRecentlyCompleted(activeKey, chatRunId);
           break;
@@ -848,6 +868,12 @@ export class ChatGatewayController {
       // Synthesize terminal message so the user sees why the run ended
       const session = this.store.sessions.get(sessionKey);
       if (session && run && ACTIVE_PHASES.has(run.phase as RunPhase)) {
+        const lifecycleError = this.lifecycleErrors.get(runId);
+        this.lifecycleErrors.delete(runId);
+        if (run.phase === "tooling") {
+          if (lifecycleError) session.settleToolEvent(runId, "failed", lifecycleError);
+          else session.completeToolEvent(runId);
+        }
         // Flush any partial streaming text
         const rawStreaming = run.streaming ?? null;
         const offset = run.flushedOffset ?? 0;
@@ -855,8 +881,6 @@ export class ChatGatewayController {
         if (partialText?.trim()) {
           session.appendMessage({ role: "assistant", text: partialText, timestamp: Date.now() });
         }
-        const lifecycleError = this.lifecycleErrors.get(runId);
-        this.lifecycleErrors.delete(runId);
         const errorText = lifecycleError
           ? localizeError(lifecycleError, this.tFn!)
           : this.t("chat.stalledError");

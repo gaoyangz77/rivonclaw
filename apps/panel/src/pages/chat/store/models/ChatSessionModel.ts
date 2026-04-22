@@ -1,7 +1,12 @@
 import { types } from "mobx-state-tree";
 import { ChatRunStateModel } from "./ChatRunStateModel.js";
-import { INITIAL_VISIBLE } from "../../chat-utils.js";
-import type { ChatMessage, PendingImage } from "../../chat-utils.js";
+import {
+  INITIAL_VISIBLE,
+  clearActiveToolEvent,
+  createToolEventMessage,
+  settleActiveToolEvent,
+} from "../../chat-utils.js";
+import type { ChatMessage, PendingImage, ToolEventStatus } from "../../chat-utils.js";
 
 /**
  * Per-session MST model — single source of truth for all session-scoped state.
@@ -40,6 +45,7 @@ export const ChatSessionModel = types
     allFetched: false,
     historyLoading: false,
     pendingImages: types.array(types.frozen<PendingImage>()),
+    toolEventSeq: 0,
 
     // Custom user-given title (null = use gateway derivedTitle)
     customTitle: types.maybeNull(types.string),
@@ -64,6 +70,35 @@ export const ChatSessionModel = types
     },
     appendMessage(msg: ChatMessage) {
       self.messages.push(msg);
+    },
+    startToolEvent(params: {
+      runId: string;
+      toolName: string;
+      toolArgs?: Record<string, unknown>;
+      timestamp?: number;
+      flushedText?: string | null;
+    }) {
+      const ts = params.timestamp ?? Date.now();
+      if (params.flushedText?.trim()) {
+        self.messages.push({ role: "assistant", text: params.flushedText, timestamp: ts });
+      }
+      self.toolEventSeq += 1;
+      self.messages.push(createToolEventMessage({
+        toolName: params.toolName,
+        toolArgs: params.toolArgs,
+        toolStatus: "running",
+        toolRunId: params.runId,
+        toolCallId: `${params.runId}:${self.toolEventSeq}`,
+        timestamp: ts,
+      }));
+    },
+    settleToolEvent(runId: string, status: Exclude<ToolEventStatus, "running">, error?: string) {
+      const next = settleActiveToolEvent([...self.messages], { runId, status, error });
+      self.messages.replace(next);
+    },
+    completeToolEvent(runId: string) {
+      const next = clearActiveToolEvent([...self.messages], runId);
+      self.messages.replace(next);
     },
     /**
      * Functional update: apply a transform to the current messages array.

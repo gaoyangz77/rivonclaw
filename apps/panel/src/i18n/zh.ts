@@ -99,6 +99,8 @@ export default {
     phaseUsingTool: "正在使用工具：{{tool}}",
     toolEventLabel: "使用工具：{{tool}}",
     toolArgsLabel: "参数",
+    toolStatus_running: "进行中",
+    toolStatus_failed: "失败",
     stopCommand: "停止",
     resetCommand: "重置",
     resetTooltip: "清空对话上下文以节省 Token。聊天记录将被归档，但 AI 将不再能看到之前的对话内容。",

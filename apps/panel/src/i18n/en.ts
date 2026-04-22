@@ -101,6 +101,8 @@ export default {
     phaseUsingTool: "Using tool: {{tool}}",
     toolEventLabel: "Used tool: {{tool}}",
     toolArgsLabel: "Parameters",
+    toolStatus_running: "Running",
+    toolStatus_failed: "Failed",
     stopCommand: "Stop",
     resetCommand: "Reset",
     resetTooltip: "Clear the conversation context to save tokens. Chat history will be archived but will no longer be visible to the AI.",
