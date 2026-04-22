@@ -6,6 +6,7 @@ export const TOOL_SPECS_SYNC_QUERY = `
       category
       displayName
       description
+      supportsPersistResult
       surfaces
       runProfiles
       graphqlOperation

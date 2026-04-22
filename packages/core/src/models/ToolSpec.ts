@@ -33,6 +33,8 @@ export const ToolModel = types
     name: types.string,
     displayName: types.string,
     description: types.optional(types.string, ""),
+    supportsPersistResult: types.maybeNull(types.boolean),
+    resultSchema: types.maybeNull(types.string),
     category: types.string,
     source: types.optional(types.string, "entitled"),
     operationType: types.optional(types.string, ""),
