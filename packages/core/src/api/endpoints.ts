@@ -83,15 +83,18 @@ export function getCsRelayWsUrl(): string {
 
 /**
  * Return the release feed URL for auto-updater.
- * Respects UPDATE_FROM_STAGING env var.
+ * Respects UPDATE_FEED_URL and UPDATE_FROM_STAGING env vars.
  */
 export function getReleaseFeedUrl(locale: string): string {
+	void locale;
+	const explicitOverride = typeof process !== "undefined" ? process.env.UPDATE_FEED_URL : undefined;
+	if (explicitOverride) return explicitOverride.replace(/\/+$/, "");
 	const useStaging = typeof process !== "undefined" && process.env.UPDATE_FROM_STAGING === "1";
 	if (useStaging) return `https://${DEFAULTS.domains.staging}/releases`;
-	// Release feed: www.zhuazhuaai.cn is behind CDN and works, so keep .cn for zh.
-	return locale === "zh"
-		? `https://${DEFAULTS.domains.webCn}/releases`
-		: `https://${DEFAULTS.domains.web}/releases`;
+	// Auto-updater uses a dedicated feed domain so update traffic can bypass the
+	// website CDN and hit a source-origin path that fully supports differential
+	// download range requests.
+	return `https://${DEFAULTS.domains.updater}/releases`;
 }
 
 // ---------------------------------------------------------------------------

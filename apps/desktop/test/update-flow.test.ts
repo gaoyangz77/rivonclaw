@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { setApiBaseUrlOverride } from "@rivonclaw/core";
 import { queryCheckUpdate } from "../src/cloud/backend-subscription-client.js";
+import { getReleaseFeedUrl } from "../../../packages/core/src/api/endpoints.js";
 
 /* ─── helpers ───────────────────────────────────────────────────────── */
 
@@ -21,6 +22,8 @@ function jsonResponse(status: number, body: unknown): Response {
 
 beforeEach(() => {
   setApiBaseUrlOverride("http://test-backend");
+  delete process.env.UPDATE_FEED_URL;
+  delete process.env.UPDATE_FROM_STAGING;
 });
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -161,6 +164,23 @@ describe("processUpdatePayload logic", () => {
   it("builds the Linux x64 download URL from the version", () => {
     const result = simulateResolveDownloadUrl("2.0.0", "linux", "x64", "https://www.rivonclaw.com/releases");
     expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw-2.0.0-x86_64.AppImage");
+  });
+});
+
+describe("getReleaseFeedUrl", () => {
+  it("uses the dedicated updater feed for both en and zh locales", () => {
+    expect(getReleaseFeedUrl("en")).toBe("https://www.rivonclaw.com/releases");
+    expect(getReleaseFeedUrl("zh")).toBe("https://www.rivonclaw.com/releases");
+  });
+
+  it("lets UPDATE_FEED_URL override the updater feed", () => {
+    process.env.UPDATE_FEED_URL = "https://origin.example.com/releases/";
+    expect(getReleaseFeedUrl("zh")).toBe("https://origin.example.com/releases");
+  });
+
+  it("uses staging releases when UPDATE_FROM_STAGING=1 and no explicit feed override is set", () => {
+    process.env.UPDATE_FROM_STAGING = "1";
+    expect(getReleaseFeedUrl("en")).toBe("https://stg.rivonclaw.com/releases");
   });
 });
 
