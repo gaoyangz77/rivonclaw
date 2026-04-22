@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.5",
+    "date": "2026-04-22",
+    "en": [
+      "Improve desktop sign-in and startup reliability by separating auth state from bootstrap and fixing desktop bootstrap query fields",
+      "Fix cron run profile selector persistence so scheduled task settings save more reliably"
+    ],
+    "zh": [
+      "提升桌面端登录和启动稳定性：拆分认证状态与启动初始化流程，并修复桌面 bootstrap 查询字段",
+      "修复定时任务运行配置选择器的保存问题，计划任务设置更稳定"
+    ]
+  },
+  {
     "version": "1.8.4",
     "date": "2026-04-21",
     "en": [
