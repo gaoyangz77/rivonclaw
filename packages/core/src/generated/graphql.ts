@@ -993,6 +993,41 @@ export interface EcomTrackingEvent {
   updateTimeMillis?: Maybe<Scalars['Float']['output']>;
 }
 
+/** Per-SKU error returned by the inventory update endpoint */
+export interface EcomUpdateInventoryError {
+  code?: Maybe<Scalars['Int']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  skuId?: Maybe<Scalars['String']['output']>;
+  warehouseErrors?: Maybe<Array<EcomUpdateInventoryWarehouseError>>;
+}
+
+/** Simplified inventory update request for one SKU */
+export interface EcomUpdateInventoryInput {
+  /** Desired in-stock quantity for this SKU. The backend expands this into TikTok's warehouse-level payload for single-warehouse SKUs. */
+  quantity: Scalars['Int']['input'];
+  /** SKU ID to update */
+  skuId: Scalars['String']['input'];
+}
+
+/** Result of updating product inventory */
+export interface EcomUpdateInventoryResult {
+  errors?: Maybe<Array<EcomUpdateInventoryError>>;
+  message?: Maybe<Scalars['String']['output']>;
+  /** Product IDs touched by this request. Multiple products can be updated in one simplified resolver call. */
+  productIds?: Maybe<Array<Scalars['String']['output']>>;
+  /** True when TikTok reported no per-SKU errors. */
+  success: Scalars['Boolean']['output'];
+  /** SKU IDs that completed without a SKU-scoped TikTok error. */
+  updatedSkuIds?: Maybe<Array<Scalars['String']['output']>>;
+}
+
+/** Warehouse-level error returned while updating a SKU's inventory */
+export interface EcomUpdateInventoryWarehouseError {
+  code?: Maybe<Scalars['Int']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  warehouseId?: Maybe<Scalars['String']['output']>;
+}
+
 /** Result of updating a shop through the agent-facing resolver */
 export interface EcommerceUpdateShopResult {
   /** Human-readable confirmation message */
@@ -1007,6 +1042,7 @@ export const EntitlementKey = {
   EcomCsWrite: 'ECOM_CS_WRITE',
   EcomFulfillmentRead: 'ECOM_FULFILLMENT_READ',
   EcomProductRead: 'ECOM_PRODUCT_READ',
+  EcomProductWrite: 'ECOM_PRODUCT_WRITE',
   EcomReturnRefundRead: 'ECOM_RETURN_REFUND_READ',
   EcomReturnRefundWrite: 'ECOM_RETURN_REFUND_WRITE',
   MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES'
@@ -1096,6 +1132,8 @@ export interface Mutation {
   ecommerceMarkConversationRead: Scalars['Boolean']['output'];
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: CustomerServiceSendMessageResult;
+  /** Update inventory for one or more SKUs using a simplified input shape. Each item only accepts skuId and quantity; the backend performs the TikTok-specific product/warehouse expansion. */
+  ecommerceUpdateInventory: EcomUpdateInventoryResult;
   /** Update shop settings (agent-facing, flat params) */
   ecommerceUpdateShop: EcommerceUpdateShopResult;
   /** Enroll in a product module */
@@ -1218,6 +1256,12 @@ export interface MutationEcommerceSendMessageArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
   type: EcomMessageType;
+}
+
+
+export interface MutationEcommerceUpdateInventoryArgs {
+  shopId: Scalars['String']['input'];
+  updates: Array<EcomUpdateInventoryInput>;
 }
 
 
@@ -2106,6 +2150,7 @@ export const ToolId = {
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchReturns: 'ECOM_SEARCH_RETURNS',
+  EcomUpdateInventory: 'ECOM_UPDATE_INVENTORY',
   EcomUpdateShop: 'ECOM_UPDATE_SHOP'
 } as const;
 
@@ -2144,8 +2189,12 @@ export interface ToolSpec {
   restEndpoint?: Maybe<Scalars['String']['output']>;
   /** REST HTTP method */
   restMethod?: Maybe<Scalars['String']['output']>;
+  /** Agent-facing result contract schema */
+  resultSchema?: Maybe<Scalars['String']['output']>;
   runProfiles?: Maybe<Array<SystemRunProfile>>;
   supportedPlatforms?: Maybe<Array<Scalars['String']['output']>>;
+  /** True when clients may expose persistResult for this tool */
+  supportsPersistResult?: Maybe<Scalars['Boolean']['output']>;
   surfaces?: Maybe<Array<SystemSurface>>;
 }
 
