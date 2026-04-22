@@ -81,8 +81,8 @@ import {
 } from "./lifecycle.js";
 import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
+import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY } from "../cloud/browser-profile-queries.js";
-import { TOOL_SPECS_SYNC_QUERY, INIT_SURFACES_QUERY, INIT_RUN_PROFILES_QUERY } from "../cloud/init-queries.js";
 
 const log = createLogger("desktop");
 
@@ -265,46 +265,6 @@ app.whenReady().then(async () => {
     rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
   }
 
-  async function bootstrapDesktopAuthState(): Promise<void> {
-    if (!authSession.getAccessToken()) {
-      rootStore.clearCloudEntities();
-      rootStore.setAuthBootstrap("signed_out", null);
-      return;
-    }
-
-    rootStore.setAuthBootstrap("loading", null);
-
-    try {
-      const me = await authSession.validate();
-      if (!me) {
-        if (!authSession.getAccessToken()) {
-          rootStore.clearCloudEntities();
-          rootStore.setAuthBootstrap("signed_out", null);
-          return;
-        }
-        throw new Error("Failed to load account profile");
-      }
-
-      rootStore.clearCloudDataExceptUser();
-      rootStore.ingestGraphQLResponse({ me });
-
-      const essentials = await Promise.all([
-        authSession.graphqlFetch(TOOL_SPECS_SYNC_QUERY),
-        authSession.graphqlFetch(INIT_SURFACES_QUERY),
-        authSession.graphqlFetch(INIT_RUN_PROFILES_QUERY),
-      ]);
-
-      for (const data of essentials) {
-        rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
-      }
-      rootStore.setAuthBootstrap("ready", null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      rootStore.setAuthBootstrap("error", message);
-      throw new Error(`Failed to load account state: ${message}`);
-    }
-  }
-
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
   //  1. openclaw_import_checked is not set (never checked before)
@@ -394,7 +354,7 @@ app.whenReady().then(async () => {
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
 
   // Now that proxy router is up, validate auth session and connect backend subscriptions.
-  bootstrapDesktopAuthState().catch((err) => {
+  bootstrapDesktopAuthState(authSession, rootStore).catch((err) => {
     log.warn("Failed to bootstrap desktop auth state:", err);
   });
   backendSubscription.connect(() => authSession.getAccessToken());
@@ -1149,7 +1109,7 @@ app.whenReady().then(async () => {
     },
     onAuthChange: () => {
       return (async () => {
-        await bootstrapDesktopAuthState();
+        await bootstrapDesktopAuthState(authSession, rootStore);
         try {
           await reinitializeToolCapabilityFromCatalog();
           log.info("ToolCapability auth change: re-initialized");

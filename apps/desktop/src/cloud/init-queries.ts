@@ -97,3 +97,65 @@ export const INIT_RUN_PROFILES_QUERY = `
     }
   }
 `;
+
+export const INIT_SHOPS_QUERY = `
+  query {
+    shops {
+      id
+      platform
+      platformAppId
+      platformShopId
+      shopName
+      authStatus
+      region
+      accessTokenExpiresAt
+      refreshTokenExpiresAt
+      services {
+        customerService {
+          enabled
+          businessPrompt
+          runProfileId
+          csDeviceId
+          csProviderOverride
+          csModelOverride
+          escalationChannelId
+          escalationRecipientId
+          platformSystemPrompt
+        }
+        customerServiceBilling {
+          tier
+          balance
+          balanceExpiresAt
+          periodEnd
+        }
+      }
+    }
+  }
+`;
+
+export const INIT_PLATFORM_APPS_QUERY = `
+  query {
+    platformApps {
+      id
+      platform
+      market
+      status
+      label
+      apiBaseUrl
+      authLinkUrl
+    }
+  }
+`;
+
+export const INIT_CREDITS_QUERY = `
+  query {
+    myCredits {
+      id
+      service
+      quota
+      status
+      expiresAt
+      source
+    }
+  }
+`;
