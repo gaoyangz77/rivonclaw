@@ -1,5 +1,6 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { RemoteTelemetryClient } from "@rivonclaw/telemetry";
+import { formatDetailedErrorMessage } from "../utils/error-format.js";
 
 const log = createLogger("cs-telemetry");
 
@@ -94,15 +95,6 @@ export const CS_ERROR_STAGE = {
 
 export type CsErrorStage = (typeof CS_ERROR_STAGE)[keyof typeof CS_ERROR_STAGE];
 
-/** Cap long error strings so a runaway stack trace doesn't balloon the CH column. */
-const MAX_ERROR_MESSAGE_LEN = 500;
-
-function formatErrorMessage(err: unknown): string {
-  if (!err) return "";
-  const msg = err instanceof Error ? err.message : String(err);
-  return msg.length > MAX_ERROR_MESSAGE_LEN ? msg.slice(0, MAX_ERROR_MESSAGE_LEN) : msg;
-}
-
 /**
  * Convenience wrapper around `emitCsTelemetry("cs.error", ...)` that fills in
  * empty-string defaults for every optional field, so CH's NOT NULL DEFAULT ''
@@ -130,7 +122,7 @@ export function emitCsError(
     platform: fields.platform ?? "",
     stage,
     reason: fields.reason ?? "",
-    errorMessage: formatErrorMessage(fields.errorMessage),
+    errorMessage: formatDetailedErrorMessage(fields.errorMessage),
     textLength: fields.textLength ?? 0,
   });
 }
