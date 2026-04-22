@@ -3,6 +3,7 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { getCsBridge } from "../gateway/connection.js";
+import { formatDetailedErrorMessage } from "../utils/error-format.js";
 
 /**
  * Routes for CS bridge management.
@@ -83,7 +84,7 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
     });
     sendJson(res, result.ok ? 200 : 400, result);
   } catch (err) {
-    sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };
 
@@ -127,7 +128,7 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
     const result = await session.dispatchEscalationResolved(escalationId);
     sendJson(res, 200, result);
   } catch (err) {
-    sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };
 
@@ -187,7 +188,7 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
     const result = await session.dispatchCatchUp();
     sendJson(res, 200, result);
   } catch (err) {
-    sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };
 
