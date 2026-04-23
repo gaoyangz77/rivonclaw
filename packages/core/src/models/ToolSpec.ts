@@ -7,6 +7,7 @@ export const ToolParamSpecModel: any = types.late(() =>
     description: types.string,
     graphqlVar: types.string,
     required: types.boolean,
+    nullable: types.maybe(types.boolean),
     isList: types.maybe(types.boolean),
     defaultValue: types.maybeNull(types.string),
     enumValues: types.optional(types.array(types.string), []),
