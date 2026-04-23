@@ -2167,6 +2167,8 @@ export interface ToolParamSpec {
   /** True when the parameter accepts a list/array of values */
   isList?: Maybe<Scalars['Boolean']['output']>;
   name: Scalars['String']['output'];
+  /** True when the parameter accepts an explicit null value */
+  nullable?: Maybe<Scalars['Boolean']['output']>;
   required: Scalars['Boolean']['output'];
   type: Scalars['String']['output'];
 }
