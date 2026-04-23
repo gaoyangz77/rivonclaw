@@ -274,6 +274,7 @@ export class ChatGatewayController {
       const client = new GatewayChatClient({
         url: info.wsUrl,
         token: info.token,
+        autoStartKeepalive: false,
         onConnected: (hello: GatewayHelloOk) => {
           if (this.cancelled) return;
 
@@ -285,9 +286,12 @@ export class ChatGatewayController {
             this.store.getOrCreateSession(mainKey);
           }
           this.store.setConnectionState("connected");
+          this.sidecarDisposer?.();
+          this.sidecarDisposer = null;
 
           // Gate history loading on sidecar readiness
           const onSidecarReady = () => {
+            client.setKeepaliveEnabled(true);
             this.loadHistory().then(() => {
               if (this.needsDisconnectError) {
                 this.needsDisconnectError = false;
@@ -329,6 +333,8 @@ export class ChatGatewayController {
         onDisconnected: () => {
           if (this.cancelled) return;
           this.store.setConnectionState("connecting");
+          this.sidecarDisposer?.();
+          this.sidecarDisposer = null;
 
           const rs = this.activeRunState;
           const localId = rs.localRunId;

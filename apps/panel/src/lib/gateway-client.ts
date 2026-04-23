@@ -31,6 +31,7 @@ export type GatewayHelloOk = {
 export type GatewayChatClientOptions = {
   url: string;
   token?: string;
+  autoStartKeepalive?: boolean;
   onConnected?: (hello: GatewayHelloOk) => void;
   onDisconnected?: () => void;
   onEvent?: (evt: GatewayEvent) => void;
@@ -57,8 +58,11 @@ export class GatewayChatClient {
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
   private keepaliveTimeout: ReturnType<typeof setTimeout> | null = null;
   private authenticated = false;
+  private keepaliveEnabled: boolean;
 
-  constructor(private opts: GatewayChatClientOptions) {}
+  constructor(private opts: GatewayChatClientOptions) {
+    this.keepaliveEnabled = opts.autoStartKeepalive !== false;
+  }
 
   start(): void {
     this.closed = false;
@@ -71,6 +75,17 @@ export class GatewayChatClient {
     this.ws?.close(1000, "client stopped");
     this.ws = null;
     this.flushPending(new Error("client stopped"));
+  }
+
+  setKeepaliveEnabled(enabled: boolean): void {
+    this.keepaliveEnabled = enabled;
+    if (!enabled) {
+      this.stopKeepalive();
+      return;
+    }
+    if (this.authenticated) {
+      this.startKeepalive();
+    }
   }
 
   get connected(): boolean {
@@ -152,7 +167,9 @@ export class GatewayChatClient {
       .then((hello) => {
         this.backoffMs = 800;
         this.authenticated = true;
-        this.startKeepalive();
+        if (this.keepaliveEnabled) {
+          this.startKeepalive();
+        }
         this.opts.onConnected?.(hello);
       })
       .catch((err) => {
