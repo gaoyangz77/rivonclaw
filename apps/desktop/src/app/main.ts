@@ -265,6 +265,18 @@ app.whenReady().then(async () => {
     rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
   }
 
+  function getEntitledToolSpecDigest(): string {
+    return JSON.stringify(
+      rootStore.entitledTools.map((tool) => ({
+        id: tool.id,
+        name: tool.name,
+        displayName: tool.displayName,
+        surfaces: [...tool.surfaces],
+        runProfiles: [...tool.runProfiles],
+      })),
+    );
+  }
+
   // --- First-start OpenClaw import ---
   // Only show the import wizard for truly new users:
   //  1. openclaw_import_checked is not set (never checked before)
@@ -1109,12 +1121,22 @@ app.whenReady().then(async () => {
     },
     onAuthChange: () => {
       return (async () => {
+        const previousToolSpecDigest = getEntitledToolSpecDigest();
         await bootstrapDesktopAuthState(authSession, rootStore);
+        const nextToolSpecDigest = getEntitledToolSpecDigest();
         try {
           await reinitializeToolCapabilityFromCatalog();
           log.info("ToolCapability auth change: re-initialized");
         } catch (e) {
           log.warn("Failed to re-init ToolCapability on auth change:", e);
+        }
+        if (previousToolSpecDigest !== nextToolSpecDigest) {
+          try {
+            await openClawConnector.applyConfigMutation(() => {}, "restart_process");
+            log.info("Gateway restarted after auth change updated toolSpecs");
+          } catch (e) {
+            log.warn("Failed to restart gateway after toolSpecs changed:", e);
+          }
         }
       })();
     },
