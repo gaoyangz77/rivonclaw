@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.7",
+    "date": "2026-04-23",
+    "en": [
+      "Add ecommerce profile system-tool support so store workflows can access the right built-in capabilities more reliably",
+      "Improve chat session and tool selection behavior for a smoother desktop conversation experience",
+      "Reduce unnecessary gateway restarts by refreshing tool capabilities only when auth changes"
+    ],
+    "zh": [
+      "补全电商配置下的系统工具能力，店铺相关流程现在更完整也更稳定",
+      "优化聊天会话与工具选择体验，桌面端对话操作更顺手",
+      "减少不必要的网关重启，只有认证变化时才刷新工具能力"
+    ]
+  },
+  {
     "version": "1.8.6",
     "date": "2026-04-22",
     "en": [
