@@ -38,6 +38,7 @@ export function getCsTelemetryClient(): RemoteTelemetryClient | null {
 export type CsTelemetryEventType =
   | "cs.message"
   | "cs.token_snapshot"
+  | "cs.delivery_recovery"
   | "ecom.tool_call"
   | "cs.error";
 
@@ -94,6 +95,38 @@ export const CS_ERROR_STAGE = {
 } as const;
 
 export type CsErrorStage = (typeof CS_ERROR_STAGE)[keyof typeof CS_ERROR_STAGE];
+
+export function emitCsDeliveryRecovery(
+  fields: {
+    shopId?: string;
+    platformShopId?: string;
+    conversationId?: string;
+    failedRunId?: string;
+    recoveryRunId?: string;
+    platform?: string;
+    reason?: string;
+    status?: string;
+    attempt?: number;
+    maxAttempts?: number;
+    errorMessage?: unknown;
+    textLength?: number;
+  } = {},
+): void {
+  emitCsTelemetry("cs.delivery_recovery", {
+    shopId: fields.shopId ?? "",
+    platformShopId: fields.platformShopId ?? "",
+    conversationId: fields.conversationId ?? "",
+    failedRunId: fields.failedRunId ?? "",
+    recoveryRunId: fields.recoveryRunId ?? "",
+    platform: fields.platform ?? "",
+    reason: fields.reason ?? "",
+    status: fields.status ?? "",
+    attempt: fields.attempt ?? 0,
+    maxAttempts: fields.maxAttempts ?? 0,
+    errorMessage: formatDetailedErrorMessage(fields.errorMessage),
+    textLength: fields.textLength ?? 0,
+  });
+}
 
 /**
  * Convenience wrapper around `emitCsTelemetry("cs.error", ...)` that fills in

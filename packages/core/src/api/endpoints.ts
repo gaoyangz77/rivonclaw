@@ -55,8 +55,8 @@ export function getTelemetryUrl(locale: string): string {
 /**
  * Return the CS business-telemetry endpoint URL. Separate path from the
  * opt-in user telemetry stream — accepts `cs.message` / `cs.token_snapshot`
- * / `ecom.tool_call` / `cs.error` events that commercial tenants authorize
- * via contract.
+ * / `cs.delivery_recovery` / `ecom.tool_call` / `cs.error` events that
+ * commercial tenants authorize via contract.
  */
 export function getCsTelemetryUrl(locale: string): string {
 	void locale;

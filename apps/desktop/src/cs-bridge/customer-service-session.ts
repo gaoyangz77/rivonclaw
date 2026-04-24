@@ -30,8 +30,14 @@ import { getStorageRef } from "../app/storage-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 import { compressImageForAgent } from "./image-compressor.js";
+import { CSRound } from "./cs-round.js";
 import { loadSessionCostSummary } from "../usage/session-usage.js";
-import { emitCsTelemetry, emitCsError, CS_ERROR_STAGE } from "../telemetry/cs-telemetry-ref.js";
+import {
+  emitCsTelemetry,
+  emitCsError,
+  emitCsDeliveryRecovery,
+  CS_ERROR_STAGE,
+} from "../telemetry/cs-telemetry-ref.js";
 import {
   SEND_MESSAGE_MUTATION,
   GET_CONVERSATION_DETAILS_QUERY,
@@ -40,6 +46,30 @@ import {
 } from "../cloud/cs-queries.js";
 
 const log = createLogger("cs-session");
+
+function classifyDeliveryFailure(err: unknown): {
+  reason: string;
+  shouldAttemptLocalRecovery: boolean;
+} {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("45101006")
+    || normalized.includes("hit sensitive")
+    || normalized.includes("sensitive")
+  ) {
+    return {
+      reason: "sensitive_content",
+      shouldAttemptLocalRecovery: true,
+    };
+  }
+
+  return {
+    reason: "platform_error",
+    shouldAttemptLocalRecovery: false,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -108,6 +138,8 @@ export interface Escalation {
 // ---------------------------------------------------------------------------
 
 export class CustomerServiceSession {
+  private static readonly MAX_SENSITIVE_RECOVERY_ATTEMPTS = 1;
+
   readonly platform: string;
   readonly scopeKey: string;
   readonly dispatchKey: string;
@@ -118,15 +150,11 @@ export class CustomerServiceSession {
   /** Whether gateway session setup has been completed (cs_register_session + RunProfile + model). */
   private gatewaySetupReady = false;
 
-  /**
-   * Currently active or pending run ID.
-   * Set synchronously to a placeholder BEFORE the async dispatch RPC, so the next
-   * incoming message can see it and abort. Replaced with the real runId after dispatch.
-   */
-  private activeRunId: string | null = null;
+  /** Active buyer round for this conversation. */
+  private activeRound: CSRound | null = null;
 
-  /** Run IDs that were aborted — their gateway events should be ignored (no auto-forward). */
-  readonly abortedRunIds = new Set<string>();
+  /** Lookup from gateway runId → owning round. */
+  private roundsByRunId = new Map<string, CSRound>();
 
   /** Number of runs aborted since the last successful delivery to the buyer. */
   private undeliveredCount = 0;
@@ -147,6 +175,40 @@ export class CustomerServiceSession {
     this.scopeKey = `agent:main:cs:${this.platform}:${csContext.conversationId}`;
     this.dispatchKey = `cs:${this.platform}:${csContext.conversationId}`;
     this.hydrateEscalations();
+  }
+
+  // -- Round lifecycle --------------------------------------------------------
+
+  private createBuyerRound(roundId: string): CSRound {
+    return new CSRound(roundId, this.undeliveredCount);
+  }
+
+  private ensureActiveRound(roundId: string): CSRound {
+    if (this.activeRound) return this.activeRound;
+    const round = new CSRound(roundId, 0);
+    this.activeRound = round;
+    return round;
+  }
+
+  private attachRunToRound(runId: string, round: CSRound): void {
+    this.roundsByRunId.set(runId, round);
+  }
+
+  private disposeRound(round: CSRound): void {
+    for (const runId of round.getTrackedRunIds()) {
+      this.roundsByRunId.delete(runId);
+    }
+    if (this.activeRound === round) {
+      this.activeRound = null;
+    }
+    round.destroy();
+  }
+
+  private markRoundTerminal(round: CSRound): void {
+    const terminal = round.onTerminalFailure();
+    if (terminal.shouldDispose) {
+      this.disposeRound(round);
+    }
   }
 
   /** Assembled extraSystemPrompt for this session. */
@@ -269,55 +331,50 @@ export class CustomerServiceSession {
   /**
    * Handle an incoming buyer message.
    *
-   * If any run is active or pending (activeRunId is set), aborts it and takes over.
-   * Uses JS single-threaded execution: activeRunId is set to a placeholder synchronously
-   * before any await, so the next incoming message always sees it and can abort.
+   * If any round has an active or pending run, aborts it and takes over.
+   * Uses JS single-threaded execution: the new round claims a placeholder run
+   * synchronously before any await, so the next incoming message always sees it
+   * and can abort.
    */
   async handleBuyerMessage(frame: CSNewMessageFrame): Promise<DispatchResult> {
     // ── SYNC section (no await — cannot be interleaved) ──
-    if (this.activeRunId) {
-      log.info(`New message during active/pending run ${this.activeRunId}, aborting`);
-      this.abortedRunIds.add(this.activeRunId);
+    const previousRunId = this.activeRound?.abortActiveRun();
+    if (previousRunId) {
+      log.info(`New message during active/pending run ${previousRunId}, aborting`);
       this.fireAbort();
       this.undeliveredCount++;
     }
 
-    // Claim the slot immediately with a placeholder so the next message can see it.
-    const placeholder = `pending:${frame.messageId}`;
-    this.activeRunId = placeholder;
+    const round = this.createBuyerRound(frame.messageId);
+    this.activeRound = round;
+    const placeholder = round.placeholderRunId;
     const content = this.parseMessageContent(frame);
     // ── END SYNC section ──
 
     if (!await this.ensureBackendSession()) {
-      if (this.activeRunId === placeholder) this.activeRunId = null;
+      if (this.activeRound === round) round.clearPlaceholderIfCurrent();
       return { runId: undefined };
     }
 
     // If a newer message took over while we were awaiting, bail out.
-    if (this.activeRunId !== placeholder) {
+    if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
       return { runId: undefined };
     }
 
     const attachments = await this.fetchImageAttachment(frame);
 
-    if (this.activeRunId !== placeholder) {
+    if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
       return { runId: undefined };
     }
 
     // If previous runs were aborted, tell the agent its prior replies were not delivered.
-    const senderTag = isStagingDevMode() ? "[Internal: Developer]" : "[External: Buyer]";
-    let message = `${senderTag}\n${content}`;
-    if (this.undeliveredCount > 0) {
-      const notice = this.undeliveredCount === 1
-        ? "[Internal: System]\nNote: Your previous reply was not delivered to the buyer because a new message arrived. The buyer has not seen it. Please incorporate all messages in your response."
-        : `[Internal: System]\nNote: Your last ${this.undeliveredCount} replies were not delivered to the buyer because new messages arrived while you were responding. The buyer has not seen them. Please incorporate all messages in your response.`;
-      message = `${notice}\n\n${message}`;
-    }
+    const message = round.buildBuyerMessage(content, isStagingDevMode());
 
     const result = await this.dispatch({
       message,
       idempotencyKey: `${this.platform}:${frame.messageId}`,
       attachments,
+      round,
       placeholder,
     });
 
@@ -343,12 +400,20 @@ export class CustomerServiceSession {
 
   /**
    * Called by Bridge when an agent run completes (final or error).
-   * Clears active run tracking.
+   * Clears run/round tracking for that run and reports whether any text had
+   * already entered the buyer-delivery path.
    */
-  onRunCompleted(runId: string): void {
-    if (this.activeRunId === runId) {
-      this.activeRunId = null;
+  onRunCompleted(runId: string): { wasAborted: boolean; hadForwardedText: boolean } {
+    const round = this.roundsByRunId.get(runId);
+    if (!round) {
+      return { wasAborted: false, hadForwardedText: false };
     }
+
+    const result = round.completeRun(runId);
+    if (result.shouldDispose) {
+      this.disposeRound(round);
+    }
+    return result;
   }
 
   // -- Escalation lifecycle ---------------------------------------------------
@@ -483,6 +548,11 @@ export class CustomerServiceSession {
       content: JSON.stringify({ content: text }),
     });
     this.undeliveredCount = 0;
+    const round = this.roundsByRunId.get(runId);
+    const delivery = round?.onDeliverySucceeded();
+    if (round && delivery?.shouldDispose) {
+      this.disposeRound(round);
+    }
     log.info(`Auto-forwarded agent text to buyer (${text.length} chars)`);
 
     // BI emits (fire-and-forget). Collect the cumulative token snapshot from
@@ -490,11 +560,10 @@ export class CustomerServiceSession {
     // we simply skip the token event — the `cs.message` event is still emitted.
     //
     // runId is passed in by the caller (bridge's flushTurnText already holds
-    // it) rather than read from `this.activeRunId`. The session's activeRunId
-    // would race: the bridge fires `forwardTextToBuyer(...)` async then
-    // synchronously continues to `onRunCompleted(runId)` which clears
-    // activeRunId before our `await graphqlFetch` resumes — so reading it
-    // post-await yields "".
+    // it) rather than read from round state. The bridge fires
+    // `forwardTextToBuyer(...)` async and may receive chat completion before
+    // our `await graphqlFetch` resumes, so post-await active-run state is not
+    // a reliable source of the runId.
     void this.collectAndEmitTokenSnapshot(runId);
     emitCsTelemetry("cs.message", {
       shopId: this.csContext.shopId,
@@ -505,6 +574,127 @@ export class CustomerServiceSession {
       contentLength: text.length,
       runId,
     });
+  }
+
+  async dispatchSensitiveContentRecovery(params: {
+    failedRunId: string;
+    rejectedText: string;
+  }): Promise<DispatchResult | undefined> {
+    const round =
+      this.roundsByRunId.get(params.failedRunId)
+      ?? this.ensureActiveRound(`recovery:${params.failedRunId}`);
+    this.attachRunToRound(params.failedRunId, round);
+
+    const recovery = round.planSensitiveRecovery(
+      CustomerServiceSession.MAX_SENSITIVE_RECOVERY_ATTEMPTS,
+      params.failedRunId,
+      params.rejectedText,
+    );
+    if (!recovery.ok) {
+      emitCsDeliveryRecovery({
+        shopId: this.csContext.shopId,
+        platformShopId: this.shop.platformShopId,
+        conversationId: this.csContext.conversationId,
+        failedRunId: params.failedRunId,
+        platform: this.platform,
+        reason: "sensitive_content",
+        status: recovery.status ?? "",
+        attempt: recovery.attempt,
+        maxAttempts: recovery.maxAttempts,
+        textLength: params.rejectedText.length,
+      });
+      const skipReason = recovery.status === "skipped_nested_recovery"
+        ? `${params.failedRunId} is itself a recovery run`
+        : `attempt limit reached, failedRunId=${params.failedRunId}`;
+      log.info(
+        `Sensitive-content recovery skipped for conv=${this.csContext.conversationId} (${skipReason})`,
+      );
+      this.markRoundTerminal(round);
+      return undefined;
+    }
+
+    log.info(
+      `Dispatching sensitive-content recovery for conv=${this.csContext.conversationId} ` +
+      `(failedRunId=${params.failedRunId}, attempt=${recovery.attempt}/${recovery.maxAttempts})`,
+    );
+    const idempotencyKey = `cs-delivery-rewrite:${params.failedRunId}`;
+    const placeholder = round.beginFollowUpDispatch(idempotencyKey);
+    try {
+      const result = await this.dispatch({
+        message: recovery.message ?? "",
+        idempotencyKey,
+        round,
+        placeholder,
+      });
+      if (result.runId) {
+        round.registerSensitiveRecoveryRun(result.runId);
+      }
+      emitCsDeliveryRecovery({
+        shopId: this.csContext.shopId,
+        platformShopId: this.shop.platformShopId,
+        conversationId: this.csContext.conversationId,
+        failedRunId: params.failedRunId,
+        recoveryRunId: result.runId ?? "",
+        platform: this.platform,
+        reason: "sensitive_content",
+        status: result.runId ? "dispatched" : "dispatch_empty",
+        attempt: recovery.attempt,
+        maxAttempts: recovery.maxAttempts,
+        textLength: params.rejectedText.length,
+      });
+      if (!result.runId) {
+        round.clearPlaceholderIfCurrent(placeholder);
+        this.markRoundTerminal(round);
+      }
+      return result;
+    } catch (err) {
+      const rolledBackAttempt = round.rollbackSensitiveRecoveryAttempt() + 1;
+      emitCsDeliveryRecovery({
+        shopId: this.csContext.shopId,
+        platformShopId: this.shop.platformShopId,
+        conversationId: this.csContext.conversationId,
+        failedRunId: params.failedRunId,
+        platform: this.platform,
+        reason: "sensitive_content",
+        status: "dispatch_failed",
+        attempt: rolledBackAttempt,
+        maxAttempts: recovery.maxAttempts,
+        errorMessage: err,
+        textLength: params.rejectedText.length,
+      });
+      round.clearPlaceholderIfCurrent(placeholder);
+      this.markRoundTerminal(round);
+      throw err;
+    }
+  }
+
+  async handleRunDeliveryFailure(params: {
+    runId: string;
+    text: string;
+    error: unknown;
+  }): Promise<void> {
+    const failure = classifyDeliveryFailure(params.error);
+    log.error(
+      `Failed to forward per-turn text for run ${params.runId} (shop=${this.csContext.shopId}, conversation=${this.csContext.conversationId}):`,
+      params.error,
+    );
+    this.emitError(CS_ERROR_STAGE.DELIVER, {
+      reason: failure.reason,
+      errorMessage: params.error,
+      runId: params.runId,
+      textLength: params.text.length,
+    });
+
+    if (failure.shouldAttemptLocalRecovery) {
+      await this.dispatchSensitiveContentRecovery({
+        failedRunId: params.runId,
+        rejectedText: params.text,
+      });
+      return;
+    }
+
+    const round = this.roundsByRunId.get(params.runId);
+    if (round) this.markRoundTerminal(round);
   }
 
   /**
@@ -727,6 +917,34 @@ export class CustomerServiceSession {
     });
   }
 
+  isRunAborted(runId: string): boolean {
+    return this.roundsByRunId.get(runId)?.isRunAborted(runId) ?? false;
+  }
+
+  noteTurnText(runId: string, text: string): void {
+    this.roundsByRunId.get(runId)?.noteTurnText(runId, text);
+  }
+
+  takeTurnText(runId: string): string {
+    return this.roundsByRunId.get(runId)?.takeTurnText(runId) ?? "";
+  }
+
+  clearTurnText(runId: string): void {
+    this.roundsByRunId.get(runId)?.clearTurnText(runId);
+  }
+
+  markRunDeliveryStarted(runId: string): void {
+    this.roundsByRunId.get(runId)?.markDeliveryStarted(runId);
+  }
+
+  getDebugRoundCount(): number {
+    const rounds = new Set(this.roundsByRunId.values());
+    if (this.activeRound) {
+      rounds.add(this.activeRound);
+    }
+    return rounds.size;
+  }
+
   // -- Private — message queue ------------------------------------------------
 
   /** Fire-and-forget abort of the active run. Synchronous call (RPC is async but we don't await). */
@@ -840,7 +1058,8 @@ export class CustomerServiceSession {
     message: string;
     idempotencyKey: string;
     attachments?: Array<{ mimeType: string; content: string }>;
-    /** Placeholder activeRunId that was set before this dispatch. */
+    round?: CSRound;
+    /** Placeholder run ID claimed by the round before this dispatch. */
     placeholder?: string;
   }): Promise<DispatchResult> {
     await this.setup();
@@ -855,31 +1074,36 @@ export class CustomerServiceSession {
     });
 
     const runId = response?.runId;
+    const round = params.round ?? this.ensureActiveRound(`dispatch:${params.idempotencyKey}`);
+    if (!this.activeRound) {
+      this.activeRound = round;
+    }
     if (runId) {
       // If the placeholder was aborted while dispatch was in flight,
       // transfer the abort marker to the real runId so bridge can detect it.
-      // Don't overwrite activeRunId — a newer message already claimed the slot.
-      if (params.placeholder && this.abortedRunIds.has(params.placeholder)) {
-        this.abortedRunIds.delete(params.placeholder);
-        this.abortedRunIds.add(runId);
-        log.info(`Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`);
-        // Still register with bridge for pendingRuns cleanup, but run is marked aborted
-        this.opts?.onRunDispatched?.(runId);
-      } else if (params.placeholder && this.activeRunId !== params.placeholder) {
-        // Placeholder was replaced by a newer message (but not via abort — e.g., bailed before abort).
-        // Mark this run as aborted since it's stale.
-        this.abortedRunIds.add(runId);
-        log.info(`Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`);
-        this.opts?.onRunDispatched?.(runId);
+      // Don't overwrite the active round — a newer message already claimed the slot.
+      if (round && params.placeholder) {
+        const disposition = round.markDispatchResolved(runId, this.activeRound === round, params.placeholder);
+        this.attachRunToRound(runId, round);
+        if (disposition === "aborted") {
+          log.info(`Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`);
+          this.opts?.onRunDispatched?.(runId);
+        } else if (disposition === "stale") {
+          log.info(`Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`);
+          this.opts?.onRunDispatched?.(runId);
+        } else {
+          log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
+          this.opts?.onRunDispatched?.(runId);
+        }
       } else {
-        // Normal case: placeholder still matches, take ownership.
-        this.activeRunId = runId;
+        round.assumeRunDispatched(runId);
+        this.attachRunToRound(runId, round);
         log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
         this.opts?.onRunDispatched?.(runId);
       }
     } else {
-      if (params.placeholder && this.activeRunId === params.placeholder) {
-        this.activeRunId = null;
+      if (round && params.placeholder && this.activeRound === round) {
+        round.clearPlaceholderIfCurrent(params.placeholder);
       }
     }
     return { runId };

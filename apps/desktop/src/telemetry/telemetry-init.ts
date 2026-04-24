@@ -15,7 +15,8 @@ export interface TelemetryInitResult {
   client: RemoteTelemetryClient | null;
   /**
    * CS business-event telemetry client. Carries `cs.message`,
-   * `cs.token_snapshot`, `ecom.tool_call`, and `cs.error` events to the
+   * `cs.token_snapshot`, `cs.delivery_recovery`, `ecom.tool_call`, and
+   * `cs.error` events to the
    * ClickHouse BI stream.
    * Collection is authorized by the paying tenant's contract, so this channel
    * is NOT gated by the end-user `telemetry_enabled` toggle — it is only
