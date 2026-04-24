@@ -16,21 +16,21 @@ export interface Scalars {
   DateTimeISO: { input: any; output: any; }
 }
 
-/** Agent-facing CS settings (no device-level fields) */
+/** Agent-facing CS settings patch. Omit a field to keep it, pass null to clear it, or pass a value to set it. */
 export interface AgentCsSettingsInput {
-  /** Business-specific instructions appended to the platform CS prompt (e.g. return policy, greeting style). Shown to the AI agent as 'Store Instructions'. */
+  /** Store instructions. Omit to keep, null or empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
-  /** LLM model override for CS sessions (e.g. 'claude-opus-4-5-20251101'). Null or empty = use the account default model. Must be available in the provider's catalog. */
+  /** CS model override. Omit to keep, null or empty string to clear. */
   csModelOverride?: InputMaybe<Scalars['String']['input']>;
-  /** LLM provider override for CS sessions (e.g. 'claude', 'zhipu'). Null or empty = use the account default provider. */
+  /** CS provider override. Omit to keep, null or empty string to clear. */
   csProviderOverride?: InputMaybe<Scalars['String']['input']>;
-  /** Enable or disable CS for this shop. When enabled together with a device assignment, the shop goes online for customer service. */
+  /** CS enabled flag. Omit to keep, null to clear to false, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Channel ID for human escalation messages, format: 'channel:accountId' (e.g. 'telegram:acct_abc123'). Null = escalation not configured. */
+  /** Escalation channel ID. Omit to keep, null or empty string to clear. */
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
-  /** Recipient ID who receives escalation messages (e.g. a Telegram user ID or group ID). Null = escalation not configured. */
+  /** Escalation recipient ID. Omit to keep, null or empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
-  /** RunProfile ID that controls which tools the CS agent can use. Must reference a valid system preset (e.g. CUSTOMER_SERVICE) or a user-created RunProfile. */
+  /** RunProfile ID for CS. Omit to keep, null or empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -293,6 +293,8 @@ export interface CustomerServicePerformance {
   csGuidedGmv?: Maybe<Scalars['String']['output']>;
   /** Currency code for GMV (e.g. 'USD') */
   currency?: Maybe<Scalars['String']['output']>;
+  /** Shop-local date for this CS performance row (YYYY-MM-DD) */
+  dateKey?: Maybe<Scalars['String']['output']>;
   /** Exclusive end of the reported window (YYYY-MM-DD), injected from request params */
   endDate?: Maybe<Scalars['String']['output']>;
   /** Percentage of chat support sessions in the window whose first response happened within 24 hours, as a percentage string (e.g. '93.4'). Sessions started during vacation mode are excluded. Automated replies (FAQ cards) count as a response. */
@@ -357,21 +359,21 @@ export interface CustomerServiceSettings {
 
 /** Full CS settings including device-level fields (Panel/backend use) */
 export interface CustomerServiceSettingsInput {
-  /** Business-specific instructions appended to the platform CS prompt (e.g. return policy, greeting style). Shown to the AI agent as 'Store Instructions'. */
+  /** Store instructions. Omit to keep, null or empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
   /** Device ID (machine fingerprint) of the desktop instance handling CS. Set by desktop app via Panel UI. Null = no device assigned. */
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
-  /** LLM model override for CS sessions (e.g. 'claude-opus-4-5-20251101'). Null or empty = use the account default model. Must be available in the provider's catalog. */
+  /** CS model override. Omit to keep, null or empty string to clear. */
   csModelOverride?: InputMaybe<Scalars['String']['input']>;
-  /** LLM provider override for CS sessions (e.g. 'claude', 'zhipu'). Null or empty = use the account default provider. */
+  /** CS provider override. Omit to keep, null or empty string to clear. */
   csProviderOverride?: InputMaybe<Scalars['String']['input']>;
-  /** Enable or disable CS for this shop. When enabled together with a device assignment, the shop goes online for customer service. */
+  /** CS enabled flag. Omit to keep, null to clear to false, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Channel ID for human escalation messages, format: 'channel:accountId' (e.g. 'telegram:acct_abc123'). Null = escalation not configured. */
+  /** Escalation channel ID. Omit to keep, null or empty string to clear. */
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
-  /** Recipient ID who receives escalation messages (e.g. a Telegram user ID or group ID). Null = escalation not configured. */
+  /** Escalation recipient ID. Omit to keep, null or empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
-  /** RunProfile ID that controls which tools the CS agent can use. Must reference a valid system preset (e.g. CUSTOMER_SERVICE) or a user-created RunProfile. */
+  /** RunProfile ID for CS. Omit to keep, null or empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -402,14 +404,6 @@ export interface EcomAnalyticsMoney {
   currency?: Maybe<Scalars['String']['output']>;
 }
 
-/** Product status filter for analytics SKU performance search. Use ALL to return all statuses. */
-export const EcomAnalyticsProductStatusFilter = {
-  All: 'ALL',
-  Inactive: 'INACTIVE',
-  Live: 'LIVE'
-} as const;
-
-export type EcomAnalyticsProductStatusFilter = typeof EcomAnalyticsProductStatusFilter[keyof typeof EcomAnalyticsProductStatusFilter];
 /** Decision for approving a refund request */
 export const EcomApproveRefundDecision = {
   ApproveRefund: 'APPROVE_REFUND',
@@ -949,6 +943,8 @@ export interface EcomShippingDocument {
 
 /** Per-SKU performance metrics for shop analytics */
 export interface EcomSkuPerformance {
+  /** Shop-local date for this SKU performance row (YYYY-MM-DD) */
+  dateKey?: Maybe<Scalars['String']['output']>;
   /** Overall GMV for the SKU */
   gmv?: Maybe<EcomAnalyticsMoney>;
   /** Product ID that owns the SKU */
@@ -961,13 +957,13 @@ export interface EcomSkuPerformance {
   unitsSold?: Maybe<Scalars['Int']['output']>;
 }
 
-/** Flat SKU performance search result with backend-managed pagination. This keeps analytics metadata like totalCount and latestAvailableDate but does not expose page tokens. */
+/** Flat SKU performance result. Serving reads return one row per shop-local date and SKU. */
 export interface EcomSkuPerformanceResult {
-  /** Aggregated SKU performance rows */
+  /** Per-day per-SKU performance rows */
   items: Array<EcomSkuPerformance>;
-  /** Latest date in shop local timezone where analytics data is ready (ISO 8601). */
+  /** Latest date in shop local timezone where platform analytics data is ready (ISO 8601). Only populated for direct platform reads. */
   latestAvailableDate?: Maybe<Scalars['String']['output']>;
-  /** Total number of matching SKUs reported by TikTok */
+  /** Number of rows returned by this query */
   totalCount?: Maybe<Scalars['Int']['output']>;
 }
 
@@ -1478,8 +1474,8 @@ export interface Query {
   csGetPresetSkills?: Maybe<Scalars['String']['output']>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
-  /** Get customer service performance metrics */
-  ecommerceGetCSPerformance: CustomerServicePerformance;
+  /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
+  ecommerceGetCSPerformance: Array<CustomerServicePerformance>;
   /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get messages of a conversation */
@@ -1504,7 +1500,7 @@ export interface Query {
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
-  /** Get shop SKU performance analytics as a flat result set with backend-managed pagination. Returns full item fields plus totalCount and latestAvailableDate metadata. */
+  /** Get shop SKU performance analytics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
@@ -1693,7 +1689,6 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
   endDateLt: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
   productIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  productStatusFilter?: InputMaybe<EcomAnalyticsProductStatusFilter>;
   shopId: Scalars['String']['input'];
   startDateGe: Scalars['String']['input'];
 }
@@ -1945,6 +1940,9 @@ export interface Shop {
   region: ShopRegion;
   services: ShopServiceConfig;
   shopName: Scalars['String']['output'];
+  /** IANA timezone used for shop-local platform analytics dates */
+  timezone: Scalars['String']['output'];
+  timezoneSource: ShopTimezoneSource;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['String']['output'];
 }
@@ -1997,6 +1995,14 @@ export interface ShopServiceConfigInput {
   customerService?: InputMaybe<CustomerServiceSettingsInput>;
 }
 
+/** How the shop analytics timezone was resolved */
+export const ShopTimezoneSource = {
+  Manual: 'MANUAL',
+  Platform: 'PLATFORM',
+  RegionDefault: 'REGION_DEFAULT'
+} as const;
+
+export type ShopTimezoneSource = typeof ShopTimezoneSource[keyof typeof ShopTimezoneSource];
 export interface Skill {
   author: Scalars['String']['output'];
   chinaAvailable: Scalars['Boolean']['output'];
@@ -2222,6 +2228,8 @@ export interface UpdateShopInput {
   region?: InputMaybe<ShopRegion>;
   services?: InputMaybe<ShopServiceConfigInput>;
   shopName?: InputMaybe<Scalars['String']['input']>;
+  timezone?: InputMaybe<Scalars['String']['input']>;
+  timezoneSource?: InputMaybe<ShopTimezoneSource>;
 }
 
 /** Input for updating an existing Surface */
