@@ -2794,7 +2794,7 @@ describe("terminal guarantee (error/timeout)", () => {
 
     const dispatchMessages = getAgentDispatchMessages();
     expect(dispatchMessages).toHaveLength(2);
-    expect(dispatchMessages[1]).toContain("payment methods, disputes, refunds, banks/cards, or off-platform communication apps");
+    expect(dispatchMessages[1]).toContain("off-platform payment method or communication apps");
     expect(dispatchMessages[1]).toContain("Rephrase the same meaning");
     expect(dispatchMessages[1]).toContain("Contact PayPal dispute and block the card.");
 
