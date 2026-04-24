@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.9",
+    "date": "2026-04-23",
+    "en": [
+      "Improve customer-service delivery recovery so sensitive replies are resent more reliably after interruptions",
+      "Migrate legacy mobile channel settings automatically during upgrade to keep existing mobile connections working",
+      "Include shop aliases consistently in desktop cloud queries for a more complete ecommerce management view"
+    ],
+    "zh": [
+      "增强客服消息恢复能力，敏感回复在中断后的重新投递更稳定",
+      "升级时自动迁移旧版手机频道配置，已有移动端连接更不容易失效",
+      "桌面端云端查询补全店铺别名信息，电商管理视图更完整"
+    ]
+  },
+  {
     "version": "1.8.8",
     "date": "2026-04-23",
     "en": [
