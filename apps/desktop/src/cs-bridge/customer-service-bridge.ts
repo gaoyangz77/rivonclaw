@@ -95,22 +95,6 @@ export class CustomerServiceBridge {
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
 
-  /**
-   * Per-turn text forwarding buffer. Agent events stream `data.text` as the
-   * accumulated text for the current turn (resets after each tool call).
-   * On each turn boundary (tool-start or lifecycle-end) the buffer is
-   * forwarded to the buyer and cleared.
-   */
-  private turnTextBuffer = new Map<string, string>();
-
-  /**
-   * Run IDs for which at least one text delivery was initiated.
-   * Added synchronously when `flushTurnText` starts a forward so the chat
-   * error handler knows not to send a duplicate fallback.  If the delivery
-   * later fails, the `flushTurnText` catch handler sends the fallback itself.
-   */
-  private forwardedRuns = new Set<string>();
-
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
@@ -251,9 +235,9 @@ export class CustomerServiceBridge {
    *   or lifecycle-end), the accumulated-but-unsent text is forwarded to the buyer
    *   as a separate message. This gives the buyer incremental responses instead of
    *   one large blob at run completion.
-   * - `chat` events with `state: "final"`: run lifecycle cleanup (pendingRuns,
-   *   session active run tracking, abortedRunIds). Text forwarding is handled by
-   *   agent events, so the chat handler no longer sends text.
+   * - `chat` events with `state: "final"`: run lifecycle cleanup. Text
+   *   forwarding is handled by agent events, so the chat handler no longer
+   *   sends text.
    */
   onGatewayEvent(evt: GatewayEventFrame): void {
     if (evt.event === "agent") {
@@ -277,17 +261,16 @@ export class CustomerServiceBridge {
 
       const session = this.sessions.get(pending.conversationId);
 
-      // Clean up aborted run markers
-      const wasAborted = session?.abortedRunIds.has(payload.runId);
+      const completion = session?.onRunCompleted(payload.runId);
+      const wasAborted = completion?.wasAborted ?? false;
       if (wasAborted) {
-        session!.abortedRunIds.delete(payload.runId);
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
       } else if (payload.state === "error") {
         // Non-aborted error: log only, no fallback — fail fast so issues surface immediately.
         // Emit cs.error only for runs that produced zero output — the buyer
         // is left hanging and ops needs to see it. If text was already
         // forwarded, the run was at least partially useful.
-        if (!this.forwardedRuns.has(payload.runId)) {
+        if (!completion?.hadForwardedText) {
           log.warn(`Agent run ${payload.runId} ended with error and no text was forwarded`);
           session?.emitError(CS_ERROR_STAGE.RUN_ERROR, {
             reason: "no_text",
@@ -299,13 +282,7 @@ export class CustomerServiceBridge {
       }
 
       // Safety-net cleanup of turn buffer (normally already flushed by agent events)
-      this.turnTextBuffer.delete(payload.runId);
-      this.forwardedRuns.delete(payload.runId);
-
-      // Clear session's active run tracking
-      if (session) {
-        session.onRunCompleted(payload.runId);
-      }
+      session?.clearTurnText(payload.runId);
     }
   }
 
@@ -340,7 +317,7 @@ export class CustomerServiceBridge {
     if (stream === "assistant") {
       const text = data.text;
       if (typeof text === "string") {
-        this.turnTextBuffer.set(runId, text);
+        this.sessions.get(pending.conversationId)?.noteTurnText(runId, text);
       }
       return;
     }
@@ -355,7 +332,7 @@ export class CustomerServiceBridge {
         // Flush any buffered text before clearing — ensures partial
         // responses reach the buyer even when the run errors out.
         this.flushTurnText(runId, pending.conversationId);
-        this.turnTextBuffer.delete(runId);
+        this.sessions.get(pending.conversationId)?.clearTurnText(runId);
       }
     }
   }
@@ -378,15 +355,13 @@ export class CustomerServiceBridge {
    * - If real content has a timeout suffix appended, strips the suffix.
    */
   private flushTurnText(runId: string, conversationId: string): void {
-    let text = this.turnTextBuffer.get(runId)?.trim();
-    this.turnTextBuffer.delete(runId);
-    if (!text) return;
-
     const session = this.sessions.get(conversationId);
     if (!session) return;
+    let text = session.takeTurnText(runId).trim();
+    if (!text) return;
 
     // Don't forward for aborted runs
-    if (session.abortedRunIds.has(runId)) return;
+    if (session.isRunAborted(runId)) return;
 
     // Strip internal protocol/tool scaffolding that occasionally leaks into
     // assistant text streams before we evaluate whether anything meaningful
@@ -421,22 +396,23 @@ export class CustomerServiceBridge {
     // NOT retry or send a boilerplate apology — keeps the "feels like a
     // human" experience. The periodic unread-message sweep is responsible
     // for catching the dropped turn and re-sending.
-    this.forwardedRuns.add(runId);
+    session.markRunDeliveryStarted(runId);
     session.forwardTextToBuyer(text, runId)
       .catch((err) => {
-        if (session.abortedRunIds.has(runId)) {
+        if (session.isRunAborted(runId)) {
           log.info(`Run ${runId} was aborted during delivery, skipping`);
           return;
         }
-        log.error(
-          `Failed to forward per-turn text for run ${runId} (shop=${session.csContext.shopId}, conversation=${session.csContext.conversationId}):`,
-          err,
-        );
-        session.emitError(CS_ERROR_STAGE.DELIVER, {
-          reason: "platform_error",
-          errorMessage: err,
+        void session.handleRunDeliveryFailure({
           runId,
-          textLength: text.length,
+          text,
+          error: err,
+        }).catch((recoveryErr) => {
+          log.warn(
+            `Failed to handle delivery failure for run ${runId} ` +
+            `(shop=${session.csContext.shopId}, conversation=${session.csContext.conversationId}): ` +
+            (recoveryErr instanceof Error ? recoveryErr.message : String(recoveryErr)),
+          );
         });
       });
   }

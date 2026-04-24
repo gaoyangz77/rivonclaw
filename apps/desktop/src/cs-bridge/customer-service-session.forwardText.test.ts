@@ -50,9 +50,11 @@ vi.mock("../usage/session-usage.js", () => ({
 
 const mockEmitCsTelemetry = vi.fn();
 const mockEmitCsError = vi.fn();
+const mockEmitCsDeliveryRecovery = vi.fn();
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
   emitCsTelemetry: (...args: unknown[]) => mockEmitCsTelemetry(...args),
   emitCsError: (...args: unknown[]) => mockEmitCsError(...args),
+  emitCsDeliveryRecovery: (...args: unknown[]) => mockEmitCsDeliveryRecovery(...args),
   CS_ERROR_STAGE: {
     DELIVER: "deliver",
     SANITIZE: "sanitize",
@@ -71,6 +73,7 @@ vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceSession, type CSShopContext, type CSContext } from "./customer-service-session.js";
+import { rootStore } from "../app/store/desktop-store.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -106,6 +109,22 @@ beforeEach(() => {
   // The simplified SEND_MESSAGE_MUTATION no longer carries a usage payload —
   // the only GraphQL call is the send itself.
   mockGraphqlFetch.mockResolvedValue({ ecommerceSendMessage: { messageId: "m-1" } });
+  rootStore.llmManager.setEnv({
+    storage: { providerKeys: { getAll: () => [], getActive: () => null, getById: () => null } } as any,
+    secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+    getRpcClient: () => ({ request: mockRpcRequest, isConnected: () => true }) as any,
+    toMstSnapshot: async () => ({} as any),
+    allKeysToMstSnapshots: async () => [],
+    syncActiveKey: async () => {},
+    syncAllAuthProfiles: async () => {},
+    writeProxyRouterConfig: async () => {},
+    writeFullGatewayConfig: async () => {},
+    writeDefaultModelToConfig: () => {},
+    restartGateway: async () => {},
+    proxyFetch: globalThis.fetch,
+    stateDir: "/tmp/test-state",
+    getLastSystemProxy: () => null,
+  });
 });
 
 /**
@@ -344,5 +363,81 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
       provider: "",
       model: "",
     });
+  });
+
+  it("emits cs.delivery_recovery telemetry when sensitive-content recovery dispatch succeeds", async () => {
+    const session = makeSession();
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") return { runId: "rewrite-run-1" };
+      return { ok: true };
+    });
+
+    const result = await session.dispatchSensitiveContentRecovery({
+      failedRunId: "run-1",
+      rejectedText: "Blocked draft",
+    });
+
+    expect(result).toMatchObject({ runId: "rewrite-run-1" });
+    expect(mockEmitCsDeliveryRecovery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        failedRunId: "run-1",
+        recoveryRunId: "rewrite-run-1",
+        reason: "sensitive_content",
+        status: "dispatched",
+        attempt: 1,
+        maxAttempts: 1,
+        textLength: "Blocked draft".length,
+      }),
+    );
+  });
+
+  it("emits cs.delivery_recovery telemetry when sensitive-content recovery dispatch fails", async () => {
+    const session = makeSession();
+    mockRpcRequest.mockRejectedValueOnce(new Error("RPC down"));
+
+    await expect(session.dispatchSensitiveContentRecovery({
+      failedRunId: "run-2",
+      rejectedText: "Blocked draft",
+    })).rejects.toThrow("RPC down");
+
+    expect(mockEmitCsDeliveryRecovery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        failedRunId: "run-2",
+        reason: "sensitive_content",
+        status: "dispatch_failed",
+        attempt: 1,
+        maxAttempts: 1,
+        textLength: "Blocked draft".length,
+      }),
+    );
+  });
+
+  it("emits cs.delivery_recovery telemetry when sensitive-content recovery is skipped by attempt limit", async () => {
+    const session = makeSession();
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") return { runId: "rewrite-run-1" };
+      return { ok: true };
+    });
+
+    await session.dispatchSensitiveContentRecovery({
+      failedRunId: "run-3",
+      rejectedText: "Blocked draft",
+    });
+    const result = await session.dispatchSensitiveContentRecovery({
+      failedRunId: "run-4",
+      rejectedText: "Blocked draft again",
+    });
+
+    expect(result).toBeUndefined();
+    expect(mockEmitCsDeliveryRecovery).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        failedRunId: "run-4",
+        reason: "sensitive_content",
+        status: "skipped_limit_reached",
+        attempt: 1,
+        maxAttempts: 1,
+        textLength: "Blocked draft again".length,
+      }),
+    );
   });
 });

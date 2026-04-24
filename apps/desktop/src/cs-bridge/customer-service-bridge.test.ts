@@ -38,6 +38,24 @@ vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
 }));
 
+const mockEmitCsError = vi.fn();
+vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
+  emitCsError: (...args: unknown[]) => mockEmitCsError(...args),
+  CS_ERROR_STAGE: {
+    DELIVER: "deliver",
+    SANITIZE: "sanitize",
+    RUN_ERROR: "run_error",
+    DISPATCH: "dispatch",
+    BACKEND_SESSION: "backend_session",
+    SETUP: "setup",
+    CONTEXT_RESOLUTION: "context_resolution",
+    IMAGE_INGEST: "image_ingest",
+    ESCALATE: "escalate",
+    RELAY_CONNECT: "relay_connect",
+    SHOP_BIND_REJECTED: "shop_bind_rejected",
+  },
+}));
+
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
@@ -2321,6 +2339,24 @@ describe("per-turn message forwarding", () => {
     expect(texts).toHaveLength(0);
   });
 
+  it("disposes the completed CS round after successful outbound delivery + chat final", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-gc-success");
+
+    const session = (bridge as any).sessions.get("conv-789");
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    agentEvent(bridge, "run-gc-success", "assistant", { text: "Delivered text" });
+    agentEvent(bridge, "run-gc-success", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    chatFinal(bridge, "run-gc-success");
+    expect(session.getDebugRoundCount()).toBe(0);
+  });
+
   it("tool phase other than 'start' does not flush", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -2442,6 +2478,14 @@ describe("terminal guarantee (error/timeout)", () => {
     } as any);
   }
 
+  /** Helper: send a chat final event for cleanup. */
+  function chatFinal(bridge: ReturnType<typeof createBridge>, runId: string): void {
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId, state: "final" },
+    } as any);
+  }
+
   /**
    * Helper: count ecommerceSendMessage calls and return their content args.
    * Async to flush the collectUsageSnapshot → sessions.list microtask chain
@@ -2456,6 +2500,21 @@ describe("terminal guarantee (error/timeout)", () => {
         const parsed = JSON.parse(c[1].content as string);
         return parsed.content as string;
       });
+  }
+
+  function getAgentDispatchMessages(): string[] {
+    return mockRpcRequest.mock.calls
+      .filter((c: any[]) => c[0] === "agent")
+      .map((c: any[]) => c[1]?.message as string);
+  }
+
+  async function waitForCondition(predicate: () => boolean, timeoutMs = 300): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (predicate()) return;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    throw new Error("Timed out waiting for condition");
   }
 
   it("lifecycle error with buffered text: text is flushed to buyer", async () => {
@@ -2659,6 +2718,228 @@ describe("terminal guarantee (error/timeout)", () => {
     // follow-up "sorry I couldn't" apology is sent.
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Some answer");
+  });
+
+  it("forward rejects with TikTok sensitive-content error → emits deliver telemetry with reason sensitive_content", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-fwd-sensitive");
+
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceSendMessage")) {
+        throw new Error("TikTok API error 45101006: hit sensitive");
+      }
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      return {};
+    });
+
+    agentEvent(bridge, "run-fwd-sensitive", "assistant", { text: "Refund details" });
+    agentEvent(bridge, "run-fwd-sensitive", "lifecycle", { phase: "end" });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockEmitCsError).toHaveBeenCalledWith(
+      "deliver",
+      expect.objectContaining({
+        reason: "sensitive_content",
+        runId: "run-fwd-sensitive",
+        textLength: "Refund details".length,
+      }),
+    );
+  });
+
+  it("sensitive-content rejection triggers one local rewrite recovery run", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    let nextAgentRun = 0;
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") {
+        nextAgentRun++;
+        return { runId: nextAgentRun === 1 ? "run-fwd-sensitive" : "run-fwd-sensitive-rewrite" };
+      }
+      return { ok: true };
+    });
+
+    let sendCount = 0;
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceSendMessage")) {
+        sendCount++;
+        if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
+        return { ecommerceSendMessage: { messageId: "ok" } };
+      }
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      return {};
+    });
+
+    await triggerMessage(bridge, createFrame());
+    const session = (bridge as any).sessions.get("conv-789");
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    agentEvent(bridge, "run-fwd-sensitive", "assistant", { text: "Contact PayPal dispute and block the card." });
+    agentEvent(bridge, "run-fwd-sensitive", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 50));
+    chatFinal(bridge, "run-fwd-sensitive");
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    const dispatchMessages = getAgentDispatchMessages();
+    expect(dispatchMessages).toHaveLength(2);
+    expect(dispatchMessages[1]).toContain("payment methods, disputes, refunds, banks/cards, or off-platform communication apps");
+    expect(dispatchMessages[1]).toContain("Rephrase the same meaning");
+    expect(dispatchMessages[1]).toContain("Contact PayPal dispute and block the card.");
+
+    agentEvent(bridge, "run-fwd-sensitive-rewrite", "assistant", { text: "Please contact PayPal directly for help with the pending payment." });
+    agentEvent(bridge, "run-fwd-sensitive-rewrite", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(session.getDebugRoundCount()).toBe(1);
+    chatFinal(bridge, "run-fwd-sensitive-rewrite");
+    expect(session.getDebugRoundCount()).toBe(0);
+
+    const texts = await getForwardedTexts();
+    expect(texts).toEqual([
+      "Contact PayPal dispute and block the card.",
+      "Please contact PayPal directly for help with the pending payment.",
+    ]);
+  });
+
+  it("sensitive-content recovery is capped to one local rewrite attempt", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    let nextAgentRun = 0;
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") {
+        nextAgentRun++;
+        return { runId: nextAgentRun === 1 ? "run-fwd-sensitive" : "run-fwd-sensitive-rewrite" };
+      }
+      return { ok: true };
+    });
+
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceSendMessage")) {
+        throw new Error("TikTok API error 45101006: hit sensitive");
+      }
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      return {};
+    });
+
+    await triggerMessage(bridge, createFrame());
+
+    agentEvent(bridge, "run-fwd-sensitive", "assistant", { text: "Original blocked reply" });
+    agentEvent(bridge, "run-fwd-sensitive", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 50));
+
+    agentEvent(bridge, "run-fwd-sensitive-rewrite", "assistant", { text: "Still blocked rewrite" });
+    agentEvent(bridge, "run-fwd-sensitive-rewrite", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(getAgentDispatchMessages()).toHaveLength(2);
+  });
+
+  it("aborts an in-flight sensitive-content recovery dispatch when a newer buyer message arrives", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    let resolveRecoveryDispatch: ((value: { runId: string }) => void) | undefined;
+    const recoveryDispatch = new Promise<{ runId: string }>((resolve) => {
+      resolveRecoveryDispatch = resolve;
+    });
+
+    let agentDispatchCount = 0;
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") {
+        agentDispatchCount++;
+        if (agentDispatchCount === 1) return { runId: "run-sensitive-original" };
+        if (agentDispatchCount === 2) return recoveryDispatch;
+        return { runId: "run-newer-buyer-message" };
+      }
+      return { ok: true };
+    });
+
+    let sendCount = 0;
+    mockGraphqlFetch.mockImplementation(async (query: string) => {
+      if (query.includes("ecommerceSendMessage")) {
+        sendCount++;
+        if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
+        return { ecommerceSendMessage: { messageId: `ok-${sendCount}` } };
+      }
+      if (query.includes("ecommerceGetConversationDetails")) {
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      return {};
+    });
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-sensitive" }));
+    const session = (bridge as any).sessions.get("conv-789");
+
+    agentEvent(bridge, "run-sensitive-original", "assistant", { text: "Original blocked reply" });
+    agentEvent(bridge, "run-sensitive-original", "lifecycle", { phase: "end" });
+    await waitForCondition(() => agentDispatchCount === 2);
+
+    await triggerMessage(bridge, createFrame({
+      messageId: "msg-newer",
+      content: JSON.stringify({ content: "Actually, I have a new question" }),
+    }));
+    expect(agentDispatchCount).toBe(3);
+
+    resolveRecoveryDispatch?.({ runId: "run-sensitive-recovery" });
+    await waitForCondition(() => mockRpcRequest.mock.calls.some((c: any[]) => c[1]?.message?.includes("Actually, I have a new question")));
+    await waitForCondition(() => (bridge as any).pendingRuns.has("run-sensitive-recovery"));
+
+    agentEvent(bridge, "run-sensitive-recovery", "assistant", { text: "Stale recovery reply" });
+    agentEvent(bridge, "run-sensitive-recovery", "lifecycle", { phase: "end" });
+    chatFinal(bridge, "run-sensitive-recovery");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    agentEvent(bridge, "run-newer-buyer-message", "assistant", { text: "Fresh reply for the newer message" });
+    agentEvent(bridge, "run-newer-buyer-message", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const texts = await getForwardedTexts();
+    expect(texts).toContain("Original blocked reply");
+    expect(texts).toContain("Fresh reply for the newer message");
+    expect(texts).not.toContain("Stale recovery reply");
+  });
+
+  it("disposes the terminal CS round after non-recoverable delivery failure + chat error", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-gc-fail");
+
+    const session = (bridge as any).sessions.get("conv-789");
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    failFirstNSends(1);
+
+    agentEvent(bridge, "run-gc-fail", "assistant", { text: "Will fail delivery" });
+    agentEvent(bridge, "run-gc-fail", "lifecycle", { phase: "end" });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(session.getDebugRoundCount()).toBe(1);
+
+    chatError(bridge, "run-gc-fail");
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(session.getDebugRoundCount()).toBe(0);
   });
 
   it("lifecycle error flush fails → silent drop, chat error does not send apology", async () => {
