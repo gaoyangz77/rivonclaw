@@ -121,11 +121,29 @@ identity line. `promptMode: "raw"` returns only the caller-supplied
 **Change:** Add `"raw"` to `PromptMode` union type and an early return in
 `buildAgentSystemPrompt()` that returns `extraSystemPrompt ?? ""` when
 `promptMode === "raw"`. Also passes `promptMode` into the `before_prompt_build`
-hook context so plugins (e.g. `rivonclaw-tools`) can skip their own system
-prompt injections in raw mode.
+hook context so plugins can skip their own system prompt injections in raw mode.
 
 **Removal:** Drop when upstream OpenClaw adds a native way to fully suppress
 all default system prompt sections.
+
+### 0009 — Replace CLI guidance for RivonClaw Desktop
+
+**File:** `0009-vendor-openclaw-replace-cli-guidance-for-rivonclaw-desktop.patch`
+
+**Why:** OpenClaw's default system prompt tells agents to run `openclaw status`
+and includes an OpenClaw CLI quick reference. RivonClaw Desktop manages the
+gateway lifecycle itself and does not expose a reliable OpenClaw CLI surface to
+agents or users, so those prompt sections caused agents to try unavailable CLI
+commands. RivonClaw previously carried a prompt-prepend extension to override
+that guidance, which left conflicting instructions in the final system prompt.
+
+**Change:** Replace the docs-section CLI diagnostic sentence and OpenClaw CLI
+quick reference with RivonClaw Desktop runtime guidance that points agents to
+first-class runtime tools.
+
+**Removal:** Drop when upstream OpenClaw supports branded/runtime-specific
+prompt sections or a post-build system-prompt transform that lets RivonClaw
+remove CLI guidance without patching vendor source.
 
 ### 0004 — Skip `stopChannel` for new-account QR logins
 

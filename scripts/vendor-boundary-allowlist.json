@@ -17,11 +17,6 @@
       "reason": "Drift guard — reads vendor source to verify browser tool integration"
     },
     {
-      "file": "extensions/rivonclaw-tools/src/browser-tool-sentinel.test.ts",
-      "vendorPath": "vendor/openclaw/src/agents/tools/browser-tool.ts",
-      "reason": "Drift guard — reads vendor source to verify tool description"
-    },
-    {
       "file": "packages/gateway/src/__tests__/exec-obfuscation-ask-off.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/exec-obfuscation-detect.js",
       "reason": "Drift guard — validates obfuscation detection respects ask=off (vendor patch 0003)"

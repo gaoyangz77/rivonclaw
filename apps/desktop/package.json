@@ -63,7 +63,6 @@
     "@rivonclaw/rivonclaw-mobile-chat-channel": "workspace:*",
     "@rivonclaw/rivonclaw-policy": "workspace:*",
     "@rivonclaw/rivonclaw-search-browser-fallback": "workspace:*",
-    "@rivonclaw/rivonclaw-tools": "workspace:*",
     "@types/ws": "^8.18.1",
     "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",

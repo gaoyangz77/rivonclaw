@@ -1,0 +1,54 @@
+From fc5b46a480eff8167f10723bc722ddcf2ee5ee8e Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Sat, 25 Apr 2026 20:08:44 -0700
+Subject: [PATCH] vendor(openclaw): replace CLI guidance for RivonClaw desktop
+
+Why:
+- RivonClaw Desktop does not expose a reliable OpenClaw CLI to agents or end users.
+- The upstream system prompt tells agents to run openclaw status and includes an OpenClaw CLI quick reference, which conflicts with RivonClaw's managed gateway runtime and caused us to carry a prompt-prepend extension.
+
+Removal:
+- Drop when upstream OpenClaw supports branded/runtime-specific prompt sections or a post-build system-prompt transform that lets RivonClaw remove CLI guidance without patching vendor source.
+
+Tests:
+- apps/desktop/src/cs-bridge/vendor-no-openclaw-cli-guidance.sentinel.test.ts
+---
+ src/agents/system-prompt.ts | 15 ++++++---------
+ 1 file changed, 6 insertions(+), 9 deletions(-)
+
+diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
+index 1e75ca21a8..91a52b8f25 100644
+--- a/src/agents/system-prompt.ts
++++ b/src/agents/system-prompt.ts
+@@ -360,7 +360,7 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
+     "Community: https://discord.com/invite/clawd",
+     "Find new skills: https://clawhub.ai",
+     "For OpenClaw behavior, commands, config, or architecture: consult local docs first.",
+-    "When diagnosing issues, run `openclaw status` yourself when possible; only ask the user if you lack access (e.g., sandboxed).",
++    "When diagnosing issues in RivonClaw Desktop, use available first-class runtime tools instead of shelling out to the OpenClaw CLI.",
+     "",
+   ];
+ }
+@@ -709,14 +709,11 @@ export function buildAgentSystemPrompt(params: {
+       fallback: [],
+     }),
+     ...safetySection,
+-    "## OpenClaw CLI Quick Reference",
+-    "OpenClaw is controlled via subcommands. Do not invent commands.",
+-    "To manage the Gateway daemon service (start/stop/restart):",
+-    "- openclaw gateway status",
+-    "- openclaw gateway start",
+-    "- openclaw gateway stop",
+-    "- openclaw gateway restart",
+-    "If unsure, ask the user to run `openclaw help` (or `openclaw gateway --help`) and paste the output.",
++    "## RivonClaw Desktop Runtime",
++    "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
++    "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
++    "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools instead of shell CLI commands.",
++    "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
+     "",
+     ...skillsSection,
+     ...memorySection,
+-- 
+2.50.1 (Apple Git-155)
+

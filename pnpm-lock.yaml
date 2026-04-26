@@ -136,9 +136,6 @@ importers:
       '@rivonclaw/rivonclaw-search-browser-fallback':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-search-browser-fallback
-      '@rivonclaw/rivonclaw-tools':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-tools
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
@@ -506,25 +503,6 @@ importers:
       tsdown:
         specifier: ^0.20.3
         version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-
-  extensions/rivonclaw-tools:
-    dependencies:
-      '@rivonclaw/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      '@sinclair/typebox':
-        specifier: ^0.34.0
-        version: 0.34.48
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/core:
     dependencies:
@@ -1950,6 +1928,7 @@ packages:
   '@lancedb/lancedb@0.27.2':
     resolution: {integrity: sha512-JQpZHV5KzUzDI3flYCjtZcfHlEbL8lM54E0NT+jrRYe29aKYegfavvPsAsuZp0VdcMwFMZcpMkaBhjQMo/fwvg==}
     engines: {node: '>= 18'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
     peerDependencies:
       apache-arrow: '>=15.0.0 <=18.1.0'
@@ -2363,6 +2342,7 @@ packages:
   '@rolldown/binding-darwin-arm64@1.0.0-rc.3':
     resolution: {integrity: sha512-JWWLzvcmc/3pe7qdJqPpuPk91SoE/N+f3PcWx/6ZwuyDVyungAEJPvKm/eEldiDdwTmaEzWfIR+HORxYWrCi1A==}
     engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
     os: [darwin]
 
   '@rolldown/binding-darwin-x64@1.0.0-rc.3':

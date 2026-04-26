@@ -138,6 +138,8 @@ const REMOVED_PLUGIN_IDS = new Set([
   "mobile",
   // v2026.4.11: modelstudio merged into the qwen extension plugin.
   "modelstudio",
+  // v1.8.9: rivonclaw-tools prompt-prepend extension replaced by vendor prompt patch 0009.
+  "easyclaw-tools", "rivonclaw-tools",
 ]);
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
@@ -145,7 +147,6 @@ const REMOVED_PLUGIN_IDS = new Set([
  *  Old names are replaced with new names in plugins.allow on every config write. */
 const RENAMED_PLUGIN_IDS: Record<string, string> = {
   // v1.6 → v1.7: easyclaw → rivonclaw rebrand
-  "easyclaw-tools": "rivonclaw-tools",
   "easyclaw-policy": "rivonclaw-policy",
   "easyclaw-event-bridge": "rivonclaw-event-bridge",
   "easyclaw-file-permissions": "rivonclaw-file-permissions",

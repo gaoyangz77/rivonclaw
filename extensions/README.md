@@ -8,38 +8,16 @@ electron-builder.yml.
 
 | Extension | Type | Description |
 |-----------|------|-------------|
-| `rivonclaw-tools` | Hook + Tool | Runtime context injection + `rivonclaw`/`providers` tools (ownerOnly) |
 | `rivonclaw-policy` | Hook | Injects compiled policies and guard directives into system prompt |
 | `rivonclaw-file-permissions` | Hook | Validates file operations against permission policies |
 | `rivonclaw-search-browser-fallback` | Hook (single-file) | Falls back to browser search when `web_search` fails |
 
-### rivonclaw-tools: Tool Status
+### Deprecated: rivonclaw-tools
 
-| Component | Status | Description |
-|-----------|--------|-------------|
-| `before_prompt_build` hook | Implemented | Prepends RivonClaw runtime context via `prependSystemContext` |
-| `rivonclaw` tool | Implemented | `status` (runtime info), `help` (available tools + tips) |
-| `providers` tool | Implemented | list, add, activate, remove — calls panel-server HTTP API |
-| `channels` tool | Placeholder | list, status, configure — will call panel-server API |
-| `settings` tool | Placeholder | get, update — will call panel-server API |
-| `rules` tool | Placeholder | list, create, update, delete — will call panel-server API |
-| `skills` tool | Placeholder | search, install, delete, list — will call panel-server API |
-
-### rivonclaw-tools: Why `prependSystemContext` Instead of `systemPrompt` Replacement
-
-The `before_prompt_build` hook's `event.prompt` is the **user's message**, not the
-built system prompt. The hook cannot read or modify the existing system prompt —
-it can only provide a full replacement via `systemPrompt` or prepend to the user
-message via `prependSystemContext`.
-
-Full replacement (`systemPrompt`) would require calling `buildAgentSystemPrompt()`
-ourselves with 25+ dynamic parameters (toolNames, workspace, timezone, skills,
-context files, sandbox info, etc.) that are not available in the hook context.
-This would mean maintaining a copy of the vendor's prompt builder logic.
-
-`prependSystemContext` is the correct approach: the AI sees "do NOT use openclaw CLI"
-before it encounters the CLI instructions in the system prompt. The OpenClaw CLI
-section remains in the system prompt but is effectively overridden.
+`rivonclaw-tools` was a prompt-prepend extension that told agents not to use the
+OpenClaw CLI. It is deprecated and removed because vendor patch 0009 replaces the
+upstream CLI guidance directly in OpenClaw's system prompt, avoiding conflicting
+system instructions.
 
 ## How Loading Works
 

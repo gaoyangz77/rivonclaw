@@ -11,6 +11,5 @@ export const OUR_PLUGIN_IDS: ReadonlySet<string> = new Set([
   "rivonclaw-local-tools",
   "rivonclaw-mobile-chat-channel",
   "rivonclaw-policy",
-  "rivonclaw-search-browser-fallback",
-  "rivonclaw-tools"
+  "rivonclaw-search-browser-fallback"
 ]);
