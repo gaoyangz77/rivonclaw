@@ -52,7 +52,7 @@
 
   ; Add the shim dir to HKCU Path idempotently. This affects new terminals;
   ; Desktop also rewrites the shim on startup with the current state/config paths.
-  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$bin=[Environment]::ExpandEnvironmentVariables(''%LOCALAPPDATA%\RivonClaw\bin''); $path=[Environment]::GetEnvironmentVariable(''Path'',''User''); $entries=@(); if($path){$entries=$path -split '';'' | ? { $_ }}; if(-not ($entries | ? { $_.TrimEnd([char]92) -ieq $bin.TrimEnd([char]92) })){ [Environment]::SetEnvironmentVariable(''Path'', (($entries + $bin) | ? { $_ }) -join '';'', ''User'') }"'
+  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$bin=[Environment]::ExpandEnvironmentVariables(''%LOCALAPPDATA%\RivonClaw\bin''); $$path=[Environment]::GetEnvironmentVariable(''Path'',''User''); $$entries=@(); if($$path){$$entries=$$path -split '';'' | ? { $$_ }}; if(-not ($$entries | ? { $$_.TrimEnd([char]92) -ieq $$bin.TrimEnd([char]92) })){ [Environment]::SetEnvironmentVariable(''Path'', (($$entries + $$bin) | ? { $$_ }) -join '';'', ''User'') }"'
   Pop $0
 !macroend
 
