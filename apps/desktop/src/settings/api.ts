@@ -14,9 +14,7 @@ const log = createLogger("settings-routes");
 // ── GET /api/status ──
 
 const appStatus: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
-  const ruleCount = ctx.storage.rules.getAll().length;
-  const artifactCount = ctx.storage.artifacts.getAll().length;
-  sendJson(res, 200, { status: "ok", ruleCount, artifactCount, deviceId: ctx.deviceId ?? null });
+  sendJson(res, 200, { status: "ok", deviceId: ctx.deviceId ?? null });
 };
 
 // ── GET /api/app/api-base-url ──

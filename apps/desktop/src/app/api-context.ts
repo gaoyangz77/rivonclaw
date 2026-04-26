@@ -14,7 +14,6 @@ export interface ApiContext {
   secretStore: SecretStore;
   proxyRouterPort: number;
   gatewayPort: number;
-  onRuleChange?: (action: "created" | "updated" | "deleted" | "channel-created" | "channel-deleted", ruleId: string) => void;
   onProviderChange?: (hint?: { configOnly?: boolean; keyOnly?: boolean }) => void;
   onOpenFileDialog?: () => Promise<string | null>;
   sttManager?: {

@@ -147,7 +147,6 @@ beforeAll(async () => {
     secretStore: mockSecretStore as any,
     proxyRouterPort: 18881,
     gatewayPort: 18882,
-    onRuleChange: () => {},
     onProviderChange: () => {},
     vendorDir: "/tmp/nonexistent-vendor",
     nodeBin: process.execPath,

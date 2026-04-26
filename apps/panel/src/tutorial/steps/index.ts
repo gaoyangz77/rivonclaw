@@ -1,6 +1,5 @@
 import type { TutorialStep } from "../types.js"
 import { chatSteps } from "./chat.js"
-import { rulesSteps } from "./rules.js"
 import { channelsSteps } from "./channels.js"
 import { permissionsSteps } from "./permissions.js"
 import { providersSteps } from "./providers.js"
@@ -14,7 +13,6 @@ import { accountSteps } from "./account.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
-  "/rules": rulesSteps,
   "/channels": channelsSteps,
   "/permissions": permissionsSteps,
   "/providers": providersSteps,

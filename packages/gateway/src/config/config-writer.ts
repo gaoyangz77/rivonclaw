@@ -147,7 +147,6 @@ const REMOVED_PLUGIN_IDS = new Set([
  *  Old names are replaced with new names in plugins.allow on every config write. */
 const RENAMED_PLUGIN_IDS: Record<string, string> = {
   // v1.6 → v1.7: easyclaw → rivonclaw rebrand
-  "easyclaw-policy": "rivonclaw-policy",
   "easyclaw-event-bridge": "rivonclaw-event-bridge",
   "easyclaw-file-permissions": "rivonclaw-file-permissions",
   // v1.7 → v1.8: unify all extensions under rivonclaw- prefix

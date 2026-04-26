@@ -5,8 +5,7 @@ import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 export interface GatewayStatus {
   status: string;
-  ruleCount: number;
-  artifactCount: number;
+  deviceId?: string | null;
 }
 
 export async function fetchStatus(): Promise<GatewayStatus> {

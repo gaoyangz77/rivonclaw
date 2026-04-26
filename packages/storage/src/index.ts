@@ -1,7 +1,5 @@
 import type Database from "better-sqlite3";
 import { openDatabase, closeDatabase } from "./db/database.js";
-import { RulesRepository } from "./repositories/repo-rules.js";
-import { ArtifactsRepository } from "./repositories/repo-artifacts.js";
 import { ChannelsRepository } from "./repositories/repo-channels.js";
 import { PermissionsRepository } from "./repositories/repo-permissions.js";
 import { SettingsRepository } from "./repositories/repo-settings.js";
@@ -16,8 +14,6 @@ import { ChannelAccountsRepository } from "./repositories/repo-channel-accounts.
 import { CsEscalationsRepository } from "./repositories/repo-cs-escalations.js";
 export interface Storage {
   db: Database.Database;
-  rules: RulesRepository;
-  artifacts: ArtifactsRepository;
   channels: ChannelsRepository;
   permissions: PermissionsRepository;
   settings: SettingsRepository;
@@ -38,8 +34,6 @@ export function createStorage(dbPath?: string): Storage {
 
   return {
     db,
-    rules: new RulesRepository(db),
-    artifacts: new ArtifactsRepository(db),
     channels: new ChannelsRepository(db),
     permissions: new PermissionsRepository(db),
     settings: new SettingsRepository(db),
@@ -59,8 +53,6 @@ export function createStorage(dbPath?: string): Storage {
 }
 
 export { openDatabase, closeDatabase } from "./db/database.js";
-export { RulesRepository } from "./repositories/repo-rules.js";
-export { ArtifactsRepository } from "./repositories/repo-artifacts.js";
 export { ChannelsRepository } from "./repositories/repo-channels.js";
 export { PermissionsRepository } from "./repositories/repo-permissions.js";
 export { SettingsRepository } from "./repositories/repo-settings.js";

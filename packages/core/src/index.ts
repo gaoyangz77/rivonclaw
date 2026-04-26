@@ -1,8 +1,4 @@
 export type {
-  Rule,
-  ArtifactType,
-  ArtifactStatus,
-  RuleArtifact,
   ChannelConfig,
   PermissionConfig,
   ProviderKeyEntry,

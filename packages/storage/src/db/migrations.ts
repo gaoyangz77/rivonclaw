@@ -31,23 +31,6 @@ export const migrations: Migration[] = [
     id: 1,
     name: "initial_schema",
     sql: `
-      CREATE TABLE IF NOT EXISTS rules (
-        id TEXT PRIMARY KEY,
-        text TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS artifacts (
-        id TEXT PRIMARY KEY,
-        rule_id TEXT NOT NULL REFERENCES rules(id) ON DELETE CASCADE,
-        type TEXT NOT NULL,
-        content TEXT NOT NULL,
-        output_path TEXT,
-        status TEXT NOT NULL DEFAULT 'pending',
-        compiled_at TEXT NOT NULL
-      );
-
       CREATE TABLE IF NOT EXISTS channels (
         id TEXT PRIMARY KEY,
         channel_type TEXT NOT NULL,

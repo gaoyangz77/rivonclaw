@@ -12,198 +12,6 @@ afterEach(() => {
   storage.close();
 });
 
-describe("RulesRepository", () => {
-  it("should create and retrieve a rule", () => {
-    const rule = storage.rules.create({
-      id: "rule-1",
-      text: "Do not access sensitive files",
-    });
-
-    expect(rule.id).toBe("rule-1");
-    expect(rule.text).toBe("Do not access sensitive files");
-    expect(rule.createdAt).toBeTruthy();
-    expect(rule.updatedAt).toBeTruthy();
-
-    const fetched = storage.rules.getById("rule-1");
-    expect(fetched).toEqual(rule);
-  });
-
-  it("should return undefined for non-existent rule", () => {
-    const result = storage.rules.getById("nonexistent");
-    expect(result).toBeUndefined();
-  });
-
-  it("should get all rules", () => {
-    storage.rules.create({ id: "rule-1", text: "Rule 1" });
-    storage.rules.create({ id: "rule-2", text: "Rule 2" });
-
-    const all = storage.rules.getAll();
-    expect(all).toHaveLength(2);
-    expect(all[0].id).toBe("rule-1");
-    expect(all[1].id).toBe("rule-2");
-  });
-
-  it("should update a rule", () => {
-    storage.rules.create({ id: "rule-1", text: "Original text" });
-
-    const updated = storage.rules.update("rule-1", { text: "Updated text" });
-    expect(updated).toBeDefined();
-    expect(updated!.text).toBe("Updated text");
-    expect(updated!.id).toBe("rule-1");
-
-    const fetched = storage.rules.getById("rule-1");
-    expect(fetched!.text).toBe("Updated text");
-  });
-
-  it("should return undefined when updating non-existent rule", () => {
-    const result = storage.rules.update("nonexistent", { text: "test" });
-    expect(result).toBeUndefined();
-  });
-
-  it("should delete a rule", () => {
-    storage.rules.create({ id: "rule-1", text: "Rule 1" });
-
-    const deleted = storage.rules.delete("rule-1");
-    expect(deleted).toBe(true);
-
-    const fetched = storage.rules.getById("rule-1");
-    expect(fetched).toBeUndefined();
-  });
-
-  it("should return false when deleting non-existent rule", () => {
-    const deleted = storage.rules.delete("nonexistent");
-    expect(deleted).toBe(false);
-  });
-});
-
-describe("ArtifactsRepository", () => {
-  beforeEach(() => {
-    storage.rules.create({ id: "rule-1", text: "Test rule" });
-  });
-
-  it("should create and retrieve artifacts by rule id", () => {
-    const artifact = storage.artifacts.create({
-      id: "artifact-1",
-      ruleId: "rule-1",
-      type: "policy-fragment",
-      content: "policy content here",
-      status: "ok",
-      compiledAt: new Date().toISOString(),
-    });
-
-    expect(artifact.id).toBe("artifact-1");
-
-    const fetched = storage.artifacts.getByRuleId("rule-1");
-    expect(fetched).toHaveLength(1);
-    expect(fetched[0].id).toBe("artifact-1");
-    expect(fetched[0].type).toBe("policy-fragment");
-    expect(fetched[0].outputPath).toBeUndefined();
-  });
-
-  it("should create artifact with outputPath", () => {
-    storage.artifacts.create({
-      id: "artifact-2",
-      ruleId: "rule-1",
-      type: "action-bundle",
-      content: "skill content",
-      outputPath: "/path/to/SKILL.md",
-      status: "ok",
-      compiledAt: new Date().toISOString(),
-    });
-
-    const fetched = storage.artifacts.getByRuleId("rule-1");
-    expect(fetched[0].outputPath).toBe("/path/to/SKILL.md");
-  });
-
-  it("should get all artifacts", () => {
-    storage.artifacts.create({
-      id: "artifact-1",
-      ruleId: "rule-1",
-      type: "policy-fragment",
-      content: "content 1",
-      status: "ok",
-      compiledAt: new Date().toISOString(),
-    });
-    storage.artifacts.create({
-      id: "artifact-2",
-      ruleId: "rule-1",
-      type: "guard",
-      content: "content 2",
-      status: "pending",
-      compiledAt: new Date().toISOString(),
-    });
-
-    const all = storage.artifacts.getAll();
-    expect(all).toHaveLength(2);
-  });
-
-  it("should update an artifact", () => {
-    storage.artifacts.create({
-      id: "artifact-1",
-      ruleId: "rule-1",
-      type: "policy-fragment",
-      content: "original",
-      status: "pending",
-      compiledAt: new Date().toISOString(),
-    });
-
-    const updated = storage.artifacts.update("artifact-1", {
-      content: "updated content",
-      status: "ok",
-    });
-
-    expect(updated).toBeDefined();
-    expect(updated!.content).toBe("updated content");
-    expect(updated!.status).toBe("ok");
-  });
-
-  it("should return undefined when updating non-existent artifact", () => {
-    const result = storage.artifacts.update("nonexistent", { content: "test" });
-    expect(result).toBeUndefined();
-  });
-
-  it("should delete artifacts by rule id", () => {
-    storage.artifacts.create({
-      id: "artifact-1",
-      ruleId: "rule-1",
-      type: "policy-fragment",
-      content: "content",
-      status: "ok",
-      compiledAt: new Date().toISOString(),
-    });
-    storage.artifacts.create({
-      id: "artifact-2",
-      ruleId: "rule-1",
-      type: "guard",
-      content: "content 2",
-      status: "ok",
-      compiledAt: new Date().toISOString(),
-    });
-
-    const deleted = storage.artifacts.deleteByRuleId("rule-1");
-    expect(deleted).toBe(2);
-
-    const remaining = storage.artifacts.getByRuleId("rule-1");
-    expect(remaining).toHaveLength(0);
-  });
-
-  it("should cascade delete artifacts when rule is deleted", () => {
-    storage.artifacts.create({
-      id: "artifact-1",
-      ruleId: "rule-1",
-      type: "policy-fragment",
-      content: "content",
-      status: "ok",
-      compiledAt: new Date().toISOString(),
-    });
-
-    storage.rules.delete("rule-1");
-
-    const remaining = storage.artifacts.getByRuleId("rule-1");
-    expect(remaining).toHaveLength(0);
-  });
-});
-
 describe("ChannelsRepository", () => {
   it("should create and retrieve a channel", () => {
     const channel = storage.channels.create({
@@ -890,8 +698,6 @@ describe("KeyUsageHistoryRepository", () => {
 describe("Database", () => {
   it("should create storage with in-memory database", () => {
     expect(storage.db).toBeDefined();
-    expect(storage.rules).toBeDefined();
-    expect(storage.artifacts).toBeDefined();
     expect(storage.channels).toBeDefined();
     expect(storage.permissions).toBeDefined();
     expect(storage.settings).toBeDefined();
@@ -930,6 +736,13 @@ describe("Database", () => {
       .all() as Array<{ id: number; name: string }>;
 
     expect(rows).toHaveLength(migrations.length);
+  });
+
+  it("does not drop legacy rules or artifacts tables during policy removal", () => {
+    const migrationSql = migrations.map((migration) => migration.sql).join("\n");
+
+    expect(migrationSql).not.toMatch(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?rules/i);
+    expect(migrationSql).not.toMatch(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?artifacts/i);
   });
 });
 

@@ -25,8 +25,6 @@ import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouter
 import { resolveRivonClawHome, resolveSessionStateDir, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
-import { ArtifactPipeline, syncSkillsForRule, cleanupSkillsForDeletedRule } from "@rivonclaw/rules";
-import type { LLMConfig } from "@rivonclaw/rules";
 import { ProxyRouter } from "@rivonclaw/proxy-router";
 import { getDeviceId } from "@rivonclaw/device-id";
 import { resolve, dirname, join } from "node:path";
@@ -512,48 +510,6 @@ app.whenReady().then(async () => {
 
   // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
   // when tools change (e.g. after ingestGraphQLResponse).
-  // Initialize artifact pipeline with LLM config resolver
-  const pipeline = new ArtifactPipeline({
-    storage,
-    resolveLLMConfig: async (): Promise<LLMConfig | null> => {
-      const config = readExistingConfig(configPath);
-      const gw = config.gateway as Record<string, unknown> | undefined;
-      const auth = gw?.auth as Record<string, unknown> | undefined;
-      const token = auth?.token as string | undefined;
-      if (!token) return null;
-
-      const port = (gw?.port as number) ?? actualGatewayPort;
-      return {
-        gatewayUrl: `http://127.0.0.1:${port}`,
-        authToken: token,
-      };
-    },
-  });
-
-  // Log pipeline events
-  pipeline.on("compiled", (ruleId, artifact) => {
-    log.info(`Rule ${ruleId} compiled → ${artifact.type} (${artifact.status})`);
-  });
-  pipeline.on("failed", (ruleId, error) => {
-    log.error(`Rule ${ruleId} compilation failed: ${error.message}`);
-  });
-
-  /**
-   * Handle rule create/update: trigger async LLM compilation in the background.
-   * The compilation runs asynchronously — errors are logged, not thrown.
-   */
-  function handleRuleCompile(ruleId: string): void {
-    const rule = storage.rules.getById(ruleId);
-    if (!rule) {
-      log.warn(`Rule ${ruleId} not found for compilation`);
-      return;
-    }
-
-    // Fire and forget — compilation happens in the background
-    syncSkillsForRule(pipeline, rule).catch((err) => {
-      log.error(`Background compilation failed for rule ${ruleId}:`, err);
-    });
-  }
 
   // Late-bound reference: sessionStateStack is created after cdpManager,
   // so we capture it via a mutable binding that the callback closes over.
@@ -1050,24 +1006,6 @@ app.whenReady().then(async () => {
       const auth = gw?.auth as Record<string, unknown> | undefined;
       const token = auth?.token as string | undefined;
       return { wsUrl: `ws://127.0.0.1:${port}`, token };
-    },
-    onRuleChange: (action, ruleId) => {
-      log.info(`Rule ${action}: ${ruleId}`);
-      if (action === "created" || action === "updated") {
-        handleRuleCompile(ruleId);
-
-        // Track rule creation
-        if (action === "created") {
-          // Get the artifact to determine type (policy/guard/action-bundle)
-          const artifacts = storage.artifacts.getByRuleId(ruleId);
-          const artifactType = artifacts[0]?.type;
-          telemetryClient?.track("rule.created", {
-            artifactType,
-          });
-        }
-      } else if (action === "deleted") {
-        cleanupSkillsForDeletedRule(pipeline, ruleId);
-      }
     },
     onProviderChange: (hint) => {
       handleProviderChange(hint).catch((err) => {

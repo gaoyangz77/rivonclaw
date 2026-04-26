@@ -48,7 +48,7 @@ interface PrefixRoute {
 // ---------------------------------------------------------------------------
 
 /**
- * Compile a path pattern like `/api/rules/:id` into a regex and param names.
+ * Compile a path pattern like `/api/provider-keys/:id` into a regex and param names.
  * Returns null for paths with no parameters (exact match).
  */
 function compilePath(path: string): { pattern: RegExp; paramNames: string[] } | null {
@@ -68,7 +68,7 @@ function compilePath(path: string): { pattern: RegExp; paramNames: string[] } | 
 // ---------------------------------------------------------------------------
 
 export class RouteRegistry {
-  /** O(1) exact-match lookup: "GET:/api/rules" → handler */
+  /** O(1) exact-match lookup: "GET:/api/status" → handler */
   private exact = new Map<string, EndpointHandler>();
 
   /** Parametric routes with pre-compiled regex, sorted by segment count desc. */

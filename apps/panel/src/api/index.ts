@@ -1,5 +1,4 @@
 export { BASE_URL } from "./client.js";
-export * from "./rules.js";
 export * from "./providers.js";
 export * from "./settings.js";
 export * from "./channels.js";

@@ -26,12 +26,6 @@ export const DEFAULTS = {
     startupGraceMs: 15_000,
   },
 
-  rules: {
-    maxPolicyLength: 4_000,
-    maxRetries: 3,
-    retryBaseDelayMs: 1_000,
-  },
-
   proxyNetwork: {
     maxRetries: 3,
     retryBaseDelayMs: 500,
@@ -143,7 +137,6 @@ export const DEFAULTS = {
 
   polling: {
     usageRefreshMs: 60_000,
-    rulesCompilationPollMs: 3_000,
     channelProbeClientTimeoutMs: 25_000,
   },
 

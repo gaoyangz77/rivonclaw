@@ -118,18 +118,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     mistral: "RIVONCLAW_EMB_MISTRAL_APIKEY",
   };
 
-  /** Build plugin config for rivonclaw-policy from compiled artifacts in storage. */
-  function buildPolicyPluginConfig(): { compiledPolicy: string; guards: Array<{ id: string; ruleId: string; content: string }> } {
-    const allArtifacts = storage.artifacts.getAll();
-    const policyFragments = allArtifacts
-      .filter((a) => a.type === "policy-fragment" && a.status === "ok")
-      .map((a) => a.content);
-    const guards = allArtifacts
-      .filter((a) => a.type === "guard" && a.status === "ok")
-      .map((a) => ({ id: a.id, ruleId: a.ruleId, content: a.content }));
-    return { compiledPolicy: policyFragments.join("\n"), guards };
-  }
-
   async function buildFullGatewayConfig(gatewayPort: number, overrides?: { toolAllowlist?: string[] }): Promise<Parameters<typeof writeGatewayConfig>[0]> {
     const activeKey = storage.providerKeys.getActive();
     const curProvider = activeKey?.provider as LLMProvider | undefined;
@@ -201,9 +189,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           // plugins without enabledByDefault in their manifest are disabled.
           // Vendor moved groq from core to plugin in v2026.3.28 (3dcc802fe5).
           ...(curSttEnabled && curSttProvider === "groq" ? { groq: { enabled: true } } : {}),
-          "rivonclaw-policy": {
-            config: buildPolicyPluginConfig(),
-          },
           // Channel plugin entries from ChannelManager -- each channel with at
           // least one account gets enabled so the vendor's two-phase plugin
           // loader includes it. ChannelManager is the single owner.

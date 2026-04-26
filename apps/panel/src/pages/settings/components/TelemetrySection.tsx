@@ -40,7 +40,7 @@ export function TelemetrySection({ telemetryEnabled, saving, settingsReady, hand
         <ul className="settings-list">
           <li>{t("settings.telemetry.dontCollect.conversations")}</li>
           <li>{t("settings.telemetry.dontCollect.apiKeys")}</li>
-          <li>{t("settings.telemetry.dontCollect.ruleText")}</li>
+          <li>{t("settings.telemetry.dontCollect.customPrompts")}</li>
           <li>{t("settings.telemetry.dontCollect.personalInfo")}</li>
         </ul>
       </div>

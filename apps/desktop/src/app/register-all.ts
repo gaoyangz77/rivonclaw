@@ -14,7 +14,6 @@ import { registerDepsHandlers } from "../deps/api.js";
 import { registerLogsHandlers } from "../logs/api.js";
 import { registerDoctorHandlers } from "../doctor/api.js";
 import { registerToolRegistryHandlers } from "../gateway/api.js";
-import { registerRulesHandlers } from "../rules/api.js";
 
 export function registerAllHandlers(registry: RouteRegistry): void {
   registerAuthHandlers(registry);
@@ -32,5 +31,4 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerLogsHandlers(registry);
   registerDoctorHandlers(registry);
   registerToolRegistryHandlers(registry);
-  registerRulesHandlers(registry);
 }

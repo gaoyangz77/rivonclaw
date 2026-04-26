@@ -8,7 +8,7 @@ import { DEFAULTS } from "../defaults.js";
  * TypeScript will surface all call sites that need updating.
  *
  * Path format: full server path including `/api` prefix.
- * Parametric segments use `:param` syntax (e.g. `/api/rules/:id`).
+ * Parametric segments use `:param` syntax (e.g. `/api/provider-keys/:id`).
  */
 
 // ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ export const API = {
   "auth.logout":             { method: "POST",   path: "/api/auth/logout",                desc: "Logout and clear tokens" },
 
   // ── App / Status ──
-  "app.status":              { method: "GET",    path: "/api/status",                     desc: "App status (rule count, device ID)" },
+  "app.status":              { method: "GET",    path: "/api/status",                     desc: "App status and device ID" },
   "app.apiBaseUrl":          { method: "GET",    path: "/api/app/api-base-url",           desc: "Cloud API base URL" },
   "app.update":              { method: "GET",    path: "/api/app/update",                 desc: "Check for available updates" },
   "app.gatewayInfo":         { method: "GET",    path: "/api/app/gateway-info",           desc: "Gateway WebSocket URL and token" },
@@ -89,12 +89,6 @@ export const API = {
   // ── Workspace ──
   "workspace.get":           { method: "GET",    path: "/api/workspace",                  desc: "Get workspace directory path" },
   "fileDialog.open":         { method: "POST",   path: "/api/file-dialog",                desc: "Open native file picker" },
-
-  // ── Rules ──
-  "rules.list":              { method: "GET",    path: "/api/rules",                      desc: "List all rules with artifact status" },
-  "rules.create":            { method: "POST",   path: "/api/rules",                      desc: "Create a new rule" },
-  "rules.update":            { method: "PUT",    path: "/api/rules/:id",                  desc: "Update rule text" },
-  "rules.delete":            { method: "DELETE", path: "/api/rules/:id",                  desc: "Delete rule and artifacts" },
 
   // ── Provider Keys ──
   "providerKeys.list":       { method: "GET",    path: "/api/provider-keys",              desc: "List all provider API keys" },
@@ -249,7 +243,7 @@ export const MEDIA_PREFIX = "/api/media/";
 /**
  * Build a full server path by replacing `:param` segments with encoded values.
  *
- * @example buildPath(API["rules.delete"], { id: "abc" }) → "/api/rules/abc"
+ * @example buildPath(API["providerKeys.delete"], { id: "abc" }) → "/api/provider-keys/abc"
  */
 export function buildPath(
   route: { readonly path: string },
@@ -268,7 +262,7 @@ export function buildPath(
  * Build a client-relative path (strips the `/api` prefix) for use with
  * Panel's `fetchJson` which prepends `/api` automatically.
  *
- * @example clientPath(API["rules.delete"], { id: "abc" }) → "/rules/abc"
+ * @example clientPath(API["providerKeys.delete"], { id: "abc" }) → "/provider-keys/abc"
  */
 export function clientPath(
   route: { readonly path: string },

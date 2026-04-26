@@ -21,6 +21,7 @@ const log = createLogger("boot-migrations");
  * │ 1  │ migrateWeixinAccountKeys      │ postConfig   │ v1.7.14    │ v1.9.0       │
  * │ 2  │ migrateFeishuBotName          │ postConfig   │ v1.7.14    │ v1.9.0       │
  * │ 3  │ migrateLegacyMobileChannelConfig │ postConfig │ v1.8.8     │ v2.0.0       │
+ * │ 4  │ migrateDeprecatedPluginIds    │ postConfig   │ v1.8.9     │ v2.0.0       │
  *
  * When removing a migration:
  *   1. Delete the corresponding entry from the phase body below.
@@ -63,6 +64,13 @@ export async function runPostConfigMigrations(configPath: string): Promise<void>
   // channel plugin during startup.
   const { migrateLegacyMobileChannelConfig } = await import("../channels/mobile-channel-config-migration.js");
   migrateLegacyMobileChannelConfig(configPath);
+
+  // [4] v1.8.9 · remove after v2.0.0
+  // The rules/policy layer and `rivonclaw-policy` extension were removed.
+  // Strip stale plugin IDs from openclaw.json during startup so upgraded
+  // installs do not ask OpenClaw to load a missing plugin.
+  const { migrateDeprecatedPluginIds } = await import("../gateway/plugin-id-deprecation-migration.js");
+  migrateDeprecatedPluginIds(configPath);
 
   log.debug("post-config migrations complete");
 }

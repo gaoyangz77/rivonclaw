@@ -8,7 +8,6 @@ electron-builder.yml.
 
 | Extension | Type | Description |
 |-----------|------|-------------|
-| `rivonclaw-policy` | Hook | Injects compiled policies and guard directives into system prompt |
 | `rivonclaw-file-permissions` | Hook | Validates file operations against permission policies |
 | `rivonclaw-search-browser-fallback` | Hook (single-file) | Falls back to browser search when `web_search` fails |
 
@@ -18,6 +17,12 @@ electron-builder.yml.
 OpenClaw CLI. It is deprecated and removed because vendor patch 0009 replaces the
 upstream CLI guidance directly in OpenClaw's system prompt, avoiding conflicting
 system instructions.
+
+### Deprecated: rivonclaw-policy
+
+`rivonclaw-policy` injected compiled rules and guard directives into the agent
+prompt. The rules/policy layer has been removed, so the extension is no longer
+shipped or loaded.
 
 ## How Loading Works
 

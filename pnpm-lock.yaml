@@ -48,9 +48,6 @@ importers:
       '@rivonclaw/proxy-router':
         specifier: workspace:*
         version: link:../../packages/proxy-router
-      '@rivonclaw/rules':
-        specifier: workspace:*
-        version: link:../../packages/rules
       '@rivonclaw/secrets':
         specifier: workspace:*
         version: link:../../packages/secrets
@@ -130,9 +127,6 @@ importers:
       '@rivonclaw/rivonclaw-mobile-chat-channel':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-mobile-chat-channel
-      '@rivonclaw/rivonclaw-policy':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-policy
       '@rivonclaw/rivonclaw-search-browser-fallback':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-search-browser-fallback
@@ -475,25 +469,6 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.3)
 
-  extensions/rivonclaw-policy:
-    dependencies:
-      '@rivonclaw/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-      '@rivonclaw/policy':
-        specifier: workspace:*
-        version: link:../../packages/policy
-    devDependencies:
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.3)
-
   extensions/rivonclaw-search-browser-fallback:
     dependencies:
       '@rivonclaw/plugin-sdk':
@@ -606,25 +581,6 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.3)
 
-  packages/policy:
-    dependencies:
-      '@rivonclaw/core':
-        specifier: workspace:*
-        version: link:../core
-      '@rivonclaw/logger':
-        specifier: workspace:*
-        version: link:../logger
-    devDependencies:
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.3)
-
   packages/proxy-router:
     dependencies:
       '@rivonclaw/core':
@@ -633,28 +589,6 @@ importers:
       '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
-    devDependencies:
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.3)
-
-  packages/rules:
-    dependencies:
-      '@rivonclaw/core':
-        specifier: workspace:*
-        version: link:../core
-      '@rivonclaw/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@rivonclaw/storage':
-        specifier: workspace:*
-        version: link:../storage
     devDependencies:
       oxlint:
         specifier: ^1.43.0

@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import {
-  ChatIcon, RulesIcon, ProvidersIcon, ChannelsIcon,
+  ChatIcon, ProvidersIcon, ChannelsIcon,
   PermissionsIcon, ExtrasIcon, UsageIcon, SkillsIcon,
   BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
   ShopIcon, EcommerceIcon,
@@ -8,7 +8,6 @@ import {
 import { ChatPage } from "./pages/chat/ChatPage.js";
 import { ProvidersPage } from "./pages/providers/ProvidersPage.js";
 import { ChannelsPage } from "./pages/channels/ChannelsPage.js";
-import { RulesPage } from "./pages/rules/RulesPage.js";
 import { PermissionsPage } from "./pages/permissions/PermissionsPage.js";
 import { ExtrasPage } from "./pages/extras/ExtrasPage.js";
 import { KeyUsagePage } from "./pages/usage/KeyUsagePage.js";
@@ -52,7 +51,6 @@ export const ROUTES: RouteEntry[] = [
   { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true },
   { path: "/providers", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers" },
   { path: "/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", keepMounted: true },
-  { path: "/rules", pageKey: "rules", component: RulesPage, icon: <RulesIcon />, navLabelKey: "nav.rules" },
   { path: "/permissions", pageKey: "permissions", component: PermissionsPage, icon: <PermissionsIcon />, navLabelKey: "nav.permissions" },
   { path: "/extras", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras" },
   { path: "/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills" },
