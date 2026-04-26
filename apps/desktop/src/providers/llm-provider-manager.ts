@@ -1,4 +1,4 @@
-import { types, flow, getRoot, getEnv } from "mobx-state-tree";
+import { types, flow, getRoot } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
 import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, isUsageQueryableProvider } from "@rivonclaw/core";
 import type { LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
@@ -304,7 +304,7 @@ export const LLMProviderManagerModel = types
 
       /**
        * Switch the default model on an existing key (global default).
-       * Only affects NEW sessions. Existing sessions keep their current model.
+       * Also resets active sessions that are following the default.
        */
       switchModel: flow(function* (keyId: string, newModel: string) {
         const { storage, secretStore, toMstSnapshot } = getEnvDeps();
@@ -323,7 +323,7 @@ export const LLMProviderManagerModel = types
         if (entry.isDefault) {
           writeDefaultModel(entry.provider, newModel, entry.authType);
           // Reset sessions following default so they pick up the new model
-          resetDefaultFollowingSessions().catch(() => {});
+          yield resetDefaultFollowingSessions();
         }
 
         return updated;
@@ -331,7 +331,7 @@ export const LLMProviderManagerModel = types
 
       /**
        * Activate (set as default) an existing provider key.
-       * Only affects NEW sessions. Existing sessions keep their current model.
+       * Also resets active sessions that are following the default.
        */
       activateProvider: flow(function* (keyId: string) {
         const { storage, secretStore, syncActiveKey, allKeysToMstSnapshots } = getEnvDeps();
@@ -365,7 +365,7 @@ export const LLMProviderManagerModel = types
         // Update OpenClaw config default (chokidar hot-reload, no restart)
         writeDefaultModel(entry.provider, entry.model, entry.authType);
         // Reset sessions following default so they pick up the new provider/model
-        resetDefaultFollowingSessions().catch(() => {});
+        yield resetDefaultFollowingSessions();
 
         return { entry, oldActive };
       }),
@@ -515,7 +515,15 @@ export const LLMProviderManagerModel = types
           yield syncAuthAndProxy();
         }
 
-        // If active key and model/proxy changed: patch sessions + update config
+        // If the active key's model changed, update the gateway default and
+        // reset sessions that are following the default so they stop using the
+        // previously resolved concrete model.
+        if (existing.isDefault && modelChanging && fields.model) {
+          writeDefaultModel(existing.provider, fields.model, existing.authType);
+          yield resetDefaultFollowingSessions();
+        }
+
+        // If active key and proxy changed: patch sessions + update config
         if (existing.isDefault && proxyChanged) {
           yield syncAuthAndProxy();
         }
@@ -615,14 +623,12 @@ export const LLMProviderManagerModel = types
             storage.providerKeys.delete(existing.id);
             yield secretStore.delete(`provider-key-${existing.id}`);
 
-            let promotedKey: ProviderKeyEntry | undefined;
             if (wasDefault) {
               const remaining = storage.providerKeys.getAll();
               if (remaining.length > 0) {
                 storage.providerKeys.setDefault(remaining[0].id);
                 storage.settings.set("llm-provider", remaining[0].provider);
                 yield syncActiveKey(remaining[0].provider, storage, secretStore);
-                promotedKey = remaining[0];
                 self.activeKeyId = remaining[0].id;
               } else {
                 storage.settings.set("llm-provider", "");

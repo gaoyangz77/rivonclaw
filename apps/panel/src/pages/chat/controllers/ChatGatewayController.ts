@@ -328,7 +328,7 @@ export class ChatGatewayController {
           this.refreshAgentName();
 
           // Fetch session list
-          this.doFetchSessionsList();
+          this.doFetchSessionsList({ pruneMissing: true });
         },
         onDisconnected: () => {
           if (this.cancelled) return;
@@ -1278,14 +1278,15 @@ export class ChatGatewayController {
     saveCustomOrder(this.customOrder);
   }
 
-  refreshSessions(): void {
+  refreshSessions(options?: { pruneMissing?: boolean }): void {
     clearTimeout(this.refreshDebounceTimer);
+    const pruneMissing = options?.pruneMissing ?? false;
     this.refreshDebounceTimer = setTimeout(() => {
-      this.doFetchSessionsList();
+      this.doFetchSessionsList({ pruneMissing });
     }, REFRESH_DEBOUNCE);
   }
 
-  private async doFetchSessionsList(): Promise<void> {
+  private async doFetchSessionsList(options?: { pruneMissing?: boolean }): Promise<void> {
     const client = this.client;
     if (!client || this.cancelled) return;
     try {
@@ -1343,7 +1344,7 @@ export class ChatGatewayController {
         }
       }
 
-      this.store.setSessions(tabs);
+      this.store.setSessions(tabs, { pruneMissing: options?.pruneMissing ?? true });
     } catch {
       // Non-fatal
     }

@@ -880,3 +880,37 @@ describe("ChatStore.sessionList hides CS sessions", () => {
     expect(keys).not.toContain("agent:main:cs:shopee:conv789");
   });
 });
+
+describe("ChatStore.setSessions reconciliation", () => {
+  it("preserves existing tabs during non-pruning refreshes", () => {
+    const store = createChatStore();
+    store.getOrCreateSession("agent:main:main");
+    store.getOrCreateSession("agent:main:panel-old");
+    store.getOrCreateSession("agent:main:panel-current");
+    store.setActiveSessionKey("agent:main:panel-current");
+
+    store.setSessions([
+      { key: "agent:main:panel-current", isLocal: false, updatedAt: 2 },
+    ], { pruneMissing: false });
+
+    const keys = store.sessionList.map((s) => s.key);
+    expect(keys).toContain("agent:main:main");
+    expect(keys).toContain("agent:main:panel-old");
+    expect(keys).toContain("agent:main:panel-current");
+  });
+
+  it("does not prune the synthetic main tab even when gateway omits it", () => {
+    const store = createChatStore();
+    store.getOrCreateSession("agent:main:main");
+    store.getOrCreateSession("agent:main:panel-current");
+    store.setActiveSessionKey("agent:main:panel-current");
+
+    store.setSessions([
+      { key: "agent:main:panel-current", isLocal: false, updatedAt: 2 },
+    ]);
+
+    const keys = store.sessionList.map((s) => s.key);
+    expect(keys).toContain("agent:main:main");
+    expect(keys).toContain("agent:main:panel-current");
+  });
+});

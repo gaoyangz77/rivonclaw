@@ -140,7 +140,7 @@ export const ChatStoreModel = types
      * updates metadata on existing ones, and removes sessions not in the
      * list (unless they're local or the active session).
      */
-    setSessions(tabs: SessionTabInfo[]) {
+    setSessions(tabs: SessionTabInfo[], options?: { pruneMissing?: boolean }) {
       const tabKeys = new Set(tabs.map((t) => t.key));
       for (const tab of tabs) {
         const existing = self.sessions.get(tab.key);
@@ -172,12 +172,17 @@ export const ChatStoreModel = types
           });
         }
       }
+
+      if (options?.pruneMissing === false) return;
+
       // Remove sessions not in the refreshed list, unless:
+      // - It's the synthetic main session (may not exist in the gateway store yet)
       // - It's the active session (user is looking at it)
       // - It's a local panel-created session (not yet on gateway)
       // - It has an active run (don't lose state mid-run)
       for (const [key, session] of self.sessions) {
         if (tabKeys.has(key)) continue;
+        if (key === DEFAULT_SESSION_KEY) continue;
         if (key === self.activeSessionKey) continue;
         if (session.isLocal) continue;
         if (session.archived) continue; // keep archived sessions
