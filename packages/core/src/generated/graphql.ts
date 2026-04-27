@@ -1095,6 +1095,20 @@ export interface InitiateOAuthResponse {
   state: Scalars['String']['output'];
 }
 
+/** ISO 3166-1 alpha-2 country code for inventory goods */
+export const InventoryCountryCode = {
+  Au: 'AU',
+  Ca: 'CA',
+  Cn: 'CN',
+  De: 'DE',
+  Fr: 'FR',
+  Gb: 'GB',
+  Jp: 'JP',
+  Us: 'US',
+  Vn: 'VN'
+} as const;
+
+export type InventoryCountryCode = typeof InventoryCountryCode[keyof typeof InventoryCountryCode];
 /** Dimension unit for inventory goods */
 export const InventoryDimensionUnit = {
   Cm: 'CM',
@@ -1105,10 +1119,10 @@ export type InventoryDimensionUnit = typeof InventoryDimensionUnit[keyof typeof 
 /** Canonical merchant-owned stockable inventory item */
 export interface InventoryGood {
   barcode?: Maybe<Scalars['String']['output']>;
-  countryOfOrigin?: Maybe<Scalars['String']['output']>;
+  countryOfOrigin?: Maybe<InventoryCountryCode>;
   createdAt: Scalars['DateTimeISO']['output'];
   declaredValue?: Maybe<Scalars['Float']['output']>;
-  declaredValueCurrency?: Maybe<Scalars['String']['output']>;
+  declaredValueCurrency?: Maybe<Currency>;
   dimensionUnit?: Maybe<InventoryDimensionUnit>;
   gtin?: Maybe<Scalars['String']['output']>;
   heightValue?: Maybe<Scalars['Float']['output']>;
@@ -2711,9 +2725,9 @@ export interface UnrecognizedShopSku {
 /** One WMS inventory good that does not exist as an active canonical InventoryGood. */
 export interface UnrecognizedWmsInventoryGood {
   barcode?: Maybe<Scalars['String']['output']>;
-  countryOfOrigin?: Maybe<Scalars['String']['output']>;
+  countryOfOrigin?: Maybe<InventoryCountryCode>;
   declaredValue?: Maybe<Scalars['Float']['output']>;
-  declaredValueCurrency?: Maybe<Scalars['String']['output']>;
+  declaredValueCurrency?: Maybe<Currency>;
   dimensionUnit?: Maybe<InventoryDimensionUnit>;
   gtin?: Maybe<Scalars['String']['output']>;
   heightValue?: Maybe<Scalars['Float']['output']>;
@@ -2957,9 +2971,9 @@ export interface WmsWarehouseSyncPayload {
 /** Write a canonical stockable inventory item. Omit id to locate by exact sku or create a new item. */
 export interface WriteInventoryGoodInput {
   barcode?: InputMaybe<Scalars['String']['input']>;
-  countryOfOrigin?: InputMaybe<Scalars['String']['input']>;
+  countryOfOrigin?: InputMaybe<InventoryCountryCode>;
   declaredValue?: InputMaybe<Scalars['Float']['input']>;
-  declaredValueCurrency?: InputMaybe<Scalars['String']['input']>;
+  declaredValueCurrency?: InputMaybe<Currency>;
   dimensionUnit?: InputMaybe<InventoryDimensionUnit>;
   gtin?: InputMaybe<Scalars['String']['input']>;
   heightValue?: InputMaybe<Scalars['Float']['input']>;
