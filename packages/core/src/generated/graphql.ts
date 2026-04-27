@@ -1434,6 +1434,7 @@ export interface MutationEcommerceUpdateShopArgs {
   alias?: InputMaybe<Scalars['String']['input']>;
   customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
   shopId: Scalars['String']['input'];
+  wmsSettings?: InputMaybe<WmsSettingsInput>;
 }
 
 
@@ -2333,11 +2334,13 @@ export type ShopRegion = typeof ShopRegion[keyof typeof ShopRegion];
 export interface ShopServiceConfig {
   customerService: CustomerServiceSettings;
   customerServiceBilling: CustomerServiceBilling;
+  wms: WmsSettings;
 }
 
 /** Input for updating per-shop service toggles */
 export interface ShopServiceConfigInput {
   customerService?: InputMaybe<CustomerServiceSettingsInput>;
+  wms?: InputMaybe<WmsSettingsInput>;
 }
 
 /** How the shop analytics timezone was resolved */
@@ -2806,6 +2809,18 @@ export const WmsAccountStatus = {
 } as const;
 
 export type WmsAccountStatus = typeof WmsAccountStatus[keyof typeof WmsAccountStatus];
+/** Warehouse management system settings per shop (user-configurable) */
+export interface WmsSettings {
+  /** Whether WMS/inventory management is enabled for this shop. */
+  enabled: Scalars['Boolean']['output'];
+}
+
+/** WMS settings patch. Omit a field to keep it, pass null to clear it to default, or pass a value to set it. */
+export interface WmsSettingsInput {
+  /** WMS/inventory management enabled flag. Omit to keep, null to clear to false, true/false to set. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
 /** Result of syncing warehouses from a WMS account */
 export interface WmsWarehouseSyncPayload {
   /** WMS provider that produced the warehouses. */
