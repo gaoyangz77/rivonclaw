@@ -1315,6 +1315,8 @@ export interface Mutation {
   setDefaultRunProfile: MeResponse;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
   syncShopWarehouses: ShopWarehouseSyncPayload;
+  /** Import inventory goods from a WMS account into canonical InventoryGood. When overrideExisting is false or omitted, existing InventoryGood rows win and are preserved. When true, WMS attributes overwrite existing rows with the same SKU. */
+  syncWmsInventoryGoods: SyncWmsInventoryGoodsPayload;
   /** Pull warehouses from one WMS account and upsert canonical Warehouse records. */
   syncWmsWarehouses: WmsWarehouseSyncPayload;
   /** Unenroll from a product module */
@@ -1504,6 +1506,12 @@ export interface MutationSetDefaultRunProfileArgs {
 
 export interface MutationSyncShopWarehousesArgs {
   shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationSyncWmsInventoryGoodsArgs {
+  overrideExisting?: InputMaybe<Scalars['Boolean']['input']>;
+  wmsAccountId: Scalars['ID']['input'];
 }
 
 
@@ -2475,6 +2483,36 @@ export interface Surface {
   name: Scalars['String']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId?: Maybe<Scalars['String']['output']>;
+}
+
+/** One inventory good row that failed during WMS inventory good sync. */
+export interface SyncWmsInventoryGoodsError {
+  /** Failure message for this row. */
+  message: Scalars['String']['output'];
+  /** WMS goods SKU that failed, when available. */
+  sku?: Maybe<Scalars['String']['output']>;
+}
+
+/** Result of importing inventory goods from a WMS account into canonical InventoryGood. */
+export interface SyncWmsInventoryGoodsPayload {
+  /** Number of InventoryGood rows created. */
+  created: Scalars['Int']['output'];
+  /** Per-row import errors. */
+  errors: Array<SyncWmsInventoryGoodsError>;
+  /** Number of WMS goods that could not be imported. */
+  failed: Scalars['Int']['output'];
+  /** Number of WMS goods read from the source account. */
+  fetched: Scalars['Int']['output'];
+  /** InventoryGood rows created or updated by this sync. */
+  goods: Array<InventoryGood>;
+  /** Whether existing InventoryGood rows were overwritten by WMS attributes. */
+  overrideExisting: Scalars['Boolean']['output'];
+  /** Number of existing InventoryGood rows preserved because overrideExisting was false. */
+  skippedExisting: Scalars['Int']['output'];
+  /** Number of existing InventoryGood rows updated. */
+  updated: Scalars['Int']['output'];
+  /** WMS account ID used as the source. */
+  wmsAccountId: Scalars['ID']['output'];
 }
 
 /** System run profile identifiers declared by tool metadata */
