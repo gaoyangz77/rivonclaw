@@ -2332,6 +2332,8 @@ export interface ShopAuthStatusResponse {
 export interface ShopInventoryGoodCoveragePayload {
   /** Product status scanned. This audit intentionally only checks active shop products. */
   productStatus: EcomProductStatus;
+  /** Number of active shop SKU rows that can be safely resolved to InventoryGood. */
+  recognizedShopSkusCount: Scalars['Int']['output'];
   /** Shop Mongo ID that was audited. */
   shopId: Scalars['ID']['output'];
   /** InventoryGoodMapping source ID used for this shop. */
@@ -2922,6 +2924,8 @@ export type WmsAccountStatus = typeof WmsAccountStatus[keyof typeof WmsAccountSt
 export interface WmsInventoryGoodCoveragePayload {
   /** WMS provider that produced these goods. */
   provider: WmsAccountProvider;
+  /** Number of WMS goods that already have an active InventoryGood with the same SKU. */
+  recognizedWmsGoodsCount: Scalars['Int']['output'];
   /** WMS goods that need InventoryGood sync or review. */
   unrecognizedWmsInventoryGoods: Array<UnrecognizedWmsInventoryGood>;
   /** WMS account ID that was scanned. */
