@@ -1214,6 +1214,25 @@ export const InventoryGoodStatus = {
 } as const;
 
 export type InventoryGoodStatus = typeof InventoryGoodStatus[keyof typeof InventoryGoodStatus];
+/** ISO 3166-1 alpha-2 country or region code used by inventory warehouse metadata */
+export const InventoryRegionCode = {
+  Au: 'AU',
+  Ca: 'CA',
+  Cn: 'CN',
+  De: 'DE',
+  Fr: 'FR',
+  Gb: 'GB',
+  Id: 'ID',
+  Jp: 'JP',
+  My: 'MY',
+  Ph: 'PH',
+  Sg: 'SG',
+  Th: 'TH',
+  Us: 'US',
+  Vn: 'VN'
+} as const;
+
+export type InventoryRegionCode = typeof InventoryRegionCode[keyof typeof InventoryRegionCode];
 /** Weight unit for inventory goods */
 export const InventoryWeightUnit = {
   G: 'G',
@@ -2417,7 +2436,7 @@ export interface ShopWarehouse {
   platformSubType?: Maybe<Scalars['String']['output']>;
   /** Warehouse ID returned by the shop platform, such as TikTok warehouse_id. */
   platformWarehouseId: Scalars['String']['output'];
-  regionCode?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<InventoryRegionCode>;
   shopId: Scalars['ID']['output'];
   status: ShopWarehouseStatus;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -2838,7 +2857,7 @@ export interface Warehouse {
   name: Scalars['String']['output'];
   notes?: Maybe<Scalars['String']['output']>;
   provider: WarehouseProvider;
-  regionCode?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<InventoryRegionCode>;
   /** System-local source connection ID, such as WmsAccount._id or Shop._id. */
   sourceId?: Maybe<Scalars['ID']['output']>;
   status: WarehouseStatus;
@@ -2856,7 +2875,7 @@ export interface WarehouseAddress {
   fullAddress?: Maybe<Scalars['String']['output']>;
   postalCode?: Maybe<Scalars['String']['output']>;
   region?: Maybe<Scalars['String']['output']>;
-  regionCode?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<InventoryRegionCode>;
   state?: Maybe<Scalars['String']['output']>;
 }
 
@@ -2876,8 +2895,8 @@ export interface WarehouseAddressInput {
   postalCode?: InputMaybe<Scalars['String']['input']>;
   /** Country or region display name returned by the source system. */
   region?: InputMaybe<Scalars['String']['input']>;
-  /** Country or region code for the warehouse address, preferably ISO 3166-1 alpha-2. */
-  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Country or region code for the warehouse address. */
+  regionCode?: InputMaybe<InventoryRegionCode>;
   /** State or province. */
   state?: InputMaybe<Scalars['String']['input']>;
 }
@@ -3035,8 +3054,8 @@ export interface WriteWarehouseInput {
   notes?: InputMaybe<Scalars['String']['input']>;
   /** Warehouse provider, such as YEJOIN or TIKTOK_FBT. */
   provider?: InputMaybe<WarehouseProvider>;
-  /** Country or region code for the warehouse, preferably ISO 3166-1 alpha-2. */
-  regionCode?: InputMaybe<Scalars['String']['input']>;
+  /** Country or region code for the warehouse. */
+  regionCode?: InputMaybe<InventoryRegionCode>;
   /** Source connection ID, such as WmsAccount._id or Shop._id. */
   sourceId?: InputMaybe<Scalars['ID']['input']>;
   /** Lifecycle status. Use ARCHIVED instead of hard deleting. */
