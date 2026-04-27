@@ -2139,8 +2139,6 @@ export interface ReadShopWarehousesInput {
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Maximum number of shop warehouses to return, capped at 500. */
   limit?: InputMaybe<Scalars['Int']['input']>;
-  /** Filter by mapping confidence state. */
-  mappingStatus?: InputMaybe<ShopWarehouseMappingStatus>;
   /** Connected Shop ID whose platform warehouses should be listed. */
   shopId?: InputMaybe<Scalars['ID']['input']>;
   /** Filter by lifecycle status. Defaults to ACTIVE when omitted. */
@@ -2359,7 +2357,6 @@ export interface ShopWarehouse {
   id: Scalars['ID']['output'];
   isDefault: Scalars['Boolean']['output'];
   lastSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  mappingStatus: ShopWarehouseMappingStatus;
   name: Scalars['String']['output'];
   notes?: Maybe<Scalars['String']['output']>;
   /** Platform physical/entity warehouse ID, such as TikTok entity_id. */
@@ -2387,14 +2384,6 @@ export const ShopWarehouseEffectStatus = {
 } as const;
 
 export type ShopWarehouseEffectStatus = typeof ShopWarehouseEffectStatus[keyof typeof ShopWarehouseEffectStatus];
-/** Confidence state for matching a shop warehouse to a canonical warehouse */
-export const ShopWarehouseMappingStatus = {
-  AutoMatched: 'AUTO_MATCHED',
-  Unmapped: 'UNMAPPED',
-  UserConfirmed: 'USER_CONFIRMED'
-} as const;
-
-export type ShopWarehouseMappingStatus = typeof ShopWarehouseMappingStatus[keyof typeof ShopWarehouseMappingStatus];
 /** Lifecycle state of a shop-scoped platform warehouse */
 export const ShopWarehouseStatus = {
   Active: 'ACTIVE',
@@ -2874,8 +2863,6 @@ export interface WriteInventoryGoodMappingInput {
 
 /** Write one shop warehouse to canonical warehouse mapping. Pass warehouseId to confirm a mapping; pass null to clear it. */
 export interface WriteShopWarehouseMappingInput {
-  /** Mapping confidence to store. Defaults to USER_CONFIRMED when warehouseId is provided. */
-  mappingStatus?: InputMaybe<ShopWarehouseMappingStatus>;
   /** ShopWarehouse ID to update. */
   shopWarehouseId: Scalars['ID']['input'];
   /** Canonical Warehouse ID. Pass null to clear the mapping. */
