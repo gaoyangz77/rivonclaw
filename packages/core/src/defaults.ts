@@ -36,13 +36,13 @@ export const DEFAULTS = {
   },
 
   stt: {
-    defaultProvider: "groq" as "groq",
+    defaultProvider: "groq" as const,
     defaultEnabled: false,
   },
 
   browserProfiles: {
-    defaultSessionStateMode: "cookies_only" as "cookies_only",
-    defaultSessionStateStorage: "local" as "local",
+    defaultSessionStateMode: "cookies_only" as const,
+    defaultSessionStateStorage: "local" as const,
     defaultCheckpointIntervalSec: 60,
   },
 
@@ -80,16 +80,16 @@ export const DEFAULTS = {
   },
 
   gatewayConfig: {
-    sessionResetMode: "idle" as "idle",
+    sessionResetMode: "idle" as const,
     sessionResetIdleMinutes: 10080, // 7 days
-    sessionMaintenanceMode: "enforce" as "enforce",
+    sessionMaintenanceMode: "enforce" as const,
     sessionMaintenancePruneAfter: "7d",
     sessionMaintenanceMaxEntries: 200,
     sessionMaintenanceRotateBytes: "10mb",
     sessionMaintenanceMaxDiskBytes: "50mb",
-    toolsProfile: "full" as "full",
-    execHost: "gateway" as "gateway",
-    execSecurity: "full" as "full",
+    toolsProfile: "full" as const,
+    execHost: "gateway" as const,
+    execSecurity: "full" as const,
     defaultBrowserCdpPort: 9222,
     audioMaxBytes: 25 * 1024 * 1024, // 25 MB
     audioTimeoutSeconds: 300, // 5 min
@@ -102,7 +102,7 @@ export const DEFAULTS = {
   },
 
   settings: {
-    browserMode: "standalone" as "standalone",
+    browserMode: "standalone" as const,
     sessionStateCdpEnabled: true,
     collapseMessages: true,
     showAgentEvents: false,
@@ -125,7 +125,7 @@ export const DEFAULTS = {
 
   cron: {
     defaultIntervalValue: 60,
-    defaultIntervalUnit: "minutes" as "minutes",
+    defaultIntervalUnit: "minutes" as const,
   },
 
   pagination: {

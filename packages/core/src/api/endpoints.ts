@@ -33,6 +33,7 @@ export function setApiBaseUrlOverride(url: string): void {
 
 /** Return the API base URL for the given language/locale. */
 export function getApiBaseUrl(lang: string): string {
+	void lang;
 	if (_apiBaseUrlOverride) return _apiBaseUrlOverride;
 	if (isStagingDevMode()) return `https://${DEFAULTS.domains.apiStaging}`;
 	// Always use the .com API domain — the .cn domain (api.zhuazhuaai.cn)
