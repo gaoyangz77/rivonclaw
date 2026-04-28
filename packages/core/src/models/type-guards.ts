@@ -16,6 +16,8 @@ import type { ToolSpecModel } from "./ToolSpec.js";
 import type { UserSubscriptionModel, LlmQuotaStatusModel } from "./Subscription.js";
 import type { PlatformAppModel } from "./PlatformApp.js";
 import type { ServiceCreditModel } from "./ServiceCredit.js";
+import type { InventoryGoodModel } from "./InventoryGood.js";
+import type { ShopWarehouseModel, WarehouseModel, WmsAccountModel } from "./Warehouse.js";
 
 /**
  * Ensures every required key in `MST` also exists in `GQL`.
@@ -56,3 +58,19 @@ const _platformAppGuard: _AssertPlatformAppCompat = true;
 // ── ServiceCredit ────────────────────────────────────────────────────
 type _AssertServiceCreditCompat = AssertSubset<GQL.ServiceCredit, SnapshotIn<typeof ServiceCreditModel>>;
 const _serviceCreditGuard: _AssertServiceCreditCompat = true;
+
+// ── InventoryGood ───────────────────────────────────────────────────
+type _AssertInventoryGoodCompat = AssertSubset<GQL.InventoryGood, SnapshotIn<typeof InventoryGoodModel>>;
+const _inventoryGoodGuard: _AssertInventoryGoodCompat = true;
+
+// ── WmsAccount ──────────────────────────────────────────────────────
+type _AssertWmsAccountCompat = AssertSubset<GQL.WmsAccount, SnapshotIn<typeof WmsAccountModel>>;
+const _wmsAccountGuard: _AssertWmsAccountCompat = true;
+
+// ── Warehouse ───────────────────────────────────────────────────────
+type _AssertWarehouseCompat = AssertSubset<GQL.Warehouse, SnapshotIn<typeof WarehouseModel>>;
+const _warehouseGuard: _AssertWarehouseCompat = true;
+
+// ── ShopWarehouse ───────────────────────────────────────────────────
+type _AssertShopWarehouseCompat = AssertSubset<GQL.ShopWarehouse, SnapshotIn<typeof ShopWarehouseModel>>;
+const _shopWarehouseGuard: _AssertShopWarehouseCompat = true;

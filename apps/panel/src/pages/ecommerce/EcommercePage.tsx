@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
-import { RefreshIcon } from "../../components/icons.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import type { ServiceCredit } from "@rivonclaw/core/models";
@@ -14,6 +13,11 @@ import { useDeviceBinding } from "./hooks/useDeviceBinding.js";
 import { ShopTable } from "./components/ShopTable.js";
 import { ConnectShopModal } from "./components/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
+import { WmsAccountTable } from "./components/WmsAccountTable.js";
+import { AddWmsAccountModal } from "./components/AddWmsAccountModal.js";
+import { WmsInventoryGoodsSyncModal } from "./components/WmsInventoryGoodsSyncModal.js";
+import { InventoryGoodsDrawer } from "./components/InventoryGoodsDrawer.js";
+import { InventoryGoodModal } from "./components/InventoryGoodModal.js";
 
 export const EcommercePage = observer(function EcommercePage() {
   const { t } = useTranslation();
@@ -24,6 +28,8 @@ export const EcommercePage = observer(function EcommercePage() {
   const runProfiles = entityStore.allRunProfiles;
   const platformApps = entityStore.platformApps;
   const credits = entityStore.credits;
+  const wmsAccounts = entityStore.wmsAccounts;
+  const warehouses = entityStore.warehouses;
 
   const { showToast } = useToast();
 
@@ -41,6 +47,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
+  const [togglingInventoryServiceId, setTogglingInventoryServiceId] = useState<string | null>(null);
   const [savingRunProfile, setSavingRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
@@ -198,6 +205,28 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
+  async function handleToggleInventoryManagement(shopId: string, currentValue: boolean) {
+    setTogglingInventoryServiceId(shopId);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) throw new Error(`Shop ${shopId} not found`);
+      const nextValue = !currentValue;
+      await shop.update({
+        services: { wms: { enabled: nextValue } },
+      });
+      if (nextValue) {
+        await entityStore.ecommerceInventory.syncShopWarehouses(shopId);
+      } else if (activeTab === "warehouseManagement") {
+        setActiveTab("overview");
+      }
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setTogglingInventoryServiceId(null);
+    }
+  }
+
   async function handleSaveBusinessPrompt() {
     if (!selectedShopId) return;
     setSavingSettings(true);
@@ -332,31 +361,8 @@ export const EcommercePage = observer(function EcommercePage() {
     <div className="page-enter">
       <div className="ecommerce-page-header">
         <div>
-          <h1>
-            {t("ecommerce.title")}
-            <button
-              className="btn-icon-inline"
-              onClick={handleRefreshShops}
-              disabled={refreshing}
-              aria-label={t("ecommerce.refreshShops")}
-              title={t("ecommerce.refreshShops")}
-            >
-              <RefreshIcon className={refreshing ? "spin" : ""} />
-            </button>
-          </h1>
+          <h1>{t("ecommerce.title")}</h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.subtitle")}</p>
-        </div>
-        <div className="ecommerce-header-actions">
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => {
-              oauthFlow.resetOAuthUI();
-              setConnectModalOpen(true);
-            }}
-            disabled={oauthFlow.oauthLoading}
-          >
-            {t("ecommerce.addShop")}
-          </button>
         </div>
       </div>
 
@@ -371,10 +377,22 @@ export const EcommercePage = observer(function EcommercePage() {
         shops={shops}
         oauthLoading={oauthFlow.oauthLoading}
         oauthWaiting={oauthFlow.oauthWaiting}
+        refreshing={refreshing}
+        onRefresh={handleRefreshShops}
+        onAddShop={() => {
+          oauthFlow.resetOAuthUI();
+          setConnectModalOpen(true);
+        }}
         onUpdateAlias={handleUpdateAlias}
         onOpenDrawer={openDrawer}
         onReauthorize={handleReauthorize}
         onRequestDelete={setConfirmDeleteShopId}
+      />
+
+      <WmsAccountTable
+        accounts={wmsAccounts}
+        warehouses={warehouses}
+        onAddAccount={() => entityStore.ecommerceInventory.setAddWmsAccountModalOpen(true)}
       />
 
       {/* Add Shop Modal */}
@@ -399,6 +417,11 @@ export const EcommercePage = observer(function EcommercePage() {
         }}
       />
 
+      <AddWmsAccountModal />
+      <WmsInventoryGoodsSyncModal />
+      <InventoryGoodsDrawer />
+      <InventoryGoodModal />
+
       {/* Shop Detail Drawer */}
       <ShopDrawer
         shop={selectedShop}
@@ -409,6 +432,8 @@ export const EcommercePage = observer(function EcommercePage() {
         upgradePrompt={upgradePrompt}
         togglingServiceId={togglingServiceId}
         onToggleCustomerService={handleToggleCustomerService}
+        togglingInventoryServiceId={togglingInventoryServiceId}
+        onToggleInventoryManagement={handleToggleInventoryManagement}
         editBusinessPrompt={editBusinessPrompt}
         onEditBusinessPrompt={setEditBusinessPrompt}
         savingSettings={savingSettings}

@@ -1,9 +1,12 @@
 import { GQL } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
+import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { rootStore } from "../app/store/desktop-store.js";
+
+const log = createLogger("auth-api");
 
 /** Decode the payload of a JWT without verification (already validated elsewhere). */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -14,6 +17,19 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     return JSON.parse(json) as Record<string, unknown>;
   } catch {
     return null;
+  }
+}
+
+function runAuthChangeInBackground(ctx: ApiContext): void {
+  const onAuthChange = ctx.onAuthChange;
+  if (!onAuthChange) return;
+
+  try {
+    void Promise.resolve(onAuthChange()).catch((err: unknown) => {
+      log.warn("Background auth change failed:", err);
+    });
+  } catch (err) {
+    log.warn("Background auth change failed:", err);
   }
 }
 
@@ -47,8 +63,8 @@ const login: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) 
   }
   try {
     await ctx.authSession.loginWithCredentials(body);
-    await ctx.onAuthChange?.();
     sendJson(res, 200, { ok: true });
+    runAuthChangeInBackground(ctx);
   } catch (err) {
     sendJson(res, 400, { error: err instanceof Error ? err.message : "Login failed" });
   }

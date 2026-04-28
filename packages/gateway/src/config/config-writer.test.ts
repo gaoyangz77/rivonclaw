@@ -135,6 +135,15 @@ describe("config-writer", () => {
       expect(config.plugins.entries).toEqual({ "my-plugin": { enabled: true } });
     });
 
+    it("marks accountless bootstrap channels as managed", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.mobile).toEqual({ managed: true });
+      expect(config.channels["openclaw-weixin"]).toEqual({ managed: true });
+    });
+
     it("creates config file with extra skill dirs", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({

@@ -111,7 +111,7 @@ export function ConnectShopModal({
           <>
             <div>
               <label className="form-label-block">
-                {t("ecommerce.addShopModal.marketLabel")}
+                {t("ecommerce.addShopModal.marketLabel")} <span className="required">*</span>
               </label>
               {platformApps.length === 0 ? (
                 <div className="form-hint">{t("tiktokShops.noPlatformApps")}</div>
@@ -130,7 +130,7 @@ export function ConnectShopModal({
             </div>
             <div>
               <label className="form-label-block">
-                {t("ecommerce.addShopModal.platformLabel")}
+                {t("ecommerce.addShopModal.platformLabel")} <span className="required">*</span>
               </label>
               <Select
                 value={selectedPlatform}

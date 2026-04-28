@@ -5,6 +5,9 @@ import {
   INIT_SHOPS_QUERY,
   INIT_PLATFORM_APPS_QUERY,
   INIT_CREDITS_QUERY,
+  INIT_WMS_ACCOUNTS_QUERY,
+  INIT_WAREHOUSES_QUERY,
+  INIT_INVENTORY_GOODS_QUERY,
 } from "../cloud/init-queries.js";
 
 type BootstrapStatus = "signed_out" | "loading" | "ready" | "error";
@@ -55,7 +58,14 @@ export async function bootstrapDesktopAuthState(
     ];
 
     if (me.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
-      queries.push(INIT_SHOPS_QUERY, INIT_PLATFORM_APPS_QUERY, INIT_CREDITS_QUERY);
+      queries.push(
+        INIT_SHOPS_QUERY,
+        INIT_PLATFORM_APPS_QUERY,
+        INIT_CREDITS_QUERY,
+        INIT_WMS_ACCOUNTS_QUERY,
+        INIT_WAREHOUSES_QUERY,
+        INIT_INVENTORY_GOODS_QUERY,
+      );
     }
 
     const results = await Promise.all(queries.map((query) => authSession.graphqlFetch(query)));

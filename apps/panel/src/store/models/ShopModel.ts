@@ -27,6 +27,9 @@ export const ShopModel = ShopModelBase.actions((self) => {
           escalationChannelId?: string | null;
           escalationRecipientId?: string | null;
         };
+        wms?: {
+          enabled?: boolean | null;
+        };
       };
     }) {
       const result = yield client().mutate({

@@ -271,3 +271,19 @@ export function clientPath(
   const full = buildPath(route, params);
   return full.startsWith("/api") ? full.slice(4) : full;
 }
+
+/**
+ * Build a full Desktop proxy path for a cloud REST backend endpoint.
+ *
+ * @example cloudRestPath("/uploads/images") → "/api/cloud/uploads/images"
+ * @example cloudRestPath("/api/uploads/images") → "/api/cloud/uploads/images"
+ */
+export function cloudRestPath(backendPath: string): string {
+  const normalized = backendPath.replace(/^\/+/, "");
+  const withoutApiPrefix = normalized.startsWith("api/") ? normalized.slice(4) : normalized;
+  return `${CLOUD_REST_PREFIX.pathPrefix}${withoutApiPrefix}`;
+}
+
+export const CLOUD_REST = {
+  "uploads.images": { method: "POST", path: cloudRestPath("/uploads/images"), desc: "Upload image to cloud temporary bucket" },
+} as const satisfies Record<string, RouteEntry>;

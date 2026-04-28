@@ -30,6 +30,9 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         balanceExpiresAt
         periodEnd
       }
+      wms {
+        enabled
+      }
     }
   }
 `;

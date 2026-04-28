@@ -5,6 +5,10 @@ import {
   SurfaceModel,
   RunProfileModel,
   ShopModel,
+  WmsAccountModel,
+  WarehouseModel,
+  ShopWarehouseModel,
+  InventoryGoodModel,
   ProviderKeyModel,
   ServiceCreditModel,
   LLMProviderModel,
@@ -13,6 +17,7 @@ import {
   MobilePairingModel,
   MobileManagerModel,
 } from "./models/index.js";
+import { EcommerceInventoryModel } from "./models/EcommerceInventoryModel.js";
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
@@ -23,9 +28,12 @@ import {
   INITIATE_TIKTOK_OAUTH_MUTATION,
   CS_GET_PRESET_SKILLS_QUERY,
 } from "../api/shops-queries.js";
+import {
+  READ_WMS_ACCOUNTS_QUERY,
+  READ_WAREHOUSES_QUERY,
+  READ_INVENTORY_GOODS_QUERY,
+} from "../api/inventory-queries.js";
 import { GENERATE_PAIRING_CODE, WAIT_FOR_PAIRING, GET_INSTALL_URL } from "../api/pairing-queries.js";
-import { SURFACES_QUERY } from "../api/surfaces-queries.js";
-import { RUN_PROFILES_QUERY } from "../api/run-profiles-queries.js";
 import {
   SUBSCRIPTION_STATUS_QUERY,
   LLM_QUOTA_STATUS_QUERY,
@@ -77,6 +85,10 @@ const PanelRootStoreModel = RootStoreModel.props({
   surfaces: types.optional(types.array(SurfaceModel), []),
   runProfiles: types.optional(types.array(RunProfileModel), []),
   shops: types.optional(types.array(ShopModel), []),
+  wmsAccounts: types.optional(types.array(WmsAccountModel), []),
+  warehouses: types.optional(types.array(WarehouseModel), []),
+  shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),
+  inventoryGoods: types.optional(types.array(InventoryGoodModel), []),
   providerKeys: types.optional(types.array(ProviderKeyModel), []),
   credits: types.optional(types.array(ServiceCreditModel), []),
   channelAccounts: types.optional(types.array(ChannelAccountModel), []),
@@ -84,6 +96,7 @@ const PanelRootStoreModel = RootStoreModel.props({
   llmManager: types.optional(LLMProviderModel, {}),
   channelManager: types.optional(ChannelManagerModel, {}),
   mobileManager: types.optional(MobileManagerModel, {}),
+  ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
 }).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
@@ -104,6 +117,9 @@ const PanelRootStoreModel = RootStoreModel.props({
               client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
               client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
               client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
+              client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
+              client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
+              client().query({ query: READ_INVENTORY_GOODS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
             ]).catch(() => {});
           }
           return;
@@ -476,6 +492,10 @@ interface PanelEntityOverrides {
   readonly surfaces: Instance<typeof SurfaceModel>[];
   readonly runProfiles: Instance<typeof RunProfileModel>[];
   readonly shops: Instance<typeof ShopModel>[];
+  readonly wmsAccounts: Instance<typeof WmsAccountModel>[];
+  readonly warehouses: Instance<typeof WarehouseModel>[];
+  readonly shopWarehouses: Instance<typeof ShopWarehouseModel>[];
+  readonly inventoryGoods: Instance<typeof InventoryGoodModel>[];
   readonly providerKeys: Instance<typeof ProviderKeyModel>[];
   readonly credits: Instance<typeof ServiceCreditModel>[];
   readonly channelAccounts: Instance<typeof ChannelAccountModel>[];
@@ -483,6 +503,7 @@ interface PanelEntityOverrides {
   readonly channelManager: Instance<typeof ChannelManagerModel>;
   readonly llmManager: Instance<typeof LLMProviderModel>;
   readonly mobileManager: Instance<typeof MobileManagerModel>;
+  readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
 }
 export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
 

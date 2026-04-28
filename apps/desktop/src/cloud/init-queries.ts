@@ -131,6 +131,9 @@ export const INIT_SHOPS_QUERY = `
           balanceExpiresAt
           periodEnd
         }
+        wms {
+          enabled
+        }
       }
     }
   }
@@ -159,6 +162,86 @@ export const INIT_CREDITS_QUERY = `
       status
       expiresAt
       source
+    }
+  }
+`;
+
+export const INIT_WMS_ACCOUNTS_QUERY = `
+  query {
+    readWmsAccounts(input: {}) {
+      id
+      userId
+      provider
+      label
+      endpoint
+      status
+      lastSyncedAt
+      lastSyncError
+      notes
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const INIT_WAREHOUSES_QUERY = `
+  query {
+    readWarehouses(input: {}) {
+      id
+      userId
+      provider
+      warehouseType
+      name
+      code
+      externalWarehouseId
+      sourceId
+      regionCode
+      address {
+        addressLine1
+        addressLine2
+        city
+        district
+        fullAddress
+        postalCode
+        region
+        regionCode
+        state
+      }
+      status
+      lastSyncedAt
+      notes
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const INIT_INVENTORY_GOODS_QUERY = `
+  query {
+    readInventoryGoods(input: {}) {
+      id
+      userId
+      sku
+      name
+      status
+      gtin
+      barcode
+      hsCode
+      countryOfOrigin
+      weightValue
+      weightUnit
+      lengthValue
+      widthValue
+      heightValue
+      dimensionUnit
+      declaredValue
+      declaredValueCurrency
+      isBattery
+      isHazmat
+      imageAssetId
+      imageUri
+      createdAt
+      updatedAt
     }
   }
 `;

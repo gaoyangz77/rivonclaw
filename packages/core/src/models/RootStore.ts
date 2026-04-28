@@ -11,6 +11,8 @@ import { ToolCapabilityModel } from "./ToolCapability.js";
 import { UserModel } from "./User.js";
 import { PlatformAppModel } from "./PlatformApp.js";
 import { ServiceCreditModel } from "./ServiceCredit.js";
+import { WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./Warehouse.js";
+import { InventoryGoodModel } from "./InventoryGood.js";
 import {
   SystemRunProfile,
   SystemSurface,
@@ -59,6 +61,10 @@ export const RootStoreModel = types
     authBootstrap: types.optional(AuthBootstrapStateModel, { status: "signed_out", error: null }),
     platformApps: types.optional(types.array(PlatformAppModel), []),
     credits: types.optional(types.array(ServiceCreditModel), []),
+    wmsAccounts: types.optional(types.array(WmsAccountModel), []),
+    warehouses: types.optional(types.array(WarehouseModel), []),
+    shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),
+    inventoryGoods: types.optional(types.array(InventoryGoodModel), []),
   })
   .views((self) => ({
     get authenticated() {
@@ -135,6 +141,24 @@ export const RootStoreModel = types
     },
     getShop(id: string) {
       return self.shops.find((s) => s.id === id);
+    },
+    getWmsAccount(id: string) {
+      return self.wmsAccounts.find((a) => a.id === id);
+    },
+    getWarehouse(id: string) {
+      return self.warehouses.find((w) => w.id === id);
+    },
+    getShopWarehouse(id: string) {
+      return self.shopWarehouses.find((w) => w.id === id);
+    },
+    getInventoryGood(id: string) {
+      return self.inventoryGoods.find((good) => good.id === id);
+    },
+    getWarehousesForWmsAccount(wmsAccountId: string) {
+      return self.warehouses.filter((w) => w.sourceId === wmsAccountId);
+    },
+    getShopWarehousesForShop(shopId: string) {
+      return self.shopWarehouses.filter((w) => w.shopId === shopId);
     },
     getShopByPlatformId(platformShopId: string) {
       return self.shops.find((s) => s.platformShopId === platformShopId);

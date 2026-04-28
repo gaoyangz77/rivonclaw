@@ -1,1 +1,1 @@
-export type DrawerTab = "overview" | "aiCustomerService";
+export type DrawerTab = "overview" | "aiCustomerService" | "warehouseManagement";

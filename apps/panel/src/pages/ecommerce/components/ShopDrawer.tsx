@@ -4,6 +4,7 @@ import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
+import { InventoryManagementTab } from "./InventoryManagementTab.js";
 import type { DrawerTab } from "../ecommerce-types.js";
 
 interface ShopDrawerProps {
@@ -16,6 +17,8 @@ interface ShopDrawerProps {
   // Overview tab: service toggle
   togglingServiceId: string | null;
   onToggleCustomerService: (shopId: string, currentValue: boolean) => void;
+  togglingInventoryServiceId: string | null;
+  onToggleInventoryManagement: (shopId: string, currentValue: boolean) => void;
   // AI CS tab props
   editBusinessPrompt: string;
   onEditBusinessPrompt: (value: string) => void;
@@ -56,6 +59,8 @@ export const ShopDrawer = observer(function ShopDrawer({
   upgradePrompt,
   togglingServiceId,
   onToggleCustomerService,
+  togglingInventoryServiceId,
+  onToggleInventoryManagement,
   editBusinessPrompt,
   onEditBusinessPrompt,
   savingSettings,
@@ -135,6 +140,14 @@ export const ShopDrawer = observer(function ShopDrawer({
                   onClick={() => onTabChange("aiCustomerService")}
                 >
                   {t("ecommerce.shopDrawer.tabs.aiCustomerService")}
+                </button>
+              )}
+              {shop.services?.wms?.enabled && (
+                <button
+                  className={`drawer-tab-btn ${activeTab === "warehouseManagement" ? "drawer-tab-btn-active" : ""}`}
+                  onClick={() => onTabChange("warehouseManagement")}
+                >
+                  {t("ecommerce.shopDrawer.tabs.warehouseManagement")}
                 </button>
               )}
             </div>
@@ -218,6 +231,39 @@ export const ShopDrawer = observer(function ShopDrawer({
                     </span>
                   </label>
                 </div>
+
+                <div className="shop-toggle-card">
+                  <div className="shop-toggle-card-left">
+                    <span className="shop-toggle-card-label">
+                      {t("ecommerce.shopDrawer.overview.inventoryToggle")}
+                    </span>
+                    <span className={shop.services?.wms?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                      {shop.services?.wms?.enabled
+                        ? t("common.enabled")
+                        : t("common.disabled")}
+                    </span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={shop.services?.wms?.enabled ?? false}
+                      onChange={() =>
+                        onToggleInventoryManagement(
+                          shop.id,
+                          shop.services?.wms?.enabled ?? false,
+                        )
+                      }
+                      disabled={togglingInventoryServiceId === shop.id}
+                    />
+                    <span
+                      className={`toggle-track ${shop.services?.wms?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingInventoryServiceId === shop.id ? "toggle-track-disabled" : ""}`}
+                    >
+                      <span
+                        className={`toggle-thumb ${shop.services?.wms?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                      />
+                    </span>
+                  </label>
+                </div>
               </div>
             )}
 
@@ -254,6 +300,10 @@ export const ShopDrawer = observer(function ShopDrawer({
                 redeemingCreditId={redeemingCreditId}
                 onRedeemCredit={onRedeemCredit}
               />
+            )}
+
+            {activeTab === "warehouseManagement" && shop.services?.wms?.enabled && (
+              <InventoryManagementTab shop={shop} />
             )}
           </div>
         )}

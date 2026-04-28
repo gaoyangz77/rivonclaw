@@ -56,6 +56,9 @@ const SHOP_UPDATED_SUBSCRIPTION = `
           balanceExpiresAt
           periodEnd
         }
+        wms {
+          enabled
+        }
       }
     }
   }

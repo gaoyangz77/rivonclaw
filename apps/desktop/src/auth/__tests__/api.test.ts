@@ -99,6 +99,34 @@ describe("POST /api/auth/login", () => {
     expect(onAuthChange).toHaveBeenCalled();
   });
 
+  it("does not wait for auth bootstrap before returning", async () => {
+    let finishAuthChange!: () => void;
+    const ctx = {
+      authSession: {
+        loginWithCredentials: vi.fn().mockResolvedValue(mockUser),
+      },
+      onAuthChange: vi.fn(() => new Promise<void>((resolve) => {
+        finishAuthChange = resolve;
+      })),
+    } as unknown as ApiContext;
+
+    const dispatchPromise = dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com", password: "pass123" });
+    const result = await Promise.race([
+      dispatchPromise.then((value) => ({ type: "response" as const, value })),
+      new Promise<{ type: "timeout" }>((resolve) => setTimeout(() => resolve({ type: "timeout" }), 0)),
+    ]);
+
+    expect(result.type).toBe("response");
+    if (result.type === "response") {
+      expect(result.value.handled).toBe(true);
+      expect(result.value.res._status).toBe(200);
+      expect(result.value.res._body).toEqual({ ok: true });
+    }
+    expect(ctx.onAuthChange).toHaveBeenCalled();
+
+    finishAuthChange();
+  });
+
   it("returns 400 when email is missing", async () => {
     const ctx = {
       authSession: { loginWithCredentials: vi.fn() },

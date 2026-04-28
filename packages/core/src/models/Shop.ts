@@ -49,9 +49,14 @@ export const CustomerServiceBillingModel = types.model("CustomerServiceBilling",
   tier: types.maybeNull(types.string),
 });
 
+export const WmsSettingsModel = types.model("WmsSettings", {
+  enabled: types.optional(types.boolean, false),
+});
+
 export const ShopServiceConfigModel = types.model("ShopServiceConfig", {
   customerService: types.maybeNull(CustomerServiceConfigModel),
   customerServiceBilling: types.maybeNull(CustomerServiceBillingModel),
+  wms: types.optional(types.maybeNull(WmsSettingsModel), null),
 });
 
 export const ShopModel = types.model("Shop", {
@@ -71,4 +76,5 @@ export const ShopModel = types.model("Shop", {
 export interface Shop extends Instance<typeof ShopModel> {}
 export interface CustomerServiceConfig extends Instance<typeof CustomerServiceConfigModel> {}
 export interface CustomerServiceBilling extends Instance<typeof CustomerServiceBillingModel> {}
+export interface WmsSettings extends Instance<typeof WmsSettingsModel> {}
 export interface ShopServiceConfig extends Instance<typeof ShopServiceConfigModel> {}
