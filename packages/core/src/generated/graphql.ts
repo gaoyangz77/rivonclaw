@@ -798,7 +798,6 @@ export interface EcomProductSkuSummary {
   skuId: Scalars['String']['output'];
   /** Summary label for the SKU. Derived from sellerSku for list/search output. */
   skuName?: Maybe<Scalars['String']['output']>;
-  stockQuantity?: Maybe<Scalars['Int']['output']>;
 }
 
 /** Product status filter. Use ALL to return all statuses. */
@@ -2858,7 +2857,7 @@ export interface Warehouse {
   notes?: Maybe<Scalars['String']['output']>;
   provider: WarehouseProvider;
   regionCode?: Maybe<InventoryRegionCode>;
-  /** System-local source connection ID, such as WmsAccount._id or Shop._id. */
+  /** System-local source Mongo ID, such as WmsAccount._id, Shop._id, or a future persisted EcomProduct source entity ID. */
   sourceId?: Maybe<Scalars['ID']['output']>;
   status: WarehouseStatus;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -3058,7 +3057,7 @@ export interface WriteWarehouseInput {
   provider?: InputMaybe<WarehouseProvider>;
   /** Country or region code for the warehouse. */
   regionCode?: InputMaybe<InventoryRegionCode>;
-  /** Source connection ID, such as WmsAccount._id or Shop._id. */
+  /** System-local source Mongo ID, such as WmsAccount._id, Shop._id, or a future persisted EcomProduct source entity ID. */
   sourceId?: InputMaybe<Scalars['ID']['input']>;
   /** Lifecycle status. Use ARCHIVED instead of hard deleting. */
   status?: InputMaybe<WarehouseStatus>;
