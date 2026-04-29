@@ -11,6 +11,15 @@ import { sendJson, parseBody, proxiedFetch, parseSkillFrontmatter, invalidateSki
 
 const log = createLogger("skills-routes");
 
+function parseHttpUrl(value: string): string | null {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── GET /api/skills/bundled-slugs ──
 
 const bundledSlugs: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
@@ -122,7 +131,7 @@ const install: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext
 
 // ── POST /api/skills/write-template ──
 
-const writeTemplate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
+const writeTemplate: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const body = (await parseBody(req)) as { slug?: string; content?: string };
   if (!body.slug || !body.content) {
     sendJson(res, 400, { error: "Missing required fields: slug, content" });
@@ -137,7 +146,30 @@ const writeTemplate: EndpointHandler = async (req, res, _url, _params, _ctx) => 
     const skillsDir = getUserSkillsDir();
     const skillDir = join(skillsDir, body.slug);
     await fs.mkdir(skillDir, { recursive: true });
-    await fs.writeFile(join(skillDir, "SKILL.md"), body.content, "utf-8");
+
+    const downloadUrl = parseHttpUrl(body.content);
+    if (downloadUrl) {
+      const response = await proxiedFetch(ctx.proxyRouterPort, downloadUrl, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        sendJson(res, 200, { ok: false, error: `Server returned ${response.status}: ${errText}` });
+        return;
+      }
+
+      const zipPath = join(skillDir, `${body.slug}.zip`);
+      try {
+        await fs.writeFile(zipPath, Buffer.from(await response.arrayBuffer()));
+        const zip = new AdmZip(zipPath);
+        zip.extractAllTo(skillDir, true);
+      } finally {
+        await fs.rm(zipPath, { force: true });
+      }
+    } else {
+      await fs.writeFile(join(skillDir, "SKILL.md"), body.content, "utf-8");
+    }
+
     invalidateSkillsSnapshot();
     sendJson(res, 200, { ok: true });
   } catch (err: unknown) {

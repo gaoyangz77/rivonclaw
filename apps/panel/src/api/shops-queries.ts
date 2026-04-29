@@ -134,8 +134,8 @@ export const REDEEM_CREDIT_MUTATION = gql`
   }
 `;
 
-export const CS_GET_PRESET_SKILLS_QUERY = gql`
-  query CsGetPresetSkills {
-    csGetPresetSkills
+export const PRESET_SKILLS_QUERY = gql`
+  query PresetSkills($serviceIds: [ServiceId!]) {
+    presetSkills(serviceIds: $serviceIds)
   }
 `;

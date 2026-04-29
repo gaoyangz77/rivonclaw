@@ -18,6 +18,8 @@ import { RunProfilePresetModal } from "./components/RunProfilePresetModal.js";
 import { ModulesSection } from "./components/ModulesSection.js";
 import { writeSkillTemplate } from "../../api/skills.js";
 
+const ECOMMERCE_PRESET_SKILL_SERVICE_IDS = ["CUSTOMER_SERVICE", "INVENTORY_MANAGEMENT"];
+
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
   const { t } = useTranslation();
@@ -98,8 +100,8 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
         await entityStore.currentUser!.unenrollModule("GLOBAL_ECOMMERCE_SELLER");
       } else {
         await entityStore.currentUser!.enrollModule("GLOBAL_ECOMMERCE_SELLER");
-        // Download all CS preset skills on module enrollment (fire-and-forget, always overwrite)
-        entityStore.fetchCsPresetSkills()
+        // Download service preset skills on module enrollment (fire-and-forget, always overwrite)
+        entityStore.fetchPresetSkills(ECOMMERCE_PRESET_SKILL_SERVICE_IDS)
           .then(async (skills: Record<string, string> | null) => {
             if (!skills) return;
             for (const [key, content] of Object.entries(skills)) {

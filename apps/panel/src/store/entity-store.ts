@@ -26,7 +26,7 @@ import {
   PLATFORM_APPS_QUERY,
   MY_CREDITS_QUERY,
   INITIATE_TIKTOK_OAUTH_MUTATION,
-  CS_GET_PRESET_SKILLS_QUERY,
+  PRESET_SKILLS_QUERY,
 } from "../api/shops-queries.js";
 import {
   READ_WMS_ACCOUNTS_QUERY,
@@ -299,15 +299,16 @@ const PanelRootStoreModel = RootStoreModel.props({
       return result.data!.createRunProfile;
     }),
 
-    // ── CS preset skills ──
+    // ── Preset skills ──
 
-    /** Fetch all CS preset skills from backend. Returns { key: content } map or null. */
-    fetchCsPresetSkills: flow(function* () {
+    /** Fetch preset skills from backend. Returns { key: contentOrZipUrl } map or null. */
+    fetchPresetSkills: flow(function* (serviceIds: string[]) {
       const result = yield client().query({
-        query: CS_GET_PRESET_SKILLS_QUERY,
+        query: PRESET_SKILLS_QUERY,
+        variables: { serviceIds },
         fetchPolicy: "network-only",
       });
-      const raw = result.data?.csGetPresetSkills as string | null;
+      const raw = result.data?.presetSkills as string | null;
       if (!raw) return null;
       return JSON.parse(raw) as Record<string, string>;
     }),

@@ -1868,8 +1868,8 @@ export interface Query {
   browserProfiles: PaginatedBrowserProfiles;
   /** Check if a newer version is available (public, no auth required) */
   checkUpdate?: Maybe<UpdatePayload>;
-  /** Get all preset skills for CS. Returns a JSON object { key: markdownContent, ... } or null if none configured. */
-  csGetPresetSkills?: Maybe<Scalars['String']['output']>;
+  /** Get preset skills for services. Returns a JSON object { key: markdownContentOrZipUrl, ... } or null if none configured. */
+  presetSkills?: Maybe<Scalars['String']['output']>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
@@ -2167,6 +2167,11 @@ export interface QueryEcommerceSearchReturnsArgs {
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
+}
+
+
+export interface QueryPresetSkillsArgs {
+  serviceIds?: InputMaybe<Array<ServiceId>>;
 }
 
 
