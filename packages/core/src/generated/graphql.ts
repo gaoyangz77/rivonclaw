@@ -1121,12 +1121,16 @@ export interface InitiateOAuthResponse {
 export interface InventoryAnalysisInShopWarehouseQuantity {
   /** Shop platform warehouse ID used for inventory updates, copied from ShopWarehouse.platformWarehouseId. */
   platformWarehouseId?: Maybe<Scalars['String']['output']>;
+  /** Shop platform product ID for this seller SKU when available. */
+  productId?: Maybe<Scalars['String']['output']>;
   /** Quantity recorded in the shop backend for this platform warehouse mapping. */
   quantity: Scalars['Int']['output'];
   /** Shop alias/name. */
   shopAlias?: Maybe<Scalars['String']['output']>;
   /** Shop Mongo ID. */
   shopId: Scalars['ID']['output'];
+  /** Shop platform SKU ID for this seller SKU when available. */
+  skuId?: Maybe<Scalars['String']['output']>;
 }
 
 /** Full current inventory facts for one seller SKU. */
@@ -1143,12 +1147,16 @@ export interface InventoryAnalysisOfficialPlatformWarehouseStock {
   inTransitQuantity?: Maybe<Scalars['Int']['output']>;
   /** Shop platform warehouse ID used for inventory updates, copied from ShopWarehouse.platformWarehouseId. */
   platformWarehouseId?: Maybe<Scalars['String']['output']>;
+  /** Shop platform product ID for this seller SKU when available. */
+  productId?: Maybe<Scalars['String']['output']>;
   /** Authoritative platform warehouse quantity. */
   quantity: Scalars['Int']['output'];
   /** Shop alias/name. */
   shopAlias?: Maybe<Scalars['String']['output']>;
   /** Shop Mongo ID. */
   shopId: Scalars['ID']['output'];
+  /** Shop platform SKU ID for this seller SKU when available. */
+  skuId?: Maybe<Scalars['String']['output']>;
   /** Source system label, such as TIKTOK_FBT or TIKTOK_SHOP. */
   sourceSystem: Scalars['String']['output'];
   /** Warehouse display name when available. */
