@@ -90,8 +90,8 @@ export const DEFAULT_SESSION_KEY = "agent:main:main";
  * appear as tabs in the Chat Page.  Each entry is tested via `key.includes()`.
  */
 const HIDDEN_SESSION_KEY_PATTERNS: string[] = [
-  ":openai-user:rivonclaw-",  // Internal API sessions (rule compilation LLM calls)
-  ":cs:",                      // Customer Service sessions (e.g. agent:main:cs:tiktok:{id})
+  ":openai-user:rivonclaw-", // Internal API sessions (rule compilation LLM calls)
+  ":cs:", // Customer Service sessions (e.g. agent:main:cs:tiktok:{id})
 ];
 
 /** Returns true if the session key belongs to a hidden subsystem. */
@@ -111,6 +111,9 @@ export const IMAGE_PLACEHOLDER = "\u200B[__IMAGE__]\u200B";
 export const IMAGE_EXPIRED_PLACEHOLDER = "\u200B[__IMAGE_EXPIRED__]\u200B";
 export const STOP_COMMAND_PLACEHOLDER = "\u200B[__STOP_COMMAND__]\u200B";
 
+const SYSTEM_EVENT_LINE_RE =
+  /^System(?: \(untrusted\))?: \[\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})? [A-Z]{2,5}\].*$/gm;
+
 /**
  * Clean up raw gateway message text:
  * - Strip "Conversation info (untrusted metadata):" blocks
@@ -118,9 +121,13 @@ export const STOP_COMMAND_PLACEHOLDER = "\u200B[__STOP_COMMAND__]\u200B";
  */
 export function cleanMessageText(text: string): string {
   // Remove "Conversation info (untrusted metadata):" and its JSON block
-  let cleaned = text.replace(/Conversation info \(untrusted metadata\):\s*```json\s*\{[\s\S]*?\}\s*```\s*/g, "").trim();
+  let cleaned = text
+    .replace(/Conversation info \(untrusted metadata\):\s*```json\s*\{[\s\S]*?\}\s*```\s*/g, "")
+    .trim();
   // Fallback: also strip the variant without code fences
-  cleaned = cleaned.replace(/Conversation info \(untrusted metadata\):\s*\{[\s\S]*?\}\s*/g, "").trim();
+  cleaned = cleaned
+    .replace(/Conversation info \(untrusted metadata\):\s*\{[\s\S]*?\}\s*/g, "")
+    .trim();
 
   // Strip reasoning/thinking tags (<think>, <thinking>, <thought>, <antthinking>, <final>)
   // using OpenClaw's battle-tested implementation that respects code blocks
@@ -130,8 +137,8 @@ export function cleanMessageText(text: string): string {
   // to indicate it already sent the reply via the outbound system.
   cleaned = cleaned.replace(/\bNO_REPLY\b/g, "").trim();
 
-  // Strip agent framework tool-result summaries (e.g. "System: [2026-02-24 16:16:41 PST] Exec completed ...")
-  cleaned = cleaned.replace(/^System: \[\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})? [A-Z]{2,5}\].*$/gm, "").trim();
+  // Strip agent framework tool-result summaries (e.g. "System (untrusted): [2026-02-24 16:16:41 PST] Exec completed ...")
+  cleaned = cleaned.replace(SYSTEM_EVENT_LINE_RE, "").trim();
 
   // Strip queue-collected message wrapper produced by OpenClaw's drain.ts
   // when messages arrive while the agent is busy processing another run.
@@ -142,7 +149,10 @@ export function cleanMessageText(text: string): string {
   // Strip channel envelope prefix — rendered separately above the bubble.
   // Matches both bare timestamps like [Thu 2026-03-05 23:26 PST]
   // and full envelopes like [Mobile UUID +1s Thu 2026-03-05 23:26 PST].
-  cleaned = cleaned.replace(/^\[[^\]]*\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})? [A-Z]{2,5}\]\s*/, "");
+  cleaned = cleaned.replace(
+    /^\[[^\]]*\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})? [A-Z]{2,5}\]\s*/,
+    "",
+  );
 
   // Strip gateway [System Message] blocks (cron delivery, system events).
   // The entire message is internal scaffolding — the agent's response follows separately.
@@ -157,12 +167,16 @@ export function cleanMessageText(text: string): string {
   // Replace [media attached: <path> (<mime>) | <path>] blocks.
   // Audio attachments are stripped silently (the transcript or [Voice Ns] label is enough).
   // Non-audio attachments get an image placeholder since the panel can't display file paths.
-  cleaned = cleaned.replace(/\[media attached:\s*[^\]]+\]/g, (match) =>
-    /\(audio\//.test(match) ? "" : IMAGE_PLACEHOLDER,
-  ).trim();
+  cleaned = cleaned
+    .replace(/\[media attached:\s*[^\]]+\]/g, (match) =>
+      /\(audio\//.test(match) ? "" : IMAGE_PLACEHOLDER,
+    )
+    .trim();
 
   // Strip agent instruction about sending images back (injected by gateway for media messages)
-  cleaned = cleaned.replace(/To send an image back,[\s\S]*?Keep caption in the text body\.\s*/g, "").trim();
+  cleaned = cleaned
+    .replace(/To send an image back,[\s\S]*?Keep caption in the text body\.\s*/g, "")
+    .trim();
 
   // Strip raw channel-specific image metadata (e.g. Feishu image_key JSON)
   cleaned = cleaned.replace(/\{"image_key"\s*:\s*"[^"]*"\}/g, "").trim();
@@ -170,12 +184,19 @@ export function cleanMessageText(text: string): string {
   // Strip cron/heartbeat system event wrapper — extract only the reminder content.
   // Variants: "has been triggered" (with content) / "was triggered" (no-content fallback)
   // Endings:  "Please relay…" (deliverToUser) / "Handle this…" (!deliverToUser)
-  const cronMatch = cleaned.match(/^A scheduled (?:reminder|cron event) (?:has been|was) triggered\.\s*(?:The reminder content is:\s*\n\n([\s\S]*?)\n\n(?:Please relay|Handle this)|.*$)/);
+  const cronMatch = cleaned.match(
+    /^A scheduled (?:reminder|cron event) (?:has been|was) triggered\.\s*(?:The reminder content is:\s*\n\n([\s\S]*?)\n\n(?:Please relay|Handle this)|.*$)/,
+  );
   if (cronMatch) {
     cleaned = (cronMatch[1] ?? "").trim();
   }
   // Strip exec completion event wrapper
-  cleaned = cleaned.replace(/^An async command you ran earlier has completed\.\s*The result is shown in the system messages above\.\s*(?:Please relay|Handle)[\s\S]*$/, "").trim();
+  cleaned = cleaned
+    .replace(
+      /^An async command you ran earlier has completed\.\s*The result is shown in the system messages above\.\s*(?:Please relay|Handle)[\s\S]*$/,
+      "",
+    )
+    .trim();
   // Strip trailing "Current time: ..." line appended by heartbeat runner
   cleaned = cleaned.replace(/\nCurrent time: .+$/, "").trim();
 
@@ -250,7 +271,20 @@ export function formatTimestamp(ts: number, locale: string): string {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -270,9 +304,7 @@ export function extractText(content: unknown): string {
 function hasInjectedAbortMeta(message: Record<string, unknown>): boolean {
   const meta = message.openclawAbort;
   return Boolean(
-    meta &&
-    typeof meta === "object" &&
-    (meta as { aborted?: unknown }).aborted === true,
+    meta && typeof meta === "object" && (meta as { aborted?: unknown }).aborted === true,
   );
 }
 
@@ -301,20 +333,27 @@ const CRON_EVENT_RE = /^A scheduled (?:reminder|cron event) (?:has been|was) tri
 const EXEC_EVENT_RE = /^An async command you ran earlier has completed/;
 const HEARTBEAT_PROMPT_RE = /^(?:Current time:|HEARTBEAT_OK$)/;
 const SYSTEM_MSG_RE = /^\[System Message\]/;
+const SILENT_ASSISTANT_REPLY_RE = /^\s*NO_REPLY\s*$/;
 export function isSystemEventMessage(text: string): boolean {
   // Strip optional inline timestamp prefix before matching.
-  const trimmed = text.trim().replace(/^\[[A-Za-z]{3} \d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})? [A-Z]{2,5}\]\s*/, "");
-  return CRON_EVENT_RE.test(trimmed) || EXEC_EVENT_RE.test(trimmed) || HEARTBEAT_PROMPT_RE.test(trimmed) || SYSTEM_MSG_RE.test(trimmed);
+  const trimmed = text
+    .trim()
+    .replace(SYSTEM_EVENT_LINE_RE, "")
+    .trim()
+    .replace(/^\[[A-Za-z]{3} \d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})? [A-Z]{2,5}\]\s*/, "");
+  return (
+    CRON_EVENT_RE.test(trimmed) ||
+    EXEC_EVENT_RE.test(trimmed) ||
+    HEARTBEAT_PROMPT_RE.test(trimmed) ||
+    SYSTEM_MSG_RE.test(trimmed)
+  );
 }
 
 /**
  * Internal maintenance prompts injected by the gateway (e.g. pre-compaction
  * memory flush) that should never be shown to the user.
  */
-const INTERNAL_PROMPT_SENTINELS = [
-  "Pre-compaction memory flush.",
-  "Read HEARTBEAT.md",
-];
+const INTERNAL_PROMPT_SENTINELS = ["Pre-compaction memory flush.", "Read HEARTBEAT.md"];
 
 /** Returns true if the message is an internal gateway maintenance prompt. */
 export function isInternalPrompt(text: string): boolean {
@@ -322,7 +361,8 @@ export function isInternalPrompt(text: string): boolean {
   return INTERNAL_PROMPT_SENTINELS.some((s) => trimmed.startsWith(s));
 }
 
-export const NO_PROVIDER_RE = /no\s+(llm\s+)?provider|no\s+api\s*key|provider\s+not\s+configured|key\s+not\s+(found|configured)/i;
+export const NO_PROVIDER_RE =
+  /no\s+(llm\s+)?provider|no\s+api\s*key|provider\s+not\s+configured|key\s+not\s+(found|configured)/i;
 
 /**
  * Map OpenClaw English error messages to i18n keys.
@@ -331,9 +371,15 @@ export const NO_PROVIDER_RE = /no\s+(llm\s+)?provider|no\s+api\s*key|provider\s+
 const ERROR_I18N_MAP: Array<{ pattern: RegExp; key: string }> = [
   { pattern: NO_PROVIDER_RE, key: "chat.noProviderError" },
   { pattern: /temporarily overloaded|rate.?limit/i, key: "chat.errorRateLimit" },
-  { pattern: /billing error|run out of credits|insufficient balance|out of extra usage/i, key: "chat.errorBilling" },
+  {
+    pattern: /billing error|run out of credits|insufficient balance|out of extra usage/i,
+    key: "chat.errorBilling",
+  },
   { pattern: /timed?\s*out/i, key: "chat.errorTimeout" },
-  { pattern: /context overflow|prompt too large|context length exceeded/i, key: "chat.errorContextOverflow" },
+  {
+    pattern: /context overflow|prompt too large|context length exceeded/i,
+    key: "chat.errorContextOverflow",
+  },
   { pattern: /unauthorized|invalid.*(?:key|token)|authentication/i, key: "chat.errorAuth" },
 ];
 
@@ -376,7 +422,9 @@ function extractToolInputMessage(block: Record<string, unknown>): string | null 
             return candidate.trim();
           }
         }
-      } catch { /* malformed JSON — skip */ }
+      } catch {
+        /* malformed JSON — skip */
+      }
     }
   }
   return null;
@@ -399,7 +447,9 @@ function extractToolArgs(block: Record<string, unknown>): Record<string, unknown
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
           return parsed as Record<string, unknown>;
         }
-      } catch { /* malformed JSON — skip */ }
+      } catch {
+        /* malformed JSON — skip */
+      }
     }
   }
   return undefined;
@@ -426,7 +476,12 @@ export function extractToolError(block: Record<string, unknown>): string | undef
       return val.trim();
     }
   }
-  if (block.is_error === true || block.isError === true || block.success === false || block.ok === false) {
+  if (
+    block.is_error === true ||
+    block.isError === true ||
+    block.success === false ||
+    block.ok === false
+  ) {
     return "Tool call failed";
   }
   return undefined;
@@ -462,29 +517,25 @@ export function settleActiveToolEvent(
     error?: string;
   },
 ): ChatMessage[] {
-  const idx = messages.findLastIndex((msg) =>
-    msg.role === "tool-event" &&
-    msg.toolRunId === params.runId &&
-    msg.toolStatus === "running");
+  const idx = messages.findLastIndex(
+    (msg) =>
+      msg.role === "tool-event" && msg.toolRunId === params.runId && msg.toolStatus === "running",
+  );
   if (idx === -1) return messages;
   const next = [...messages];
   const current = next[idx];
   next[idx] = {
     ...current,
     toolStatus: params.status,
-    toolError: params.status === "failed" ? params.error ?? current.toolError : undefined,
+    toolError: params.status === "failed" ? (params.error ?? current.toolError) : undefined,
   };
   return next;
 }
 
-export function clearActiveToolEvent(
-  messages: ChatMessage[],
-  runId: string,
-): ChatMessage[] {
-  const idx = messages.findLastIndex((msg) =>
-    msg.role === "tool-event" &&
-    msg.toolRunId === runId &&
-    msg.toolStatus === "running");
+export function clearActiveToolEvent(messages: ChatMessage[], runId: string): ChatMessage[] {
+  const idx = messages.findLastIndex(
+    (msg) => msg.role === "tool-event" && msg.toolRunId === runId && msg.toolStatus === "running",
+  );
   if (idx === -1) return messages;
   const next = [...messages];
   const current = next[idx];
@@ -505,13 +556,26 @@ export function clearActiveToolEvent(
  * Normalized to lowercase for matching.
  */
 const TOOL_CALL_BLOCK_TYPES = new Set([
-  "tool_use", "tooluse", "tool_call", "toolcall", "function_call", "functioncall",
+  "tool_use",
+  "tooluse",
+  "tool_call",
+  "toolcall",
+  "function_call",
+  "functioncall",
 ]);
 
 function isToolCallBlock(block: Record<string, unknown>): boolean {
   const raw = block.type;
   if (typeof raw !== "string") return false;
   return TOOL_CALL_BLOCK_TYPES.has(raw.trim().toLowerCase());
+}
+
+function hasToolCallBlocks(content: unknown): boolean {
+  if (!Array.isArray(content)) return false;
+  return content.some(
+    (block) =>
+      block && typeof block === "object" && isToolCallBlock(block as Record<string, unknown>),
+  );
 }
 
 /**
@@ -541,11 +605,29 @@ export function parseRawMessages(
       const strippedImages = images.length === 0 && hasImageBlocks(msg.content);
       // Skip internal gateway maintenance prompts (e.g. pre-compaction memory flush)
       if (msg.role === "user" && isInternalPrompt(text)) continue;
-      const abortInjected = msg.role === "assistant" && hasInjectedAbortMeta(msg as Record<string, unknown>);
+      // Match OpenClaw's own web UI/gateway behavior: assistant NO_REPLY is a
+      // control token, not a chat bubble.
+      if (
+        msg.role === "assistant" &&
+        SILENT_ASSISTANT_REPLY_RE.test(text) &&
+        images.length === 0 &&
+        !strippedImages &&
+        !hasToolCallBlocks(msg.content)
+      )
+        continue;
+      const abortInjected =
+        msg.role === "assistant" && hasInjectedAbortMeta(msg as Record<string, unknown>);
       if (text.trim() || images.length > 0 || strippedImages) {
-        const entry: ChatMessage = { role: msg.role, text, timestamp: msg.timestamp ?? 0, images: images.length > 0 ? images : undefined };
+        const entry: ChatMessage = {
+          role: msg.role,
+          text,
+          timestamp: msg.timestamp ?? 0,
+          images: images.length > 0 ? images : undefined,
+        };
         if (strippedImages) {
-          entry.text = entry.text ? `${entry.text}\n${IMAGE_EXPIRED_PLACEHOLDER}` : IMAGE_EXPIRED_PLACEHOLDER;
+          entry.text = entry.text
+            ? `${entry.text}\n${IMAGE_EXPIRED_PLACEHOLDER}`
+            : IMAGE_EXPIRED_PLACEHOLDER;
         }
         if (msg.idempotencyKey) entry.idempotencyKey = msg.idempotencyKey;
         // Mark system-generated user messages (cron events, heartbeat prompts)
@@ -558,9 +640,22 @@ export function parseRawMessages(
         // sessions_send stores user messages with provenance.kind = "inter_session";
         // voice transcripts use provenance.kind = "external_user".
         // These should render on the agent (left) side, not the user (right) side.
-        if (msg.role === "user" && !entry.isExternal && msg.provenance && typeof msg.provenance === "object") {
-          const prov = msg.provenance as { kind?: string; sourceTool?: string; sourceChannel?: string };
-          if (prov.kind === "inter_session" || prov.kind === "external_user" || prov.kind === "internal_system") {
+        if (
+          msg.role === "user" &&
+          !entry.isExternal &&
+          msg.provenance &&
+          typeof msg.provenance === "object"
+        ) {
+          const prov = msg.provenance as {
+            kind?: string;
+            sourceTool?: string;
+            sourceChannel?: string;
+          };
+          if (
+            prov.kind === "inter_session" ||
+            prov.kind === "external_user" ||
+            prov.kind === "internal_system"
+          ) {
             entry.isExternal = true;
             entry.channel = prov.sourceTool ?? prov.sourceChannel ?? prov.kind;
           }
@@ -590,13 +685,15 @@ export function parseRawMessages(
           if (toolName) {
             const args = extractToolArgs(b);
             const toolError = extractToolError(b);
-            parsed.push(createToolEventMessage({
-              toolName,
-              toolArgs: args,
-              toolStatus: toolError ? "failed" : undefined,
-              toolError,
-              timestamp: msg.timestamp ?? 0,
-            }));
+            parsed.push(
+              createToolEventMessage({
+                toolName,
+                toolArgs: args,
+                toolStatus: toolError ? "failed" : undefined,
+                toolError,
+                timestamp: msg.timestamp ?? 0,
+              }),
+            );
             // Extract delivered text from outbound message tool calls.
             // The "message" tool sends text to external channels; the actual
             // message content lives in input.message (Anthropic format) or
@@ -625,9 +722,7 @@ export function mergeTerminalError(
   error: { text: string; timestamp: number } | undefined,
 ): ChatMessage[] {
   if (!error) return messages;
-  const alreadyPresent = messages.some(
-    (m) => m.role === "assistant" && m.text === error.text,
-  );
+  const alreadyPresent = messages.some((m) => m.role === "assistant" && m.text === error.text);
   if (alreadyPresent) return messages;
   return [...messages, { role: "assistant", text: error.text, timestamp: error.timestamp }];
 }

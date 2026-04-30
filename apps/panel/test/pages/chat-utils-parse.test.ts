@@ -4,6 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  cleanMessageText,
+  isSystemEventMessage,
   parseRawMessages,
   IMAGE_EXPIRED_PLACEHOLDER,
   STOP_COMMAND_PLACEHOLDER,
@@ -11,6 +13,13 @@ import {
   mergeTerminalError,
 } from "../../src/pages/chat/chat-utils.js";
 import type { ChatMessage } from "../../src/pages/chat/chat-utils.js";
+
+const EXEC_COMPLETION_EVENT = [
+  "System (untrusted): [2026-04-29 01:02:51 PDT] Exec completed (fast-orb, code 0) :: Successfully installed pandas",
+  "",
+  "An async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.",
+  "Current time: Wednesday, April 29th, 2026 - 01:04 (America/Los_Angeles) / 2026-04-29 08:04 UTC",
+].join("\n");
 
 describe("parseRawMessages — stripped image handling", () => {
   it("appends expired placeholder when content has image blocks with empty data", () => {
@@ -56,9 +65,7 @@ describe("parseRawMessages — stripped image handling", () => {
     const raw = [
       {
         role: "user" as const,
-        content: [
-          { type: "image", data: "" },
-        ],
+        content: [{ type: "image", data: "" }],
         timestamp: 3000,
       },
     ];
@@ -98,7 +105,9 @@ describe("parseRawMessages — stripped image handling", () => {
 
     const result = parseRawMessages(raw);
     // First entry should be the text+placeholder message
-    const textMsg = result.find((m) => m.role === "assistant" && m.text.includes("here is the image"));
+    const textMsg = result.find(
+      (m) => m.role === "assistant" && m.text.includes("here is the image"),
+    );
     expect(textMsg).toBeDefined();
     expect(textMsg!.text).toContain(IMAGE_EXPIRED_PLACEHOLDER);
   });
@@ -234,6 +243,51 @@ describe("parseRawMessages — stripped image handling", () => {
   });
 });
 
+describe("chat-utils system event cleanup", () => {
+  it("hides wrapped async exec completion events", () => {
+    expect(cleanMessageText(EXEC_COMPLETION_EVENT)).toBe("");
+  });
+
+  it("detects wrapped async exec completion events as system events", () => {
+    expect(isSystemEventMessage(EXEC_COMPLETION_EVENT)).toBe(true);
+  });
+
+  it("marks wrapped async exec completion messages as external system-originated messages", () => {
+    const [message] = parseRawMessages([
+      {
+        role: "user",
+        content: [{ type: "text", text: EXEC_COMPLETION_EVENT }],
+        timestamp: 1,
+      },
+    ]);
+
+    expect(message?.isExternal).toBe(true);
+    expect(message?.channel).toBe("cron");
+  });
+
+  it("drops assistant NO_REPLY-only history messages", () => {
+    const result = parseRawMessages([
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "  NO_REPLY  " }],
+        timestamp: 2,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "做好了" }],
+        timestamp: 3,
+      },
+    ]);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        role: "assistant",
+        text: "做好了",
+      }),
+    ]);
+  });
+});
+
 describe("localizeError", () => {
   const t = (key: string) => key;
 
@@ -277,9 +331,7 @@ describe("localizeError", () => {
 
 describe("mergeTerminalError", () => {
   it("appends error when not present in messages", () => {
-    const messages: ChatMessage[] = [
-      { role: "user", text: "hello", timestamp: 1000 },
-    ];
+    const messages: ChatMessage[] = [{ role: "user", text: "hello", timestamp: 1000 }];
     const error = { runId: "r1", text: "\u26A0 billing error", timestamp: 2000 };
     const result = mergeTerminalError(messages, error);
     expect(result).toHaveLength(2);
@@ -300,9 +352,7 @@ describe("mergeTerminalError", () => {
   });
 
   it("returns original array unchanged when no cached error", () => {
-    const messages: ChatMessage[] = [
-      { role: "user", text: "hello", timestamp: 1000 },
-    ];
+    const messages: ChatMessage[] = [{ role: "user", text: "hello", timestamp: 1000 }];
     const result = mergeTerminalError(messages, undefined);
     expect(result).toBe(messages);
   });
@@ -310,9 +360,7 @@ describe("mergeTerminalError", () => {
   it("re-adds error after loadHistory replaces messages (simulated)", () => {
     // Gateway history never contains synthesized errors, so loadHistory
     // wipes them.  mergeTerminalError restores the cached error.
-    const gatewayHistory: ChatMessage[] = [
-      { role: "user", text: "hello", timestamp: 1000 },
-    ];
+    const gatewayHistory: ChatMessage[] = [{ role: "user", text: "hello", timestamp: 1000 }];
     const cachedError = { runId: "r1", text: "\u26A0 API key expired", timestamp: 2000 };
     const result = mergeTerminalError(gatewayHistory, cachedError);
     expect(result).toHaveLength(2);
