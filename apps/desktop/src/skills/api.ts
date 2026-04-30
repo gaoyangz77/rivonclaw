@@ -144,8 +144,7 @@ const writeTemplate: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
 
   try {
     const skillsDir = getUserSkillsDir();
-    const skillDir = join(skillsDir, body.slug);
-    await fs.mkdir(skillDir, { recursive: true });
+    await fs.mkdir(skillsDir, { recursive: true });
 
     const downloadUrl = parseHttpUrl(body.content);
     if (downloadUrl) {
@@ -158,15 +157,17 @@ const writeTemplate: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
         return;
       }
 
-      const zipPath = join(skillDir, `${body.slug}.zip`);
+      const zipPath = join(skillsDir, `${body.slug}.zip`);
       try {
         await fs.writeFile(zipPath, Buffer.from(await response.arrayBuffer()));
         const zip = new AdmZip(zipPath);
-        zip.extractAllTo(skillDir, true);
+        zip.extractAllTo(skillsDir, true);
       } finally {
         await fs.rm(zipPath, { force: true });
       }
     } else {
+      const skillDir = join(skillsDir, body.slug);
+      await fs.mkdir(skillDir, { recursive: true });
       await fs.writeFile(join(skillDir, "SKILL.md"), body.content, "utf-8");
     }
 
