@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.10",
+    "date": "2026-04-29",
+    "en": [
+      "Add inventory and warehouse management to the ecommerce workspace so stock, warehouses, and WMS data are easier to manage in one place",
+      "Improve ecommerce tool labels and translations for a clearer desktop experience",
+      "Stabilize desktop behavior with better default chat-model handling and fewer tab refresh glitches"
+    ],
+    "zh": [
+      "电商工作台新增库存与仓库管理，商品库存、仓库和 WMS 信息可以更集中地处理",
+      "补全并优化电商工具文案与翻译，桌面端操作更清晰",
+      "改进桌面端默认模型处理与标签页刷新稳定性，减少使用中的小异常"
+    ]
+  },
+  {
     "version": "1.8.9",
     "date": "2026-04-23",
     "en": [
