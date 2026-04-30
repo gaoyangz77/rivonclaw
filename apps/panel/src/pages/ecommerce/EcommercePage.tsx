@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { observer } from "mobx-react-lite";
+import { GQL } from "@rivonclaw/core";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import type { ServiceCredit } from "@rivonclaw/core/models";
 import { useToast } from "../../components/Toast.js";
@@ -332,7 +333,9 @@ export const EcommercePage = observer(function EcommercePage() {
   const selectedCSProvider = selectedShop?.services?.customerService?.csProviderOverride ?? "";
   const selectedCSModel = selectedShop?.services?.customerService?.csModelOverride ?? "";
 
-  const csCredits = credits.filter((c) => c.service === "CUSTOMER_SERVICE" && c.status === "AVAILABLE");
+  const csCredits = credits.filter(
+    (c) => c.service === GQL.ServiceId.CustomerService && c.status === GQL.ServiceCreditStatus.Available,
+  );
 
   // ── Render ──
 

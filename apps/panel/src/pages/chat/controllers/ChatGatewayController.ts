@@ -23,7 +23,12 @@ import { GatewayChatClient } from "../../../lib/gateway-client.js";
 import type { GatewayEvent, GatewayHelloOk } from "../../../lib/gateway-client.js";
 import { ChatEventBridge } from "../chat-event-bridge.js";
 import type { ChatMirrorSSEPayload } from "../chat-event-bridge.js";
-import { ACTIVE_PHASES, FINAL_FALLBACK_MS, MIRROR_FINAL_FALLBACK_MS, RECENTLY_COMPLETED_TTL_MS } from "../run-tracker.js";
+import {
+  ACTIVE_PHASES,
+  FINAL_FALLBACK_MS,
+  MIRROR_FINAL_FALLBACK_MS,
+  RECENTLY_COMPLETED_TTL_MS,
+} from "../run-tracker.js";
 import type { RunPhase } from "../run-tracker.js";
 import { fetchGatewayInfo, trackEvent } from "../../../api/index.js";
 import { fetchChatSessions, updateChatSession } from "../../../api/chat-sessions.js";
@@ -48,6 +53,7 @@ import {
   mergeTerminalError,
   parseRawMessages,
   cleanDerivedTitle,
+  cleanMessageText,
   isHiddenSession,
 } from "../chat-utils.js";
 
@@ -86,11 +92,10 @@ function generateSessionKey(): string {
 }
 
 function findFirstPanelUserTitle(messages: ChatMessage[]): string | undefined {
-  const firstUser = messages.find((msg) =>
-    msg.role === "user" &&
-    !msg.isExternal &&
-    typeof msg.text === "string" &&
-    msg.text.trim());
+  const firstUser = messages.find(
+    (msg) =>
+      msg.role === "user" && !msg.isExternal && typeof msg.text === "string" && msg.text.trim(),
+  );
   return firstUser ? buildAutoSessionTitle(firstUser.text) : undefined;
 }
 
@@ -170,7 +175,9 @@ export class ChatGatewayController {
         this.metaMap.set(row.key, row);
         if (row.archivedAt != null) this.archivedKeys.add(row.key);
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     // Prune stale image cache entries on start
     clearImages().catch(() => {});
@@ -237,7 +244,10 @@ export class ChatGatewayController {
     updateChatSession(key, { panelTitle: title }).catch(() => {});
   }
 
-  private ensurePanelSessionTitleFromHistory(sessionKey: string, sessionMessages: ChatMessage[]): void {
+  private ensurePanelSessionTitleFromHistory(
+    sessionKey: string,
+    sessionMessages: ChatMessage[],
+  ): void {
     if (!isPanelSessionKey(sessionKey)) return;
     const session = this.store.sessions.get(sessionKey);
     if (!session || session.customTitle || session.panelTitle) return;
@@ -259,12 +269,16 @@ export class ChatGatewayController {
       // starting, accumulating exponential backoff (~9 s wasted on startup).
       const connector = runtimeStatusStore.openClawConnector;
       if (!connector.rpcConnected) {
-        const cancel = when(
-          () => connector.rpcConnected || this.cancelled,
-        );
+        const cancel = when(() => connector.rpcConnected || this.cancelled);
         this.rpcReadyDisposer = () => cancel.cancel();
-        try { await cancel; } catch { return; } // cancelled via stop()
-        finally { this.rpcReadyDisposer = null; }
+        try {
+          await cancel;
+        } catch {
+          return;
+        } finally {
+          // cancelled via stop()
+          this.rpcReadyDisposer = null;
+        }
         if (this.cancelled) return;
       }
 
@@ -292,19 +306,21 @@ export class ChatGatewayController {
           // Gate history loading on sidecar readiness
           const onSidecarReady = () => {
             client.setKeepaliveEnabled(true);
-            this.loadHistory().then(() => {
-              if (this.needsDisconnectError) {
-                this.needsDisconnectError = false;
-                const session = this.store.activeSession;
-                if (session) {
-                  session.appendMessage({
-                    role: "assistant",
-                    text: `\u26A0 ${this.t("chat.disconnectedError")}`,
-                    timestamp: Date.now(),
-                  });
+            this.loadHistory()
+              .then(() => {
+                if (this.needsDisconnectError) {
+                  this.needsDisconnectError = false;
+                  const session = this.store.activeSession;
+                  if (session) {
+                    session.appendMessage({
+                      role: "assistant",
+                      text: `\u26A0 ${this.t("chat.disconnectedError")}`,
+                      timestamp: Date.now(),
+                    });
+                  }
                 }
-              }
-            }).catch(() => {});
+              })
+              .catch(() => {});
           };
 
           const sidecar = runtimeStatusStore.openClawConnector.sidecarState;
@@ -314,7 +330,10 @@ export class ChatGatewayController {
             const dispose = reaction(
               () => runtimeStatusStore.openClawConnector.sidecarState,
               (state, _prev, r) => {
-                if (this.cancelled) { r.dispose(); return; }
+                if (this.cancelled) {
+                  r.dispose();
+                  return;
+                }
                 if (state === "ready") {
                   r.dispose();
                   onSidecarReady();
@@ -345,7 +364,11 @@ export class ChatGatewayController {
           if (disconnectText) {
             const session = this.store.activeSession;
             if (session) {
-              session.appendMessage({ role: "assistant", text: disconnectText, timestamp: Date.now() });
+              session.appendMessage({
+                role: "assistant",
+                text: disconnectText,
+                timestamp: Date.now(),
+              });
             }
           }
           if (wasWaiting) {
@@ -390,11 +413,13 @@ export class ChatGatewayController {
           if (sessionKey !== this.store.activeSessionKey) return;
           const session = this.store.activeSession;
           if (session) {
-            session.setMessages([{
-              role: "assistant",
-              text: `\uD83D\uDD04 ${this.t("chat.resetCommandFeedback")}`,
-              timestamp: Date.now(),
-            }]);
+            session.setMessages([
+              {
+                role: "assistant",
+                text: `\uD83D\uDD04 ${this.t("chat.resetCommandFeedback")}`,
+                timestamp: Date.now(),
+              },
+            ]);
           }
           clearImages(sessionKey).catch(() => {});
           this.terminalErrors.delete(sessionKey);
@@ -471,16 +496,18 @@ export class ChatGatewayController {
               },
             });
             if (toolName === "message" && toolPhase === "start" && toolArgs && isActiveMirror) {
-              const msgText = (
-                toolArgs.message ??
+              const msgText = (toolArgs.message ??
                 toolArgs.caption ??
                 toolArgs.text ??
-                toolArgs.content
-              ) as string | undefined;
+                toolArgs.content) as string | undefined;
               if (msgText) {
                 const session = this.store.activeSession;
                 if (session) {
-                  session.appendMessage({ role: "assistant", text: msgText, timestamp: Date.now() });
+                  session.appendMessage({
+                    role: "assistant",
+                    text: msgText,
+                    timestamp: Date.now(),
+                  });
                 }
               }
             }
@@ -491,10 +518,12 @@ export class ChatGatewayController {
       this.bridge = bridge;
 
       // Poll agent identity every 5 minutes
-      this.nameRefreshTimer = setInterval(() => {
-        if (this.client) this.refreshAgentName();
-      }, 5 * 60 * 1000);
-
+      this.nameRefreshTimer = setInterval(
+        () => {
+          if (this.client) this.refreshAgentName();
+        },
+        5 * 60 * 1000,
+      );
     } catch {
       if (!this.cancelled) this.store.setConnectionState("disconnected");
     }
@@ -502,14 +531,17 @@ export class ChatGatewayController {
 
   private refreshAgentName(): void {
     if (!this.client) return;
-    this.client.request<{ name?: string }>("agent.identity.get", {
-      sessionKey: this.store.activeSessionKey,
-    }).then((res) => {
-      if (!this.cancelled && res?.name) {
-        this.store.setAgentName(res.name);
-        this.onAgentNameChange?.(res.name);
-      }
-    }).catch(() => {});
+    this.client
+      .request<{ name?: string }>("agent.identity.get", {
+        sessionKey: this.store.activeSessionKey,
+      })
+      .then((res) => {
+        if (!this.cancelled && res?.name) {
+          this.store.setAgentName(res.name);
+          this.onAgentNameChange?.(res.name);
+        }
+      })
+      .catch(() => {});
   }
 
   // ---------------------------------------------------------------------------
@@ -522,12 +554,14 @@ export class ChatGatewayController {
 
     // --- Agent events ---
     if (evt.event === "agent") {
-      const agentPayload = evt.payload as {
-        runId?: string;
-        stream?: string;
-        sessionKey?: string;
-        data?: Record<string, unknown>;
-      } | undefined;
+      const agentPayload = evt.payload as
+        | {
+            runId?: string;
+            stream?: string;
+            sessionKey?: string;
+            data?: Record<string, unknown>;
+          }
+        | undefined;
       if (!agentPayload) return;
       const isBackground = agentPayload.sessionKey && agentPayload.sessionKey !== activeKey;
 
@@ -546,7 +580,8 @@ export class ChatGatewayController {
             const phase = agentPayload.data?.phase;
             const name = agentPayload.data ? extractToolCallName(agentPayload.data) : undefined;
             if (phase === "start" && name) bgRs.startTool(bgRunId, name);
-            else if (phase === "result" || phase === "end" || phase === "error") bgRs.finishTool(bgRunId);
+            else if (phase === "result" || phase === "end" || phase === "error")
+              bgRs.finishTool(bgRunId);
           } else if (stream === "lifecycle") {
             const phase = agentPayload.data?.phase;
             if (phase === "start") bgRs.markLifecycleStart(bgRunId);
@@ -568,10 +603,14 @@ export class ChatGatewayController {
       const agentRunId = agentPayload.runId;
       if (!agentRunId || !rs.isTracked(agentRunId)) {
         if (agentPayload.stream === "tool" || agentPayload.stream === "lifecycle") {
-          console.warn("[chat] agent event dropped: stream=%s phase=%s runId=%s tracked=%s localRunId=%s",
-            agentPayload.stream, agentPayload.data?.phase, agentRunId,
+          console.warn(
+            "[chat] agent event dropped: stream=%s phase=%s runId=%s tracked=%s localRunId=%s",
+            agentPayload.stream,
+            agentPayload.data?.phase,
+            agentRunId,
             agentRunId ? rs.isTracked(agentRunId) : "no-id",
-            rs.localRunId);
+            rs.localRunId,
+          );
         }
         return;
       }
@@ -591,7 +630,8 @@ export class ChatGatewayController {
           const flushRun = rs.getRun(agentRunId);
           const rawStreaming = flushRun?.streaming ?? null;
           const currentOffset = flushRun?.flushedOffset ?? 0;
-          const flushedText = rawStreaming && currentOffset > 0 ? rawStreaming.slice(currentOffset) : rawStreaming;
+          const flushedText =
+            rawStreaming && currentOffset > 0 ? rawStreaming.slice(currentOffset) : rawStreaming;
           const args = agentPayload.data?.args as Record<string, unknown> | undefined;
           if (session) {
             session.startToolEvent({
@@ -605,37 +645,46 @@ export class ChatGatewayController {
               const snap = flushedText;
               const runKey = agentRunId;
               const sessionKey = activeKey;
-              this.client.request<{ messages?: Array<{ role?: string; content?: unknown; idempotencyKey?: string }> }>(
-                "chat.history", { sessionKey, limit: 100 },
-              ).then((res) => {
-                if (!res?.messages) return;
-                let anchor = -1;
-                for (let i = 0; i < res.messages.length; i++) {
-                  if ((res.messages[i] as { idempotencyKey?: string }).idempotencyKey === runKey) {
-                    anchor = i;
-                    break;
-                  }
-                }
-                if (anchor === -1) return;
-                for (let i = res.messages.length - 1; i > anchor; i--) {
-                  if (res.messages[i].role !== "assistant") continue;
-                  const full = extractText(res.messages[i].content);
-                  if (full && full.length > snap.length) {
-                    const sess = this.store.sessions.get(sessionKey);
-                    if (sess) {
-                      sess.updateMessages((prev) => {
-                        const idx = prev.findLastIndex((msg) => msg.role === "assistant" && msg.text === snap);
-                        if (idx === -1) return prev;
-                        const patched = [...prev];
-                        patched[idx] = { ...patched[idx], text: full };
-                        return patched;
-                      });
+              this.client
+                .request<{
+                  messages?: Array<{ role?: string; content?: unknown; idempotencyKey?: string }>;
+                }>("chat.history", { sessionKey, limit: 100 })
+                .then((res) => {
+                  if (!res?.messages) return;
+                  let anchor = -1;
+                  for (let i = 0; i < res.messages.length; i++) {
+                    if (
+                      (res.messages[i] as { idempotencyKey?: string }).idempotencyKey === runKey
+                    ) {
+                      anchor = i;
+                      break;
                     }
-                    this.runStateFor(sessionKey).updateFlushedOffset(runKey, full.length);
-                    break;
                   }
-                }
-              }).catch((err) => { console.warn("[chat] history patch failed:", err); });
+                  if (anchor === -1) return;
+                  for (let i = res.messages.length - 1; i > anchor; i--) {
+                    if (res.messages[i].role !== "assistant") continue;
+                    const full = extractText(res.messages[i].content);
+                    if (full && full.length > snap.length) {
+                      const sess = this.store.sessions.get(sessionKey);
+                      if (sess) {
+                        sess.updateMessages((prev) => {
+                          const idx = prev.findLastIndex(
+                            (msg) => msg.role === "assistant" && msg.text === snap,
+                          );
+                          if (idx === -1) return prev;
+                          const patched = [...prev];
+                          patched[idx] = { ...patched[idx], text: full };
+                          return patched;
+                        });
+                      }
+                      this.runStateFor(sessionKey).updateFlushedOffset(runKey, full.length);
+                      break;
+                    }
+                  }
+                })
+                .catch((err) => {
+                  console.warn("[chat] history patch failed:", err);
+                });
             }
           }
           rs.startTool(agentRunId, name);
@@ -645,7 +694,11 @@ export class ChatGatewayController {
           else session?.completeToolEvent(agentRunId);
           rs.finishTool(agentRunId);
         } else if (phase === "error") {
-          session?.settleToolEvent(agentRunId, "failed", agentPayload.data ? extractToolError(agentPayload.data) : undefined);
+          session?.settleToolEvent(
+            agentRunId,
+            "failed",
+            agentPayload.data ? extractToolError(agentPayload.data) : undefined,
+          );
           rs.finishTool(agentRunId);
         }
       } else if (stream === "lifecycle") {
@@ -693,13 +746,15 @@ export class ChatGatewayController {
     if (evt.event !== "chat") return;
 
     // --- Chat events ---
-    const payload = evt.payload as {
-      state?: string;
-      runId?: string;
-      sessionKey?: string;
-      message?: { role?: string; content?: unknown; timestamp?: number };
-      errorMessage?: string;
-    } | undefined;
+    const payload = evt.payload as
+      | {
+          state?: string;
+          runId?: string;
+          sessionKey?: string;
+          message?: { role?: string; content?: unknown; timestamp?: number };
+          errorMessage?: string;
+        }
+      | undefined;
 
     if (!payload) return;
 
@@ -809,7 +864,7 @@ export class ChatGatewayController {
           const finalText = extractText(payload.message?.content);
           if (finalText) {
             const newText = flushedOffset > 0 ? finalText.slice(flushedOffset) : finalText;
-            if (newText.trim()) {
+            if (cleanMessageText(newText).trim()) {
               session.appendMessage({ role: "assistant", text: newText, timestamp: Date.now() });
             }
           } else if (!localRun?.streaming) {
@@ -820,7 +875,9 @@ export class ChatGatewayController {
             });
           }
           if (session.runState.sendStartedAt > 0) {
-            trackEvent("chat.response_received", { durationMs: Date.now() - session.runState.sendStartedAt });
+            trackEvent("chat.response_received", {
+              durationMs: Date.now() - session.runState.sendStartedAt,
+            });
             session.runState.setSendStartedAt(0);
           }
           session.runState.setLastAgentStream(null);
@@ -831,13 +888,22 @@ export class ChatGatewayController {
           break;
         }
         case "error": {
-          console.error("[chat] error event:", payload.errorMessage ?? "unknown error", "runId:", chatRunId);
+          console.error(
+            "[chat] error event:",
+            payload.errorMessage ?? "unknown error",
+            "runId:",
+            chatRunId,
+          );
           const raw = payload.errorMessage ?? this.t("chat.unknownError");
           const errText = localizeError(raw, this.tFn!);
           const renderedText = `\u26A0 ${errText}`;
           const errorTs = Date.now();
           session.appendMessage({ role: "assistant", text: renderedText, timestamp: errorTs });
-          this.terminalErrors.set(activeKey, { runId: chatRunId!, text: renderedText, timestamp: errorTs });
+          this.terminalErrors.set(activeKey, {
+            runId: chatRunId!,
+            text: renderedText,
+            timestamp: errorTs,
+          });
           session.runState.setLastAgentStream(null);
           if (session.runState.externalPending) {
             session.runState.setExternalPending(false);
@@ -850,7 +916,8 @@ export class ChatGatewayController {
           const abortedRun = rs.getRun(chatRunId!);
           const abortedRaw = abortedRun?.streaming ?? null;
           const abortedOffset = abortedRun?.flushedOffset ?? 0;
-          const abortedText = abortedRaw && abortedOffset > 0 ? abortedRaw.slice(abortedOffset) : abortedRaw;
+          const abortedText =
+            abortedRaw && abortedOffset > 0 ? abortedRaw.slice(abortedOffset) : abortedRaw;
           if (abortedText?.trim()) {
             session.appendMessage({ role: "assistant", text: abortedText, timestamp: Date.now() });
           }
@@ -872,7 +939,12 @@ export class ChatGatewayController {
     } else if (chatRunId && session) {
       // External run
       if (payload.state === "error") {
-        console.error("[chat] external run error:", payload.errorMessage ?? "unknown error", "runId:", chatRunId);
+        console.error(
+          "[chat] external run error:",
+          payload.errorMessage ?? "unknown error",
+          "runId:",
+          chatRunId,
+        );
       }
       if (payload.state === "final") {
         // Read run snapshot BEFORE cleanup
@@ -881,7 +953,7 @@ export class ChatGatewayController {
         const finalText = extractText(payload.message?.content);
         if (finalText) {
           const extNewText = extFlushedOffset > 0 ? finalText.slice(extFlushedOffset) : finalText;
-          if (extNewText.trim()) {
+          if (cleanMessageText(extNewText).trim()) {
             session.appendMessage({ role: "assistant", text: extNewText, timestamp: Date.now() });
           }
         }
@@ -1065,9 +1137,14 @@ export class ChatGatewayController {
             // Flush partial streaming
             const rawStreaming = run.streaming ?? null;
             const offset = run.flushedOffset ?? 0;
-            const partialText = rawStreaming && offset > 0 ? rawStreaming.slice(offset) : rawStreaming;
+            const partialText =
+              rawStreaming && offset > 0 ? rawStreaming.slice(offset) : rawStreaming;
             if (partialText?.trim()) {
-              session.appendMessage({ role: "assistant", text: partialText, timestamp: Date.now() });
+              session.appendMessage({
+                role: "assistant",
+                text: partialText,
+                timestamp: Date.now(),
+              });
             }
             session.appendMessage({
               role: "assistant",
@@ -1120,7 +1197,12 @@ export class ChatGatewayController {
       if (client) {
         try {
           const result = await client.request<{
-            messages?: Array<{ role?: string; content?: unknown; timestamp?: number; idempotencyKey?: string }>;
+            messages?: Array<{
+              role?: string;
+              content?: unknown;
+              timestamp?: number;
+              idempotencyKey?: string;
+            }>;
           }>("chat.history", { sessionKey: key, limit: FETCH_BATCH });
 
           let parsed = parseRawMessages(result?.messages);
@@ -1203,7 +1285,12 @@ export class ChatGatewayController {
       this.stickyHint = true;
       // Load history for main if not loaded
       const mainSession = this.store.sessions.get(DEFAULT_SESSION_KEY);
-      if (mainSession && mainSession.messages.length === 0 && !mainSession.allFetched && this.client) {
+      if (
+        mainSession &&
+        mainSession.messages.length === 0 &&
+        !mainSession.allFetched &&
+        this.client
+      ) {
         this.loadHistory();
       }
     }
@@ -1350,7 +1437,9 @@ export class ChatGatewayController {
     }
   }
 
-  async fetchGatewaySessions(): Promise<Array<{ key: string; derivedTitle?: string; lastMessagePreview?: string }>> {
+  async fetchGatewaySessions(): Promise<
+    Array<{ key: string; derivedTitle?: string; lastMessagePreview?: string }>
+  > {
     const client = this.client;
     if (!client) return [];
     try {
@@ -1407,7 +1496,11 @@ export class ChatGatewayController {
       session.updateMessages((prev) => [
         ...prev,
         { role: "user", text: trimmedText, timestamp: Date.now() },
-        { role: "assistant", text: `\u26A0 ${this.t("chat.noProviderError")}`, timestamp: Date.now() },
+        {
+          role: "assistant",
+          text: `\u26A0 ${this.t("chat.noProviderError")}`,
+          timestamp: Date.now(),
+        },
       ]);
       session.setDraft("");
       return;
@@ -1417,9 +1510,10 @@ export class ChatGatewayController {
     const activeKey = this.store.activeSessionKey;
 
     // Optimistic: show user message immediately
-    const optimisticImages: ChatImage[] | undefined = pendingImages.length > 0
-      ? pendingImages.map((img) => ({ data: img.base64, mimeType: img.mimeType }))
-      : undefined;
+    const optimisticImages: ChatImage[] | undefined =
+      pendingImages.length > 0
+        ? pendingImages.map((img) => ({ data: img.base64, mimeType: img.mimeType }))
+        : undefined;
     const sentAt = Date.now();
     session.appendMessage({
       role: "user",
@@ -1432,7 +1526,13 @@ export class ChatGatewayController {
       saveImages(activeKey, idempotencyKey, sentAt, optimisticImages).catch(() => {});
     }
     // Panel sessions own their tab titles; seed one from the first user message.
-    if (!session.customTitle && !session.panelTitle && !session.localTitle && isPanelSessionKey(activeKey) && trimmedText) {
+    if (
+      !session.customTitle &&
+      !session.panelTitle &&
+      !session.localTitle &&
+      isPanelSessionKey(activeKey) &&
+      trimmedText
+    ) {
       const autoTitle = buildAutoSessionTitle(trimmedText);
       if (autoTitle) {
         session.setLocalTitle(autoTitle);
@@ -1472,7 +1572,11 @@ export class ChatGatewayController {
     this.client.request("chat.send", params, 300_000).catch((err) => {
       const raw = formatError(err) || this.t("chat.sendError");
       const errText = localizeError(raw, this.tFn!);
-      session.appendMessage({ role: "assistant", text: `\u26A0 ${errText}`, timestamp: Date.now() });
+      session.appendMessage({
+        role: "assistant",
+        text: `\u26A0 ${errText}`,
+        timestamp: Date.now(),
+      });
       sendRs.failRun(idempotencyKey);
       this.markRunRecentlyCompleted(activeKey, idempotencyKey);
       this.cleanupTerminalRuns(activeKey);
@@ -1489,10 +1593,12 @@ export class ChatGatewayController {
     if (!targetRunId) return;
     trackEvent("chat.generation_stopped");
     this.markPendingStopNotice(activeKey, targetRunId);
-    this.client.request("chat.abort", {
-      sessionKey: activeKey,
-      runId: targetRunId,
-    }).catch(() => {});
+    this.client
+      .request("chat.abort", {
+        sessionKey: activeKey,
+        runId: targetRunId,
+      })
+      .catch(() => {});
   }
 
   resetSession(): void {
@@ -1503,62 +1609,84 @@ export class ChatGatewayController {
     // Abort any active run first
     const targetRunId = resetRs.abortTargetRunId;
     if (targetRunId) {
-      this.client.request("chat.abort", {
-        sessionKey: activeKey,
-        runId: targetRunId,
-      }).catch(() => {});
+      this.client
+        .request("chat.abort", {
+          sessionKey: activeKey,
+          runId: targetRunId,
+        })
+        .catch(() => {});
     }
 
-    this.client.request("sessions.reset", { key: activeKey }).then(() => {
-      const session = this.store.activeSession;
-      if (session) {
-        session.setMessages([{
-          role: "assistant",
-          text: `\uD83D\uDD04 ${this.t("chat.resetCommandFeedback")}`,
-          timestamp: Date.now(),
-        }]);
-      }
-      clearImages(activeKey).catch(() => {});
-      this.terminalErrors.delete(activeKey);
-      this.clearTimersForSession(activeKey);
-      this.activeRunState.resetAll();
-      const sess = this.store.activeSession;
-      if (sess) sess.runState.setLastAgentStream(null);
-    }).catch((err) => {
-      const errText = formatError(err) || this.t("chat.unknownError");
-      const session = this.store.activeSession;
-      if (session) {
-        session.appendMessage({ role: "assistant", text: `\u26A0 ${errText}`, timestamp: Date.now() });
-      }
-    });
+    this.client
+      .request("sessions.reset", { key: activeKey })
+      .then(() => {
+        const session = this.store.activeSession;
+        if (session) {
+          session.setMessages([
+            {
+              role: "assistant",
+              text: `\uD83D\uDD04 ${this.t("chat.resetCommandFeedback")}`,
+              timestamp: Date.now(),
+            },
+          ]);
+        }
+        clearImages(activeKey).catch(() => {});
+        this.terminalErrors.delete(activeKey);
+        this.clearTimersForSession(activeKey);
+        this.activeRunState.resetAll();
+        const sess = this.store.activeSession;
+        if (sess) sess.runState.setLastAgentStream(null);
+      })
+      .catch((err) => {
+        const errText = formatError(err) || this.t("chat.unknownError");
+        const session = this.store.activeSession;
+        if (session) {
+          session.appendMessage({
+            role: "assistant",
+            text: `\u26A0 ${errText}`,
+            timestamp: Date.now(),
+          });
+        }
+      });
   }
 
   resetSessionForOverflow(sessionKey: string): void {
     if (!this.client || this.store.connectionState !== "connected") return;
-    this.client.request("sessions.reset", { key: sessionKey }).then(() => {
-      const session = this.store.sessions.get(sessionKey);
-      if (session) {
-        session.setMessages([]);
-      }
-      clearImages(sessionKey).catch(() => {});
-      this.terminalErrors.delete(sessionKey);
-      this.clearTimersForSession(sessionKey);
-      this.runStateFor(sessionKey).resetAll();
-      const sess = this.store.sessions.get(sessionKey);
-      if (sess) {
-        sess.runState.setLastAgentStream(null);
-        sess.runState.setExternalPending(false);
-      }
-    }).catch((err) => {
-      const errText = formatError(err) || this.t("chat.unknownError");
-      const session = this.store.sessions.get(sessionKey);
-      if (session) {
-        session.appendMessage({ role: "assistant", text: `\u26A0 ${errText}`, timestamp: Date.now() });
-      }
-    });
+    this.client
+      .request("sessions.reset", { key: sessionKey })
+      .then(() => {
+        const session = this.store.sessions.get(sessionKey);
+        if (session) {
+          session.setMessages([]);
+        }
+        clearImages(sessionKey).catch(() => {});
+        this.terminalErrors.delete(sessionKey);
+        this.clearTimersForSession(sessionKey);
+        this.runStateFor(sessionKey).resetAll();
+        const sess = this.store.sessions.get(sessionKey);
+        if (sess) {
+          sess.runState.setLastAgentStream(null);
+          sess.runState.setExternalPending(false);
+        }
+      })
+      .catch((err) => {
+        const errText = formatError(err) || this.t("chat.unknownError");
+        const session = this.store.sessions.get(sessionKey);
+        if (session) {
+          session.appendMessage({
+            role: "assistant",
+            text: `\u26A0 ${errText}`,
+            timestamp: Date.now(),
+          });
+        }
+      });
   }
 
-  pushRunProfileToScope(profileId: string, scopeKey: string, runProfiles: Array<{ id: string }>): void {
+  pushRunProfileToScope(
+    profileId: string,
+    scopeKey: string,
+    runProfiles: Array<{ id: string }>,
+  ): void {
     if (!profileId || !runProfiles.find((p) => p.id === profileId)) {
       setRunProfileForScope(scopeKey, null).catch(() => {});
       return;
@@ -1580,7 +1708,12 @@ export class ChatGatewayController {
 
     try {
       const result = await client.request<{
-        messages?: Array<{ role?: string; content?: unknown; timestamp?: number; idempotencyKey?: string }>;
+        messages?: Array<{
+          role?: string;
+          content?: unknown;
+          timestamp?: number;
+          idempotencyKey?: string;
+        }>;
       }>("chat.history", { sessionKey: activeKey, limit: FETCH_BATCH });
 
       let parsed = parseRawMessages(result?.messages);
@@ -1611,7 +1744,12 @@ export class ChatGatewayController {
 
     try {
       const result = await client.request<{
-        messages?: Array<{ role?: string; content?: unknown; timestamp?: number; idempotencyKey?: string }>;
+        messages?: Array<{
+          role?: string;
+          content?: unknown;
+          timestamp?: number;
+          idempotencyKey?: string;
+        }>;
       }>("chat.history", {
         sessionKey: this.store.activeSessionKey,
         limit: this.fetchLimit,
@@ -1626,7 +1764,10 @@ export class ChatGatewayController {
       }
 
       if (parsed.length > oldCount) {
-        const merged = mergeTerminalError(parsed, this.terminalErrors.get(this.store.activeSessionKey));
+        const merged = mergeTerminalError(
+          parsed,
+          this.terminalErrors.get(this.store.activeSessionKey),
+        );
         session.setMessages(merged);
         session.setVisibleCount(oldCount + PAGE_SIZE);
       }
