@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Modal } from "../../../components/modals/Modal.js";
 import { Select } from "../../../components/inputs/Select.js";
+import { HelpCircleIcon } from "../../../components/icons.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 const currencyOptions = Object.values(GQL.Currency).map((currency) => ({
@@ -45,8 +46,18 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         }}
       >
         <div>
-          <label className="form-label-block">
-            {t("ecommerce.inventory.provider")} <span className="required">*</span>
+          <label className="form-label-block inventory-provider-label">
+            <span>
+              {t("ecommerce.inventory.provider")} <span className="required">*</span>
+            </span>
+            <span
+              className="inventory-wms-help-icon inventory-wms-support-tooltip has-tooltip"
+              data-tooltip={t("ecommerce.inventory.wmsProviderSupportTooltip")}
+              aria-label={t("ecommerce.inventory.wmsProviderSupportTooltip")}
+              tabIndex={0}
+            >
+              <HelpCircleIcon size={14} />
+            </span>
           </label>
           <Select
             value={draft.provider}

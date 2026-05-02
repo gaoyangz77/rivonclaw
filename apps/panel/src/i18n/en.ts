@@ -2383,6 +2383,7 @@ export default {
       addWmsAccount: "Add WMS Account",
       editWmsAccount: "Edit WMS Account",
       deleteWmsAccount: "Delete WMS Account",
+      wmsProviderSupportTooltip: "We currently support Yejoin as the only third-party WMS. To request another provider, please contact us via the email listed on our official website.",
       confirmDeleteWmsAccount: "Delete \"{{label}}\"? This account will be archived and no longer shown or used for sync.",
       refreshInventory: "Refresh inventory data",
       noWmsAccounts: "No WMS accounts connected yet.",

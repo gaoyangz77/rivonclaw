@@ -2371,6 +2371,7 @@ export default {
       addWmsAccount: "新增仓库管理系统账号",
       editWmsAccount: "编辑仓库管理系统账号",
       deleteWmsAccount: "删除仓库管理系统账号",
+      wmsProviderSupportTooltip: "目前第三方仓库只支持易境通。如果需要新增其他仓库服务商，请通过官网邮箱联系我们。",
       confirmDeleteWmsAccount: "确定要删除「{{label}}」吗？此账号会被归档，不再展示或用于同步。",
       refreshInventory: "刷新库存数据",
       noWmsAccounts: "尚未连接仓库管理系统账号。",
