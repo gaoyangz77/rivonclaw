@@ -1046,7 +1046,8 @@ tbody td {
   transition: opacity var(--transition-fast);
 }
 
-.has-tooltip:hover::after {
+.has-tooltip:hover::after,
+.has-tooltip:focus-visible::after {
   opacity: 1;
 }
 
@@ -7209,6 +7210,37 @@ html[lang="zh"] .acct-tool-chips {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--color-border-light);
+}
+
+.inventory-provider-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inventory-wms-help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: help;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.inventory-wms-help-icon:hover,
+.inventory-wms-help-icon:focus-visible {
+  color: var(--color-primary);
+  background: var(--brand-tint-12);
+  outline: none;
+}
+
+.inventory-wms-support-tooltip::after {
+  width: min(280px, calc(100vw - 48px));
+  white-space: normal;
+  text-align: left;
 }
 
 .wms-account-table {

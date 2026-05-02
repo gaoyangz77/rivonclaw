@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { Warehouse, WmsAccount } from "@rivonclaw/core/models";
-import { ChevronRightIcon, RefreshIcon } from "../../../components/icons.js";
+import { ChevronRightIcon, HelpCircleIcon, RefreshIcon } from "../../../components/icons.js";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
@@ -52,6 +52,14 @@ export const WmsAccountTable = observer(function WmsAccountTable({
           >
             <RefreshIcon className={inventory.wmsInventoryLoading ? "spin" : ""} />
           </button>
+          <span
+            className="inventory-wms-help-icon inventory-wms-support-tooltip has-tooltip"
+            data-tooltip={t("ecommerce.inventory.wmsProviderSupportTooltip")}
+            aria-label={t("ecommerce.inventory.wmsProviderSupportTooltip")}
+            tabIndex={0}
+          >
+            <HelpCircleIcon size={14} />
+          </span>
           <button className="btn btn-primary btn-sm" onClick={onAddAccount}>
             {t("ecommerce.inventory.addWmsAccount")}
           </button>
