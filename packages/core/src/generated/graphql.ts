@@ -948,9 +948,9 @@ export interface EcomShopUpdateInventoryInput {
   updates: Array<EcomUpdateInventoryInput>;
 }
 
-/** Per-SKU performance metrics for shop analytics */
+/** Order-derived per-SKU demand metrics for shop analytics */
 export interface EcomSkuPerformance {
-  /** Shop-local date for this SKU performance row (YYYY-MM-DD) */
+  /** Shop-local date for this SKU demand row (YYYY-MM-DD) */
   dateKey?: Maybe<Scalars['String']['output']>;
   /** Overall GMV for the SKU */
   gmv?: Maybe<EcomAnalyticsMoney>;
@@ -964,9 +964,9 @@ export interface EcomSkuPerformance {
   unitsSold?: Maybe<Scalars['Int']['output']>;
 }
 
-/** Flat SKU performance result. Serving reads return one row per shop-local date and SKU. */
+/** Flat order-derived SKU demand result. Serving reads return one row per shop-local date and SKU. */
 export interface EcomSkuPerformanceResult {
-  /** Per-day per-SKU performance rows */
+  /** Per-day per-SKU demand rows */
   items: Array<EcomSkuPerformance>;
   /** Latest date in shop local timezone where platform analytics data is ready (ISO 8601). Only populated for direct platform reads. */
   latestAvailableDate?: Maybe<Scalars['String']['output']>;
@@ -1147,16 +1147,12 @@ export interface InventoryAnalysisOfficialPlatformWarehouseStock {
   inTransitQuantity?: Maybe<Scalars['Int']['output']>;
   /** Shop platform warehouse ID used for inventory updates, copied from ShopWarehouse.platformWarehouseId. */
   platformWarehouseId?: Maybe<Scalars['String']['output']>;
-  /** Shop platform product ID for this seller SKU when available. */
-  productId?: Maybe<Scalars['String']['output']>;
   /** Authoritative platform warehouse quantity. */
   quantity: Scalars['Int']['output'];
   /** Shop alias/name. */
   shopAlias?: Maybe<Scalars['String']['output']>;
   /** Shop Mongo ID. */
   shopId: Scalars['ID']['output'];
-  /** Shop platform SKU ID for this seller SKU when available. */
-  skuId?: Maybe<Scalars['String']['output']>;
   /** Source system label, such as TIKTOK_FBT or TIKTOK_SHOP. */
   sourceSystem: Scalars['String']['output'];
   /** Warehouse display name when available. */
@@ -1171,46 +1167,62 @@ export interface InventoryAnalysisPayload {
   totalCount: Scalars['Int']['output'];
 }
 
-/** SKU performance facts for one seller SKU. */
-export interface InventoryAnalysisPerformanceFacts {
-  /** Raw daily performance facts: one row per shop/date/seller SKU. */
-  byShopDate: Array<InventoryAnalysisShopDatePerformance>;
-  /** End date exclusive in shop-local analytics date format (YYYY-MM-DD). */
-  endDateLt: Scalars['String']['output'];
-  /** Start date inclusive in shop-local analytics date format (YYYY-MM-DD). */
-  startDateGe: Scalars['String']['output'];
-}
-
 /** One seller SKU inventory analysis row. */
 export interface InventoryAnalysisRow {
   /** Current inventory facts grouped for agent-side analysis. */
   inventory: InventoryAnalysisInventoryFacts;
   /** Best available display name for this seller SKU. */
   name?: Maybe<Scalars['String']['output']>;
-  /** Historical SKU performance facts for the requested date range. */
-  performance: InventoryAnalysisPerformanceFacts;
   /** Exact seller SKU / canonical merchant SKU for this row. */
   sellerSku: Scalars['String']['output'];
+  /** Concrete shop SKUs/listings connected to this inventory row. Present even when there is no performance in the requested date range. */
+  shopSkus: Array<InventoryAnalysisShopSku>;
 }
 
-/** Shop-date SKU performance facts for one seller SKU. */
-export interface InventoryAnalysisShopDatePerformance {
-  /** Shop-local analytics date (YYYY-MM-DD). */
-  dateKey: Scalars['String']['output'];
-  /** GMV for this shop/date/SKU row. */
-  gmv?: Maybe<EcomAnalyticsMoney>;
-  /** Platform product ID when available. */
-  productId?: Maybe<Scalars['String']['output']>;
+/** Concrete shop product SKU/listing connected to one inventory analysis row. */
+export interface InventoryAnalysisShopSku {
+  /** Historical order-derived SKU demand facts for this concrete shop SKU. */
+  performance: InventoryAnalysisShopSkuPerformanceFacts;
+  /** Shop platform product ID. */
+  productId: Scalars['String']['output'];
+  /** Product lifecycle status on the shop platform. */
+  productStatus?: Maybe<Scalars['String']['output']>;
+  /** Product title on the shop platform. */
+  productTitle?: Maybe<Scalars['String']['output']>;
+  /** Exact seller SKU on the shop SKU/listing. */
+  sellerSku: Scalars['String']['output'];
   /** Shop alias/name. */
   shopAlias?: Maybe<Scalars['String']['output']>;
   /** Shop Mongo ID. */
   shopId: Scalars['ID']['output'];
-  /** Platform SKU ID when available. */
-  skuId?: Maybe<Scalars['String']['output']>;
+  /** Shop platform SKU ID. */
+  skuId: Scalars['String']['output'];
+  /** Shop SKU display label, usually sellerSku. */
+  skuName?: Maybe<Scalars['String']['output']>;
+  /** SKU lifecycle status on the shop platform. */
+  skuStatus?: Maybe<Scalars['String']['output']>;
+}
+
+/** Daily order-derived performance facts for one concrete shop SKU. */
+export interface InventoryAnalysisShopSkuDatePerformance {
+  /** Shop-local analytics date (YYYY-MM-DD). */
+  dateKey: Scalars['String']['output'];
+  /** GMV for this shop/date/SKU row. */
+  gmv?: Maybe<EcomAnalyticsMoney>;
   /** Orders for this shop/date/SKU row. */
   skuOrders?: Maybe<Scalars['Int']['output']>;
   /** Units sold for this shop/date/SKU row. */
   unitsSold?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Order-derived performance facts for one concrete shop SKU. */
+export interface InventoryAnalysisShopSkuPerformanceFacts {
+  /** Raw daily demand facts for this shop SKU. */
+  byDate: Array<InventoryAnalysisShopSkuDatePerformance>;
+  /** End date exclusive in shop-local analytics date format (YYYY-MM-DD). */
+  endDateLt: Scalars['String']['output'];
+  /** Start date inclusive in shop-local analytics date format (YYYY-MM-DD). */
+  startDateGe: Scalars['String']['output'];
 }
 
 /** Inventory quantity for a third-party WMS warehouse where WMS is the source of truth. */
@@ -1868,8 +1880,6 @@ export interface Query {
   browserProfiles: PaginatedBrowserProfiles;
   /** Check if a newer version is available (public, no auth required) */
   checkUpdate?: Maybe<UpdatePayload>;
-  /** Get preset skills for services. Returns a JSON object { key: markdownContentOrZipUrl, ... } or null if none configured. */
-  presetSkills?: Maybe<Scalars['String']['output']>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
@@ -1898,7 +1908,7 @@ export interface Query {
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
-  /** Get shop SKU performance analytics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
+  /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
@@ -1926,9 +1936,11 @@ export interface Query {
   platformAppSecrets: Array<PlatformAppSecretResult>;
   /** List active PlatformApps (for OAuth target selection) */
   platformApps: Array<PlatformApp>;
+  /** Get preset skills for services. Returns a JSON object { key: markdownContentOrZipUrl, ... } or null if none configured. */
+  presetSkills?: Maybe<Scalars['String']['output']>;
   /** Get pricing for all providers */
   pricing: Array<ProviderPricing>;
-  /** Read source-of-truth inventory and SKU performance facts for agent-side inventory and replenishment analysis. */
+  /** Read source-of-truth inventory and order-derived SKU demand facts for agent-side inventory and replenishment analysis. */
   readInventoryAnalysis: InventoryAnalysisPayload;
   /** Read external SKU to InventoryGood mappings. Use input.id for one row, or filters for a list. */
   readInventoryGoodMappings: Array<InventoryGoodMapping>;
@@ -2305,11 +2317,11 @@ export interface QuotaCircleStatus {
   remainingPercent: Scalars['Float']['output'];
 }
 
-/** Read source-of-truth inventory and SKU performance rows for inventory analysis. endDateLt is exclusive. */
+/** Read source-of-truth inventory and order-derived SKU demand rows for inventory analysis. endDateLt is exclusive. */
 export interface ReadInventoryAnalysisInput {
   /** End date exclusive in shop-local analytics date format (YYYY-MM-DD). */
   endDateLt: Scalars['String']['input'];
-  /** Exact seller SKUs to analyze. Omit or pass an empty list to include seller SKUs that currently have stock or have sales in the requested date range. */
+  /** Exact seller SKUs to analyze. Omit or pass an empty list to include active shop SKUs plus seller SKUs that currently have stock or have sales in the requested date range. */
   sellerSkus?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Shop Mongo IDs to include in the analysis. */
   shopIds: Array<Scalars['ID']['input']>;
