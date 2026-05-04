@@ -1,4 +1,4 @@
-From 619806c9e235cb1d42ee66cb3190ef689c632c33 Mon Sep 17 00:00:00 2001
+From 487d3a9fe2c9b1be6b804afceb2fc579b319ce26 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
 Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
@@ -23,19 +23,19 @@ Tests:
  1 file changed, 11 insertions(+), 11 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 91a52b8f25..f7aa2f8cb1 100644
+index a1d80b97b7..0b66b22f78 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -313,7 +313,7 @@ function buildMessagingSection(params: {
+@@ -403,7 +403,7 @@ function buildMessagingSection(params: {
      "- Cross-session messaging → use sessions_send(sessionKey, message)",
-     "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
-     `- Runtime-generated completion events may ask for a user update. Rewrite those in your normal assistant voice and send the update (do not forward raw internal metadata or default to ${SILENT_REPLY_TOKEN}).`,
+     subagentOrchestrationGuidance,
+     completionEventGuidance,
 -    "- Never use exec/curl for provider messaging; OpenClaw handles all routing internally.",
 +    "- Never use exec/curl for provider messaging; RivonClaw handles all routing internally.",
      params.availableTools.has("message")
        ? [
            "",
-@@ -448,10 +448,10 @@ export function buildAgentSystemPrompt(params: {
+@@ -566,10 +566,10 @@ export function buildAgentSystemPrompt(params: {
      nodes: "List/describe/notify/camera/screen on paired nodes",
      cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
      message: "Send messages and channel actions",
@@ -49,7 +49,7 @@ index 91a52b8f25..f7aa2f8cb1 100644
      sessions_list: "List other sessions (incl. sub-agents) with filters/last",
      sessions_history: "Fetch history for another session/sub-agent",
      sessions_send: "Send a message to another session/sub-agent",
-@@ -633,11 +633,11 @@ export function buildAgentSystemPrompt(params: {
+@@ -759,7 +759,7 @@ export function buildAgentSystemPrompt(params: {
  
    // For "none" mode, return just the basic identity line
    if (promptMode === "none") {
@@ -57,55 +57,58 @@ index 91a52b8f25..f7aa2f8cb1 100644
 +    return "You are a personal assistant running inside RivonClaw Desktop.";
    }
  
-   const lines = [
--    "You are a personal assistant running inside OpenClaw.",
-+    "You are a personal assistant running inside RivonClaw Desktop.",
-     "",
-     "## Tooling",
-     "Tool availability (filtered by policy):",
-@@ -652,7 +652,7 @@ export function buildAgentSystemPrompt(params: {
-           "- apply_patch: apply multi-file patches",
-           `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
-           `- ${processToolName}: manage background exec sessions`,
--          "- browser: control OpenClaw's dedicated browser",
-+          "- browser: control RivonClaw's dedicated browser",
-           "- canvas: present/eval/snapshot the Canvas",
-           "- nodes: list/describe/notify/camera/screen on paired nodes",
-           "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
-@@ -710,7 +710,7 @@ export function buildAgentSystemPrompt(params: {
-     }),
-     ...safetySection,
-     "## RivonClaw Desktop Runtime",
--    "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
-+    "RivonClaw Desktop manages the underlying OpenClaw gateway lifecycle for this session.",
-     "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
-     "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools instead of shell CLI commands.",
-     "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
-@@ -718,14 +718,14 @@ export function buildAgentSystemPrompt(params: {
-     ...skillsSection,
-     ...memorySection,
-     // Skip self-update for subagent/none modes
--    hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
-+    hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : "",
-     hasGateway && !isMinimal
-       ? [
-           "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
-           "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
-           "Use config.schema.lookup with a specific dot path to inspect only the relevant config subtree before making config changes or answering config-field questions; avoid guessing field names/types.",
-           "Actions: config.schema.lookup, config.get, config.apply (validate + write full config, then restart), config.patch (partial update, merges with existing), update.run (update deps or git, then restart).",
--          "After restart, OpenClaw pings the last active session automatically.",
-+          "After restart, RivonClaw pings the last active session automatically.",
-         ].join("\n")
-       : "",
-     hasGateway && !isMinimal ? "" : "",
-@@ -818,7 +818,7 @@ export function buildAgentSystemPrompt(params: {
-       userTimezone,
-     }),
-     "## Workspace Files (injected)",
--    "These user-editable files are loaded by OpenClaw and included below in Project Context.",
-+    "These user-editable files are loaded by RivonClaw and included below in Project Context.",
-     "",
-     ...buildAssistantOutputDirectivesSection(isMinimal),
-     ...buildWebchatCanvasSection({
+   const contextFiles = params.contextFiles ?? [];
+@@ -806,7 +806,7 @@ export function buildAgentSystemPrompt(params: {
+   });
+   const stablePrefix = cacheStablePromptPrefix(stablePrefixCacheKey, () => {
+     const lines = [
+-      "You are a personal assistant running inside OpenClaw.",
++      "You are a personal assistant running inside RivonClaw Desktop.",
+       "",
+       "## Tooling",
+       "Tool availability (filtered by policy):",
+@@ -821,7 +821,7 @@ export function buildAgentSystemPrompt(params: {
+             "- apply_patch: apply multi-file patches",
+             `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
+             `- ${processToolName}: manage background exec sessions`,
+-            "- browser: control OpenClaw's dedicated browser",
++            "- browser: control RivonClaw's dedicated browser",
+             "- canvas: present/eval/snapshot the Canvas",
+             "- nodes: list/describe/notify/camera/screen on paired nodes",
+             "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
+@@ -890,21 +890,21 @@ export function buildAgentSystemPrompt(params: {
+       }),
+       ...safetySection,
+       "## RivonClaw Desktop Runtime",
+-      "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
++      "RivonClaw Desktop manages the underlying OpenClaw gateway lifecycle for this session.",
+       "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
+       "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools for gateway status, config, and restart instead of shell CLI commands.",
+       "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
+       "",
+       ...skillsSection,
+       ...memorySection,
+-      hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
++      hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : "",
+       hasGateway && !isMinimal
+         ? [
+             "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
+             "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
+             "Use config.schema.lookup with a specific dot path to inspect only the relevant config subtree before making config changes or answering config-field questions; avoid guessing field names/types.",
+             "Actions: config.schema.lookup, config.get, config.patch (partial update, merges with existing), config.apply (validate + write full config), update.run (update deps or git, then restart). Config writes hot-reload when possible and use a safe restart only when required.",
+-            "After restart, OpenClaw pings the last active session automatically.",
++            "After restart, RivonClaw pings the last active session automatically.",
+           ].join("\n")
+         : "",
+       hasGateway && !isMinimal ? "" : "",
+@@ -996,7 +996,7 @@ export function buildAgentSystemPrompt(params: {
+         userTimezone,
+       }),
+       "## Workspace Files (injected)",
+-      "These user-editable files are loaded by OpenClaw and included below in Project Context.",
++      "These user-editable files are loaded by RivonClaw and included below in Project Context.",
+       "",
+       ...buildAssistantOutputDirectivesSection(isMinimal),
+     ];
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
