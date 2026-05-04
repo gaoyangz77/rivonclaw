@@ -1,4 +1,4 @@
-﻿From b54f4c60e98b69043e9fca2cc6a3dd0c9da210b1 Mon Sep 17 00:00:00 2001
+From b54f4c60e98b69043e9fca2cc6a3dd0c9da210b1 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:17:24 -0700
 Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
