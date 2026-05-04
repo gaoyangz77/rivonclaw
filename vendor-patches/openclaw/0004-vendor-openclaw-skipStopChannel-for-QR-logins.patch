@@ -1,7 +1,8 @@
-From 69f51b9e59f21717dc05d29f632bb4edb3b2b881 Mon Sep 17 00:00:00 2001
+From 8a0d93779957294dbbfeab2cff8d759f69051c35 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:17:51 -0700
-Subject: [PATCH] vendor(openclaw): skip stopChannel for new-account QR logins
+Subject: [PATCH 4/8] vendor(openclaw): skip stopChannel for new-account QR
+ logins
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -22,28 +23,24 @@ Removal:
 Tests:
 - apps/desktop/src/gateway/vendor-web-login-no-stop.sentinel.test.ts
 ---
- src/gateway/server-methods/web.ts | 8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ src/gateway/server-methods/web.ts | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/src/gateway/server-methods/web.ts b/src/gateway/server-methods/web.ts
-index 26f6f44ea8..561d1c8dab 100644
+index 8f8df9582d..a9947f0b79 100644
 --- a/src/gateway/server-methods/web.ts
 +++ b/src/gateway/server-methods/web.ts
-@@ -58,7 +58,13 @@ export const webHandlers: GatewayRequestHandlers = {
-         respondProviderUnavailable(respond);
-         return;
-       }
+@@ -87,7 +87,9 @@ export const webHandlers: GatewayRequestHandlers = {
+         channelId: provider.id,
+         accountId,
+       });
 -      await context.stopChannel(provider.id, accountId);
-+      // Only stop the channel when re-logging an existing account (accountId
-+      // provided).  For new-account logins (no accountId) the existing running
-+      // accounts must stay connected — stopping them here kills live bots the
-+      // moment the QR code is displayed.
 +      if (accountId) {
 +        await context.stopChannel(provider.id, accountId);
 +      }
-       if (!provider.gateway?.loginWithQrStart) {
-         respondProviderUnsupported(respond, provider.id);
-         return;
+       const result = await provider.gateway.loginWithQrStart({
+         force: Boolean((params as { force?: boolean }).force),
+         timeoutMs:
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

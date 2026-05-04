@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "@rivonclaw/core";
 import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, getOllamaOpenAiBaseUrl } from "@rivonclaw/core";
@@ -18,8 +17,7 @@ export interface GatewayConfigDeps {
   extensionsDir: string;
   sttCliPath: string;
   filePermissionsPluginPath?: string;
-  /** Absolute path to the vendored OpenClaw directory (e.g. vendor/openclaw).
-   *  Used to resolve the Control UI assets path for gateway.controlUi.root. */
+  /** Absolute path to the vendored OpenClaw directory (e.g. vendor/openclaw). */
   vendorDir?: string;
   /** Returns plugin entries for channels with at least one account (from ChannelManager). */
   channelPluginEntries: () => Record<string, { enabled: boolean }>;
@@ -32,7 +30,7 @@ export interface GatewayConfigDeps {
  * Returns closures that can be called without passing deps each time.
  */
 export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
-  const { storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir } = deps;
+  const { storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath, filePermissionsPluginPath } = deps;
 
   function isGeminiOAuthActive(): boolean {
     return storage.providerKeys.getAll()
@@ -154,17 +152,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       ? !!(await secretStore.get(`embedding-${curEmbeddingProvider}-apikey`))
       : false;
 
-    // Resolve Control UI assets from vendor dist. When the index.html exists,
-    // pass the directory as controlUiRoot so the gateway skips its expensive
-    // auto-resolution + potential auto-build check during startup.
-    let controlUiRoot: string | undefined;
-    if (vendorDir) {
-      const controlUiDir = join(vendorDir, "dist", "control-ui");
-      if (existsSync(join(controlUiDir, "index.html"))) {
-        controlUiRoot = controlUiDir;
-      }
-    }
-
     return {
       configPath,
       gatewayPort,
@@ -172,7 +159,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       commandsRestart: true,
       enableFilePermissions: true,
       ownerAllowFrom: buildOwnerAllowFrom(storage),
-      controlUiRoot,
       extensionsDir,
       plugins: {
         allow: [
@@ -189,6 +175,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           // plugins without enabledByDefault in their manifest are disabled.
           // Vendor moved groq from core to plugin in v2026.3.28 (3dcc802fe5).
           ...(curSttEnabled && curSttProvider === "groq" ? { groq: { enabled: true } } : {}),
+          "rivonclaw-event-bridge": {
+            enabled: true,
+            hooks: { allowConversationAccess: true },
+          },
           // Channel plugin entries from ChannelManager -- each channel with at
           // least one account gets enabled so the vendor's two-phase plugin
           // loader includes it. ChannelManager is the single owner.

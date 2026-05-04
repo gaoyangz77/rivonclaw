@@ -142,6 +142,11 @@ const STRIP_EXTS = [".map", ".md", ".mdx", ".c", ".h", ".cc", ".cpp", ".gyp", ".
 // TypeScript declarations (.d.ts, .d.mts, .d.cts) — ~33K files, ~61MB after prod install
 const STRIP_DTS_RE = /\.d\.[mc]?ts$/;
 
+function isPluginSkillMarkdown(filePath) {
+  const rel = path.relative(vendorDir, filePath).replace(/\\/g, "/");
+  return /^dist-runtime\/extensions\/[^/]+\/skills\/[^/]+\/SKILL\.md$/u.test(rel);
+}
+
 /** Return total size of a directory in bytes. */
 function dirSize(dir) {
   let total = 0;
@@ -268,6 +273,9 @@ function stripDir(dir, depth) {
       }
       for (const ext of STRIP_EXTS) {
         if (entry.name.endsWith(ext)) {
+          if (isPluginSkillMarkdown(full)) {
+            break;
+          }
           strippedBytes += fs.statSync(full).size;
           fs.unlinkSync(full);
           strippedFiles++;

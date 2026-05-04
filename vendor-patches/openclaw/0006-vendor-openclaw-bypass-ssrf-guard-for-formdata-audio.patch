@@ -1,7 +1,7 @@
-From 813052f748acc3da35915c3a009f24ff8db44f4b Mon Sep 17 00:00:00 2001
+From 22a2c834c9fa247a7a29e8222247efbd58e70cdc Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 12 Apr 2026 03:59:46 -0700
-Subject: [PATCH] vendor(openclaw): bypass SSRF-guarded fetch for FormData
+Subject: [PATCH 6/8] vendor(openclaw): bypass SSRF-guarded fetch for FormData
  audio transcription
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -33,13 +33,13 @@ Tests:
  1 file changed, 32 insertions(+), 28 deletions(-)
 
 diff --git a/src/media-understanding/openai-compatible-audio.ts b/src/media-understanding/openai-compatible-audio.ts
-index e967faf4f9..3e893f9373 100644
+index 6ae7cf8a37..09f1b5ce2c 100644
 --- a/src/media-understanding/openai-compatible-audio.ts
 +++ b/src/media-understanding/openai-compatible-audio.ts
 @@ -1,7 +1,6 @@
- import path from "node:path";
  import {
    assertOkOrThrowHttpError,
+   buildAudioTranscriptionFormData,
 -  postTranscriptionRequest,
    resolveProviderHttpRequestConfig,
    requireTranscriptionText,
@@ -79,9 +79,9 @@ index e967faf4f9..3e893f9373 100644
    const url = `${baseUrl}/audio/transcriptions`;
  
    const model = resolveModel(params.model, params.defaultModel);
-@@ -54,18 +51,25 @@ export async function transcribeOpenAiCompatibleAudio(
-     form.append("prompt", params.prompt.trim());
-   }
+@@ -50,18 +47,25 @@ export async function transcribeOpenAiCompatibleAudio(
+     },
+   });
  
 -  const { response: res, release } = await postTranscriptionRequest({
 -    url,
@@ -116,7 +116,7 @@ index e967faf4f9..3e893f9373 100644
      await assertOkOrThrowHttpError(res, "Audio transcription failed");
  
      const payload = (await res.json()) as { text?: string };
-@@ -75,6 +79,6 @@ export async function transcribeOpenAiCompatibleAudio(
+@@ -71,6 +75,6 @@ export async function transcribeOpenAiCompatibleAudio(
      );
      return { text, model };
    } finally {
@@ -125,5 +125,5 @@ index e967faf4f9..3e893f9373 100644
    }
  }
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

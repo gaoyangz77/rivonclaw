@@ -9,6 +9,8 @@ export interface GatewayLaunchOptions {
   configPath?: string;
   /** Path to the OpenClaw state directory */
   stateDir?: string;
+  /** Gateway HTTP/WebSocket port to pass as a runtime override. */
+  gatewayPort?: number;
   /** Additional environment variables to pass to the gateway */
   env?: Record<string, string>;
   /** Maximum restart attempts before giving up (0 = unlimited). Default: 0 */

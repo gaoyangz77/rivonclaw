@@ -1,7 +1,7 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { homedir, platform } from "node:os";
-import { join } from "node:path";
+import { posix, win32 } from "node:path";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import type { Region } from "./region-detector.js";
@@ -74,9 +74,9 @@ async function configurePipMirror(): Promise<void> {
   const isWin = platform() === "win32";
 
   const pipDir = isWin
-    ? join(process.env.APPDATA ?? join(home, "AppData", "Roaming"), "pip")
-    : join(home, ".pip");
-  const pipFile = isWin ? join(pipDir, "pip.ini") : join(pipDir, "pip.conf");
+    ? win32.join(process.env.APPDATA ?? win32.join(home, "AppData", "Roaming"), "pip")
+    : posix.join(home, ".pip");
+  const pipFile = isWin ? win32.join(pipDir, "pip.ini") : posix.join(pipDir, "pip.conf");
 
   if (existsSync(pipFile)) {
     log.info(`pip config already exists at ${pipFile}, skipping`);

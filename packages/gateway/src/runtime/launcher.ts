@@ -193,6 +193,9 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     if (this.options.stateDir) {
       env["OPENCLAW_STATE_DIR"] = this.options.stateDir;
     }
+    if (this.options.gatewayPort !== undefined) {
+      env["OPENCLAW_GATEWAY_PORT"] = String(this.options.gatewayPort);
+    }
 
     // !! CRITICAL — DO NOT REMOVE OR MODIFY WITHOUT EXPLICIT OWNER APPROVAL !!
     //
@@ -297,7 +300,7 @@ Module._load=function(r,p,m){if(!skipped&&/plugin-sdk[/\\\\]index\\.js$/.test(r)
 process.stderr.write("[startup-timer] +0ms preload executing\\n");
 const cc=process.env.NODE_COMPILE_CACHE;if(cc)process.stderr.write("[startup-timer] compile-cache: "+cc+"\\n");else process.stderr.write("[startup-timer] compile cache: DISABLED\\n");
 setImmediate(()=>process.stderr.write("[startup-timer] +"+(performance.now()-t0|0)+"ms event loop started\\n"));
-const ow=process.stdout.write;process.stdout.write=function(c,...a){if(String(c).includes("listening on")){process.stderr.write("[startup-timer] +"+(performance.now()-t0|0)+"ms gateway listening\\n");try{if(typeof Module.flushCompileCache==="function"){Module.flushCompileCache();if(V)process.stderr.write("[startup-timer] compile cache flushed\\n")}}catch{}}return ow.call(this,c,...a)};
+const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=String(c);if(s.includes("listening on")||s.includes("http server listening")){process.stderr.write("[startup-timer] +"+(performance.now()-t0|0)+"ms gateway listening\\n");try{if(typeof Module.flushCompileCache==="function"){Module.flushCompileCache();if(V)process.stderr.write("[startup-timer] compile cache flushed\\n")}}catch{}}return ow.call(this,c,...a)};
 `,
           );
         }
@@ -316,7 +319,11 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){if(String(c)
     const spawnTs = performance.now();
     let child: ChildProcess;
     try {
-      child = spawn(this.options.nodeBin, [this.options.entryPath, "gateway"], {
+      const args = [this.options.entryPath, "gateway"];
+      if (this.options.gatewayPort !== undefined) {
+        args.push("--port", String(this.options.gatewayPort));
+      }
+      child = spawn(this.options.nodeBin, args, {
         env,
         cwd: this.options.stateDir || undefined,
         stdio: ["ignore", "pipe", "pipe"],
@@ -362,7 +369,10 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){if(String(c)
       const lines = data.toString().trim().split("\n");
       for (const line of lines) {
         log.info(`[gateway stdout] ${line}`);
-        if (!readyEmitted && line.includes("listening on")) {
+        if (
+          !readyEmitted &&
+          (line.includes("listening on") || line.includes("http server listening"))
+        ) {
           readyEmitted = true;
           const elapsed = ((performance.now() - spawnTs) / 1000).toFixed(1);
           log.info(`Gateway ready in ${elapsed}s (spawn → listening)`);

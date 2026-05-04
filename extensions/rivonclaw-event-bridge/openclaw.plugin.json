@@ -2,6 +2,9 @@
   "id": "rivonclaw-event-bridge",
   "name": "RivonClaw Event Bridge",
   "description": "Mirrors agent events from all channels to the Chat Page, bypassing the webchat-only gate",
+  "activation": {
+    "onStartup": true
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

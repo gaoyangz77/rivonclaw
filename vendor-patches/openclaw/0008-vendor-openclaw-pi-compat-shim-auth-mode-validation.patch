@@ -1,8 +1,8 @@
-From bd219b6c61b10d5f3a7293b2d40988f132f97769 Mon Sep 17 00:00:00 2001
+From cae6019fba17d4405c266252abfa436b0698abcb Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Mon, 13 Apr 2026 18:23:52 -0700
-Subject: [PATCH] vendor(openclaw): narrow monkey-patch Pi validateConfig for
- auth-mode providers
+Subject: [PATCH 8/8] vendor(openclaw): narrow monkey-patch Pi validateConfig
+ for auth-mode providers
 
 Why:
 - Pi SDK ModelRegistry.validateConfig() requires apiKey for any provider
@@ -25,10 +25,10 @@ Tests:
  1 file changed, 42 insertions(+)
 
 diff --git a/src/agents/pi-model-discovery.ts b/src/agents/pi-model-discovery.ts
-index a8b9453789..836275bfbc 100644
+index 1744305b11..485945e136 100644
 --- a/src/agents/pi-model-discovery.ts
 +++ b/src/agents/pi-model-discovery.ts
-@@ -23,6 +23,48 @@ import { resolvePiCredentialMapFromStore, type PiCredentialMap } from "./pi-auth
+@@ -23,6 +23,48 @@ import { normalizeProviderId } from "./provider-id.js";
  const PiAuthStorageClass = PiCodingAgent.AuthStorage;
  const PiModelRegistryClass = PiCodingAgent.ModelRegistry;
  
@@ -78,5 +78,5 @@ index a8b9453789..836275bfbc 100644
  
  type ProviderRuntimeModelLike = Model<Api> & {
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

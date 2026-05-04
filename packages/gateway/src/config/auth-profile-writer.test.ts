@@ -473,14 +473,20 @@ describe("vendor contract: auth profile format", () => {
     expect(vendorOauthSrc).toContain("expires:");
   });
 
-  it("google-gemini-cli models exist in vendor's model catalog", () => {
-    const modelsSrc = readFileSync(
-      join(VENDOR_ROOT, "node_modules/@mariozechner/pi-ai/dist/models.generated.js"),
+  it("vendor's google plugin registers google-gemini-cli provider runtime", () => {
+    const manifestSrc = readFileSync(
+      join(VENDOR_ROOT, "extensions/google/openclaw.plugin.json"),
       "utf-8",
     );
-    // Verify google-gemini-cli models are registered with correct API type
-    expect(modelsSrc).toContain('provider: "google-gemini-cli"');
-    expect(modelsSrc).toContain('api: "google-gemini-cli"');
+    const providerSrc = readFileSync(
+      join(VENDOR_ROOT, "extensions/google/gemini-cli-provider.ts"),
+      "utf-8",
+    );
+
+    expect(manifestSrc).toContain('"google-gemini-cli"');
+    expect(providerSrc).toContain('const PROVIDER_ID = "google-gemini-cli"');
+    expect(providerSrc).toContain('const DEFAULT_MODEL = "google/gemini-3.1-pro-preview"');
+    expect(providerSrc).toContain("formatGoogleOauthApiKey");
   });
 });
 

@@ -4,10 +4,10 @@ import { fetchChannelStatus, type ChannelsStatusSnapshot } from "../../api/index
 import { runtimeStatusStore } from "../../store/runtime-status-store.js";
 
 /**
- * Two-phase channel status loading:
- * Phase 1 — fetch with probe=false for instant results (runtime state only).
- * Phase 2 — fire a background probe=true request to update connectivity status.
- * If the background probe fails, the non-probe data is silently kept.
+ * Regular polling uses probe=false so slow channel health checks cannot block
+ * the page. Explicit loads may still fire a background probe=true request to
+ * refresh connectivity details; if that probe fails, the non-probe data is
+ * silently kept.
  *
  * Polling is gated on `sidecarState === "ready"` — during gateway startup
  * (especially on Windows), the gateway event loop is blocked by sidecar init
@@ -35,7 +35,7 @@ export function useChannelsData() {
       });
   }
 
-  async function loadChannelStatus(showLoading = true) {
+  async function loadChannelStatus(showLoading = true, opts?: { probe?: boolean }) {
     if (showLoading) setLoading(true);
     if (showLoading) setError(null);
 
@@ -45,7 +45,9 @@ export function useChannelsData() {
       setError(null);
       setSnapshot(data);
       // Phase 2: background probe for connectivity status
-      backgroundProbe();
+      if (opts?.probe !== false) {
+        backgroundProbe();
+      }
     } catch (err) {
       // Only show error on initial load; background refreshes keep existing data
       if (showLoading || !snapshot) {
@@ -67,8 +69,6 @@ export function useChannelsData() {
         const data = await fetchChannelStatus(false);
         setError(null);
         setSnapshot(data);
-        // Once gateway is back, fire background probe for full status
-        backgroundProbe();
       } catch {
         if (attempt < delays.length - 1) {
           retryUntilReady(attempt + 1);
@@ -92,8 +92,6 @@ export function useChannelsData() {
         setSnapshot(data);
         setLoading(false);
         setRefreshing(false);
-        // Phase 2: background probe for connectivity status
-        backgroundProbe(() => cancelled);
         // Healthy — next poll in 30s
         timer = setTimeout(poll, 30000);
       } catch (err) {

@@ -145,6 +145,27 @@ describe("GatewayLauncher", () => {
       );
     });
 
+    it("passes the runtime gateway port override to OpenClaw", async () => {
+      const { spawn } = await import("node:child_process");
+
+      const launcher = createLauncher({
+        entryPath: "/path/to/openclaw.mjs",
+        gatewayPort: 61471,
+      });
+
+      await launcher.start();
+
+      expect(spawn).toHaveBeenCalledWith(
+        "node",
+        ["/path/to/openclaw.mjs", "gateway", "--port", "61471"],
+        expect.objectContaining({
+          env: expect.objectContaining({
+            OPENCLAW_GATEWAY_PORT: "61471",
+          }),
+        }),
+      );
+    });
+
 
 
     it("is a no-op when already running", async () => {

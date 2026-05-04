@@ -13,6 +13,9 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -32,6 +35,699 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+
+// vendor/openclaw/src/shared/string-coerce.ts
+function normalizeNullableString(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+function normalizeOptionalString(value) {
+  return normalizeNullableString(value) ?? void 0;
+}
+function normalizeStringifiedOptionalString(value) {
+  if (typeof value === "string") {
+    return normalizeOptionalString(value);
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return normalizeOptionalString(String(value));
+  }
+  return void 0;
+}
+function normalizeOptionalLowercaseString(value) {
+  return normalizeOptionalString(value)?.toLowerCase();
+}
+function normalizeLowercaseStringOrEmpty(value) {
+  return normalizeOptionalLowercaseString(value) ?? "";
+}
+var init_string_coerce = __esm({
+  "vendor/openclaw/src/shared/string-coerce.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/infra/home-dir.ts
+import os from "node:os";
+import path from "node:path";
+function normalize(value) {
+  const trimmed = normalizeOptionalString(value);
+  if (!trimmed) {
+    return void 0;
+  }
+  if (trimmed === "undefined" || trimmed === "null") {
+    return void 0;
+  }
+  return trimmed;
+}
+function resolveEffectiveHomeDir(env = process.env, homedir = os.homedir) {
+  const raw = resolveRawHomeDir(env, homedir);
+  return raw ? path.resolve(raw) : void 0;
+}
+function resolveRawHomeDir(env, homedir) {
+  const explicitHome = normalize(env.OPENCLAW_HOME);
+  if (explicitHome) {
+    if (explicitHome === "~" || explicitHome.startsWith("~/") || explicitHome.startsWith("~\\")) {
+      const fallbackHome = resolveRawOsHomeDir(env, homedir);
+      if (fallbackHome) {
+        return explicitHome.replace(/^~(?=$|[\\/])/, fallbackHome);
+      }
+      return void 0;
+    }
+    return explicitHome;
+  }
+  return resolveRawOsHomeDir(env, homedir);
+}
+function resolveRawOsHomeDir(env, homedir) {
+  const envHome = normalize(env.HOME);
+  if (envHome) {
+    return envHome;
+  }
+  const userProfile = normalize(env.USERPROFILE);
+  if (userProfile) {
+    return userProfile;
+  }
+  return normalizeSafe(homedir);
+}
+function normalizeSafe(homedir) {
+  try {
+    return normalize(homedir());
+  } catch {
+    return void 0;
+  }
+}
+function resolveRequiredHomeDir(env = process.env, homedir = os.homedir) {
+  return resolveEffectiveHomeDir(env, homedir) ?? path.resolve(process.cwd());
+}
+function expandHomePrefix(input, opts) {
+  if (!input.startsWith("~")) {
+    return input;
+  }
+  const home = normalize(opts?.home) ?? resolveEffectiveHomeDir(opts?.env ?? process.env, opts?.homedir ?? os.homedir);
+  if (!home) {
+    return input;
+  }
+  return input.replace(/^~(?=$|[\\/])/, home);
+}
+function resolveHomeRelativePath(input, opts) {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("~")) {
+    const expanded = expandHomePrefix(trimmed, {
+      home: resolveRequiredHomeDir(opts?.env ?? process.env, opts?.homedir ?? os.homedir),
+      env: opts?.env,
+      homedir: opts?.homedir
+    });
+    return path.resolve(expanded);
+  }
+  return path.resolve(trimmed);
+}
+var init_home_dir = __esm({
+  "vendor/openclaw/src/infra/home-dir.ts"() {
+    "use strict";
+    init_string_coerce();
+  }
+});
+
+// vendor/openclaw/src/infra/plain-object.ts
+var init_plain_object = __esm({
+  "vendor/openclaw/src/infra/plain-object.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/shared/regexp.ts
+var init_regexp = __esm({
+  "vendor/openclaw/src/shared/regexp.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/utils.ts
+import fs from "node:fs";
+import os2 from "node:os";
+import path2 from "node:path";
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function resolveUserPath(input, env = process.env, homedir = os2.homedir) {
+  if (!input) {
+    return "";
+  }
+  return resolveHomeRelativePath(input, { env, homedir });
+}
+function resolveConfigDir(env = process.env, homedir = os2.homedir) {
+  const override = env.OPENCLAW_STATE_DIR?.trim();
+  if (override) {
+    return resolveUserPath(override, env, homedir);
+  }
+  const configPath = env.OPENCLAW_CONFIG_PATH?.trim();
+  if (configPath) {
+    return path2.dirname(resolveUserPath(configPath, env, homedir));
+  }
+  const newDir = path2.join(resolveRequiredHomeDir(env, homedir), ".openclaw");
+  try {
+    const hasNew = fs.existsSync(newDir);
+    if (hasNew) {
+      return newDir;
+    }
+  } catch {
+  }
+  return newDir;
+}
+var CONFIG_DIR;
+var init_utils = __esm({
+  "vendor/openclaw/src/utils.ts"() {
+    "use strict";
+    init_home_dir();
+    init_plain_object();
+    init_regexp();
+    CONFIG_DIR = resolveConfigDir();
+  }
+});
+
+// vendor/openclaw/src/shared/string-normalization.ts
+function normalizeStringEntries(list) {
+  return (list ?? []).map((entry) => normalizeOptionalString(String(entry)) ?? "").filter(Boolean);
+}
+function normalizeTrimmedStringList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((entry) => {
+    const normalized = normalizeOptionalString(entry);
+    return normalized ? [normalized] : [];
+  });
+}
+function normalizeOptionalTrimmedStringList(value) {
+  const normalized = normalizeTrimmedStringList(value);
+  return normalized.length > 0 ? normalized : void 0;
+}
+var init_string_normalization = __esm({
+  "vendor/openclaw/src/shared/string-normalization.ts"() {
+    "use strict";
+    init_string_coerce();
+  }
+});
+
+// vendor/openclaw/src/config/types.models.ts
+var MODEL_APIS;
+var init_types_models = __esm({
+  "vendor/openclaw/src/config/types.models.ts"() {
+    "use strict";
+    MODEL_APIS = [
+      "openai-completions",
+      "openai-responses",
+      "openai-codex-responses",
+      "anthropic-messages",
+      "google-generative-ai",
+      "github-copilot",
+      "bedrock-converse-stream",
+      "ollama",
+      "azure-openai-responses"
+    ];
+  }
+});
+
+// vendor/openclaw/src/terminal/ansi.ts
+function stripAnsi(input) {
+  return input.replace(OSC8_REGEX, "").replace(ANSI_CSI_REGEX, "");
+}
+function sanitizeForLog(v) {
+  const c0Start = String.fromCharCode(0);
+  const c0End = String.fromCharCode(31);
+  const del = String.fromCharCode(127);
+  const c1Start = String.fromCharCode(128);
+  const c1End = String.fromCharCode(159);
+  const controlCharsRegex = new RegExp(`[${c0Start}-${c0End}${del}${c1Start}-${c1End}]`, "g");
+  return stripAnsi(v).replace(controlCharsRegex, "");
+}
+var ANSI_CSI_PATTERN, OSC8_PATTERN, ANSI_CSI_REGEX, OSC8_REGEX, graphemeSegmenter;
+var init_ansi = __esm({
+  "vendor/openclaw/src/terminal/ansi.ts"() {
+    "use strict";
+    ANSI_CSI_PATTERN = "\\x1b\\[[\\x20-\\x3f]*[\\x40-\\x7e]";
+    OSC8_PATTERN = "\\x1b\\]8;;.*?(?:\\x1b\\\\|\\x07)|\\x1b\\]8;;(?:\\x1b\\\\|\\x07)";
+    ANSI_CSI_REGEX = new RegExp(ANSI_CSI_PATTERN, "g");
+    OSC8_REGEX = new RegExp(OSC8_PATTERN, "g");
+    graphemeSegmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(void 0, { granularity: "grapheme" }) : null;
+  }
+});
+
+// vendor/openclaw/src/plugins/plugin-cache-primitives.ts
+function createPluginCacheKey(parts) {
+  return JSON.stringify(parts);
+}
+function normalizeMaxEntries(value, fallback) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return fallback;
+  }
+  return Math.max(1, Math.floor(value));
+}
+var PluginLruCache;
+var init_plugin_cache_primitives = __esm({
+  "vendor/openclaw/src/plugins/plugin-cache-primitives.ts"() {
+    "use strict";
+    PluginLruCache = class {
+      #defaultMaxEntries;
+      #maxEntries;
+      #entries = /* @__PURE__ */ new Map();
+      constructor(defaultMaxEntries) {
+        this.#defaultMaxEntries = normalizeMaxEntries(defaultMaxEntries, 1);
+        this.#maxEntries = this.#defaultMaxEntries;
+      }
+      get maxEntries() {
+        return this.#maxEntries;
+      }
+      get size() {
+        return this.#entries.size;
+      }
+      setMaxEntriesForTest(value) {
+        this.#maxEntries = typeof value === "number" ? normalizeMaxEntries(value, this.#defaultMaxEntries) : this.#defaultMaxEntries;
+        this.#evictOldestEntries();
+      }
+      clear() {
+        this.#entries.clear();
+      }
+      get(cacheKey) {
+        const cached = this.getResult(cacheKey);
+        return cached.hit ? cached.value : void 0;
+      }
+      getResult(cacheKey) {
+        if (!this.#entries.has(cacheKey)) {
+          return { hit: false };
+        }
+        const cached = this.#entries.get(cacheKey);
+        this.#entries.delete(cacheKey);
+        this.#entries.set(cacheKey, cached);
+        return { hit: true, value: cached };
+      }
+      set(cacheKey, value) {
+        if (this.#entries.has(cacheKey)) {
+          this.#entries.delete(cacheKey);
+        }
+        this.#entries.set(cacheKey, value);
+        this.#evictOldestEntries();
+      }
+      #evictOldestEntries() {
+        while (this.#entries.size > this.#maxEntries) {
+          const oldestEntry = this.#entries.keys().next();
+          if (oldestEntry.done) {
+            break;
+          }
+          this.#entries.delete(oldestEntry.value);
+        }
+      }
+    };
+  }
+});
+
+// vendor/openclaw/src/infra/openclaw-root.fs.runtime.ts
+import { default as default2 } from "node:fs";
+var init_openclaw_root_fs_runtime = __esm({
+  "vendor/openclaw/src/infra/openclaw-root.fs.runtime.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/infra/openclaw-root.ts
+import path5 from "node:path";
+import { fileURLToPath } from "node:url";
+function parsePackageName(raw) {
+  const parsed = JSON.parse(raw);
+  return typeof parsed.name === "string" ? parsed.name : null;
+}
+function readPackageNameSync(dir) {
+  const packageJsonPath = path5.join(path5.resolve(dir), "package.json");
+  if (packageNameCache.has(packageJsonPath)) {
+    return packageNameCache.get(packageJsonPath) ?? null;
+  }
+  try {
+    const name = parsePackageName(default2.readFileSync(packageJsonPath, "utf-8"));
+    packageNameCache.set(packageJsonPath, name);
+    return name;
+  } catch {
+    packageNameCache.set(packageJsonPath, null);
+    return null;
+  }
+}
+function findPackageRootSync(startDir, maxDepth = 12) {
+  for (const current of iterAncestorDirs(startDir, maxDepth)) {
+    const name = readPackageNameSync(current);
+    if (name && CORE_PACKAGE_NAMES.has(name)) {
+      return current;
+    }
+  }
+  return null;
+}
+function* iterAncestorDirs(startDir, maxDepth) {
+  let current = path5.resolve(startDir);
+  for (let i = 0; i < maxDepth; i += 1) {
+    yield current;
+    const parent = path5.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+}
+function candidateDirsFromArgv1(argv1) {
+  const cacheKey = path5.resolve(argv1);
+  const cached = argv1CandidateCache.get(cacheKey);
+  if (cached) {
+    return [...cached];
+  }
+  const normalized = path5.resolve(argv1);
+  const candidates = [path5.dirname(normalized)];
+  try {
+    const resolved = default2.realpathSync(normalized);
+    if (resolved !== normalized) {
+      candidates.push(path5.dirname(resolved));
+    }
+  } catch {
+  }
+  const parts = normalized.split(path5.sep);
+  const binIndex = parts.lastIndexOf(".bin");
+  if (binIndex > 0 && parts[binIndex - 1] === "node_modules") {
+    const binName = path5.basename(normalized);
+    const nodeModulesDir = parts.slice(0, binIndex).join(path5.sep);
+    candidates.push(path5.join(nodeModulesDir, binName));
+  }
+  const deduped = dedupeCandidates(candidates);
+  argv1CandidateCache.set(cacheKey, deduped);
+  return [...deduped];
+}
+function resolveOpenClawPackageRootSync(opts) {
+  const candidates = buildCandidates(opts);
+  const cacheKey = createPackageRootCacheKey(candidates);
+  if (packageRootCache.has(cacheKey)) {
+    return packageRootCache.get(cacheKey) ?? null;
+  }
+  for (const candidate of candidates) {
+    const found = findPackageRootSync(candidate);
+    if (found) {
+      packageRootCache.set(cacheKey, found);
+      return found;
+    }
+  }
+  packageRootCache.set(cacheKey, null);
+  return null;
+}
+function buildCandidates(opts) {
+  const candidates = [];
+  if (opts.moduleUrl) {
+    try {
+      candidates.push(path5.dirname(fileURLToPath(opts.moduleUrl)));
+    } catch {
+    }
+  }
+  if (opts.argv1) {
+    candidates.push(...candidateDirsFromArgv1(opts.argv1));
+  }
+  if (opts.cwd) {
+    candidates.push(opts.cwd);
+  }
+  return dedupeCandidates(candidates);
+}
+function dedupeCandidates(candidates) {
+  const seen = /* @__PURE__ */ new Set();
+  const deduped = [];
+  for (const candidate of candidates) {
+    const resolved = path5.resolve(candidate);
+    if (seen.has(resolved)) {
+      continue;
+    }
+    seen.add(resolved);
+    deduped.push(resolved);
+  }
+  return deduped;
+}
+function createPackageRootCacheKey(candidates) {
+  return candidates.join("\0");
+}
+var CORE_PACKAGE_NAMES, packageNameCache, packageRootCache, argv1CandidateCache;
+var init_openclaw_root = __esm({
+  "vendor/openclaw/src/infra/openclaw-root.ts"() {
+    "use strict";
+    init_openclaw_root_fs_runtime();
+    CORE_PACKAGE_NAMES = /* @__PURE__ */ new Set(["openclaw"]);
+    packageNameCache = /* @__PURE__ */ new Map();
+    packageRootCache = /* @__PURE__ */ new Map();
+    argv1CandidateCache = /* @__PURE__ */ new Map();
+  }
+});
+
+// vendor/openclaw/src/plugins/bundled-dir.ts
+import fs2 from "node:fs";
+import os3 from "node:os";
+import path6 from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+function areBundledPluginsDisabled(env = process.env) {
+  const raw = normalizeOptionalLowercaseString(env.OPENCLAW_DISABLE_BUNDLED_PLUGINS);
+  return raw === "1" || raw === "true";
+}
+function resolveDisabledBundledPluginsDir() {
+  fs2.mkdirSync(DISABLED_BUNDLED_PLUGINS_DIR, { recursive: true });
+  return DISABLED_BUNDLED_PLUGINS_DIR;
+}
+function isSourceCheckoutRoot(packageRoot) {
+  return fs2.existsSync(path6.join(packageRoot, ".git")) && fs2.existsSync(path6.join(packageRoot, "pnpm-workspace.yaml")) && fs2.existsSync(path6.join(packageRoot, "src")) && fs2.existsSync(path6.join(packageRoot, "extensions"));
+}
+function isTruthyEnvValue(value) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+}
+function shouldTrustTestBundledPluginsDirOverride(env) {
+  const isVitestProcess = Boolean(env.VITEST) || Boolean(process.env.VITEST);
+  return isVitestProcess && (isTruthyEnvValue(env[TEST_TRUST_BUNDLED_PLUGINS_DIR_ENV]) || isTruthyEnvValue(process.env[TEST_TRUST_BUNDLED_PLUGINS_DIR_ENV]));
+}
+function hasUsableBundledPluginTree(pluginsDir) {
+  if (!fs2.existsSync(pluginsDir)) {
+    return false;
+  }
+  try {
+    return fs2.readdirSync(pluginsDir, { withFileTypes: true }).some((entry) => {
+      if (!entry.isDirectory()) {
+        return false;
+      }
+      const pluginDir = path6.join(pluginsDir, entry.name);
+      return fs2.existsSync(path6.join(pluginDir, "package.json")) || fs2.existsSync(path6.join(pluginDir, "openclaw.plugin.json"));
+    });
+  } catch {
+    return false;
+  }
+}
+function safeRealpathSync(targetPath) {
+  try {
+    return fs2.realpathSync.native(targetPath);
+  } catch {
+    return null;
+  }
+}
+function pathContains(parentDir, childPath) {
+  const relative = path6.relative(parentDir, childPath);
+  return relative === "" || !relative.startsWith("..") && !path6.isAbsolute(relative);
+}
+function trustedBundledPluginRootsForPackageRoot(packageRoot) {
+  const roots = [
+    path6.join(packageRoot, "dist", "extensions"),
+    path6.join(packageRoot, "dist-runtime", "extensions")
+  ];
+  if (isSourceCheckoutRoot(packageRoot)) {
+    roots.push(path6.join(packageRoot, "extensions"));
+  }
+  return roots;
+}
+function resolvePackageRootsForBundledPlugins() {
+  const argvRoot = resolveOpenClawPackageRootSync({ argv1: process.argv[1] });
+  const moduleRoot = resolveOpenClawPackageRootSync({ moduleUrl: import.meta.url });
+  return [argvRoot, moduleRoot].filter(
+    (entry, index, all) => Boolean(entry) && all.indexOf(entry) === index
+  );
+}
+function resolveSourceCheckoutDependencyDiagnostic(env = process.env) {
+  if (areBundledPluginsDisabled(env)) {
+    return null;
+  }
+  for (const packageRoot of resolvePackageRootsForBundledPlugins()) {
+    if (!isSourceCheckoutRoot(packageRoot)) {
+      continue;
+    }
+    const extensionsDir = path6.join(packageRoot, "extensions");
+    if (!hasUsableBundledPluginTree(extensionsDir)) {
+      continue;
+    }
+    if (fs2.existsSync(path6.join(packageRoot, "node_modules", ".pnpm"))) {
+      continue;
+    }
+    return {
+      source: packageRoot,
+      message: "OpenClaw source checkout detected without pnpm workspace dependencies; run `pnpm install` from the repo root so bundled plugins can load package-local dependencies."
+    };
+  }
+  return null;
+}
+function resolveTrustedExistingOverride(resolvedOverride) {
+  const realOverride = safeRealpathSync(resolvedOverride);
+  if (!realOverride) {
+    return null;
+  }
+  const modulePackageRoot = resolveOpenClawPackageRootSync({ moduleUrl: import.meta.url });
+  const packageRoots = modulePackageRoot ? [modulePackageRoot] : [];
+  const trustedRoots = packageRoots.flatMap((packageRoot) => trustedBundledPluginRootsForPackageRoot(packageRoot)).map((trustedRoot) => safeRealpathSync(trustedRoot)).filter((entry) => Boolean(entry));
+  if (!trustedRoots.some((trustedRoot) => pathContains(trustedRoot, realOverride))) {
+    return null;
+  }
+  if (!hasUsableBundledPluginTree(realOverride)) {
+    return null;
+  }
+  return realOverride;
+}
+function overrideResolvesUnderPackageBundledRoot(params) {
+  const realOverride = safeRealpathSync(params.resolvedOverride);
+  if (!realOverride) {
+    return false;
+  }
+  return trustedBundledPluginRootsForPackageRoot(params.packageRoot).map((trustedRoot) => safeRealpathSync(trustedRoot)).filter((entry) => Boolean(entry)).some((trustedRoot) => pathContains(trustedRoot, realOverride));
+}
+function resolveBundledDirFromPackageRoot(packageRoot) {
+  const sourceExtensionsDir = path6.join(packageRoot, "extensions");
+  const builtExtensionsDir = path6.join(packageRoot, "dist", "extensions");
+  const sourceCheckout = isSourceCheckoutRoot(packageRoot);
+  const hasUsableSourceTree = sourceCheckout && hasUsableBundledPluginTree(sourceExtensionsDir);
+  const runtimeExtensionsDir = path6.join(packageRoot, "dist-runtime", "extensions");
+  const hasUsableRuntimeTree = sourceCheckout ? hasUsableBundledPluginTree(runtimeExtensionsDir) : fs2.existsSync(runtimeExtensionsDir);
+  const hasUsableBuiltTree = sourceCheckout ? hasUsableBundledPluginTree(builtExtensionsDir) : fs2.existsSync(builtExtensionsDir);
+  if (sourceCheckout && hasUsableBuiltTree) {
+    return builtExtensionsDir;
+  }
+  if (sourceCheckout && hasUsableRuntimeTree) {
+    return runtimeExtensionsDir;
+  }
+  if (hasUsableRuntimeTree && hasUsableBuiltTree) {
+    return runtimeExtensionsDir;
+  }
+  if (hasUsableBuiltTree) {
+    return builtExtensionsDir;
+  }
+  if (hasUsableSourceTree) {
+    return sourceExtensionsDir;
+  }
+  return void 0;
+}
+function createBundledPluginsDirCacheKey(env) {
+  return JSON.stringify({
+    disabled: env.OPENCLAW_DISABLE_BUNDLED_PLUGINS ?? "",
+    override: env.OPENCLAW_BUNDLED_PLUGINS_DIR ?? "",
+    trustOverride: env[TEST_TRUST_BUNDLED_PLUGINS_DIR_ENV] ?? "",
+    processTrustOverride: process.env[TEST_TRUST_BUNDLED_PLUGINS_DIR_ENV] ?? "",
+    vitest: env.VITEST ?? "",
+    processVitest: process.env.VITEST ?? "",
+    nodeEnv: process.env.NODE_ENV ?? "",
+    argv1: process.argv[1] ?? "",
+    execPath: process.execPath,
+    openClawHome: env.OPENCLAW_HOME ?? "",
+    home: env.HOME ?? "",
+    userProfile: env.USERPROFILE ?? "",
+    testOverride: bundledPluginsDirOverrideForTest ?? ""
+  });
+}
+function resolveBundledPluginsDirUncached(env) {
+  if (areBundledPluginsDisabled(env)) {
+    return resolveDisabledBundledPluginsDir();
+  }
+  if (bundledPluginsDirOverrideForTest) {
+    return bundledPluginsDirOverrideForTest;
+  }
+  const override = env.OPENCLAW_BUNDLED_PLUGINS_DIR?.trim();
+  let rejectedExistingOverride = null;
+  if (override) {
+    const resolvedOverride = resolveUserPath(override, env);
+    if (fs2.existsSync(resolvedOverride)) {
+      if (shouldTrustTestBundledPluginsDirOverride(env)) {
+        return path6.resolve(resolvedOverride);
+      }
+      const trustedOverride = resolveTrustedExistingOverride(resolvedOverride);
+      if (trustedOverride) {
+        return trustedOverride;
+      }
+      rejectedExistingOverride = resolvedOverride;
+    }
+  }
+  try {
+    const argvRoot = resolveOpenClawPackageRootSync({ argv1: process.argv[1] });
+    const rejectedOverrideUsesArgvRoot = Boolean(
+      argvRoot && rejectedExistingOverride && overrideResolvesUnderPackageBundledRoot({
+        resolvedOverride: rejectedExistingOverride,
+        packageRoot: argvRoot
+      })
+    );
+    const safeArgvRoot = rejectedOverrideUsesArgvRoot ? null : argvRoot;
+    const moduleRoot = resolveOpenClawPackageRootSync({ moduleUrl: import.meta.url });
+    const packageRoots = [safeArgvRoot, moduleRoot].filter(
+      (entry, index, all) => Boolean(entry) && all.indexOf(entry) === index
+    );
+    for (const packageRoot of packageRoots) {
+      const bundledDir = resolveBundledDirFromPackageRoot(packageRoot);
+      if (bundledDir) {
+        return bundledDir;
+      }
+    }
+  } catch {
+  }
+  try {
+    const execDir = path6.dirname(process.execPath);
+    const siblingBuilt = path6.join(execDir, "dist", "extensions");
+    if (fs2.existsSync(siblingBuilt)) {
+      return siblingBuilt;
+    }
+    const sibling = path6.join(execDir, "extensions");
+    if (fs2.existsSync(sibling)) {
+      return sibling;
+    }
+  } catch {
+  }
+  try {
+    let cursor = path6.dirname(fileURLToPath2(import.meta.url));
+    for (let i = 0; i < 6; i += 1) {
+      const candidate = path6.join(cursor, "extensions");
+      if (fs2.existsSync(candidate)) {
+        return candidate;
+      }
+      const parent = path6.dirname(cursor);
+      if (parent === cursor) {
+        break;
+      }
+      cursor = parent;
+    }
+  } catch {
+  }
+  return void 0;
+}
+function resolveBundledPluginsDir(env = process.env) {
+  const cacheKey = createBundledPluginsDirCacheKey(env);
+  if (bundledPluginsDirCache.has(cacheKey)) {
+    return bundledPluginsDirCache.get(cacheKey);
+  }
+  const resolved = resolveBundledPluginsDirUncached(env);
+  bundledPluginsDirCache.set(cacheKey, resolved);
+  return resolved;
+}
+var DISABLED_BUNDLED_PLUGINS_DIR, TEST_TRUST_BUNDLED_PLUGINS_DIR_ENV, bundledPluginsDirOverrideForTest, bundledPluginsDirCache;
+var init_bundled_dir = __esm({
+  "vendor/openclaw/src/plugins/bundled-dir.ts"() {
+    "use strict";
+    init_openclaw_root();
+    init_string_coerce();
+    init_utils();
+    DISABLED_BUNDLED_PLUGINS_DIR = path6.join(os3.tmpdir(), "openclaw-empty-bundled-plugins");
+    TEST_TRUST_BUNDLED_PLUGINS_DIR_ENV = "OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR";
+    bundledPluginsDirCache = /* @__PURE__ */ new Map();
+  }
+});
 
 // vendor/openclaw/node_modules/jiti/dist/jiti.cjs
 var require_jiti = __commonJS({
@@ -1256,7 +1952,7 @@ var require_jiti = __commonJS({
           for (var i2 in e3) t3[i2] = e3[i2];
           return t3;
         };
-        var K = "ASCII ASCII_Hex_Digit AHex Alphabetic Alpha Any Assigned Bidi_Control Bidi_C Bidi_Mirrored Bidi_M Case_Ignorable CI Cased Changes_When_Casefolded CWCF Changes_When_Casemapped CWCM Changes_When_Lowercased CWL Changes_When_NFKC_Casefolded CWKCF Changes_When_Titlecased CWT Changes_When_Uppercased CWU Dash Default_Ignorable_Code_Point DI Deprecated Dep Diacritic Dia Emoji Emoji_Component Emoji_Modifier Emoji_Modifier_Base Emoji_Presentation Extender Ext Grapheme_Base Gr_Base Grapheme_Extend Gr_Ext Hex_Digit Hex IDS_Binary_Operator IDSB IDS_Trinary_Operator IDST ID_Continue IDC ID_Start IDS Ideographic Ideo Join_Control Join_C Logical_Order_Exception LOE Lowercase Lower Math Noncharacter_Code_Point NChar Pattern_Syntax Pat_Syn Pattern_White_Space Pat_WS Quotation_Mark QMark Radical Regional_Indicator RI Sentence_Terminal STerm Soft_Dotted SD Terminal_Punctuation Term Unified_Ideograph UIdeo Uppercase Upper Variation_Selector VS White_Space space XID_Continue XIDC XID_Start XIDS", z19 = K + " Extended_Pictographic", J = z19 + " EBase EComp EMod EPres ExtPict", Y = { 9: K, 10: z19, 11: z19, 12: J, 13: J, 14: J }, Q = { 9: "", 10: "", 11: "", 12: "", 13: "", 14: "Basic_Emoji Emoji_Keycap_Sequence RGI_Emoji_Modifier_Sequence RGI_Emoji_Flag_Sequence RGI_Emoji_Tag_Sequence RGI_Emoji_ZWJ_Sequence RGI_Emoji" }, Z = "Cased_Letter LC Close_Punctuation Pe Connector_Punctuation Pc Control Cc cntrl Currency_Symbol Sc Dash_Punctuation Pd Decimal_Number Nd digit Enclosing_Mark Me Final_Punctuation Pf Format Cf Initial_Punctuation Pi Letter L Letter_Number Nl Line_Separator Zl Lowercase_Letter Ll Mark M Combining_Mark Math_Symbol Sm Modifier_Letter Lm Modifier_Symbol Sk Nonspacing_Mark Mn Number N Open_Punctuation Ps Other C Other_Letter Lo Other_Number No Other_Punctuation Po Other_Symbol So Paragraph_Separator Zp Private_Use Co Punctuation P punct Separator Z Space_Separator Zs Spacing_Mark Mc Surrogate Cs Symbol S Titlecase_Letter Lt Unassigned Cn Uppercase_Letter Lu", X = "Adlam Adlm Ahom Anatolian_Hieroglyphs Hluw Arabic Arab Armenian Armn Avestan Avst Balinese Bali Bamum Bamu Bassa_Vah Bass Batak Batk Bengali Beng Bhaiksuki Bhks Bopomofo Bopo Brahmi Brah Braille Brai Buginese Bugi Buhid Buhd Canadian_Aboriginal Cans Carian Cari Caucasian_Albanian Aghb Chakma Cakm Cham Cham Cherokee Cher Common Zyyy Coptic Copt Qaac Cuneiform Xsux Cypriot Cprt Cyrillic Cyrl Deseret Dsrt Devanagari Deva Duployan Dupl Egyptian_Hieroglyphs Egyp Elbasan Elba Ethiopic Ethi Georgian Geor Glagolitic Glag Gothic Goth Grantha Gran Greek Grek Gujarati Gujr Gurmukhi Guru Han Hani Hangul Hang Hanunoo Hano Hatran Hatr Hebrew Hebr Hiragana Hira Imperial_Aramaic Armi Inherited Zinh Qaai Inscriptional_Pahlavi Phli Inscriptional_Parthian Prti Javanese Java Kaithi Kthi Kannada Knda Katakana Kana Kayah_Li Kali Kharoshthi Khar Khmer Khmr Khojki Khoj Khudawadi Sind Lao Laoo Latin Latn Lepcha Lepc Limbu Limb Linear_A Lina Linear_B Linb Lisu Lisu Lycian Lyci Lydian Lydi Mahajani Mahj Malayalam Mlym Mandaic Mand Manichaean Mani Marchen Marc Masaram_Gondi Gonm Meetei_Mayek Mtei Mende_Kikakui Mend Meroitic_Cursive Merc Meroitic_Hieroglyphs Mero Miao Plrd Modi Mongolian Mong Mro Mroo Multani Mult Myanmar Mymr Nabataean Nbat New_Tai_Lue Talu Newa Newa Nko Nkoo Nushu Nshu Ogham Ogam Ol_Chiki Olck Old_Hungarian Hung Old_Italic Ital Old_North_Arabian Narb Old_Permic Perm Old_Persian Xpeo Old_South_Arabian Sarb Old_Turkic Orkh Oriya Orya Osage Osge Osmanya Osma Pahawh_Hmong Hmng Palmyrene Palm Pau_Cin_Hau Pauc Phags_Pa Phag Phoenician Phnx Psalter_Pahlavi Phlp Rejang Rjng Runic Runr Samaritan Samr Saurashtra Saur Sharada Shrd Shavian Shaw Siddham Sidd SignWriting Sgnw Sinhala Sinh Sora_Sompeng Sora Soyombo Soyo Sundanese Sund Syloti_Nagri Sylo Syriac Syrc Tagalog Tglg Tagbanwa Tagb Tai_Le Tale Tai_Tham Lana Tai_Viet Tavt Takri Takr Tamil Taml Tangut Tang Telugu Telu Thaana Thaa Thai Thai Tibetan Tibt Tifinagh Tfng Tirhuta Tirh Ugaritic Ugar Vai Vaii Warang_Citi Wara Yi Yiii Zanabazar_Square Zanb", ee = X + " Dogra Dogr Gunjala_Gondi Gong Hanifi_Rohingya Rohg Makasar Maka Medefaidrin Medf Old_Sogdian Sogo Sogdian Sogd", te = ee + " Elymaic Elym Nandinagari Nand Nyiakeng_Puachue_Hmong Hmnp Wancho Wcho", ie = te + " Chorasmian Chrs Diak Dives_Akuru Khitan_Small_Script Kits Yezi Yezidi", se = ie + " Cypro_Minoan Cpmn Old_Uyghur Ougr Tangsa Tnsa Toto Vithkuqi Vith", re = { 9: X, 10: ee, 11: te, 12: ie, 13: se, 14: se + " Gara Garay Gukh Gurung_Khema Hrkt Katakana_Or_Hiragana Kawi Kirat_Rai Krai Nag_Mundari Nagm Ol_Onal Onao Sunu Sunuwar Todhri Todr Tulu_Tigalari Tutg Unknown Zzzz" }, ne = {};
+        var K = "ASCII ASCII_Hex_Digit AHex Alphabetic Alpha Any Assigned Bidi_Control Bidi_C Bidi_Mirrored Bidi_M Case_Ignorable CI Cased Changes_When_Casefolded CWCF Changes_When_Casemapped CWCM Changes_When_Lowercased CWL Changes_When_NFKC_Casefolded CWKCF Changes_When_Titlecased CWT Changes_When_Uppercased CWU Dash Default_Ignorable_Code_Point DI Deprecated Dep Diacritic Dia Emoji Emoji_Component Emoji_Modifier Emoji_Modifier_Base Emoji_Presentation Extender Ext Grapheme_Base Gr_Base Grapheme_Extend Gr_Ext Hex_Digit Hex IDS_Binary_Operator IDSB IDS_Trinary_Operator IDST ID_Continue IDC ID_Start IDS Ideographic Ideo Join_Control Join_C Logical_Order_Exception LOE Lowercase Lower Math Noncharacter_Code_Point NChar Pattern_Syntax Pat_Syn Pattern_White_Space Pat_WS Quotation_Mark QMark Radical Regional_Indicator RI Sentence_Terminal STerm Soft_Dotted SD Terminal_Punctuation Term Unified_Ideograph UIdeo Uppercase Upper Variation_Selector VS White_Space space XID_Continue XIDC XID_Start XIDS", z21 = K + " Extended_Pictographic", J = z21 + " EBase EComp EMod EPres ExtPict", Y = { 9: K, 10: z21, 11: z21, 12: J, 13: J, 14: J }, Q = { 9: "", 10: "", 11: "", 12: "", 13: "", 14: "Basic_Emoji Emoji_Keycap_Sequence RGI_Emoji_Modifier_Sequence RGI_Emoji_Flag_Sequence RGI_Emoji_Tag_Sequence RGI_Emoji_ZWJ_Sequence RGI_Emoji" }, Z = "Cased_Letter LC Close_Punctuation Pe Connector_Punctuation Pc Control Cc cntrl Currency_Symbol Sc Dash_Punctuation Pd Decimal_Number Nd digit Enclosing_Mark Me Final_Punctuation Pf Format Cf Initial_Punctuation Pi Letter L Letter_Number Nl Line_Separator Zl Lowercase_Letter Ll Mark M Combining_Mark Math_Symbol Sm Modifier_Letter Lm Modifier_Symbol Sk Nonspacing_Mark Mn Number N Open_Punctuation Ps Other C Other_Letter Lo Other_Number No Other_Punctuation Po Other_Symbol So Paragraph_Separator Zp Private_Use Co Punctuation P punct Separator Z Space_Separator Zs Spacing_Mark Mc Surrogate Cs Symbol S Titlecase_Letter Lt Unassigned Cn Uppercase_Letter Lu", X = "Adlam Adlm Ahom Anatolian_Hieroglyphs Hluw Arabic Arab Armenian Armn Avestan Avst Balinese Bali Bamum Bamu Bassa_Vah Bass Batak Batk Bengali Beng Bhaiksuki Bhks Bopomofo Bopo Brahmi Brah Braille Brai Buginese Bugi Buhid Buhd Canadian_Aboriginal Cans Carian Cari Caucasian_Albanian Aghb Chakma Cakm Cham Cham Cherokee Cher Common Zyyy Coptic Copt Qaac Cuneiform Xsux Cypriot Cprt Cyrillic Cyrl Deseret Dsrt Devanagari Deva Duployan Dupl Egyptian_Hieroglyphs Egyp Elbasan Elba Ethiopic Ethi Georgian Geor Glagolitic Glag Gothic Goth Grantha Gran Greek Grek Gujarati Gujr Gurmukhi Guru Han Hani Hangul Hang Hanunoo Hano Hatran Hatr Hebrew Hebr Hiragana Hira Imperial_Aramaic Armi Inherited Zinh Qaai Inscriptional_Pahlavi Phli Inscriptional_Parthian Prti Javanese Java Kaithi Kthi Kannada Knda Katakana Kana Kayah_Li Kali Kharoshthi Khar Khmer Khmr Khojki Khoj Khudawadi Sind Lao Laoo Latin Latn Lepcha Lepc Limbu Limb Linear_A Lina Linear_B Linb Lisu Lisu Lycian Lyci Lydian Lydi Mahajani Mahj Malayalam Mlym Mandaic Mand Manichaean Mani Marchen Marc Masaram_Gondi Gonm Meetei_Mayek Mtei Mende_Kikakui Mend Meroitic_Cursive Merc Meroitic_Hieroglyphs Mero Miao Plrd Modi Mongolian Mong Mro Mroo Multani Mult Myanmar Mymr Nabataean Nbat New_Tai_Lue Talu Newa Newa Nko Nkoo Nushu Nshu Ogham Ogam Ol_Chiki Olck Old_Hungarian Hung Old_Italic Ital Old_North_Arabian Narb Old_Permic Perm Old_Persian Xpeo Old_South_Arabian Sarb Old_Turkic Orkh Oriya Orya Osage Osge Osmanya Osma Pahawh_Hmong Hmng Palmyrene Palm Pau_Cin_Hau Pauc Phags_Pa Phag Phoenician Phnx Psalter_Pahlavi Phlp Rejang Rjng Runic Runr Samaritan Samr Saurashtra Saur Sharada Shrd Shavian Shaw Siddham Sidd SignWriting Sgnw Sinhala Sinh Sora_Sompeng Sora Soyombo Soyo Sundanese Sund Syloti_Nagri Sylo Syriac Syrc Tagalog Tglg Tagbanwa Tagb Tai_Le Tale Tai_Tham Lana Tai_Viet Tavt Takri Takr Tamil Taml Tangut Tang Telugu Telu Thaana Thaa Thai Thai Tibetan Tibt Tifinagh Tfng Tirhuta Tirh Ugaritic Ugar Vai Vaii Warang_Citi Wara Yi Yiii Zanabazar_Square Zanb", ee = X + " Dogra Dogr Gunjala_Gondi Gong Hanifi_Rohingya Rohg Makasar Maka Medefaidrin Medf Old_Sogdian Sogo Sogdian Sogd", te = ee + " Elymaic Elym Nandinagari Nand Nyiakeng_Puachue_Hmong Hmnp Wancho Wcho", ie = te + " Chorasmian Chrs Diak Dives_Akuru Khitan_Small_Script Kits Yezi Yezidi", se = ie + " Cypro_Minoan Cpmn Old_Uyghur Ougr Tangsa Tnsa Toto Vithkuqi Vith", re = { 9: X, 10: ee, 11: te, 12: ie, 13: se, 14: se + " Gara Garay Gukh Gurung_Khema Hrkt Katakana_Or_Hiragana Kawi Kirat_Rai Krai Nag_Mundari Nagm Ol_Onal Onao Sunu Sunuwar Todhri Todr Tulu_Tigalari Tutg Unknown Zzzz" }, ne = {};
         function buildUnicodeData(e3) {
           var t3 = ne[e3] = { binary: wordsRegexp(Y[e3] + " " + Z), binaryOfStrings: wordsRegexp(Q[e3]), nonBinary: { General_Category: wordsRegexp(Z), Script: wordsRegexp(re[e3]) } };
           t3.nonBinary.Script_Extensions = t3.nonBinary.Script, t3.nonBinary.gc = t3.nonBinary.General_Category, t3.nonBinary.sc = t3.nonBinary.Script, t3.nonBinary.scx = t3.nonBinary.Script_Extensions;
@@ -2650,11 +3346,11 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
             return e4;
           })(a2, t3);
         }
-        function fileURLToPath5(e3) {
+        function fileURLToPath4(e3) {
           return "string" != typeof e3 || e3.startsWith("file://") ? normalizeSlash((0, _e.fileURLToPath)(e3)) : normalizeSlash(e3);
         }
-        function pathToFileURL(e3) {
-          return (0, _e.pathToFileURL)(fileURLToPath5(e3)).toString();
+        function pathToFileURL2(e3) {
+          return (0, _e.pathToFileURL)(fileURLToPath4(e3)).toString();
         }
         const rt = /* @__PURE__ */ new Set(["node", "import"]), nt = [".mjs", ".cjs", ".js", ".json"], at = /* @__PURE__ */ new Set(["ERR_MODULE_NOT_FOUND", "ERR_UNSUPPORTED_DIR_IMPORT", "MODULE_NOT_FOUND", "ERR_PACKAGE_PATH_NOT_EXPORTED"]);
         function _tryModuleResolve(e3, t3, i2) {
@@ -2667,19 +3363,19 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
         function _resolve(e3, t3 = {}) {
           if ("string" != typeof e3) {
             if (!(e3 instanceof URL)) throw new TypeError("input must be a `string` or `URL`");
-            e3 = fileURLToPath5(e3);
+            e3 = fileURLToPath4(e3);
           }
           if (/(?:node|data|http|https):/.test(e3)) return e3;
           if (Ie.has(e3)) return "node:" + e3;
-          if (e3.startsWith("file://") && (e3 = fileURLToPath5(e3)), isAbsolute(e3)) try {
-            if ((0, ue.statSync)(e3).isFile()) return pathToFileURL(e3);
+          if (e3.startsWith("file://") && (e3 = fileURLToPath4(e3)), isAbsolute(e3)) try {
+            if ((0, ue.statSync)(e3).isFile()) return pathToFileURL2(e3);
           } catch (e4) {
             if ("ENOENT" !== e4?.code) throw e4;
           }
           const i2 = t3.conditions ? new Set(t3.conditions) : rt, s2 = (Array.isArray(t3.url) ? t3.url : [t3.url]).filter(Boolean).map((e4) => new URL((function(e5) {
             return "string" != typeof e5 && (e5 = e5.toString()), /(?:node|data|http|https|file):/.test(e5) ? e5 : Ie.has(e5) ? "node:" + e5 : "file://" + encodeURI(normalizeSlash(e5));
           })(e4.toString())));
-          0 === s2.length && s2.push(new URL(pathToFileURL(process.cwd())));
+          0 === s2.length && s2.push(new URL(pathToFileURL2(process.cwd())));
           const r2 = [...s2];
           for (const e4 of s2) "file:" === e4.protocol && r2.push(new URL("./", e4), new URL(dist_joinURL(e4.pathname, "_index.js"), e4), new URL("node_modules", e4));
           let n2;
@@ -2695,13 +3391,13 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
             const t4 = new Error(`Cannot find module ${e3} imported from ${r2.join(", ")}`);
             throw t4.code = "ERR_MODULE_NOT_FOUND", t4;
           }
-          return pathToFileURL(n2);
+          return pathToFileURL2(n2);
         }
         function resolveSync(e3, t3) {
           return _resolve(e3, t3);
         }
         function resolvePathSync(e3, t3) {
-          return fileURLToPath5(resolveSync(e3, t3));
+          return fileURLToPath4(resolveSync(e3, t3));
         }
         const ot = /(?:[\s;]|^)(?:import[\s\w*,{}]*from|import\s*["'*{]|export\b\s*(?:[*{]|default|class|type|function|const|var|let|async function)|import\.meta\b)/m, ht = /\/\*.+?\*\/|\/\/.*(?=[nr])/g;
         function hasESMSyntax(e3, t3 = {}) {
@@ -2857,7 +3553,7 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
         }
         function tryNativeRequireResolve(e3, t3, i2, s2) {
           try {
-            return e3.nativeRequire.resolve(t3, { ...s2, paths: [pathe_M_eThtNZ_dirname(fileURLToPath5(i2)), ...s2?.paths || []] });
+            return e3.nativeRequire.resolve(t3, { ...s2, paths: [pathe_M_eThtNZ_dirname(fileURLToPath4(i2)), ...s2?.paths || []] });
           } catch {
           }
         }
@@ -2902,7 +3598,7 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
         }
         function nativeImportOrRequire(e3, t3, i2) {
           return i2 && e3.nativeImport ? e3.nativeImport((function(e4) {
-            return kt && isAbsolute(e4) ? pathToFileURL(e4) : e4;
+            return kt && isAbsolute(e4) ? pathToFileURL2(e4) : e4;
           })(t3)).then((t4) => jitiInteropDefault(e3, t4)) : jitiInteropDefault(e3, e3.nativeRequire(t3));
         }
         const zt = "9";
@@ -3025,7 +3721,7 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
             return void 0 !== e4.cache && (i3.fsCache = e4.cache), void 0 !== e4.requireCache && (i3.moduleCache = e4.requireCache), { ...t4, ...i3, ...e4 };
           })(t3), n2 = r2.alias && Object.keys(r2.alias).length > 0 ? normalizeAliases(r2.alias || {}) : void 0, a2 = ["typescript", "jiti", ...r2.nativeModules || []], o2 = new RegExp(`node_modules/(${a2.map((e4) => escapeStringRegexp(e4)).join("|")})/`), h2 = [...r2.transformModules || []], c2 = new RegExp(`node_modules/(${h2.map((e4) => escapeStringRegexp(e4)).join("|")})/`);
           e3 || (e3 = process.cwd()), !s2 && isDir(e3) && (e3 = pathe_M_eThtNZ_join(e3, "_index.js"));
-          const p2 = pathToFileURL(e3), l2 = [...r2.extensions].filter((e4) => ".js" !== e4), u2 = i2.createRequire(Jt ? e3.replace(/\//g, "\\") : e3), d2 = { filename: e3, url: p2, opts: r2, alias: n2, nativeModules: a2, transformModules: h2, isNativeRe: o2, isTransformRe: c2, additionalExts: l2, nativeRequire: u2, onError: i2.onError, parentModule: i2.parentModule, parentCache: i2.parentCache, nativeImport: i2.nativeImport, createRequire: i2.createRequire };
+          const p2 = pathToFileURL2(e3), l2 = [...r2.extensions].filter((e4) => ".js" !== e4), u2 = i2.createRequire(Jt ? e3.replace(/\//g, "\\") : e3), d2 = { filename: e3, url: p2, opts: r2, alias: n2, nativeModules: a2, transformModules: h2, isNativeRe: o2, isTransformRe: c2, additionalExts: l2, nativeRequire: u2, onError: i2.onError, parentModule: i2.parentModule, parentCache: i2.parentCache, nativeImport: i2.nativeImport, createRequire: i2.createRequire };
           s2 || debug(d2, "[init]", ...[["version:", ut.rE], ["module-cache:", r2.moduleCache], ["fs-cache:", r2.fsCache], ["rebuild-fs-cache:", r2.rebuildFsCache], ["interop-defaults:", r2.interopDefault]].flat()), s2 || prepareCacheDir(d2);
           const f2 = Object.assign(function(e4) {
             return jitiRequire(d2, e4, { async: false });
@@ -3037,12 +3733,694 @@ Default "index" lookups for the main are deprecated for ES modules.`, "Deprecati
           }, esmResolve(e4, t4) {
             "string" == typeof t4 && (t4 = { parentURL: t4 });
             const i3 = jitiResolve(d2, e4, { parentURL: p2, ...t4, async: true });
-            return !i3 || "string" != typeof i3 || i3.startsWith("file://") ? i3 : pathToFileURL(i3);
+            return !i3 || "string" != typeof i3 || i3.startsWith("file://") ? i3 : pathToFileURL2(i3);
           } });
           return f2;
         }
       })(), module.exports = i.default;
     })();
+  }
+});
+
+// vendor/openclaw/src/infra/path-guards.ts
+import path11 from "node:path";
+function normalizeWindowsPathForComparison(input) {
+  let normalized = path11.win32.normalize(input);
+  if (normalized.startsWith("\\\\?\\")) {
+    normalized = normalized.slice(4);
+    if (normalized.toUpperCase().startsWith("UNC\\")) {
+      normalized = `\\\\${normalized.slice(4)}`;
+    }
+  }
+  return normalizeLowercaseStringOrEmpty(normalized.replaceAll("/", "\\"));
+}
+function isNodeError(value) {
+  return Boolean(
+    value && typeof value === "object" && "code" in value
+  );
+}
+function isNotFoundPathError(value) {
+  return isNodeError(value) && typeof value.code === "string" && NOT_FOUND_CODES.has(value.code);
+}
+function isPathInside(root, target) {
+  if (process.platform === "win32") {
+    const rootForCompare = normalizeWindowsPathForComparison(path11.win32.resolve(root));
+    const targetForCompare = normalizeWindowsPathForComparison(path11.win32.resolve(target));
+    const relative2 = path11.win32.relative(rootForCompare, targetForCompare);
+    return relative2 === "" || !PARENT_SEGMENT_PREFIX.test(relative2) && !path11.win32.isAbsolute(relative2);
+  }
+  if (root.length > 0 && root.charCodeAt(0) === POSIX_SEPARATOR_CHAR_CODE && target.length >= root.length && target.charCodeAt(0) === POSIX_SEPARATOR_CHAR_CODE && !target.includes("/..") && (target === root || target.startsWith(root) && target.charCodeAt(root.length) === POSIX_SEPARATOR_CHAR_CODE)) {
+    return true;
+  }
+  const resolvedRoot = path11.resolve(root);
+  const resolvedTarget = path11.resolve(target);
+  const relative = path11.relative(resolvedRoot, resolvedTarget);
+  return relative === "" || !PARENT_SEGMENT_PREFIX.test(relative) && !path11.isAbsolute(relative);
+}
+var NOT_FOUND_CODES, PARENT_SEGMENT_PREFIX, POSIX_SEPARATOR_CHAR_CODE;
+var init_path_guards = __esm({
+  "vendor/openclaw/src/infra/path-guards.ts"() {
+    "use strict";
+    init_string_coerce();
+    NOT_FOUND_CODES = /* @__PURE__ */ new Set(["ENOENT", "ENOTDIR"]);
+    PARENT_SEGMENT_PREFIX = /^\.\.(?:[\\/]|$)/u;
+    POSIX_SEPARATOR_CHAR_CODE = 47;
+  }
+});
+
+// vendor/openclaw/src/infra/boundary-path.ts
+import fs5 from "node:fs";
+import os4 from "node:os";
+import path12 from "node:path";
+function resolveBoundaryPathSync(params) {
+  const rootPath = path12.resolve(params.rootPath);
+  const absolutePath = path12.resolve(params.absolutePath);
+  const rootCanonicalPath = params.rootCanonicalPath ? path12.resolve(params.rootCanonicalPath) : resolvePathViaExistingAncestorSync(rootPath);
+  const context = createBoundaryResolutionContext({
+    resolveParams: params,
+    rootPath,
+    absolutePath,
+    rootCanonicalPath,
+    outsideLexicalCanonicalPath: resolveOutsideLexicalCanonicalPathSync({
+      rootPath,
+      absolutePath
+    })
+  });
+  const outsideResult = resolveOutsideBoundaryPathSync({
+    boundaryLabel: params.boundaryLabel,
+    context
+  });
+  if (outsideResult) {
+    return outsideResult;
+  }
+  return resolveBoundaryPathLexicalSync({
+    params,
+    absolutePath: context.absolutePath,
+    rootPath: context.rootPath,
+    rootCanonicalPath: context.rootCanonicalPath
+  });
+}
+function isPromiseLike(value) {
+  return Boolean(
+    value && (typeof value === "object" || typeof value === "function") && "then" in value && typeof value.then === "function"
+  );
+}
+function createLexicalTraversalState(params) {
+  const relative = path12.relative(params.rootPath, params.absolutePath);
+  return {
+    segments: relative.split(path12.sep).filter(Boolean),
+    allowFinalSymlink: params.params.policy?.allowFinalSymlinkForUnlink === true,
+    canonicalCursor: params.rootCanonicalPath,
+    lexicalCursor: params.rootPath,
+    preserveFinalSymlink: false
+  };
+}
+function assertLexicalCursorInsideBoundary(params) {
+  assertInsideBoundary({
+    boundaryLabel: params.params.boundaryLabel,
+    rootCanonicalPath: params.rootCanonicalPath,
+    candidatePath: params.candidatePath,
+    absolutePath: params.absolutePath
+  });
+}
+function applyMissingSuffixToCanonicalCursor(params) {
+  const missingSuffix = params.state.segments.slice(params.missingFromIndex);
+  params.state.canonicalCursor = path12.resolve(params.state.canonicalCursor, ...missingSuffix);
+  assertLexicalCursorInsideBoundary({
+    params: params.params,
+    rootCanonicalPath: params.rootCanonicalPath,
+    candidatePath: params.state.canonicalCursor,
+    absolutePath: params.absolutePath
+  });
+}
+function advanceCanonicalCursorForSegment(params) {
+  params.state.canonicalCursor = path12.resolve(params.state.canonicalCursor, params.segment);
+  assertLexicalCursorInsideBoundary({
+    params: params.params,
+    rootCanonicalPath: params.rootCanonicalPath,
+    candidatePath: params.state.canonicalCursor,
+    absolutePath: params.absolutePath
+  });
+}
+function finalizeLexicalResolution(params) {
+  assertLexicalCursorInsideBoundary({
+    params: params.params,
+    rootCanonicalPath: params.rootCanonicalPath,
+    candidatePath: params.state.canonicalCursor,
+    absolutePath: params.absolutePath
+  });
+  return buildResolvedBoundaryPath({
+    absolutePath: params.absolutePath,
+    canonicalPath: params.state.canonicalCursor,
+    rootPath: params.rootPath,
+    rootCanonicalPath: params.rootCanonicalPath,
+    kind: params.kind
+  });
+}
+function handleLexicalLstatFailure(params) {
+  if (!isNotFoundPathError(params.error)) {
+    return false;
+  }
+  applyMissingSuffixToCanonicalCursor({
+    state: params.state,
+    missingFromIndex: params.missingFromIndex,
+    rootCanonicalPath: params.rootCanonicalPath,
+    params: params.resolveParams,
+    absolutePath: params.absolutePath
+  });
+  return true;
+}
+function handleLexicalStatReadFailure(params) {
+  if (handleLexicalLstatFailure({
+    error: params.error,
+    state: params.state,
+    missingFromIndex: params.missingFromIndex,
+    rootCanonicalPath: params.rootCanonicalPath,
+    resolveParams: params.resolveParams,
+    absolutePath: params.absolutePath
+  })) {
+    return null;
+  }
+  throw params.error;
+}
+function handleLexicalStatDisposition(params) {
+  if (!params.isSymbolicLink) {
+    advanceCanonicalCursorForSegment({
+      state: params.state,
+      segment: params.segment,
+      rootCanonicalPath: params.rootCanonicalPath,
+      params: params.resolveParams,
+      absolutePath: params.absolutePath
+    });
+    return "continue";
+  }
+  if (params.state.allowFinalSymlink && params.isLast) {
+    params.state.preserveFinalSymlink = true;
+    advanceCanonicalCursorForSegment({
+      state: params.state,
+      segment: params.segment,
+      rootCanonicalPath: params.rootCanonicalPath,
+      params: params.resolveParams,
+      absolutePath: params.absolutePath
+    });
+    return "break";
+  }
+  return "resolve-link";
+}
+function applyResolvedSymlinkHop(params) {
+  if (!isPathInside(params.rootCanonicalPath, params.linkCanonical)) {
+    throw symlinkEscapeError({
+      boundaryLabel: params.boundaryLabel,
+      rootCanonicalPath: params.rootCanonicalPath,
+      symlinkPath: params.state.lexicalCursor
+    });
+  }
+  params.state.canonicalCursor = params.linkCanonical;
+  params.state.lexicalCursor = params.linkCanonical;
+}
+function readLexicalStat(params) {
+  try {
+    const stat = params.read(params.state.lexicalCursor);
+    if (isPromiseLike(stat)) {
+      return Promise.resolve(stat).catch(
+        (error) => handleLexicalStatReadFailure({ ...params, error })
+      );
+    }
+    return stat;
+  } catch (error) {
+    return handleLexicalStatReadFailure({ ...params, error });
+  }
+}
+function resolveAndApplySymlinkHop(params) {
+  const linkCanonical = params.resolveLinkCanonical(params.state.lexicalCursor);
+  if (isPromiseLike(linkCanonical)) {
+    return Promise.resolve(linkCanonical).then(
+      (value) => applyResolvedSymlinkHop({
+        state: params.state,
+        linkCanonical: value,
+        rootCanonicalPath: params.rootCanonicalPath,
+        boundaryLabel: params.boundaryLabel
+      })
+    );
+  }
+  applyResolvedSymlinkHop({
+    state: params.state,
+    linkCanonical,
+    rootCanonicalPath: params.rootCanonicalPath,
+    boundaryLabel: params.boundaryLabel
+  });
+}
+function resolveBoundaryPathLexicalSync(params) {
+  const state = createLexicalTraversalState(params);
+  for (let idx = 0; idx < state.segments.length; idx += 1) {
+    const segment = state.segments[idx] ?? "";
+    const isLast = idx === state.segments.length - 1;
+    state.lexicalCursor = path12.join(state.lexicalCursor, segment);
+    const maybeStat = readLexicalStat({
+      state,
+      missingFromIndex: idx,
+      rootCanonicalPath: params.rootCanonicalPath,
+      resolveParams: params.params,
+      absolutePath: params.absolutePath,
+      read: (cursor) => fs5.lstatSync(cursor)
+    });
+    if (isPromiseLike(maybeStat)) {
+      throw new Error("Unexpected async lexical stat");
+    }
+    const stat = maybeStat;
+    if (!stat) {
+      break;
+    }
+    const disposition = handleLexicalStatDisposition({
+      state,
+      isSymbolicLink: stat.isSymbolicLink(),
+      segment,
+      isLast,
+      rootCanonicalPath: params.rootCanonicalPath,
+      resolveParams: params.params,
+      absolutePath: params.absolutePath
+    });
+    if (disposition === "continue") {
+      continue;
+    }
+    if (disposition === "break") {
+      break;
+    }
+    const maybeApplied = resolveAndApplySymlinkHop({
+      state,
+      rootCanonicalPath: params.rootCanonicalPath,
+      boundaryLabel: params.params.boundaryLabel,
+      resolveLinkCanonical: (cursor) => resolveSymlinkHopPathSync(cursor)
+    });
+    if (isPromiseLike(maybeApplied)) {
+      throw new Error("Unexpected async symlink resolution");
+    }
+  }
+  const kind = getPathKindSync(params.absolutePath, state.preserveFinalSymlink);
+  return finalizeLexicalResolution({
+    ...params,
+    state,
+    kind
+  });
+}
+function resolveCanonicalOutsideLexicalPath(params) {
+  return params.outsideLexicalCanonicalPath ?? params.absolutePath;
+}
+function createBoundaryResolutionContext(params) {
+  const lexicalInside = isPathInside(params.rootPath, params.absolutePath);
+  const canonicalOutsideLexicalPath = resolveCanonicalOutsideLexicalPath({
+    absolutePath: params.absolutePath,
+    outsideLexicalCanonicalPath: params.outsideLexicalCanonicalPath
+  });
+  assertLexicalBoundaryOrCanonicalAlias({
+    skipLexicalRootCheck: params.resolveParams.skipLexicalRootCheck,
+    lexicalInside,
+    canonicalOutsideLexicalPath,
+    rootCanonicalPath: params.rootCanonicalPath,
+    boundaryLabel: params.resolveParams.boundaryLabel,
+    rootPath: params.rootPath,
+    absolutePath: params.absolutePath
+  });
+  return {
+    rootPath: params.rootPath,
+    absolutePath: params.absolutePath,
+    rootCanonicalPath: params.rootCanonicalPath,
+    lexicalInside,
+    canonicalOutsideLexicalPath
+  };
+}
+function resolveOutsideBoundaryPathSync(params) {
+  if (params.context.lexicalInside) {
+    return null;
+  }
+  const kind = getPathKindSync(params.context.absolutePath, false);
+  return buildOutsideBoundaryPathFromContext({
+    boundaryLabel: params.boundaryLabel,
+    context: params.context,
+    kind
+  });
+}
+function buildOutsideBoundaryPathFromContext(params) {
+  return buildOutsideLexicalBoundaryPath({
+    boundaryLabel: params.boundaryLabel,
+    rootCanonicalPath: params.context.rootCanonicalPath,
+    absolutePath: params.context.absolutePath,
+    canonicalOutsideLexicalPath: params.context.canonicalOutsideLexicalPath,
+    rootPath: params.context.rootPath,
+    kind: params.kind
+  });
+}
+function resolveOutsideLexicalCanonicalPathSync(params) {
+  if (isPathInside(params.rootPath, params.absolutePath)) {
+    return void 0;
+  }
+  return resolvePathViaExistingAncestorSync(params.absolutePath);
+}
+function buildOutsideLexicalBoundaryPath(params) {
+  assertInsideBoundary({
+    boundaryLabel: params.boundaryLabel,
+    rootCanonicalPath: params.rootCanonicalPath,
+    candidatePath: params.canonicalOutsideLexicalPath,
+    absolutePath: params.absolutePath
+  });
+  return buildResolvedBoundaryPath({
+    absolutePath: params.absolutePath,
+    canonicalPath: params.canonicalOutsideLexicalPath,
+    rootPath: params.rootPath,
+    rootCanonicalPath: params.rootCanonicalPath,
+    kind: params.kind
+  });
+}
+function assertLexicalBoundaryOrCanonicalAlias(params) {
+  if (params.skipLexicalRootCheck || params.lexicalInside) {
+    return;
+  }
+  if (isPathInside(params.rootCanonicalPath, params.canonicalOutsideLexicalPath)) {
+    return;
+  }
+  throw pathEscapeError({
+    boundaryLabel: params.boundaryLabel,
+    rootPath: params.rootPath,
+    absolutePath: params.absolutePath
+  });
+}
+function buildResolvedBoundaryPath(params) {
+  return {
+    absolutePath: params.absolutePath,
+    canonicalPath: params.canonicalPath,
+    rootPath: params.rootPath,
+    rootCanonicalPath: params.rootCanonicalPath,
+    relativePath: relativeInsideRoot(params.rootCanonicalPath, params.canonicalPath),
+    exists: params.kind.exists,
+    kind: params.kind.kind
+  };
+}
+function resolvePathViaExistingAncestorSync(targetPath) {
+  const normalized = path12.resolve(targetPath);
+  let cursor = normalized;
+  const missingSuffix = [];
+  while (!isFilesystemRoot(cursor) && !fs5.existsSync(cursor)) {
+    missingSuffix.unshift(path12.basename(cursor));
+    const parent = path12.dirname(cursor);
+    if (parent === cursor) {
+      break;
+    }
+    cursor = parent;
+  }
+  if (!fs5.existsSync(cursor)) {
+    return normalized;
+  }
+  try {
+    const resolvedAncestor = path12.resolve(fs5.realpathSync(cursor));
+    if (missingSuffix.length === 0) {
+      return resolvedAncestor;
+    }
+    return path12.resolve(resolvedAncestor, ...missingSuffix);
+  } catch {
+    return normalized;
+  }
+}
+function getPathKindSync(absolutePath, preserveFinalSymlink) {
+  try {
+    const stat = preserveFinalSymlink ? fs5.lstatSync(absolutePath) : fs5.statSync(absolutePath);
+    return { exists: true, kind: toResolvedKind(stat) };
+  } catch (error) {
+    if (isNotFoundPathError(error)) {
+      return { exists: false, kind: "missing" };
+    }
+    throw error;
+  }
+}
+function toResolvedKind(stat) {
+  if (stat.isFile()) {
+    return "file";
+  }
+  if (stat.isDirectory()) {
+    return "directory";
+  }
+  if (stat.isSymbolicLink()) {
+    return "symlink";
+  }
+  return "other";
+}
+function relativeInsideRoot(rootPath, targetPath) {
+  const relative = path12.relative(path12.resolve(rootPath), path12.resolve(targetPath));
+  if (!relative || relative === ".") {
+    return "";
+  }
+  if (relative.startsWith("..") || path12.isAbsolute(relative)) {
+    return "";
+  }
+  return relative;
+}
+function assertInsideBoundary(params) {
+  if (isPathInside(params.rootCanonicalPath, params.candidatePath)) {
+    return;
+  }
+  throw new Error(
+    `Path resolves outside ${params.boundaryLabel} (${shortPath(params.rootCanonicalPath)}): ${shortPath(params.absolutePath)}`
+  );
+}
+function pathEscapeError(params) {
+  return new Error(
+    `Path escapes ${params.boundaryLabel} (${shortPath(params.rootPath)}): ${shortPath(params.absolutePath)}`
+  );
+}
+function symlinkEscapeError(params) {
+  return new Error(
+    `Symlink escapes ${params.boundaryLabel} (${shortPath(params.rootCanonicalPath)}): ${shortPath(params.symlinkPath)}`
+  );
+}
+function shortPath(value) {
+  const home = os4.homedir();
+  if (value.startsWith(home)) {
+    return `~${value.slice(home.length)}`;
+  }
+  return value;
+}
+function isFilesystemRoot(candidate) {
+  return path12.parse(candidate).root === candidate;
+}
+function resolveSymlinkHopPathSync(symlinkPath) {
+  try {
+    return path12.resolve(fs5.realpathSync(symlinkPath));
+  } catch (error) {
+    if (!isNotFoundPathError(error)) {
+      throw error;
+    }
+    const linkTarget = fs5.readlinkSync(symlinkPath);
+    const linkAbsolute = path12.resolve(path12.dirname(symlinkPath), linkTarget);
+    return resolvePathViaExistingAncestorSync(linkAbsolute);
+  }
+}
+var BOUNDARY_PATH_ALIAS_POLICIES;
+var init_boundary_path = __esm({
+  "vendor/openclaw/src/infra/boundary-path.ts"() {
+    "use strict";
+    init_path_guards();
+    BOUNDARY_PATH_ALIAS_POLICIES = {
+      strict: Object.freeze({
+        allowFinalSymlinkForUnlink: false,
+        allowFinalHardlinkForUnlink: false
+      }),
+      unlinkTarget: Object.freeze({
+        allowFinalSymlinkForUnlink: true,
+        allowFinalHardlinkForUnlink: true
+      })
+    };
+  }
+});
+
+// vendor/openclaw/src/infra/file-identity.ts
+function isZero(value) {
+  return value === 0 || value === 0n;
+}
+function sameFileIdentity(left, right, platform = process.platform) {
+  if (left.ino !== right.ino) {
+    return false;
+  }
+  if (left.dev === right.dev) {
+    return true;
+  }
+  return platform === "win32" && (isZero(left.dev) || isZero(right.dev));
+}
+var init_file_identity = __esm({
+  "vendor/openclaw/src/infra/file-identity.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/infra/safe-open-sync.ts
+import fs6 from "node:fs";
+function isExpectedPathError(error) {
+  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+  return code === "ENOENT" || code === "ENOTDIR" || code === "ELOOP";
+}
+function sameFileIdentity2(left, right) {
+  return sameFileIdentity(left, right);
+}
+function openVerifiedFileSync(params) {
+  const ioFs = params.ioFs ?? fs6;
+  const allowedType = params.allowedType ?? "file";
+  const openReadFlags = ioFs.constants.O_RDONLY | (typeof ioFs.constants.O_NOFOLLOW === "number" ? ioFs.constants.O_NOFOLLOW : 0);
+  let fd = null;
+  try {
+    if (params.rejectPathSymlink) {
+      const candidateStat = ioFs.lstatSync(params.filePath);
+      if (candidateStat.isSymbolicLink()) {
+        return { ok: false, reason: "validation" };
+      }
+    }
+    const realPath = params.resolvedPath ?? ioFs.realpathSync(params.filePath);
+    const preOpenStat = ioFs.lstatSync(realPath);
+    if (!isAllowedType(preOpenStat, allowedType)) {
+      return { ok: false, reason: "validation" };
+    }
+    if (params.rejectHardlinks && preOpenStat.isFile() && preOpenStat.nlink > 1) {
+      return { ok: false, reason: "validation" };
+    }
+    if (params.maxBytes !== void 0 && preOpenStat.isFile() && preOpenStat.size > params.maxBytes) {
+      return { ok: false, reason: "validation" };
+    }
+    fd = ioFs.openSync(realPath, openReadFlags);
+    const openedStat = ioFs.fstatSync(fd);
+    if (!isAllowedType(openedStat, allowedType)) {
+      return { ok: false, reason: "validation" };
+    }
+    if (params.rejectHardlinks && openedStat.isFile() && openedStat.nlink > 1) {
+      return { ok: false, reason: "validation" };
+    }
+    if (params.maxBytes !== void 0 && openedStat.isFile() && openedStat.size > params.maxBytes) {
+      return { ok: false, reason: "validation" };
+    }
+    if (!sameFileIdentity2(preOpenStat, openedStat)) {
+      return { ok: false, reason: "validation" };
+    }
+    const opened = { ok: true, path: realPath, fd, stat: openedStat };
+    fd = null;
+    return opened;
+  } catch (error) {
+    if (isExpectedPathError(error)) {
+      return { ok: false, reason: "path", error };
+    }
+    return { ok: false, reason: "io", error };
+  } finally {
+    if (fd !== null) {
+      ioFs.closeSync(fd);
+    }
+  }
+}
+function isAllowedType(stat, allowedType) {
+  if (allowedType === "directory") {
+    return stat.isDirectory();
+  }
+  return stat.isFile();
+}
+var init_safe_open_sync = __esm({
+  "vendor/openclaw/src/infra/safe-open-sync.ts"() {
+    "use strict";
+    init_file_identity();
+  }
+});
+
+// vendor/openclaw/src/infra/boundary-file-read.ts
+import fs7 from "node:fs";
+import path13 from "node:path";
+function openBoundaryFileSync(params) {
+  const ioFs = params.ioFs ?? fs7;
+  const resolved = resolveBoundaryFilePathGeneric({
+    absolutePath: params.absolutePath,
+    resolve: (absolutePath) => resolveBoundaryPathSync({
+      absolutePath,
+      rootPath: params.rootPath,
+      rootCanonicalPath: params.rootRealPath,
+      boundaryLabel: params.boundaryLabel,
+      skipLexicalRootCheck: params.skipLexicalRootCheck
+    })
+  });
+  if (resolved instanceof Promise) {
+    return toBoundaryValidationError(new Error("Unexpected async boundary resolution"));
+  }
+  return finalizeBoundaryFileOpen({
+    resolved,
+    maxBytes: params.maxBytes,
+    rejectHardlinks: params.rejectHardlinks,
+    allowedType: params.allowedType,
+    ioFs
+  });
+}
+function matchBoundaryFileOpenFailure(failure, handlers) {
+  switch (failure.reason) {
+    case "path":
+      return handlers.path ? handlers.path(failure) : handlers.fallback(failure);
+    case "validation":
+      return handlers.validation ? handlers.validation(failure) : handlers.fallback(failure);
+    case "io":
+      return handlers.io ? handlers.io(failure) : handlers.fallback(failure);
+  }
+  return handlers.fallback(failure);
+}
+function openBoundaryFileResolved(params) {
+  const opened = openVerifiedFileSync({
+    filePath: params.absolutePath,
+    resolvedPath: params.resolvedPath,
+    rejectHardlinks: params.rejectHardlinks ?? true,
+    maxBytes: params.maxBytes,
+    allowedType: params.allowedType,
+    ioFs: params.ioFs
+  });
+  if (!opened.ok) {
+    return opened;
+  }
+  return {
+    ok: true,
+    path: opened.path,
+    fd: opened.fd,
+    stat: opened.stat,
+    rootRealPath: params.rootRealPath
+  };
+}
+function finalizeBoundaryFileOpen(params) {
+  if ("ok" in params.resolved) {
+    return params.resolved;
+  }
+  return openBoundaryFileResolved({
+    absolutePath: params.resolved.absolutePath,
+    resolvedPath: params.resolved.resolvedPath,
+    rootRealPath: params.resolved.rootRealPath,
+    maxBytes: params.maxBytes,
+    rejectHardlinks: params.rejectHardlinks,
+    allowedType: params.allowedType,
+    ioFs: params.ioFs
+  });
+}
+function toBoundaryValidationError(error) {
+  return { ok: false, reason: "validation", error };
+}
+function mapResolvedBoundaryPath(absolutePath, resolved) {
+  return {
+    absolutePath,
+    resolvedPath: resolved.canonicalPath,
+    rootRealPath: resolved.rootCanonicalPath
+  };
+}
+function resolveBoundaryFilePathGeneric(params) {
+  const absolutePath = path13.resolve(params.absolutePath);
+  try {
+    const resolved = params.resolve(absolutePath);
+    if (resolved instanceof Promise) {
+      return resolved.then((value) => mapResolvedBoundaryPath(absolutePath, value)).catch((error) => toBoundaryValidationError(error));
+    }
+    return mapResolvedBoundaryPath(absolutePath, resolved);
+  } catch (error) {
+    return toBoundaryValidationError(error);
+  }
+}
+var init_boundary_file_read = __esm({
+  "vendor/openclaw/src/infra/boundary-file-read.ts"() {
+    "use strict";
+    init_boundary_path();
+    init_safe_open_sync();
   }
 });
 
@@ -4150,45 +5528,3857 @@ var require_lib = __commonJS({
   "vendor/openclaw/node_modules/json5/lib/index.js"(exports, module) {
     var parse = require_parse();
     var stringify = require_stringify();
-    var JSON52 = {
+    var JSON53 = {
       parse,
       stringify
     };
-    module.exports = JSON52;
+    module.exports = JSON53;
+  }
+});
+
+// vendor/openclaw/src/compat/legacy-names.ts
+var PROJECT_NAME, MANIFEST_KEY;
+var init_legacy_names = __esm({
+  "vendor/openclaw/src/compat/legacy-names.ts"() {
+    "use strict";
+    PROJECT_NAME = "openclaw";
+    MANIFEST_KEY = PROJECT_NAME;
+  }
+});
+
+// vendor/openclaw/src/infra/prototype-keys.ts
+function isBlockedObjectKey(key) {
+  return BLOCKED_OBJECT_KEYS.has(key);
+}
+var BLOCKED_OBJECT_KEYS;
+var init_prototype_keys = __esm({
+  "vendor/openclaw/src/infra/prototype-keys.ts"() {
+    "use strict";
+    BLOCKED_OBJECT_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+  }
+});
+
+// vendor/openclaw/src/model-catalog/authority.ts
+var init_authority = __esm({
+  "vendor/openclaw/src/model-catalog/authority.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/model-catalog/refs.ts
+function normalizeModelCatalogProviderId(provider) {
+  return normalizeLowercaseStringOrEmpty(provider);
+}
+var init_refs = __esm({
+  "vendor/openclaw/src/model-catalog/refs.ts"() {
+    "use strict";
+    init_string_coerce();
+  }
+});
+
+// vendor/openclaw/src/model-catalog/normalize.ts
+function normalizeSafeRecordKey(value) {
+  const key = normalizeOptionalString(value) ?? "";
+  return key && !isBlockedObjectKey(key) ? key : "";
+}
+function normalizeOwnedProviderSet(providers) {
+  const normalized = /* @__PURE__ */ new Set();
+  for (const provider of providers) {
+    const providerId = normalizeModelCatalogProviderId(provider);
+    if (providerId) {
+      normalized.add(providerId);
+    }
+  }
+  return normalized;
+}
+function normalizeStringMap(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = {};
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    const key = normalizeSafeRecordKey(rawKey);
+    const mapValue = normalizeOptionalString(rawValue) ?? "";
+    if (key && mapValue) {
+      normalized[key] = mapValue;
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeModelCatalogApi(value) {
+  const api = normalizeOptionalString(value) ?? "";
+  return MODEL_CATALOG_APIS.has(api) ? api : void 0;
+}
+function normalizeModelCatalogInputs(value) {
+  const inputs = normalizeTrimmedStringList(value).filter(
+    (input) => MODEL_CATALOG_INPUTS.has(input)
+  );
+  return inputs.length > 0 ? inputs : void 0;
+}
+function normalizeNonNegativeNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : void 0;
+}
+function normalizePositiveNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : void 0;
+}
+function normalizePositiveInteger(value) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : void 0;
+}
+function normalizeModelCatalogTieredCost(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry) || !Array.isArray(entry.range)) {
+      continue;
+    }
+    const input = normalizeNonNegativeNumber(entry.input);
+    const output = normalizeNonNegativeNumber(entry.output);
+    const cacheRead = normalizeNonNegativeNumber(entry.cacheRead);
+    const cacheWrite = normalizeNonNegativeNumber(entry.cacheWrite);
+    if (input === void 0 || output === void 0 || cacheRead === void 0 || cacheWrite === void 0 || entry.range.length < 1 || entry.range.length > 2) {
+      continue;
+    }
+    const rangeValues = entry.range.map((rangeValue) => normalizeNonNegativeNumber(rangeValue));
+    if (rangeValues.some((rangeValue) => rangeValue === void 0)) {
+      continue;
+    }
+    normalized.push({
+      input,
+      output,
+      cacheRead,
+      cacheWrite,
+      range: rangeValues.length === 1 ? [rangeValues[0]] : [rangeValues[0], rangeValues[1]]
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeModelCatalogCost(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const input = normalizeNonNegativeNumber(value.input);
+  const output = normalizeNonNegativeNumber(value.output);
+  const cacheRead = normalizeNonNegativeNumber(value.cacheRead);
+  const cacheWrite = normalizeNonNegativeNumber(value.cacheWrite);
+  const tieredPricing = normalizeModelCatalogTieredCost(value.tieredPricing);
+  const cost = {
+    ...input !== void 0 ? { input } : {},
+    ...output !== void 0 ? { output } : {},
+    ...cacheRead !== void 0 ? { cacheRead } : {},
+    ...cacheWrite !== void 0 ? { cacheWrite } : {},
+    ...tieredPricing ? { tieredPricing } : {}
+  };
+  return Object.keys(cost).length > 0 ? cost : void 0;
+}
+function normalizeModelCatalogCompat(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const compat = {};
+  const booleanFields = [
+    "supportsStore",
+    "supportsPromptCacheKey",
+    "supportsDeveloperRole",
+    "supportsReasoningEffort",
+    "supportsUsageInStreaming",
+    "supportsTools",
+    "supportsStrictMode",
+    "requiresStringContent",
+    "requiresToolResultName",
+    "requiresAssistantAfterToolResult",
+    "requiresThinkingAsText",
+    "nativeWebSearchTool",
+    "requiresMistralToolIds",
+    "requiresOpenAiAnthropicToolPayload"
+  ];
+  for (const field of booleanFields) {
+    if (typeof value[field] === "boolean") {
+      compat[field] = value[field];
+    }
+  }
+  const stringFields = ["toolSchemaProfile", "toolCallArgumentsEncoding"];
+  for (const field of stringFields) {
+    const normalized = normalizeOptionalString(value[field]) ?? "";
+    if (normalized) {
+      compat[field] = normalized;
+    }
+  }
+  const stringListFields = [
+    "visibleReasoningDetailTypes",
+    "supportedReasoningEfforts",
+    "unsupportedToolSchemaKeywords"
+  ];
+  for (const field of stringListFields) {
+    const normalized = normalizeTrimmedStringList(value[field]);
+    if (normalized.length > 0) {
+      compat[field] = normalized;
+    }
+  }
+  if (isRecord(value.reasoningEffortMap)) {
+    const reasoningEffortMap = Object.fromEntries(
+      Object.entries(value.reasoningEffortMap).map(([key, mapped]) => [key.trim(), typeof mapped === "string" ? mapped.trim() : ""]).filter(([key, mapped]) => key.length > 0 && mapped.length > 0)
+    );
+    if (Object.keys(reasoningEffortMap).length > 0) {
+      compat.reasoningEffortMap = reasoningEffortMap;
+    }
+  }
+  const maxTokensField = normalizeOptionalString(value.maxTokensField) ?? "";
+  if (maxTokensField === "max_completion_tokens" || maxTokensField === "max_tokens") {
+    compat.maxTokensField = maxTokensField;
+  }
+  const thinkingFormat = normalizeOptionalString(value.thinkingFormat) ?? "";
+  if (thinkingFormat === "openai" || thinkingFormat === "openrouter" || thinkingFormat === "deepseek" || thinkingFormat === "zai") {
+    compat.thinkingFormat = thinkingFormat;
+  }
+  return Object.keys(compat).length > 0 ? compat : void 0;
+}
+function normalizeModelCatalogStatus(value) {
+  const status = normalizeOptionalString(value) ?? "";
+  return MODEL_CATALOG_STATUSES.has(status) ? status : void 0;
+}
+function normalizeModelCatalogModel(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const id = normalizeOptionalString(value.id) ?? "";
+  if (!id) {
+    return void 0;
+  }
+  const name = normalizeOptionalString(value.name) ?? "";
+  const api = normalizeModelCatalogApi(value.api);
+  const baseUrl = normalizeOptionalString(value.baseUrl) ?? "";
+  const headers = normalizeStringMap(value.headers);
+  const input = normalizeModelCatalogInputs(value.input);
+  const reasoning = typeof value.reasoning === "boolean" ? value.reasoning : void 0;
+  const contextWindow = normalizePositiveNumber(value.contextWindow);
+  const contextTokens = normalizePositiveInteger(value.contextTokens);
+  const maxTokens = normalizePositiveNumber(value.maxTokens);
+  const cost = normalizeModelCatalogCost(value.cost);
+  const compat = normalizeModelCatalogCompat(value.compat);
+  const status = normalizeModelCatalogStatus(value.status);
+  const statusReason = normalizeOptionalString(value.statusReason) ?? "";
+  const replaces = normalizeTrimmedStringList(value.replaces);
+  const replacedBy = normalizeOptionalString(value.replacedBy) ?? "";
+  const tags = normalizeTrimmedStringList(value.tags);
+  return {
+    id,
+    ...name ? { name } : {},
+    ...api ? { api } : {},
+    ...baseUrl ? { baseUrl } : {},
+    ...headers ? { headers } : {},
+    ...input ? { input } : {},
+    ...reasoning !== void 0 ? { reasoning } : {},
+    ...contextWindow !== void 0 ? { contextWindow } : {},
+    ...contextTokens !== void 0 ? { contextTokens } : {},
+    ...maxTokens !== void 0 ? { maxTokens } : {},
+    ...cost ? { cost } : {},
+    ...compat ? { compat } : {},
+    ...status ? { status } : {},
+    ...statusReason ? { statusReason } : {},
+    ...replaces.length > 0 ? { replaces } : {},
+    ...replacedBy ? { replacedBy } : {},
+    ...tags.length > 0 ? { tags } : {}
+  };
+}
+function normalizeModelCatalogProvider(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const models = Array.isArray(value.models) ? value.models.map((entry) => normalizeModelCatalogModel(entry)).filter((entry) => Boolean(entry)) : [];
+  if (models.length === 0) {
+    return void 0;
+  }
+  const baseUrl = normalizeOptionalString(value.baseUrl) ?? "";
+  const api = normalizeModelCatalogApi(value.api);
+  const headers = normalizeStringMap(value.headers);
+  return {
+    ...baseUrl ? { baseUrl } : {},
+    ...api ? { api } : {},
+    ...headers ? { headers } : {},
+    models
+  };
+}
+function normalizeModelCatalogProviders(value, ownedProviders) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const providers = {};
+  for (const [rawProviderId, rawProvider] of Object.entries(value)) {
+    const providerId = normalizeModelCatalogProviderId(rawProviderId);
+    if (!providerId || !ownedProviders.has(providerId)) {
+      continue;
+    }
+    const provider = normalizeModelCatalogProvider(rawProvider);
+    if (provider) {
+      providers[providerId] = provider;
+    }
+  }
+  return Object.keys(providers).length > 0 ? providers : void 0;
+}
+function normalizeModelCatalogAliases(value, ownedProviders) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const aliases = {};
+  for (const [rawAlias, rawTarget] of Object.entries(value)) {
+    const alias = normalizeModelCatalogProviderId(rawAlias);
+    if (!alias || !isRecord(rawTarget)) {
+      continue;
+    }
+    const provider = normalizeModelCatalogProviderId(
+      normalizeOptionalString(rawTarget.provider) ?? ""
+    );
+    if (!provider || !ownedProviders.has(provider)) {
+      continue;
+    }
+    const api = normalizeModelCatalogApi(rawTarget.api);
+    const baseUrl = normalizeOptionalString(rawTarget.baseUrl) ?? "";
+    aliases[alias] = {
+      provider,
+      ...api ? { api } : {},
+      ...baseUrl ? { baseUrl } : {}
+    };
+  }
+  return Object.keys(aliases).length > 0 ? aliases : void 0;
+}
+function normalizeModelCatalogSuppressions(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const suppressions = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const provider = normalizeModelCatalogProviderId(normalizeOptionalString(entry.provider) ?? "");
+    const model = normalizeOptionalString(entry.model) ?? "";
+    if (!provider || !model) {
+      continue;
+    }
+    const reason = normalizeOptionalString(entry.reason) ?? "";
+    const rawWhen = isRecord(entry.when) ? entry.when : void 0;
+    const baseUrlHosts = normalizeTrimmedStringList(rawWhen?.baseUrlHosts).map(
+      (host) => host.toLowerCase()
+    );
+    const providerConfigApiIn = normalizeTrimmedStringList(rawWhen?.providerConfigApiIn).map(
+      (api) => api.toLowerCase()
+    );
+    const when = baseUrlHosts.length > 0 || providerConfigApiIn.length > 0 ? {
+      ...baseUrlHosts.length > 0 ? { baseUrlHosts } : {},
+      ...providerConfigApiIn.length > 0 ? { providerConfigApiIn } : {}
+    } : void 0;
+    suppressions.push({
+      provider,
+      model,
+      ...reason ? { reason } : {},
+      ...when ? { when } : {}
+    });
+  }
+  return suppressions.length > 0 ? suppressions : void 0;
+}
+function normalizeModelCatalogDiscovery(value, ownedProviders) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const discovery = {};
+  for (const [rawProviderId, rawMode] of Object.entries(value)) {
+    const providerId = normalizeModelCatalogProviderId(rawProviderId);
+    const mode = normalizeOptionalString(rawMode) ?? "";
+    if (providerId && ownedProviders.has(providerId) && MODEL_CATALOG_DISCOVERY_MODES.has(mode)) {
+      discovery[providerId] = mode;
+    }
+  }
+  return Object.keys(discovery).length > 0 ? discovery : void 0;
+}
+function normalizeModelCatalog(value, params) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const ownedProviders = normalizeOwnedProviderSet(params.ownedProviders);
+  const providers = normalizeModelCatalogProviders(value.providers, ownedProviders);
+  const aliases = normalizeModelCatalogAliases(value.aliases, ownedProviders);
+  const suppressions = normalizeModelCatalogSuppressions(value.suppressions);
+  const discovery = normalizeModelCatalogDiscovery(value.discovery, ownedProviders);
+  const catalog = {
+    ...providers ? { providers } : {},
+    ...aliases ? { aliases } : {},
+    ...suppressions ? { suppressions } : {},
+    ...discovery ? { discovery } : {}
+  };
+  return Object.keys(catalog).length > 0 ? catalog : void 0;
+}
+var MODEL_CATALOG_INPUTS, MODEL_CATALOG_DISCOVERY_MODES, MODEL_CATALOG_STATUSES, MODEL_CATALOG_APIS;
+var init_normalize = __esm({
+  "vendor/openclaw/src/model-catalog/normalize.ts"() {
+    "use strict";
+    init_types_models();
+    init_prototype_keys();
+    init_string_coerce();
+    init_string_normalization();
+    init_utils();
+    init_refs();
+    MODEL_CATALOG_INPUTS = /* @__PURE__ */ new Set(["text", "image", "document"]);
+    MODEL_CATALOG_DISCOVERY_MODES = /* @__PURE__ */ new Set(["static", "refreshable", "runtime"]);
+    MODEL_CATALOG_STATUSES = /* @__PURE__ */ new Set(["available", "preview", "deprecated", "disabled"]);
+    MODEL_CATALOG_APIS = new Set(MODEL_APIS);
+  }
+});
+
+// vendor/openclaw/src/infra/clawhub-spec.ts
+function parseClawHubPluginSpec(raw) {
+  const trimmed = raw.trim();
+  if (!normalizeLowercaseStringOrEmpty(trimmed).startsWith("clawhub:")) {
+    return null;
+  }
+  const spec = trimmed.slice("clawhub:".length).trim();
+  if (!spec) {
+    return null;
+  }
+  const atIndex = spec.lastIndexOf("@");
+  if (atIndex <= 0) {
+    return { name: spec };
+  }
+  if (atIndex >= spec.length - 1) {
+    return null;
+  }
+  const name = spec.slice(0, atIndex).trim();
+  const version = spec.slice(atIndex + 1).trim();
+  if (!name || !version) {
+    return null;
+  }
+  return {
+    name,
+    version
+  };
+}
+var init_clawhub_spec = __esm({
+  "vendor/openclaw/src/infra/clawhub-spec.ts"() {
+    "use strict";
+    init_string_coerce();
+  }
+});
+
+// vendor/openclaw/src/infra/npm-registry-spec.ts
+function parseRegistryNpmSpecInternal(rawSpec) {
+  const spec = rawSpec.trim();
+  if (!spec) {
+    return { ok: false, error: "missing npm spec" };
+  }
+  if (/\s/.test(spec)) {
+    return { ok: false, error: "unsupported npm spec: whitespace is not allowed" };
+  }
+  if (spec.includes("://")) {
+    return { ok: false, error: "unsupported npm spec: URLs are not allowed" };
+  }
+  if (spec.includes("#")) {
+    return { ok: false, error: "unsupported npm spec: git refs are not allowed" };
+  }
+  if (spec.includes(":")) {
+    return { ok: false, error: "unsupported npm spec: protocol specs are not allowed" };
+  }
+  const at = spec.lastIndexOf("@");
+  const hasSelector = at > 0;
+  const name = hasSelector ? spec.slice(0, at) : spec;
+  const selector = hasSelector ? spec.slice(at + 1) : "";
+  const unscopedName = /^[a-z0-9][a-z0-9-._~]*$/;
+  const scopedName = /^@[a-z0-9][a-z0-9-._~]*\/[a-z0-9][a-z0-9-._~]*$/;
+  const isValidName = name.startsWith("@") ? scopedName.test(name) : unscopedName.test(name);
+  if (!isValidName) {
+    return {
+      ok: false,
+      error: "unsupported npm spec: expected <name> or <name>@<version> from the npm registry"
+    };
+  }
+  if (!hasSelector) {
+    return {
+      ok: true,
+      parsed: {
+        name,
+        raw: spec,
+        selectorKind: "none",
+        selectorIsPrerelease: false
+      }
+    };
+  }
+  if (!selector) {
+    return { ok: false, error: "unsupported npm spec: missing version/tag after @" };
+  }
+  if (/[\\/]/.test(selector)) {
+    return { ok: false, error: "unsupported npm spec: invalid version/tag" };
+  }
+  const exactVersionMatch = EXACT_SEMVER_VERSION_RE.exec(selector);
+  if (exactVersionMatch) {
+    return {
+      ok: true,
+      parsed: {
+        name,
+        raw: spec,
+        selector,
+        selectorKind: "exact-version",
+        selectorIsPrerelease: Boolean(exactVersionMatch[4])
+      }
+    };
+  }
+  if (!DIST_TAG_RE.test(selector)) {
+    return {
+      ok: false,
+      error: "unsupported npm spec: use an exact version or dist-tag (ranges are not allowed)"
+    };
+  }
+  return {
+    ok: true,
+    parsed: {
+      name,
+      raw: spec,
+      selector,
+      selectorKind: "tag",
+      selectorIsPrerelease: false
+    }
+  };
+}
+function parseRegistryNpmSpec(rawSpec) {
+  const parsed = parseRegistryNpmSpecInternal(rawSpec);
+  return parsed.ok ? parsed.parsed : null;
+}
+var EXACT_SEMVER_VERSION_RE, DIST_TAG_RE;
+var init_npm_registry_spec = __esm({
+  "vendor/openclaw/src/infra/npm-registry-spec.ts"() {
+    "use strict";
+    init_string_coerce();
+    EXACT_SEMVER_VERSION_RE = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
+    DIST_TAG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+  }
+});
+
+// vendor/openclaw/src/model-catalog/provider-index/normalize.ts
+var init_normalize2 = __esm({
+  "vendor/openclaw/src/model-catalog/provider-index/normalize.ts"() {
+    "use strict";
+    init_clawhub_spec();
+    init_npm_registry_spec();
+    init_prototype_keys();
+    init_string_coerce();
+    init_string_normalization();
+    init_utils();
+    init_normalize();
+    init_refs();
+  }
+});
+
+// vendor/openclaw/src/model-catalog/provider-index/openclaw-provider-index.ts
+var init_openclaw_provider_index = __esm({
+  "vendor/openclaw/src/model-catalog/provider-index/openclaw-provider-index.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/model-catalog/provider-index/load.ts
+var init_load = __esm({
+  "vendor/openclaw/src/model-catalog/provider-index/load.ts"() {
+    "use strict";
+    init_normalize2();
+    init_openclaw_provider_index();
+  }
+});
+
+// vendor/openclaw/src/model-catalog/provider-index/index.ts
+var init_provider_index = __esm({
+  "vendor/openclaw/src/model-catalog/provider-index/index.ts"() {
+    "use strict";
+    init_load();
+    init_normalize2();
+  }
+});
+
+// vendor/openclaw/src/model-catalog/manifest-planner.ts
+var init_manifest_planner = __esm({
+  "vendor/openclaw/src/model-catalog/manifest-planner.ts"() {
+    "use strict";
+    init_string_coerce();
+    init_normalize();
+    init_refs();
+  }
+});
+
+// vendor/openclaw/src/model-catalog/provider-index-planner.ts
+var init_provider_index_planner = __esm({
+  "vendor/openclaw/src/model-catalog/provider-index-planner.ts"() {
+    "use strict";
+    init_normalize();
+    init_refs();
+  }
+});
+
+// vendor/openclaw/src/model-catalog/index.ts
+var init_model_catalog = __esm({
+  "vendor/openclaw/src/model-catalog/index.ts"() {
+    "use strict";
+    init_authority();
+    init_refs();
+    init_normalize();
+    init_provider_index();
+    init_manifest_planner();
+    init_provider_index_planner();
+  }
+});
+
+// vendor/openclaw/src/utils/parse-json-compat.ts
+function parseJsonWithJson5Fallback(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return import_json5.default.parse(raw);
+  }
+}
+var import_json5;
+var init_parse_json_compat = __esm({
+  "vendor/openclaw/src/utils/parse-json-compat.ts"() {
+    "use strict";
+    import_json5 = __toESM(require_lib(), 1);
+  }
+});
+
+// vendor/openclaw/src/plugins/manifest-command-aliases.ts
+function normalizeManifestCommandAliases(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (typeof entry === "string") {
+      const name2 = normalizeOptionalString(entry) ?? "";
+      if (name2) {
+        normalized.push({ name: name2 });
+      }
+      continue;
+    }
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const name = normalizeOptionalString(entry.name) ?? "";
+    if (!name) {
+      continue;
+    }
+    const kind = entry.kind === "runtime-slash" ? entry.kind : void 0;
+    const cliCommand = normalizeOptionalString(entry.cliCommand) ?? "";
+    normalized.push({
+      name,
+      ...kind ? { kind } : {},
+      ...cliCommand ? { cliCommand } : {}
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+var init_manifest_command_aliases = __esm({
+  "vendor/openclaw/src/plugins/manifest-command-aliases.ts"() {
+    "use strict";
+    init_string_coerce();
+    init_utils();
+  }
+});
+
+// vendor/openclaw/src/plugins/manifest.ts
+import fs8 from "node:fs";
+import path14 from "node:path";
+function normalizeStringListRecord(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = /* @__PURE__ */ Object.create(null);
+  for (const [key, rawValues] of Object.entries(value)) {
+    const providerId = normalizeOptionalString(key) ?? "";
+    if (!providerId || isBlockedObjectKey(providerId)) {
+      continue;
+    }
+    const values = normalizeTrimmedStringList(rawValues);
+    if (values.length === 0) {
+      continue;
+    }
+    normalized[providerId] = values;
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeStringRecord(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = /* @__PURE__ */ Object.create(null);
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    const key = normalizeOptionalString(rawKey) ?? "";
+    const value2 = normalizeOptionalString(rawValue) ?? "";
+    if (!key || isBlockedObjectKey(key) || !value2) {
+      continue;
+    }
+    normalized[key] = value2;
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeMediaUnderstandingCapabilityRecord(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = {};
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    if (!MEDIA_UNDERSTANDING_CAPABILITIES.has(rawKey)) {
+      continue;
+    }
+    const model = normalizeOptionalString(rawValue);
+    if (model) {
+      normalized[rawKey] = model;
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeMediaUnderstandingPriorityRecord(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = {};
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    if (!MEDIA_UNDERSTANDING_CAPABILITIES.has(rawKey) || typeof rawValue !== "number" || !Number.isFinite(rawValue)) {
+      continue;
+    }
+    normalized[rawKey] = rawValue;
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeMediaUnderstandingCapabilities(value) {
+  const values = normalizeTrimmedStringList(value).filter(
+    (entry) => MEDIA_UNDERSTANDING_CAPABILITIES.has(entry)
+  );
+  return values.length > 0 ? values : void 0;
+}
+function normalizeMediaUnderstandingNativeDocumentInputs(value) {
+  const values = normalizeTrimmedStringList(value).filter((entry) => entry === "pdf");
+  return values.length > 0 ? values : void 0;
+}
+function normalizeMediaUnderstandingProviderMetadata(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = /* @__PURE__ */ Object.create(null);
+  for (const [rawProviderId, rawMetadata] of Object.entries(value)) {
+    const providerId = normalizeOptionalString(rawProviderId) ?? "";
+    if (!providerId || isBlockedObjectKey(providerId) || !isRecord(rawMetadata)) {
+      continue;
+    }
+    const capabilities = normalizeMediaUnderstandingCapabilities(rawMetadata.capabilities);
+    const defaultModels = normalizeMediaUnderstandingCapabilityRecord(rawMetadata.defaultModels);
+    const autoPriority = normalizeMediaUnderstandingPriorityRecord(rawMetadata.autoPriority);
+    const nativeDocumentInputs = normalizeMediaUnderstandingNativeDocumentInputs(
+      rawMetadata.nativeDocumentInputs
+    );
+    const metadata = {
+      ...capabilities ? { capabilities } : {},
+      ...defaultModels ? { defaultModels } : {},
+      ...autoPriority ? { autoPriority } : {},
+      ...nativeDocumentInputs ? { nativeDocumentInputs } : {}
+    };
+    if (Object.keys(metadata).length > 0) {
+      normalized[providerId] = metadata;
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeProviderBaseUrlGuard(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const provider = normalizeOptionalString(value.provider);
+  const allowedBaseUrls = normalizeTrimmedStringList(value.allowedBaseUrls);
+  if (!provider || allowedBaseUrls.length === 0) {
+    return void 0;
+  }
+  const defaultBaseUrl = normalizeOptionalString(value.defaultBaseUrl);
+  return {
+    provider,
+    ...defaultBaseUrl ? { defaultBaseUrl } : {},
+    allowedBaseUrls
+  };
+}
+function normalizeCapabilityProviderAuthSignals(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const signals = [];
+  for (const rawSignal of value) {
+    if (!isRecord(rawSignal)) {
+      continue;
+    }
+    const provider = normalizeOptionalString(rawSignal.provider);
+    if (!provider) {
+      continue;
+    }
+    const providerBaseUrl = normalizeProviderBaseUrlGuard(rawSignal.providerBaseUrl);
+    signals.push({
+      provider,
+      ...providerBaseUrl ? { providerBaseUrl } : {}
+    });
+  }
+  return signals.length > 0 ? signals : void 0;
+}
+function normalizeCapabilityProviderModeConfigSignal(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const path30 = normalizeOptionalString(value.path);
+  const defaultValue = normalizeOptionalString(value.default);
+  const allowed = normalizeTrimmedStringList(value.allowed);
+  const disallowed = normalizeTrimmedStringList(value.disallowed);
+  const signal = {
+    ...path30 ? { path: path30 } : {},
+    ...defaultValue ? { default: defaultValue } : {},
+    ...allowed.length > 0 ? { allowed } : {},
+    ...disallowed.length > 0 ? { disallowed } : {}
+  };
+  return Object.keys(signal).length > 0 ? signal : void 0;
+}
+function normalizeCapabilityProviderConfigSignals(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const signals = [];
+  for (const rawSignal of value) {
+    if (!isRecord(rawSignal)) {
+      continue;
+    }
+    const rootPath = normalizeOptionalString(rawSignal.rootPath);
+    if (!rootPath) {
+      continue;
+    }
+    const overlayPath = normalizeOptionalString(rawSignal.overlayPath);
+    const required = normalizeTrimmedStringList(rawSignal.required);
+    const requiredAny = normalizeTrimmedStringList(rawSignal.requiredAny);
+    const mode = normalizeCapabilityProviderModeConfigSignal(rawSignal.mode);
+    const signal = {
+      rootPath,
+      ...overlayPath ? { overlayPath } : {},
+      ...required.length > 0 ? { required } : {},
+      ...requiredAny.length > 0 ? { requiredAny } : {},
+      ...mode ? { mode } : {}
+    };
+    if (required.length > 0 || requiredAny.length > 0 || mode) {
+      signals.push(signal);
+    }
+  }
+  return signals.length > 0 ? signals : void 0;
+}
+function normalizeCapabilityProviderMetadata(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = /* @__PURE__ */ Object.create(null);
+  for (const [rawProviderId, rawMetadata] of Object.entries(value)) {
+    const providerId = normalizeOptionalString(rawProviderId) ?? "";
+    if (!providerId || isBlockedObjectKey(providerId) || !isRecord(rawMetadata)) {
+      continue;
+    }
+    const aliases = normalizeTrimmedStringList(rawMetadata.aliases);
+    const authProviders = normalizeTrimmedStringList(rawMetadata.authProviders);
+    const authSignals = normalizeCapabilityProviderAuthSignals(rawMetadata.authSignals);
+    const configSignals = normalizeCapabilityProviderConfigSignals(rawMetadata.configSignals);
+    const metadata = {
+      ...aliases.length > 0 ? { aliases } : {},
+      ...authProviders.length > 0 ? { authProviders } : {},
+      ...authSignals ? { authSignals } : {},
+      ...configSignals ? { configSignals } : {}
+    };
+    if (Object.keys(metadata).length > 0) {
+      normalized[providerId] = metadata;
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeManifestContracts(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const embeddedExtensionFactories = normalizeTrimmedStringList(value.embeddedExtensionFactories);
+  const agentToolResultMiddleware = normalizeTrimmedStringList(value.agentToolResultMiddleware);
+  const externalAuthProviders = normalizeTrimmedStringList(value.externalAuthProviders);
+  const memoryEmbeddingProviders = normalizeTrimmedStringList(value.memoryEmbeddingProviders);
+  const speechProviders = normalizeTrimmedStringList(value.speechProviders);
+  const realtimeTranscriptionProviders = normalizeTrimmedStringList(
+    value.realtimeTranscriptionProviders
+  );
+  const realtimeVoiceProviders = normalizeTrimmedStringList(value.realtimeVoiceProviders);
+  const mediaUnderstandingProviders = normalizeTrimmedStringList(value.mediaUnderstandingProviders);
+  const documentExtractors = normalizeTrimmedStringList(value.documentExtractors);
+  const imageGenerationProviders = normalizeTrimmedStringList(value.imageGenerationProviders);
+  const videoGenerationProviders = normalizeTrimmedStringList(value.videoGenerationProviders);
+  const musicGenerationProviders = normalizeTrimmedStringList(value.musicGenerationProviders);
+  const webContentExtractors = normalizeTrimmedStringList(value.webContentExtractors);
+  const webFetchProviders = normalizeTrimmedStringList(value.webFetchProviders);
+  const webSearchProviders = normalizeTrimmedStringList(value.webSearchProviders);
+  const migrationProviders = normalizeTrimmedStringList(value.migrationProviders);
+  const tools = normalizeTrimmedStringList(value.tools);
+  const contracts = {
+    ...embeddedExtensionFactories.length > 0 ? { embeddedExtensionFactories } : {},
+    ...agentToolResultMiddleware.length > 0 ? { agentToolResultMiddleware } : {},
+    ...externalAuthProviders.length > 0 ? { externalAuthProviders } : {},
+    ...memoryEmbeddingProviders.length > 0 ? { memoryEmbeddingProviders } : {},
+    ...speechProviders.length > 0 ? { speechProviders } : {},
+    ...realtimeTranscriptionProviders.length > 0 ? { realtimeTranscriptionProviders } : {},
+    ...realtimeVoiceProviders.length > 0 ? { realtimeVoiceProviders } : {},
+    ...mediaUnderstandingProviders.length > 0 ? { mediaUnderstandingProviders } : {},
+    ...documentExtractors.length > 0 ? { documentExtractors } : {},
+    ...imageGenerationProviders.length > 0 ? { imageGenerationProviders } : {},
+    ...videoGenerationProviders.length > 0 ? { videoGenerationProviders } : {},
+    ...musicGenerationProviders.length > 0 ? { musicGenerationProviders } : {},
+    ...webContentExtractors.length > 0 ? { webContentExtractors } : {},
+    ...webFetchProviders.length > 0 ? { webFetchProviders } : {},
+    ...webSearchProviders.length > 0 ? { webSearchProviders } : {},
+    ...migrationProviders.length > 0 ? { migrationProviders } : {},
+    ...tools.length > 0 ? { tools } : {}
+  };
+  return Object.keys(contracts).length > 0 ? contracts : void 0;
+}
+function isManifestConfigLiteral(value) {
+  return value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+}
+function normalizeManifestDangerousConfigFlags(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const path30 = normalizeOptionalString(entry.path) ?? "";
+    if (!path30 || !isManifestConfigLiteral(entry.equals)) {
+      continue;
+    }
+    normalized.push({ path: path30, equals: entry.equals });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeManifestSecretInputPaths(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const path30 = normalizeOptionalString(entry.path) ?? "";
+    if (!path30) {
+      continue;
+    }
+    const expected = entry.expected === "string" ? entry.expected : void 0;
+    normalized.push({
+      path: path30,
+      ...expected ? { expected } : {}
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeManifestConfigContracts(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const compatibilityMigrationPaths = normalizeTrimmedStringList(value.compatibilityMigrationPaths);
+  const compatibilityRuntimePaths = normalizeTrimmedStringList(value.compatibilityRuntimePaths);
+  const rawSecretInputs = isRecord(value.secretInputs) ? value.secretInputs : void 0;
+  const dangerousFlags = normalizeManifestDangerousConfigFlags(value.dangerousFlags);
+  const secretInputPaths = rawSecretInputs ? normalizeManifestSecretInputPaths(rawSecretInputs.paths) : void 0;
+  const secretInputs = secretInputPaths && secretInputPaths.length > 0 ? {
+    ...rawSecretInputs?.bundledDefaultEnabled === true ? { bundledDefaultEnabled: true } : rawSecretInputs?.bundledDefaultEnabled === false ? { bundledDefaultEnabled: false } : {},
+    paths: secretInputPaths
+  } : void 0;
+  const configContracts = {
+    ...compatibilityMigrationPaths.length > 0 ? { compatibilityMigrationPaths } : {},
+    ...compatibilityRuntimePaths.length > 0 ? { compatibilityRuntimePaths } : {},
+    ...dangerousFlags ? { dangerousFlags } : {},
+    ...secretInputs ? { secretInputs } : {}
+  };
+  return Object.keys(configContracts).length > 0 ? configContracts : void 0;
+}
+function normalizeManifestModelSupport(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const modelPrefixes = normalizeTrimmedStringList(value.modelPrefixes);
+  const modelPatterns = normalizeTrimmedStringList(value.modelPatterns);
+  const modelSupport = {
+    ...modelPrefixes.length > 0 ? { modelPrefixes } : {},
+    ...modelPatterns.length > 0 ? { modelPatterns } : {}
+  };
+  return Object.keys(modelSupport).length > 0 ? modelSupport : void 0;
+}
+function normalizeManifestModelPricingSource(value) {
+  if (value === false) {
+    return false;
+  }
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const provider = normalizeModelCatalogProviderId(normalizeOptionalString(value.provider) ?? "");
+  const modelIdTransforms = normalizeTrimmedStringList(value.modelIdTransforms).filter(
+    (entry) => entry === "version-dots"
+  );
+  const source = {
+    ...provider ? { provider } : {},
+    ...value.passthroughProviderModel === true ? { passthroughProviderModel: true } : {},
+    ...modelIdTransforms.length > 0 ? { modelIdTransforms } : {}
+  };
+  return Object.keys(source).length > 0 ? source : void 0;
+}
+function normalizeManifestModelPricingProvider(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const openRouter = normalizeManifestModelPricingSource(value.openRouter);
+  const liteLLM = normalizeManifestModelPricingSource(value.liteLLM);
+  const policy = {
+    ...typeof value.external === "boolean" ? { external: value.external } : {},
+    ...openRouter !== void 0 ? { openRouter } : {},
+    ...liteLLM !== void 0 ? { liteLLM } : {}
+  };
+  return Object.keys(policy).length > 0 ? policy : void 0;
+}
+function normalizeManifestModelPricing(value, params) {
+  if (!isRecord(value) || !isRecord(value.providers)) {
+    return void 0;
+  }
+  const ownedProviders = new Set(
+    [...params.ownedProviders].map((provider) => normalizeModelCatalogProviderId(provider)).filter(Boolean)
+  );
+  const providers = {};
+  for (const [rawProviderId, rawPolicy] of Object.entries(value.providers)) {
+    const providerId = normalizeModelCatalogProviderId(rawProviderId);
+    if (!providerId || !ownedProviders.has(providerId)) {
+      continue;
+    }
+    const policy = normalizeManifestModelPricingProvider(rawPolicy);
+    if (policy) {
+      providers[providerId] = policy;
+    }
+  }
+  return Object.keys(providers).length > 0 ? { providers } : void 0;
+}
+function normalizeManifestModelIdPrefixRules(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const rules = [];
+  for (const rawRule of value) {
+    if (!isRecord(rawRule)) {
+      continue;
+    }
+    const modelPrefix = normalizeOptionalString(rawRule.modelPrefix);
+    const prefix = normalizeOptionalString(rawRule.prefix);
+    if (!modelPrefix || !prefix) {
+      continue;
+    }
+    rules.push({ modelPrefix, prefix });
+  }
+  return rules.length > 0 ? rules : void 0;
+}
+function normalizeManifestModelIdNormalizationProvider(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const aliases = {};
+  if (isRecord(value.aliases)) {
+    for (const [rawAlias, rawCanonical] of Object.entries(value.aliases)) {
+      const alias = normalizeModelCatalogProviderId(rawAlias);
+      const canonical = normalizeOptionalString(rawCanonical);
+      if (alias && canonical) {
+        aliases[alias] = canonical;
+      }
+    }
+  }
+  const stripPrefixes = normalizeTrimmedStringList(value.stripPrefixes);
+  const prefixWhenBare = normalizeOptionalString(value.prefixWhenBare);
+  const prefixWhenBareAfterAliasStartsWith = normalizeManifestModelIdPrefixRules(
+    value.prefixWhenBareAfterAliasStartsWith
+  );
+  const normalization = {
+    ...Object.keys(aliases).length > 0 ? { aliases } : {},
+    ...stripPrefixes.length > 0 ? { stripPrefixes } : {},
+    ...prefixWhenBare ? { prefixWhenBare } : {},
+    ...prefixWhenBareAfterAliasStartsWith ? { prefixWhenBareAfterAliasStartsWith } : {}
+  };
+  return Object.keys(normalization).length > 0 ? normalization : void 0;
+}
+function normalizeManifestModelIdNormalization(value, params) {
+  if (!isRecord(value) || !isRecord(value.providers)) {
+    return void 0;
+  }
+  const ownedProviders = new Set(
+    [...params.ownedProviders].map((provider) => normalizeModelCatalogProviderId(provider)).filter(Boolean)
+  );
+  const providers = {};
+  for (const [rawProviderId, rawPolicy] of Object.entries(value.providers)) {
+    const providerId = normalizeModelCatalogProviderId(rawProviderId);
+    if (!providerId || !ownedProviders.has(providerId)) {
+      continue;
+    }
+    const policy = normalizeManifestModelIdNormalizationProvider(rawPolicy);
+    if (policy) {
+      providers[providerId] = policy;
+    }
+  }
+  return Object.keys(providers).length > 0 ? { providers } : void 0;
+}
+function normalizeManifestProviderEndpoints(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const endpoints = [];
+  for (const rawEndpoint of value) {
+    if (!isRecord(rawEndpoint)) {
+      continue;
+    }
+    const endpointClass = normalizeOptionalString(rawEndpoint.endpointClass);
+    if (!endpointClass) {
+      continue;
+    }
+    const hosts = normalizeTrimmedStringList(rawEndpoint.hosts).map((host) => host.toLowerCase());
+    const hostSuffixes = normalizeTrimmedStringList(rawEndpoint.hostSuffixes).map(
+      (host) => host.toLowerCase()
+    );
+    const baseUrls = normalizeTrimmedStringList(rawEndpoint.baseUrls);
+    const googleVertexRegion = normalizeOptionalString(rawEndpoint.googleVertexRegion);
+    const googleVertexRegionHostSuffix = normalizeOptionalString(
+      rawEndpoint.googleVertexRegionHostSuffix
+    )?.toLowerCase();
+    if (hosts.length === 0 && hostSuffixes.length === 0 && baseUrls.length === 0) {
+      continue;
+    }
+    endpoints.push({
+      endpointClass,
+      ...hosts.length > 0 ? { hosts } : {},
+      ...hostSuffixes.length > 0 ? { hostSuffixes } : {},
+      ...baseUrls.length > 0 ? { baseUrls } : {},
+      ...googleVertexRegion ? { googleVertexRegion } : {},
+      ...googleVertexRegionHostSuffix ? { googleVertexRegionHostSuffix } : {}
+    });
+  }
+  return endpoints.length > 0 ? endpoints : void 0;
+}
+function normalizeManifestProviderRequestProvider(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const family = normalizeOptionalString(value.family);
+  const compatibilityFamily = normalizeOptionalString(value.compatibilityFamily) === "moonshot" ? "moonshot" : void 0;
+  const supportsStreamingUsage = isRecord(value.openAICompletions) ? value.openAICompletions.supportsStreamingUsage : void 0;
+  const openAICompletions = typeof supportsStreamingUsage === "boolean" ? { supportsStreamingUsage } : void 0;
+  const providerRequest = {
+    ...family ? { family } : {},
+    ...compatibilityFamily ? { compatibilityFamily } : {},
+    ...openAICompletions && Object.keys(openAICompletions).length > 0 ? { openAICompletions } : {}
+  };
+  return Object.keys(providerRequest).length > 0 ? providerRequest : void 0;
+}
+function normalizeManifestProviderRequest(value, params) {
+  if (!isRecord(value) || !isRecord(value.providers)) {
+    return void 0;
+  }
+  const ownedProviders = new Set(
+    [...params.ownedProviders].map((provider) => normalizeModelCatalogProviderId(provider)).filter(Boolean)
+  );
+  const providers = {};
+  for (const [rawProviderId, rawPolicy] of Object.entries(value.providers)) {
+    const providerId = normalizeModelCatalogProviderId(rawProviderId);
+    if (!providerId || !ownedProviders.has(providerId)) {
+      continue;
+    }
+    const policy = normalizeManifestProviderRequestProvider(rawPolicy);
+    if (policy) {
+      providers[providerId] = policy;
+    }
+  }
+  return Object.keys(providers).length > 0 ? { providers } : void 0;
+}
+function normalizeManifestActivation(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const onProviders = normalizeTrimmedStringList(value.onProviders);
+  const onAgentHarnesses = normalizeTrimmedStringList(value.onAgentHarnesses);
+  const onCommands = normalizeTrimmedStringList(value.onCommands);
+  const onChannels = normalizeTrimmedStringList(value.onChannels);
+  const onRoutes = normalizeTrimmedStringList(value.onRoutes);
+  const onConfigPaths = normalizeTrimmedStringList(value.onConfigPaths);
+  const onStartup = typeof value.onStartup === "boolean" ? value.onStartup : void 0;
+  const onCapabilities = normalizeTrimmedStringList(value.onCapabilities).filter(
+    (capability) => capability === "provider" || capability === "channel" || capability === "tool" || capability === "hook"
+  );
+  const activation = {
+    ...onStartup !== void 0 ? { onStartup } : {},
+    ...onProviders.length > 0 ? { onProviders } : {},
+    ...onAgentHarnesses.length > 0 ? { onAgentHarnesses } : {},
+    ...onCommands.length > 0 ? { onCommands } : {},
+    ...onChannels.length > 0 ? { onChannels } : {},
+    ...onRoutes.length > 0 ? { onRoutes } : {},
+    ...onConfigPaths.length > 0 ? { onConfigPaths } : {},
+    ...onCapabilities.length > 0 ? { onCapabilities } : {}
+  };
+  return Object.keys(activation).length > 0 ? activation : void 0;
+}
+function normalizeManifestSetupProviders(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const id = normalizeOptionalString(entry.id) ?? "";
+    if (!id) {
+      continue;
+    }
+    const authMethods = normalizeTrimmedStringList(entry.authMethods);
+    const envVars = normalizeTrimmedStringList(entry.envVars);
+    const authEvidence = normalizeManifestSetupProviderAuthEvidence(entry.authEvidence);
+    normalized.push({
+      id,
+      ...authMethods.length > 0 ? { authMethods } : {},
+      ...envVars.length > 0 ? { envVars } : {},
+      ...authEvidence ? { authEvidence } : {}
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeManifestSetupProviderAuthEvidence(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry) || entry.type !== "local-file-with-env") {
+      continue;
+    }
+    const credentialMarker = normalizeOptionalString(entry.credentialMarker);
+    if (!credentialMarker) {
+      continue;
+    }
+    const fileEnvVar = normalizeOptionalString(entry.fileEnvVar);
+    const fallbackPaths = normalizeTrimmedStringList(entry.fallbackPaths);
+    if (!fileEnvVar && fallbackPaths.length === 0) {
+      continue;
+    }
+    const requiresAnyEnv = normalizeTrimmedStringList(entry.requiresAnyEnv);
+    const requiresAllEnv = normalizeTrimmedStringList(entry.requiresAllEnv);
+    const source = normalizeOptionalString(entry.source);
+    normalized.push({
+      type: "local-file-with-env",
+      ...fileEnvVar ? { fileEnvVar } : {},
+      ...fallbackPaths.length > 0 ? { fallbackPaths } : {},
+      ...requiresAnyEnv.length > 0 ? { requiresAnyEnv } : {},
+      ...requiresAllEnv.length > 0 ? { requiresAllEnv } : {},
+      credentialMarker,
+      ...source ? { source } : {}
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeManifestSetup(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const providers = normalizeManifestSetupProviders(value.providers);
+  const cliBackends = normalizeTrimmedStringList(value.cliBackends);
+  const configMigrations = normalizeTrimmedStringList(value.configMigrations);
+  const requiresRuntime = typeof value.requiresRuntime === "boolean" ? value.requiresRuntime : void 0;
+  const setup = {
+    ...providers ? { providers } : {},
+    ...cliBackends.length > 0 ? { cliBackends } : {},
+    ...configMigrations.length > 0 ? { configMigrations } : {},
+    ...requiresRuntime !== void 0 ? { requiresRuntime } : {}
+  };
+  return Object.keys(setup).length > 0 ? setup : void 0;
+}
+function normalizeManifestQaRunners(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const commandName = normalizeOptionalString(entry.commandName) ?? "";
+    if (!commandName) {
+      continue;
+    }
+    const description = normalizeOptionalString(entry.description) ?? "";
+    normalized.push({
+      commandName,
+      ...description ? { description } : {}
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeProviderAuthChoices(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  const normalized = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const provider = normalizeOptionalString(entry.provider) ?? "";
+    const method = normalizeOptionalString(entry.method) ?? "";
+    const choiceId = normalizeOptionalString(entry.choiceId) ?? "";
+    if (!provider || !method || !choiceId) {
+      continue;
+    }
+    const choiceLabel = normalizeOptionalString(entry.choiceLabel) ?? "";
+    const choiceHint = normalizeOptionalString(entry.choiceHint) ?? "";
+    const assistantPriority = typeof entry.assistantPriority === "number" && Number.isFinite(entry.assistantPriority) ? entry.assistantPriority : void 0;
+    const assistantVisibility = entry.assistantVisibility === "manual-only" || entry.assistantVisibility === "visible" ? entry.assistantVisibility : void 0;
+    const deprecatedChoiceIds = normalizeTrimmedStringList(entry.deprecatedChoiceIds);
+    const groupId = normalizeOptionalString(entry.groupId) ?? "";
+    const groupLabel = normalizeOptionalString(entry.groupLabel) ?? "";
+    const groupHint = normalizeOptionalString(entry.groupHint) ?? "";
+    const optionKey = normalizeOptionalString(entry.optionKey) ?? "";
+    const cliFlag = normalizeOptionalString(entry.cliFlag) ?? "";
+    const cliOption = normalizeOptionalString(entry.cliOption) ?? "";
+    const cliDescription = normalizeOptionalString(entry.cliDescription) ?? "";
+    const onboardingScopes = normalizeTrimmedStringList(entry.onboardingScopes).filter(
+      (scope) => scope === "text-inference" || scope === "image-generation"
+    );
+    normalized.push({
+      provider,
+      method,
+      choiceId,
+      ...choiceLabel ? { choiceLabel } : {},
+      ...choiceHint ? { choiceHint } : {},
+      ...assistantPriority !== void 0 ? { assistantPriority } : {},
+      ...assistantVisibility ? { assistantVisibility } : {},
+      ...deprecatedChoiceIds.length > 0 ? { deprecatedChoiceIds } : {},
+      ...groupId ? { groupId } : {},
+      ...groupLabel ? { groupLabel } : {},
+      ...groupHint ? { groupHint } : {},
+      ...optionKey ? { optionKey } : {},
+      ...cliFlag ? { cliFlag } : {},
+      ...cliOption ? { cliOption } : {},
+      ...cliDescription ? { cliDescription } : {},
+      ...onboardingScopes.length > 0 ? { onboardingScopes } : {}
+    });
+  }
+  return normalized.length > 0 ? normalized : void 0;
+}
+function normalizeChannelConfigs(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const normalized = /* @__PURE__ */ Object.create(null);
+  for (const [key, rawEntry] of Object.entries(value)) {
+    const channelId = normalizeOptionalString(key) ?? "";
+    if (!channelId || isBlockedObjectKey(channelId) || !isRecord(rawEntry)) {
+      continue;
+    }
+    const schema = isRecord(rawEntry.schema) ? rawEntry.schema : null;
+    if (!schema) {
+      continue;
+    }
+    const uiHints = isRecord(rawEntry.uiHints) ? rawEntry.uiHints : void 0;
+    const runtime = isRecord(rawEntry.runtime) && typeof rawEntry.runtime.safeParse === "function" ? rawEntry.runtime : void 0;
+    const label = normalizeOptionalString(rawEntry.label) ?? "";
+    const description = normalizeOptionalString(rawEntry.description) ?? "";
+    const preferOver = normalizeTrimmedStringList(rawEntry.preferOver);
+    const commandDefaults = normalizeManifestChannelCommandDefaults(rawEntry.commands);
+    normalized[channelId] = {
+      schema,
+      ...uiHints ? { uiHints } : {},
+      ...runtime ? { runtime } : {},
+      ...label ? { label } : {},
+      ...description ? { description } : {},
+      ...preferOver.length > 0 ? { preferOver } : {},
+      ...commandDefaults ? { commands: commandDefaults } : {}
+    };
+  }
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
+}
+function normalizeManifestChannelCommandDefaults(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  const nativeCommandsAutoEnabled = typeof value.nativeCommandsAutoEnabled === "boolean" ? value.nativeCommandsAutoEnabled : void 0;
+  const nativeSkillsAutoEnabled = typeof value.nativeSkillsAutoEnabled === "boolean" ? value.nativeSkillsAutoEnabled : void 0;
+  return nativeCommandsAutoEnabled !== void 0 || nativeSkillsAutoEnabled !== void 0 ? {
+    ...nativeCommandsAutoEnabled !== void 0 ? { nativeCommandsAutoEnabled } : {},
+    ...nativeSkillsAutoEnabled !== void 0 ? { nativeSkillsAutoEnabled } : {}
+  } : void 0;
+}
+function resolvePluginManifestPath(rootDir) {
+  for (const filename of PLUGIN_MANIFEST_FILENAMES) {
+    const candidate = path14.join(rootDir, filename);
+    if (fs8.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return path14.join(rootDir, PLUGIN_MANIFEST_FILENAME);
+}
+function buildPluginManifestLoadCacheKey(params) {
+  return createPluginCacheKey([
+    [
+      path14.resolve(params.manifestPath),
+      params.rejectHardlinks,
+      params.rootRealPath ?? "",
+      params.stats.dev,
+      params.stats.ino
+    ],
+    params.stats.size,
+    params.stats.mtimeMs,
+    params.stats.ctimeMs
+  ]);
+}
+function getCachedPluginManifestLoadResult(key, stats) {
+  const entry = pluginManifestLoadCache.get(key);
+  if (!entry || entry.size !== stats.size || entry.mtimeMs !== stats.mtimeMs || entry.ctimeMs !== stats.ctimeMs) {
+    return void 0;
+  }
+  return entry.result;
+}
+function setCachedPluginManifestLoadResult(key, stats, result) {
+  pluginManifestLoadCache.set(key, {
+    result,
+    size: stats.size,
+    mtimeMs: stats.mtimeMs,
+    ctimeMs: stats.ctimeMs
+  });
+}
+function parsePluginKind(raw) {
+  if (typeof raw === "string") {
+    return raw;
+  }
+  if (Array.isArray(raw) && raw.length > 0 && raw.every((k) => typeof k === "string")) {
+    return raw.length === 1 ? raw[0] : raw;
+  }
+  return void 0;
+}
+function loadPluginManifest(rootDir, rejectHardlinks = true, rootRealPath) {
+  const manifestPath = resolvePluginManifestPath(rootDir);
+  const opened = openBoundaryFileSync({
+    absolutePath: manifestPath,
+    rootPath: rootDir,
+    ...rootRealPath !== void 0 ? { rootRealPath } : {},
+    boundaryLabel: "plugin root",
+    maxBytes: MAX_PLUGIN_MANIFEST_BYTES,
+    rejectHardlinks
+  });
+  if (!opened.ok) {
+    return matchBoundaryFileOpenFailure(opened, {
+      path: () => ({
+        ok: false,
+        error: `plugin manifest not found: ${manifestPath}`,
+        manifestPath
+      }),
+      fallback: (failure) => ({
+        ok: false,
+        error: `unsafe plugin manifest path: ${manifestPath} (${failure.reason})`,
+        manifestPath
+      })
+    });
+  }
+  const stats = opened.stat;
+  const cacheKey = buildPluginManifestLoadCacheKey({
+    manifestPath,
+    rejectHardlinks,
+    ...rootRealPath !== void 0 ? { rootRealPath } : {},
+    stats
+  });
+  const cached = getCachedPluginManifestLoadResult(cacheKey, stats);
+  if (cached) {
+    fs8.closeSync(opened.fd);
+    return cached;
+  }
+  const cacheResult = (result) => {
+    setCachedPluginManifestLoadResult(cacheKey, stats, result);
+    return result;
+  };
+  let raw;
+  try {
+    raw = parseJsonWithJson5Fallback(fs8.readFileSync(opened.fd, "utf-8"));
+  } catch (err) {
+    return cacheResult({
+      ok: false,
+      error: `failed to parse plugin manifest: ${String(err)}`,
+      manifestPath
+    });
+  } finally {
+    fs8.closeSync(opened.fd);
+  }
+  if (!isRecord(raw)) {
+    return cacheResult({ ok: false, error: "plugin manifest must be an object", manifestPath });
+  }
+  const id = normalizeOptionalString(raw.id) ?? "";
+  if (!id) {
+    return cacheResult({ ok: false, error: "plugin manifest requires id", manifestPath });
+  }
+  const configSchema = isRecord(raw.configSchema) ? raw.configSchema : null;
+  if (!configSchema) {
+    return cacheResult({ ok: false, error: "plugin manifest requires configSchema", manifestPath });
+  }
+  const kind = parsePluginKind(raw.kind);
+  const enabledByDefault = raw.enabledByDefault === true;
+  const legacyPluginIds = normalizeTrimmedStringList(raw.legacyPluginIds);
+  const autoEnableWhenConfiguredProviders = normalizeTrimmedStringList(
+    raw.autoEnableWhenConfiguredProviders
+  );
+  const name = normalizeOptionalString(raw.name);
+  const description = normalizeOptionalString(raw.description);
+  const version = normalizeOptionalString(raw.version);
+  const channels = normalizeTrimmedStringList(raw.channels);
+  const providers = normalizeTrimmedStringList(raw.providers);
+  const providerDiscoveryEntry = normalizeOptionalString(raw.providerDiscoveryEntry);
+  const modelSupport = normalizeManifestModelSupport(raw.modelSupport);
+  const modelCatalog = normalizeModelCatalog(raw.modelCatalog, {
+    ownedProviders: new Set(providers)
+  });
+  const modelPricing = normalizeManifestModelPricing(raw.modelPricing, {
+    ownedProviders: new Set(providers)
+  });
+  const modelIdNormalization = normalizeManifestModelIdNormalization(raw.modelIdNormalization, {
+    ownedProviders: new Set(providers)
+  });
+  const providerEndpoints = normalizeManifestProviderEndpoints(raw.providerEndpoints);
+  const providerRequest = normalizeManifestProviderRequest(raw.providerRequest, {
+    ownedProviders: new Set(providers)
+  });
+  const cliBackends = normalizeTrimmedStringList(raw.cliBackends);
+  const syntheticAuthRefs = normalizeTrimmedStringList(raw.syntheticAuthRefs);
+  const nonSecretAuthMarkers = normalizeTrimmedStringList(raw.nonSecretAuthMarkers);
+  const commandAliases = normalizeManifestCommandAliases(raw.commandAliases);
+  const providerAuthEnvVars = normalizeStringListRecord(raw.providerAuthEnvVars);
+  const providerAuthAliases = normalizeStringRecord(raw.providerAuthAliases);
+  const channelEnvVars = normalizeStringListRecord(raw.channelEnvVars);
+  const providerAuthChoices = normalizeProviderAuthChoices(raw.providerAuthChoices);
+  const activation = normalizeManifestActivation(raw.activation);
+  const setup = normalizeManifestSetup(raw.setup);
+  const qaRunners = normalizeManifestQaRunners(raw.qaRunners);
+  const skills = normalizeTrimmedStringList(raw.skills);
+  const contracts = normalizeManifestContracts(raw.contracts);
+  const mediaUnderstandingProviderMetadata = normalizeMediaUnderstandingProviderMetadata(
+    raw.mediaUnderstandingProviderMetadata
+  );
+  const imageGenerationProviderMetadata = normalizeCapabilityProviderMetadata(
+    raw.imageGenerationProviderMetadata
+  );
+  const videoGenerationProviderMetadata = normalizeCapabilityProviderMetadata(
+    raw.videoGenerationProviderMetadata
+  );
+  const musicGenerationProviderMetadata = normalizeCapabilityProviderMetadata(
+    raw.musicGenerationProviderMetadata
+  );
+  const toolMetadata = normalizeCapabilityProviderMetadata(raw.toolMetadata);
+  const configContracts = normalizeManifestConfigContracts(raw.configContracts);
+  const channelConfigs = normalizeChannelConfigs(raw.channelConfigs);
+  let uiHints;
+  if (isRecord(raw.uiHints)) {
+    uiHints = raw.uiHints;
+  }
+  return cacheResult({
+    ok: true,
+    manifest: {
+      id,
+      configSchema,
+      ...enabledByDefault ? { enabledByDefault } : {},
+      ...legacyPluginIds.length > 0 ? { legacyPluginIds } : {},
+      ...autoEnableWhenConfiguredProviders.length > 0 ? { autoEnableWhenConfiguredProviders } : {},
+      kind,
+      channels,
+      providers,
+      providerDiscoveryEntry,
+      modelSupport,
+      modelCatalog,
+      modelPricing,
+      modelIdNormalization,
+      providerEndpoints,
+      providerRequest,
+      cliBackends,
+      syntheticAuthRefs,
+      nonSecretAuthMarkers,
+      commandAliases,
+      providerAuthEnvVars,
+      providerAuthAliases,
+      channelEnvVars,
+      providerAuthChoices,
+      activation,
+      setup,
+      qaRunners,
+      skills,
+      name,
+      description,
+      version,
+      uiHints,
+      contracts,
+      mediaUnderstandingProviderMetadata,
+      imageGenerationProviderMetadata,
+      videoGenerationProviderMetadata,
+      musicGenerationProviderMetadata,
+      toolMetadata,
+      configContracts,
+      channelConfigs
+    },
+    manifestPath
+  });
+}
+function getPackageManifestMetadata(manifest) {
+  if (!manifest) {
+    return void 0;
+  }
+  return manifest[MANIFEST_KEY];
+}
+function resolvePackageExtensionEntries(manifest) {
+  const raw = getPackageManifestMetadata(manifest)?.extensions;
+  if (!Array.isArray(raw)) {
+    return { status: "missing", entries: [] };
+  }
+  const entries = raw.map((entry) => normalizeOptionalString(entry) ?? "").filter(Boolean);
+  if (entries.length === 0) {
+    return { status: "empty", entries: [] };
+  }
+  return { status: "ok", entries };
+}
+var PLUGIN_MANIFEST_FILENAME, PLUGIN_MANIFEST_FILENAMES, MAX_PLUGIN_MANIFEST_BYTES, MAX_PLUGIN_MANIFEST_LOAD_CACHE_ENTRIES, pluginManifestLoadCache, MEDIA_UNDERSTANDING_CAPABILITIES, DEFAULT_PLUGIN_ENTRY_CANDIDATES;
+var init_manifest = __esm({
+  "vendor/openclaw/src/plugins/manifest.ts"() {
+    "use strict";
+    init_legacy_names();
+    init_boundary_file_read();
+    init_prototype_keys();
+    init_model_catalog();
+    init_string_coerce();
+    init_string_normalization();
+    init_utils();
+    init_parse_json_compat();
+    init_manifest_command_aliases();
+    init_plugin_cache_primitives();
+    PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
+    PLUGIN_MANIFEST_FILENAMES = [PLUGIN_MANIFEST_FILENAME];
+    MAX_PLUGIN_MANIFEST_BYTES = 256 * 1024;
+    MAX_PLUGIN_MANIFEST_LOAD_CACHE_ENTRIES = 512;
+    pluginManifestLoadCache = new PluginLruCache(
+      MAX_PLUGIN_MANIFEST_LOAD_CACHE_ENTRIES
+    );
+    MEDIA_UNDERSTANDING_CAPABILITIES = /* @__PURE__ */ new Set(["image", "audio", "video"]);
+    DEFAULT_PLUGIN_ENTRY_CANDIDATES = [
+      "index.ts",
+      "index.js",
+      "index.mjs",
+      "index.cjs"
+    ];
+  }
+});
+
+// vendor/openclaw/src/plugins/bundle-manifest.ts
+import fs9 from "node:fs";
+import path15 from "node:path";
+function normalizePathList(value) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((entry) => normalizeOptionalString(entry)).filter((entry) => Boolean(entry));
+}
+function normalizeBundlePathList(value) {
+  return Array.from(new Set(normalizePathList(value)));
+}
+function mergeBundlePathLists(...groups) {
+  const merged = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const group of groups) {
+    for (const entry of group) {
+      if (seen.has(entry)) {
+        continue;
+      }
+      seen.add(entry);
+      merged.push(entry);
+    }
+  }
+  return merged;
+}
+function hasInlineCapabilityValue(value) {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  if (isRecord(value)) {
+    return Object.keys(value).length > 0;
+  }
+  return value === true;
+}
+function slugifyPluginId(raw, rootDir) {
+  const fallback = path15.basename(rootDir);
+  const source = normalizeLowercaseStringOrEmpty(raw) || normalizeLowercaseStringOrEmpty(fallback);
+  const slug = source.replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "bundle-plugin";
+}
+function loadBundleManifestFile(params) {
+  const manifestPath = path15.join(params.rootDir, params.manifestRelativePath);
+  const opened = openBoundaryFileSync({
+    absolutePath: manifestPath,
+    rootPath: params.rootDir,
+    ...params.rootRealPath !== void 0 ? { rootRealPath: params.rootRealPath } : {},
+    boundaryLabel: "plugin root",
+    rejectHardlinks: params.rejectHardlinks
+  });
+  if (!opened.ok) {
+    return matchBoundaryFileOpenFailure(opened, {
+      path: () => {
+        if (params.allowMissing) {
+          return { ok: true, raw: {}, manifestPath };
+        }
+        return { ok: false, error: `plugin manifest not found: ${manifestPath}`, manifestPath };
+      },
+      fallback: (failure) => ({
+        ok: false,
+        error: `unsafe plugin manifest path: ${manifestPath} (${failure.reason})`,
+        manifestPath
+      })
+    });
+  }
+  try {
+    const raw = import_json52.default.parse(fs9.readFileSync(opened.fd, "utf-8"));
+    if (!isRecord(raw)) {
+      return { ok: false, error: "plugin manifest must be an object", manifestPath };
+    }
+    return { ok: true, raw, manifestPath };
+  } catch (err) {
+    return {
+      ok: false,
+      error: `failed to parse plugin manifest: ${String(err)}`,
+      manifestPath
+    };
+  } finally {
+    fs9.closeSync(opened.fd);
+  }
+}
+function resolveCodexSkillDirs(raw, rootDir) {
+  const declared = normalizeBundlePathList(raw.skills);
+  if (declared.length > 0) {
+    return declared;
+  }
+  return fs9.existsSync(path15.join(rootDir, "skills")) ? ["skills"] : [];
+}
+function resolveCodexHookDirs(raw, rootDir) {
+  const declared = normalizeBundlePathList(raw.hooks);
+  if (declared.length > 0) {
+    return declared;
+  }
+  return fs9.existsSync(path15.join(rootDir, "hooks")) ? ["hooks"] : [];
+}
+function resolveCursorSkillsRootDirs(raw, rootDir) {
+  const declared = normalizeBundlePathList(raw.skills);
+  const defaults = fs9.existsSync(path15.join(rootDir, "skills")) ? ["skills"] : [];
+  return mergeBundlePathLists(defaults, declared);
+}
+function resolveCursorCommandRootDirs(raw, rootDir) {
+  const declared = normalizeBundlePathList(raw.commands);
+  const defaults = fs9.existsSync(path15.join(rootDir, ".cursor", "commands")) ? [".cursor/commands"] : [];
+  return mergeBundlePathLists(defaults, declared);
+}
+function resolveCursorSkillDirs(raw, rootDir) {
+  return mergeBundlePathLists(
+    resolveCursorSkillsRootDirs(raw, rootDir),
+    resolveCursorCommandRootDirs(raw, rootDir)
+  );
+}
+function resolveCursorAgentDirs(raw, rootDir) {
+  const declared = normalizeBundlePathList(raw.subagents ?? raw.agents);
+  const defaults = fs9.existsSync(path15.join(rootDir, ".cursor", "agents")) ? [".cursor/agents"] : [];
+  return mergeBundlePathLists(defaults, declared);
+}
+function hasCursorHookCapability(raw, rootDir) {
+  return hasInlineCapabilityValue(raw.hooks) || fs9.existsSync(path15.join(rootDir, ".cursor", "hooks.json"));
+}
+function hasCursorRulesCapability(raw, rootDir) {
+  return hasInlineCapabilityValue(raw.rules) || fs9.existsSync(path15.join(rootDir, ".cursor", "rules"));
+}
+function hasCursorMcpCapability(raw, rootDir) {
+  return hasInlineCapabilityValue(raw.mcpServers) || fs9.existsSync(path15.join(rootDir, ".mcp.json"));
+}
+function resolveClaudeComponentPaths(raw, key, rootDir, defaults) {
+  const declared = normalizeBundlePathList(raw[key]);
+  const existingDefaults = defaults.filter(
+    (candidate) => fs9.existsSync(path15.join(rootDir, candidate))
+  );
+  return mergeBundlePathLists(existingDefaults, declared);
+}
+function resolveClaudeSkillsRootDirs(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "skills", rootDir, ["skills"]);
+}
+function resolveClaudeCommandRootDirs(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "commands", rootDir, ["commands"]);
+}
+function resolveClaudeSkillDirs(raw, rootDir) {
+  return mergeBundlePathLists(
+    resolveClaudeSkillsRootDirs(raw, rootDir),
+    resolveClaudeCommandRootDirs(raw, rootDir),
+    resolveClaudeAgentDirs(raw, rootDir),
+    resolveClaudeOutputStylePaths(raw, rootDir)
+  );
+}
+function resolveClaudeAgentDirs(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "agents", rootDir, ["agents"]);
+}
+function resolveClaudeHookPaths(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "hooks", rootDir, ["hooks/hooks.json"]);
+}
+function resolveClaudeMcpPaths(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "mcpServers", rootDir, [".mcp.json"]);
+}
+function resolveClaudeLspPaths(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "lspServers", rootDir, [".lsp.json"]);
+}
+function resolveClaudeOutputStylePaths(raw, rootDir) {
+  return resolveClaudeComponentPaths(raw, "outputStyles", rootDir, ["output-styles"]);
+}
+function resolveClaudeSettingsFiles(_raw, rootDir) {
+  return fs9.existsSync(path15.join(rootDir, "settings.json")) ? ["settings.json"] : [];
+}
+function hasClaudeHookCapability(raw, rootDir) {
+  return hasInlineCapabilityValue(raw.hooks) || resolveClaudeHookPaths(raw, rootDir).length > 0;
+}
+function buildCodexCapabilities(raw, rootDir) {
+  const capabilities = [];
+  if (resolveCodexSkillDirs(raw, rootDir).length > 0) {
+    capabilities.push("skills");
+  }
+  if (resolveCodexHookDirs(raw, rootDir).length > 0) {
+    capabilities.push("hooks");
+  }
+  if (hasInlineCapabilityValue(raw.mcpServers) || fs9.existsSync(path15.join(rootDir, ".mcp.json"))) {
+    capabilities.push("mcpServers");
+  }
+  if (hasInlineCapabilityValue(raw.apps) || fs9.existsSync(path15.join(rootDir, ".app.json"))) {
+    capabilities.push("apps");
+  }
+  return capabilities;
+}
+function buildClaudeCapabilities(raw, rootDir) {
+  const capabilities = [];
+  if (resolveClaudeSkillDirs(raw, rootDir).length > 0) {
+    capabilities.push("skills");
+  }
+  if (resolveClaudeCommandRootDirs(raw, rootDir).length > 0) {
+    capabilities.push("commands");
+  }
+  if (resolveClaudeAgentDirs(raw, rootDir).length > 0) {
+    capabilities.push("agents");
+  }
+  if (hasClaudeHookCapability(raw, rootDir)) {
+    capabilities.push("hooks");
+  }
+  if (hasInlineCapabilityValue(raw.mcpServers) || resolveClaudeMcpPaths(raw, rootDir).length > 0) {
+    capabilities.push("mcpServers");
+  }
+  if (hasInlineCapabilityValue(raw.lspServers) || resolveClaudeLspPaths(raw, rootDir).length > 0) {
+    capabilities.push("lspServers");
+  }
+  if (hasInlineCapabilityValue(raw.outputStyles) || resolveClaudeOutputStylePaths(raw, rootDir).length > 0) {
+    capabilities.push("outputStyles");
+  }
+  if (resolveClaudeSettingsFiles(raw, rootDir).length > 0) {
+    capabilities.push("settings");
+  }
+  return capabilities;
+}
+function buildCursorCapabilities(raw, rootDir) {
+  const capabilities = [];
+  if (resolveCursorSkillDirs(raw, rootDir).length > 0) {
+    capabilities.push("skills");
+  }
+  if (resolveCursorCommandRootDirs(raw, rootDir).length > 0) {
+    capabilities.push("commands");
+  }
+  if (resolveCursorAgentDirs(raw, rootDir).length > 0) {
+    capabilities.push("agents");
+  }
+  if (hasCursorHookCapability(raw, rootDir)) {
+    capabilities.push("hooks");
+  }
+  if (hasCursorRulesCapability(raw, rootDir)) {
+    capabilities.push("rules");
+  }
+  if (hasCursorMcpCapability(raw, rootDir)) {
+    capabilities.push("mcpServers");
+  }
+  return capabilities;
+}
+function loadBundleManifest(params) {
+  const rejectHardlinks = params.rejectHardlinks ?? true;
+  const manifestRelativePath = params.bundleFormat === "codex" ? CODEX_BUNDLE_MANIFEST_RELATIVE_PATH : params.bundleFormat === "cursor" ? CURSOR_BUNDLE_MANIFEST_RELATIVE_PATH : CLAUDE_BUNDLE_MANIFEST_RELATIVE_PATH;
+  const loaded = loadBundleManifestFile({
+    rootDir: params.rootDir,
+    ...params.rootRealPath !== void 0 ? { rootRealPath: params.rootRealPath } : {},
+    manifestRelativePath,
+    rejectHardlinks,
+    allowMissing: params.bundleFormat === "claude"
+  });
+  if (!loaded.ok) {
+    return loaded;
+  }
+  const raw = loaded.raw;
+  const interfaceRecord = isRecord(raw.interface) ? raw.interface : void 0;
+  const name = normalizeOptionalString(raw.name);
+  const description = normalizeOptionalString(raw.description) ?? normalizeOptionalString(raw.shortDescription) ?? normalizeOptionalString(interfaceRecord?.shortDescription);
+  const version = normalizeOptionalString(raw.version);
+  if (params.bundleFormat === "codex") {
+    const skills = resolveCodexSkillDirs(raw, params.rootDir);
+    const hooks = resolveCodexHookDirs(raw, params.rootDir);
+    return {
+      ok: true,
+      manifest: {
+        id: slugifyPluginId(name, params.rootDir),
+        name,
+        description,
+        version,
+        skills,
+        settingsFiles: [],
+        hooks,
+        bundleFormat: "codex",
+        capabilities: buildCodexCapabilities(raw, params.rootDir)
+      },
+      manifestPath: loaded.manifestPath
+    };
+  }
+  if (params.bundleFormat === "cursor") {
+    return {
+      ok: true,
+      manifest: {
+        id: slugifyPluginId(name, params.rootDir),
+        name,
+        description,
+        version,
+        skills: resolveCursorSkillDirs(raw, params.rootDir),
+        settingsFiles: [],
+        hooks: [],
+        bundleFormat: "cursor",
+        capabilities: buildCursorCapabilities(raw, params.rootDir)
+      },
+      manifestPath: loaded.manifestPath
+    };
+  }
+  return {
+    ok: true,
+    manifest: {
+      id: slugifyPluginId(name, params.rootDir),
+      name,
+      description,
+      version,
+      skills: resolveClaudeSkillDirs(raw, params.rootDir),
+      settingsFiles: resolveClaudeSettingsFiles(raw, params.rootDir),
+      hooks: resolveClaudeHookPaths(raw, params.rootDir),
+      bundleFormat: "claude",
+      capabilities: buildClaudeCapabilities(raw, params.rootDir)
+    },
+    manifestPath: loaded.manifestPath
+  };
+}
+function detectBundleManifestFormat(rootDir) {
+  if (fs9.existsSync(path15.join(rootDir, CODEX_BUNDLE_MANIFEST_RELATIVE_PATH))) {
+    return "codex";
+  }
+  if (fs9.existsSync(path15.join(rootDir, CURSOR_BUNDLE_MANIFEST_RELATIVE_PATH))) {
+    return "cursor";
+  }
+  if (fs9.existsSync(path15.join(rootDir, CLAUDE_BUNDLE_MANIFEST_RELATIVE_PATH))) {
+    return "claude";
+  }
+  if (fs9.existsSync(path15.join(rootDir, PLUGIN_MANIFEST_FILENAME))) {
+    return null;
+  }
+  if (DEFAULT_PLUGIN_ENTRY_CANDIDATES.some(
+    (candidate) => fs9.existsSync(path15.join(rootDir, candidate))
+  )) {
+    return null;
+  }
+  const manifestlessClaudeMarkers = [
+    path15.join(rootDir, "skills"),
+    path15.join(rootDir, "commands"),
+    path15.join(rootDir, "agents"),
+    path15.join(rootDir, "hooks", "hooks.json"),
+    path15.join(rootDir, ".mcp.json"),
+    path15.join(rootDir, ".lsp.json"),
+    path15.join(rootDir, "settings.json")
+  ];
+  if (manifestlessClaudeMarkers.some((candidate) => fs9.existsSync(candidate))) {
+    return "claude";
+  }
+  return null;
+}
+var import_json52, CODEX_BUNDLE_MANIFEST_RELATIVE_PATH, CLAUDE_BUNDLE_MANIFEST_RELATIVE_PATH, CURSOR_BUNDLE_MANIFEST_RELATIVE_PATH;
+var init_bundle_manifest = __esm({
+  "vendor/openclaw/src/plugins/bundle-manifest.ts"() {
+    "use strict";
+    import_json52 = __toESM(require_lib(), 1);
+    init_boundary_file_read();
+    init_string_coerce();
+    init_utils();
+    init_manifest();
+    CODEX_BUNDLE_MANIFEST_RELATIVE_PATH = ".codex-plugin/plugin.json";
+    CLAUDE_BUNDLE_MANIFEST_RELATIVE_PATH = ".claude-plugin/plugin.json";
+    CURSOR_BUNDLE_MANIFEST_RELATIVE_PATH = ".cursor-plugin/plugin.json";
+  }
+});
+
+// vendor/openclaw/src/plugins/path-safety.ts
+import fs10 from "node:fs";
+function isPathInside2(baseDir, targetPath) {
+  return isPathInside(baseDir, targetPath);
+}
+function safeRealpathSync2(targetPath, cache) {
+  const cached = cache?.get(targetPath);
+  if (cached) {
+    return cached;
+  }
+  try {
+    const resolved = fs10.realpathSync(targetPath);
+    cache?.set(targetPath, resolved);
+    cache?.set(resolved, resolved);
+    return resolved;
+  } catch {
+    return null;
+  }
+}
+function safeStatSync(targetPath) {
+  try {
+    return fs10.statSync(targetPath);
+  } catch {
+    return null;
+  }
+}
+function formatPosixMode(mode) {
+  return (mode & 511).toString(8).padStart(3, "0");
+}
+var init_path_safety = __esm({
+  "vendor/openclaw/src/plugins/path-safety.ts"() {
+    "use strict";
+    init_path_guards();
+  }
+});
+
+// vendor/openclaw/src/plugins/bundled-load-path-aliases.ts
+import path16 from "node:path";
+function normalizeBundledLookupPath(targetPath) {
+  const normalized = path16.normalize(targetPath);
+  const root = path16.parse(normalized).root;
+  let trimmed = normalized;
+  while (trimmed.length > root.length && (trimmed.endsWith(path16.sep) || trimmed.endsWith("/"))) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed;
+}
+function findPackagedBundledRoot(localPath) {
+  const normalized = normalizeBundledLookupPath(localPath);
+  for (const packagedRoot of PACKAGED_BUNDLED_ROOTS) {
+    const marker = `${path16.sep}${packagedRoot}`;
+    const markerIndex = normalized.lastIndexOf(marker);
+    if (markerIndex === -1) {
+      continue;
+    }
+    const markerEnd = markerIndex + marker.length;
+    if (normalized.length !== markerEnd && normalized[markerEnd] !== path16.sep) {
+      continue;
+    }
+    return {
+      packageRoot: normalized.slice(0, markerIndex),
+      bundledRoot: normalized.slice(0, markerEnd)
+    };
+  }
+  return null;
+}
+function buildLegacyBundledRootPath(localPath) {
+  const packaged = findPackagedBundledRoot(localPath);
+  return packaged ? path16.join(packaged.packageRoot, "extensions") : null;
+}
+function isSameOrInside(baseDir, targetPath) {
+  const base = path16.resolve(normalizeBundledLookupPath(baseDir));
+  const target = path16.resolve(normalizeBundledLookupPath(targetPath));
+  return target === base || isPathInside2(base, target);
+}
+function resolvePackagedBundledLoadPathAlias(params) {
+  if (!params.bundledRoot) {
+    return null;
+  }
+  const packaged = findPackagedBundledRoot(params.bundledRoot);
+  if (!packaged) {
+    return null;
+  }
+  const legacyRoot = path16.join(packaged.packageRoot, "extensions");
+  if (isSameOrInside(params.bundledRoot, params.loadPath)) {
+    return { kind: "current", path: params.loadPath };
+  }
+  if (isSameOrInside(legacyRoot, params.loadPath)) {
+    return { kind: "legacy", path: params.loadPath };
+  }
+  return null;
+}
+var PACKAGED_BUNDLED_ROOTS;
+var init_bundled_load_path_aliases = __esm({
+  "vendor/openclaw/src/plugins/bundled-load-path-aliases.ts"() {
+    "use strict";
+    init_path_safety();
+    PACKAGED_BUNDLED_ROOTS = [
+      path16.join("dist", "extensions"),
+      path16.join("dist-runtime", "extensions")
+    ];
+  }
+});
+
+// vendor/openclaw/src/plugins/bundled-source-overlays.ts
+import fs11 from "node:fs";
+import path17 from "node:path";
+function decodeMountInfoPath(value) {
+  return value.replace(
+    /\\([0-7]{3})/g,
+    (_match, octal) => String.fromCharCode(Number.parseInt(octal, 8))
+  );
+}
+function parseLinuxMountInfoMountPoints(mountInfo) {
+  const mountPoints = /* @__PURE__ */ new Set();
+  for (const line of mountInfo.split(/\r?\n/u)) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const fields = trimmed.split(" ");
+    const mountPoint = fields[4];
+    if (!mountPoint) {
+      continue;
+    }
+    mountPoints.add(path17.resolve(decodeMountInfoPath(mountPoint)));
+  }
+  return mountPoints;
+}
+function readLinuxMountPoints() {
+  try {
+    return parseLinuxMountInfoMountPoints(fs11.readFileSync("/proc/self/mountinfo", "utf8"));
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+}
+function isFilesystemMountPoint(targetPath) {
+  try {
+    const target = fs11.statSync(targetPath);
+    const parent = fs11.statSync(path17.dirname(targetPath));
+    return target.dev !== parent.dev || target.ino === parent.ino;
+  } catch {
+    return false;
+  }
+}
+function sourceOverlaysDisabled(env) {
+  const raw = normalizeOptionalLowercaseString(env.OPENCLAW_DISABLE_BUNDLED_SOURCE_OVERLAYS);
+  return raw === "1" || raw === "true";
+}
+function isBundledSourceOverlayPath(params) {
+  const resolved = path17.resolve(params.sourcePath);
+  const mountPoints = params.mountPoints ?? readLinuxMountPoints();
+  return mountPoints.has(resolved) || isFilesystemMountPoint(resolved);
+}
+function listBundledSourceOverlayDirs(params) {
+  const env = params.env ?? process.env;
+  if (sourceOverlaysDisabled(env) || !params.bundledRoot) {
+    return [];
+  }
+  const legacyRoot = buildLegacyBundledRootPath(params.bundledRoot);
+  if (!legacyRoot || !fs11.existsSync(legacyRoot)) {
+    return [];
+  }
+  let entries;
+  try {
+    entries = fs11.readdirSync(legacyRoot, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const mountPoints = params.mountPoints ?? readLinuxMountPoints();
+  const legacyRootMounted = isBundledSourceOverlayPath({
+    sourcePath: legacyRoot,
+    mountPoints
+  });
+  const overlayDirs = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const sourceDir = path17.join(legacyRoot, entry.name);
+    const bundledPeer = path17.join(params.bundledRoot, entry.name);
+    if (!fs11.existsSync(bundledPeer)) {
+      continue;
+    }
+    if (!legacyRootMounted && !isBundledSourceOverlayPath({
+      sourcePath: sourceDir,
+      mountPoints
+    })) {
+      continue;
+    }
+    overlayDirs.push(sourceDir);
+  }
+  return overlayDirs.toSorted((left, right) => left.localeCompare(right));
+}
+var init_bundled_source_overlays = __esm({
+  "vendor/openclaw/src/plugins/bundled-source-overlays.ts"() {
+    "use strict";
+    init_string_coerce();
+    init_bundled_load_path_aliases();
+  }
+});
+
+// vendor/openclaw/src/plugins/package-entrypoints.ts
+import path18 from "node:path";
+function isTypeScriptPackageEntry(entryPath) {
+  return [".ts", ".mts", ".cts"].includes(path18.extname(entryPath).toLowerCase());
+}
+function listBuiltRuntimeEntryCandidates(entryPath) {
+  if (!isTypeScriptPackageEntry(entryPath)) {
+    return [];
+  }
+  const normalized = entryPath.replace(/\\/g, "/");
+  const withoutExtension = normalized.replace(/\.[^.]+$/u, "");
+  const normalizedRelative = normalized.replace(/^\.\//u, "");
+  const distWithoutExtension = normalizedRelative.startsWith("src/") ? `./dist/${normalizedRelative.slice("src/".length).replace(/\.[^.]+$/u, "")}` : `./dist/${withoutExtension.replace(/^\.\//u, "")}`;
+  const withJavaScriptExtensions = (basePath) => [
+    `${basePath}.js`,
+    `${basePath}.mjs`,
+    `${basePath}.cjs`
+  ];
+  const candidates = [
+    ...withJavaScriptExtensions(distWithoutExtension),
+    ...withJavaScriptExtensions(withoutExtension)
+  ];
+  return [...new Set(candidates)].filter((candidate) => candidate !== normalized);
+}
+var init_package_entrypoints = __esm({
+  "vendor/openclaw/src/plugins/package-entrypoints.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/plugins/package-entry-resolution.ts
+import fs12 from "node:fs";
+import path19 from "node:path";
+function runtimeExtensionsLengthMismatchMessage(params) {
+  return `package.json openclaw.runtimeExtensions length (${params.runtimeExtensionsLength}) must match openclaw.extensions length (${params.extensionsLength})`;
+}
+function normalizePackageManifestStringList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((entry) => normalizeOptionalString(entry) ?? "").filter(Boolean);
+}
+function resolvePackageRuntimeExtensionEntries(params) {
+  const packageManifest = getPackageManifestMetadata(params.manifest ?? void 0);
+  const runtimeExtensions = normalizePackageManifestStringList(packageManifest?.runtimeExtensions);
+  if (runtimeExtensions.length === 0) {
+    return { ok: true, runtimeExtensions: [] };
+  }
+  if (runtimeExtensions.length !== params.extensions.length) {
+    return {
+      ok: false,
+      error: runtimeExtensionsLengthMismatchMessage({
+        runtimeExtensionsLength: runtimeExtensions.length,
+        extensionsLength: params.extensions.length
+      })
+    };
+  }
+  return { ok: true, runtimeExtensions };
+}
+function resolvePackageEntrySource(params) {
+  const source = path19.resolve(params.packageDir, params.entryPath);
+  const rejectHardlinks = params.rejectHardlinks ?? true;
+  const candidates = [source];
+  const openCandidate = (absolutePath) => {
+    const opened = openBoundaryFileSync({
+      absolutePath,
+      rootPath: params.packageDir,
+      ...params.packageRootRealPath !== void 0 ? { rootRealPath: params.packageRootRealPath } : {},
+      boundaryLabel: "plugin package directory",
+      rejectHardlinks
+    });
+    if (!opened.ok) {
+      return matchBoundaryFileOpenFailure(opened, {
+        path: () => null,
+        io: () => {
+          params.diagnostics.push({
+            level: "warn",
+            message: `extension entry unreadable (I/O error): ${params.entryPath}`,
+            source: params.sourceLabel
+          });
+          return null;
+        },
+        fallback: () => {
+          params.diagnostics.push({
+            level: "error",
+            message: `extension entry escapes package directory: ${params.entryPath}`,
+            source: params.sourceLabel
+          });
+          return null;
+        }
+      });
+    }
+    const safeSource = opened.path;
+    fs12.closeSync(opened.fd);
+    return safeSource;
+  };
+  if (!rejectHardlinks) {
+    const builtCandidate = source.replace(/\.[^.]+$/u, ".js");
+    if (builtCandidate !== source) {
+      candidates.push(builtCandidate);
+    }
+  }
+  for (const candidate of new Set(candidates)) {
+    if (!fs12.existsSync(candidate)) {
+      continue;
+    }
+    return openCandidate(candidate);
+  }
+  return openCandidate(source);
+}
+function shouldInferBuiltRuntimeEntry(origin) {
+  return origin === "config" || origin === "global";
+}
+function resolveSafePackageEntry(params) {
+  const absolutePath = path19.resolve(params.packageDir, params.entryPath);
+  if (fs12.existsSync(absolutePath)) {
+    const existingSource = resolvePackageEntrySource({
+      packageDir: params.packageDir,
+      ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+      entryPath: params.entryPath,
+      sourceLabel: params.sourceLabel,
+      diagnostics: params.diagnostics,
+      rejectHardlinks: params.rejectHardlinks
+    });
+    if (!existingSource) {
+      return null;
+    }
+    return {
+      relativePath: path19.relative(params.packageDir, absolutePath).replace(/\\/g, "/"),
+      existingSource
+    };
+  }
+  try {
+    resolveBoundaryPathSync({
+      absolutePath,
+      rootPath: params.packageDir,
+      ...params.packageRootRealPath !== void 0 ? { rootCanonicalPath: params.packageRootRealPath } : {},
+      boundaryLabel: "plugin package directory"
+    });
+  } catch {
+    params.diagnostics.push({
+      level: "error",
+      message: `extension entry escapes package directory: ${params.entryPath}`,
+      source: params.sourceLabel
+    });
+    return null;
+  }
+  return { relativePath: path19.relative(params.packageDir, absolutePath).replace(/\\/g, "/") };
+}
+function resolveExistingPackageEntrySource(params) {
+  const source = path19.resolve(params.packageDir, params.entryPath);
+  if (!fs12.existsSync(source)) {
+    return null;
+  }
+  return resolvePackageEntrySource(params);
+}
+function resolvePackageRuntimeEntrySource(params) {
+  const safeEntry = resolveSafePackageEntry({
+    packageDir: params.packageDir,
+    ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+    entryPath: params.entryPath,
+    sourceLabel: params.sourceLabel,
+    diagnostics: params.diagnostics,
+    rejectHardlinks: params.rejectHardlinks
+  });
+  if (!safeEntry) {
+    return null;
+  }
+  if (params.runtimeEntryPath) {
+    const runtimeSource = resolvePackageEntrySource({
+      packageDir: params.packageDir,
+      ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+      entryPath: params.runtimeEntryPath,
+      sourceLabel: params.sourceLabel,
+      diagnostics: params.diagnostics,
+      rejectHardlinks: params.rejectHardlinks
+    });
+    if (runtimeSource) {
+      return runtimeSource;
+    }
+    params.diagnostics.push({
+      level: "error",
+      message: `${params.runtimeEntryLabel ?? "runtime entry"} not found: ${params.runtimeEntryPath}`,
+      source: params.sourceLabel
+    });
+    return null;
+  }
+  if (shouldInferBuiltRuntimeEntry(params.origin)) {
+    for (const candidate of listBuiltRuntimeEntryCandidates(safeEntry.relativePath)) {
+      const runtimeSource = resolveExistingPackageEntrySource({
+        packageDir: params.packageDir,
+        ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+        entryPath: candidate,
+        sourceLabel: params.sourceLabel,
+        diagnostics: params.diagnostics,
+        rejectHardlinks: params.rejectHardlinks
+      });
+      if (runtimeSource) {
+        return runtimeSource;
+      }
+    }
+  }
+  if (safeEntry.existingSource) {
+    return safeEntry.existingSource;
+  }
+  return resolvePackageEntrySource({
+    packageDir: params.packageDir,
+    ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+    entryPath: params.entryPath,
+    sourceLabel: params.sourceLabel,
+    diagnostics: params.diagnostics,
+    rejectHardlinks: params.rejectHardlinks
+  });
+}
+function resolvePackageSetupSource(params) {
+  const packageManifest = getPackageManifestMetadata(params.manifest ?? void 0);
+  const setupEntryPath = normalizeOptionalString(packageManifest?.setupEntry);
+  if (!setupEntryPath) {
+    return null;
+  }
+  return resolvePackageRuntimeEntrySource({
+    packageDir: params.packageDir,
+    ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+    entryPath: setupEntryPath,
+    runtimeEntryPath: normalizeOptionalString(packageManifest?.runtimeSetupEntry),
+    runtimeEntryLabel: "runtime setup entry",
+    origin: params.origin,
+    sourceLabel: params.sourceLabel,
+    diagnostics: params.diagnostics,
+    rejectHardlinks: params.rejectHardlinks
+  });
+}
+function resolvePackageRuntimeExtensionSources(params) {
+  const runtimeResolution = resolvePackageRuntimeExtensionEntries({
+    manifest: params.manifest,
+    extensions: params.extensions
+  });
+  if (!runtimeResolution.ok) {
+    params.diagnostics.push({
+      level: "error",
+      message: runtimeResolution.error,
+      source: params.sourceLabel
+    });
+    return [];
+  }
+  return params.extensions.flatMap((entryPath, index) => {
+    const source = resolvePackageRuntimeEntrySource({
+      packageDir: params.packageDir,
+      ...params.packageRootRealPath !== void 0 ? { packageRootRealPath: params.packageRootRealPath } : {},
+      entryPath,
+      runtimeEntryPath: runtimeResolution.runtimeExtensions[index],
+      runtimeEntryLabel: "runtime extension entry",
+      origin: params.origin,
+      sourceLabel: params.sourceLabel,
+      diagnostics: params.diagnostics,
+      rejectHardlinks: params.rejectHardlinks
+    });
+    return source ? [source] : [];
+  });
+}
+var init_package_entry_resolution = __esm({
+  "vendor/openclaw/src/plugins/package-entry-resolution.ts"() {
+    "use strict";
+    init_boundary_file_read();
+    init_boundary_path();
+    init_string_coerce();
+    init_manifest();
+    init_package_entrypoints();
+  }
+});
+
+// vendor/openclaw/src/plugins/plugin-lifecycle-trace.ts
+function isPluginLifecycleTraceEnabled() {
+  const raw = process.env.OPENCLAW_PLUGIN_LIFECYCLE_TRACE?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+function formatTraceValue(value) {
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+function emitPluginLifecycleTrace(params) {
+  const elapsedMs = Number(process.hrtime.bigint() - params.start) / 1e6;
+  const detailText = Object.entries(params.details ?? {}).filter((entry) => entry[1] !== void 0).map(([key, value]) => `${key}=${formatTraceValue(value)}`).join(" ");
+  const suffix = detailText ? ` ${detailText}` : "";
+  console.error(
+    `[plugins:lifecycle] phase=${JSON.stringify(params.phase)} ms=${elapsedMs.toFixed(2)} status=${params.status}${suffix}`
+  );
+}
+function tracePluginLifecyclePhase(phase, fn, details) {
+  if (!isPluginLifecycleTraceEnabled()) {
+    return fn();
+  }
+  const start = process.hrtime.bigint();
+  let status = "error";
+  try {
+    const result = fn();
+    status = "ok";
+    return result;
+  } finally {
+    emitPluginLifecycleTrace({ phase, start, status, details });
+  }
+}
+var init_plugin_lifecycle_trace = __esm({
+  "vendor/openclaw/src/plugins/plugin-lifecycle-trace.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/plugins/roots.ts
+import path20 from "node:path";
+function resolvePluginSourceRoots(params) {
+  const env = params.env ?? process.env;
+  const workspaceRoot = params.workspaceDir ? resolveUserPath(params.workspaceDir, env) : void 0;
+  const stock = resolveBundledPluginsDir(env);
+  const global = path20.join(resolveConfigDir(env), "extensions");
+  const workspace = workspaceRoot ? path20.join(workspaceRoot, ".openclaw", "extensions") : void 0;
+  return { stock, global, workspace };
+}
+function resolvePluginCacheInputs(params) {
+  const env = params.env ?? process.env;
+  const roots = resolvePluginSourceRoots({
+    workspaceDir: params.workspaceDir,
+    env
+  });
+  const loadPaths = (params.loadPaths ?? []).filter((entry) => typeof entry === "string").map((entry) => entry.trim()).filter(Boolean).map((entry) => resolveUserPath(entry, env));
+  return { roots, loadPaths };
+}
+var init_roots = __esm({
+  "vendor/openclaw/src/plugins/roots.ts"() {
+    "use strict";
+    init_utils();
+    init_bundled_dir();
+  }
+});
+
+// vendor/openclaw/src/plugins/status-dependencies.ts
+function normalizeDependencyMap(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
+  }
+  const normalized = {};
+  for (const [name, spec] of Object.entries(raw)) {
+    const normalizedName = name.trim();
+    if (!normalizedName || typeof spec !== "string" || !spec.trim()) {
+      continue;
+    }
+    normalized[normalizedName] = spec.trim();
+  }
+  return normalized;
+}
+function normalizePluginDependencySpecs(params) {
+  return {
+    dependencies: normalizeDependencyMap(params.dependencies),
+    optionalDependencies: normalizeDependencyMap(params.optionalDependencies)
+  };
+}
+var init_status_dependencies = __esm({
+  "vendor/openclaw/src/plugins/status-dependencies.ts"() {
+    "use strict";
+  }
+});
+
+// vendor/openclaw/src/plugins/discovery.ts
+import fs13 from "node:fs";
+import path21 from "node:path";
+function currentUid(overrideUid) {
+  if (overrideUid !== void 0) {
+    return overrideUid;
+  }
+  if (process.platform === "win32") {
+    return null;
+  }
+  if (typeof process.getuid !== "function") {
+    return null;
+  }
+  return process.getuid();
+}
+function checkSourceEscapesRoot(params) {
+  const sourceRealPath = safeRealpathSync2(params.source, params.realpathCache);
+  const rootRealPath = safeRealpathSync2(params.rootDir, params.realpathCache);
+  if (!sourceRealPath || !rootRealPath) {
+    return null;
+  }
+  if (isPathInside2(rootRealPath, sourceRealPath)) {
+    return null;
+  }
+  return {
+    reason: "source_escapes_root",
+    sourcePath: params.source,
+    rootPath: params.rootDir,
+    targetPath: params.source,
+    sourceRealPath,
+    rootRealPath
+  };
+}
+function checkPathStatAndPermissions(params) {
+  if (process.platform === "win32") {
+    return null;
+  }
+  const pathsToCheck = [params.rootDir, params.source];
+  const seen = /* @__PURE__ */ new Set();
+  for (const targetPath of pathsToCheck) {
+    const normalized = path21.resolve(targetPath);
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    let stat = safeStatSync(targetPath);
+    if (!stat) {
+      return {
+        reason: "path_stat_failed",
+        sourcePath: params.source,
+        rootPath: params.rootDir,
+        targetPath
+      };
+    }
+    let modeBits = stat.mode & 511;
+    if ((modeBits & 2) !== 0 && params.origin === "bundled") {
+      try {
+        fs13.chmodSync(targetPath, modeBits & ~18);
+        const repairedStat = safeStatSync(targetPath);
+        if (!repairedStat) {
+          return {
+            reason: "path_stat_failed",
+            sourcePath: params.source,
+            rootPath: params.rootDir,
+            targetPath
+          };
+        }
+        stat = repairedStat;
+        modeBits = repairedStat.mode & 511;
+      } catch {
+      }
+    }
+    if ((modeBits & 2) !== 0) {
+      return {
+        reason: "path_world_writable",
+        sourcePath: params.source,
+        rootPath: params.rootDir,
+        targetPath,
+        modeBits
+      };
+    }
+    if (params.origin !== "bundled" && params.uid !== null && typeof stat.uid === "number" && stat.uid !== params.uid && stat.uid !== 0) {
+      return {
+        reason: "path_suspicious_ownership",
+        sourcePath: params.source,
+        rootPath: params.rootDir,
+        targetPath,
+        foundUid: stat.uid,
+        expectedUid: params.uid
+      };
+    }
+  }
+  return null;
+}
+function findCandidateBlockIssue(params) {
+  const escaped = checkSourceEscapesRoot({
+    source: params.source,
+    rootDir: params.rootDir,
+    realpathCache: params.realpathCache
+  });
+  if (escaped) {
+    return escaped;
+  }
+  return checkPathStatAndPermissions({
+    source: params.source,
+    rootDir: params.rootDir,
+    origin: params.origin,
+    uid: currentUid(params.ownershipUid)
+  });
+}
+function formatCandidateBlockMessage(issue) {
+  if (issue.reason === "source_escapes_root") {
+    return `blocked plugin candidate: source escapes plugin root (${issue.sourcePath} -> ${issue.sourceRealPath}; root=${issue.rootRealPath})`;
+  }
+  if (issue.reason === "path_stat_failed") {
+    return `blocked plugin candidate: cannot stat path (${issue.targetPath})`;
+  }
+  if (issue.reason === "path_world_writable") {
+    return `blocked plugin candidate: world-writable path (${issue.targetPath}, mode=${formatPosixMode(issue.modeBits ?? 0)})`;
+  }
+  return `blocked plugin candidate: suspicious ownership (${issue.targetPath}, uid=${issue.foundUid}, expected uid=${issue.expectedUid} or root)`;
+}
+function isUnsafePluginCandidate(params) {
+  const issue = findCandidateBlockIssue({
+    source: params.source,
+    rootDir: params.rootDir,
+    origin: params.origin,
+    ownershipUid: params.ownershipUid,
+    realpathCache: params.realpathCache
+  });
+  if (!issue) {
+    return false;
+  }
+  params.diagnostics.push({
+    level: "warn",
+    source: issue.targetPath,
+    message: formatCandidateBlockMessage(issue)
+  });
+  return true;
+}
+function isExtensionFile(filePath) {
+  const ext = path21.extname(filePath);
+  if (!EXTENSION_EXTS.has(ext)) {
+    return false;
+  }
+  if (filePath.endsWith(".d.ts")) {
+    return false;
+  }
+  const baseName = normalizeLowercaseStringOrEmpty(path21.basename(filePath));
+  return !baseName.includes(".test.") && !baseName.includes(".live.test.") && !baseName.includes(".e2e.test.");
+}
+function shouldIgnoreScannedDirectory(dirName) {
+  const normalized = normalizeLowercaseStringOrEmpty(dirName);
+  if (!normalized) {
+    return true;
+  }
+  if (SCANNED_DIRECTORY_IGNORE_NAMES.has(normalized)) {
+    return true;
+  }
+  if (normalized.endsWith(".bak")) {
+    return true;
+  }
+  if (normalized.includes(".backup-")) {
+    return true;
+  }
+  if (normalized.includes(".disabled")) {
+    return true;
+  }
+  return false;
+}
+function resolveScannedEntryType(entry, fullPath) {
+  if (entry.isFile()) {
+    return "file";
+  }
+  if (entry.isDirectory()) {
+    return "directory";
+  }
+  if (!entry.isSymbolicLink()) {
+    return null;
+  }
+  const stat = safeStatSync(fullPath);
+  if (!stat) {
+    return null;
+  }
+  if (stat.isFile()) {
+    return "file";
+  }
+  if (stat.isDirectory()) {
+    return "directory";
+  }
+  return null;
+}
+function resolvesToSameDirectory(left, right, realpathCache) {
+  if (!left || !right) {
+    return false;
+  }
+  const leftRealPath = safeRealpathSync2(left, realpathCache);
+  const rightRealPath = safeRealpathSync2(right, realpathCache);
+  if (leftRealPath && rightRealPath) {
+    return leftRealPath === rightRealPath;
+  }
+  return path21.resolve(left) === path21.resolve(right);
+}
+function createDiscoveryResult() {
+  return {
+    candidates: [],
+    diagnostics: []
+  };
+}
+function mergeDiscoveryResult(target, source, seenSources) {
+  for (const candidate of source.candidates) {
+    const key = candidate.source;
+    if (seenSources.has(key)) {
+      continue;
+    }
+    seenSources.add(key);
+    target.candidates.push(candidate);
+  }
+  target.diagnostics.push(...source.diagnostics);
+}
+function collectInstalledPluginRecordPaths(installRecords, env) {
+  const paths = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const record of Object.values(installRecords ?? {})) {
+    const rawPath = typeof record.installPath === "string" && record.installPath.trim() ? record.installPath : typeof record.sourcePath === "string" && record.sourcePath.trim() ? record.sourcePath : void 0;
+    if (!rawPath) {
+      continue;
+    }
+    const resolved = resolveUserPath(rawPath, env);
+    if (seen.has(resolved) || !fs13.existsSync(resolved)) {
+      continue;
+    }
+    seen.add(resolved);
+    paths.push(resolved);
+  }
+  return paths;
+}
+function readPackageManifest(dir, rejectHardlinks = true, rootRealPath) {
+  const manifestPath = path21.join(dir, "package.json");
+  const opened = openBoundaryFileSync({
+    absolutePath: manifestPath,
+    rootPath: dir,
+    ...rootRealPath !== void 0 ? { rootRealPath } : {},
+    boundaryLabel: "plugin package directory",
+    rejectHardlinks
+  });
+  if (!opened.ok) {
+    return null;
+  }
+  try {
+    const raw = fs13.readFileSync(opened.fd, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  } finally {
+    fs13.closeSync(opened.fd);
+  }
+}
+function deriveIdHint(params) {
+  const base = path21.basename(params.filePath, path21.extname(params.filePath));
+  const rawManifestId = params.manifestId?.trim();
+  if (rawManifestId) {
+    return params.hasMultipleExtensions ? `${rawManifestId}/${base}` : rawManifestId;
+  }
+  const rawPackageName = params.packageName?.trim();
+  if (!rawPackageName) {
+    return base;
+  }
+  const unscoped = rawPackageName.includes("/") ? rawPackageName.split("/").pop() ?? rawPackageName : rawPackageName;
+  const normalizedPackageId = unscoped.endsWith("-provider") && unscoped.length > "-provider".length ? unscoped.slice(0, -"-provider".length) : unscoped;
+  if (!params.hasMultipleExtensions) {
+    return normalizedPackageId;
+  }
+  return `${normalizedPackageId}/${base}`;
+}
+function resolveIdHintManifestId(rootDir, rejectHardlinks, rootRealPath) {
+  const manifest = loadPluginManifest(rootDir, rejectHardlinks, rootRealPath);
+  return manifest.ok ? manifest.manifest.id : void 0;
+}
+function addCandidate(params) {
+  const resolved = path21.resolve(params.source);
+  if (params.seen.has(resolved)) {
+    return;
+  }
+  const resolvedRoot = safeRealpathSync2(params.rootDir, params.realpathCache) ?? path21.resolve(params.rootDir);
+  if (isUnsafePluginCandidate({
+    source: resolved,
+    rootDir: resolvedRoot,
+    origin: params.origin,
+    diagnostics: params.diagnostics,
+    ownershipUid: params.ownershipUid,
+    realpathCache: params.realpathCache
+  })) {
+    return;
+  }
+  params.seen.add(resolved);
+  const manifest = params.manifest ?? null;
+  const packageDependencies = normalizePluginDependencySpecs({
+    dependencies: manifest?.dependencies,
+    optionalDependencies: manifest?.optionalDependencies
+  });
+  params.candidates.push({
+    idHint: params.idHint,
+    source: resolved,
+    setupSource: params.setupSource,
+    rootDir: resolvedRoot,
+    origin: params.origin,
+    format: params.format ?? "openclaw",
+    bundleFormat: params.bundleFormat,
+    workspaceDir: params.workspaceDir,
+    packageName: normalizeOptionalString(manifest?.name),
+    packageVersion: normalizeOptionalString(manifest?.version),
+    packageDescription: normalizeOptionalString(manifest?.description),
+    packageDir: params.packageDir,
+    packageManifest: getPackageManifestMetadata(manifest ?? void 0),
+    packageDependencies: packageDependencies.dependencies,
+    packageOptionalDependencies: packageDependencies.optionalDependencies,
+    bundledManifest: params.bundledManifest,
+    bundledManifestPath: params.bundledManifestPath
+  });
+}
+function discoverBundleInRoot(params) {
+  const bundleFormat = detectBundleManifestFormat(params.rootDir);
+  if (!bundleFormat) {
+    return "none";
+  }
+  const rootRealPath = safeRealpathSync2(params.rootDir, params.realpathCache) ?? void 0;
+  const bundleManifest = loadBundleManifest({
+    rootDir: params.rootDir,
+    ...rootRealPath !== void 0 ? { rootRealPath } : {},
+    bundleFormat,
+    rejectHardlinks: params.origin !== "bundled"
+  });
+  if (!bundleManifest.ok) {
+    params.diagnostics.push({
+      level: "error",
+      message: bundleManifest.error,
+      source: bundleManifest.manifestPath
+    });
+    return "invalid";
+  }
+  addCandidate({
+    candidates: params.candidates,
+    diagnostics: params.diagnostics,
+    seen: params.seen,
+    idHint: bundleManifest.manifest.id,
+    source: params.rootDir,
+    rootDir: params.rootDir,
+    origin: params.origin,
+    format: "bundle",
+    bundleFormat,
+    ownershipUid: params.ownershipUid,
+    workspaceDir: params.workspaceDir,
+    manifest: params.manifest,
+    packageDir: params.rootDir,
+    realpathCache: params.realpathCache
+  });
+  return "added";
+}
+function discoverInDirectory(params) {
+  if (!fs13.existsSync(params.dir)) {
+    return;
+  }
+  const resolvedDir = safeRealpathSync2(params.dir, params.realpathCache) ?? path21.resolve(params.dir);
+  if (params.recurseDirectories) {
+    if (params.visitedDirectories?.has(resolvedDir)) {
+      return;
+    }
+    params.visitedDirectories?.add(resolvedDir);
+  }
+  let entries = [];
+  try {
+    entries = fs13.readdirSync(params.dir, { withFileTypes: true });
+  } catch (err) {
+    params.diagnostics.push({
+      level: "warn",
+      message: `failed to read extensions dir: ${params.dir} (${String(err)})`,
+      source: params.dir
+    });
+    return;
+  }
+  for (const entry of entries) {
+    const fullPath = path21.join(params.dir, entry.name);
+    const entryType = resolveScannedEntryType(entry, fullPath);
+    if (entryType === "file") {
+      if (!isExtensionFile(fullPath)) {
+        continue;
+      }
+      addCandidate({
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        idHint: path21.basename(entry.name, path21.extname(entry.name)),
+        source: fullPath,
+        rootDir: path21.dirname(fullPath),
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        realpathCache: params.realpathCache
+      });
+      continue;
+    }
+    if (entryType !== "directory") {
+      continue;
+    }
+    if (params.skipDirectories?.has(entry.name)) {
+      continue;
+    }
+    if (shouldIgnoreScannedDirectory(entry.name)) {
+      continue;
+    }
+    const rejectHardlinks = params.origin !== "bundled";
+    const fullPathRealPath = safeRealpathSync2(fullPath, params.realpathCache) ?? void 0;
+    const manifest = readPackageManifest(fullPath, rejectHardlinks, fullPathRealPath);
+    const extensionResolution = resolvePackageExtensionEntries(manifest ?? void 0);
+    const extensions = extensionResolution.status === "ok" ? extensionResolution.entries : [];
+    const manifestId = resolveIdHintManifestId(fullPath, rejectHardlinks, fullPathRealPath);
+    const setupSource = resolvePackageSetupSource({
+      packageDir: fullPath,
+      ...fullPathRealPath !== void 0 ? { packageRootRealPath: fullPathRealPath } : {},
+      manifest,
+      origin: params.origin,
+      sourceLabel: fullPath,
+      diagnostics: params.diagnostics,
+      rejectHardlinks
+    });
+    if (extensions.length > 0) {
+      const resolvedRuntimeSources = resolvePackageRuntimeExtensionSources({
+        packageDir: fullPath,
+        ...fullPathRealPath !== void 0 ? { packageRootRealPath: fullPathRealPath } : {},
+        manifest,
+        extensions,
+        origin: params.origin,
+        sourceLabel: fullPath,
+        diagnostics: params.diagnostics,
+        rejectHardlinks
+      });
+      for (const resolved of resolvedRuntimeSources) {
+        addCandidate({
+          candidates: params.candidates,
+          diagnostics: params.diagnostics,
+          seen: params.seen,
+          idHint: deriveIdHint({
+            filePath: resolved,
+            manifestId,
+            packageName: manifest?.name,
+            hasMultipleExtensions: extensions.length > 1
+          }),
+          source: resolved,
+          ...setupSource ? { setupSource } : {},
+          rootDir: fullPath,
+          origin: params.origin,
+          ownershipUid: params.ownershipUid,
+          workspaceDir: params.workspaceDir,
+          manifest,
+          packageDir: fullPath,
+          realpathCache: params.realpathCache
+        });
+      }
+      continue;
+    }
+    const bundleDiscovery = discoverBundleInRoot({
+      rootDir: fullPath,
+      origin: params.origin,
+      ownershipUid: params.ownershipUid,
+      workspaceDir: params.workspaceDir,
+      manifest,
+      candidates: params.candidates,
+      diagnostics: params.diagnostics,
+      seen: params.seen,
+      realpathCache: params.realpathCache
+    });
+    if (bundleDiscovery === "added") {
+      continue;
+    }
+    const indexFile = [...DEFAULT_PLUGIN_ENTRY_CANDIDATES].map((candidate) => path21.join(fullPath, candidate)).find((candidate) => fs13.existsSync(candidate));
+    if (indexFile && isExtensionFile(indexFile)) {
+      addCandidate({
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        idHint: entry.name,
+        source: indexFile,
+        ...setupSource ? { setupSource } : {},
+        rootDir: fullPath,
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        manifest,
+        packageDir: fullPath,
+        realpathCache: params.realpathCache
+      });
+      continue;
+    }
+    if (params.recurseDirectories) {
+      discoverInDirectory({
+        ...params,
+        dir: fullPath
+      });
+    }
+  }
+}
+function hasDiscoverablePluginTree(pluginsDir) {
+  try {
+    return fs13.readdirSync(pluginsDir, { withFileTypes: true }).some((entry) => {
+      if (!entry.isDirectory()) {
+        return false;
+      }
+      const pluginDir = path21.join(pluginsDir, entry.name);
+      return fs13.existsSync(path21.join(pluginDir, "package.json")) || fs13.existsSync(path21.join(pluginDir, "openclaw.plugin.json"));
+    });
+  } catch {
+    return false;
+  }
+}
+function isSourceCheckoutExtensionsDir(extensionsDir) {
+  const packageRoot = path21.dirname(extensionsDir);
+  return fs13.existsSync(path21.join(packageRoot, ".git")) && fs13.existsSync(path21.join(packageRoot, "pnpm-workspace.yaml")) && fs13.existsSync(path21.join(packageRoot, "src")) && fs13.existsSync(extensionsDir) && hasDiscoverablePluginTree(extensionsDir);
+}
+function resolveBundledSourceCheckoutExtensionsDir(bundledRoot) {
+  if (!bundledRoot) {
+    return void 0;
+  }
+  const legacyRoot = buildLegacyBundledRootPath(bundledRoot);
+  if (!legacyRoot || !isSourceCheckoutExtensionsDir(legacyRoot)) {
+    return void 0;
+  }
+  return legacyRoot;
+}
+function readChildDirectoryNames(dir) {
+  if (!dir || !fs13.existsSync(dir)) {
+    return /* @__PURE__ */ new Set();
+  }
+  try {
+    return new Set(
+      fs13.readdirSync(dir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+    );
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+}
+function discoverFromPath(params) {
+  const resolved = resolveUserPath(params.rawPath, params.env);
+  if (!fs13.existsSync(resolved)) {
+    params.diagnostics.push({
+      level: "error",
+      message: `plugin path not found: ${resolved}`,
+      source: resolved
+    });
+    return;
+  }
+  const stat = fs13.statSync(resolved);
+  if (stat.isFile()) {
+    if (!isExtensionFile(resolved)) {
+      params.diagnostics.push({
+        level: "error",
+        message: `plugin path is not a supported file: ${resolved}`,
+        source: resolved
+      });
+      return;
+    }
+    addCandidate({
+      candidates: params.candidates,
+      diagnostics: params.diagnostics,
+      seen: params.seen,
+      idHint: path21.basename(resolved, path21.extname(resolved)),
+      source: resolved,
+      rootDir: path21.dirname(resolved),
+      origin: params.origin,
+      ownershipUid: params.ownershipUid,
+      workspaceDir: params.workspaceDir,
+      realpathCache: params.realpathCache
+    });
+    return;
+  }
+  if (stat.isDirectory()) {
+    const rejectHardlinks = params.origin !== "bundled";
+    const resolvedRealPath = safeRealpathSync2(resolved, params.realpathCache) ?? void 0;
+    const manifest = readPackageManifest(resolved, rejectHardlinks, resolvedRealPath);
+    const extensionResolution = resolvePackageExtensionEntries(manifest ?? void 0);
+    const extensions = extensionResolution.status === "ok" ? extensionResolution.entries : [];
+    const manifestId = resolveIdHintManifestId(resolved, rejectHardlinks, resolvedRealPath);
+    const setupSource = resolvePackageSetupSource({
+      packageDir: resolved,
+      ...resolvedRealPath !== void 0 ? { packageRootRealPath: resolvedRealPath } : {},
+      manifest,
+      origin: params.origin,
+      sourceLabel: resolved,
+      diagnostics: params.diagnostics,
+      rejectHardlinks
+    });
+    if (extensions.length > 0) {
+      const resolvedRuntimeSources = resolvePackageRuntimeExtensionSources({
+        packageDir: resolved,
+        ...resolvedRealPath !== void 0 ? { packageRootRealPath: resolvedRealPath } : {},
+        manifest,
+        extensions,
+        origin: params.origin,
+        sourceLabel: resolved,
+        diagnostics: params.diagnostics,
+        rejectHardlinks
+      });
+      for (const source of resolvedRuntimeSources) {
+        addCandidate({
+          candidates: params.candidates,
+          diagnostics: params.diagnostics,
+          seen: params.seen,
+          idHint: deriveIdHint({
+            filePath: source,
+            manifestId,
+            packageName: manifest?.name,
+            hasMultipleExtensions: extensions.length > 1
+          }),
+          source,
+          ...setupSource ? { setupSource } : {},
+          rootDir: resolved,
+          origin: params.origin,
+          ownershipUid: params.ownershipUid,
+          workspaceDir: params.workspaceDir,
+          manifest,
+          packageDir: resolved,
+          realpathCache: params.realpathCache
+        });
+      }
+      return;
+    }
+    const bundleDiscovery = discoverBundleInRoot({
+      rootDir: resolved,
+      origin: params.origin,
+      ownershipUid: params.ownershipUid,
+      workspaceDir: params.workspaceDir,
+      manifest,
+      candidates: params.candidates,
+      diagnostics: params.diagnostics,
+      seen: params.seen,
+      realpathCache: params.realpathCache
+    });
+    if (bundleDiscovery === "added") {
+      return;
+    }
+    const indexFile = [...DEFAULT_PLUGIN_ENTRY_CANDIDATES].map((candidate) => path21.join(resolved, candidate)).find((candidate) => fs13.existsSync(candidate));
+    if (indexFile && isExtensionFile(indexFile)) {
+      addCandidate({
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        idHint: path21.basename(resolved),
+        source: indexFile,
+        ...setupSource ? { setupSource } : {},
+        rootDir: resolved,
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        manifest,
+        packageDir: resolved,
+        realpathCache: params.realpathCache
+      });
+      return;
+    }
+    discoverInDirectory({
+      dir: resolved,
+      origin: params.origin,
+      ownershipUid: params.ownershipUid,
+      workspaceDir: params.workspaceDir,
+      candidates: params.candidates,
+      diagnostics: params.diagnostics,
+      seen: params.seen,
+      realpathCache: params.realpathCache
+    });
+    return;
+  }
+}
+function discoverOpenClawPlugins(params) {
+  const env = params.env ?? process.env;
+  const workspaceDir = normalizeOptionalString(params.workspaceDir);
+  const workspaceRoot = workspaceDir ? resolveUserPath(workspaceDir, env) : void 0;
+  const roots = resolvePluginSourceRoots({ workspaceDir: workspaceRoot, env });
+  const scopedResult = tracePluginLifecyclePhase(
+    "discovery scan",
+    () => {
+      const result2 = createDiscoveryResult();
+      const seen = /* @__PURE__ */ new Set();
+      const realpathCache = /* @__PURE__ */ new Map();
+      const extra = params.extraPaths ?? [];
+      for (const extraPath of extra) {
+        if (typeof extraPath !== "string") {
+          continue;
+        }
+        const trimmed = extraPath.trim();
+        if (!trimmed) {
+          continue;
+        }
+        const bundledAlias = resolvePackagedBundledLoadPathAlias({
+          bundledRoot: roots.stock,
+          loadPath: resolveUserPath(trimmed, env)
+        });
+        if (bundledAlias) {
+          result2.diagnostics.push({
+            level: "warn",
+            source: trimmed,
+            message: `ignored plugins.load.paths entry that points at OpenClaw's ${bundledAlias.kind} bundled plugin directory; remove this redundant path or run openclaw doctor --fix`
+          });
+          continue;
+        }
+        discoverFromPath({
+          rawPath: trimmed,
+          origin: "config",
+          ownershipUid: params.ownershipUid,
+          workspaceDir,
+          env,
+          candidates: result2.candidates,
+          diagnostics: result2.diagnostics,
+          seen,
+          realpathCache
+        });
+      }
+      const workspaceMatchesBundledRoot = resolvesToSameDirectory(
+        workspaceRoot,
+        roots.stock,
+        realpathCache
+      );
+      if (roots.workspace && workspaceRoot && !workspaceMatchesBundledRoot) {
+        discoverInDirectory({
+          dir: roots.workspace,
+          origin: "workspace",
+          ownershipUid: params.ownershipUid,
+          workspaceDir: workspaceRoot,
+          candidates: result2.candidates,
+          diagnostics: result2.diagnostics,
+          seen,
+          realpathCache
+        });
+      }
+      return result2;
+    },
+    { scope: "scoped", extraPathCount: params.extraPaths?.length ?? 0 }
+  );
+  const sharedResult = tracePluginLifecyclePhase(
+    "discovery scan",
+    () => {
+      const result2 = createDiscoveryResult();
+      const seen = /* @__PURE__ */ new Set();
+      const realpathCache = /* @__PURE__ */ new Map();
+      for (const sourceOverlayDir of listBundledSourceOverlayDirs({
+        bundledRoot: roots.stock,
+        env
+      })) {
+        discoverFromPath({
+          rawPath: sourceOverlayDir,
+          origin: "bundled",
+          ownershipUid: params.ownershipUid,
+          workspaceDir,
+          env,
+          candidates: result2.candidates,
+          diagnostics: result2.diagnostics,
+          seen,
+          realpathCache
+        });
+        result2.diagnostics.push({
+          level: "warn",
+          source: sourceOverlayDir,
+          message: "using bind-mounted bundled plugin source overlay; this source overrides the packaged dist bundle for the same plugin id"
+        });
+      }
+      const sourceCheckoutDependencyDiagnostic = resolveSourceCheckoutDependencyDiagnostic(env);
+      if (sourceCheckoutDependencyDiagnostic) {
+        result2.diagnostics.push({
+          level: "warn",
+          source: sourceCheckoutDependencyDiagnostic.source,
+          message: sourceCheckoutDependencyDiagnostic.message
+        });
+      }
+      if (roots.stock) {
+        discoverInDirectory({
+          dir: roots.stock,
+          origin: "bundled",
+          ownershipUid: params.ownershipUid,
+          candidates: result2.candidates,
+          diagnostics: result2.diagnostics,
+          seen,
+          realpathCache
+        });
+      }
+      const sourceCheckoutExtensionsDir = resolveBundledSourceCheckoutExtensionsDir(roots.stock);
+      const sourceCheckoutMatchesBundledRoot = resolvesToSameDirectory(
+        sourceCheckoutExtensionsDir,
+        roots.stock,
+        realpathCache
+      );
+      if (sourceCheckoutExtensionsDir && !sourceCheckoutMatchesBundledRoot) {
+        discoverInDirectory({
+          dir: sourceCheckoutExtensionsDir,
+          origin: "bundled",
+          ownershipUid: params.ownershipUid,
+          candidates: result2.candidates,
+          diagnostics: result2.diagnostics,
+          seen,
+          realpathCache,
+          skipDirectories: readChildDirectoryNames(roots.stock)
+        });
+      }
+      for (const installedPath of collectInstalledPluginRecordPaths(params.installRecords, env)) {
+        discoverFromPath({
+          rawPath: installedPath,
+          origin: "global",
+          ownershipUid: params.ownershipUid,
+          workspaceDir,
+          env,
+          candidates: result2.candidates,
+          diagnostics: result2.diagnostics,
+          seen,
+          realpathCache
+        });
+      }
+      discoverInDirectory({
+        dir: roots.global,
+        origin: "global",
+        ownershipUid: params.ownershipUid,
+        candidates: result2.candidates,
+        diagnostics: result2.diagnostics,
+        seen,
+        realpathCache
+      });
+      return result2;
+    },
+    { scope: "shared" }
+  );
+  const result = createDiscoveryResult();
+  const seenSources = /* @__PURE__ */ new Set();
+  mergeDiscoveryResult(result, scopedResult, seenSources);
+  mergeDiscoveryResult(result, sharedResult, seenSources);
+  return result;
+}
+var EXTENSION_EXTS, SCANNED_DIRECTORY_IGNORE_NAMES;
+var init_discovery = __esm({
+  "vendor/openclaw/src/plugins/discovery.ts"() {
+    "use strict";
+    init_boundary_file_read();
+    init_string_coerce();
+    init_utils();
+    init_bundle_manifest();
+    init_bundled_dir();
+    init_bundled_load_path_aliases();
+    init_bundled_source_overlays();
+    init_manifest();
+    init_package_entry_resolution();
+    init_path_safety();
+    init_plugin_lifecycle_trace();
+    init_roots();
+    init_status_dependencies();
+    EXTENSION_EXTS = /* @__PURE__ */ new Set([".ts", ".js", ".mts", ".cts", ".mjs", ".cjs"]);
+    SCANNED_DIRECTORY_IGNORE_NAMES = /* @__PURE__ */ new Set([
+      ".git",
+      ".hg",
+      ".svn",
+      ".turbo",
+      ".yarn",
+      ".yarn-cache",
+      "build",
+      "coverage",
+      "dist",
+      "node_modules"
+    ]);
+  }
+});
+
+// vendor/openclaw/src/plugins/channel-catalog-registry.ts
+function listChannelCatalogEntries(params = {}) {
+  return discoverOpenClawPlugins({
+    workspaceDir: params.workspaceDir,
+    env: params.env
+  }).candidates.flatMap((candidate) => {
+    if (params.origin && candidate.origin !== params.origin) {
+      return [];
+    }
+    const channel = candidate.packageManifest?.channel;
+    if (!channel?.id) {
+      return [];
+    }
+    const manifest = loadPluginManifest(candidate.rootDir, candidate.origin !== "bundled");
+    if (!manifest.ok) {
+      return [];
+    }
+    return [
+      {
+        pluginId: manifest.manifest.id,
+        origin: candidate.origin,
+        packageName: candidate.packageName,
+        packageVersion: candidate.packageVersion,
+        workspaceDir: candidate.workspaceDir,
+        rootDir: candidate.rootDir,
+        channel,
+        ...candidate.packageManifest?.install ? { install: candidate.packageManifest.install } : {}
+      }
+    ];
+  });
+}
+var init_channel_catalog_registry = __esm({
+  "vendor/openclaw/src/plugins/channel-catalog-registry.ts"() {
+    "use strict";
+    init_discovery();
+    init_manifest();
+  }
+});
+
+// vendor/openclaw/src/channels/bundled-channel-catalog-read.ts
+import fs14 from "node:fs";
+import path22 from "node:path";
+function listPackageRoots() {
+  return [
+    resolveOpenClawPackageRootSync({ cwd: process.cwd() }),
+    resolveOpenClawPackageRootSync({ moduleUrl: import.meta.url })
+  ].filter((entry, index, all) => Boolean(entry) && all.indexOf(entry) === index);
+}
+function readBundledExtensionCatalogEntriesSync() {
+  try {
+    return listChannelCatalogEntries({ origin: "bundled" }).map((entry) => entry.channel);
+  } catch {
+    return [];
+  }
+}
+function readOfficialCatalogFileSync() {
+  for (const packageRoot of listPackageRoots()) {
+    const candidate = path22.join(packageRoot, OFFICIAL_CHANNEL_CATALOG_RELATIVE_PATH);
+    const cached = officialCatalogFileCache.get(candidate);
+    if (cached !== void 0) {
+      if (cached) {
+        return cached;
+      }
+      continue;
+    }
+    if (!fs14.existsSync(candidate)) {
+      officialCatalogFileCache.set(candidate, null);
+      continue;
+    }
+    try {
+      const payload = JSON.parse(fs14.readFileSync(candidate, "utf8"));
+      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      officialCatalogFileCache.set(candidate, entries);
+      return entries;
+    } catch {
+      officialCatalogFileCache.set(candidate, null);
+      continue;
+    }
+  }
+  return [];
+}
+function isChannelCatalogEntryLike(entry) {
+  return "openclaw" in entry;
+}
+function toBundledChannelEntry(entry) {
+  const channel = isChannelCatalogEntryLike(entry) ? entry.openclaw?.channel : entry;
+  const id = normalizeOptionalLowercaseString(channel?.id);
+  if (!id || !channel) {
+    return null;
+  }
+  const aliases = Array.isArray(channel.aliases) ? channel.aliases.map((alias) => normalizeOptionalLowercaseString(alias)).filter((alias) => Boolean(alias)) : [];
+  const order = typeof channel.order === "number" && Number.isFinite(channel.order) ? channel.order : Number.MAX_SAFE_INTEGER;
+  return {
+    id,
+    channel,
+    aliases,
+    order
+  };
+}
+function listBundledChannelCatalogEntries() {
+  const entries = /* @__PURE__ */ new Map();
+  for (const entry of readOfficialCatalogFileSync().map((entry2) => toBundledChannelEntry(entry2)).filter((entry2) => Boolean(entry2))) {
+    entries.set(entry.id, entry);
+  }
+  for (const entry of readBundledExtensionCatalogEntriesSync().map((entry2) => toBundledChannelEntry(entry2)).filter((entry2) => Boolean(entry2))) {
+    entries.set(entry.id, entry);
+  }
+  return Array.from(entries.values()).toSorted(
+    (left, right) => left.order - right.order || left.id.localeCompare(right.id)
+  );
+}
+var OFFICIAL_CHANNEL_CATALOG_RELATIVE_PATH, officialCatalogFileCache;
+var init_bundled_channel_catalog_read = __esm({
+  "vendor/openclaw/src/channels/bundled-channel-catalog-read.ts"() {
+    "use strict";
+    init_openclaw_root();
+    init_channel_catalog_registry();
+    init_string_coerce();
+    OFFICIAL_CHANNEL_CATALOG_RELATIVE_PATH = path22.join("dist", "channel-catalog.json");
+    officialCatalogFileCache = /* @__PURE__ */ new Map();
+  }
+});
+
+// vendor/openclaw/src/channels/ids.ts
+function listBundledChatChannelEntries() {
+  return listBundledChannelCatalogEntries().map((entry) => ({
+    id: normalizeOptionalLowercaseString(entry.id) ?? entry.id,
+    aliases: entry.aliases,
+    order: entry.order
+  })).toSorted(
+    (left, right) => left.order - right.order || left.id.localeCompare(right.id, "en", { sensitivity: "base" })
+  );
+}
+function normalizeChatChannelId(raw) {
+  const normalized = normalizeOptionalLowercaseString(raw);
+  if (!normalized) {
+    return null;
+  }
+  const resolved = CHAT_CHANNEL_ALIASES[normalized] ?? normalized;
+  return CHAT_CHANNEL_ID_SET.has(resolved) ? resolved : null;
+}
+var BUNDLED_CHAT_CHANNEL_ENTRIES, CHAT_CHANNEL_ID_SET, CHAT_CHANNEL_ORDER, CHAT_CHANNEL_ALIASES;
+var init_ids = __esm({
+  "vendor/openclaw/src/channels/ids.ts"() {
+    "use strict";
+    init_string_coerce();
+    init_bundled_channel_catalog_read();
+    BUNDLED_CHAT_CHANNEL_ENTRIES = Object.freeze(listBundledChatChannelEntries());
+    CHAT_CHANNEL_ID_SET = new Set(BUNDLED_CHAT_CHANNEL_ENTRIES.map((entry) => entry.id));
+    CHAT_CHANNEL_ORDER = Object.freeze(
+      BUNDLED_CHAT_CHANNEL_ENTRIES.map((entry) => entry.id)
+    );
+    CHAT_CHANNEL_ALIASES = Object.freeze(
+      Object.fromEntries(
+        BUNDLED_CHAT_CHANNEL_ENTRIES.flatMap(
+          (entry) => entry.aliases.map((alias) => [alias, entry.id])
+        )
+      )
+    );
+  }
+});
+
+// vendor/openclaw/src/config/paths.ts
+import fs18 from "node:fs";
+import os5 from "node:os";
+import path24 from "node:path";
+function resolveIsNixMode(env = process.env) {
+  return env.OPENCLAW_NIX_MODE === "1";
+}
+function resolveDefaultHomeDir() {
+  return resolveRequiredHomeDir(process.env, os5.homedir);
+}
+function envHomedir(env) {
+  return () => resolveRequiredHomeDir(env, os5.homedir);
+}
+function legacyStateDirs(homedir = resolveDefaultHomeDir) {
+  return LEGACY_STATE_DIRNAMES.map((dir) => path24.join(homedir(), dir));
+}
+function newStateDir(homedir = resolveDefaultHomeDir) {
+  return path24.join(homedir(), NEW_STATE_DIRNAME);
+}
+function resolveStateDir(env = process.env, homedir = envHomedir(env)) {
+  const effectiveHomedir = () => resolveRequiredHomeDir(env, homedir);
+  const override = env.OPENCLAW_STATE_DIR?.trim();
+  if (override) {
+    return resolveUserPath2(override, env, effectiveHomedir);
+  }
+  const newDir = newStateDir(effectiveHomedir);
+  if (env.OPENCLAW_TEST_FAST === "1") {
+    return newDir;
+  }
+  const legacyDirs = legacyStateDirs(effectiveHomedir);
+  const hasNew = fs18.existsSync(newDir);
+  if (hasNew) {
+    return newDir;
+  }
+  const existingLegacy = legacyDirs.find((dir) => {
+    try {
+      return fs18.existsSync(dir);
+    } catch {
+      return false;
+    }
+  });
+  if (existingLegacy) {
+    return existingLegacy;
+  }
+  return newDir;
+}
+function resolveUserPath2(input, env = process.env, homedir = envHomedir(env)) {
+  return resolveHomeRelativePath(input, { env, homedir });
+}
+function resolveCanonicalConfigPath(env = process.env, stateDir = resolveStateDir(env, envHomedir(env))) {
+  const override = env.OPENCLAW_CONFIG_PATH?.trim();
+  if (override) {
+    return resolveUserPath2(override, env, envHomedir(env));
+  }
+  return path24.join(stateDir, CONFIG_FILENAME);
+}
+function resolveConfigPathCandidate(env = process.env, homedir = envHomedir(env)) {
+  if (env.OPENCLAW_TEST_FAST === "1") {
+    return resolveCanonicalConfigPath(env, resolveStateDir(env, homedir));
+  }
+  const candidates = resolveDefaultConfigCandidates(env, homedir);
+  const existing = candidates.find((candidate) => {
+    try {
+      return fs18.existsSync(candidate);
+    } catch {
+      return false;
+    }
+  });
+  if (existing) {
+    return existing;
+  }
+  return resolveCanonicalConfigPath(env, resolveStateDir(env, homedir));
+}
+function resolveDefaultConfigCandidates(env = process.env, homedir = envHomedir(env)) {
+  const effectiveHomedir = () => resolveRequiredHomeDir(env, homedir);
+  const explicit = env.OPENCLAW_CONFIG_PATH?.trim();
+  if (explicit) {
+    return [resolveUserPath2(explicit, env, effectiveHomedir)];
+  }
+  const candidates = [];
+  const openclawStateDir = env.OPENCLAW_STATE_DIR?.trim();
+  if (openclawStateDir) {
+    const resolved = resolveUserPath2(openclawStateDir, env, effectiveHomedir);
+    candidates.push(path24.join(resolved, CONFIG_FILENAME));
+    candidates.push(...LEGACY_CONFIG_FILENAMES.map((name) => path24.join(resolved, name)));
+  }
+  const defaultDirs = [newStateDir(effectiveHomedir), ...legacyStateDirs(effectiveHomedir)];
+  for (const dir of defaultDirs) {
+    candidates.push(path24.join(dir, CONFIG_FILENAME));
+    candidates.push(...LEGACY_CONFIG_FILENAMES.map((name) => path24.join(dir, name)));
+  }
+  return candidates;
+}
+var isNixMode, LEGACY_STATE_DIRNAMES, NEW_STATE_DIRNAME, CONFIG_FILENAME, LEGACY_CONFIG_FILENAMES, STATE_DIR, CONFIG_PATH;
+var init_paths = __esm({
+  "vendor/openclaw/src/config/paths.ts"() {
+    "use strict";
+    init_home_dir();
+    isNixMode = resolveIsNixMode();
+    LEGACY_STATE_DIRNAMES = [".clawdbot"];
+    NEW_STATE_DIRNAME = ".openclaw";
+    CONFIG_FILENAME = "openclaw.json";
+    LEGACY_CONFIG_FILENAMES = ["clawdbot.json"];
+    STATE_DIR = resolveStateDir();
+    CONFIG_PATH = resolveConfigPathCandidate();
+  }
+});
+
+// vendor/openclaw/src/terminal/progress-line.ts
+function clearActiveProgressLine() {
+  if (!activeStream?.isTTY) {
+    return;
+  }
+  activeStream.write("\r\x1B[2K");
+}
+var activeStream;
+var init_progress_line = __esm({
+  "vendor/openclaw/src/terminal/progress-line.ts"() {
+    "use strict";
+    activeStream = null;
+  }
+});
+
+// vendor/openclaw/src/terminal/restore.ts
+function reportRestoreFailure(scope, err, reason) {
+  const suffix = reason ? ` (${reason})` : "";
+  const message = `[terminal] restore ${scope} failed${suffix}: ${String(err)}`;
+  try {
+    process.stderr.write(`${message}
+`);
+  } catch (writeErr) {
+    console.error(`[terminal] restore reporting failed${suffix}: ${String(writeErr)}`);
+  }
+}
+function restoreTerminalState(reason, options = {}) {
+  const resumeStdin = options.resumeStdinIfPaused ?? options.resumeStdin ?? false;
+  try {
+    clearActiveProgressLine();
+  } catch (err) {
+    reportRestoreFailure("progress line", err, reason);
+  }
+  const stdin = process.stdin;
+  if (stdin.isTTY && typeof stdin.setRawMode === "function") {
+    try {
+      stdin.setRawMode(false);
+    } catch (err) {
+      reportRestoreFailure("raw mode", err, reason);
+    }
+    if (resumeStdin && typeof stdin.isPaused === "function" && stdin.isPaused()) {
+      try {
+        stdin.resume();
+      } catch (err) {
+        reportRestoreFailure("stdin resume", err, reason);
+      }
+    }
+  }
+  if (process.stdout.isTTY) {
+    try {
+      process.stdout.write(RESET_SEQUENCE);
+    } catch (err) {
+      reportRestoreFailure("stdout reset", err, reason);
+    }
+  }
+}
+var RESET_SEQUENCE;
+var init_restore = __esm({
+  "vendor/openclaw/src/terminal/restore.ts"() {
+    "use strict";
+    init_progress_line();
+    RESET_SEQUENCE = "\x1B[0m\x1B[?25h\x1B[?1000l\x1B[?1002l\x1B[?1003l\x1B[?1006l\x1B[?2004l\x1B[<u\x1B[>4;0m";
+  }
+});
+
+// vendor/openclaw/src/runtime.ts
+function shouldEmitRuntimeLog(env = process.env) {
+  if (env.VITEST !== "true") {
+    return true;
+  }
+  if (env.OPENCLAW_TEST_RUNTIME_LOG === "1") {
+    return true;
+  }
+  const maybeMockedLog = console.log;
+  return typeof maybeMockedLog.mock === "object";
+}
+function shouldEmitRuntimeStdout(env = process.env) {
+  if (env.VITEST !== "true") {
+    return true;
+  }
+  if (env.OPENCLAW_TEST_RUNTIME_LOG === "1") {
+    return true;
+  }
+  const stdout = process.stdout;
+  return typeof stdout.write.mock === "object";
+}
+function isPipeClosedError(err) {
+  const code = err?.code;
+  return code === "EPIPE" || code === "EIO";
+}
+function writeStdout(value) {
+  if (!shouldEmitRuntimeStdout()) {
+    return;
+  }
+  clearActiveProgressLine();
+  const line = value.endsWith("\n") ? value : `${value}
+`;
+  try {
+    process.stdout.write(line);
+  } catch (err) {
+    if (isPipeClosedError(err)) {
+      return;
+    }
+    throw err;
+  }
+}
+function createRuntimeIo() {
+  return {
+    log: (...args) => {
+      if (!shouldEmitRuntimeLog()) {
+        return;
+      }
+      clearActiveProgressLine();
+      console.log(...args);
+    },
+    error: (...args) => {
+      clearActiveProgressLine();
+      console.error(...args);
+    },
+    writeStdout,
+    writeJson: (value, space = 2) => {
+      writeStdout(JSON.stringify(value, null, space > 0 ? space : void 0));
+    }
+  };
+}
+var defaultRuntime;
+var init_runtime = __esm({
+  "vendor/openclaw/src/runtime.ts"() {
+    "use strict";
+    init_progress_line();
+    init_restore();
+    defaultRuntime = {
+      ...createRuntimeIo(),
+      exit: (code) => {
+        restoreTerminalState("runtime exit", { resumeStdinIfPaused: false });
+        process.exit(code);
+        throw new Error("unreachable");
+      }
+    };
   }
 });
 
 // vendor/openclaw/src/config/zod-schema.ts
-import { z as z18 } from "zod";
-
-// vendor/openclaw/src/shared/string-coerce.ts
-function normalizeNullableString(value) {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-function normalizeOptionalString(value) {
-  return normalizeNullableString(value) ?? void 0;
-}
-function normalizeStringifiedOptionalString(value) {
-  if (typeof value === "string") {
-    return normalizeOptionalString(value);
-  }
-  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
-    return normalizeOptionalString(String(value));
-  }
-  return void 0;
-}
-function normalizeOptionalLowercaseString(value) {
-  return normalizeOptionalString(value)?.toLowerCase();
-}
-function normalizeLowercaseStringOrEmpty(value) {
-  return normalizeOptionalLowercaseString(value) ?? "";
-}
+import { z as z20 } from "zod";
 
 // vendor/openclaw/src/cli/parse-bytes.ts
+init_string_coerce();
 var UNIT_MULTIPLIERS = {
   b: 1,
   kb: 1024,
@@ -4226,6 +9416,7 @@ function parseByteSize(raw, opts) {
 }
 
 // vendor/openclaw/src/cli/parse-duration.ts
+init_string_coerce();
 var DURATION_MULTIPLIERS = {
   ms: 1,
   s: 1e3,
@@ -4284,10 +9475,95 @@ function parseDurationMs(raw, opts) {
   return ms;
 }
 
+// vendor/openclaw/src/config/zod-schema.ts
+init_string_coerce();
+
+// vendor/openclaw/src/config/control-ui-css.ts
+var CSS_WIDTH_KEYWORDS = /* @__PURE__ */ new Set(["none", "min-content", "max-content"]);
+var CSS_WIDTH_FUNCTIONS = /* @__PURE__ */ new Set(["calc", "clamp", "fit-content", "max", "min"]);
+var CSS_WIDTH_UNITS = /* @__PURE__ */ new Set(["ch", "em", "rem", "vh", "vmax", "vmin", "vw", "px"]);
+var CSS_WIDTH_ALLOWED_CHARS = /^[0-9A-Za-z.%+\-*/(),\s]+$/;
+var CSS_WIDTH_IDENTIFIER_RE = /[A-Za-z][A-Za-z0-9-]*/g;
+var CSS_WIDTH_SIMPLE_RE = /^(?:\d+(?:\.\d+)?|\.\d+)(?:px|rem|em|ch|vw|vh|vmin|vmax|%)$/i;
+var CSS_WIDTH_MAX_LENGTH = 96;
+function hasBalancedParentheses(value) {
+  let depth = 0;
+  for (const char of value) {
+    if (char === "(") {
+      depth++;
+    } else if (char === ")") {
+      depth--;
+      if (depth < 0) {
+        return false;
+      }
+    }
+  }
+  return depth === 0;
+}
+function hasAllowedIdentifiers(value) {
+  for (const match of value.matchAll(CSS_WIDTH_IDENTIFIER_RE)) {
+    const identifier = match[0].toLowerCase();
+    if (!CSS_WIDTH_FUNCTIONS.has(identifier) && !CSS_WIDTH_KEYWORDS.has(identifier) && !CSS_WIDTH_UNITS.has(identifier)) {
+      return false;
+    }
+  }
+  return true;
+}
+function normalizeControlUiChatMessageMaxWidth(value) {
+  return value.trim().replace(/\s+/g, " ");
+}
+function isValidControlUiChatMessageMaxWidth(value) {
+  const normalized = normalizeControlUiChatMessageMaxWidth(value);
+  if (normalized.length === 0 || normalized.length > CSS_WIDTH_MAX_LENGTH) {
+    return false;
+  }
+  if (CSS_WIDTH_KEYWORDS.has(normalized.toLowerCase())) {
+    return true;
+  }
+  if (CSS_WIDTH_SIMPLE_RE.test(normalized)) {
+    return true;
+  }
+  if (!CSS_WIDTH_ALLOWED_CHARS.test(normalized)) {
+    return false;
+  }
+  if (!hasBalancedParentheses(normalized) || !hasAllowedIdentifiers(normalized)) {
+    return false;
+  }
+  return /^(?:calc|clamp|fit-content|max|min)\(.+\)$/i.test(normalized);
+}
+
+// vendor/openclaw/src/config/zod-schema.agent-defaults.ts
+import { z as z6 } from "zod";
+
+// vendor/openclaw/src/config/byte-size.ts
+function parseNonNegativeByteSize(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const int = Math.floor(value);
+    return int >= 0 ? int : null;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    try {
+      const bytes = parseByteSize(trimmed, { defaultUnit: "b" });
+      return bytes >= 0 ? bytes : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+function isValidNonNegativeByteSizeString(value) {
+  return parseNonNegativeByteSize(value) !== null;
+}
+
 // vendor/openclaw/src/config/zod-schema.agent-runtime.ts
 import { z as z5 } from "zod";
 
 // vendor/openclaw/src/agents/sandbox/network-mode.ts
+init_string_coerce();
 function normalizeNetworkMode(network) {
   const normalized = normalizeOptionalLowercaseString(network);
   return normalized || void 0;
@@ -4306,13 +9582,17 @@ function getBlockedNetworkModeReason(params) {
   return null;
 }
 
+// vendor/openclaw/src/config/zod-schema.agent-runtime.ts
+init_string_coerce();
+
 // vendor/openclaw/src/config/zod-schema.agent-model.ts
 import { z } from "zod";
 var AgentModelSchema = z.union([
   z.string(),
   z.object({
     primary: z.string().optional(),
-    fallbacks: z.array(z.string()).optional()
+    fallbacks: z.array(z.string()).optional(),
+    timeoutMs: z.number().int().positive().optional()
   }).strict()
 ]);
 
@@ -4363,121 +9643,8 @@ function isSafeExecutableValue(value) {
   return BARE_NAME_PATTERN.test(trimmed);
 }
 
-// vendor/openclaw/src/utils.ts
-import fs from "node:fs";
-import os2 from "node:os";
-import path2 from "node:path";
-
-// vendor/openclaw/src/infra/home-dir.ts
-import os from "node:os";
-import path from "node:path";
-function normalize(value) {
-  const trimmed = normalizeOptionalString(value);
-  if (!trimmed) {
-    return void 0;
-  }
-  if (trimmed === "undefined" || trimmed === "null") {
-    return void 0;
-  }
-  return trimmed;
-}
-function resolveEffectiveHomeDir(env = process.env, homedir = os.homedir) {
-  const raw = resolveRawHomeDir(env, homedir);
-  return raw ? path.resolve(raw) : void 0;
-}
-function resolveRawHomeDir(env, homedir) {
-  const explicitHome = normalize(env.OPENCLAW_HOME);
-  if (explicitHome) {
-    if (explicitHome === "~" || explicitHome.startsWith("~/") || explicitHome.startsWith("~\\")) {
-      const fallbackHome = resolveRawOsHomeDir(env, homedir);
-      if (fallbackHome) {
-        return explicitHome.replace(/^~(?=$|[\\/])/, fallbackHome);
-      }
-      return void 0;
-    }
-    return explicitHome;
-  }
-  return resolveRawOsHomeDir(env, homedir);
-}
-function resolveRawOsHomeDir(env, homedir) {
-  const envHome = normalize(env.HOME);
-  if (envHome) {
-    return envHome;
-  }
-  const userProfile = normalize(env.USERPROFILE);
-  if (userProfile) {
-    return userProfile;
-  }
-  return normalizeSafe(homedir);
-}
-function normalizeSafe(homedir) {
-  try {
-    return normalize(homedir());
-  } catch {
-    return void 0;
-  }
-}
-function resolveRequiredHomeDir(env = process.env, homedir = os.homedir) {
-  return resolveEffectiveHomeDir(env, homedir) ?? path.resolve(process.cwd());
-}
-function expandHomePrefix(input, opts) {
-  if (!input.startsWith("~")) {
-    return input;
-  }
-  const home = normalize(opts?.home) ?? resolveEffectiveHomeDir(opts?.env ?? process.env, opts?.homedir ?? os.homedir);
-  if (!home) {
-    return input;
-  }
-  return input.replace(/^~(?=$|[\\/])/, home);
-}
-function resolveHomeRelativePath(input, opts) {
-  const trimmed = input.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  if (trimmed.startsWith("~")) {
-    const expanded = expandHomePrefix(trimmed, {
-      home: resolveRequiredHomeDir(opts?.env ?? process.env, opts?.homedir ?? os.homedir),
-      env: opts?.env,
-      homedir: opts?.homedir
-    });
-    return path.resolve(expanded);
-  }
-  return path.resolve(trimmed);
-}
-
-// vendor/openclaw/src/utils.ts
-function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function resolveUserPath(input, env = process.env, homedir = os2.homedir) {
-  if (!input) {
-    return "";
-  }
-  return resolveHomeRelativePath(input, { env, homedir });
-}
-function resolveConfigDir(env = process.env, homedir = os2.homedir) {
-  const override = env.OPENCLAW_STATE_DIR?.trim();
-  if (override) {
-    return resolveUserPath(override, env, homedir);
-  }
-  const configPath = env.OPENCLAW_CONFIG_PATH?.trim();
-  if (configPath) {
-    return path2.dirname(resolveUserPath(configPath, env, homedir));
-  }
-  const newDir = path2.join(resolveRequiredHomeDir(env, homedir), ".openclaw");
-  try {
-    const hasNew = fs.existsSync(newDir);
-    if (hasNew) {
-      return newDir;
-    }
-  } catch {
-  }
-  return newDir;
-}
-var CONFIG_DIR = resolveConfigDir();
-
 // vendor/openclaw/src/config/types.secrets.ts
+init_utils();
 var DEFAULT_SECRET_PROVIDER_ALIAS = "default";
 var ENV_SECRET_TEMPLATE_RE = /^\$\{([A-Z][A-Z0-9_]{0,127})\}$/;
 function isSecretRef(value) {
@@ -4576,32 +9743,9 @@ function formatExecSecretRefIdValidationMessage() {
   ].join(" ");
 }
 
-// vendor/openclaw/src/shared/string-normalization.ts
-function normalizeStringEntries(list) {
-  return (list ?? []).map((entry) => normalizeOptionalString(String(entry)) ?? "").filter(Boolean);
-}
-function normalizeTrimmedStringList(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((entry) => {
-    const normalized = normalizeOptionalString(entry);
-    return normalized ? [normalized] : [];
-  });
-}
-
-// vendor/openclaw/src/config/types.models.ts
-var MODEL_APIS = [
-  "openai-completions",
-  "openai-responses",
-  "openai-codex-responses",
-  "anthropic-messages",
-  "google-generative-ai",
-  "github-copilot",
-  "bedrock-converse-stream",
-  "ollama",
-  "azure-openai-responses"
-];
+// vendor/openclaw/src/config/zod-schema.core.ts
+init_string_normalization();
+init_types_models();
 
 // vendor/openclaw/src/config/zod-schema.allowdeny.ts
 import { z as z2 } from "zod";
@@ -4687,7 +9831,8 @@ var SecretsFileProviderSchema = z4.object({
   path: z4.string().min(1),
   mode: z4.union([z4.literal("singleValue"), z4.literal("json")]).optional(),
   timeoutMs: z4.number().int().positive().max(12e4).optional(),
-  maxBytes: z4.number().int().positive().max(20 * 1024 * 1024).optional()
+  maxBytes: z4.number().int().positive().max(20 * 1024 * 1024).optional(),
+  allowInsecurePath: z4.boolean().optional()
 }).strict();
 var SecretsExecProviderSchema = z4.object({
   source: z4.literal("exec"),
@@ -4731,19 +9876,22 @@ var SecretsConfigSchema = z4.object({
 var ModelApiSchema = z4.enum(MODEL_APIS);
 var ModelCompatSchema = z4.object({
   supportsStore: z4.boolean().optional(),
+  supportsPromptCacheKey: z4.boolean().optional(),
   supportsDeveloperRole: z4.boolean().optional(),
   supportsReasoningEffort: z4.boolean().optional(),
   supportsUsageInStreaming: z4.boolean().optional(),
   supportsTools: z4.boolean().optional(),
   supportsStrictMode: z4.boolean().optional(),
   requiresStringContent: z4.boolean().optional(),
+  visibleReasoningDetailTypes: z4.array(z4.string().min(1)).optional(),
+  supportedReasoningEfforts: z4.array(z4.string().min(1)).optional(),
+  reasoningEffortMap: z4.record(z4.string().min(1), z4.string().min(1)).optional(),
   maxTokensField: z4.union([z4.literal("max_completion_tokens"), z4.literal("max_tokens")]).optional(),
   thinkingFormat: z4.union([
     z4.literal("openai"),
     z4.literal("openrouter"),
-    z4.literal("zai"),
-    z4.literal("qwen"),
-    z4.literal("qwen-chat-template")
+    z4.literal("deepseek"),
+    z4.literal("zai")
   ]).optional(),
   requiresToolResultName: z4.boolean().optional(),
   requiresAssistantAfterToolResult: z4.boolean().optional(),
@@ -4804,46 +9952,62 @@ var ModelDefinitionSchema = z4.object({
   id: z4.string().min(1),
   name: z4.string().min(1),
   api: ModelApiSchema.optional(),
+  baseUrl: z4.string().min(1).optional(),
   reasoning: z4.boolean().optional(),
-  input: z4.array(z4.union([z4.literal("text"), z4.literal("image")])).optional(),
+  input: z4.array(
+    z4.union([z4.literal("text"), z4.literal("image"), z4.literal("video"), z4.literal("audio")])
+  ).optional(),
   cost: z4.object({
     input: z4.number().optional(),
     output: z4.number().optional(),
     cacheRead: z4.number().optional(),
-    cacheWrite: z4.number().optional()
+    cacheWrite: z4.number().optional(),
+    tieredPricing: z4.array(
+      z4.object({
+        input: z4.number(),
+        output: z4.number(),
+        cacheRead: z4.number(),
+        cacheWrite: z4.number(),
+        range: z4.union([z4.tuple([z4.number(), z4.number()]), z4.tuple([z4.number()])])
+      }).strict()
+    ).optional()
   }).strict().optional(),
   contextWindow: z4.number().positive().optional(),
   contextTokens: z4.number().int().positive().optional(),
   maxTokens: z4.number().positive().optional(),
+  params: z4.record(z4.string(), z4.unknown()).optional(),
   headers: z4.record(z4.string(), z4.string()).optional(),
-  compat: ModelCompatSchema
+  compat: ModelCompatSchema,
+  metadataSource: z4.literal("models-add").optional()
 }).strict();
 var ModelProviderSchema = z4.object({
   baseUrl: z4.string().min(1),
   apiKey: SecretInputSchema.optional().register(sensitive),
   auth: z4.union([z4.literal("api-key"), z4.literal("aws-sdk"), z4.literal("oauth"), z4.literal("token")]).optional(),
   api: ModelApiSchema.optional(),
+  contextWindow: z4.number().positive().optional(),
+  contextTokens: z4.number().int().positive().optional(),
+  maxTokens: z4.number().positive().optional(),
+  timeoutSeconds: z4.number().int().positive().optional(),
   injectNumCtxForOpenAICompat: z4.boolean().optional(),
+  params: z4.record(z4.string(), z4.unknown()).optional(),
   headers: z4.record(z4.string(), SecretInputSchema.register(sensitive)).optional(),
   authHeader: z4.boolean().optional(),
   request: ConfiguredModelProviderRequestSchema,
   models: z4.array(ModelDefinitionSchema)
 }).strict();
-var BedrockDiscoverySchema = z4.object({
-  enabled: z4.boolean().optional(),
-  region: z4.string().optional(),
-  providerFilter: z4.array(z4.string()).optional(),
-  refreshInterval: z4.number().int().nonnegative().optional(),
-  defaultContextWindow: z4.number().int().positive().optional(),
-  defaultMaxTokens: z4.number().int().positive().optional()
+var ModelPricingConfigSchema = z4.object({
+  enabled: z4.boolean().optional()
 }).strict().optional();
 var ModelsConfigSchema = z4.object({
   mode: z4.union([z4.literal("merge"), z4.literal("replace")]).optional(),
-  providers: z4.record(z4.string(), ModelProviderSchema).optional()
+  providers: z4.record(z4.string(), ModelProviderSchema).optional(),
+  pricing: ModelPricingConfigSchema
 }).strict().optional();
 var GroupChatSchema = z4.object({
   mentionPatterns: z4.array(z4.string()).optional(),
-  historyLimit: z4.number().int().positive().optional()
+  historyLimit: z4.number().int().positive().optional(),
+  visibleReplies: z4.enum(["automatic", "message_tool"]).optional()
 }).strict().optional();
 var DmConfigSchema = z4.object({
   historyLimit: z4.number().int().min(0).optional()
@@ -4863,11 +10027,7 @@ var QueueModeSchema = z4.union([
   z4.literal("queue"),
   z4.literal("interrupt")
 ]);
-var QueueDropSchema = z4.union([
-  z4.literal("old"),
-  z4.literal("new"),
-  z4.literal("summarize")
-]);
+var QueueDropSchema = z4.union([z4.literal("old"), z4.literal("new"), z4.literal("summarize")]);
 var ReplyToModeSchema = z4.union([
   z4.literal("off"),
   z4.literal("first"),
@@ -4924,11 +10084,30 @@ var TtsProviderConfigSchema = z4.object({
     z4.record(z4.string(), z4.unknown())
   ])
 );
+var TtsPersonaPromptSchema = z4.object({
+  profile: z4.string().optional(),
+  scene: z4.string().optional(),
+  sampleContext: z4.string().optional(),
+  style: z4.string().optional(),
+  accent: z4.string().optional(),
+  pacing: z4.string().optional(),
+  constraints: z4.array(z4.string()).optional()
+}).strict();
+var TtsPersonaSchema = z4.object({
+  label: z4.string().optional(),
+  description: z4.string().optional(),
+  provider: TtsProviderSchema.optional(),
+  fallbackPolicy: z4.union([z4.literal("preserve-persona"), z4.literal("provider-defaults"), z4.literal("fail")]).optional(),
+  prompt: TtsPersonaPromptSchema.optional(),
+  providers: z4.record(z4.string(), TtsProviderConfigSchema).optional()
+}).strict();
 var TtsConfigSchema = z4.object({
   auto: TtsAutoSchema.optional(),
   enabled: z4.boolean().optional(),
   mode: TtsModeSchema.optional(),
   provider: TtsProviderSchema.optional(),
+  persona: z4.string().optional(),
+  personas: z4.record(z4.string(), TtsPersonaSchema).optional(),
   summaryModel: z4.string().optional(),
   modelOverrides: z4.object({
     enabled: z4.boolean().optional(),
@@ -4956,12 +10135,17 @@ var CliBackendWatchdogModeSchema = z4.object({
   minMs: z4.number().int().min(1e3).optional(),
   maxMs: z4.number().int().min(1e3).optional()
 }).strict().optional();
+var CliBackendOutputLimitsSchema = z4.object({
+  maxTurnRawChars: z4.number().int().min(1024).max(64 * 1024 * 1024).optional(),
+  maxTurnLines: z4.number().int().min(100).max(1e5).optional()
+}).strict().optional();
 var CliBackendSchema = z4.object({
   command: z4.string(),
   args: z4.array(z4.string()).optional(),
   output: z4.union([z4.literal("json"), z4.literal("text"), z4.literal("jsonl")]).optional(),
   resumeOutput: z4.union([z4.literal("json"), z4.literal("text"), z4.literal("jsonl")]).optional(),
   jsonlDialect: z4.literal("claude-stream-json").optional(),
+  liveSession: z4.literal("claude-stdio").optional(),
   input: z4.union([z4.literal("arg"), z4.literal("stdin")]).optional(),
   maxPromptArgChars: z4.number().int().positive().optional(),
   env: z4.record(z4.string(), z4.string()).optional(),
@@ -4974,6 +10158,7 @@ var CliBackendSchema = z4.object({
   sessionMode: z4.union([z4.literal("always"), z4.literal("existing"), z4.literal("none")]).optional(),
   sessionIdFields: z4.array(z4.string()).optional(),
   systemPromptArg: z4.string().optional(),
+  systemPromptFileArg: z4.string().optional(),
   systemPromptFileConfigArg: z4.string().optional(),
   systemPromptFileConfigKey: z4.string().optional(),
   systemPromptMode: z4.union([z4.literal("append"), z4.literal("replace")]).optional(),
@@ -4983,6 +10168,7 @@ var CliBackendSchema = z4.object({
   imagePathScope: z4.union([z4.literal("temp"), z4.literal("workspace")]).optional(),
   serialize: z4.boolean().optional(),
   reliability: z4.object({
+    outputLimits: CliBackendOutputLimitsSchema,
     watchdog: z4.object({
       fresh: CliBackendWatchdogModeSchema,
       resume: CliBackendWatchdogModeSchema
@@ -5163,7 +10349,8 @@ var HeartbeatSchema = z5.object({
   suppressToolErrorWarnings: z5.boolean().optional(),
   timeoutSeconds: z5.number().int().positive().optional(),
   lightContext: z5.boolean().optional(),
-  isolatedSession: z5.boolean().optional()
+  isolatedSession: z5.boolean().optional(),
+  skipWhenBusy: z5.boolean().optional()
 }).strict().superRefine((val, ctx) => {
   if (!val.every) {
     return;
@@ -5182,14 +10369,14 @@ var HeartbeatSchema = z5.object({
     return;
   }
   const timePattern = /^([01]\d|2[0-3]|24):([0-5]\d)$/;
-  const validateTime = (raw, opts, path16) => {
+  const validateTime = (raw, opts, path30) => {
     if (!raw) {
       return;
     }
     if (!timePattern.test(raw)) {
       ctx.addIssue({
         code: z5.ZodIssueCode.custom,
-        path: ["activeHours", path16],
+        path: ["activeHours", path30],
         message: 'invalid time (use "HH:MM" 24h format)'
       });
       return;
@@ -5200,7 +10387,7 @@ var HeartbeatSchema = z5.object({
     if (hour === 24 && minute !== 0) {
       ctx.addIssue({
         code: z5.ZodIssueCode.custom,
-        path: ["activeHours", path16],
+        path: ["activeHours", path30],
         message: "invalid time (24:00 is the only allowed 24:xx value)"
       });
       return;
@@ -5208,7 +10395,7 @@ var HeartbeatSchema = z5.object({
     if (hour === 24 && !opts.allow24) {
       ctx.addIssue({
         code: z5.ZodIssueCode.custom,
-        path: ["activeHours", path16],
+        path: ["activeHours", path30],
         message: "invalid time (start cannot be 24:00)"
       });
     }
@@ -5231,6 +10418,7 @@ var SandboxDockerSchema = z5.object({
   memory: z5.union([z5.string(), z5.number()]).optional(),
   memorySwap: z5.union([z5.string(), z5.number()]).optional(),
   cpus: z5.number().positive().optional(),
+  gpus: z5.string().min(1).optional(),
   ulimits: z5.record(
     z5.string(),
     z5.union([
@@ -5334,6 +10522,15 @@ var SandboxPruneSchema = z5.object({
   idleHours: z5.number().int().nonnegative().optional(),
   maxAgeDays: z5.number().int().nonnegative().optional()
 }).strict().optional();
+var AgentContextLimitsSchema = z5.object({
+  memoryGetMaxChars: z5.number().int().min(1).max(25e4).optional(),
+  memoryGetDefaultLines: z5.number().int().min(1).max(5e3).optional(),
+  toolResultMaxChars: z5.number().int().min(1).max(25e4).optional(),
+  postCompactionMaxChars: z5.number().int().min(1).max(5e4).optional()
+}).strict().optional();
+var AgentSkillsLimitsSchema = z5.object({
+  maxSkillsPromptChars: z5.number().int().min(0).optional()
+}).strict().optional();
 var ToolPolicyBaseSchema = z5.object({
   allow: z5.array(z5.string()).optional(),
   alsoAllow: z5.array(z5.string()).optional(),
@@ -5347,13 +10544,10 @@ var ToolPolicySchema = ToolPolicyBaseSchema.superRefine((value, ctx) => {
     });
   }
 }).optional();
-var TrimmedOptionalConfigStringSchema = z5.preprocess((value) => {
-  if (typeof value !== "string") {
-    return value;
-  }
+var TrimmedOptionalConfigStringSchema = z5.string().transform((value) => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : void 0;
-}, z5.string().optional());
+}).optional();
 var CodexAllowedDomainsSchema = z5.array(z5.string()).transform((values) => {
   const deduped = [
     ...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))
@@ -5395,7 +10589,8 @@ var ToolsWebFetchSchema = z5.object({
   userAgent: z5.string().optional(),
   readability: z5.boolean().optional(),
   ssrfPolicy: z5.object({
-    allowRfc2544BenchmarkRange: z5.boolean().optional()
+    allowRfc2544BenchmarkRange: z5.boolean().optional(),
+    allowIpv6UniqueLocalRange: z5.boolean().optional()
   }).strict().optional(),
   // Keep the legacy Firecrawl fetch shape loadable so existing installs can
   // start and then migrate cleanly through doctor.
@@ -5488,6 +10683,7 @@ var ToolLoopDetectionSchema = z5.object({
   enabled: z5.boolean().optional(),
   historySize: z5.number().int().positive().optional(),
   warningThreshold: z5.number().int().positive().optional(),
+  unknownToolThreshold: z5.number().int().positive().optional(),
   criticalThreshold: z5.number().int().positive().optional(),
   globalCircuitBreakerThreshold: z5.number().int().positive().optional(),
   detectors: ToolLoopDetectionDetectorSchema
@@ -5596,6 +10792,7 @@ var MemorySearchSchema = z5.object({
     baseUrl: z5.string().optional(),
     apiKey: SecretInputSchema.optional().register(sensitive),
     headers: z5.record(z5.string(), z5.string()).optional(),
+    nonBatchConcurrency: z5.number().int().positive().optional(),
     batch: z5.object({
       enabled: z5.boolean().optional(),
       wait: z5.boolean().optional(),
@@ -5606,10 +10803,14 @@ var MemorySearchSchema = z5.object({
   }).strict().optional(),
   fallback: z5.string().optional(),
   model: z5.string().optional(),
+  inputType: z5.string().min(1).optional(),
+  queryInputType: z5.string().min(1).optional(),
+  documentInputType: z5.string().min(1).optional(),
   outputDimensionality: z5.number().int().positive().optional(),
   local: z5.object({
     modelPath: z5.string().optional(),
-    modelCacheDir: z5.string().optional()
+    modelCacheDir: z5.string().optional(),
+    contextSize: z5.union([z5.number().int().positive(), z5.literal("auto")]).optional()
   }).strict().optional(),
   store: z5.object({
     driver: z5.literal("sqlite").optional(),
@@ -5632,6 +10833,7 @@ var MemorySearchSchema = z5.object({
     watch: z5.boolean().optional(),
     watchDebounceMs: z5.number().int().nonnegative().optional(),
     intervalMinutes: z5.number().int().nonnegative().optional(),
+    embeddingBatchTimeoutSeconds: z5.number().int().positive().optional(),
     sessions: z5.object({
       deltaBytes: z5.number().int().nonnegative().optional(),
       deltaMessages: z5.number().int().nonnegative().optional(),
@@ -5680,6 +10882,10 @@ var AgentEmbeddedHarnessSchema = z5.object({
   runtime: z5.string().optional(),
   fallback: z5.enum(["pi", "none"]).optional()
 }).strict().optional();
+var AgentRuntimePolicySchema = z5.object({
+  id: z5.string().optional(),
+  fallback: z5.enum(["pi", "none"]).optional()
+}).strict().optional();
 var AgentEntrySchema = z5.object({
   id: z5.string(),
   default: z5.boolean().optional(),
@@ -5687,14 +10893,19 @@ var AgentEntrySchema = z5.object({
   workspace: z5.string().optional(),
   agentDir: z5.string().optional(),
   systemPromptOverride: z5.string().optional(),
+  agentRuntime: AgentRuntimePolicySchema,
   embeddedHarness: AgentEmbeddedHarnessSchema,
   model: AgentModelSchema.optional(),
-  thinkingDefault: z5.enum(["off", "minimal", "low", "medium", "high", "xhigh", "adaptive"]).optional(),
+  thinkingDefault: z5.enum(["off", "minimal", "low", "medium", "high", "xhigh", "adaptive", "max"]).optional(),
   reasoningDefault: z5.enum(["on", "off", "stream"]).optional(),
   fastModeDefault: z5.boolean().optional(),
   skills: z5.array(z5.string()).optional(),
   memorySearch: MemorySearchSchema,
   humanDelay: HumanDelaySchema.optional(),
+  tts: TtsConfigSchema,
+  skillsLimits: AgentSkillsLimitsSchema,
+  contextLimits: AgentContextLimitsSchema,
+  contextTokens: z5.number().int().positive().optional(),
   heartbeat: HeartbeatSchema,
   identity: IdentitySchema,
   groupChat: GroupChatSchema,
@@ -5778,43 +10989,32 @@ var ToolsSchema = z5.object({
   );
 }).optional();
 
-// vendor/openclaw/src/config/zod-schema.agents.ts
-import { z as z7 } from "zod";
-
 // vendor/openclaw/src/config/zod-schema.agent-defaults.ts
-import { z as z6 } from "zod";
-
-// vendor/openclaw/src/config/agent-timeout-defaults.ts
-var DEFAULT_LLM_IDLE_TIMEOUT_SECONDS = 120;
-
-// vendor/openclaw/src/config/byte-size.ts
-function parseNonNegativeByteSize(value) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    const int = Math.floor(value);
-    return int >= 0 ? int : null;
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return null;
-    }
-    try {
-      const bytes = parseByteSize(trimmed, { defaultUnit: "b" });
-      return bytes >= 0 ? bytes : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-function isValidNonNegativeByteSizeString(value) {
-  return parseNonNegativeByteSize(value) !== null;
-}
-
-// vendor/openclaw/src/config/zod-schema.agent-defaults.ts
+var SilentReplyPolicySchema = z6.union([z6.literal("allow"), z6.literal("disallow")]);
+var NonNegativeByteSizeSchema = z6.union([
+  z6.number().int().nonnegative(),
+  z6.string().refine(isValidNonNegativeByteSizeString, "Expected byte size string like 2mb")
+]);
+var OptionalBootstrapFileNameSchema = z6.enum([
+  "SOUL.md",
+  "USER.md",
+  "HEARTBEAT.md",
+  "IDENTITY.md"
+]);
+var SilentReplyPolicyConfigSchema = z6.object({
+  direct: SilentReplyPolicySchema.optional(),
+  group: SilentReplyPolicySchema.optional(),
+  internal: SilentReplyPolicySchema.optional()
+}).strict();
+var SilentReplyRewriteConfigSchema = z6.object({
+  direct: z6.boolean().optional(),
+  group: z6.boolean().optional(),
+  internal: z6.boolean().optional()
+}).strict();
 var AgentDefaultsSchema = z6.object({
   /** Global default provider params applied to all models before per-model and per-agent overrides. */
   params: z6.record(z6.string(), z6.unknown()).optional(),
+  agentRuntime: AgentRuntimePolicySchema,
   embeddedHarness: AgentEmbeddedHarnessSchema,
   model: AgentModelSchema.optional(),
   imageModel: AgentModelSchema.optional(),
@@ -5837,14 +11037,34 @@ var AgentDefaultsSchema = z6.object({
   ).optional(),
   workspace: z6.string().optional(),
   skills: z6.array(z6.string()).optional(),
+  silentReply: SilentReplyPolicyConfigSchema.optional(),
+  silentReplyRewrite: SilentReplyRewriteConfigSchema.optional(),
   repoRoot: z6.string().optional(),
   systemPromptOverride: z6.string().optional(),
+  promptOverlays: z6.object({
+    gpt5: z6.object({
+      personality: z6.union([z6.literal("friendly"), z6.literal("on"), z6.literal("off")]).optional()
+    }).strict().optional()
+  }).strict().optional(),
   skipBootstrap: z6.boolean().optional(),
-  contextInjection: z6.union([z6.literal("always"), z6.literal("continuation-skip")]).optional(),
+  skipOptionalBootstrapFiles: z6.array(OptionalBootstrapFileNameSchema).optional(),
+  contextInjection: z6.union([z6.literal("always"), z6.literal("continuation-skip"), z6.literal("never")]).optional(),
   bootstrapMaxChars: z6.number().int().positive().optional(),
   bootstrapTotalMaxChars: z6.number().int().positive().optional(),
+  experimental: z6.object({
+    localModelLean: z6.boolean().optional()
+  }).strict().optional(),
   bootstrapPromptTruncationWarning: z6.union([z6.literal("off"), z6.literal("once"), z6.literal("always")]).optional(),
   userTimezone: z6.string().optional(),
+  startupContext: z6.object({
+    enabled: z6.boolean().optional(),
+    applyOn: z6.array(z6.union([z6.literal("new"), z6.literal("reset")])).optional(),
+    dailyMemoryDays: z6.number().int().min(1).max(14).optional(),
+    maxFileBytes: z6.number().int().min(1).max(64 * 1024).optional(),
+    maxFileChars: z6.number().int().min(1).max(1e4).optional(),
+    maxTotalChars: z6.number().int().min(1).max(5e4).optional()
+  }).strict().optional(),
+  contextLimits: AgentContextLimitsSchema,
   timeFormat: z6.union([z6.literal("auto"), z6.literal("12"), z6.literal("24")]).optional(),
   envelopeTimezone: z6.string().optional(),
   envelopeTimestamp: z6.union([z6.literal("on"), z6.literal("off")]).optional(),
@@ -5873,11 +11093,6 @@ var AgentDefaultsSchema = z6.object({
       placeholder: z6.string().optional()
     }).strict().optional()
   }).strict().optional(),
-  llm: z6.object({
-    idleTimeoutSeconds: z6.number().int().nonnegative().optional().describe(
-      `Idle timeout for LLM streaming responses in seconds. If no token is received within this time, the request is aborted. Set to 0 to disable. Default: ${DEFAULT_LLM_IDLE_TIMEOUT_SECONDS} seconds.`
-    )
-  }).strict().optional(),
   compaction: z6.object({
     mode: z6.union([z6.literal("default"), z6.literal("safeguard")]).optional(),
     provider: z6.string().optional(),
@@ -5893,20 +11108,23 @@ var AgentDefaultsSchema = z6.object({
       enabled: z6.boolean().optional(),
       maxRetries: z6.number().int().nonnegative().optional()
     }).strict().optional(),
+    midTurnPrecheck: z6.object({
+      enabled: z6.boolean().optional()
+    }).strict().optional(),
     postIndexSync: z6.enum(["off", "async", "await"]).optional(),
     postCompactionSections: z6.array(z6.string()).optional(),
     model: z6.string().optional(),
     timeoutSeconds: z6.number().int().positive().optional(),
     memoryFlush: z6.object({
       enabled: z6.boolean().optional(),
+      model: z6.string().optional(),
       softThresholdTokens: z6.number().int().nonnegative().optional(),
-      forceFlushTranscriptBytes: z6.union([
-        z6.number().int().nonnegative(),
-        z6.string().refine(isValidNonNegativeByteSizeString, "Expected byte size string like 2mb")
-      ]).optional(),
+      forceFlushTranscriptBytes: NonNegativeByteSizeSchema.optional(),
       prompt: z6.string().optional(),
       systemPrompt: z6.string().optional()
     }).strict().optional(),
+    truncateAfterCompaction: z6.boolean().optional(),
+    maxActiveTranscriptBytes: NonNegativeByteSizeSchema.optional(),
     notifyUser: z6.boolean().optional()
   }).strict().optional(),
   embeddedPi: z6.object({
@@ -5920,9 +11138,11 @@ var AgentDefaultsSchema = z6.object({
     z6.literal("medium"),
     z6.literal("high"),
     z6.literal("xhigh"),
-    z6.literal("adaptive")
+    z6.literal("adaptive"),
+    z6.literal("max")
   ]).optional(),
   verboseDefault: z6.union([z6.literal("off"), z6.literal("on"), z6.literal("full")]).optional(),
+  reasoningDefault: z6.union([z6.literal("off"), z6.literal("on"), z6.literal("stream")]).optional(),
   elevatedDefault: z6.union([z6.literal("off"), z6.literal("on"), z6.literal("ask"), z6.literal("full")]).optional(),
   blockStreamingDefault: z6.union([z6.literal("off"), z6.literal("on")]).optional(),
   blockStreamingBreak: z6.union([z6.literal("text_end"), z6.literal("message_end")]).optional(),
@@ -5956,6 +11176,8 @@ var AgentDefaultsSchema = z6.object({
 }).strict().optional();
 
 // vendor/openclaw/src/config/zod-schema.agents.ts
+init_string_coerce();
+import { z as z7 } from "zod";
 var AgentsSchema = z7.object({
   defaults: z7.lazy(() => AgentDefaultsSchema).optional(),
   list: z7.array(AgentEntrySchema).optional()
@@ -5977,11 +11199,20 @@ var BindingMatchSchema = z7.object({
   teamId: z7.string().optional(),
   roles: z7.array(z7.string()).optional()
 }).strict();
+var BindingSessionSchema = z7.object({
+  dmScope: z7.union([
+    z7.literal("main"),
+    z7.literal("per-peer"),
+    z7.literal("per-channel-peer"),
+    z7.literal("per-account-channel-peer")
+  ]).optional()
+}).strict();
 var RouteBindingSchema = z7.object({
   type: z7.literal("route").optional(),
   agentId: z7.string(),
   comment: z7.string().optional(),
-  match: BindingMatchSchema
+  match: BindingMatchSchema,
+  session: BindingSessionSchema.optional()
 }).strict();
 var AcpBindingSchema = z7.object({
   type: z7.literal("acp"),
@@ -6044,7 +11275,8 @@ var InstallSourceSchema = z9.union([
   z9.literal("npm"),
   z9.literal("archive"),
   z9.literal("path"),
-  z9.literal("clawhub")
+  z9.literal("clawhub"),
+  z9.literal("git")
 ]);
 var PluginInstallSourceSchema = z9.union([InstallSourceSchema, z9.literal("marketplace")]);
 var InstallRecordShape = {
@@ -6063,7 +11295,19 @@ var InstallRecordShape = {
   clawhubUrl: z9.string().optional(),
   clawhubPackage: z9.string().optional(),
   clawhubFamily: z9.union([z9.literal("code-plugin"), z9.literal("bundle-plugin")]).optional(),
-  clawhubChannel: z9.union([z9.literal("official"), z9.literal("community"), z9.literal("private")]).optional()
+  clawhubChannel: z9.union([z9.literal("official"), z9.literal("community"), z9.literal("private")]).optional(),
+  artifactKind: z9.union([z9.literal("legacy-zip"), z9.literal("npm-pack")]).optional(),
+  artifactFormat: z9.union([z9.literal("zip"), z9.literal("tgz")]).optional(),
+  npmIntegrity: z9.string().optional(),
+  npmShasum: z9.string().optional(),
+  npmTarballName: z9.string().optional(),
+  clawpackSha256: z9.string().optional(),
+  clawpackSpecVersion: z9.number().int().nonnegative().optional(),
+  clawpackManifestSha256: z9.string().optional(),
+  clawpackSize: z9.number().int().nonnegative().optional(),
+  gitUrl: z9.string().optional(),
+  gitRef: z9.string().optional(),
+  gitCommit: z9.string().optional()
 };
 var PluginInstallRecordShape = {
   ...InstallRecordShape,
@@ -6177,52 +11421,270 @@ var HooksGmailSchema = z10.object({
 }).strict().optional();
 
 // vendor/openclaw/src/config/zod-schema.providers.ts
-import path15 from "node:path";
-import { fileURLToPath as fileURLToPath4 } from "node:url";
-import { z as z16 } from "zod";
+import { z as z17 } from "zod";
 
 // vendor/openclaw/src/plugins/bundled-channel-config-metadata.ts
 import fs4 from "node:fs";
-import path8 from "node:path";
-
-// vendor/openclaw/node_modules/jiti/lib/jiti.mjs
-var import_jiti = __toESM(require_jiti(), 1);
-import { createRequire } from "node:module";
-function onError(err) {
-  throw err;
-}
-var nativeImport = (id) => import(id);
-var _transform;
-function lazyTransform(...args) {
-  if (!_transform) {
-    _transform = createRequire(import.meta.url)("../dist/babel.cjs");
-  }
-  return _transform(...args);
-}
-function createJiti(id, opts = {}) {
-  if (!opts.transform) {
-    opts = { ...opts, transform: lazyTransform };
-  }
-  return (0, import_jiti.default)(id, opts, {
-    onError,
-    nativeImport,
-    createRequire
-  });
-}
+import path10 from "node:path";
 
 // vendor/openclaw/src/channels/plugins/config-schema.ts
 import { z as z11 } from "zod";
+
+// vendor/openclaw/src/plugins/schema-validator.ts
+import { createRequire } from "node:module";
+
+// vendor/openclaw/src/config/allowed-values.ts
+init_string_coerce();
+var MAX_ALLOWED_VALUES_HINT = 12;
+var MAX_ALLOWED_VALUE_CHARS = 160;
+function truncateHintText(text, limit) {
+  if (text.length <= limit) {
+    return text;
+  }
+  return `${text.slice(0, limit)}... (+${text.length - limit} chars)`;
+}
+function safeStringify(value) {
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized !== void 0) {
+      return serialized;
+    }
+  } catch {
+  }
+  return String(value);
+}
+function toAllowedValueLabel(value) {
+  if (typeof value === "string") {
+    return JSON.stringify(truncateHintText(value, MAX_ALLOWED_VALUE_CHARS));
+  }
+  return truncateHintText(safeStringify(value), MAX_ALLOWED_VALUE_CHARS);
+}
+function toAllowedValueValue(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  return safeStringify(value);
+}
+function toAllowedValueDedupKey(value) {
+  if (value === null) {
+    return "null:null";
+  }
+  const kind = typeof value;
+  if (kind === "string") {
+    return `string:${value}`;
+  }
+  return `${kind}:${safeStringify(value)}`;
+}
+function summarizeAllowedValues(values) {
+  if (values.length === 0) {
+    return null;
+  }
+  const deduped = [];
+  const seenValues = /* @__PURE__ */ new Set();
+  for (const item of values) {
+    const dedupeKey = toAllowedValueDedupKey(item);
+    if (seenValues.has(dedupeKey)) {
+      continue;
+    }
+    seenValues.add(dedupeKey);
+    deduped.push({
+      value: toAllowedValueValue(item),
+      label: toAllowedValueLabel(item)
+    });
+  }
+  const shown = deduped.slice(0, MAX_ALLOWED_VALUES_HINT);
+  const hiddenCount = deduped.length - shown.length;
+  const formattedCore = shown.map((entry) => entry.label).join(", ");
+  const formatted = hiddenCount > 0 ? `${formattedCore}, ... (+${hiddenCount} more)` : formattedCore;
+  return {
+    values: shown.map((entry) => entry.value),
+    hiddenCount,
+    formatted
+  };
+}
+function messageAlreadyIncludesAllowedValues(message) {
+  const lower = normalizeLowercaseStringOrEmpty(message);
+  return lower.includes("(allowed:") || lower.includes("expected one of");
+}
+function appendAllowedValuesHint(message, summary) {
+  if (messageAlreadyIncludesAllowedValues(message)) {
+    return message;
+  }
+  return `${message} (allowed: ${summary.formatted})`;
+}
+
+// vendor/openclaw/src/terminal/safe-text.ts
+init_ansi();
+function sanitizeTerminalText(input) {
+  const normalized = stripAnsi(input).replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
+  let sanitized = "";
+  for (const char of normalized) {
+    const code = char.charCodeAt(0);
+    const isControl = code >= 0 && code <= 31 || code >= 127 && code <= 159;
+    if (!isControl) {
+      sanitized += char;
+    }
+  }
+  return sanitized;
+}
+
+// vendor/openclaw/src/plugins/schema-validator.ts
+init_plugin_cache_primitives();
+var require2 = createRequire(import.meta.url);
+var ajvSingletons = /* @__PURE__ */ new Map();
+function getAjv(mode) {
+  const cached = ajvSingletons.get(mode);
+  if (cached) {
+    return cached;
+  }
+  const ajvModule = require2("ajv");
+  const AjvCtor = typeof ajvModule.default === "function" ? ajvModule.default : ajvModule;
+  const instance = new AjvCtor({
+    allErrors: true,
+    strict: false,
+    removeAdditional: false,
+    ...mode === "defaults" ? { useDefaults: true } : {}
+  });
+  instance.addFormat("uri", {
+    type: "string",
+    validate: (value) => {
+      return URL.canParse(value);
+    }
+  });
+  ajvSingletons.set(mode, instance);
+  return instance;
+}
+var schemaCache = new PluginLruCache(512);
+function fingerprintSchema(schema) {
+  return JSON.stringify(schema);
+}
+function schemaHasDefaults(schema) {
+  if (!schema || typeof schema !== "object") {
+    return false;
+  }
+  if (Array.isArray(schema)) {
+    return schema.some((item) => schemaHasDefaults(item));
+  }
+  const record = schema;
+  if (Object.prototype.hasOwnProperty.call(record, "default")) {
+    return true;
+  }
+  return Object.values(record).some((value) => schemaHasDefaults(value));
+}
+function cloneValidationValue(value) {
+  if (value === void 0 || value === null) {
+    return value;
+  }
+  return structuredClone(value);
+}
+function normalizeAjvPath(instancePath) {
+  const path30 = instancePath?.replace(/^\//, "").replace(/\//g, ".");
+  return path30 && path30.length > 0 ? path30 : "<root>";
+}
+function appendPathSegment(path30, segment) {
+  const trimmed = segment.trim();
+  if (!trimmed) {
+    return path30;
+  }
+  if (path30 === "<root>") {
+    return trimmed;
+  }
+  return `${path30}.${trimmed}`;
+}
+function resolveMissingProperty(error) {
+  if (error.keyword !== "required" && error.keyword !== "dependentRequired" && error.keyword !== "dependencies") {
+    return null;
+  }
+  const missingProperty = error.params.missingProperty;
+  return typeof missingProperty === "string" && missingProperty.trim() ? missingProperty : null;
+}
+function resolveAjvErrorPath(error) {
+  const basePath = normalizeAjvPath(error.instancePath);
+  const missingProperty = resolveMissingProperty(error);
+  if (!missingProperty) {
+    return basePath;
+  }
+  return appendPathSegment(basePath, missingProperty);
+}
+function extractAllowedValues(error) {
+  if (error.keyword === "enum") {
+    const allowedValues = error.params.allowedValues;
+    return Array.isArray(allowedValues) ? allowedValues : null;
+  }
+  if (error.keyword === "const") {
+    const params = error.params;
+    if (!Object.prototype.hasOwnProperty.call(params, "allowedValue")) {
+      return null;
+    }
+    return [params.allowedValue];
+  }
+  return null;
+}
+function getAjvAllowedValuesSummary(error) {
+  const allowedValues = extractAllowedValues(error);
+  if (!allowedValues) {
+    return null;
+  }
+  return summarizeAllowedValues(allowedValues);
+}
+function formatAjvErrors(errors) {
+  if (!errors || errors.length === 0) {
+    return [{ path: "<root>", message: "invalid config", text: "<root>: invalid config" }];
+  }
+  return errors.map((error) => {
+    const path30 = resolveAjvErrorPath(error);
+    const baseMessage = error.message ?? "invalid";
+    const allowedValuesSummary = getAjvAllowedValuesSummary(error);
+    const message = allowedValuesSummary ? appendAllowedValuesHint(baseMessage, allowedValuesSummary) : baseMessage;
+    const safePath = sanitizeTerminalText(path30);
+    const safeMessage = sanitizeTerminalText(message);
+    return {
+      path: path30,
+      message,
+      text: `${safePath}: ${safeMessage}`,
+      ...allowedValuesSummary ? {
+        allowedValues: allowedValuesSummary.values,
+        allowedValuesHiddenCount: allowedValuesSummary.hiddenCount
+      } : {}
+    };
+  });
+}
+function validateJsonSchemaValue(params) {
+  const cacheKey = params.applyDefaults ? `${params.cacheKey}::defaults` : params.cacheKey;
+  let cached = schemaCache.get(cacheKey);
+  const schemaFingerprint = !cached || cached.schema !== params.schema ? fingerprintSchema(params.schema) : void 0;
+  if (!cached || cached.schema !== params.schema && cached.schemaFingerprint !== schemaFingerprint) {
+    const validate = getAjv(params.applyDefaults ? "defaults" : "default").compile(params.schema);
+    cached = {
+      hasDefaults: params.applyDefaults ? schemaHasDefaults(params.schema) : false,
+      validate,
+      schema: params.schema,
+      schemaFingerprint: schemaFingerprint ?? fingerprintSchema(params.schema)
+    };
+    schemaCache.set(cacheKey, cached);
+  } else if (cached.schema !== params.schema) {
+    cached.schema = params.schema;
+  }
+  const value = params.applyDefaults && cached.hasDefaults ? cloneValidationValue(params.value) : params.value;
+  const ok = cached.validate(value);
+  if (ok) {
+    return { ok: true, value };
+  }
+  return { ok: false, errors: formatAjvErrors(cached.validate.errors) };
+}
+
+// vendor/openclaw/src/channels/plugins/config-schema.ts
 var AllowFromEntrySchema = z11.union([z11.string(), z11.number()]);
 var AllowFromListSchema = z11.array(AllowFromEntrySchema).optional();
 function cloneRuntimeIssue(issue) {
   const record = issue && typeof issue === "object" ? issue : {};
-  const path16 = Array.isArray(record.path) ? record.path.filter((segment) => {
+  const path30 = Array.isArray(record.path) ? record.path.filter((segment) => {
     const kind = typeof segment;
     return kind === "string" || kind === "number";
   }) : void 0;
   return {
     ...record,
-    ...path16 ? { path: path16 } : {}
+    ...path30 ? { path: path30 } : {}
   };
 }
 function safeParseRuntimeSchema(schema, value) {
@@ -6236,6 +11698,42 @@ function safeParseRuntimeSchema(schema, value) {
   return {
     success: false,
     issues: result.error.issues.map((issue) => cloneRuntimeIssue(issue))
+  };
+}
+function toIssuePath(path30) {
+  if (!path30 || path30 === "<root>") {
+    return [];
+  }
+  return path30.split(".").map((segment) => {
+    const index = Number(segment);
+    return Number.isInteger(index) && String(index) === segment ? index : segment;
+  });
+}
+function safeParseJsonSchema(schema, cacheKey, value) {
+  const result = validateJsonSchemaValue({
+    schema,
+    cacheKey,
+    value,
+    applyDefaults: true
+  });
+  if (result.ok) {
+    return { success: true, data: result.value };
+  }
+  return {
+    success: false,
+    issues: result.errors.map((issue) => ({
+      path: toIssuePath(issue.path),
+      message: issue.message
+    }))
+  };
+}
+function buildJsonChannelConfigSchema(schema, options) {
+  return {
+    schema,
+    ...options?.uiHints ? { uiHints: options.uiHints } : {},
+    runtime: options?.runtime ?? {
+      safeParse: (value) => safeParseJsonSchema(schema, options?.cacheKey ?? "channel-config-schema:json", value)
+    }
   };
 }
 function buildChannelConfigSchema(schema, options) {
@@ -6265,201 +11763,117 @@ function buildChannelConfigSchema(schema, options) {
 }
 
 // vendor/openclaw/src/plugins/bundled-plugin-scan.ts
-import fs2 from "node:fs";
-import path5 from "node:path";
-var PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"];
-var RUNTIME_SIDECAR_ARTIFACTS = /* @__PURE__ */ new Set([
-  "helper-api.js",
-  "light-runtime-api.js",
-  "runtime-api.js",
-  "thread-bindings-runtime.js"
-]);
+init_string_coerce();
+init_string_normalization();
+
+// vendor/openclaw/src/plugins/public-surface-runtime.ts
+init_bundled_dir();
+var PUBLIC_SURFACE_SOURCE_EXTENSIONS = [
+  ".ts",
+  ".mts",
+  ".js",
+  ".mjs",
+  ".cts",
+  ".cjs"
+];
+
+// vendor/openclaw/src/plugins/bundled-plugin-scan.ts
 function normalizeBundledPluginStringList(value) {
   return normalizeTrimmedStringList(value);
 }
-function rewriteBundledPluginEntryToBuiltPath(entry) {
-  if (!entry) {
-    return void 0;
-  }
-  const normalized = entry.replace(/^\.\//u, "");
-  return normalized.replace(/\.[^.]+$/u, ".js");
+
+// vendor/openclaw/node_modules/jiti/lib/jiti.mjs
+var import_jiti = __toESM(require_jiti(), 1);
+import { createRequire as createRequire2 } from "node:module";
+function onError(err) {
+  throw err;
 }
-function isTopLevelPublicSurfaceSource(name) {
-  if (!PUBLIC_SURFACE_SOURCE_EXTENSIONS.includes(
-    path5.extname(name)
-  )) {
-    return false;
+var nativeImport = (id) => import(id);
+var _transform;
+function lazyTransform(...args) {
+  if (!_transform) {
+    _transform = createRequire2(import.meta.url)("../dist/babel.cjs");
   }
-  if (name.startsWith(".") || name.startsWith("test-") || name.includes(".test-")) {
-    return false;
-  }
-  if (name.endsWith(".d.ts")) {
-    return false;
-  }
-  if (/^config-api(\.[cm]?[jt]s)$/u.test(name)) {
-    return false;
-  }
-  return !/(\.test|\.spec)(\.[cm]?[jt]s)$/u.test(name);
+  return _transform(...args);
 }
-function deriveBundledPluginIdHint(params) {
-  const base = path5.basename(params.entryPath, path5.extname(params.entryPath));
-  if (!params.hasMultipleExtensions) {
-    return params.manifestId;
+function createJiti(id, opts = {}) {
+  if (!opts.transform) {
+    opts = { ...opts, transform: lazyTransform };
   }
-  const packageName = normalizeOptionalString(params.packageName);
-  if (!packageName) {
-    return `${params.manifestId}/${base}`;
-  }
-  const unscoped = packageName.includes("/") ? packageName.split("/").pop() ?? packageName : packageName;
-  return `${unscoped}/${base}`;
-}
-function collectBundledPluginPublicSurfaceArtifacts(params) {
-  const excluded = new Set(
-    normalizeTrimmedStringList([params.sourceEntry, params.setupEntry]).map(
-      (entry) => path5.basename(entry)
-    )
-  );
-  const artifacts = fs2.readdirSync(params.pluginDir, { withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => entry.name).filter(isTopLevelPublicSurfaceSource).filter((entry) => !excluded.has(entry)).map((entry) => rewriteBundledPluginEntryToBuiltPath(entry)).filter((entry) => typeof entry === "string" && entry.length > 0).toSorted((left, right) => left.localeCompare(right));
-  return artifacts.length > 0 ? artifacts : void 0;
-}
-function collectBundledPluginRuntimeSidecarArtifacts(publicSurfaceArtifacts) {
-  if (!publicSurfaceArtifacts) {
-    return void 0;
-  }
-  const artifacts = publicSurfaceArtifacts.filter(
-    (artifact) => RUNTIME_SIDECAR_ARTIFACTS.has(artifact)
-  );
-  return artifacts.length > 0 ? artifacts : void 0;
-}
-function resolveBundledPluginScanDir(params) {
-  const sourceDir = path5.join(params.packageRoot, "extensions");
-  const runtimeDir = path5.join(params.packageRoot, "dist-runtime", "extensions");
-  const builtDir = path5.join(params.packageRoot, "dist", "extensions");
-  if (params.runningFromBuiltArtifact) {
-    if (fs2.existsSync(builtDir)) {
-      return builtDir;
-    }
-    if (fs2.existsSync(runtimeDir)) {
-      return runtimeDir;
-    }
-  }
-  if (fs2.existsSync(sourceDir)) {
-    return sourceDir;
-  }
-  if (fs2.existsSync(runtimeDir) && fs2.existsSync(builtDir)) {
-    return runtimeDir;
-  }
-  if (fs2.existsSync(builtDir)) {
-    return builtDir;
-  }
-  return void 0;
+  return (0, import_jiti.default)(id, opts, {
+    onError,
+    nativeImport,
+    createRequire: createRequire2
+  });
 }
 
-// vendor/openclaw/src/plugins/sdk-alias.ts
-import fs3 from "node:fs";
+// vendor/openclaw/src/shared/import-specifier.ts
 import path7 from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-
-// vendor/openclaw/src/infra/openclaw-root.ts
-import path6 from "node:path";
-import { fileURLToPath } from "node:url";
-
-// vendor/openclaw/src/infra/openclaw-root.fs.runtime.ts
-import { default as default2 } from "node:fs";
-
-// vendor/openclaw/src/infra/openclaw-root.ts
-var CORE_PACKAGE_NAMES = /* @__PURE__ */ new Set(["openclaw"]);
-function parsePackageName(raw) {
-  const parsed = JSON.parse(raw);
-  return typeof parsed.name === "string" ? parsed.name : null;
+import { pathToFileURL } from "node:url";
+function toSafeImportPath(specifier) {
+  if (process.platform !== "win32") {
+    return specifier;
+  }
+  if (specifier.startsWith("file://")) {
+    return specifier;
+  }
+  if (path7.win32.isAbsolute(specifier)) {
+    return pathToFileURL(specifier, { windows: true }).href;
+  }
+  return specifier;
 }
-function readPackageNameSync(dir) {
+
+// vendor/openclaw/src/plugins/native-module-require.ts
+import { createRequire as createRequire3 } from "node:module";
+import path8 from "node:path";
+var nodeRequire = createRequire3(import.meta.url);
+function isJavaScriptModulePath(modulePath) {
+  return [".js", ".mjs", ".cjs"].includes(path8.extname(modulePath).toLowerCase());
+}
+function tryNativeRequireJavaScriptModule(modulePath, options = {}) {
+  if (process.platform === "win32" && options.allowWindows !== true) {
+    return { ok: false };
+  }
+  if (!isJavaScriptModulePath(modulePath)) {
+    return { ok: false };
+  }
   try {
-    return parsePackageName(
-      default2.readFileSync(path6.join(dir, "package.json"), "utf-8")
-    );
+    return { ok: true, moduleExport: nodeRequire(modulePath) };
   } catch {
-    return null;
+    return { ok: false };
   }
 }
-function findPackageRootSync(startDir, maxDepth = 12) {
-  for (const current of iterAncestorDirs(startDir, maxDepth)) {
-    const name = readPackageNameSync(current);
-    if (name && CORE_PACKAGE_NAMES.has(name)) {
-      return current;
-    }
-  }
-  return null;
-}
-function* iterAncestorDirs(startDir, maxDepth) {
-  let current = path6.resolve(startDir);
-  for (let i = 0; i < maxDepth; i += 1) {
-    yield current;
-    const parent = path6.dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-}
-function candidateDirsFromArgv1(argv1) {
-  const normalized = path6.resolve(argv1);
-  const candidates = [path6.dirname(normalized)];
-  try {
-    const resolved = default2.realpathSync(normalized);
-    if (resolved !== normalized) {
-      candidates.push(path6.dirname(resolved));
-    }
-  } catch {
-  }
-  const parts = normalized.split(path6.sep);
-  const binIndex = parts.lastIndexOf(".bin");
-  if (binIndex > 0 && parts[binIndex - 1] === "node_modules") {
-    const binName = path6.basename(normalized);
-    const nodeModulesDir = parts.slice(0, binIndex).join(path6.sep);
-    candidates.push(path6.join(nodeModulesDir, binName));
-  }
-  return candidates;
-}
-function resolveOpenClawPackageRootSync(opts) {
-  for (const candidate of buildCandidates(opts)) {
-    const found = findPackageRootSync(candidate);
-    if (found) {
-      return found;
-    }
-  }
-  return null;
-}
-function buildCandidates(opts) {
-  const candidates = [];
-  if (opts.moduleUrl) {
-    try {
-      candidates.push(path6.dirname(fileURLToPath(opts.moduleUrl)));
-    } catch {
-    }
-  }
-  if (opts.argv1) {
-    candidates.push(...candidateDirsFromArgv1(opts.argv1));
-  }
-  if (opts.cwd) {
-    candidates.push(opts.cwd);
-  }
-  return candidates;
-}
+
+// vendor/openclaw/src/plugins/plugin-module-loader-cache.ts
+init_plugin_cache_primitives();
 
 // vendor/openclaw/src/plugins/sdk-alias.ts
+init_openclaw_root();
+init_string_coerce();
+init_plugin_cache_primitives();
+import fs3 from "node:fs";
+import path9 from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
 var STARTUP_ARGV1 = process.argv[1];
+var pluginSdkPackageJsonByRoot = /* @__PURE__ */ new Map();
 function normalizeJitiAliasTargetPath(targetPath) {
   return process.platform === "win32" ? targetPath.replace(/\\/g, "/") : targetPath;
 }
 function resolveLoaderModulePath(params = {}) {
-  return params.modulePath ?? fileURLToPath2(params.moduleUrl ?? import.meta.url);
+  return params.modulePath ?? fileURLToPath3(params.moduleUrl ?? import.meta.url);
 }
 function readPluginSdkPackageJson(packageRoot) {
+  const cacheKey = path9.resolve(packageRoot);
+  if (pluginSdkPackageJsonByRoot.has(cacheKey)) {
+    return pluginSdkPackageJsonByRoot.get(cacheKey) ?? null;
+  }
   try {
-    const pkgRaw = fs3.readFileSync(path7.join(packageRoot, "package.json"), "utf-8");
-    return JSON.parse(pkgRaw);
+    const pkgRaw = fs3.readFileSync(path9.join(packageRoot, "package.json"), "utf-8");
+    const parsed = JSON.parse(pkgRaw);
+    pluginSdkPackageJsonByRoot.set(cacheKey, parsed);
+    return parsed;
   } catch {
+    pluginSdkPackageJsonByRoot.set(cacheKey, null);
     return null;
   }
 }
@@ -6480,7 +11894,7 @@ function hasTrustedOpenClawRootIndicator(params) {
   }
   const hasCliEntryExport = Object.prototype.hasOwnProperty.call(packageExports, "./cli-entry");
   const hasOpenClawBin = typeof params.packageJson.bin === "string" && normalizeLowercaseStringOrEmpty(params.packageJson.bin).includes("openclaw") || typeof params.packageJson.bin === "object" && params.packageJson.bin !== null && typeof params.packageJson.bin.openclaw === "string";
-  const hasOpenClawEntrypoint = fs3.existsSync(path7.join(params.packageRoot, "openclaw.mjs"));
+  const hasOpenClawEntrypoint = fs3.existsSync(path9.join(params.packageRoot, "openclaw.mjs"));
   return hasCliEntryExport || hasOpenClawBin || hasOpenClawEntrypoint;
 }
 function readPluginSdkSubpathsFromPackageRoot(packageRoot) {
@@ -6512,13 +11926,13 @@ function resolveTrustedOpenClawRootFromArgvHint(params) {
   return hasTrustedOpenClawRootIndicator({ packageRoot, packageJson }) ? packageRoot : null;
 }
 function findNearestPluginSdkPackageRoot(startDir, maxDepth = 12) {
-  let cursor = path7.resolve(startDir);
+  let cursor = path9.resolve(startDir);
   for (let i = 0; i < maxDepth; i += 1) {
     const subpaths = readPluginSdkSubpathsFromPackageRoot(cursor);
     if (subpaths) {
       return cursor;
     }
-    const parent = path7.dirname(cursor);
+    const parent = path9.dirname(cursor);
     if (parent === cursor) {
       break;
     }
@@ -6527,7 +11941,7 @@ function findNearestPluginSdkPackageRoot(startDir, maxDepth = 12) {
   return null;
 }
 function resolveLoaderPackageRoot(params) {
-  const cwd = params.cwd ?? path7.dirname(params.modulePath);
+  const cwd = params.cwd ?? path9.dirname(params.modulePath);
   const fromModulePath = resolveOpenClawPackageRootSync({ cwd });
   if (fromModulePath) {
     return fromModulePath;
@@ -6541,13 +11955,13 @@ function resolveLoaderPackageRoot(params) {
   });
 }
 function resolveLoaderPluginSdkPackageRoot(params) {
-  const cwd = params.cwd ?? path7.dirname(params.modulePath);
+  const cwd = params.cwd ?? path9.dirname(params.modulePath);
   const fromCwd = resolveOpenClawPackageRootSync({ cwd });
   const fromExplicitHints = resolveTrustedOpenClawRootFromArgvHint({ cwd, argv1: params.argv1 }) ?? (params.moduleUrl ? resolveOpenClawPackageRootSync({
     cwd,
     moduleUrl: params.moduleUrl
   }) : null);
-  return fromCwd ?? fromExplicitHints ?? findNearestPluginSdkPackageRoot(path7.dirname(params.modulePath)) ?? (params.cwd ? findNearestPluginSdkPackageRoot(params.cwd) : null) ?? findNearestPluginSdkPackageRoot(process.cwd());
+  return fromCwd ?? fromExplicitHints ?? findNearestPluginSdkPackageRoot(path9.dirname(params.modulePath)) ?? (params.cwd ? findNearestPluginSdkPackageRoot(params.cwd) : null) ?? findNearestPluginSdkPackageRoot(process.cwd());
 }
 function resolvePluginSdkAliasCandidateOrder(params) {
   if (params.pluginSdkResolution === "dist") {
@@ -6569,22 +11983,22 @@ function listPluginSdkAliasCandidates(params) {
   const packageRoot = resolveLoaderPluginSdkPackageRoot(params);
   if (packageRoot) {
     const candidateMap = {
-      src: path7.join(packageRoot, "src", "plugin-sdk", params.srcFile),
-      dist: path7.join(packageRoot, "dist", "plugin-sdk", params.distFile)
+      src: path9.join(packageRoot, "src", "plugin-sdk", params.srcFile),
+      dist: path9.join(packageRoot, "dist", "plugin-sdk", params.distFile)
     };
     return orderedKinds.map((kind) => candidateMap[kind]);
   }
-  let cursor = path7.dirname(params.modulePath);
+  let cursor = path9.dirname(params.modulePath);
   const candidates = [];
   for (let i = 0; i < 6; i += 1) {
     const candidateMap = {
-      src: path7.join(cursor, "src", "plugin-sdk", params.srcFile),
-      dist: path7.join(cursor, "dist", "plugin-sdk", params.distFile)
+      src: path9.join(cursor, "src", "plugin-sdk", params.srcFile),
+      dist: path9.join(cursor, "dist", "plugin-sdk", params.distFile)
     };
     for (const kind of orderedKinds) {
       candidates.push(candidateMap[kind]);
     }
-    const parent = path7.dirname(cursor);
+    const parent = path9.dirname(cursor);
     if (parent === cursor) {
       break;
     }
@@ -6612,11 +12026,96 @@ function resolvePluginSdkAliasFile(params) {
   }
   return null;
 }
-var cachedPluginSdkExportedSubpaths = /* @__PURE__ */ new Map();
-var cachedPluginSdkScopedAliasMaps = /* @__PURE__ */ new Map();
+var MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES = 512;
+var cachedPluginSdkExportedSubpaths = new PluginLruCache(
+  MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES
+);
+var cachedPluginSdkScopedAliasMaps = new PluginLruCache(
+  MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES
+);
 var PLUGIN_SDK_PACKAGE_NAMES = ["openclaw/plugin-sdk", "@openclaw/plugin-sdk"];
+var PLUGIN_SDK_SOURCE_CANDIDATE_EXTENSIONS = [
+  ".ts",
+  ".mts",
+  ".js",
+  ".mjs",
+  ".cts",
+  ".cjs"
+];
+var JS_STATIC_RELATIVE_DEPENDENCY_PATTERN = /(?:\bfrom\s*["']|\bimport\s*\(\s*["']|\brequire\s*\(\s*["'])(\.{1,2}\/[^"']+)["']/g;
+function isUsableDistPluginSdkArtifact(candidate) {
+  if (!fs3.existsSync(candidate)) {
+    return false;
+  }
+  switch (normalizeLowercaseStringOrEmpty(path9.extname(candidate))) {
+    case ".js":
+    case ".mjs":
+    case ".cjs":
+      break;
+    default:
+      return true;
+  }
+  try {
+    const source = fs3.readFileSync(candidate, "utf-8");
+    for (const match of source.matchAll(JS_STATIC_RELATIVE_DEPENDENCY_PATTERN)) {
+      const specifier = match[1];
+      if (!specifier || fs3.existsSync(path9.resolve(path9.dirname(candidate), specifier))) {
+        continue;
+      }
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return true;
+}
+function readPrivateLocalOnlyPluginSdkSubpaths(packageRoot) {
+  try {
+    const raw = fs3.readFileSync(
+      path9.join(packageRoot, "scripts", "lib", "plugin-sdk-private-local-only-subpaths.json"),
+      "utf-8"
+    );
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((subpath) => isSafePluginSdkSubpathSegment(subpath));
+  } catch {
+    return [];
+  }
+}
+function shouldIncludePrivateLocalOnlyPluginSdkSubpaths() {
+  return process.env.OPENCLAW_ENABLE_PRIVATE_QA_CLI === "1";
+}
+function hasPluginSdkSubpathArtifact(packageRoot, subpath) {
+  const distPath = path9.join(packageRoot, "dist", "plugin-sdk", `${subpath}.js`);
+  if (isUsableDistPluginSdkArtifact(distPath)) {
+    return true;
+  }
+  return PLUGIN_SDK_SOURCE_CANDIDATE_EXTENSIONS.some(
+    (ext) => fs3.existsSync(path9.join(packageRoot, "src", "plugin-sdk", `${subpath}${ext}`))
+  );
+}
+function listDistPluginSdkArtifactSubpaths(packageRoot) {
+  try {
+    const distPluginSdkDir = path9.join(packageRoot, "dist", "plugin-sdk");
+    return new Set(
+      fs3.readdirSync(distPluginSdkDir, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".js")).map((entry) => entry.name.slice(0, -".js".length)).filter((subpath) => isSafePluginSdkSubpathSegment(subpath))
+    );
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+}
+function listPrivateLocalOnlyPluginSdkSubpaths(packageRoot) {
+  if (!shouldIncludePrivateLocalOnlyPluginSdkSubpaths()) {
+    return [];
+  }
+  return readPrivateLocalOnlyPluginSdkSubpaths(packageRoot).filter(
+    (subpath) => hasPluginSdkSubpathArtifact(packageRoot, subpath)
+  );
+}
 function listPluginSdkExportedSubpaths(params = {}) {
-  const modulePath = params.modulePath ?? fileURLToPath2(import.meta.url);
+  const modulePath = params.modulePath ?? fileURLToPath3(import.meta.url);
   const packageRoot = resolveLoaderPluginSdkPackageRoot({
     modulePath,
     argv1: params.argv1,
@@ -6625,16 +12124,22 @@ function listPluginSdkExportedSubpaths(params = {}) {
   if (!packageRoot) {
     return [];
   }
-  const cached = cachedPluginSdkExportedSubpaths.get(packageRoot);
+  const cacheKey = `${packageRoot}::privateQa=${shouldIncludePrivateLocalOnlyPluginSdkSubpaths() ? "1" : "0"}`;
+  const cached = cachedPluginSdkExportedSubpaths.get(cacheKey);
   if (cached) {
     return cached;
   }
-  const subpaths = readPluginSdkSubpathsFromPackageRoot(packageRoot) ?? [];
-  cachedPluginSdkExportedSubpaths.set(packageRoot, subpaths);
+  const subpaths = [
+    .../* @__PURE__ */ new Set([
+      ...readPluginSdkSubpathsFromPackageRoot(packageRoot) ?? [],
+      ...listPrivateLocalOnlyPluginSdkSubpaths(packageRoot)
+    ])
+  ].toSorted();
+  cachedPluginSdkExportedSubpaths.set(cacheKey, subpaths);
   return subpaths;
 }
 function resolvePluginSdkScopedAliasMap(params = {}) {
-  const modulePath = params.modulePath ?? fileURLToPath2(import.meta.url);
+  const modulePath = params.modulePath ?? fileURLToPath3(import.meta.url);
   const packageRoot = resolveLoaderPluginSdkPackageRoot({
     modulePath,
     argv1: params.argv1,
@@ -6648,28 +12153,44 @@ function resolvePluginSdkScopedAliasMap(params = {}) {
     isProduction: process.env.NODE_ENV === "production",
     pluginSdkResolution: params.pluginSdkResolution
   });
-  const cacheKey = `${packageRoot}::${orderedKinds.join(",")}`;
+  const cacheKey = `${packageRoot}::${orderedKinds.join(",")}::privateQa=${shouldIncludePrivateLocalOnlyPluginSdkSubpaths() ? "1" : "0"}`;
   const cached = cachedPluginSdkScopedAliasMaps.get(cacheKey);
   if (cached) {
     return cached;
   }
   const aliasMap = {};
+  const distPluginSdkArtifacts = orderedKinds.includes("dist") ? listDistPluginSdkArtifactSubpaths(packageRoot) : /* @__PURE__ */ new Set();
   for (const subpath of listPluginSdkExportedSubpaths({
     modulePath,
     argv1: params.argv1,
     moduleUrl: params.moduleUrl,
     pluginSdkResolution: params.pluginSdkResolution
   })) {
-    const candidateMap = {
-      src: path7.join(packageRoot, "src", "plugin-sdk", `${subpath}.ts`),
-      dist: path7.join(packageRoot, "dist", "plugin-sdk", `${subpath}.js`)
-    };
     for (const kind of orderedKinds) {
-      const candidate = candidateMap[kind];
-      if (fs3.existsSync(candidate)) {
+      if (kind === "dist") {
+        if (!distPluginSdkArtifacts.has(subpath)) {
+          continue;
+        }
+        const candidate = path9.join(packageRoot, "dist", "plugin-sdk", `${subpath}.js`);
+        if (isUsableDistPluginSdkArtifact(candidate)) {
+          for (const packageName of PLUGIN_SDK_PACKAGE_NAMES) {
+            aliasMap[`${packageName}/${subpath}`] = candidate;
+          }
+          break;
+        }
+        continue;
+      }
+      for (const ext of PLUGIN_SDK_SOURCE_CANDIDATE_EXTENSIONS) {
+        const candidate = path9.join(packageRoot, "src", "plugin-sdk", `${subpath}${ext}`);
+        if (!fs3.existsSync(candidate)) {
+          continue;
+        }
         for (const packageName of PLUGIN_SDK_PACKAGE_NAMES) {
           aliasMap[`${packageName}/${subpath}`] = candidate;
         }
+        break;
+      }
+      if (Object.prototype.hasOwnProperty.call(aliasMap, `openclaw/plugin-sdk/${subpath}`)) {
         break;
       }
     }
@@ -6689,21 +12210,104 @@ function resolveExtensionApiAlias(params = {}) {
       isProduction: process.env.NODE_ENV === "production",
       pluginSdkResolution: params.pluginSdkResolution
     });
-    const candidateMap = {
-      src: path7.join(packageRoot, "src", "extensionAPI.ts"),
-      dist: path7.join(packageRoot, "dist", "extensionAPI.js")
-    };
     for (const kind of orderedKinds) {
-      const candidate = candidateMap[kind];
-      if (fs3.existsSync(candidate)) {
-        return candidate;
+      if (kind === "dist") {
+        const candidate = path9.join(packageRoot, "dist", "extensionAPI.js");
+        if (fs3.existsSync(candidate)) {
+          return candidate;
+        }
+        continue;
+      }
+      for (const ext of PLUGIN_SDK_SOURCE_CANDIDATE_EXTENSIONS) {
+        const candidate = path9.join(packageRoot, "src", `extensionAPI${ext}`);
+        if (fs3.existsSync(candidate)) {
+          return candidate;
+        }
       }
     }
   } catch {
   }
   return null;
 }
+var JITI_NORMALIZED_ALIAS_SYMBOL = Symbol.for("pathe:normalizedAlias");
+var JITI_ALIAS_ROOT_SENTINELS = /* @__PURE__ */ new Set(["/", "\\", void 0]);
+var aliasMapCache = new PluginLruCache(
+  MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES
+);
+var normalizedJitiAliasMapCache = new PluginLruCache(
+  MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES
+);
+var pluginLoaderModuleConfigCache = new PluginLruCache(MAX_PLUGIN_LOADER_ALIAS_CACHE_ENTRIES);
+function hasJitiNormalizedAliasMarker(aliasMap) {
+  return Boolean(aliasMap[JITI_NORMALIZED_ALIAS_SYMBOL]);
+}
+function createJitiAliasContentCacheKey(aliasMap) {
+  return JSON.stringify(
+    Object.entries(aliasMap).toSorted(([left], [right]) => left.localeCompare(right))
+  );
+}
+function normalizePluginLoaderAliasMapForJiti(aliasMap) {
+  if (hasJitiNormalizedAliasMarker(aliasMap)) {
+    return aliasMap;
+  }
+  const cacheKey = createJitiAliasContentCacheKey(aliasMap);
+  const cached = normalizedJitiAliasMapCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  const normalizedAliasMap = Object.fromEntries(
+    Object.entries(aliasMap).toSorted(
+      ([left], [right]) => right.split("/").length - left.split("/").length
+    )
+  );
+  for (const aliasKey in normalizedAliasMap) {
+    for (const candidateKey in normalizedAliasMap) {
+      if (candidateKey === aliasKey || aliasKey.startsWith(candidateKey) || !normalizedAliasMap[aliasKey]?.startsWith(candidateKey) || !JITI_ALIAS_ROOT_SENTINELS.has(normalizedAliasMap[aliasKey]?.[candidateKey.length])) {
+        continue;
+      }
+      normalizedAliasMap[aliasKey] = normalizedAliasMap[candidateKey] + normalizedAliasMap[aliasKey].slice(candidateKey.length);
+    }
+  }
+  Object.defineProperty(normalizedAliasMap, JITI_NORMALIZED_ALIAS_SYMBOL, {
+    value: true,
+    enumerable: false
+  });
+  normalizedJitiAliasMapCache.set(cacheKey, normalizedAliasMap);
+  return normalizedAliasMap;
+}
+function buildPluginLoaderAliasMapCacheKey(params) {
+  return [
+    params.modulePath,
+    params.argv1 ?? "",
+    params.moduleUrl ?? "",
+    params.pluginSdkResolution,
+    process.cwd(),
+    process.env.NODE_ENV === "production" ? "production" : "non-production",
+    shouldIncludePrivateLocalOnlyPluginSdkSubpaths() ? "private-qa" : "public"
+  ].join("\0");
+}
+function buildPluginLoaderModuleConfigCacheKey(params) {
+  return [
+    buildPluginLoaderAliasMapCacheKey({
+      modulePath: params.modulePath,
+      argv1: params.argv1,
+      moduleUrl: params.moduleUrl,
+      pluginSdkResolution: params.pluginSdkResolution ?? "auto"
+    }),
+    params.preferBuiltDist === true ? "prefer-built-dist" : "default-dist"
+  ].join("\0");
+}
 function buildPluginLoaderAliasMap(modulePath, argv1 = STARTUP_ARGV1, moduleUrl, pluginSdkResolution = "auto") {
+  const cacheKey = buildPluginLoaderAliasMapCacheKey({
+    modulePath,
+    argv1,
+    moduleUrl,
+    pluginSdkResolution
+  });
+  const cached = aliasMapCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
   const pluginSdkAlias = resolvePluginSdkAliasFile({
     srcFile: "root-alias.cjs",
     distFile: "root-alias.cjs",
@@ -6713,7 +12317,7 @@ function buildPluginLoaderAliasMap(modulePath, argv1 = STARTUP_ARGV1, moduleUrl,
     pluginSdkResolution
   });
   const extensionApiAlias = resolveExtensionApiAlias({ modulePath, pluginSdkResolution });
-  return {
+  const result = {
     ...extensionApiAlias ? { "openclaw/extension-api": normalizeJitiAliasTargetPath(extensionApiAlias) } : {},
     ...pluginSdkAlias ? Object.fromEntries(
       PLUGIN_SDK_PACKAGE_NAMES.map((packageName) => [
@@ -6727,28 +12331,35 @@ function buildPluginLoaderAliasMap(modulePath, argv1 = STARTUP_ARGV1, moduleUrl,
       ).map(([key, value]) => [key, normalizeJitiAliasTargetPath(value)])
     )
   };
+  aliasMapCache.set(cacheKey, result);
+  return result;
 }
 function buildPluginLoaderJitiOptions(aliasMap) {
+  const hasAliases = Object.keys(aliasMap).length > 0;
+  const jitiAliasMap = hasAliases ? normalizePluginLoaderAliasMapForJiti(aliasMap) : aliasMap;
   return {
     interopDefault: true,
     // Prefer Node's native sync ESM loader for built dist/*.js modules so
     // bundled plugins and plugin-sdk subpaths stay on the canonical module graph.
     tryNative: true,
     extensions: [".ts", ".tsx", ".mts", ".cts", ".mtsx", ".ctsx", ".js", ".mjs", ".cjs", ".json"],
-    ...Object.keys(aliasMap).length > 0 ? {
-      alias: aliasMap
+    ...hasAliases ? {
+      alias: jitiAliasMap
     } : {}
   };
 }
-function supportsNativeJitiRuntime() {
+function supportsNativeModuleRuntime() {
   const versions = process.versions;
-  return typeof versions.bun !== "string" && process.platform !== "win32";
+  return typeof versions.bun !== "string";
 }
-function shouldPreferNativeJiti(modulePath) {
-  if (!supportsNativeJitiRuntime()) {
+function isBundledPluginDistModulePath(modulePath) {
+  return modulePath.replace(/\\/g, "/").includes("/dist/extensions/");
+}
+function shouldPreferNativeModuleLoad(modulePath) {
+  if (!supportsNativeModuleRuntime()) {
     return false;
   }
-  switch (normalizeLowercaseStringOrEmpty(path7.extname(modulePath))) {
+  switch (normalizeLowercaseStringOrEmpty(path9.extname(modulePath))) {
     case ".js":
     case ".mjs":
     case ".cjs":
@@ -6758,10 +12369,13 @@ function shouldPreferNativeJiti(modulePath) {
       return false;
   }
 }
-function resolvePluginLoaderJitiTryNative(modulePath, options) {
-  return shouldPreferNativeJiti(modulePath) || supportsNativeJitiRuntime() && options?.preferBuiltDist === true && modulePath.includes(`${path7.sep}dist${path7.sep}`);
+function resolvePluginLoaderTryNative(modulePath, options) {
+  if (isBundledPluginDistModulePath(modulePath)) {
+    return shouldPreferNativeModuleLoad(modulePath);
+  }
+  return shouldPreferNativeModuleLoad(modulePath) || supportsNativeModuleRuntime() && options?.preferBuiltDist === true && modulePath.includes(`${path9.sep}dist${path9.sep}`);
 }
-function createPluginLoaderJitiCacheKey(params) {
+function createPluginLoaderModuleCacheKey(params) {
   return JSON.stringify({
     tryNative: params.tryNative,
     aliasMap: Object.entries(params.aliasMap).toSorted(
@@ -6769,40 +12383,160 @@ function createPluginLoaderJitiCacheKey(params) {
     )
   });
 }
-function resolvePluginLoaderJitiConfig(params) {
-  const tryNative = resolvePluginLoaderJitiTryNative(
+function resolvePluginLoaderModuleConfig(params) {
+  const configCacheKey = buildPluginLoaderModuleConfigCacheKey(params);
+  const cached = pluginLoaderModuleConfigCache.get(configCacheKey);
+  if (cached) {
+    return cached;
+  }
+  const tryNative = resolvePluginLoaderTryNative(
     params.modulePath,
     params.preferBuiltDist ? { preferBuiltDist: true } : {}
   );
-  const aliasMap = buildPluginLoaderAliasMap(params.modulePath, params.argv1, params.moduleUrl);
-  return {
+  const aliasMap = buildPluginLoaderAliasMap(
+    params.modulePath,
+    params.argv1,
+    params.moduleUrl,
+    params.pluginSdkResolution
+  );
+  const result = {
     tryNative,
     aliasMap,
-    cacheKey: createPluginLoaderJitiCacheKey({
+    cacheKey: createPluginLoaderModuleCacheKey({
       tryNative,
       aliasMap
     })
   };
+  pluginLoaderModuleConfigCache.set(configCacheKey, result);
+  return result;
+}
+
+// vendor/openclaw/src/plugins/plugin-module-loader-cache.ts
+var DEFAULT_PLUGIN_MODULE_LOADER_CACHE_ENTRIES = 128;
+function createPluginModuleLoaderCache(maxEntries = DEFAULT_PLUGIN_MODULE_LOADER_CACHE_ENTRIES) {
+  return new PluginLruCache(maxEntries);
+}
+function resolveDefaultPluginModuleLoaderConfig(params) {
+  return resolvePluginLoaderModuleConfig({
+    modulePath: params.modulePath,
+    argv1: params.argvEntry ?? process.argv[1],
+    moduleUrl: params.importerUrl,
+    ...params.preferBuiltDist ? { preferBuiltDist: true } : {},
+    ...params.pluginSdkResolution ? { pluginSdkResolution: params.pluginSdkResolution } : {}
+  });
+}
+function resolvePluginModuleLoaderCacheEntry(params) {
+  const loaderFilename = toSafeImportPath(params.loaderFilename ?? params.modulePath);
+  const hasAliasOverride = Boolean(params.aliasMap);
+  const hasTryNativeOverride = typeof params.tryNative === "boolean";
+  const defaultConfig = hasAliasOverride || hasTryNativeOverride ? resolveDefaultPluginModuleLoaderConfig(params) : null;
+  const canReuseDefaultCacheKey = defaultConfig !== null && (!hasAliasOverride || params.aliasMap === defaultConfig.aliasMap) && (!hasTryNativeOverride || params.tryNative === defaultConfig.tryNative);
+  const resolved = defaultConfig ? {
+    tryNative: params.tryNative ?? defaultConfig.tryNative,
+    aliasMap: params.aliasMap ?? defaultConfig.aliasMap,
+    cacheKey: canReuseDefaultCacheKey ? defaultConfig.cacheKey : void 0
+  } : resolveDefaultPluginModuleLoaderConfig(params);
+  const { tryNative, aliasMap } = resolved;
+  const cacheKey = resolved.cacheKey ?? createPluginLoaderModuleCacheKey({
+    tryNative,
+    aliasMap
+  });
+  const scopedCacheKey = `${loaderFilename}::${params.sharedCacheScopeKey ?? (params.cacheScopeKey ? `${params.cacheScopeKey}::${cacheKey}` : cacheKey)}`;
+  return {
+    loaderFilename,
+    aliasMap,
+    tryNative,
+    cacheKey,
+    scopedCacheKey
+  };
+}
+function createLazySourceTransformLoader(params) {
+  let loadWithSourceTransform;
+  return () => {
+    if (loadWithSourceTransform) {
+      return loadWithSourceTransform;
+    }
+    const jitiLoader = (params.createLoader ?? createJiti)(params.loaderFilename, {
+      ...buildPluginLoaderJitiOptions(params.aliasMap),
+      tryNative: params.tryNative
+    });
+    loadWithSourceTransform = new Proxy(jitiLoader, {
+      apply(target, thisArg, argArray) {
+        const [first, ...rest] = argArray;
+        if (typeof first === "string") {
+          return Reflect.apply(target, thisArg, [
+            toSafeImportPath(first),
+            ...rest
+          ]);
+        }
+        return Reflect.apply(target, thisArg, argArray);
+      }
+    });
+    return loadWithSourceTransform;
+  };
+}
+function createPluginModuleLoader(params) {
+  const getLoadWithSourceTransform = createLazySourceTransformLoader(params);
+  if (!params.tryNative) {
+    return ((target, ...rest) => getLoadWithSourceTransform()(
+      target,
+      ...rest
+    ));
+  }
+  return ((target, ...rest) => {
+    const native = tryNativeRequireJavaScriptModule(target, { allowWindows: true });
+    if (native.ok) {
+      return native.moduleExport;
+    }
+    return getLoadWithSourceTransform()(
+      target,
+      ...rest
+    );
+  });
+}
+function getCachedPluginModuleLoader(params) {
+  const cacheEntry = resolvePluginModuleLoaderCacheEntry(params);
+  const cached = params.cache.get(cacheEntry.scopedCacheKey);
+  if (cached) {
+    return cached;
+  }
+  const loader = createPluginModuleLoader({
+    loaderFilename: cacheEntry.loaderFilename,
+    aliasMap: cacheEntry.aliasMap,
+    tryNative: cacheEntry.tryNative,
+    ...params.createLoader ? { createLoader: params.createLoader } : {}
+  });
+  params.cache.set(cacheEntry.scopedCacheKey, loader);
+  return loader;
 }
 
 // vendor/openclaw/src/plugins/bundled-channel-config-metadata.ts
-var PUBLIC_SURFACE_SOURCE_EXTENSIONS2 = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"];
 var SOURCE_CONFIG_SCHEMA_CANDIDATES = [
-  path8.join("src", "config-schema.ts"),
-  path8.join("src", "config-schema.js"),
-  path8.join("src", "config-schema.mts"),
-  path8.join("src", "config-schema.mjs"),
-  path8.join("src", "config-schema.cts"),
-  path8.join("src", "config-schema.cjs")
+  path10.join("src", "config-schema.ts"),
+  path10.join("src", "config-schema.js"),
+  path10.join("src", "config-schema.mts"),
+  path10.join("src", "config-schema.mjs"),
+  path10.join("src", "config-schema.cts"),
+  path10.join("src", "config-schema.cjs")
 ];
-var PUBLIC_CONFIG_SURFACE_BASENAMES = ["channel-config-api", "runtime-api", "api"];
-var jitiLoaders = /* @__PURE__ */ new Map();
+var PUBLIC_CONFIG_SURFACE_BASENAMES = ["channel-config-api"];
+var moduleLoaders = createPluginModuleLoaderCache();
 function isBuiltChannelConfigSchema(value) {
   if (!value || typeof value !== "object") {
     return false;
   }
   const candidate = value;
   return Boolean(candidate.schema && typeof candidate.schema === "object");
+}
+function isJsonSchemaConfigSurface(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value;
+  if (typeof candidate.safeParse === "function" || typeof candidate.toJSONSchema === "function") {
+    return false;
+  }
+  return typeof candidate.type === "string" || Array.isArray(candidate.anyOf) || Array.isArray(candidate.oneOf) || Array.isArray(candidate.allOf) || Array.isArray(candidate.enum) || Object.prototype.hasOwnProperty.call(candidate, "const");
 }
 function resolveConfigSchemaExport(imported) {
   for (const [name, value] of Object.entries(imported)) {
@@ -6817,6 +12551,9 @@ function resolveConfigSchemaExport(imported) {
     if (isBuiltChannelConfigSchema(value)) {
       return value;
     }
+    if (isJsonSchemaConfigSurface(value)) {
+      return buildJsonChannelConfigSchema(value);
+    }
     if (value && typeof value === "object") {
       return buildChannelConfigSchema(value);
     }
@@ -6828,34 +12565,25 @@ function resolveConfigSchemaExport(imported) {
   }
   return null;
 }
-function getJiti(modulePath) {
-  const { tryNative, aliasMap, cacheKey } = resolvePluginLoaderJitiConfig({
+function getModuleLoader(modulePath) {
+  return getCachedPluginModuleLoader({
+    cache: moduleLoaders,
     modulePath,
-    argv1: process.argv[1],
-    moduleUrl: import.meta.url,
-    preferBuiltDist: true
+    importerUrl: import.meta.url,
+    preferBuiltDist: true,
+    loaderFilename: import.meta.url
   });
-  const cached = jitiLoaders.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-  const loader = createJiti(import.meta.url, {
-    ...buildPluginLoaderJitiOptions(aliasMap),
-    tryNative
-  });
-  jitiLoaders.set(cacheKey, loader);
-  return loader;
 }
 function resolveChannelConfigSchemaModulePath(pluginDir) {
   for (const relativePath of SOURCE_CONFIG_SCHEMA_CANDIDATES) {
-    const candidate = path8.join(pluginDir, relativePath);
+    const candidate = path10.join(pluginDir, relativePath);
     if (fs4.existsSync(candidate)) {
       return candidate;
     }
   }
   for (const basename of PUBLIC_CONFIG_SURFACE_BASENAMES) {
-    for (const extension of PUBLIC_SURFACE_SOURCE_EXTENSIONS2) {
-      const candidate = path8.join(pluginDir, `${basename}${extension}`);
+    for (const extension of PUBLIC_SURFACE_SOURCE_EXTENSIONS) {
+      const candidate = path10.join(pluginDir, `${basename}${extension}`);
       if (fs4.existsSync(candidate)) {
         return candidate;
       }
@@ -6865,7 +12593,7 @@ function resolveChannelConfigSchemaModulePath(pluginDir) {
 }
 function loadChannelConfigSurfaceModuleSync(modulePath) {
   try {
-    const imported = getJiti(modulePath)(modulePath);
+    const imported = getModuleLoader(modulePath)(modulePath);
     return resolveConfigSchemaExport(imported);
   } catch {
     return null;
@@ -6904,1251 +12632,3642 @@ function collectBundledChannelConfigs(params) {
       ...normalizeOptionalString(existing?.description) ?? normalizeOptionalString(channelMeta?.blurb) ? {
         description: normalizeOptionalString(existing?.description) ?? normalizeOptionalString(channelMeta?.blurb)
       } : {},
-      ...existing?.preferOver?.length ? { preferOver: existing.preferOver } : preferOver.length > 0 ? { preferOver } : {}
+      ...existing?.preferOver?.length ? { preferOver: existing.preferOver } : preferOver.length > 0 ? { preferOver } : {},
+      ...existing?.commands ?? channelMeta?.commands ? { commands: existing?.commands ?? channelMeta?.commands } : {}
     };
   }
   return Object.keys(existingChannelConfigs).length > 0 ? existingChannelConfigs : void 0;
 }
 
-// vendor/openclaw/src/plugins/bundled-plugin-metadata.ts
-import fs9 from "node:fs";
-import path13 from "node:path";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
+// vendor/openclaw/src/infra/diagnostics-timeline.ts
+import { randomUUID } from "node:crypto";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import { performance as performance2 } from "node:perf_hooks";
 
-// vendor/openclaw/src/plugins/manifest.ts
-var import_json5 = __toESM(require_lib(), 1);
-import fs8 from "node:fs";
-import path12 from "node:path";
-
-// vendor/openclaw/src/compat/legacy-names.ts
-var PROJECT_NAME = "openclaw";
-var MANIFEST_KEY = PROJECT_NAME;
-
-// vendor/openclaw/src/infra/boundary-file-read.ts
-import fs7 from "node:fs";
-import path11 from "node:path";
-
-// vendor/openclaw/src/infra/boundary-path.ts
-import fs5 from "node:fs";
-import os3 from "node:os";
-import path10 from "node:path";
-
-// vendor/openclaw/src/infra/path-guards.ts
-import path9 from "node:path";
-var NOT_FOUND_CODES = /* @__PURE__ */ new Set(["ENOENT", "ENOTDIR"]);
-var PARENT_SEGMENT_PREFIX = /^\.\.(?:[\\/]|$)/u;
-function normalizeWindowsPathForComparison(input) {
-  let normalized = path9.win32.normalize(input);
-  if (normalized.startsWith("\\\\?\\")) {
-    normalized = normalized.slice(4);
-    if (normalized.toUpperCase().startsWith("UNC\\")) {
-      normalized = `\\\\${normalized.slice(4)}`;
-    }
+// vendor/openclaw/src/infra/diagnostic-flags.ts
+init_string_coerce();
+var DIAGNOSTICS_ENV = "OPENCLAW_DIAGNOSTICS";
+function parseEnvFlags(raw) {
+  if (!raw) {
+    return { flags: [], disablesAll: false };
   }
-  return normalizeLowercaseStringOrEmpty(normalized.replaceAll("/", "\\"));
-}
-function isNodeError(value) {
-  return Boolean(
-    value && typeof value === "object" && "code" in value
-  );
-}
-function isNotFoundPathError(value) {
-  return isNodeError(value) && typeof value.code === "string" && NOT_FOUND_CODES.has(value.code);
-}
-function isPathInside(root, target) {
-  if (process.platform === "win32") {
-    const rootForCompare = normalizeWindowsPathForComparison(path9.win32.resolve(root));
-    const targetForCompare = normalizeWindowsPathForComparison(path9.win32.resolve(target));
-    const relative2 = path9.win32.relative(rootForCompare, targetForCompare);
-    return relative2 === "" || !PARENT_SEGMENT_PREFIX.test(relative2) && !path9.win32.isAbsolute(relative2);
+  const trimmed = raw.trim();
+  const lowered = normalizeLowercaseStringOrEmpty(trimmed);
+  if (!lowered) {
+    return { flags: [], disablesAll: false };
   }
-  const resolvedRoot = path9.resolve(root);
-  const resolvedTarget = path9.resolve(target);
-  const relative = path9.relative(resolvedRoot, resolvedTarget);
-  return relative === "" || !PARENT_SEGMENT_PREFIX.test(relative) && !path9.isAbsolute(relative);
-}
-
-// vendor/openclaw/src/infra/boundary-path.ts
-var BOUNDARY_PATH_ALIAS_POLICIES = {
-  strict: Object.freeze({
-    allowFinalSymlinkForUnlink: false,
-    allowFinalHardlinkForUnlink: false
-  }),
-  unlinkTarget: Object.freeze({
-    allowFinalSymlinkForUnlink: true,
-    allowFinalHardlinkForUnlink: true
-  })
-};
-function resolveBoundaryPathSync(params) {
-  const rootPath = path10.resolve(params.rootPath);
-  const absolutePath = path10.resolve(params.absolutePath);
-  const rootCanonicalPath = params.rootCanonicalPath ? path10.resolve(params.rootCanonicalPath) : resolvePathViaExistingAncestorSync(rootPath);
-  const context = createBoundaryResolutionContext({
-    resolveParams: params,
-    rootPath,
-    absolutePath,
-    rootCanonicalPath,
-    outsideLexicalCanonicalPath: resolveOutsideLexicalCanonicalPathSync({
-      rootPath,
-      absolutePath
-    })
-  });
-  const outsideResult = resolveOutsideBoundaryPathSync({
-    boundaryLabel: params.boundaryLabel,
-    context
-  });
-  if (outsideResult) {
-    return outsideResult;
+  if (["0", "false", "off", "none"].includes(lowered)) {
+    return { flags: [], disablesAll: true };
   }
-  return resolveBoundaryPathLexicalSync({
-    params,
-    absolutePath: context.absolutePath,
-    rootPath: context.rootPath,
-    rootCanonicalPath: context.rootCanonicalPath
-  });
-}
-function isPromiseLike(value) {
-  return Boolean(
-    value && (typeof value === "object" || typeof value === "function") && "then" in value && typeof value.then === "function"
-  );
-}
-function createLexicalTraversalState(params) {
-  const relative = path10.relative(params.rootPath, params.absolutePath);
+  if (["1", "true", "all", "*"].includes(lowered)) {
+    return { flags: ["*"], disablesAll: false };
+  }
   return {
-    segments: relative.split(path10.sep).filter(Boolean),
-    allowFinalSymlink: params.params.policy?.allowFinalSymlinkForUnlink === true,
-    canonicalCursor: params.rootCanonicalPath,
-    lexicalCursor: params.rootPath,
-    preserveFinalSymlink: false
+    flags: trimmed.split(/[,\s]+/).map((value) => normalizeLowercaseStringOrEmpty(value)).filter(Boolean),
+    disablesAll: false
   };
 }
-function assertLexicalCursorInsideBoundary(params) {
-  assertInsideBoundary({
-    boundaryLabel: params.params.boundaryLabel,
-    rootCanonicalPath: params.rootCanonicalPath,
-    candidatePath: params.candidatePath,
-    absolutePath: params.absolutePath
-  });
-}
-function applyMissingSuffixToCanonicalCursor(params) {
-  const missingSuffix = params.state.segments.slice(params.missingFromIndex);
-  params.state.canonicalCursor = path10.resolve(params.state.canonicalCursor, ...missingSuffix);
-  assertLexicalCursorInsideBoundary({
-    params: params.params,
-    rootCanonicalPath: params.rootCanonicalPath,
-    candidatePath: params.state.canonicalCursor,
-    absolutePath: params.absolutePath
-  });
-}
-function advanceCanonicalCursorForSegment(params) {
-  params.state.canonicalCursor = path10.resolve(params.state.canonicalCursor, params.segment);
-  assertLexicalCursorInsideBoundary({
-    params: params.params,
-    rootCanonicalPath: params.rootCanonicalPath,
-    candidatePath: params.state.canonicalCursor,
-    absolutePath: params.absolutePath
-  });
-}
-function finalizeLexicalResolution(params) {
-  assertLexicalCursorInsideBoundary({
-    params: params.params,
-    rootCanonicalPath: params.rootCanonicalPath,
-    candidatePath: params.state.canonicalCursor,
-    absolutePath: params.absolutePath
-  });
-  return buildResolvedBoundaryPath({
-    absolutePath: params.absolutePath,
-    canonicalPath: params.state.canonicalCursor,
-    rootPath: params.rootPath,
-    rootCanonicalPath: params.rootCanonicalPath,
-    kind: params.kind
-  });
-}
-function handleLexicalLstatFailure(params) {
-  if (!isNotFoundPathError(params.error)) {
-    return false;
-  }
-  applyMissingSuffixToCanonicalCursor({
-    state: params.state,
-    missingFromIndex: params.missingFromIndex,
-    rootCanonicalPath: params.rootCanonicalPath,
-    params: params.resolveParams,
-    absolutePath: params.absolutePath
-  });
-  return true;
-}
-function handleLexicalStatReadFailure(params) {
-  if (handleLexicalLstatFailure({
-    error: params.error,
-    state: params.state,
-    missingFromIndex: params.missingFromIndex,
-    rootCanonicalPath: params.rootCanonicalPath,
-    resolveParams: params.resolveParams,
-    absolutePath: params.absolutePath
-  })) {
-    return null;
-  }
-  throw params.error;
-}
-function handleLexicalStatDisposition(params) {
-  if (!params.isSymbolicLink) {
-    advanceCanonicalCursorForSegment({
-      state: params.state,
-      segment: params.segment,
-      rootCanonicalPath: params.rootCanonicalPath,
-      params: params.resolveParams,
-      absolutePath: params.absolutePath
-    });
-    return "continue";
-  }
-  if (params.state.allowFinalSymlink && params.isLast) {
-    params.state.preserveFinalSymlink = true;
-    advanceCanonicalCursorForSegment({
-      state: params.state,
-      segment: params.segment,
-      rootCanonicalPath: params.rootCanonicalPath,
-      params: params.resolveParams,
-      absolutePath: params.absolutePath
-    });
-    return "break";
-  }
-  return "resolve-link";
-}
-function applyResolvedSymlinkHop(params) {
-  if (!isPathInside(params.rootCanonicalPath, params.linkCanonical)) {
-    throw symlinkEscapeError({
-      boundaryLabel: params.boundaryLabel,
-      rootCanonicalPath: params.rootCanonicalPath,
-      symlinkPath: params.state.lexicalCursor
-    });
-  }
-  params.state.canonicalCursor = params.linkCanonical;
-  params.state.lexicalCursor = params.linkCanonical;
-}
-function readLexicalStat(params) {
-  try {
-    const stat = params.read(params.state.lexicalCursor);
-    if (isPromiseLike(stat)) {
-      return Promise.resolve(stat).catch(
-        (error) => handleLexicalStatReadFailure({ ...params, error })
-      );
-    }
-    return stat;
-  } catch (error) {
-    return handleLexicalStatReadFailure({ ...params, error });
-  }
-}
-function resolveAndApplySymlinkHop(params) {
-  const linkCanonical = params.resolveLinkCanonical(params.state.lexicalCursor);
-  if (isPromiseLike(linkCanonical)) {
-    return Promise.resolve(linkCanonical).then(
-      (value) => applyResolvedSymlinkHop({
-        state: params.state,
-        linkCanonical: value,
-        rootCanonicalPath: params.rootCanonicalPath,
-        boundaryLabel: params.boundaryLabel
-      })
-    );
-  }
-  applyResolvedSymlinkHop({
-    state: params.state,
-    linkCanonical,
-    rootCanonicalPath: params.rootCanonicalPath,
-    boundaryLabel: params.boundaryLabel
-  });
-}
-function resolveBoundaryPathLexicalSync(params) {
-  const state = createLexicalTraversalState(params);
-  for (let idx = 0; idx < state.segments.length; idx += 1) {
-    const segment = state.segments[idx] ?? "";
-    const isLast = idx === state.segments.length - 1;
-    state.lexicalCursor = path10.join(state.lexicalCursor, segment);
-    const maybeStat = readLexicalStat({
-      state,
-      missingFromIndex: idx,
-      rootCanonicalPath: params.rootCanonicalPath,
-      resolveParams: params.params,
-      absolutePath: params.absolutePath,
-      read: (cursor) => fs5.lstatSync(cursor)
-    });
-    if (isPromiseLike(maybeStat)) {
-      throw new Error("Unexpected async lexical stat");
-    }
-    const stat = maybeStat;
-    if (!stat) {
-      break;
-    }
-    const disposition = handleLexicalStatDisposition({
-      state,
-      isSymbolicLink: stat.isSymbolicLink(),
-      segment,
-      isLast,
-      rootCanonicalPath: params.rootCanonicalPath,
-      resolveParams: params.params,
-      absolutePath: params.absolutePath
-    });
-    if (disposition === "continue") {
+function uniqueFlags(flags) {
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const flag of flags) {
+    const normalized = normalizeLowercaseStringOrEmpty(flag);
+    if (!normalized || seen.has(normalized)) {
       continue;
     }
-    if (disposition === "break") {
-      break;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
+function resolveDiagnosticFlags(cfg, env = process.env) {
+  const configFlags = Array.isArray(cfg?.diagnostics?.flags) ? cfg?.diagnostics?.flags : [];
+  const envFlags = parseEnvFlags(env[DIAGNOSTICS_ENV]);
+  if (envFlags.disablesAll) {
+    return [];
+  }
+  return uniqueFlags([...configFlags, ...envFlags.flags]);
+}
+function matchesDiagnosticFlag(flag, enabledFlags) {
+  const target = normalizeLowercaseStringOrEmpty(flag);
+  if (!target) {
+    return false;
+  }
+  for (const raw of enabledFlags) {
+    const enabled = normalizeLowercaseStringOrEmpty(raw);
+    if (!enabled) {
+      continue;
     }
-    const maybeApplied = resolveAndApplySymlinkHop({
-      state,
-      rootCanonicalPath: params.rootCanonicalPath,
-      boundaryLabel: params.params.boundaryLabel,
-      resolveLinkCanonical: (cursor) => resolveSymlinkHopPathSync(cursor)
-    });
-    if (isPromiseLike(maybeApplied)) {
-      throw new Error("Unexpected async symlink resolution");
+    if (enabled === "*" || enabled === "all") {
+      return true;
+    }
+    if (enabled.endsWith(".*")) {
+      const prefix = enabled.slice(0, -2);
+      if (target === prefix || target.startsWith(`${prefix}.`)) {
+        return true;
+      }
+    }
+    if (enabled.endsWith("*")) {
+      const prefix = enabled.slice(0, -1);
+      if (target.startsWith(prefix)) {
+        return true;
+      }
+    }
+    if (enabled === target) {
+      return true;
     }
   }
-  const kind = getPathKindSync(params.absolutePath, state.preserveFinalSymlink);
-  return finalizeLexicalResolution({
-    ...params,
-    state,
-    kind
-  });
+  return false;
 }
-function resolveCanonicalOutsideLexicalPath(params) {
-  return params.outsideLexicalCanonicalPath ?? params.absolutePath;
+function isDiagnosticFlagEnabled(flag, cfg, env = process.env) {
+  const flags = resolveDiagnosticFlags(cfg, env);
+  return matchesDiagnosticFlag(flag, flags);
 }
-function createBoundaryResolutionContext(params) {
-  const lexicalInside = isPathInside(params.rootPath, params.absolutePath);
-  const canonicalOutsideLexicalPath = resolveCanonicalOutsideLexicalPath({
-    absolutePath: params.absolutePath,
-    outsideLexicalCanonicalPath: params.outsideLexicalCanonicalPath
-  });
-  assertLexicalBoundaryOrCanonicalAlias({
-    skipLexicalRootCheck: params.resolveParams.skipLexicalRootCheck,
-    lexicalInside,
-    canonicalOutsideLexicalPath,
-    rootCanonicalPath: params.rootCanonicalPath,
-    boundaryLabel: params.resolveParams.boundaryLabel,
-    rootPath: params.rootPath,
-    absolutePath: params.absolutePath
-  });
+
+// vendor/openclaw/src/infra/env.ts
+init_string_coerce();
+function isTruthyEnvValue2(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  switch (normalizeLowercaseStringOrEmpty(value)) {
+    case "1":
+    case "on":
+    case "true":
+    case "yes":
+      return true;
+    default:
+      return false;
+  }
+}
+
+// vendor/openclaw/src/infra/diagnostics-timeline.ts
+var OPENCLAW_DIAGNOSTICS_TIMELINE_SCHEMA_VERSION = "openclaw.diagnostics.v1";
+var warnedAboutTimelineWrite = false;
+var createdTimelineDirs = /* @__PURE__ */ new Set();
+function resolveDiagnosticsTimelineOptions(options = {}) {
   return {
-    rootPath: params.rootPath,
-    absolutePath: params.absolutePath,
-    rootCanonicalPath: params.rootCanonicalPath,
-    lexicalInside,
-    canonicalOutsideLexicalPath
+    env: options.env ?? process.env,
+    ...options.config ? { config: options.config } : {}
   };
 }
-function resolveOutsideBoundaryPathSync(params) {
-  if (params.context.lexicalInside) {
-    return null;
-  }
-  const kind = getPathKindSync(params.context.absolutePath, false);
-  return buildOutsideBoundaryPathFromContext({
-    boundaryLabel: params.boundaryLabel,
-    context: params.context,
-    kind
-  });
+function isDiagnosticsTimelineEnabled(options = {}) {
+  const { config, env } = resolveDiagnosticsTimelineOptions(options);
+  return (isDiagnosticFlagEnabled("timeline", config, env) || isDiagnosticFlagEnabled("diagnostics.timeline", config, env) || isTruthyEnvValue2(env.OPENCLAW_DIAGNOSTICS)) && typeof env.OPENCLAW_DIAGNOSTICS_TIMELINE_PATH === "string" && env.OPENCLAW_DIAGNOSTICS_TIMELINE_PATH.trim().length > 0;
 }
-function buildOutsideBoundaryPathFromContext(params) {
-  return buildOutsideLexicalBoundaryPath({
-    boundaryLabel: params.boundaryLabel,
-    rootCanonicalPath: params.context.rootCanonicalPath,
-    absolutePath: params.context.absolutePath,
-    canonicalOutsideLexicalPath: params.context.canonicalOutsideLexicalPath,
-    rootPath: params.context.rootPath,
-    kind: params.kind
-  });
-}
-function resolveOutsideLexicalCanonicalPathSync(params) {
-  if (isPathInside(params.rootPath, params.absolutePath)) {
+function normalizeNumber(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
     return void 0;
   }
-  return resolvePathViaExistingAncestorSync(params.absolutePath);
+  return Math.max(0, Math.round(value * 1e3) / 1e3);
 }
-function buildOutsideLexicalBoundaryPath(params) {
-  assertInsideBoundary({
-    boundaryLabel: params.boundaryLabel,
-    rootCanonicalPath: params.rootCanonicalPath,
-    candidatePath: params.canonicalOutsideLexicalPath,
-    absolutePath: params.absolutePath
-  });
-  return buildResolvedBoundaryPath({
-    absolutePath: params.absolutePath,
-    canonicalPath: params.canonicalOutsideLexicalPath,
-    rootPath: params.rootPath,
-    rootCanonicalPath: params.rootCanonicalPath,
-    kind: params.kind
-  });
-}
-function assertLexicalBoundaryOrCanonicalAlias(params) {
-  if (params.skipLexicalRootCheck || params.lexicalInside) {
-    return;
+function normalizeAttributes(attributes) {
+  if (!attributes) {
+    return void 0;
   }
-  if (isPathInside(params.rootCanonicalPath, params.canonicalOutsideLexicalPath)) {
-    return;
+  const normalized = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    if (typeof value === "number") {
+      if (Number.isFinite(value)) {
+        normalized[key] = normalizeNumber(value) ?? 0;
+      }
+      continue;
+    }
+    if (typeof value === "string" || typeof value === "boolean" || value === null) {
+      normalized[key] = value;
+    }
   }
-  throw pathEscapeError({
-    boundaryLabel: params.boundaryLabel,
-    rootPath: params.rootPath,
-    absolutePath: params.absolutePath
-  });
+  return Object.keys(normalized).length > 0 ? normalized : void 0;
 }
-function buildResolvedBoundaryPath(params) {
-  return {
-    absolutePath: params.absolutePath,
-    canonicalPath: params.canonicalPath,
-    rootPath: params.rootPath,
-    rootCanonicalPath: params.rootCanonicalPath,
-    relativePath: relativeInsideRoot(params.rootCanonicalPath, params.canonicalPath),
-    exists: params.kind.exists,
-    kind: params.kind.kind
+function serializeTimelineEvent(event, env) {
+  const normalized = {
+    schemaVersion: OPENCLAW_DIAGNOSTICS_TIMELINE_SCHEMA_VERSION,
+    type: event.type,
+    timestamp: event.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+    name: event.name,
+    ...env.OPENCLAW_DIAGNOSTICS_RUN_ID ? { runId: env.OPENCLAW_DIAGNOSTICS_RUN_ID } : {},
+    ...env.OPENCLAW_DIAGNOSTICS_ENV ? { envName: env.OPENCLAW_DIAGNOSTICS_ENV } : {},
+    pid: process.pid,
+    ...event.runId ? { runId: event.runId } : {},
+    ...event.envName ? { envName: event.envName } : {},
+    ...typeof event.pid === "number" ? { pid: event.pid } : {},
+    ...event.phase ? { phase: event.phase } : {},
+    ...event.spanId ? { spanId: event.spanId } : {},
+    ...event.parentSpanId ? { parentSpanId: event.parentSpanId } : {},
+    ...typeof event.durationMs === "number" ? { durationMs: normalizeNumber(event.durationMs) } : {},
+    ...event.errorName ? { errorName: event.errorName } : {},
+    ...event.errorMessage ? { errorMessage: event.errorMessage } : {},
+    ...typeof event.p50Ms === "number" ? { p50Ms: normalizeNumber(event.p50Ms) } : {},
+    ...typeof event.p95Ms === "number" ? { p95Ms: normalizeNumber(event.p95Ms) } : {},
+    ...typeof event.p99Ms === "number" ? { p99Ms: normalizeNumber(event.p99Ms) } : {},
+    ...typeof event.maxMs === "number" ? { maxMs: normalizeNumber(event.maxMs) } : {},
+    ...event.activeSpanName ? { activeSpanName: event.activeSpanName } : {},
+    ...event.provider ? { provider: event.provider } : {},
+    ...event.operation ? { operation: event.operation } : {},
+    ...typeof event.ok === "boolean" ? { ok: event.ok } : {},
+    ...event.command ? { command: event.command } : {},
+    ...event.exitCode !== void 0 ? { exitCode: event.exitCode } : {},
+    ...event.signal !== void 0 ? { signal: event.signal } : {},
+    ...normalizeAttributes(event.attributes) ? { attributes: normalizeAttributes(event.attributes) } : {}
   };
+  return `${JSON.stringify(normalized)}
+`;
 }
-function resolvePathViaExistingAncestorSync(targetPath) {
-  const normalized = path10.resolve(targetPath);
-  let cursor = normalized;
-  const missingSuffix = [];
-  while (!isFilesystemRoot(cursor) && !fs5.existsSync(cursor)) {
-    missingSuffix.unshift(path10.basename(cursor));
-    const parent = path10.dirname(cursor);
-    if (parent === cursor) {
-      break;
-    }
-    cursor = parent;
+function emitDiagnosticsTimelineEvent(event, options = {}) {
+  const { env } = resolveDiagnosticsTimelineOptions(options);
+  if (!isDiagnosticsTimelineEnabled(options)) {
+    return;
   }
-  if (!fs5.existsSync(cursor)) {
-    return normalized;
+  const path30 = env.OPENCLAW_DIAGNOSTICS_TIMELINE_PATH?.trim();
+  if (!path30) {
+    return;
   }
+  const line = serializeTimelineEvent(event, env);
   try {
-    const resolvedAncestor = path10.resolve(fs5.realpathSync(cursor));
-    if (missingSuffix.length === 0) {
-      return resolvedAncestor;
+    const dir = dirname(path30);
+    if (!createdTimelineDirs.has(dir)) {
+      mkdirSync(dir, { recursive: true });
+      createdTimelineDirs.add(dir);
     }
-    return path10.resolve(resolvedAncestor, ...missingSuffix);
-  } catch {
-    return normalized;
-  }
-}
-function getPathKindSync(absolutePath, preserveFinalSymlink) {
-  try {
-    const stat = preserveFinalSymlink ? fs5.lstatSync(absolutePath) : fs5.statSync(absolutePath);
-    return { exists: true, kind: toResolvedKind(stat) };
+    appendFileSync(path30, line, "utf8");
   } catch (error) {
-    if (isNotFoundPathError(error)) {
-      return { exists: false, kind: "missing" };
+    if (!warnedAboutTimelineWrite) {
+      warnedAboutTimelineWrite = true;
+      process.stderr.write(`[diagnostics] failed to write timeline event: ${String(error)}
+`);
     }
+  }
+}
+function measureDiagnosticsTimelineSpanSync(name, run, options = {}) {
+  const env = options.env ?? process.env;
+  if (!isDiagnosticsTimelineEnabled({ config: options.config, env })) {
+    return run();
+  }
+  const spanId = randomUUID();
+  const startedAt = performance2.now();
+  emitDiagnosticsTimelineEvent(
+    {
+      type: "span.start",
+      name,
+      phase: options.phase,
+      spanId,
+      parentSpanId: options.parentSpanId,
+      attributes: options.attributes
+    },
+    { config: options.config, env }
+  );
+  try {
+    const result = run();
+    emitDiagnosticsTimelineEvent(
+      {
+        type: "span.end",
+        name,
+        phase: options.phase,
+        spanId,
+        parentSpanId: options.parentSpanId,
+        durationMs: performance2.now() - startedAt,
+        attributes: options.attributes
+      },
+      { config: options.config, env }
+    );
+    return result;
+  } catch (error) {
+    emitDiagnosticsTimelineEvent(
+      {
+        type: "span.error",
+        name,
+        phase: options.phase,
+        spanId,
+        parentSpanId: options.parentSpanId,
+        durationMs: performance2.now() - startedAt,
+        attributes: options.attributes,
+        errorName: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error)
+      },
+      { config: options.config, env }
+    );
     throw error;
   }
 }
-function toResolvedKind(stat) {
-  if (stat.isFile()) {
-    return "file";
+
+// vendor/openclaw/src/plugins/compat/registry.ts
+var CHANNEL_RUNTIME_SDK_SURFACE = ["openclaw/plugin-sdk/channel", "runtime"].join("-");
+var LEGACY_CONFIG_MIGRATE_TEST_PATH = [
+  "src/commands/doctor/shared/legacy-config",
+  "migrate.test.ts"
+].join("-");
+var PLUGIN_COMPAT_RECORDS = [
+  {
+    code: "legacy-before-agent-start",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-24",
+    warningStarts: "2026-04-24",
+    removeAfter: "2026-07-24",
+    replacement: "`before_model_resolve` and `before_prompt_build` hooks",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["plugin hooks", "plugins inspect", "status diagnostics"],
+    diagnostics: ["plugin compatibility notice"],
+    tests: ["src/plugins/status.test.ts", "src/plugins/contracts/shape.contract.test.ts"],
+    releaseNote: "Legacy `before_agent_start` hook compatibility remains wired while plugins migrate to modern hook stages."
+  },
+  {
+    code: "hook-only-plugin-shape",
+    status: "active",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    replacement: "explicit capability registration",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["plugin shape inspection", "plugins inspect", "status diagnostics"],
+    diagnostics: ["plugin compatibility notice"],
+    tests: ["src/plugins/status.test.ts", "src/plugins/contracts/shape.contract.test.ts"]
+  },
+  {
+    code: "legacy-root-sdk-import",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-24",
+    warningStarts: "2026-04-24",
+    removeAfter: "2026-07-24",
+    replacement: "focused `openclaw/plugin-sdk/<subpath>` imports",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/plugin-sdk", "openclaw/plugin-sdk/compat"],
+    diagnostics: ["OPENCLAW_PLUGIN_SDK_COMPAT_DEPRECATED"],
+    tests: [
+      "src/plugins/contracts/plugin-sdk-index.test.ts",
+      "src/plugins/contracts/plugin-sdk-root-alias.test.ts",
+      "src/plugins/contracts/plugin-sdk-subpaths.test.ts"
+    ]
+  },
+  {
+    code: "hook.before_tool_call.terminal-block-approval",
+    status: "active",
+    owner: "agent-runtime",
+    introduced: "2026-04-29",
+    docsPath: "/plugins/hooks",
+    surfaces: ["before_tool_call block result", "before_tool_call approval result"],
+    diagnostics: ["hook runner contract probe"],
+    tests: [
+      "src/plugins/hooks.security.test.ts",
+      "src/agents/pi-tools.before-tool-call.e2e.test.ts"
+    ]
+  },
+  {
+    code: "hook.llm-observer.privacy-payload",
+    status: "active",
+    owner: "agent-runtime",
+    introduced: "2026-04-29",
+    docsPath: "/plugins/hooks",
+    surfaces: ["llm_input", "llm_output", "agent_end", "allowConversationAccess"],
+    diagnostics: ["conversation access hook contract probe"],
+    tests: ["src/agents/cli-runner.reliability.test.ts", "src/config/schema.help.quality.test.ts"]
+  },
+  {
+    code: "api.capture.runtime-registrars",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-29",
+    docsPath: "/plugins/architecture-internals",
+    surfaces: [
+      "createCapturedPluginRegistration",
+      "capturePluginRegistration",
+      "OpenClawPluginApi"
+    ],
+    diagnostics: ["runtime registration capture contract probe"],
+    tests: ["src/plugins/captured-registration.test.ts"]
+  },
+  {
+    code: "channel.runtime.envelope-config-metadata",
+    status: "active",
+    owner: "channel",
+    introduced: "2026-04-29",
+    docsPath: "/plugins/sdk-channel-plugins",
+    surfaces: ["api.registerChannel", "channel setup metadata", "channel message envelope"],
+    diagnostics: ["channel runtime contract probe"],
+    tests: [
+      "src/plugin-sdk/channel-entry-contract.test.ts",
+      "src/plugins/captured-registration.test.ts"
+    ]
+  },
+  {
+    code: "bundled-channel-sdk-compat-facades",
+    status: "active",
+    owner: "sdk",
+    introduced: "2026-04-28",
+    replacement: "generic channel SDK subpaths or plugin-local `api.ts` / `runtime-api.ts` barrels for new plugins",
+    docsPath: "/plugins/sdk-overview",
+    surfaces: [
+      "openclaw/plugin-sdk/discord component message helpers",
+      "openclaw/plugin-sdk/telegram-account resolveTelegramAccount"
+    ],
+    diagnostics: ["plugin SDK compatibility registry"],
+    tests: [
+      "src/plugin-sdk/discord.test.ts",
+      "src/plugin-sdk/telegram-account.test.ts",
+      "src/plugins/contracts/plugin-sdk-package-contract-guardrails.test.ts"
+    ]
+  },
+  {
+    code: "bundled-channel-config-schema-legacy",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-28",
+    deprecated: "2026-04-28",
+    warningStarts: "2026-04-28",
+    removeAfter: "2026-07-28",
+    replacement: "`openclaw/plugin-sdk/bundled-channel-config-schema` for maintained bundled plugins; plugin-local schemas for third-party plugins",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/plugin-sdk/channel-config-schema-legacy"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: [
+      "src/plugins/contracts/config-footprint-guardrails.test.ts",
+      "test/extension-test-boundary.test.ts"
+    ]
+  },
+  {
+    code: "plugin-sdk-testing-barrel",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-28",
+    deprecated: "2026-04-28",
+    warningStarts: "2026-04-28",
+    removeAfter: "2026-07-28",
+    replacement: "focused `openclaw/plugin-sdk/*` test subpaths such as `plugin-test-runtime`, `channel-test-helpers`, `test-env`, and `test-fixtures`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/plugin-sdk/testing"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: [
+      "src/plugins/compat/registry.test.ts",
+      "scripts/check-no-extension-test-core-imports.ts",
+      "test/extension-test-boundary.test.ts"
+    ]
+  },
+  {
+    code: "channel-route-key-aliases",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-28",
+    deprecated: "2026-04-28",
+    warningStarts: "2026-04-28",
+    removeAfter: "2026-07-28",
+    replacement: "`channelRouteDedupeKey` and `channelRouteCompactKey`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "openclaw/plugin-sdk/channel-route channelRouteIdentityKey",
+      "openclaw/plugin-sdk/channel-route channelRouteKey"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: [
+      "src/plugin-sdk/channel-route.test.ts",
+      "src/plugins/contracts/plugin-sdk-subpaths.test.ts"
+    ]
+  },
+  {
+    code: "channel-target-comparable-aliases",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-28",
+    deprecated: "2026-04-28",
+    warningStarts: "2026-04-28",
+    removeAfter: "2026-07-28",
+    replacement: "`resolveRouteTargetForChannel`, `ChannelRouteParsedTarget`, `channelRouteTargetsMatchExact`, and `channelRouteTargetsShareConversation`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "src/channels/plugins/target-parsing ComparableChannelTarget",
+      "src/channels/plugins/target-parsing resolveComparableTargetForChannel",
+      "src/channels/plugins/target-parsing comparableChannelTargetsMatch",
+      "src/channels/plugins/target-parsing comparableChannelTargetsShareRoute"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: [
+      "src/channels/plugins/target-parsing.test.ts",
+      "src/plugins/contracts/plugin-sdk-subpaths.test.ts"
+    ]
+  },
+  {
+    code: "bundled-plugin-allowlist",
+    status: "active",
+    owner: "config",
+    introduced: "2026-04-24",
+    replacement: "manifest-owned plugin enablement and scoped load plans",
+    docsPath: "/plugins/architecture",
+    surfaces: ["plugins.allow", "bundled provider startup", "plugins status"],
+    diagnostics: ["plugin status report"],
+    tests: ["src/plugins/status.test.ts", "src/plugins/config-state.test.ts"]
+  },
+  {
+    code: "bundled-plugin-enablement",
+    status: "active",
+    owner: "config",
+    introduced: "2026-04-24",
+    replacement: "manifest-owned plugin defaults and scoped load plans",
+    docsPath: "/plugins/architecture",
+    surfaces: ["plugins.entries", "bundled provider startup", "plugins status"],
+    diagnostics: ["plugin status report"],
+    tests: ["src/plugins/status.test.ts", "src/plugins/config-state.test.ts"]
+  },
+  {
+    code: "bundled-plugin-vitest-defaults",
+    status: "active",
+    owner: "config",
+    introduced: "2026-04-24",
+    replacement: "explicit test plugin config fixtures",
+    docsPath: "/plugins/architecture",
+    surfaces: ["Vitest plugin defaults", "bundled provider tests"],
+    diagnostics: ["test-only compatibility path"],
+    tests: ["src/plugins/config-state.test.ts"]
+  },
+  {
+    code: "provider-auth-env-vars",
+    status: "deprecated",
+    owner: "setup",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-24",
+    warningStarts: "2026-04-24",
+    removeAfter: "2026-07-24",
+    replacement: "`setup.providers[].envVars` and `providerAuthChoices`",
+    docsPath: "/plugins/manifest",
+    surfaces: ["openclaw.plugin.json providerAuthEnvVars", "provider setup"],
+    diagnostics: ["manifest compatibility diagnostic"],
+    tests: ["src/plugins/setup-registry.test.ts", "src/plugins/provider-auth-choices.test.ts"]
+  },
+  {
+    code: "channel-env-vars",
+    status: "deprecated",
+    owner: "channel",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-24",
+    warningStarts: "2026-04-24",
+    removeAfter: "2026-07-24",
+    replacement: "`channelConfigs.<id>.schema` and setup descriptors",
+    docsPath: "/plugins/manifest",
+    surfaces: ["openclaw.plugin.json channelEnvVars", "channel setup"],
+    diagnostics: ["manifest compatibility diagnostic"],
+    tests: [
+      "src/plugins/setup-registry.test.ts",
+      "src/channels/plugins/setup-group-access.test.ts"
+    ]
+  },
+  {
+    code: "activation-agent-harness-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-24",
+    replacement: "top-level `cliBackends[]` for CLI aliases and future `agentRuntime` ownership metadata",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onAgentHarnesses", "activation planner"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/activation-planner.test.ts"]
+  },
+  {
+    code: "activation-provider-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-24",
+    replacement: "`providers[]` manifest ownership",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onProviders", "activation planner"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/activation-planner.test.ts"]
+  },
+  {
+    code: "activation-channel-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-24",
+    replacement: "`channels[]` manifest ownership",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onChannels", "activation planner"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/activation-planner.test.ts"]
+  },
+  {
+    code: "activation-command-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-24",
+    replacement: "`commandAliases` or command contribution metadata",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onCommands", "activation planner"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/activation-planner.test.ts"]
+  },
+  {
+    code: "activation-route-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-24",
+    replacement: "HTTP route contribution metadata",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onRoutes", "activation planner"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/activation-planner.test.ts"]
+  },
+  {
+    code: "activation-config-path-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-27",
+    replacement: "manifest contribution ownership for root config surfaces",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onConfigPaths", "startup plugin selection"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/channel-plugin-ids.test.ts"]
+  },
+  {
+    code: "activation-capability-hint",
+    status: "active",
+    owner: "plugin-execution",
+    introduced: "2026-04-24",
+    replacement: "manifest contribution ownership",
+    docsPath: "/plugins/manifest",
+    surfaces: ["activation.onCapabilities", "activation planner"],
+    diagnostics: ["activation plan compat reason"],
+    tests: ["src/plugins/activation-planner.test.ts"]
+  },
+  {
+    code: "embedded-harness-config-alias",
+    status: "deprecated",
+    owner: "agent-runtime",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-25",
+    warningStarts: "2026-04-25",
+    removeAfter: "2026-07-25",
+    replacement: "`agentRuntime` config naming",
+    docsPath: "/plugins/sdk-agent-harness",
+    surfaces: ["agents.defaults.embeddedHarness", "model/provider runtime selection"],
+    diagnostics: ["agent runtime config compatibility"],
+    tests: [LEGACY_CONFIG_MIGRATE_TEST_PATH]
+  },
+  {
+    code: "agent-harness-sdk-alias",
+    status: "deprecated",
+    owner: "agent-runtime",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-25",
+    warningStarts: "2026-04-25",
+    removeAfter: "2026-07-25",
+    replacement: "`openclaw/plugin-sdk/agent-runtime`",
+    docsPath: "/plugins/sdk-agent-harness",
+    surfaces: ["openclaw/plugin-sdk/agent-harness", "openclaw/plugin-sdk/agent-harness-runtime"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-subpaths.test.ts"]
+  },
+  {
+    code: "agent-harness-id-alias",
+    status: "deprecated",
+    owner: "agent-runtime",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-25",
+    warningStarts: "2026-04-25",
+    removeAfter: "2026-07-25",
+    replacement: "`agentRuntime` ids and policy metadata",
+    docsPath: "/plugins/sdk-agent-harness",
+    surfaces: ["manifest/catalog execution policy", "runtime selection"],
+    diagnostics: ["agent runtime compatibility warning"],
+    tests: ["src/plugins/provider-runtime.test.ts", "src/web/provider-runtime-shared.test.ts"]
+  },
+  {
+    code: "generated-bundled-channel-config-fallback",
+    status: "active",
+    owner: "channel",
+    introduced: "2026-04-24",
+    replacement: "manifest registry `channelConfigs` metadata",
+    docsPath: "/plugins/manifest",
+    surfaces: ["generated bundled channel config metadata", "channel config validation"],
+    diagnostics: ["channel config metadata fallback"],
+    tests: ["src/plugins/contracts/config-footprint-guardrails.test.ts"]
+  },
+  {
+    code: "disable-persisted-plugin-registry-env",
+    status: "deprecated",
+    owner: "config",
+    introduced: "2026-04-25",
+    deprecated: "2026-04-25",
+    warningStarts: "2026-04-25",
+    removeAfter: "2026-07-25",
+    replacement: "`openclaw plugins registry --refresh` and `openclaw doctor --fix`",
+    docsPath: "/cli/plugins#registry",
+    surfaces: ["OPENCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY", "plugin registry reads"],
+    diagnostics: ["persisted-registry-disabled"],
+    tests: ["src/plugins/plugin-registry.test.ts"]
+  },
+  {
+    code: "plugin-registry-install-migration-env",
+    status: "deprecated",
+    owner: "config",
+    introduced: "2026-04-25",
+    deprecated: "2026-04-25",
+    warningStarts: "2026-04-25",
+    removeAfter: "2026-07-25",
+    replacement: "`openclaw plugins registry --refresh` and `openclaw doctor --fix`",
+    docsPath: "/cli/plugins#registry",
+    surfaces: [
+      "OPENCLAW_DISABLE_PLUGIN_REGISTRY_MIGRATION",
+      "OPENCLAW_FORCE_PLUGIN_REGISTRY_MIGRATION",
+      "package postinstall plugin registry migration"
+    ],
+    diagnostics: ["postinstall migration skip", "postinstall migration force deprecation warning"],
+    tests: ["src/commands/doctor/shared/plugin-registry-migration.test.ts"]
+  },
+  {
+    code: "plugin-install-config-ledger",
+    status: "deprecated",
+    owner: "config",
+    introduced: "2026-04-25",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "state-managed `plugins/installs.json` install ledger",
+    docsPath: "/cli/plugins#registry",
+    surfaces: ["plugins.installs authored config", "plugin install/update migration"],
+    diagnostics: ["config write migration warning", "doctor registry migration"],
+    tests: [
+      "src/config/io.write-config.test.ts",
+      "src/commands/doctor/shared/plugin-registry-migration.test.ts"
+    ]
+  },
+  {
+    code: "bundled-plugin-load-path-aliases",
+    status: "deprecated",
+    owner: "config",
+    introduced: "2026-04-25",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "packaged bundled plugins resolved through the persisted plugin registry",
+    docsPath: "/cli/plugins#registry",
+    surfaces: ["plugins.load.paths entries pointing at bundled plugin source/dist paths"],
+    diagnostics: ["doctor bundled plugin load-path warning"],
+    tests: ["src/commands/doctor/shared/bundled-plugin-load-paths.test.ts"]
+  },
+  {
+    code: "plugin-owned-web-search-config",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-26",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`plugins.entries.<plugin>.config.webSearch`",
+    docsPath: "/tools/web",
+    surfaces: ["tools.web.search.apiKey", "tools.web.search.<provider>"],
+    diagnostics: ["doctor legacy web-search config migration"],
+    tests: ["src/commands/doctor/shared/legacy-web-search-migrate.test.ts"]
+  },
+  {
+    code: "plugin-owned-web-fetch-config",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-26",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`plugins.entries.firecrawl.config.webFetch`",
+    docsPath: "/tools/web-fetch",
+    surfaces: ["tools.web.fetch.firecrawl"],
+    diagnostics: ["doctor legacy web-fetch config migration"],
+    tests: ["src/commands/doctor/shared/legacy-web-fetch-migrate.test.ts"]
+  },
+  {
+    code: "plugin-owned-x-search-config",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-26",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`plugins.entries.xai.config.webSearch.apiKey`",
+    docsPath: "/tools/grok-search",
+    surfaces: ["tools.web.x_search.apiKey"],
+    diagnostics: ["doctor legacy x_search config migration"],
+    tests: [
+      "src/commands/doctor/shared/legacy-x-search-migrate.test.ts",
+      LEGACY_CONFIG_MIGRATE_TEST_PATH
+    ]
+  },
+  {
+    code: "plugin-activate-entrypoint-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`register(api)` plugin entrypoint",
+    docsPath: "/plugins/sdk-entrypoints",
+    surfaces: ["plugin module `activate(api)`", "plugin loader registration"],
+    diagnostics: ["loader compatibility path"],
+    tests: ["src/plugins/loader.test.ts"]
+  },
+  {
+    code: "setup-runtime-fallback",
+    status: "active",
+    owner: "setup",
+    introduced: "2026-04-24",
+    replacement: "`setup.requiresRuntime: false` with complete setup descriptors",
+    docsPath: "/plugins/manifest#setup-reference",
+    surfaces: ["setup-api runtime fallback", "setup.requiresRuntime omitted"],
+    diagnostics: ["setup registry runtime diagnostic"],
+    tests: ["src/plugins/setup-registry.test.ts", "src/plugins/setup-registry.runtime.test.ts"]
+  },
+  {
+    code: "provider-discovery-hook-alias",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`catalog.run(...)` provider catalog hook",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["provider plugin `discovery` hook", "provider catalog resolution"],
+    diagnostics: ["provider validation warning when catalog and discovery both register"],
+    tests: ["src/plugins/provider-discovery.test.ts", "src/plugins/provider-validation.test.ts"]
+  },
+  {
+    code: "channel-exposure-legacy-aliases",
+    status: "deprecated",
+    owner: "channel",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`openclaw.channel.exposure` metadata",
+    docsPath: "/plugins/sdk-setup",
+    surfaces: ["openclaw.channel.showConfigured", "openclaw.channel.showInSetup"],
+    diagnostics: ["channel exposure compatibility path"],
+    tests: ["src/commands/channel-setup/discovery.test.ts"]
+  },
+  {
+    code: "channel-runtime-sdk-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "focused channel SDK subpaths, especially `openclaw/plugin-sdk/channel-runtime-context`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [CHANNEL_RUNTIME_SDK_SURFACE],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-subpaths.test.ts"]
+  },
+  {
+    code: "command-auth-status-builders",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`openclaw/plugin-sdk/command-status`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "openclaw/plugin-sdk/command-auth buildCommandsMessage",
+      "openclaw/plugin-sdk/command-auth buildCommandsMessagePaginated",
+      "openclaw/plugin-sdk/command-auth buildHelpMessage"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugin-sdk/command-auth.test.ts"]
+  },
+  {
+    code: "clawdbot-config-type-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`OpenClawConfig`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/plugin-sdk `ClawdbotConfig` type export"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-index.test.ts"]
+  },
+  {
+    code: "openclaw-schema-type-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-26",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`OpenClawConfig` from `openclaw/plugin-sdk/config-schema`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/plugin-sdk `OpenClawSchemaType` type export"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-index.test.ts"]
+  },
+  {
+    code: "legacy-extension-api-import",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "injected `api.runtime.*` helpers or focused `openclaw/plugin-sdk/<subpath>` imports",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/extension-api"],
+    diagnostics: ["OPENCLAW_EXTENSION_API_DEPRECATED"],
+    tests: ["src/plugins/sdk-alias.test.ts", "src/index.test.ts"]
+  },
+  {
+    code: "memory-split-registration",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`api.registerMemoryCapability({ promptBuilder, flushPlanResolver, runtime })`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "api.registerMemoryPromptSection",
+      "api.registerMemoryFlushPlan",
+      "api.registerMemoryRuntime",
+      "src/plugins/memory-state split registration helpers"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/memory-state.test.ts", "src/plugins/loader.test.ts"]
+  },
+  {
+    code: "provider-static-capabilities-bag",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "explicit provider hooks such as `buildReplayPolicy`, `normalizeToolSchemas`, and `wrapStreamFn`",
+    docsPath: "/plugins/sdk-provider-plugins",
+    surfaces: ["ProviderPlugin.capabilities", "ProviderCapabilities"],
+    diagnostics: ["provider validation warning"],
+    tests: [
+      "src/plugins/provider-runtime.test.ts",
+      "src/plugins/contracts/provider-family-plugin-tests.test.ts"
+    ]
+  },
+  {
+    code: "provider-discovery-type-aliases",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`ProviderCatalogOrder`, `ProviderCatalogContext`, `ProviderCatalogResult`, and `ProviderPluginCatalog`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "ProviderDiscoveryOrder",
+      "ProviderDiscoveryContext",
+      "ProviderDiscoveryResult",
+      "ProviderPluginDiscovery"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-index.test.ts"]
+  },
+  {
+    code: "provider-thinking-policy-hooks",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`resolveThinkingProfile`",
+    docsPath: "/plugins/sdk-provider-plugins",
+    surfaces: [
+      "ProviderPlugin.isBinaryThinking",
+      "ProviderPlugin.supportsXHighThinking",
+      "ProviderPlugin.resolveDefaultThinkingLevel"
+    ],
+    diagnostics: ["provider runtime compatibility warning"],
+    tests: ["src/plugins/provider-runtime.test.ts"]
+  },
+  {
+    code: "provider-external-oauth-profiles-hook",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`contracts.externalAuthProviders` plus `resolveExternalAuthProfiles`",
+    docsPath: "/plugins/sdk-provider-plugins",
+    surfaces: ["ProviderPlugin.resolveExternalOAuthProfiles"],
+    diagnostics: ["provider external auth fallback warning"],
+    tests: ["src/plugins/provider-runtime.test.ts"]
+  },
+  {
+    code: "agent-tool-result-harness-alias",
+    status: "deprecated",
+    owner: "agent-runtime",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`runtime` and `runtimes` agent tool-result middleware fields",
+    docsPath: "/plugins/sdk-agent-harness",
+    surfaces: [
+      "AgentToolResultMiddlewareHarness",
+      "AgentToolResultMiddlewareContext.harness",
+      "AgentToolResultMiddlewareOptions.harnesses",
+      "normalizeAgentToolResultMiddlewareHarnesses"
+    ],
+    diagnostics: ["agent runtime compatibility warning"],
+    tests: [
+      "src/plugins/captured-registration.test.ts",
+      "src/agents/codex-app-server.extensions.test.ts"
+    ]
+  },
+  {
+    code: "runtime-config-load-write",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-27",
+    deprecated: "2026-04-27",
+    warningStarts: "2026-04-27",
+    removeAfter: "2026-07-27",
+    replacement: "`api.runtime.config.current()`, passed config values, `mutateConfigFile(...)`, or `replaceConfigFile(...)`",
+    docsPath: "/plugins/sdk-runtime#config-loading-and-writes",
+    surfaces: ["api.runtime.config.loadConfig", "api.runtime.config.writeConfigFile"],
+    diagnostics: [
+      "plugin runtime compatibility warning",
+      "deprecated internal config API guard",
+      "runtime channel config boundary guard"
+    ],
+    tests: [
+      "src/plugins/runtime/runtime-config.test.ts",
+      "src/plugins/contracts/deprecated-internal-config-api.test.ts",
+      "src/plugins/contracts/config-boundary-guard.test.ts"
+    ]
+  },
+  {
+    code: "runtime-taskflow-legacy-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`api.runtime.tasks.managedFlows` for managed mutations or `api.runtime.tasks.flows` for DTO reads",
+    docsPath: "/plugins/sdk-runtime",
+    surfaces: ["api.runtime.taskFlow", "api.runtime.tasks.flow"],
+    diagnostics: ["plugin runtime compatibility warning"],
+    tests: ["src/plugins/runtime/index.test.ts", "src/plugins/runtime/runtime-tasks.test.ts"]
+  },
+  {
+    code: "runtime-subagent-get-session-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`api.runtime.subagent.getSessionMessages`",
+    docsPath: "/plugins/sdk-runtime",
+    surfaces: ["api.runtime.subagent.getSession"],
+    diagnostics: ["plugin runtime compatibility warning"],
+    tests: ["src/plugins/runtime/index.test.ts"]
+  },
+  {
+    code: "runtime-stt-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`api.runtime.mediaUnderstanding.transcribeAudioFile`",
+    docsPath: "/plugins/sdk-runtime",
+    surfaces: ["api.runtime.stt.transcribeAudioFile"],
+    diagnostics: ["plugin runtime compatibility warning"],
+    tests: ["src/plugins/runtime/index.test.ts"]
+  },
+  {
+    code: "runtime-inbound-envelope-alias",
+    status: "deprecated",
+    owner: "channel",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`BodyForAgent` plus structured user-context blocks",
+    docsPath: "/plugins/sdk-runtime",
+    surfaces: ["api.runtime.channel.reply.formatInboundEnvelope"],
+    diagnostics: ["channel runtime compatibility warning"],
+    tests: ["src/plugins/runtime/index.test.ts"]
+  },
+  {
+    code: "channel-native-message-schema-helpers",
+    status: "deprecated",
+    owner: "channel",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "semantic `presentation` capabilities",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "openclaw/plugin-sdk/channel-actions createMessageToolButtonsSchema",
+      "openclaw/plugin-sdk/channel-actions createMessageToolCardSchema"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-subpaths.test.ts"]
+  },
+  {
+    code: "channel-mention-gating-legacy-helpers",
+    status: "deprecated",
+    owner: "channel",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "`resolveInboundMentionDecision({ facts, policy })`",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: [
+      "openclaw/plugin-sdk/channel-inbound resolveMentionGating",
+      "openclaw/plugin-sdk/channel-inbound resolveMentionGatingWithBypass",
+      "openclaw/plugin-sdk/channel-mention-gating resolveMentionGating",
+      "openclaw/plugin-sdk/channel-mention-gating resolveMentionGatingWithBypass"
+    ],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-subpaths.test.ts"]
+  },
+  {
+    code: "provider-web-search-core-wrapper",
+    status: "deprecated",
+    owner: "provider",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "provider-owned `createTool(...)` on the returned `WebSearchProviderPlugin`",
+    docsPath: "/plugins/sdk-provider-plugins",
+    surfaces: ["openclaw/plugin-sdk/provider-web-search createPluginBackedWebSearchProvider"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugins/contracts/plugin-sdk-subpaths.test.ts"]
+  },
+  {
+    code: "approval-capability-approvals-alias",
+    status: "deprecated",
+    owner: "channel",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "top-level `delivery`, `nativeRuntime`, `render`, and `native` approval capability fields",
+    docsPath: "/plugins/sdk-channel-plugins",
+    surfaces: ["createChannelApprovalCapability({ approvals })"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: ["src/plugin-sdk/approval-delivery-helpers.test.ts"]
+  },
+  {
+    code: "plugin-sdk-test-utils-alias",
+    status: "deprecated",
+    owner: "sdk",
+    introduced: "2026-04-24",
+    deprecated: "2026-04-26",
+    warningStarts: "2026-04-26",
+    removeAfter: "2026-07-26",
+    replacement: "focused `openclaw/plugin-sdk/*` test subpaths",
+    docsPath: "/plugins/sdk-migration",
+    surfaces: ["openclaw/plugin-sdk/test-utils"],
+    diagnostics: ["plugin SDK compatibility warning"],
+    tests: [
+      "src/plugins/compat/registry.test.ts",
+      "src/plugins/contracts/plugin-sdk-subpaths.test.ts"
+    ]
   }
-  if (stat.isDirectory()) {
-    return "directory";
-  }
-  if (stat.isSymbolicLink()) {
-    return "symlink";
-  }
-  return "other";
-}
-function relativeInsideRoot(rootPath, targetPath) {
-  const relative = path10.relative(path10.resolve(rootPath), path10.resolve(targetPath));
-  if (!relative || relative === ".") {
-    return "";
-  }
-  if (relative.startsWith("..") || path10.isAbsolute(relative)) {
-    return "";
-  }
-  return relative;
-}
-function assertInsideBoundary(params) {
-  if (isPathInside(params.rootCanonicalPath, params.candidatePath)) {
-    return;
-  }
-  throw new Error(
-    `Path resolves outside ${params.boundaryLabel} (${shortPath(params.rootCanonicalPath)}): ${shortPath(params.absolutePath)}`
-  );
-}
-function pathEscapeError(params) {
-  return new Error(
-    `Path escapes ${params.boundaryLabel} (${shortPath(params.rootPath)}): ${shortPath(params.absolutePath)}`
-  );
-}
-function symlinkEscapeError(params) {
-  return new Error(
-    `Symlink escapes ${params.boundaryLabel} (${shortPath(params.rootCanonicalPath)}): ${shortPath(params.symlinkPath)}`
-  );
-}
-function shortPath(value) {
-  const home = os3.homedir();
-  if (value.startsWith(home)) {
-    return `~${value.slice(home.length)}`;
-  }
-  return value;
-}
-function isFilesystemRoot(candidate) {
-  return path10.parse(candidate).root === candidate;
-}
-function resolveSymlinkHopPathSync(symlinkPath) {
-  try {
-    return path10.resolve(fs5.realpathSync(symlinkPath));
-  } catch (error) {
-    if (!isNotFoundPathError(error)) {
-      throw error;
-    }
-    const linkTarget = fs5.readlinkSync(symlinkPath);
-    const linkAbsolute = path10.resolve(path10.dirname(symlinkPath), linkTarget);
-    return resolvePathViaExistingAncestorSync(linkAbsolute);
-  }
+];
+var pluginCompatRecordByCode = new Map(
+  PLUGIN_COMPAT_RECORDS.map((record) => [record.code, record])
+);
+function listPluginCompatRecords() {
+  return PLUGIN_COMPAT_RECORDS;
 }
 
-// vendor/openclaw/src/infra/safe-open-sync.ts
-import fs6 from "node:fs";
+// vendor/openclaw/src/plugins/config-state.ts
+init_string_coerce();
 
-// vendor/openclaw/src/infra/file-identity.ts
-function isZero(value) {
-  return value === 0 || value === 0n;
+// vendor/openclaw/src/plugins/config-activation-shared.ts
+var PLUGIN_ACTIVATION_REASON_BY_CAUSE = {
+  "enabled-in-config": "enabled in config",
+  "bundled-channel-enabled-in-config": "channel enabled in config",
+  "selected-memory-slot": "selected memory slot",
+  "selected-context-engine-slot": "selected context engine slot",
+  "selected-in-allowlist": "selected in allowlist",
+  "plugins-disabled": "plugins disabled",
+  "blocked-by-denylist": "blocked by denylist",
+  "disabled-in-config": "disabled in config",
+  "workspace-disabled-by-default": "workspace plugin (disabled by default)",
+  "not-in-allowlist": "not in allowlist",
+  "enabled-by-effective-config": "enabled by effective config",
+  "bundled-channel-configured": "channel configured",
+  "bundled-default-enablement": "bundled default enablement",
+  "bundled-disabled-by-default": "bundled (disabled by default)"
+};
+function resolvePluginActivationReason(cause, reason) {
+  if (reason) {
+    return reason;
+  }
+  return cause ? PLUGIN_ACTIVATION_REASON_BY_CAUSE[cause] : void 0;
 }
-function sameFileIdentity(left, right, platform = process.platform) {
-  if (left.ino !== right.ino) {
+function toPluginActivationState(decision) {
+  return {
+    enabled: decision.enabled,
+    activated: decision.activated,
+    explicitlyEnabled: decision.explicitlyEnabled,
+    source: decision.source,
+    reason: resolvePluginActivationReason(decision.cause, decision.reason)
+  };
+}
+function resolveExplicitPluginSelectionShared(params) {
+  if (params.config.entries[params.id]?.enabled === true) {
+    return { explicitlyEnabled: true, cause: "enabled-in-config" };
+  }
+  if (params.origin === "bundled" && params.isBundledChannelEnabledByChannelConfig(params.rootConfig, params.id)) {
+    return { explicitlyEnabled: true, cause: "bundled-channel-enabled-in-config" };
+  }
+  if (params.config.slots.memory === params.id) {
+    return { explicitlyEnabled: true, cause: "selected-memory-slot" };
+  }
+  if (params.config.slots.contextEngine === params.id) {
+    return { explicitlyEnabled: true, cause: "selected-context-engine-slot" };
+  }
+  if (params.origin !== "bundled" && params.config.allow.includes(params.id)) {
+    return { explicitlyEnabled: true, cause: "selected-in-allowlist" };
+  }
+  return { explicitlyEnabled: false };
+}
+function resolvePluginActivationDecisionShared(params) {
+  const activationSource = params.activationSource ?? {
+    plugins: params.config,
+    rootConfig: params.rootConfig
+  };
+  const explicitSelection = resolveExplicitPluginSelectionShared({
+    id: params.id,
+    origin: params.origin,
+    config: activationSource.plugins,
+    rootConfig: activationSource.rootConfig,
+    isBundledChannelEnabledByChannelConfig: params.isBundledChannelEnabledByChannelConfig
+  });
+  if (!params.config.enabled) {
+    return {
+      enabled: false,
+      activated: false,
+      explicitlyEnabled: explicitSelection.explicitlyEnabled,
+      source: "disabled",
+      cause: "plugins-disabled"
+    };
+  }
+  if (params.config.deny.includes(params.id)) {
+    return {
+      enabled: false,
+      activated: false,
+      explicitlyEnabled: explicitSelection.explicitlyEnabled,
+      source: "disabled",
+      cause: "blocked-by-denylist"
+    };
+  }
+  const entry = params.config.entries[params.id];
+  if (entry?.enabled === false) {
+    return {
+      enabled: false,
+      activated: false,
+      explicitlyEnabled: explicitSelection.explicitlyEnabled,
+      source: "disabled",
+      cause: "disabled-in-config"
+    };
+  }
+  const explicitlyAllowed = params.config.allow.includes(params.id);
+  if (params.origin === "workspace" && !explicitlyAllowed && entry?.enabled !== true && explicitSelection.cause !== "selected-context-engine-slot") {
+    return {
+      enabled: false,
+      activated: false,
+      explicitlyEnabled: explicitSelection.explicitlyEnabled,
+      source: "disabled",
+      cause: "workspace-disabled-by-default"
+    };
+  }
+  if (params.config.slots.memory === params.id) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: true,
+      source: "explicit",
+      cause: "selected-memory-slot"
+    };
+  }
+  if (params.config.slots.contextEngine === params.id) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: true,
+      source: "explicit",
+      cause: "selected-context-engine-slot"
+    };
+  }
+  if (params.allowBundledChannelExplicitBypassesAllowlist === true && explicitSelection.cause === "bundled-channel-enabled-in-config") {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: true,
+      source: "explicit",
+      cause: explicitSelection.cause
+    };
+  }
+  if (params.config.allow.length > 0 && !explicitlyAllowed) {
+    return {
+      enabled: false,
+      activated: false,
+      explicitlyEnabled: explicitSelection.explicitlyEnabled,
+      source: "disabled",
+      cause: "not-in-allowlist"
+    };
+  }
+  if (explicitSelection.explicitlyEnabled) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: true,
+      source: "explicit",
+      cause: explicitSelection.cause
+    };
+  }
+  if (params.autoEnabledReason) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: false,
+      source: "auto",
+      reason: params.autoEnabledReason
+    };
+  }
+  if (entry?.enabled === true) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: false,
+      source: "auto",
+      cause: "enabled-by-effective-config"
+    };
+  }
+  if (params.origin === "bundled" && params.isBundledChannelEnabledByChannelConfig(params.rootConfig, params.id)) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: false,
+      source: "auto",
+      cause: "bundled-channel-configured"
+    };
+  }
+  if (params.origin === "bundled" && params.enabledByDefault === true) {
+    return {
+      enabled: true,
+      activated: true,
+      explicitlyEnabled: false,
+      source: "default",
+      cause: "bundled-default-enablement"
+    };
+  }
+  if (params.origin === "bundled") {
+    return {
+      enabled: false,
+      activated: false,
+      explicitlyEnabled: false,
+      source: "disabled",
+      cause: "bundled-disabled-by-default"
+    };
+  }
+  return {
+    enabled: true,
+    activated: true,
+    explicitlyEnabled: explicitSelection.explicitlyEnabled,
+    source: "default"
+  };
+}
+function toEnableStateResult(state) {
+  return state.enabled ? { enabled: true } : { enabled: false, reason: state.reason };
+}
+function resolveEnableStateResult(params, resolveState) {
+  return toEnableStateResult(resolveState(params));
+}
+function createPluginEnableStateResolver(resolveState) {
+  return (id, origin, config, enabledByDefault) => resolveEnableStateResult({ id, origin, config, enabledByDefault }, resolveState);
+}
+function createEffectiveEnableStateResolver(resolveState) {
+  return (params) => resolveEnableStateResult(params, resolveState);
+}
+
+// vendor/openclaw/src/plugins/config-normalization-shared.ts
+init_ids();
+init_string_coerce();
+
+// vendor/openclaw/src/plugins/slots.ts
+var DEFAULT_SLOT_BY_KEY = {
+  memory: "memory-core",
+  contextEngine: "legacy"
+};
+function hasKind(kind, target) {
+  if (!kind) {
     return false;
   }
-  if (left.dev === right.dev) {
-    return true;
-  }
-  return platform === "win32" && (isZero(left.dev) || isZero(right.dev));
+  return Array.isArray(kind) ? kind.includes(target) : kind === target;
+}
+function defaultSlotIdForKey(slotKey) {
+  return DEFAULT_SLOT_BY_KEY[slotKey];
 }
 
-// vendor/openclaw/src/infra/safe-open-sync.ts
-function isExpectedPathError(error) {
-  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
-  return code === "ENOENT" || code === "ENOTDIR" || code === "ELOOP";
-}
-function sameFileIdentity2(left, right) {
-  return sameFileIdentity(left, right);
-}
-function openVerifiedFileSync(params) {
-  const ioFs = params.ioFs ?? fs6;
-  const allowedType = params.allowedType ?? "file";
-  const openReadFlags = ioFs.constants.O_RDONLY | (typeof ioFs.constants.O_NOFOLLOW === "number" ? ioFs.constants.O_NOFOLLOW : 0);
-  let fd = null;
-  try {
-    if (params.rejectPathSymlink) {
-      const candidateStat = ioFs.lstatSync(params.filePath);
-      if (candidateStat.isSymbolicLink()) {
-        return { ok: false, reason: "validation" };
-      }
-    }
-    const realPath = params.resolvedPath ?? ioFs.realpathSync(params.filePath);
-    const preOpenStat = ioFs.lstatSync(realPath);
-    if (!isAllowedType(preOpenStat, allowedType)) {
-      return { ok: false, reason: "validation" };
-    }
-    if (params.rejectHardlinks && preOpenStat.isFile() && preOpenStat.nlink > 1) {
-      return { ok: false, reason: "validation" };
-    }
-    if (params.maxBytes !== void 0 && preOpenStat.isFile() && preOpenStat.size > params.maxBytes) {
-      return { ok: false, reason: "validation" };
-    }
-    fd = ioFs.openSync(realPath, openReadFlags);
-    const openedStat = ioFs.fstatSync(fd);
-    if (!isAllowedType(openedStat, allowedType)) {
-      return { ok: false, reason: "validation" };
-    }
-    if (params.rejectHardlinks && openedStat.isFile() && openedStat.nlink > 1) {
-      return { ok: false, reason: "validation" };
-    }
-    if (params.maxBytes !== void 0 && openedStat.isFile() && openedStat.size > params.maxBytes) {
-      return { ok: false, reason: "validation" };
-    }
-    if (!sameFileIdentity2(preOpenStat, openedStat)) {
-      return { ok: false, reason: "validation" };
-    }
-    const opened = { ok: true, path: realPath, fd, stat: openedStat };
-    fd = null;
-    return opened;
-  } catch (error) {
-    if (isExpectedPathError(error)) {
-      return { ok: false, reason: "path", error };
-    }
-    return { ok: false, reason: "io", error };
-  } finally {
-    if (fd !== null) {
-      ioFs.closeSync(fd);
-    }
-  }
-}
-function isAllowedType(stat, allowedType) {
-  if (allowedType === "directory") {
-    return stat.isDirectory();
-  }
-  return stat.isFile();
-}
-
-// vendor/openclaw/src/infra/boundary-file-read.ts
-function openBoundaryFileSync(params) {
-  const ioFs = params.ioFs ?? fs7;
-  const resolved = resolveBoundaryFilePathGeneric({
-    absolutePath: params.absolutePath,
-    resolve: (absolutePath) => resolveBoundaryPathSync({
-      absolutePath,
-      rootPath: params.rootPath,
-      rootCanonicalPath: params.rootRealPath,
-      boundaryLabel: params.boundaryLabel,
-      skipLexicalRootCheck: params.skipLexicalRootCheck
-    })
-  });
-  if (resolved instanceof Promise) {
-    return toBoundaryValidationError(new Error("Unexpected async boundary resolution"));
-  }
-  return finalizeBoundaryFileOpen({
-    resolved,
-    maxBytes: params.maxBytes,
-    rejectHardlinks: params.rejectHardlinks,
-    allowedType: params.allowedType,
-    ioFs
-  });
-}
-function matchBoundaryFileOpenFailure(failure, handlers) {
-  switch (failure.reason) {
-    case "path":
-      return handlers.path ? handlers.path(failure) : handlers.fallback(failure);
-    case "validation":
-      return handlers.validation ? handlers.validation(failure) : handlers.fallback(failure);
-    case "io":
-      return handlers.io ? handlers.io(failure) : handlers.fallback(failure);
-  }
-  return handlers.fallback(failure);
-}
-function openBoundaryFileResolved(params) {
-  const opened = openVerifiedFileSync({
-    filePath: params.absolutePath,
-    resolvedPath: params.resolvedPath,
-    rejectHardlinks: params.rejectHardlinks ?? true,
-    maxBytes: params.maxBytes,
-    allowedType: params.allowedType,
-    ioFs: params.ioFs
-  });
-  if (!opened.ok) {
-    return opened;
-  }
-  return {
-    ok: true,
-    path: opened.path,
-    fd: opened.fd,
-    stat: opened.stat,
-    rootRealPath: params.rootRealPath
-  };
-}
-function finalizeBoundaryFileOpen(params) {
-  if ("ok" in params.resolved) {
-    return params.resolved;
-  }
-  return openBoundaryFileResolved({
-    absolutePath: params.resolved.absolutePath,
-    resolvedPath: params.resolved.resolvedPath,
-    rootRealPath: params.resolved.rootRealPath,
-    maxBytes: params.maxBytes,
-    rejectHardlinks: params.rejectHardlinks,
-    allowedType: params.allowedType,
-    ioFs: params.ioFs
-  });
-}
-function toBoundaryValidationError(error) {
-  return { ok: false, reason: "validation", error };
-}
-function mapResolvedBoundaryPath(absolutePath, resolved) {
-  return {
-    absolutePath,
-    resolvedPath: resolved.canonicalPath,
-    rootRealPath: resolved.rootCanonicalPath
-  };
-}
-function resolveBoundaryFilePathGeneric(params) {
-  const absolutePath = path11.resolve(params.absolutePath);
-  try {
-    const resolved = params.resolve(absolutePath);
-    if (resolved instanceof Promise) {
-      return resolved.then((value) => mapResolvedBoundaryPath(absolutePath, value)).catch((error) => toBoundaryValidationError(error));
-    }
-    return mapResolvedBoundaryPath(absolutePath, resolved);
-  } catch (error) {
-    return toBoundaryValidationError(error);
-  }
-}
-
-// vendor/openclaw/src/plugins/manifest-command-aliases.ts
-function normalizeManifestCommandAliases(value) {
+// vendor/openclaw/src/plugins/config-normalization-shared.ts
+var identityNormalizePluginId = (id) => id.trim();
+function normalizeList(value, normalizePluginId) {
   if (!Array.isArray(value)) {
-    return void 0;
+    return [];
   }
-  const normalized = [];
-  for (const entry of value) {
-    if (typeof entry === "string") {
-      const name2 = normalizeOptionalString(entry) ?? "";
-      if (name2) {
-        normalized.push({ name: name2 });
-      }
-      continue;
-    }
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const name = normalizeOptionalString(entry.name) ?? "";
-    if (!name) {
-      continue;
-    }
-    const kind = entry.kind === "runtime-slash" ? entry.kind : void 0;
-    const cliCommand = normalizeOptionalString(entry.cliCommand) ?? "";
-    normalized.push({
-      name,
-      ...kind ? { kind } : {},
-      ...cliCommand ? { cliCommand } : {}
-    });
-  }
-  return normalized.length > 0 ? normalized : void 0;
+  return value.map((entry) => typeof entry === "string" ? normalizePluginId(entry) : "").filter(Boolean);
 }
-
-// vendor/openclaw/src/plugins/manifest.ts
-var PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
-var PLUGIN_MANIFEST_FILENAMES = [PLUGIN_MANIFEST_FILENAME];
-function normalizeStringListRecord(value) {
-  if (!isRecord(value)) {
+function normalizeSlotValue(value) {
+  const trimmed = normalizeOptionalString(value);
+  if (!trimmed) {
     return void 0;
+  }
+  if (normalizeOptionalLowercaseString(trimmed) === "none") {
+    return null;
+  }
+  return trimmed;
+}
+function normalizePluginEntries(entries, normalizePluginId) {
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) {
+    return {};
   }
   const normalized = {};
-  for (const [key, rawValues] of Object.entries(value)) {
-    const providerId = normalizeOptionalString(key) ?? "";
-    if (!providerId) {
+  for (const [key, value] of Object.entries(entries)) {
+    const normalizedKey = normalizePluginId(key);
+    if (!normalizedKey) {
       continue;
     }
-    const values = normalizeTrimmedStringList(rawValues);
-    if (values.length === 0) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      normalized[normalizedKey] = {};
       continue;
     }
-    normalized[providerId] = values;
-  }
-  return Object.keys(normalized).length > 0 ? normalized : void 0;
-}
-function normalizeStringRecord(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const normalized = {};
-  for (const [rawKey, rawValue] of Object.entries(value)) {
-    const key = normalizeOptionalString(rawKey) ?? "";
-    const value2 = normalizeOptionalString(rawValue) ?? "";
-    if (!key || !value2) {
-      continue;
-    }
-    normalized[key] = value2;
-  }
-  return Object.keys(normalized).length > 0 ? normalized : void 0;
-}
-function normalizeManifestContracts(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const memoryEmbeddingProviders = normalizeTrimmedStringList(value.memoryEmbeddingProviders);
-  const speechProviders = normalizeTrimmedStringList(value.speechProviders);
-  const realtimeTranscriptionProviders = normalizeTrimmedStringList(
-    value.realtimeTranscriptionProviders
-  );
-  const realtimeVoiceProviders = normalizeTrimmedStringList(value.realtimeVoiceProviders);
-  const mediaUnderstandingProviders = normalizeTrimmedStringList(value.mediaUnderstandingProviders);
-  const imageGenerationProviders = normalizeTrimmedStringList(value.imageGenerationProviders);
-  const videoGenerationProviders = normalizeTrimmedStringList(value.videoGenerationProviders);
-  const musicGenerationProviders = normalizeTrimmedStringList(value.musicGenerationProviders);
-  const webFetchProviders = normalizeTrimmedStringList(value.webFetchProviders);
-  const webSearchProviders = normalizeTrimmedStringList(value.webSearchProviders);
-  const tools = normalizeTrimmedStringList(value.tools);
-  const contracts = {
-    ...memoryEmbeddingProviders.length > 0 ? { memoryEmbeddingProviders } : {},
-    ...speechProviders.length > 0 ? { speechProviders } : {},
-    ...realtimeTranscriptionProviders.length > 0 ? { realtimeTranscriptionProviders } : {},
-    ...realtimeVoiceProviders.length > 0 ? { realtimeVoiceProviders } : {},
-    ...mediaUnderstandingProviders.length > 0 ? { mediaUnderstandingProviders } : {},
-    ...imageGenerationProviders.length > 0 ? { imageGenerationProviders } : {},
-    ...videoGenerationProviders.length > 0 ? { videoGenerationProviders } : {},
-    ...musicGenerationProviders.length > 0 ? { musicGenerationProviders } : {},
-    ...webFetchProviders.length > 0 ? { webFetchProviders } : {},
-    ...webSearchProviders.length > 0 ? { webSearchProviders } : {},
-    ...tools.length > 0 ? { tools } : {}
-  };
-  return Object.keys(contracts).length > 0 ? contracts : void 0;
-}
-function isManifestConfigLiteral(value) {
-  return value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean";
-}
-function normalizeManifestDangerousConfigFlags(value) {
-  if (!Array.isArray(value)) {
-    return void 0;
-  }
-  const normalized = [];
-  for (const entry of value) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const path16 = normalizeOptionalString(entry.path) ?? "";
-    if (!path16 || !isManifestConfigLiteral(entry.equals)) {
-      continue;
-    }
-    normalized.push({ path: path16, equals: entry.equals });
-  }
-  return normalized.length > 0 ? normalized : void 0;
-}
-function normalizeManifestSecretInputPaths(value) {
-  if (!Array.isArray(value)) {
-    return void 0;
-  }
-  const normalized = [];
-  for (const entry of value) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const path16 = normalizeOptionalString(entry.path) ?? "";
-    if (!path16) {
-      continue;
-    }
-    const expected = entry.expected === "string" ? entry.expected : void 0;
-    normalized.push({
-      path: path16,
-      ...expected ? { expected } : {}
-    });
-  }
-  return normalized.length > 0 ? normalized : void 0;
-}
-function normalizeManifestConfigContracts(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const compatibilityMigrationPaths = normalizeTrimmedStringList(value.compatibilityMigrationPaths);
-  const compatibilityRuntimePaths = normalizeTrimmedStringList(value.compatibilityRuntimePaths);
-  const rawSecretInputs = isRecord(value.secretInputs) ? value.secretInputs : void 0;
-  const dangerousFlags = normalizeManifestDangerousConfigFlags(value.dangerousFlags);
-  const secretInputPaths = rawSecretInputs ? normalizeManifestSecretInputPaths(rawSecretInputs.paths) : void 0;
-  const secretInputs = secretInputPaths && secretInputPaths.length > 0 ? {
-    ...rawSecretInputs?.bundledDefaultEnabled === true ? { bundledDefaultEnabled: true } : rawSecretInputs?.bundledDefaultEnabled === false ? { bundledDefaultEnabled: false } : {},
-    paths: secretInputPaths
-  } : void 0;
-  const configContracts = {
-    ...compatibilityMigrationPaths.length > 0 ? { compatibilityMigrationPaths } : {},
-    ...compatibilityRuntimePaths.length > 0 ? { compatibilityRuntimePaths } : {},
-    ...dangerousFlags ? { dangerousFlags } : {},
-    ...secretInputs ? { secretInputs } : {}
-  };
-  return Object.keys(configContracts).length > 0 ? configContracts : void 0;
-}
-function normalizeManifestModelSupport(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const modelPrefixes = normalizeTrimmedStringList(value.modelPrefixes);
-  const modelPatterns = normalizeTrimmedStringList(value.modelPatterns);
-  const modelSupport = {
-    ...modelPrefixes.length > 0 ? { modelPrefixes } : {},
-    ...modelPatterns.length > 0 ? { modelPatterns } : {}
-  };
-  return Object.keys(modelSupport).length > 0 ? modelSupport : void 0;
-}
-function normalizeManifestActivation(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const onProviders = normalizeTrimmedStringList(value.onProviders);
-  const onCommands = normalizeTrimmedStringList(value.onCommands);
-  const onChannels = normalizeTrimmedStringList(value.onChannels);
-  const onRoutes = normalizeTrimmedStringList(value.onRoutes);
-  const onCapabilities = normalizeTrimmedStringList(value.onCapabilities).filter(
-    (capability) => capability === "provider" || capability === "channel" || capability === "tool" || capability === "hook"
-  );
-  const activation = {
-    ...onProviders.length > 0 ? { onProviders } : {},
-    ...onCommands.length > 0 ? { onCommands } : {},
-    ...onChannels.length > 0 ? { onChannels } : {},
-    ...onRoutes.length > 0 ? { onRoutes } : {},
-    ...onCapabilities.length > 0 ? { onCapabilities } : {}
-  };
-  return Object.keys(activation).length > 0 ? activation : void 0;
-}
-function normalizeManifestSetupProviders(value) {
-  if (!Array.isArray(value)) {
-    return void 0;
-  }
-  const normalized = [];
-  for (const entry of value) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const id = normalizeOptionalString(entry.id) ?? "";
-    if (!id) {
-      continue;
-    }
-    const authMethods = normalizeTrimmedStringList(entry.authMethods);
-    const envVars = normalizeTrimmedStringList(entry.envVars);
-    normalized.push({
-      id,
-      ...authMethods.length > 0 ? { authMethods } : {},
-      ...envVars.length > 0 ? { envVars } : {}
-    });
-  }
-  return normalized.length > 0 ? normalized : void 0;
-}
-function normalizeManifestSetup(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const providers = normalizeManifestSetupProviders(value.providers);
-  const cliBackends = normalizeTrimmedStringList(value.cliBackends);
-  const configMigrations = normalizeTrimmedStringList(value.configMigrations);
-  const requiresRuntime = typeof value.requiresRuntime === "boolean" ? value.requiresRuntime : void 0;
-  const setup = {
-    ...providers ? { providers } : {},
-    ...cliBackends.length > 0 ? { cliBackends } : {},
-    ...configMigrations.length > 0 ? { configMigrations } : {},
-    ...requiresRuntime !== void 0 ? { requiresRuntime } : {}
-  };
-  return Object.keys(setup).length > 0 ? setup : void 0;
-}
-function normalizeProviderAuthChoices(value) {
-  if (!Array.isArray(value)) {
-    return void 0;
-  }
-  const normalized = [];
-  for (const entry of value) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const provider = normalizeOptionalString(entry.provider) ?? "";
-    const method = normalizeOptionalString(entry.method) ?? "";
-    const choiceId = normalizeOptionalString(entry.choiceId) ?? "";
-    if (!provider || !method || !choiceId) {
-      continue;
-    }
-    const choiceLabel = normalizeOptionalString(entry.choiceLabel) ?? "";
-    const choiceHint = normalizeOptionalString(entry.choiceHint) ?? "";
-    const assistantPriority = typeof entry.assistantPriority === "number" && Number.isFinite(entry.assistantPriority) ? entry.assistantPriority : void 0;
-    const assistantVisibility = entry.assistantVisibility === "manual-only" || entry.assistantVisibility === "visible" ? entry.assistantVisibility : void 0;
-    const deprecatedChoiceIds = normalizeTrimmedStringList(entry.deprecatedChoiceIds);
-    const groupId = normalizeOptionalString(entry.groupId) ?? "";
-    const groupLabel = normalizeOptionalString(entry.groupLabel) ?? "";
-    const groupHint = normalizeOptionalString(entry.groupHint) ?? "";
-    const optionKey = normalizeOptionalString(entry.optionKey) ?? "";
-    const cliFlag = normalizeOptionalString(entry.cliFlag) ?? "";
-    const cliOption = normalizeOptionalString(entry.cliOption) ?? "";
-    const cliDescription = normalizeOptionalString(entry.cliDescription) ?? "";
-    const onboardingScopes = normalizeTrimmedStringList(entry.onboardingScopes).filter(
-      (scope) => scope === "text-inference" || scope === "image-generation"
-    );
-    normalized.push({
-      provider,
-      method,
-      choiceId,
-      ...choiceLabel ? { choiceLabel } : {},
-      ...choiceHint ? { choiceHint } : {},
-      ...assistantPriority !== void 0 ? { assistantPriority } : {},
-      ...assistantVisibility ? { assistantVisibility } : {},
-      ...deprecatedChoiceIds.length > 0 ? { deprecatedChoiceIds } : {},
-      ...groupId ? { groupId } : {},
-      ...groupLabel ? { groupLabel } : {},
-      ...groupHint ? { groupHint } : {},
-      ...optionKey ? { optionKey } : {},
-      ...cliFlag ? { cliFlag } : {},
-      ...cliOption ? { cliOption } : {},
-      ...cliDescription ? { cliDescription } : {},
-      ...onboardingScopes.length > 0 ? { onboardingScopes } : {}
-    });
-  }
-  return normalized.length > 0 ? normalized : void 0;
-}
-function normalizeChannelConfigs(value) {
-  if (!isRecord(value)) {
-    return void 0;
-  }
-  const normalized = {};
-  for (const [key, rawEntry] of Object.entries(value)) {
-    const channelId = normalizeOptionalString(key) ?? "";
-    if (!channelId || !isRecord(rawEntry)) {
-      continue;
-    }
-    const schema = isRecord(rawEntry.schema) ? rawEntry.schema : null;
-    if (!schema) {
-      continue;
-    }
-    const uiHints = isRecord(rawEntry.uiHints) ? rawEntry.uiHints : void 0;
-    const runtime = isRecord(rawEntry.runtime) && typeof rawEntry.runtime.safeParse === "function" ? rawEntry.runtime : void 0;
-    const label = normalizeOptionalString(rawEntry.label) ?? "";
-    const description = normalizeOptionalString(rawEntry.description) ?? "";
-    const preferOver = normalizeTrimmedStringList(rawEntry.preferOver);
-    normalized[channelId] = {
-      schema,
-      ...uiHints ? { uiHints } : {},
-      ...runtime ? { runtime } : {},
-      ...label ? { label } : {},
-      ...description ? { description } : {},
-      ...preferOver.length > 0 ? { preferOver } : {}
+    const entry = value;
+    const hooksRaw = entry.hooks;
+    const hooks = hooksRaw && typeof hooksRaw === "object" && !Array.isArray(hooksRaw) ? {
+      allowPromptInjection: hooksRaw.allowPromptInjection,
+      allowConversationAccess: hooksRaw.allowConversationAccess
+    } : void 0;
+    const normalizedHooks = hooks && (typeof hooks.allowPromptInjection === "boolean" || typeof hooks.allowConversationAccess === "boolean") ? {
+      ...typeof hooks.allowPromptInjection === "boolean" ? { allowPromptInjection: hooks.allowPromptInjection } : {},
+      ...typeof hooks.allowConversationAccess === "boolean" ? { allowConversationAccess: hooks.allowConversationAccess } : {}
+    } : void 0;
+    const subagentRaw = entry.subagent;
+    const subagent = subagentRaw && typeof subagentRaw === "object" && !Array.isArray(subagentRaw) ? {
+      allowModelOverride: subagentRaw.allowModelOverride,
+      hasAllowedModelsConfig: Array.isArray(
+        subagentRaw.allowedModels
+      ),
+      allowedModels: Array.isArray(subagentRaw.allowedModels) ? subagentRaw.allowedModels.map((model) => normalizeOptionalString(model)).filter((model) => Boolean(model)) : void 0
+    } : void 0;
+    const normalizedSubagent = subagent && (typeof subagent.allowModelOverride === "boolean" || subagent.hasAllowedModelsConfig || Array.isArray(subagent.allowedModels) && subagent.allowedModels.length > 0) ? {
+      ...typeof subagent.allowModelOverride === "boolean" ? { allowModelOverride: subagent.allowModelOverride } : {},
+      ...subagent.hasAllowedModelsConfig ? { hasAllowedModelsConfig: true } : {},
+      ...Array.isArray(subagent.allowedModels) && subagent.allowedModels.length > 0 ? { allowedModels: subagent.allowedModels } : {}
+    } : void 0;
+    normalized[normalizedKey] = {
+      ...normalized[normalizedKey],
+      enabled: typeof entry.enabled === "boolean" ? entry.enabled : normalized[normalizedKey]?.enabled,
+      hooks: normalizedHooks ?? normalized[normalizedKey]?.hooks,
+      subagent: normalizedSubagent ?? normalized[normalizedKey]?.subagent,
+      config: "config" in entry ? entry.config : normalized[normalizedKey]?.config
     };
   }
-  return Object.keys(normalized).length > 0 ? normalized : void 0;
+  return normalized;
 }
-function resolvePluginManifestPath(rootDir) {
-  for (const filename of PLUGIN_MANIFEST_FILENAMES) {
-    const candidate = path12.join(rootDir, filename);
-    if (fs8.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return path12.join(rootDir, PLUGIN_MANIFEST_FILENAME);
-}
-function parsePluginKind(raw) {
-  if (typeof raw === "string") {
-    return raw;
-  }
-  if (Array.isArray(raw) && raw.length > 0 && raw.every((k) => typeof k === "string")) {
-    return raw.length === 1 ? raw[0] : raw;
-  }
-  return void 0;
-}
-function loadPluginManifest(rootDir, rejectHardlinks = true) {
-  const manifestPath = resolvePluginManifestPath(rootDir);
-  const opened = openBoundaryFileSync({
-    absolutePath: manifestPath,
-    rootPath: rootDir,
-    boundaryLabel: "plugin root",
-    rejectHardlinks
-  });
-  if (!opened.ok) {
-    return matchBoundaryFileOpenFailure(opened, {
-      path: () => ({
-        ok: false,
-        error: `plugin manifest not found: ${manifestPath}`,
-        manifestPath
-      }),
-      fallback: (failure) => ({
-        ok: false,
-        error: `unsafe plugin manifest path: ${manifestPath} (${failure.reason})`,
-        manifestPath
-      })
-    });
-  }
-  let raw;
-  try {
-    raw = import_json5.default.parse(fs8.readFileSync(opened.fd, "utf-8"));
-  } catch (err) {
-    return {
-      ok: false,
-      error: `failed to parse plugin manifest: ${String(err)}`,
-      manifestPath
-    };
-  } finally {
-    fs8.closeSync(opened.fd);
-  }
-  if (!isRecord(raw)) {
-    return { ok: false, error: "plugin manifest must be an object", manifestPath };
-  }
-  const id = normalizeOptionalString(raw.id) ?? "";
-  if (!id) {
-    return { ok: false, error: "plugin manifest requires id", manifestPath };
-  }
-  const configSchema = isRecord(raw.configSchema) ? raw.configSchema : null;
-  if (!configSchema) {
-    return { ok: false, error: "plugin manifest requires configSchema", manifestPath };
-  }
-  const kind = parsePluginKind(raw.kind);
-  const enabledByDefault = raw.enabledByDefault === true;
-  const legacyPluginIds = normalizeTrimmedStringList(raw.legacyPluginIds);
-  const autoEnableWhenConfiguredProviders = normalizeTrimmedStringList(
-    raw.autoEnableWhenConfiguredProviders
-  );
-  const name = normalizeOptionalString(raw.name);
-  const description = normalizeOptionalString(raw.description);
-  const version = normalizeOptionalString(raw.version);
-  const channels = normalizeTrimmedStringList(raw.channels);
-  const providers = normalizeTrimmedStringList(raw.providers);
-  const providerDiscoveryEntry = normalizeOptionalString(raw.providerDiscoveryEntry);
-  const modelSupport = normalizeManifestModelSupport(raw.modelSupport);
-  const cliBackends = normalizeTrimmedStringList(raw.cliBackends);
-  const commandAliases = normalizeManifestCommandAliases(raw.commandAliases);
-  const providerAuthEnvVars = normalizeStringListRecord(raw.providerAuthEnvVars);
-  const providerAuthAliases = normalizeStringRecord(raw.providerAuthAliases);
-  const channelEnvVars = normalizeStringListRecord(raw.channelEnvVars);
-  const providerAuthChoices = normalizeProviderAuthChoices(raw.providerAuthChoices);
-  const activation = normalizeManifestActivation(raw.activation);
-  const setup = normalizeManifestSetup(raw.setup);
-  const skills = normalizeTrimmedStringList(raw.skills);
-  const contracts = normalizeManifestContracts(raw.contracts);
-  const configContracts = normalizeManifestConfigContracts(raw.configContracts);
-  const channelConfigs = normalizeChannelConfigs(raw.channelConfigs);
-  let uiHints;
-  if (isRecord(raw.uiHints)) {
-    uiHints = raw.uiHints;
-  }
+function normalizePluginsConfigWithResolver(config, normalizePluginId = identityNormalizePluginId) {
+  const memorySlot = normalizeSlotValue(config?.slots?.memory);
   return {
-    ok: true,
-    manifest: {
-      id,
-      configSchema,
-      ...enabledByDefault ? { enabledByDefault } : {},
-      ...legacyPluginIds.length > 0 ? { legacyPluginIds } : {},
-      ...autoEnableWhenConfiguredProviders.length > 0 ? { autoEnableWhenConfiguredProviders } : {},
-      kind,
-      channels,
-      providers,
-      providerDiscoveryEntry,
-      modelSupport,
-      cliBackends,
-      commandAliases,
-      providerAuthEnvVars,
-      providerAuthAliases,
-      channelEnvVars,
-      providerAuthChoices,
-      activation,
-      setup,
-      skills,
-      name,
-      description,
-      version,
-      uiHints,
-      contracts,
-      configContracts,
-      channelConfigs
+    enabled: config?.enabled !== false,
+    allow: normalizeList(config?.allow, normalizePluginId),
+    deny: normalizeList(config?.deny, normalizePluginId),
+    loadPaths: normalizeList(config?.load?.paths, identityNormalizePluginId),
+    slots: {
+      memory: memorySlot === void 0 ? defaultSlotIdForKey("memory") : memorySlot,
+      contextEngine: normalizeSlotValue(config?.slots?.contextEngine)
     },
-    manifestPath
+    entries: normalizePluginEntries(config?.entries, normalizePluginId)
   };
 }
-function getPackageManifestMetadata(manifest) {
-  if (!manifest) {
-    return void 0;
+function isBundledChannelEnabledByChannelConfig(cfg, pluginId) {
+  if (!cfg) {
+    return false;
   }
-  return manifest[MANIFEST_KEY];
+  const channelId = normalizeChatChannelId(pluginId);
+  if (!channelId) {
+    return false;
+  }
+  const channels = cfg.channels;
+  const entry = channels?.[channelId];
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    return false;
+  }
+  return entry.enabled === true;
 }
 
-// vendor/openclaw/src/plugins/bundled-plugin-metadata.ts
-var OPENCLAW_PACKAGE_ROOT = resolveLoaderPackageRoot({
-  modulePath: fileURLToPath3(import.meta.url),
-  moduleUrl: import.meta.url
-}) ?? fileURLToPath3(new URL("../..", import.meta.url));
-var CURRENT_MODULE_PATH = fileURLToPath3(import.meta.url);
-var RUNNING_FROM_BUILT_ARTIFACT = CURRENT_MODULE_PATH.includes(`${path13.sep}dist${path13.sep}`) || CURRENT_MODULE_PATH.includes(`${path13.sep}dist-runtime${path13.sep}`);
-var bundledPluginMetadataCache = /* @__PURE__ */ new Map();
-function readPackageManifest(pluginDir) {
-  const packagePath = path13.join(pluginDir, "package.json");
-  if (!fs9.existsSync(packagePath)) {
+// vendor/openclaw/src/plugins/config-state.ts
+var BUILT_IN_PLUGIN_ALIAS_FALLBACKS = [
+  ["openai-codex", "openai"],
+  ["google-gemini-cli", "google"],
+  ["minimax-portal", "minimax"],
+  ["minimax-portal-auth", "minimax"]
+];
+var BUILT_IN_PLUGIN_ALIAS_LOOKUP = new Map([
+  ...BUILT_IN_PLUGIN_ALIAS_FALLBACKS,
+  ...BUILT_IN_PLUGIN_ALIAS_FALLBACKS.map(([, pluginId]) => [pluginId, pluginId])
+]);
+function getBundledPluginAliasLookup() {
+  const lookup = /* @__PURE__ */ new Map();
+  for (const [alias, pluginId] of BUILT_IN_PLUGIN_ALIAS_FALLBACKS) {
+    lookup.set(alias, pluginId);
+  }
+  return lookup;
+}
+function normalizePluginIdWithLookup(id, getAliasLookup) {
+  const trimmed = normalizeOptionalString(id) ?? "";
+  const normalized = normalizeOptionalLowercaseString(trimmed) ?? "";
+  const builtInAlias = BUILT_IN_PLUGIN_ALIAS_LOOKUP.get(normalized);
+  if (builtInAlias) {
+    return builtInAlias;
+  }
+  return getAliasLookup().get(normalized) ?? trimmed;
+}
+function createScopedPluginIdNormalizer() {
+  let lookup;
+  return (id) => normalizePluginIdWithLookup(id, () => {
+    lookup ??= getBundledPluginAliasLookup();
+    return lookup;
+  });
+}
+var normalizePluginsConfig = (config) => {
+  return normalizePluginsConfigWithResolver(config, createScopedPluginIdNormalizer());
+};
+function createPluginActivationSource(params) {
+  return {
+    plugins: params.plugins ?? normalizePluginsConfig(params.config?.plugins),
+    rootConfig: params.config
+  };
+}
+function resolvePluginActivationState(params) {
+  return toPluginActivationState(
+    resolvePluginActivationDecisionShared({
+      ...params,
+      activationSource: params.activationSource ?? createPluginActivationSource({
+        config: params.rootConfig,
+        plugins: params.config
+      }),
+      allowBundledChannelExplicitBypassesAllowlist: true,
+      isBundledChannelEnabledByChannelConfig: isBundledChannelEnabledByChannelConfig2
+    })
+  );
+}
+var resolveEnableState = createPluginEnableStateResolver(resolvePluginActivationState);
+var isBundledChannelEnabledByChannelConfig2 = isBundledChannelEnabledByChannelConfig;
+var resolveEffectiveEnableState = createEffectiveEnableStateResolver(
+  resolveEffectivePluginActivationState
+);
+function resolveEffectivePluginActivationState(params) {
+  return resolvePluginActivationState(params);
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-hash.ts
+import crypto from "node:crypto";
+import fs15 from "node:fs";
+function hashString(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+function hashJson(value) {
+  return hashString(JSON.stringify(value));
+}
+function safeHashFile(params) {
+  try {
+    return crypto.createHash("sha256").update(fs15.readFileSync(params.filePath)).digest("hex");
+  } catch (err) {
+    if (params.required) {
+      params.diagnostics.push({
+        level: "warn",
+        ...params.pluginId ? { pluginId: params.pluginId } : {},
+        source: params.filePath,
+        message: `installed plugin index could not hash ${params.filePath}: ${err instanceof Error ? err.message : String(err)}`
+      });
+    }
     return void 0;
   }
+}
+function safeFileSignature(filePath) {
   try {
-    return JSON.parse(fs9.readFileSync(packagePath, "utf-8"));
+    const stat = fs15.statSync(filePath);
+    if (!stat.isFile()) {
+      return void 0;
+    }
+    return {
+      size: stat.size,
+      mtimeMs: stat.mtimeMs,
+      ctimeMs: stat.ctimeMs
+    };
   } catch {
     return void 0;
   }
 }
-function collectBundledPluginMetadataForPackageRoot(packageRoot, includeChannelConfigs, includeSyntheticChannelConfigs) {
-  const scanDir = resolveBundledPluginScanDir({
-    packageRoot,
-    runningFromBuiltArtifact: RUNNING_FROM_BUILT_ARTIFACT
+function fileSignatureMatches(filePath, signature) {
+  if (!signature) {
+    return void 0;
+  }
+  if (typeof signature.ctimeMs !== "number") {
+    return void 0;
+  }
+  const current = safeFileSignature(filePath);
+  if (!current) {
+    return false;
+  }
+  return current.size === signature.size && current.mtimeMs === signature.mtimeMs && current.ctimeMs === signature.ctimeMs;
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-policy.ts
+function resolveCompatRegistryVersion() {
+  return hashJson(
+    listPluginCompatRecords().map((record) => ({
+      code: record.code,
+      status: record.status,
+      deprecated: record.deprecated,
+      warningStarts: record.warningStarts,
+      removeAfter: record.removeAfter,
+      replacement: record.replacement
+    }))
+  );
+}
+function resolveInstalledPluginIndexPolicyHash(config) {
+  const normalized = normalizePluginsConfig(config?.plugins);
+  const channelPolicy = {};
+  const channels = config?.channels;
+  if (channels && typeof channels === "object" && !Array.isArray(channels)) {
+    for (const [channelId, value] of Object.entries(channels)) {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const enabled = value.enabled;
+        if (typeof enabled === "boolean") {
+          channelPolicy[channelId] = enabled;
+        }
+      }
+    }
+  }
+  return hashJson({
+    plugins: {
+      enabled: normalized.enabled,
+      allow: normalized.allow,
+      deny: normalized.deny,
+      slots: normalized.slots,
+      entries: Object.fromEntries(
+        Object.entries(normalized.entries).flatMap(
+          ([pluginId, entry]) => typeof entry.enabled === "boolean" ? [[pluginId, entry.enabled]] : []
+        ).toSorted(([left], [right]) => left.localeCompare(right))
+      )
+    },
+    channels: Object.fromEntries(
+      Object.entries(channelPolicy).toSorted(([left], [right]) => left.localeCompare(right))
+    )
   });
-  if (!scanDir || !fs9.existsSync(scanDir)) {
+}
+
+// vendor/openclaw/src/plugins/manifest-registry-installed.ts
+import fs20 from "node:fs";
+import path27 from "node:path";
+
+// vendor/openclaw/src/version.ts
+init_string_coerce();
+import { createRequire as createRequire4 } from "node:module";
+var CORE_PACKAGE_NAME = "openclaw";
+var PACKAGE_JSON_CANDIDATES = [
+  "../package.json",
+  "../../package.json",
+  "../../../package.json",
+  "./package.json"
+];
+var BUILD_INFO_CANDIDATES = [
+  "../build-info.json",
+  "../../build-info.json",
+  "./build-info.json"
+];
+function readVersionFromJsonCandidates(moduleUrl, candidates, opts = {}) {
+  try {
+    const require3 = createRequire4(moduleUrl);
+    for (const candidate of candidates) {
+      try {
+        const parsed = require3(candidate);
+        const version = normalizeOptionalString(parsed.version);
+        if (!version) {
+          continue;
+        }
+        if (opts.requirePackageName && parsed.name !== CORE_PACKAGE_NAME) {
+          continue;
+        }
+        return version;
+      } catch {
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const trimmed = normalizeOptionalString(value);
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return void 0;
+}
+function readVersionFromPackageJsonForModuleUrl(moduleUrl) {
+  return readVersionFromJsonCandidates(moduleUrl, PACKAGE_JSON_CANDIDATES, {
+    requirePackageName: true
+  });
+}
+function readVersionFromBuildInfoForModuleUrl(moduleUrl) {
+  return readVersionFromJsonCandidates(moduleUrl, BUILD_INFO_CANDIDATES);
+}
+function resolveVersionFromModuleUrl(moduleUrl) {
+  return readVersionFromPackageJsonForModuleUrl(moduleUrl) || readVersionFromBuildInfoForModuleUrl(moduleUrl);
+}
+function resolveBinaryVersion(params) {
+  return firstNonEmpty(params.injectedVersion) || resolveVersionFromModuleUrl(params.moduleUrl) || firstNonEmpty(params.bundledVersion) || params.fallback || "0.0.0";
+}
+var RUNTIME_SERVICE_VERSION_FALLBACK = "unknown";
+function resolveUsableRuntimeVersion(version) {
+  const trimmed = normalizeOptionalString(version);
+  if (!trimmed || trimmed === "0.0.0") {
+    return void 0;
+  }
+  return trimmed;
+}
+function resolveVersionFromRuntimeSources(params) {
+  const preferredCandidates = params.preference === "env-first" ? [params.env["OPENCLAW_VERSION"], params.runtimeVersion] : [params.runtimeVersion, params.env["OPENCLAW_VERSION"]];
+  return firstNonEmpty(
+    ...preferredCandidates,
+    params.env["OPENCLAW_SERVICE_VERSION"],
+    params.env["npm_package_version"]
+  ) ?? params.fallback;
+}
+function resolveCompatibilityHostVersion(env = process.env, fallback = RUNTIME_SERVICE_VERSION_FALLBACK) {
+  const explicitCompatibilityVersion = firstNonEmpty(env.OPENCLAW_COMPATIBILITY_HOST_VERSION);
+  if (explicitCompatibilityVersion) {
+    return explicitCompatibilityVersion;
+  }
+  return resolveVersionFromRuntimeSources({
+    env,
+    runtimeVersion: resolveUsableRuntimeVersion(VERSION),
+    fallback,
+    preference: env === process.env ? "runtime-first" : "env-first"
+  });
+}
+var VERSION = resolveBinaryVersion({
+  moduleUrl: import.meta.url,
+  injectedVersion: typeof __OPENCLAW_VERSION__ === "string" ? __OPENCLAW_VERSION__ : void 0,
+  bundledVersion: process.env.OPENCLAW_BUNDLED_VERSION
+});
+
+// vendor/openclaw/src/plugins/installed-plugin-index-install-records.ts
+function setInstallStringField(target, key, value) {
+  if (typeof value !== "string") {
+    return;
+  }
+  const normalized = value.trim();
+  if (normalized) {
+    target[key] = normalized;
+  }
+}
+function setInstallNumberField(target, key, value) {
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+    target[key] = value;
+  }
+}
+function normalizeInstallRecord(record) {
+  if (!record) {
+    return void 0;
+  }
+  const normalized = {
+    source: record.source
+  };
+  setInstallStringField(normalized, "spec", record.spec);
+  setInstallStringField(normalized, "sourcePath", record.sourcePath);
+  setInstallStringField(normalized, "installPath", record.installPath);
+  setInstallStringField(normalized, "version", record.version);
+  setInstallStringField(normalized, "resolvedName", record.resolvedName);
+  setInstallStringField(normalized, "resolvedVersion", record.resolvedVersion);
+  setInstallStringField(normalized, "resolvedSpec", record.resolvedSpec);
+  setInstallStringField(normalized, "integrity", record.integrity);
+  setInstallStringField(normalized, "shasum", record.shasum);
+  setInstallStringField(normalized, "resolvedAt", record.resolvedAt);
+  setInstallStringField(normalized, "installedAt", record.installedAt);
+  setInstallStringField(normalized, "clawhubUrl", record.clawhubUrl);
+  setInstallStringField(normalized, "clawhubPackage", record.clawhubPackage);
+  setInstallStringField(normalized, "clawhubFamily", record.clawhubFamily);
+  setInstallStringField(normalized, "clawhubChannel", record.clawhubChannel);
+  setInstallStringField(normalized, "artifactKind", record.artifactKind);
+  setInstallStringField(normalized, "artifactFormat", record.artifactFormat);
+  setInstallStringField(normalized, "npmIntegrity", record.npmIntegrity);
+  setInstallStringField(normalized, "npmShasum", record.npmShasum);
+  setInstallStringField(normalized, "npmTarballName", record.npmTarballName);
+  setInstallStringField(normalized, "clawpackSha256", record.clawpackSha256);
+  setInstallNumberField(normalized, "clawpackSpecVersion", record.clawpackSpecVersion);
+  setInstallStringField(normalized, "clawpackManifestSha256", record.clawpackManifestSha256);
+  setInstallNumberField(normalized, "clawpackSize", record.clawpackSize);
+  setInstallStringField(normalized, "gitUrl", record.gitUrl);
+  setInstallStringField(normalized, "gitRef", record.gitRef);
+  setInstallStringField(normalized, "gitCommit", record.gitCommit);
+  setInstallStringField(normalized, "marketplaceName", record.marketplaceName);
+  setInstallStringField(normalized, "marketplaceSource", record.marketplaceSource);
+  setInstallStringField(normalized, "marketplacePlugin", record.marketplacePlugin);
+  return normalized;
+}
+function restoreInstallRecord(record) {
+  if (!record?.source) {
+    return void 0;
+  }
+  return structuredClone(record);
+}
+function normalizeInstallRecordMap(records) {
+  const normalized = {};
+  for (const [pluginId, record] of Object.entries(records ?? {}).toSorted(
+    ([left], [right]) => left.localeCompare(right)
+  )) {
+    const installRecord = normalizeInstallRecord(record);
+    if (installRecord) {
+      normalized[pluginId] = installRecord;
+    }
+  }
+  return normalized;
+}
+function restoreInstallRecordMap(records) {
+  const restored = {};
+  for (const [pluginId, record] of Object.entries(records ?? {}).toSorted(
+    ([left], [right]) => left.localeCompare(right)
+  )) {
+    const installRecord = restoreInstallRecord(record);
+    if (installRecord) {
+      restored[pluginId] = installRecord;
+    }
+  }
+  return restored;
+}
+function extractPluginInstallRecordsFromInstalledPluginIndex(index) {
+  if (index && Object.prototype.hasOwnProperty.call(index, "installRecords")) {
+    return restoreInstallRecordMap(index.installRecords);
+  }
+  const records = {};
+  for (const plugin of index?.plugins ?? []) {
+    const record = restoreInstallRecord(plugin.installRecord);
+    if (record) {
+      records[plugin.pluginId] = record;
+    }
+  }
+  return records;
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-record-builder.ts
+import fs17 from "node:fs";
+import path23 from "node:path";
+
+// vendor/openclaw/src/plugins/install-source-info.ts
+init_clawhub_spec();
+init_npm_registry_spec();
+init_string_coerce();
+function resolveNpmPinState(params) {
+  if (params.exactVersion) {
+    return params.hasIntegrity ? "exact-with-integrity" : "exact-without-integrity";
+  }
+  return params.hasIntegrity ? "floating-with-integrity" : "floating-without-integrity";
+}
+function resolveDefaultChoice(value) {
+  return value === "clawhub" || value === "npm" || value === "local" ? value : void 0;
+}
+function normalizeExpectedPackageName(value) {
+  const expected = normalizeOptionalString(value);
+  if (!expected) {
+    return void 0;
+  }
+  return parseRegistryNpmSpec(expected)?.name ?? expected;
+}
+function describePluginInstallSource(install, options) {
+  const clawhubSpec = normalizeOptionalString(install.clawhubSpec);
+  const npmSpec = normalizeOptionalString(install.npmSpec);
+  const localPath = normalizeOptionalString(install.localPath);
+  const defaultChoice = resolveDefaultChoice(install.defaultChoice);
+  const expectedIntegrity = normalizeOptionalString(install.expectedIntegrity);
+  const expectedPackageName = normalizeExpectedPackageName(options?.expectedPackageName);
+  const warnings = [];
+  let clawhub;
+  let npm;
+  if (install.defaultChoice !== void 0 && !defaultChoice) {
+    warnings.push("invalid-default-choice");
+  }
+  if (clawhubSpec) {
+    const parsed = parseClawHubPluginSpec(clawhubSpec);
+    if (parsed) {
+      if (!parsed.version) {
+        warnings.push("clawhub-spec-floating");
+      }
+      clawhub = {
+        spec: clawhubSpec,
+        packageName: parsed.name,
+        ...parsed.version ? { version: parsed.version } : {},
+        exactVersion: Boolean(parsed.version)
+      };
+    } else {
+      warnings.push("invalid-clawhub-spec");
+    }
+  }
+  if (npmSpec) {
+    const parsed = parseRegistryNpmSpec(npmSpec);
+    if (parsed) {
+      const exactVersion = parsed.selectorKind === "exact-version";
+      const hasIntegrity = Boolean(expectedIntegrity);
+      if (!exactVersion) {
+        warnings.push("npm-spec-floating");
+      }
+      if (!hasIntegrity) {
+        warnings.push("npm-spec-missing-integrity");
+      }
+      if (expectedPackageName && parsed.name !== expectedPackageName) {
+        warnings.push("npm-spec-package-name-mismatch");
+      }
+      npm = {
+        spec: parsed.raw,
+        packageName: parsed.name,
+        ...expectedPackageName && parsed.name !== expectedPackageName ? { expectedPackageName } : {},
+        selectorKind: parsed.selectorKind,
+        exactVersion,
+        pinState: resolveNpmPinState({ exactVersion, hasIntegrity }),
+        ...parsed.selector ? { selector: parsed.selector } : {},
+        ...expectedIntegrity ? { expectedIntegrity } : {}
+      };
+    } else {
+      warnings.push("invalid-npm-spec");
+    }
+  }
+  if (defaultChoice === "clawhub" && !clawhub) {
+    warnings.push("default-choice-missing-source");
+  }
+  if (defaultChoice === "npm" && !npm) {
+    warnings.push("default-choice-missing-source");
+  }
+  if (defaultChoice === "local" && !localPath) {
+    warnings.push("default-choice-missing-source");
+  }
+  if (expectedIntegrity && !npm) {
+    warnings.push("npm-integrity-without-source");
+  }
+  return {
+    ...defaultChoice ? { defaultChoice } : {},
+    ...clawhub ? { clawhub } : {},
+    ...npm ? { npm } : {},
+    ...localPath ? { local: { path: localPath } } : {},
+    warnings
+  };
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-manifest.ts
+import fs16 from "node:fs";
+function hasOptionalMissingPluginManifestFile(record) {
+  return record.format === "bundle" && record.bundleFormat === "claude" && !fs16.existsSync(record.manifestPath);
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-record-builder.ts
+init_path_safety();
+function sortUnique(values) {
+  if (!values || values.length === 0) {
     return [];
   }
-  const entries = [];
-  for (const dirName of fs9.readdirSync(scanDir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).toSorted((left, right) => left.localeCompare(right))) {
-    const pluginDir = path13.join(scanDir, dirName);
-    const manifestResult = loadPluginManifest(pluginDir, false);
-    if (!manifestResult.ok) {
-      continue;
-    }
-    const packageJson = readPackageManifest(pluginDir);
-    const packageManifest = getPackageManifestMetadata(packageJson);
-    const extensions = normalizeBundledPluginStringList(packageManifest?.extensions);
-    if (extensions.length === 0) {
-      continue;
-    }
-    const sourceEntry = normalizeOptionalString(extensions[0]);
-    const builtEntry = rewriteBundledPluginEntryToBuiltPath(sourceEntry);
-    if (!sourceEntry || !builtEntry) {
-      continue;
-    }
-    const setupSourcePath = normalizeOptionalString(packageManifest?.setupEntry);
-    const setupSource = setupSourcePath && rewriteBundledPluginEntryToBuiltPath(setupSourcePath) ? {
-      source: setupSourcePath,
-      built: rewriteBundledPluginEntryToBuiltPath(setupSourcePath)
-    } : void 0;
-    const publicSurfaceArtifacts = collectBundledPluginPublicSurfaceArtifacts({
-      pluginDir,
-      sourceEntry,
-      ...setupSourcePath ? { setupEntry: setupSourcePath } : {}
-    });
-    const runtimeSidecarArtifacts = collectBundledPluginRuntimeSidecarArtifacts(publicSurfaceArtifacts);
-    const channelConfigs = includeChannelConfigs && includeSyntheticChannelConfigs ? collectBundledChannelConfigs({
-      pluginDir,
-      manifest: manifestResult.manifest,
-      packageManifest
-    }) : manifestResult.manifest.channelConfigs;
-    entries.push({
-      dirName,
-      idHint: deriveBundledPluginIdHint({
-        entryPath: sourceEntry,
-        manifestId: manifestResult.manifest.id,
-        packageName: normalizeOptionalString(packageJson?.name),
-        hasMultipleExtensions: extensions.length > 1
-      }),
-      source: {
-        source: sourceEntry,
-        built: builtEntry
-      },
-      ...setupSource ? { setupSource } : {},
-      ...publicSurfaceArtifacts ? { publicSurfaceArtifacts } : {},
-      ...runtimeSidecarArtifacts ? { runtimeSidecarArtifacts } : {},
-      ...normalizeOptionalString(packageJson?.name) ? { packageName: normalizeOptionalString(packageJson?.name) } : {},
-      ...normalizeOptionalString(packageJson?.version) ? { packageVersion: normalizeOptionalString(packageJson?.version) } : {},
-      ...normalizeOptionalString(packageJson?.description) ? { packageDescription: normalizeOptionalString(packageJson?.description) } : {},
-      ...packageManifest ? { packageManifest } : {},
-      manifest: {
-        ...manifestResult.manifest,
-        ...channelConfigs ? { channelConfigs } : {}
-      }
-    });
-  }
-  return entries;
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).toSorted(
+    (left, right) => left.localeCompare(right)
+  );
 }
-function listBundledPluginMetadata(params) {
-  const rootDir = path13.resolve(params?.rootDir ?? OPENCLAW_PACKAGE_ROOT);
-  const includeChannelConfigs = params?.includeChannelConfigs ?? !RUNNING_FROM_BUILT_ARTIFACT;
-  const includeSyntheticChannelConfigs = params?.includeSyntheticChannelConfigs ?? includeChannelConfigs;
-  const cacheKey = JSON.stringify({
-    rootDir,
-    includeChannelConfigs,
-    includeSyntheticChannelConfigs
-  });
-  const cached = bundledPluginMetadataCache.get(cacheKey);
-  if (cached) {
-    return cached;
+function buildStartupInfo(record) {
+  return {
+    sidecar: record.activation?.onStartup === true,
+    memory: hasKind(record.kind, "memory"),
+    deferConfiguredChannelFullLoadUntilAfterListen: record.startupDeferConfiguredChannelFullLoadUntilAfterListen === true,
+    agentHarnesses: sortUnique([
+      ...record.activation?.onAgentHarnesses ?? [],
+      ...record.cliBackends ?? []
+    ])
+  };
+}
+function collectPluginManifestCompatCodes(record) {
+  const codes = [];
+  if (record.providerAuthEnvVars && Object.keys(record.providerAuthEnvVars).length > 0) {
+    codes.push("provider-auth-env-vars");
   }
-  const entries = Object.freeze(
-    collectBundledPluginMetadataForPackageRoot(
-      rootDir,
-      includeChannelConfigs,
-      includeSyntheticChannelConfigs
+  if (record.channelEnvVars && Object.keys(record.channelEnvVars).length > 0) {
+    codes.push("channel-env-vars");
+  }
+  if (record.activation?.onProviders?.length) {
+    codes.push("activation-provider-hint");
+  }
+  if (record.activation?.onAgentHarnesses?.length) {
+    codes.push("activation-agent-harness-hint");
+  }
+  if (record.activation?.onChannels?.length) {
+    codes.push("activation-channel-hint");
+  }
+  if (record.activation?.onCommands?.length) {
+    codes.push("activation-command-hint");
+  }
+  if (record.activation?.onRoutes?.length) {
+    codes.push("activation-route-hint");
+  }
+  if (record.activation?.onConfigPaths?.length) {
+    codes.push("activation-config-path-hint");
+  }
+  if (record.activation?.onCapabilities?.length) {
+    codes.push("activation-capability-hint");
+  }
+  return sortUnique(codes);
+}
+function resolvePackageJsonPath(candidate) {
+  if (!candidate?.packageDir) {
+    return void 0;
+  }
+  const packageDir = safeRealpathSync2(candidate.packageDir) ?? path23.resolve(candidate.packageDir);
+  const packageJsonPath = path23.join(packageDir, "package.json");
+  return fs17.existsSync(packageJsonPath) ? packageJsonPath : void 0;
+}
+function resolvePackageJsonRelativePath(rootDir, packageJsonPath) {
+  const resolvedRootDir = safeRealpathSync2(rootDir) ?? path23.resolve(rootDir);
+  const relativePath = path23.relative(resolvedRootDir, packageJsonPath) || "package.json";
+  return relativePath.split(path23.sep).join("/");
+}
+function resolvePackageJsonRecord(params) {
+  if (!params.candidate?.packageDir || !params.packageJsonPath) {
+    return void 0;
+  }
+  const hash = safeHashFile({
+    filePath: params.packageJsonPath,
+    pluginId: params.pluginId,
+    diagnostics: params.diagnostics,
+    required: false
+  });
+  if (!hash) {
+    return void 0;
+  }
+  const fileSignature = safeFileSignature(params.packageJsonPath);
+  return {
+    path: resolvePackageJsonRelativePath(params.candidate.rootDir, params.packageJsonPath),
+    hash,
+    ...fileSignature ? { fileSignature } : {}
+  };
+}
+function describePackageInstallSource(candidate) {
+  const install = candidate?.packageManifest?.install;
+  if (!install) {
+    return void 0;
+  }
+  return describePluginInstallSource(install, {
+    expectedPackageName: candidate?.packageName
+  });
+}
+function normalizeStringField(value) {
+  if (typeof value !== "string") {
+    return void 0;
+  }
+  const normalized = value.trim();
+  return normalized ? normalized : void 0;
+}
+function normalizePackageChannel(channel) {
+  const id = normalizeStringField(channel?.id);
+  if (!id) {
+    return void 0;
+  }
+  return {
+    ...structuredClone(channel),
+    id
+  };
+}
+function hashManifestlessBundleRecord(record) {
+  return hashJson({
+    id: record.id,
+    name: record.name,
+    description: record.description,
+    version: record.version,
+    format: record.format,
+    bundleFormat: record.bundleFormat,
+    bundleCapabilities: record.bundleCapabilities ?? [],
+    skills: record.skills ?? [],
+    settingsFiles: record.settingsFiles ?? [],
+    hooks: record.hooks ?? []
+  });
+}
+function resolveManifestHash(params) {
+  if (hasOptionalMissingPluginManifestFile(params.record)) {
+    return hashManifestlessBundleRecord(params.record);
+  }
+  const hash = safeHashFile({
+    filePath: params.record.manifestPath,
+    pluginId: params.record.id,
+    diagnostics: params.diagnostics,
+    required: true
+  });
+  if (hash) {
+    return hash;
+  }
+  return "";
+}
+function buildCandidateLookup(candidates) {
+  const byRootDir = /* @__PURE__ */ new Map();
+  for (const candidate of candidates) {
+    byRootDir.set(candidate.rootDir, candidate);
+  }
+  return byRootDir;
+}
+function buildInstalledPluginIndexRecords(params) {
+  const candidateByRootDir = buildCandidateLookup(params.candidates);
+  const normalizedConfig = normalizePluginsConfig(params.config?.plugins);
+  return params.registry.plugins.map((record) => {
+    const candidate = candidateByRootDir.get(record.rootDir);
+    const packageJsonPath = resolvePackageJsonPath(candidate);
+    const installRecord = params.installRecords[record.id];
+    const packageInstall = describePackageInstallSource(candidate);
+    const packageChannel = normalizePackageChannel(
+      record.packageChannel ?? candidate?.packageManifest?.channel
+    );
+    const manifestHash = resolveManifestHash({ record, diagnostics: params.diagnostics });
+    const manifestFile = hasOptionalMissingPluginManifestFile(record) ? void 0 : safeFileSignature(record.manifestPath);
+    const packageJson = resolvePackageJsonRecord({
+      candidate,
+      packageJsonPath,
+      diagnostics: params.diagnostics,
+      pluginId: record.id
+    });
+    const enabled = resolveEffectiveEnableState({
+      id: record.id,
+      origin: record.origin,
+      config: normalizedConfig,
+      rootConfig: params.config,
+      enabledByDefault: record.enabledByDefault
+    }).enabled;
+    const indexRecord = {
+      pluginId: record.id,
+      manifestPath: record.manifestPath,
+      manifestHash,
+      ...manifestFile ? { manifestFile } : {},
+      source: record.source,
+      rootDir: record.rootDir,
+      origin: record.origin,
+      enabled,
+      startup: buildStartupInfo(record),
+      compat: collectPluginManifestCompatCodes(record)
+    };
+    if (record.format && record.format !== "openclaw") {
+      indexRecord.format = record.format;
+    }
+    if (record.bundleFormat) {
+      indexRecord.bundleFormat = record.bundleFormat;
+    }
+    if (record.enabledByDefault === true) {
+      indexRecord.enabledByDefault = true;
+    }
+    if (record.syntheticAuthRefs?.length) {
+      indexRecord.syntheticAuthRefs = [...record.syntheticAuthRefs];
+    }
+    if (record.setupSource) {
+      indexRecord.setupSource = record.setupSource;
+    }
+    if (candidate?.packageName) {
+      indexRecord.packageName = candidate.packageName;
+    }
+    if (candidate?.packageVersion) {
+      indexRecord.packageVersion = candidate.packageVersion;
+    }
+    if (installRecord) {
+      indexRecord.installRecordHash = hashJson(installRecord);
+    }
+    if (packageInstall) {
+      indexRecord.packageInstall = packageInstall;
+    }
+    if (packageChannel) {
+      indexRecord.packageChannel = packageChannel;
+    }
+    if (packageJson) {
+      indexRecord.packageJson = packageJson;
+    }
+    return indexRecord;
+  });
+}
+
+// vendor/openclaw/src/infra/json-files.ts
+import { readFileSync } from "node:fs";
+function readJsonFileSync(filePath) {
+  try {
+    const raw = readFileSync(filePath, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-store-path.ts
+init_paths();
+import path25 from "node:path";
+var INSTALLED_PLUGIN_INDEX_STORE_PATH = path25.join("plugins", "installs.json");
+function resolveInstalledPluginIndexStorePath(options = {}) {
+  if (options.filePath) {
+    return options.filePath;
+  }
+  const env = options.env ?? process.env;
+  const stateDir = options.stateDir ?? resolveStateDir(env);
+  return path25.join(stateDir, INSTALLED_PLUGIN_INDEX_STORE_PATH);
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-record-reader.ts
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function cloneInstallRecords(records) {
+  return structuredClone(records ?? {});
+}
+function readRecordMap(value) {
+  if (!isRecord2(value)) {
+    return null;
+  }
+  const records = {};
+  for (const [pluginId, record] of Object.entries(value).toSorted(
+    ([left], [right]) => left.localeCompare(right)
+  )) {
+    if (isRecord2(record) && typeof record.source === "string") {
+      records[pluginId] = structuredClone(record);
+    }
+  }
+  return records;
+}
+function extractPluginInstallRecordsFromPersistedInstalledPluginIndex(index) {
+  if (!isRecord2(index) || !Array.isArray(index.plugins)) {
+    return null;
+  }
+  if (Object.prototype.hasOwnProperty.call(index, "installRecords")) {
+    return readRecordMap(index.installRecords) ?? {};
+  }
+  const records = {};
+  for (const entry of index.plugins) {
+    if (!isRecord2(entry) || typeof entry.pluginId !== "string" || !isRecord2(entry.installRecord)) {
+      continue;
+    }
+    records[entry.pluginId] = structuredClone(entry.installRecord);
+  }
+  return records;
+}
+function readPersistedInstalledPluginIndexInstallRecordsSync(options = {}) {
+  const parsed = readJsonFileSync(resolveInstalledPluginIndexStorePath(options));
+  return extractPluginInstallRecordsFromPersistedInstalledPluginIndex(parsed);
+}
+function loadInstalledPluginIndexInstallRecordsSync(params = {}) {
+  return cloneInstallRecords(readPersistedInstalledPluginIndexInstallRecordsSync(params) ?? {});
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-registry.ts
+init_discovery();
+
+// vendor/openclaw/src/plugins/manifest-registry.ts
+init_prototype_keys();
+init_string_coerce();
+init_string_normalization();
+init_ansi();
+init_utils();
+import fs19 from "node:fs";
+import path26 from "node:path";
+init_bundle_manifest();
+
+// vendor/openclaw/src/plugins/config-policy.ts
+function normalizePluginsConfigWithResolver2(config, normalizePluginId = identityNormalizePluginId) {
+  return normalizePluginsConfigWithResolver(config, normalizePluginId);
+}
+
+// vendor/openclaw/src/plugins/manifest-registry.ts
+init_discovery();
+init_manifest();
+
+// vendor/openclaw/src/infra/runtime-guard.ts
+init_runtime();
+var SEMVER_RE = /(\d+)\.(\d+)\.(\d+)/;
+function parseSemver(version) {
+  if (!version) {
+    return null;
+  }
+  const match = version.match(SEMVER_RE);
+  if (!match) {
+    return null;
+  }
+  const [, major, minor, patch] = match;
+  return {
+    major: Number.parseInt(major, 10),
+    minor: Number.parseInt(minor, 10),
+    patch: Number.parseInt(patch, 10)
+  };
+}
+function isAtLeast(version, minimum) {
+  if (!version) {
+    return false;
+  }
+  if (version.major !== minimum.major) {
+    return version.major > minimum.major;
+  }
+  if (version.minor !== minimum.minor) {
+    return version.minor > minimum.minor;
+  }
+  return version.patch >= minimum.patch;
+}
+
+// vendor/openclaw/src/plugins/min-host-version.ts
+init_string_coerce();
+var MIN_HOST_VERSION_FORMAT = 'openclaw.install.minHostVersion must use a semver floor in the form ">=x.y.z[-prerelease][+build]"';
+var SEMVER_LABEL_RE = String.raw`\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?`;
+var MIN_HOST_VERSION_RE = new RegExp(`^>=(${SEMVER_LABEL_RE})$`);
+var LEGACY_MIN_HOST_VERSION_RE = /^(\d+)\.(\d+)\.(\d+)$/;
+function parseMinHostVersionRequirement(raw, options = {}) {
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const match = trimmed.match(MIN_HOST_VERSION_RE) ?? (options.allowLegacyBareSemver ? trimmed.match(LEGACY_MIN_HOST_VERSION_RE) : null);
+  if (!match) {
+    return null;
+  }
+  const minimumLabel = match.length >= 4 ? `${match[1]}.${match[2]}.${match[3]}` : match[1] ?? "";
+  if (!parseSemver(minimumLabel)) {
+    return null;
+  }
+  return {
+    raw: trimmed,
+    minimumLabel
+  };
+}
+function checkMinHostVersion(params) {
+  if (params.minHostVersion === void 0) {
+    return { ok: true, requirement: null };
+  }
+  const requirement = parseMinHostVersionRequirement(params.minHostVersion, {
+    allowLegacyBareSemver: params.allowLegacyBareSemver
+  });
+  if (!requirement) {
+    return { ok: false, kind: "invalid", error: MIN_HOST_VERSION_FORMAT };
+  }
+  const currentVersion = normalizeOptionalString(params.currentVersion) || "unknown";
+  const currentSemver = parseSemver(currentVersion);
+  if (!currentSemver) {
+    return {
+      ok: false,
+      kind: "unknown_host_version",
+      requirement
+    };
+  }
+  const minimumSemver = parseSemver(requirement.minimumLabel);
+  if (!isAtLeast(currentSemver, minimumSemver)) {
+    return {
+      ok: false,
+      kind: "incompatible",
+      requirement,
+      currentVersion
+    };
+  }
+  return { ok: true, requirement };
+}
+
+// vendor/openclaw/src/plugins/manifest-registry.ts
+init_path_safety();
+function resolvePluginSourcePath(sourcePath) {
+  if (fs19.existsSync(sourcePath)) {
+    return sourcePath;
+  }
+  if (sourcePath.endsWith(".ts")) {
+    const jsPath = sourcePath.slice(0, -3) + ".js";
+    if (fs19.existsSync(jsPath)) {
+      return jsPath;
+    }
+  }
+  return sourcePath;
+}
+var PLUGIN_ORIGIN_RANK = {
+  config: 0,
+  workspace: 1,
+  global: 2,
+  bundled: 3
+};
+function safeStatMtimeMs(filePath) {
+  try {
+    return fs19.statSync(filePath).mtimeMs;
+  } catch {
+    return null;
+  }
+}
+function normalizePreferredPluginIds(raw) {
+  return normalizeOptionalTrimmedStringList(raw);
+}
+function normalizePackageChannelCommands(commands) {
+  if (!commands || typeof commands !== "object" || Array.isArray(commands)) {
+    return void 0;
+  }
+  const record = commands;
+  const nativeCommandsAutoEnabled = typeof record.nativeCommandsAutoEnabled === "boolean" ? record.nativeCommandsAutoEnabled : void 0;
+  const nativeSkillsAutoEnabled = typeof record.nativeSkillsAutoEnabled === "boolean" ? record.nativeSkillsAutoEnabled : void 0;
+  return nativeCommandsAutoEnabled !== void 0 || nativeSkillsAutoEnabled !== void 0 ? {
+    ...nativeCommandsAutoEnabled !== void 0 ? { nativeCommandsAutoEnabled } : {},
+    ...nativeSkillsAutoEnabled !== void 0 ? { nativeSkillsAutoEnabled } : {}
+  } : void 0;
+}
+function mergePackageChannelMetaIntoChannelConfigs(params) {
+  const channelId = params.packageChannel?.id?.trim();
+  if (!channelId || isBlockedObjectKey(channelId) || !params.channelConfigs || !Object.prototype.hasOwnProperty.call(params.channelConfigs, channelId)) {
+    return params.channelConfigs;
+  }
+  const existing = params.channelConfigs[channelId];
+  if (!existing) {
+    return params.channelConfigs;
+  }
+  const label = existing.label ?? normalizeOptionalString(params.packageChannel?.label) ?? "";
+  const description = existing.description ?? normalizeOptionalString(params.packageChannel?.blurb) ?? "";
+  const preferOver = existing.preferOver ?? normalizePreferredPluginIds(params.packageChannel?.preferOver);
+  const commands = existing.commands ?? normalizePackageChannelCommands(params.packageChannel?.commands);
+  const merged = /* @__PURE__ */ Object.create(null);
+  for (const [key, value] of Object.entries(params.channelConfigs)) {
+    if (!isBlockedObjectKey(key)) {
+      merged[key] = value;
+    }
+  }
+  merged[channelId] = {
+    ...existing,
+    ...label ? { label } : {},
+    ...description ? { description } : {},
+    ...preferOver?.length ? { preferOver } : {},
+    ...commands ? { commands } : {}
+  };
+  return merged;
+}
+function buildRecord(params) {
+  const manifestChannelConfigs = params.candidate.origin === "bundled" && params.bundledChannelConfigCollector ? params.bundledChannelConfigCollector({
+    pluginDir: params.candidate.packageDir ?? params.candidate.rootDir,
+    manifest: params.manifest,
+    packageManifest: params.candidate.packageManifest
+  }) : params.manifest.channelConfigs;
+  const channelConfigs = mergePackageChannelMetaIntoChannelConfigs({
+    channelConfigs: manifestChannelConfigs,
+    packageChannel: params.candidate.packageManifest?.channel
+  });
+  const packageChannelCommands = normalizePackageChannelCommands(
+    params.candidate.packageManifest?.channel?.commands
+  );
+  return {
+    id: params.manifest.id,
+    name: normalizeOptionalString(params.manifest.name) ?? params.candidate.packageName,
+    description: normalizeOptionalString(params.manifest.description) ?? params.candidate.packageDescription,
+    version: normalizeOptionalString(params.manifest.version) ?? params.candidate.packageVersion,
+    packageName: params.candidate.packageName,
+    packageVersion: params.candidate.packageVersion,
+    packageDescription: params.candidate.packageDescription,
+    enabledByDefault: params.manifest.enabledByDefault === true ? true : void 0,
+    autoEnableWhenConfiguredProviders: params.manifest.autoEnableWhenConfiguredProviders,
+    legacyPluginIds: params.manifest.legacyPluginIds,
+    format: params.candidate.format ?? "openclaw",
+    bundleFormat: params.candidate.bundleFormat,
+    kind: params.manifest.kind,
+    channels: params.manifest.channels ?? [],
+    providers: params.manifest.providers ?? [],
+    providerDiscoverySource: params.manifest.providerDiscoveryEntry ? resolvePluginSourcePath(
+      path26.resolve(params.candidate.rootDir, params.manifest.providerDiscoveryEntry)
+    ) : void 0,
+    modelSupport: params.manifest.modelSupport,
+    modelCatalog: params.manifest.modelCatalog,
+    modelPricing: params.manifest.modelPricing,
+    modelIdNormalization: params.manifest.modelIdNormalization,
+    providerEndpoints: params.manifest.providerEndpoints,
+    providerRequest: params.manifest.providerRequest,
+    cliBackends: params.manifest.cliBackends ?? [],
+    syntheticAuthRefs: params.manifest.syntheticAuthRefs ?? [],
+    nonSecretAuthMarkers: params.manifest.nonSecretAuthMarkers ?? [],
+    commandAliases: params.manifest.commandAliases,
+    providerAuthEnvVars: params.manifest.providerAuthEnvVars,
+    providerAuthAliases: params.manifest.providerAuthAliases,
+    channelEnvVars: params.manifest.channelEnvVars,
+    providerAuthChoices: params.manifest.providerAuthChoices,
+    activation: params.manifest.activation,
+    setup: params.manifest.setup,
+    packageManifest: params.candidate.packageManifest,
+    packageDependencies: params.candidate.packageDependencies,
+    packageOptionalDependencies: params.candidate.packageOptionalDependencies,
+    packageChannel: params.candidate.packageManifest?.channel,
+    packageInstall: params.candidate.packageManifest?.install,
+    qaRunners: params.manifest.qaRunners,
+    skills: params.manifest.skills ?? [],
+    settingsFiles: [],
+    hooks: [],
+    origin: params.candidate.origin,
+    workspaceDir: params.candidate.workspaceDir,
+    rootDir: params.candidate.rootDir,
+    source: params.candidate.source,
+    setupSource: params.candidate.setupSource,
+    startupDeferConfiguredChannelFullLoadUntilAfterListen: params.candidate.packageManifest?.startup?.deferConfiguredChannelFullLoadUntilAfterListen === true,
+    manifestPath: params.manifestPath,
+    schemaCacheKey: params.schemaCacheKey,
+    configSchema: params.configSchema,
+    configUiHints: params.manifest.uiHints,
+    contracts: params.manifest.contracts,
+    mediaUnderstandingProviderMetadata: params.manifest.mediaUnderstandingProviderMetadata,
+    imageGenerationProviderMetadata: params.manifest.imageGenerationProviderMetadata,
+    videoGenerationProviderMetadata: params.manifest.videoGenerationProviderMetadata,
+    musicGenerationProviderMetadata: params.manifest.musicGenerationProviderMetadata,
+    toolMetadata: params.manifest.toolMetadata,
+    configContracts: params.manifest.configContracts,
+    channelConfigs,
+    ...params.candidate.packageManifest?.channel?.id ? {
+      channelCatalogMeta: {
+        id: params.candidate.packageManifest.channel.id,
+        ...typeof params.candidate.packageManifest.channel.label === "string" ? { label: params.candidate.packageManifest.channel.label } : {},
+        ...typeof params.candidate.packageManifest.channel.blurb === "string" ? { blurb: params.candidate.packageManifest.channel.blurb } : {},
+        ...params.candidate.packageManifest.channel.preferOver ? { preferOver: params.candidate.packageManifest.channel.preferOver } : {},
+        ...packageChannelCommands ? { commands: packageChannelCommands } : {}
+      }
+    } : {}
+  };
+}
+function buildBundleRecord(params) {
+  return {
+    id: params.manifest.id,
+    name: normalizeOptionalString(params.manifest.name) ?? params.candidate.idHint,
+    description: normalizeOptionalString(params.manifest.description),
+    version: normalizeOptionalString(params.manifest.version),
+    packageName: params.candidate.packageName,
+    packageVersion: params.candidate.packageVersion,
+    packageDescription: params.candidate.packageDescription,
+    packageManifest: params.candidate.packageManifest,
+    packageDependencies: params.candidate.packageDependencies,
+    packageOptionalDependencies: params.candidate.packageOptionalDependencies,
+    packageChannel: params.candidate.packageManifest?.channel,
+    packageInstall: params.candidate.packageManifest?.install,
+    format: "bundle",
+    bundleFormat: params.candidate.bundleFormat,
+    bundleCapabilities: params.manifest.capabilities,
+    channels: [],
+    providers: [],
+    cliBackends: [],
+    syntheticAuthRefs: [],
+    nonSecretAuthMarkers: [],
+    skills: params.manifest.skills ?? [],
+    settingsFiles: params.manifest.settingsFiles ?? [],
+    hooks: params.manifest.hooks ?? [],
+    origin: params.candidate.origin,
+    workspaceDir: params.candidate.workspaceDir,
+    rootDir: params.candidate.rootDir,
+    source: params.candidate.source,
+    manifestPath: params.manifestPath,
+    schemaCacheKey: void 0,
+    configSchema: void 0,
+    configUiHints: void 0,
+    configContracts: void 0,
+    channelConfigs: void 0
+  };
+}
+function pushProviderAuthEnvVarsCompatDiagnostic(params) {
+  if (params.record.origin === "bundled" || !params.record.providerAuthEnvVars) {
+    return;
+  }
+  const setupProviderEnvVars = new Map(
+    (params.record.setup?.providers ?? []).map(
+      (provider) => [provider.id, new Set(provider.envVars ?? [])]
     )
   );
-  bundledPluginMetadataCache.set(cacheKey, entries);
-  return entries;
+  const providerIds = Object.entries(params.record.providerAuthEnvVars).filter(([providerId, envVars]) => {
+    if (!providerId.trim() || envVars.length === 0) {
+      return false;
+    }
+    const mirroredEnvVars = setupProviderEnvVars.get(providerId);
+    return !mirroredEnvVars || envVars.some((envVar) => !mirroredEnvVars.has(envVar));
+  }).map(([providerId]) => providerId).toSorted((left, right) => left.localeCompare(right));
+  if (providerIds.length === 0) {
+    return;
+  }
+  params.diagnostics.push({
+    level: "warn",
+    pluginId: sanitizeForLog(params.record.id),
+    source: sanitizeForLog(params.record.manifestPath),
+    message: `providerAuthEnvVars is deprecated compatibility metadata for provider env-var lookup; mirror ${providerIds.map(sanitizeForLog).join(", ")} env vars to setup.providers[].envVars before the deprecation window closes`
+  });
+}
+function pushNonBundledChannelConfigDescriptorDiagnostic(params) {
+  if (params.record.origin === "bundled" || params.record.format === "bundle") {
+    return;
+  }
+  const declaredChannels = params.record.channels.map((channelId) => channelId.trim()).filter((channelId) => channelId.length > 0);
+  if (declaredChannels.length === 0) {
+    return;
+  }
+  const channelConfigs = params.record.channelConfigs ?? {};
+  const missingChannels = declaredChannels.filter(
+    (channelId) => !Object.prototype.hasOwnProperty.call(channelConfigs, channelId)
+  );
+  if (missingChannels.length === 0) {
+    return;
+  }
+  const safeMissingChannels = missingChannels.map(sanitizeForLog);
+  params.diagnostics.push({
+    level: "warn",
+    pluginId: sanitizeForLog(params.record.id),
+    source: sanitizeForLog(params.record.manifestPath),
+    message: `channel plugin manifest declares ${safeMissingChannels.join(", ")} without channelConfigs metadata; add openclaw.plugin.json#channelConfigs so config schema and setup surfaces work before runtime loads`
+  });
+}
+function pushManifestCompatibilityDiagnostics(params) {
+  pushProviderAuthEnvVarsCompatDiagnostic(params);
+  pushNonBundledChannelConfigDescriptorDiagnostic(params);
+}
+function matchesInstalledPluginRecord(params) {
+  if (params.candidate.origin !== "global") {
+    return false;
+  }
+  const record = params.installRecords[params.pluginId];
+  if (!record) {
+    return false;
+  }
+  const candidateSource = resolveUserPath(params.candidate.source, params.env);
+  const trackedPaths = [record.installPath, record.sourcePath].filter((entry) => typeof entry === "string" && entry.trim().length > 0).map((entry) => resolveUserPath(entry, params.env));
+  if (trackedPaths.length === 0) {
+    return false;
+  }
+  return trackedPaths.some((trackedPath) => {
+    return candidateSource === trackedPath || isPathInside2(trackedPath, candidateSource);
+  });
+}
+function resolveDuplicatePrecedenceRank(params) {
+  if (params.candidate.origin === "config") {
+    return 0;
+  }
+  if (params.candidate.origin === "global" && matchesInstalledPluginRecord({
+    pluginId: params.pluginId,
+    candidate: params.candidate,
+    config: params.config,
+    env: params.env,
+    installRecords: params.installRecords
+  })) {
+    return 1;
+  }
+  if (params.candidate.origin === "bundled") {
+    return 2;
+  }
+  if (params.candidate.origin === "workspace") {
+    return 3;
+  }
+  return 4;
+}
+function isIntentionalInstalledBundledDuplicate(params) {
+  const leftIsInstalled = matchesInstalledPluginRecord({
+    pluginId: params.pluginId,
+    candidate: params.left,
+    config: params.config,
+    env: params.env,
+    installRecords: params.installRecords
+  });
+  const rightIsInstalled = matchesInstalledPluginRecord({
+    pluginId: params.pluginId,
+    candidate: params.right,
+    config: params.config,
+    env: params.env,
+    installRecords: params.installRecords
+  });
+  return leftIsInstalled && params.right.origin === "bundled" || rightIsInstalled && params.left.origin === "bundled";
+}
+function loadPluginManifestRegistry(params = {}) {
+  const config = params.config ?? {};
+  const normalized = normalizePluginsConfigWithResolver2(config.plugins);
+  const env = params.env ?? process.env;
+  let installRecords = params.installRecords;
+  let installRecordsLoaded = Boolean(params.installRecords);
+  const getInstallRecords = () => {
+    if (!installRecordsLoaded) {
+      installRecords = loadInstalledPluginIndexInstallRecordsSync({ env });
+      installRecordsLoaded = true;
+    }
+    return installRecords ?? {};
+  };
+  const discovery = params.candidates ? {
+    candidates: params.candidates,
+    diagnostics: params.diagnostics ?? []
+  } : discoverOpenClawPlugins({
+    workspaceDir: params.workspaceDir,
+    extraPaths: normalized.loadPaths,
+    env,
+    installRecords: getInstallRecords()
+  });
+  const diagnostics = [...discovery.diagnostics];
+  const candidates = discovery.candidates;
+  const records = [];
+  const seenIds = /* @__PURE__ */ new Map();
+  const realpathCache = /* @__PURE__ */ new Map();
+  const currentHostVersion = resolveCompatibilityHostVersion(env);
+  for (const candidate of candidates) {
+    const rejectHardlinks = candidate.origin !== "bundled";
+    const isBundleRecord = (candidate.format ?? "openclaw") === "bundle";
+    const manifestRes = candidate.origin === "bundled" && candidate.bundledManifest && candidate.bundledManifestPath ? {
+      ok: true,
+      manifest: candidate.bundledManifest,
+      manifestPath: candidate.bundledManifestPath
+    } : isBundleRecord && candidate.bundleFormat ? loadBundleManifest({
+      rootDir: candidate.rootDir,
+      bundleFormat: candidate.bundleFormat,
+      rejectHardlinks
+    }) : loadPluginManifest(candidate.rootDir, rejectHardlinks);
+    if (!manifestRes.ok) {
+      diagnostics.push({
+        level: "error",
+        message: manifestRes.error,
+        source: manifestRes.manifestPath
+      });
+      continue;
+    }
+    const manifest = manifestRes.manifest;
+    if (candidate.origin !== "bundled") {
+      const allowLegacyBareMinHostVersion = candidate.origin === "global" && matchesInstalledPluginRecord({
+        pluginId: manifest.id,
+        candidate,
+        config,
+        env,
+        installRecords: getInstallRecords()
+      });
+      const minHostVersionCheck = checkMinHostVersion({
+        currentVersion: currentHostVersion,
+        minHostVersion: candidate.packageManifest?.install?.minHostVersion,
+        allowLegacyBareSemver: allowLegacyBareMinHostVersion
+      });
+      if (!minHostVersionCheck.ok) {
+        const packageManifestSource = path26.join(
+          candidate.packageDir ?? candidate.rootDir,
+          "package.json"
+        );
+        diagnostics.push({
+          level: minHostVersionCheck.kind === "invalid" ? "error" : "warn",
+          pluginId: manifest.id,
+          source: packageManifestSource,
+          message: minHostVersionCheck.kind === "invalid" ? `plugin manifest invalid | ${minHostVersionCheck.error}` : minHostVersionCheck.kind === "unknown_host_version" ? `plugin requires OpenClaw >=${minHostVersionCheck.requirement.minimumLabel}, but this host version could not be determined; skipping load` : `plugin requires OpenClaw >=${minHostVersionCheck.requirement.minimumLabel}, but this host is ${minHostVersionCheck.currentVersion}; skipping load`
+        });
+        continue;
+      }
+    }
+    const configSchema = "configSchema" in manifest ? manifest.configSchema : void 0;
+    const schemaCacheKey = (() => {
+      if (!configSchema) {
+        return void 0;
+      }
+      const manifestMtime = safeStatMtimeMs(manifestRes.manifestPath);
+      return manifestMtime ? `${manifestRes.manifestPath}:${manifestMtime}` : manifestRes.manifestPath;
+    })();
+    const record = isBundleRecord ? buildBundleRecord({
+      manifest,
+      candidate,
+      manifestPath: manifestRes.manifestPath
+    }) : buildRecord({
+      manifest,
+      candidate,
+      manifestPath: manifestRes.manifestPath,
+      schemaCacheKey,
+      configSchema,
+      ...params.bundledChannelConfigCollector ? { bundledChannelConfigCollector: params.bundledChannelConfigCollector } : {}
+    });
+    const existing = seenIds.get(manifest.id);
+    if (existing) {
+      const samePath = existing.candidate.rootDir === candidate.rootDir;
+      const samePlugin = (() => {
+        if (samePath) {
+          return true;
+        }
+        const existingReal = safeRealpathSync2(existing.candidate.rootDir, realpathCache);
+        const candidateReal = safeRealpathSync2(candidate.rootDir, realpathCache);
+        return Boolean(existingReal && candidateReal && existingReal === candidateReal);
+      })();
+      if (samePlugin) {
+        if (PLUGIN_ORIGIN_RANK[candidate.origin] < PLUGIN_ORIGIN_RANK[existing.candidate.origin]) {
+          records[existing.recordIndex] = record;
+          seenIds.set(manifest.id, { candidate, recordIndex: existing.recordIndex });
+          pushManifestCompatibilityDiagnostics({ record, diagnostics });
+        }
+        continue;
+      }
+      const candidateRank = resolveDuplicatePrecedenceRank({
+        pluginId: manifest.id,
+        candidate,
+        config,
+        env,
+        installRecords: getInstallRecords()
+      });
+      const existingRank = resolveDuplicatePrecedenceRank({
+        pluginId: manifest.id,
+        candidate: existing.candidate,
+        config,
+        env,
+        installRecords: getInstallRecords()
+      });
+      const candidateWins = candidateRank < existingRank;
+      const winnerCandidate = candidateWins ? candidate : existing.candidate;
+      const overriddenCandidate = candidateWins ? existing.candidate : candidate;
+      if (candidateWins) {
+        records[existing.recordIndex] = record;
+        seenIds.set(manifest.id, { candidate, recordIndex: existing.recordIndex });
+        pushManifestCompatibilityDiagnostics({ record, diagnostics });
+      }
+      if (isIntentionalInstalledBundledDuplicate({
+        pluginId: manifest.id,
+        left: candidate,
+        right: existing.candidate,
+        config,
+        env,
+        installRecords: getInstallRecords()
+      })) {
+        continue;
+      }
+      diagnostics.push({
+        level: "warn",
+        pluginId: manifest.id,
+        source: overriddenCandidate.source,
+        message: winnerCandidate.origin === "config" ? `duplicate plugin id resolved by explicit config-selected plugin; ${overriddenCandidate.origin} plugin will be overridden by config plugin (${winnerCandidate.source})` : `duplicate plugin id detected; ${overriddenCandidate.origin} plugin will be overridden by ${winnerCandidate.origin} plugin (${winnerCandidate.source})`
+      });
+      continue;
+    }
+    seenIds.set(manifest.id, { candidate, recordIndex: records.length });
+    records.push(record);
+    pushManifestCompatibilityDiagnostics({ record, diagnostics });
+  }
+  const registry = { plugins: records, diagnostics };
+  return registry;
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-registry.ts
+function resolveInstalledPluginIndexRegistry(params) {
+  if (params.candidates) {
+    return {
+      candidates: params.candidates,
+      registry: loadPluginManifestRegistry({
+        config: params.config,
+        workspaceDir: params.workspaceDir,
+        env: params.env,
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        installRecords: params.installRecords
+      })
+    };
+  }
+  const normalized = normalizePluginsConfig(params.config?.plugins);
+  const installRecords = params.installRecords ?? loadInstalledPluginIndexInstallRecordsSync({ env: params.env });
+  const discovery = discoverOpenClawPlugins({
+    workspaceDir: params.workspaceDir,
+    extraPaths: normalized.loadPaths,
+    env: params.env,
+    installRecords
+  });
+  return {
+    candidates: discovery.candidates,
+    registry: loadPluginManifestRegistry({
+      config: params.config,
+      workspaceDir: params.workspaceDir,
+      env: params.env,
+      candidates: discovery.candidates,
+      diagnostics: discovery.diagnostics,
+      installRecords
+    })
+  };
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-types.ts
+var INSTALLED_PLUGIN_INDEX_VERSION = 1;
+var INSTALLED_PLUGIN_INDEX_MIGRATION_VERSION = 1;
+var INSTALLED_PLUGIN_INDEX_WARNING = "DO NOT EDIT. This file is generated by OpenClaw from plugin manifests, install records, and config policy. Use `openclaw plugins registry --refresh`, `openclaw plugins install/update/uninstall`, or `openclaw plugins enable/disable` instead.";
+
+// vendor/openclaw/src/plugins/installed-plugin-index.ts
+function buildInstalledPluginIndex(params) {
+  const env = params.env ?? process.env;
+  const { candidates, registry } = resolveInstalledPluginIndexRegistry(params);
+  const registryDiagnostics = registry.diagnostics ?? [];
+  const diagnostics = [...registryDiagnostics];
+  const generatedAtMs = (params.now?.() ?? /* @__PURE__ */ new Date()).getTime();
+  const installRecords = normalizeInstallRecordMap(
+    params.installRecords ?? loadInstalledPluginIndexInstallRecordsSync({
+      env,
+      ...params.stateDir ? { stateDir: params.stateDir } : {},
+      ...params.pluginIndexFilePath ? { filePath: params.pluginIndexFilePath } : {}
+    })
+  );
+  const plugins = buildInstalledPluginIndexRecords({
+    candidates,
+    registry,
+    config: params.config,
+    diagnostics,
+    installRecords
+  });
+  return {
+    version: INSTALLED_PLUGIN_INDEX_VERSION,
+    warning: INSTALLED_PLUGIN_INDEX_WARNING,
+    hostContractVersion: resolveCompatibilityHostVersion(env),
+    compatRegistryVersion: resolveCompatRegistryVersion(),
+    migrationVersion: INSTALLED_PLUGIN_INDEX_MIGRATION_VERSION,
+    policyHash: resolveInstalledPluginIndexPolicyHash(params.config),
+    generatedAtMs,
+    ...params.refreshReason ? { refreshReason: params.refreshReason } : {},
+    installRecords,
+    plugins,
+    diagnostics
+  };
+}
+function loadInstalledPluginIndex(params = {}) {
+  return buildInstalledPluginIndex(params);
+}
+
+// vendor/openclaw/src/plugins/manifest-registry-installed.ts
+init_manifest();
+init_plugin_lifecycle_trace();
+init_status_dependencies();
+function resolvePackageJsonPath2(record) {
+  if (!record.packageJson?.path) {
+    return void 0;
+  }
+  const rootDir = resolveInstalledPluginRootDir(record);
+  const packageJsonPath = path27.resolve(rootDir, record.packageJson.path);
+  const relative = path27.relative(rootDir, packageJsonPath);
+  if (relative.startsWith("..") || path27.isAbsolute(relative)) {
+    return void 0;
+  }
+  return packageJsonPath;
+}
+function safeFileSignature2(filePath) {
+  if (!filePath) {
+    return void 0;
+  }
+  try {
+    const stat = fs20.statSync(filePath);
+    return `${filePath}:${stat.size}:${stat.mtimeMs}`;
+  } catch {
+    return `${filePath}:missing`;
+  }
+}
+function buildInstalledManifestRegistryIndexKey(index) {
+  return {
+    version: index.version,
+    hostContractVersion: index.hostContractVersion,
+    compatRegistryVersion: index.compatRegistryVersion,
+    migrationVersion: index.migrationVersion,
+    policyHash: index.policyHash,
+    installRecords: index.installRecords,
+    diagnostics: index.diagnostics,
+    plugins: index.plugins.map((record) => {
+      const packageJsonPath = resolvePackageJsonPath2(record);
+      return {
+        pluginId: record.pluginId,
+        packageName: record.packageName,
+        packageVersion: record.packageVersion,
+        installRecord: record.installRecord,
+        installRecordHash: record.installRecordHash,
+        packageInstall: record.packageInstall,
+        packageChannel: record.packageChannel,
+        manifestPath: record.manifestPath,
+        manifestHash: record.manifestHash,
+        manifestFile: safeFileSignature2(record.manifestPath),
+        format: record.format,
+        bundleFormat: record.bundleFormat,
+        source: record.source,
+        setupSource: record.setupSource,
+        packageJson: record.packageJson,
+        packageJsonFile: safeFileSignature2(packageJsonPath),
+        rootDir: record.rootDir,
+        origin: record.origin,
+        enabled: record.enabled,
+        enabledByDefault: record.enabledByDefault,
+        syntheticAuthRefs: record.syntheticAuthRefs,
+        startup: record.startup,
+        compat: record.compat
+      };
+    })
+  };
+}
+function resolveInstalledManifestRegistryIndexFingerprint(index) {
+  return hashJson(buildInstalledManifestRegistryIndexKey(index));
+}
+function resolveInstalledPluginRootDir(record) {
+  return record.rootDir || path27.dirname(record.manifestPath || process.cwd());
+}
+function resolveFallbackPluginSource(record) {
+  const rootDir = resolveInstalledPluginRootDir(record);
+  for (const entry of DEFAULT_PLUGIN_ENTRY_CANDIDATES) {
+    const candidate = path27.join(rootDir, entry);
+    if (fs20.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return path27.join(rootDir, DEFAULT_PLUGIN_ENTRY_CANDIDATES[0]);
+}
+function resolveInstalledPackageMetadata(record) {
+  const fallbackPackageManifest = record.packageChannel ? {
+    channel: record.packageChannel
+  } : void 0;
+  const rootDir = resolveInstalledPluginRootDir(record);
+  const packageJsonPath = record.packageJson?.path ? path27.resolve(rootDir, record.packageJson.path) : void 0;
+  if (!packageJsonPath) {
+    return fallbackPackageManifest ? { packageManifest: fallbackPackageManifest } : {};
+  }
+  const relative = path27.relative(rootDir, packageJsonPath);
+  if (relative.startsWith("..") || path27.isAbsolute(relative)) {
+    return fallbackPackageManifest ? { packageManifest: fallbackPackageManifest } : {};
+  }
+  try {
+    const packageJson = JSON.parse(fs20.readFileSync(packageJsonPath, "utf8"));
+    const packageManifest = getPackageManifestMetadata(packageJson);
+    const dependencies = normalizePluginDependencySpecs({
+      dependencies: packageJson.dependencies,
+      optionalDependencies: packageJson.optionalDependencies
+    });
+    if (!packageManifest) {
+      return {
+        ...fallbackPackageManifest ? { packageManifest: fallbackPackageManifest } : {},
+        packageDependencies: dependencies.dependencies,
+        packageOptionalDependencies: dependencies.optionalDependencies
+      };
+    }
+    const channel = record.packageChannel || packageManifest.channel ? {
+      ...record.packageChannel,
+      ...packageManifest.channel
+    } : void 0;
+    return {
+      packageManifest: {
+        ...packageManifest,
+        ...channel ? { channel } : {}
+      },
+      packageDependencies: dependencies.dependencies,
+      packageOptionalDependencies: dependencies.optionalDependencies
+    };
+  } catch {
+    return fallbackPackageManifest ? { packageManifest: fallbackPackageManifest } : {};
+  }
+}
+function toPluginCandidate(record) {
+  const rootDir = resolveInstalledPluginRootDir(record);
+  const packageMetadata = resolveInstalledPackageMetadata(record);
+  return {
+    idHint: record.pluginId,
+    source: record.source ?? resolveFallbackPluginSource(record),
+    ...record.setupSource ? { setupSource: record.setupSource } : {},
+    rootDir,
+    origin: record.origin,
+    ...record.format ? { format: record.format } : {},
+    ...record.bundleFormat ? { bundleFormat: record.bundleFormat } : {},
+    ...record.packageName ? { packageName: record.packageName } : {},
+    ...record.packageVersion ? { packageVersion: record.packageVersion } : {},
+    ...packageMetadata.packageManifest ? { packageManifest: packageMetadata.packageManifest } : {},
+    ...packageMetadata.packageDependencies ? { packageDependencies: packageMetadata.packageDependencies } : {},
+    ...packageMetadata.packageOptionalDependencies ? { packageOptionalDependencies: packageMetadata.packageOptionalDependencies } : {},
+    packageDir: rootDir
+  };
+}
+function loadPluginManifestRegistryForInstalledIndex(params) {
+  return tracePluginLifecyclePhase(
+    "manifest registry",
+    () => {
+      if (params.pluginIds && params.pluginIds.length === 0) {
+        return { plugins: [], diagnostics: [] };
+      }
+      const env = params.env ?? process.env;
+      const pluginIdSet = params.pluginIds?.length ? new Set(params.pluginIds) : null;
+      const diagnostics = pluginIdSet ? params.index.diagnostics.filter((diagnostic) => {
+        const pluginId = diagnostic.pluginId;
+        return !pluginId || pluginIdSet.has(pluginId);
+      }) : params.index.diagnostics;
+      const candidates = params.index.plugins.filter((plugin) => params.includeDisabled || plugin.enabled).filter((plugin) => !pluginIdSet || pluginIdSet.has(plugin.pluginId)).map(toPluginCandidate);
+      return loadPluginManifestRegistry({
+        config: params.config,
+        workspaceDir: params.workspaceDir,
+        env,
+        candidates,
+        diagnostics: [...diagnostics],
+        installRecords: extractPluginInstallRecordsFromInstalledPluginIndex(params.index),
+        ...params.bundledChannelConfigCollector ? { bundledChannelConfigCollector: params.bundledChannelConfigCollector } : {}
+      });
+    },
+    {
+      includeDisabled: params.includeDisabled === true,
+      pluginIdCount: params.pluginIds?.length,
+      indexPluginCount: params.index.plugins.length
+    }
+  );
+}
+
+// vendor/openclaw/src/plugins/plugin-control-plane-context.ts
+init_roots();
+function resolveConfiguredPluginLoadPaths(config) {
+  const paths = config?.plugins?.load?.paths;
+  return Array.isArray(paths) ? paths : void 0;
+}
+function resolvePluginDiscoveryContext(params = {}) {
+  return resolvePluginCacheInputs({
+    env: params.env ?? process.env,
+    workspaceDir: params.workspaceDir,
+    loadPaths: [...params.loadPaths ?? resolveConfiguredPluginLoadPaths(params.config) ?? []]
+  });
+}
+function resolvePluginControlPlaneContext(params = {}) {
+  const inventoryFingerprint = params.inventoryFingerprint ?? (params.index ? resolveInstalledManifestRegistryIndexFingerprint(params.index) : void 0);
+  return {
+    discovery: resolvePluginDiscoveryContext(params),
+    policyFingerprint: params.policyHash ?? resolveInstalledPluginIndexPolicyHash(params.config),
+    ...inventoryFingerprint ? { inventoryFingerprint } : {},
+    ...params.activationFingerprint ? { activationFingerprint: params.activationFingerprint } : {}
+  };
+}
+function resolvePluginControlPlaneFingerprint(params = {}) {
+  return fingerprintPluginControlPlaneContext(resolvePluginControlPlaneContext(params));
+}
+function fingerprintPluginControlPlaneContext(context) {
+  return hashJson(context);
+}
+
+// vendor/openclaw/src/plugins/plugin-registry-id-normalizer.ts
+function normalizePluginRegistryAlias(value) {
+  return value.trim();
+}
+function normalizePluginRegistryAliasKey(value) {
+  return normalizePluginRegistryAlias(value).toLowerCase();
+}
+function collectObjectKeys(value) {
+  return value ? Object.keys(value) : [];
+}
+function listPluginRegistryNormalizerAliases(plugin) {
+  return [
+    plugin.id,
+    ...plugin.providers ?? [],
+    ...plugin.channels ?? [],
+    ...plugin.setup?.providers?.map((provider) => provider.id) ?? [],
+    ...plugin.cliBackends ?? [],
+    ...plugin.setup?.cliBackends ?? [],
+    ...collectObjectKeys(plugin.modelCatalog?.providers),
+    ...collectObjectKeys(plugin.modelCatalog?.aliases),
+    ...plugin.legacyPluginIds ?? []
+  ];
+}
+function createPluginRegistryIdNormalizer(index, options = {}) {
+  const aliases = /* @__PURE__ */ new Map();
+  for (const plugin of index.plugins) {
+    if (!plugin.pluginId) {
+      continue;
+    }
+    const pluginId = normalizePluginRegistryAlias(plugin.pluginId);
+    if (pluginId) {
+      aliases.set(normalizePluginRegistryAliasKey(pluginId), plugin.pluginId);
+    }
+  }
+  const registry = options.lookUpTable?.manifestRegistry ?? options.manifestRegistry ?? loadPluginManifestRegistryForInstalledIndex({
+    index,
+    includeDisabled: true
+  });
+  for (const plugin of [...registry.plugins].toSorted(
+    (left, right) => left.id.localeCompare(right.id)
+  )) {
+    const pluginId = normalizePluginRegistryAlias(plugin.id);
+    if (!pluginId) {
+      continue;
+    }
+    aliases.set(normalizePluginRegistryAliasKey(pluginId), plugin.id);
+    for (const alias of listPluginRegistryNormalizerAliases(plugin)) {
+      const normalizedAlias = normalizePluginRegistryAlias(alias);
+      const normalizedAliasKey = normalizePluginRegistryAliasKey(alias);
+      if (normalizedAlias && !aliases.has(normalizedAliasKey)) {
+        aliases.set(normalizedAliasKey, pluginId);
+      }
+    }
+  }
+  return (pluginId) => {
+    const trimmed = normalizePluginRegistryAlias(pluginId);
+    return aliases.get(normalizePluginRegistryAliasKey(trimmed)) ?? trimmed;
+  };
+}
+
+// vendor/openclaw/src/agents/provider-id.ts
+init_string_coerce();
+
+// vendor/openclaw/src/plugins/plugin-registry-snapshot.ts
+init_bundled_dir();
+import crypto2 from "node:crypto";
+import fs21 from "node:fs";
+import path28 from "node:path";
+
+// vendor/openclaw/src/plugins/installed-plugin-index-store.ts
+import { z as z12 } from "zod";
+init_prototype_keys();
+
+// vendor/openclaw/src/utils/zod-parse.ts
+function safeParseWithSchema(schema, value) {
+  const parsed = schema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+// vendor/openclaw/src/plugins/installed-plugin-index-store.ts
+var StringArraySchema = z12.array(z12.string());
+var InstalledPluginIndexStartupSchema = z12.object({
+  sidecar: z12.boolean(),
+  memory: z12.boolean(),
+  deferConfiguredChannelFullLoadUntilAfterListen: z12.boolean(),
+  agentHarnesses: StringArraySchema
+});
+var InstalledPluginFileSignatureSchema = z12.object({
+  size: z12.number(),
+  mtimeMs: z12.number(),
+  ctimeMs: z12.number().optional()
+});
+var InstalledPluginIndexRecordSchema = z12.object({
+  pluginId: z12.string(),
+  packageName: z12.string().optional(),
+  packageVersion: z12.string().optional(),
+  installRecord: z12.record(z12.string(), z12.unknown()).optional(),
+  installRecordHash: z12.string().optional(),
+  packageInstall: z12.unknown().optional(),
+  packageChannel: z12.unknown().optional(),
+  manifestPath: z12.string(),
+  manifestHash: z12.string(),
+  manifestFile: InstalledPluginFileSignatureSchema.optional(),
+  format: z12.string().optional(),
+  bundleFormat: z12.string().optional(),
+  source: z12.string().optional(),
+  setupSource: z12.string().optional(),
+  packageJson: z12.object({
+    path: z12.string(),
+    hash: z12.string(),
+    fileSignature: InstalledPluginFileSignatureSchema.optional()
+  }).optional(),
+  rootDir: z12.string(),
+  origin: z12.string(),
+  enabled: z12.boolean(),
+  enabledByDefault: z12.boolean().optional(),
+  syntheticAuthRefs: StringArraySchema.optional(),
+  startup: InstalledPluginIndexStartupSchema,
+  compat: z12.array(z12.string())
+});
+var InstalledPluginInstallRecordSchema = z12.record(z12.string(), z12.unknown());
+var PluginDiagnosticSchema = z12.object({
+  level: z12.union([z12.literal("warn"), z12.literal("error")]),
+  message: z12.string(),
+  pluginId: z12.string().optional(),
+  source: z12.string().optional()
+});
+var InstalledPluginIndexSchema = z12.object({
+  version: z12.literal(INSTALLED_PLUGIN_INDEX_VERSION),
+  warning: z12.string().optional(),
+  hostContractVersion: z12.string(),
+  compatRegistryVersion: z12.string(),
+  migrationVersion: z12.literal(INSTALLED_PLUGIN_INDEX_MIGRATION_VERSION),
+  policyHash: z12.string(),
+  generatedAtMs: z12.number(),
+  refreshReason: z12.string().optional(),
+  installRecords: z12.record(z12.string(), InstalledPluginInstallRecordSchema).optional(),
+  plugins: z12.array(InstalledPluginIndexRecordSchema),
+  diagnostics: z12.array(PluginDiagnosticSchema)
+});
+function copySafeInstallRecords(records) {
+  if (!records) {
+    return void 0;
+  }
+  const safeRecords = {};
+  for (const [pluginId, record] of Object.entries(records)) {
+    if (isBlockedObjectKey(pluginId)) {
+      continue;
+    }
+    safeRecords[pluginId] = record;
+  }
+  return safeRecords;
+}
+function parseInstalledPluginIndex(value) {
+  const parsed = safeParseWithSchema(InstalledPluginIndexSchema, value);
+  if (!parsed) {
+    return null;
+  }
+  const installRecords = copySafeInstallRecords(parsed.installRecords) ?? copySafeInstallRecords(
+    extractPluginInstallRecordsFromInstalledPluginIndex(parsed)
+  ) ?? {};
+  return {
+    version: parsed.version,
+    ...parsed.warning ? { warning: parsed.warning } : {},
+    hostContractVersion: parsed.hostContractVersion,
+    compatRegistryVersion: parsed.compatRegistryVersion,
+    migrationVersion: parsed.migrationVersion,
+    policyHash: parsed.policyHash,
+    generatedAtMs: parsed.generatedAtMs,
+    ...parsed.refreshReason ? { refreshReason: parsed.refreshReason } : {},
+    installRecords,
+    plugins: parsed.plugins,
+    diagnostics: parsed.diagnostics
+  };
+}
+function readPersistedInstalledPluginIndexSync(options = {}) {
+  const parsed = readJsonFileSync(resolveInstalledPluginIndexStorePath(options));
+  return parseInstalledPluginIndex(parsed);
+}
+
+// vendor/openclaw/src/plugins/plugin-registry-snapshot.ts
+var DISABLE_PERSISTED_PLUGIN_REGISTRY_ENV = "OPENCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY";
+function formatDeprecatedPersistedRegistryDisableWarning() {
+  return `${DISABLE_PERSISTED_PLUGIN_REGISTRY_ENV} is a deprecated break-glass compatibility switch; use \`openclaw plugins registry --refresh\` or \`openclaw doctor --fix\` to repair registry state.`;
+}
+function hasEnvFlag(env, name) {
+  const value = env[name]?.trim().toLowerCase();
+  return Boolean(value && value !== "0" && value !== "false" && value !== "no");
+}
+function hasMissingPersistedPluginSource(index) {
+  return index.plugins.some((plugin) => {
+    if (!plugin.enabled) {
+      return false;
+    }
+    return !fs21.existsSync(plugin.rootDir) || !hasOptionalMissingPluginManifestFile(plugin) && !fs21.existsSync(plugin.manifestPath) || (plugin.source ? !fs21.existsSync(plugin.source) : false) || (plugin.setupSource ? !fs21.existsSync(plugin.setupSource) : false);
+  });
+}
+function resolveComparablePath(filePath) {
+  try {
+    return fs21.realpathSync(filePath);
+  } catch {
+    return path28.resolve(filePath);
+  }
+}
+function isPathInsideOrEqual(childPath, parentPath) {
+  const relative = path28.relative(
+    resolveComparablePath(parentPath),
+    resolveComparablePath(childPath)
+  );
+  return relative === "" || !relative.startsWith("..") && !path28.isAbsolute(relative);
+}
+function hasMismatchedPersistedBundledPluginRoot(index, env) {
+  const bundledPluginsDir = resolveBundledPluginsDir(env);
+  if (!bundledPluginsDir) {
+    return false;
+  }
+  return index.plugins.some(
+    (plugin) => plugin.origin === "bundled" && !isPathInsideOrEqual(plugin.rootDir, bundledPluginsDir)
+  );
+}
+function hashExistingFile(filePath) {
+  try {
+    return crypto2.createHash("sha256").update(fs21.readFileSync(filePath)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+function resolveRecordPackageJsonPath(plugin) {
+  const packageJsonPath = plugin.packageJson?.path;
+  if (!packageJsonPath) {
+    return null;
+  }
+  const rootDir = plugin.rootDir || path28.dirname(plugin.manifestPath);
+  const resolved = path28.resolve(rootDir, packageJsonPath);
+  const relative = path28.relative(rootDir, resolved);
+  return relative.startsWith("..") || path28.isAbsolute(relative) ? null : resolved;
+}
+function hasStalePersistedPluginMetadata(index) {
+  return index.plugins.some((plugin) => {
+    if (!hasOptionalMissingPluginManifestFile(plugin)) {
+      const manifestSignatureMatches = fileSignatureMatches(
+        plugin.manifestPath,
+        plugin.manifestFile
+      );
+      if (manifestSignatureMatches === false) {
+        const manifestHash = hashExistingFile(plugin.manifestPath);
+        if (manifestHash && manifestHash !== plugin.manifestHash) {
+          return true;
+        }
+      } else {
+        const manifestHash = hashExistingFile(plugin.manifestPath);
+        if (manifestHash && manifestHash !== plugin.manifestHash) {
+          return true;
+        }
+      }
+    }
+    const packageJsonPath = resolveRecordPackageJsonPath(plugin);
+    if (!plugin.packageJson?.hash) {
+      return false;
+    }
+    if (!packageJsonPath) {
+      return true;
+    }
+    const packageJsonSignatureMatches = fileSignatureMatches(
+      packageJsonPath,
+      plugin.packageJson.fileSignature
+    );
+    if (packageJsonSignatureMatches === false) {
+      return hashExistingFile(packageJsonPath) !== plugin.packageJson.hash;
+    }
+    const packageJsonHash = hashExistingFile(packageJsonPath);
+    return packageJsonHash !== plugin.packageJson.hash;
+  });
+}
+function loadPluginRegistrySnapshotWithMetadata(params = {}) {
+  if (params.index) {
+    return {
+      snapshot: params.index,
+      source: "provided",
+      diagnostics: []
+    };
+  }
+  const env = params.env ?? process.env;
+  const diagnostics = [];
+  const disabledByCaller = params.preferPersisted === false;
+  const disabledByEnv = hasEnvFlag(env, DISABLE_PERSISTED_PLUGIN_REGISTRY_ENV);
+  const persistedReadsEnabled = !disabledByCaller && !disabledByEnv;
+  const persistedInstallRecordReadsEnabled = !disabledByEnv;
+  let persistedIndex = null;
+  if (persistedInstallRecordReadsEnabled) {
+    persistedIndex = readPersistedInstalledPluginIndexSync(params);
+    if (persistedReadsEnabled && persistedIndex) {
+      if (params.config && persistedIndex.policyHash !== resolveInstalledPluginIndexPolicyHash(params.config)) {
+        diagnostics.push({
+          level: "warn",
+          code: "persisted-registry-stale-policy",
+          message: "Persisted plugin registry policy does not match current config; using derived plugin index. Run `openclaw plugins registry --refresh` to update the persisted registry."
+        });
+      } else if (hasMissingPersistedPluginSource(persistedIndex)) {
+        diagnostics.push({
+          level: "warn",
+          code: "persisted-registry-stale-source",
+          message: "Persisted plugin registry points at missing plugin files; using derived plugin index. Run `openclaw plugins registry --refresh` to update the persisted registry."
+        });
+      } else if (hasMismatchedPersistedBundledPluginRoot(persistedIndex, env)) {
+        diagnostics.push({
+          level: "warn",
+          code: "persisted-registry-stale-source",
+          message: "Persisted plugin registry points at a different bundled plugin tree; using derived plugin index. Run `openclaw plugins registry --refresh` to update the persisted registry."
+        });
+      } else if (hasStalePersistedPluginMetadata(persistedIndex)) {
+        diagnostics.push({
+          level: "warn",
+          code: "persisted-registry-stale-source",
+          message: "Persisted plugin registry metadata no longer matches plugin manifest or package files; using derived plugin index. Run `openclaw plugins registry --refresh` to update the persisted registry."
+        });
+      } else {
+        return {
+          snapshot: persistedIndex,
+          source: "persisted",
+          diagnostics
+        };
+      }
+    } else if (persistedReadsEnabled) {
+      diagnostics.push({
+        level: "info",
+        code: "persisted-registry-missing",
+        message: "Persisted plugin registry is missing or invalid; using derived plugin index."
+      });
+    }
+  } else {
+    diagnostics.push({
+      level: "warn",
+      code: "persisted-registry-disabled",
+      message: disabledByEnv ? `${formatDeprecatedPersistedRegistryDisableWarning()} Using legacy derived plugin index.` : "Persisted plugin registry reads are disabled by the caller; using derived plugin index."
+    });
+  }
+  return {
+    snapshot: loadInstalledPluginIndex({
+      ...params,
+      installRecords: params.installRecords ?? extractPluginInstallRecordsFromInstalledPluginIndex(persistedIndex)
+    }),
+    source: "derived",
+    diagnostics
+  };
+}
+
+// vendor/openclaw/src/plugins/plugin-metadata-snapshot.ts
+function resolvePluginMetadataControlPlaneFingerprint(params) {
+  return resolvePluginControlPlaneFingerprint(params);
+}
+function normalizeInstalledPluginIndex(index) {
+  return {
+    version: index.version ?? 1,
+    hostContractVersion: index.hostContractVersion ?? "",
+    compatRegistryVersion: index.compatRegistryVersion ?? "",
+    migrationVersion: index.migrationVersion ?? 1,
+    policyHash: index.policyHash ?? "",
+    generatedAtMs: index.generatedAtMs ?? 0,
+    installRecords: index.installRecords ?? {},
+    plugins: index.plugins ?? [],
+    diagnostics: index.diagnostics ?? [],
+    ...index.warning ? { warning: index.warning } : {},
+    ...index.refreshReason ? { refreshReason: index.refreshReason } : {}
+  };
+}
+function appendOwner(owners, ownedId, pluginId) {
+  const existing = owners.get(ownedId);
+  if (existing) {
+    existing.push(pluginId);
+    return;
+  }
+  owners.set(ownedId, [pluginId]);
+}
+function freezeOwnerMap(owners) {
+  return new Map(
+    [...owners.entries()].map(([ownedId, pluginIds]) => [ownedId, Object.freeze([...pluginIds])])
+  );
+}
+function buildPluginMetadataOwnerMaps(plugins) {
+  const channels = /* @__PURE__ */ new Map();
+  const channelConfigs = /* @__PURE__ */ new Map();
+  const providers = /* @__PURE__ */ new Map();
+  const modelCatalogProviders = /* @__PURE__ */ new Map();
+  const cliBackends = /* @__PURE__ */ new Map();
+  const setupProviders = /* @__PURE__ */ new Map();
+  const commandAliases = /* @__PURE__ */ new Map();
+  const contracts = /* @__PURE__ */ new Map();
+  for (const plugin of plugins) {
+    for (const channelId of plugin.channels ?? []) {
+      appendOwner(channels, channelId, plugin.id);
+    }
+    for (const channelId of Object.keys(plugin.channelConfigs ?? {})) {
+      appendOwner(channelConfigs, channelId, plugin.id);
+    }
+    for (const providerId of plugin.providers ?? []) {
+      appendOwner(providers, providerId, plugin.id);
+    }
+    for (const providerId of Object.keys(plugin.modelCatalog?.providers ?? {})) {
+      appendOwner(modelCatalogProviders, providerId, plugin.id);
+    }
+    for (const providerId of Object.keys(plugin.modelCatalog?.aliases ?? {})) {
+      appendOwner(modelCatalogProviders, providerId, plugin.id);
+    }
+    for (const cliBackendId of plugin.cliBackends ?? []) {
+      appendOwner(cliBackends, cliBackendId, plugin.id);
+    }
+    for (const cliBackendId of plugin.setup?.cliBackends ?? []) {
+      appendOwner(cliBackends, cliBackendId, plugin.id);
+    }
+    for (const setupProvider of plugin.setup?.providers ?? []) {
+      appendOwner(setupProviders, setupProvider.id, plugin.id);
+    }
+    for (const commandAlias of plugin.commandAliases ?? []) {
+      appendOwner(commandAliases, commandAlias.name, plugin.id);
+    }
+    for (const [contract, values] of Object.entries(plugin.contracts ?? {})) {
+      if (Array.isArray(values) && values.length > 0) {
+        appendOwner(contracts, contract, plugin.id);
+      }
+    }
+  }
+  return {
+    channels: freezeOwnerMap(channels),
+    channelConfigs: freezeOwnerMap(channelConfigs),
+    providers: freezeOwnerMap(providers),
+    modelCatalogProviders: freezeOwnerMap(modelCatalogProviders),
+    cliBackends: freezeOwnerMap(cliBackends),
+    setupProviders: freezeOwnerMap(setupProviders),
+    commandAliases: freezeOwnerMap(commandAliases),
+    contracts: freezeOwnerMap(contracts)
+  };
+}
+function loadPluginMetadataSnapshot(params) {
+  return measureDiagnosticsTimelineSpanSync(
+    "plugins.metadata.scan",
+    () => loadPluginMetadataSnapshotImpl(params),
+    {
+      phase: "startup",
+      config: params.config,
+      env: params.env,
+      attributes: {
+        hasWorkspaceDir: params.workspaceDir !== void 0,
+        hasInstalledIndex: params.index !== void 0
+      }
+    }
+  );
+}
+function loadPluginMetadataSnapshotImpl(params) {
+  const totalStartedAt = performance.now();
+  const registryStartedAt = performance.now();
+  const registryResult = loadPluginRegistrySnapshotWithMetadata({
+    config: params.config,
+    workspaceDir: params.workspaceDir,
+    ...params.stateDir ? { stateDir: params.stateDir } : {},
+    env: params.env,
+    ...params.preferPersisted !== void 0 ? { preferPersisted: params.preferPersisted } : {},
+    ...params.index ? { index: params.index } : {}
+  }) ?? {
+    source: "derived",
+    snapshot: { plugins: [] },
+    diagnostics: []
+  };
+  const registrySnapshotMs = performance.now() - registryStartedAt;
+  const index = normalizeInstalledPluginIndex(registryResult.snapshot);
+  const manifestStartedAt = performance.now();
+  const manifestRegistry = index.plugins.length === 0 ? loadPluginManifestRegistry({
+    config: params.config,
+    workspaceDir: params.workspaceDir,
+    env: params.env,
+    diagnostics: [...index.diagnostics],
+    installRecords: index.installRecords
+  }) : loadPluginManifestRegistryForInstalledIndex({
+    index,
+    config: params.config,
+    workspaceDir: params.workspaceDir,
+    env: params.env,
+    includeDisabled: true
+  });
+  const manifestRegistryMs = performance.now() - manifestStartedAt;
+  const normalizePluginId = createPluginRegistryIdNormalizer(index, { manifestRegistry });
+  const byPluginId = new Map(manifestRegistry.plugins.map((plugin) => [plugin.id, plugin]));
+  const ownerMapsStartedAt = performance.now();
+  const owners = buildPluginMetadataOwnerMaps(manifestRegistry.plugins);
+  const ownerMapsMs = performance.now() - ownerMapsStartedAt;
+  const totalMs = performance.now() - totalStartedAt;
+  return {
+    policyHash: index.policyHash,
+    configFingerprint: resolvePluginMetadataControlPlaneFingerprint({
+      config: params.config,
+      env: params.env,
+      index,
+      policyHash: index.policyHash,
+      workspaceDir: params.workspaceDir
+    }),
+    ...params.workspaceDir ? { workspaceDir: params.workspaceDir } : {},
+    index,
+    registryDiagnostics: registryResult.diagnostics,
+    manifestRegistry,
+    plugins: manifestRegistry.plugins,
+    diagnostics: manifestRegistry.diagnostics,
+    byPluginId,
+    normalizePluginId,
+    owners,
+    metrics: {
+      registrySnapshotMs,
+      manifestRegistryMs,
+      ownerMapsMs,
+      totalMs,
+      indexPluginCount: index.plugins.length,
+      manifestPluginCount: manifestRegistry.plugins.length
+    }
+  };
 }
 
 // vendor/openclaw/src/config/zod-schema.channels.ts
-import { z as z12 } from "zod";
-var ChannelHeartbeatVisibilitySchema = z12.object({
-  showOk: z12.boolean().optional(),
-  showAlerts: z12.boolean().optional(),
-  useIndicator: z12.boolean().optional()
+import { z as z13 } from "zod";
+var ChannelHeartbeatVisibilitySchema = z13.object({
+  showOk: z13.boolean().optional(),
+  showAlerts: z13.boolean().optional(),
+  useIndicator: z13.boolean().optional()
 }).strict().optional();
-var ChannelHealthMonitorSchema = z12.object({
-  enabled: z12.boolean().optional()
+var ChannelHealthMonitorSchema = z13.object({
+  enabled: z13.boolean().optional()
 }).strict().optional();
 
 // vendor/openclaw/src/config/zod-schema.providers-core.ts
-import { z as z14 } from "zod";
+import { z as z15 } from "zod";
 
 // vendor/openclaw/src/infra/scp-host.ts
+init_string_coerce();
 var SSH_TOKEN = /^[A-Za-z0-9._-]+$/;
 var BRACKETED_IPV6 = /^\[[0-9A-Fa-f:.%]+\]$/;
 var WHITESPACE = /\s/;
@@ -8202,7 +16321,7 @@ function isSafeScpRemoteHost(value) {
 }
 
 // vendor/openclaw/src/media/inbound-path-policy.ts
-import path14 from "node:path";
+import path29 from "node:path";
 var WILDCARD_SEGMENT = "*";
 var WINDOWS_DRIVE_ABS_RE = /^[A-Za-z]:\//;
 var WINDOWS_DRIVE_ROOT_RE = /^[A-Za-z]:$/;
@@ -8211,7 +16330,7 @@ function normalizePosixAbsolutePath(value) {
   if (!trimmed || trimmed.includes("\0")) {
     return void 0;
   }
-  const normalized = path14.posix.normalize(trimmed.replaceAll("\\", "/"));
+  const normalized = path29.posix.normalize(trimmed.replaceAll("\\", "/"));
   const isAbsolute = normalized.startsWith("/") || WINDOWS_DRIVE_ABS_RE.test(normalized);
   if (!isAbsolute || normalized === "/") {
     return void 0;
@@ -8237,20 +16356,21 @@ function isValidInboundPathRootPattern(value) {
   return segments.every((segment) => segment === WILDCARD_SEGMENT || !segment.includes("*"));
 }
 
-// vendor/openclaw/src/plugin-sdk/telegram-command-config.ts
-var TELEGRAM_COMMAND_NAME_PATTERN_VALUE = /^[a-z0-9_]{1,32}$/;
-function normalizeTelegramCommandNameImpl(value) {
+// vendor/openclaw/src/shared/custom-command-config.ts
+init_string_coerce();
+var DEFAULT_PREFIX = "/";
+function normalizeSlashCommandName(value) {
   const trimmed = value.trim();
   if (!trimmed) {
     return "";
   }
-  const withoutSlash = trimmed.startsWith("/") ? trimmed.slice(1) : trimmed;
+  const withoutSlash = trimmed.startsWith(DEFAULT_PREFIX) ? trimmed.slice(1) : trimmed;
   return normalizeLowercaseStringOrEmpty(withoutSlash).replace(/-/g, "_");
 }
-function normalizeTelegramCommandDescriptionImpl(value) {
+function normalizeCommandDescription(value) {
   return value.trim();
 }
-function resolveTelegramCustomCommandsImpl(params) {
+function resolveCustomCommands(params) {
   const entries = Array.isArray(params.commands) ? params.commands : [];
   const reserved = params.reservedCommands ?? /* @__PURE__ */ new Set();
   const checkReserved = params.checkReserved !== false;
@@ -8258,22 +16378,24 @@ function resolveTelegramCustomCommandsImpl(params) {
   const seen = /* @__PURE__ */ new Set();
   const resolved = [];
   const issues = [];
+  const label = params.config.label;
+  const prefix = params.config.prefix ?? DEFAULT_PREFIX;
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
-    const normalized = normalizeTelegramCommandNameImpl(entry?.command ?? "");
+    const normalized = normalizeSlashCommandName(entry?.command ?? "");
     if (!normalized) {
       issues.push({
         index,
         field: "command",
-        message: "Telegram custom command is missing a command name."
+        message: `${label} custom command is missing a command name.`
       });
       continue;
     }
-    if (!TELEGRAM_COMMAND_NAME_PATTERN_VALUE.test(normalized)) {
+    if (!params.config.pattern.test(normalized)) {
       issues.push({
         index,
         field: "command",
-        message: `Telegram custom command "/${normalized}" is invalid (use a-z, 0-9, underscore; max 32 chars).`
+        message: `${label} custom command "${prefix}${normalized}" is invalid (${params.config.patternDescription}).`
       });
       continue;
     }
@@ -8281,7 +16403,7 @@ function resolveTelegramCustomCommandsImpl(params) {
       issues.push({
         index,
         field: "command",
-        message: `Telegram custom command "/${normalized}" conflicts with a native command.`
+        message: `${label} custom command "${prefix}${normalized}" conflicts with a native command.`
       });
       continue;
     }
@@ -8289,16 +16411,16 @@ function resolveTelegramCustomCommandsImpl(params) {
       issues.push({
         index,
         field: "command",
-        message: `Telegram custom command "/${normalized}" is duplicated.`
+        message: `${label} custom command "${prefix}${normalized}" is duplicated.`
       });
       continue;
     }
-    const description = normalizeTelegramCommandDescriptionImpl(entry?.description ?? "");
+    const description = normalizeCommandDescription(entry?.description ?? "");
     if (!description) {
       issues.push({
         index,
         field: "description",
-        message: `Telegram custom command "/${normalized}" is missing a description.`
+        message: `${label} custom command "${prefix}${normalized}" is missing a description.`
       });
       continue;
     }
@@ -8309,18 +16431,13 @@ function resolveTelegramCustomCommandsImpl(params) {
   }
   return { commands: resolved, issues };
 }
-function normalizeTelegramCommandName(value) {
-  return normalizeTelegramCommandNameImpl(value);
-}
-function normalizeTelegramCommandDescription(value) {
-  return normalizeTelegramCommandDescriptionImpl(value);
-}
-function resolveTelegramCustomCommands(params) {
-  return resolveTelegramCustomCommandsImpl(params);
-}
+
+// vendor/openclaw/src/config/zod-schema.providers-core.ts
+init_string_coerce();
 
 // vendor/openclaw/src/config/zod-schema.secret-input-validation.ts
-import { z as z13 } from "zod";
+init_string_coerce();
+import { z as z14 } from "zod";
 function forEachEnabledAccount(accounts, run) {
   if (!accounts) {
     return;
@@ -8337,7 +16454,7 @@ function validateTelegramWebhookSecretRequirements(value, ctx) {
   const hasBaseWebhookSecret = hasConfiguredSecretInput(value.webhookSecret);
   if (baseWebhookUrl && !hasBaseWebhookSecret) {
     ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
+      code: z14.ZodIssueCode.custom,
       message: "channels.telegram.webhookUrl requires channels.telegram.webhookSecret",
       path: ["webhookSecret"]
     });
@@ -8350,7 +16467,7 @@ function validateTelegramWebhookSecretRequirements(value, ctx) {
     const hasAccountSecret = hasConfiguredSecretInput(account.webhookSecret);
     if (!hasAccountSecret && !hasBaseWebhookSecret) {
       ctx.addIssue({
-        code: z13.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         message: "channels.telegram.accounts.*.webhookUrl requires channels.telegram.webhookSecret or channels.telegram.accounts.*.webhookSecret",
         path: ["accounts", accountId, "webhookSecret"]
       });
@@ -8361,7 +16478,7 @@ function validateSlackSigningSecretRequirements(value, ctx) {
   const baseMode = value.mode === "http" || value.mode === "socket" ? value.mode : "socket";
   if (baseMode === "http" && !hasConfiguredSecretInput(value.signingSecret)) {
     ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
+      code: z14.ZodIssueCode.custom,
       message: 'channels.slack.mode="http" requires channels.slack.signingSecret',
       path: ["signingSecret"]
     });
@@ -8374,7 +16491,7 @@ function validateSlackSigningSecretRequirements(value, ctx) {
     const accountSecret = account.signingSecret ?? value.signingSecret;
     if (!hasConfiguredSecretInput(accountSecret)) {
       ctx.addIssue({
-        code: z13.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         message: 'channels.slack.accounts.*.mode="http" requires channels.slack.signingSecret or channels.slack.accounts.*.signingSecret',
         path: ["accounts", accountId, "signingSecret"]
       });
@@ -8383,213 +16500,231 @@ function validateSlackSigningSecretRequirements(value, ctx) {
 }
 
 // vendor/openclaw/src/config/zod-schema.providers-core.ts
-var ToolPolicyBySenderSchema = z14.record(z14.string(), ToolPolicySchema).optional();
-var DiscordIdSchema = z14.union([z14.string(), z14.number()]).transform((value, ctx) => {
+var ToolPolicyBySenderSchema = z15.record(z15.string(), ToolPolicySchema).optional();
+var DiscordIdSchema = z15.union([z15.string(), z15.number()]).transform((value, ctx) => {
   if (typeof value === "number") {
     if (!Number.isSafeInteger(value) || value < 0) {
       ctx.addIssue({
-        code: z14.ZodIssueCode.custom,
+        code: z15.ZodIssueCode.custom,
         message: `Discord ID "${String(value)}" is not a valid non-negative safe integer. Wrap it in quotes in your config file.`
       });
-      return z14.NEVER;
+      return z15.NEVER;
     }
     return String(value);
   }
   return value;
-}).pipe(z14.string());
-var DiscordIdListSchema = z14.array(DiscordIdSchema);
-var TelegramInlineButtonsScopeSchema = z14.enum(["off", "dm", "group", "all", "allowlist"]);
-var TelegramIdListSchema = z14.array(z14.union([z14.string(), z14.number()]));
-var TelegramCapabilitiesSchema = z14.union([
-  z14.array(z14.string()),
-  z14.object({
+}).pipe(z15.string());
+var DiscordIdListSchema = z15.array(DiscordIdSchema);
+var DiscordSnowflakeStringSchema = z15.string().regex(/^\d+$/, "Discord user ID must be numeric");
+var TelegramInlineButtonsScopeSchema = z15.enum(["off", "dm", "group", "all", "allowlist"]);
+var TelegramIdListSchema = z15.array(z15.union([z15.string(), z15.number()]));
+var TelegramCapabilitiesSchema = z15.union([
+  z15.array(z15.string()),
+  z15.object({
     inlineButtons: TelegramInlineButtonsScopeSchema.optional()
   }).strict()
 ]);
-var TextChunkModeSchema = z14.enum(["length", "newline"]);
-var UnifiedStreamingModeSchema = z14.enum(["off", "partial", "block", "progress"]);
-var ChannelStreamingBlockSchema = z14.object({
-  enabled: z14.boolean().optional(),
+var TextChunkModeSchema = z15.enum(["length", "newline"]);
+var UnifiedStreamingModeSchema = z15.enum(["off", "partial", "block", "progress"]);
+var ChannelStreamingBlockSchema = z15.object({
+  enabled: z15.boolean().optional(),
   coalesce: BlockStreamingCoalesceSchema.optional()
 }).strict();
-var ChannelStreamingPreviewSchema = z14.object({
-  chunk: BlockStreamingChunkSchema.optional()
+var ChannelStreamingPreviewSchema = z15.object({
+  chunk: BlockStreamingChunkSchema.optional(),
+  toolProgress: z15.boolean().optional()
 }).strict();
-var ChannelPreviewStreamingConfigSchema = z14.object({
+var ChannelPreviewStreamingConfigSchema = z15.object({
   mode: UnifiedStreamingModeSchema.optional(),
   chunkMode: TextChunkModeSchema.optional(),
   preview: ChannelStreamingPreviewSchema.optional(),
   block: ChannelStreamingBlockSchema.optional()
 }).strict();
 var SlackStreamingConfigSchema = ChannelPreviewStreamingConfigSchema.extend({
-  nativeTransport: z14.boolean().optional()
+  nativeTransport: z15.boolean().optional()
 }).strict();
-var SlackCapabilitiesSchema = z14.union([
-  z14.array(z14.string()),
-  z14.object({
-    interactiveReplies: z14.boolean().optional()
+var SlackCapabilitiesSchema = z15.union([
+  z15.array(z15.string()),
+  z15.object({
+    interactiveReplies: z15.boolean().optional()
   }).strict()
 ]);
-var TelegramErrorPolicySchema = z14.enum(["always", "once", "silent"]).optional();
-var TelegramTopicSchema = z14.object({
-  requireMention: z14.boolean().optional(),
-  ingest: z14.boolean().optional(),
-  disableAudioPreflight: z14.boolean().optional(),
+var TelegramErrorPolicySchema = z15.enum(["always", "once", "silent"]).optional();
+var TelegramCommandNamePattern = /^[a-z0-9_]{1,32}$/;
+var TelegramCustomCommandConfig = {
+  label: "Telegram",
+  pattern: TelegramCommandNamePattern,
+  patternDescription: "use a-z, 0-9, underscore; max 32 chars"
+};
+var TelegramTopicSchema = z15.object({
+  requireMention: z15.boolean().optional(),
+  ingest: z15.boolean().optional(),
+  disableAudioPreflight: z15.boolean().optional(),
   groupPolicy: GroupPolicySchema.optional(),
-  skills: z14.array(z14.string()).optional(),
-  enabled: z14.boolean().optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  systemPrompt: z14.string().optional(),
-  agentId: z14.string().optional(),
+  skills: z15.array(z15.string()).optional(),
+  enabled: z15.boolean().optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  systemPrompt: z15.string().optional(),
+  agentId: z15.string().optional(),
   errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z14.number().int().nonnegative().optional()
+  errorCooldownMs: z15.number().int().nonnegative().optional()
 }).strict();
-var TelegramGroupSchema = z14.object({
-  requireMention: z14.boolean().optional(),
-  ingest: z14.boolean().optional(),
-  disableAudioPreflight: z14.boolean().optional(),
+var TelegramGroupSchema = z15.object({
+  requireMention: z15.boolean().optional(),
+  ingest: z15.boolean().optional(),
+  disableAudioPreflight: z15.boolean().optional(),
   groupPolicy: GroupPolicySchema.optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
-  skills: z14.array(z14.string()).optional(),
-  enabled: z14.boolean().optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  systemPrompt: z14.string().optional(),
-  topics: z14.record(z14.string(), TelegramTopicSchema.optional()).optional(),
+  skills: z15.array(z15.string()).optional(),
+  enabled: z15.boolean().optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  systemPrompt: z15.string().optional(),
+  topics: z15.record(z15.string(), TelegramTopicSchema.optional()).optional(),
   errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z14.number().int().nonnegative().optional()
+  errorCooldownMs: z15.number().int().nonnegative().optional()
 }).strict();
-var AutoTopicLabelSchema = z14.union([
-  z14.boolean(),
-  z14.object({
-    enabled: z14.boolean().optional(),
-    prompt: z14.string().optional()
+var TelegramDmThreadRepliesSchema = z15.enum(["off", "inbound", "always"]);
+var TelegramDmSchema = z15.object({
+  threadReplies: TelegramDmThreadRepliesSchema.optional()
+}).strict();
+var AutoTopicLabelSchema = z15.union([
+  z15.boolean(),
+  z15.object({
+    enabled: z15.boolean().optional(),
+    prompt: z15.string().optional()
   }).strict()
 ]).optional();
-var TelegramDirectSchema = z14.object({
+var TelegramDirectSchema = z15.object({
   dmPolicy: DmPolicySchema.optional(),
+  threadReplies: z15.enum(["off", "inbound", "always"]).optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
-  skills: z14.array(z14.string()).optional(),
-  enabled: z14.boolean().optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  systemPrompt: z14.string().optional(),
-  topics: z14.record(z14.string(), TelegramTopicSchema.optional()).optional(),
+  skills: z15.array(z15.string()).optional(),
+  enabled: z15.boolean().optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  systemPrompt: z15.string().optional(),
+  topics: z15.record(z15.string(), TelegramTopicSchema.optional()).optional(),
   errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z14.number().int().nonnegative().optional(),
-  requireTopic: z14.boolean().optional(),
+  errorCooldownMs: z15.number().int().nonnegative().optional(),
+  requireTopic: z15.boolean().optional(),
   autoTopicLabel: AutoTopicLabelSchema
 }).strict();
-var TelegramCustomCommandSchema = z14.object({
-  command: z14.string().overwrite(normalizeTelegramCommandName),
-  description: z14.string().overwrite(normalizeTelegramCommandDescription)
+var TelegramCustomCommandSchema = z15.object({
+  command: z15.string().overwrite(normalizeSlashCommandName),
+  description: z15.string().overwrite(normalizeCommandDescription)
 }).strict();
 var validateTelegramCustomCommands = (value, ctx) => {
   if (!value.customCommands || value.customCommands.length === 0) {
     return;
   }
-  const { issues } = resolveTelegramCustomCommands({
+  const { issues } = resolveCustomCommands({
     commands: value.customCommands,
     checkReserved: false,
-    checkDuplicates: false
+    checkDuplicates: false,
+    config: TelegramCustomCommandConfig
   });
   for (const issue of issues) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       path: ["customCommands", issue.index, issue.field],
       message: issue.message
     });
   }
 };
-var TelegramAccountSchemaBase = z14.object({
-  name: z14.string().optional(),
+var TelegramAccountSchemaBase = z15.object({
+  name: z15.string().optional(),
   capabilities: TelegramCapabilitiesSchema.optional(),
-  execApprovals: z14.object({
-    enabled: z14.boolean().optional(),
+  execApprovals: z15.object({
+    enabled: z15.boolean().optional(),
     approvers: TelegramIdListSchema.optional(),
-    agentFilter: z14.array(z14.string()).optional(),
-    sessionFilter: z14.array(z14.string()).optional(),
-    target: z14.enum(["dm", "channel", "both"]).optional()
+    agentFilter: z15.array(z15.string()).optional(),
+    sessionFilter: z15.array(z15.string()).optional(),
+    target: z15.enum(["dm", "channel", "both"]).optional()
   }).strict().optional(),
   markdown: MarkdownConfigSchema,
-  enabled: z14.boolean().optional(),
+  enabled: z15.boolean().optional(),
   commands: ProviderCommandsSchema,
-  customCommands: z14.array(TelegramCustomCommandSchema).optional(),
-  configWrites: z14.boolean().optional(),
+  customCommands: z15.array(TelegramCustomCommandSchema).optional(),
+  configWrites: z15.boolean().optional(),
   dmPolicy: DmPolicySchema.optional().default("pairing"),
   botToken: SecretInputSchema.optional().register(sensitive),
-  tokenFile: z14.string().optional(),
+  tokenFile: z15.string().optional(),
   replyToMode: ReplyToModeSchema.optional(),
-  groups: z14.record(z14.string(), TelegramGroupSchema.optional()).optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  defaultTo: z14.union([z14.string(), z14.number()]).optional(),
-  groupAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  dm: TelegramDmSchema.optional(),
+  groups: z15.record(z15.string(), TelegramGroupSchema.optional()).optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  defaultTo: z15.union([z15.string(), z15.number()]).optional(),
+  groupAllowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  direct: z14.record(z14.string(), TelegramDirectSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  direct: z15.record(z15.string(), TelegramDirectSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
   streaming: ChannelPreviewStreamingConfigSchema.optional(),
-  mediaMaxMb: z14.number().positive().optional(),
-  timeoutSeconds: z14.number().int().positive().optional(),
+  mediaMaxMb: z15.number().positive().optional(),
+  timeoutSeconds: z15.number().int().positive().optional(),
+  pollingStallThresholdMs: z15.number().int().min(3e4).max(6e5).optional(),
   retry: RetryConfigSchema,
-  network: z14.object({
-    autoSelectFamily: z14.boolean().optional(),
-    dnsResultOrder: z14.enum(["ipv4first", "verbatim"]).optional(),
-    dangerouslyAllowPrivateNetwork: z14.boolean().optional().describe(
+  network: z15.object({
+    autoSelectFamily: z15.boolean().optional(),
+    dnsResultOrder: z15.enum(["ipv4first", "verbatim"]).optional(),
+    dangerouslyAllowPrivateNetwork: z15.boolean().optional().describe(
       "Dangerous opt-in for trusted Telegram fake-IP or transparent-proxy environments where api.telegram.org resolves to private/internal/special-use addresses during media downloads."
     )
   }).strict().optional(),
-  proxy: z14.string().optional(),
-  webhookUrl: z14.string().optional().describe(
+  proxy: z15.string().optional(),
+  webhookUrl: z15.string().optional().describe(
     "Public HTTPS webhook URL registered with Telegram for inbound updates. This must be internet-reachable and requires channels.telegram.webhookSecret."
   ),
   webhookSecret: SecretInputSchema.optional().describe(
     "Secret token sent to Telegram during webhook registration and verified on inbound webhook requests. Telegram returns this value for verification; this is not the gateway auth token and not the bot token."
   ).register(sensitive),
-  webhookPath: z14.string().optional().describe(
+  webhookPath: z15.string().optional().describe(
     "Local webhook route path served by the gateway listener. Defaults to /telegram-webhook."
   ),
-  webhookHost: z14.string().optional().describe(
+  webhookHost: z15.string().optional().describe(
     "Local bind host for the webhook listener. Defaults to 127.0.0.1; keep loopback unless you intentionally expose direct ingress."
   ),
-  webhookPort: z14.number().int().nonnegative().optional().describe(
+  webhookPort: z15.number().int().nonnegative().optional().describe(
     "Local bind port for the webhook listener. Defaults to 8787; set to 0 to let the OS assign an ephemeral port."
   ),
-  webhookCertPath: z14.string().optional().describe(
+  webhookCertPath: z15.string().optional().describe(
     "Path to the self-signed certificate (PEM) to upload to Telegram during webhook registration. Required for self-signed certs (direct IP or no domain)."
   ),
-  actions: z14.object({
-    reactions: z14.boolean().optional(),
-    sendMessage: z14.boolean().optional(),
-    poll: z14.boolean().optional(),
-    deleteMessage: z14.boolean().optional(),
-    editMessage: z14.boolean().optional(),
-    sticker: z14.boolean().optional(),
-    createForumTopic: z14.boolean().optional(),
-    editForumTopic: z14.boolean().optional()
+  actions: z15.object({
+    reactions: z15.boolean().optional(),
+    sendMessage: z15.boolean().optional(),
+    poll: z15.boolean().optional(),
+    deleteMessage: z15.boolean().optional(),
+    editMessage: z15.boolean().optional(),
+    sticker: z15.boolean().optional(),
+    createForumTopic: z15.boolean().optional(),
+    editForumTopic: z15.boolean().optional()
   }).strict().optional(),
-  threadBindings: z14.object({
-    enabled: z14.boolean().optional(),
-    idleHours: z14.number().nonnegative().optional(),
-    maxAgeHours: z14.number().nonnegative().optional(),
-    spawnSubagentSessions: z14.boolean().optional(),
-    spawnAcpSessions: z14.boolean().optional()
+  threadBindings: z15.object({
+    enabled: z15.boolean().optional(),
+    idleHours: z15.number().nonnegative().optional(),
+    maxAgeHours: z15.number().nonnegative().optional(),
+    spawnSessions: z15.boolean().optional(),
+    defaultSpawnContext: z15.enum(["isolated", "fork"]).optional(),
+    spawnSubagentSessions: z15.boolean().optional(),
+    spawnAcpSessions: z15.boolean().optional()
   }).strict().optional(),
-  reactionNotifications: z14.enum(["off", "own", "all"]).optional(),
-  reactionLevel: z14.enum(["off", "ack", "minimal", "extensive"]).optional(),
+  reactionNotifications: z15.enum(["off", "own", "all"]).optional(),
+  reactionLevel: z15.enum(["off", "ack", "minimal", "extensive"]).optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  linkPreview: z14.boolean().optional(),
-  silentErrorReplies: z14.boolean().optional(),
-  responsePrefix: z14.string().optional(),
-  ackReaction: z14.string().optional(),
+  linkPreview: z15.boolean().optional(),
+  silentErrorReplies: z15.boolean().optional(),
+  responsePrefix: z15.string().optional(),
+  ackReaction: z15.string().optional(),
   errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z14.number().int().nonnegative().optional(),
-  apiRoot: z14.string().url().optional(),
-  trustedLocalFileRoots: z14.array(z14.string()).optional().describe(
+  errorCooldownMs: z15.number().int().nonnegative().optional(),
+  apiRoot: z15.string().url().optional(),
+  trustedLocalFileRoots: z15.array(z15.string()).optional().describe(
     "Trusted local filesystem roots for self-hosted Telegram Bot API absolute file_path values. Only absolute paths under these roots are read directly; all other absolute paths are rejected."
   ),
   autoTopicLabel: AutoTopicLabelSchema
@@ -8598,8 +16733,8 @@ var TelegramAccountSchema = TelegramAccountSchemaBase.superRefine((value, ctx) =
   validateTelegramCustomCommands(value, ctx);
 });
 var TelegramConfigSchema = TelegramAccountSchemaBase.extend({
-  accounts: z14.record(z14.string(), TelegramAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), TelegramAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 }).superRefine((value, ctx) => {
   requireOpenAllowFrom({
     policy: value.dmPolicy,
@@ -8669,168 +16804,183 @@ var TelegramConfigSchema = TelegramAccountSchemaBase.extend({
   }
   validateTelegramWebhookSecretRequirements(value, ctx);
 });
-var DiscordDmSchema = z14.object({
-  enabled: z14.boolean().optional(),
+var DiscordDmSchema = z15.object({
+  enabled: z15.boolean().optional(),
   policy: DmPolicySchema.optional(),
   allowFrom: DiscordIdListSchema.optional(),
-  groupEnabled: z14.boolean().optional(),
+  groupEnabled: z15.boolean().optional(),
   groupChannels: DiscordIdListSchema.optional()
 }).strict();
-var DiscordGuildChannelSchema = z14.object({
-  requireMention: z14.boolean().optional(),
-  ignoreOtherMentions: z14.boolean().optional(),
+var DiscordThreadSchema = z15.object({
+  inheritParent: z15.boolean().optional()
+}).strict();
+var DiscordGuildChannelSchema = z15.object({
+  requireMention: z15.boolean().optional(),
+  ignoreOtherMentions: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
-  skills: z14.array(z14.string()).optional(),
-  enabled: z14.boolean().optional(),
+  skills: z15.array(z15.string()).optional(),
+  enabled: z15.boolean().optional(),
   users: DiscordIdListSchema.optional(),
   roles: DiscordIdListSchema.optional(),
-  systemPrompt: z14.string().optional(),
-  includeThreadStarter: z14.boolean().optional(),
-  autoThread: z14.boolean().optional(),
+  systemPrompt: z15.string().optional(),
+  includeThreadStarter: z15.boolean().optional(),
+  autoThread: z15.boolean().optional(),
   /** Naming strategy for auto-created threads. "message" uses message text; "generated" creates an LLM title after thread creation. */
-  autoThreadName: z14.enum(["message", "generated"]).optional(),
+  autoThreadName: z15.enum(["message", "generated"]).optional(),
   /** Archive duration for auto-created threads in minutes. Discord supports 60, 1440 (1 day), 4320 (3 days), 10080 (1 week). Default: 60. */
-  autoArchiveDuration: z14.union([
-    z14.enum(["60", "1440", "4320", "10080"]),
-    z14.literal(60),
-    z14.literal(1440),
-    z14.literal(4320),
-    z14.literal(10080)
+  autoArchiveDuration: z15.union([
+    z15.enum(["60", "1440", "4320", "10080"]),
+    z15.literal(60),
+    z15.literal(1440),
+    z15.literal(4320),
+    z15.literal(10080)
   ]).optional()
 }).strict();
-var DiscordGuildSchema = z14.object({
-  slug: z14.string().optional(),
-  requireMention: z14.boolean().optional(),
-  ignoreOtherMentions: z14.boolean().optional(),
+var DiscordGuildSchema = z15.object({
+  slug: z15.string().optional(),
+  requireMention: z15.boolean().optional(),
+  ignoreOtherMentions: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
-  reactionNotifications: z14.enum(["off", "own", "all", "allowlist"]).optional(),
+  reactionNotifications: z15.enum(["off", "own", "all", "allowlist"]).optional(),
   users: DiscordIdListSchema.optional(),
   roles: DiscordIdListSchema.optional(),
-  channels: z14.record(z14.string(), DiscordGuildChannelSchema.optional()).optional()
+  channels: z15.record(z15.string(), DiscordGuildChannelSchema.optional()).optional()
 }).strict();
-var DiscordUiSchema = z14.object({
-  components: z14.object({
+var DiscordUiSchema = z15.object({
+  components: z15.object({
     accentColor: HexColorSchema.optional()
   }).strict().optional()
 }).strict().optional();
-var DiscordVoiceAutoJoinSchema = z14.object({
-  guildId: z14.string().min(1),
-  channelId: z14.string().min(1)
+var DiscordVoiceAutoJoinSchema = z15.object({
+  guildId: z15.string().min(1),
+  channelId: z15.string().min(1)
 }).strict();
-var DiscordVoiceSchema = z14.object({
-  enabled: z14.boolean().optional(),
-  autoJoin: z14.array(DiscordVoiceAutoJoinSchema).optional(),
-  daveEncryption: z14.boolean().optional(),
-  decryptionFailureTolerance: z14.number().int().min(0).optional(),
+var DiscordVoiceSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  model: z15.string().min(1).optional(),
+  autoJoin: z15.array(DiscordVoiceAutoJoinSchema).optional(),
+  daveEncryption: z15.boolean().optional(),
+  decryptionFailureTolerance: z15.number().int().min(0).optional(),
+  connectTimeoutMs: z15.number().int().positive().max(12e4).optional(),
+  reconnectGraceMs: z15.number().int().positive().max(12e4).optional(),
   tts: TtsConfigSchema.optional()
 }).strict().optional();
-var DiscordAccountSchema = z14.object({
-  name: z14.string().optional(),
-  capabilities: z14.array(z14.string()).optional(),
+var DiscordAccountSchema = z15.object({
+  name: z15.string().optional(),
+  capabilities: z15.array(z15.string()).optional(),
   markdown: MarkdownConfigSchema,
-  enabled: z14.boolean().optional(),
+  enabled: z15.boolean().optional(),
   commands: ProviderCommandsSchema,
-  configWrites: z14.boolean().optional(),
+  configWrites: z15.boolean().optional(),
   token: SecretInputSchema.optional().register(sensitive),
-  proxy: z14.string().optional(),
-  allowBots: z14.union([z14.boolean(), z14.literal("mentions")]).optional(),
-  dangerouslyAllowNameMatching: z14.boolean().optional(),
+  applicationId: DiscordIdSchema.optional(),
+  proxy: z15.string().optional(),
+  gatewayInfoTimeoutMs: z15.number().int().positive().max(12e4).optional(),
+  gatewayReadyTimeoutMs: z15.number().int().positive().max(12e4).optional(),
+  gatewayRuntimeReadyTimeoutMs: z15.number().int().positive().max(12e4).optional(),
+  allowBots: z15.union([z15.boolean(), z15.literal("mentions")]).optional(),
+  dangerouslyAllowNameMatching: z15.boolean().optional(),
+  mentionAliases: z15.record(z15.string(), DiscordSnowflakeStringSchema).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
   streaming: ChannelPreviewStreamingConfigSchema.optional(),
-  maxLinesPerMessage: z14.number().int().positive().optional(),
-  mediaMaxMb: z14.number().positive().optional(),
+  maxLinesPerMessage: z15.number().int().positive().optional(),
+  mediaMaxMb: z15.number().positive().optional(),
   retry: RetryConfigSchema,
-  actions: z14.object({
-    reactions: z14.boolean().optional(),
-    stickers: z14.boolean().optional(),
-    emojiUploads: z14.boolean().optional(),
-    stickerUploads: z14.boolean().optional(),
-    polls: z14.boolean().optional(),
-    permissions: z14.boolean().optional(),
-    messages: z14.boolean().optional(),
-    threads: z14.boolean().optional(),
-    pins: z14.boolean().optional(),
-    search: z14.boolean().optional(),
-    memberInfo: z14.boolean().optional(),
-    roleInfo: z14.boolean().optional(),
-    roles: z14.boolean().optional(),
-    channelInfo: z14.boolean().optional(),
-    voiceStatus: z14.boolean().optional(),
-    events: z14.boolean().optional(),
-    moderation: z14.boolean().optional(),
-    channels: z14.boolean().optional(),
-    presence: z14.boolean().optional()
+  actions: z15.object({
+    reactions: z15.boolean().optional(),
+    stickers: z15.boolean().optional(),
+    emojiUploads: z15.boolean().optional(),
+    stickerUploads: z15.boolean().optional(),
+    polls: z15.boolean().optional(),
+    permissions: z15.boolean().optional(),
+    messages: z15.boolean().optional(),
+    threads: z15.boolean().optional(),
+    pins: z15.boolean().optional(),
+    search: z15.boolean().optional(),
+    memberInfo: z15.boolean().optional(),
+    roleInfo: z15.boolean().optional(),
+    roles: z15.boolean().optional(),
+    channelInfo: z15.boolean().optional(),
+    voiceStatus: z15.boolean().optional(),
+    events: z15.boolean().optional(),
+    moderation: z15.boolean().optional(),
+    channels: z15.boolean().optional(),
+    presence: z15.boolean().optional()
   }).strict().optional(),
   replyToMode: ReplyToModeSchema.optional(),
+  thread: DiscordThreadSchema.optional(),
   // Aliases for channels.discord.dm.policy / channels.discord.dm.allowFrom. Prefer these for
   // inheritance in multi-account setups (shallow merge works; nested dm object doesn't).
   dmPolicy: DmPolicySchema.optional(),
   allowFrom: DiscordIdListSchema.optional(),
-  defaultTo: z14.string().optional(),
+  defaultTo: z15.string().optional(),
   dm: DiscordDmSchema.optional(),
-  guilds: z14.record(z14.string(), DiscordGuildSchema.optional()).optional(),
+  guilds: z15.record(z15.string(), DiscordGuildSchema.optional()).optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  execApprovals: z14.object({
-    enabled: z14.boolean().optional(),
+  execApprovals: z15.object({
+    enabled: z15.boolean().optional(),
     approvers: DiscordIdListSchema.optional(),
-    agentFilter: z14.array(z14.string()).optional(),
-    sessionFilter: z14.array(z14.string()).optional(),
-    cleanupAfterResolve: z14.boolean().optional(),
-    target: z14.enum(["dm", "channel", "both"]).optional()
+    agentFilter: z15.array(z15.string()).optional(),
+    sessionFilter: z15.array(z15.string()).optional(),
+    cleanupAfterResolve: z15.boolean().optional(),
+    target: z15.enum(["dm", "channel", "both"]).optional()
   }).strict().optional(),
-  agentComponents: z14.object({
-    enabled: z14.boolean().optional()
+  agentComponents: z15.object({
+    enabled: z15.boolean().optional()
   }).strict().optional(),
   ui: DiscordUiSchema,
-  slashCommand: z14.object({
-    ephemeral: z14.boolean().optional()
+  slashCommand: z15.object({
+    ephemeral: z15.boolean().optional()
   }).strict().optional(),
-  threadBindings: z14.object({
-    enabled: z14.boolean().optional(),
-    idleHours: z14.number().nonnegative().optional(),
-    maxAgeHours: z14.number().nonnegative().optional(),
-    spawnSubagentSessions: z14.boolean().optional(),
-    spawnAcpSessions: z14.boolean().optional()
+  threadBindings: z15.object({
+    enabled: z15.boolean().optional(),
+    idleHours: z15.number().nonnegative().optional(),
+    maxAgeHours: z15.number().nonnegative().optional(),
+    spawnSessions: z15.boolean().optional(),
+    defaultSpawnContext: z15.enum(["isolated", "fork"]).optional(),
+    spawnSubagentSessions: z15.boolean().optional(),
+    spawnAcpSessions: z15.boolean().optional()
   }).strict().optional(),
-  intents: z14.object({
-    presence: z14.boolean().optional(),
-    guildMembers: z14.boolean().optional()
+  intents: z15.object({
+    presence: z15.boolean().optional(),
+    guildMembers: z15.boolean().optional(),
+    voiceStates: z15.boolean().optional()
   }).strict().optional(),
   voice: DiscordVoiceSchema,
-  pluralkit: z14.object({
-    enabled: z14.boolean().optional(),
+  pluralkit: z15.object({
+    enabled: z15.boolean().optional(),
     token: SecretInputSchema.optional().register(sensitive)
   }).strict().optional(),
-  responsePrefix: z14.string().optional(),
-  ackReaction: z14.string().optional(),
-  ackReactionScope: z14.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
-  activity: z14.string().optional(),
-  status: z14.enum(["online", "dnd", "idle", "invisible"]).optional(),
-  autoPresence: z14.object({
-    enabled: z14.boolean().optional(),
-    intervalMs: z14.number().int().positive().optional(),
-    minUpdateIntervalMs: z14.number().int().positive().optional(),
-    healthyText: z14.string().optional(),
-    degradedText: z14.string().optional(),
-    exhaustedText: z14.string().optional()
+  responsePrefix: z15.string().optional(),
+  ackReaction: z15.string().optional(),
+  ackReactionScope: z15.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
+  activity: z15.string().optional(),
+  status: z15.enum(["online", "dnd", "idle", "invisible"]).optional(),
+  autoPresence: z15.object({
+    enabled: z15.boolean().optional(),
+    intervalMs: z15.number().int().positive().optional(),
+    minUpdateIntervalMs: z15.number().int().positive().optional(),
+    healthyText: z15.string().optional(),
+    degradedText: z15.string().optional(),
+    exhaustedText: z15.string().optional()
   }).strict().optional(),
-  activityType: z14.union([z14.literal(0), z14.literal(1), z14.literal(2), z14.literal(3), z14.literal(4), z14.literal(5)]).optional(),
-  activityUrl: z14.string().url().optional(),
-  inboundWorker: z14.object({
-    runTimeoutMs: z14.number().int().nonnegative().optional()
+  activityType: z15.union([z15.literal(0), z15.literal(1), z15.literal(2), z15.literal(3), z15.literal(4), z15.literal(5)]).optional(),
+  activityUrl: z15.string().url().optional(),
+  inboundWorker: z15.object({
+    runTimeoutMs: z15.number().int().nonnegative().optional()
   }).strict().optional(),
-  eventQueue: z14.object({
-    listenerTimeout: z14.number().int().positive().optional(),
-    maxQueueSize: z14.number().int().positive().optional(),
-    maxConcurrency: z14.number().int().positive().optional()
+  eventQueue: z15.object({
+    listenerTimeout: z15.number().int().positive().optional(),
+    maxQueueSize: z15.number().int().positive().optional(),
+    maxConcurrency: z15.number().int().positive().optional()
   }).strict().optional()
 }).strict().superRefine((value, ctx) => {
   const activityText = normalizeOptionalString(value.activity) ?? "";
@@ -8840,21 +16990,21 @@ var DiscordAccountSchema = z14.object({
   const hasActivityUrl = Boolean(activityUrl);
   if ((hasActivityType || hasActivityUrl) && !hasActivity) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       message: "channels.discord.activity is required when activityType or activityUrl is set",
       path: ["activity"]
     });
   }
   if (value.activityType === 1 && !hasActivityUrl) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       message: "channels.discord.activityUrl is required when activityType is 1 (Streaming)",
       path: ["activityUrl"]
     });
   }
   if (hasActivityUrl && value.activityType !== 1) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       message: "channels.discord.activityType must be 1 (Streaming) when activityUrl is set",
       path: ["activityType"]
     });
@@ -8863,15 +17013,15 @@ var DiscordAccountSchema = z14.object({
   const autoPresenceMinUpdate = value.autoPresence?.minUpdateIntervalMs;
   if (typeof autoPresenceInterval === "number" && typeof autoPresenceMinUpdate === "number" && autoPresenceMinUpdate > autoPresenceInterval) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       message: "channels.discord.autoPresence.minUpdateIntervalMs must be less than or equal to channels.discord.autoPresence.intervalMs",
       path: ["autoPresence", "minUpdateIntervalMs"]
     });
   }
 });
 var DiscordConfigSchema = DiscordAccountSchema.extend({
-  accounts: z14.record(z14.string(), DiscordAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), DiscordAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 }).superRefine((value, ctx) => {
   const dmPolicy = value.dmPolicy ?? value.dm?.policy ?? "pairing";
   const allowFrom = value.allowFrom ?? value.dm?.allowFrom;
@@ -8915,10 +17065,10 @@ var DiscordConfigSchema = DiscordAccountSchema.extend({
     });
   }
 });
-var GoogleChatDmSchema = z14.object({
-  enabled: z14.boolean().optional(),
+var GoogleChatDmSchema = z15.object({
+  enabled: z15.boolean().optional(),
   policy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional()
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional()
 }).strict().superRefine((value, ctx) => {
   requireOpenAllowFrom({
     policy: value.policy,
@@ -8935,158 +17085,164 @@ var GoogleChatDmSchema = z14.object({
     message: 'channels.googlechat.dm.policy="allowlist" requires channels.googlechat.dm.allowFrom to contain at least one sender ID'
   });
 });
-var GoogleChatGroupSchema = z14.object({
-  enabled: z14.boolean().optional(),
-  requireMention: z14.boolean().optional(),
-  users: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  systemPrompt: z14.string().optional()
+var GoogleChatGroupSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  requireMention: z15.boolean().optional(),
+  users: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  systemPrompt: z15.string().optional()
 }).strict();
-var GoogleChatAccountSchema = z14.object({
-  name: z14.string().optional(),
-  capabilities: z14.array(z14.string()).optional(),
-  enabled: z14.boolean().optional(),
-  configWrites: z14.boolean().optional(),
-  allowBots: z14.boolean().optional(),
-  dangerouslyAllowNameMatching: z14.boolean().optional(),
-  requireMention: z14.boolean().optional(),
+var GoogleChatAccountSchema = z15.object({
+  name: z15.string().optional(),
+  capabilities: z15.array(z15.string()).optional(),
+  enabled: z15.boolean().optional(),
+  configWrites: z15.boolean().optional(),
+  allowBots: z15.boolean().optional(),
+  dangerouslyAllowNameMatching: z15.boolean().optional(),
+  requireMention: z15.boolean().optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  groupAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  groups: z14.record(z14.string(), GoogleChatGroupSchema.optional()).optional(),
-  defaultTo: z14.string().optional(),
-  serviceAccount: z14.union([z14.string(), z14.record(z14.string(), z14.unknown()), SecretRefSchema]).optional().register(sensitive),
+  groupAllowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  groups: z15.record(z15.string(), GoogleChatGroupSchema.optional()).optional(),
+  defaultTo: z15.string().optional(),
+  serviceAccount: z15.union([z15.string(), z15.record(z15.string(), z15.unknown()), SecretRefSchema]).optional().register(sensitive),
   serviceAccountRef: SecretRefSchema.optional().register(sensitive),
-  serviceAccountFile: z14.string().optional(),
-  audienceType: z14.enum(["app-url", "project-number"]).optional(),
-  audience: z14.string().optional(),
-  appPrincipal: z14.string().optional(),
-  webhookPath: z14.string().optional(),
-  webhookUrl: z14.string().optional(),
-  botUser: z14.string().optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
-  chunkMode: z14.enum(["length", "newline"]).optional(),
-  blockStreaming: z14.boolean().optional(),
+  serviceAccountFile: z15.string().optional(),
+  audienceType: z15.enum(["app-url", "project-number"]).optional(),
+  audience: z15.string().optional(),
+  appPrincipal: z15.string().optional(),
+  webhookPath: z15.string().optional(),
+  webhookUrl: z15.string().optional(),
+  botUser: z15.string().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
+  chunkMode: z15.enum(["length", "newline"]).optional(),
+  blockStreaming: z15.boolean().optional(),
   blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaMaxMb: z14.number().positive().optional(),
+  mediaMaxMb: z15.number().positive().optional(),
   replyToMode: ReplyToModeSchema.optional(),
-  actions: z14.object({
-    reactions: z14.boolean().optional()
+  actions: z15.object({
+    reactions: z15.boolean().optional()
   }).strict().optional(),
   dm: GoogleChatDmSchema.optional(),
   healthMonitor: ChannelHealthMonitorSchema,
-  typingIndicator: z14.enum(["none", "message", "reaction"]).optional(),
-  responsePrefix: z14.string().optional()
+  typingIndicator: z15.enum(["none", "message", "reaction"]).optional(),
+  responsePrefix: z15.string().optional()
 }).strict();
 var GoogleChatConfigSchema = GoogleChatAccountSchema.extend({
-  accounts: z14.record(z14.string(), GoogleChatAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), GoogleChatAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 });
-var SlackDmSchema = z14.object({
-  enabled: z14.boolean().optional(),
+var SlackDmSchema = z15.object({
+  enabled: z15.boolean().optional(),
   policy: DmPolicySchema.optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  groupEnabled: z14.boolean().optional(),
-  groupChannels: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  groupEnabled: z15.boolean().optional(),
+  groupChannels: z15.array(z15.union([z15.string(), z15.number()])).optional(),
   replyToMode: ReplyToModeSchema.optional()
 }).strict();
-var SlackChannelSchema = z14.object({
-  enabled: z14.boolean().optional(),
-  requireMention: z14.boolean().optional(),
+var SlackChannelSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  requireMention: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
-  allowBots: z14.boolean().optional(),
-  users: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  skills: z14.array(z14.string()).optional(),
-  systemPrompt: z14.string().optional()
+  allowBots: z15.boolean().optional(),
+  users: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  skills: z15.array(z15.string()).optional(),
+  systemPrompt: z15.string().optional()
 }).strict();
-var SlackThreadSchema = z14.object({
-  historyScope: z14.enum(["thread", "channel"]).optional(),
-  inheritParent: z14.boolean().optional(),
-  initialHistoryLimit: z14.number().int().min(0).optional(),
-  requireExplicitMention: z14.boolean().optional()
+var SlackThreadSchema = z15.object({
+  historyScope: z15.enum(["thread", "channel"]).optional(),
+  inheritParent: z15.boolean().optional(),
+  initialHistoryLimit: z15.number().int().min(0).optional(),
+  requireExplicitMention: z15.boolean().optional()
 }).strict();
-var SlackReplyToModeByChatTypeSchema = z14.object({
+var SlackReplyToModeByChatTypeSchema = z15.object({
   direct: ReplyToModeSchema.optional(),
   group: ReplyToModeSchema.optional(),
   channel: ReplyToModeSchema.optional()
 }).strict();
-var SlackAccountSchema = z14.object({
-  name: z14.string().optional(),
-  mode: z14.enum(["socket", "http"]).optional(),
+var SlackSocketModeSchema = z15.object({
+  clientPingTimeout: z15.number().int().positive().optional(),
+  serverPingTimeout: z15.number().int().positive().optional(),
+  pingPongLoggingEnabled: z15.boolean().optional()
+}).strict();
+var SlackAccountSchema = z15.object({
+  name: z15.string().optional(),
+  mode: z15.enum(["socket", "http"]).optional(),
+  socketMode: SlackSocketModeSchema.optional(),
   signingSecret: SecretInputSchema.optional().register(sensitive),
-  webhookPath: z14.string().optional(),
+  webhookPath: z15.string().optional(),
   capabilities: SlackCapabilitiesSchema.optional(),
-  execApprovals: z14.object({
-    enabled: z14.boolean().optional(),
-    approvers: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-    agentFilter: z14.array(z14.string()).optional(),
-    sessionFilter: z14.array(z14.string()).optional(),
-    target: z14.enum(["dm", "channel", "both"]).optional()
+  execApprovals: z15.object({
+    enabled: z15.boolean().optional(),
+    approvers: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+    agentFilter: z15.array(z15.string()).optional(),
+    sessionFilter: z15.array(z15.string()).optional(),
+    target: z15.enum(["dm", "channel", "both"]).optional()
   }).strict().optional(),
   markdown: MarkdownConfigSchema,
-  enabled: z14.boolean().optional(),
+  enabled: z15.boolean().optional(),
   commands: ProviderCommandsSchema,
-  configWrites: z14.boolean().optional(),
+  configWrites: z15.boolean().optional(),
   botToken: SecretInputSchema.optional().register(sensitive),
   appToken: SecretInputSchema.optional().register(sensitive),
   userToken: SecretInputSchema.optional().register(sensitive),
-  userTokenReadOnly: z14.boolean().optional().default(true),
-  allowBots: z14.boolean().optional(),
-  dangerouslyAllowNameMatching: z14.boolean().optional(),
-  requireMention: z14.boolean().optional(),
+  userTokenReadOnly: z15.boolean().optional().default(true),
+  allowBots: z15.boolean().optional(),
+  dangerouslyAllowNameMatching: z15.boolean().optional(),
+  requireMention: z15.boolean().optional(),
   groupPolicy: GroupPolicySchema.optional(),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
   streaming: SlackStreamingConfigSchema.optional(),
-  mediaMaxMb: z14.number().positive().optional(),
-  reactionNotifications: z14.enum(["off", "own", "all", "allowlist"]).optional(),
-  reactionAllowlist: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  mediaMaxMb: z15.number().positive().optional(),
+  reactionNotifications: z15.enum(["off", "own", "all", "allowlist"]).optional(),
+  reactionAllowlist: z15.array(z15.union([z15.string(), z15.number()])).optional(),
   replyToMode: ReplyToModeSchema.optional(),
   replyToModeByChatType: SlackReplyToModeByChatTypeSchema.optional(),
   thread: SlackThreadSchema.optional(),
-  actions: z14.object({
-    reactions: z14.boolean().optional(),
-    messages: z14.boolean().optional(),
-    pins: z14.boolean().optional(),
-    search: z14.boolean().optional(),
-    permissions: z14.boolean().optional(),
-    memberInfo: z14.boolean().optional(),
-    channelInfo: z14.boolean().optional(),
-    emojiList: z14.boolean().optional()
+  actions: z15.object({
+    reactions: z15.boolean().optional(),
+    messages: z15.boolean().optional(),
+    pins: z15.boolean().optional(),
+    search: z15.boolean().optional(),
+    permissions: z15.boolean().optional(),
+    memberInfo: z15.boolean().optional(),
+    channelInfo: z15.boolean().optional(),
+    emojiList: z15.boolean().optional()
   }).strict().optional(),
-  slashCommand: z14.object({
-    enabled: z14.boolean().optional(),
-    name: z14.string().optional(),
-    sessionPrefix: z14.string().optional(),
-    ephemeral: z14.boolean().optional()
+  slashCommand: z15.object({
+    enabled: z15.boolean().optional(),
+    name: z15.string().optional(),
+    sessionPrefix: z15.string().optional(),
+    ephemeral: z15.boolean().optional()
   }).strict().optional(),
   // Aliases for channels.slack.dm.policy / channels.slack.dm.allowFrom. Prefer these for
   // inheritance in multi-account setups (shallow merge works; nested dm object doesn't).
   dmPolicy: DmPolicySchema.optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  defaultTo: z14.string().optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  defaultTo: z15.string().optional(),
   dm: SlackDmSchema.optional(),
-  channels: z14.record(z14.string(), SlackChannelSchema.optional()).optional(),
+  channels: z15.record(z15.string(), SlackChannelSchema.optional()).optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z14.string().optional(),
-  ackReaction: z14.string().optional(),
-  typingReaction: z14.string().optional()
+  responsePrefix: z15.string().optional(),
+  ackReaction: z15.string().optional(),
+  typingReaction: z15.string().optional()
 }).strict().superRefine(() => {
 });
 var SlackConfigSchema = SlackAccountSchema.safeExtend({
-  mode: z14.enum(["socket", "http"]).optional().default("socket"),
+  mode: z15.enum(["socket", "http"]).optional().default("socket"),
   signingSecret: SecretInputSchema.optional().register(sensitive),
-  webhookPath: z14.string().optional().default("/slack/events"),
+  webhookPath: z15.string().optional().default("/slack/events"),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  accounts: z14.record(z14.string(), SlackAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), SlackAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 }).superRefine((value, ctx) => {
   const dmPolicy = value.dmPolicy ?? value.dm?.policy ?? "pairing";
   const allowFrom = value.allowFrom ?? value.dm?.allowFrom;
@@ -9140,60 +17296,60 @@ var SlackConfigSchema = SlackAccountSchema.safeExtend({
   }
   validateSlackSigningSecretRequirements(value, ctx);
 });
-var SignalGroupEntrySchema = z14.object({
-  requireMention: z14.boolean().optional(),
-  ingest: z14.boolean().optional(),
+var SignalGroupEntrySchema = z15.object({
+  requireMention: z15.boolean().optional(),
+  ingest: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema
 }).strict();
-var SignalGroupsSchema = z14.record(z14.string(), SignalGroupEntrySchema.optional()).optional();
-var SignalAccountSchemaBase = z14.object({
-  name: z14.string().optional(),
-  capabilities: z14.array(z14.string()).optional(),
+var SignalGroupsSchema = z15.record(z15.string(), SignalGroupEntrySchema.optional()).optional();
+var SignalAccountSchemaBase = z15.object({
+  name: z15.string().optional(),
+  capabilities: z15.array(z15.string()).optional(),
   markdown: MarkdownConfigSchema,
-  enabled: z14.boolean().optional(),
-  configWrites: z14.boolean().optional(),
-  account: z14.string().optional(),
-  accountUuid: z14.string().optional(),
-  httpUrl: z14.string().optional(),
-  httpHost: z14.string().optional(),
-  httpPort: z14.number().int().positive().optional(),
+  enabled: z15.boolean().optional(),
+  configWrites: z15.boolean().optional(),
+  account: z15.string().optional(),
+  accountUuid: z15.string().optional(),
+  httpUrl: z15.string().optional(),
+  httpHost: z15.string().optional(),
+  httpPort: z15.number().int().positive().optional(),
   cliPath: ExecutableTokenSchema.optional(),
-  autoStart: z14.boolean().optional(),
-  startupTimeoutMs: z14.number().int().min(1e3).max(12e4).optional(),
-  receiveMode: z14.union([z14.literal("on-start"), z14.literal("manual")]).optional(),
-  ignoreAttachments: z14.boolean().optional(),
-  ignoreStories: z14.boolean().optional(),
-  sendReadReceipts: z14.boolean().optional(),
+  autoStart: z15.boolean().optional(),
+  startupTimeoutMs: z15.number().int().min(1e3).max(12e4).optional(),
+  receiveMode: z15.union([z15.literal("on-start"), z15.literal("manual")]).optional(),
+  ignoreAttachments: z15.boolean().optional(),
+  ignoreStories: z15.boolean().optional(),
+  sendReadReceipts: z15.boolean().optional(),
   dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  defaultTo: z14.string().optional(),
-  groupAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  defaultTo: z15.string().optional(),
+  groupAllowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
   groups: SignalGroupsSchema,
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
-  chunkMode: z14.enum(["length", "newline"]).optional(),
-  blockStreaming: z14.boolean().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
+  chunkMode: z15.enum(["length", "newline"]).optional(),
+  blockStreaming: z15.boolean().optional(),
   blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaMaxMb: z14.number().int().positive().optional(),
-  reactionNotifications: z14.enum(["off", "own", "all", "allowlist"]).optional(),
-  reactionAllowlist: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  actions: z14.object({
-    reactions: z14.boolean().optional()
+  mediaMaxMb: z15.number().int().positive().optional(),
+  reactionNotifications: z15.enum(["off", "own", "all", "allowlist"]).optional(),
+  reactionAllowlist: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  actions: z15.object({
+    reactions: z15.boolean().optional()
   }).strict().optional(),
-  reactionLevel: z14.enum(["off", "ack", "minimal", "extensive"]).optional(),
+  reactionLevel: z15.enum(["off", "ack", "minimal", "extensive"]).optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z14.string().optional()
+  responsePrefix: z15.string().optional()
 }).strict();
 var SignalAccountSchema = SignalAccountSchemaBase;
 var SignalConfigSchema = SignalAccountSchemaBase.extend({
-  accounts: z14.record(z14.string(), SignalAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), SignalAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 }).superRefine((value, ctx) => {
   requireOpenAllowFrom({
     policy: value.dmPolicy,
@@ -9234,58 +17390,58 @@ var SignalConfigSchema = SignalAccountSchemaBase.extend({
     });
   }
 });
-var IrcGroupSchema = z14.object({
-  requireMention: z14.boolean().optional(),
+var IrcGroupSchema = z15.object({
+  requireMention: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
-  skills: z14.array(z14.string()).optional(),
-  enabled: z14.boolean().optional(),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  systemPrompt: z14.string().optional()
+  skills: z15.array(z15.string()).optional(),
+  enabled: z15.boolean().optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  systemPrompt: z15.string().optional()
 }).strict();
-var IrcNickServSchema = z14.object({
-  enabled: z14.boolean().optional(),
-  service: z14.string().optional(),
+var IrcNickServSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  service: z15.string().optional(),
   password: SecretInputSchema.optional().register(sensitive),
-  passwordFile: z14.string().optional(),
-  register: z14.boolean().optional(),
-  registerEmail: z14.string().optional()
+  passwordFile: z15.string().optional(),
+  register: z15.boolean().optional(),
+  registerEmail: z15.string().optional()
 }).strict();
-var IrcAccountSchemaBase = z14.object({
-  name: z14.string().optional(),
-  capabilities: z14.array(z14.string()).optional(),
+var IrcAccountSchemaBase = z15.object({
+  name: z15.string().optional(),
+  capabilities: z15.array(z15.string()).optional(),
   markdown: MarkdownConfigSchema,
-  enabled: z14.boolean().optional(),
-  configWrites: z14.boolean().optional(),
-  host: z14.string().optional(),
-  port: z14.number().int().min(1).max(65535).optional(),
-  tls: z14.boolean().optional(),
-  nick: z14.string().optional(),
-  username: z14.string().optional(),
-  realname: z14.string().optional(),
+  enabled: z15.boolean().optional(),
+  configWrites: z15.boolean().optional(),
+  host: z15.string().optional(),
+  port: z15.number().int().min(1).max(65535).optional(),
+  tls: z15.boolean().optional(),
+  nick: z15.string().optional(),
+  username: z15.string().optional(),
+  realname: z15.string().optional(),
   password: SecretInputSchema.optional().register(sensitive),
-  passwordFile: z14.string().optional(),
+  passwordFile: z15.string().optional(),
   nickserv: IrcNickServSchema.optional(),
-  channels: z14.array(z14.string()).optional(),
+  channels: z15.array(z15.string()).optional(),
   dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  defaultTo: z14.string().optional(),
-  groupAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  defaultTo: z15.string().optional(),
+  groupAllowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  groups: z14.record(z14.string(), IrcGroupSchema.optional()).optional(),
-  mentionPatterns: z14.array(z14.string()).optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
-  chunkMode: z14.enum(["length", "newline"]).optional(),
-  blockStreaming: z14.boolean().optional(),
+  groups: z15.record(z15.string(), IrcGroupSchema.optional()).optional(),
+  mentionPatterns: z15.array(z15.string()).optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
+  chunkMode: z15.enum(["length", "newline"]).optional(),
+  blockStreaming: z15.boolean().optional(),
   blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaMaxMb: z14.number().positive().optional(),
+  mediaMaxMb: z15.number().positive().optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z14.string().optional()
+  responsePrefix: z15.string().optional()
 }).strict();
 function refineIrcAllowFromAndNickserv(value, ctx) {
   requireOpenAllowFrom({
@@ -9304,7 +17460,7 @@ function refineIrcAllowFromAndNickserv(value, ctx) {
   });
   if (value.nickserv?.register && !value.nickserv.registerEmail?.trim()) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       path: ["nickserv", "registerEmail"],
       message: "channels.irc.nickserv.register=true requires channels.irc.nickserv.registerEmail"
     });
@@ -9313,15 +17469,15 @@ function refineIrcAllowFromAndNickserv(value, ctx) {
 var IrcAccountSchema = IrcAccountSchemaBase.superRefine((value, ctx) => {
   if (value.nickserv?.register && !value.nickserv.registerEmail?.trim()) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       path: ["nickserv", "registerEmail"],
       message: "channels.irc.nickserv.register=true requires channels.irc.nickserv.registerEmail"
     });
   }
 });
 var IrcConfigSchema = IrcAccountSchemaBase.extend({
-  accounts: z14.record(z14.string(), IrcAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), IrcAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 }).superRefine((value, ctx) => {
   refineIrcAllowFromAndNickserv(value, ctx);
   if (!value.accounts) {
@@ -9349,50 +17505,50 @@ var IrcConfigSchema = IrcAccountSchemaBase.extend({
     });
   }
 });
-var IMessageAccountSchemaBase = z14.object({
-  name: z14.string().optional(),
-  capabilities: z14.array(z14.string()).optional(),
+var IMessageAccountSchemaBase = z15.object({
+  name: z15.string().optional(),
+  capabilities: z15.array(z15.string()).optional(),
   markdown: MarkdownConfigSchema,
-  enabled: z14.boolean().optional(),
-  configWrites: z14.boolean().optional(),
+  enabled: z15.boolean().optional(),
+  configWrites: z15.boolean().optional(),
   cliPath: ExecutableTokenSchema.optional(),
-  dbPath: z14.string().optional(),
-  remoteHost: z14.string().refine(isSafeScpRemoteHost, "expected SSH host or user@host (no spaces/options)").optional(),
-  service: z14.union([z14.literal("imessage"), z14.literal("sms"), z14.literal("auto")]).optional(),
-  region: z14.string().optional(),
+  dbPath: z15.string().optional(),
+  remoteHost: z15.string().refine(isSafeScpRemoteHost, "expected SSH host or user@host (no spaces/options)").optional(),
+  service: z15.union([z15.literal("imessage"), z15.literal("sms"), z15.literal("auto")]).optional(),
+  region: z15.string().optional(),
   dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-  defaultTo: z14.string().optional(),
-  groupAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  allowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
+  defaultTo: z15.string().optional(),
+  groupAllowFrom: z15.array(z15.union([z15.string(), z15.number()])).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  includeAttachments: z14.boolean().optional(),
-  attachmentRoots: z14.array(z14.string().refine(isValidInboundPathRootPattern, "expected absolute path root")).optional(),
-  remoteAttachmentRoots: z14.array(z14.string().refine(isValidInboundPathRootPattern, "expected absolute path root")).optional(),
-  mediaMaxMb: z14.number().int().positive().optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
-  chunkMode: z14.enum(["length", "newline"]).optional(),
-  blockStreaming: z14.boolean().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  includeAttachments: z15.boolean().optional(),
+  attachmentRoots: z15.array(z15.string().refine(isValidInboundPathRootPattern, "expected absolute path root")).optional(),
+  remoteAttachmentRoots: z15.array(z15.string().refine(isValidInboundPathRootPattern, "expected absolute path root")).optional(),
+  mediaMaxMb: z15.number().int().positive().optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
+  chunkMode: z15.enum(["length", "newline"]).optional(),
+  blockStreaming: z15.boolean().optional(),
   blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  groups: z14.record(
-    z14.string(),
-    z14.object({
-      requireMention: z14.boolean().optional(),
+  groups: z15.record(
+    z15.string(),
+    z15.object({
+      requireMention: z15.boolean().optional(),
       tools: ToolPolicySchema,
       toolsBySender: ToolPolicyBySenderSchema
     }).strict().optional()
   ).optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z14.string().optional()
+  responsePrefix: z15.string().optional()
 }).strict();
 var IMessageAccountSchema = IMessageAccountSchemaBase;
 var IMessageConfigSchema = IMessageAccountSchemaBase.extend({
-  accounts: z14.record(z14.string(), IMessageAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional()
+  accounts: z15.record(z15.string(), IMessageAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional()
 }).superRefine((value, ctx) => {
   requireOpenAllowFrom({
     policy: value.dmPolicy,
@@ -9433,62 +17589,64 @@ var IMessageConfigSchema = IMessageAccountSchemaBase.extend({
     });
   }
 });
-var BlueBubblesAllowFromEntry = z14.union([z14.string(), z14.number()]);
-var BlueBubblesActionSchema = z14.object({
-  reactions: z14.boolean().optional(),
-  edit: z14.boolean().optional(),
-  unsend: z14.boolean().optional(),
-  reply: z14.boolean().optional(),
-  sendWithEffect: z14.boolean().optional(),
-  renameGroup: z14.boolean().optional(),
-  setGroupIcon: z14.boolean().optional(),
-  addParticipant: z14.boolean().optional(),
-  removeParticipant: z14.boolean().optional(),
-  leaveGroup: z14.boolean().optional(),
-  sendAttachment: z14.boolean().optional()
+var BlueBubblesAllowFromEntry = z15.union([z15.string(), z15.number()]);
+var BlueBubblesActionSchema = z15.object({
+  reactions: z15.boolean().optional(),
+  edit: z15.boolean().optional(),
+  unsend: z15.boolean().optional(),
+  reply: z15.boolean().optional(),
+  sendWithEffect: z15.boolean().optional(),
+  renameGroup: z15.boolean().optional(),
+  setGroupIcon: z15.boolean().optional(),
+  addParticipant: z15.boolean().optional(),
+  removeParticipant: z15.boolean().optional(),
+  leaveGroup: z15.boolean().optional(),
+  sendAttachment: z15.boolean().optional()
 }).strict().optional();
-var BlueBubblesGroupConfigSchema = z14.object({
-  requireMention: z14.boolean().optional(),
+var BlueBubblesGroupConfigSchema = z15.object({
+  requireMention: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema
 }).strict();
-var BlueBubblesAccountSchemaBase = z14.object({
-  name: z14.string().optional(),
-  capabilities: z14.array(z14.string()).optional(),
+var BlueBubblesAccountSchemaBase = z15.object({
+  name: z15.string().optional(),
+  capabilities: z15.array(z15.string()).optional(),
   markdown: MarkdownConfigSchema,
-  configWrites: z14.boolean().optional(),
-  enabled: z14.boolean().optional(),
-  serverUrl: z14.string().optional(),
+  configWrites: z15.boolean().optional(),
+  enabled: z15.boolean().optional(),
+  serverUrl: z15.string().optional(),
   password: SecretInputSchema.optional().register(sensitive),
-  webhookPath: z14.string().optional(),
+  webhookPath: z15.string().optional(),
   dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z14.array(BlueBubblesAllowFromEntry).optional(),
-  groupAllowFrom: z14.array(BlueBubblesAllowFromEntry).optional(),
+  allowFrom: z15.array(BlueBubblesAllowFromEntry).optional(),
+  groupAllowFrom: z15.array(BlueBubblesAllowFromEntry).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
-  chunkMode: z14.enum(["length", "newline"]).optional(),
-  mediaMaxMb: z14.number().int().positive().optional(),
-  mediaLocalRoots: z14.array(z14.string()).optional(),
-  sendReadReceipts: z14.boolean().optional(),
-  network: z14.object({
-    dangerouslyAllowPrivateNetwork: z14.boolean().optional()
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
+  sendTimeoutMs: z15.number().int().positive().optional(),
+  chunkMode: z15.enum(["length", "newline"]).optional(),
+  mediaMaxMb: z15.number().int().positive().optional(),
+  mediaLocalRoots: z15.array(z15.string()).optional(),
+  sendReadReceipts: z15.boolean().optional(),
+  network: z15.object({
+    dangerouslyAllowPrivateNetwork: z15.boolean().optional()
   }).strict().optional(),
-  blockStreaming: z14.boolean().optional(),
+  blockStreaming: z15.boolean().optional(),
   blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  groups: z14.record(z14.string(), BlueBubblesGroupConfigSchema.optional()).optional(),
-  enrichGroupParticipantsFromContacts: z14.boolean().optional(),
+  groups: z15.record(z15.string(), BlueBubblesGroupConfigSchema.optional()).optional(),
+  enrichGroupParticipantsFromContacts: z15.boolean().optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z14.string().optional()
+  responsePrefix: z15.string().optional(),
+  coalesceSameSenderDms: z15.boolean().optional()
 }).strict();
 var BlueBubblesAccountSchema = BlueBubblesAccountSchemaBase;
 var BlueBubblesConfigSchema = BlueBubblesAccountSchemaBase.extend({
-  accounts: z14.record(z14.string(), BlueBubblesAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional(),
+  accounts: z15.record(z15.string(), BlueBubblesAccountSchema.optional()).optional(),
+  defaultAccount: z15.string().optional(),
   actions: BlueBubblesActionSchema
 }).superRefine((value, ctx) => {
   requireOpenAllowFrom({
@@ -9530,76 +17688,76 @@ var BlueBubblesConfigSchema = BlueBubblesAccountSchemaBase.extend({
     });
   }
 });
-var MSTeamsChannelSchema = z14.object({
-  requireMention: z14.boolean().optional(),
+var MSTeamsChannelSchema = z15.object({
+  requireMention: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
   replyStyle: MSTeamsReplyStyleSchema.optional()
 }).strict();
-var MSTeamsTeamSchema = z14.object({
-  requireMention: z14.boolean().optional(),
+var MSTeamsTeamSchema = z15.object({
+  requireMention: z15.boolean().optional(),
   tools: ToolPolicySchema,
   toolsBySender: ToolPolicyBySenderSchema,
   replyStyle: MSTeamsReplyStyleSchema.optional(),
-  channels: z14.record(z14.string(), MSTeamsChannelSchema.optional()).optional()
+  channels: z15.record(z15.string(), MSTeamsChannelSchema.optional()).optional()
 }).strict();
-var MSTeamsConfigSchema = z14.object({
-  enabled: z14.boolean().optional(),
-  capabilities: z14.array(z14.string()).optional(),
-  dangerouslyAllowNameMatching: z14.boolean().optional(),
+var MSTeamsConfigSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  capabilities: z15.array(z15.string()).optional(),
+  dangerouslyAllowNameMatching: z15.boolean().optional(),
   markdown: MarkdownConfigSchema,
-  configWrites: z14.boolean().optional(),
-  appId: z14.string().optional(),
+  configWrites: z15.boolean().optional(),
+  appId: z15.string().optional(),
   appPassword: SecretInputSchema.optional().register(sensitive),
-  tenantId: z14.string().optional(),
-  authType: z14.enum(["secret", "federated"]).optional(),
-  certificatePath: z14.string().optional(),
-  certificateThumbprint: z14.string().optional(),
-  useManagedIdentity: z14.boolean().optional(),
-  managedIdentityClientId: z14.string().optional(),
-  webhook: z14.object({
-    port: z14.number().int().positive().optional(),
-    path: z14.string().optional()
+  tenantId: z15.string().optional(),
+  authType: z15.enum(["secret", "federated"]).optional(),
+  certificatePath: z15.string().optional(),
+  certificateThumbprint: z15.string().optional(),
+  useManagedIdentity: z15.boolean().optional(),
+  managedIdentityClientId: z15.string().optional(),
+  webhook: z15.object({
+    port: z15.number().int().positive().optional(),
+    path: z15.string().optional()
   }).strict().optional(),
   dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z14.array(z14.string()).optional(),
-  defaultTo: z14.string().optional(),
-  groupAllowFrom: z14.array(z14.string()).optional(),
+  allowFrom: z15.array(z15.string()).optional(),
+  defaultTo: z15.string().optional(),
+  groupAllowFrom: z15.array(z15.string()).optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   contextVisibility: ContextVisibilityModeSchema.optional(),
-  textChunkLimit: z14.number().int().positive().optional(),
-  chunkMode: z14.enum(["length", "newline"]).optional(),
-  typingIndicator: z14.boolean().optional(),
-  blockStreaming: z14.boolean().optional(),
+  textChunkLimit: z15.number().int().positive().optional(),
+  chunkMode: z15.enum(["length", "newline"]).optional(),
+  typingIndicator: z15.boolean().optional(),
+  blockStreaming: z15.boolean().optional(),
   blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaAllowHosts: z14.array(z14.string()).optional(),
-  mediaAuthAllowHosts: z14.array(z14.string()).optional(),
-  requireMention: z14.boolean().optional(),
-  historyLimit: z14.number().int().min(0).optional(),
-  dmHistoryLimit: z14.number().int().min(0).optional(),
-  dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
+  mediaAllowHosts: z15.array(z15.string()).optional(),
+  mediaAuthAllowHosts: z15.array(z15.string()).optional(),
+  requireMention: z15.boolean().optional(),
+  historyLimit: z15.number().int().min(0).optional(),
+  dmHistoryLimit: z15.number().int().min(0).optional(),
+  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
   replyStyle: MSTeamsReplyStyleSchema.optional(),
-  teams: z14.record(z14.string(), MSTeamsTeamSchema.optional()).optional(),
+  teams: z15.record(z15.string(), MSTeamsTeamSchema.optional()).optional(),
   /** Max media size in MB (default: 100MB for OneDrive upload support). */
-  mediaMaxMb: z14.number().positive().optional(),
+  mediaMaxMb: z15.number().positive().optional(),
   /** SharePoint site ID for file uploads in group chats/channels (e.g., "contoso.sharepoint.com,guid1,guid2") */
-  sharePointSiteId: z14.string().optional(),
+  sharePointSiteId: z15.string().optional(),
   heartbeat: ChannelHeartbeatVisibilitySchema,
   healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z14.string().optional(),
-  welcomeCard: z14.boolean().optional(),
-  promptStarters: z14.array(z14.string()).optional(),
-  groupWelcomeCard: z14.boolean().optional(),
-  feedbackEnabled: z14.boolean().optional(),
-  feedbackReflection: z14.boolean().optional(),
-  feedbackReflectionCooldownMs: z14.number().int().min(0).optional(),
-  delegatedAuth: z14.object({
-    enabled: z14.boolean().optional(),
-    scopes: z14.array(z14.string()).optional()
+  responsePrefix: z15.string().optional(),
+  welcomeCard: z15.boolean().optional(),
+  promptStarters: z15.array(z15.string()).optional(),
+  groupWelcomeCard: z15.boolean().optional(),
+  feedbackEnabled: z15.boolean().optional(),
+  feedbackReflection: z15.boolean().optional(),
+  feedbackReflectionCooldownMs: z15.number().int().min(0).optional(),
+  delegatedAuth: z15.object({
+    enabled: z15.boolean().optional(),
+    scopes: z15.array(z15.string()).optional()
   }).strict().optional(),
-  sso: z14.object({
-    enabled: z14.boolean().optional(),
-    connectionName: z14.string().optional()
+  sso: z15.object({
+    enabled: z15.boolean().optional(),
+    connectionName: z15.string().optional()
   }).strict().optional()
 }).strict().superRefine((value, ctx) => {
   requireOpenAllowFrom({
@@ -9618,7 +17776,7 @@ var MSTeamsConfigSchema = z14.object({
   });
   if (value.sso?.enabled === true && !value.sso.connectionName?.trim()) {
     ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       path: ["sso", "connectionName"],
       message: "channels.msteams.sso.enabled=true requires channels.msteams.sso.connectionName to identify the Bot Framework OAuth connection"
     });
@@ -9626,48 +17784,87 @@ var MSTeamsConfigSchema = z14.object({
 });
 
 // vendor/openclaw/src/config/zod-schema.providers-whatsapp.ts
-import { z as z15 } from "zod";
-var ToolPolicyBySenderSchema2 = z15.record(z15.string(), ToolPolicySchema).optional();
-var WhatsAppGroupEntrySchema = z15.object({
-  requireMention: z15.boolean().optional(),
+import { z as z16 } from "zod";
+
+// vendor/openclaw/src/routing/account-lookup.ts
+init_string_coerce();
+function resolveAccountEntry(accounts, accountId) {
+  if (!accounts || typeof accounts !== "object") {
+    return void 0;
+  }
+  if (Object.hasOwn(accounts, accountId)) {
+    return accounts[accountId];
+  }
+  const normalized = normalizeLowercaseStringOrEmpty(accountId);
+  const matchKey = Object.keys(accounts).find(
+    (key) => normalizeLowercaseStringOrEmpty(key) === normalized
+  );
+  return matchKey ? accounts[matchKey] : void 0;
+}
+
+// vendor/openclaw/src/config/zod-schema.providers-whatsapp.ts
+init_string_normalization();
+var ToolPolicyBySenderSchema2 = z16.record(z16.string(), ToolPolicySchema).optional();
+var WhatsAppGroupEntrySchema = z16.object({
+  requireMention: z16.boolean().optional(),
   tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema2
+  toolsBySender: ToolPolicyBySenderSchema2,
+  systemPrompt: z16.string().optional()
 }).strict().optional();
-var WhatsAppGroupsSchema = z15.record(z15.string(), WhatsAppGroupEntrySchema).optional();
-var WhatsAppAckReactionSchema = z15.object({
-  emoji: z15.string().optional(),
-  direct: z15.boolean().optional().default(true),
-  group: z15.enum(["always", "mentions", "never"]).optional().default("mentions")
+var WhatsAppGroupsSchema = z16.record(z16.string(), WhatsAppGroupEntrySchema).optional();
+var WhatsAppDirectEntrySchema = z16.object({
+  systemPrompt: z16.string().optional()
 }).strict().optional();
-var WhatsAppSharedSchema = z15.object({
-  enabled: z15.boolean().optional(),
-  capabilities: z15.array(z15.string()).optional(),
-  markdown: MarkdownConfigSchema,
-  configWrites: z15.boolean().optional(),
-  sendReadReceipts: z15.boolean().optional(),
-  messagePrefix: z15.string().optional(),
-  responsePrefix: z15.string().optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  selfChatMode: z15.boolean().optional(),
-  allowFrom: z15.array(z15.string()).optional(),
-  defaultTo: z15.string().optional(),
-  groupAllowFrom: z15.array(z15.string()).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z15.number().int().min(0).optional(),
-  dmHistoryLimit: z15.number().int().min(0).optional(),
-  dms: z15.record(z15.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z15.number().int().positive().optional(),
-  chunkMode: z15.enum(["length", "newline"]).optional(),
-  blockStreaming: z15.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  groups: WhatsAppGroupsSchema,
-  ackReaction: WhatsAppAckReactionSchema,
-  reactionLevel: z15.enum(["off", "ack", "minimal", "extensive"]).optional(),
-  debounceMs: z15.number().int().nonnegative().optional().default(0),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema
-});
+var WhatsAppDirectSchema = z16.record(z16.string(), WhatsAppDirectEntrySchema).optional();
+var WhatsAppAckReactionSchema = z16.object({
+  emoji: z16.string().optional(),
+  direct: z16.boolean().optional().default(true),
+  group: z16.enum(["always", "mentions", "never"]).optional().default("mentions")
+}).strict().optional();
+function stripDeprecatedWhatsAppNoopKeys(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  if (!Object.hasOwn(value, "exposeErrorText")) {
+    return value;
+  }
+  const next = { ...value };
+  delete next.exposeErrorText;
+  return next;
+}
+function buildWhatsAppCommonShape(params) {
+  return {
+    enabled: z16.boolean().optional(),
+    capabilities: z16.array(z16.string()).optional(),
+    markdown: MarkdownConfigSchema,
+    configWrites: z16.boolean().optional(),
+    sendReadReceipts: z16.boolean().optional(),
+    messagePrefix: z16.string().optional(),
+    responsePrefix: z16.string().optional(),
+    dmPolicy: params.useDefaults ? DmPolicySchema.optional().default("pairing") : DmPolicySchema.optional(),
+    selfChatMode: z16.boolean().optional(),
+    allowFrom: z16.array(z16.string()).optional(),
+    defaultTo: z16.string().optional(),
+    groupAllowFrom: z16.array(z16.string()).optional(),
+    groupPolicy: params.useDefaults ? GroupPolicySchema.optional().default("allowlist") : GroupPolicySchema.optional(),
+    contextVisibility: ContextVisibilityModeSchema.optional(),
+    historyLimit: z16.number().int().min(0).optional(),
+    dmHistoryLimit: z16.number().int().min(0).optional(),
+    dms: z16.record(z16.string(), DmConfigSchema.optional()).optional(),
+    textChunkLimit: z16.number().int().positive().optional(),
+    chunkMode: z16.enum(["length", "newline"]).optional(),
+    blockStreaming: z16.boolean().optional(),
+    blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
+    groups: WhatsAppGroupsSchema,
+    direct: WhatsAppDirectSchema,
+    ackReaction: WhatsAppAckReactionSchema,
+    reactionLevel: z16.enum(["off", "ack", "minimal", "extensive"]).optional(),
+    debounceMs: params.useDefaults ? z16.number().int().nonnegative().optional().default(0) : z16.number().int().nonnegative().optional(),
+    replyToMode: ReplyToModeSchema.optional(),
+    heartbeat: ChannelHeartbeatVisibilitySchema,
+    healthMonitor: ChannelHealthMonitorSchema
+  };
+}
 function enforceOpenDmPolicyAllowFromStar(params) {
   if (params.dmPolicy !== "open") {
     return;
@@ -9677,7 +17874,7 @@ function enforceOpenDmPolicyAllowFromStar(params) {
     return;
   }
   params.ctx.addIssue({
-    code: z15.ZodIssueCode.custom,
+    code: z16.ZodIssueCode.custom,
     path: params.path ?? ["allowFrom"],
     message: params.message
   });
@@ -9691,28 +17888,35 @@ function enforceAllowlistDmPolicyAllowFrom(params) {
     return;
   }
   params.ctx.addIssue({
-    code: z15.ZodIssueCode.custom,
+    code: z16.ZodIssueCode.custom,
     path: params.path ?? ["allowFrom"],
     message: params.message
   });
 }
-var WhatsAppAccountSchema = WhatsAppSharedSchema.extend({
-  name: z15.string().optional(),
-  enabled: z15.boolean().optional(),
+var WhatsAppAccountObjectSchema = z16.object({
+  ...buildWhatsAppCommonShape({ useDefaults: false }),
+  name: z16.string().optional(),
+  enabled: z16.boolean().optional(),
   /** Override auth directory for this WhatsApp account (Baileys multi-file auth state). */
-  authDir: z15.string().optional(),
-  mediaMaxMb: z15.number().int().positive().optional()
+  authDir: z16.string().optional(),
+  mediaMaxMb: z16.number().int().positive().optional()
 }).strict();
-var WhatsAppConfigSchema = WhatsAppSharedSchema.extend({
-  accounts: z15.record(z15.string(), WhatsAppAccountSchema.optional()).optional(),
-  defaultAccount: z15.string().optional(),
-  mediaMaxMb: z15.number().int().positive().optional().default(50),
-  actions: z15.object({
-    reactions: z15.boolean().optional(),
-    sendMessage: z15.boolean().optional(),
-    polls: z15.boolean().optional()
+var WhatsAppAccountSchema = z16.preprocess(
+  stripDeprecatedWhatsAppNoopKeys,
+  WhatsAppAccountObjectSchema
+);
+var WhatsAppConfigObjectSchema = z16.object({
+  ...buildWhatsAppCommonShape({ useDefaults: true }),
+  accounts: z16.record(z16.string(), WhatsAppAccountSchema.optional()).optional(),
+  defaultAccount: z16.string().optional(),
+  mediaMaxMb: z16.number().int().positive().optional().default(50),
+  actions: z16.object({
+    reactions: z16.boolean().optional(),
+    sendMessage: z16.boolean().optional(),
+    polls: z16.boolean().optional()
   }).strict().optional()
 }).strict().superRefine((value, ctx) => {
+  const defaultAccount = resolveAccountEntry(value.accounts, "default");
   enforceOpenDmPolicyAllowFromStar({
     dmPolicy: value.dmPolicy,
     allowFrom: value.allowFrom,
@@ -9732,8 +17936,8 @@ var WhatsAppConfigSchema = WhatsAppSharedSchema.extend({
     if (!account) {
       continue;
     }
-    const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
-    const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
+    const effectivePolicy = account.dmPolicy ?? (accountId === "default" ? void 0 : defaultAccount?.dmPolicy) ?? value.dmPolicy;
+    const effectiveAllowFrom = account.allowFrom ?? (accountId === "default" ? void 0 : defaultAccount?.allowFrom) ?? value.allowFrom;
     enforceOpenDmPolicyAllowFromStar({
       dmPolicy: effectivePolicy,
       allowFrom: effectiveAllowFrom,
@@ -9750,62 +17954,44 @@ var WhatsAppConfigSchema = WhatsAppSharedSchema.extend({
     });
   }
 });
+var WhatsAppConfigSchema = z16.preprocess(
+  stripDeprecatedWhatsAppNoopKeys,
+  WhatsAppConfigObjectSchema
+);
 
 // vendor/openclaw/src/config/zod-schema.providers.ts
-var ChannelModelByChannelSchema = z16.record(z16.string(), z16.record(z16.string(), z16.string())).optional();
-var directChannelRuntimeSchemasCache;
-var OPENCLAW_PACKAGE_ROOT2 = resolveLoaderPackageRoot({
-  modulePath: fileURLToPath4(import.meta.url),
-  moduleUrl: import.meta.url
-}) ?? fileURLToPath4(new URL("../..", import.meta.url));
-function getDirectChannelRuntimeSchema(channelId) {
-  if (!directChannelRuntimeSchemasCache) {
-    directChannelRuntimeSchemasCache = /* @__PURE__ */ new Map();
+var ChannelModelByChannelSchema = z17.record(z17.string(), z17.record(z17.string(), z17.string())).optional();
+function getDirectChannelRuntimeSchema(channelId, registry) {
+  const record = registry.plugins.find(
+    (plugin) => plugin.origin === "bundled" && plugin.channels.includes(channelId)
+  );
+  if (!record) {
+    return void 0;
   }
-  const cached = directChannelRuntimeSchemasCache.get(channelId);
-  if (cached) {
-    return cached;
+  const manifestRuntime = record.channelConfigs?.[channelId]?.runtime;
+  if (manifestRuntime) {
+    return manifestRuntime;
   }
-  for (const entry of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false
-  })) {
-    const manifestRuntime = entry.manifest.channelConfigs?.[channelId]?.runtime;
-    if (manifestRuntime) {
-      directChannelRuntimeSchemasCache.set(
-        channelId,
-        manifestRuntime
-      );
-      return manifestRuntime;
-    }
-    if (!entry.manifest.channels?.includes(channelId)) {
-      continue;
-    }
-    const collectedChannelConfigs = collectBundledChannelConfigs({
-      pluginDir: path15.resolve(OPENCLAW_PACKAGE_ROOT2, "extensions", entry.dirName),
-      manifest: entry.manifest,
-      ...entry.packageManifest ? { packageManifest: entry.packageManifest } : {}
-    });
-    const collectedRuntime = collectedChannelConfigs?.[channelId]?.runtime;
-    if (collectedRuntime) {
-      directChannelRuntimeSchemasCache.set(
-        channelId,
-        collectedRuntime
-      );
-      return collectedRuntime;
-    }
-  }
-  return void 0;
+  return collectBundledChannelConfigs({
+    pluginDir: record.rootDir,
+    manifest: {
+      id: record.id,
+      configSchema: record.configSchema ?? {},
+      channels: record.channels,
+      channelConfigs: record.channelConfigs
+    },
+    packageManifest: record.packageManifest
+  })?.[channelId]?.runtime;
 }
 function hasPluginOwnedChannelConfig(value) {
   return Object.keys(value).some((key) => key !== "defaults" && key !== "modelByChannel");
 }
-function addLegacyChannelAcpBindingIssues(value, ctx, path16 = []) {
+function addLegacyChannelAcpBindingIssues(value, ctx, path30 = []) {
   if (!value || typeof value !== "object") {
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((entry, index) => addLegacyChannelAcpBindingIssues(entry, ctx, [...path16, index]));
+    value.forEach((entry, index) => addLegacyChannelAcpBindingIssues(entry, ctx, [...path30, index]));
     return;
   }
   const record = value;
@@ -9814,14 +18000,14 @@ function addLegacyChannelAcpBindingIssues(value, ctx, path16 = []) {
     const acp = bindings.acp;
     if (acp && typeof acp === "object") {
       ctx.addIssue({
-        code: z16.ZodIssueCode.custom,
-        path: [...path16, "bindings", "acp"],
+        code: z17.ZodIssueCode.custom,
+        path: [...path30, "bindings", "acp"],
         message: "Legacy channel-local ACP bindings were removed; use top-level bindings[] entries."
       });
     }
   }
   for (const [key, entry] of Object.entries(record)) {
-    addLegacyChannelAcpBindingIssues(entry, ctx, [...path16, key]);
+    addLegacyChannelAcpBindingIssues(entry, ctx, [...path30, key]);
   }
 }
 function normalizeBundledChannelConfigs(value, ctx) {
@@ -9829,8 +18015,10 @@ function normalizeBundledChannelConfigs(value, ctx) {
     return value;
   }
   let next;
+  let registry;
   for (const channelId of Object.keys(value)) {
-    const runtimeSchema = getDirectChannelRuntimeSchema(channelId);
+    registry ??= loadPluginMetadataSnapshot({ config: {}, env: process.env }).manifestRegistry;
+    const runtimeSchema = getDirectChannelRuntimeSchema(channelId, registry);
     if (!runtimeSchema) {
       continue;
     }
@@ -9841,7 +18029,7 @@ function normalizeBundledChannelConfigs(value, ctx) {
     if (!parsed.success) {
       for (const issue of parsed.issues) {
         ctx.addIssue({
-          code: z16.ZodIssueCode.custom,
+          code: z17.ZodIssueCode.custom,
           message: issue.message ?? `Invalid channels.${channelId} config.`,
           path: [channelId, ...Array.isArray(issue.path) ? issue.path : []]
         });
@@ -9853,8 +18041,8 @@ function normalizeBundledChannelConfigs(value, ctx) {
   }
   return next ?? value;
 }
-var ChannelsSchema = z16.object({
-  defaults: z16.object({
+var ChannelsSchema = z17.object({
+  defaults: z17.object({
     groupPolicy: GroupPolicySchema.optional(),
     contextVisibility: ContextVisibilityModeSchema.optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema
@@ -9864,58 +18052,80 @@ var ChannelsSchema = z16.object({
   addLegacyChannelAcpBindingIssues(value, ctx);
 }).transform((value, ctx) => normalizeBundledChannelConfigs(value, ctx)).optional();
 
+// vendor/openclaw/src/config/zod-schema.proxy.ts
+import { z as z18 } from "zod";
+function isHttpProxyUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+var ProxyConfigSchema = z18.object({
+  enabled: z18.boolean().optional(),
+  proxyUrl: z18.string().url().refine(isHttpProxyUrl, {
+    message: "proxyUrl must use http://"
+  }).register(sensitive).optional()
+}).strict().optional();
+
 // vendor/openclaw/src/config/zod-schema.session.ts
-import { z as z17 } from "zod";
-var SessionResetConfigSchema = z17.object({
-  mode: z17.union([z17.literal("daily"), z17.literal("idle")]).optional(),
-  atHour: z17.number().int().min(0).max(23).optional(),
-  idleMinutes: z17.number().int().positive().optional()
+import { z as z19 } from "zod";
+init_string_coerce();
+var SessionResetConfigSchema = z19.object({
+  mode: z19.union([z19.literal("daily"), z19.literal("idle")]).optional(),
+  atHour: z19.number().int().min(0).max(23).optional(),
+  idleMinutes: z19.number().int().positive().optional()
 }).strict();
 var SessionSendPolicySchema = createAllowDenyChannelRulesSchema();
-var SessionSchema = z17.object({
-  scope: z17.union([z17.literal("per-sender"), z17.literal("global")]).optional(),
-  dmScope: z17.union([
-    z17.literal("main"),
-    z17.literal("per-peer"),
-    z17.literal("per-channel-peer"),
-    z17.literal("per-account-channel-peer")
+var SessionSchema = z19.object({
+  scope: z19.union([z19.literal("per-sender"), z19.literal("global")]).optional(),
+  dmScope: z19.union([
+    z19.literal("main"),
+    z19.literal("per-peer"),
+    z19.literal("per-channel-peer"),
+    z19.literal("per-account-channel-peer")
   ]).optional(),
-  identityLinks: z17.record(z17.string(), z17.array(z17.string())).optional(),
-  resetTriggers: z17.array(z17.string()).optional(),
-  idleMinutes: z17.number().int().positive().optional(),
+  identityLinks: z19.record(z19.string(), z19.array(z19.string())).optional(),
+  resetTriggers: z19.array(z19.string()).optional(),
+  idleMinutes: z19.number().int().positive().optional(),
   reset: SessionResetConfigSchema.optional(),
-  resetByType: z17.object({
+  resetByType: z19.object({
     direct: SessionResetConfigSchema.optional(),
     /** @deprecated Use `direct` instead. Kept for backward compatibility. */
     dm: SessionResetConfigSchema.optional(),
     group: SessionResetConfigSchema.optional(),
     thread: SessionResetConfigSchema.optional()
   }).strict().optional(),
-  resetByChannel: z17.record(z17.string(), SessionResetConfigSchema).optional(),
-  store: z17.string().optional(),
-  typingIntervalSeconds: z17.number().int().positive().optional(),
+  resetByChannel: z19.record(z19.string(), SessionResetConfigSchema).optional(),
+  store: z19.string().optional(),
+  typingIntervalSeconds: z19.number().int().positive().optional(),
   typingMode: TypingModeSchema.optional(),
-  parentForkMaxTokens: z17.number().int().nonnegative().optional(),
-  mainKey: z17.string().optional(),
+  mainKey: z19.string().optional(),
   sendPolicy: SessionSendPolicySchema.optional(),
-  agentToAgent: z17.object({
-    maxPingPongTurns: z17.number().int().min(0).max(5).optional()
+  writeLock: z19.object({
+    acquireTimeoutMs: z19.number().int().positive().optional()
   }).strict().optional(),
-  threadBindings: z17.object({
-    enabled: z17.boolean().optional(),
-    idleHours: z17.number().nonnegative().optional(),
-    maxAgeHours: z17.number().nonnegative().optional()
+  agentToAgent: z19.object({
+    maxPingPongTurns: z19.number().int().min(0).max(5).optional()
   }).strict().optional(),
-  maintenance: z17.object({
-    mode: z17.enum(["enforce", "warn"]).optional(),
-    pruneAfter: z17.union([z17.string(), z17.number()]).optional(),
+  threadBindings: z19.object({
+    enabled: z19.boolean().optional(),
+    idleHours: z19.number().nonnegative().optional(),
+    maxAgeHours: z19.number().nonnegative().optional(),
+    spawnSessions: z19.boolean().optional(),
+    defaultSpawnContext: z19.enum(["isolated", "fork"]).optional()
+  }).strict().optional(),
+  maintenance: z19.object({
+    mode: z19.enum(["enforce", "warn"]).optional(),
+    pruneAfter: z19.union([z19.string(), z19.number()]).optional(),
     /** @deprecated Use pruneAfter instead. */
-    pruneDays: z17.number().int().positive().optional(),
-    maxEntries: z17.number().int().positive().optional(),
-    rotateBytes: z17.union([z17.string(), z17.number()]).optional(),
-    resetArchiveRetention: z17.union([z17.string(), z17.number(), z17.literal(false)]).optional(),
-    maxDiskBytes: z17.union([z17.string(), z17.number()]).optional(),
-    highWaterBytes: z17.union([z17.string(), z17.number()]).optional()
+    pruneDays: z19.number().int().positive().optional(),
+    maxEntries: z19.number().int().positive().optional(),
+    rotateBytes: z19.union([z19.string(), z19.number()]).optional(),
+    resetArchiveRetention: z19.union([z19.string(), z19.number(), z19.literal(false)]).optional(),
+    maxDiskBytes: z19.union([z19.string(), z19.number()]).optional(),
+    highWaterBytes: z19.union([z19.string(), z19.number()]).optional()
   }).strict().superRefine((val, ctx) => {
     if (val.pruneAfter !== void 0) {
       try {
@@ -9924,22 +18134,9 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z19.ZodIssueCode.custom,
           path: ["pruneAfter"],
           message: "invalid duration (use ms, s, m, h, d)"
-        });
-      }
-    }
-    if (val.rotateBytes !== void 0) {
-      try {
-        parseByteSize(normalizeStringifiedOptionalString(val.rotateBytes) ?? "", {
-          defaultUnit: "b"
-        });
-      } catch {
-        ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
-          path: ["rotateBytes"],
-          message: "invalid size (use b, kb, mb, gb, tb)"
         });
       }
     }
@@ -9950,7 +18147,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z19.ZodIssueCode.custom,
           path: ["resetArchiveRetention"],
           message: "invalid duration (use ms, s, m, h, d)"
         });
@@ -9963,7 +18160,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z19.ZodIssueCode.custom,
           path: ["maxDiskBytes"],
           message: "invalid size (use b, kb, mb, gb, tb)"
         });
@@ -9976,7 +18173,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z19.ZodIssueCode.custom,
           path: ["highWaterBytes"],
           message: "invalid size (use b, kb, mb, gb, tb)"
         });
@@ -9984,303 +18181,363 @@ var SessionSchema = z17.object({
     }
   }).optional()
 }).strict().optional();
-var MessagesSchema = z17.object({
-  messagePrefix: z17.string().optional(),
-  responsePrefix: z17.string().optional(),
+var MessagesSchema = z19.object({
+  messagePrefix: z19.string().optional(),
+  visibleReplies: z19.enum(["automatic", "message_tool"]).optional(),
+  responsePrefix: z19.string().optional(),
   groupChat: GroupChatSchema,
   queue: QueueSchema,
   inbound: InboundDebounceSchema,
-  ackReaction: z17.string().optional(),
-  ackReactionScope: z17.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
-  removeAckAfterReply: z17.boolean().optional(),
-  statusReactions: z17.object({
-    enabled: z17.boolean().optional(),
-    emojis: z17.object({
-      thinking: z17.string().optional(),
-      tool: z17.string().optional(),
-      coding: z17.string().optional(),
-      web: z17.string().optional(),
-      done: z17.string().optional(),
-      error: z17.string().optional(),
-      stallSoft: z17.string().optional(),
-      stallHard: z17.string().optional(),
-      compacting: z17.string().optional()
+  ackReaction: z19.string().optional(),
+  ackReactionScope: z19.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
+  removeAckAfterReply: z19.boolean().optional(),
+  statusReactions: z19.object({
+    enabled: z19.boolean().optional(),
+    emojis: z19.object({
+      thinking: z19.string().optional(),
+      tool: z19.string().optional(),
+      coding: z19.string().optional(),
+      web: z19.string().optional(),
+      done: z19.string().optional(),
+      error: z19.string().optional(),
+      stallSoft: z19.string().optional(),
+      stallHard: z19.string().optional(),
+      compacting: z19.string().optional()
     }).strict().optional(),
-    timing: z17.object({
-      debounceMs: z17.number().int().min(0).optional(),
-      stallSoftMs: z17.number().int().min(0).optional(),
-      stallHardMs: z17.number().int().min(0).optional(),
-      doneHoldMs: z17.number().int().min(0).optional(),
-      errorHoldMs: z17.number().int().min(0).optional()
+    timing: z19.object({
+      debounceMs: z19.number().int().min(0).optional(),
+      stallSoftMs: z19.number().int().min(0).optional(),
+      stallHardMs: z19.number().int().min(0).optional(),
+      doneHoldMs: z19.number().int().min(0).optional(),
+      errorHoldMs: z19.number().int().min(0).optional()
     }).strict().optional()
   }).strict().optional(),
-  suppressToolErrors: z17.boolean().optional(),
+  suppressToolErrors: z19.boolean().optional(),
   tts: TtsConfigSchema
 }).strict().optional();
-var CommandsSchema = z17.object({
+var CommandsSchema = z19.object({
   native: NativeCommandsSettingSchema.optional().default("auto"),
   nativeSkills: NativeCommandsSettingSchema.optional().default("auto"),
-  text: z17.boolean().optional(),
-  bash: z17.boolean().optional(),
-  bashForegroundMs: z17.number().int().min(0).max(3e4).optional(),
-  config: z17.boolean().optional(),
-  mcp: z17.boolean().optional(),
-  plugins: z17.boolean().optional(),
-  debug: z17.boolean().optional(),
-  restart: z17.boolean().optional().default(true),
-  useAccessGroups: z17.boolean().optional(),
-  ownerAllowFrom: z17.array(z17.union([z17.string(), z17.number()])).optional(),
-  ownerDisplay: z17.enum(["raw", "hash"]).optional().default("raw"),
-  ownerDisplaySecret: z17.string().optional().register(sensitive),
+  text: z19.boolean().optional(),
+  bash: z19.boolean().optional(),
+  bashForegroundMs: z19.number().int().min(0).max(3e4).optional(),
+  config: z19.boolean().optional(),
+  mcp: z19.boolean().optional(),
+  plugins: z19.boolean().optional(),
+  debug: z19.boolean().optional(),
+  restart: z19.boolean().optional().default(true),
+  useAccessGroups: z19.boolean().optional(),
+  ownerAllowFrom: z19.array(z19.union([z19.string(), z19.number()])).optional(),
+  ownerDisplay: z19.enum(["raw", "hash"]).optional().default("raw"),
+  ownerDisplaySecret: z19.string().optional().register(sensitive),
   allowFrom: ElevatedAllowFromSchema.optional()
 }).strict().optional().default(
-  () => ({ native: "auto", nativeSkills: "auto", restart: true, ownerDisplay: "raw" })
+  () => ({
+    native: "auto",
+    nativeSkills: "auto",
+    restart: true,
+    ownerDisplay: "raw"
+  })
 );
 
 // vendor/openclaw/src/config/zod-schema.ts
-var BrowserSnapshotDefaultsSchema = z18.object({
-  mode: z18.literal("efficient").optional()
+var BrowserSnapshotDefaultsSchema = z20.object({
+  mode: z20.literal("efficient").optional()
 }).strict().optional();
-var NodeHostSchema = z18.object({
-  browserProxy: z18.object({
-    enabled: z18.boolean().optional(),
-    allowProfiles: z18.array(z18.string()).optional()
+var NodeHostSchema = z20.object({
+  browserProxy: z20.object({
+    enabled: z20.boolean().optional(),
+    allowProfiles: z20.array(z20.string()).optional()
   }).strict().optional()
 }).strict().optional();
-var MemoryQmdPathSchema = z18.object({
-  path: z18.string(),
-  name: z18.string().optional(),
-  pattern: z18.string().optional()
+var AccessGroupsSchema = z20.record(
+  z20.string().min(1),
+  z20.discriminatedUnion("type", [
+    z20.object({
+      type: z20.literal("discord.channelAudience"),
+      guildId: z20.string().min(1),
+      channelId: z20.string().min(1),
+      membership: z20.literal("canViewChannel").optional()
+    }).strict(),
+    z20.object({
+      type: z20.literal("message.senders"),
+      members: z20.record(z20.string().min(1), z20.array(z20.string().min(1)))
+    }).strict()
+  ])
+).optional();
+var MemoryQmdPathSchema = z20.object({
+  path: z20.string(),
+  name: z20.string().optional(),
+  pattern: z20.string().optional()
 }).strict();
-var MemoryQmdSessionSchema = z18.object({
-  enabled: z18.boolean().optional(),
-  exportDir: z18.string().optional(),
-  retentionDays: z18.number().int().nonnegative().optional()
+var MemoryQmdSessionSchema = z20.object({
+  enabled: z20.boolean().optional(),
+  exportDir: z20.string().optional(),
+  retentionDays: z20.number().int().nonnegative().optional()
 }).strict();
-var MemoryQmdUpdateSchema = z18.object({
-  interval: z18.string().optional(),
-  debounceMs: z18.number().int().nonnegative().optional(),
-  onBoot: z18.boolean().optional(),
-  waitForBootSync: z18.boolean().optional(),
-  embedInterval: z18.string().optional(),
-  commandTimeoutMs: z18.number().int().nonnegative().optional(),
-  updateTimeoutMs: z18.number().int().nonnegative().optional(),
-  embedTimeoutMs: z18.number().int().nonnegative().optional()
+var MemoryQmdUpdateSchema = z20.object({
+  interval: z20.string().optional(),
+  debounceMs: z20.number().int().nonnegative().optional(),
+  onBoot: z20.boolean().optional(),
+  startup: z20.enum(["off", "idle", "immediate"]).optional(),
+  startupDelayMs: z20.number().int().nonnegative().optional(),
+  waitForBootSync: z20.boolean().optional(),
+  embedInterval: z20.string().optional(),
+  commandTimeoutMs: z20.number().int().nonnegative().optional(),
+  updateTimeoutMs: z20.number().int().nonnegative().optional(),
+  embedTimeoutMs: z20.number().int().nonnegative().optional()
 }).strict();
-var MemoryQmdLimitsSchema = z18.object({
-  maxResults: z18.number().int().positive().optional(),
-  maxSnippetChars: z18.number().int().positive().optional(),
-  maxInjectedChars: z18.number().int().positive().optional(),
-  timeoutMs: z18.number().int().nonnegative().optional()
+var MemoryQmdLimitsSchema = z20.object({
+  maxResults: z20.number().int().positive().optional(),
+  maxSnippetChars: z20.number().int().positive().optional(),
+  maxInjectedChars: z20.number().int().positive().optional(),
+  timeoutMs: z20.number().int().nonnegative().optional()
 }).strict();
-var MemoryQmdMcporterSchema = z18.object({
-  enabled: z18.boolean().optional(),
-  serverName: z18.string().optional(),
-  startDaemon: z18.boolean().optional()
+var MemoryQmdMcporterSchema = z20.object({
+  enabled: z20.boolean().optional(),
+  serverName: z20.string().optional(),
+  startDaemon: z20.boolean().optional()
 }).strict();
-var LoggingLevelSchema = z18.union([
-  z18.literal("silent"),
-  z18.literal("fatal"),
-  z18.literal("error"),
-  z18.literal("warn"),
-  z18.literal("info"),
-  z18.literal("debug"),
-  z18.literal("trace")
+var LoggingLevelSchema = z20.union([
+  z20.literal("silent"),
+  z20.literal("fatal"),
+  z20.literal("error"),
+  z20.literal("warn"),
+  z20.literal("info"),
+  z20.literal("debug"),
+  z20.literal("trace")
 ]);
-var MemoryQmdSchema = z18.object({
-  command: z18.string().optional(),
+var MemoryQmdSchema = z20.object({
+  command: z20.string().optional(),
   mcporter: MemoryQmdMcporterSchema.optional(),
-  searchMode: z18.union([z18.literal("query"), z18.literal("search"), z18.literal("vsearch")]).optional(),
-  searchTool: z18.string().trim().min(1).optional(),
-  includeDefaultMemory: z18.boolean().optional(),
-  paths: z18.array(MemoryQmdPathSchema).optional(),
+  searchMode: z20.union([z20.literal("query"), z20.literal("search"), z20.literal("vsearch")]).optional(),
+  searchTool: z20.string().trim().min(1).optional(),
+  includeDefaultMemory: z20.boolean().optional(),
+  paths: z20.array(MemoryQmdPathSchema).optional(),
   sessions: MemoryQmdSessionSchema.optional(),
   update: MemoryQmdUpdateSchema.optional(),
   limits: MemoryQmdLimitsSchema.optional(),
   scope: SessionSendPolicySchema.optional()
 }).strict();
-var MemorySchema = z18.object({
-  backend: z18.union([z18.literal("builtin"), z18.literal("qmd")]).optional(),
-  citations: z18.union([z18.literal("auto"), z18.literal("on"), z18.literal("off")]).optional(),
+var MemorySchema = z20.object({
+  backend: z20.union([z20.literal("builtin"), z20.literal("qmd")]).optional(),
+  citations: z20.union([z20.literal("auto"), z20.literal("on"), z20.literal("off")]).optional(),
   qmd: MemoryQmdSchema.optional()
 }).strict().optional();
-var HttpUrlSchema = z18.string().url().refine((value) => {
+var HttpUrlSchema = z20.string().url().refine((value) => {
   const protocol = new URL(value).protocol;
   return protocol === "http:" || protocol === "https:";
 }, "Expected http:// or https:// URL");
 var ResponsesEndpointUrlFetchShape = {
-  allowUrl: z18.boolean().optional(),
-  urlAllowlist: z18.array(z18.string()).optional(),
-  allowedMimes: z18.array(z18.string()).optional(),
-  maxBytes: z18.number().int().positive().optional(),
-  maxRedirects: z18.number().int().nonnegative().optional(),
-  timeoutMs: z18.number().int().positive().optional()
+  allowUrl: z20.boolean().optional(),
+  urlAllowlist: z20.array(z20.string()).optional(),
+  allowedMimes: z20.array(z20.string()).optional(),
+  maxBytes: z20.number().int().positive().optional(),
+  maxRedirects: z20.number().int().nonnegative().optional(),
+  timeoutMs: z20.number().int().positive().optional()
 };
-var SkillEntrySchema = z18.object({
-  enabled: z18.boolean().optional(),
+var SkillEntrySchema = z20.object({
+  enabled: z20.boolean().optional(),
   apiKey: SecretInputSchema.optional().register(sensitive),
-  env: z18.record(z18.string(), z18.string()).optional(),
-  config: z18.record(z18.string(), z18.unknown()).optional()
+  env: z20.record(z20.string(), z20.string()).optional(),
+  config: z20.record(z20.string(), z20.unknown()).optional()
 }).strict();
-var PluginEntrySchema = z18.object({
-  enabled: z18.boolean().optional(),
-  hooks: z18.object({
-    allowPromptInjection: z18.boolean().optional()
+var PluginEntrySchema = z20.object({
+  enabled: z20.boolean().optional(),
+  hooks: z20.object({
+    allowPromptInjection: z20.boolean().optional(),
+    allowConversationAccess: z20.boolean().optional()
   }).strict().optional(),
-  subagent: z18.object({
-    allowModelOverride: z18.boolean().optional(),
-    allowedModels: z18.array(z18.string()).optional()
+  subagent: z20.object({
+    allowModelOverride: z20.boolean().optional(),
+    allowedModels: z20.array(z20.string()).optional()
   }).strict().optional(),
-  config: z18.record(z18.string(), z18.unknown()).optional()
+  config: z20.record(z20.string(), z20.unknown()).optional()
 }).strict();
-var TalkProviderEntrySchema = z18.object({
+var TalkProviderEntrySchema = z20.object({
   apiKey: SecretInputSchema.optional().register(sensitive)
-}).catchall(z18.unknown());
-var TalkSchema = z18.object({
-  provider: z18.string().optional(),
-  providers: z18.record(z18.string(), TalkProviderEntrySchema).optional(),
-  interruptOnSpeech: z18.boolean().optional(),
-  silenceTimeoutMs: z18.number().int().positive().optional()
+}).catchall(z20.unknown());
+var TalkSchema = z20.object({
+  provider: z20.string().optional(),
+  providers: z20.record(z20.string(), TalkProviderEntrySchema).optional(),
+  speechLocale: z20.string().optional(),
+  interruptOnSpeech: z20.boolean().optional(),
+  silenceTimeoutMs: z20.number().int().positive().optional()
 }).strict().superRefine((talk, ctx) => {
   const provider = normalizeLowercaseStringOrEmpty(talk.provider ?? "");
   const providers = talk.providers ? Object.keys(talk.providers) : [];
   if (provider && providers.length > 0 && !(provider in talk.providers)) {
     ctx.addIssue({
-      code: z18.ZodIssueCode.custom,
+      code: z20.ZodIssueCode.custom,
       path: ["provider"],
       message: `talk.provider must match a key in talk.providers (missing "${provider}")`
     });
   }
   if (!provider && providers.length > 1) {
     ctx.addIssue({
-      code: z18.ZodIssueCode.custom,
+      code: z20.ZodIssueCode.custom,
       path: ["provider"],
       message: "talk.provider is required when talk.providers defines multiple providers"
     });
   }
 });
-var McpServerSchema = z18.object({
-  command: z18.string().optional(),
-  args: z18.array(z18.string()).optional(),
-  env: z18.record(z18.string(), z18.union([z18.string(), z18.number(), z18.boolean()])).optional(),
-  cwd: z18.string().optional(),
-  workingDirectory: z18.string().optional(),
+var McpServerSchema = z20.object({
+  command: z20.string().optional(),
+  args: z20.array(z20.string()).optional(),
+  env: z20.record(z20.string(), z20.union([z20.string(), z20.number(), z20.boolean()])).optional(),
+  cwd: z20.string().optional(),
+  workingDirectory: z20.string().optional(),
   url: HttpUrlSchema.optional(),
-  headers: z18.record(
-    z18.string(),
-    z18.union([z18.string().register(sensitive), z18.number(), z18.boolean()]).register(sensitive)
+  transport: z20.union([z20.literal("sse"), z20.literal("streamable-http")]).optional(),
+  headers: z20.record(
+    z20.string(),
+    z20.union([z20.string().register(sensitive), z20.number(), z20.boolean()]).register(sensitive)
   ).optional()
-}).catchall(z18.unknown());
-var McpConfigSchema = z18.object({
-  servers: z18.record(z18.string(), McpServerSchema).optional()
+}).catchall(z20.unknown());
+var McpConfigSchema = z20.object({
+  servers: z20.record(z20.string(), McpServerSchema).optional(),
+  sessionIdleTtlMs: z20.number().finite().min(0).optional()
 }).strict().optional();
-var OpenClawSchema = z18.object({
-  $schema: z18.string().optional(),
-  meta: z18.object({
-    lastTouchedVersion: z18.string().optional(),
+var CrestodianSchema = z20.object({
+  rescue: z20.object({
+    enabled: z20.union([z20.literal("auto"), z20.boolean()]).optional(),
+    ownerDmOnly: z20.boolean().optional(),
+    pendingTtlMinutes: z20.number().int().positive().optional()
+  }).strict().optional()
+}).strict().optional();
+var CommitmentsSchema = z20.object({
+  enabled: z20.boolean().optional(),
+  maxPerDay: z20.number().int().positive().optional()
+}).strict().optional();
+var OpenClawSchema = z20.object({
+  $schema: z20.string().optional(),
+  meta: z20.object({
+    lastTouchedVersion: z20.string().optional(),
     // Accept any string unchanged (backwards-compatible) and coerce numeric Unix
     // timestamps to ISO strings (agent file edits may write Date.now()).
-    lastTouchedAt: z18.union([
-      z18.string(),
-      z18.number().transform((n, ctx) => {
+    lastTouchedAt: z20.union([
+      z20.string(),
+      z20.number().transform((n, ctx) => {
         const d = new Date(n);
         if (Number.isNaN(d.getTime())) {
-          ctx.addIssue({ code: z18.ZodIssueCode.custom, message: "Invalid timestamp" });
-          return z18.NEVER;
+          ctx.addIssue({ code: z20.ZodIssueCode.custom, message: "Invalid timestamp" });
+          return z20.NEVER;
         }
         return d.toISOString();
       })
     ]).optional()
   }).strict().optional(),
-  env: z18.object({
-    shellEnv: z18.object({
-      enabled: z18.boolean().optional(),
-      timeoutMs: z18.number().int().nonnegative().optional()
+  env: z20.object({
+    shellEnv: z20.object({
+      enabled: z20.boolean().optional(),
+      timeoutMs: z20.number().int().nonnegative().optional()
     }).strict().optional(),
-    vars: z18.record(z18.string(), z18.string()).optional()
-  }).catchall(z18.string()).optional(),
-  wizard: z18.object({
-    lastRunAt: z18.string().optional(),
-    lastRunVersion: z18.string().optional(),
-    lastRunCommit: z18.string().optional(),
-    lastRunCommand: z18.string().optional(),
-    lastRunMode: z18.union([z18.literal("local"), z18.literal("remote")]).optional()
+    vars: z20.record(z20.string(), z20.string()).optional()
+  }).catchall(z20.string()).optional(),
+  wizard: z20.object({
+    lastRunAt: z20.string().optional(),
+    lastRunVersion: z20.string().optional(),
+    lastRunCommit: z20.string().optional(),
+    lastRunCommand: z20.string().optional(),
+    lastRunMode: z20.union([z20.literal("local"), z20.literal("remote")]).optional()
   }).strict().optional(),
-  diagnostics: z18.object({
-    enabled: z18.boolean().optional(),
-    flags: z18.array(z18.string()).optional(),
-    stuckSessionWarnMs: z18.number().int().positive().optional(),
-    otel: z18.object({
-      enabled: z18.boolean().optional(),
-      endpoint: z18.string().optional(),
-      protocol: z18.union([z18.literal("http/protobuf"), z18.literal("grpc")]).optional(),
-      headers: z18.record(z18.string(), z18.string()).optional(),
-      serviceName: z18.string().optional(),
-      traces: z18.boolean().optional(),
-      metrics: z18.boolean().optional(),
-      logs: z18.boolean().optional(),
-      sampleRate: z18.number().min(0).max(1).optional(),
-      flushIntervalMs: z18.number().int().nonnegative().optional()
+  diagnostics: z20.object({
+    enabled: z20.boolean().optional(),
+    flags: z20.array(z20.string()).optional(),
+    stuckSessionWarnMs: z20.number().int().positive().optional(),
+    otel: z20.object({
+      enabled: z20.boolean().optional(),
+      endpoint: z20.string().optional(),
+      tracesEndpoint: z20.string().optional(),
+      metricsEndpoint: z20.string().optional(),
+      logsEndpoint: z20.string().optional(),
+      protocol: z20.union([z20.literal("http/protobuf"), z20.literal("grpc")]).optional(),
+      headers: z20.record(z20.string(), z20.string()).optional(),
+      serviceName: z20.string().optional(),
+      traces: z20.boolean().optional(),
+      metrics: z20.boolean().optional(),
+      logs: z20.boolean().optional(),
+      sampleRate: z20.number().min(0).max(1).optional(),
+      flushIntervalMs: z20.number().int().nonnegative().optional(),
+      captureContent: z20.union([
+        z20.boolean(),
+        z20.object({
+          enabled: z20.boolean().optional(),
+          inputMessages: z20.boolean().optional(),
+          outputMessages: z20.boolean().optional(),
+          toolInputs: z20.boolean().optional(),
+          toolOutputs: z20.boolean().optional(),
+          systemPrompt: z20.boolean().optional()
+        }).strict()
+      ]).optional()
     }).strict().optional(),
-    cacheTrace: z18.object({
-      enabled: z18.boolean().optional(),
-      filePath: z18.string().optional(),
-      includeMessages: z18.boolean().optional(),
-      includePrompt: z18.boolean().optional(),
-      includeSystem: z18.boolean().optional()
+    cacheTrace: z20.object({
+      enabled: z20.boolean().optional(),
+      filePath: z20.string().optional(),
+      includeMessages: z20.boolean().optional(),
+      includePrompt: z20.boolean().optional(),
+      includeSystem: z20.boolean().optional()
     }).strict().optional()
   }).strict().optional(),
-  logging: z18.object({
+  logging: z20.object({
     level: LoggingLevelSchema.optional(),
-    file: z18.string().optional(),
-    maxFileBytes: z18.number().int().positive().optional(),
+    file: z20.string().optional(),
+    maxFileBytes: z20.number().int().positive().optional(),
     consoleLevel: LoggingLevelSchema.optional(),
-    consoleStyle: z18.union([z18.literal("pretty"), z18.literal("compact"), z18.literal("json")]).optional(),
-    redactSensitive: z18.union([z18.literal("off"), z18.literal("tools")]).optional(),
-    redactPatterns: z18.array(z18.string()).optional()
+    consoleStyle: z20.union([z20.literal("pretty"), z20.literal("compact"), z20.literal("json")]).optional(),
+    redactSensitive: z20.union([z20.literal("off"), z20.literal("tools")]).optional(),
+    redactPatterns: z20.array(z20.string()).optional()
   }).strict().optional(),
-  cli: z18.object({
-    banner: z18.object({
-      taglineMode: z18.union([z18.literal("random"), z18.literal("default"), z18.literal("off")]).optional()
+  cli: z20.object({
+    banner: z20.object({
+      taglineMode: z20.union([z20.literal("random"), z20.literal("default"), z20.literal("off")]).optional()
     }).strict().optional()
   }).strict().optional(),
-  update: z18.object({
-    channel: z18.union([z18.literal("stable"), z18.literal("beta"), z18.literal("dev")]).optional(),
-    checkOnStart: z18.boolean().optional(),
-    auto: z18.object({
-      enabled: z18.boolean().optional(),
-      stableDelayHours: z18.number().nonnegative().max(168).optional(),
-      stableJitterHours: z18.number().nonnegative().max(168).optional(),
-      betaCheckIntervalHours: z18.number().positive().max(24).optional()
+  crestodian: CrestodianSchema,
+  update: z20.object({
+    channel: z20.union([z20.literal("stable"), z20.literal("beta"), z20.literal("dev")]).optional(),
+    checkOnStart: z20.boolean().optional(),
+    auto: z20.object({
+      enabled: z20.boolean().optional(),
+      stableDelayHours: z20.number().nonnegative().max(168).optional(),
+      stableJitterHours: z20.number().nonnegative().max(168).optional(),
+      betaCheckIntervalHours: z20.number().positive().max(24).optional()
     }).strict().optional()
   }).strict().optional(),
-  browser: z18.object({
-    enabled: z18.boolean().optional(),
-    evaluateEnabled: z18.boolean().optional(),
-    cdpUrl: z18.string().optional(),
-    remoteCdpTimeoutMs: z18.number().int().nonnegative().optional(),
-    remoteCdpHandshakeTimeoutMs: z18.number().int().nonnegative().optional(),
-    color: z18.string().optional(),
-    executablePath: z18.string().optional(),
-    headless: z18.boolean().optional(),
-    noSandbox: z18.boolean().optional(),
-    attachOnly: z18.boolean().optional(),
-    cdpPortRangeStart: z18.number().int().min(1).max(65535).optional(),
-    defaultProfile: z18.string().optional(),
+  browser: z20.object({
+    enabled: z20.boolean().optional(),
+    evaluateEnabled: z20.boolean().optional(),
+    cdpUrl: z20.string().optional(),
+    remoteCdpTimeoutMs: z20.number().int().nonnegative().optional(),
+    remoteCdpHandshakeTimeoutMs: z20.number().int().nonnegative().optional(),
+    localLaunchTimeoutMs: z20.number().int().positive().max(12e4).optional(),
+    localCdpReadyTimeoutMs: z20.number().int().positive().max(12e4).optional(),
+    actionTimeoutMs: z20.number().int().positive().optional(),
+    color: z20.string().optional(),
+    executablePath: z20.string().optional(),
+    headless: z20.boolean().optional(),
+    noSandbox: z20.boolean().optional(),
+    attachOnly: z20.boolean().optional(),
+    cdpPortRangeStart: z20.number().int().min(1).max(65535).optional(),
+    defaultProfile: z20.string().optional(),
     snapshotDefaults: BrowserSnapshotDefaultsSchema,
-    ssrfPolicy: z18.object({
-      dangerouslyAllowPrivateNetwork: z18.boolean().optional(),
-      allowedHostnames: z18.array(z18.string()).optional(),
-      hostnameAllowlist: z18.array(z18.string()).optional()
+    ssrfPolicy: z20.object({
+      dangerouslyAllowPrivateNetwork: z20.boolean().optional(),
+      allowedHostnames: z20.array(z20.string()).optional(),
+      hostnameAllowlist: z20.array(z20.string()).optional()
     }).strict().optional(),
-    profiles: z18.record(
-      z18.string().regex(/^[a-z0-9-]+$/, "Profile names must be alphanumeric with hyphens only"),
-      z18.object({
-        cdpPort: z18.number().int().min(1).max(65535).optional(),
-        cdpUrl: z18.string().optional(),
-        userDataDir: z18.string().optional(),
-        driver: z18.union([z18.literal("openclaw"), z18.literal("clawd"), z18.literal("existing-session")]).optional(),
-        attachOnly: z18.boolean().optional(),
+    profiles: z20.record(
+      z20.string().regex(/^[a-z0-9-]+$/, "Profile names must be alphanumeric with hyphens only"),
+      z20.object({
+        cdpPort: z20.number().int().min(1).max(65535).optional(),
+        cdpUrl: z20.string().optional(),
+        userDataDir: z20.string().optional(),
+        mcpCommand: z20.string().optional(),
+        mcpArgs: z20.array(z20.string()).optional(),
+        driver: z20.union([z20.literal("openclaw"), z20.literal("clawd"), z20.literal("existing-session")]).optional(),
+        headless: z20.boolean().optional(),
+        executablePath: z20.string().optional(),
+        attachOnly: z20.boolean().optional(),
         color: HexColorSchema
       }).strict().refine(
         (value) => value.driver === "existing-session" || value.cdpPort || value.cdpUrl,
@@ -10291,66 +18548,73 @@ var OpenClawSchema = z18.object({
         message: 'Profile userDataDir is only supported with driver="existing-session"'
       })
     ).optional(),
-    extraArgs: z18.array(z18.string()).optional()
+    extraArgs: z20.array(z20.string()).optional(),
+    tabCleanup: z20.object({
+      enabled: z20.boolean().optional(),
+      idleMinutes: z20.number().int().nonnegative().optional(),
+      maxTabsPerSession: z20.number().int().nonnegative().optional(),
+      sweepMinutes: z20.number().int().positive().optional()
+    }).strict().optional()
   }).strict().optional(),
-  ui: z18.object({
+  ui: z20.object({
     seamColor: HexColorSchema.optional(),
-    assistant: z18.object({
-      name: z18.string().max(50).optional(),
-      avatar: z18.string().max(200).optional()
+    assistant: z20.object({
+      name: z20.string().max(50).optional(),
+      avatar: z20.string().max(2e6).optional()
     }).strict().optional()
   }).strict().optional(),
   secrets: SecretsConfigSchema,
-  auth: z18.object({
-    profiles: z18.record(
-      z18.string(),
-      z18.object({
-        provider: z18.string(),
-        mode: z18.union([z18.literal("api_key"), z18.literal("oauth"), z18.literal("token")]),
-        email: z18.string().optional(),
-        displayName: z18.string().optional()
+  auth: z20.object({
+    profiles: z20.record(
+      z20.string(),
+      z20.object({
+        provider: z20.string(),
+        mode: z20.union([z20.literal("api_key"), z20.literal("oauth"), z20.literal("token")]),
+        email: z20.string().optional(),
+        displayName: z20.string().optional()
       }).strict()
     ).optional(),
-    order: z18.record(z18.string(), z18.array(z18.string())).optional(),
-    cooldowns: z18.object({
-      billingBackoffHours: z18.number().positive().optional(),
-      billingBackoffHoursByProvider: z18.record(z18.string(), z18.number().positive()).optional(),
-      billingMaxHours: z18.number().positive().optional(),
-      authPermanentBackoffMinutes: z18.number().positive().optional(),
-      authPermanentMaxMinutes: z18.number().positive().optional(),
-      failureWindowHours: z18.number().positive().optional(),
-      overloadedProfileRotations: z18.number().int().nonnegative().optional(),
-      overloadedBackoffMs: z18.number().int().nonnegative().optional(),
-      rateLimitedProfileRotations: z18.number().int().nonnegative().optional()
+    order: z20.record(z20.string(), z20.array(z20.string())).optional(),
+    cooldowns: z20.object({
+      billingBackoffHours: z20.number().positive().optional(),
+      billingBackoffHoursByProvider: z20.record(z20.string(), z20.number().positive()).optional(),
+      billingMaxHours: z20.number().positive().optional(),
+      authPermanentBackoffMinutes: z20.number().positive().optional(),
+      authPermanentMaxMinutes: z20.number().positive().optional(),
+      failureWindowHours: z20.number().positive().optional(),
+      overloadedProfileRotations: z20.number().int().nonnegative().optional(),
+      overloadedBackoffMs: z20.number().int().nonnegative().optional(),
+      rateLimitedProfileRotations: z20.number().int().nonnegative().optional()
     }).strict().optional()
   }).strict().optional(),
-  acp: z18.object({
-    enabled: z18.boolean().optional(),
-    dispatch: z18.object({
-      enabled: z18.boolean().optional()
+  accessGroups: AccessGroupsSchema,
+  acp: z20.object({
+    enabled: z20.boolean().optional(),
+    dispatch: z20.object({
+      enabled: z20.boolean().optional()
     }).strict().optional(),
-    backend: z18.string().optional(),
-    defaultAgent: z18.string().optional(),
-    allowedAgents: z18.array(z18.string()).optional(),
-    maxConcurrentSessions: z18.number().int().positive().optional(),
-    stream: z18.object({
-      coalesceIdleMs: z18.number().int().nonnegative().optional(),
-      maxChunkChars: z18.number().int().positive().optional(),
-      repeatSuppression: z18.boolean().optional(),
-      deliveryMode: z18.union([z18.literal("live"), z18.literal("final_only")]).optional(),
-      hiddenBoundarySeparator: z18.union([
-        z18.literal("none"),
-        z18.literal("space"),
-        z18.literal("newline"),
-        z18.literal("paragraph")
+    backend: z20.string().optional(),
+    defaultAgent: z20.string().optional(),
+    allowedAgents: z20.array(z20.string()).optional(),
+    maxConcurrentSessions: z20.number().int().positive().optional(),
+    stream: z20.object({
+      coalesceIdleMs: z20.number().int().nonnegative().optional(),
+      maxChunkChars: z20.number().int().positive().optional(),
+      repeatSuppression: z20.boolean().optional(),
+      deliveryMode: z20.union([z20.literal("live"), z20.literal("final_only")]).optional(),
+      hiddenBoundarySeparator: z20.union([
+        z20.literal("none"),
+        z20.literal("space"),
+        z20.literal("newline"),
+        z20.literal("paragraph")
       ]).optional(),
-      maxOutputChars: z18.number().int().positive().optional(),
-      maxSessionUpdateChars: z18.number().int().positive().optional(),
-      tagVisibility: z18.record(z18.string(), z18.boolean()).optional()
+      maxOutputChars: z20.number().int().positive().optional(),
+      maxSessionUpdateChars: z20.number().int().positive().optional(),
+      tagVisibility: z20.record(z20.string(), z20.boolean()).optional()
     }).strict().optional(),
-    runtime: z18.object({
-      ttlMinutes: z18.number().int().positive().optional(),
-      installCommand: z18.string().optional()
+    runtime: z20.object({
+      ttlMinutes: z20.number().int().positive().optional(),
+      installCommand: z20.string().optional()
     }).strict().optional()
   }).strict().optional(),
   models: ModelsConfigSchema,
@@ -10360,42 +18624,43 @@ var OpenClawSchema = z18.object({
   bindings: BindingsSchema,
   broadcast: BroadcastSchema,
   audio: AudioSchema,
-  media: z18.object({
-    preserveFilenames: z18.boolean().optional(),
-    ttlHours: z18.number().int().min(1).max(24 * 7).optional()
+  media: z20.object({
+    preserveFilenames: z20.boolean().optional(),
+    ttlHours: z20.number().int().min(1).max(24 * 7).optional()
   }).strict().optional(),
   messages: MessagesSchema,
   commands: CommandsSchema,
   approvals: ApprovalsSchema,
   session: SessionSchema,
-  cron: z18.object({
-    enabled: z18.boolean().optional(),
-    store: z18.string().optional(),
-    maxConcurrentRuns: z18.number().int().positive().optional(),
-    retry: z18.object({
-      maxAttempts: z18.number().int().min(0).max(10).optional(),
-      backoffMs: z18.array(z18.number().int().nonnegative()).min(1).max(10).optional(),
-      retryOn: z18.array(z18.enum(["rate_limit", "overloaded", "network", "timeout", "server_error"])).min(1).optional()
+  cron: z20.object({
+    enabled: z20.boolean().optional(),
+    store: z20.string().optional(),
+    maxConcurrentRuns: z20.number().int().positive().optional(),
+    retry: z20.object({
+      maxAttempts: z20.number().int().min(0).max(10).optional(),
+      backoffMs: z20.array(z20.number().int().nonnegative()).min(1).max(10).optional(),
+      retryOn: z20.array(z20.enum(["rate_limit", "overloaded", "network", "timeout", "server_error"])).min(1).optional()
     }).strict().optional(),
     webhook: HttpUrlSchema.optional(),
     webhookToken: SecretInputSchema.optional().register(sensitive),
-    sessionRetention: z18.union([z18.string(), z18.literal(false)]).optional(),
-    runLog: z18.object({
-      maxBytes: z18.union([z18.string(), z18.number()]).optional(),
-      keepLines: z18.number().int().positive().optional()
+    sessionRetention: z20.union([z20.string(), z20.literal(false)]).optional(),
+    runLog: z20.object({
+      maxBytes: z20.union([z20.string(), z20.number()]).optional(),
+      keepLines: z20.number().int().positive().optional()
     }).strict().optional(),
-    failureAlert: z18.object({
-      enabled: z18.boolean().optional(),
-      after: z18.number().int().min(1).optional(),
-      cooldownMs: z18.number().int().min(0).optional(),
-      mode: z18.enum(["announce", "webhook"]).optional(),
-      accountId: z18.string().optional()
+    failureAlert: z20.object({
+      enabled: z20.boolean().optional(),
+      after: z20.number().int().min(1).optional(),
+      cooldownMs: z20.number().int().min(0).optional(),
+      includeSkipped: z20.boolean().optional(),
+      mode: z20.enum(["announce", "webhook"]).optional(),
+      accountId: z20.string().optional()
     }).strict().optional(),
-    failureDestination: z18.object({
-      channel: z18.string().optional(),
-      to: z18.string().optional(),
-      accountId: z18.string().optional(),
-      mode: z18.enum(["announce", "webhook"]).optional()
+    failureDestination: z20.object({
+      channel: z20.string().optional(),
+      to: z20.string().optional(),
+      accountId: z20.string().optional(),
+      mode: z20.enum(["announce", "webhook"]).optional()
     }).strict().optional()
   }).strict().superRefine((val, ctx) => {
     if (val.sessionRetention !== void 0 && val.sessionRetention !== false) {
@@ -10405,7 +18670,7 @@ var OpenClawSchema = z18.object({
         });
       } catch {
         ctx.addIssue({
-          code: z18.ZodIssueCode.custom,
+          code: z20.ZodIssueCode.custom,
           path: ["sessionRetention"],
           message: "invalid duration (use ms, s, m, h, d)"
         });
@@ -10418,196 +18683,210 @@ var OpenClawSchema = z18.object({
         });
       } catch {
         ctx.addIssue({
-          code: z18.ZodIssueCode.custom,
+          code: z20.ZodIssueCode.custom,
           path: ["runLog", "maxBytes"],
           message: "invalid size (use b, kb, mb, gb, tb)"
         });
       }
     }
   }).optional(),
-  hooks: z18.object({
-    enabled: z18.boolean().optional(),
-    path: z18.string().optional(),
-    token: z18.string().optional().register(sensitive),
-    defaultSessionKey: z18.string().optional(),
-    allowRequestSessionKey: z18.boolean().optional(),
-    allowedSessionKeyPrefixes: z18.array(z18.string()).optional(),
-    allowedAgentIds: z18.array(z18.string()).optional(),
-    maxBodyBytes: z18.number().int().positive().optional(),
-    presets: z18.array(z18.string()).optional(),
-    transformsDir: z18.string().optional(),
-    mappings: z18.array(HookMappingSchema).optional(),
+  commitments: CommitmentsSchema,
+  hooks: z20.object({
+    enabled: z20.boolean().optional(),
+    path: z20.string().optional(),
+    token: z20.string().optional().register(sensitive),
+    defaultSessionKey: z20.string().optional(),
+    allowRequestSessionKey: z20.boolean().optional(),
+    allowedSessionKeyPrefixes: z20.array(z20.string()).optional(),
+    allowedAgentIds: z20.array(z20.string()).optional(),
+    maxBodyBytes: z20.number().int().positive().optional(),
+    presets: z20.array(z20.string()).optional(),
+    transformsDir: z20.string().optional(),
+    mappings: z20.array(HookMappingSchema).optional(),
     gmail: HooksGmailSchema,
     internal: InternalHooksSchema
   }).strict().optional(),
-  web: z18.object({
-    enabled: z18.boolean().optional(),
-    heartbeatSeconds: z18.number().int().positive().optional(),
-    reconnect: z18.object({
-      initialMs: z18.number().positive().optional(),
-      maxMs: z18.number().positive().optional(),
-      factor: z18.number().positive().optional(),
-      jitter: z18.number().min(0).max(1).optional(),
-      maxAttempts: z18.number().int().min(0).optional()
+  web: z20.object({
+    enabled: z20.boolean().optional(),
+    heartbeatSeconds: z20.number().int().positive().optional(),
+    reconnect: z20.object({
+      initialMs: z20.number().positive().optional(),
+      maxMs: z20.number().positive().optional(),
+      factor: z20.number().positive().optional(),
+      jitter: z20.number().min(0).max(1).optional(),
+      maxAttempts: z20.number().int().min(0).optional()
+    }).strict().optional(),
+    whatsapp: z20.object({
+      keepAliveIntervalMs: z20.number().int().positive().optional(),
+      connectTimeoutMs: z20.number().int().positive().optional(),
+      defaultQueryTimeoutMs: z20.number().int().positive().optional()
     }).strict().optional()
   }).strict().optional(),
   channels: ChannelsSchema,
-  discovery: z18.object({
-    wideArea: z18.object({
-      enabled: z18.boolean().optional(),
-      domain: z18.string().optional()
+  discovery: z20.object({
+    wideArea: z20.object({
+      enabled: z20.boolean().optional(),
+      domain: z20.string().optional()
     }).strict().optional(),
-    mdns: z18.object({
-      mode: z18.enum(["off", "minimal", "full"]).optional()
+    mdns: z20.object({
+      mode: z20.enum(["off", "minimal", "full"]).optional()
     }).strict().optional()
   }).strict().optional(),
-  canvasHost: z18.object({
-    enabled: z18.boolean().optional(),
-    root: z18.string().optional(),
-    port: z18.number().int().positive().optional(),
-    liveReload: z18.boolean().optional()
+  canvasHost: z20.object({
+    enabled: z20.boolean().optional(),
+    root: z20.string().optional(),
+    port: z20.number().int().positive().optional(),
+    liveReload: z20.boolean().optional()
   }).strict().optional(),
   talk: TalkSchema.optional(),
-  gateway: z18.object({
-    port: z18.number().int().positive().optional(),
-    mode: z18.union([z18.literal("local"), z18.literal("remote")]).optional(),
-    bind: z18.union([
-      z18.literal("auto"),
-      z18.literal("lan"),
-      z18.literal("loopback"),
-      z18.literal("custom"),
-      z18.literal("tailnet")
+  gateway: z20.object({
+    port: z20.number().int().positive().optional(),
+    mode: z20.union([z20.literal("local"), z20.literal("remote")]).optional(),
+    bind: z20.union([
+      z20.literal("auto"),
+      z20.literal("lan"),
+      z20.literal("loopback"),
+      z20.literal("custom"),
+      z20.literal("tailnet")
     ]).optional(),
-    customBindHost: z18.string().optional(),
-    controlUi: z18.object({
-      enabled: z18.boolean().optional(),
-      basePath: z18.string().optional(),
-      root: z18.string().optional(),
-      embedSandbox: z18.union([z18.literal("strict"), z18.literal("scripts"), z18.literal("trusted")]).optional(),
-      allowExternalEmbedUrls: z18.boolean().optional(),
-      allowedOrigins: z18.array(z18.string()).optional(),
-      dangerouslyAllowHostHeaderOriginFallback: z18.boolean().optional(),
-      allowInsecureAuth: z18.boolean().optional(),
-      dangerouslyDisableDeviceAuth: z18.boolean().optional()
+    customBindHost: z20.string().optional(),
+    controlUi: z20.object({
+      enabled: z20.boolean().optional(),
+      basePath: z20.string().optional(),
+      root: z20.string().optional(),
+      embedSandbox: z20.union([z20.literal("strict"), z20.literal("scripts"), z20.literal("trusted")]).optional(),
+      allowExternalEmbedUrls: z20.boolean().optional(),
+      chatMessageMaxWidth: z20.string().transform((value) => normalizeControlUiChatMessageMaxWidth(value)).refine((value) => isValidControlUiChatMessageMaxWidth(value), {
+        message: "Expected a CSS width value such as 960px, 82%, min(1280px, 82%), or calc(100% - 2rem)"
+      }).optional(),
+      allowedOrigins: z20.array(z20.string()).optional(),
+      dangerouslyAllowHostHeaderOriginFallback: z20.boolean().optional(),
+      allowInsecureAuth: z20.boolean().optional(),
+      dangerouslyDisableDeviceAuth: z20.boolean().optional()
     }).strict().optional(),
-    auth: z18.object({
-      mode: z18.union([
-        z18.literal("none"),
-        z18.literal("token"),
-        z18.literal("password"),
-        z18.literal("trusted-proxy")
+    auth: z20.object({
+      mode: z20.union([
+        z20.literal("none"),
+        z20.literal("token"),
+        z20.literal("password"),
+        z20.literal("trusted-proxy")
       ]).optional(),
       token: SecretInputSchema.optional().register(sensitive),
       password: SecretInputSchema.optional().register(sensitive),
-      allowTailscale: z18.boolean().optional(),
-      rateLimit: z18.object({
-        maxAttempts: z18.number().optional(),
-        windowMs: z18.number().optional(),
-        lockoutMs: z18.number().optional(),
-        exemptLoopback: z18.boolean().optional()
+      allowTailscale: z20.boolean().optional(),
+      rateLimit: z20.object({
+        maxAttempts: z20.number().optional(),
+        windowMs: z20.number().optional(),
+        lockoutMs: z20.number().optional(),
+        exemptLoopback: z20.boolean().optional()
       }).strict().optional(),
-      trustedProxy: z18.object({
-        userHeader: z18.string().min(1, "userHeader is required for trusted-proxy mode"),
-        requiredHeaders: z18.array(z18.string()).optional(),
-        allowUsers: z18.array(z18.string()).optional()
+      trustedProxy: z20.object({
+        userHeader: z20.string().min(1, "userHeader is required for trusted-proxy mode"),
+        requiredHeaders: z20.array(z20.string()).optional(),
+        allowUsers: z20.array(z20.string()).optional(),
+        allowLoopback: z20.boolean().optional()
       }).strict().optional()
     }).strict().optional(),
-    trustedProxies: z18.array(z18.string()).optional(),
-    allowRealIpFallback: z18.boolean().optional(),
-    tools: z18.object({
-      deny: z18.array(z18.string()).optional(),
-      allow: z18.array(z18.string()).optional()
+    trustedProxies: z20.array(z20.string()).optional(),
+    allowRealIpFallback: z20.boolean().optional(),
+    tools: z20.object({
+      deny: z20.array(z20.string()).optional(),
+      allow: z20.array(z20.string()).optional()
     }).strict().optional(),
-    webchat: z18.object({
-      chatHistoryMaxChars: z18.number().int().positive().max(5e5).optional()
+    webchat: z20.object({
+      chatHistoryMaxChars: z20.number().int().positive().max(5e5).optional()
     }).strict().optional(),
-    channelHealthCheckMinutes: z18.number().int().min(0).optional(),
-    channelStaleEventThresholdMinutes: z18.number().int().min(1).optional(),
-    channelMaxRestartsPerHour: z18.number().int().min(1).optional(),
-    tailscale: z18.object({
-      mode: z18.union([z18.literal("off"), z18.literal("serve"), z18.literal("funnel")]).optional(),
-      resetOnExit: z18.boolean().optional()
+    handshakeTimeoutMs: z20.number().int().min(1).optional(),
+    channelHealthCheckMinutes: z20.number().int().min(0).optional(),
+    channelStaleEventThresholdMinutes: z20.number().int().min(1).optional(),
+    channelMaxRestartsPerHour: z20.number().int().min(1).optional(),
+    tailscale: z20.object({
+      mode: z20.union([z20.literal("off"), z20.literal("serve"), z20.literal("funnel")]).optional(),
+      resetOnExit: z20.boolean().optional()
     }).strict().optional(),
-    remote: z18.object({
-      url: z18.string().optional(),
-      transport: z18.union([z18.literal("ssh"), z18.literal("direct")]).optional(),
+    remote: z20.object({
+      url: z20.string().optional(),
+      transport: z20.union([z20.literal("ssh"), z20.literal("direct")]).optional(),
       token: SecretInputSchema.optional().register(sensitive),
       password: SecretInputSchema.optional().register(sensitive),
-      tlsFingerprint: z18.string().optional(),
-      sshTarget: z18.string().optional(),
-      sshIdentity: z18.string().optional()
+      tlsFingerprint: z20.string().optional(),
+      sshTarget: z20.string().optional(),
+      sshIdentity: z20.string().optional()
     }).strict().optional(),
-    reload: z18.object({
-      mode: z18.union([
-        z18.literal("off"),
-        z18.literal("restart"),
-        z18.literal("hot"),
-        z18.literal("hybrid")
+    reload: z20.object({
+      mode: z20.union([
+        z20.literal("off"),
+        z20.literal("restart"),
+        z20.literal("hot"),
+        z20.literal("hybrid")
       ]).optional(),
-      debounceMs: z18.number().int().min(0).optional(),
-      deferralTimeoutMs: z18.number().int().min(0).optional()
+      debounceMs: z20.number().int().min(0).optional(),
+      deferralTimeoutMs: z20.number().int().min(0).optional()
     }).strict().optional(),
-    tls: z18.object({
-      enabled: z18.boolean().optional(),
-      autoGenerate: z18.boolean().optional(),
-      certPath: z18.string().optional(),
-      keyPath: z18.string().optional(),
-      caPath: z18.string().optional()
+    tls: z20.object({
+      enabled: z20.boolean().optional(),
+      autoGenerate: z20.boolean().optional(),
+      certPath: z20.string().optional(),
+      keyPath: z20.string().optional(),
+      caPath: z20.string().optional()
     }).optional(),
-    http: z18.object({
-      endpoints: z18.object({
-        chatCompletions: z18.object({
-          enabled: z18.boolean().optional(),
-          maxBodyBytes: z18.number().int().positive().optional(),
-          maxImageParts: z18.number().int().nonnegative().optional(),
-          maxTotalImageBytes: z18.number().int().positive().optional(),
-          images: z18.object({
+    http: z20.object({
+      endpoints: z20.object({
+        chatCompletions: z20.object({
+          enabled: z20.boolean().optional(),
+          maxBodyBytes: z20.number().int().positive().optional(),
+          maxImageParts: z20.number().int().nonnegative().optional(),
+          maxTotalImageBytes: z20.number().int().positive().optional(),
+          images: z20.object({
             ...ResponsesEndpointUrlFetchShape
           }).strict().optional()
         }).strict().optional(),
-        responses: z18.object({
-          enabled: z18.boolean().optional(),
-          maxBodyBytes: z18.number().int().positive().optional(),
-          maxUrlParts: z18.number().int().nonnegative().optional(),
-          files: z18.object({
+        responses: z20.object({
+          enabled: z20.boolean().optional(),
+          maxBodyBytes: z20.number().int().positive().optional(),
+          maxUrlParts: z20.number().int().nonnegative().optional(),
+          files: z20.object({
             ...ResponsesEndpointUrlFetchShape,
-            maxChars: z18.number().int().positive().optional(),
-            pdf: z18.object({
-              maxPages: z18.number().int().positive().optional(),
-              maxPixels: z18.number().int().positive().optional(),
-              minTextChars: z18.number().int().nonnegative().optional()
+            maxChars: z20.number().int().positive().optional(),
+            pdf: z20.object({
+              maxPages: z20.number().int().positive().optional(),
+              maxPixels: z20.number().int().positive().optional(),
+              minTextChars: z20.number().int().nonnegative().optional()
             }).strict().optional()
           }).strict().optional(),
-          images: z18.object({
+          images: z20.object({
             ...ResponsesEndpointUrlFetchShape
           }).strict().optional()
         }).strict().optional()
       }).strict().optional(),
-      securityHeaders: z18.object({
-        strictTransportSecurity: z18.union([z18.string(), z18.literal(false)]).optional()
+      securityHeaders: z20.object({
+        strictTransportSecurity: z20.union([z20.string(), z20.literal(false)]).optional()
       }).strict().optional()
     }).strict().optional(),
-    push: z18.object({
-      apns: z18.object({
-        relay: z18.object({
-          baseUrl: z18.string().optional(),
-          timeoutMs: z18.number().int().positive().optional()
+    push: z20.object({
+      apns: z20.object({
+        relay: z20.object({
+          baseUrl: z20.string().optional(),
+          timeoutMs: z20.number().int().positive().optional()
         }).strict().optional()
       }).strict().optional()
     }).strict().optional(),
-    nodes: z18.object({
-      browser: z18.object({
-        mode: z18.union([z18.literal("auto"), z18.literal("manual"), z18.literal("off")]).optional(),
-        node: z18.string().optional()
+    nodes: z20.object({
+      browser: z20.object({
+        mode: z20.union([z20.literal("auto"), z20.literal("manual"), z20.literal("off")]).optional(),
+        node: z20.string().optional()
       }).strict().optional(),
-      allowCommands: z18.array(z18.string()).optional(),
-      denyCommands: z18.array(z18.string()).optional()
+      pairing: z20.object({
+        autoApproveCidrs: z20.array(z20.string()).optional()
+      }).strict().optional(),
+      allowCommands: z20.array(z20.string()).optional(),
+      denyCommands: z20.array(z20.string()).optional()
     }).strict().optional()
   }).strict().superRefine((gateway, ctx) => {
     const effectiveHealthCheckMinutes = gateway.channelHealthCheckMinutes ?? 5;
     if (gateway.channelStaleEventThresholdMinutes != null && effectiveHealthCheckMinutes !== 0 && gateway.channelStaleEventThresholdMinutes < effectiveHealthCheckMinutes) {
       ctx.addIssue({
-        code: z18.ZodIssueCode.custom,
+        code: z20.ZodIssueCode.custom,
         path: ["channelStaleEventThresholdMinutes"],
         message: "channelStaleEventThresholdMinutes should be >= channelHealthCheckMinutes to avoid delayed stale detection"
       });
@@ -10615,45 +18894,47 @@ var OpenClawSchema = z18.object({
   }).optional(),
   memory: MemorySchema,
   mcp: McpConfigSchema,
-  skills: z18.object({
-    allowBundled: z18.array(z18.string()).optional(),
-    load: z18.object({
-      extraDirs: z18.array(z18.string()).optional(),
-      watch: z18.boolean().optional(),
-      watchDebounceMs: z18.number().int().min(0).optional()
+  skills: z20.object({
+    allowBundled: z20.array(z20.string()).optional(),
+    load: z20.object({
+      extraDirs: z20.array(z20.string()).optional(),
+      watch: z20.boolean().optional(),
+      watchDebounceMs: z20.number().int().min(0).optional()
     }).strict().optional(),
-    install: z18.object({
-      preferBrew: z18.boolean().optional(),
-      nodeManager: z18.union([z18.literal("npm"), z18.literal("pnpm"), z18.literal("yarn"), z18.literal("bun")]).optional()
+    install: z20.object({
+      preferBrew: z20.boolean().optional(),
+      nodeManager: z20.union([z20.literal("npm"), z20.literal("pnpm"), z20.literal("yarn"), z20.literal("bun")]).optional()
     }).strict().optional(),
-    limits: z18.object({
-      maxCandidatesPerRoot: z18.number().int().min(1).optional(),
-      maxSkillsLoadedPerSource: z18.number().int().min(1).optional(),
-      maxSkillsInPrompt: z18.number().int().min(0).optional(),
-      maxSkillsPromptChars: z18.number().int().min(0).optional(),
-      maxSkillFileBytes: z18.number().int().min(0).optional()
+    limits: z20.object({
+      maxCandidatesPerRoot: z20.number().int().min(1).optional(),
+      maxSkillsLoadedPerSource: z20.number().int().min(1).optional(),
+      maxSkillsInPrompt: z20.number().int().min(0).optional(),
+      maxSkillsPromptChars: z20.number().int().min(0).optional(),
+      maxSkillFileBytes: z20.number().int().min(0).optional()
     }).strict().optional(),
-    entries: z18.record(z18.string(), SkillEntrySchema).optional()
+    entries: z20.record(z20.string(), SkillEntrySchema).optional()
   }).strict().optional(),
-  plugins: z18.object({
-    enabled: z18.boolean().optional(),
-    allow: z18.array(z18.string()).optional(),
-    deny: z18.array(z18.string()).optional(),
-    load: z18.object({
-      paths: z18.array(z18.string()).optional()
+  plugins: z20.object({
+    enabled: z20.boolean().optional(),
+    allow: z20.array(z20.string()).optional(),
+    deny: z20.array(z20.string()).optional(),
+    load: z20.object({
+      paths: z20.array(z20.string()).optional()
     }).strict().optional(),
-    slots: z18.object({
-      memory: z18.string().optional(),
-      contextEngine: z18.string().optional()
+    slots: z20.object({
+      memory: z20.string().optional(),
+      contextEngine: z20.string().optional()
     }).strict().optional(),
-    entries: z18.record(z18.string(), PluginEntrySchema).optional(),
-    installs: z18.record(
-      z18.string(),
-      z18.object({
-        ...PluginInstallRecordShape
-      }).strict()
-    ).optional()
-  }).strict().optional()
+    entries: z20.record(z20.string(), PluginEntrySchema).optional()
+  }).strict().optional(),
+  surfaces: z20.record(
+    z20.string(),
+    z20.object({
+      silentReply: SilentReplyPolicyConfigSchema.optional(),
+      silentReplyRewrite: SilentReplyRewriteConfigSchema.optional()
+    }).strict()
+  ).optional(),
+  proxy: ProxyConfigSchema
 }).strict().superRefine((cfg, ctx) => {
   const agents = cfg.agents?.list ?? [];
   if (agents.length === 0) {
@@ -10675,7 +18956,7 @@ var OpenClawSchema = z18.object({
       const agentId = ids[idx];
       if (!agentIds.has(agentId)) {
         ctx.addIssue({
-          code: z18.ZodIssueCode.custom,
+          code: z20.ZodIssueCode.custom,
           path: ["broadcast", peerId, idx],
           message: `Unknown agent id "${agentId}" (not in agents.list).`
         });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,12 @@ vi.mock("node:os", () => ({
 }));
 
 import { detectDeps, getAugmentedPath } from "../dep-detector.js";
+
+const originalPath = process.env.PATH;
+
+afterEach(() => {
+  process.env.PATH = originalPath;
+});
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -58,6 +64,7 @@ describe("getAugmentedPath", () => {
   beforeEach(() => {
     mockPlatform.mockReturnValue("darwin");
     mockHomedir.mockReturnValue("/Users/testuser");
+    process.env.PATH = "/usr/bin:/bin";
   });
 
   it("includes expected directories on non-Windows (macOS/Linux)", () => {
@@ -97,6 +104,7 @@ describe("detectDeps", () => {
     mockExecFile.mockReset();
     mockPlatform.mockReturnValue("darwin");
     mockHomedir.mockReturnValue("/Users/testuser");
+    process.env.PATH = "/usr/bin:/bin";
   });
 
   it("returns all available when all commands succeed", async () => {

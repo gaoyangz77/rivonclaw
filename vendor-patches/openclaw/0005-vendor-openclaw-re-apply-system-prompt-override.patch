@@ -1,8 +1,8 @@
-From 437b03fa72b71fe3421ed9ed0e3862c94e8c94a3 Mon Sep 17 00:00:00 2001
+From fa1ec20c28276575fe6dbf65abd5f385d134e0da Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:18:32 -0700
-Subject: [PATCH] vendor(openclaw): re-apply system prompt override before LLM
- call
+Subject: [PATCH 5/8] vendor(openclaw): re-apply system prompt override before
+ LLM call
 
 Why:
 - pi-coding-agent internal session management (tool refresh, compaction,
@@ -22,28 +22,37 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts
 ---
- src/agents/pi-embedded-runner/run/attempt.ts | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ src/agents/pi-embedded-runner/run/attempt.ts | 17 +++++++++--------
+ 1 file changed, 9 insertions(+), 8 deletions(-)
 
 diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
-index cfa7209be9..e8498a5197 100644
+index 4e557762df..e2a209a80b 100644
 --- a/src/agents/pi-embedded-runner/run/attempt.ts
 +++ b/src/agents/pi-embedded-runner/run/attempt.ts
-@@ -1952,6 +1952,14 @@ export async function runEmbeddedAttempt(
-               inFlightPrompt: effectivePrompt,
+@@ -2708,14 +2708,15 @@ export async function runEmbeddedAttempt(
+               imagesCount: imageResult.images.length,
              });
- 
-+            // Re-apply system prompt override immediately before the LLM call.
-+            // pi-coding-agent's internal prompt management (tool refresh, compaction,
-+            // extension events) can reset _baseSystemPrompt between the initial
-+            // applySystemPromptOverrideToSession and here, especially when the
-+            // session has existing history. This final re-apply ensures callers
-+            // using promptMode "raw" always get their extraSystemPrompt delivered.
-+            applySystemPromptOverrideToSession(activeSession, systemPromptText);
-+
-             // Only pass images option if there are actually images to pass
-             // This avoids potential issues with models that don't expect the images parameter
-             if (imageResult.images.length > 0) {
+             const btwSnapshotMessages = normalizedReplayMessages.slice(-MAX_BTW_SNAPSHOT_MESSAGES);
+-            updateActiveEmbeddedRunSnapshot(params.sessionId, {
+-              transcriptLeafId,
+-              messages: btwSnapshotMessages,
+-              inFlightPrompt: promptSubmission.prompt,
+-            });
+-            if (promptSubmission.runtimeOnly) {
+-              await abortable(activeSession.prompt(promptSubmission.prompt));
+-            } else {
++              updateActiveEmbeddedRunSnapshot(params.sessionId, {
++                transcriptLeafId,
++                messages: btwSnapshotMessages,
++                inFlightPrompt: promptSubmission.prompt,
++              });
++              applySystemPromptOverrideToSession(activeSession, systemPromptText);
++              if (promptSubmission.runtimeOnly) {
++                await abortable(activeSession.prompt(promptSubmission.prompt));
++              } else {
+               const runtimeContext = promptSubmission.runtimeContext?.trim();
+               const runtimeSystemPrompt = runtimeContext
+                 ? composeSystemPromptWithHookContext({
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

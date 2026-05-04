@@ -16,6 +16,7 @@ import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
+import { ensurePackagedOpenClawRuntimeDepsStage } from "./openclaw-runtime-deps-stage.js";
 
 export interface SetupGatewayDeps {
   storage: Storage;
@@ -53,6 +54,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   if (existsSync(distRuntimeExtensions)) {
     process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = distRuntimeExtensions;
   }
+  ensurePackagedOpenClawRuntimeDepsStage({ vendorDir, stateDir });
 
   // Build gateway config helpers (closures bound to current settings)
   const { buildFullGatewayConfig } = createGatewayConfigBuilder({
@@ -80,6 +82,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     env: { ELECTRON_RUN_AS_NODE: "1", OPENCLAW_DISABLE_BONJOUR: "1" },
     configPath,
     stateDir,
+    gatewayPort,
   });
 
   // Create gateway event dispatcher — routes WS events to Panel SSE

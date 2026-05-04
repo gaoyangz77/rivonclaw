@@ -290,7 +290,6 @@ export interface OpenClawGatewayConfig {
       };
       blockStreamingDefault?: "off" | "on";
       blockStreamingBreak?: "text_end" | "message_end";
-      llm?: { idleTimeoutSeconds?: number };
     };
   };
   tools?: {
@@ -648,10 +647,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // channel integrations can segment responses at text boundaries rather than
   // forwarding raw token-by-token SSE chunks.
   //
-  // LLM idle timeout — increase from OpenClaw's default 120s to 300s (5 minutes)
-  // to prevent premature timeouts for slower models under load. Raw timeout
-  // messages from the engine leak to external chat channel users, so a generous
-  // idle timeout is important for production reliability.
   {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
@@ -661,17 +656,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
         ? (existingAgents.defaults as Record<string, unknown>)
         : {};
-    const existingLlm =
-      typeof existingDefaults.llm === "object" && existingDefaults.llm !== null
-        ? (existingDefaults.llm as Record<string, unknown>)
-        : {};
     config.agents = {
       ...existingAgents,
       defaults: {
         ...existingDefaults,
         blockStreamingDefault: "on",
         blockStreamingBreak: "text_end",
-        llm: { ...existingLlm, idleTimeoutSeconds: 300 },
       },
     };
   }
@@ -1246,6 +1236,11 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   //   accounts are only created *after* QR login succeeds, so the plugin must
   //   be available before any account config exists.
   // Mark both as managed so listPotentialConfiguredChannelIds() includes them.
+  // - mobile is still owned by SQLite pairings, but OpenClaw v2026.5.2 only
+  //   starts external channel plugins when the matching channel has a config
+  //   presence signal. Without this marker, the enabled mobile plugin is
+  //   discovered but never loaded, so desktop RPCs like mobile_chat_start_sync
+  //   fail with "unknown method".
   {
     const existingChannels =
       typeof config.channels === "object" && config.channels !== null
@@ -1263,6 +1258,29 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ? (existingChannels["openclaw-weixin"] as Record<string, unknown>)
         : {};
     existingChannels["openclaw-weixin"] = { ...existingWeixin, managed: true };
+
+    const plugins =
+      typeof config.plugins === "object" && config.plugins !== null
+        ? (config.plugins as Record<string, unknown>)
+        : {};
+    const pluginEntries =
+      typeof plugins.entries === "object" && plugins.entries !== null
+        ? (plugins.entries as Record<string, unknown>)
+        : {};
+    const mobileEntry = pluginEntries["rivonclaw-mobile-chat-channel"];
+    const mobileEnabled =
+      typeof mobileEntry === "object" &&
+      mobileEntry !== null &&
+      !Array.isArray(mobileEntry) &&
+      (mobileEntry as Record<string, unknown>).enabled === true;
+
+    if (mobileEnabled) {
+      const existingMobile =
+        typeof existingChannels.mobile === "object" && existingChannels.mobile !== null
+          ? (existingChannels.mobile as Record<string, unknown>)
+          : {};
+      existingChannels.mobile = { ...existingMobile, managed: true };
+    }
 
     config.channels = existingChannels;
   }
@@ -1302,8 +1320,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     log.info(`Migrated single-account channel configs: ${migratedChannels.join(", ")}`);
   }
 
-  // Normalize Telegram streaming mode to "block" so that block streaming
-  // (blockStreamingDefault) is not disabled by streaming: "off".
+  // Normalize Telegram streaming mode to the OpenClaw v2026.5.2 shape. The old
+  // scalar form is now rejected by the gateway schema.
   {
     const telegramChannel = (config.channels as Record<string, unknown> | undefined)?.telegram;
     if (telegramChannel && typeof telegramChannel === "object") {
@@ -1311,7 +1329,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       if (accounts && typeof accounts === "object") {
         for (const acct of Object.values(accounts as Record<string, unknown>)) {
           if (acct && typeof acct === "object") {
-            (acct as Record<string, unknown>).streaming = "block";
+            (acct as Record<string, unknown>).streaming = { mode: "block" };
           }
         }
       }

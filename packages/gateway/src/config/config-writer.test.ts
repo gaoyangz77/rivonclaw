@@ -463,7 +463,6 @@ describe("config-writer", () => {
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
       expect(config.agents.defaults.blockStreamingDefault).toBe("on");
       expect(config.agents.defaults.blockStreamingBreak).toBe("text_end");
-      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
     });
 
     it("overwrites pre-existing block streaming values", () => {
@@ -488,32 +487,8 @@ describe("config-writer", () => {
     });
   });
 
-  describe("writeGatewayConfig - llm idleTimeoutSeconds", () => {
-    it("sets agents.defaults.llm.idleTimeoutSeconds to 300", () => {
-      const configPath = join(tmpDir, "openclaw.json");
-      writeGatewayConfig({
-        configPath,
-        gatewayPort: 18789,
-      });
-
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
-    });
-
-    it("preserves existing agents.defaults fields alongside llm config", () => {
-      const configPath = join(tmpDir, "openclaw.json");
-      writeGatewayConfig({
-        configPath,
-        defaultModel: { provider: "openai", modelId: "gpt-4o" },
-      });
-
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
-      expect(config.agents.defaults.blockStreamingDefault).toBe("on");
-      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
-    });
-
-    it("overwrites pre-existing idleTimeoutSeconds value", () => {
+  describe("writeGatewayConfig - legacy llm defaults", () => {
+    it("removes pre-existing agents.defaults.llm timeout config", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
@@ -529,7 +504,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
+      expect(config.agents.defaults.llm).toBeUndefined();
     });
   });
 
@@ -1344,6 +1319,43 @@ describe("config-writer", () => {
     });
   });
 
+  describe("writeGatewayConfig - mobile plugin activation", () => {
+    it("writes a mobile channel presence marker when the mobile plugin is enabled", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+        plugins: {
+          entries: {
+            "rivonclaw-mobile-chat-channel": { enabled: true },
+          },
+        },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.entries["rivonclaw-mobile-chat-channel"]).toEqual({ enabled: true });
+      expect(config.channels.mobile).toEqual({ managed: true });
+    });
+
+    it("does not write the mobile channel marker when the plugin is not enabled", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+        plugins: {
+          entries: {
+            "rivonclaw-mobile-chat-channel": { enabled: false },
+          },
+        },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.mobile).toBeUndefined();
+    });
+  });
+
   describe("writeGatewayConfig - Telegram streaming normalization", () => {
     it("normalizes streaming: 'off' to 'block' on Telegram accounts", () => {
       const configPath = join(tmpDir, "openclaw.json");
@@ -1363,7 +1375,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.accounts.default.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.default.streaming).toEqual({ mode: "block" });
     });
 
     it("normalizes streaming: 'partial' to 'block' on Telegram accounts", () => {
@@ -1384,7 +1396,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.accounts.mybot.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.mybot.streaming).toEqual({ mode: "block" });
     });
 
     it("sets streaming to 'block' on Telegram accounts that lack it", () => {
@@ -1405,7 +1417,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.accounts.default.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.default.streaming).toEqual({ mode: "block" });
     });
 
     it("normalizes multiple Telegram accounts at once", () => {
@@ -1428,9 +1440,9 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.accounts.bot1.streaming).toBe("block");
-      expect(config.channels.telegram.accounts.bot2.streaming).toBe("block");
-      expect(config.channels.telegram.accounts.bot3.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.bot1.streaming).toEqual({ mode: "block" });
+      expect(config.channels.telegram.accounts.bot2.streaming).toEqual({ mode: "block" });
+      expect(config.channels.telegram.accounts.bot3.streaming).toEqual({ mode: "block" });
     });
 
     it("does not affect non-Telegram channel accounts", () => {
@@ -1457,7 +1469,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       // Telegram gets normalized
-      expect(config.channels.telegram.accounts.default.streaming).toBe("block");
+      expect(config.channels.telegram.accounts.default.streaming).toEqual({ mode: "block" });
       // Feishu is untouched
       expect(config.channels.feishu.accounts.default.streaming).toBe("off");
     });
@@ -1594,7 +1606,6 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
       expect(config.agents.defaults.blockStreamingDefault).toBe("on");
-      expect(config.agents.defaults.llm.idleTimeoutSeconds).toBe(300);
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
     });
   });

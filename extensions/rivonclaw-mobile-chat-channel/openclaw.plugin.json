@@ -3,6 +3,14 @@
     "channels": [
         "mobile"
     ],
+    "channelConfigs": {
+        "mobile": {
+            "schema": {
+                "type": "object",
+                "additionalProperties": true
+            }
+        }
+    },
     "configSchema": {
         "type": "object",
         "additionalProperties": false,

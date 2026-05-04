@@ -1,7 +1,7 @@
-From e986b5056d29d7b6970812f4d404b45a7ec7c782 Mon Sep 17 00:00:00 2001
+From 3592a38658b3ac00939f10539687123c01e2221b Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:12:32 -0700
-Subject: [PATCH] vendor(openclaw): add before_tool_resolve hook for
+Subject: [PATCH 2/8] vendor(openclaw): add before_tool_resolve hook for
  per-session tool filtering
 
 Why:
@@ -18,99 +18,81 @@ Tests:
 - extensions/rivonclaw-capability-manager/src/__tests__/
 ---
  src/agents/pi-embedded-runner/compact.ts     | 18 ++++++++++++++-
- src/agents/pi-embedded-runner/run/attempt.ts | 22 ++++++++++++++++--
- src/plugins/hook-types.ts                    | 17 ++++++++++++++
+ src/agents/pi-embedded-runner/run/attempt.ts | 15 +++++++++++-
+ src/plugins/hook-types.ts                    | 14 ++++++++++++
  src/plugins/hooks.ts                         | 24 ++++++++++++++++++++
- 4 files changed, 78 insertions(+), 3 deletions(-)
+ 4 files changed, 69 insertions(+), 2 deletions(-)
 
 diff --git a/src/agents/pi-embedded-runner/compact.ts b/src/agents/pi-embedded-runner/compact.ts
-index 2c4236e4a1..234daf21f7 100644
+index 6b14b2d9f9..d38c7242a0 100644
 --- a/src/agents/pi-embedded-runner/compact.ts
 +++ b/src/agents/pi-embedded-runner/compact.ts
-@@ -526,7 +526,7 @@ export async function compactEmbeddedPiSessionDirect(
-       modelAuthMode: resolveModelAuthMode(model.provider, params.config),
-     });
-     const toolsEnabled = supportsModelTools(runtimeModel);
--    const tools = normalizeProviderToolSchemas({
-+    let tools = normalizeProviderToolSchemas({
-       tools: toolsEnabled ? toolsRaw : [],
-       provider,
-       config: params.config,
-@@ -673,6 +673,22 @@ export async function compactEmbeddedPiSessionDirect(
-     });
-     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
-     const ownerDisplay = resolveOwnerDisplaySetting(params.config);
-+
-+    // before_tool_resolve hook: filter tools BEFORE system prompt is built (ADR-031).
+@@ -582,10 +582,26 @@ export async function compactEmbeddedPiSessionDirect(
+       modelApi: model.api,
+       model,
+     };
+-    const tools = runtimePlan.tools.normalize(
++    let tools = runtimePlan.tools.normalize(
+       toolsEnabled ? toolsRaw : [],
+       runtimePlanModelContext,
+     );
 +    {
 +      const earlyHookRunner = getGlobalHookRunner();
 +      if (earlyHookRunner?.hasHooks("before_tool_resolve")) {
-+        const toolNames = tools.map((t: { name: string }) => t.name);
 +        const hookResult = await earlyHookRunner.runBeforeToolResolve(
-+          { tools: toolNames },
-+          { agentId: sessionAgentId, sessionKey: params.sessionKey?.trim() || params.sessionId },
++          { tools: tools.map((tool) => tool.name) },
++          {
++            agentId: effectiveSkillAgentId,
++            sessionKey: sandboxSessionKey,
++          },
 +        );
 +        if (hookResult?.tools) {
 +          const allowed = new Set(hookResult.tools);
-+          tools = tools.filter((t: { name: string }) => allowed.has(t.name));
++          tools = tools.filter((tool) => allowed.has(tool.name));
 +        }
 +      }
 +    }
-     const promptContribution = resolveProviderSystemPromptContribution({
-       provider,
-       config: params.config,
+     const bundleMcpRuntime = toolsEnabled
+       ? await createBundleMcpToolRuntime({
+           workspaceDir: effectiveWorkspace,
 diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
-index 032595ba5d..91b7014da0 100644
+index 9576989e1b..4e557762df 100644
 --- a/src/agents/pi-embedded-runner/run/attempt.ts
 +++ b/src/agents/pi-embedded-runner/run/attempt.ts
-@@ -540,7 +540,7 @@ export async function runEmbeddedAttempt(
-           return allTools;
-         })();
-     const toolsEnabled = supportsModelTools(params.model);
--    const tools = normalizeProviderToolSchemas({
-+    let tools = normalizeProviderToolSchemas({
+@@ -862,7 +862,7 @@ export async function runEmbeddedAttempt(
+       modelApi: params.model.api,
+       model: params.model,
+     };
+-    const tools = normalizeAgentRuntimeTools({
++    let tools = normalizeAgentRuntimeTools({
+       runtimePlan: params.runtimePlan,
        tools: toolsEnabled ? toolsRaw : [],
        provider: params.provider,
-       config: params.config,
-@@ -550,6 +550,24 @@ export async function runEmbeddedAttempt(
+@@ -873,6 +873,19 @@ export async function runEmbeddedAttempt(
        modelApi: params.model.api,
        model: params.model,
      });
-+
-+    // before_tool_resolve hook: filter tools BEFORE system prompt is built (ADR-031).
-+    // This ensures both the tool list AND the system prompt only include selected tools.
 +    {
 +      const earlyHookRunner = getGlobalHookRunner();
 +      if (earlyHookRunner?.hasHooks("before_tool_resolve")) {
-+        const toolNames = tools.map((t: { name: string }) => t.name);
 +        const hookResult = await earlyHookRunner.runBeforeToolResolve(
-+          { tools: toolNames },
++          { tools: tools.map((tool) => tool.name) },
 +          { agentId: sessionAgentId, sessionKey: sandboxSessionKey },
 +        );
 +        if (hookResult?.tools) {
 +          const allowed = new Set(hookResult.tools);
-+          tools = tools.filter((t: { name: string }) => allowed.has(t.name));
++          tools = tools.filter((tool) => allowed.has(tool.name));
 +        }
 +      }
 +    }
-+
-     const clientTools = toolsEnabled ? params.clientTools : undefined;
-     const bundleMcpSessionRuntime = toolsEnabled
-       ? await getOrCreateSessionMcpRuntime({
-@@ -921,7 +939,7 @@ export async function runEmbeddedAttempt(
-         await resourceLoader.reload();
-       }
- 
--      // Get hook runner early so it's available when creating tools
-+      // Tools already filtered by before_tool_resolve hook above (before system prompt build).
-       const hookRunner = getGlobalHookRunner();
- 
-       const { builtInTools, customTools } = splitSdkTools({
+     const clientTools = toolsEnabled && !isRawModelRun ? params.clientTools : undefined;
+     const bundleMcpEnabled = shouldCreateBundleMcpRuntimeForAttempt({
+       toolsEnabled,
 diff --git a/src/plugins/hook-types.ts b/src/plugins/hook-types.ts
-index e8a85be04c..5300d415d0 100644
+index 386eb7d692..9ecaa60c1d 100644
 --- a/src/plugins/hook-types.ts
 +++ b/src/plugins/hook-types.ts
-@@ -82,6 +82,7 @@ export type PluginHookName =
+@@ -102,6 +102,7 @@ export type PluginHookName =
    | "before_dispatch"
    | "reply_dispatch"
    | "before_install"
@@ -118,7 +100,7 @@ index e8a85be04c..5300d415d0 100644
    | "browser_session_start"
    | "browser_session_end"
    | "before_browser_action"
-@@ -117,6 +118,7 @@ export const PLUGIN_HOOK_NAMES = [
+@@ -142,6 +143,7 @@ export const PLUGIN_HOOK_NAMES = [
    "before_dispatch",
    "reply_dispatch",
    "before_install",
@@ -126,25 +108,22 @@ index e8a85be04c..5300d415d0 100644
    "browser_session_start",
    "browser_session_end",
    "before_browser_action",
-@@ -486,6 +488,17 @@ export type PluginHookGatewayStopEvent = {
-   reason?: string;
+@@ -654,6 +656,14 @@ export type PluginHookGatewayCronService = {
+   remove: (id: string) => Promise<PluginHookGatewayCronRemoveResult>;
  };
  
-+// before_tool_resolve hook -- allows plugins to filter the tool list before session creation
 +export type PluginHookBeforeToolResolveEvent = {
-+  /** Tool names available for this session. */
 +  tools: string[];
 +};
 +
 +export type PluginHookBeforeToolResolveResult = {
-+  /** Filtered tool names. Tools not in this list are removed from the session. */
 +  tools?: string[];
 +};
 +
- // Browser context (shared across browser hooks)
  export type PluginHookBrowserContext = {
    sessionKey?: string;
-@@ -731,6 +744,10 @@ export type PluginHookHandlerMap = {
+   profile?: string;
+@@ -920,6 +930,10 @@ export type PluginHookHandlerMap = {
      event: PluginHookBeforeInstallEvent,
      ctx: PluginHookBeforeInstallContext,
    ) => Promise<PluginHookBeforeInstallResult | void> | PluginHookBeforeInstallResult | void;
@@ -156,10 +135,10 @@ index e8a85be04c..5300d415d0 100644
      event: PluginHookBrowserSessionStartEvent,
      ctx: PluginHookBrowserContext,
 diff --git a/src/plugins/hooks.ts b/src/plugins/hooks.ts
-index 4cf4692a18..4f1fc1656b 100644
+index 530788ee36..92e380d0d2 100644
 --- a/src/plugins/hooks.ts
 +++ b/src/plugins/hooks.ts
-@@ -71,6 +71,8 @@ import type {
+@@ -80,6 +80,8 @@ import type {
    PluginHookBeforeBrowserActionEvent,
    PluginHookBeforeBrowserActionResult,
    PluginHookAfterBrowserActionEvent,
@@ -168,7 +147,7 @@ index 4cf4692a18..4f1fc1656b 100644
  } from "./hook-types.js";
  
  // Re-export types for consumers
-@@ -785,6 +787,27 @@ export function createHookRunner(
+@@ -985,6 +987,27 @@ export function createHookRunner(
    // Tool Hooks
    // =========================================================================
  
@@ -196,7 +175,7 @@ index 4cf4692a18..4f1fc1656b 100644
    /**
     * Run before_tool_call hook.
     * Allows plugins to modify or block tool calls.
-@@ -1197,6 +1220,7 @@ export function createHookRunner(
+@@ -1394,6 +1417,7 @@ export function createHookRunner(
      runMessageSending,
      runMessageSent,
      // Tool hooks
@@ -205,5 +184,5 @@ index 4cf4692a18..4f1fc1656b 100644
      runAfterToolCall,
      runToolResultPersist,
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

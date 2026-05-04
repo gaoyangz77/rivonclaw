@@ -156,10 +156,10 @@ export const ChannelsPage = observer(function ChannelsPage() {
       if (channelId === "mobile") {
         // Disconnect all mobile pairings
         await entityStore.mobileManager.disconnectAll();
-        await pollGatewayReady(() => loadChannelStatus());
+        await pollGatewayReady(() => loadChannelStatus(true, { probe: false }));
       } else {
         await entityStore.channelManager.deleteAccount(channelId, accountId);
-        await pollGatewayReady(() => loadChannelStatus());
+        await pollGatewayReady(() => loadChannelStatus(true, { probe: false }));
       }
     } catch (err) {
       setDeleteError(`${t("channels.failedToDelete")} ${String(err)}`);
@@ -174,7 +174,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
   }
 
   async function handleModalSuccess(): Promise<void> {
-    await pollGatewayReady(() => loadChannelStatus());
+    await pollGatewayReady(() => loadChannelStatus(true, { probe: false }));
   }
 
   if (loading) {
@@ -365,7 +365,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
         <QrLoginModal
           channelId={qrLoginChannelId}
           onClose={() => setQrLoginChannelId(null)}
-          onSuccess={() => loadChannelStatus()}
+          onSuccess={() => loadChannelStatus(true, { probe: false })}
         />
       )}
 

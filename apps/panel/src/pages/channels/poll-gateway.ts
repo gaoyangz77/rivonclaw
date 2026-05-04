@@ -21,7 +21,7 @@ export async function pollGatewayReady(
   // Poll until gateway responds with fresh data
   for (let i = 0; i < maxRetries; i++) {
     try {
-      await fetchChannelStatus(true);
+      await fetchChannelStatus(false);
       onSuccess?.();
       return;
     } catch {

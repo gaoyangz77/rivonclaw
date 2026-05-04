@@ -62,5 +62,12 @@ export async function runPostConfigMigrations(configPath: string): Promise<void>
   const { migrateDeprecatedPluginIds } = await import("../gateway/plugin-id-deprecation-migration.js");
   migrateDeprecatedPluginIds(configPath);
 
+  // [4] v1.8.10 - remove after v2.0.0
+  // OpenClaw v2026.4.27 rejects or warns on several legacy fields and removed
+  // plugins that older RivonClaw builds persisted. Strip those before the first
+  // gateway config write so startup remains schema-compatible.
+  const { migrateLegacyOpenClawConfig } = await import("./legacy-openclaw-config-migration.js");
+  migrateLegacyOpenClawConfig(configPath);
+
   log.debug("post-config migrations complete");
 }

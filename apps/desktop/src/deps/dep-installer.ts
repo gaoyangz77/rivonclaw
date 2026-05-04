@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { homedir, arch } from "node:os";
-import { join } from "node:path";
+import { posix } from "node:path";
 import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { DepName } from "./types.js";
@@ -83,7 +83,7 @@ function getBrewPrefix(): string {
 }
 
 function getBrewBin(): string {
-  return join(getBrewPrefix(), "bin", "brew");
+  return posix.join(getBrewPrefix(), "bin", "brew");
 }
 
 async function ensureHomebrew(
@@ -133,7 +133,7 @@ async function injectBrewMirrorToProfile(
   onOutput: (line: string) => void,
 ): Promise<void> {
   const home = homedir();
-  const profilePath = join(home, ".zprofile");
+  const profilePath = posix.join(home, ".zprofile");
 
   const exportLines = Object.entries(mirrorEnv)
     .map(([key, val]) => `export ${key}="${val}"`)

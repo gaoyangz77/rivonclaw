@@ -1,4 +1,4 @@
-From 470b582bc7680134b4c34eeef82b66bce5c01268 Mon Sep 17 00:00:00 2001
+From cd21e9626a339d392c7e7257f055c0e69ae65bd0 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Mon, 13 Apr 2026 09:11:51 -0700
 Subject: [PATCH] vendor(openclaw): defer prewarmConfiguredPrimaryModel to
@@ -23,39 +23,43 @@ Removal:
 Tests:
 - apps/desktop/test/vendor-patch-prewarm-defer.test.ts
 ---
- src/gateway/server-startup-post-attach.ts | 18 ++++++++++++++----
- 1 file changed, 14 insertions(+), 4 deletions(-)
+ src/gateway/server-startup-post-attach.ts | 20 +++++++++++---------
+ 1 file changed, 11 insertions(+), 9 deletions(-)
 
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 3f5a5ef674..d35c468389 100644
+index 9669dbd40d..02a8cf8961 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -170,11 +170,21 @@ export async function startGatewaySidecars(params: {
-     isTruthyEnvValue(process.env.OPENCLAW_SKIP_PROVIDERS);
-   if (!skipChannels) {
-     try {
--      await prewarmConfiguredPrimaryModel({
--        cfg: params.cfg,
--        log: params.log,
--      });
-       await params.startChannels();
-+      // Defer prewarm: ensureOpenClawModelsJson() inside prewarm runs ~9s of
-+      // synchronous provider discovery that blocks the event loop, starving
-+      // channel WebSocket/polling callbacks. setTimeout pushes it to a later
-+      // macrotask so channels fully establish connections first.
-+      // 15s gives channels enough time to complete probes (up to 2.5s each),
-+      // establish monitors, and process initial messages before the block hits.
-+      setTimeout(() => {
-+        prewarmConfiguredPrimaryModel({
-+          cfg: params.cfg,
-+          log: params.log,
-+        }).catch((err) => {
-+          params.log.warn(`deferred model warmup failed: ${String(err)}`);
-+        });
-+      }, 15_000);
-     } catch (err) {
-       params.logChannels.error(`channel startup failed: ${String(err)}`);
-     }
+@@ -399,18 +399,20 @@ export async function startGatewaySidecars(params: {
+   await measureStartup(params.startupTrace, "sidecars.channels", async () => {
+     if (!skipChannels) {
+       try {
+-        schedulePrimaryModelPrewarm(
+-          {
+-            cfg: params.cfg,
+-            workspaceDir: params.defaultWorkspaceDir,
+-            log: params.log,
+-            startupTrace: params.startupTrace,
+-          },
+-          params.prewarmPrimaryModel,
+-        );
+         await measureStartup(params.startupTrace, "sidecars.channel-start", () =>
+           params.startChannels(),
+         );
++        setTimeout(() => {
++          schedulePrimaryModelPrewarm(
++            {
++              cfg: params.cfg,
++              workspaceDir: params.defaultWorkspaceDir,
++              log: params.log,
++              startupTrace: params.startupTrace,
++            },
++            params.prewarmPrimaryModel,
++          );
++        }, 15_000);
+       } catch (err) {
+         params.logChannels.error(`channel startup failed: ${String(err)}`);
+       }
 -- 
-2.50.1 (Apple Git-155)
+2.36.1.windows.1
 

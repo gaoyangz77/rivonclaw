@@ -1,7 +1,7 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { homedir, platform } from "node:os";
-import { join } from "node:path";
+import { posix, win32 } from "node:path";
 import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { DepName, DepStatus } from "./types.js";
@@ -26,9 +26,9 @@ export function getAugmentedPath(): string {
     // On Windows the default PATH is generally sufficient; just ensure
     // common scoop / user-local directories are present.
     const extra = [
-      join(home, "AppData", "Local", "Programs", "Python"),
-      join(home, "scoop", "shims"),
-      join(home, ".cargo", "bin"),
+      win32.join(home, "AppData", "Local", "Programs", "Python"),
+      win32.join(home, "scoop", "shims"),
+      win32.join(home, ".cargo", "bin"),
     ];
     return [...extra, basePath].join(sep);
   }
@@ -39,8 +39,8 @@ export function getAugmentedPath(): string {
     "/opt/homebrew/sbin",
     "/usr/local/bin",
     "/usr/local/sbin",
-    join(home, ".local", "bin"),
-    join(home, ".cargo", "bin"),
+    posix.join(home, ".local", "bin"),
+    posix.join(home, ".cargo", "bin"),
   ];
   return [...extra, basePath].join(sep);
 }

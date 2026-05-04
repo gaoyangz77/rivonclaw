@@ -248,7 +248,7 @@ setImmediate(() => {
 const origStdoutWrite = process.stdout.write;
 process.stdout.write = function (chunk, ...args) {
   const str = typeof chunk === "string" ? chunk : chunk.toString();
-  if (str.includes("listening on")) {
+  if (str.includes("listening on") || str.includes("http server listening")) {
     logPhase("gateway listening (READY)");
     // Flush V8 compile cache to disk immediately. Critical on Windows where
     // the process is force-killed via `taskkill /T /F` — without an explicit
