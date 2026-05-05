@@ -19,7 +19,10 @@ export type PluginApi = {
   logger: { info: (msg: string) => void; warn: (msg: string) => void };
   pluginConfig?: Record<string, unknown>;
   on(event: string, handler: (...args: any[]) => any, opts?: { priority?: number }): void;
-  registerTool?(factory: (ctx: { config?: Record<string, unknown> }) => unknown, opts?: { optional?: boolean }): void;
+  registerTool?(
+    tool: ToolDefinition | ((ctx: { config?: Record<string, unknown> }) => unknown),
+    opts?: { name?: string; names?: string[]; optional?: boolean },
+  ): void;
   registerGatewayMethod?(name: string, handler: (args: {
     params: Record<string, unknown>;
     respond: (ok: boolean, payload?: unknown, error?: { code: string; message: string }) => void;
@@ -96,7 +99,7 @@ export function defineRivonClawPlugin(options: RivonClawPluginOptions): OpenClaw
         const toolOpts = visibility === "managed" ? { optional: true } : undefined;
         for (const toolDef of options.tools) {
           if (typeof api.registerTool === "function") {
-            api.registerTool(() => toolDef, toolOpts);
+            api.registerTool(() => toolDef, { ...toolOpts, name: toolDef.name });
           }
         }
       }

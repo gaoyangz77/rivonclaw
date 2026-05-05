@@ -14,14 +14,28 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-const EXTENSIONS_DIR = join(import.meta.dirname, "../../../../extensions");
+const EXTENSIONS_DIRS = [
+  join(import.meta.dirname, "../../../../extensions"),
+  join(import.meta.dirname, "../../../../extensions-merchant"),
+];
 const AUTO_DISCOVERY_ENTRIES = ["index.ts", "index.js", "index.mjs", "index.cjs"];
 
-function getExtensionDirs(): string[] {
-  return readdirSync(EXTENSIONS_DIR, { withFileTypes: true })
-    .filter(d => d.isDirectory())
-    .filter(d => existsSync(join(EXTENSIONS_DIR, d.name, "openclaw.plugin.json")))
-    .map(d => d.name);
+type ExtensionDir = {
+  name: string;
+  path: string;
+};
+
+function getExtensionDirs(): ExtensionDir[] {
+  return EXTENSIONS_DIRS.flatMap((extensionsDir) => {
+    if (!existsSync(extensionsDir)) return [];
+    return readdirSync(extensionsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .filter(d => existsSync(join(extensionsDir, d.name, "openclaw.plugin.json")))
+      .map(d => ({
+        name: d.name,
+        path: join(extensionsDir, d.name),
+      }));
+  });
 }
 
 describe("extension plugin discovery", () => {
@@ -32,8 +46,8 @@ describe("extension plugin discovery", () => {
   });
 
   for (const dir of extensionDirs) {
-    describe(dir, () => {
-      const extPath = join(EXTENSIONS_DIR, dir);
+    describe(dir.name, () => {
+      const extPath = dir.path;
 
       it("has openclaw.plugin.json with a valid id", () => {
         const manifestPath = join(extPath, "openclaw.plugin.json");

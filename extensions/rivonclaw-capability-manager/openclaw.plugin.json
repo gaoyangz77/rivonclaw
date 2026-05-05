@@ -3,5 +3,8 @@
   "name": "RivonClaw Capability Manager",
   "description": "Unified before_tool_call enforcement based on four-layer capability context (W30)",
   "version": "0.0.1",
+  "activation": {
+    "onStartup": true
+  },
   "configSchema": {}
 }

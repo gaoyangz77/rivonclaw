@@ -135,6 +135,32 @@ describe("config-writer", () => {
       expect(config.plugins.entries).toEqual({ "my-plugin": { enabled: true } });
     });
 
+    it("writes plugin tool additions through tools.alsoAllow", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        toolAlsoAllowlist: ["group:plugins"],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.tools.profile).toBe("full");
+      expect(config.tools.alsoAllow).toEqual(["group:plugins"]);
+      expect(config.tools.allow).toBeUndefined();
+    });
+
+    it("keeps explicit toolAllowlist on tools.allow", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        toolAllowlist: ["ecom_list_shops"],
+        toolAlsoAllowlist: ["group:plugins"],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.tools.allow).toEqual(["ecom_list_shops"]);
+      expect(config.tools.alsoAllow).toBeUndefined();
+    });
+
     it("writes web search API keys into provider plugin config", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
