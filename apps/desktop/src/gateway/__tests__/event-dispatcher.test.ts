@@ -255,13 +255,13 @@ describe("createGatewayEventDispatcher", () => {
     });
   });
 
-  // ── rivonclaw.recipient-seen ───────────────────────────────────────────
+  // ── plugin.rivonclaw.recipient-seen ───────────────────────────────────
 
-  describe("rivonclaw.recipient-seen", () => {
+  describe("plugin.rivonclaw.recipient-seen", () => {
     it("delegates a new recipient to the domain action and emits recipient-added SSE", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: true, membershipChanged: false });
 
-      dispatch(makeEvent("rivonclaw.recipient-seen", {
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
         channelId: "openclaw-weixin",
         accountId: "acct-1",
         recipientId: "wxid_abc",
@@ -282,7 +282,7 @@ describe("createGatewayEventDispatcher", () => {
     it("does NOT emit SSE when the recipient already exists and membership did not change", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: false, membershipChanged: false });
 
-      dispatch(makeEvent("rivonclaw.recipient-seen", {
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
         channelId: "openclaw-weixin",
         recipientId: "wxid_abc",
       }));
@@ -294,7 +294,7 @@ describe("createGatewayEventDispatcher", () => {
     it("emits SSE when account-scoped membership is newly persisted", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: false, membershipChanged: true });
 
-      dispatch(makeEvent("rivonclaw.recipient-seen", {
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
         channelId: "openclaw-weixin",
         accountId: "acct-2",
         recipientId: "wxid_abc",
@@ -308,7 +308,7 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("passes non-WeChat recipient events to the domain action", () => {
-      dispatch(makeEvent("rivonclaw.recipient-seen", {
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
         channelId: "telegram",
         recipientId: "123",
       }));
@@ -320,20 +320,36 @@ describe("createGatewayEventDispatcher", () => {
       });
     });
 
+    it("accepts the legacy non-plugin event name", () => {
+      deps.onRecipientSeen.mockReturnValue({ inserted: true, membershipChanged: false });
+
+      dispatch(makeEvent("rivonclaw.recipient-seen", {
+        channelId: "openclaw-weixin",
+        accountId: "acct-legacy",
+        recipientId: "wxid_legacy",
+      }));
+
+      expect(deps.onRecipientSeen).toHaveBeenCalledWith({
+        channelId: "openclaw-weixin",
+        accountId: "acct-legacy",
+        recipientId: "wxid_legacy",
+      });
+    });
+
     it("does nothing when channelId is missing", () => {
-      dispatch(makeEvent("rivonclaw.recipient-seen", { recipientId: "abc" }));
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", { recipientId: "abc" }));
       expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does nothing when recipientId is missing", () => {
-      dispatch(makeEvent("rivonclaw.recipient-seen", { channelId: "telegram" }));
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", { channelId: "telegram" }));
       expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does nothing when payload is undefined", () => {
-      dispatch(makeEvent("rivonclaw.recipient-seen"));
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen"));
       expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });

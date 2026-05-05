@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import { normalizeWeixinAccountId } from "@rivonclaw/core";
 import { startQrLogin, waitQrLogin } from "../../api/channels.js";
-import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "refreshing" | "success" | "error";
@@ -34,7 +32,6 @@ interface QrLoginModalProps {
 
 export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProps) {
   const { t } = useTranslation();
-  const entityStore = useEntityStore();
 
   const [phase, setPhase] = useState<QrLoginPhase>("loading");
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
@@ -140,24 +137,8 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
             // triggered by updateAccount's MST patch can't spawn a new loop.
             completedRef.current = true;
             clearCountdown();
-            // Set accountId as initial display name so the row isn't blank.
-            // This PUT also serves as the ONLY mechanism that writes the WeChat
-            // account into Desktop's SQLite + MST — without it, delete and other
-            // flows operating on MST state break.
-            //
-            // Canonicalize at the write boundary: `loginWithQrWait` returns the
-            // raw `xxxx@im.bot` form, but the plugin internally (and gateway
-            // `channels.status`) uses the `xxxx-im-bot` dash form. Store the
-            // dash form so every downstream consumer (SQLite, openclaw.json,
-            // MST, status merge, allowlist) agrees on one identifier.
-            if (result.accountId) {
-              const canonicalAccountId = normalizeWeixinAccountId(result.accountId);
-              const accountName = result.accountName?.trim() || canonicalAccountId;
-              entityStore.channelManager.updateAccount(channelId, canonicalAccountId, {
-                name: accountName,
-                config: result.userId ? { userId: result.userId } : {},
-              }).catch(() => { /* best-effort */ });
-            }
+            // Desktop persists QR-login account replacement atomically inside
+            // the wait endpoint. The modal only reflects success.
             setPhase("success");
             // Brief delay so user sees the success message. WeChat also renders
             // an activation hint in the success view, so keep it visible longer.
@@ -201,7 +182,7 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
       // (a newer invocation may have already replaced it).
       if (activeTokenRef.current === myToken) activeTokenRef.current = null;
     }
-  }, [t, channelId, entityStore, clearCountdown, resetCountdown]);
+  }, [t, channelId, clearCountdown, resetCountdown]);
 
   useEffect(() => {
     startLogin();

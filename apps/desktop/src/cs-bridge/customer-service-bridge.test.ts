@@ -1978,6 +1978,67 @@ describe("escalate", () => {
     }
   });
 
+  it("reloads WeChat context tokens after recipient-seen when the token file lands slightly later", async () => {
+    vi.useFakeTimers();
+    const tmpStateDir = mkdtempSync(join(tmpdir(), "rivonclaw-weixin-context-test-"));
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    process.env.OPENCLAW_STATE_DIR = tmpStateDir;
+    setChannelManagerTestEnv(tmpStateDir);
+
+    try {
+      seedShopWithEscalation({
+        escalationChannelId: "openclaw-weixin:acct_test123",
+        escalationRecipientId: "manager@im.wechat",
+      });
+      const bridge = createBridge();
+      bridge.setShopContext(escalationShop);
+      const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+
+      rootStore.channelManager.recordRecipientSeen({
+        channelId: "openclaw-weixin",
+        accountId: "acct_test123",
+        recipientId: "manager@im.wechat",
+      });
+      expect(rootStore.channelManager.hasWeixinContextTokenForRecipient("acct_test123", "manager@im.wechat")).toBe(false);
+
+      const accountsDir = join(tmpStateDir, "openclaw-weixin", "accounts");
+      mkdirSync(accountsDir, { recursive: true });
+      writeFileSync(
+        join(accountsDir, "acct_test123.context-tokens.json"),
+        JSON.stringify({ "manager@im.wechat": "context-token" }),
+      );
+
+      await vi.advanceTimersByTimeAsync(100);
+      expect(rootStore.channelManager.getWeixinContextTokenForRecipient("acct_test123", "manager@im.wechat")).toBe("context-token");
+
+      const result = await session.escalate({ reason: defaultEscalateParams.reason });
+      expect(result.ok).toBe(true);
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "send",
+        expect.objectContaining({
+          to: "manager@im.wechat",
+          channel: "openclaw-weixin",
+          accountId: "acct_test123",
+        }),
+      );
+    } finally {
+      rootStore.channelManager.setEnv({
+        storage: {
+          channelAccounts: { list: () => [], get: () => undefined, upsert: vi.fn(), delete: vi.fn() },
+          channelRecipients: { ensureExists: vi.fn(), getRecipientMeta: () => ({}), setLabel: vi.fn(), delete: vi.fn(), setOwner: vi.fn() },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath: join(tmpStateDir, "openclaw.json"),
+        stateDir: tmpStateDir,
+      });
+      vi.useRealTimers();
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(tmpStateDir, { recursive: true, force: true });
+    }
+  });
+
   it("sends WeChat escalation when the recipient context token is cached", async () => {
     const tmpStateDir = mkdtempSync(join(tmpdir(), "rivonclaw-weixin-context-test-"));
     const previousStateDir = process.env.OPENCLAW_STATE_DIR;

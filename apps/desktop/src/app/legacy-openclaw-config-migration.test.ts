@@ -57,7 +57,7 @@ describe("migrateLegacyOpenClawConfig", () => {
     });
   });
 
-  it("migrates provider-owned web search config and incompatible hook policy", () => {
+  it("migrates provider-owned web search config and preserves event bridge hook policy", () => {
     const configPath = makeConfigPath();
     writeFileSync(
       configPath,
@@ -109,6 +109,8 @@ describe("migrateLegacyOpenClawConfig", () => {
     expect(config.plugins.entries.moonshot.config).toEqual({
       webSearch: { model: "kimi-k2.5" },
     });
-    expect(config.plugins.entries["rivonclaw-event-bridge"].hooks).toBeUndefined();
+    expect(config.plugins.entries["rivonclaw-event-bridge"].hooks).toEqual({
+      allowConversationAccess: true,
+    });
   });
 });

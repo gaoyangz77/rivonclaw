@@ -1,7 +1,7 @@
 import { types, flow, getRoot, type Instance } from "mobx-state-tree";
 import { basename, join } from "node:path";
 import { promises as fs } from "node:fs";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { Storage } from "@rivonclaw/storage";
 import type { ChannelAccount } from "@rivonclaw/storage";
 import { readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
@@ -35,6 +35,9 @@ import {
 } from "./weixin-account-dedupe.js";
 
 const log = createLogger("channel-manager");
+const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
+const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
+const WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS = [100, 300, 700, 1_500, 3_000];
 
 // ---------------------------------------------------------------------------
 // Environment interface -- late-initialized infrastructure dependencies.
@@ -180,7 +183,10 @@ export const ChannelManagerModel = types
   })
   .volatile(() => ({
     _env: null as ChannelManagerEnv | null,
+    // Desktop MST owns raw WeChat context tokens. Panel receives only the
+    // derived account.status.hasContextToken bit through the root snapshot.
     _weixinContextTokens: new Map<string, Map<string, string>>(),
+    _weixinContextTokenSyncTimers: new Map<string, ReturnType<typeof setTimeout>>(),
   }))
   .views((self) => ({
     get root(): any {
@@ -321,7 +327,32 @@ export const ChannelManagerModel = types
       storage.settings.set("channel-migration-done", "1");
     }
 
-    function removeAccountById(channelId: string, accountId: string): void {
+    function writeChannelAccountsSnapshot(channelId: string): void {
+      const { storage, configPath } = getEnv();
+      const config = readExistingConfig(configPath);
+      const channels = (config.channels && typeof config.channels === "object")
+        ? (config.channels as Record<string, unknown>)
+        : {};
+      const existingChannel = channels[channelId] && typeof channels[channelId] === "object"
+        ? (channels[channelId] as Record<string, unknown>)
+        : {};
+      const accounts: Record<string, Record<string, unknown>> = {};
+
+      for (const account of storage.channelAccounts.list(channelId)) {
+        accounts[account.accountId] = account.config;
+      }
+
+      channels[channelId] = {
+        ...existingChannel,
+        ...(channelId === WEIXIN_CHANNEL_ID ? { managed: true } : {}),
+        accounts,
+      };
+      config.channels = channels;
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+      log.info(`Wrote channel account snapshot: ${channelId}/${Object.keys(accounts).length} account(s)`);
+    }
+
+    function removeAccountById(channelId: string, accountId: string, options?: { writeConfig?: boolean }): void {
       const { storage, configPath, stateDir } = getEnv();
 
       // Defensive canonicalization (see addAccount for rationale).
@@ -329,8 +360,9 @@ export const ChannelManagerModel = types
         accountId = normalizeWeixinAccountId(accountId);
       }
 
-      // Remove from config file
-      removeChannelAccount({ configPath, channelId, accountId });
+      if (options?.writeConfig !== false) {
+        removeChannelAccount({ configPath, channelId, accountId });
+      }
 
       // WeChat plugin stores its own state files (account index + credential files).
       // Clean them up so the plugin doesn't re-register the account on reload.
@@ -373,6 +405,72 @@ export const ChannelManagerModel = types
       // file and the gateway's chokidar watcher will detect the change automatically.
     }
 
+    function upsertAccountState(params: {
+      channelId: string;
+      accountId: string;
+      name?: string;
+      config: Record<string, unknown>;
+      secrets?: Record<string, string>;
+      writeConfig?: boolean;
+    }): ChannelAccountSnapshotForMst {
+      const { storage, configPath } = getEnv();
+
+      if (params.channelId === WEIXIN_CHANNEL_ID) {
+        params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
+      }
+
+      const accountConfig: Record<string, unknown> = { ...params.config };
+      if (params.name !== undefined) {
+        accountConfig.name = params.name;
+      }
+
+      if (params.secrets && typeof params.secrets === "object") {
+        for (const [secretKey, secretValue] of Object.entries(params.secrets)) {
+          if (secretValue) {
+            accountConfig[secretKey] = secretValue;
+          }
+        }
+      }
+
+      if (params.writeConfig !== false) {
+        writeChannelAccount({
+          configPath,
+          channelId: params.channelId,
+          accountId: params.accountId,
+          config: accountConfig,
+        });
+      }
+
+      const savedAccount = storage.channelAccounts.upsert(
+        params.channelId,
+        params.accountId,
+        params.name ?? null,
+        accountConfig,
+      );
+
+      const entry = buildChannelAccountSnapshot(savedAccount);
+      (getRoot(self) as any).upsertChannelAccount(entry);
+      return entry;
+    }
+
+    function weixinContextTokenSyncKey(accountId: string, recipientId: string): string {
+      return `${normalizeWeixinAccountId(accountId)}\u0000${recipientId.trim()}`;
+    }
+
+    function clearPendingWeixinContextTokenSync(accountId: string, recipientId: string): void {
+      const key = weixinContextTokenSyncKey(accountId, recipientId);
+      const timer = self._weixinContextTokenSyncTimers.get(key);
+      if (timer) clearTimeout(timer);
+      self._weixinContextTokenSyncTimers.delete(key);
+    }
+
+    function clearAllPendingWeixinContextTokenSyncs(): void {
+      for (const timer of self._weixinContextTokenSyncTimers.values()) {
+        clearTimeout(timer);
+      }
+      self._weixinContextTokenSyncTimers.clear();
+    }
+
     function loadWeixinContextTokens(accountId: string): Map<string, string> {
       const { stateDir } = getEnv();
       const canonicalAccountId = normalizeWeixinAccountId(accountId);
@@ -392,8 +490,46 @@ export const ChannelManagerModel = types
       return getWeixinContextTokens(accountId).has(trimmedRecipientId);
     }
 
+    function getLoadedWeixinContextToken(accountId: string, recipientId: string): string | undefined {
+      const trimmedRecipientId = recipientId.trim();
+      if (!trimmedRecipientId) return undefined;
+      return getWeixinContextTokens(accountId).get(trimmedRecipientId);
+    }
+
     function clearLoadedWeixinContextTokens(accountId: string): void {
       self._weixinContextTokens.delete(normalizeWeixinAccountId(accountId));
+    }
+
+    function applyWeixinContextTokenSync(accountId: string, recipientId?: string): {
+      hasRecipientToken: boolean;
+    } {
+      const canonicalAccountId = normalizeWeixinAccountId(accountId);
+      const tokens = loadWeixinContextTokens(canonicalAccountId);
+      refreshWeixinContextTokenStatus(canonicalAccountId);
+      updateChannelRecipientsForAccounts(WEIXIN_CHANNEL_ID, canonicalAccountId);
+
+      const trimmedRecipientId = recipientId?.trim();
+      const hasRecipientToken = trimmedRecipientId ? tokens.has(trimmedRecipientId) : tokens.size > 0;
+      if (trimmedRecipientId && hasRecipientToken) {
+        clearPendingWeixinContextTokenSync(canonicalAccountId, trimmedRecipientId);
+      }
+      return { hasRecipientToken };
+    }
+
+    function scheduleWeixinContextTokenSync(accountId: string, recipientId: string, attempt = 0): void {
+      const trimmedRecipientId = recipientId.trim();
+      if (!trimmedRecipientId) return;
+      if (attempt >= WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS.length) return;
+
+      const canonicalAccountId = normalizeWeixinAccountId(accountId);
+      const key = weixinContextTokenSyncKey(canonicalAccountId, trimmedRecipientId);
+      if (self._weixinContextTokenSyncTimers.has(key)) return;
+
+      const delayMs = WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS[attempt]!;
+      const timer = setTimeout(() => {
+        (self as any).retryWeixinContextTokenSync(canonicalAccountId, trimmedRecipientId, attempt);
+      }, delayMs);
+      self._weixinContextTokenSyncTimers.set(key, timer);
     }
 
     function buildChannelAccountSnapshot(account: ChannelAccount): ChannelAccountSnapshotForMst {
@@ -489,6 +625,7 @@ export const ChannelManagerModel = types
     return {
       /** Set the environment dependencies. Called once during startup. */
       setEnv(env: ChannelManagerEnv) {
+        clearAllPendingWeixinContextTokenSyncs();
         self._env = env;
         self._weixinContextTokens.clear();
       },
@@ -499,6 +636,7 @@ export const ChannelManagerModel = types
 
         const { storage } = getEnv();
         const allAccounts = storage.channelAccounts.list();
+        clearAllPendingWeixinContextTokenSyncs();
         self._weixinContextTokens.clear();
         for (const account of allAccounts) {
           if (account.channelId === WEIXIN_CHANNEL_ID) {
@@ -515,6 +653,19 @@ export const ChannelManagerModel = types
 
       refreshWeixinContextTokenStatus(accountId?: string) {
         return refreshWeixinContextTokenStatus(accountId);
+      },
+
+      syncWeixinContextTokensFromDisk(accountId: string, recipientId?: string) {
+        return applyWeixinContextTokenSync(accountId, recipientId);
+      },
+
+      retryWeixinContextTokenSync(accountId: string, recipientId: string, attempt: number) {
+        self._weixinContextTokenSyncTimers.delete(weixinContextTokenSyncKey(accountId, recipientId));
+        const result = applyWeixinContextTokenSync(accountId, recipientId);
+        if (!result.hasRecipientToken) {
+          scheduleWeixinContextTokenSync(accountId, recipientId, attempt + 1);
+        }
+        return result;
       },
 
       /**
@@ -538,6 +689,11 @@ export const ChannelManagerModel = types
         return hasLoadedWeixinContextToken(canonicalAccountId, recipientId);
       },
 
+      getWeixinContextTokenForRecipient(accountId: string, recipientId: string): string | undefined {
+        const canonicalAccountId = normalizeWeixinAccountId(accountId);
+        return getLoadedWeixinContextToken(canonicalAccountId, recipientId);
+      },
+
       /**
        * Persist a gateway recipient-seen event. This is the action boundary for
        * recipient SQLite rows, account-scoped WeChat allowFrom files, and the
@@ -554,9 +710,11 @@ export const ChannelManagerModel = types
 
         if (params.channelId === WEIXIN_CHANNEL_ID) {
           if (accountId) {
-            loadWeixinContextTokens(accountId);
+            const syncResult = applyWeixinContextTokenSync(accountId, params.recipientId);
             membershipChanged = addAllowFromEntrySync(params.channelId, accountId, params.recipientId);
-            refreshWeixinContextTokenStatus(accountId);
+            if (!syncResult.hasRecipientToken) {
+              scheduleWeixinContextTokenSync(accountId, params.recipientId);
+            }
           } else {
             log.warn(
               `WeChat recipient-seen missing accountId; skipped account-scoped context-token sync for recipient=${params.recipientId}`,
@@ -584,53 +742,7 @@ export const ChannelManagerModel = types
         config: Record<string, unknown>;
         secrets?: Record<string, string>;
       }) {
-        const { storage, configPath } = getEnv();
-
-        // Defensive canonicalization: Panel normalizes at the QR-login write
-        // boundary, but URL-path callers (DELETE /api/channels/accounts/:id)
-        // and any future integration can still arrive with the raw
-        // `xxxx@im.bot` form. Normalize here so SQLite and openclaw.json
-        // always receive the canonical dash form.
-        if (params.channelId === "openclaw-weixin") {
-          params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
-        }
-
-        const accountConfig: Record<string, unknown> = { ...params.config };
-
-        // Merge secrets into config -- secrets are stored alongside other config
-        // in both SQLite and openclaw.json. The vendor gateway reads them directly.
-        if (params.secrets && typeof params.secrets === "object") {
-          for (const [secretKey, secretValue] of Object.entries(params.secrets)) {
-            if (secretValue) {
-              accountConfig[secretKey] = secretValue;
-            }
-          }
-        }
-
-        // Write to config file
-        writeChannelAccount({
-          configPath,
-          channelId: params.channelId,
-          accountId: params.accountId,
-          config: accountConfig,
-        });
-
-        // Persist to SQLite (source of truth)
-        const savedAccount = storage.channelAccounts.upsert(
-          params.channelId,
-          params.accountId,
-          params.name ?? null,
-          accountConfig,
-        );
-
-        // Update MST state via root store
-        const entry = buildChannelAccountSnapshot(savedAccount);
-        (getRoot(self) as any).upsertChannelAccount(entry);
-
-        // No explicit reload needed — writeChannelAccount already modified the config
-        // file and the gateway's chokidar watcher will detect the change automatically.
-
-        return entry;
+        return upsertAccountState(params);
       },
 
       /**
@@ -960,7 +1072,7 @@ export const ChannelManagerModel = types
         rpcClient: GatewayRpcClient,
         accountId?: string,
       ) {
-        return (yield rpcClient.request("web.login.start", { accountId })) as {
+        return (yield rpcClient.request(RIVONCLAW_WEIXIN_LOGIN_START, { accountId })) as {
           qrDataUrl?: string;
           message: string;
         };
@@ -976,7 +1088,7 @@ export const ChannelManagerModel = types
         const serverPollMs = timeoutMs ?? 60_000;
         const rpcTimeoutMs = serverPollMs + 15_000;
         const result = (yield rpcClient.request(
-          "web.login.wait",
+          RIVONCLAW_WEIXIN_LOGIN_WAIT,
           { accountId, timeoutMs },
           rpcTimeoutMs,
         )) as { connected: boolean; message: string; accountId?: string; userId?: string };
@@ -992,38 +1104,39 @@ export const ChannelManagerModel = types
           ? result.userId.trim()
           : yield readWeixinAccountUserId(stateDir, canonicalAccountId);
 
-        if (!userId) {
-          return { ...result, accountId: canonicalAccountId };
-        }
-
-        yield addAllowFromEntry(WEIXIN_CHANNEL_ID, canonicalAccountId, userId);
-
         const weixinAccounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID);
-        const indexedAccountIds: Set<string> = yield readIndexedWeixinAccountIds(stateDir);
-        const accountFileExists = new Set<string>();
-        for (const account of weixinAccounts) {
-          const existingAccountId = normalizeWeixinAccountId(account.accountId);
-          if (yield hasWeixinAccountFile(stateDir, existingAccountId)) {
-            accountFileExists.add(existingAccountId);
-          }
-        }
+        let staleAccountIds: string[] = [];
+        let replacementAccountName: string | undefined;
 
-        const staleAccountIds = selectStaleWeixinAccountIdsForLogin({
-          accounts: weixinAccounts,
-          currentAccountId: canonicalAccountId,
-          userId,
-          indexedAccountIds,
-          accountFileExists,
-        });
-        const replacementAccountName = selectWeixinReplacementAccountName({
-          accounts: weixinAccounts,
-          currentAccountId: canonicalAccountId,
-          staleAccountIds,
-        });
+        if (userId) {
+          yield addAllowFromEntry(WEIXIN_CHANNEL_ID, canonicalAccountId, userId);
+
+          const indexedAccountIds: Set<string> = yield readIndexedWeixinAccountIds(stateDir);
+          const accountFileExists = new Set<string>();
+          for (const account of weixinAccounts) {
+            const existingAccountId = normalizeWeixinAccountId(account.accountId);
+            if (yield hasWeixinAccountFile(stateDir, existingAccountId)) {
+              accountFileExists.add(existingAccountId);
+            }
+          }
+
+          staleAccountIds = selectStaleWeixinAccountIdsForLogin({
+            accounts: weixinAccounts,
+            currentAccountId: canonicalAccountId,
+            userId,
+            indexedAccountIds,
+            accountFileExists,
+          });
+          replacementAccountName = selectWeixinReplacementAccountName({
+            accounts: weixinAccounts,
+            currentAccountId: canonicalAccountId,
+            staleAccountIds,
+          });
+        }
 
         for (const staleAccountId of staleAccountIds) {
           yield mergeAccountAllowFromList(WEIXIN_CHANNEL_ID, staleAccountId, canonicalAccountId);
-          removeAccountById(WEIXIN_CHANNEL_ID, staleAccountId);
+          removeAccountById(WEIXIN_CHANNEL_ID, staleAccountId, { writeConfig: false });
         }
 
         if (staleAccountIds.length > 0) {
@@ -1032,11 +1145,21 @@ export const ChannelManagerModel = types
           );
         }
 
+        const accountName = replacementAccountName ?? canonicalAccountId;
+        upsertAccountState({
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId: canonicalAccountId,
+          name: accountName,
+          config: userId ? { userId } : {},
+          writeConfig: false,
+        });
+        writeChannelAccountsSnapshot(WEIXIN_CHANNEL_ID);
+
         return {
           ...result,
           accountId: canonicalAccountId,
-          userId,
-          ...(replacementAccountName ? { accountName: replacementAccountName } : {}),
+          ...(userId ? { userId } : {}),
+          accountName,
         };
       }),
     };

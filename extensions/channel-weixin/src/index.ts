@@ -1,5 +1,9 @@
 import upstreamPlugin from "@tencent-weixin/openclaw-weixin/index.ts";
 
+const WEIXIN_CHANNEL_ID = "openclaw-weixin";
+const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
+const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
+
 // Module-level sessionKey bridge: OpenClaw's web.login.wait gateway handler
 // only forwards { timeoutMs, accountId } to the plugin, dropping sessionKey.
 // We capture it from loginWithQrStart and inject it into loginWithQrWait.
@@ -37,14 +41,130 @@ function markWeixinSessionExpired(ctx: unknown, message: string): void {
   });
 }
 
+function resolveAccountId(params: unknown): string | undefined {
+  const value = (params as { accountId?: unknown })?.accountId;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function wasChannelRunning(params: {
+  context: unknown;
+  accountId?: string;
+}): boolean {
+  const context = params.context as {
+    getRuntimeSnapshot?: () => {
+      channels?: Record<string, { running?: boolean; accountId?: string } | undefined>;
+      channelAccounts?: Record<string, Record<string, { running?: boolean } | undefined> | undefined>;
+    };
+  };
+  const runtime = context.getRuntimeSnapshot?.();
+  if (!runtime) return false;
+  if (params.accountId) {
+    const accountRuntime = runtime.channelAccounts?.[WEIXIN_CHANNEL_ID]?.[params.accountId];
+    if (accountRuntime) return accountRuntime.running === true;
+  }
+  if (!params.accountId) {
+    return runtime.channels?.[WEIXIN_CHANNEL_ID]?.running === true;
+  }
+  const defaultRuntime = runtime.channels?.[WEIXIN_CHANNEL_ID];
+  return defaultRuntime?.accountId === params.accountId && defaultRuntime.running === true;
+}
+
+function registerRivonClawQrLoginMethods(params: {
+  api: Parameters<typeof upstreamPlugin.register>[0];
+  gateway: Record<string, (...args: unknown[]) => Promise<unknown>>;
+}) {
+  if (typeof params.api.registerGatewayMethod !== "function") return;
+
+  // OpenClaw core currently fails to discover openclaw-weixin as the provider
+  // for web.login.start/web.login.wait in RivonClaw's embedded UI path. Keep
+  // these RivonClaw-owned RPC names until the upstream discovery path is fixed.
+  // Upstream tracking:
+  // - https://github.com/openclaw/openclaw/issues/62120
+  // - https://github.com/Tencent/openclaw-weixin/pull/73
+  // - https://github.com/netease-youdao/LobsterAI/pull/1592
+  params.api.registerGatewayMethod(RIVONCLAW_WEIXIN_LOGIN_START, async ({ params: requestParams, respond, context }) => {
+    const loginWithQrStart = params.gateway.loginWithQrStart;
+    if (!loginWithQrStart) {
+      respond(false, { error: "WeChat QR login start is not available" });
+      return;
+    }
+
+    try {
+      const accountId = resolveAccountId(requestParams);
+      const wasRunning = wasChannelRunning({ context, accountId });
+      const c = context as {
+        startChannel?: (channelId: string, accountId?: string) => Promise<void>;
+        stopChannel?: (channelId: string, accountId?: string) => Promise<void>;
+      };
+      if (accountId) {
+        await c.stopChannel?.(WEIXIN_CHANNEL_ID, accountId);
+      }
+
+      const request = requestParams as { force?: unknown; timeoutMs?: unknown; verbose?: unknown };
+      const result = await loginWithQrStart({
+        force: Boolean(request.force),
+        timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
+        verbose: Boolean(request.verbose),
+        accountId,
+      }) as { connected?: boolean; qrDataUrl?: string };
+
+      if (accountId && result.connected) {
+        await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+      } else if (accountId && wasRunning && !result.qrDataUrl) {
+        await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+      }
+      respond(true, result);
+    } catch (err) {
+      respond(false, { error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  params.api.registerGatewayMethod(RIVONCLAW_WEIXIN_LOGIN_WAIT, async ({ params: requestParams, respond, context }) => {
+    const loginWithQrWait = params.gateway.loginWithQrWait;
+    if (!loginWithQrWait) {
+      respond(false, { error: "WeChat QR login wait is not available" });
+      return;
+    }
+
+    try {
+      const accountId = resolveAccountId(requestParams);
+      const request = requestParams as { timeoutMs?: unknown; currentQrDataUrl?: unknown };
+      const result = await loginWithQrWait({
+        timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
+        accountId,
+        currentQrDataUrl: typeof request.currentQrDataUrl === "string" ? request.currentQrDataUrl : undefined,
+      }) as { connected?: boolean; accountId?: string };
+
+      if (accountId && result.connected) {
+        const c = context as { startChannel?: (channelId: string, accountId?: string) => Promise<void> };
+        await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+      }
+      respond(true, result);
+    } catch (err) {
+      respond(false, { error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+}
+
 const plugin = {
   ...upstreamPlugin,
   register(api: Parameters<typeof upstreamPlugin.register>[0]) {
     const origRegisterChannel = api.registerChannel!.bind(api);
+    let rivonClawQrMethodsRegistered = false;
     api.registerChannel = (opts: { plugin: { gatewayMethods?: string[]; gateway?: Record<string, unknown>;[k: string]: unknown };[k: string]: unknown }) => {
       // Patch 1: declare gatewayMethods so resolveWebLoginProvider() can discover us.
-      if (opts.plugin && !opts.plugin.gatewayMethods) {
-        opts.plugin.gatewayMethods = ["web.login.start", "web.login.wait"];
+      // Upstream tracking:
+      // - https://github.com/openclaw/openclaw/issues/62120
+      // - https://github.com/Tencent/openclaw-weixin/pull/73
+      // - https://github.com/netease-youdao/LobsterAI/pull/1592
+      // Remove this wrapper once @tencent-weixin/openclaw-weixin ships these
+      // declarations and our supported version range requires that release.
+      if (opts.plugin) {
+        opts.plugin.gatewayMethods = Array.from(new Set([
+          ...(opts.plugin.gatewayMethods ?? []),
+          "web.login.start",
+          "web.login.wait",
+        ]));
       }
 
       // Patch 2: bridge sessionKey between loginWithQrStart and loginWithQrWait.
@@ -105,6 +225,11 @@ const plugin = {
             }
             return origWait(p);
           };
+        }
+
+        if (!rivonClawQrMethodsRegistered) {
+          rivonClawQrMethodsRegistered = true;
+          registerRivonClawQrLoginMethods({ api, gateway: gw });
         }
       }
 

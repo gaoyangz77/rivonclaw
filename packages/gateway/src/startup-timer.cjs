@@ -75,6 +75,17 @@ let requireTotalMs = 0;
 const fs = require("fs");
 const path = require("path");
 
+// Some bundled OpenClaw ESM chunks inline legacy CJS dependencies that still
+// reference the free `__dirname` identifier. Since this preload runs before the
+// ESM gateway entry, define a conservative process-wide fallback for those
+// dependencies without modifying vendor sources.
+if (typeof globalThis.__dirname === "undefined") {
+  const configuredDistDir = process.env.RIVONCLAW_OPENCLAW_DIST_DIR;
+  const entryPath = process.argv[1] || "";
+  const entryDir = entryPath ? path.dirname(entryPath) : process.cwd();
+  globalThis.__dirname = configuredDistDir || path.join(entryDir, "dist");
+}
+
 function logPhase(label) {
   const elapsed = (performance.now() - t0).toFixed(0);
   process.stderr.write(`[startup-timer] +${elapsed}ms ${label}\n`);

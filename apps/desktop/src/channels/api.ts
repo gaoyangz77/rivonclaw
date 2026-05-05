@@ -1,6 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { DEFAULTS, formatError } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
+import { readExistingConfig, resolveOpenClawConfigPath } from "@rivonclaw/gateway";
 import { sendChannelMessage } from "./channel-senders.js";
 import { openClawConnector } from "../openclaw/index.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
@@ -24,6 +25,37 @@ const APPROVAL_MESSAGES = {
   zh: "✅ [RivonClaw] 您的访问已获批准！现在可以开始和我对话了。",
   en: "✅ [RivonClaw] Your access has been approved! You can start chatting now.",
 };
+
+async function applyCurrentConfigThroughGateway(): Promise<void> {
+  const rpcClient = openClawConnector.ensureRpcReady();
+  const configPath = resolveOpenClawConfigPath();
+  const config = readExistingConfig(configPath);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const snapshot = await rpcClient.request<{ hash?: string }>("config.get", {}, 5_000);
+    if (!snapshot.hash) {
+      throw new Error("Gateway config hash unavailable");
+    }
+
+    try {
+      await rpcClient.request(
+        "config.apply",
+        {
+          raw: JSON.stringify(config, null, 2),
+          baseHash: snapshot.hash,
+        },
+        10_000,
+      );
+      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (attempt === 0 && message.includes("config changed since last load")) {
+        continue;
+      }
+      throw err;
+    }
+  }
+}
 
 // ── GET /api/channels/status ──
 
@@ -114,6 +146,7 @@ const createAccount: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
       secrets: body.secrets,
     });
 
+    await applyCurrentConfigThroughGateway();
     sendJson(res, 201, { ok: true, channelId: body.channelId, accountId: body.accountId });
     ctx.onChannelConfigured?.(body.channelId);
   } catch (err) {
@@ -149,6 +182,7 @@ const updateAccount: EndpointHandler = async (req, res, _url, params, ctx: ApiCo
       secrets: body.secrets,
     });
 
+    await applyCurrentConfigThroughGateway();
     sendJson(res, 200, { ok: true, channelId, accountId });
     ctx.onChannelConfigured?.(channelId);
   } catch (err) {
@@ -166,6 +200,7 @@ const deleteAccount: EndpointHandler = async (_req, res, _url, params, ctx: ApiC
 
   try {
     cm.removeAccount(channelId, accountId);
+    await applyCurrentConfigThroughGateway();
     sendJson(res, 200, { ok: true, channelId, accountId });
   } catch (err) {
     log.error("Failed to delete channel account:", err);
@@ -216,6 +251,9 @@ const qrLoginWait: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
 
   try {
     const result = await cm.waitQrLogin(rpcClient, body.accountId, body.timeoutMs);
+    if (result.connected && result.accountId) {
+      await applyCurrentConfigThroughGateway();
+    }
     sendJson(res, 200, result);
   } catch (err) {
     log.error("Failed to wait for QR login:", err);

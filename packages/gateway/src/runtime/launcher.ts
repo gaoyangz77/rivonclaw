@@ -270,6 +270,9 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
 
     log.debug("[spawn:2] compile cache done, writing preload...");
 
+    const vendorDistDir = join(dirname(this.options.entryPath), "dist");
+    env.RIVONCLAW_OPENCLAW_DIST_DIR = vendorDistDir;
+
     // ── Startup profiler preload ──
     // Inject a CJS preload script that logs timing milestones to stderr.
     // The script is written to stateDir so it works in packaged apps too.
@@ -292,6 +295,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
             `"use strict";
 if(process.platform==="win32"){const cp=require("child_process"),oS=cp.spawn;cp.spawn=function(c,a,o){if(a!=null&&!Array.isArray(a)){o=a;a=[]}const l=String(c).toLowerCase();if(l.includes("powershell")||l.includes("pwsh")){if(Array.isArray(a)){a=[...a];for(let i=0;i<a.length;i++){if(String(a[i]).toLowerCase()==="-command"&&i+1<a.length){a[i+1]="[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; "+a[i+1];break}}}return oS.call(this,c,a,o)}if(l.includes("cmd")){if(Array.isArray(a)){a=[...a];for(let i=0;i<a.length;i++){if(String(a[i]).toLowerCase()==="/c"&&i+1<a.length){a[i+1]="chcp 65001>nul & "+a[i+1];break}}}return oS.call(this,c,a,o)}return oS.call(this,c,a,o)}}
 const t0=performance.now(),V=!!process.env.RIVONCLAW_STARTUP_DEBUG,path=require("path"),Module=require("module");
+const ep=process.argv[1]||"";if(typeof globalThis.__dirname==="undefined"){globalThis.__dirname=process.env.RIVONCLAW_OPENCLAW_DIST_DIR||path.join(ep?path.dirname(ep):process.cwd(),"dist")}
 let sdkPath=null,sdkDir=null;
 const origRes=Module._resolveFilename;
 Module._resolveFilename=function(r,p,m,o){if(sdkPath){if(r==="openclaw/plugin-sdk")return sdkPath;if(r.startsWith("openclaw/plugin-sdk/"))return origRes.call(this,path.join(sdkDir,r.slice(20)),p,m,o)}return origRes.call(this,r,p,m,o)};

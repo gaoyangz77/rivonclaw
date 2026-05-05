@@ -139,6 +139,7 @@ describe("GatewayLauncher", () => {
           env: expect.objectContaining({
             OPENCLAW_CONFIG_PATH: "/custom/config.json",
             OPENCLAW_STATE_DIR: "/custom/state",
+            RIVONCLAW_OPENCLAW_DIST_DIR: "/path/to/dist",
             CUSTOM_VAR: "value",
           }),
         }),

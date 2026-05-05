@@ -37,15 +37,14 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
-function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>): string[] {
+function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>): void {
   const plugins = config.plugins;
-  if (!plugins || typeof plugins !== "object" || Array.isArray(plugins)) return [];
+  if (!plugins || typeof plugins !== "object" || Array.isArray(plugins)) return;
 
   const entries = (plugins as Record<string, unknown>).entries;
-  if (!entries || typeof entries !== "object" || Array.isArray(entries)) return [];
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) return;
 
-  const removed: string[] = [];
-  for (const [pluginId, entry] of Object.entries(entries as Record<string, unknown>)) {
+  for (const entry of Object.values(entries as Record<string, unknown>)) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
 
     const hooks = (entry as Record<string, unknown>).hooks;
@@ -53,13 +52,10 @@ function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>
     if (!Object.prototype.hasOwnProperty.call(hooks, "allowConversationAccess")) continue;
 
     delete (hooks as Record<string, unknown>).allowConversationAccess;
-    removed.push(`plugins.entries.${pluginId}.hooks.allowConversationAccess`);
     if (Object.keys(hooks as Record<string, unknown>).length === 0) {
       delete (entry as Record<string, unknown>).hooks;
     }
   }
-
-  return removed;
 }
 
 function mergePluginWebSearchConfig(
@@ -1437,13 +1433,10 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     log.warn(`Stripped unknown config keys: ${removedKeys.join(", ")}`);
   }
 
-  // OpenClaw source accepts allowConversationAccess, but the upgraded runtime
-  // dist currently bundled with EasyClaw rejects it during startup validation.
-  // Strip it after our generated-schema pass so gateway startup stays healthy.
-  const removedRuntimeCompatKeys = removeRuntimeIncompatiblePluginHookKeys(config);
-  if (removedRuntimeCompatKeys.length > 0) {
-    log.warn(`Stripped runtime-incompatible config keys: ${removedRuntimeCompatKeys.join(", ")}`);
-  }
+  // `allowConversationAccess` came from an older hook config shape. The
+  // upgraded runtime rejects it, so keep old user configs bootable without
+  // carrying the deprecated key forward.
+  removeRuntimeIncompatiblePluginHookKeys(config);
 
   // Fix semantic validation errors (e.g. dmPolicy="allowlist" without allowFrom)
   // by deleting the offending paths, escalating upward when the leaf key
