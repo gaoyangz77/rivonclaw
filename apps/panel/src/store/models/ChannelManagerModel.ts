@@ -10,6 +10,12 @@ import { runtimeStatusStore } from "../runtime-status-store.js";
 const CHANNEL_CHANGED_EVENT = "channel-changed";
 const CHANNEL_STATUS_POLL_MS = 30_000;
 const CHANNEL_STATUS_RETRY_MS = 10_000;
+const CHANNEL_GATEWAY_RETRY_MS = 1_500;
+
+function isGatewayNotConnectedError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.includes("Gateway not connected");
+}
 
 /**
  * Channel management operations as MST actions on the Panel entity store.
@@ -28,6 +34,7 @@ export const ChannelManagerModel = types
   .volatile(() => ({
     statusPolling: false,
     statusPollTimer: null as ReturnType<typeof setTimeout> | null,
+    statusRetryTimer: null as ReturnType<typeof setTimeout> | null,
     readinessWait: null as (Promise<void> & { cancel?: () => void }) | null,
   }))
   .actions((self) => {
@@ -39,6 +46,13 @@ export const ChannelManagerModel = types
       if (self.statusPollTimer) {
         clearTimeout(self.statusPollTimer);
         self.statusPollTimer = null;
+      }
+    }
+
+    function clearStatusRetryTimer(): void {
+      if (self.statusRetryTimer) {
+        clearTimeout(self.statusRetryTimer);
+        self.statusRetryTimer = null;
       }
     }
 
@@ -55,9 +69,18 @@ export const ChannelManagerModel = types
       }, delayMs);
     }
 
+    function scheduleGatewayRetry(): void {
+      clearStatusRetryTimer();
+      self.statusRetryTimer = setTimeout(() => {
+        self.statusRetryTimer = null;
+        void retryGatewayStatus();
+      }, CHANNEL_GATEWAY_RETRY_MS);
+    }
+
     function setStatusSnapshot(snapshot: ChannelsStatusSnapshot | null): void {
       self.statusSnapshot = snapshot;
       self.statusError = null;
+      clearStatusRetryTimer();
     }
 
     function setStatusError(err: unknown, showError: boolean): void {
@@ -101,9 +124,43 @@ export const ChannelManagerModel = types
         }
         return data.snapshot;
       } catch (err) {
+        if (isGatewayNotConnectedError(err)) {
+          self.statusError = null;
+          self.statusLoading = showLoading || !self.statusSnapshot;
+          self.statusRefreshing = false;
+          scheduleGatewayRetry();
+          return null;
+        }
         setStatusError(err, showLoading);
         return null;
       } finally {
+        if (!self.statusRetryTimer) {
+          self.statusLoading = false;
+        }
+        self.statusRefreshing = false;
+      }
+    });
+
+    const retryGatewayStatus = flow(function* (): Generator<Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>, void, { snapshot: ChannelsStatusSnapshot | null; error?: string }> {
+      try {
+        const data = yield fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
+          clientPath(API["channels.status"]) + "?probe=false",
+        );
+        setStatusSnapshot(data.snapshot);
+        self.statusLoading = false;
+        self.statusRefreshing = false;
+        if (self.statusPolling) {
+          scheduleStatusPoll(CHANNEL_STATUS_POLL_MS);
+        }
+      } catch (err) {
+        if (isGatewayNotConnectedError(err)) {
+          self.statusError = null;
+          self.statusLoading = true;
+          self.statusRefreshing = false;
+          scheduleGatewayRetry();
+          return;
+        }
+        setStatusError(err, true);
         self.statusLoading = false;
         self.statusRefreshing = false;
       }
@@ -121,6 +178,13 @@ export const ChannelManagerModel = types
         self.statusRefreshing = false;
         scheduleStatusPoll(CHANNEL_STATUS_POLL_MS);
       } catch (err) {
+        if (isGatewayNotConnectedError(err)) {
+          self.statusError = null;
+          self.statusLoading = true;
+          self.statusRefreshing = false;
+          scheduleGatewayRetry();
+          return;
+        }
         setStatusError(err, false);
         self.statusLoading = false;
         self.statusRefreshing = false;
@@ -188,11 +252,13 @@ export const ChannelManagerModel = types
       stopStatusPolling() {
         self.statusPolling = false;
         clearStatusPollTimer();
+        clearStatusRetryTimer();
         cancelReadinessWait();
       },
 
       beforeDestroy() {
         clearStatusPollTimer();
+        clearStatusRetryTimer();
         cancelReadinessWait();
       },
 

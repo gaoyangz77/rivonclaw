@@ -24,12 +24,12 @@ import {
 import {
   WEIXIN_CHANNEL_ID,
   clearWeixinContextTokenFiles,
-  getWeixinUserIdFromConfig,
   hasWeixinAccountFile,
   readIndexedWeixinAccountIds,
   readWeixinContextTokensSync,
   readWeixinContextTokenRecipientIds,
   readWeixinAccountUserId,
+  readWeixinAccountUserIdSync,
   selectStaleWeixinAccountIdsForLogin,
   selectWeixinReplacementAccountName,
 } from "./weixin-account-dedupe.js";
@@ -173,6 +173,31 @@ function readAccountAllowFromListSync(channelId: string, accountId?: string): st
   return readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, accountId));
 }
 
+function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
+  if (channelId !== WEIXIN_CHANNEL_ID || !Object.prototype.hasOwnProperty.call(config, "userId")) {
+    return config;
+  }
+  const { userId: _providerOwnedUserId, ...rest } = config;
+  return rest;
+}
+
+function channelAccountConfigHasWeixinUserId(channelId: string, config: Record<string, unknown>): boolean {
+  return channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId");
+}
+
+function mergeProviderOwnedChannelConfig(
+  channelId: string,
+  accountId: string,
+  config: Record<string, unknown>,
+  stateDir: string,
+): Record<string, unknown> {
+  const base = sanitizeChannelAccountConfig(channelId, config);
+  if (channelId !== WEIXIN_CHANNEL_ID) return base;
+
+  const userId = readWeixinAccountUserIdSync(stateDir, accountId);
+  return userId ? { ...base, userId } : base;
+}
+
 // ---------------------------------------------------------------------------
 // MST Model
 // ---------------------------------------------------------------------------
@@ -234,12 +259,15 @@ export const ChannelManagerModel = types
      * Does NOT include mobile accounts (mobile plugin manages its own config).
      */
     buildConfigAccounts(): Array<{ channelId: string; accountId: string; config: Record<string, unknown> }> {
+      const env = self._env;
       return self.root.channelAccounts
         .filter((a: any) => a.channelId !== "mobile")
         .map((a: any) => ({
           channelId: a.channelId,
           accountId: a.accountId,
-          config: a.config,
+          config: env
+            ? mergeProviderOwnedChannelConfig(a.channelId, a.accountId, a.config, env.stateDir)
+            : sanitizeChannelAccountConfig(a.channelId, a.config),
         }));
     },
   }))
@@ -291,6 +319,7 @@ export const ChannelManagerModel = types
           const configObj = typeof accountData === "object" && accountData !== null
             ? (accountData as Record<string, unknown>)
             : {};
+          const sqliteConfigObj = sanitizeChannelAccountConfig(channelId, configObj);
           const key = `${channelId}:${accountId}`;
           const sqliteRecord = sqliteMap.get(key);
 
@@ -299,15 +328,18 @@ export const ChannelManagerModel = types
             storage.channelAccounts.upsert(
               channelId,
               accountId,
-              typeof configObj.name === "string" ? configObj.name : null,
-              configObj,
+              typeof sqliteConfigObj.name === "string" ? sqliteConfigObj.name : null,
+              sqliteConfigObj,
             );
           } else {
             // Both have it → merge any fields config has that SQLite lacks
             // (secret backfill from older versions)
             let needsUpdate = false;
-            const merged = { ...sqliteRecord.config };
-            for (const [k, v] of Object.entries(configObj)) {
+            const merged = sanitizeChannelAccountConfig(channelId, { ...sqliteRecord.config });
+            if (channelAccountConfigHasWeixinUserId(channelId, sqliteRecord.config)) {
+              needsUpdate = true;
+            }
+            for (const [k, v] of Object.entries(sqliteConfigObj)) {
               if (v !== undefined && v !== null && !(k in merged)) {
                 merged[k] = v;
                 needsUpdate = true;
@@ -327,8 +359,21 @@ export const ChannelManagerModel = types
       storage.settings.set("channel-migration-done", "1");
     }
 
+    function stripWeixinUserIdFromStoredAccounts(): void {
+      const { storage } = getEnv();
+      for (const account of storage.channelAccounts.list(WEIXIN_CHANNEL_ID)) {
+        if (!channelAccountConfigHasWeixinUserId(account.channelId, account.config)) continue;
+        storage.channelAccounts.upsert(
+          account.channelId,
+          account.accountId,
+          account.name,
+          sanitizeChannelAccountConfig(account.channelId, account.config),
+        );
+      }
+    }
+
     function writeChannelAccountsSnapshot(channelId: string): void {
-      const { storage, configPath } = getEnv();
+      const { storage, configPath, stateDir } = getEnv();
       const config = readExistingConfig(configPath);
       const channels = (config.channels && typeof config.channels === "object")
         ? (config.channels as Record<string, unknown>)
@@ -339,7 +384,12 @@ export const ChannelManagerModel = types
       const accounts: Record<string, Record<string, unknown>> = {};
 
       for (const account of storage.channelAccounts.list(channelId)) {
-        accounts[account.accountId] = account.config;
+        accounts[account.accountId] = mergeProviderOwnedChannelConfig(
+          channelId,
+          account.accountId,
+          account.config,
+          stateDir,
+        );
       }
 
       channels[channelId] = {
@@ -419,7 +469,7 @@ export const ChannelManagerModel = types
         params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
       }
 
-      const accountConfig: Record<string, unknown> = { ...params.config };
+      let accountConfig: Record<string, unknown> = { ...params.config };
       if (params.name !== undefined) {
         accountConfig.name = params.name;
       }
@@ -431,6 +481,7 @@ export const ChannelManagerModel = types
           }
         }
       }
+      accountConfig = sanitizeChannelAccountConfig(params.channelId, accountConfig);
 
       if (params.writeConfig !== false) {
         writeChannelAccount({
@@ -541,7 +592,8 @@ export const ChannelManagerModel = types
       };
 
       if (account.channelId === WEIXIN_CHANNEL_ID) {
-        const userId = getWeixinUserIdFromConfig(account.config);
+        const { stateDir } = getEnv();
+        const userId = readWeixinAccountUserIdSync(stateDir, canonicalAccountId);
         status.hasContextToken = userId
           ? hasLoadedWeixinContextToken(canonicalAccountId, userId)
           : false;
@@ -551,7 +603,7 @@ export const ChannelManagerModel = types
         channelId: account.channelId,
         accountId: canonicalAccountId,
         name: account.name,
-        config: account.config,
+        config: sanitizeChannelAccountConfig(account.channelId, account.config),
         status,
         recipients: buildChannelRecipientsSnapshot(account.channelId, canonicalAccountId),
       };
@@ -635,6 +687,7 @@ export const ChannelManagerModel = types
         runMigrationIfNeeded();
 
         const { storage } = getEnv();
+        stripWeixinUserIdFromStoredAccounts();
         const allAccounts = storage.channelAccounts.list();
         clearAllPendingWeixinContextTokenSyncs();
         self._weixinContextTokens.clear();
@@ -770,7 +823,7 @@ export const ChannelManagerModel = types
         const existingAccounts = (existingChannel.accounts ?? {}) as Record<string, unknown>;
         const existingAccountConfig = (existingAccounts[params.accountId] ?? {}) as Record<string, unknown>;
 
-        const accountConfig: Record<string, unknown> = { ...existingAccountConfig, ...params.config };
+        let accountConfig: Record<string, unknown> = { ...existingAccountConfig, ...params.config };
 
         if (params.name !== undefined) {
           accountConfig.name = params.name;
@@ -786,11 +839,13 @@ export const ChannelManagerModel = types
             }
           }
         }
+        accountConfig = sanitizeChannelAccountConfig(params.channelId, accountConfig);
 
         // Write to config file
         writeChannelAccount({ configPath, channelId: params.channelId, accountId: params.accountId, config: accountConfig });
 
-        // Persist to SQLite (source of truth)
+        // Persist UI-owned account metadata to SQLite. Provider-owned WeChat
+        // identity stays in the WeChat sidecar files.
         const savedAccount = storage.channelAccounts.upsert(params.channelId, params.accountId, params.name ?? null, accountConfig);
 
         // Update MST state via root store
@@ -1113,8 +1168,11 @@ export const ChannelManagerModel = types
 
           const indexedAccountIds: Set<string> = yield readIndexedWeixinAccountIds(stateDir);
           const accountFileExists = new Set<string>();
+          const accountUserIds = new Map<string, string | undefined>();
           for (const account of weixinAccounts) {
             const existingAccountId = normalizeWeixinAccountId(account.accountId);
+            const existingUserId: string | undefined = yield readWeixinAccountUserId(stateDir, existingAccountId);
+            accountUserIds.set(existingAccountId, existingUserId);
             if (yield hasWeixinAccountFile(stateDir, existingAccountId)) {
               accountFileExists.add(existingAccountId);
             }
@@ -1124,6 +1182,7 @@ export const ChannelManagerModel = types
             accounts: weixinAccounts,
             currentAccountId: canonicalAccountId,
             userId,
+            accountUserIds,
             indexedAccountIds,
             accountFileExists,
           });
@@ -1150,7 +1209,7 @@ export const ChannelManagerModel = types
           channelId: WEIXIN_CHANNEL_ID,
           accountId: canonicalAccountId,
           name: accountName,
-          config: userId ? { userId } : {},
+          config: {},
           writeConfig: false,
         });
         writeChannelAccountsSnapshot(WEIXIN_CHANNEL_ID);

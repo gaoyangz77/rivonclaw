@@ -6,6 +6,7 @@ import {
   WEIXIN_CHANNEL_ID,
   clearWeixinContextTokenFiles,
   hasWeixinContextTokenForRecipient,
+  readWeixinAccountUserIdSync,
   readWeixinContextTokenRecipientIds,
   selectStaleWeixinAccountIdsForLogin,
   selectWeixinReplacementAccountName,
@@ -16,12 +17,17 @@ describe("selectStaleWeixinAccountIdsForLogin", () => {
     const stale = selectStaleWeixinAccountIdsForLogin({
       currentAccountId: "new-im-bot",
       userId: "wx-user-1",
+      accountUserIds: new Map([
+        ["new-im-bot", "wx-user-1"],
+        ["old-im-bot", "wx-user-1"],
+        ["other-im-bot", "wx-user-2"],
+      ]),
       indexedAccountIds: new Set(["new-im-bot", "other-im-bot", "old-im-bot"]),
       accountFileExists: new Set(["new-im-bot", "other-im-bot", "old-im-bot"]),
       accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "new-im-bot", config: { userId: "wx-user-1" } },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", config: { userId: "wx-user-1" } },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: { userId: "wx-user-2" } },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "new-im-bot", config: {} },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", config: {} },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: {} },
       ],
     });
 
@@ -32,12 +38,16 @@ describe("selectStaleWeixinAccountIdsForLogin", () => {
     const stale = selectStaleWeixinAccountIdsForLogin({
       currentAccountId: "new-im-bot",
       userId: "wx-user-1",
+      accountUserIds: new Map([
+        ["new-im-bot", "wx-user-1"],
+        ["other-im-bot", "wx-user-2"],
+      ]),
       indexedAccountIds: new Set(["new-im-bot", "other-im-bot"]),
       accountFileExists: new Set(["new-im-bot", "other-im-bot"]),
       accounts: [
         { channelId: WEIXIN_CHANNEL_ID, accountId: "new-im-bot", config: {} },
         { channelId: WEIXIN_CHANNEL_ID, accountId: "orphan-im-bot", config: {} },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: { userId: "wx-user-2" } },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: {} },
       ],
     });
 
@@ -48,15 +58,46 @@ describe("selectStaleWeixinAccountIdsForLogin", () => {
     const stale = selectStaleWeixinAccountIdsForLogin({
       currentAccountId: "new-im-bot",
       userId: "wx-user-1",
+      accountUserIds: new Map([
+        ["other-im-bot", "wx-user-2"],
+        ["orphan-im-bot", "wx-user-1"],
+      ]),
       indexedAccountIds: new Set(["new-im-bot", "other-im-bot"]),
       accountFileExists: new Set(["new-im-bot", "other-im-bot"]),
       accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: { userId: "wx-user-2" } },
-        { channelId: "telegram", accountId: "orphan-im-bot", config: { userId: "wx-user-1" } },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: {} },
+        { channelId: "telegram", accountId: "orphan-im-bot", config: {} },
       ],
     });
 
     expect(stale).toEqual([]);
+  });
+});
+
+describe("readWeixinAccountUserIdSync", () => {
+  it("reads provider-owned userId from canonical and legacy raw account files", async () => {
+    const stateDir = await mkdtemp(join(tmpdir(), "rivonclaw-weixin-userid-test-"));
+    try {
+      const accountsDir = join(stateDir, WEIXIN_CHANNEL_ID, "accounts");
+      await mkdir(accountsDir, { recursive: true });
+      await writeFile(
+        join(accountsDir, "abc123@im.bot.json"),
+        JSON.stringify({ userId: "owner@im.wechat" }),
+        "utf-8",
+      );
+
+      expect(readWeixinAccountUserIdSync(stateDir, "abc123-im-bot")).toBe("owner@im.wechat");
+
+      await writeFile(
+        join(accountsDir, "abc123-im-bot.json"),
+        JSON.stringify({ userId: "canonical@im.wechat" }),
+        "utf-8",
+      );
+
+      expect(readWeixinAccountUserIdSync(stateDir, "abc123-im-bot")).toBe("canonical@im.wechat");
+    } finally {
+      await rm(stateDir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -106,8 +147,8 @@ describe("selectWeixinReplacementAccountName", () => {
       currentAccountId: "new-im-bot",
       staleAccountIds: ["old-im-bot"],
       accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", name: "赵总微信", config: { userId: "wx-user-1" } },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", name: "Other", config: { userId: "wx-user-2" } },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", name: "赵总微信", config: {} },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", name: "Other", config: {} },
       ],
     });
 
@@ -119,7 +160,7 @@ describe("selectWeixinReplacementAccountName", () => {
       currentAccountId: "new-im-bot",
       staleAccountIds: ["old-im-bot"],
       accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", name: "old-im-bot", config: { userId: "wx-user-1" } },
+        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", name: "old-im-bot", config: {} },
       ],
     });
 
