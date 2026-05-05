@@ -13,9 +13,9 @@ import {
   stripReasoningTagsFromText,
 } from "@rivonclaw/core";
 import { getAuthSession } from "../auth/session-ref.js";
-import { getStorageRef } from "../app/storage-ref.js";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
 import { reaction, toJS } from "mobx";
+import type { CsEscalationEventDeliveryPayload } from "../cloud/backend-subscription-client.js";
 
 // Re-export for consumers that imported CSShopContext from this file
 export type { CSShopContext } from "../cs-bridge/customer-service-session.js";
@@ -886,23 +886,37 @@ export class EcommerceRelayBridge {
         };
       }
     }
-    // Fall back to storage (survives restart)
-    const storage = getStorageRef();
-    if (!storage) return undefined;
-    const stored = storage.csEscalations.getById(escalationId);
-    if (!stored) return undefined;
-    return {
-      escalation: {
-        id: stored.id,
-        reason: stored.reason,
-        context: stored.context,
-        createdAt: stored.createdAt,
-        result: stored.result,
-      },
-      conversationId: stored.conversationId,
-      shopId: stored.shopId,
-      buyerUserId: stored.buyerUserId,
-    };
+    return undefined;
+  }
+
+  /**
+   * Execute the local side effect for a durable cloud CS escalation event.
+   * The cloud owns persistence; desktop only sends manager notifications or
+   * wakes the CS agent for a follow-up run.
+   */
+  async executeCsEscalationEvent(delivery: CsEscalationEventDeliveryPayload): Promise<void> {
+    const { escalation, event } = delivery;
+    const session = await this.getOrCreateSession(escalation.shopId, {
+      conversationId: escalation.conversationId,
+      buyerUserId: escalation.buyerUserId,
+      orderId: escalation.orderId ?? undefined,
+    });
+
+    if (event.type === "ESCALATION_CREATED") {
+      await session.sendEscalationNotification({
+        escalationId: escalation.id,
+        reason: escalation.reason,
+        orderId: escalation.orderId,
+        context: escalation.context,
+      });
+      return;
+    }
+
+    await session.dispatchCloudEscalationUpdate({
+      escalationId: escalation.id,
+      resolved: event.type === "ESCALATION_RESOLVED",
+      version: escalation.version,
+    });
   }
 
   /** Get existing session or create a new one. */

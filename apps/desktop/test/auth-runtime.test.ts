@@ -67,6 +67,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToShopUpdated() {
       return () => {};
     }
+    subscribeToCsEscalationEvents() {
+      return () => {};
+    }
   },
 }));
 
@@ -91,6 +94,7 @@ describe("setupAuth subscription lifecycle", () => {
       storage: {} as any,
       secretStore: {} as any,
       locale: "en",
+      deviceId: "device-1",
       proxyFetch: vi.fn() as any,
       broadcastEvent: mockBroadcastEvent as any,
     });
@@ -107,6 +111,7 @@ describe("setupAuth subscription lifecycle", () => {
       storage: {} as any,
       secretStore: {} as any,
       locale: "en",
+      deviceId: "device-1",
       proxyFetch: vi.fn() as any,
       broadcastEvent: mockBroadcastEvent as any,
     });
@@ -124,6 +129,7 @@ describe("setupAuth subscription lifecycle", () => {
       storage: {} as any,
       secretStore: {} as any,
       locale: "en",
+      deviceId: "device-1",
       proxyFetch: vi.fn() as any,
       broadcastEvent: mockBroadcastEvent as any,
     });

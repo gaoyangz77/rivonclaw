@@ -49,3 +49,108 @@ export const CS_GET_OR_CREATE_SESSION_MUTATION = `
     }
   }
 `;
+
+const CS_ESCALATION_EVENT_FIELDS = `
+  escalation {
+    id
+    shopId
+    conversationId
+    buyerUserId
+    orderId
+    reason
+    context
+    status
+    version
+  }
+  event {
+    id
+    type
+    status
+    decision
+    instructions
+    createdAt
+    updatedAt
+  }
+`;
+
+export const CS_CLAIM_ESCALATION_EVENT_MUTATION = `
+  mutation CsClaimEscalationEvent($input: ClaimCsEscalationEventInput!) {
+    csClaimEscalationEvent(input: $input) {
+      ${CS_ESCALATION_EVENT_FIELDS}
+    }
+  }
+`;
+
+export const CS_ACK_ESCALATION_EVENT_MUTATION = `
+  mutation CsAckEscalationEvent($input: AckCsEscalationEventInput!) {
+    csAckEscalationEvent(input: $input) {
+      ${CS_ESCALATION_EVENT_FIELDS}
+    }
+  }
+`;
+
+export const CS_ESCALATE_MUTATION = `
+  mutation CsEscalate(
+    $shopId: ID!,
+    $conversationId: String!,
+    $buyerUserId: String!,
+    $reason: String!,
+    $orderId: String,
+    $context: String
+  ) {
+    csEscalate(
+      shopId: $shopId,
+      conversationId: $conversationId,
+      buyerUserId: $buyerUserId,
+      reason: $reason,
+      orderId: $orderId,
+      context: $context
+    ) {
+      ok
+      escalationId
+      status
+      error
+    }
+  }
+`;
+
+export const CS_RESPOND_MUTATION = `
+  mutation CsRespond($escalationId: ID!, $decision: String!, $instructions: String!, $resolved: Boolean!) {
+    csRespond(
+      escalationId: $escalationId,
+      decision: $decision,
+      instructions: $instructions,
+      resolved: $resolved
+    ) {
+      ok
+      escalationId
+      status
+      version
+      error
+    }
+  }
+`;
+
+export const CS_GET_ESCALATION_RESULT_QUERY = `
+  query CsGetEscalationResult($escalationId: ID!) {
+    csGetEscalationResult(escalationId: $escalationId) {
+      id
+      shopId
+      conversationId
+      buyerUserId
+      orderId
+      reason
+      context
+      createdAt
+      status
+      version
+      guidance
+      result {
+        decision
+        instructions
+        resolved
+        resolvedAt
+      }
+    }
+  }
+`;

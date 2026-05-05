@@ -240,7 +240,7 @@ app.whenReady().then(async () => {
 
   // Initialize auth session manager and backend subscription client
   const { authSession, backendSubscription } = await setupAuth({
-    storage, secretStore, locale,
+    storage, secretStore, locale, deviceId,
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     broadcastEvent,
   });

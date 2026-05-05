@@ -11,6 +11,13 @@ import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("client-tool-loader");
 
+const CLOUD_OWNED_CS_TOOL_IDS = new Set([
+  "cs_escalate",
+  "cs_respond",
+  "cs_continue",
+  "cs_get_escalation_result",
+]);
+
 /**
  * Load client tool specs from the gateway via RPC.
  * @param rpcClient - the gateway RPC client (available after gateway connects)
@@ -22,7 +29,11 @@ export async function loadClientToolSpecs(
     const result = await rpcClient.request<{ specs: Array<Record<string, unknown>> }>(
       "get_client_tool_specs",
     );
-    const specs = result.specs ?? [];
+    const specs = (result.specs ?? []).filter((spec) => {
+      const id = typeof spec.id === "string" ? spec.id : "";
+      const name = typeof spec.name === "string" ? spec.name : "";
+      return !CLOUD_OWNED_CS_TOOL_IDS.has(id) && !CLOUD_OWNED_CS_TOOL_IDS.has(name);
+    });
     if (specs.length === 0) {
       log.info("No client tool specs from gateway (plugin may not be loaded)");
       return;

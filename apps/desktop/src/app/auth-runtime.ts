@@ -6,11 +6,13 @@ import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
 import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
+import { handleCsEscalationEvent } from "../cs-bridge/cs-escalation-event-actuator.js";
 
 export interface SetupAuthDeps {
   storage: Storage;
   secretStore: SecretStore;
   locale: string;
+  deviceId: string;
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
   /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
   broadcastEvent: BroadcastEvent;
@@ -26,7 +28,7 @@ export interface AuthRuntime {
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { storage, secretStore, locale, proxyFetch, broadcastEvent } = deps;
+  const { storage, secretStore, locale, deviceId, proxyFetch, broadcastEvent } = deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
@@ -72,6 +74,12 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
     const shop = rootStore.shops.find((s: any) => s.id === shopId);
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
+  });
+
+  // Subscribe to cloud CS escalation side-effect events. Backend persistence
+  // owns the workflow; desktop claims, executes the local action, then acks.
+  backendSubscription.subscribeToCsEscalationEvents((event) => {
+    void handleCsEscalationEvent(authSession, deviceId, event);
   });
 
   return { authSession, backendSubscription };

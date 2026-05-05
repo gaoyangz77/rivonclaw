@@ -26,7 +26,6 @@ import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
 import { getAuthSession } from "../auth/session-ref.js";
-import { getStorageRef } from "../app/storage-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 import { compressImageForAgent } from "./image-compressor.js";
@@ -175,7 +174,6 @@ export class CustomerServiceSession {
     this.platform = shop.platform ?? "tiktok";
     this.scopeKey = `agent:main:cs:${this.platform}:${csContext.conversationId}`;
     this.dispatchKey = `cs:${this.platform}:${csContext.conversationId}`;
-    this.hydrateEscalations();
   }
 
   // -- Round lifecycle --------------------------------------------------------
@@ -433,20 +431,6 @@ export class CustomerServiceSession {
     };
     this.escalations.set(id, escalation);
 
-    // Persist to storage
-    const storage = getStorageRef();
-    if (storage) {
-      storage.csEscalations.save({
-        id: escalation.id,
-        conversationId: this.csContext.conversationId,
-        shopId: this.csContext.shopId,
-        buyerUserId: this.csContext.buyerUserId,
-        reason: params.reason,
-        context: params.context,
-        createdAt: escalation.createdAt,
-      });
-    }
-
     log.info(`Escalation created: ${id} for conv=${this.csContext.conversationId}`);
     return escalation;
   }
@@ -466,41 +450,8 @@ export class CustomerServiceSession {
       resolvedAt: Date.now(),
     };
 
-    // Persist to storage
-    const storage = getStorageRef();
-    if (storage) {
-      storage.csEscalations.updateResult(escalationId, {
-        decision: params.decision,
-        instructions: params.instructions,
-        resolved: params.resolved,
-        resolvedAt: escalation.result.resolvedAt,
-      });
-    }
-
     log.info(`Escalation ${params.resolved ? "resolved" : "updated"}: ${escalationId} decision=${params.decision}`);
     return escalation;
-  }
-
-  /**
-   * Load escalations from storage into the in-memory Map.
-   * Called once from the constructor to restore state after app restart.
-   * Only adds records not already present in memory (memory is the fast path).
-   */
-  private hydrateEscalations(): void {
-    const storage = getStorageRef();
-    if (!storage) return;
-    const rows = storage.csEscalations.getByConversationId(this.csContext.conversationId);
-    for (const row of rows) {
-      if (!this.escalations.has(row.id)) {
-        this.escalations.set(row.id, {
-          id: row.id,
-          reason: row.reason,
-          context: row.context,
-          createdAt: row.createdAt,
-          result: row.result,
-        });
-      }
-    }
   }
 
   /**
@@ -516,6 +467,24 @@ export class CustomerServiceSession {
     return this.dispatch({
       message,
       idempotencyKey: `esc-resolved:${escalationId}:${Date.now()}`,
+    });
+  }
+
+  /**
+   * Dispatch a CS agent run from a cloud escalation event. The cloud is the
+   * source of truth; the agent should query cs_get_escalation_result.
+   */
+  async dispatchCloudEscalationUpdate(params: {
+    escalationId: string;
+    resolved: boolean;
+    version: number;
+  }): Promise<DispatchResult> {
+    const message = params.resolved
+      ? `[Internal: System]\nYour escalation (${params.escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID to retrieve the decision and instructions.`
+      : `[Internal: System]\nYour manager has sent an update regarding escalation (${params.escalationId}). Use the cs_get_escalation_result tool to check the latest status.`;
+    return this.dispatch({
+      message,
+      idempotencyKey: `esc-event:${params.escalationId}:${params.version}`,
     });
   }
 
@@ -821,6 +790,38 @@ export class CustomerServiceSession {
     orderId?: string;
     context?: string;
   }): Promise<{ ok: boolean; escalationId?: string; error?: string }> {
+    // Legacy local entry point retained for internal callers/tests. Production
+    // agents use the cloud dynamic cs_escalate tool; the resulting durable
+    // event calls sendEscalationNotification with the cloud escalation ID.
+    const escalation = this.addEscalation(params);
+    try {
+      await this.sendEscalationNotification({
+        escalationId: escalation.id,
+        reason: params.reason,
+        orderId: params.orderId,
+        context: params.context,
+        idempotencyKey: `cs-escalate:${escalation.id}:${Date.now()}`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (
+        message === "Escalation routing not configured"
+        || message.startsWith("WeChat escalation recipient is not active yet")
+      ) {
+        return { ok: false, error: message };
+      }
+      throw err;
+    }
+    return { ok: true, escalationId: escalation.id };
+  }
+
+  async sendEscalationNotification(params: {
+    escalationId: string;
+    reason: string;
+    orderId?: string | null;
+    context?: string | null;
+    idempotencyKey?: string;
+  }): Promise<void> {
     const shopMst = rootStore.shops.find(s => s.id === this.csContext.shopId);
     const escalationChannelId = shopMst?.services?.customerService?.escalationChannelId;
     const escalationRecipientId = shopMst?.services?.customerService?.escalationRecipientId;
@@ -829,11 +830,8 @@ export class CustomerServiceSession {
       this.emitError(CS_ERROR_STAGE.ESCALATE, {
         reason: !escalationChannelId ? "missing_channel" : "missing_recipient",
       });
-      return { ok: false, error: "Escalation routing not configured" };
+      throw new Error("Escalation routing not configured");
     }
-
-    // Create escalation record
-    const escalation = this.addEscalation(params);
 
     // Fetch buyer nickname from conversation details
     let buyerNickname: string | undefined;
@@ -867,16 +865,13 @@ export class CustomerServiceSession {
         reason: "missing_weixin_context_token",
         errorMessage: `recipient=${escalationRecipientId} account=${outboundAccountId}`,
       });
-      return {
-        ok: false,
-        error: "WeChat escalation recipient is not active yet. Ask this WeChat account to send one message to the agent first.",
-      };
+      throw new Error("WeChat escalation recipient is not active yet. Ask this WeChat account to send one message to the agent first.");
     }
 
     const lines = [
       "CS Escalation",
       "",
-      `Escalation ID: ${escalation.id}`,
+      `Escalation ID: ${params.escalationId}`,
       `Shop: ${this.shop.shopName}`,
       `Conversation: ${this.csContext.conversationId}`,
       `Buyer: ${buyerNickname ?? this.csContext.buyerUserId}`,
@@ -893,7 +888,7 @@ export class CustomerServiceSession {
         channel,
         accountId: outboundAccountId,
         message: lines.join("\n"),
-        idempotencyKey: `cs-escalate:${escalation.id}:${Date.now()}`,
+        idempotencyKey: params.idempotencyKey ?? `cs-escalate:${params.escalationId}`,
       });
     } catch (err) {
       // Channel adapter failed to dispatch the escalation message (e.g. the
@@ -908,8 +903,7 @@ export class CustomerServiceSession {
       throw err;
     }
 
-    log.info(`Escalation ${escalation.id} sent for conv=${this.csContext.conversationId} via ${channel}`);
-    return { ok: true, escalationId: escalation.id };
+    log.info(`Escalation ${params.escalationId} sent for conv=${this.csContext.conversationId} via ${channel}`);
   }
 
   // -- Telemetry helpers ------------------------------------------------------

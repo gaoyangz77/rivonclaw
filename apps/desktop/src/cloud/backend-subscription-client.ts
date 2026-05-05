@@ -64,7 +64,66 @@ const SHOP_UPDATED_SUBSCRIPTION = `
   }
 `;
 
+const CS_ESCALATION_EVENT_SUBSCRIPTION = `
+  subscription CsEscalationEvent {
+    csEscalationEvent {
+      escalation {
+        id
+        shopId
+        conversationId
+        buyerUserId
+        orderId
+        reason
+        context
+        status
+        version
+      }
+      event {
+        id
+        type
+        status
+        decision
+        instructions
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
 export type UpdatePayload = GQL.UpdatePayload;
+
+export type CsEscalationEventType =
+  | "ESCALATION_CREATED"
+  | "ESCALATION_UPDATED"
+  | "ESCALATION_RESOLVED";
+
+export interface CsEscalationEventPayload {
+  id: string;
+  type: CsEscalationEventType;
+  status: string;
+  decision?: string | null;
+  instructions?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CsEscalationPayload {
+  id: string;
+  shopId: string;
+  conversationId: string;
+  buyerUserId: string;
+  orderId?: string | null;
+  reason: string;
+  context?: string | null;
+  version: number;
+  status: string;
+}
+
+export interface CsEscalationEventDeliveryPayload {
+  escalation: CsEscalationPayload;
+  event: CsEscalationEventPayload;
+}
 
 const CHECK_UPDATE_QUERY = `
   query CheckUpdate($clientVersion: String!) {
@@ -377,6 +436,66 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             log.warn("Shop updated subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    const config: SubscriptionConfig = { key, subscribe };
+    this.subscriptionConfigs.set(key, config);
+
+    const unsub = subscribe();
+    this.activeUnsubscribes.set(key, unsub);
+
+    return () => {
+      this.activeUnsubscribes.get(key)?.();
+      this.activeUnsubscribes.delete(key);
+      this.subscriptionConfigs.delete(key);
+    };
+  }
+
+  /**
+   * Subscribe to durable CS escalation side-effect events.
+   *
+   * The backend emits pending events again on connect/reconnect, so callers
+   * should claim + ack each event before/after executing the local side effect.
+   */
+  subscribeToCsEscalationEvents(
+    onEvent: (delivery: CsEscalationEventDeliveryPayload) => void,
+  ): () => void {
+    const key = "cs-escalation-events";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+
+      return this.client.subscribe<{ csEscalationEvent: CsEscalationEventDeliveryPayload }>(
+        {
+          query: CS_ESCALATION_EVENT_SUBSCRIPTION,
+        },
+        {
+          next: (result) => {
+            if (result.errors?.length) {
+              log.warn("CS escalation subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
+            const payload = result.data?.csEscalationEvent;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "csEscalationEvent", result as any);
+              return;
+            }
+            onEvent(payload);
+          },
+          error: (err) => {
+            log.warn("CS escalation subscription error", {
               subscription: key,
               attempt,
               ...this.formatUnknownError(err),

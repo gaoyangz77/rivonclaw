@@ -1636,9 +1636,9 @@ export default {
         ECOM_CS_APPROVE_CANCELLATION: "Approve Cancellation",
         ECOM_CS_REJECT_CANCELLATION: "Reject Cancellation",
         // E-commerce CS — Escalation
-        cs_escalate: "Escalate",
-        cs_respond: "Respond to Escalation",
-        cs_get_escalation_result: "Get Escalation Result",
+        CS_ESCALATE: "Escalate",
+        CS_RESPOND: "Respond to Escalation",
+        CS_GET_ESCALATION_RESULT: "Get Escalation Result",
         cs_start_session: "Start Session",
         // E-commerce Shop Management
         ECOM_LIST_SHOPS: "List Shops",

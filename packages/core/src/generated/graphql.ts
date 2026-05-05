@@ -16,6 +16,452 @@ export interface Scalars {
   DateTimeISO: { input: any; output: any; }
 }
 
+/** Input for acknowledging a CS escalation event */
+export interface AckCsEscalationEventInput {
+  eventId: Scalars['ID']['input'];
+  success: Scalars['Boolean']['input'];
+}
+
+/** Human-reviewable action proposed by an agent after policy evaluation. */
+export interface ActionProposal {
+  approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
+  blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
+  campaignId?: Maybe<Scalars['ID']['output']>;
+  campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
+  candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
+  collaborationId?: Maybe<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
+  decision?: Maybe<ActionProposalDecisionSnapshot>;
+  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
+  expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  id: Scalars['ID']['output'];
+  messageIntent?: Maybe<ActionProposalMessageIntent>;
+  policySnapshot?: Maybe<ActionProposalPolicySnapshot>;
+  sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
+  sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
+  shopId: Scalars['ID']['output'];
+  status: ActionProposalStatus;
+  summary: Scalars['String']['output'];
+  targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
+  type: ActionProposalType;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+export interface ActionProposalApprovalPolicyUpdateIntent {
+  action: AffiliatePolicyAction;
+  campaignIds?: Maybe<Array<Scalars['ID']['output']>>;
+  creatorTagIds?: Maybe<Array<Scalars['ID']['output']>>;
+  enabled: Scalars['Boolean']['output'];
+  policyId?: Maybe<Scalars['ID']['output']>;
+  productIds?: Maybe<Array<Scalars['String']['output']>>;
+  reason?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ActionProposalApprovalPolicyUpdateIntentInput {
+  action: AffiliatePolicyAction;
+  campaignIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  creatorTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  enabled: Scalars['Boolean']['input'];
+  policyId?: InputMaybe<Scalars['ID']['input']>;
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ActionProposalBlockCreatorIntent {
+  creatorId: Scalars['ID']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ActionProposalBlockCreatorIntentInput {
+  creatorId: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ActionProposalCampaignProductUpdateIntent {
+  campaignId: Scalars['ID']['output'];
+  campaignProductId?: Maybe<Scalars['ID']['output']>;
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  maxCommissionRate?: Maybe<Scalars['Float']['output']>;
+  productId: Scalars['String']['output'];
+  promotionPriority?: Maybe<CampaignProductPromotionPriority>;
+  sampleOfferMode?: Maybe<CampaignProductSampleOfferMode>;
+  sampleQuota?: Maybe<Scalars['Int']['output']>;
+  sampleUnitCostAmount?: Maybe<Scalars['Float']['output']>;
+  sampleUnitCostCurrency?: Maybe<EcomProductSkuCurrency>;
+}
+
+export interface ActionProposalCampaignProductUpdateIntentInput {
+  campaignId: Scalars['ID']['input'];
+  campaignProductId?: InputMaybe<Scalars['ID']['input']>;
+  commissionRate?: InputMaybe<Scalars['Float']['input']>;
+  maxCommissionRate?: InputMaybe<Scalars['Float']['input']>;
+  productId: Scalars['String']['input'];
+  promotionPriority?: InputMaybe<CampaignProductPromotionPriority>;
+  sampleOfferMode?: InputMaybe<CampaignProductSampleOfferMode>;
+  sampleQuota?: InputMaybe<Scalars['Int']['input']>;
+  sampleUnitCostAmount?: InputMaybe<Scalars['Float']['input']>;
+  sampleUnitCostCurrency?: InputMaybe<EcomProductSkuCurrency>;
+}
+
+export interface ActionProposalCandidateDecisionIntent {
+  candidateIds: Array<Scalars['ID']['output']>;
+  evidenceItems?: Maybe<Array<CreatorCandidateEvidence>>;
+  rationale?: Maybe<Scalars['String']['output']>;
+  status: CreatorCandidateStatus;
+}
+
+export interface ActionProposalCandidateDecisionIntentInput {
+  candidateIds: Array<Scalars['ID']['input']>;
+  evidenceItems?: InputMaybe<Array<CreatorCandidateEvidenceInput>>;
+  rationale?: InputMaybe<Scalars['String']['input']>;
+  status: CreatorCandidateStatus;
+}
+
+export interface ActionProposalCreatorTagIntent {
+  creatorId: Scalars['ID']['output'];
+  tagId: Scalars['ID']['output'];
+}
+
+export interface ActionProposalCreatorTagIntentInput {
+  creatorId: Scalars['ID']['input'];
+  tagId: Scalars['ID']['input'];
+}
+
+export interface ActionProposalDecisionSnapshot {
+  decidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  decidedByActorId?: Maybe<Scalars['String']['output']>;
+  note?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ActionProposalDecisionSnapshotInput {
+  decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  decidedByActorId?: InputMaybe<Scalars['String']['input']>;
+  note?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ActionProposalExecutionResultSnapshot {
+  domainObjectId?: Maybe<Scalars['ID']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  executedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lifecycleEventIds: Array<Scalars['ID']['output']>;
+  platformObjectId?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ActionProposalMessageIntent {
+  conversationId?: Maybe<Scalars['String']['output']>;
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  imageHeight?: Maybe<Scalars['Int']['output']>;
+  imageUrl?: Maybe<Scalars['String']['output']>;
+  imageWidth?: Maybe<Scalars['Int']['output']>;
+  messageType: AffiliateOutboundMessageType;
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  targetCollaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ActionProposalMessageIntentInput {
+  conversationId?: InputMaybe<Scalars['String']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  imageHeight?: InputMaybe<Scalars['Int']['input']>;
+  imageUrl?: InputMaybe<Scalars['String']['input']>;
+  imageWidth?: InputMaybe<Scalars['Int']['input']>;
+  messageType: AffiliateOutboundMessageType;
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  targetCollaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  text?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ActionProposalPolicySnapshot {
+  action: AffiliatePolicyAction;
+  matchedPolicyIds: Array<Scalars['ID']['output']>;
+  reasons: Array<Scalars['String']['output']>;
+  requiresApproval: Scalars['Boolean']['output'];
+}
+
+export interface ActionProposalSampleReviewIntent {
+  decision: AffiliateSampleReviewDecision;
+  platformApplicationId: Scalars['String']['output'];
+  rejectReason?: Maybe<AffiliateSampleRejectReason>;
+  sampleApplicationRecordId: Scalars['ID']['output'];
+}
+
+export interface ActionProposalSampleReviewIntentInput {
+  decision: AffiliateSampleReviewDecision;
+  platformApplicationId: Scalars['String']['input'];
+  rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
+  sampleApplicationRecordId: Scalars['ID']['input'];
+}
+
+export interface ActionProposalSampleShipmentIntent {
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  quantity?: Maybe<Scalars['Int']['output']>;
+  sampleApplicationRecordId: Scalars['ID']['output'];
+  skuId?: Maybe<Scalars['String']['output']>;
+  warehouseId?: Maybe<Scalars['ID']['output']>;
+}
+
+export interface ActionProposalSampleShipmentIntentInput {
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+  sampleApplicationRecordId: Scalars['ID']['input'];
+  skuId?: InputMaybe<Scalars['String']['input']>;
+  warehouseId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface ActionProposalSellerContactInfoIntent {
+  email: Scalars['String']['output'];
+  line?: Maybe<Scalars['String']['output']>;
+  phoneNumber?: Maybe<Scalars['String']['output']>;
+  telegram?: Maybe<Scalars['String']['output']>;
+  whatsapp?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ActionProposalSellerContactInfoIntentInput {
+  email: Scalars['String']['input'];
+  line?: InputMaybe<Scalars['String']['input']>;
+  phoneNumber?: InputMaybe<Scalars['String']['input']>;
+  telegram?: InputMaybe<Scalars['String']['input']>;
+  whatsapp?: InputMaybe<Scalars['String']['input']>;
+}
+
+export const ActionProposalStatus = {
+  Approved: 'APPROVED',
+  Executed: 'EXECUTED',
+  Expired: 'EXPIRED',
+  Modified: 'MODIFIED',
+  Pending: 'PENDING',
+  Rejected: 'REJECTED'
+} as const;
+
+export type ActionProposalStatus = typeof ActionProposalStatus[keyof typeof ActionProposalStatus];
+export interface ActionProposalTargetCollaborationIntent {
+  creatorIds?: Maybe<Array<Scalars['ID']['output']>>;
+  creatorOpenIds?: Maybe<Array<Scalars['String']['output']>>;
+  endTime: Scalars['DateTimeISO']['output'];
+  hasFreeSample: Scalars['Boolean']['output'];
+  isSampleApprovalExempt: Scalars['Boolean']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+  products: Array<ActionProposalTargetCollaborationProductIntent>;
+  sellerContactInfo: ActionProposalSellerContactInfoIntent;
+}
+
+export interface ActionProposalTargetCollaborationIntentInput {
+  creatorIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  creatorOpenIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  endTime: Scalars['DateTimeISO']['input'];
+  hasFreeSample: Scalars['Boolean']['input'];
+  isSampleApprovalExempt: Scalars['Boolean']['input'];
+  message?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  products: Array<ActionProposalTargetCollaborationProductIntentInput>;
+  sellerContactInfo: ActionProposalSellerContactInfoIntentInput;
+}
+
+export interface ActionProposalTargetCollaborationProductIntent {
+  productId: Scalars['String']['output'];
+  shopAdsCommissionRateBps?: Maybe<Scalars['Int']['output']>;
+  targetCommissionRateBps: Scalars['Int']['output'];
+}
+
+export interface ActionProposalTargetCollaborationProductIntentInput {
+  productId: Scalars['String']['input'];
+  shopAdsCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;
+  targetCommissionRateBps: Scalars['Int']['input'];
+}
+
+export const ActionProposalType = {
+  AddCreatorTag: 'ADD_CREATOR_TAG',
+  ApproveSample: 'APPROVE_SAMPLE',
+  BlockCreator: 'BLOCK_CREATOR',
+  CreateTargetCollaboration: 'CREATE_TARGET_COLLABORATION',
+  RecordCandidateDecision: 'RECORD_CANDIDATE_DECISION',
+  RejectSample: 'REJECT_SAMPLE',
+  RemoveCreatorTag: 'REMOVE_CREATOR_TAG',
+  SendMessage: 'SEND_MESSAGE',
+  ShipSample: 'SHIP_SAMPLE',
+  UpdateApprovalPolicy: 'UPDATE_APPROVAL_POLICY',
+  UpdateCampaignProduct: 'UPDATE_CAMPAIGN_PRODUCT'
+} as const;
+
+export type ActionProposalType = typeof ActionProposalType[keyof typeof ActionProposalType];
+/** Result mode for an affiliate action request after backend policy evaluation. */
+export const AffiliateActionRequestMode = {
+  Executed: 'EXECUTED',
+  ProposalCreated: 'PROPOSAL_CREATED'
+} as const;
+
+export type AffiliateActionRequestMode = typeof AffiliateActionRequestMode[keyof typeof AffiliateActionRequestMode];
+/** Approval interception policy for affiliate actions. If all non-empty condition arrays match, the backend creates an ActionProposal instead of executing automatically. */
+export interface AffiliateApprovalPolicy {
+  action: AffiliatePolicyAction;
+  /** AND condition dimension. Empty means any campaign. */
+  campaignIds: Array<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  /** AND condition dimension. Empty means any creator tags. Non-empty matches when the creator has at least one listed tag. */
+  creatorTagIds: Array<Scalars['ID']['output']>;
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  /** AND condition dimension. Empty means any product. */
+  productIds: Array<Scalars['String']['output']>;
+  reason?: Maybe<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** One affiliate campaign objective owned by a TikTok seller shop. */
+export interface AffiliateCampaign {
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  objectiveType: AffiliateCampaignObjectiveType;
+  personalizationMode: AffiliateOutreachPersonalizationMode;
+  researchDepth: AffiliateResearchDepth;
+  shopId: Scalars['ID']['output'];
+  status: AffiliateCampaignStatus;
+  targetContentCount?: Maybe<Scalars['Int']['output']>;
+  targetCreatorCount?: Maybe<Scalars['Int']['output']>;
+  targetGmvAmount?: Maybe<Scalars['Float']['output']>;
+  targetGmvCurrency?: Maybe<EcomProductSkuCurrency>;
+  targetInviteCount?: Maybe<Scalars['Int']['output']>;
+  targetOrderCount?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Primary business objective that guides affiliate campaign skills and reporting. */
+export const AffiliateCampaignObjectiveType = {
+  ContentCount: 'CONTENT_COUNT',
+  CreatorCount: 'CREATOR_COUNT',
+  Gmv: 'GMV',
+  InviteCount: 'INVITE_COUNT',
+  OrderCount: 'ORDER_COUNT',
+  ProductLaunch: 'PRODUCT_LAUNCH',
+  RelationshipMaintenance: 'RELATIONSHIP_MAINTENANCE'
+} as const;
+
+export type AffiliateCampaignObjectiveType = typeof AffiliateCampaignObjectiveType[keyof typeof AffiliateCampaignObjectiveType];
+export const AffiliateCampaignStatus = {
+  Active: 'ACTIVE',
+  Archived: 'ARCHIVED',
+  Completed: 'COMPLETED',
+  Draft: 'DRAFT',
+  Paused: 'PAUSED'
+} as const;
+
+export type AffiliateCampaignStatus = typeof AffiliateCampaignStatus[keyof typeof AffiliateCampaignStatus];
+export const AffiliateLifecycleActorType = {
+  Agent: 'AGENT',
+  CloudWorker: 'CLOUD_WORKER',
+  Human: 'HUMAN',
+  PlatformWebhook: 'PLATFORM_WEBHOOK',
+  System: 'SYSTEM'
+} as const;
+
+export type AffiliateLifecycleActorType = typeof AffiliateLifecycleActorType[keyof typeof AffiliateLifecycleActorType];
+export const AffiliateLifecycleStage = {
+  Blocked: 'BLOCKED',
+  Contacted: 'CONTACTED',
+  ContentPending: 'CONTENT_PENDING',
+  Converting: 'CONVERTING',
+  Discovered: 'DISCOVERED',
+  Dormant: 'DORMANT',
+  Invited: 'INVITED',
+  Qualified: 'QUALIFIED',
+  Retained: 'RETAINED',
+  SamplePending: 'SAMPLE_PENDING'
+} as const;
+
+export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
+export const AffiliateOutboundMessageType = {
+  FreeSampleCard: 'FREE_SAMPLE_CARD',
+  Image: 'IMAGE',
+  ProductCard: 'PRODUCT_CARD',
+  TargetCollaborationCard: 'TARGET_COLLABORATION_CARD',
+  Text: 'TEXT'
+} as const;
+
+export type AffiliateOutboundMessageType = typeof AffiliateOutboundMessageType[keyof typeof AffiliateOutboundMessageType];
+/** How customized affiliate outreach copy should be for this campaign. */
+export const AffiliateOutreachPersonalizationMode = {
+  Deep: 'DEEP',
+  Light: 'LIGHT',
+  Template: 'TEMPLATE'
+} as const;
+
+export type AffiliateOutreachPersonalizationMode = typeof AffiliateOutreachPersonalizationMode[keyof typeof AffiliateOutreachPersonalizationMode];
+export const AffiliatePolicyAction = {
+  AddCreatorTag: 'ADD_CREATOR_TAG',
+  ApproveSample: 'APPROVE_SAMPLE',
+  BlockCreator: 'BLOCK_CREATOR',
+  ChangeCampaignSetup: 'CHANGE_CAMPAIGN_SETUP',
+  ChangeCommission: 'CHANGE_COMMISSION',
+  CreateTargetInvite: 'CREATE_TARGET_INVITE',
+  RecordCandidateDecision: 'RECORD_CANDIDATE_DECISION',
+  RemoveCreator: 'REMOVE_CREATOR',
+  SendFollowUp: 'SEND_FOLLOW_UP',
+  SendOutreach: 'SEND_OUTREACH',
+  ShipSample: 'SHIP_SAMPLE'
+} as const;
+
+export type AffiliatePolicyAction = typeof AffiliatePolicyAction[keyof typeof AffiliatePolicyAction];
+/** How much creator research the desktop skill should spend before acting. */
+export const AffiliateResearchDepth = {
+  Balanced: 'BALANCED',
+  Broad: 'BROAD',
+  Deep: 'DEEP'
+} as const;
+
+export type AffiliateResearchDepth = typeof AffiliateResearchDepth[keyof typeof AffiliateResearchDepth];
+export const AffiliateSampleRejectReason = {
+  NotMatch: 'NOT_MATCH',
+  Offline: 'OFFLINE',
+  Other: 'OTHER',
+  OutOfStock: 'OUT_OF_STOCK'
+} as const;
+
+export type AffiliateSampleRejectReason = typeof AffiliateSampleRejectReason[keyof typeof AffiliateSampleRejectReason];
+export const AffiliateSampleReviewDecision = {
+  Approve: 'APPROVE',
+  Reject: 'REJECT'
+} as const;
+
+export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision[keyof typeof AffiliateSampleReviewDecision];
+export interface AffiliateWorkspaceInput {
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  candidateStatus?: InputMaybe<CreatorCandidateStatus>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  includePolicies?: InputMaybe<Scalars['Boolean']['input']>;
+  lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  proposalStatus?: InputMaybe<ActionProposalStatus>;
+  shopId: Scalars['ID']['input'];
+}
+
+/** Compressed affiliate management workspace for agent planning and review. */
+export interface AffiliateWorkspacePayload {
+  actionProposals: Array<ActionProposal>;
+  approvalPolicies: Array<AffiliateApprovalPolicy>;
+  campaignProducts: Array<CampaignProduct>;
+  campaigns: Array<AffiliateCampaign>;
+  candidates: Array<CreatorCandidate>;
+  creatorRelations: Array<CreatorUserRelation>;
+  creatorTags: Array<CreatorTag>;
+  searchRuns: Array<CreatorSearchRun>;
+}
+
 /** Agent-facing CS settings patch. Omit a field to keep it, pass null to clear it, or pass a value to set it. */
 export interface AgentCsSettingsInput {
   /** Store instructions. Omit to keep, null or empty string to clear. */
@@ -32,6 +478,12 @@ export interface AgentCsSettingsInput {
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
   /** RunProfile ID for CS. Omit to keep, null or empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ApplyCreatorTagInput {
+  creatorId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+  tagId: Scalars['ID']['input'];
 }
 
 /** Authentication response with JWT tokens */
@@ -134,10 +586,52 @@ export interface BrowserProfilesPaginationInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
 }
 
+/** One product/SKU included in an affiliate campaign setup. */
+export interface CampaignProduct {
+  campaignId: Scalars['ID']['output'];
+  /** Configured commission rate percentage when available. */
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  /** Hard product-level commission ceiling for backend validation and human approval context. */
+  maxCommissionRate?: Maybe<Scalars['Float']['output']>;
+  productId: Scalars['String']['output'];
+  promotionPriority: CampaignProductPromotionPriority;
+  sampleOfferMode: CampaignProductSampleOfferMode;
+  sampleQuota?: Maybe<Scalars['Int']['output']>;
+  sampleUnitCostAmount?: Maybe<Scalars['Float']['output']>;
+  sampleUnitCostCurrency?: Maybe<EcomProductSkuCurrency>;
+  shopId: Scalars['ID']['output'];
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Relative priority for choosing this product in affiliate outreach and follow-up. */
+export const CampaignProductPromotionPriority = {
+  High: 'HIGH',
+  Low: 'LOW',
+  Normal: 'NORMAL'
+} as const;
+
+export type CampaignProductPromotionPriority = typeof CampaignProductPromotionPriority[keyof typeof CampaignProductPromotionPriority];
+/** How this campaign product should offer and approve free samples. */
+export const CampaignProductSampleOfferMode = {
+  AutoApprove: 'AUTO_APPROVE',
+  ManualReview: 'MANUAL_REVIEW',
+  None: 'NONE'
+} as const;
+
+export type CampaignProductSampleOfferMode = typeof CampaignProductSampleOfferMode[keyof typeof CampaignProductSampleOfferMode];
 /** Captcha challenge response */
 export interface CaptchaResponse {
   svg: Scalars['String']['output'];
   token: Scalars['String']['output'];
+}
+
+/** Input for claiming a CS escalation event for local execution */
+export interface ClaimCsEscalationEventInput {
+  eventId: Scalars['ID']['input'];
 }
 
 /** Input for creating a new RunProfile */
@@ -152,6 +646,375 @@ export interface CreateSurfaceInput {
   allowedToolIds: Array<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+}
+
+/** Creator candidate discovered by search before or during qualification. */
+export interface CreatorCandidate {
+  campaignId?: Maybe<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  evidenceItems: Array<CreatorCandidateEvidence>;
+  id: Scalars['ID']['output'];
+  rationale?: Maybe<Scalars['String']['output']>;
+  score?: Maybe<Scalars['Float']['output']>;
+  shopId: Scalars['ID']['output'];
+  sourceSearchRunId?: Maybe<Scalars['ID']['output']>;
+  /** Raw source evidence for agent/debug display only. Backend execution must not depend on this field. */
+  sourceSnapshotJson?: Maybe<Scalars['String']['output']>;
+  sourceType: CreatorCandidateSourceType;
+  status: CreatorCandidateStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+export interface CreatorCandidateEvidence {
+  label: Scalars['String']['output'];
+  source?: Maybe<Scalars['String']['output']>;
+  type: CreatorCandidateEvidenceType;
+  value?: Maybe<Scalars['String']['output']>;
+}
+
+export interface CreatorCandidateEvidenceInput {
+  label: Scalars['String']['input'];
+  source?: InputMaybe<Scalars['String']['input']>;
+  type: CreatorCandidateEvidenceType;
+  value?: InputMaybe<Scalars['String']['input']>;
+}
+
+/** Typed evidence categories used when an agent or human qualifies a creator candidate. */
+export const CreatorCandidateEvidenceType = {
+  CategoryMatch: 'CATEGORY_MATCH',
+  ContentPerformance: 'CONTENT_PERFORMANCE',
+  FollowerCount: 'FOLLOWER_COUNT',
+  Gmv: 'GMV',
+  ManualNote: 'MANUAL_NOTE',
+  Other: 'OTHER',
+  PastCollaboration: 'PAST_COLLABORATION',
+  ProductFit: 'PRODUCT_FIT'
+} as const;
+
+export type CreatorCandidateEvidenceType = typeof CreatorCandidateEvidenceType[keyof typeof CreatorCandidateEvidenceType];
+export const CreatorCandidateSourceType = {
+  Manual: 'MANUAL',
+  MarketplaceSearch: 'MARKETPLACE_SEARCH',
+  PlatformReply: 'PLATFORM_REPLY',
+  RpaImport: 'RPA_IMPORT',
+  SampleApplication: 'SAMPLE_APPLICATION',
+  TargetCollaborationSync: 'TARGET_COLLABORATION_SYNC'
+} as const;
+
+export type CreatorCandidateSourceType = typeof CreatorCandidateSourceType[keyof typeof CreatorCandidateSourceType];
+export const CreatorCandidateStatus = {
+  Discovered: 'DISCOVERED',
+  Excluded: 'EXCLUDED',
+  Qualified: 'QUALIFIED'
+} as const;
+
+export type CreatorCandidateStatus = typeof CreatorCandidateStatus[keyof typeof CreatorCandidateStatus];
+export interface CreatorMarketplaceSearchParams {
+  advancedFilters?: Maybe<CreatorSearchAdvancedFilter>;
+  affiliateData?: Maybe<CreatorSearchAffiliateDataFilter>;
+  categories?: Maybe<Array<CreatorSearchCategoryFilter>>;
+  contentPerformance?: Maybe<CreatorSearchContentPerformanceFilter>;
+  followerDemographics?: Maybe<CreatorSearchFollowerDemographics>;
+  keyword?: Maybe<Scalars['String']['output']>;
+  pageSize: Scalars['Int']['output'];
+  pageToken?: Maybe<Scalars['String']['output']>;
+  region?: Maybe<ShopRegion>;
+  searchKey?: Maybe<Scalars['String']['output']>;
+}
+
+export interface CreatorMarketplaceSearchParamsInput {
+  advancedFilters?: InputMaybe<CreatorSearchAdvancedFilterInput>;
+  affiliateData?: InputMaybe<CreatorSearchAffiliateDataFilterInput>;
+  categories?: InputMaybe<Array<CreatorSearchCategoryFilterInput>>;
+  contentPerformance?: InputMaybe<CreatorSearchContentPerformanceFilterInput>;
+  followerDemographics?: InputMaybe<CreatorSearchFollowerDemographicsInput>;
+  keyword?: InputMaybe<Scalars['String']['input']>;
+  pageSize: Scalars['Int']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  region?: InputMaybe<ShopRegion>;
+  searchKey?: InputMaybe<Scalars['String']['input']>;
+}
+
+/** Embedded shop-specific lifecycle and tag state for a user-level creator relation. */
+export interface CreatorRelationShopState {
+  lastContactedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastInvitedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastQualifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lifecycleStage: AffiliateLifecycleStage;
+  shopId: Scalars['ID']['output'];
+  tagIds: Array<Scalars['ID']['output']>;
+}
+
+export interface CreatorSearchAdvancedFilter {
+  categoryPros?: Maybe<Array<Scalars['String']['output']>>;
+  creatorLevels?: Maybe<Array<Scalars['String']['output']>>;
+  languages?: Maybe<Array<Scalars['String']['output']>>;
+}
+
+export interface CreatorSearchAdvancedFilterInput {
+  categoryPros?: InputMaybe<Array<Scalars['String']['input']>>;
+  creatorLevels?: InputMaybe<Array<Scalars['String']['input']>>;
+  languages?: InputMaybe<Array<Scalars['String']['input']>>;
+}
+
+export interface CreatorSearchAffiliateDataFilter {
+  maxAvgCommissionRateBps?: Maybe<Scalars['Int']['output']>;
+  maxGmvAmount?: Maybe<Scalars['Float']['output']>;
+  minAvgCommissionRateBps?: Maybe<Scalars['Int']['output']>;
+  minGmvAmount?: Maybe<Scalars['Float']['output']>;
+  notInvitedLast90Days?: Maybe<Scalars['Boolean']['output']>;
+}
+
+export interface CreatorSearchAffiliateDataFilterInput {
+  maxAvgCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;
+  maxGmvAmount?: InputMaybe<Scalars['Float']['input']>;
+  minAvgCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;
+  minGmvAmount?: InputMaybe<Scalars['Float']['input']>;
+  notInvitedLast90Days?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
+export interface CreatorSearchCategoryFilter {
+  categoryId: Scalars['String']['output'];
+  subCategoryIds?: Maybe<Array<Scalars['String']['output']>>;
+}
+
+export interface CreatorSearchCategoryFilterInput {
+  categoryId: Scalars['String']['input'];
+  subCategoryIds?: InputMaybe<Array<Scalars['String']['input']>>;
+}
+
+export interface CreatorSearchContentPerformanceFilter {
+  minAverageLiveViews?: Maybe<Scalars['Int']['output']>;
+  minAverageVideoViews?: Maybe<Scalars['Int']['output']>;
+  minShoppableVideoCount?: Maybe<Scalars['Int']['output']>;
+}
+
+export interface CreatorSearchContentPerformanceFilterInput {
+  minAverageLiveViews?: InputMaybe<Scalars['Int']['input']>;
+  minAverageVideoViews?: InputMaybe<Scalars['Int']['input']>;
+  minShoppableVideoCount?: InputMaybe<Scalars['Int']['input']>;
+}
+
+/** Stable TikTok follower age range filter values for creator marketplace search. */
+export const CreatorSearchFollowerAgeRange = {
+  AgeRange_18_24: 'AGE_RANGE_18_24',
+  AgeRange_25_34: 'AGE_RANGE_25_34',
+  AgeRange_35_44: 'AGE_RANGE_35_44',
+  AgeRange_45_54: 'AGE_RANGE_45_54',
+  AgeRange_55AndAbove: 'AGE_RANGE_55_AND_ABOVE'
+} as const;
+
+export type CreatorSearchFollowerAgeRange = typeof CreatorSearchFollowerAgeRange[keyof typeof CreatorSearchFollowerAgeRange];
+export interface CreatorSearchFollowerDemographics {
+  ageRanges?: Maybe<Array<CreatorSearchFollowerAgeRange>>;
+  genders?: Maybe<Array<CreatorSearchFollowerGender>>;
+  maxFollowerCount?: Maybe<Scalars['Int']['output']>;
+  minFollowerCount?: Maybe<Scalars['Int']['output']>;
+}
+
+export interface CreatorSearchFollowerDemographicsInput {
+  ageRanges?: InputMaybe<Array<CreatorSearchFollowerAgeRange>>;
+  genders?: InputMaybe<Array<CreatorSearchFollowerGender>>;
+  maxFollowerCount?: InputMaybe<Scalars['Int']['input']>;
+  minFollowerCount?: InputMaybe<Scalars['Int']['input']>;
+}
+
+/** Stable TikTok follower gender filter values for creator marketplace search. */
+export const CreatorSearchFollowerGender = {
+  Female: 'FEMALE',
+  Male: 'MALE'
+} as const;
+
+export type CreatorSearchFollowerGender = typeof CreatorSearchFollowerGender[keyof typeof CreatorSearchFollowerGender];
+/** One concrete marketplace creator search request/result page. This is a platform fact, not an AI-authored workflow plan. */
+export interface CreatorSearchRun {
+  campaignId?: Maybe<Scalars['ID']['output']>;
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  createdCandidateIds: Array<Scalars['ID']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+  platformRequestId?: Maybe<Scalars['String']['output']>;
+  /** Raw platform response for agent/debug display only. Backend execution must not depend on this field. */
+  rawResponseSnapshotJson?: Maybe<Scalars['String']['output']>;
+  requestedByActorId?: Maybe<Scalars['String']['output']>;
+  requestedByActorType?: Maybe<AffiliateLifecycleActorType>;
+  requestedByRunId?: Maybe<Scalars['String']['output']>;
+  resultCount?: Maybe<Scalars['Int']['output']>;
+  searchParams: CreatorMarketplaceSearchParams;
+  shopId: Scalars['ID']['output'];
+  status: CreatorSearchRunStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+export const CreatorSearchRunStatus = {
+  Completed: 'COMPLETED',
+  Failed: 'FAILED',
+  Requested: 'REQUESTED',
+  Running: 'RUNNING'
+} as const;
+
+export type CreatorSearchRunStatus = typeof CreatorSearchRunStatus[keyof typeof CreatorSearchRunStatus];
+export const CreatorSystemTagKey = {
+  Blocked: 'BLOCKED',
+  Dormant: 'DORMANT',
+  GoodFulfillment: 'GOOD_FULFILLMENT',
+  HighGmv: 'HIGH_GMV',
+  NoSampleAgain: 'NO_SAMPLE_AGAIN',
+  SampleRisk: 'SAMPLE_RISK',
+  Vip: 'VIP'
+} as const;
+
+export type CreatorSystemTagKey = typeof CreatorSystemTagKey[keyof typeof CreatorSystemTagKey];
+/** Tag used by approval policies, segmentation, and human review boundaries. */
+export interface CreatorTag {
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sensitive: Scalars['Boolean']['output'];
+  shopId: Scalars['ID']['output'];
+  /** Stable system key for default tags such as VIP or BLOCKED. */
+  systemKey?: Maybe<CreatorSystemTagKey>;
+  type: CreatorTagType;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+export const CreatorTagType = {
+  Custom: 'CUSTOM',
+  System: 'SYSTEM'
+} as const;
+
+export type CreatorTagType = typeof CreatorTagType[keyof typeof CreatorTagType];
+/** User-scoped creator relationship. Shop-specific lifecycle and tags are embedded because a user's shop count is bounded. */
+export interface CreatorUserRelation {
+  blocked: Scalars['Boolean']['output'];
+  /** When blocked=true and this list is empty, the user-level block applies to all current/future shops. */
+  blockedShopIds: Array<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  lastBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  shopStates: Array<CreatorRelationShopState>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Result of creating a CS escalation */
+export interface CsEscalateResult {
+  error?: Maybe<Scalars['String']['output']>;
+  escalationId?: Maybe<Scalars['ID']['output']>;
+  ok: Scalars['Boolean']['output'];
+  status?: Maybe<CsEscalationStatus>;
+}
+
+/** Cloud-authoritative customer-service escalation */
+export interface CsEscalation {
+  buyerUserId: Scalars['String']['output'];
+  context?: Maybe<Scalars['String']['output']>;
+  conversationId: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  /** Short user-scoped escalation code, e.g. A1B2C3 */
+  id: Scalars['ID']['output'];
+  orderId?: Maybe<Scalars['String']['output']>;
+  reason: Scalars['String']['output'];
+  result?: Maybe<CsEscalationResult>;
+  shopId: Scalars['String']['output'];
+  status: CsEscalationStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+  version: Scalars['Int']['output'];
+}
+
+/** CS escalation process event. The parent escalation owns routing/context; this record only stores the process step and local side-effect delivery state. */
+export interface CsEscalationEvent {
+  /** Time when this process event was created. */
+  createdAt: Scalars['DateTimeISO']['output'];
+  /** Manager decision captured on this event, present for response events. */
+  decision?: Maybe<Scalars['String']['output']>;
+  /** Stable public ID for this event, e.g. csevt_a1b2c3d4. */
+  id: Scalars['ID']['output'];
+  /** Manager instructions captured on this event, present for response events. */
+  instructions?: Maybe<Scalars['String']['output']>;
+  /** Current delivery state of the local side effect for this event. */
+  status: CsEscalationEventStatus;
+  /** Kind of process event the desktop actuator should handle. */
+  type: CsEscalationEventType;
+  /** Time when this event's delivery state was last updated. */
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Desktop delivery payload for a nested CS escalation event */
+export interface CsEscalationEventDelivery {
+  /** Parent escalation that owns the event and provides routing/context for local execution. */
+  escalation: CsEscalation;
+  /** Nested process event to claim, execute, and acknowledge. */
+  event: CsEscalationEvent;
+}
+
+/** Filter for pending CS escalation side-effect events */
+export interface CsEscalationEventFilterInput {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+/** Delivery/execution status of a CS escalation event */
+export const CsEscalationEventStatus = {
+  Claimed: 'CLAIMED',
+  Failed: 'FAILED',
+  Handled: 'HANDLED',
+  Pending: 'PENDING'
+} as const;
+
+export type CsEscalationEventStatus = typeof CsEscalationEventStatus[keyof typeof CsEscalationEventStatus];
+/** Durable event type for local CS side-effect actuators */
+export const CsEscalationEventType = {
+  EscalationCreated: 'ESCALATION_CREATED',
+  EscalationResolved: 'ESCALATION_RESOLVED',
+  EscalationUpdated: 'ESCALATION_UPDATED'
+} as const;
+
+export type CsEscalationEventType = typeof CsEscalationEventType[keyof typeof CsEscalationEventType];
+/** Escalation result plus guidance for the CS agent */
+export interface CsEscalationLookupResult {
+  context?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  guidance?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  reason: Scalars['String']['output'];
+  result?: Maybe<CsEscalationResult>;
+  status: CsEscalationStatus;
+  version: Scalars['Int']['output'];
+}
+
+/** Manager decision and instructions for a CS escalation */
+export interface CsEscalationResult {
+  decision: Scalars['String']['output'];
+  instructions: Scalars['String']['output'];
+  resolved: Scalars['Boolean']['output'];
+  resolvedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Lifecycle status of a CS escalation */
+export const CsEscalationStatus = {
+  InProgress: 'IN_PROGRESS',
+  Pending: 'PENDING',
+  Resolved: 'RESOLVED'
+} as const;
+
+export type CsEscalationStatus = typeof CsEscalationStatus[keyof typeof CsEscalationStatus];
+/** Result returned after a manager responds to a CS escalation */
+export interface CsRespondResult {
+  error?: Maybe<Scalars['String']['output']>;
+  escalationId?: Maybe<Scalars['ID']['output']>;
+  ok: Scalars['Boolean']['output'];
+  status?: Maybe<CsEscalationStatus>;
+  version?: Maybe<Scalars['Int']['output']>;
 }
 
 /** Result of getting or creating a CS session */
@@ -377,6 +1240,12 @@ export interface CustomerServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface DecideActionProposalInput {
+  decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
+  id: Scalars['ID']['input'];
+  status: ActionProposalStatus;
+}
+
 /** Aftersale eligibility for an order */
 export interface EcomAftersaleEligibility {
   skuEligibility?: Maybe<Array<EcomAftersaleSkuEligibility>>;
@@ -553,6 +1422,160 @@ export interface EcomOrderLineItem {
   skuName?: Maybe<Scalars['String']['output']>;
 }
 
+/** Definitions for interpreting order-derived ecommerce sales statistics. */
+export interface EcomOrderSalesStatsDefinitions {
+  /** Definition of cancelled_* metrics. */
+  cancelled: Scalars['String']['output'];
+  /** Definition of completed_* metrics. */
+  completed: Scalars['String']['output'];
+  /** Business date definition used by DAILY rows. */
+  dateKey: Scalars['String']['output'];
+  /** Definition of effective_* metrics. */
+  effective: Scalars['String']['output'];
+  /** Definition of *_gmv metrics. */
+  gmv: Scalars['String']['output'];
+  /** How row grain is selected. */
+  grain: Scalars['String']['output'];
+  /** Definition of gross_* metrics. */
+  gross: Scalars['String']['output'];
+  /** Definition of *_order_count metrics. */
+  orderCount: Scalars['String']['output'];
+  /** Whether return/refund events are excluded. */
+  returnsRefunds: Scalars['String']['output'];
+  /** Definition of *_units metrics. */
+  units: Scalars['String']['output'];
+}
+
+/** Read order-derived sales statistics for one or more shops at shop, product, or SKU level. endDateLt is exclusive. */
+export interface EcomOrderSalesStatsInput {
+  /** End date exclusive in shop-local analytics date format (YYYY-MM-DD). */
+  endDateLt: Scalars['String']['input'];
+  /** Aggregation level to query: SHOP, PRODUCT, or SKU. */
+  level: EcomOrderSalesStatsLevel;
+  /** Maximum number of rows to return. Leave empty or use 0 to return all matching rows. */
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Optional product IDs. Supported for PRODUCT and SKU level reads. */
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Optional exact seller SKUs. Supported for SKU level reads. */
+  sellerSkus?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Shop Mongo IDs (the id field from ecommerce_list_shops). */
+  shopIds: Array<Scalars['ID']['input']>;
+  /** Optional SKU IDs. Supported for SKU level reads. */
+  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Optional sort field. Defaults to DATE_KEY for DAILY reads and EFFECTIVE_GMV for TOTAL reads. */
+  sortBy?: InputMaybe<EcomOrderSalesStatsSortField>;
+  /** Optional sort order. Defaults to ASC for DAILY reads and DESC for TOTAL reads. */
+  sortOrder?: InputMaybe<EcomSortOrder>;
+  /** Start date inclusive in shop-local analytics date format (YYYY-MM-DD). */
+  startDateGe: Scalars['String']['input'];
+  /** Return daily rows or one aggregated row per selected entity over the full date range. Defaults to DAILY. */
+  timeGrouping?: InputMaybe<EcomOrderSalesStatsTimeGrouping>;
+}
+
+/** Ecommerce sales statistics aggregation level. */
+export const EcomOrderSalesStatsLevel = {
+  Product: 'PRODUCT',
+  Shop: 'SHOP',
+  Sku: 'SKU'
+} as const;
+
+export type EcomOrderSalesStatsLevel = typeof EcomOrderSalesStatsLevel[keyof typeof EcomOrderSalesStatsLevel];
+/** Fixed order-derived metric bundle for a shop, product, or SKU row. */
+export interface EcomOrderSalesStatsMetrics {
+  /** Cancelled GMV. */
+  cancelledGmv?: Maybe<EcomAnalyticsMoney>;
+  /** Cancelled order count. */
+  cancelledOrderCount: Scalars['Int']['output'];
+  /** Cancelled units. */
+  cancelledUnits: Scalars['Int']['output'];
+  /** Completed GMV. */
+  completedGmv?: Maybe<EcomAnalyticsMoney>;
+  /** Completed order count. */
+  completedOrderCount: Scalars['Int']['output'];
+  /** Completed units. */
+  completedUnits: Scalars['Int']['output'];
+  /** Effective GMV. */
+  effectiveGmv?: Maybe<EcomAnalyticsMoney>;
+  /** Effective order count. */
+  effectiveOrderCount: Scalars['Int']['output'];
+  /** Effective units. */
+  effectiveUnits: Scalars['Int']['output'];
+  /** Gross GMV. */
+  grossGmv?: Maybe<EcomAnalyticsMoney>;
+  /** Gross order count. */
+  grossOrderCount: Scalars['Int']['output'];
+  /** Gross units. */
+  grossUnits: Scalars['Int']['output'];
+}
+
+/** Order-derived ecommerce sales statistics result. */
+export interface EcomOrderSalesStatsResult {
+  /** Metric and date definitions for interpreting this result. */
+  definitions: EcomOrderSalesStatsDefinitions;
+  /** Sales statistics rows. */
+  items: Array<EcomOrderSalesStatsRow>;
+  /** Number of rows returned by this query. */
+  totalCount: Scalars['Int']['output'];
+}
+
+/** One fixed-shape ecommerce sales statistics row. Product and SKU fields are nullable depending on the requested level. */
+export interface EcomOrderSalesStatsRow {
+  /** Currency for monetary metrics when available. */
+  currency?: Maybe<Scalars['String']['output']>;
+  /** Business date for DAILY rows; see definitions.dateKey. */
+  dateKey?: Maybe<Scalars['String']['output']>;
+  /** Aggregation level represented by this row. */
+  level: EcomOrderSalesStatsLevel;
+  /** Order-derived metric bundle. */
+  metrics: EcomOrderSalesStatsMetrics;
+  /** End date exclusive for this row's metric period (YYYY-MM-DD). */
+  periodEnd: Scalars['String']['output'];
+  /** Start date inclusive for this row's metric period (YYYY-MM-DD). */
+  periodStart: Scalars['String']['output'];
+  /** Product ID. Populated for PRODUCT and SKU level rows. */
+  productId?: Maybe<Scalars['String']['output']>;
+  /** Product display name when available. */
+  productName?: Maybe<Scalars['String']['output']>;
+  /** Seller SKU when available. */
+  sellerSku?: Maybe<Scalars['String']['output']>;
+  /** Shop Mongo ID. */
+  shopId: Scalars['ID']['output'];
+  /** Shop display name when available. */
+  shopName?: Maybe<Scalars['String']['output']>;
+  /** SKU ID. Populated for SKU level rows. */
+  skuId?: Maybe<Scalars['String']['output']>;
+  /** SKU display name when available. */
+  skuName?: Maybe<Scalars['String']['output']>;
+}
+
+/** Sort field for ecommerce order-derived sales statistics. */
+export const EcomOrderSalesStatsSortField = {
+  CancelledGmv: 'CANCELLED_GMV',
+  CancelledOrderCount: 'CANCELLED_ORDER_COUNT',
+  CancelledUnits: 'CANCELLED_UNITS',
+  CompletedGmv: 'COMPLETED_GMV',
+  CompletedOrderCount: 'COMPLETED_ORDER_COUNT',
+  CompletedUnits: 'COMPLETED_UNITS',
+  DateKey: 'DATE_KEY',
+  EffectiveGmv: 'EFFECTIVE_GMV',
+  EffectiveOrderCount: 'EFFECTIVE_ORDER_COUNT',
+  EffectiveUnits: 'EFFECTIVE_UNITS',
+  GrossGmv: 'GROSS_GMV',
+  GrossOrderCount: 'GROSS_ORDER_COUNT',
+  GrossUnits: 'GROSS_UNITS',
+  ProductId: 'PRODUCT_ID',
+  ShopId: 'SHOP_ID',
+  SkuId: 'SKU_ID'
+} as const;
+
+export type EcomOrderSalesStatsSortField = typeof EcomOrderSalesStatsSortField[keyof typeof EcomOrderSalesStatsSortField];
+/** Whether ecommerce sales statistics are returned per day or aggregated over the full date range. */
+export const EcomOrderSalesStatsTimeGrouping = {
+  Daily: 'DAILY',
+  Total: 'TOTAL'
+} as const;
+
+export type EcomOrderSalesStatsTimeGrouping = typeof EcomOrderSalesStatsTimeGrouping[keyof typeof EcomOrderSalesStatsTimeGrouping];
 /** Order status filter. Use ALL to return all statuses. */
 export const EcomOrderStatus = {
   All: 'ALL',
@@ -1055,6 +2078,8 @@ export interface EcommerceUpdateShopResult {
 
 /** Feature entitlement identifiers */
 export const EntitlementKey = {
+  EcomCsEscalationRead: 'ECOM_CS_ESCALATION_READ',
+  EcomCsEscalationWrite: 'ECOM_CS_ESCALATION_WRITE',
   EcomCsRead: 'ECOM_CS_READ',
   EcomCsWrite: 'ECOM_CS_WRITE',
   EcomFulfillmentRead: 'ECOM_FULFILLMENT_READ',
@@ -1436,12 +2461,26 @@ export const ModuleId = {
 
 export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
+  /** Apply a shop-scoped tag inside a user-level creator relation. */
+  applyCreatorTag: CreatorUserRelation;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a new surface */
   createSurface: Surface;
+  /** Acknowledge success/failure after executing a local CS escalation side-effect */
+  csAckEscalationEvent?: Maybe<CsEscalationEventDelivery>;
+  /** Claim a CS escalation side-effect event for exactly-once local execution */
+  csClaimEscalationEvent?: Maybe<CsEscalationEventDelivery>;
+  /** Create a cloud CS escalation and queue a local manager-notification side-effect event */
+  csEscalate: CsEscalateResult;
   /** Get an existing CS session or create a new one for a conversation */
   csGetOrCreateSession: CsSessionResult;
+  /** Admin/Airflow hook: re-publish pending CS escalation events to active GraphQL subscribers */
+  csPublishPendingEscalationEvents: Scalars['Int']['output'];
+  /** Write a manager response to a CS escalation and queue a local CS-agent wake event */
+  csRespond: CsRespondResult;
+  /** Record an approval/rejection/modification decision. APPROVED executes the frozen action intent through the backend proposal service. */
+  decideActionProposal: ActionProposal;
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
   /** Delete the session state backup for a profile */
@@ -1488,6 +2527,10 @@ export interface Mutation {
   refreshToken: AuthPayload;
   /** Register a new user account */
   register: AuthPayload;
+  /** Remove a shop-scoped tag from a user-level creator relation. */
+  removeCreatorTag: CreatorUserRelation;
+  /** Request one typed affiliate action. Backend policy decides direct execution vs ActionProposal. */
+  requestAffiliateAction: RequestAffiliateActionPayload;
   /** Request a new captcha challenge */
   requestCaptcha: CaptchaResponse;
   /** Revoke all sessions for the current user (remote logout) */
@@ -1512,6 +2555,16 @@ export interface Mutation {
   uploadSessionStateBackup: Scalars['Boolean']['output'];
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
+  /** Create or update an affiliate approval interception policy. */
+  writeAffiliateApprovalPolicy: AffiliateApprovalPolicy;
+  /** Create or update an affiliate campaign. */
+  writeAffiliateCampaign: AffiliateCampaign;
+  /** Create or update a campaign product setup row. */
+  writeCampaignProduct: CampaignProduct;
+  /** Create or update a concrete creator marketplace search run. This is platform/search audit state, not workflow planning state. */
+  writeCreatorSearchRun: CreatorSearchRun;
+  /** Create or update a creator tag. */
+  writeCreatorTag: CreatorTag;
   /** Write external SKU to InventoryGood mappings in batch. Omit id to locate by sourceSystem + sourceId + sellerSku or create a new mapping. */
   writeInventoryGoodMappings: Array<InventoryGoodMapping>;
   /** Write canonical stockable inventory goods in batch. Omit id to locate by exact sku or create a new good. */
@@ -1525,6 +2578,11 @@ export interface Mutation {
 }
 
 
+export interface MutationApplyCreatorTagArgs {
+  input: ApplyCreatorTagInput;
+}
+
+
 export interface MutationCreateRunProfileArgs {
   input: CreateRunProfileInput;
 }
@@ -1535,9 +2593,47 @@ export interface MutationCreateSurfaceArgs {
 }
 
 
+export interface MutationCsAckEscalationEventArgs {
+  input: AckCsEscalationEventInput;
+}
+
+
+export interface MutationCsClaimEscalationEventArgs {
+  input: ClaimCsEscalationEventInput;
+}
+
+
+export interface MutationCsEscalateArgs {
+  buyerUserId: Scalars['String']['input'];
+  context?: InputMaybe<Scalars['String']['input']>;
+  conversationId: Scalars['String']['input'];
+  orderId?: InputMaybe<Scalars['String']['input']>;
+  reason: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface MutationCsGetOrCreateSessionArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsPublishPendingEscalationEventsArgs {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}
+
+
+export interface MutationCsRespondArgs {
+  decision: Scalars['String']['input'];
+  escalationId: Scalars['ID']['input'];
+  instructions: Scalars['String']['input'];
+  resolved?: Scalars['Boolean']['input'];
+}
+
+
+export interface MutationDecideActionProposalArgs {
+  input: DecideActionProposalInput;
 }
 
 
@@ -1679,6 +2775,16 @@ export interface MutationRegisterArgs {
 }
 
 
+export interface MutationRemoveCreatorTagArgs {
+  input: ApplyCreatorTagInput;
+}
+
+
+export interface MutationRequestAffiliateActionArgs {
+  input: RequestAffiliateActionInput;
+}
+
+
 export interface MutationSetDefaultRunProfileArgs {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
@@ -1733,6 +2839,31 @@ export interface MutationUploadSessionStateBackupArgs {
 export interface MutationVerifyPairingCodeArgs {
   mobileDeviceId: Scalars['String']['input'];
   pairingCode: Scalars['String']['input'];
+}
+
+
+export interface MutationWriteAffiliateApprovalPolicyArgs {
+  input: WriteAffiliateApprovalPolicyInput;
+}
+
+
+export interface MutationWriteAffiliateCampaignArgs {
+  input: WriteAffiliateCampaignInput;
+}
+
+
+export interface MutationWriteCampaignProductArgs {
+  input: WriteCampaignProductInput;
+}
+
+
+export interface MutationWriteCreatorSearchRunArgs {
+  input: WriteCreatorSearchRunInput;
+}
+
+
+export interface MutationWriteCreatorTagArgs {
+  input: WriteCreatorTagInput;
 }
 
 
@@ -1872,14 +3003,36 @@ export interface ProviderSubscription {
 }
 
 export interface Query {
+  /** Read human-reviewable affiliate action proposals. */
+  actionProposals: Array<ActionProposal>;
+  /** Read affiliate approval interception policies. */
+  affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
+  /** Read affiliate campaigns from Mongo state. */
+  affiliateCampaigns: Array<AffiliateCampaign>;
+  /** Read compressed affiliate management workspace state from Mongo control-plane state. */
+  affiliateWorkspace: AffiliateWorkspacePayload;
   /** Get a single browser profile by ID */
   browserProfile?: Maybe<BrowserProfile>;
   /** Get audit log for a browser profile */
   browserProfileAuditLog: Array<BrowserProfileAuditEntry>;
   /** List browser profiles for the authenticated user */
   browserProfiles: PaginatedBrowserProfiles;
+  /** Read campaign product setup rows from Mongo state. */
+  campaignProducts: Array<CampaignProduct>;
   /** Check if a newer version is available (public, no auth required) */
   checkUpdate?: Maybe<UpdatePayload>;
+  /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
+  creatorCandidates: Array<CreatorCandidate>;
+  /** Read concrete creator marketplace search runs from Mongo state. */
+  creatorSearchRuns: Array<CreatorSearchRun>;
+  /** Read shop-scoped creator tags used by segmentation and approval policies. */
+  creatorTags: Array<CreatorTag>;
+  /** Read user-scoped creator relations with embedded shop lifecycle state. Blocked creators are excluded unless explicitly requested by lifecycleStage=BLOCKED. */
+  creatorUserRelations: Array<CreatorUserRelation>;
+  /** Read the current cloud status and result for a CS escalation */
+  csGetEscalationResult?: Maybe<CsEscalationLookupResult>;
+  /** List unhandled CS escalation side-effect events for the authenticated user's desktop actuator */
+  csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
@@ -1894,6 +3047,8 @@ export interface Query {
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
   ecommerceGetOrder?: Maybe<EcomOrder>;
+  /** Get order-derived sales statistics from fct_order_shop_daily, fct_order_product_daily, or fct_order_sku_daily. */
+  ecommerceGetOrderSalesStats: EcomOrderSalesStatsResult;
   /** List/search orders as a flat summary list. Optional buyerUserId for buyer-scoped queries. Pagination is handled internally by the backend. For full order details use ecommerceGetOrder. */
   ecommerceGetOrders: Array<EcomOrderSummary>;
   /** Get package detail by package ID */
@@ -1995,6 +3150,26 @@ export interface Query {
 }
 
 
+export interface QueryActionProposalsArgs {
+  input: ReadActionProposalsInput;
+}
+
+
+export interface QueryAffiliateApprovalPoliciesArgs {
+  input: ReadAffiliateApprovalPoliciesInput;
+}
+
+
+export interface QueryAffiliateCampaignsArgs {
+  input: ReadAffiliateCampaignsInput;
+}
+
+
+export interface QueryAffiliateWorkspaceArgs {
+  input: AffiliateWorkspaceInput;
+}
+
+
 export interface QueryBrowserProfileArgs {
   id: Scalars['ID']['input'];
 }
@@ -2011,8 +3186,43 @@ export interface QueryBrowserProfilesArgs {
 }
 
 
+export interface QueryCampaignProductsArgs {
+  campaignId: Scalars['String']['input'];
+}
+
+
 export interface QueryCheckUpdateArgs {
   clientVersion: Scalars['String']['input'];
+}
+
+
+export interface QueryCreatorCandidatesArgs {
+  input: ReadCreatorCandidatesInput;
+}
+
+
+export interface QueryCreatorSearchRunsArgs {
+  input: ReadCreatorSearchRunsInput;
+}
+
+
+export interface QueryCreatorTagsArgs {
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryCreatorUserRelationsArgs {
+  input: ReadCreatorRelationsInput;
+}
+
+
+export interface QueryCsGetEscalationResultArgs {
+  escalationId: Scalars['ID']['input'];
+}
+
+
+export interface QueryCsPendingEscalationEventsArgs {
+  filter?: InputMaybe<CsEscalationEventFilterInput>;
 }
 
 
@@ -2063,6 +3273,11 @@ export interface QueryEcommerceGetOrderArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetOrderSalesStatsArgs {
+  input: EcomOrderSalesStatsInput;
 }
 
 
@@ -2317,6 +3532,53 @@ export interface QuotaCircleStatus {
   remainingPercent: Scalars['Float']['output'];
 }
 
+export interface ReadActionProposalsInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<ActionProposalStatus>;
+  type?: InputMaybe<ActionProposalType>;
+}
+
+export interface ReadAffiliateApprovalPoliciesInput {
+  action?: InputMaybe<AffiliatePolicyAction>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+export interface ReadAffiliateCampaignsInput {
+  id?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<AffiliateCampaignStatus>;
+}
+
+export interface ReadCreatorCandidatesInput {
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+  sourceSearchRunId?: InputMaybe<Scalars['ID']['input']>;
+  sourceType?: InputMaybe<CreatorCandidateSourceType>;
+  status?: InputMaybe<CreatorCandidateStatus>;
+}
+
+export interface ReadCreatorRelationsInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+  tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+export interface ReadCreatorSearchRunsInput {
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  requestedByRunId?: InputMaybe<Scalars['String']['input']>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<CreatorSearchRunStatus>;
+}
+
 /** Read source-of-truth inventory and order-derived SKU demand rows for inventory analysis. endDateLt is exclusive. */
 export interface ReadInventoryAnalysisInput {
   /** End date exclusive in shop-local analytics date format (YYYY-MM-DD). */
@@ -2419,6 +3681,31 @@ export interface RelayTokenResult {
   valid: Scalars['Boolean']['output'];
 }
 
+export interface RequestAffiliateActionInput {
+  approvalPolicyUpdateIntent?: InputMaybe<ActionProposalApprovalPolicyUpdateIntentInput>;
+  blockCreatorIntent?: InputMaybe<ActionProposalBlockCreatorIntentInput>;
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  campaignProductUpdateIntent?: InputMaybe<ActionProposalCampaignProductUpdateIntentInput>;
+  candidateDecisionIntent?: InputMaybe<ActionProposalCandidateDecisionIntentInput>;
+  collaborationId?: InputMaybe<Scalars['ID']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
+  expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  messageIntent?: InputMaybe<ActionProposalMessageIntentInput>;
+  sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
+  sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
+  shopId: Scalars['ID']['input'];
+  summary: Scalars['String']['input'];
+  targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
+  type: ActionProposalType;
+}
+
+export interface RequestAffiliateActionPayload {
+  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
+  mode: AffiliateActionRequestMode;
+  proposal?: Maybe<ActionProposal>;
+}
+
 /** RunProfile entity — defines tool selection for a specific run. userId=null for system presets. */
 export interface RunProfile {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -2464,6 +3751,7 @@ export const ServiceCreditStatus = {
 export type ServiceCreditStatus = typeof ServiceCreditStatus[keyof typeof ServiceCreditStatus];
 /** Business service type identifiers */
 export const ServiceId = {
+  AffiliateManagement: 'AFFILIATE_MANAGEMENT',
   CustomerService: 'CUSTOMER_SERVICE',
   InventoryManagement: 'INVENTORY_MANAGEMENT',
   OrderManagement: 'ORDER_MANAGEMENT'
@@ -2688,11 +3976,18 @@ export const SkillLabel = {
 
 export type SkillLabel = typeof SkillLabel[keyof typeof SkillLabel];
 export interface Subscription {
+  /** Streams CS escalation side-effect events to desktop actuators. On connect, also yields currently pending events for replay. */
+  csEscalationEvent: CsEscalationEventDelivery;
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
   oauthComplete: OAuthCompletePayload;
   /** Fires when a shop is updated. Only receives updates for shops owned by the authenticated user. */
   shopUpdated: Shop;
   updateAvailable: UpdatePayload;
+}
+
+
+export interface SubscriptionCsEscalationEventArgs {
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 
@@ -2756,6 +4051,10 @@ export interface SyncWmsInventoryGoodsPayload {
 
 /** System run profile identifiers declared by tool metadata */
 export const SystemRunProfile = {
+  AffiliateAnalyst: 'AFFILIATE_ANALYST',
+  AffiliateApprover: 'AFFILIATE_APPROVER',
+  AffiliateOperator: 'AFFILIATE_OPERATOR',
+  AffiliateSensitiveCreatorOperator: 'AFFILIATE_SENSITIVE_CREATOR_OPERATOR',
   CustomerService: 'CUSTOMER_SERVICE',
   ShopOperations: 'SHOP_OPERATIONS'
 } as const;
@@ -2769,6 +4068,10 @@ export const SystemSurface = {
 export type SystemSurface = typeof SystemSurface[keyof typeof SystemSurface];
 /** Tool functional category */
 export const ToolCategory = {
+  AffiliateAction: 'AFFILIATE_ACTION',
+  AffiliateApproval: 'AFFILIATE_APPROVAL',
+  AffiliateRead: 'AFFILIATE_READ',
+  AffiliateSearch: 'AFFILIATE_SEARCH',
   BrowserProfiles: 'BROWSER_PROFILES',
   EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
   EcomCs: 'ECOM_CS',
@@ -2788,9 +4091,15 @@ export interface ToolContextBinding {
 
 /** Unique tool identifier */
 export const ToolId = {
+  AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
+  AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
+  AffiliateRequestAction: 'AFFILIATE_REQUEST_ACTION',
   BrowserProfilesGet: 'BROWSER_PROFILES_GET',
   BrowserProfilesList: 'BROWSER_PROFILES_LIST',
   BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',
+  CsEscalate: 'CS_ESCALATE',
+  CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
+  CsRespond: 'CS_RESPOND',
   EcomApproveCancellation: 'ECOM_APPROVE_CANCELLATION',
   EcomApproveRefund: 'ECOM_APPROVE_REFUND',
   EcomApproveReturn: 'ECOM_APPROVE_RETURN',
@@ -2822,6 +4131,7 @@ export const ToolId = {
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetInventoryAnalysis: 'ECOM_GET_INVENTORY_ANALYSIS',
   EcomGetOrder: 'ECOM_GET_ORDER',
+  EcomGetOrderSalesStats: 'ECOM_GET_ORDER_SALES_STATS',
   EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',
   EcomGetPendingConversations: 'ECOM_GET_PENDING_CONVERSATIONS',
   EcomGetProduct: 'ECOM_GET_PRODUCT',
@@ -3160,6 +4470,75 @@ export interface WmsWarehouseSyncPayload {
   warehousesSynced: Scalars['Int']['output'];
   /** WMS account ID that was synced. */
   wmsAccountId: Scalars['ID']['output'];
+}
+
+export interface WriteAffiliateApprovalPolicyInput {
+  action: AffiliatePolicyAction;
+  campaignIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  creatorTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+export interface WriteAffiliateCampaignInput {
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  objectiveType?: InputMaybe<AffiliateCampaignObjectiveType>;
+  personalizationMode?: InputMaybe<AffiliateOutreachPersonalizationMode>;
+  researchDepth?: InputMaybe<AffiliateResearchDepth>;
+  shopId: Scalars['ID']['input'];
+  status?: InputMaybe<AffiliateCampaignStatus>;
+  targetContentCount?: InputMaybe<Scalars['Int']['input']>;
+  targetCreatorCount?: InputMaybe<Scalars['Int']['input']>;
+  targetGmvAmount?: InputMaybe<Scalars['Float']['input']>;
+  targetGmvCurrency?: InputMaybe<EcomProductSkuCurrency>;
+  targetInviteCount?: InputMaybe<Scalars['Int']['input']>;
+  targetOrderCount?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface WriteCampaignProductInput {
+  campaignId: Scalars['ID']['input'];
+  commissionRate?: InputMaybe<Scalars['Float']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  maxCommissionRate?: InputMaybe<Scalars['Float']['input']>;
+  productId: Scalars['String']['input'];
+  promotionPriority?: InputMaybe<CampaignProductPromotionPriority>;
+  sampleOfferMode?: InputMaybe<CampaignProductSampleOfferMode>;
+  sampleQuota?: InputMaybe<Scalars['Int']['input']>;
+  sampleUnitCostAmount?: InputMaybe<Scalars['Float']['input']>;
+  sampleUnitCostCurrency?: InputMaybe<EcomProductSkuCurrency>;
+  shopId: Scalars['ID']['input'];
+  title?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface WriteCreatorSearchRunInput {
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  completedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  createdCandidateIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  errorMessage?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  nextPageToken?: InputMaybe<Scalars['String']['input']>;
+  platformRequestId?: InputMaybe<Scalars['String']['input']>;
+  rawResponseSnapshotJson?: InputMaybe<Scalars['String']['input']>;
+  requestedByActorId?: InputMaybe<Scalars['String']['input']>;
+  requestedByActorType?: InputMaybe<AffiliateLifecycleActorType>;
+  requestedByRunId?: InputMaybe<Scalars['String']['input']>;
+  resultCount?: InputMaybe<Scalars['Int']['input']>;
+  searchParams: CreatorMarketplaceSearchParamsInput;
+  shopId: Scalars['ID']['input'];
+  status?: InputMaybe<CreatorSearchRunStatus>;
+}
+
+export interface WriteCreatorTagInput {
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  sensitive?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
+  systemKey?: InputMaybe<CreatorSystemTagKey>;
+  type?: InputMaybe<CreatorTagType>;
 }
 
 /** Write a canonical stockable inventory item. Omit id to locate by exact sku or create a new item. */

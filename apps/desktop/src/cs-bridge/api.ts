@@ -1,9 +1,25 @@
 import { API } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
-import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { getCsBridge } from "../gateway/connection.js";
 import { formatDetailedErrorMessage } from "../utils/error-format.js";
+import {
+  CS_ESCALATE_MUTATION,
+  CS_GET_ESCALATION_RESULT_QUERY,
+  CS_RESPOND_MUTATION,
+} from "../cloud/cs-queries.js";
+
+type CsEscalateMutationResult = {
+  csEscalate: { ok: boolean; escalationId?: string | null; status?: string | null; error?: string | null };
+};
+
+type CsRespondMutationResult = {
+  csRespond: { ok: boolean; escalationId?: string | null; status?: string | null; version?: number | null; error?: string | null };
+};
+
+type CsGetEscalationResultQueryResult = {
+  csGetEscalationResult: unknown | null;
+};
 
 /**
  * Routes for CS bridge management.
@@ -60,8 +76,7 @@ const unbind: EndpointHandler = async (req, res, _url, _params, _ctx) => {
 // ── POST /api/cs-bridge/escalate ──
 
 const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  const bridge = getCsBridge();
-  if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return; }
+  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
 
   const body = await parseBody(req) as Record<string, unknown>;
   const missing = ["shopId", "conversationId", "buyerUserId", "reason"]
@@ -72,17 +87,15 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
   }
 
   try {
-    const session = await bridge.getOrCreateSession(body.shopId as string, {
+    const result = await _ctx.authSession.graphqlFetch(CS_ESCALATE_MUTATION, {
+      shopId: body.shopId as string,
       conversationId: body.conversationId as string,
       buyerUserId: body.buyerUserId as string,
-      orderId: typeof body.orderId === "string" ? body.orderId : undefined,
-    });
-    const result = await session.escalate({
       reason: body.reason as string,
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
       context: typeof body.context === "string" ? body.context : undefined,
-    });
-    sendJson(res, result.ok ? 200 : 400, result);
+    }) as CsEscalateMutationResult;
+    sendJson(res, result.csEscalate.ok ? 200 : 400, result.csEscalate);
   } catch (err) {
     sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
@@ -91,8 +104,7 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
 // ── POST /api/cs-bridge/escalation-result ──
 
 const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  const bridge = getCsBridge();
-  if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return; }
+  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
 
   const body = await parseBody(req) as Record<string, unknown>;
   const missing = ["escalationId", "decision", "instructions"]
@@ -103,30 +115,13 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
   }
 
   try {
-    const escalationId = body.escalationId as string;
-
-    // Look up escalation data (in-memory first, then storage fallback)
-    const found = bridge.findEscalationById(escalationId);
-    if (!found) {
-      sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
-      return;
-    }
-
-    // Get existing session or create one from stored context
-    const session = bridge.findSessionByEscalationId(escalationId)
-      ?? await bridge.getOrCreateSession(found.shopId, {
-        conversationId: found.conversationId,
-        buyerUserId: found.buyerUserId,
-      });
-
-    session.resolveEscalation(escalationId, {
+    const result = await _ctx.authSession.graphqlFetch(CS_RESPOND_MUTATION, {
+      escalationId: body.escalationId as string,
       decision: body.decision as string,
       instructions: body.instructions as string,
       resolved: body.resolved === true,
-    });
-
-    const result = await session.dispatchEscalationResolved(escalationId);
-    sendJson(res, 200, result);
+    }) as CsRespondMutationResult;
+    sendJson(res, result.csRespond.ok ? 200 : 400, result.csRespond);
   } catch (err) {
     sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
@@ -135,8 +130,7 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
 // ── GET /api/cs-bridge/escalation/:id ──
 
 const getEscalation: EndpointHandler = async (_req, res, _url, params, _ctx) => {
-  const bridge = getCsBridge();
-  if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return; }
+  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
 
   const escalationId = params.id!;
   if (!escalationId) {
@@ -144,25 +138,19 @@ const getEscalation: EndpointHandler = async (_req, res, _url, params, _ctx) => 
     return;
   }
 
-  const found = bridge.findEscalationById(escalationId);
-  if (!found) {
-    sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
-    return;
+  try {
+    const result = await _ctx.authSession.graphqlFetch(
+      CS_GET_ESCALATION_RESULT_QUERY,
+      { escalationId },
+    ) as CsGetEscalationResultQueryResult;
+    if (!result.csGetEscalationResult) {
+      sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
+      return;
+    }
+    sendJson(res, 200, result.csGetEscalationResult);
+  } catch (err) {
+    sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
-
-  const escalation = found.escalation;
-  const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
-  sendJson(res, 200, {
-    id: escalation.id,
-    reason: escalation.reason,
-    context: escalation.context ?? null,
-    createdAt: escalation.createdAt,
-    status,
-    result: escalation.result ?? null,
-    guidance: !escalation.result?.resolved
-      ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
-      : null,
-  });
 };
 
 // ── POST /api/cs-bridge/start-conversation ──
