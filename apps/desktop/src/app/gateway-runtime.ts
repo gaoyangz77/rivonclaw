@@ -6,7 +6,7 @@ import {
 } from "@rivonclaw/gateway";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createGatewayConfigBuilder } from "../gateway/config-builder.js";
 import { createGatewayEventDispatcher } from "../gateway/event-dispatcher.js";
@@ -39,7 +39,7 @@ export interface GatewayRuntime {
 
 /**
  * Create the gateway launcher, config builder, and event dispatcher.
- * Writes the initial gateway config and disables mDNS.
+ * Writes the initial gateway config.
  */
 export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRuntime> {
   const {
@@ -64,15 +64,6 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   });
 
   writeGatewayConfig(await buildFullGatewayConfig(gatewayPort));
-
-  // Disable mDNS/Bonjour — desktop app manages its own device pairing.
-  try {
-    const raw = JSON.parse(readFileSync(configPath, "utf-8"));
-    if (!raw.discovery) raw.discovery = {};
-    if (!raw.discovery.mdns) raw.discovery.mdns = {};
-    raw.discovery.mdns.mode = "off";
-    writeFileSync(configPath, JSON.stringify(raw, null, 2), "utf-8");
-  } catch { /* non-critical */ }
 
   // Create launcher
   const launcher = new GatewayLauncher({

@@ -168,7 +168,7 @@ export default defineRivonClawPlugin({
         api.logger.info(
           `[event-bridge] recipient-seen: channel=${ctx.channelId} account=${ctx.accountId ?? "(none)"} recipient=${recipientId}`,
         );
-        gatewayBroadcast("rivonclaw.recipient-seen", {
+        gatewayBroadcast("plugin.rivonclaw.recipient-seen", {
           channelId: ctx.channelId,
           accountId: ctx.accountId,
           recipientId,

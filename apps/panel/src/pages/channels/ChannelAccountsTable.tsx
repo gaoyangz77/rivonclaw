@@ -3,15 +3,6 @@ import { createPortal } from "react-dom";
 import { panelEventBus } from "../../lib/event-bus.js";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
-import {
-  fetchAllowlist,
-  fetchPairingRequests,
-  approvePairing,
-  removeFromAllowlist,
-  setRecipientLabel,
-  setRecipientOwner,
-  type PairingRequest,
-} from "../../api/channels.js";
 import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
@@ -91,13 +82,11 @@ function WechatActivationWarning({ tooltip }: { tooltip: string }) {
   );
 }
 
-interface RecipientData {
+type RecipientSnapshot = NonNullable<ChannelAccountSnapshot["recipients"]>;
+
+interface RecipientUiState {
   loading: boolean;
   error: string | null;
-  allowlist: string[];
-  labels: Record<string, string>;
-  owners: Record<string, boolean>;
-  pairingRequests: PairingRequest[];
 }
 
 export function ChannelAccountsTable({
@@ -117,7 +106,8 @@ export function ChannelAccountsTable({
 }) {
   const entityStore = useEntityStore();
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
-  const [recipientData, setRecipientData] = useState<Record<string, RecipientData>>({});
+  const [recipientUiState, setRecipientUiState] = useState<Record<string, RecipientUiState>>({});
+  const [mobileRecipientData, setMobileRecipientData] = useState<Record<string, RecipientSnapshot>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState<{ compositeKey: string; channelId: string; accountId?: string; entry: string } | null>(null);
   const [mobileDeviceStatus, setMobileDeviceStatus] = useState<MobileDeviceStatusResponse["devices"]>({});
@@ -125,6 +115,20 @@ export function ChannelAccountsTable({
 
   // Track in-flight label saves to show subtle feedback
   const savingLabelsRef = useRef<Set<string>>(new Set());
+
+  function normalizeRecipients(account: ChannelAccountSnapshot): RecipientSnapshot {
+    const recipients = account.recipients;
+    return {
+      allowlist: recipients?.allowlist ?? [],
+      labels: recipients?.labels ?? {},
+      owners: recipients?.owners ?? {},
+      pairingRequests: recipients?.pairingRequests ?? [],
+    };
+  }
+
+  function emptyRecipients(): RecipientSnapshot {
+    return { allowlist: [], labels: {}, owners: {}, pairingRequests: [] };
+  }
 
   // Poll mobile device status and fetch pairings while any mobile account is expanded
   const hasMobileExpanded = Array.from(expandedAccounts).some(key => key.startsWith("mobile:"));
@@ -149,25 +153,28 @@ export function ChannelAccountsTable({
     return () => { cancelled = true; clearInterval(timer); };
   }, [hasMobileExpanded]);
 
-  // Background refresh: update recipient data without resetting to loading state
+  // Background refresh: Desktop channelManager updates account.recipients in MST;
+  // Panel only keeps loading/error state. Mobile remains local because mobile
+  // accounts are intentionally not stored in channelAccounts MST.
   async function refreshRecipientData(channelId: string, accountId: string) {
     const compositeKey = `${channelId}:${accountId}`;
     try {
       const [result, requests] = await Promise.all([
-        fetchAllowlist(channelId, accountId),
-        fetchPairingRequests(channelId, accountId),
+        entityStore.channelManager.getAllowlist(channelId, accountId),
+        entityStore.channelManager.getPairingRequests(channelId, accountId),
       ]);
-      setRecipientData(prev => ({
-        ...prev,
-        [compositeKey]: {
-          loading: false,
-          error: null,
-          allowlist: result.allowlist,
-          labels: result.labels,
-          owners: result.owners ?? {},
-          pairingRequests: requests,
-        },
-      }));
+      if (channelId === "mobile") {
+        setMobileRecipientData(prev => ({
+          ...prev,
+          [compositeKey]: {
+            allowlist: result.allowlist,
+            labels: result.labels,
+            owners: result.owners ?? {},
+            pairingRequests: requests,
+          },
+        }));
+      }
+      setRecipientUiState(prev => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
     } catch {
       // Silently ignore background refresh errors to avoid disrupting the UI
     }
@@ -196,53 +203,50 @@ export function ChannelAccountsTable({
     return () => unsubscribe();
   }, [expandedAccounts]);
 
-  async function loadRecipientData(channelId: string, accountId: string) {
+  async function loadRecipientData(channelId: string, account: ChannelAccountSnapshot) {
+    const accountId = account.accountId;
     const compositeKey = `${channelId}:${accountId}`;
-    setRecipientData(prev => ({
+    const hasMstRecipients = channelId !== "mobile" && Boolean(account.recipients);
+    setRecipientUiState(prev => ({
       ...prev,
-      [compositeKey]: { loading: true, error: null, allowlist: [], labels: {}, owners: {}, pairingRequests: [] },
+      [compositeKey]: { loading: !hasMstRecipients, error: null },
     }));
 
     try {
       const [result, requests] = await Promise.all([
-        fetchAllowlist(channelId, accountId),
-        fetchPairingRequests(channelId, accountId),
+        entityStore.channelManager.getAllowlist(channelId, accountId),
+        entityStore.channelManager.getPairingRequests(channelId, accountId),
       ]);
-      setRecipientData(prev => ({
-        ...prev,
-        [compositeKey]: {
-          loading: false,
-          error: null,
-          allowlist: result.allowlist,
-          labels: result.labels,
-          owners: result.owners ?? {},
-          pairingRequests: requests,
-        },
-      }));
+      if (channelId === "mobile") {
+        setMobileRecipientData(prev => ({
+          ...prev,
+          [compositeKey]: {
+            allowlist: result.allowlist,
+            labels: result.labels,
+            owners: result.owners ?? {},
+            pairingRequests: requests,
+          },
+        }));
+      }
+      setRecipientUiState(prev => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
     } catch (err) {
-      setRecipientData(prev => ({
+      setRecipientUiState(prev => ({
         ...prev,
-        [compositeKey]: {
-          ...prev[compositeKey],
-          loading: false,
-          error: String(err),
-        },
+        [compositeKey]: { loading: false, error: String(err) },
       }));
     }
   }
 
-  function toggleExpand(channelId: string, accountId: string) {
+  function toggleExpand(channelId: string, account: ChannelAccountSnapshot) {
+    const accountId = account.accountId;
     const compositeKey = `${channelId}:${accountId}`;
     setExpandedAccounts(prev => {
       const next = new Set(prev);
       if (next.has(compositeKey)) {
         next.delete(compositeKey);
-                      } else {
-                        next.add(compositeKey);
-                        // Lazy load data on first expand
-                        if (!recipientData[compositeKey]) {
-                          loadRecipientData(channelId, accountId);
-        }
+      } else {
+        next.add(compositeKey);
+        loadRecipientData(channelId, account);
       }
       return next;
     });
@@ -251,26 +255,12 @@ export function ChannelAccountsTable({
   async function handleApprove(compositeKey: string, channelId: string, accountId: string, code: string) {
     setProcessing(code);
     try {
-      const result = await approvePairing(channelId, code, i18nLang, accountId);
-      setRecipientData(prev => {
-        const data = prev[compositeKey];
-        if (!data) return prev;
-        return {
-          ...prev,
-          [compositeKey]: {
-            ...data,
-            pairingRequests: data.pairingRequests.filter(r => r.code !== code),
-            allowlist: data.allowlist.includes(result.id) ? data.allowlist : [...data.allowlist, result.id],
-            owners: { ...data.owners, [result.id]: true },
-          },
-        };
-      });
+      await entityStore.channelManager.approvePairing(channelId, code, i18nLang, accountId);
     } catch (err) {
-      setRecipientData(prev => {
-        const data = prev[compositeKey];
-        if (!data) return prev;
-        return { ...prev, [compositeKey]: { ...data, error: `${t("pairing.failedToApprove")} ${String(err)}` } };
-      });
+      setRecipientUiState(prev => ({
+        ...prev,
+        [compositeKey]: { loading: false, error: `${t("pairing.failedToApprove")} ${String(err)}` },
+      }));
     } finally {
       setProcessing(null);
     }
@@ -296,19 +286,21 @@ export function ChannelAccountsTable({
           await entityStore.mobileManager.disconnectOne(pairing.id);
         }
       } else {
-        await removeFromAllowlist(channelId, entry, accountId);
+        await entityStore.channelManager.removeFromAllowlist(channelId, entry, accountId);
       }
-      setRecipientData(prev => {
-        const data = prev[compositeKey];
-        if (!data) return prev;
-        return {
-          ...prev,
-          [compositeKey]: {
-            ...data,
-            allowlist: data.allowlist.filter(e => e !== entry),
-          },
-        };
-      });
+      if (channelId === "mobile") {
+        setMobileRecipientData(prev => {
+          const data = prev[compositeKey];
+          if (!data) return prev;
+          return {
+            ...prev,
+            [compositeKey]: {
+              ...data,
+              allowlist: data.allowlist.filter(e => e !== entry),
+            },
+          };
+        });
+      }
       // Clear stale status from local state
       if (channelId === "mobile") {
         setMobileDeviceStatus(prev => {
@@ -318,74 +310,64 @@ export function ChannelAccountsTable({
         });
       }
     } catch (err) {
-      setRecipientData(prev => {
-        const data = prev[compositeKey];
-        if (!data) return prev;
-        return { ...prev, [compositeKey]: { ...data, error: `${t("pairing.failedToRemove")} ${String(err)}` } };
-      });
+      setRecipientUiState(prev => ({
+        ...prev,
+        [compositeKey]: { loading: false, error: `${t("pairing.failedToRemove")} ${String(err)}` },
+      }));
     } finally {
       setProcessing(null);
     }
   }
 
   async function handleOwnerToggle(compositeKey: string, channelId: string, accountId: string, recipientId: string, newValue: boolean) {
-    const data = recipientData[compositeKey];
-    if (!data) return;
-
-    const oldValue = data.owners[recipientId] ?? false;
-
-    // Optimistic update
-    setRecipientData(prev => ({
-      ...prev,
-      [compositeKey]: {
-        ...prev[compositeKey],
-        owners: { ...prev[compositeKey].owners, [recipientId]: newValue },
-      },
-    }));
-
     try {
-      await setRecipientOwner(channelId, recipientId, newValue, accountId);
-    } catch {
-      // Revert on failure
-      setRecipientData(prev => ({
+      await entityStore.channelManager.setRecipientOwner(channelId, recipientId, newValue, accountId);
+      if (channelId === "mobile") {
+        setMobileRecipientData(prev => {
+          const data = prev[compositeKey];
+          if (!data) return prev;
+          return {
+            ...prev,
+            [compositeKey]: {
+              ...data,
+              owners: { ...data.owners, [recipientId]: newValue },
+            },
+          };
+        });
+      }
+    } catch (err) {
+      setRecipientUiState(prev => ({
         ...prev,
-        [compositeKey]: {
-          ...prev[compositeKey],
-          owners: { ...prev[compositeKey].owners, [recipientId]: oldValue },
-        },
+        [compositeKey]: { loading: false, error: String(err) },
       }));
     }
   }
 
-  async function handleLabelBlur(compositeKey: string, channelId: string, accountId: string, recipientId: string, newLabel: string) {
-    const data = recipientData[compositeKey];
-    if (!data) return;
-
-    const oldLabel = data.labels[recipientId] || "";
+  async function handleLabelBlur(compositeKey: string, channelId: string, accountId: string, recipientId: string, oldLabel: string, newLabel: string) {
     if (newLabel === oldLabel) return;
 
     const saveKey = `${compositeKey}:${recipientId}`;
     savingLabelsRef.current.add(saveKey);
 
-    // Optimistic update
-    setRecipientData(prev => ({
-      ...prev,
-      [compositeKey]: {
-        ...prev[compositeKey],
-        labels: { ...prev[compositeKey].labels, [recipientId]: newLabel },
-      },
-    }));
-
     try {
-      await setRecipientLabel(channelId, recipientId, newLabel, accountId);
-    } catch {
-      // Revert on failure
-      setRecipientData(prev => ({
+      await entityStore.channelManager.setRecipientLabel(channelId, recipientId, newLabel, accountId);
+      if (channelId === "mobile") {
+        setMobileRecipientData(prev => {
+          const data = prev[compositeKey];
+          if (!data) return prev;
+          return {
+            ...prev,
+            [compositeKey]: {
+              ...data,
+              labels: { ...data.labels, [recipientId]: newLabel },
+            },
+          };
+        });
+      }
+    } catch (err) {
+      setRecipientUiState(prev => ({
         ...prev,
-        [compositeKey]: {
-          ...prev[compositeKey],
-          labels: { ...prev[compositeKey].labels, [recipientId]: oldLabel },
-        },
+        [compositeKey]: { loading: false, error: String(err) },
       }));
     } finally {
       savingLabelsRef.current.delete(saveKey);
@@ -408,11 +390,14 @@ export function ChannelAccountsTable({
     return t("pairing.timeDaysAgo", { count: diffDays });
   }
 
-  function renderExpandedRow(compositeKey: string, channelId: string, accountId: string) {
-    const data = recipientData[compositeKey];
-    if (!data) return null;
+  function renderExpandedRow(compositeKey: string, channelId: string, account: ChannelAccountSnapshot) {
+    const accountId = account.accountId;
+    const state = recipientUiState[compositeKey] ?? { loading: false, error: null };
+    const data = channelId === "mobile"
+      ? (mobileRecipientData[compositeKey] ?? emptyRecipients())
+      : normalizeRecipients(account);
 
-    if (data.loading) {
+    if (state.loading) {
       return (
         <tr className="channel-recipients-row">
           <td className="channel-expand-col"></td>
@@ -423,13 +408,13 @@ export function ChannelAccountsTable({
       );
     }
 
-    if (data.error) {
+    if (state.error) {
       return (
         <tr className="channel-recipients-row">
           <td className="channel-expand-col"></td>
           <td colSpan={6}>
             <div className="modal-error-box">
-              <strong>{t("channels.errorLabel")}</strong> {data.error}
+              <strong>{t("channels.errorLabel")}</strong> {state.error}
             </div>
           </td>
         </tr>
@@ -521,10 +506,11 @@ export function ChannelAccountsTable({
                           )}
                           <td>
                             <input
+                              key={`${entry}:${data.labels[entry] || ""}`}
                               className="recipient-label-input"
                               defaultValue={data.labels[entry] || ""}
                               placeholder={t("pairing.labelPlaceholder")}
-                              onBlur={e => handleLabelBlur(compositeKey, channelId, accountId, entry, e.target.value.trim())}
+                              onBlur={e => handleLabelBlur(compositeKey, channelId, accountId, entry, data.labels[entry] || "", e.target.value.trim())}
                             />
                           </td>
                           <td>
@@ -607,7 +593,7 @@ export function ChannelAccountsTable({
                         // Don't toggle when clicking buttons or inputs
                         const target = e.target as HTMLElement;
                         if (target.closest("button, a, input, select")) return;
-                        toggleExpand(channelId, account.accountId);
+                        toggleExpand(channelId, account);
                       }}
                     >
                       <td className="channel-expand-col">
@@ -648,7 +634,7 @@ export function ChannelAccountsTable({
                         </div>
                       </td>
                     </tr>
-                    {isExpanded && canExpand && renderExpandedRow(compositeKey, channelId, account.accountId)}
+                    {isExpanded && canExpand && renderExpandedRow(compositeKey, channelId, account)}
                   </Fragment>
                 );
               })

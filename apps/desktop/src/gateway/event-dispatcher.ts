@@ -66,7 +66,10 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
     // Fires for every inbound message except mobile/webchat (filtered in the
     // event-bridge extension). Emits `recipient-added` SSE only for brand-new
     // rows so the Panel can live-refresh without redundant traffic.
-    if (evt.event === "rivonclaw.recipient-seen") {
+    if (
+      evt.event === "plugin.rivonclaw.recipient-seen"
+      || evt.event === "rivonclaw.recipient-seen"
+    ) {
       const p = evt.payload as { channelId?: string; accountId?: string; recipientId?: string } | undefined;
       if (!p?.channelId || !p.recipientId) return;
 

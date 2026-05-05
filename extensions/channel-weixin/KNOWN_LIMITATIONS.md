@@ -1,5 +1,26 @@
 # Known Limitations
 
+## Web QR login provider metadata is missing upstream
+
+**Status:** Wrapper workaround in `extensions/channel-weixin/src/index.ts`
+**Upstream repo:** https://github.com/Tencent/openclaw-weixin
+**Affected versions:** <= 2.1.7
+
+RivonClaw starts WeChat QR login from the desktop UI through OpenClaw gateway
+RPC methods `web.login.start` and `web.login.wait`. The upstream Weixin plugin
+implements the QR login gateway handlers, but does not currently declare those
+methods in `ChannelPlugin.gatewayMethods`, so OpenClaw can fail provider
+discovery with `web login provider is not available`.
+
+Our wrapper declares the missing methods before registering the upstream channel
+plugin. Remove that wrapper patch after upstream ships the declaration and our
+supported `@tencent-weixin/openclaw-weixin` version range requires that release.
+
+**Upstream tracking:**
+- Issue: https://github.com/openclaw/openclaw/issues/62120
+- PR: https://github.com/Tencent/openclaw-weixin/pull/73
+- Prior art: https://github.com/netease-youdao/LobsterAI/pull/1592
+
 ## Voice messages lose quote context
 
 **Status:** Upstream bug in `@tencent-weixin/openclaw-weixin`

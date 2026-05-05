@@ -114,15 +114,6 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
           continue;
         }
 
-        const entry = entries[pluginId];
-        if (!isRecord(entry) || !isRecord(entry.hooks)) continue;
-
-        const hooks = entry.hooks;
-        if (Object.prototype.hasOwnProperty.call(hooks, "allowConversationAccess")) {
-          delete hooks.allowConversationAccess;
-          touched.push(`plugins.entries.${pluginId}.hooks.allowConversationAccess`);
-          if (Object.keys(hooks).length === 0) delete entry.hooks;
-        }
       }
     }
   }

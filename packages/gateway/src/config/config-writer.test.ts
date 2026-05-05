@@ -186,7 +186,9 @@ describe("config-writer", () => {
       });
       expect(config.plugins.allow).toContain("xai");
       expect(config.plugins.deny).not.toContain("xai");
-      expect(config.plugins.entries["rivonclaw-event-bridge"].hooks).toBeUndefined();
+      expect(config.plugins.entries["rivonclaw-event-bridge"].hooks).toEqual({
+        allowConversationAccess: true,
+      });
     });
 
     it("marks the WeChat QR bootstrap channel as managed", () => {

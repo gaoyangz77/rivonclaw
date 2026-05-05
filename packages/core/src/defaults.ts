@@ -66,7 +66,7 @@ export const DEFAULTS = {
     pairingCodeTtlMs: 60_000,
     usageCacheTtlMs: 30_000,
     channelProbeTimeoutMs: 8_000,
-    channelClientTimeoutMs: 10_000,
+    channelClientTimeoutMs: 25_000,
     agentReplyTimeoutMs: 60_000,
   },
 
