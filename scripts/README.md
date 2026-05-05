@@ -61,7 +61,8 @@ Promotes a draft GitHub Release (created by CI) to a public release. Run after C
 ./scripts/publish-release.sh 1.5.8     # explicit version
 ```
 
-Requires: `gh` CLI authenticated, draft release exists on GitHub.
+Requires: `gh` CLI authenticated, draft release exists on GitHub, and
+`apps/desktop/changelog.json` contains an entry for the release version.
 
 ## Verification & Auditing
 

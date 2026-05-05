@@ -533,22 +533,7 @@ jobs:
 
           # Generate release notes from changelog.json + install instructions
           VERSION="${{ steps.version.outputs.version }}"
-          node --input-type=commonjs <<'NODESCRIPT'
-            const changelog = require("./apps/desktop/changelog.json");
-            const fs = require("fs");
-            const ver = process.env.VERSION;
-            const entry = changelog.find(e => e.version === ver);
-            let body = "";
-            if (entry) {
-              body += "## What's New\n\n";
-              entry.en.forEach(line => { body += "- " + line + "\n"; });
-              body += "\n## 更新内容\n\n";
-              entry.zh.forEach(line => { body += "- " + line + "\n"; });
-              body += "\n---\n\n";
-            }
-            body += fs.readFileSync(".github/RELEASE_BODY.md", "utf-8");
-            fs.writeFileSync("/tmp/release-notes.md", body);
-          NODESCRIPT
+          node scripts/generate-release-notes.mjs "$VERSION" /tmp/release-notes.md
 
           # Create the draft release with release notes and all artifacts
           gh release create "$TAG" \

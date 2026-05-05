@@ -69,6 +69,12 @@ if [ "$ASSET_COUNT" -lt "$EXPECTED_ARTIFACTS" ]; then
   error "Expected at least $EXPECTED_ARTIFACTS artifacts on draft $NEWEST_DRAFT_ID, but found $ASSET_COUNT. CI build may be incomplete."
 fi
 
+# ---- Generate release notes from changelog.json ----
+RELEASE_NOTES_FILE=$(mktemp)
+trap 'rm -f "$RELEASE_NOTES_FILE"' EXIT
+node "$REPO_ROOT/scripts/generate-release-notes.mjs" "$VERSION" "$RELEASE_NOTES_FILE"
+info "Generated release notes from apps/desktop/changelog.json for $TAG."
+
 # ---- Ensure tag exists remotely (release object may exist before tag push) ----
 if git rev-parse "$TAG" &>/dev/null; then
   info "Tag $TAG already exists locally."
@@ -98,7 +104,8 @@ fi
 
 # ---- Publish the newest draft release ----
 info "Publishing draft release id=$NEWEST_DRAFT_ID for $TAG..."
-gh api -X PATCH "repos/gaoyangz77/rivonclaw/releases/$NEWEST_DRAFT_ID" -f draft=false -f make_latest=true >/dev/null
+jq -n --arg body "$(cat "$RELEASE_NOTES_FILE")" '{ draft: false, make_latest: "true", body: $body }' \
+  | gh api -X PATCH "repos/gaoyangz77/rivonclaw/releases/$NEWEST_DRAFT_ID" --input - >/dev/null
 
 # ---- Final verification ----
 FINAL_JSON=$(gh api repos/gaoyangz77/rivonclaw/releases --paginate | jq --arg tag "$TAG" '[.[] | select(.tag_name == $tag)]')
