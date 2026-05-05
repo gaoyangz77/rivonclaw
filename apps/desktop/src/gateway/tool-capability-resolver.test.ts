@@ -39,6 +39,10 @@ describe("parseScopeType", () => {
     expect(parseScopeType("agent:main:cs:tiktok:conv123")).toBe(ScopeType.CS_SESSION);
   });
 
+  it("returns AFFILIATE_SESSION for affiliate session", () => {
+    expect(parseScopeType("agent:main:affiliate:tiktok:conv123")).toBe(ScopeType.AFFILIATE_SESSION);
+  });
+
   it("defaults to CHAT_SESSION for unrecognized format", () => {
     expect(parseScopeType("random:unknown:key")).toBe(ScopeType.CHAT_SESSION);
   });
@@ -238,6 +242,23 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     setDefaultRunProfile("profile-entitled-1");
     const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv3");
     expect(result).toEqual([]);
+  });
+
+  it("AFFILIATE_SESSION is untrusted and requires an explicit RunProfile", () => {
+    setDefaultRunProfile("profile-entitled-1");
+    const empty = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.AFFILIATE_SESSION,
+      "agent:main:affiliate:tiktok:conv1",
+    );
+    expect(empty).toEqual([]);
+
+    rootStore.toolCapability.setSessionRunProfile("agent:main:affiliate:tiktok:conv1", "profile-entitled-2");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.AFFILIATE_SESSION,
+      "agent:main:affiliate:tiktok:conv1",
+    );
+    expect(result).toEqual(["entitled_tool_2"]);
+    expect(result).not.toContain("read");
   });
 
   // ── UNKNOWN scope ──

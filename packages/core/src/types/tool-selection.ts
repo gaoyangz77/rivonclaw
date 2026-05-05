@@ -1,5 +1,5 @@
 /** Scope types for tool selection — determines what context a tool selection is bound to */
-export type ToolScopeType = "chat_session" | "cron_job" | "cs_session" | "unknown";
+export type ToolScopeType = "chat_session" | "cron_job" | "cs_session" | "affiliate_session" | "unknown";
 
 /** Enum version of ToolScopeType for runtime validation and switch/case usage. */
 export enum ScopeType {
@@ -9,6 +9,8 @@ export enum ScopeType {
   CRON_JOB = "cron_job",
   /** Customer service sessions (CS bridge — untrusted, tools locked by bridge) */
   CS_SESSION = "cs_session",
+  /** Affiliate creator-management sessions (untrusted, tools locked by bridge/runtime) */
+  AFFILIATE_SESSION = "affiliate_session",
   /** Unrecognized session key format — untrusted, gets empty tools by default */
   UNKNOWN = "unknown",
 }
@@ -36,4 +38,3 @@ export interface ScopedToolConfig extends ToolSelectionScope {
   selectedTools: ToolSelection[];
   updatedAt: number;
 }
-

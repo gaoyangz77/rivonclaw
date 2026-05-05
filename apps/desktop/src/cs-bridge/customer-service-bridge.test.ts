@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CSNewMessageFrame } from "@rivonclaw/core";
+import type {
+  AffiliateNewMessageFrame,
+  AffiliateSampleApplicationUpdatedFrame,
+  CSNewMessageFrame,
+} from "@rivonclaw/core";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -108,12 +112,68 @@ function createFrame(overrides?: Partial<CSNewMessageFrame>): CSNewMessageFrame 
   };
 }
 
+function createAffiliateFrame(overrides?: Partial<AffiliateNewMessageFrame>): AffiliateNewMessageFrame {
+  return {
+    type: "affiliate_tiktok_new_message",
+    shopId: "tiktok-shop-456",
+    conversationId: "aff-conv-789",
+    imUserId: "creator-001",
+    messageId: "aff-msg-001",
+    messageType: "TEXT",
+    content: JSON.stringify({ content: "Can you send me a sample?" }),
+    senderRole: "CREATOR",
+    senderId: "creator-001",
+    createTime: 1234567890,
+    isVisible: true,
+    ...overrides,
+  };
+}
+
+function createAffiliateSampleFrame(
+  overrides?: Partial<AffiliateSampleApplicationUpdatedFrame>,
+): AffiliateSampleApplicationUpdatedFrame {
+  return {
+    type: "affiliate_tiktok_sample_application_updated",
+    shopId: "tiktok-shop-456",
+    applicationId: "sample-app-001",
+    creatorId: "creator-001",
+    productId: "product-001",
+    status: "PENDING_REVIEW",
+    eventTime: 1234567890,
+    ...overrides,
+  };
+}
+
 /** Invoke the private onNewMessage method. */
 async function triggerMessage(
   bridge: CustomerServiceBridge,
   frame: CSNewMessageFrame,
 ): Promise<void> {
   await (bridge as any).onNewMessage(frame);
+}
+
+/** Route an affiliate message through the domain inbound handler. */
+async function triggerAffiliateMessage(
+  bridge: CustomerServiceBridge,
+  frame: AffiliateNewMessageFrame,
+): Promise<void> {
+  await (bridge as any).affiliateInbound.handleFrame(frame);
+}
+
+async function triggerAffiliateSampleEvent(
+  bridge: CustomerServiceBridge,
+  frame: AffiliateSampleApplicationUpdatedFrame,
+): Promise<void> {
+  await (bridge as any).affiliateInbound.handleFrame(frame);
+}
+
+function seedAffiliateShopContext(bridge: CustomerServiceBridge): void {
+  (bridge as any).affiliateInbound.syncFromShops([{
+    id: defaultShop.objectId,
+    platformShopId: defaultShop.platformShopId,
+    shopName: defaultShop.shopName,
+    platform: "TIKTOK_SHOP",
+  }]);
 }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -158,6 +218,7 @@ beforeEach(() => {
   rootStore.ingestGraphQLResponse({
     runProfiles: [
       { id: "CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
+      { id: "AFFILIATE_OPERATOR", name: "Affiliate Operator", userId: "", surfaceId: "Default", selectedToolIds: ["affiliate_get_workspace", "affiliate_request_action", "affiliate_decide_proposal"] },
       { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
     ],
     surfaces: [],
@@ -168,6 +229,62 @@ beforeEach(() => {
   // `services.customerService.platformSystemPrompt`. Individual tests supply
   // the fixture value on each shop they seed (or omit it / set it to null to
   // exercise the "prompt not ready yet" path).
+});
+
+// ─── Affiliate creator-message dispatch ────────────────────────────────────
+
+describe("affiliate message dispatch", () => {
+  it("dispatches creator messages to an affiliate session without CS session registration", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopContext(bridge);
+
+    await triggerAffiliateMessage(bridge, createAffiliateFrame({ conversationId: "aff-conv-ABC" }));
+
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:affiliate:tiktok:aff-conv-ABC",
+      runProfileId: "AFFILIATE_OPERATOR",
+    });
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:main:affiliate:tiktok:aff-conv-ABC",
+        promptMode: "raw",
+        idempotencyKey: "affiliate:tiktok:aff-msg-001",
+        extraSystemPrompt: expect.stringContaining("affiliate_request_action"),
+      }),
+    );
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+  });
+
+  it("drops affiliate messages when the shop is not known locally", async () => {
+    const bridge = createBridge();
+
+    await triggerAffiliateMessage(bridge, createAffiliateFrame());
+
+    expect(mockRpcRequest).not.toHaveBeenCalled();
+    expect(setSessionRunProfileCalls).toHaveLength(0);
+  });
+
+  it("dispatches sample application events to an affiliate event session", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopContext(bridge);
+
+    await triggerAffiliateSampleEvent(bridge, createAffiliateSampleFrame());
+
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-001",
+      runProfileId: "AFFILIATE_OPERATOR",
+    });
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-001",
+        idempotencyKey: "affiliate:tiktok:sample:sample-app-001:PENDING_REVIEW:1234567890",
+        extraSystemPrompt: expect.stringContaining("Trigger Kind: SAMPLE_APPLICATION"),
+      }),
+    );
+  });
 });
 
 // ─── 1. Shop context management ─────────────────────────────────────────────

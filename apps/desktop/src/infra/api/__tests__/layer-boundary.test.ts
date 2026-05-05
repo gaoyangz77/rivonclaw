@@ -6,7 +6,7 @@ const SRC_ROOT = resolve(__dirname, "../../..");
 
 /** Domain directories — not app/ and not infra/ */
 const DOMAIN_DIRS = new Set([
-  "auth", "settings", "providers", "channels", "cs-bridge", "browser-profiles",
+  "auth", "settings", "providers", "channels", "cs-bridge", "affiliate", "ecommerce-relay", "browser-profiles",
   "mobile", "chat", "skills", "usage", "cloud", "deps", "doctor", "gateway",
   "updater", "stt", "telemetry", "tray", "i18n", "utils", "generated",
 ]);

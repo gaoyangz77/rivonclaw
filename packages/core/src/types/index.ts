@@ -32,6 +32,11 @@ export type {
   CustomerServiceConfig,
   CustomerServiceStatus,
   CustomerServicePlatformStatus,
+  PlatformAdapter,
+  CSAdminDirectiveParams,
+  CSEscalateParams,
+} from "./customer-service.js";
+export type {
   CSHelloFrame,
   CSInboundFrame,
   CSReplyFrame,
@@ -49,11 +54,14 @@ export type {
   CSBindingResolvedFrame,
   CSNewConversationFrame,
   CSNewMessageFrame,
+  AffiliateNewConversationFrame,
+  AffiliateNewMessageFrame,
+  AffiliateSampleApplicationUpdatedFrame,
+  AffiliateTargetCollaborationUpdatedFrame,
+  AffiliateOrderAttributedFrame,
   CSWSFrame,
-  PlatformAdapter,
-  CSAdminDirectiveParams,
-  CSEscalateParams,
-} from "./customer-service.js";
+  EcommerceRelayFrame,
+} from "./ecommerce-relay.js";
 export type {
   BrowserProfileId,
   BrowserProfileStatus,

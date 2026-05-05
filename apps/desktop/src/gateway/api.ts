@@ -21,11 +21,13 @@ const lastToolSignature = new Map<string, string>();
  * Rules (evaluated in order):
  * - Contains ":cron:" → CRON_JOB
  * - Contains ":cs:" → CS_SESSION
+ * - Contains ":affiliate:" → AFFILIATE_SESSION
  * - Everything else → CHAT_SESSION (covers ChatPage, Channels, etc.)
  */
 export function parseScopeType(sessionKey: string): ScopeType {
   if (sessionKey.includes(":cron:")) return ScopeType.CRON_JOB;
   if (sessionKey.includes(":cs:")) return ScopeType.CS_SESSION;
+  if (sessionKey.includes(":affiliate:")) return ScopeType.AFFILIATE_SESSION;
   return ScopeType.CHAT_SESSION;
 }
 

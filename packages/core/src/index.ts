@@ -36,7 +36,13 @@ export type {
   CSBindingResolvedFrame,
   CSNewConversationFrame,
   CSNewMessageFrame,
+  AffiliateNewConversationFrame,
+  AffiliateNewMessageFrame,
+  AffiliateSampleApplicationUpdatedFrame,
+  AffiliateTargetCollaborationUpdatedFrame,
+  AffiliateOrderAttributedFrame,
   CSWSFrame,
+  EcommerceRelayFrame,
   PlatformAdapter,
   CSEscalateParams,
 } from "./types/index.js";
