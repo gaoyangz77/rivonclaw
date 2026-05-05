@@ -55,11 +55,12 @@ const channelsStatus: EndpointHandler = async (req, res, url, _params, ctx: ApiC
 // ── GET /api/channels/accounts/:channelId/:accountId ──
 
 const getAccount: EndpointHandler = async (_req, res, _url, params, ctx: ApiContext) => {
-  const { storage } = ctx;
+  const cm = requireChannelManager(ctx, res);
+  if (!cm) return;
   const { channelId, accountId } = params;
 
   try {
-    const account = storage.channelAccounts.get(channelId, accountId);
+    const account = cm.getAccount(channelId, accountId);
     if (!account) {
       sendJson(res, 404, { error: "Channel account not found" });
       return;

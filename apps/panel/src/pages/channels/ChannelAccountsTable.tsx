@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { createPortal } from "react-dom";
 import { panelEventBus } from "../../lib/event-bus.js";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
@@ -35,6 +36,58 @@ function TruncatedId({ value, t }: { value: string; t: (key: string) => string }
         {copied ? t("pairing.copied") : "⧉"}
       </button>
     </span>
+  );
+}
+
+function WechatActivationWarning({ tooltip }: { tooltip: string }) {
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const [bubble, setBubble] = useState<{ top: number; left: number; placement: "top" | "bottom" } | null>(null);
+
+  const show = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const tooltipMaxWidth = Math.min(320, window.innerWidth - 32);
+    const halfWidth = tooltipMaxWidth / 2;
+    const left = Math.min(
+      Math.max(rect.left + rect.width / 2, halfWidth + 16),
+      window.innerWidth - halfWidth - 16,
+    );
+    const placement = rect.top > 72 ? "top" : "bottom";
+    setBubble({
+      top: placement === "top" ? rect.top : rect.bottom,
+      left,
+      placement,
+    });
+  }, []);
+
+  const hide = useCallback(() => setBubble(null), []);
+
+  return (
+    <>
+      <span
+        ref={triggerRef}
+        className="wechat-activation-warning"
+        aria-label={tooltip}
+        tabIndex={0}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+      >
+        !
+      </span>
+      {bubble && createPortal(
+        <div
+          className={`wechat-activation-tooltip wechat-activation-tooltip-${bubble.placement}`}
+          style={{ top: bubble.top, left: bubble.left }}
+          role="tooltip"
+        >
+          {tooltip}
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 
@@ -129,11 +182,12 @@ export function ChannelAccountsTable({
     if (nonMobileExpanded.length === 0) return;
 
     const unsubscribe = panelEventBus.subscribe("recipient-added", (raw) => {
-      const { channelId } = raw as { channelId: string };
-      // Find all expanded composite keys matching this channelId and refresh each
+      const { channelId, accountId } = raw as { channelId: string; accountId?: string };
+      // Find expanded composite keys matching this channelId/accountId and refresh each.
+      // Older events do not carry accountId, so fall back to channel-wide refresh.
       for (const key of nonMobileExpanded) {
         const [keyChannelId, keyAccountId] = key.split(":", 2);
-        if (keyChannelId === channelId) {
+        if (keyChannelId === channelId && (!accountId || keyAccountId === accountId)) {
           refreshRecipientData(channelId, keyAccountId);
         }
       }
@@ -183,11 +237,11 @@ export function ChannelAccountsTable({
       const next = new Set(prev);
       if (next.has(compositeKey)) {
         next.delete(compositeKey);
-      } else {
-        next.add(compositeKey);
-        // Lazy load data on first expand
-        if (!recipientData[compositeKey]) {
-          loadRecipientData(channelId, accountId);
+                      } else {
+                        next.add(compositeKey);
+                        // Lazy load data on first expand
+                        if (!recipientData[compositeKey]) {
+                          loadRecipientData(channelId, accountId);
         }
       }
       return next;
@@ -541,6 +595,8 @@ export function ChannelAccountsTable({
                 const isExpanded = expandedAccounts.has(compositeKey);
                 const canExpand = true;
                 const canEdit = channelId !== "mobile";
+                const needsWeixinActivation =
+                  channelId === "openclaw-weixin" && account.contextTokenReady === false;
                 return (
                   <Fragment key={rowKey}>
                     <tr
@@ -556,7 +612,14 @@ export function ChannelAccountsTable({
                       <td className="channel-expand-col">
                         {canExpand && <span className={`advanced-chevron${isExpanded ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>}
                       </td>
-                      <td className="font-medium">{channelLabel}</td>
+                      <td className="font-medium">
+                        <span className="channel-label-with-status">
+                          {needsWeixinActivation && (
+                            <WechatActivationWarning tooltip={t("channels.wechatContextTokenNotReadyTooltip")} />
+                          )}
+                          <span>{channelLabel}</span>
+                        </span>
+                      </td>
                       <td>{account.name || "\u2014"}</td>
                       <td><StatusBadge status={account.configured} t={t} /></td>
                       <td><StatusBadge status={account.running} t={t} /></td>

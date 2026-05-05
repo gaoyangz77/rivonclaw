@@ -19,6 +19,70 @@ import { OpenClawSchema } from "../generated/openclaw-schema.js";
 
 const log = createLogger("gateway:config");
 
+const WEB_SEARCH_PROVIDER_PLUGIN_IDS = {
+  brave: "brave",
+  perplexity: "perplexity",
+  grok: "xai",
+  gemini: "google",
+  kimi: "moonshot",
+} as const;
+
+function ensureRecord(parent: Record<string, unknown>, key: string): Record<string, unknown> {
+  const existing = parent[key];
+  if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+    return existing as Record<string, unknown>;
+  }
+  const next: Record<string, unknown> = {};
+  parent[key] = next;
+  return next;
+}
+
+function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>): string[] {
+  const plugins = config.plugins;
+  if (!plugins || typeof plugins !== "object" || Array.isArray(plugins)) return [];
+
+  const entries = (plugins as Record<string, unknown>).entries;
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) return [];
+
+  const removed: string[] = [];
+  for (const [pluginId, entry] of Object.entries(entries as Record<string, unknown>)) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+
+    const hooks = (entry as Record<string, unknown>).hooks;
+    if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) continue;
+    if (!Object.prototype.hasOwnProperty.call(hooks, "allowConversationAccess")) continue;
+
+    delete (hooks as Record<string, unknown>).allowConversationAccess;
+    removed.push(`plugins.entries.${pluginId}.hooks.allowConversationAccess`);
+    if (Object.keys(hooks as Record<string, unknown>).length === 0) {
+      delete (entry as Record<string, unknown>).hooks;
+    }
+  }
+
+  return removed;
+}
+
+function mergePluginWebSearchConfig(
+  config: Record<string, unknown>,
+  pluginId: string,
+  webSearch: Record<string, unknown>,
+  overwriteExisting: boolean,
+): void {
+  const plugins = ensureRecord(config, "plugins");
+  const entries = ensureRecord(plugins, "entries");
+  const entry = ensureRecord(entries, pluginId);
+  const entryConfig = ensureRecord(entry, "config");
+  const existingWebSearch =
+    entryConfig.webSearch && typeof entryConfig.webSearch === "object" && !Array.isArray(entryConfig.webSearch)
+      ? (entryConfig.webSearch as Record<string, unknown>)
+      : {};
+
+  entry.enabled = true;
+  entryConfig.webSearch = overwriteExisting
+    ? { ...existingWebSearch, ...webSearch }
+    : { ...webSearch, ...existingWebSearch };
+}
+
 /**
  * Strip keys that the OpenClaw Zod schema does not recognise at any nesting
  * level.  Uses `OpenClawSchema.safeParse()` to detect `unrecognized_keys`
@@ -978,7 +1042,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     // OpenClaw's audio providers automatically read from env vars.
   }
 
-  // Web search configuration via OpenClaw's tools.web.search
+  // Web search runtime selection plus provider-owned plugin config.  Newer
+  // OpenClaw moved API keys and provider-specific fields out of tools.web.search
+  // and into plugins.entries.<plugin>.config.webSearch.
   if (options.webSearch !== undefined) {
     const existingTools =
       typeof config.tools === "object" && config.tools !== null
@@ -989,18 +1055,48 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ? (existingTools.web as Record<string, unknown>)
         : {};
 
+    const searchConfig: Record<string, unknown> =
+      typeof existingWeb.search === "object" && existingWeb.search !== null
+        ? { ...(existingWeb.search as Record<string, unknown>) }
+        : {};
+    if (Object.prototype.hasOwnProperty.call(searchConfig, "apiKey")) {
+      mergePluginWebSearchConfig(config, "brave", { apiKey: searchConfig.apiKey }, false);
+    }
+    delete searchConfig.apiKey;
+    for (const [provider, pluginId] of Object.entries(WEB_SEARCH_PROVIDER_PLUGIN_IDS)) {
+      const providerConfig = searchConfig[provider];
+      if (providerConfig && typeof providerConfig === "object" && !Array.isArray(providerConfig)) {
+        mergePluginWebSearchConfig(config, pluginId, providerConfig as Record<string, unknown>, false);
+      }
+      delete searchConfig[provider];
+    }
+
     if (options.webSearch.enabled) {
-      const searchConfig: Record<string, unknown> = {
-        ...(typeof existingWeb.search === "object" && existingWeb.search !== null
-          ? (existingWeb.search as Record<string, unknown>)
-          : {}),
+      const pluginId = WEB_SEARCH_PROVIDER_PLUGIN_IDS[options.webSearch.provider];
+      const nextSearchConfig: Record<string, unknown> = {
+        ...searchConfig,
         enabled: true,
         provider: options.webSearch.provider,
       };
+      existingWeb.search = nextSearchConfig;
+
+      const plugins = ensureRecord(config, "plugins");
       if (options.webSearch.apiKeyEnvVar) {
-        searchConfig.apiKey = "${" + options.webSearch.apiKeyEnvVar + "}";
+        mergePluginWebSearchConfig(
+          config,
+          pluginId,
+          { apiKey: "${" + options.webSearch.apiKeyEnvVar + "}" },
+          true,
+        );
+      } else {
+        mergePluginWebSearchConfig(config, pluginId, {}, false);
       }
-      existingWeb.search = searchConfig;
+
+      const allow = Array.isArray(plugins.allow) ? (plugins.allow as string[]) : [];
+      plugins.allow = [...new Set([...allow, pluginId])];
+      if (Array.isArray(plugins.deny)) {
+        plugins.deny = (plugins.deny as string[]).filter((id) => id !== pluginId);
+      }
     } else {
       existingWeb.search = { enabled: false };
     }
@@ -1228,30 +1324,20 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
   }
 
-  // Some channels need to be recognised by the vendor's plugin loader even
-  // before any accounts exist:
-  // - Mobile uses a separate pairing system (mobile_pairings table), not
-  //   channel_accounts, so it never appears in the channelAccounts loop below.
+  // Some accountless channels need to be recognised by the vendor's plugin
+  // loader before regular channel account config exists:
   // - openclaw-weixin requires its plugin loaded for QR login bootstrap —
   //   accounts are only created *after* QR login succeeds, so the plugin must
   //   be available before any account config exists.
-  // Mark both as managed so listPotentialConfiguredChannelIds() includes them.
   // - mobile is still owned by SQLite pairings, but OpenClaw v2026.5.2 only
   //   starts external channel plugins when the matching channel has a config
-  //   presence signal. Without this marker, the enabled mobile plugin is
-  //   discovered but never loaded, so desktop RPCs like mobile_chat_start_sync
-  //   fail with "unknown method".
+  //   presence signal. When the mobile plugin is enabled, add that marker so
+  //   desktop RPCs like mobile_chat_start_sync are registered.
   {
     const existingChannels =
       typeof config.channels === "object" && config.channels !== null
         ? (config.channels as Record<string, unknown>)
         : {};
-
-    const existingMobile =
-      typeof existingChannels.mobile === "object" && existingChannels.mobile !== null
-        ? (existingChannels.mobile as Record<string, unknown>)
-        : {};
-    existingChannels.mobile = { ...existingMobile, managed: true };
 
     const existingWeixin =
       typeof existingChannels["openclaw-weixin"] === "object" && existingChannels["openclaw-weixin"] !== null
@@ -1287,27 +1373,33 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 
   // Write channel accounts from SQLite back into config.channels so the config
   // file can be fully reconstructed from the database (SQLite = source of truth).
-  // This ensures that even if the config file is deleted or corrupted, all
-  // channel accounts are restored on the next startup.
+  // For channels present in the SQLite snapshot, replace the whole accounts map:
+  // a merge would keep deleted accounts in openclaw.json and let the gateway
+  // start stale channel instances after the UI/database already removed them.
   if (options.channelAccounts && options.channelAccounts.length > 0) {
     const channels =
       typeof config.channels === "object" && config.channels !== null
-        ? (config.channels as Record<string, Record<string, unknown>>)
+        ? (config.channels as Record<string, unknown>)
         : {};
+    const accountsByChannel = new Map<string, Record<string, Record<string, unknown>>>();
+
     for (const acct of options.channelAccounts) {
-      if (!channels[acct.channelId] || typeof channels[acct.channelId] !== "object") {
-        channels[acct.channelId] = {};
+      let accounts = accountsByChannel.get(acct.channelId);
+      if (!accounts) {
+        accounts = {};
+        accountsByChannel.set(acct.channelId, accounts);
       }
-      const channel = channels[acct.channelId] as Record<string, unknown>;
-      if (!channel.accounts || typeof channel.accounts !== "object") {
-        channel.accounts = {};
-      }
-      const accounts = channel.accounts as Record<string, unknown>;
-      // Only write if missing — don't overwrite config that may have been
-      // updated by writeChannelAccount() more recently than the SQLite snapshot.
-      if (!accounts[acct.accountId]) {
-        accounts[acct.accountId] = acct.config;
-      }
+      accounts[acct.accountId] = acct.config;
+    }
+
+    for (const [channelId, accounts] of accountsByChannel) {
+      const existingChannel =
+        typeof channels[channelId] === "object" &&
+        channels[channelId] !== null &&
+        !Array.isArray(channels[channelId])
+          ? (channels[channelId] as Record<string, unknown>)
+          : {};
+      channels[channelId] = { ...existingChannel, accounts };
     }
     config.channels = channels;
   }
@@ -1343,6 +1435,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   const removedKeys = stripUnknownKeys(config);
   if (removedKeys.length > 0) {
     log.warn(`Stripped unknown config keys: ${removedKeys.join(", ")}`);
+  }
+
+  // OpenClaw source accepts allowConversationAccess, but the upgraded runtime
+  // dist currently bundled with EasyClaw rejects it during startup validation.
+  // Strip it after our generated-schema pass so gateway startup stays healthy.
+  const removedRuntimeCompatKeys = removeRuntimeIncompatiblePluginHookKeys(config);
+  if (removedRuntimeCompatKeys.length > 0) {
+    log.warn(`Stripped runtime-incompatible config keys: ${removedRuntimeCompatKeys.join(", ")}`);
   }
 
   // Fix semantic validation errors (e.g. dmPolicy="allowlist" without allowFrom)

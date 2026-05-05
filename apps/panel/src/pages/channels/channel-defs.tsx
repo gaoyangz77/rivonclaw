@@ -33,6 +33,9 @@ export interface MstChannelAccountLike {
   accountId: string;
   name: string | null;
   config: Record<string, unknown>;
+  status?: {
+    hasContextToken?: boolean | null;
+  };
 }
 
 /** Runtime status fields overlaid from the gateway snapshot. */
@@ -171,6 +174,9 @@ function buildAccountWithRuntime(
   if (merged.streamMode == null && typeof cfg.streamMode === "string") merged.streamMode = cfg.streamMode;
   if (merged.mode == null && typeof cfg.mode === "string") merged.mode = cfg.mode;
   if (merged.webhookUrl == null && typeof cfg.webhookUrl === "string") merged.webhookUrl = cfg.webhookUrl;
+  if (mst.status?.hasContextToken !== undefined) {
+    merged.contextTokenReady = mst.status.hasContextToken;
+  }
 
   return merged;
 }
@@ -208,6 +214,9 @@ function buildAccountWithoutRuntime(mst: MstChannelAccountLike): ChannelAccountS
   if (typeof cfg.streamMode === "string") account.streamMode = cfg.streamMode;
   if (typeof cfg.mode === "string") account.mode = cfg.mode;
   if (typeof cfg.webhookUrl === "string") account.webhookUrl = cfg.webhookUrl;
+  if (mst.status?.hasContextToken !== undefined) {
+    account.contextTokenReady = mst.status.hasContextToken;
+  }
 
   return account;
 }

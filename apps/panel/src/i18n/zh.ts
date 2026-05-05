@@ -477,6 +477,7 @@ export default {
     colMode: "模式 / 状态",
     colActions: "操作",
     noAccountsConfigured: "此通道暂无账号",
+    wechatContextTokenNotReadyTooltip: "微信已连接，但还没有可用于主动发送消息的上下文凭证。请先用这个微信号主动给 bot 发一条消息完成确认。",
     // Channel labels
     channelTelegram: "Telegram",
     channelWhatsApp: "WhatsApp",
@@ -743,7 +744,7 @@ export default {
     gatewayUnavailable: "网关未连接，请先启动网关。",
     autoRefresh: "{{seconds}}秒后自动刷新",
     refreshing: "正在刷新二维码...",
-    weixinActivationHint: "请在微信里向 bot 发送第一条消息以激活此 channel，自己会自动加入允许列表。",
+    weixinActivationHint: "微信已连接成功。请在微信里主动给 bot 发送一条消息完成确认，否则无法主动发送消息。",
   },
   mobile: {
     description: "扫码直连手机，零配置零门槛，随时随地与AI助手对话。",
@@ -2538,6 +2539,10 @@ export default {
     deleteFailed: "断开店铺失败，请重试。",
     updateFailed: "更新店铺设置失败，请重试。",
     upgradeRequired: "此功能需要订阅。请升级你的套餐。",
+    customerServiceRoutingUnavailableTitle: "当前设备上的 AI 客服不可用",
+    customerServiceRoutingUnavailableBody: "以下店铺已选择本机作为客服接收设备，但升级接收渠道不可用。请重新选择存在的渠道，或完成微信消息凭证确认。",
+    customerServiceRoutingIssue_invalid_channel: "渠道不存在",
+    customerServiceRoutingIssue_missing_context_token: "微信缺少主动发送消息所需的上下文凭证",
     shopUpdatedToast: "店铺「{{shopName}}」已更新。",
   },
 } as const;

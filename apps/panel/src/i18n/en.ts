@@ -478,6 +478,7 @@ export default {
     colMode: "Mode / Status",
     colActions: "Actions",
     noAccountsConfigured: "No accounts configured for this channel",
+    wechatContextTokenNotReadyTooltip: "WeChat is connected, but it does not yet have the context token required for proactive outbound messages. Send one message from this WeChat account to the bot to confirm activation.",
     // Channel labels
     channelTelegram: "Telegram",
     channelWhatsApp: "WhatsApp",
@@ -754,7 +755,7 @@ export default {
     gatewayUnavailable: "Gateway is not connected. Please start the gateway first.",
     autoRefresh: "Auto-refresh in {{seconds}}s",
     refreshing: "Refreshing QR code...",
-    weixinActivationHint: "Please send your first WeChat message to the bot to activate this channel and add yourself to the allowlist.",
+    weixinActivationHint: "WeChat is connected. Please send one message to the bot in WeChat to confirm activation; otherwise proactive outbound messages may not be delivered.",
   },
   mobile: {
     description: "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",
@@ -2550,6 +2551,10 @@ export default {
     deleteFailed: "Failed to disconnect shop. Please try again.",
     updateFailed: "Failed to update shop settings. Please try again.",
     upgradeRequired: "This feature requires a subscription. Please upgrade your plan.",
+    customerServiceRoutingUnavailableTitle: "AI customer service is unavailable on this device",
+    customerServiceRoutingUnavailableBody: "The following shops use this device for customer service, but their escalation recipient channel is unavailable. Select an existing channel, or complete WeChat message-token activation.",
+    customerServiceRoutingIssue_invalid_channel: "Channel no longer exists",
+    customerServiceRoutingIssue_missing_context_token: "WeChat is missing the context token required for proactive outbound messages",
     shopUpdatedToast: "Shop \"{{shopName}}\" has been updated.",
   },
 } as const;

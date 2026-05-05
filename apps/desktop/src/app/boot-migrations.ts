@@ -40,7 +40,7 @@ const log = createLogger("boot-migrations");
 // BEFORE this phase — otherwise a stale gateway could race the migration.
 export async function runPostConfigMigrations(configPath: string): Promise<void> {
   // [1] v1.7.14 · remove after v1.9.0
-  // Canonicalize WeChat account keys in openclaw.json from the plugin's
+  // Canonicalize WeChat account keys and local state sidecars from the plugin's
   // raw `xxx@im.bot` form to the canonical dash form `xxx-im-bot`. Paired
   // with SQLite migration 27 (packages/storage) which does the same for
   // `channel_accounts`. See `normalizeWeixinAccountId` in @rivonclaw/core.

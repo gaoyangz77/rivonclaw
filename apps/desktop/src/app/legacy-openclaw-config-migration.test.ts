@@ -56,4 +56,59 @@ describe("migrateLegacyOpenClawConfig", () => {
       "rivonclaw-policy": { enabled: true },
     });
   });
+
+  it("migrates provider-owned web search config and incompatible hook policy", () => {
+    const configPath = makeConfigPath();
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        tools: {
+          web: {
+            search: {
+              enabled: true,
+              provider: "grok",
+              apiKey: "${RIVONCLAW_WS_BRAVE_APIKEY}",
+              grok: {
+                apiKey: "${RIVONCLAW_WS_GROK_APIKEY}",
+                model: "grok-4-search",
+              },
+              kimi: {
+                model: "kimi-k2.5",
+              },
+            },
+          },
+        },
+        plugins: {
+          entries: {
+            "rivonclaw-event-bridge": {
+              enabled: true,
+              hooks: { allowConversationAccess: true },
+            },
+          },
+        },
+      }, null, 2),
+      "utf-8",
+    );
+
+    migrateLegacyOpenClawConfig(configPath);
+
+    const config = readConfig(configPath) as {
+      tools: { web: { search: Record<string, unknown> } };
+      plugins: { entries: Record<string, { config?: Record<string, unknown>; hooks?: unknown }> };
+    };
+    expect(config.tools.web.search).toEqual({ enabled: true, provider: "grok" });
+    expect(config.plugins.entries.brave.config).toEqual({
+      webSearch: { apiKey: "${RIVONCLAW_WS_BRAVE_APIKEY}" },
+    });
+    expect(config.plugins.entries.xai.config).toEqual({
+      webSearch: {
+        apiKey: "${RIVONCLAW_WS_GROK_APIKEY}",
+        model: "grok-4-search",
+      },
+    });
+    expect(config.plugins.entries.moonshot.config).toEqual({
+      webSearch: { model: "kimi-k2.5" },
+    });
+    expect(config.plugins.entries["rivonclaw-event-bridge"].hooks).toBeUndefined();
+  });
 });

@@ -2531,6 +2531,39 @@ tbody td {
   border-top-color: var(--color-warning, #b45309);
 }
 
+.customer-service-routing-banner {
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.customer-service-routing-banner-title {
+  font-weight: 700;
+}
+
+.customer-service-routing-banner-items {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.customer-service-routing-banner-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.customer-service-routing-banner-item span {
+  opacity: 0.86;
+}
+
 .update-progress-bar {
   height: 4px;
   background: var(--color-border);
@@ -3374,6 +3407,55 @@ tbody td {
 .id-copy-btn.copied {
   border-color: var(--color-success, #22c55e);
   color: var(--color-success, #22c55e);
+}
+
+.channel-label-with-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wechat-activation-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 119, 6, 0.42);
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.wechat-activation-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-text);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.wechat-activation-tooltip-top {
+  transform: translate(-50%, calc(-100% - 8px));
+}
+
+.wechat-activation-tooltip-bottom {
+  transform: translate(-50%, 8px);
 }
 
 .recipient-label-input {
@@ -4351,6 +4433,12 @@ tbody td {
 
 [data-theme="dark"] .badge-warning {
   background-color: rgba(255, 176, 32, 0.12);
+  color: #ffb020;
+}
+
+[data-theme="dark"] .wechat-activation-warning {
+  border-color: rgba(255, 176, 32, 0.46);
+  background: rgba(255, 176, 32, 0.14);
   color: #ffb020;
 }
 

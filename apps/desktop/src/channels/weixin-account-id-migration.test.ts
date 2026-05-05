@@ -1,18 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { migrateWeixinAccountKeys } from "./weixin-account-id-migration.js";
 
 let dir: string;
 let configPath: string;
+let previousStateDir: string | undefined;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "weixin-mig-"));
   configPath = join(dir, "openclaw.json");
+  previousStateDir = process.env.OPENCLAW_STATE_DIR;
+  process.env.OPENCLAW_STATE_DIR = dir;
 });
 
 afterEach(() => {
+  if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+  else process.env.OPENCLAW_STATE_DIR = previousStateDir;
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -142,5 +147,58 @@ describe("migrateWeixinAccountKeys", () => {
     const after = JSON.parse(readFileSync(configPath, "utf-8"));
     const keys = Object.keys(after.channels["openclaw-weixin"].accounts).sort();
     expect(keys).toEqual(["a-im-bot", "b-im-wechat", "c-im-bot"]);
+  });
+
+  it("renames legacy raw weixin state sidecars to canonical file names", () => {
+    const accountsDir = join(dir, "openclaw-weixin", "accounts");
+    mkdirSync(accountsDir, { recursive: true });
+    writeFileSync(join(accountsDir, "abc123@im.bot.json"), JSON.stringify({ token: "secret" }), "utf-8");
+    writeFileSync(join(accountsDir, "abc123@im.bot.sync.json"), JSON.stringify({ cursor: 1 }), "utf-8");
+    writeFileSync(
+      join(accountsDir, "abc123@im.bot.context-tokens.json"),
+      JSON.stringify({ "manager@im.wechat": "token-1" }),
+      "utf-8",
+    );
+
+    migrateWeixinAccountKeys(configPath);
+
+    expect(existsSync(join(accountsDir, "abc123@im.bot.json"))).toBe(false);
+    expect(existsSync(join(accountsDir, "abc123@im.bot.sync.json"))).toBe(false);
+    expect(existsSync(join(accountsDir, "abc123@im.bot.context-tokens.json"))).toBe(false);
+    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.json"), "utf-8"))).toEqual({ token: "secret" });
+    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.sync.json"), "utf-8"))).toEqual({ cursor: 1 });
+    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.context-tokens.json"), "utf-8"))).toEqual({
+      "manager@im.wechat": "token-1",
+    });
+  });
+
+  it("merges legacy raw context tokens into an existing canonical context-token file", () => {
+    const accountsDir = join(dir, "openclaw-weixin", "accounts");
+    mkdirSync(accountsDir, { recursive: true });
+    writeFileSync(
+      join(accountsDir, "abc123@im.bot.context-tokens.json"),
+      JSON.stringify({
+        "legacy@im.wechat": "legacy-token",
+        "shared@im.wechat": "legacy-shared-token",
+      }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(accountsDir, "abc123-im-bot.context-tokens.json"),
+      JSON.stringify({
+        "current@im.wechat": "current-token",
+        "shared@im.wechat": "current-shared-token",
+      }),
+      "utf-8",
+    );
+
+    migrateWeixinAccountKeys(configPath);
+
+    expect(existsSync(join(accountsDir, "abc123@im.bot.context-tokens.json"))).toBe(false);
+    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.context-tokens.json"), "utf-8"))).toEqual({
+      "legacy@im.wechat": "legacy-token",
+      "current@im.wechat": "current-token",
+      "shared@im.wechat": "current-shared-token",
+    });
   });
 });

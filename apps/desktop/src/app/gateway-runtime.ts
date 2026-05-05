@@ -15,7 +15,6 @@ import { getCsBridge } from "../gateway/connection.js";
 import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
-import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
 import { ensurePackagedOpenClawRuntimeDepsStage } from "./openclaw-runtime-deps-stage.js";
 
 export interface SetupGatewayDeps {
@@ -89,11 +88,9 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   const dispatchGatewayEvent = createGatewayEventDispatcher({
     broadcastEvent,
     chatSessions: storage.chatSessions,
-    storage: { channelRecipients: storage.channelRecipients },
-    // New recipient-seen rows are provisioned as owners by default (single-operator
-    // is the common case). Keep `commands.ownerAllowFrom` in the OpenClaw config in
-    // sync with SQLite whenever a new owner row is inserted.
-    onOwnerAdded: () => syncOwnerAllowFrom(storage, configPath),
+    onRecipientSeen: ({ channelId, accountId, recipientId }) => {
+      return rootStore.channelManager.recordRecipientSeen({ channelId, accountId, recipientId });
+    },
   });
   const handleGatewayEvent: GatewayEventHandler = (evt) => {
     // CS bridge still needs the raw gateway stream for per-turn forwarding.

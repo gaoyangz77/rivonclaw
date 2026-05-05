@@ -322,6 +322,21 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
     }
   },
 
+  /** Update ephemeral channel account status derived from local runtime state. */
+  updateChannelAccountStatus(channelId: string, accountId: string, status: Record<string, unknown>) {
+    const account = self.channelAccounts.find(
+      (a) => a.channelId === channelId && a.accountId === accountId,
+    );
+    if (!account) return;
+    applySnapshot(account, {
+      ...getSnapshot(account),
+      status: {
+        ...(getSnapshot(account).status ?? {}),
+        ...status,
+      },
+    });
+  },
+
   /** Remove a channel account by composite key. */
   removeChannelAccount(channelId: string, accountId: string) {
     const idx = self.channelAccounts.findIndex(

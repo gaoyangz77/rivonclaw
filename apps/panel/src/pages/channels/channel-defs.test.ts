@@ -137,6 +137,60 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(result[0]!.account.name).toBe("Correct Name");
   });
 
+  it("preserves WeChat context-token readiness from MST status", () => {
+    const result = buildAccountsList(
+      [mst({
+        channelId: "openclaw-weixin",
+        accountId: "wx-1",
+        name: "Support WeChat",
+        status: { hasContextToken: false },
+      })],
+      snapshot({
+        "openclaw-weixin": [{
+          accountId: "wx-1",
+          running: true,
+        }],
+      }),
+      t,
+    );
+
+    expect(result[0]!.account.contextTokenReady).toBe(false);
+  });
+
+  it("uses MST status when snapshot is missing", () => {
+    const result = buildAccountsList(
+      [mst({
+        channelId: "openclaw-weixin",
+        accountId: "wx-1",
+        name: "Support WeChat",
+        status: { hasContextToken: false },
+      })],
+      null,
+      t,
+    );
+
+    expect(result[0]!.account.contextTokenReady).toBe(false);
+  });
+
+  it("does not let runtime override explicit MST context-token readiness", () => {
+    const result = buildAccountsList(
+      [mst({
+        channelId: "openclaw-weixin",
+        accountId: "wx-1",
+        status: { hasContextToken: true },
+      })],
+      snapshot({
+        "openclaw-weixin": [{
+          accountId: "wx-1",
+          running: true,
+        }],
+      }),
+      t,
+    );
+
+    expect(result[0]!.account.contextTokenReady).toBe(true);
+  });
+
   it("respects enabled=false from MST config when snapshot is missing", () => {
     const result = buildAccountsList(
       [mst({ config: { enabled: false } })],
