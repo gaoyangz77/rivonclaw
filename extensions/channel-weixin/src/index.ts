@@ -4,6 +4,7 @@ import upstreamPlugin from "@tencent-weixin/openclaw-weixin/index.ts";
 // only forwards { timeoutMs, accountId } to the plugin, dropping sessionKey.
 // We capture it from loginWithQrStart and inject it into loginWithQrWait.
 let lastSessionKey = "";
+let latestQrStartSeq = 0;
 
 function normalizeWeixinTarget(raw: string): string {
   const trimmed = raw.trim();
@@ -14,6 +15,26 @@ function normalizeWeixinTarget(raw: string): string {
     return trimmed.slice("user:".length).trim();
   }
   return trimmed;
+}
+
+function isSessionExpiredMessage(message: string): boolean {
+  return message.includes("session expired") && message.includes("errcode -14");
+}
+
+function markWeixinSessionExpired(ctx: unknown, message: string): void {
+  const c = ctx as {
+    account?: { accountId?: string };
+    setStatus?: (next: Record<string, unknown>) => void;
+  };
+  const accountId = c.account?.accountId;
+  if (!accountId || typeof c.setStatus !== "function") return;
+
+  c.setStatus({
+    accountId,
+    running: false,
+    lastError: message,
+    lastEventAt: Date.now(),
+  });
 }
 
 const plugin = {
@@ -29,13 +50,47 @@ const plugin = {
       // Patch 2: bridge sessionKey between loginWithQrStart and loginWithQrWait.
       const gw = opts.plugin.gateway as Record<string, (...args: unknown[]) => Promise<unknown>> | undefined;
       if (gw) {
+        const origStartAccount = gw.startAccount;
         const origStart = gw.loginWithQrStart;
         const origWait = gw.loginWithQrWait;
 
+        if (origStartAccount) {
+          gw.startAccount = async (ctx: unknown) => {
+            const c = ctx as {
+              runtime?: {
+                error?: (message: string) => void;
+                [key: string]: unknown;
+              };
+              [key: string]: unknown;
+            };
+            const originalRuntime = c.runtime;
+            c.runtime = {
+              ...originalRuntime,
+              error: (message: string) => {
+                originalRuntime?.error?.(message);
+                if (isSessionExpiredMessage(message)) {
+                  markWeixinSessionExpired(ctx, message);
+                }
+              },
+            };
+
+            try {
+              return await origStartAccount(ctx);
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              if (isSessionExpiredMessage(message)) {
+                markWeixinSessionExpired(ctx, message);
+              }
+              throw err;
+            }
+          };
+        }
+
         if (origStart) {
           gw.loginWithQrStart = async (params: unknown) => {
+            const seq = ++latestQrStartSeq;
             const result = await origStart(params) as Record<string, unknown>;
-            if (typeof result.sessionKey === "string") {
+            if (seq === latestQrStartSeq && typeof result.sessionKey === "string") {
               lastSessionKey = result.sessionKey;
             }
             return result;

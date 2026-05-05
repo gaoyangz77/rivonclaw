@@ -135,13 +135,103 @@ describe("config-writer", () => {
       expect(config.plugins.entries).toEqual({ "my-plugin": { enabled: true } });
     });
 
-    it("marks accountless bootstrap channels as managed", () => {
+    it("writes web search API keys into provider plugin config", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          tools: {
+            web: {
+              search: {
+                enabled: true,
+                provider: "brave",
+                apiKey: "legacy-brave-key",
+                grok: { apiKey: "legacy-xai-key" },
+              },
+            },
+          },
+          plugins: {
+            deny: ["xai"],
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        plugins: {
+          allow: ["rivonclaw-event-bridge"],
+          entries: {
+            "rivonclaw-event-bridge": {
+              enabled: true,
+              hooks: { allowConversationAccess: true },
+            },
+          },
+        },
+        webSearch: {
+          enabled: true,
+          provider: "grok",
+          apiKeyEnvVar: "RIVONCLAW_WS_GROK_APIKEY",
+        },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.tools.web.search).toEqual({ enabled: true, provider: "grok" });
+      expect(config.plugins.entries.xai).toEqual({
+        enabled: true,
+        config: {
+          webSearch: {
+            apiKey: "${RIVONCLAW_WS_GROK_APIKEY}",
+          },
+        },
+      });
+      expect(config.plugins.allow).toContain("xai");
+      expect(config.plugins.deny).not.toContain("xai");
+      expect(config.plugins.entries["rivonclaw-event-bridge"].hooks).toBeUndefined();
+    });
+
+    it("marks the WeChat QR bootstrap channel as managed", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({ configPath });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.mobile).toEqual({ managed: true });
       expect(config.channels["openclaw-weixin"]).toEqual({ managed: true });
+    });
+
+    it("replaces managed channel accounts from the SQLite snapshot", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            "openclaw-weixin": {
+              managed: true,
+              accounts: {
+                "old-account-im-bot": { name: "old", userId: "old-user@im.wechat" },
+                "current-account-im-bot": { name: "stale", userId: "stale-user@im.wechat" },
+              },
+            },
+            mobile: { managed: true },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        channelAccounts: [
+          {
+            channelId: "openclaw-weixin",
+            accountId: "current-account-im-bot",
+            config: { name: "fresh", userId: "fresh-user@im.wechat" },
+          },
+        ],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels["openclaw-weixin"].accounts).toEqual({
+        "current-account-im-bot": { name: "fresh", userId: "fresh-user@im.wechat" },
+      });
+      expect(config.channels["openclaw-weixin"].managed).toBe(true);
+      expect(config.channels.mobile).toEqual({ managed: true });
     });
 
     it("creates config file with extra skill dirs", () => {

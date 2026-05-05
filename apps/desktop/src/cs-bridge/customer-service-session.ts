@@ -21,7 +21,7 @@
 import crypto from "node:crypto";
 import { join } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
-import { ScopeType, GQL, type CSNewMessageFrame } from "@rivonclaw/core";
+import { ScopeType, GQL, type CSNewMessageFrame, normalizeWeixinAccountId } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
@@ -46,6 +46,7 @@ import {
 } from "../cloud/cs-queries.js";
 
 const log = createLogger("cs-session");
+const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 
 function classifyDeliveryFailure(err: unknown): {
   reason: string;
@@ -854,6 +855,23 @@ export class CustomerServiceSession {
     const colonIdx = escalationChannelId.indexOf(":");
     const channel = escalationChannelId.slice(0, colonIdx);
     const accountId = escalationChannelId.slice(colonIdx + 1);
+    const outboundAccountId = channel === WEIXIN_CHANNEL_ID
+      ? normalizeWeixinAccountId(accountId)
+      : accountId;
+
+    if (
+      channel === WEIXIN_CHANNEL_ID
+      && !rootStore.channelManager.hasWeixinContextTokenForRecipient(outboundAccountId, escalationRecipientId)
+    ) {
+      this.emitError(CS_ERROR_STAGE.ESCALATE, {
+        reason: "missing_weixin_context_token",
+        errorMessage: `recipient=${escalationRecipientId} account=${outboundAccountId}`,
+      });
+      return {
+        ok: false,
+        error: "WeChat escalation recipient is not active yet. Ask this WeChat account to send one message to the agent first.",
+      };
+    }
 
     const lines = [
       "CS Escalation",
@@ -873,7 +891,7 @@ export class CustomerServiceSession {
       await openClawConnector.request("send", {
         to: escalationRecipientId,
         channel,
-        accountId,
+        accountId: outboundAccountId,
         message: lines.join("\n"),
         idempotencyKey: `cs-escalate:${escalation.id}:${Date.now()}`,
       });

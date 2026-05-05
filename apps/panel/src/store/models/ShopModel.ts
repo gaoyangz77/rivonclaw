@@ -7,7 +7,45 @@ import {
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
-export const ShopModel = ShopModelBase.actions((self) => {
+export interface ChannelAccountForRouting {
+  channelId: string;
+  accountId: string;
+  config: Record<string, unknown>;
+  status?: {
+    hasContextToken?: boolean | null;
+  };
+}
+
+export type CustomerServiceRoutingIssue = "invalid_channel" | "missing_context_token";
+
+export const ShopModel = ShopModelBase.views((self) => ({
+  getCustomerServiceRoutingIssue(params: {
+    currentDeviceId: string | null;
+    channelAccounts: readonly ChannelAccountForRouting[];
+  }): CustomerServiceRoutingIssue | null {
+    const cs = self.services?.customerService;
+    if (!cs?.enabled || !params.currentDeviceId || cs.csDeviceId !== params.currentDeviceId) return null;
+
+    const escalationChannelId = cs.escalationChannelId?.trim();
+    if (!escalationChannelId) return null;
+
+    const colonIdx = escalationChannelId.indexOf(":");
+    if (colonIdx <= 0 || colonIdx === escalationChannelId.length - 1) return "invalid_channel";
+
+    const channelId = escalationChannelId.slice(0, colonIdx);
+    const accountId = escalationChannelId.slice(colonIdx + 1);
+    const account = params.channelAccounts.find((candidate) => (
+      candidate.channelId === channelId && candidate.accountId === accountId
+    ));
+    if (!account) return "invalid_channel";
+
+    if (channelId === "openclaw-weixin" && account.status?.hasContextToken === false) {
+      return "missing_context_token";
+    }
+
+    return null;
+  },
+})).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
   return {

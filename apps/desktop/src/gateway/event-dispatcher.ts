@@ -9,18 +9,10 @@ export interface GatewayEventDispatcherDeps {
     getByKey(key: string): { archivedAt: number | null } | undefined;
     upsert(key: string, data: { archivedAt: null }): void;
   };
-  storage: {
-    channelRecipients: {
-      ensureExists(channelId: string, recipientId: string, isOwner?: boolean): boolean;
-    };
+  onRecipientSeen?: (params: { channelId: string; accountId?: string; recipientId: string }) => {
+    inserted: boolean;
+    membershipChanged: boolean;
   };
-  /**
-   * Fired when a NEW owner recipient row is inserted via `rivonclaw.recipient-seen`.
-   * Wired by gateway-runtime.ts to `syncOwnerAllowFrom(storage, configPath)` so the
-   * OpenClaw `commands.ownerAllowFrom` stays in sync with SQLite. Narrow callback
-   * keeps the dispatcher ignorant of config paths.
-   */
-  onOwnerAdded: (channelId: string, recipientId: string) => void;
 }
 
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
@@ -30,7 +22,7 @@ export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
  * Keeps main.ts clean by centralizing event dispatch logic.
  */
 export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, storage, onOwnerAdded } = deps;
+  const { broadcastEvent, chatSessions, onRecipientSeen } = deps;
 
   return (evt: GatewayEventFrame): void => {
     if (evt.event === "mobile.session-reset") {
@@ -68,26 +60,28 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       }
     }
 
-    // Persist inbound recipients into SQLite so channels without a pairing
-    // flow (e.g. WeChat) surface their senders in the Channels page allowlist.
+    // Persist inbound recipients through the injected domain action so channels
+    // without a pairing flow can retain labels/owner metadata. Account-scoped
+    // membership is also handled there when the channel supplies an accountId.
     // Fires for every inbound message except mobile/webchat (filtered in the
     // event-bridge extension). Emits `recipient-added` SSE only for brand-new
     // rows so the Panel can live-refresh without redundant traffic.
     if (evt.event === "rivonclaw.recipient-seen") {
-      const p = evt.payload as { channelId?: string; recipientId?: string } | undefined;
+      const p = evt.payload as { channelId?: string; accountId?: string; recipientId?: string } | undefined;
       if (!p?.channelId || !p.recipientId) return;
 
-      // Every new recipient is provisioned as owner by default; single-operator is
-      // the common case. Users can demote via the Role toggle in the Channels page.
-      const inserted = storage.channelRecipients.ensureExists(
-        p.channelId,
-        p.recipientId,
-        true,
-      );
+      const result = onRecipientSeen?.({
+        channelId: p.channelId,
+        accountId: p.accountId,
+        recipientId: p.recipientId,
+      }) ?? { inserted: false, membershipChanged: false };
 
-      if (inserted) {
-        onOwnerAdded(p.channelId, p.recipientId);
-        broadcastEvent("recipient-added", { channelId: p.channelId, recipientId: p.recipientId });
+      if (result.inserted || result.membershipChanged) {
+        broadcastEvent("recipient-added", {
+          channelId: p.channelId,
+          accountId: p.accountId,
+          recipientId: p.recipientId,
+        });
       }
     }
 

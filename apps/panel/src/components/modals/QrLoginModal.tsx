@@ -152,9 +152,10 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
             // MST, status merge, allowlist) agrees on one identifier.
             if (result.accountId) {
               const canonicalAccountId = normalizeWeixinAccountId(result.accountId);
+              const accountName = result.accountName?.trim() || canonicalAccountId;
               entityStore.channelManager.updateAccount(channelId, canonicalAccountId, {
-                name: canonicalAccountId,
-                config: {},
+                name: accountName,
+                config: result.userId ? { userId: result.userId } : {},
               }).catch(() => { /* best-effort */ });
             }
             setPhase("success");

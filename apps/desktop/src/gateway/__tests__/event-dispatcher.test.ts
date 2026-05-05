@@ -17,21 +17,11 @@ function createDeps() {
       getByKey: vi.fn(),
       upsert: vi.fn(),
     },
-    storage: {
-      channelRecipients: {
-        ensureExists: vi.fn().mockReturnValue(true),
-      },
-    },
-    onOwnerAdded: vi.fn(),
+    onRecipientSeen: vi.fn().mockReturnValue({ inserted: true, membershipChanged: false }),
   } as unknown as GatewayEventDispatcherDeps & {
     broadcastEvent: ReturnType<typeof vi.fn>;
     chatSessions: { getByKey: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
-    storage: {
-      channelRecipients: {
-        ensureExists: ReturnType<typeof vi.fn>;
-      };
-    };
-    onOwnerAdded: ReturnType<typeof vi.fn>;
+    onRecipientSeen: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -268,73 +258,83 @@ describe("createGatewayEventDispatcher", () => {
   // ── rivonclaw.recipient-seen ───────────────────────────────────────────
 
   describe("rivonclaw.recipient-seen", () => {
-    it("persists a new recipient as owner, fires onOwnerAdded, and emits recipient-added SSE", () => {
-      deps.storage.channelRecipients.ensureExists.mockReturnValue(true);
+    it("delegates a new recipient to the domain action and emits recipient-added SSE", () => {
+      deps.onRecipientSeen.mockReturnValue({ inserted: true, membershipChanged: false });
 
       dispatch(makeEvent("rivonclaw.recipient-seen", {
         channelId: "openclaw-weixin",
+        accountId: "acct-1",
         recipientId: "wxid_abc",
       }));
 
-      expect(deps.storage.channelRecipients.ensureExists).toHaveBeenCalledWith(
-        "openclaw-weixin",
-        "wxid_abc",
-        true,
-      );
-      expect(deps.onOwnerAdded).toHaveBeenCalledWith("openclaw-weixin", "wxid_abc");
+      expect(deps.onRecipientSeen).toHaveBeenCalledWith({
+        channelId: "openclaw-weixin",
+        accountId: "acct-1",
+        recipientId: "wxid_abc",
+      });
       expect(deps.broadcastEvent).toHaveBeenCalledWith("recipient-added", {
         channelId: "openclaw-weixin",
+        accountId: "acct-1",
         recipientId: "wxid_abc",
       });
     });
 
-    it("does NOT emit SSE or fire onOwnerAdded when the recipient already exists", () => {
-      deps.storage.channelRecipients.ensureExists.mockReturnValue(false);
+    it("does NOT emit SSE when the recipient already exists and membership did not change", () => {
+      deps.onRecipientSeen.mockReturnValue({ inserted: false, membershipChanged: false });
 
       dispatch(makeEvent("rivonclaw.recipient-seen", {
         channelId: "openclaw-weixin",
         recipientId: "wxid_abc",
       }));
 
-      expect(deps.storage.channelRecipients.ensureExists).toHaveBeenCalled();
-      expect(deps.onOwnerAdded).not.toHaveBeenCalled();
+      expect(deps.onRecipientSeen).toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
-    it("always passes isOwner=true (every new recipient is provisioned as owner)", () => {
-      deps.storage.channelRecipients.ensureExists.mockReturnValue(true);
+    it("emits SSE when account-scoped membership is newly persisted", () => {
+      deps.onRecipientSeen.mockReturnValue({ inserted: false, membershipChanged: true });
 
+      dispatch(makeEvent("rivonclaw.recipient-seen", {
+        channelId: "openclaw-weixin",
+        accountId: "acct-2",
+        recipientId: "wxid_abc",
+      }));
+
+      expect(deps.broadcastEvent).toHaveBeenCalledWith("recipient-added", {
+        channelId: "openclaw-weixin",
+        accountId: "acct-2",
+        recipientId: "wxid_abc",
+      });
+    });
+
+    it("passes non-WeChat recipient events to the domain action", () => {
       dispatch(makeEvent("rivonclaw.recipient-seen", {
         channelId: "telegram",
         recipientId: "123",
       }));
 
-      expect(deps.storage.channelRecipients.ensureExists).toHaveBeenCalledWith(
-        "telegram",
-        "123",
-        true,
-      );
-      expect(deps.onOwnerAdded).toHaveBeenCalledWith("telegram", "123");
+      expect(deps.onRecipientSeen).toHaveBeenCalledWith({
+        channelId: "telegram",
+        accountId: undefined,
+        recipientId: "123",
+      });
     });
 
     it("does nothing when channelId is missing", () => {
       dispatch(makeEvent("rivonclaw.recipient-seen", { recipientId: "abc" }));
-      expect(deps.storage.channelRecipients.ensureExists).not.toHaveBeenCalled();
-      expect(deps.onOwnerAdded).not.toHaveBeenCalled();
+      expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does nothing when recipientId is missing", () => {
       dispatch(makeEvent("rivonclaw.recipient-seen", { channelId: "telegram" }));
-      expect(deps.storage.channelRecipients.ensureExists).not.toHaveBeenCalled();
-      expect(deps.onOwnerAdded).not.toHaveBeenCalled();
+      expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does nothing when payload is undefined", () => {
       dispatch(makeEvent("rivonclaw.recipient-seen"));
-      expect(deps.storage.channelRecipients.ensureExists).not.toHaveBeenCalled();
-      expect(deps.onOwnerAdded).not.toHaveBeenCalled();
+      expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
   });

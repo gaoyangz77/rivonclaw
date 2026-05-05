@@ -158,7 +158,7 @@ export default defineRivonClawPlugin({
       "message_received",
       (
         evt: { from?: string },
-        ctx: { channelId?: string },
+        ctx: { channelId?: string; accountId?: string },
       ) => {
         if (!gatewayBroadcast || !ctx?.channelId) return;
         if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
@@ -166,10 +166,11 @@ export default defineRivonClawPlugin({
         if (!recipientId) return;
 
         api.logger.info(
-          `[event-bridge] recipient-seen: channel=${ctx.channelId} recipient=${recipientId}`,
+          `[event-bridge] recipient-seen: channel=${ctx.channelId} account=${ctx.accountId ?? "(none)"} recipient=${recipientId}`,
         );
         gatewayBroadcast("rivonclaw.recipient-seen", {
           channelId: ctx.channelId,
+          accountId: ctx.accountId,
           recipientId,
         });
       },

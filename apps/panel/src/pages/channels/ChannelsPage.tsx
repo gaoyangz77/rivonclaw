@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { getChannelAccountConfig, trackEvent, type ChannelAccountSnapshot } from "../../api/index.js";
@@ -14,6 +14,7 @@ import { getVisibleChannels, buildAccountsList } from "./channel-defs.jsx";
 import { useChannelsData } from "./use-channels-data.js";
 import { ChannelAccountsTable } from "./ChannelAccountsTable.js";
 import { QrLoginModal } from "../../components/modals/QrLoginModal.js";
+import { panelEventBus } from "../../lib/event-bus.js";
 
 export const ChannelsPage = observer(function ChannelsPage() {
   const { t, i18n } = useTranslation();
@@ -56,6 +57,12 @@ export const ChannelsPage = observer(function ChannelsPage() {
   // change. `observer()` already re-runs this function on any tracked MobX read,
   // and rebuilding the list is O(accounts) — cheap enough to do every render.
   const allAccounts = buildAccountsList(entityStore.channelAccounts, snapshot, t);
+
+  useEffect(() => {
+    return panelEventBus.subscribe("recipient-added", () => {
+      loadChannelStatus(false, { probe: false });
+    });
+  }, [loadChannelStatus]);
 
   const handleMobileModalClose = useCallback(() => setMobileModalOpen(false), []);
   const handleMobileBindingSuccess = useCallback(() => {

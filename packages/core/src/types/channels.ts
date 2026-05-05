@@ -47,6 +47,8 @@ export type ChannelAccountSnapshot = {
   probe?: unknown;
   audit?: unknown;
   application?: unknown;
+  /** WeChat-only: whether the bound userId has a cached context token for outbound sends. */
+  contextTokenReady?: boolean | null;
 };
 
 export type ChannelsStatusSnapshot = {

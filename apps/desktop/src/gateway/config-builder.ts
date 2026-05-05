@@ -177,7 +177,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           ...(curSttEnabled && curSttProvider === "groq" ? { groq: { enabled: true } } : {}),
           "rivonclaw-event-bridge": {
             enabled: true,
-            hooks: { allowConversationAccess: true },
           },
           // Channel plugin entries from ChannelManager -- each channel with at
           // least one account gets enabled so the vendor's two-phase plugin

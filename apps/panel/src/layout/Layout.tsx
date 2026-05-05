@@ -206,6 +206,20 @@ export const Layout = observer(function Layout({
       const cs = s.services?.customerService;
       return cs?.enabled && cs.csDeviceId === runtimeStatus.deviceId && cs.assembledPrompt;
     });
+  const customerServiceRoutingProblems = entityStore.shops
+    .map((shop) => {
+      const issue = shop.getCustomerServiceRoutingIssue({
+        currentDeviceId: runtimeStatus.deviceId || null,
+        channelAccounts: entityStore.channelAccounts,
+      });
+      if (!issue) return null;
+      return {
+        shopId: shop.id,
+        shopName: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+        issue,
+      };
+    })
+    .filter((item): item is { shopId: string; shopName: string; issue: "invalid_channel" | "missing_context_token" } => item !== null);
 
   return (
     <div className="layout-root">
@@ -270,6 +284,21 @@ export const Layout = observer(function Layout({
           {csBridgeState === "reconnecting"
             ? t("ecommerce.shopDrawer.aiCS.bridgeReconnecting", { attempt: runtimeStatus.csBridge.reconnectAttempt })
             : t("ecommerce.shopDrawer.aiCS.bridgeDisconnected")}
+        </div>
+      )}
+      {customerServiceRoutingProblems.length > 0 && (
+        <div className="warning-banner customer-service-routing-banner" role="alert">
+          <span className="customer-service-routing-banner-title">
+            {t("ecommerce.customerServiceRoutingUnavailableTitle")}
+          </span>
+          <span className="customer-service-routing-banner-items">
+            {customerServiceRoutingProblems.map((problem) => (
+              <span className="customer-service-routing-banner-item" key={problem.shopId}>
+                <strong>{problem.shopName}</strong>
+                <span>{t(`ecommerce.customerServiceRoutingIssue_${problem.issue}`)}</span>
+              </span>
+            ))}
+          </span>
         </div>
       )}
       <div className="layout-body">

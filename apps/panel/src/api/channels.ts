@@ -91,11 +91,10 @@ export async function startQrLogin(accountId?: string, signal?: AbortSignal): Pr
   });
 }
 
-export async function waitQrLogin(accountId?: string, timeoutMs?: number, signal?: AbortSignal): Promise<{ connected: boolean; message: string; accountId?: string }> {
-  return fetchJson<{ connected: boolean; message: string; accountId?: string }>(clientPath(API["channels.qrLogin.wait"]), {
+export async function waitQrLogin(accountId?: string, timeoutMs?: number, signal?: AbortSignal): Promise<{ connected: boolean; message: string; accountId?: string; userId?: string; accountName?: string }> {
+  return fetchJson<{ connected: boolean; message: string; accountId?: string; userId?: string; accountName?: string }>(clientPath(API["channels.qrLogin.wait"]), {
     method: "POST",
     body: JSON.stringify({ accountId, timeoutMs }),
     signal,
   });
 }
-
