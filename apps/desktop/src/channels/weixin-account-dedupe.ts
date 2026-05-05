@@ -12,8 +12,8 @@ export interface WeixinChannelAccountLike {
   config: Record<string, unknown>;
 }
 
-export function getWeixinUserIdFromConfig(config: Record<string, unknown>): string | undefined {
-  const value = config.userId;
+function readUserIdFromParsedAccount(parsed: Record<string, unknown>): string | undefined {
+  const value = parsed.userId;
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
@@ -56,8 +56,25 @@ export async function readWeixinAccountUserId(
     try {
       const raw = await readFile(filePath, "utf-8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const userId = parsed.userId;
-      if (typeof userId === "string" && userId.trim()) return userId.trim();
+      const userId = readUserIdFromParsedAccount(parsed);
+      if (userId) return userId;
+    } catch {
+      // Try compatibility path / ignore unreadable state files.
+    }
+  }
+  return undefined;
+}
+
+export function readWeixinAccountUserIdSync(
+  stateDir: string,
+  accountId: string,
+): string | undefined {
+  for (const filePath of resolveWeixinAccountPaths(stateDir, accountId)) {
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const userId = readUserIdFromParsedAccount(parsed);
+      if (userId) return userId;
     } catch {
       // Try compatibility path / ignore unreadable state files.
     }
@@ -190,6 +207,7 @@ export function selectStaleWeixinAccountIdsForLogin(params: {
   accounts: WeixinChannelAccountLike[];
   currentAccountId: string;
   userId: string;
+  accountUserIds: ReadonlyMap<string, string | undefined>;
   indexedAccountIds: Set<string>;
   accountFileExists: Set<string>;
 }): string[] {
@@ -204,7 +222,7 @@ export function selectStaleWeixinAccountIdsForLogin(params: {
     const accountId = normalizeWeixinAccountId(account.accountId);
     if (!accountId || accountId === currentAccountId) continue;
 
-    if (getWeixinUserIdFromConfig(account.config) === userId) {
+    if (params.accountUserIds.get(accountId) === userId) {
       stale.add(accountId);
       continue;
     }
