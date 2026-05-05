@@ -115,6 +115,19 @@ describe("initKnownModels", () => {
     );
   });
 
+  it("should place fallback models after upstream catalog models", () => {
+    initKnownModels({
+      "openai-codex": [
+        { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
+      ],
+    });
+
+    const models = getModelsForProvider("openai-codex");
+
+    expect(models[0].modelId).toBe("gpt-upstream-latest");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.2-codex");
+  });
+
   it("should ignore unknown providers", () => {
     const catalog = {
       "unknown-provider": [
@@ -362,11 +375,25 @@ describe("resolveGatewayProvider", () => {
 });
 
 describe("openai-codex defaults", () => {
-  it("should prefer gpt-5.2-codex when available", () => {
+  it("should use fallback models when no upstream catalog is available", () => {
     initKnownModels({});
 
     const model = getDefaultModelForProvider("openai-codex");
     expect(model).toBeDefined();
     expect(model!.modelId).toBe("gpt-5.2-codex");
+  });
+
+  it("should prefer the latest upstream catalog model when available", () => {
+    initKnownModels({
+      "openai-codex": [
+        { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
+        { id: "gpt-upstream-previous", name: "GPT Upstream Previous" },
+      ],
+    });
+
+    const model = getDefaultModelForProvider("openai-codex");
+
+    expect(model).toBeDefined();
+    expect(model!.modelId).toBe("gpt-upstream-latest");
   });
 });

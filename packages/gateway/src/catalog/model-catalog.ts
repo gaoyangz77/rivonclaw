@@ -86,7 +86,9 @@ export function readGatewayModelCatalog(
 }
 
 /** Maps vendor provider names to our provider names where they differ. */
-const VENDOR_PROVIDER_ALIASES: Record<string, string> = {};
+const VENDOR_PROVIDER_ALIASES: Record<string, string> = {
+  codex: "openai-codex",
+};
 
 /**
  * Derive model ID aliases from the vendor's pi-ai static registry.
@@ -161,9 +163,17 @@ export function normalizeCatalog(
     }
   }
 
-  // Sort each provider's models in reverse alphabetical order by ID
-  for (const models of Object.values(result)) {
-    models.sort((a, b) => b.id.localeCompare(a.id));
+  // Deduplicate after provider alias merging, then sort each provider's models
+  // in reverse alphabetical order by ID.
+  for (const [provider, models] of Object.entries(result)) {
+    const seen = new Set<string>();
+    result[provider] = models
+      .filter((model) => {
+        if (seen.has(model.id)) return false;
+        seen.add(model.id);
+        return true;
+      })
+      .sort((a, b) => b.id.localeCompare(a.id));
   }
 
   return result;

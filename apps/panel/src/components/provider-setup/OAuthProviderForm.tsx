@@ -50,6 +50,7 @@ export function OAuthProviderForm({
             provider={provider}
             value={model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? "")}
             onChange={setModel}
+            autoSelectLatest
           />
         </div>
       </div>
