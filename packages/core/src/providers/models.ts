@@ -81,7 +81,7 @@ export interface SubscriptionPlan {
   extraModels?: ModelConfig[];
   /** Fallback models used locally until upstream catalog catches up. */
   fallbackModels?: ModelConfig[];
-  /** Preferred default model ID for this plan. */
+  /** Preferred default model ID for this plan, or "latest" to use the first catalog model. */
   preferredModel?: string;
   /** API format used by this plan's endpoint (defaults to "openai-completions"). */
   api?: string;
@@ -114,7 +114,7 @@ export interface ProviderMeta {
   extraModels?: ModelConfig[];
   /** Fallback models used locally until upstream catalog catches up. */
   fallbackModels?: ModelConfig[];
-  /** Preferred default model ID for this provider. */
+  /** Preferred default model ID for this provider, or "latest" to use the first catalog model. */
   preferredModel?: string;
   /** API format used by this provider's endpoint (defaults to "openai-completions"). */
   api?: string;
@@ -176,7 +176,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         catalogProvider: "openai-codex",
         api: "openai-codex-responses",
         validationModel: "gpt-5.2-codex",
-        preferredModel: "gpt-5.2-codex",
+        preferredModel: "latest",
         fallbackModels: [
           { provider: "openai-codex", modelId: "gpt-5.2-codex", displayName: "GPT-5.2 Codex", contextWindow: 200000 },
           { provider: "openai-codex", modelId: "gpt-5-codex", displayName: "GPT-5 Codex", contextWindow: 200000 },
@@ -989,12 +989,26 @@ export function initKnownModels(
       modelId: e.id,
       displayName: e.name,
     }));
-    const supplemental = getSupplementalModels(p);
-    const supplementalIds = new Set(supplemental.map((m) => m.modelId));
-    result[p] = [
-      ...supplemental,
-      ...catalogModels.filter((m) => !supplementalIds.has(m.modelId)),
-    ];
+    const meta = getProviderMeta(p);
+    const extra = meta?.extraModels ?? [];
+    const fallback = meta?.fallbackModels ?? [];
+    const extraIds = new Set(extra.map((m) => m.modelId));
+    const catalogWithoutExtra = catalogModels.filter((m) => !extraIds.has(m.modelId));
+
+    if (extra.length > 0) {
+      const existingIds = new Set([...extraIds, ...catalogWithoutExtra.map((m) => m.modelId)]);
+      result[p] = [
+        ...extra,
+        ...catalogWithoutExtra,
+        ...fallback.filter((m) => !existingIds.has(m.modelId)),
+      ];
+    } else {
+      const catalogIds = new Set(catalogModels.map((m) => m.modelId));
+      result[p] = [
+        ...catalogModels,
+        ...fallback.filter((m) => !catalogIds.has(m.modelId)),
+      ];
+    }
   }
 
   // Include providers that only have local supplemental models.
@@ -1049,6 +1063,9 @@ export function getDefaultModelForProvider(
   const models = KNOWN_MODELS[provider];
   if (!models || models.length === 0) return undefined;
   const preferred = getProviderMeta(provider)?.preferredModel;
+  if (preferred === "latest") {
+    return models[0];
+  }
   if (preferred) {
     const match = models.find((m) => m.modelId === preferred);
     if (match) return match;

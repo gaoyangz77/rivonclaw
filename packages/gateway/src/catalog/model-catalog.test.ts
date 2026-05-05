@@ -54,6 +54,33 @@ describe("normalizeCatalog", () => {
     expect(result["zhipu-coding"]!.length).toBe(2);
   });
 
+  it("should merge OpenClaw codex catalog models into openai-codex", () => {
+    const catalog = {
+      codex: [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.4", "GPT-5.4")],
+      "openai-codex": [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.2-codex", "GPT-5.2 Codex")],
+    };
+
+    const result = normalizeCatalog(catalog);
+
+    expect(result.codex).toBeUndefined();
+    expect(result["openai-codex"]!.map((m) => m.id)).toEqual([
+      "gpt-5.5",
+      "gpt-5.4",
+      "gpt-5.2-codex",
+    ]);
+  });
+
+  it("should keep codex-cli separate because it uses a different runtime", () => {
+    const catalog = {
+      "codex-cli": [entry("gpt-5.5", "GPT-5.5")],
+    };
+
+    const result = normalizeCatalog(catalog);
+
+    expect(result["codex-cli"]!.map((m) => m.id)).toEqual(["gpt-5.5"]);
+    expect(result["openai-codex"]).toBeUndefined();
+  });
+
   it("should sort models in reverse alphabetical order by ID", () => {
     const catalog = {
       anthropic: [
@@ -393,6 +420,33 @@ describe("readFullModelCatalog", () => {
     const ids = result["openai-codex"]!.map((m) => m.id);
 
     expect(ids).toContain("vendor-only-codex");
+    expect(ids).toContain("gpt-5.2-codex");
+  });
+
+  it("should expose upstream codex models under openai-codex even when openai-codex is empty", async () => {
+    mocks.existsSync.mockImplementation((p: string) =>
+      String(p).includes(join("agents", "main", "agent", "models.json")),
+    );
+    mocks.readFileSync.mockReturnValue(JSON.stringify({
+      providers: {
+        "openai-codex": {
+          models: [],
+        },
+        codex: {
+          models: [
+            { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
+            { id: "gpt-upstream-mini", name: "GPT Upstream Mini" },
+          ],
+        },
+      },
+    }));
+
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
+    const ids = result["openai-codex"]!.map((m) => m.id);
+
+    expect(result.codex).toBeUndefined();
+    expect(ids).toContain("gpt-upstream-latest");
+    expect(ids).toContain("gpt-upstream-mini");
     expect(ids).toContain("gpt-5.2-codex");
   });
 });
