@@ -2,6 +2,9 @@
   "id": "rivonclaw-search-browser-fallback",
   "name": "Search Browser Fallback",
   "description": "Falls back to browser-based search when no search API key is configured",
+  "activation": {
+    "onStartup": true
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

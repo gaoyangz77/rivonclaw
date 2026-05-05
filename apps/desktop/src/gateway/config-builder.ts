@@ -177,6 +177,32 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           ...(curSttEnabled && curSttProvider === "groq" ? { groq: { enabled: true } } : {}),
           "rivonclaw-event-bridge": {
             enabled: true,
+            hooks: { allowConversationAccess: true },
+          },
+          "rivonclaw-browser-profiles-tools": {
+            enabled: true,
+          },
+          "rivonclaw-capability-manager": {
+            enabled: true,
+            hooks: { allowConversationAccess: true },
+          },
+          "rivonclaw-search-browser-fallback": {
+            enabled: true,
+            hooks: { allowConversationAccess: true },
+          },
+          "rivonclaw-cloud-tools": {
+            enabled: true,
+          },
+          "rivonclaw-local-tools": {
+            enabled: true,
+          },
+          "rivonclaw-cs": {
+            enabled: true,
+            hooks: { allowConversationAccess: true },
+          },
+          "rivonclaw-ecom": {
+            enabled: true,
+            hooks: { allowConversationAccess: true },
           },
           // Channel plugin entries from ChannelManager -- each channel with at
           // least one account gets enabled so the vendor's two-phase plugin
@@ -218,15 +244,24 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
       extraSkillDirs: [resolveUserSkillsDir()],
-      // ADR-031: allow all core + plugin tools by default (visibility controlled at runtime by capability-manager).
-      // "group:openclaw" covers most core tools (25/32). Section groups "fs" and "runtime" add the
-      // remaining tools (read, write, edit, apply_patch, exec, process) not in the openclaw group.
-      // "group:plugins" covers all optional plugin tools.
-      // All non-plugin groups are needed because v2026.4.11+ treats a plugin-only allowlist as excluding core tools.
-      toolAllowlist: overrides?.toolAllowlist ?? [
-        "group:openclaw", "group:fs", "group:runtime",
-        "group:plugins",
-      ],
+      // ADR-031: keep the full RivonClaw surface, but make the optional plugin
+      // admission explicit. `tools.alsoAllow` without a base allow is normalized
+      // by OpenClaw into `* + extra`, which makes plugin discovery consider every
+      // manifest-owned tool plugin. Use `tools.allow` with the core groups we
+      // need plus our plugin ids so only RivonClaw dynamic/local tools are
+      // materialized.
+      ...(overrides?.toolAllowlist
+        ? { toolAllowlist: overrides.toolAllowlist }
+        : {
+            toolAllowlist: [
+              "group:openclaw",
+              "group:fs",
+              "group:runtime",
+              "pdf",
+              "rivonclaw-cloud-tools",
+              "rivonclaw-local-tools",
+            ],
+          }),
     };
   }
 

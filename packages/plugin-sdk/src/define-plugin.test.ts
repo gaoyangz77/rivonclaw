@@ -3,10 +3,10 @@ import { defineRivonClawPlugin } from "./define-plugin.js";
 import type { PluginApi, ToolDefinition } from "./define-plugin.js";
 
 function createMockApi(overrides?: Partial<PluginApi>): PluginApi & {
-  registeredTools: Array<{ factory: () => unknown; opts?: { optional?: boolean } }>;
+  registeredTools: Array<{ factory: () => unknown; opts?: { name?: string; names?: string[]; optional?: boolean } }>;
   hooks: string[];
 } {
-  const registeredTools: Array<{ factory: () => unknown; opts?: { optional?: boolean } }> = [];
+  const registeredTools: Array<{ factory: () => unknown; opts?: { name?: string; names?: string[]; optional?: boolean } }> = [];
   const hooks: string[] = [];
   return {
     id: "test-plugin",
@@ -14,7 +14,7 @@ function createMockApi(overrides?: Partial<PluginApi>): PluginApi & {
     on(event: string) {
       hooks.push(event);
     },
-    registerTool(factory: () => unknown, opts?: { optional?: boolean }) {
+    registerTool(factory: () => unknown, opts?: { name?: string; names?: string[]; optional?: boolean }) {
       registeredTools.push({ factory, opts });
     },
     registeredTools,
@@ -40,9 +40,10 @@ describe("defineRivonClawPlugin", () => {
     plugin.activate(api);
 
     expect(api.registeredTools).toHaveLength(2);
-    for (const entry of api.registeredTools) {
-      expect(entry.opts).toEqual({ optional: true });
-    }
+    expect(api.registeredTools.map((entry) => entry.opts)).toEqual([
+      { optional: true, name: "tool_a" },
+      { optional: true, name: "tool_b" },
+    ]);
   });
 
   it('toolVisibility "always" registers tools without optional flag', () => {
@@ -57,9 +58,10 @@ describe("defineRivonClawPlugin", () => {
     plugin.activate(api);
 
     expect(api.registeredTools).toHaveLength(2);
-    for (const entry of api.registeredTools) {
-      expect(entry.opts).toBeUndefined();
-    }
+    expect(api.registeredTools.map((entry) => entry.opts)).toEqual([
+      { name: "tool_a" },
+      { name: "tool_b" },
+    ]);
   });
 
   it("no tools provided → no tools registered", () => {

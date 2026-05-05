@@ -50,6 +50,7 @@ function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>
     const hooks = (entry as Record<string, unknown>).hooks;
     if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) continue;
     if (!Object.prototype.hasOwnProperty.call(hooks, "allowConversationAccess")) continue;
+    if (typeof (hooks as Record<string, unknown>).allowConversationAccess === "boolean") continue;
 
     delete (hooks as Record<string, unknown>).allowConversationAccess;
     if (Object.keys(hooks as Record<string, unknown>).length === 0) {
@@ -518,6 +519,12 @@ export interface WriteGatewayConfigOptions {
    * Entries can be tool names (e.g. "browser_profiles_list") or plugin IDs.
    */
   toolAllowlist?: string[];
+  /**
+   * Tool allowlist additions for the active profile.
+   * Written to `tools.alsoAllow`, which re-enables plugin tools before the
+   * profile-stage filter can drop them.
+   */
+  toolAlsoAllowlist?: string[];
   /** mDNS/Bonjour discovery configuration. Set mode to "off" to disable
    *  network discovery (desktop app manages its own device pairing). */
   discovery?: { mdns?: { mode?: "off" | "on" } };
@@ -769,9 +776,13 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingTools.exec === "object" && existingTools.exec !== null
         ? (existingTools.exec as Record<string, unknown>)
         : {};
-    // Remove stale tools.allow from previous config versions (ADR-031).
-    // tools.allow is only written when toolAllowlist is explicitly provided.
-    const { allow: _staleAllow, ...cleanExistingTools } = existingTools as Record<string, unknown> & { allow?: unknown };
+    // Remove stale managed policy fields from previous config versions (ADR-031).
+    // tools.allow/tools.alsoAllow are only written when explicitly provided below.
+    const {
+      allow: _staleAllow,
+      alsoAllow: _staleAlsoAllow,
+      ...cleanExistingTools
+    } = existingTools as Record<string, unknown> & { allow?: unknown; alsoAllow?: unknown };
     config.tools = {
       ...cleanExistingTools,
       profile: DEFAULTS.gatewayConfig.toolsProfile,
@@ -790,6 +801,17 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     config.tools = {
       ...existingTools,
       allow: options.toolAllowlist,
+    };
+  }
+
+  if (options.toolAllowlist === undefined && options.toolAlsoAllowlist !== undefined) {
+    const existingTools =
+      typeof config.tools === "object" && config.tools !== null
+        ? (config.tools as Record<string, unknown>)
+        : {};
+    config.tools = {
+      ...existingTools,
+      alsoAllow: options.toolAlsoAllowlist,
     };
   }
 
@@ -1433,9 +1455,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     log.warn(`Stripped unknown config keys: ${removedKeys.join(", ")}`);
   }
 
-  // `allowConversationAccess` came from an older hook config shape. The
-  // upgraded runtime rejects it, so keep old user configs bootable without
-  // carrying the deprecated key forward.
+  // Keep old user configs bootable by dropping malformed hook policy values.
+  // Boolean `allowConversationAccess` is still required by OpenClaw for
+  // non-bundled conversation typed hooks.
   removeRuntimeIncompatiblePluginHookKeys(config);
 
   // Fix semantic validation errors (e.g. dmPolicy="allowlist" without allowFrom)
