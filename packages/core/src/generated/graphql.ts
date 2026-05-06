@@ -2763,8 +2763,8 @@ export interface MutationCsRespondArgs {
 
 
 export interface MutationCsStartSessionArgs {
-  comment?: InputMaybe<Scalars['String']['input']>;
   conversationId: Scalars['String']['input'];
+  operatorInstruction?: InputMaybe<Scalars['String']['input']>;
   orderId?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
 }
