@@ -1,4 +1,4 @@
-import { writeFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
@@ -8,6 +8,7 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import { sendJson, parseBody } from "../infra/api/route-utils.js";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
+import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("settings-routes");
 
@@ -323,18 +324,18 @@ const setAgentSettings: EndpointHandler = async (req, res, _url, _params, ctx: A
   try {
     const body = (await parseBody(req)) as Record<string, unknown>;
     const configPath = resolveOpenClawConfigPath();
-    const fullConfig = readExistingConfig(configPath);
-    const existingSession = typeof fullConfig.session === "object" && fullConfig.session !== null
-      ? (fullConfig.session as Record<string, unknown>)
-      : {};
 
-    if (body.dmScope !== undefined) {
-      existingSession.dmScope = body.dmScope;
-    }
+    mutateDesktopOpenClawConfig(configPath, "agent settings", (fullConfig) => {
+      const existingSession = typeof fullConfig.session === "object" && fullConfig.session !== null
+        ? (fullConfig.session as Record<string, unknown>)
+        : {};
 
-    fullConfig.session = existingSession;
-    writeFileSync(configPath, JSON.stringify(fullConfig, null, 2) + "\n", "utf-8");
+      if (body.dmScope !== undefined) {
+        existingSession.dmScope = body.dmScope;
+      }
 
+      fullConfig.session = existingSession;
+    });
     ctx.onProviderChange?.({ configOnly: true });
 
     sendJson(res, 200, { ok: true });

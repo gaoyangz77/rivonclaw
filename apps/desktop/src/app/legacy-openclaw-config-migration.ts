@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
+import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("legacy-openclaw-config-migration");
 
@@ -141,6 +142,6 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
 
   if (touched.length === 0) return;
 
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  writeDesktopOpenClawConfig(configPath, config, "legacy openclaw config migration");
   log.info(`removed legacy OpenClaw config keys in ${configPath}: ${[...new Set(touched)].join(", ")}`);
 }

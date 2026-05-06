@@ -97,8 +97,10 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
    * Hint modes:
    * - `keyOnly: true` — Only an API key changed (add/activate/delete).
    *   Syncs auth-profiles.json and proxy router config. No restart needed.
-   * - `configOnly: true` — Only the config file changed (e.g. model switch).
-   *   Updates gateway config and sends a graceful reload (SIGUSR1).
+   * - `configOnly: true` — Only the config file changed.
+   *   The centralized Desktop config writer persists the change with
+   *   gateway.reload.mode=hot, so OpenClaw's watcher may apply hot reloads but
+   *   cannot escalate to a gateway-level restart.
    * - Neither — Updates all configs and restarts gateway.
    *   Full restart ensures model changes take effect immediately.
    */
@@ -123,13 +125,7 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
     }
 
     if (configOnly) {
-      // Config-only change (e.g. channel add/delete): the config file was
-      // already modified by the caller. Just tell the running gateway to
-      // re-read it via SIGUSR1 — no process restart needed.
-      log.info("Config-only change, sending graceful reload to gateway");
-      await openClawConnector.applyConfigMutation(() => {
-        // Config already written by caller — no mutation needed.
-      }, "reload_config");
+      log.info("Config-only change, relying on Desktop-managed hot config watcher");
       return;
     }
 

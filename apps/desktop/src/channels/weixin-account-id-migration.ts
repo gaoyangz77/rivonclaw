@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { normalizeWeixinAccountId } from "@rivonclaw/core";
 import { resolveOpenClawStateDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
+import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("weixin-migration");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -158,7 +159,7 @@ export function migrateWeixinAccountKeys(configPath: string): void {
   }
 
   if (mutated) {
-    writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+    writeDesktopOpenClawConfig(configPath, config, "weixin account id migration");
     log.info(`migrated weixin account keys in ${configPath}`);
   }
 }

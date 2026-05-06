@@ -155,7 +155,7 @@ function prepareCdpUserDataDir(realUserDataDir: string, profileDir: string): str
 }
 
 export function createCdpManager(deps: CdpManagerDeps) {
-  const { storage, launcher, writeGatewayConfig, buildFullGatewayConfig } = deps;
+  const { storage, writeGatewayConfig, buildFullGatewayConfig } = deps;
 
   async function ensureCdpChrome(): Promise<void> {
     const preferredPort = parseInt(storage.settings.get("browser-cdp-port") || "9222", 10);
@@ -282,8 +282,8 @@ export function createCdpManager(deps: CdpManagerDeps) {
       await ensureCdpChrome();
     }
 
-    // Browser config is hot-reloadable — SIGUSR1 suffices, no full restart.
-    await launcher.reload();
+    // The config writer keeps gateway.reload.mode=hot, so OpenClaw's watcher
+    // applies this browser config without allowing a gateway-level restart.
   }
 
   return { ensureCdpChrome, handleBrowserChange };

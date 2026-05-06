@@ -1,16 +1,17 @@
 import { types, flow, getRoot, type Instance } from "mobx-state-tree";
 import { basename, join } from "node:path";
 import { promises as fs } from "node:fs";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { Storage } from "@rivonclaw/storage";
 import type { ChannelAccount } from "@rivonclaw/storage";
-import { readExistingConfig, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
+import { readExistingConfig } from "@rivonclaw/gateway";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
 import { normalizeWeixinAccountId } from "@rivonclaw/core";
 import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
+import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import {
   addAllowFromEntry,
   addAllowFromEntrySync,
@@ -104,6 +105,44 @@ function resolveEquivalentWeixinAccountIds(accountId: string): string[] {
 
 function resolvePairingPath(channelId: string): string {
   return join(resolveCredentialsDir(), `${channelId}-pairing.json`);
+}
+
+function ensureRecord(parent: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = parent[key];
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  const next: Record<string, unknown> = {};
+  parent[key] = next;
+  return next;
+}
+
+function ensureChannelPluginConfig(config: Record<string, unknown>, channelId: string, enabled: boolean): void {
+  const plugins = ensureRecord(config, "plugins");
+  const entries = ensureRecord(plugins, "entries");
+  const existing = entries[channelId] !== null && typeof entries[channelId] === "object" && !Array.isArray(entries[channelId])
+    ? (entries[channelId] as Record<string, unknown>)
+    : {};
+  entries[channelId] = { ...existing, enabled };
+}
+
+function ensureWildcardBinding(config: Record<string, unknown>, channelId: string): void {
+  const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<Record<string, unknown>>;
+  const channelLower = channelId.toLowerCase();
+  const hasCovering = bindings.some((binding) => {
+    const match = binding.match;
+    if (match === null || typeof match !== "object" || Array.isArray(match)) return false;
+    const record = match as Record<string, unknown>;
+    return String(record.channel ?? "").trim().toLowerCase() === channelLower &&
+      String(record.accountId ?? "").trim() === "*";
+  });
+  if (!hasCovering) {
+    bindings.push({
+      agentId: "main",
+      match: { channel: channelId, accountId: "*" },
+    });
+    config.bindings = bindings;
+  }
 }
 
 async function readPairingRequests(channelId: string): Promise<PairingRequest[]> {
@@ -392,26 +431,30 @@ export const ChannelManagerModel = types
         );
       }
 
-      channels[channelId] = {
-        ...existingChannel,
-        ...(channelId === WEIXIN_CHANNEL_ID ? { managed: true } : {}),
-        accounts,
-      };
+      if (Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID) {
+        channels[channelId] = {
+          ...existingChannel,
+          ...(channelId === WEIXIN_CHANNEL_ID ? { managed: true } : {}),
+          accounts,
+        };
+      } else {
+        delete channels[channelId];
+      }
       config.channels = channels;
-      writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+      ensureChannelPluginConfig(config, channelId, Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID);
+      if (Object.keys(accounts).some((accountId) => accountId.trim().toLowerCase() !== "default")) {
+        ensureWildcardBinding(config, channelId);
+      }
+      writeDesktopOpenClawConfig(configPath, config, `channel account snapshot: ${channelId}`);
       log.info(`Wrote channel account snapshot: ${channelId}/${Object.keys(accounts).length} account(s)`);
     }
 
     function removeAccountById(channelId: string, accountId: string, options?: { writeConfig?: boolean }): void {
-      const { storage, configPath, stateDir } = getEnv();
+      const { storage, stateDir } = getEnv();
 
       // Defensive canonicalization (see addAccount for rationale).
       if (channelId === WEIXIN_CHANNEL_ID) {
         accountId = normalizeWeixinAccountId(accountId);
-      }
-
-      if (options?.writeConfig !== false) {
-        removeChannelAccount({ configPath, channelId, accountId });
       }
 
       // WeChat plugin stores its own state files (account index + credential files).
@@ -451,8 +494,9 @@ export const ChannelManagerModel = types
       // Update MST state via root store
       (getRoot(self) as any).removeChannelAccount(channelId, accountId);
 
-      // No explicit reload needed — removeChannelAccount already modified the config
-      // file and the gateway's chokidar watcher will detect the change automatically.
+      if (options?.writeConfig !== false) {
+        writeChannelAccountsSnapshot(channelId);
+      }
     }
 
     function upsertAccountState(params: {
@@ -463,7 +507,7 @@ export const ChannelManagerModel = types
       secrets?: Record<string, string>;
       writeConfig?: boolean;
     }): ChannelAccountSnapshotForMst {
-      const { storage, configPath } = getEnv();
+      const { storage } = getEnv();
 
       if (params.channelId === WEIXIN_CHANNEL_ID) {
         params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
@@ -483,15 +527,6 @@ export const ChannelManagerModel = types
       }
       accountConfig = sanitizeChannelAccountConfig(params.channelId, accountConfig);
 
-      if (params.writeConfig !== false) {
-        writeChannelAccount({
-          configPath,
-          channelId: params.channelId,
-          accountId: params.accountId,
-          config: accountConfig,
-        });
-      }
-
       const savedAccount = storage.channelAccounts.upsert(
         params.channelId,
         params.accountId,
@@ -501,6 +536,9 @@ export const ChannelManagerModel = types
 
       const entry = buildChannelAccountSnapshot(savedAccount);
       (getRoot(self) as any).upsertChannelAccount(entry);
+      if (params.writeConfig !== false) {
+        writeChannelAccountsSnapshot(params.channelId);
+      }
       return entry;
     }
 
@@ -809,19 +847,15 @@ export const ChannelManagerModel = types
         config: Record<string, unknown>;
         secrets?: Record<string, string>;
       }) {
-        const { storage, configPath } = getEnv();
+        const { storage } = getEnv();
 
         // Defensive canonicalization (see addAccount for rationale).
         if (params.channelId === "openclaw-weixin") {
           params = { ...params, accountId: normalizeWeixinAccountId(params.accountId) };
         }
 
-        // Read existing config from file for merge
-        const existingFullConfig = readExistingConfig(configPath);
-        const existingChannels = (existingFullConfig.channels ?? {}) as Record<string, unknown>;
-        const existingChannel = (existingChannels[params.channelId] ?? {}) as Record<string, unknown>;
-        const existingAccounts = (existingChannel.accounts ?? {}) as Record<string, unknown>;
-        const existingAccountConfig = (existingAccounts[params.accountId] ?? {}) as Record<string, unknown>;
+        const existingAccount = storage.channelAccounts.get(params.channelId, params.accountId);
+        const existingAccountConfig = existingAccount?.config ?? {};
 
         let accountConfig: Record<string, unknown> = { ...existingAccountConfig, ...params.config };
 
@@ -841,9 +875,6 @@ export const ChannelManagerModel = types
         }
         accountConfig = sanitizeChannelAccountConfig(params.channelId, accountConfig);
 
-        // Write to config file
-        writeChannelAccount({ configPath, channelId: params.channelId, accountId: params.accountId, config: accountConfig });
-
         // Persist UI-owned account metadata to SQLite. Provider-owned WeChat
         // identity stays in the WeChat sidecar files.
         const savedAccount = storage.channelAccounts.upsert(params.channelId, params.accountId, params.name ?? null, accountConfig);
@@ -851,9 +882,7 @@ export const ChannelManagerModel = types
         // Update MST state via root store
         const entry = buildChannelAccountSnapshot(savedAccount);
         (getRoot(self) as any).upsertChannelAccount(entry);
-
-        // No explicit reload needed — writeChannelAccount already modified the config
-        // file and the gateway's chokidar watcher will detect the change automatically.
+        writeChannelAccountsSnapshot(params.channelId);
 
         return entry;
       },

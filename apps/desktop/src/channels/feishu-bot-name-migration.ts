@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
+import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("feishu-migration");
 
@@ -52,7 +53,7 @@ export function migrateFeishuBotName(configPath: string): void {
   }
 
   if (mutated) {
-    writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+    writeDesktopOpenClawConfig(configPath, config, "feishu botName migration");
     log.info(`removed stale Feishu botName fields in ${configPath}`);
   }
 }

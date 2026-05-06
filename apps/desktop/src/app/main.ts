@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, shell, dialog, nativeImage } from "electron";
+import { app, BrowserWindow, Menu, Tray, shell, dialog } from "electron";
 import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   ensureGatewayConfig,
@@ -60,6 +60,7 @@ import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
 import { initCookieSync, pullAndPersistCookies, pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
+import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
@@ -72,7 +73,6 @@ import {
   setDockIcon,
   checkUpdateBlocked,
   showUpdateBlockedDialog,
-  writeHeartbeat,
   removeHeartbeat,
   startHeartbeatInterval,
   acquireSingleInstanceLock,
@@ -1495,16 +1495,16 @@ app.whenReady().then(async () => {
     syncAllAuthProfiles,
     writeProxyRouterConfig,
     writeDefaultModelToConfig: (gwProvider: string, modelId: string) => {
-      // Targeted write: only agents.defaults.model.primary.
-      // Chokidar → hot reload (restart-heartbeat), NOT gateway restart.
       const configPath = resolveOpenClawConfigPath();
-      const config = readExistingConfig(configPath);
-      const agents = (typeof config.agents === "object" && config.agents !== null ? config.agents : {}) as Record<string, unknown>;
-      const defaults = (typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}) as Record<string, unknown>;
-      const model = (typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}) as Record<string, unknown>;
-      model.primary = `${gwProvider}/${modelId}`;
-      defaults.model = model; agents.defaults = defaults; config.agents = agents;
-      writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+      mutateDesktopOpenClawConfig(configPath, "default model", (config) => {
+        const agents = (typeof config.agents === "object" && config.agents !== null ? config.agents : {}) as Record<string, unknown>;
+        const defaults = (typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}) as Record<string, unknown>;
+        const model = (typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}) as Record<string, unknown>;
+        model.primary = `${gwProvider}/${modelId}`;
+        defaults.model = model;
+        agents.defaults = defaults;
+        config.agents = agents;
+      });
     },
     writeFullGatewayConfig: async () => {
       writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));

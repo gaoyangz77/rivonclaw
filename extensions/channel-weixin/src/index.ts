@@ -152,7 +152,7 @@ const plugin = {
     const origRegisterChannel = api.registerChannel!.bind(api);
     let rivonClawQrMethodsRegistered = false;
     api.registerChannel = (opts: { plugin: { gatewayMethods?: string[]; gateway?: Record<string, unknown>;[k: string]: unknown };[k: string]: unknown }) => {
-      // Patch 1: declare gatewayMethods so resolveWebLoginProvider() can discover us.
+      // Compatibility shim: declare gatewayMethods so resolveWebLoginProvider() can discover us.
       // Upstream tracking:
       // - https://github.com/openclaw/openclaw/issues/62120
       // - https://github.com/Tencent/openclaw-weixin/pull/73
@@ -165,9 +165,34 @@ const plugin = {
           "web.login.start",
           "web.login.wait",
         ]));
+
+        // Compatibility shim: declare WeChat account config changes as
+        // channel-hot-reloadable.
+        //
+        // Without this, OpenClaw treats changes under channels.openclaw-weixin
+        // as unknown config changes and escalates them to a gateway restart. In
+        // RivonClaw Desktop the gateway is launched with OPENCLAW_NO_RESPAWN=1,
+        // so that restart happens in-process; Telegram keeps a process-global
+        // polling lease and then refuses to start after the in-process restart.
+        //
+        // Upstream tracking:
+        // - https://github.com/openclaw/openclaw/issues/62120
+        // - https://github.com/Tencent/openclaw-weixin/pull/73
+        // - https://github.com/netease-youdao/LobsterAI/pull/1592
+        // Remove this wrapper once @tencent-weixin/openclaw-weixin declares its
+        // gateway methods and reload prefixes itself.
+        opts.plugin.reload = {
+          ...(typeof opts.plugin.reload === "object" && opts.plugin.reload !== null
+            ? opts.plugin.reload
+            : {}),
+          configPrefixes: Array.from(new Set([
+            ...((opts.plugin.reload as { configPrefixes?: string[] } | undefined)?.configPrefixes ?? []),
+            `channels.${WEIXIN_CHANNEL_ID}`,
+          ])),
+        };
       }
 
-      // Patch 2: bridge sessionKey between loginWithQrStart and loginWithQrWait.
+      // Compatibility shim: bridge sessionKey between loginWithQrStart and loginWithQrWait.
       const gw = opts.plugin.gateway as Record<string, (...args: unknown[]) => Promise<unknown>> | undefined;
       if (gw) {
         const origStartAccount = gw.startAccount;
@@ -233,7 +258,7 @@ const plugin = {
         }
       }
 
-      // Patch 3: keep outbound message-tool mirrors on the current tab.
+      // Compatibility shim: keep outbound message-tool mirrors on the current tab.
       //
       // For Weixin, media/file sends often go through the message tool's
       // outbound route resolution instead of the inbound reply pipeline.

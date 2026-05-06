@@ -121,6 +121,37 @@ describe("channel-weixin QR session bridge", () => {
     ]);
   });
 
+  it("declares WeChat account config changes as channel-hot-reloadable", async () => {
+    vi.resetModules();
+
+    vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
+      default: {
+        register(api: { registerChannel: (opts: unknown) => void }) {
+          api.registerChannel({
+            plugin: {
+              reload: { configPrefixes: ["channels.openclaw-weixin.extra"] },
+              gateway: {},
+            },
+          });
+        },
+      },
+    }));
+
+    const { default: plugin } = await import("./index.js");
+    let registered!: { plugin: { reload?: { configPrefixes?: string[] } } };
+
+    plugin.register({
+      registerChannel(opts: unknown) {
+        registered = opts as typeof registered;
+      },
+    } as Parameters<typeof plugin.register>[0]);
+
+    expect(registered.plugin.reload?.configPrefixes).toEqual([
+      "channels.openclaw-weixin.extra",
+      "channels.openclaw-weixin",
+    ]);
+  });
+
   it("does not start a newly scanned account before desktop has persisted it to config", async () => {
     vi.resetModules();
 

@@ -108,6 +108,7 @@ describe("config-writer", () => {
       expect(result).toBe(configPath);
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(18789);
+      expect(config.gateway.reload.mode).toBe("hot");
     });
 
     it("creates config file with plugins object (extensions dir auto-added)", () => {

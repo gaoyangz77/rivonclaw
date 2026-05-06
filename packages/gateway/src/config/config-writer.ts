@@ -1,7 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
-import { fileURLToPath } from "node:url";
 import { createLogger } from "@rivonclaw/logger";
 import {
   ALL_PROVIDERS, getProviderMeta, resolveGatewayProvider,
@@ -595,6 +594,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       controlUiConfig.enabled = true;
       controlUiConfig.root = options.controlUiRoot;
     }
+    const reloadConfig =
+      typeof merged.reload === "object" && merged.reload !== null
+        ? (merged.reload as Record<string, unknown>)
+        : {};
+    // RivonClaw Desktop owns process restarts through GatewayLauncher. Keep
+    // OpenClaw's config watcher hot-reloadable, but prevent watcher-triggered
+    // gateway-level in-process restarts.
+    merged.reload = { ...reloadConfig, mode: "hot" };
     merged.controlUi = controlUiConfig;
 
     config.gateway = merged;

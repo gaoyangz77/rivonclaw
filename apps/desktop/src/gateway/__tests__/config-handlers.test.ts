@@ -158,7 +158,7 @@ describe("createGatewayConfigHandlers", () => {
       expect(mockApplyConfigMutation).not.toHaveBeenCalled();
     });
 
-    it("with configOnly: true — calls syncAllAuthProfiles, writeProxyRouterConfig via applyConfigMutation(reload_config)", async () => {
+    it("with configOnly: true — syncs support configs without SIGUSR1 reload", async () => {
       await handlers.handleProviderChange({ configOnly: true });
 
       expect(deps.syncAllAuthProfiles).toHaveBeenCalledWith(
@@ -171,7 +171,7 @@ describe("createGatewayConfigHandlers", () => {
         deps.secretStore,
         null,
       );
-      expect(mockApplyConfigMutation).toHaveBeenCalledWith(expect.any(Function), "reload_config");
+      expect(mockApplyConfigMutation).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
+import { writeDesktopOpenClawConfig } from "./openclaw-config-mutation.js";
 
 const log = createLogger("plugin-id-deprecation-migration");
 
@@ -61,6 +62,6 @@ export function migrateDeprecatedPluginIds(configPath: string): void {
   }
 
   if (!changed) return;
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  writeDesktopOpenClawConfig(configPath, config, "plugin id deprecation migration");
   log.info(`removed deprecated policy plugin ids from ${configPath}`);
 }
