@@ -337,7 +337,9 @@ patch adds env-gated switches so RivonClaw Desktop can opt out while upstream
 default behavior stays unchanged.
 
 **Change:** Add `OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY` and
-`OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY` checks around startup recovery.
+`OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY` checks around outbound delivery
+recovery, restart-continuation delivery recovery, and main-session restart
+recovery.
 
 **Removal:** Drop when upstream OpenClaw exposes first-class config for startup
 recovery policies or makes startup recovery sufficiently budgeted for RivonClaw

@@ -1,23 +1,26 @@
-From 9b0358d526ceef639512b1c683eada047ed51977 Mon Sep 17 00:00:00 2001
+From f4c121964508a0e60477375ae28539fe2dc152d2 Mon Sep 17 00:00:00 2001
 From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
 Date: Wed, 6 May 2026 07:23:04 -0700
 Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
 
 Why:
 - RivonClaw receives customer-service retries from backend/Airflow rather than relying on local gateway replay.
-- OpenClaw startup delivery recovery and interrupted-session recovery can overwhelm the single desktop gateway process when many customer-service deliveries are queued.
+- OpenClaw startup delivery recovery and interrupted-session recovery can overwhelm the single desktop gateway process when many customer-service deliveries or aborted WeChat sessions are queued.
 
 Removal:
 - Drop when upstream OpenClaw exposes first-class config for startup recovery policies or makes startup recovery budgeted enough for RivonClaw customer-service workloads.
 
 Tests:
 - vendor/openclaw/src/gateway/server-runtime-services.test.ts
+- vendor/openclaw/src/gateway/server-startup-post-attach.test.ts
 - apps/desktop/src/infra/proxy/proxy-manager.test.ts
 ---
- src/gateway/server-runtime-services.test.ts | 27 +++++++++++++++++++++
- src/gateway/server-runtime-services.ts      | 20 ++++++++++++++-
- src/gateway/server.impl.ts                  |  1 +
- 3 files changed, 47 insertions(+), 1 deletion(-)
+ src/gateway/server-runtime-services.test.ts   | 27 ++++++++++++++
+ src/gateway/server-runtime-services.ts        | 20 +++++++++-
+ .../server-startup-post-attach.test.ts        | 37 +++++++++++++++++++
+ src/gateway/server-startup-post-attach.ts     | 11 +++++-
+ src/gateway/server.impl.ts                    |  1 +
+ 5 files changed, 94 insertions(+), 2 deletions(-)
 
 diff --git a/src/gateway/server-runtime-services.test.ts b/src/gateway/server-runtime-services.test.ts
 index ef3204381f..1853432aaf 100644
@@ -134,6 +137,131 @@ index 96eb22be89..361aba2226 100644
    });
    const stopModelPricingRefresh = !isVitestRuntimeEnv()
      ? startGatewayModelPricingRefreshOnDemand({
+diff --git a/src/gateway/server-startup-post-attach.test.ts b/src/gateway/server-startup-post-attach.test.ts
+index 0ead2cc92e..2dea15cd18 100644
+--- a/src/gateway/server-startup-post-attach.test.ts
++++ b/src/gateway/server-startup-post-attach.test.ts
+@@ -22,6 +22,8 @@ const hoisted = vi.hoisted(() => {
+   const shouldWakeFromRestartSentinel = vi.fn(() => false);
+   const scheduleRestartSentinelWake = vi.fn();
+   const refreshLatestUpdateRestartSentinel = vi.fn(async () => null);
++  const markRestartAbortedMainSessionsFromLocks = vi.fn(async () => undefined);
++  const scheduleRestartAbortedMainSessionRecovery = vi.fn();
+   const getAcpRuntimeBackend = vi.fn<(id?: string) => unknown>(() => null);
+   const reconcilePendingSessionIdentities = vi.fn(async () => ({
+     checked: 0,
+@@ -55,6 +57,8 @@ const hoisted = vi.hoisted(() => {
+     shouldWakeFromRestartSentinel,
+     scheduleRestartSentinelWake,
+     refreshLatestUpdateRestartSentinel,
++    markRestartAbortedMainSessionsFromLocks,
++    scheduleRestartAbortedMainSessionRecovery,
+     getAcpRuntimeBackend,
+     reconcilePendingSessionIdentities,
+     resolveAgentModelPrimaryValue,
+@@ -75,6 +79,11 @@ vi.mock("../agents/session-write-lock.js", () => ({
+   cleanStaleLockFiles: vi.fn(async () => undefined),
+ }));
+ 
++vi.mock("../agents/main-session-restart-recovery.js", () => ({
++  markRestartAbortedMainSessionsFromLocks: hoisted.markRestartAbortedMainSessionsFromLocks,
++  scheduleRestartAbortedMainSessionRecovery: hoisted.scheduleRestartAbortedMainSessionRecovery,
++}));
++
+ vi.mock("../agents/subagent-registry.js", () => ({
+   scheduleSubagentOrphanRecovery: hoisted.scheduleSubagentOrphanRecovery,
+ }));
+@@ -207,6 +216,8 @@ describe("startGatewayPostAttachRuntime", () => {
+     hoisted.scheduleSubagentOrphanRecovery.mockClear();
+     hoisted.shouldWakeFromRestartSentinel.mockReturnValue(false);
+     hoisted.scheduleRestartSentinelWake.mockClear();
++    hoisted.markRestartAbortedMainSessionsFromLocks.mockClear();
++    hoisted.scheduleRestartAbortedMainSessionRecovery.mockClear();
+     hoisted.getAcpRuntimeBackend.mockReset();
+     hoisted.getAcpRuntimeBackend.mockReturnValue(null);
+     hoisted.reconcilePendingSessionIdentities.mockClear();
+@@ -543,6 +554,32 @@ describe("startGatewayPostAttachRuntime", () => {
+     );
+   });
+ 
++  it("skips main session restart recovery when disabled by environment", async () => {
++    await withEnvAsync({ OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY: "1" }, async () => {
++      await startGatewaySidecars({
++        cfg: {
++          hooks: { internal: { enabled: false } },
++        } as never,
++        pluginRegistry: createPostAttachParams().pluginRegistry,
++        defaultWorkspaceDir: "/tmp/openclaw-workspace",
++        deps: {} as never,
++        startChannels: vi.fn(async () => undefined),
++        log: { warn: vi.fn() },
++        logHooks: {
++          info: vi.fn(),
++          warn: vi.fn(),
++          error: vi.fn(),
++        },
++        logChannels: {
++          info: vi.fn(),
++          error: vi.fn(),
++        },
++      });
++    });
++
++    expect(hoisted.scheduleRestartAbortedMainSessionRecovery).not.toHaveBeenCalled();
++  });
++
+   it("keeps startup-gated methods unavailable while sidecars are still resuming", async () => {
+     let resumeSidecars!: () => void;
+     const sidecarsReady = new Promise<{ pluginServices: null }>((resolve) => {
+diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
+index 02a8cf8961..58a609b435 100644
+--- a/src/gateway/server-startup-post-attach.ts
++++ b/src/gateway/server-startup-post-attach.ts
+@@ -25,6 +25,7 @@ const ACP_BACKEND_READY_POLL_MS = 50;
+ const PRIMARY_MODEL_PREWARM_TIMEOUT_MS = 5_000;
+ const STARTUP_PROVIDER_DISCOVERY_TIMEOUT_MS = 5_000;
+ const SKIP_STARTUP_MODEL_PREWARM_ENV = "OPENCLAW_SKIP_STARTUP_MODEL_PREWARM";
++const DISABLE_SESSION_RESTART_RECOVERY_ENV = "OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY";
+ const QMD_STARTUP_IDLE_DELAY_MS = 120_000;
+ 
+ type Awaitable<T> = T | Promise<T>;
+@@ -56,6 +57,10 @@ function shouldSkipStartupModelPrewarm(env: NodeJS.ProcessEnv = process.env): bo
+   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+ }
+ 
++function shouldDisableSessionRestartRecovery(env: NodeJS.ProcessEnv = process.env): boolean {
++  return isTruthyEnvValue(env[DISABLE_SESSION_RESTART_RECOVERY_ENV]);
++}
++
+ function resolveGatewayMemoryStartupPolicy(cfg: OpenClawConfig): GatewayMemoryStartupPolicy {
+   if (cfg.memory?.backend !== "qmd") {
+     return { mode: "off" };
+@@ -304,7 +309,7 @@ export async function startGatewaySidecars(params: {
+           removeStale: true,
+           log: { warn: (message) => params.log.warn(message) },
+         });
+-        if (result.cleaned.length > 0) {
++        if (result.cleaned.length > 0 && !shouldDisableSessionRestartRecovery()) {
+           const { markRestartAbortedMainSessionsFromLocks } =
+             await import("../agents/main-session-restart-recovery.js");
+           await markRestartAbortedMainSessionsFromLocks({
+@@ -509,6 +514,9 @@ export async function startGatewaySidecars(params: {
+   });
+ 
+   await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
++    if (shouldDisableSessionRestartRecovery()) {
++      return;
++    }
+     const { scheduleRestartAbortedMainSessionRecovery } =
+       await import("../agents/main-session-restart-recovery.js");
+     scheduleRestartAbortedMainSessionRecovery();
+@@ -746,5 +754,6 @@ export const __testing = {
+   prewarmConfiguredPrimaryModelWithTimeout,
+   resolveGatewayMemoryStartupPolicy,
+   schedulePrimaryModelPrewarm,
++  shouldDisableSessionRestartRecovery,
+   shouldSkipStartupModelPrewarm,
+ };
 diff --git a/src/gateway/server.impl.ts b/src/gateway/server.impl.ts
 index f103d2a9b2..2d13e3f1f7 100644
 --- a/src/gateway/server.impl.ts
