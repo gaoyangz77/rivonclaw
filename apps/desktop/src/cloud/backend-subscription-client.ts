@@ -116,6 +116,7 @@ const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       orderId
       messageType
       senderRole
+      operatorInstruction
       eventTime
     }
   }

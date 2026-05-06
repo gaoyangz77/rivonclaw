@@ -1544,6 +1544,7 @@ export default {
         browserProfiles: "Browser Profiles",
         BROWSER_PROFILES: "Browser Profiles",
         ECOM_CS: "E-com CS",
+        ECOM_CS_MANAGEMENT: "CS Management",
         ECOM_OPS: "E-com Ops",
         ECOM_ORDER: "E-com Orders",
         ECOM_FULFILLMENT: "E-com Fulfillment",
@@ -1639,7 +1640,7 @@ export default {
         CS_ESCALATE: "Escalate",
         CS_RESPOND: "Respond to Escalation",
         CS_GET_ESCALATION_RESULT: "Get Escalation Result",
-        cs_start_session: "Start Session",
+        CS_START_SESSION: "Start Session",
         // E-commerce Shop Management
         ECOM_LIST_SHOPS: "List Shops",
         ECOM_GET_SHOP: "Get Shop",

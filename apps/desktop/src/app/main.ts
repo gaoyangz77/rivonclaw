@@ -62,6 +62,7 @@ import { initCookieSync, pullAndPersistCookies, pushStoredCookiesToGateway } fro
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
+import { stageMerchantExtensionsForCloudTools } from "../gateway/cloud-tools-extension-stage.js";
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
@@ -410,6 +411,9 @@ app.whenReady().then(async () => {
   const extensionsDir = app.isPackaged
     ? join(process.resourcesPath, "extensions")
     : resolve(dirname(fileURLToPath(import.meta.url)), "../../../extensions");
+  const merchantExtensionsDir = app.isPackaged
+    ? join(process.resourcesPath, "extensions-merchant")
+    : resolve(dirname(fileURLToPath(import.meta.url)), "../../../extensions-merchant");
 
   // Pending OAuth flow state (replaces scalar variables with a flow map for async/non-blocking flows)
   interface PendingOAuthFlow {
@@ -518,6 +522,13 @@ app.whenReady().then(async () => {
     stateDir,
   });
 
+  let merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
+    sourceMerchantExtensionsDir: merchantExtensionsDir,
+    stateDir,
+    authSession,
+    logger: log,
+  });
+
   // Setup gateway: launcher, config builder, event dispatcher, connection deps
   const {
     launcher,
@@ -525,6 +536,7 @@ app.whenReady().then(async () => {
   } = await setupGateway({
     storage, secretStore, locale, configPath, stateDir,
     extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir,
+    merchantExtensionPaths: () => merchantExtensionPaths,
     gatewayPort: actualGatewayPort, broadcastEvent,
   });
 
@@ -1082,6 +1094,14 @@ app.whenReady().then(async () => {
         const previousToolSpecDigest = getEntitledToolSpecDigest();
         await bootstrapDesktopAuthState(authSession, rootStore);
         const nextToolSpecDigest = getEntitledToolSpecDigest();
+        if (previousToolSpecDigest !== nextToolSpecDigest) {
+          merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
+            sourceMerchantExtensionsDir: merchantExtensionsDir,
+            stateDir,
+            toolNames: rootStore.entitledTools.map((tool) => tool.name),
+            logger: log,
+          });
+        }
         try {
           await reinitializeToolCapabilityFromCatalog();
           log.info("ToolCapability auth change: re-initialized");

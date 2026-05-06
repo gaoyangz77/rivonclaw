@@ -464,6 +464,11 @@ export interface WriteGatewayConfigOptions {
    *  In packaged Electron apps: set to process.resourcesPath + "extensions".
    *  In dev: auto-resolved from monorepo root if not provided. */
   extensionsDir?: string;
+  /** Optional per-plugin merchant extension load paths.
+   *  When provided, these paths replace the default sibling extensions-merchant
+   *  directory discovery. This lets desktop stage selected plugin manifests
+   *  (for example dynamic cloud-tool contracts) without loading duplicate plugin ids. */
+  merchantExtensionPaths?: string[];
   /** Skip OpenClaw bootstrap (prevents creating template files like AGENTS.md on first startup). */
   skipBootstrap?: boolean;
   /** Agent workspace directory. Written as agents.defaults.workspace so OpenClaw stores
@@ -922,6 +927,13 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         // /Volumes/RivonClaw/... vs /Applications/RivonClaw.app/...),
         // and avoid duplicating the extensions dir itself.
         // Use sep-agnostic checks so this works on both macOS (/) and Windows (\).
+        const merchantExtensionPaths = options.merchantExtensionPaths
+          ?.filter((p) => typeof p === "string" && p.trim().length > 0 && existsSync(p))
+          ?? null;
+        const normalizedMerchantExtensionPaths = new Set(
+          (merchantExtensionPaths ?? []).map((p) => resolve(p).replace(/\\/g, "/")),
+        );
+
         const isStaleExtPath = (p: string): boolean => {
           const normalized = p.replace(/\\/g, "/");
           return (
@@ -929,6 +941,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
             normalized.includes("rivonclaw-search-browser-fallback") ||
             normalized.includes("extensions/wecom") ||
             normalized.includes("extensions/dingtalk") ||
+            normalized.includes("/runtime-extensions/rivonclaw-cloud-tools") ||
+            normalizedMerchantExtensionPaths.has(resolve(p).replace(/\\/g, "/")) ||
             normalized.endsWith("/extensions") ||
             normalized.endsWith("/extensions-merchant") ||
             p === extDir
@@ -941,11 +955,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         // It lives alongside extensions/ as a separate clone and is discovered
         // via plugins.load.paths rather than being nested inside extensions/.
         const merchantDir = resolve(extDir, "..", "extensions-merchant");
-        const extraDirs = existsSync(merchantDir) ? [merchantDir] : [];
+        const extraDirs = merchantExtensionPaths
+          ?? (existsSync(merchantDir) ? [merchantDir] : []);
 
         merged.load = {
           ...existingLoad,
-          paths: [...filteredPaths, extDir, ...extraDirs],
+          paths: Array.from(new Set([...filteredPaths, extDir, ...extraDirs])),
         };
       } else {
         log.warn(`Extensions directory not found at ${extDir}, skipping`);

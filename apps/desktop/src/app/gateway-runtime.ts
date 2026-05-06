@@ -27,6 +27,7 @@ export interface SetupGatewayDeps {
   sttCliPath: string;
   filePermissionsPluginPath: string | undefined;
   vendorDir: string;
+  merchantExtensionPaths?: () => string[];
   gatewayPort: number;
   /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
   broadcastEvent: BroadcastEvent;
@@ -44,7 +45,7 @@ export interface GatewayRuntime {
 export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRuntime> {
   const {
     storage, secretStore, locale, configPath, stateDir,
-    extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir,
+    extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir, merchantExtensionPaths,
     gatewayPort, broadcastEvent,
   } = deps;
 
@@ -59,6 +60,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   const { buildFullGatewayConfig } = createGatewayConfigBuilder({
     storage, secretStore, locale, configPath, stateDir, extensionsDir,
     sttCliPath, filePermissionsPluginPath, vendorDir,
+    merchantExtensionPaths,
     channelPluginEntries: () => rootStore.channelManager.buildPluginEntries(),
     channelConfigAccounts: () => rootStore.channelManager.buildConfigAccounts(),
   });

@@ -867,6 +867,43 @@ describe("agent dispatch", () => {
     expect(message).toContain("This refund request looks unreasonable.");
   });
 
+  it("handleCsConversationSignal passes operator instruction into catch-up dispatch", async () => {
+    const bridge = createBridge();
+    rootStore.ingestGraphQLResponse({
+      shops: [{
+        id: defaultShop.objectId,
+        platform: "TIKTOK_SHOP",
+        platformShopId: defaultShop.platformShopId,
+        shopName: defaultShop.shopName,
+        services: {
+          customerService: {
+            enabled: true,
+            csDeviceId: "test-gateway",
+            businessPrompt: defaultShop.systemPrompt,
+            runProfileId: defaultShop.runProfileId,
+            platformSystemPrompt: "PLATFORM CS PROMPT",
+          },
+        },
+      }],
+    });
+
+    await bridge.handleCsConversationSignal({
+      type: "MANUAL_START",
+      source: "MANUAL",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "conv-manual",
+      orderId: "order-manual",
+      operatorInstruction: "This user's request is unreasonable; do not offer a refund.",
+      eventTime: new Date().toISOString(),
+    } as any);
+
+    const agentCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
+    const message = agentCall?.[1].message as string;
+    expect(message).toContain("[Internal: Operator Instruction]");
+    expect(message).toContain("This user's request is unreasonable");
+  });
+
   it("extraSystemPrompt includes orderId when present", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);

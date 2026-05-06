@@ -493,7 +493,9 @@ export class EcommerceRelayBridge {
     });
 
     try {
-      await session.dispatchCatchUp();
+      await session.dispatchCatchUp({
+        operatorInstruction: signal.operatorInstruction ?? undefined,
+      });
     } catch (err) {
       log.error(`Failed to handle CS signal ${signal.messageId ?? signal.conversationId}:`, err);
       session.emitError(CS_ERROR_STAGE.DISPATCH, {

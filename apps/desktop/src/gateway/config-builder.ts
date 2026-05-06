@@ -23,6 +23,8 @@ export interface GatewayConfigDeps {
   channelPluginEntries: () => Record<string, { enabled: boolean }>;
   /** Returns channel account configs for gateway config write-back (from ChannelManager). */
   channelConfigAccounts: () => Array<{ channelId: string; accountId: string; config: Record<string, unknown> }>;
+  /** Returns merchant extension paths after any runtime staging. */
+  merchantExtensionPaths?: () => string[];
 }
 
 /**
@@ -160,6 +162,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       enableFilePermissions: true,
       ownerAllowFrom: buildOwnerAllowFrom(storage),
       extensionsDir,
+      merchantExtensionPaths: deps.merchantExtensionPaths?.(),
       plugins: {
         allow: [
           ...OUR_PLUGIN_IDS,

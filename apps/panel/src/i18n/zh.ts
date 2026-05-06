@@ -1533,6 +1533,7 @@ export default {
         browserProfiles: "浏览器配置",
         BROWSER_PROFILES: "浏览器配置",
         ECOM_CS: "电商客服",
+        ECOM_CS_MANAGEMENT: "客服管理",
         ECOM_OPS: "电商运营",
         ECOM_ORDER: "电商订单",
         ECOM_FULFILLMENT: "电商履约",
@@ -1628,7 +1629,7 @@ export default {
         CS_ESCALATE: "升级处理",
         CS_RESPOND: "回复升级",
         CS_GET_ESCALATION_RESULT: "获取升级结果",
-        cs_start_session: "启动客服会话",
+        CS_START_SESSION: "启动客服会话",
         // 电商店铺管理
         ECOM_LIST_SHOPS: "店铺列表",
         ECOM_GET_SHOP: "获取店铺",

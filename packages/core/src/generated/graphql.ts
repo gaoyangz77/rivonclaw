@@ -980,6 +980,8 @@ export interface CsConversationSignal {
   messageId?: Maybe<Scalars['String']['output']>;
   /** Platform message type, e.g. TEXT or IMAGE, if tied to a message. */
   messageType?: Maybe<Scalars['String']['output']>;
+  /** Optional operator instruction/comment to inject into the local CS agent catch-up prompt. */
+  operatorInstruction?: Maybe<Scalars['String']['output']>;
   /** Related order ID if the platform event already carried one. */
   orderId?: Maybe<Scalars['String']['output']>;
   /** Platform shop ID from the commerce platform webhook/API. */
@@ -1004,6 +1006,7 @@ export const CsConversationSignalSource = {
 export type CsConversationSignalSource = typeof CsConversationSignalSource[keyof typeof CsConversationSignalSource];
 /** Business-level customer-service conversation signal type */
 export const CsConversationSignalType = {
+  ManualStart: 'MANUAL_START',
   MessageReceived: 'MESSAGE_RECEIVED',
   UnreadDetected: 'UNREAD_DETECTED'
 } as const;
@@ -2589,6 +2592,8 @@ export interface Mutation {
   csPublishPendingEscalationEvents: Scalars['Int']['output'];
   /** Write a manager response to a CS escalation and queue a local CS-agent wake event */
   csRespond: CsRespondResult;
+  /** Publish a manual CS conversation signal that asks the assigned desktop to start a CS agent session */
+  csStartSession: CsConversationSignal;
   /** Record an approval/rejection/modification decision. APPROVED executes the frozen action intent through the backend proposal service. */
   decideActionProposal: ActionProposal;
   /** Delete a run profile */
@@ -2754,6 +2759,14 @@ export interface MutationCsRespondArgs {
   escalationId: Scalars['ID']['input'];
   instructions: Scalars['String']['input'];
   resolved?: Scalars['Boolean']['input'];
+}
+
+
+export interface MutationCsStartSessionArgs {
+  comment?: InputMaybe<Scalars['String']['input']>;
+  conversationId: Scalars['String']['input'];
+  orderId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -3185,6 +3198,8 @@ export interface PublishCsConversationSignalInput {
   messageId?: InputMaybe<Scalars['String']['input']>;
   /** Platform message type, e.g. TEXT or IMAGE. */
   messageType?: InputMaybe<Scalars['String']['input']>;
+  /** Optional operator instruction/comment to inject into the local CS agent catch-up prompt. */
+  operatorInstruction?: InputMaybe<Scalars['String']['input']>;
   /** Related order ID if available. */
   orderId?: InputMaybe<Scalars['String']['input']>;
   /** Platform shop ID. Relay/webhook publishers provide this when they do not know the MongoDB shop ID. */
@@ -4286,6 +4301,7 @@ export const ToolCategory = {
   BrowserProfiles: 'BROWSER_PROFILES',
   EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
   EcomCs: 'ECOM_CS',
+  EcomCsManagement: 'ECOM_CS_MANAGEMENT',
   EcomFulfillment: 'ECOM_FULFILLMENT',
   EcomOps: 'ECOM_OPS',
   EcomOrder: 'ECOM_ORDER',
@@ -4311,6 +4327,7 @@ export const ToolId = {
   CsEscalate: 'CS_ESCALATE',
   CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
   CsRespond: 'CS_RESPOND',
+  CsStartSession: 'CS_START_SESSION',
   EcomApproveCancellation: 'ECOM_APPROVE_CANCELLATION',
   EcomApproveRefund: 'ECOM_APPROVE_REFUND',
   EcomApproveReturn: 'ECOM_APPROVE_RETURN',

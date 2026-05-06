@@ -12,6 +12,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 const log = createLogger("client-tool-loader");
 
 const CLOUD_OWNED_CS_TOOL_IDS = new Set([
+  "cs_start_session",
   "cs_escalate",
   "cs_respond",
   "cs_continue",

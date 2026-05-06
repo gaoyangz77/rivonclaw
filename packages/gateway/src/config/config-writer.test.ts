@@ -803,6 +803,31 @@ describe("config-writer", () => {
       expect(extDirCount).toBe(1);
     });
 
+    it("uses explicit merchant extension paths instead of sibling extensions-merchant", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      const extDir = join(tmpDir, "extensions");
+      const siblingMerchantDir = join(tmpDir, "extensions-merchant");
+      const stagedCloudDir = join(tmpDir, "runtime-extensions", "rivonclaw-cloud-tools");
+      const localToolsDir = join(siblingMerchantDir, "rivonclaw-local-tools");
+      mkdirSync(extDir, { recursive: true });
+      mkdirSync(siblingMerchantDir, { recursive: true });
+      mkdirSync(stagedCloudDir, { recursive: true });
+      mkdirSync(localToolsDir, { recursive: true });
+
+      writeGatewayConfig({
+        configPath,
+        extensionsDir: extDir,
+        merchantExtensionPaths: [stagedCloudDir, localToolsDir],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const paths = config.plugins.load.paths as string[];
+      expect(paths).toContain(extDir);
+      expect(paths).toContain(stagedCloudDir);
+      expect(paths).toContain(localToolsDir);
+      expect(paths).not.toContain(siblingMerchantDir);
+    });
+
     it("works alongside filePermissionsPluginPath", () => {
       const configPath = join(tmpDir, "openclaw.json");
       const extDir = join(tmpDir, "extensions");
