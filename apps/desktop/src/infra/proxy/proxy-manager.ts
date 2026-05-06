@@ -165,6 +165,11 @@ export function buildProxyEnv(proxyRouterPort: number): Record<string, string> {
     // OpenClaw 2026.5 defaults runtime trajectory capture on. On desktop this
     // can make agent cleanup spend seconds flushing JSONL and block gateway RPC.
     OPENCLAW_TRAJECTORY: "0",
+    // RivonClaw receives customer-service retries from backend/Airflow. Letting
+    // OpenClaw replay local outbound deliveries or interrupted sessions at
+    // gateway startup can overwhelm the single gateway process after a crash.
+    OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY: "1",
+    OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY: "1",
   };
 }
 

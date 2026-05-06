@@ -372,7 +372,12 @@ export const ChannelsPage = observer(function ChannelsPage() {
         <QrLoginModal
           channelId={qrLoginChannelId}
           onClose={() => setQrLoginChannelId(null)}
-          onSuccess={() => loadChannelStatus(true, { probe: false })}
+          onSuccess={() => {
+            void pollGatewayReady(
+              () => loadChannelStatus(true, { probe: false }),
+              { maxRetries: 30 },
+            );
+          }}
         />
       )}
 

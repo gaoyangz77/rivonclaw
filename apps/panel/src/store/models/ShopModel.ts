@@ -39,10 +39,6 @@ export const ShopModel = ShopModelBase.views((self) => ({
     ));
     if (!account) return "invalid_channel";
 
-    if (channelId === "openclaw-weixin" && account.status?.hasContextToken === false) {
-      return "missing_context_token";
-    }
-
     return null;
   },
 })).actions((self) => {

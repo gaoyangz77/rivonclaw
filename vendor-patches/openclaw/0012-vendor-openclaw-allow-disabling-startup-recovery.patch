@@ -1,0 +1,151 @@
+From 9b0358d526ceef639512b1c683eada047ed51977 Mon Sep 17 00:00:00 2001
+From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
+Date: Wed, 6 May 2026 07:23:04 -0700
+Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
+
+Why:
+- RivonClaw receives customer-service retries from backend/Airflow rather than relying on local gateway replay.
+- OpenClaw startup delivery recovery and interrupted-session recovery can overwhelm the single desktop gateway process when many customer-service deliveries are queued.
+
+Removal:
+- Drop when upstream OpenClaw exposes first-class config for startup recovery policies or makes startup recovery budgeted enough for RivonClaw customer-service workloads.
+
+Tests:
+- vendor/openclaw/src/gateway/server-runtime-services.test.ts
+- apps/desktop/src/infra/proxy/proxy-manager.test.ts
+---
+ src/gateway/server-runtime-services.test.ts | 27 +++++++++++++++++++++
+ src/gateway/server-runtime-services.ts      | 20 ++++++++++++++-
+ src/gateway/server.impl.ts                  |  1 +
+ 3 files changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/src/gateway/server-runtime-services.test.ts b/src/gateway/server-runtime-services.test.ts
+index ef3204381f..1853432aaf 100644
+--- a/src/gateway/server-runtime-services.test.ts
++++ b/src/gateway/server-runtime-services.test.ts
+@@ -26,6 +26,8 @@ vi.mock("../infra/heartbeat-runner.js", () => ({
+ 
+ vi.mock("../infra/env.js", () => ({
+   isVitestRuntimeEnv: hoisted.isVitestRuntimeEnv,
++  isTruthyEnvValue: (value: unknown) =>
++    typeof value === "string" && ["1", "true", "yes", "on"].includes(value.trim().toLowerCase()),
+ }));
+ 
+ vi.mock("../infra/outbound/deliver.js", () => ({
+@@ -194,6 +196,31 @@ describe("server-runtime-services", () => {
+     );
+   });
+ 
++  it("can disable startup delivery and session restart recovery by environment", async () => {
++    vi.useFakeTimers();
++    const cron = { start: vi.fn(async () => undefined) };
++
++    activateGatewayScheduledServices({
++      minimalTestGateway: false,
++      cfgAtStart: {} as never,
++      deps: {} as never,
++      sessionDeliveryRecoveryMaxEnqueuedAt: 123,
++      cron,
++      logCron: { error: vi.fn() },
++      log: createLog(),
++      env: {
++        OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY: "1",
++        OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY: "1",
++      } as never,
++    });
++
++    await vi.advanceTimersByTimeAsync(1_250);
++    await vi.dynamicImportSettled();
++
++    expect(hoisted.recoverPendingDeliveries).not.toHaveBeenCalled();
++    expect(hoisted.recoverPendingRestartContinuationDeliveries).not.toHaveBeenCalled();
++  });
++
+   it("keeps scheduled services disabled for minimal test gateways", () => {
+     const cron = { start: vi.fn(async () => undefined) };
+ 
+diff --git a/src/gateway/server-runtime-services.ts b/src/gateway/server-runtime-services.ts
+index 96eb22be89..361aba2226 100644
+--- a/src/gateway/server-runtime-services.ts
++++ b/src/gateway/server-runtime-services.ts
+@@ -1,11 +1,14 @@
+ import type { OpenClawConfig } from "../config/types.openclaw.js";
+-import { isVitestRuntimeEnv } from "../infra/env.js";
++import { isTruthyEnvValue, isVitestRuntimeEnv } from "../infra/env.js";
+ import { startHeartbeatRunner, type HeartbeatRunner } from "../infra/heartbeat-runner.js";
+ import type { PluginMetadataRegistryView } from "../plugins/plugin-metadata-snapshot.types.js";
+ import type { ChannelHealthMonitor } from "./channel-health-monitor.js";
+ import { startChannelHealthMonitor } from "./channel-health-monitor.js";
+ import { isGatewayModelPricingEnabled } from "./model-pricing-config.js";
+ 
++const DISABLE_OUTBOUND_DELIVERY_RECOVERY_ENV = "OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY";
++const DISABLE_SESSION_RESTART_RECOVERY_ENV = "OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY";
++
+ type GatewayRuntimeServiceLogger = {
+   child: (name: string) => {
+     info: (message: string) => void;
+@@ -56,7 +59,13 @@ export function startGatewayCronWithLogging(params: {
+ function recoverPendingOutboundDeliveries(params: {
+   cfg: OpenClawConfig;
+   log: GatewayRuntimeServiceLogger;
++  env?: NodeJS.ProcessEnv;
+ }): void {
++  if (isTruthyEnvValue(params.env?.[DISABLE_OUTBOUND_DELIVERY_RECOVERY_ENV])) {
++    params.log.child("delivery-recovery").info("disabled by environment");
++    return;
++  }
++
+   void (async () => {
+     const { recoverPendingDeliveries } = await import("../infra/outbound/delivery-queue.js");
+     const { deliverOutboundPayloads } = await import("../infra/outbound/deliver.js");
+@@ -73,7 +82,13 @@ function recoverPendingSessionDeliveries(params: {
+   deps: import("../cli/deps.types.js").CliDeps;
+   log: GatewayRuntimeServiceLogger;
+   maxEnqueuedAt: number;
++  env?: NodeJS.ProcessEnv;
+ }): void {
++  if (isTruthyEnvValue(params.env?.[DISABLE_SESSION_RESTART_RECOVERY_ENV])) {
++    params.log.child("session-delivery-recovery").info("disabled by environment");
++    return;
++  }
++
+   const timer = setTimeout(() => {
+     void (async () => {
+       const { recoverPendingRestartContinuationDeliveries } =
+@@ -151,6 +166,7 @@ export function activateGatewayScheduledServices(params: {
+   logCron: { error: (message: string) => void };
+   log: GatewayRuntimeServiceLogger;
+   pluginLookUpTable?: PluginMetadataRegistryView;
++  env?: NodeJS.ProcessEnv;
+ }): { heartbeatRunner: HeartbeatRunner; stopModelPricingRefresh: () => void } {
+   if (params.minimalTestGateway) {
+     return { heartbeatRunner: createNoopHeartbeatRunner(), stopModelPricingRefresh: () => {} };
+@@ -163,11 +179,13 @@ export function activateGatewayScheduledServices(params: {
+   recoverPendingOutboundDeliveries({
+     cfg: params.cfgAtStart,
+     log: params.log,
++    env: params.env ?? process.env,
+   });
+   recoverPendingSessionDeliveries({
+     deps: params.deps,
+     log: params.log,
+     maxEnqueuedAt: params.sessionDeliveryRecoveryMaxEnqueuedAt,
++    env: params.env ?? process.env,
+   });
+   const stopModelPricingRefresh = !isVitestRuntimeEnv()
+     ? startGatewayModelPricingRefreshOnDemand({
+diff --git a/src/gateway/server.impl.ts b/src/gateway/server.impl.ts
+index f103d2a9b2..2d13e3f1f7 100644
+--- a/src/gateway/server.impl.ts
++++ b/src/gateway/server.impl.ts
+@@ -1307,6 +1307,7 @@ export async function startGatewayServer(
+         logCron,
+         log,
+         pluginLookUpTable,
++        env: process.env,
+       });
+       scheduledServicesActivated = true;
+       runtimeState.heartbeatRunner = activated.heartbeatRunner;
+-- 
+2.50.1 (Apple Git-155)
+

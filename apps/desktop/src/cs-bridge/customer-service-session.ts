@@ -861,11 +861,9 @@ export class CustomerServiceSession {
       channel === WEIXIN_CHANNEL_ID
       && !rootStore.channelManager.hasWeixinContextTokenForRecipient(outboundAccountId, escalationRecipientId)
     ) {
-      this.emitError(CS_ERROR_STAGE.ESCALATE, {
-        reason: "missing_weixin_context_token",
-        errorMessage: `recipient=${escalationRecipientId} account=${outboundAccountId}`,
-      });
-      throw new Error("WeChat escalation recipient is not active yet. Ask this WeChat account to send one message to the agent first.");
+      log.warn(
+        `WeChat escalation context token not cached; sending anyway account=${outboundAccountId} recipient=${escalationRecipientId}`,
+      );
     }
 
     const lines = [

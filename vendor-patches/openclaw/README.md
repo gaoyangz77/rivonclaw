@@ -325,6 +325,24 @@ resolution.
 cannot replace the startup-pinned channel registry used for outbound delivery,
 or when upstream exposes a separate tool-discovery registry surface.
 
+### 0012 — Disable startup recovery for RivonClaw Desktop
+
+**File:** `0012-vendor-openclaw-allow-disabling-startup-recovery.patch`
+
+**Why:** RivonClaw receives customer-service retries from backend/Airflow. When
+OpenClaw replays local outbound deliveries and interrupted agent sessions during
+gateway startup, customer machines with queued customer-service deliveries can
+spend tens of seconds in recovery and time out normal gateway RPC calls. This
+patch adds env-gated switches so RivonClaw Desktop can opt out while upstream
+default behavior stays unchanged.
+
+**Change:** Add `OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY` and
+`OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY` checks around startup recovery.
+
+**Removal:** Drop when upstream OpenClaw exposes first-class config for startup
+recovery policies or makes startup recovery sufficiently budgeted for RivonClaw
+customer-service workloads.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals

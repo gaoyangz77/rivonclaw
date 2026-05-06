@@ -15,6 +15,7 @@ import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.
 import {
   addAllowFromEntry,
   addAllowFromEntrySync,
+  mergeAccountAllowFromList,
   readAllAllowFromLists,
   readAllowFromList,
   resolveAllowFromPathForChannel,
@@ -23,11 +24,14 @@ import {
 } from "./channel-allowlist-store.js";
 import {
   WEIXIN_CHANNEL_ID,
-  clearWeixinContextTokenFiles,
+  hasWeixinAccountFile,
+  readIndexedWeixinAccountIds,
   readWeixinContextTokensSync,
   readWeixinContextTokenRecipientIds,
   readWeixinAccountUserId,
   readWeixinAccountUserIdSync,
+  selectStaleWeixinAccountIdsForLogin,
+  selectWeixinReplacementAccountName,
 } from "./weixin-account-dedupe.js";
 
 const log = createLogger("channel-manager");
@@ -633,11 +637,7 @@ export const ChannelManagerModel = types
       };
 
       if (account.channelId === WEIXIN_CHANNEL_ID) {
-        const { stateDir } = getEnv();
-        const userId = readWeixinAccountUserIdSync(stateDir, canonicalAccountId);
-        status.hasContextToken = userId
-          ? hasLoadedWeixinContextToken(canonicalAccountId, userId)
-          : false;
+        status.hasContextToken = getWeixinContextTokens(canonicalAccountId).size > 0;
       }
 
       return {
@@ -1211,32 +1211,74 @@ export const ChannelManagerModel = types
         const accountStatus = storage.channelAccounts.get(WEIXIN_CHANNEL_ID, canonicalAccountId)
           ? "existing"
           : "created";
-        yield clearWeixinContextTokenFiles(stateDir, canonicalAccountId);
-        clearLoadedWeixinContextTokens(canonicalAccountId);
-        refreshWeixinContextTokenStatus(canonicalAccountId);
 
         const userId = (typeof result.userId === "string" && result.userId.trim())
           ? result.userId.trim()
           : yield readWeixinAccountUserId(stateDir, canonicalAccountId);
 
+        const weixinAccounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID);
+        let staleAccountIds: string[] = [];
+        let replacementAccountName: string | undefined;
+
         if (userId) {
           yield addAllowFromEntry(WEIXIN_CHANNEL_ID, canonicalAccountId, userId);
+
+          const indexedAccountIds: Set<string> = yield readIndexedWeixinAccountIds(stateDir);
+          const accountFileExists = new Set<string>();
+          const accountUserIds = new Map<string, string | undefined>();
+
+          for (const account of weixinAccounts) {
+            const existingAccountId = normalizeWeixinAccountId(account.accountId);
+            const existingUserId: string | undefined = yield readWeixinAccountUserId(stateDir, existingAccountId);
+            accountUserIds.set(existingAccountId, existingUserId);
+            if (yield hasWeixinAccountFile(stateDir, existingAccountId)) {
+              accountFileExists.add(existingAccountId);
+            }
+          }
+
+          staleAccountIds = selectStaleWeixinAccountIdsForLogin({
+            accounts: weixinAccounts,
+            currentAccountId: canonicalAccountId,
+            userId,
+            accountUserIds,
+            indexedAccountIds,
+            accountFileExists,
+          });
+          replacementAccountName = selectWeixinReplacementAccountName({
+            accounts: weixinAccounts,
+            currentAccountId: canonicalAccountId,
+            staleAccountIds,
+          });
         }
 
+        for (const staleAccountId of staleAccountIds) {
+          yield mergeAccountAllowFromList(WEIXIN_CHANNEL_ID, staleAccountId, canonicalAccountId);
+          removeAccountById(WEIXIN_CHANNEL_ID, staleAccountId, { writeConfig: false });
+        }
+
+        if (staleAccountIds.length > 0) {
+          log.info(
+            `Merged duplicate WeChat account(s) for userId=${userId}: `
+            + `${staleAccountIds.join(", ")} -> ${canonicalAccountId}`,
+          );
+        }
+
+        const accountName = replacementAccountName ?? canonicalAccountId;
         upsertAccountState({
           channelId: WEIXIN_CHANNEL_ID,
           accountId: canonicalAccountId,
-          name: canonicalAccountId,
+          name: accountName,
           config: {},
           writeConfig: false,
         });
+        loadWeixinContextTokens(canonicalAccountId);
         writeChannelAccountsSnapshot(WEIXIN_CHANNEL_ID);
 
         return {
           ...result,
           accountId: canonicalAccountId,
           ...(userId ? { userId } : {}),
-          accountName: canonicalAccountId,
+          accountName,
           accountStatus,
         };
       }),
