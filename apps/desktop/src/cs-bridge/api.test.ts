@@ -8,6 +8,7 @@ import { registerCsBridgeHandlers } from "./api.js";
 const bridgeState = vi.hoisted(() => ({
   bridge: {
     getOrCreateSession: vi.fn(),
+    dispatchCatchUp: vi.fn(),
   },
 }));
 
@@ -21,6 +22,7 @@ beforeEach(() => {
   registry = new RouteRegistry();
   registerCsBridgeHandlers(registry);
   bridgeState.bridge.getOrCreateSession.mockReset();
+  bridgeState.bridge.dispatchCatchUp.mockReset();
 });
 
 async function dispatch(method: string, path: string, body?: unknown) {
@@ -57,8 +59,7 @@ function makeRes(): ServerResponse & { _status: number; _body: unknown } {
 
 describe("POST /api/cs-bridge/start-conversation", () => {
   it("starts a session without requiring buyerUserId", async () => {
-    const dispatchCatchUp = vi.fn().mockResolvedValue({ ok: true });
-    bridgeState.bridge.getOrCreateSession.mockResolvedValue({ dispatchCatchUp });
+    bridgeState.bridge.dispatchCatchUp.mockResolvedValue({ ok: true });
 
     const { handled, res } = await dispatch("POST", "/api/cs-bridge/start-conversation", {
       shopId: "shop-1",
@@ -68,17 +69,17 @@ describe("POST /api/cs-bridge/start-conversation", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(bridgeState.bridge.getOrCreateSession).toHaveBeenCalledWith("shop-1", {
+    expect(bridgeState.bridge.dispatchCatchUp).toHaveBeenCalledWith({
+      shopObjectId: "shop-1",
       conversationId: "conv-1",
       buyerUserId: undefined,
       orderId: "order-1",
+      operatorInstruction: undefined,
     });
-    expect(dispatchCatchUp).toHaveBeenCalledWith({ operatorInstruction: undefined });
   });
 
   it("still accepts buyerUserId when it is provided", async () => {
-    const dispatchCatchUp = vi.fn().mockResolvedValue({ ok: true });
-    bridgeState.bridge.getOrCreateSession.mockResolvedValue({ dispatchCatchUp });
+    bridgeState.bridge.dispatchCatchUp.mockResolvedValue({ ok: true });
 
     const { handled, res } = await dispatch("POST", "/api/cs-bridge/start-conversation", {
       shopId: "shop-1",
@@ -88,17 +89,17 @@ describe("POST /api/cs-bridge/start-conversation", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(bridgeState.bridge.getOrCreateSession).toHaveBeenCalledWith("shop-1", {
+    expect(bridgeState.bridge.dispatchCatchUp).toHaveBeenCalledWith({
+      shopObjectId: "shop-1",
       conversationId: "conv-1",
       buyerUserId: "buyer-1",
       orderId: undefined,
+      operatorInstruction: undefined,
     });
-    expect(dispatchCatchUp).toHaveBeenCalledWith({ operatorInstruction: undefined });
   });
 
   it("passes operatorInstruction through to catch-up dispatch", async () => {
-    const dispatchCatchUp = vi.fn().mockResolvedValue({ ok: true });
-    bridgeState.bridge.getOrCreateSession.mockResolvedValue({ dispatchCatchUp });
+    bridgeState.bridge.dispatchCatchUp.mockResolvedValue({ ok: true });
 
     const { handled, res } = await dispatch("POST", "/api/cs-bridge/start-conversation", {
       shopId: "shop-1",
@@ -108,7 +109,11 @@ describe("POST /api/cs-bridge/start-conversation", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(dispatchCatchUp).toHaveBeenCalledWith({
+    expect(bridgeState.bridge.dispatchCatchUp).toHaveBeenCalledWith({
+      shopObjectId: "shop-1",
+      conversationId: "conv-1",
+      buyerUserId: undefined,
+      orderId: undefined,
       operatorInstruction: "This refund request looks suspicious. Review carefully before offering any compensation.",
     });
   });

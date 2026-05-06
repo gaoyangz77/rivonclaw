@@ -6,7 +6,8 @@ import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
 import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
-import { handleCsEscalationEvent } from "../cs-bridge/cs-escalation-event-actuator.js";
+import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-service-cloud-events.js";
+import { handleAffiliateConversationSignal } from "../affiliate/affiliate-conversation-signal-actuator.js";
 
 export interface SetupAuthDeps {
   storage: Storage;
@@ -61,12 +62,27 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
     const shop = rootStore.shops.find((s: any) => s.id === shopId);
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
+    backendSubscription.refreshCsConversationSignals();
   });
 
-  // Subscribe to cloud CS escalation side-effect events. Backend persistence
-  // owns the workflow; desktop claims, executes the local action, then acks.
-  backendSubscription.subscribeToCsEscalationEvents((event) => {
-    void handleCsEscalationEvent(authSession, deviceId, event);
+  const getActiveCustomerServiceShopIds = (): string[] =>
+    rootStore.shops
+      .filter((shop: any) => {
+        const cs = shop.services?.customerService;
+        return !!(cs?.enabled && cs.csDeviceId === deviceId);
+      })
+      .map((shop: any) => shop.id)
+      .filter((shopId: unknown): shopId is string => typeof shopId === "string" && shopId.length > 0);
+
+  registerCustomerServiceCloudEvents({
+    backendSubscription,
+    authSession,
+    deviceId,
+    getShopIds: getActiveCustomerServiceShopIds,
+  });
+
+  backendSubscription.subscribeToAffiliateConversationSignals((signal) => {
+    void handleAffiliateConversationSignal(signal);
   });
 
   return { authSession, backendSubscription };

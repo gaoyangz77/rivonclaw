@@ -168,12 +168,11 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
   }
 
   try {
-    const session = await bridge.getOrCreateSession(body.shopId as string, {
+    const result = await bridge.dispatchCatchUp({
+      shopObjectId: body.shopId as string,
       conversationId: body.conversationId as string,
       buyerUserId: typeof body.buyerUserId === "string" ? body.buyerUserId : undefined,
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
-    });
-    const result = await session.dispatchCatchUp({
       operatorInstruction: typeof body.operatorInstruction === "string"
         ? body.operatorInstruction
         : undefined,

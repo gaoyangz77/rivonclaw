@@ -1,21 +1,12 @@
-import { WebSocket } from "ws";
 import { createLogger } from "@rivonclaw/logger";
-import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
-  type CSHelloFrame,
-  type CSBindShopsFrame,
-  type CSBindShopsResultFrame,
-  type CSShopTakenOverFrame,
   type CSNewMessageFrame,
-  type CSNewConversationFrame,
-  type EcommerceRelayFrame,
   stripReasoningTagsFromText,
 } from "@rivonclaw/core";
-import { getAuthSession } from "../auth/session-ref.js";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
 import { reaction, toJS } from "mobx";
-import type { CsEscalationEventDeliveryPayload } from "../cloud/backend-subscription-client.js";
+import type { CsConversationSignalPayload, CsEscalationEventDeliveryPayload } from "../cloud/backend-subscription-client.js";
 
 // Re-export for consumers that imported CSShopContext from this file
 export type { CSShopContext } from "../cs-bridge/customer-service-session.js";
@@ -32,7 +23,6 @@ const log = createLogger("ecommerce-relay");
 // ---------------------------------------------------------------------------
 
 export interface EcommerceRelayBridgeOptions {
-  relayUrl: string;
   gatewayId: string;
   /** Default RunProfile ID for CS sessions (fallback when shop has no runProfileId). */
   defaultRunProfileId?: string;
@@ -43,8 +33,9 @@ export interface EcommerceRelayBridgeOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * Desktop-side bridge that connects to the CS relay WebSocket,
- * receives buyer messages, and dispatches agent runs via the gateway RPC.
+ * Desktop-side ecommerce signal actuator. Backend GraphQL subscriptions
+ * deliver business-level signals; this bridge owns local shop/session context
+ * and dispatches agent runs via the gateway RPC.
  *
  * Platform-agnostic: the bridge resolves the platform from the shop context
  * (looked up by platformShopId) and uses it to build session keys, so adding
@@ -55,8 +46,8 @@ export interface EcommerceRelayBridgeOptions {
  * populated by Panel's GraphQL requests flowing through Desktop's proxy.
  *
  * On start(), the bridge subscribes to the entity cache. When shops appear
- * or change, it syncs shop contexts and manages the relay connection
- * accordingly. No explicit push of shop contexts is needed.
+ * or change, it syncs shop contexts. No explicit push of shop contexts is
+ * needed.
  */
 export class EcommerceRelayBridge {
   private static readonly INTERNAL_PROTOCOL_LINE_PATTERNS = [
@@ -70,19 +61,7 @@ export class EcommerceRelayBridge {
     /^\s*In the assistant interface, I can do:\s*$/i,
   ];
 
-  private ws: WebSocket | null = null;
   private closed = false;
-  private authenticated = false;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private reconnectAttempt = 0;
-  /** Set to true when the last WebSocket close was code 4003 (auth failure). */
-  private lastCloseWasAuthFailure = false;
-
-  /** Ping/pong keepalive — detects silent connection death. */
-  private pingInterval: ReturnType<typeof setInterval> | null = null;
-  private awaitingPong = false;
-  private static readonly PING_INTERVAL_MS = 30_000;
-  private static readonly PONG_TIMEOUT_MS = 10_000;
 
   /** Shop context keyed by platformShopId (from webhook). */
   private shopContexts = new Map<string, CSShopContext>();
@@ -92,12 +71,6 @@ export class EcommerceRelayBridge {
 
   /** Affiliate inbound frame handler. Owns affiliate shop contexts and sessions. */
   private affiliateInbound = new AffiliateInbound();
-
-  /** Relay shop bindings are shared by CS and affiliate frames. */
-  private relayShopIds = new Set<string>();
-
-  /** Shops currently bound to other devices (from last cs_bind_shops_result). */
-  private bindingConflicts: Array<{ shopId: string; gatewayId: string }> = [];
 
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
@@ -111,17 +84,10 @@ export class EcommerceRelayBridge {
 
   async start(): Promise<void> {
     this.closed = false;
-    this.reconnectAttempt = 0;
-    // Subscribe to entity cache for reactive shop sync
     this.subscribeToCacheChanges();
-    // Perform initial sync in case shops are already in cache
     this.syncFromCache();
-    // Only connect to relay if at least one shop needs CS or affiliate routing.
-    if (this.hasRelayShops()) {
-      await this.connect();
-    } else {
-      log.info("CS bridge started, waiting for shops to appear in entity cache");
-    }
+    runtimeStatusStore.setCsBridgeConnected();
+    log.info("Ecommerce signal bridge started");
   }
 
   stop(): void {
@@ -131,69 +97,43 @@ export class EcommerceRelayBridge {
       this.cacheUnsubscribe();
       this.cacheUnsubscribe = null;
     }
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    this.stopPingInterval();
-    this.reconnectAttempt = 0;
-    this.lastCloseWasAuthFailure = false;
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
     runtimeStatusStore.setCsBridgeDisconnected();
-    log.info("CS bridge stopped");
+    log.info("Ecommerce signal bridge stopped");
   }
 
   /**
-   * Register or update shop context. Called by desktop on startup (for all
-   * CS-enabled shops) and when the user modifies businessPrompt in Panel.
-   * Also sends a binding frame to the relay for the new/updated shop.
+   * Register or update shop context from the entity cache.
    */
   setShopContext(ctx: CSShopContext): void {
     this.shopContexts.set(ctx.platformShopId, ctx);
-    this.relayShopIds.add(ctx.platformShopId);
     log.info(`Shop context set: platform=${ctx.platformShopId} object=${ctx.objectId}`);
-    // Send binding for the newly added/updated shop
-    this.sendShopBindings([ctx.platformShopId]);
   }
 
   /** Remove shop context (shop disconnected/deleted). */
   removeShopContext(platformShopId: string): void {
     this.shopContexts.delete(platformShopId);
-    if (!this.affiliateInbound.hasShopContext(platformShopId)) {
-      this.relayShopIds.delete(platformShopId);
-    }
   }
 
   removeAffiliateShopContext(platformShopId: string): void {
     this.affiliateInbound.removeShopContext(platformShopId);
-    if (!this.shopContexts.has(platformShopId)) {
-      this.relayShopIds.delete(platformShopId);
-    }
   }
 
-  /** Get current binding conflicts (shops bound to other devices). */
+  /** Legacy panel API shape retained while relay binding UI is removed. */
   getBindingConflicts(): Array<{ shopId: string; gatewayId: string }> {
-    return this.bindingConflicts;
+    return [];
   }
 
-  /** Unbind a shop from this device. */
+  /** Local-only legacy unbind hook retained for panel compatibility. */
   unbindShop(shopId: string): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    this.ws.send(JSON.stringify({ type: "cs_unbind_shops", shopIds: [shopId] }));
     this.shopContexts.delete(shopId);
     this.affiliateInbound.removeShopContext(shopId);
-    this.relayShopIds.delete(shopId);
   }
 
   /**
    * Sync shop contexts from entity cache. Reads all cached shops, filters
    * for CS-enabled shops bound to this device, and updates the internal
-   * shopContexts map. Also manages relay connection lifecycle:
-   * - Connects if shops appeared and relay is not connected
-   * - Disconnects if all shops were removed
+   * shopContexts map. Device gating happens here: only the shop whose
+   * `csDeviceId` matches this desktop device can dispatch CS runs.
    */
   syncFromCache(): void {
     const shops = rootStore.shops;
@@ -201,8 +141,7 @@ export class EcommerceRelayBridge {
 
     // Build the set of shops that should be active for each service.
     const activeCsShopIds = new Set<string>();
-    const activeAffiliateShopIds = this.affiliateInbound.syncFromShops(shops);
-    const nextRelayShopIds = new Set<string>(activeAffiliateShopIds);
+    this.affiliateInbound.syncFromShops(shops);
 
     for (const shop of shops) {
       const platformShopId = shop.platformShopId;
@@ -223,7 +162,6 @@ export class EcommerceRelayBridge {
       }
 
       activeCsShopIds.add(platformShopId);
-      nextRelayShopIds.add(platformShopId);
 
       // Check if context needs updating
       const existing = this.shopContexts.get(platformShopId);
@@ -249,12 +187,6 @@ export class EcommerceRelayBridge {
         log.info(`Shop ${platformShopId} no longer active in cache, removing context`);
         this.removeShopContext(platformShopId);
       }
-    }
-
-    const newlyAddedRelayShopIds = [...nextRelayShopIds].filter((id) => !this.relayShopIds.has(id));
-    this.relayShopIds = nextRelayShopIds;
-    if (newlyAddedRelayShopIds.length > 0) {
-      this.sendShopBindings(newlyAddedRelayShopIds);
     }
   }
 
@@ -529,296 +461,57 @@ export class EcommerceRelayBridge {
 
     this.cacheUnsubscribe = reaction(
       () => toJS(rootStore.shops),
-      () => this.onShopsChanged(),
+      () => this.syncFromCache(),
     );
   }
 
-  private onShopsChanged(): void {
-    const hadShops = this.hasRelayShops();
+  // -- Backend signal handling -----------------------------------------------
+
+  async handleCsConversationSignal(signal: CsConversationSignalPayload): Promise<void> {
     this.syncFromCache();
-    const hasShops = this.hasRelayShops();
+    log.info(
+      `CS signal: type=${signal.type} shop=${signal.platformShopId} ` +
+      `conv=${signal.conversationId} msg=${signal.messageId ?? ""}`,
+    );
 
-    // Connect to relay if shops appeared and we aren't connected
-    if (!hadShops && hasShops && !this.ws && !this.closed) {
-      log.info("Shops appeared in entity cache, connecting to CS relay");
-      this.connect().catch((err) => {
-        log.warn(`CS bridge connect on shop appearance failed: ${(err as Error).message ?? err}`);
+    const shop = this.shopContexts.get(signal.platformShopId);
+    if (!shop) {
+      log.info(`Ignoring CS signal for inactive/non-owned-device shop ${signal.platformShopId}`);
+      emitCsError(CS_ERROR_STAGE.DISPATCH, {
+        platformShopId: signal.platformShopId,
+        conversationId: signal.conversationId,
+        reason: "no_shop_context",
       });
-    }
-
-    // Disconnect from relay if all shops removed
-    if (hadShops && !hasShops && this.ws) {
-      log.info("All shops removed from entity cache, disconnecting from CS relay");
-      this.ws.close();
-      this.ws = null;
-      this.authenticated = false;
-      runtimeStatusStore.setCsBridgeDisconnected();
-    }
-  }
-
-  // -- Connection management -------------------------------------------------
-
-  private async connect(): Promise<void> {
-    if (this.closed) return;
-    if (!this.hasRelayShops()) return; // no shops need relay routing
-
-    let token = getAuthSession()?.getAccessToken() ?? null;
-
-    // If the last connection was rejected with 4003 (auth failure), the cached
-    // token is likely expired. Attempt a refresh before reconnecting, following
-    // the same pattern as CloudClient.rest() (auto-refresh on 401).
-    if (token && this.lastCloseWasAuthFailure) {
-      log.info("Last close was auth failure (4003), refreshing access token before reconnect");
-      try {
-        token = await getAuthSession()!.refresh();
-        this.lastCloseWasAuthFailure = false;
-      } catch (err) {
-        // Distinguish auth errors (permanent) from network errors (transient),
-        // following the same pattern as AuthSession.validate() in auth-session.ts.
-        const msg = err instanceof Error ? err.message : String(err);
-        const isAuthError =
-          msg.includes("Not authenticated") ||
-          msg.includes("Authentication required") ||
-          msg.includes("Invalid token") ||
-          msg.includes("Token expired") ||
-          msg.includes("No refresh token");
-
-        if (isAuthError) {
-          // Auth is permanently broken (e.g. refresh token expired/revoked).
-          // Stop reconnecting to avoid an infinite loop.
-          log.error("Token refresh failed (auth error), stopping CS bridge reconnect:", err);
-          emitCsError(CS_ERROR_STAGE.RELAY_CONNECT, { reason: "auth", errorMessage: err });
-          this.lastCloseWasAuthFailure = false;
-          return;
-        }
-
-        // Network/transient error — keep lastCloseWasAuthFailure so the next
-        // reconnect attempt will retry the refresh, and schedule a reconnect
-        // with backoff instead of connecting with a potentially expired token.
-        log.warn("Token refresh failed (transient error), scheduling reconnect:", err);
-        emitCsError(CS_ERROR_STAGE.RELAY_CONNECT, { reason: "transient", errorMessage: err });
-        this.scheduleReconnect();
-        return;
-      }
-    }
-
-    if (!token) {
-      log.warn("No auth token available, scheduling reconnect");
-      this.scheduleReconnect();
       return;
     }
 
-    return new Promise<void>((resolve) => {
-      log.info(`Connecting to CS relay at ${this.opts.relayUrl}...`);
-
-      const ws = proxyNetwork.createWebSocket(this.opts.relayUrl);
-      this.ws = ws;
-
-      ws.on("open", () => {
-        log.info("CS relay WebSocket open, sending cs_hello");
-        const hello: CSHelloFrame = {
-          type: "cs_hello",
-          gateway_id: this.opts.gatewayId,
-          auth_token: token!,
-        };
-        ws.send(JSON.stringify(hello));
-      });
-
-      ws.on("message", (data) => {
-        try {
-          const frame = JSON.parse(data.toString()) as EcommerceRelayFrame;
-          this.onFrame(frame);
-        } catch (err) {
-          log.warn("Failed to parse CS relay message:", err);
-        }
-      });
-
-      ws.on("close", (code, reason) => {
-        log.info(`CS relay WebSocket closed: ${code} ${reason.toString()}`);
-        this.stopPingInterval();
-        this.ws = null;
-        this.authenticated = false;
-        runtimeStatusStore.setCsBridgeDisconnected();
-        this.lastCloseWasAuthFailure = code === 4003;
-        if (!this.closed) {
-          this.scheduleReconnect();
-        }
-        resolve();
-      });
-
-      ws.on("error", (err) => {
-        log.warn(`CS relay WebSocket error: ${err.message}`);
-      });
-
-      ws.on("pong", () => {
-        this.awaitingPong = false;
-      });
+    const session = await this.getOrCreateSession(shop.objectId, {
+      conversationId: signal.conversationId,
+      buyerUserId: signal.buyerUserId ?? signal.imUserId ?? undefined,
+      imUserId: signal.imUserId ?? undefined,
+      orderId: signal.orderId ?? undefined,
     });
-  }
 
-  private scheduleReconnect(): void {
-    if (this.closed) return;
-    if (!this.hasRelayShops()) return; // intentional disconnect, no shops need relay
-
-    const baseDelay = 1000;
-    const maxDelay = 5000;
-    const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
-    this.reconnectAttempt++;
-    runtimeStatusStore.setCsBridgeReconnecting(this.reconnectAttempt);
-
-    log.info(`CS bridge reconnect in ${delay}ms (attempt ${this.reconnectAttempt})`);
-
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.connect().catch((err) => {
-        log.warn(`CS bridge reconnect failed: ${(err as Error).message ?? err}`);
+    try {
+      await session.dispatchCatchUp();
+    } catch (err) {
+      log.error(`Failed to handle CS signal ${signal.messageId ?? signal.conversationId}:`, err);
+      session.emitError(CS_ERROR_STAGE.DISPATCH, {
+        reason: "unhandled_exception",
+        errorMessage: err,
       });
-    }, delay);
-  }
-
-  // -- Ping/pong keepalive ---------------------------------------------------
-
-  private startPingInterval(): void {
-    this.stopPingInterval();
-    this.awaitingPong = false;
-
-    this.pingInterval = setInterval(() => {
-      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-
-      if (this.awaitingPong) {
-        // Previous ping never got a pong — connection is dead
-        log.warn("CS relay pong timeout — terminating dead connection");
-        this.ws.terminate();
-        return;
-      }
-
-      this.awaitingPong = true;
-      this.ws.ping();
-    }, EcommerceRelayBridge.PING_INTERVAL_MS);
-  }
-
-  private stopPingInterval(): void {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
-    this.awaitingPong = false;
-  }
-
-  // -- Frame dispatch --------------------------------------------------------
-
-  private onFrame(frame: EcommerceRelayFrame): void {
-    switch (frame.type) {
-      // Wire-format identifiers from the relay server — not platform-specific restrictions.
-      case "cs_tiktok_new_message":
-        this.onNewMessage(frame as CSNewMessageFrame).catch((err) => {
-          log.error("Error handling CS message:", err);
-        });
-        break;
-      case "cs_tiktok_new_conversation":
-        log.info(
-          `New CS conversation: shop=${(frame as CSNewConversationFrame).shopId} ` +
-          `conv=${(frame as CSNewConversationFrame).conversationId}`,
-        );
-        break;
-      case "cs_ack":
-        this.reconnectAttempt = 0;
-        this.authenticated = true;
-        runtimeStatusStore.setCsBridgeConnected();
-        log.info("CS relay connection confirmed (cs_ack)");
-        this.startPingInterval();
-        // Bind all shops that need CS or affiliate routing after relay confirms connection
-        this.sendShopBindings();
-        break;
-      case "cs_bind_shops_result": {
-        const result = frame as CSBindShopsResultFrame;
-        const boundSet = new Set(result.bound);
-        const takenOverSet = new Set(result.takenOver ?? []);
-        const conflictSet = new Set(result.conflicts.map(c => c.shopId));
-        const requested = [...this.relayShopIds];
-        const rejected = requested.filter(id => !boundSet.has(id) && !takenOverSet.has(id) && !conflictSet.has(id));
-
-        log.info(`Shop binding result: ${result.bound.length} bound, ${(result.takenOver ?? []).length} takenOver, ${result.conflicts.length} conflicts, ${rejected.length} rejected`);
-        if (result.bound.length > 0) {
-          log.info(`  Bound: ${result.bound.join(", ")}`);
-        }
-        if ((result.takenOver ?? []).length > 0) {
-          log.info(`  Taken over from other device: ${result.takenOver!.join(", ")}`);
-        }
-        if (result.conflicts.length > 0) {
-          log.warn(`  Conflicts (bound to other device): ${result.conflicts.map(c => `${c.shopId} → ${c.gatewayId}`).join(", ")}`);
-        }
-        if (rejected.length > 0) {
-          log.error(`  Rejected (not bound, no conflict — check relay server auth): ${rejected.join(", ")}`);
-          // One event per rejected shop so dashboards can rank by shopId.
-          for (const platformShopId of rejected) {
-            const ctx = this.shopContexts.get(platformShopId);
-            const affiliateCtx = this.affiliateInbound.getShopContext(platformShopId);
-            emitCsError(CS_ERROR_STAGE.SHOP_BIND_REJECTED, {
-              shopId: ctx?.objectId ?? affiliateCtx?.objectId ?? "",
-              platformShopId,
-              platform: ctx?.platform ?? affiliateCtx?.platform ?? "",
-              reason: "relay_rejected",
-            });
-          }
-        }
-        this.bindingConflicts = result.conflicts;
-        break;
-      }
-      case "cs_shop_taken_over": {
-        const taken = frame as CSShopTakenOverFrame;
-        log.warn(`Shop ${taken.shopId} taken over by gateway ${taken.newGatewayId}`);
-        // Remove from local shop contexts so we stop handling messages for this shop
-        this.shopContexts.delete(taken.shopId);
-        this.affiliateInbound.removeShopContext(taken.shopId);
-        this.relayShopIds.delete(taken.shopId);
-        break;
-      }
-      case "cs_error":
-        log.error(`CS relay error: ${(frame as { message?: string }).message}`);
-        break;
-      default:
-        this.affiliateInbound.handleFrame(frame).then((handled) => {
-          if (!handled) {
-            log.warn(`Unhandled ecommerce relay frame: ${(frame as { type?: string }).type ?? "unknown"}`);
-          }
-        }).catch((err) => {
-          log.error("Error handling affiliate relay frame:", err);
-        });
-        break;
     }
   }
-
-  // -- Shop binding ----------------------------------------------------------
 
   /**
-   * Send cs_bind_shops frame to the relay.
-   * If shopIds is provided, only those shops are sent; otherwise all known shops.
+   * Test/compatibility helper for the old relay frame path. Production webhook
+   * delivery now arrives through `handleCsConversationSignal`, whose payload is
+   * intentionally business-level and content-free.
    */
-  private sendShopBindings(shopIds?: string[]): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.authenticated) return;
-
-    const ids = shopIds ?? [...this.relayShopIds];
-    if (ids.length === 0) return;
-
-    const frame: CSBindShopsFrame = {
-      type: "cs_bind_shops",
-      shopIds: ids,
-    };
-    this.ws.send(JSON.stringify(frame));
-    log.info(`Sent shop bindings: ${ids.length} shop(s)`);
-  }
-
-  // -- Inbound message handling -----------------------------------------------
-
   private async onNewMessage(frame: CSNewMessageFrame): Promise<void> {
-    log.info(`Incoming message: shop=${frame.shopId} conv=${frame.conversationId} msg=${frame.messageId} sender=${frame.senderRole}`);
-
     const shop = this.shopContexts.get(frame.shopId);
     if (!shop) {
       log.error(`No shop context for platform shopId ${frame.shopId}, dropping message`);
-      // Relay routed us a message for a shop we aren't bound to (stale
-      // binding / race / relay bug). Buyer sees silence; surface to ops.
       emitCsError(CS_ERROR_STAGE.DISPATCH, {
         platformShopId: frame.shopId,
         conversationId: frame.conversationId,
@@ -836,8 +529,6 @@ export class EcommerceRelayBridge {
 
     try {
       await session.handleBuyerMessage(frame);
-      // Session handles abort + queue + redispatch internally.
-      // onRunDispatched callback handles pendingRuns tracking.
     } catch (err) {
       log.error(`Failed to handle buyer message ${frame.messageId}:`, err);
       session.emitError(CS_ERROR_STAGE.DISPATCH, {
@@ -855,10 +546,6 @@ export class EcommerceRelayBridge {
       if (shop.objectId === objectId) return shop;
     }
     return undefined;
-  }
-
-  private hasRelayShops(): boolean {
-    return this.relayShopIds.size > 0;
   }
 
   /** Find session that owns a given escalation ID (searches all sessions). */
@@ -916,6 +603,23 @@ export class EcommerceRelayBridge {
       escalationId: escalation.id,
       resolved: event.type === "ESCALATION_RESOLVED",
       version: escalation.version,
+    });
+  }
+
+  async dispatchCatchUp(params: {
+    shopObjectId: string;
+    conversationId: string;
+    buyerUserId?: string;
+    orderId?: string;
+    operatorInstruction?: string;
+  }) {
+    const session = await this.getOrCreateSession(params.shopObjectId, {
+      conversationId: params.conversationId,
+      buyerUserId: params.buyerUserId,
+      orderId: params.orderId,
+    });
+    return session.dispatchCatchUp({
+      operatorInstruction: params.operatorInstruction,
     });
   }
 

@@ -1046,24 +1046,36 @@ export class CustomerServiceSession {
   private async setup(): Promise<void> {
     if (this.gatewaySetupReady) return;
 
+    const setupStartedAt = Date.now();
+    const registerStartedAt = Date.now();
     await openClawConnector.request("cs_register_session", {
       sessionKey: this.scopeKey,
       csContext: this.csContext,
     });
+    const registerMs = Date.now() - registerStartedAt;
 
+    const runProfileStartedAt = Date.now();
     const runProfileId = this.shop.runProfileId ?? this.opts?.defaultRunProfileId;
     if (!runProfileId) {
       this.emitError(CS_ERROR_STAGE.SETUP, { reason: "no_run_profile" });
       throw new Error(`Shop ${this.shop.objectId} has no runProfileId configured for CS`);
     }
     rootStore.toolCapability.setSessionRunProfile(this.scopeKey, runProfileId);
+    const runProfileMs = Date.now() - runProfileStartedAt;
 
+    const modelStartedAt = Date.now();
     await rootStore.llmManager.applyModelForSession(this.scopeKey, {
       type: ScopeType.CS_SESSION,
       shopId: this.shop.objectId,
     });
+    const modelMs = Date.now() - modelStartedAt;
 
     this.gatewaySetupReady = true;
+    log.info(
+      `Gateway setup ready: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
+      `registerMs=${registerMs} runProfileMs=${runProfileMs} modelMs=${modelMs} ` +
+      `scope=${this.scopeKey} runProfileId=${runProfileId}`,
+    );
   }
 
   private async dispatch(params: {
@@ -1076,16 +1088,27 @@ export class CustomerServiceSession {
   }): Promise<DispatchResult> {
     await this.setup();
 
+    const dispatchStartedAt = Date.now();
+    const extraSystemPrompt = this.extraSystemPrompt;
+    log.info(
+      `Agent dispatch request starting: conv=${this.csContext.conversationId} session=${this.dispatchKey} ` +
+      `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
+      `messageChars=${params.message.length}`,
+    );
     const response = await openClawConnector.request<DispatchResult>("agent", {
       sessionKey: this.dispatchKey,
       message: params.message,
-      extraSystemPrompt: this.extraSystemPrompt,
+      extraSystemPrompt,
       promptMode: "raw",
       idempotencyKey: params.idempotencyKey,
       ...(params.attachments ? { attachments: params.attachments } : {}),
     });
 
     const runId = response?.runId;
+    log.info(
+      `Agent dispatch accepted: runId=${runId ?? "none"} conv=${this.csContext.conversationId} ` +
+      `acceptedMs=${Date.now() - dispatchStartedAt}`,
+    );
     const round = params.round ?? this.ensureActiveRound(`dispatch:${params.idempotencyKey}`);
     if (!this.activeRound) {
       this.activeRound = round;

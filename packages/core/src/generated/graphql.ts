@@ -362,6 +362,67 @@ export const AffiliateCampaignStatus = {
 } as const;
 
 export type AffiliateCampaignStatus = typeof AffiliateCampaignStatus[keyof typeof AffiliateCampaignStatus];
+/** Ephemeral affiliate signal pushed to desktop. Platform APIs and affiliate sync jobs remain the source of truth. */
+export interface AffiliateConversationSignal {
+  /** Platform conversation/thread ID when the signal is message-related. */
+  conversationId?: Maybe<Scalars['String']['output']>;
+  /** Creator IM user ID when available from the platform event. */
+  creatorImId?: Maybe<Scalars['String']['output']>;
+  /** Creator open ID when carried by the webhook/API event. */
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  /** When the platform event happened or the affiliate condition was detected. */
+  eventTime: Scalars['DateTimeISO']['output'];
+  /** Platform message ID when tied to a creator message. */
+  messageId?: Maybe<Scalars['String']['output']>;
+  /** Platform message index when available from the creator chat webhook. */
+  messageIndex?: Maybe<Scalars['String']['output']>;
+  /** Platform message type, e.g. TEXT or IMAGE, when tied to a message. */
+  messageType?: Maybe<Scalars['String']['output']>;
+  /** Platform notification ID for webhook de-duplication or diagnostics. */
+  notificationId?: Maybe<Scalars['String']['output']>;
+  /** Order ID when tied to an affiliate order attribution. */
+  orderId?: Maybe<Scalars['String']['output']>;
+  /** Platform sample application ID when tied to a sample workflow update. */
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  /** Platform affiliate program ID when tied to order attribution. */
+  platformProgramId?: Maybe<Scalars['String']['output']>;
+  /** Platform shop ID from the commerce platform webhook/API. */
+  platformShopId: Scalars['String']['output'];
+  /** Platform status string carried by the webhook/API event. */
+  platformStatus?: Maybe<Scalars['String']['output']>;
+  /** Platform target collaboration ID when tied to a target-collaboration update. */
+  platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
+  /** Product ID when carried by a sample or collaboration event. */
+  productId?: Maybe<Scalars['String']['output']>;
+  /** Platform sender ID when available. */
+  senderId?: Maybe<Scalars['String']['output']>;
+  /** Sender role from the platform event, e.g. CREATOR. */
+  senderRole?: Maybe<Scalars['String']['output']>;
+  /** MongoDB shop ID. Used for ownership checks and desktop shop routing. */
+  shopId: Scalars['ID']['output'];
+  /** System that emitted this signal. */
+  source: AffiliateConversationSignalSource;
+  /** Business event that happened or was detected for affiliate operations. */
+  type: AffiliateConversationSignalType;
+}
+
+/** Origin of an affiliate signal */
+export const AffiliateConversationSignalSource = {
+  Airflow: 'AIRFLOW',
+  Manual: 'MANUAL',
+  Webhook: 'WEBHOOK'
+} as const;
+
+export type AffiliateConversationSignalSource = typeof AffiliateConversationSignalSource[keyof typeof AffiliateConversationSignalSource];
+/** Business-level affiliate conversation or lifecycle signal type */
+export const AffiliateConversationSignalType = {
+  CreatorMessageReceived: 'CREATOR_MESSAGE_RECEIVED',
+  OrderAttributed: 'ORDER_ATTRIBUTED',
+  SampleApplicationUpdated: 'SAMPLE_APPLICATION_UPDATED',
+  TargetCollaborationUpdated: 'TARGET_COLLABORATION_UPDATED'
+} as const;
+
+export type AffiliateConversationSignalType = typeof AffiliateConversationSignalType[keyof typeof AffiliateConversationSignalType];
 export const AffiliateLifecycleActorType = {
   Agent: 'AGENT',
   CloudWorker: 'CLOUD_WORKER',
@@ -905,6 +966,49 @@ export interface CreatorUserRelation {
   userId: Scalars['ID']['output'];
 }
 
+/** Ephemeral customer-service conversation signal pushed to desktop. The platform API remains the source of truth for messages and conversation state. */
+export interface CsConversationSignal {
+  /** Platform buyer user ID if already known. */
+  buyerUserId?: Maybe<Scalars['String']['output']>;
+  /** Platform conversation/thread ID that desktop should inspect. */
+  conversationId: Scalars['String']['output'];
+  /** When the platform event happened or the unread condition was detected. */
+  eventTime: Scalars['DateTimeISO']['output'];
+  /** Platform IM user ID if available from webhook/API context. */
+  imUserId?: Maybe<Scalars['String']['output']>;
+  /** Platform message ID when this signal is tied to a specific buyer message. */
+  messageId?: Maybe<Scalars['String']['output']>;
+  /** Platform message type, e.g. TEXT or IMAGE, if tied to a message. */
+  messageType?: Maybe<Scalars['String']['output']>;
+  /** Related order ID if the platform event already carried one. */
+  orderId?: Maybe<Scalars['String']['output']>;
+  /** Platform shop ID from the commerce platform webhook/API. */
+  platformShopId: Scalars['String']['output'];
+  /** Sender role from the platform event, e.g. BUYER. */
+  senderRole?: Maybe<Scalars['String']['output']>;
+  /** MongoDB shop ID. Used for ownership checks and desktop shop routing. */
+  shopId: Scalars['ID']['output'];
+  /** System that emitted this signal. */
+  source: CsConversationSignalSource;
+  /** Business event that happened or was detected for this CS conversation. */
+  type: CsConversationSignalType;
+}
+
+/** Origin of a customer-service conversation signal */
+export const CsConversationSignalSource = {
+  Airflow: 'AIRFLOW',
+  Manual: 'MANUAL',
+  Webhook: 'WEBHOOK'
+} as const;
+
+export type CsConversationSignalSource = typeof CsConversationSignalSource[keyof typeof CsConversationSignalSource];
+/** Business-level customer-service conversation signal type */
+export const CsConversationSignalType = {
+  MessageReceived: 'MESSAGE_RECEIVED',
+  UnreadDetected: 'UNREAD_DETECTED'
+} as const;
+
+export type CsConversationSignalType = typeof CsConversationSignalType[keyof typeof CsConversationSignalType];
 /** Result of creating a CS escalation */
 export interface CsEscalateResult {
   error?: Maybe<Scalars['String']['output']>;
@@ -2461,6 +2565,8 @@ export const ModuleId = {
 
 export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
+  /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
+  affiliatePublishConversationSignal: AffiliateConversationSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
   applyCreatorTag: CreatorUserRelation;
   /** Create a new run profile */
@@ -2475,7 +2581,11 @@ export interface Mutation {
   csEscalate: CsEscalateResult;
   /** Get an existing CS session or create a new one for a conversation */
   csGetOrCreateSession: CsSessionResult;
-  /** Admin/Airflow hook: re-publish pending CS escalation events to active GraphQL subscribers */
+  /** Publish an ephemeral CS conversation signal to active desktop subscribers. This does not persist conversation/message data. */
+  csPublishConversationSignal: CsConversationSignal;
+  /** Admin/Airflow hook: re-publish failed CS escalation side-effect events to active GraphQL subscribers. Only the latest event per escalation is considered; older failed events are ignored once a newer event exists. */
+  csPublishFailedEscalationEvents: Scalars['Int']['output'];
+  /** Admin/Airflow hook: re-publish failed CS escalation side-effect events to active GraphQL subscribers. Only the latest event per escalation is considered; older failed events are ignored once a newer event exists. */
   csPublishPendingEscalationEvents: Scalars['Int']['output'];
   /** Write a manager response to a CS escalation and queue a local CS-agent wake event */
   csRespond: CsRespondResult;
@@ -2578,6 +2688,11 @@ export interface Mutation {
 }
 
 
+export interface MutationAffiliatePublishConversationSignalArgs {
+  input: PublishAffiliateConversationSignalInput;
+}
+
+
 export interface MutationApplyCreatorTagArgs {
   input: ApplyCreatorTagInput;
 }
@@ -2616,6 +2731,16 @@ export interface MutationCsEscalateArgs {
 export interface MutationCsGetOrCreateSessionArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsPublishConversationSignalArgs {
+  input: PublishCsConversationSignalInput;
+}
+
+
+export interface MutationCsPublishFailedEscalationEventsArgs {
+  limit?: InputMaybe<Scalars['Int']['input']>;
 }
 
 
@@ -3000,6 +3125,78 @@ export interface ProviderSubscription {
   models?: Maybe<Array<ModelPricing>>;
   plans: Array<Plan>;
   pricingUrl: Scalars['String']['output'];
+}
+
+/** Input for publishing an ephemeral affiliate signal */
+export interface PublishAffiliateConversationSignalInput {
+  /** Platform conversation/thread ID when message-related. */
+  conversationId?: InputMaybe<Scalars['String']['input']>;
+  /** Creator IM user ID if available. */
+  creatorImId?: InputMaybe<Scalars['String']['input']>;
+  /** Creator open ID if available. */
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  /** Event timestamp as an ISO string. Defaults to server publish time. */
+  eventTime?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message ID for creator message signals. */
+  messageId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message index when available. */
+  messageIndex?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message type, e.g. TEXT or IMAGE. */
+  messageType?: InputMaybe<Scalars['String']['input']>;
+  /** Platform notification ID if available. */
+  notificationId?: InputMaybe<Scalars['String']['input']>;
+  /** Order ID for affiliate order attribution signals. */
+  orderId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform sample application ID for sample workflow signals. */
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform affiliate program ID if available. */
+  platformProgramId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform shop ID. Relay/webhook publishers provide this when they do not know the MongoDB shop ID. */
+  platformShopId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform status string if available. */
+  platformStatus?: InputMaybe<Scalars['String']['input']>;
+  /** Platform target collaboration ID for collaboration workflow signals. */
+  platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  /** Product ID if available. */
+  productId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform sender ID if available. */
+  senderId?: InputMaybe<Scalars['String']['input']>;
+  /** Sender role from the platform event, e.g. CREATOR. */
+  senderRole?: InputMaybe<Scalars['String']['input']>;
+  /** MongoDB shop ID. Provide this from authenticated clients when available. */
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  /** Origin of the signal. */
+  source: AffiliateConversationSignalSource;
+  /** Business signal to publish. */
+  type: AffiliateConversationSignalType;
+}
+
+/** Input for publishing an ephemeral CS conversation signal */
+export interface PublishCsConversationSignalInput {
+  /** Platform buyer user ID if available. */
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform conversation/thread ID that desktop should inspect. */
+  conversationId: Scalars['String']['input'];
+  /** Event timestamp as an ISO string. Defaults to server publish time. */
+  eventTime?: InputMaybe<Scalars['String']['input']>;
+  /** Platform IM user ID if available. */
+  imUserId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message ID for MESSAGE_RECEIVED signals. */
+  messageId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message type, e.g. TEXT or IMAGE. */
+  messageType?: InputMaybe<Scalars['String']['input']>;
+  /** Related order ID if available. */
+  orderId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform shop ID. Relay/webhook publishers provide this when they do not know the MongoDB shop ID. */
+  platformShopId?: InputMaybe<Scalars['String']['input']>;
+  /** Sender role from the platform event, e.g. BUYER. */
+  senderRole?: InputMaybe<Scalars['String']['input']>;
+  /** MongoDB shop ID. Provide this from authenticated clients when available. */
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  /** Origin of the signal. */
+  source: CsConversationSignalSource;
+  /** Business signal to publish. */
+  type: CsConversationSignalType;
 }
 
 export interface Query {
@@ -3976,6 +4173,10 @@ export const SkillLabel = {
 
 export type SkillLabel = typeof SkillLabel[keyof typeof SkillLabel];
 export interface Subscription {
+  /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
+  affiliateConversationSignal: AffiliateConversationSignal;
+  /** Streams ephemeral CS conversation signals to desktop clients. Missing signals are recovered by Airflow/platform pending-conversation checks, not by Mongo replay. */
+  csConversationSignal: CsConversationSignal;
   /** Streams CS escalation side-effect events to desktop actuators. On connect, also yields currently pending events for replay. */
   csEscalationEvent: CsEscalationEventDelivery;
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
@@ -3983,6 +4184,16 @@ export interface Subscription {
   /** Fires when a shop is updated. Only receives updates for shops owned by the authenticated user. */
   shopUpdated: Shop;
   updateAvailable: UpdatePayload;
+}
+
+
+export interface SubscriptionAffiliateConversationSignalArgs {
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+
+export interface SubscriptionCsConversationSignalArgs {
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 

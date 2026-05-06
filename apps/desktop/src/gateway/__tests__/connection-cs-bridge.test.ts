@@ -52,10 +52,6 @@ vi.mock("@rivonclaw/logger", () => ({
   }),
 }));
 
-vi.mock("@rivonclaw/core", () => ({
-  getCsRelayWsUrl: () => "wss://relay.test",
-}));
-
 vi.mock("../../openclaw/index.js", () => ({
   openClawConnector: mockOpenClawConnector,
 }));

@@ -6,6 +6,17 @@ import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 
 const log = createLogger("backend-subscription");
 
+const NON_RETRYABLE_WS_CLOSE_CODES = new Set([
+  4004, // BadResponse
+  4005, // InternalClientError
+  4400, // BadRequest
+  4401, // Unauthorized
+  4403, // Forbidden
+  4406, // SubprotocolNotAcceptable
+  4409, // SubscriberAlreadyExists
+  4429, // TooManyInitialisationRequests
+]);
+
 const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
@@ -91,7 +102,55 @@ const CS_ESCALATION_EVENT_SUBSCRIPTION = `
   }
 `;
 
+const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
+  subscription CsConversationSignal($shopIds: [ID!]) {
+    csConversationSignal(shopIds: $shopIds) {
+      type
+      source
+      shopId
+      platformShopId
+      conversationId
+      messageId
+      imUserId
+      buyerUserId
+      orderId
+      messageType
+      senderRole
+      eventTime
+    }
+  }
+`;
+
+const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
+  subscription AffiliateConversationSignal {
+    affiliateConversationSignal {
+      type
+      source
+      shopId
+      platformShopId
+      conversationId
+      messageId
+      messageIndex
+      messageType
+      creatorImId
+      senderRole
+      senderId
+      platformApplicationId
+      platformTargetCollaborationId
+      platformStatus
+      creatorOpenId
+      productId
+      orderId
+      platformProgramId
+      notificationId
+      eventTime
+    }
+  }
+`;
+
 export type UpdatePayload = GQL.UpdatePayload;
+export type CsConversationSignalPayload = GQL.CsConversationSignal;
+export type AffiliateConversationSignalPayload = GQL.AffiliateConversationSignal;
 
 export type CsEscalationEventType =
   | "ESCALATION_CREATED"
@@ -298,6 +357,22 @@ export class BackendSubscriptionClient {
     return { value: String(err) };
   }
 
+  private shouldRetryConnection(errOrCloseEvent: unknown): boolean {
+    const code = typeof errOrCloseEvent === "object" && errOrCloseEvent !== null
+      ? (errOrCloseEvent as { code?: unknown }).code
+      : undefined;
+
+    if (typeof code === "number" && NON_RETRYABLE_WS_CLOSE_CODES.has(code)) {
+      return false;
+    }
+
+    // `ws` surfaces failed HTTP upgrades (for example a deployment-window 502)
+    // as ErrorEvent objects rather than CloseEvents. graphql-ws does not retry
+    // those by default, so treat them as transient unless they carry one of the
+    // explicit fatal close codes above.
+    return true;
+  }
+
   private logUnexpectedResult(
     key: string,
     attempt: number,
@@ -342,6 +417,11 @@ export class BackendSubscriptionClient {
       this.activeUnsubscribes.delete(config.key);
       this.subscriptionConfigs.delete(config.key);
     };
+  }
+
+  refreshCsConversationSignals(): void {
+    const config = this.subscriptionConfigs.get("cs-conversation-signals");
+    if (config) this.startSubscription(config);
   }
 
   /**
@@ -543,6 +623,96 @@ export class BackendSubscriptionClient {
     return this.registerSubscription({ key, subscribe, authRequired: true });
   }
 
+  subscribeToCsConversationSignals(
+    onSignal: (signal: CsConversationSignalPayload) => void,
+    options?: { getShopIds?: () => string[] },
+  ): () => void {
+    const key = "cs-conversation-signals";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+      const shopIds = Array.from(new Set(options?.getShopIds?.() ?? []))
+        .filter((shopId) => typeof shopId === "string" && shopId.length > 0);
+
+      return this.client.subscribe<{ csConversationSignal: CsConversationSignalPayload }>(
+        {
+          query: CS_CONVERSATION_SIGNAL_SUBSCRIPTION,
+          variables: { shopIds },
+        },
+        {
+          next: (result) => {
+            if (result.errors?.length) {
+              log.warn("CS conversation signal subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
+            const payload = result.data?.csConversationSignal;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "csConversationSignal", result as any);
+              return;
+            }
+            onSignal(payload);
+          },
+          error: (err) => {
+            log.warn("CS conversation signal subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true });
+  }
+
+  subscribeToAffiliateConversationSignals(
+    onSignal: (signal: AffiliateConversationSignalPayload) => void,
+  ): () => void {
+    const key = "affiliate-conversation-signals";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+
+      return this.client.subscribe<{ affiliateConversationSignal: AffiliateConversationSignalPayload }>(
+        { query: AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION },
+        {
+          next: (result) => {
+            if (result.errors?.length) {
+              log.warn("Affiliate conversation signal subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
+            const payload = result.data?.affiliateConversationSignal;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "affiliateConversationSignal", result as any);
+              return;
+            }
+            onSignal(payload);
+          },
+          error: (err) => {
+            log.warn("Affiliate conversation signal subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true });
+  }
+
   private doConnect(): void {
     if (!this.getToken) return;
 
@@ -561,9 +731,14 @@ export class BackendSubscriptionClient {
         const delay = Math.min(1000 * 2 ** retries, 30_000);
         await new Promise((r) => setTimeout(r, delay));
       },
+      shouldRetry: (errOrCloseEvent) => this.shouldRetryConnection(errOrCloseEvent),
       on: {
-        connected: () => {},
-        closed: () => {},
+        connected: (_socket, _payload, retrying) => {
+          log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`);
+        },
+        closed: (event) => {
+          log.info("Backend subscription WebSocket closed", this.formatUnknownError(event));
+        },
         error: (err) => log.warn("Backend subscription WebSocket error (will auto-retry)", this.formatUnknownError(err)),
       },
     });

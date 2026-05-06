@@ -1,5 +1,4 @@
 import { createLogger } from "@rivonclaw/logger";
-import { getCsRelayWsUrl } from "@rivonclaw/core";
 import { openClawConnector } from "../openclaw/index.js";
 import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
 import { rootStore } from "../app/store/desktop-store.js";
@@ -55,7 +54,6 @@ export function tryStartCsBridge(gatewayId: string): void {
     if (_csBridge) return; // Already running
 
     _csBridge = new CustomerServiceBridge({
-      relayUrl: getCsRelayWsUrl(),
       gatewayId,
     });
     rootStore.llmManager.refreshModelCatalog().catch(() => {});

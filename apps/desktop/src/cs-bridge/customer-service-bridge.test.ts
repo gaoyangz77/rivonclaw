@@ -84,7 +84,6 @@ onAction(rootStore, (call) => {
 
 function createBridge(overrides?: Partial<{ defaultRunProfileId: string }>): CustomerServiceBridge {
   return new CustomerServiceBridge({
-    relayUrl: "ws://localhost:3001",
     gatewayId: "test-gateway",
     defaultRunProfileId: overrides?.defaultRunProfileId ?? "CUSTOMER_SERVICE",
   });
@@ -714,7 +713,6 @@ describe("CS RunProfile setup", () => {
 
   it("drops message when no runProfileId and no defaultRunProfileId", async () => {
     const bridge = new CustomerServiceBridge({
-      relayUrl: "ws://localhost:3001",
       gatewayId: "test-gateway",
       // no defaultRunProfileId
     });
@@ -1776,6 +1774,47 @@ describe("escalate", () => {
         accountId: "acct_test123",
       }),
     );
+  });
+
+  it("handles cloud escalation-created events with a direct outbound send, not an agent run", async () => {
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(escalationShop);
+
+    await bridge.executeCsEscalationEvent({
+      escalation: {
+        id: "esc_cloud_001",
+        shopId: defaultEscalateParams.shopId,
+        conversationId: defaultEscalateParams.conversationId,
+        buyerUserId: defaultEscalateParams.buyerUserId,
+        orderId: null,
+        reason: defaultEscalateParams.reason,
+        context: null,
+        version: 1,
+        status: "PENDING",
+      },
+      event: {
+        id: "csevt_cloud_001",
+        type: "ESCALATION_CREATED",
+        status: "PENDING",
+        decision: null,
+        instructions: null,
+        createdAt: "2026-05-06T00:00:00.000Z",
+        updatedAt: "2026-05-06T00:00:00.000Z",
+      },
+    });
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "send",
+      expect.objectContaining({
+        to: "987654321",
+        channel: "telegram",
+        accountId: "acct_test123",
+        idempotencyKey: "cs-escalate:esc_cloud_001",
+      }),
+    );
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
   it("escalation message contains reason and session details", async () => {
