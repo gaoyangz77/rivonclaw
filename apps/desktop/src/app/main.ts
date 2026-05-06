@@ -993,6 +993,26 @@ app.whenReady().then(async () => {
   let handleSttChange!: () => Promise<void>;
   let handleExtrasChange!: () => Promise<void>;
   let handlePermissionsChange!: () => Promise<void>;
+  let weixinChannelRestartPromise: Promise<void> | null = null;
+
+  const restartGatewayAfterWeixinConfigChange = () => {
+    if (weixinChannelRestartPromise) {
+      log.info("Weixin channel gateway restart already pending");
+      return;
+    }
+
+    weixinChannelRestartPromise = openClawConnector
+      .applyConfigMutation(() => {}, "restart_process")
+      .then(() => {
+        log.info("Gateway restarted after Weixin channel configuration changed");
+      })
+      .catch((err) => {
+        log.error("Failed to restart gateway after Weixin channel configuration changed:", err);
+      })
+      .finally(() => {
+        weixinChannelRestartPromise = null;
+      });
+  };
 
   // Start the panel server
   const panelDistDir = app.isPackaged
@@ -1443,6 +1463,9 @@ app.whenReady().then(async () => {
       telemetryClient?.track("channel.configured", {
         channelType: channelId,
       });
+      if (channelId === "openclaw-weixin") {
+        setTimeout(restartGatewayAfterWeixinConfigChange, 0);
+      }
     },
     onTelemetryTrack: (eventType, metadata) => {
       telemetryClient?.track(eventType, metadata);

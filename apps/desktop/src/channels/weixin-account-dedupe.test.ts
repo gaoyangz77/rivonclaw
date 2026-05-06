@@ -3,76 +3,12 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  WEIXIN_CHANNEL_ID,
   clearWeixinContextTokenFiles,
   hasWeixinContextTokenForRecipient,
   readWeixinAccountUserIdSync,
   readWeixinContextTokenRecipientIds,
-  selectStaleWeixinAccountIdsForLogin,
-  selectWeixinReplacementAccountName,
+  WEIXIN_CHANNEL_ID,
 } from "./weixin-account-dedupe.js";
-
-describe("selectStaleWeixinAccountIdsForLogin", () => {
-  it("removes previous Weixin accounts for the same userId", () => {
-    const stale = selectStaleWeixinAccountIdsForLogin({
-      currentAccountId: "new-im-bot",
-      userId: "wx-user-1",
-      accountUserIds: new Map([
-        ["new-im-bot", "wx-user-1"],
-        ["old-im-bot", "wx-user-1"],
-        ["other-im-bot", "wx-user-2"],
-      ]),
-      indexedAccountIds: new Set(["new-im-bot", "other-im-bot", "old-im-bot"]),
-      accountFileExists: new Set(["new-im-bot", "other-im-bot", "old-im-bot"]),
-      accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "new-im-bot", config: {} },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", config: {} },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: {} },
-      ],
-    });
-
-    expect(stale).toEqual(["old-im-bot"]);
-  });
-
-  it("removes orphaned Weixin rows that the upstream plugin no longer indexes", () => {
-    const stale = selectStaleWeixinAccountIdsForLogin({
-      currentAccountId: "new-im-bot",
-      userId: "wx-user-1",
-      accountUserIds: new Map([
-        ["new-im-bot", "wx-user-1"],
-        ["other-im-bot", "wx-user-2"],
-      ]),
-      indexedAccountIds: new Set(["new-im-bot", "other-im-bot"]),
-      accountFileExists: new Set(["new-im-bot", "other-im-bot"]),
-      accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "new-im-bot", config: {} },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "orphan-im-bot", config: {} },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: {} },
-      ],
-    });
-
-    expect(stale).toEqual(["orphan-im-bot"]);
-  });
-
-  it("keeps different indexed Weixin accounts and non-Weixin accounts", () => {
-    const stale = selectStaleWeixinAccountIdsForLogin({
-      currentAccountId: "new-im-bot",
-      userId: "wx-user-1",
-      accountUserIds: new Map([
-        ["other-im-bot", "wx-user-2"],
-        ["orphan-im-bot", "wx-user-1"],
-      ]),
-      indexedAccountIds: new Set(["new-im-bot", "other-im-bot"]),
-      accountFileExists: new Set(["new-im-bot", "other-im-bot"]),
-      accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", config: {} },
-        { channelId: "telegram", accountId: "orphan-im-bot", config: {} },
-      ],
-    });
-
-    expect(stale).toEqual([]);
-  });
-});
 
 describe("readWeixinAccountUserIdSync", () => {
   it("reads provider-owned userId from canonical and legacy raw account files", async () => {
@@ -138,32 +74,5 @@ describe("readWeixinContextTokenRecipientIds", () => {
     } finally {
       await rm(stateDir, { recursive: true, force: true });
     }
-  });
-});
-
-describe("selectWeixinReplacementAccountName", () => {
-  it("preserves a custom display name from the account being replaced", () => {
-    const name = selectWeixinReplacementAccountName({
-      currentAccountId: "new-im-bot",
-      staleAccountIds: ["old-im-bot"],
-      accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", name: "赵总微信", config: {} },
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "other-im-bot", name: "Other", config: {} },
-      ],
-    });
-
-    expect(name).toBe("赵总微信");
-  });
-
-  it("ignores default accountId names", () => {
-    const name = selectWeixinReplacementAccountName({
-      currentAccountId: "new-im-bot",
-      staleAccountIds: ["old-im-bot"],
-      accounts: [
-        { channelId: WEIXIN_CHANNEL_ID, accountId: "old-im-bot", name: "old-im-bot", config: {} },
-      ],
-    });
-
-    expect(name).toBeUndefined();
   });
 });

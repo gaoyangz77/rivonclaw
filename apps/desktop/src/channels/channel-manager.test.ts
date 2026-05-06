@@ -64,6 +64,73 @@ const TestRootModel = types
   }));
 
 describe("ChannelManagerModel WeChat provider-owned identity", () => {
+  it("treats WeChat already-connected QR results as an existing account", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
+    try {
+      const accountId = "acct123-im-bot";
+      const accounts = [{
+        channelId: WEIXIN_CHANNEL_ID,
+        accountId,
+        name: "赵总",
+        config: { name: "赵总" },
+        createdAt: 1,
+        updatedAt: 1,
+      }];
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: () => accounts[0],
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath: join(stateDir, "openclaw.json"),
+        stateDir,
+      });
+      root.channelManager.init();
+
+      const rpcClient = {
+        request: vi.fn(async () => ({
+          connected: false,
+          message: "已连接过此 OpenClaw，无需重复连接。",
+        })),
+      };
+
+      const result = await root.channelManager.waitQrLogin(
+        rpcClient as any,
+        undefined,
+        90_000,
+        "session-existing",
+      );
+
+      expect(rpcClient.request).toHaveBeenCalledWith(
+        "rivonclaw.weixin.login.wait",
+        { accountId: undefined, timeoutMs: 90_000, sessionKey: "session-existing" },
+        105_000,
+      );
+      expect(result).toMatchObject({
+        connected: true,
+        accountId,
+        accountName: accountId,
+        accountStatus: "existing",
+      });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("derives context token readiness from WeChat sidecar files and strips SQLite userId", () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
     try {

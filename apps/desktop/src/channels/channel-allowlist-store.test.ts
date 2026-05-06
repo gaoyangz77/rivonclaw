@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   addAllowFromEntry,
-  mergeAccountAllowFromList,
   readAllowFromList,
 } from "./channel-allowlist-store.js";
 import { WEIXIN_CHANNEL_ID } from "./weixin-account-dedupe.js";
@@ -36,17 +35,4 @@ describe("channel allowFrom account scoping", () => {
     expect(await readAllowFromList(WEIXIN_CHANNEL_ID, "account-b-im-bot")).toEqual(["user-b@im.wechat"]);
   });
 
-  it("merges only the replaced account allowlist into the new account", async () => {
-    await addAllowFromEntry(WEIXIN_CHANNEL_ID, "old-a-im-bot", "owner-a@im.wechat");
-    await addAllowFromEntry(WEIXIN_CHANNEL_ID, "new-a-im-bot", "scanner-a@im.wechat");
-    await addAllowFromEntry(WEIXIN_CHANNEL_ID, "account-b-im-bot", "owner-b@im.wechat");
-
-    await mergeAccountAllowFromList(WEIXIN_CHANNEL_ID, "old-a-im-bot", "new-a-im-bot");
-
-    expect(await readAllowFromList(WEIXIN_CHANNEL_ID, "new-a-im-bot")).toEqual([
-      "scanner-a@im.wechat",
-      "owner-a@im.wechat",
-    ]);
-    expect(await readAllowFromList(WEIXIN_CHANNEL_ID, "account-b-im-bot")).toEqual(["owner-b@im.wechat"]);
-  });
 });

@@ -1,6 +1,67 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 describe("channel-weixin QR session bridge", () => {
+  it("declares channel config metadata for startup config validation", () => {
+    const manifest = JSON.parse(
+      readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf-8"),
+    ) as {
+      channels?: unknown;
+      channelConfigs?: Record<string, { schema?: unknown }>;
+    };
+
+    // OpenClaw validates `channels.openclaw-weixin` before the runtime plugin
+    // registers its outbound-capable channel. The manifest must make the
+    // channel id known, while runtime registration remains the send authority.
+    expect(manifest.channels).toEqual(["openclaw-weixin"]);
+    expect(manifest.channelConfigs?.["openclaw-weixin"]?.schema).toEqual({
+      type: "object",
+      additionalProperties: true,
+    });
+  });
+
+  it("passes a fully outbound-capable Weixin channel plugin into OpenClaw registration", async () => {
+    vi.resetModules();
+
+    vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
+      default: {
+        register(api: { registerChannel: (opts: unknown) => void }) {
+          api.registerChannel({
+            plugin: {
+              id: "openclaw-weixin",
+              outbound: {
+                sendText: vi.fn(),
+                sendMedia: vi.fn(),
+              },
+              gateway: {},
+            },
+          });
+        },
+      },
+    }));
+
+    const { default: plugin } = await import("./index.js");
+    let registered!: {
+      plugin: {
+        id?: string;
+        outbound?: {
+          sendText?: unknown;
+          sendMedia?: unknown;
+        };
+      };
+    };
+
+    plugin.register({
+      registerChannel(opts: unknown) {
+        registered = opts as typeof registered;
+      },
+    } as Parameters<typeof plugin.register>[0]);
+
+    expect(registered.plugin.id).toBe("openclaw-weixin");
+    expect(registered.plugin.outbound?.sendText).toEqual(expect.any(Function));
+    expect(registered.plugin.outbound?.sendMedia).toEqual(expect.any(Function));
+  });
+
   it("registers RivonClaw QR login gateway methods that call the upstream gateway directly", async () => {
     vi.resetModules();
 
@@ -121,7 +182,7 @@ describe("channel-weixin QR session bridge", () => {
     ]);
   });
 
-  it("declares WeChat account config changes as channel-hot-reloadable", async () => {
+  it("does not claim WeChat account config changes are channel-hot-reloadable", async () => {
     vi.resetModules();
 
     vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
@@ -148,7 +209,6 @@ describe("channel-weixin QR session bridge", () => {
 
     expect(registered.plugin.reload?.configPrefixes).toEqual([
       "channels.openclaw-weixin.extra",
-      "channels.openclaw-weixin",
     ]);
   });
 

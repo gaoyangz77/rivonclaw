@@ -300,6 +300,31 @@ valid alternatives to `apiKey` in `validateConfig`, or when OpenClaw's
 models-config generation ensures `apiKey` is always present for providers
 with models.
 
+### 0011 — Keep tool discovery off the channel registry
+
+**File:** `0011-vendor-openclaw-keep-tool-discovery-off-channel-registry.patch`
+
+**Why:** RivonClaw cloud tools are loaded through OpenClaw plugin tool
+discovery. That path can load a scoped registry containing only tool-owner
+plugins, such as `rivonclaw-cloud-tools`, without the configured channel
+outbound adapters. OpenClaw was installing that scoped registry as the channel
+surface, which could replace the gateway startup channel registry and make
+proactive sends fail with `Outbound not configured for channel:
+openclaw-weixin` even though the channel had started correctly.
+
+**Change:** `ensureStandalonePluginToolRegistryLoaded()` now installs its
+tool-discovery registry on the active surface, not the channel surface. The
+startup-pinned channel registry remains responsible for outbound adapter
+resolution.
+
+**Tests:**
+- `vendor/openclaw/src/plugins/tools.optional.test.ts`
+- `apps/desktop/src/gateway/vendor-channel-registry-pin.sentinel.test.ts`
+
+**Removal:** Drop when upstream OpenClaw guarantees plugin tool discovery
+cannot replace the startup-pinned channel registry used for outbound delivery,
+or when upstream exposes a separate tool-discovery registry surface.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals

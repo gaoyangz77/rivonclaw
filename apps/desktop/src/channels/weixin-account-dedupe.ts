@@ -1,16 +1,9 @@
 import { readFileSync } from "node:fs";
-import { access, readFile, rm } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { normalizeWeixinAccountId } from "@rivonclaw/core";
 
 export const WEIXIN_CHANNEL_ID = "openclaw-weixin";
-
-export interface WeixinChannelAccountLike {
-  channelId: string;
-  accountId: string;
-  name?: string | null;
-  config: Record<string, unknown>;
-}
 
 function readUserIdFromParsedAccount(parsed: Record<string, unknown>): string | undefined {
   const value = parsed.userId;
@@ -80,18 +73,6 @@ export function readWeixinAccountUserIdSync(
     }
   }
   return undefined;
-}
-
-export async function hasWeixinAccountFile(stateDir: string, accountId: string): Promise<boolean> {
-  for (const filePath of resolveWeixinAccountPaths(stateDir, accountId)) {
-    try {
-      await access(filePath);
-      return true;
-    } catch {
-      // Try next path.
-    }
-  }
-  return false;
 }
 
 export async function readWeixinContextTokenRecipientIds(
@@ -186,77 +167,4 @@ export async function clearWeixinContextTokenFiles(
     resolveWeixinAccountSidecarPaths(stateDir, accountId, ".context-tokens.json")
       .map((filePath) => rm(filePath, { force: true })),
   );
-}
-
-export async function readIndexedWeixinAccountIds(stateDir: string): Promise<Set<string>> {
-  try {
-    const raw = await readFile(join(stateDir, WEIXIN_CHANNEL_ID, "accounts.json"), "utf-8");
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(
-      parsed
-        .filter((id): id is string => typeof id === "string" && id.trim() !== "")
-        .map((id) => normalizeWeixinAccountId(id)),
-    );
-  } catch {
-    return new Set();
-  }
-}
-
-export function selectStaleWeixinAccountIdsForLogin(params: {
-  accounts: WeixinChannelAccountLike[];
-  currentAccountId: string;
-  userId: string;
-  accountUserIds: ReadonlyMap<string, string | undefined>;
-  indexedAccountIds: Set<string>;
-  accountFileExists: Set<string>;
-}): string[] {
-  const currentAccountId = normalizeWeixinAccountId(params.currentAccountId);
-  const userId = params.userId.trim();
-  if (!userId) return [];
-
-  const stale = new Set<string>();
-  for (const account of params.accounts) {
-    if (account.channelId !== WEIXIN_CHANNEL_ID) continue;
-
-    const accountId = normalizeWeixinAccountId(account.accountId);
-    if (!accountId || accountId === currentAccountId) continue;
-
-    if (params.accountUserIds.get(accountId) === userId) {
-      stale.add(accountId);
-      continue;
-    }
-
-    if (!params.indexedAccountIds.has(accountId) && !params.accountFileExists.has(accountId)) {
-      stale.add(accountId);
-    }
-  }
-
-  return [...stale];
-}
-
-export function selectWeixinReplacementAccountName(params: {
-  accounts: WeixinChannelAccountLike[];
-  staleAccountIds: string[];
-  currentAccountId: string;
-}): string | undefined {
-  const currentAccountId = normalizeWeixinAccountId(params.currentAccountId);
-  const staleIds = new Set(params.staleAccountIds.map((id) => normalizeWeixinAccountId(id)));
-  const candidateAccounts = params.accounts.filter((account) => {
-    if (account.channelId !== WEIXIN_CHANNEL_ID) return false;
-    const accountId = normalizeWeixinAccountId(account.accountId);
-    return accountId === currentAccountId || staleIds.has(accountId);
-  });
-
-  for (const account of candidateAccounts) {
-    const name = account.name?.trim();
-    if (!name) continue;
-
-    const accountId = normalizeWeixinAccountId(account.accountId);
-    if (name === accountId || name === account.accountId) continue;
-
-    return name;
-  }
-
-  return undefined;
 }

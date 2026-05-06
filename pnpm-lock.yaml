@@ -349,8 +349,8 @@ importers:
   extensions/channel-weixin:
     dependencies:
       '@tencent-weixin/openclaw-weixin':
-        specifier: ^2.1.7
-        version: 2.1.7
+        specifier: ^2.4.1
+        version: 2.4.1(openclaw@2026.5.2(@types/express@5.0.6)(encoding@0.1.13))
     devDependencies:
       tsdown:
         specifier: ^0.20.3
@@ -2739,9 +2739,11 @@ packages:
   '@telegraf/types@7.1.0':
     resolution: {integrity: sha512-kGevOIbpMcIlCDeorKGpwZmdH7kHbqlk/Yj6dEpJMKEQw5lk0KVQY0OLXaCswy8GqlIVLd5625OB+rAntP9xVw==}
 
-  '@tencent-weixin/openclaw-weixin@2.1.7':
-    resolution: {integrity: sha512-2x5/mbO2IVAsN4aUA41g6i8O84WIJCeFj8kwmB2pGjuxIBVy5FnEI5n52Pc5xroOLbxzW5FXN4cDtc/PvvKghg==}
+  '@tencent-weixin/openclaw-weixin@2.4.1':
+    resolution: {integrity: sha512-FZnUVMQRpKGTKezeplr/DYal+5RSif2tXE51pljIFrO8rn7bVnnvpbj81/i9UMrYbuGiom1sl8OeSDzWRDKGhQ==}
     engines: {node: '>=22'}
+    peerDependencies:
+      openclaw: '>=2026.3.22'
 
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
@@ -5144,6 +5146,11 @@ packages:
         optional: true
       zod:
         optional: true
+
+  openclaw@2026.5.2:
+    resolution: {integrity: sha512-Jz00jdV/yE0/RfAln0tVlEq1hX9DIZdc7NRZVQRpt98XINduqoua9uOc1Ty4GeYlg5c746Lhl5ZCe6A4rsOmng==}
+    engines: {node: '>=22.14.0'}
+    hasBin: true
 
   openclaw@file:vendor/openclaw:
     resolution: {directory: vendor/openclaw, type: directory}
@@ -9388,10 +9395,11 @@ snapshots:
 
   '@telegraf/types@7.1.0': {}
 
-  '@tencent-weixin/openclaw-weixin@2.1.7':
+  '@tencent-weixin/openclaw-weixin@2.4.1(openclaw@2026.5.2(@types/express@5.0.6)(encoding@0.1.13))':
     dependencies:
+      openclaw: 2026.5.2(@types/express@5.0.6)(encoding@0.1.13)
       qrcode-terminal: 0.12.0
-      zod: 4.3.6
+      zod: 4.4.2
 
   '@testing-library/dom@10.4.1':
     dependencies:
@@ -12250,6 +12258,76 @@ snapshots:
     optionalDependencies:
       ws: 8.20.0
       zod: 4.4.2
+
+  openclaw@2026.5.2(@types/express@5.0.6)(encoding@0.1.13):
+    dependencies:
+      '@agentclientprotocol/sdk': 0.21.0(zod@4.4.2)
+      '@anthropic-ai/sdk': 0.92.0(zod@4.4.2)
+      '@anthropic-ai/vertex-sdk': 0.16.0(encoding@0.1.13)(zod@4.4.2)
+      '@aws-sdk/client-bedrock': 3.1041.0
+      '@aws-sdk/client-bedrock-runtime': 3.1041.0
+      '@aws-sdk/credential-provider-node': 3.972.39
+      '@aws/bedrock-token-generator': 1.1.0
+      '@clack/prompts': 1.3.0
+      '@google/genai': 1.51.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))
+      '@grammyjs/runner': 2.0.3(grammy@1.42.0(encoding@0.1.13))
+      '@grammyjs/transformer-throttler': 1.2.1(grammy@1.42.0(encoding@0.1.13))
+      '@homebridge/ciao': 1.3.7
+      '@lydell/node-pty': 1.2.0-beta.12
+      '@mariozechner/pi-agent-core': 0.71.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(ws@8.20.0)(zod@4.4.2)
+      '@mariozechner/pi-ai': 0.71.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(ws@8.20.0)(zod@4.4.2)
+      '@mariozechner/pi-coding-agent': 0.71.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.2))(ws@8.20.0)(zod@4.4.2)
+      '@mariozechner/pi-tui': 0.71.1
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.2)
+      '@mozilla/readability': 0.6.0
+      '@slack/bolt': 4.7.2(@types/express@5.0.6)
+      '@slack/types': 2.20.1
+      '@slack/web-api': 7.15.1
+      ajv: 8.20.0
+      chalk: 5.6.2
+      chokidar: 5.0.0
+      commander: 14.0.3
+      croner: 10.0.1
+      dotenv: 17.4.2
+      express: 5.2.1
+      file-type: 22.0.1
+      global-agent: 4.1.3
+      grammy: 1.42.0(encoding@0.1.13)
+      https-proxy-agent: 9.0.0
+      ipaddr.js: 2.3.0
+      jiti: 2.6.1
+      json5: 2.2.3
+      jszip: 3.10.1
+      linkedom: 0.18.12
+      markdown-it: 14.1.1
+      minimatch: 10.2.5
+      node-edge-tts: 1.2.10
+      openai: 6.35.0(ws@8.20.0)(zod@4.4.2)
+      openshell: 0.1.0(encoding@0.1.13)
+      pdfjs-dist: 5.7.284
+      playwright-core: 1.59.1
+      proxy-agent: 8.0.1
+      qrcode: 1.5.4
+      sqlite-vec: 0.1.9
+      tar: 7.5.13
+      tokenjuice: 0.7.0
+      tslog: 4.10.2
+      typebox: 1.1.37
+      undici: 8.1.0
+      web-push: 3.6.7
+      ws: 8.20.0
+      yaml: 2.8.3
+      zod: 4.4.2
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - '@types/express'
+      - aws-crt
+      - bufferutil
+      - canvas
+      - debug
+      - encoding
+      - supports-color
+      - utf-8-validate
 
   openclaw@file:vendor/openclaw(@types/express@5.0.6)(encoding@0.1.13):
     dependencies:

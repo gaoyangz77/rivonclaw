@@ -749,6 +749,7 @@ export default {
     scanPrompt: "Scan with WeChat to connect",
     waiting: "Waiting for confirmation...",
     success: "Connected successfully!",
+    alreadyConnected: "Account already connected",
     failed: "Connection failed",
     retry: "Try Again",
     expired: "QR code has expired. Please try again.",
@@ -756,6 +757,7 @@ export default {
     autoRefresh: "Auto-refresh in {{seconds}}s",
     refreshing: "Refreshing QR code...",
     weixinActivationHint: "WeChat is connected. Please send one message to the bot in WeChat to confirm activation; otherwise proactive outbound messages may not be delivered.",
+    weixinAlreadyConnectedHint: "This WeChat account was already connected. Its login state has been refreshed.",
   },
   mobile: {
     description: "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",

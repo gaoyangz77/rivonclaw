@@ -47,6 +47,11 @@
       "reason": "Drift guard — validates pinned channel registry ignores later empty plugin registries (vendor patch 0007)"
     },
     {
+      "file": "apps/desktop/src/gateway/vendor-channel-registry-pin.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/plugins/tools.ts",
+      "reason": "Drift guard — validates standalone plugin tool discovery does not replace the channel registry (vendor patch 0011)"
+    },
+    {
       "file": "apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts",
       "vendorPath": "vendor/openclaw/src/agents/pi-embedded-runner/run/attempt.ts",
       "reason": "Drift guard — validates system prompt override is re-applied before LLM call (vendor patch 0006)"

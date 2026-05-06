@@ -738,6 +738,7 @@ export default {
     scanPrompt: "请使用微信扫描二维码",
     waiting: "等待确认...",
     success: "连接成功！",
+    alreadyConnected: "账号已存在",
     failed: "连接失败",
     retry: "重试",
     expired: "二维码已过期，请重试。",
@@ -745,6 +746,7 @@ export default {
     autoRefresh: "{{seconds}}秒后自动刷新",
     refreshing: "正在刷新二维码...",
     weixinActivationHint: "微信已连接成功。请在微信里主动给 bot 发送一条消息完成确认，否则无法主动发送消息。",
+    weixinAlreadyConnectedHint: "这个微信账号已经连接过，本次已刷新登录状态。",
   },
   mobile: {
     description: "扫码直连手机，零配置零门槛，随时随地与AI助手对话。",

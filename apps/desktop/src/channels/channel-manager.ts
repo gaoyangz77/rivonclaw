@@ -15,7 +15,6 @@ import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.
 import {
   addAllowFromEntry,
   addAllowFromEntrySync,
-  mergeAccountAllowFromList,
   readAllAllowFromLists,
   readAllowFromList,
   resolveAllowFromPathForChannel,
@@ -25,14 +24,10 @@ import {
 import {
   WEIXIN_CHANNEL_ID,
   clearWeixinContextTokenFiles,
-  hasWeixinAccountFile,
-  readIndexedWeixinAccountIds,
   readWeixinContextTokensSync,
   readWeixinContextTokenRecipientIds,
   readWeixinAccountUserId,
   readWeixinAccountUserIdSync,
-  selectStaleWeixinAccountIdsForLogin,
-  selectWeixinReplacementAccountName,
 } from "./weixin-account-dedupe.js";
 
 const log = createLogger("channel-manager");
@@ -222,6 +217,14 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
 
 function channelAccountConfigHasWeixinUserId(channelId: string, config: Record<string, unknown>): boolean {
   return channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId");
+}
+
+function isWeixinAlreadyConnectedQrResult(result: { connected?: boolean; message?: string }): boolean {
+  if (result.connected) return false;
+  const message = result.message ?? "";
+  return message.includes("已连接过此 OpenClaw") ||
+    message.includes("无需重复连接") ||
+    /\balready\s+(connected|bound)\b/i.test(message);
 }
 
 function mergeProviderOwnedChannelConfig(
@@ -1157,8 +1160,12 @@ export const ChannelManagerModel = types
         accountId?: string,
       ) {
         return (yield rpcClient.request(RIVONCLAW_WEIXIN_LOGIN_START, { accountId })) as {
+          connected?: boolean;
           qrDataUrl?: string;
           message: string;
+          accountId?: string;
+          sessionKey?: string;
+          userId?: string;
         };
       }),
 
@@ -1167,19 +1174,43 @@ export const ChannelManagerModel = types
         rpcClient: GatewayRpcClient,
         accountId?: string,
         timeoutMs?: number,
+        sessionKey?: string,
       ) {
         const { storage, stateDir } = getEnv();
         const serverPollMs = timeoutMs ?? 60_000;
         const rpcTimeoutMs = serverPollMs + 15_000;
         const result = (yield rpcClient.request(
           RIVONCLAW_WEIXIN_LOGIN_WAIT,
-          { accountId, timeoutMs },
+          { accountId, timeoutMs, sessionKey },
           rpcTimeoutMs,
         )) as { connected: boolean; message: string; accountId?: string; userId?: string };
+
+        if (isWeixinAlreadyConnectedQrResult(result)) {
+          const existingAccounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID);
+          if (existingAccounts.length === 1) {
+            const existingAccountId = normalizeWeixinAccountId(existingAccounts[0]!.accountId);
+            log.info(`WeChat QR login returned already-connected; treating ${existingAccountId} as existing account`);
+            refreshWeixinContextTokenStatus(existingAccountId);
+            return {
+              ...result,
+              connected: true,
+              accountId: existingAccountId,
+              accountName: existingAccountId,
+              accountStatus: "existing",
+            };
+          }
+          log.warn(
+            `WeChat QR login returned already-connected but could not resolve a unique account `
+            + `(count=${existingAccounts.length})`,
+          );
+        }
 
         if (!result.connected || !result.accountId) return result;
 
         const canonicalAccountId = normalizeWeixinAccountId(result.accountId);
+        const accountStatus = storage.channelAccounts.get(WEIXIN_CHANNEL_ID, canonicalAccountId)
+          ? "existing"
+          : "created";
         yield clearWeixinContextTokenFiles(stateDir, canonicalAccountId);
         clearLoadedWeixinContextTokens(canonicalAccountId);
         refreshWeixinContextTokenStatus(canonicalAccountId);
@@ -1188,56 +1219,14 @@ export const ChannelManagerModel = types
           ? result.userId.trim()
           : yield readWeixinAccountUserId(stateDir, canonicalAccountId);
 
-        const weixinAccounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID);
-        let staleAccountIds: string[] = [];
-        let replacementAccountName: string | undefined;
-
         if (userId) {
           yield addAllowFromEntry(WEIXIN_CHANNEL_ID, canonicalAccountId, userId);
-
-          const indexedAccountIds: Set<string> = yield readIndexedWeixinAccountIds(stateDir);
-          const accountFileExists = new Set<string>();
-          const accountUserIds = new Map<string, string | undefined>();
-          for (const account of weixinAccounts) {
-            const existingAccountId = normalizeWeixinAccountId(account.accountId);
-            const existingUserId: string | undefined = yield readWeixinAccountUserId(stateDir, existingAccountId);
-            accountUserIds.set(existingAccountId, existingUserId);
-            if (yield hasWeixinAccountFile(stateDir, existingAccountId)) {
-              accountFileExists.add(existingAccountId);
-            }
-          }
-
-          staleAccountIds = selectStaleWeixinAccountIdsForLogin({
-            accounts: weixinAccounts,
-            currentAccountId: canonicalAccountId,
-            userId,
-            accountUserIds,
-            indexedAccountIds,
-            accountFileExists,
-          });
-          replacementAccountName = selectWeixinReplacementAccountName({
-            accounts: weixinAccounts,
-            currentAccountId: canonicalAccountId,
-            staleAccountIds,
-          });
         }
 
-        for (const staleAccountId of staleAccountIds) {
-          yield mergeAccountAllowFromList(WEIXIN_CHANNEL_ID, staleAccountId, canonicalAccountId);
-          removeAccountById(WEIXIN_CHANNEL_ID, staleAccountId, { writeConfig: false });
-        }
-
-        if (staleAccountIds.length > 0) {
-          log.info(
-            `Removed ${staleAccountIds.length} stale Weixin channel account(s) after QR login`,
-          );
-        }
-
-        const accountName = replacementAccountName ?? canonicalAccountId;
         upsertAccountState({
           channelId: WEIXIN_CHANNEL_ID,
           accountId: canonicalAccountId,
-          name: accountName,
+          name: canonicalAccountId,
           config: {},
           writeConfig: false,
         });
@@ -1247,7 +1236,8 @@ export const ChannelManagerModel = types
           ...result,
           accountId: canonicalAccountId,
           ...(userId ? { userId } : {}),
-          accountName,
+          accountName: canonicalAccountId,
+          accountStatus,
         };
       }),
     };

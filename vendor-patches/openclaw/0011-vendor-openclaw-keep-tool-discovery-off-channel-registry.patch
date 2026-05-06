@@ -1,0 +1,122 @@
+From e11f9e7eee6910fa79eb8eb3bff5d9c878c17d4b Mon Sep 17 00:00:00 2001
+From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
+Date: Wed, 6 May 2026 05:47:35 -0700
+Subject: [PATCH] vendor(openclaw): keep tool discovery off channel registry
+
+Why:
+- RivonClaw cloud tools are loaded through OpenClaw plugin tool discovery.
+- Tool discovery can load a scoped registry that contains only tool-owner plugins.
+- Installing that scoped registry as the channel surface drops configured channel outbound adapters and breaks proactive sends with "Outbound not configured for channel".
+
+Removal:
+- Drop when upstream OpenClaw guarantees plugin tool discovery cannot replace the startup-pinned channel registry used for outbound delivery, or when upstream exposes a separate tool-discovery registry surface.
+
+Tests:
+- vendor/openclaw/src/plugins/tools.optional.test.ts
+- apps/desktop/src/gateway/vendor-channel-registry-pin.sentinel.test.ts
+---
+ src/plugins/tools.optional.test.ts | 50 ++++++++++++++++++++++++++++++
+ src/plugins/tools.ts               |  5 ++-
+ 2 files changed, 54 insertions(+), 1 deletion(-)
+
+diff --git a/src/plugins/tools.optional.test.ts b/src/plugins/tools.optional.test.ts
+index 92dfde59b7..793a35a081 100644
+--- a/src/plugins/tools.optional.test.ts
++++ b/src/plugins/tools.optional.test.ts
+@@ -32,6 +32,7 @@ let resolvePluginTools: typeof import("./tools.js").resolvePluginTools;
+ let ensureStandalonePluginToolRegistryLoaded: typeof import("./tools.js").ensureStandalonePluginToolRegistryLoaded;
+ let buildPluginToolMetadataKey: typeof import("./tools.js").buildPluginToolMetadataKey;
+ let resetPluginToolFactoryCache: typeof import("./tools.js").resetPluginToolFactoryCache;
++let loadChannelOutboundAdapter: typeof import("../channels/plugins/outbound/load.js").loadChannelOutboundAdapter;
+ let pinActivePluginChannelRegistry: typeof import("./runtime.js").pinActivePluginChannelRegistry;
+ let resetPluginRuntimeStateForTest: typeof import("./runtime.js").resetPluginRuntimeStateForTest;
+ let setActivePluginRegistry: typeof import("./runtime.js").setActivePluginRegistry;
+@@ -382,6 +383,7 @@ describe("resolvePluginTools optional tools", () => {
+       resetPluginToolFactoryCache,
+       resolvePluginTools,
+     } = await import("./tools.js"));
++    ({ loadChannelOutboundAdapter } = await import("../channels/plugins/outbound/load.js"));
+     ({ pinActivePluginChannelRegistry, resetPluginRuntimeStateForTest, setActivePluginRegistry } =
+       await import("./runtime.js"));
+     ({ clearCurrentPluginMetadataSnapshot, setCurrentPluginMetadataSnapshot } =
+@@ -456,6 +458,7 @@ describe("resolvePluginTools optional tools", () => {
+   it("standalone bootstrap loads configured plugin tools before resolution", () => {
+     const config = createContext().config;
+     const registry = createToolRegistry([createOptionalDemoEntry()]);
++    resolveRuntimePluginRegistryMock.mockReturnValue(undefined);
+     loadOpenClawPluginsMock.mockReturnValue(registry);
+     installToolManifestSnapshot({
+       config,
+@@ -491,6 +494,53 @@ describe("resolvePluginTools optional tools", () => {
+     );
+   });
+ 
++  it("keeps standalone tool discovery from replacing pinned channel outbound registry", async () => {
++    const config = createContext().config;
++    const outboundAdapter = { send: vi.fn(async () => ({ messageId: "ok" })) };
++    const gatewayRegistry = {
++      plugins: [{ id: "openclaw-weixin", status: "loaded" }],
++      channels: [
++        {
++          pluginId: "openclaw-weixin",
++          plugin: { id: "openclaw-weixin", meta: {}, outbound: outboundAdapter },
++          source: "/tmp/openclaw-weixin.js",
++        },
++      ],
++      tools: [],
++      diagnostics: [],
++    };
++    setActivePluginRegistry(
++      gatewayRegistry as never,
++      "gateway-startup",
++      "gateway-bindable",
++      "/tmp",
++    );
++    pinActivePluginChannelRegistry(gatewayRegistry as never);
++    loadOpenClawPluginsMock.mockReturnValue(createToolRegistry([createOptionalDemoEntry()]));
++    installToolManifestSnapshot({
++      config,
++      plugin: {
++        id: "optional-demo",
++        origin: "bundled",
++        enabledByDefault: true,
++        channels: [],
++        providers: [],
++        contracts: {
++          tools: ["optional_tool"],
++        },
++      },
++    });
++
++    ensureStandalonePluginToolRegistryLoaded({
++      context: createContext() as never,
++      toolAllowlist: ["optional_tool"],
++    });
++
++    await expect(loadChannelOutboundAdapter("openclaw-weixin" as never)).resolves.toBe(
++      outboundAdapter,
++    );
++  });
++
+   it("does not reuse a pinned gateway registry for manifest-unavailable tools", () => {
+     const config = createContext().config;
+     installToolManifestSnapshot({
+diff --git a/src/plugins/tools.ts b/src/plugins/tools.ts
+index a04c33f3b6..ed0fb59d2c 100644
+--- a/src/plugins/tools.ts
++++ b/src/plugins/tools.ts
+@@ -694,7 +694,10 @@ export function ensureStandalonePluginToolRegistryLoaded(params: {
+     return;
+   }
+   ensureStandaloneRuntimePluginRegistryLoaded({
+-    surface: "channel",
++    // Tool discovery may load a scoped registry containing only tool-owner
++    // plugins. Keep that registry off the channel surface so configured
++    // channel outbound adapters remain pinned to the gateway startup registry.
++    surface: "active",
+     requiredPluginIds: loadState.onlyPluginIds,
+     loadOptions: loadState.loadOptions,
+   });
+-- 
+2.50.1 (Apple Git-155)
+

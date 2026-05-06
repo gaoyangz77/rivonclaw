@@ -575,10 +575,11 @@ export class BackendSubscriptionClient {
   }
 
   /**
-   * Subscribe to durable CS escalation side-effect events.
+   * Subscribe to CS escalation side-effect events.
    *
-   * The backend emits pending events again on connect/reconnect, so callers
-   * should claim + ack each event before/after executing the local side effect.
+   * The backend only streams newly-published events. Airflow/admin publish
+   * mutations handle missed-event replay, and callers claim + ack each event
+   * before/after executing the local side effect.
    */
   subscribeToCsEscalationEvents(
     onEvent: (delivery: CsEscalationEventDeliveryPayload) => void,

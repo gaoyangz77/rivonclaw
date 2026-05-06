@@ -128,11 +128,12 @@ function registerRivonClawQrLoginMethods(params: {
 
     try {
       const accountId = resolveAccountId(requestParams);
-      const request = requestParams as { timeoutMs?: unknown; currentQrDataUrl?: unknown };
+      const request = requestParams as { timeoutMs?: unknown; currentQrDataUrl?: unknown; sessionKey?: unknown };
       const result = await loginWithQrWait({
         timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
         accountId,
         currentQrDataUrl: typeof request.currentQrDataUrl === "string" ? request.currentQrDataUrl : undefined,
+        sessionKey: typeof request.sessionKey === "string" ? request.sessionKey : undefined,
       }) as { connected?: boolean; accountId?: string };
 
       if (accountId && result.connected) {
@@ -166,30 +167,6 @@ const plugin = {
           "web.login.wait",
         ]));
 
-        // Compatibility shim: declare WeChat account config changes as
-        // channel-hot-reloadable.
-        //
-        // Without this, OpenClaw treats changes under channels.openclaw-weixin
-        // as unknown config changes and escalates them to a gateway restart. In
-        // RivonClaw Desktop the gateway is launched with OPENCLAW_NO_RESPAWN=1,
-        // so that restart happens in-process; Telegram keeps a process-global
-        // polling lease and then refuses to start after the in-process restart.
-        //
-        // Upstream tracking:
-        // - https://github.com/openclaw/openclaw/issues/62120
-        // - https://github.com/Tencent/openclaw-weixin/pull/73
-        // - https://github.com/netease-youdao/LobsterAI/pull/1592
-        // Remove this wrapper once @tencent-weixin/openclaw-weixin declares its
-        // gateway methods and reload prefixes itself.
-        opts.plugin.reload = {
-          ...(typeof opts.plugin.reload === "object" && opts.plugin.reload !== null
-            ? opts.plugin.reload
-            : {}),
-          configPrefixes: Array.from(new Set([
-            ...((opts.plugin.reload as { configPrefixes?: string[] } | undefined)?.configPrefixes ?? []),
-            `channels.${WEIXIN_CHANNEL_ID}`,
-          ])),
-        };
       }
 
       // Compatibility shim: bridge sessionKey between loginWithQrStart and loginWithQrWait.

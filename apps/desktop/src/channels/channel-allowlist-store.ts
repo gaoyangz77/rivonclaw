@@ -71,15 +71,6 @@ export function addAllowFromEntrySync(channelId: string, accountId: string | und
   return true;
 }
 
-export async function mergeAccountAllowFromList(channelId: string, fromAccountId: string, toAccountId: string): Promise<boolean> {
-  const from = await readAllowFromList(channelId, fromAccountId);
-  if (from.length === 0) return false;
-
-  const merged = [...new Set([...await readAllowFromList(channelId, toAccountId), ...from])];
-  await writeAllowFromList(channelId, merged, toAccountId);
-  return true;
-}
-
 /** Read and merge allowFrom entries from all scoped + legacy files for a channel. */
 export async function readAllAllowFromLists(channelId: string): Promise<string[]> {
   const credentialsDir = resolveCredentialsDir();

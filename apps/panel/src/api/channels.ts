@@ -87,18 +87,32 @@ export async function removeFromAllowlist(channelId: string, entry: string, acco
 
 // --- QR Login (WeChat) ---
 
-export async function startQrLogin(accountId?: string, signal?: AbortSignal): Promise<{ qrDataUrl?: string; message: string }> {
-  return fetchJson<{ qrDataUrl?: string; message: string }>(clientPath(API["channels.qrLogin.start"]), {
+export interface QrLoginResult {
+  connected?: boolean;
+  message: string;
+  accountId?: string;
+  sessionKey?: string;
+  userId?: string;
+  accountName?: string;
+  accountStatus?: "created" | "existing";
+}
+
+export interface QrLoginStartResult extends QrLoginResult {
+  qrDataUrl?: string;
+}
+
+export async function startQrLogin(accountId?: string, signal?: AbortSignal): Promise<QrLoginStartResult> {
+  return fetchJson<QrLoginStartResult>(clientPath(API["channels.qrLogin.start"]), {
     method: "POST",
     body: JSON.stringify({ accountId }),
     signal,
   });
 }
 
-export async function waitQrLogin(accountId?: string, timeoutMs?: number, signal?: AbortSignal): Promise<{ connected: boolean; message: string; accountId?: string; userId?: string; accountName?: string }> {
-  return fetchJson<{ connected: boolean; message: string; accountId?: string; userId?: string; accountName?: string }>(clientPath(API["channels.qrLogin.wait"]), {
+export async function waitQrLogin(accountId?: string, timeoutMs?: number, signal?: AbortSignal, sessionKey?: string): Promise<QrLoginResult> {
+  return fetchJson<QrLoginResult>(clientPath(API["channels.qrLogin.wait"]), {
     method: "POST",
-    body: JSON.stringify({ accountId, timeoutMs }),
+    body: JSON.stringify({ accountId, timeoutMs, sessionKey }),
     signal,
   });
 }

@@ -10,6 +10,41 @@ import { sendJson, parseBody, proxiedFetch } from "../infra/api/route-utils.js";
 import type { ServerResponse } from "node:http";
 
 const log = createLogger("panel-server");
+const WEIXIN_CHANNEL_ID = "openclaw-weixin";
+const WEIXIN_QR_START_CACHE_MS = 25_000;
+
+type WeixinQrStartResult = {
+  connected?: boolean;
+  qrDataUrl?: string;
+  message: string;
+  accountId?: string;
+  sessionKey?: string;
+  userId?: string;
+};
+
+let weixinQrStartCache: {
+  accountKey: string;
+  expiresAt: number;
+  result: WeixinQrStartResult;
+} | null = null;
+
+const weixinQrStartInFlight = new Map<string, Promise<WeixinQrStartResult>>();
+
+function normalizeQrAccountKey(accountId?: string): string {
+  return typeof accountId === "string" ? accountId.trim() : "";
+}
+
+function shortSessionKey(sessionKey?: string): string {
+  if (!sessionKey) return "none";
+  return sessionKey.length <= 12 ? sessionKey : `${sessionKey.slice(0, 8)}...${sessionKey.slice(-4)}`;
+}
+
+function clearWeixinQrStartCache(sessionKey?: string): void {
+  if (!weixinQrStartCache) return;
+  if (!sessionKey || weixinQrStartCache.result.sessionKey === sessionKey) {
+    weixinQrStartCache = null;
+  }
+}
 
 /** Extract channelManager or send 503 and return null. */
 function requireChannelManager(ctx: ApiContext, res: ServerResponse): ChannelManagerInstance | null {
@@ -188,9 +223,54 @@ const qrLoginStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   }
 
   const body = (await parseBody(req)) as { accountId?: string };
+  const accountKey = normalizeQrAccountKey(body.accountId);
 
   try {
-    const result = await cm.startQrLogin(rpcClient, body.accountId);
+    const now = Date.now();
+    if (
+      weixinQrStartCache
+      && weixinQrStartCache.accountKey === accountKey
+      && weixinQrStartCache.expiresAt > now
+    ) {
+      log.info(
+        `Weixin QR login start reused: account=${accountKey || "new"} `
+        + `sessionKey=${shortSessionKey(weixinQrStartCache.result.sessionKey)}`,
+      );
+      sendJson(res, 200, weixinQrStartCache.result);
+      return;
+    }
+
+    let result: WeixinQrStartResult;
+    const inFlight = weixinQrStartInFlight.get(accountKey);
+    if (inFlight) {
+      log.info(`Weixin QR login start joined in-flight request: account=${accountKey || "new"}`);
+      result = await inFlight;
+    } else {
+      const promise = Promise.resolve(cm.startQrLogin(rpcClient, body.accountId) as PromiseLike<WeixinQrStartResult>);
+      weixinQrStartInFlight.set(accountKey, promise);
+      try {
+        result = await promise;
+      } finally {
+        if (weixinQrStartInFlight.get(accountKey) === promise) {
+          weixinQrStartInFlight.delete(accountKey);
+        }
+      }
+    }
+
+    log.info(
+      `Weixin QR login start: account=${accountKey || "new"} `
+      + `connected=${Boolean(result.connected)} hasQr=${Boolean(result.qrDataUrl)} `
+      + `sessionKey=${shortSessionKey(result.sessionKey)}`,
+    );
+    if (!result.connected && result.qrDataUrl && result.sessionKey) {
+      weixinQrStartCache = {
+        accountKey,
+        expiresAt: Date.now() + WEIXIN_QR_START_CACHE_MS,
+        result,
+      };
+    } else {
+      clearWeixinQrStartCache();
+    }
     sendJson(res, 200, result);
   } catch (err) {
     log.error("Failed to start QR login:", err);
@@ -212,11 +292,20 @@ const qrLoginWait: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
     return;
   }
 
-  const body = (await parseBody(req)) as { accountId?: string; timeoutMs?: number };
+  const body = (await parseBody(req)) as { accountId?: string; timeoutMs?: number; sessionKey?: string };
 
   try {
-    const result = await cm.waitQrLogin(rpcClient, body.accountId, body.timeoutMs);
+    const result = await cm.waitQrLogin(rpcClient, body.accountId, body.timeoutMs, body.sessionKey);
+    log.info(
+      `Weixin QR login wait: account=${normalizeQrAccountKey(body.accountId) || "new"} `
+      + `connected=${Boolean(result.connected)} sessionKey=${shortSessionKey(body.sessionKey)} `
+      + `accountId=${result.accountId ?? "none"}`,
+    );
+    clearWeixinQrStartCache(body.sessionKey);
     sendJson(res, 200, result);
+    if (result.connected && result.accountId) {
+      ctx.onChannelConfigured?.(WEIXIN_CHANNEL_ID);
+    }
   } catch (err) {
     log.error("Failed to wait for QR login:", err);
     sendJson(res, 500, { error: formatError(err) });

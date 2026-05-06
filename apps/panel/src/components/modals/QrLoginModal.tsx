@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import { startQrLogin, waitQrLogin } from "../../api/channels.js";
+import { startQrLogin, waitQrLogin, type QrLoginResult } from "../../api/channels.js";
 import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "refreshing" | "success" | "error";
+type QrLoginSuccessKind = "created" | "existing";
 
 /** Per-poll server-side timeout. The desktop route sets RPC timeout = this + 15s headroom. */
-const POLL_TIMEOUT_MS = 30_000;
-/** Total QR session lifetime. Keep short to avoid excessive WeChat API polling. */
-const SESSION_TIMEOUT_MS = 2 * 60_000;
+const POLL_TIMEOUT_MS = 90_000;
+/** Total QR session lifetime. Keep below the WeChat plugin's 5-minute active-login TTL. */
+const SESSION_TIMEOUT_MS = 4 * 60_000;
 /** Countdown display duration matching poll timeout. */
-const QR_REFRESH_SECONDS = 30;
+const QR_REFRESH_SECONDS = 90;
 /** Auto-close delay after successful scan. */
 const SUCCESS_AUTO_CLOSE_MS = 1200;
 /**
@@ -37,6 +38,7 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(QR_REFRESH_SECONDS);
+  const [successKind, setSuccessKind] = useState<QrLoginSuccessKind>("created");
 
   // Per-invocation abort token: each startLogin call owns its own token + AbortController.
   // A re-entrant startLogin (StrictMode double-mount, effect re-fire due to dep change)
@@ -92,9 +94,26 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
     setQrImageUrl(null);
     clearCountdown();
 
+    const completeLogin = (result: QrLoginResult, token: LoginToken) => {
+      completedRef.current = true;
+      clearCountdown();
+      setSuccessKind(result.accountStatus === "existing" ? "existing" : "created");
+      setPhase("success");
+      const autoCloseMs = channelId === WEIXIN_CHANNEL_ID
+        ? SUCCESS_AUTO_CLOSE_MS_WEIXIN
+        : SUCCESS_AUTO_CLOSE_MS;
+      setTimeout(() => {
+        if (!token.aborted) {
+          onSuccessRef.current();
+          onCloseRef.current();
+        }
+      }, autoCloseMs);
+    };
+
     try {
       const deadline = Date.now() + SESSION_TIMEOUT_MS;
       let currentQrUrl: string | null = null;
+      let currentSessionKey: string | undefined;
 
       while (!myToken.aborted && Date.now() < deadline) {
         // Step 1: Get a (possibly fresh) QR code
@@ -106,6 +125,14 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
           throw e;
         }
         if (myToken.aborted) return;
+        currentSessionKey = typeof startRes.sessionKey === "string" && startRes.sessionKey.trim()
+          ? startRes.sessionKey.trim()
+          : undefined;
+
+        if (startRes.connected) {
+          completeLogin(startRes, myToken);
+          return;
+        }
 
         if (!startRes.qrDataUrl) {
           setErrorMessage(startRes.message || t("qrLogin.gatewayUnavailable"));
@@ -129,28 +156,13 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
 
         // Step 3: Poll for scan result (single /wait call per iteration)
         try {
-          const result = await waitQrLogin(undefined, POLL_TIMEOUT_MS, signal);
+          const result = await waitQrLogin(undefined, POLL_TIMEOUT_MS, signal, currentSessionKey);
           if (myToken.aborted) break;
 
           if (result.connected) {
-            // Mark completed BEFORE any async side-effects so a re-render
-            // triggered by updateAccount's MST patch can't spawn a new loop.
-            completedRef.current = true;
-            clearCountdown();
-            // Desktop persists QR-login account replacement atomically inside
-            // the wait endpoint. The modal only reflects success.
-            setPhase("success");
-            // Brief delay so user sees the success message. WeChat also renders
-            // an activation hint in the success view, so keep it visible longer.
-            const autoCloseMs = channelId === WEIXIN_CHANNEL_ID
-              ? SUCCESS_AUTO_CLOSE_MS_WEIXIN
-              : SUCCESS_AUTO_CLOSE_MS;
-            setTimeout(() => {
-              if (!myToken.aborted) {
-                onSuccessRef.current();
-                onCloseRef.current();
-              }
-            }, autoCloseMs);
+            // Mark completed before side-effects so a re-render triggered by
+            // account MST updates cannot spawn another polling loop.
+            completeLogin(result, myToken);
             return;
           }
         } catch (e: any) {
@@ -228,9 +240,17 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
 
           {phase === "success" && (
             <div className="qr-login-scan-view">
-              <div className="badge badge-success">{t("qrLogin.success")}</div>
+              <div className="badge badge-success">
+                {successKind === "existing"
+                  ? t("qrLogin.alreadyConnected")
+                  : t("qrLogin.success")}
+              </div>
               {channelId === WEIXIN_CHANNEL_ID && (
-                <p className="qr-login-hint">{t("qrLogin.weixinActivationHint")}</p>
+                <p className="qr-login-hint">
+                  {successKind === "existing"
+                    ? t("qrLogin.weixinAlreadyConnectedHint")
+                    : t("qrLogin.weixinActivationHint")}
+                </p>
               )}
             </div>
           )}

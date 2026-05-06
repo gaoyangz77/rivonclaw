@@ -17,10 +17,7 @@
  */
 
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
-import {
-  installOpenClawChannelRegistryGuard,
-  restoreOpenClawChannelRegistryIfPolluted,
-} from "./channel-registry-guard.js";
+import { warnIfOpenClawChannelRegistryInvalid } from "./channel-registry-diagnostics.js";
 
 /** Desktop injects RIVONCLAW_PANEL_PORT into the gateway env at startup. */
 const PANEL_BASE_URL = `http://127.0.0.1:${process.env.RIVONCLAW_PANEL_PORT || "3210"}`;
@@ -62,7 +59,7 @@ export default defineRivonClawPlugin({
   name: "Capability Manager",
 
   setup(api) {
-    installOpenClawChannelRegistryGuard(api.logger);
+    warnIfOpenClawChannelRegistryInvalid("capability-manager setup", api.logger);
 
     // ── before_tool_resolve: filter tool visibility (Layer 3) ──────
     // Removes tools not in effectiveTools from the LLM's tool list.
@@ -74,11 +71,11 @@ export default defineRivonClawPlugin({
         event: { tools: string[] },
         ctx: { sessionKey?: string },
       ) => {
-        restoreOpenClawChannelRegistryIfPolluted("before_tool_resolve", api.logger);
+        warnIfOpenClawChannelRegistryInvalid("before_tool_resolve", api.logger);
         if (!ctx.sessionKey) return {};
 
         const effectiveTools = await getEffectiveTools(ctx.sessionKey);
-        restoreOpenClawChannelRegistryIfPolluted("after effective-tools resolve", api.logger);
+        warnIfOpenClawChannelRegistryInvalid("after effective-tools resolve", api.logger);
         if (!effectiveTools) {
           return { tools: [] };
         }
@@ -96,7 +93,7 @@ export default defineRivonClawPlugin({
         event: PluginHookBeforeToolCallEvent,
         ctx: PluginHookToolContext,
       ): Promise<PluginHookBeforeToolCallResult | void> => {
-        restoreOpenClawChannelRegistryIfPolluted("before_tool_call", api.logger);
+        warnIfOpenClawChannelRegistryInvalid("before_tool_call", api.logger);
         if (!ctx.sessionKey) return;
 
         const effectiveTools = await getEffectiveTools(ctx.sessionKey);
