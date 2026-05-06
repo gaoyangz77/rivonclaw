@@ -27,6 +27,14 @@ export interface GatewayConfigDeps {
   merchantExtensionPaths?: () => string[];
 }
 
+export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = [
+  "group:openclaw",
+  "group:fs",
+  "group:runtime",
+  "rivonclaw-cloud-tools",
+  "rivonclaw-local-tools",
+];
+
 /**
  * Create gateway config builder functions bound to the given dependencies.
  * Returns closures that can be called without passing deps each time.
@@ -256,14 +264,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       ...(overrides?.toolAllowlist
         ? { toolAllowlist: overrides.toolAllowlist }
         : {
-            toolAllowlist: [
-              "group:openclaw",
-              "group:fs",
-              "group:runtime",
-              "pdf",
-              "rivonclaw-cloud-tools",
-              "rivonclaw-local-tools",
-            ],
+            toolAllowlist: DEFAULT_GATEWAY_TOOL_ALLOWLIST,
           }),
     };
   }

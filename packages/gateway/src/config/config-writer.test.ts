@@ -162,6 +162,29 @@ describe("config-writer", () => {
       expect(config.tools.alsoAllow).toBeUndefined();
     });
 
+    it("forces stale sandbox mode off", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              sandbox: {
+                mode: "all",
+                workspaceAccess: "rw",
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.sandbox.mode).toBe("off");
+      expect(config.agents.defaults.sandbox.workspaceAccess).toBe("rw");
+    });
+
     it("writes web search API keys into provider plugin config", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(

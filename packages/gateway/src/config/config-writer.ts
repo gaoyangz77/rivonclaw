@@ -774,6 +774,34 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
+  // Sandbox defaults — RivonClaw runs OpenClaw on the desktop host and manages
+  // file/device boundaries itself. Force stale upstream sandbox settings off so
+  // agent startup does not try to prepare per-run sandbox workspaces.
+  {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    const existingSandbox =
+      typeof existingDefaults.sandbox === "object" && existingDefaults.sandbox !== null
+        ? (existingDefaults.sandbox as Record<string, unknown>)
+        : {};
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        sandbox: {
+          ...existingSandbox,
+          mode: "off",
+        },
+      },
+    };
+  }
+
   // Tools profile — RivonClaw is a desktop app with full agent capabilities.
   // OpenClaw v2026.3.2 defaults new installs to "messaging" (no file/exec tools).
   // RivonClaw needs "full" so file permissions, rules, and exec all work.
