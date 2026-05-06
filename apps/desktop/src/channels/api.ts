@@ -39,6 +39,12 @@ function shortSessionKey(sessionKey?: string): string {
   return sessionKey.length <= 12 ? sessionKey : `${sessionKey.slice(0, 8)}...${sessionKey.slice(-4)}`;
 }
 
+function shortQrMessage(message?: string): string {
+  if (!message) return "none";
+  const normalized = message.replace(/\s+/g, " ").trim();
+  return normalized.length <= 120 ? normalized : `${normalized.slice(0, 117)}...`;
+}
+
 function clearWeixinQrStartCache(sessionKey?: string): void {
   if (!weixinQrStartCache) return;
   if (!sessionKey || weixinQrStartCache.result.sessionKey === sessionKey) {
@@ -299,7 +305,7 @@ const qrLoginWait: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
     log.info(
       `Weixin QR login wait: account=${normalizeQrAccountKey(body.accountId) || "new"} `
       + `connected=${Boolean(result.connected)} sessionKey=${shortSessionKey(body.sessionKey)} `
-      + `accountId=${result.accountId ?? "none"}`,
+      + `accountId=${result.accountId ?? "none"} message=${shortQrMessage(result.message)}`,
     );
     clearWeixinQrStartCache(body.sessionKey);
     sendJson(res, 200, result);

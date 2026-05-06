@@ -5,7 +5,6 @@ import { startQrLogin, waitQrLogin, type QrLoginResult } from "../../api/channel
 import { Modal } from "./Modal.js";
 
 type QrLoginPhase = "loading" | "scanning" | "refreshing" | "success" | "error";
-type QrLoginSuccessKind = "created" | "existing";
 
 /** Per-poll server-side timeout. The desktop route sets RPC timeout = this + 15s headroom. */
 const POLL_TIMEOUT_MS = 90_000;
@@ -38,7 +37,6 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(QR_REFRESH_SECONDS);
-  const [successKind, setSuccessKind] = useState<QrLoginSuccessKind>("created");
 
   // Per-invocation abort token: each startLogin call owns its own token + AbortController.
   // A re-entrant startLogin (StrictMode double-mount, effect re-fire due to dep change)
@@ -97,7 +95,6 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
     const completeLogin = (result: QrLoginResult, token: LoginToken) => {
       completedRef.current = true;
       clearCountdown();
-      setSuccessKind(result.accountStatus === "existing" ? "existing" : "created");
       setPhase("success");
       const autoCloseMs = channelId === WEIXIN_CHANNEL_ID
         ? SUCCESS_AUTO_CLOSE_MS_WEIXIN
@@ -165,6 +162,11 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
             completeLogin(result, myToken);
             return;
           }
+
+          clearCountdown();
+          setErrorMessage(result.message || t("qrLogin.failed"));
+          setPhase("error");
+          return;
         } catch (e: any) {
           if (myToken.aborted || e?.name === "AbortError") return;
           // Poll timeout or transient error -- continue to next /start cycle
@@ -227,6 +229,9 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
             <div className="qr-login-scan-view">
               <div className="badge badge-warning">{t("qrLogin.waiting")}</div>
               <p className="qr-login-hint">{t("qrLogin.scanPrompt")}</p>
+              {channelId === WEIXIN_CHANNEL_ID && (
+                <p className="qr-login-hint">{t("qrLogin.weixinDuplicateScanWarning")}</p>
+              )}
               <div className="mobile-qr-container">
                 <img src={qrImageUrl} alt="WeChat QR Code" width={250} height={250} />
               </div>
@@ -240,16 +245,10 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
 
           {phase === "success" && (
             <div className="qr-login-scan-view">
-              <div className="badge badge-success">
-                {successKind === "existing"
-                  ? t("qrLogin.alreadyConnected")
-                  : t("qrLogin.success")}
-              </div>
+              <div className="badge badge-success">{t("qrLogin.success")}</div>
               {channelId === WEIXIN_CHANNEL_ID && (
                 <p className="qr-login-hint">
-                  {successKind === "existing"
-                    ? t("qrLogin.weixinAlreadyConnectedHint")
-                    : t("qrLogin.weixinActivationHint")}
+                  {t("qrLogin.weixinActivationHint")}
                 </p>
               )}
             </div>
