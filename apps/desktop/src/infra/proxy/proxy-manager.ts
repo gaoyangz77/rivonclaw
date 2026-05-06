@@ -162,6 +162,9 @@ export function buildProxyEnv(proxyRouterPort: number): Record<string, string> {
     https_proxy: localProxyUrl,
     NO_PROXY: noProxy,
     no_proxy: noProxy,
+    // OpenClaw 2026.5 defaults runtime trajectory capture on. On desktop this
+    // can make agent cleanup spend seconds flushing JSONL and block gateway RPC.
+    OPENCLAW_TRAJECTORY: "0",
   };
 }
 
