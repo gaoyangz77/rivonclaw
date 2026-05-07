@@ -175,6 +175,7 @@ export class ChatGatewayController {
         this.metaMap.set(row.key, row);
         if (row.archivedAt != null) this.archivedKeys.add(row.key);
       }
+      this.applyLocalSessionMetadata(rows);
     } catch {
       /* non-fatal */
     }
@@ -345,9 +346,7 @@ export class ChatGatewayController {
 
           // Fetch agent display name
           this.refreshAgentName();
-
-          // Fetch session list
-          this.doFetchSessionsList({ pruneMissing: true });
+          void this.hydrateSessionMetadata(this.store.activeSessionKey);
         },
         onDisconnected: () => {
           if (this.cancelled) return;
@@ -569,9 +568,6 @@ export class ChatGatewayController {
         // Hidden sessions (CS, internal API) — don't create tabs or track state
         if (isHiddenSession(agentPayload.sessionKey!)) return;
         this.markUnread(agentPayload.sessionKey!);
-        if (!this.store.sessions.has(agentPayload.sessionKey!)) {
-          this.refreshSessions();
-        }
         const bgRs = this.runStateFor(agentPayload.sessionKey!);
         const bgRunId = agentPayload.runId;
         if (bgRunId && bgRs.isTracked(bgRunId)) {
@@ -763,9 +759,6 @@ export class ChatGatewayController {
       // Hidden sessions (CS, internal API) — don't create tabs or track state
       if (isHiddenSession(payload.sessionKey)) return;
       this.markUnread(payload.sessionKey);
-      if (!this.store.sessions.has(payload.sessionKey)) {
-        this.refreshSessions();
-      }
       const bgRs = this.runStateFor(payload.sessionKey);
       const bgRunId = payload.runId;
       if (bgRunId) {
@@ -1219,6 +1212,7 @@ export class ChatGatewayController {
 
     // Clear unread
     session.setUnread(false);
+    void this.hydrateSessionMetadata(key, { includeDerivedTitles: true });
 
     // Reset scroll state
     this.shouldInstantScroll = true;
@@ -1365,96 +1359,104 @@ export class ChatGatewayController {
     saveCustomOrder(this.customOrder);
   }
 
-  refreshSessions(options?: { pruneMissing?: boolean }): void {
+  refreshSessions(options?: { includeDerivedTitles?: boolean }): void {
     clearTimeout(this.refreshDebounceTimer);
-    const pruneMissing = options?.pruneMissing ?? false;
+    const includeDerivedTitles = options?.includeDerivedTitles ?? false;
     this.refreshDebounceTimer = setTimeout(() => {
-      this.doFetchSessionsList({ pruneMissing });
+      void this.hydrateSessionMetadata(this.store.activeSessionKey, {
+        includeDerivedTitles,
+        includeLastMessage: false,
+      });
     }, REFRESH_DEBOUNCE);
   }
 
-  private async doFetchSessionsList(options?: { pruneMissing?: boolean }): Promise<void> {
-    const client = this.client;
-    if (!client || this.cancelled) return;
-    try {
-      const result = await client.request<SessionsListResult>("sessions.list", {
-        includeDerivedTitles: true,
-        includeLastMessage: false,
-      });
-      if (this.cancelled || !result?.sessions) return;
-
-      const archived = this.archivedKeys;
-      const meta = this.metaMap;
-
-      const filtered = result.sessions.filter(
-        (s) => !s.spawnedBy && !archived.has(s.key) && !isHiddenSession(s.key),
-      );
-
-      const tabs = filtered.map((s) => {
-        const m = meta.get(s.key);
-        return {
-          key: s.key,
-          customTitle: m?.customTitle,
-          panelTitle: m?.panelTitle,
-          displayName: s.displayName,
-          derivedTitle: cleanDerivedTitle(s.derivedTitle),
-          channel: s.channel ?? s.lastChannel,
-          updatedAt: s.updatedAt,
-          kind: s.kind,
-          pinned: m?.pinned,
-          totalTokens: s.totalTokensFresh !== false ? s.totalTokens : undefined,
-        } as {
-          key: string;
-          customTitle?: string;
-          panelTitle?: string;
-          displayName?: string;
-          derivedTitle?: string;
-          channel?: string;
-          updatedAt?: number;
-          kind?: string;
-          pinned?: boolean;
-          totalTokens?: number;
-          isLocal?: boolean;
-        };
-      });
-
-      // Merge local sessions
-      const gatewayKeys = new Set(tabs.map((t) => t.key));
-      for (const [lk] of this.localSessions) {
-        if (gatewayKeys.has(lk)) {
-          this.localSessions.delete(lk);
-        }
-      }
-      for (const [, localTab] of this.localSessions) {
-        if (!archived.has(localTab.key)) {
-          tabs.push({ ...localTab });
-        }
-      }
-
-      this.store.setSessions(tabs, { pruneMissing: options?.pruneMissing ?? true });
-    } catch {
-      // Non-fatal
+  private applyLocalSessionMetadata(rows?: ChatSessionMeta[]): void {
+    const source = rows ?? Array.from(this.metaMap.values());
+    const tabs = source
+      .filter((row) => row.archivedAt == null && !isHiddenSession(row.key))
+      .map((row) => ({
+        key: row.key,
+        customTitle: row.customTitle ?? undefined,
+        panelTitle: row.panelTitle ?? undefined,
+        pinned: row.pinned,
+        updatedAt: row.createdAt,
+      }));
+    if (tabs.length > 0) {
+      this.store.setSessions(tabs, { pruneMissing: false });
     }
   }
 
-  async fetchGatewaySessions(): Promise<
-    Array<{ key: string; derivedTitle?: string; lastMessagePreview?: string }>
-  > {
+  private requestSessionDescribe(params: {
+    key: string;
+    includeDerivedTitles?: boolean;
+    includeLastMessage?: boolean;
+  }): Promise<{ session?: SessionsListResult["sessions"][number] | null } | null> {
     const client = this.client;
-    if (!client) return [];
-    try {
-      const result = await client.request<SessionsListResult>("sessions.list", {
-        includeDerivedTitles: true,
-        includeLastMessage: true,
-      });
-      if (!result?.sessions) return [];
-      return result.sessions.map((s) => ({
-        key: s.key,
-        derivedTitle: s.derivedTitle,
-        lastMessagePreview: s.lastMessagePreview,
-      }));
-    } catch {
-      return [];
+    if (!client || this.cancelled) return Promise.resolve(null);
+    return client
+      .request<{ session?: SessionsListResult["sessions"][number] | null }>("sessions.describe", {
+        key: params.key,
+        includeDerivedTitles: params.includeDerivedTitles === true,
+        includeLastMessage: params.includeLastMessage === true,
+      })
+      .catch(() => null);
+  }
+
+  private async hydrateSessionMetadata(
+    key: string,
+    options?: { includeDerivedTitles?: boolean; includeLastMessage?: boolean },
+  ): Promise<void> {
+    if (!this.client || this.cancelled || isHiddenSession(key)) return;
+    const result = await this.requestSessionDescribe({
+      key,
+      includeDerivedTitles: options?.includeDerivedTitles,
+      includeLastMessage: options?.includeLastMessage,
+    });
+    if (this.cancelled || !result?.session) return;
+
+    const s = result.session;
+    const meta = this.metaMap.get(s.key);
+    const title = cleanDerivedTitle(s.derivedTitle);
+    const session = this.store.getOrCreateSession(s.key, {
+      panelTitle: meta?.panelTitle ?? null,
+      displayName: s.displayName ?? null,
+      derivedTitle: title,
+      channel: s.channel ?? s.lastChannel ?? null,
+      updatedAt: s.updatedAt ?? null,
+      kind: s.kind ?? null,
+      pinned: meta?.pinned,
+      totalTokens: s.totalTokensFresh !== false ? s.totalTokens : undefined,
+    });
+    session.updateMetadata({
+      customTitle: meta?.customTitle ?? null,
+      panelTitle: meta?.panelTitle ?? null,
+      displayName: s.displayName ?? null,
+      derivedTitle: title,
+      channel: s.channel ?? s.lastChannel ?? null,
+      updatedAt: s.updatedAt ?? null,
+      kind: s.kind ?? null,
+      pinned: meta?.pinned,
+      totalTokens: s.totalTokensFresh !== false ? s.totalTokens : undefined,
+    });
+
+    if (options?.includeDerivedTitles && isPanelSessionKey(s.key) && title) {
+      this.persistHydratedPanelTitles([s]);
+    }
+  }
+
+  private persistHydratedPanelTitles(sessions: SessionsListResult["sessions"]): void {
+    for (const session of sessions) {
+      if (!isPanelSessionKey(session.key)) continue;
+      const meta = this.metaMap.get(session.key);
+      if (meta?.customTitle || meta?.panelTitle) continue;
+      const title = cleanDerivedTitle(session.derivedTitle);
+      if (!title) continue;
+      const existing = this.store.sessions.get(session.key);
+      if (existing && !existing.customTitle && !existing.panelTitle) {
+        existing.setPanelTitle(title);
+        existing.setLocalTitle(title);
+      }
+      this.persistPanelTitle(session.key, title);
     }
   }
 
@@ -1472,8 +1474,7 @@ export class ChatGatewayController {
     // Ensure session exists then mark unread
     const session = this.store.getOrCreateSession(key);
     session.setUnread(true);
-    // If the session is new (wasn't in our list), refresh to get metadata
-    this.refreshSessions();
+    void this.hydrateSessionMetadata(key);
   }
 
   // ---------------------------------------------------------------------------

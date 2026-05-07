@@ -1513,7 +1513,7 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
       payload: { runId: "run-esc-003", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
-    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // Flush the collectUsageSnapshot → sessions.describe → graphqlFetch microtask
     // chain before asserting on mockGraphqlFetch.
     await Promise.resolve();
     await Promise.resolve();
@@ -2300,7 +2300,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       payload: { runId: "run-B", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
-    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // Flush the collectUsageSnapshot → sessions.describe → graphqlFetch microtask
     // chain before asserting on mockGraphqlFetch.
     await Promise.resolve();
     await Promise.resolve();
@@ -2378,7 +2378,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       payload: { runId: "run-single", stream: "lifecycle", data: { phase: "end" } },
     } as any);
 
-    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // Flush the collectUsageSnapshot → sessions.describe → graphqlFetch microtask
     // chain before asserting on mockGraphqlFetch.
     await Promise.resolve();
     await Promise.resolve();
@@ -2460,7 +2460,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       payload: { runId: "run-C", state: "final" },
     } as any);
 
-    // Flush the collectUsageSnapshot → sessions.list → graphqlFetch microtask
+    // Flush the collectUsageSnapshot → sessions.describe → graphqlFetch microtask
     // chain before asserting on mockGraphqlFetch.
     await Promise.resolve();
     await Promise.resolve();
@@ -2616,7 +2616,7 @@ describe("per-turn message forwarding", () => {
    * Helper: count ecommerceSendMessage calls and return their content args.
    *
    * `async` so callers can await the microtask queue before asserting —
-   * `forwardTextToBuyer` awaits `collectUsageSnapshot` (a `sessions.list`
+   * `forwardTextToBuyer` awaits `collectUsageSnapshot` (a `sessions.describe`
    * RPC) before firing graphqlFetch, so the mutation mock is recorded one
    * microtask cycle later than the agent event that triggered it. Without
    * this flush, synchronous assertions right after an `agentEvent(...)` call
@@ -2624,7 +2624,7 @@ describe("per-turn message forwarding", () => {
    */
   async function getForwardedTexts(): Promise<string[]> {
     // Two rounds of microtask flushing cover the nested awaits inside
-    // forwardTextToBuyer → collectUsageSnapshot → sessions.list → graphqlFetch.
+    // forwardTextToBuyer → collectUsageSnapshot → sessions.describe → graphqlFetch.
     await Promise.resolve();
     await Promise.resolve();
     return mockGraphqlFetch.mock.calls
@@ -2936,7 +2936,7 @@ describe("terminal guarantee (error/timeout)", () => {
 
   /**
    * Helper: count ecommerceSendMessage calls and return their content args.
-   * Async to flush the collectUsageSnapshot → sessions.list microtask chain
+   * Async to flush the collectUsageSnapshot → sessions.describe microtask chain
    * before assertions — see the describe-14 helper's doc for full context.
    */
   async function getForwardedTexts(): Promise<string[]> {

@@ -133,10 +133,7 @@ beforeEach(() => {
  */
 function primeScopeResolution(sessionId = "session-conv-xyz"): string {
   mockRpcRequest.mockResolvedValueOnce({
-    sessions: [
-      { key: "agent:main:cs:tiktok:other", sessionId: "session-other" },
-      { key: "agent:main:cs:tiktok:conv-xyz", sessionId },
-    ],
+    session: { sessionId },
   });
   return `/tmp/agents/main/sessions/${sessionId}.jsonl`;
 }
@@ -241,10 +238,10 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     });
   });
 
-  it("skips cs.token_snapshot when scopeKey resolution finds no matching session row (but still sends)", async () => {
+  it("skips cs.token_snapshot when scopeKey resolution finds no session id (but still sends)", async () => {
     const session = makeSession();
     mockRpcRequest.mockResolvedValueOnce({
-      sessions: [{ key: "agent:main:cs:tiktok:other", sessionId: "session-other" }],
+      session: null,
     });
 
     await session.forwardTextToBuyer("hi");
@@ -271,7 +268,7 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.message")).toBe(true);
   });
 
-  it("does not block the send when sessions.list RPC throws (telemetry failure is system-boundary)", async () => {
+  it("does not block the send when sessions.describe RPC throws (telemetry failure is system-boundary)", async () => {
     const session = makeSession();
     mockRpcRequest.mockRejectedValueOnce(new Error("RPC down"));
 

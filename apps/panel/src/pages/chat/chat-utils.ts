@@ -28,7 +28,7 @@ export type ChatMessage = {
 
 export type PendingImage = { dataUrl: string; base64: string; mimeType: string };
 
-/** Metadata for a session tab, sourced from gateway `sessions.list`. */
+/** Metadata for a session tab, sourced from local SQLite plus lazy gateway hydration. */
 export type SessionTabInfo = {
   key: string;
   customTitle?: string;
@@ -41,7 +41,7 @@ export type SessionTabInfo = {
   pinned?: boolean;
   /** True for panel-created sessions not yet materialized on the gateway. */
   isLocal?: boolean;
-  /** Total tokens consumed in this session — from gateway `sessions.list`. */
+  /** Total tokens consumed in this session — from lazy gateway session metadata. */
   totalTokens?: number;
 };
 
@@ -57,7 +57,7 @@ export type SessionChatState = {
   selectedRunProfileId?: string;
 };
 
-/** Response from gateway `sessions.list` RPC. */
+/** Gateway session metadata row. `sessions.list` and `sessions.describe` share this shape. */
 export type SessionsListResult = {
   ts: number;
   count: number;
@@ -70,6 +70,7 @@ export type SessionsListResult = {
     channel?: string;
     lastChannel?: string;
     updatedAt?: number;
+    sessionId?: string;
     spawnedBy?: string;
     totalTokens?: number;
     totalTokensFresh?: boolean;

@@ -165,7 +165,7 @@ export const ChatSessionModel = types
     setCustomTitle(t: string | null) {
       self.customTitle = t;
     },
-    /** Bulk metadata update from gateway sessions.list. */
+    /** Bulk metadata update from local tab metadata or lazy gateway hydration. */
     updateMetadata(fields: {
       displayName?: string | null;
       derivedTitle?: string | null;

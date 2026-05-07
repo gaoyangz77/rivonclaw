@@ -159,6 +159,9 @@ export class CustomerServiceSession {
   /** Number of runs aborted since the last successful delivery to the buyer. */
   private undeliveredCount = 0;
 
+  /** Cached gateway session id for reading this conversation's JSONL usage summary. */
+  private gatewaySessionId: string | null = null;
+
   /** Escalations keyed by escalationId. Populated by addEscalation, resolved by resolveEscalation. */
   readonly escalations = new Map<string, Escalation>();
 
@@ -678,9 +681,8 @@ export class CustomerServiceSession {
    * `patch.inputTokens = usage.input`, not `$inc`), which violates the
    * "cumulative since session creation" contract.
    *
-   * scopeKey → sessionFile resolution: we hit `sessions.list` (filtered by
-   * `agentId: "main"` so the scan stays narrow), find the row whose `key`
-   * matches our `scopeKey`, and join its `sessionId` with
+   * scopeKey → sessionFile resolution: we ask the gateway for this one session
+   * via `sessions.describe`, then cache its `sessionId` and join it with
    * `resolveAgentSessionsDir()` to get the JSONL path. The RPC is used only
    * for path resolution — never for token data.
    *
@@ -697,13 +699,16 @@ export class CustomerServiceSession {
    */
   private async collectAndEmitTokenSnapshot(runId: string): Promise<void> {
     try {
-      // scopeKey → sessionId via sessions.list (path resolution only).
-      const rpcResult = await openClawConnector.request<{
-        sessions?: Array<{ key?: string; sessionId?: string }>;
-      }>("sessions.list", { agentId: "main" });
-      const rows = rpcResult?.sessions ?? [];
-      const row = rows.find((s) => s.key === this.scopeKey);
-      const sessionId = row?.sessionId;
+      let sessionId = this.gatewaySessionId;
+      if (!sessionId) {
+        const rpcResult = await openClawConnector.request<{
+          session?: { sessionId?: string | null } | null;
+        }>("sessions.describe", { key: this.scopeKey });
+        sessionId = rpcResult?.session?.sessionId ?? null;
+        if (sessionId) {
+          this.gatewaySessionId = sessionId;
+        }
+      }
       if (!sessionId) return;
 
       const sessionFile = join(resolveAgentSessionsDir(), `${sessionId}.jsonl`);

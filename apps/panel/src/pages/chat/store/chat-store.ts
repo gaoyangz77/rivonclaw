@@ -135,10 +135,9 @@ export const ChatStoreModel = types
     },
 
     /**
-     * Bulk update from gateway sessions.list: reconcile the sessions map
-     * with the authoritative list of tabs. Creates missing sessions,
-     * updates metadata on existing ones, and removes sessions not in the
-     * list (unless they're local or the active session).
+     * Bulk update from local tab metadata or gateway hydration. Creates missing
+     * sessions, updates metadata on existing ones, and removes sessions not in
+     * the list when explicitly requested.
      */
     setSessions(tabs: SessionTabInfo[], options?: { pruneMissing?: boolean }) {
       const tabKeys = new Set(tabs.map((t) => t.key));
@@ -147,7 +146,7 @@ export const ChatStoreModel = types
         if (existing) {
           existing.updateMetadata({
             displayName: tab.displayName ?? null,
-            derivedTitle: tab.derivedTitle ?? null,
+            derivedTitle: tab.derivedTitle,
             panelTitle: tab.panelTitle ?? null,
             channel: tab.channel ?? null,
             updatedAt: tab.updatedAt ?? null,

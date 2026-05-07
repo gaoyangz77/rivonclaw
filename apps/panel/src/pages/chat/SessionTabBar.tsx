@@ -1,17 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { SessionTabInfo } from "./chat-utils.js";
-import { DEFAULT_SESSION_KEY, cleanDerivedTitle } from "./chat-utils.js";
+import { DEFAULT_SESSION_KEY } from "./chat-utils.js";
 import type { ChatSessionMeta } from "../../api/chat-sessions.js";
 import { fetchChatSessions, deleteChatSession } from "../../api/chat-sessions.js";
-
-/** Minimal gateway session info for merging into archived dropdown. */
-export type GatewaySessionInfo = {
-  key: string;
-  panelTitle?: string;
-  derivedTitle?: string;
-  lastMessagePreview?: string;
-};
 
 export type SessionTabBarProps = {
   sessions: SessionTabInfo[];
@@ -23,8 +15,6 @@ export type SessionTabBarProps = {
   onRenameSession: (key: string, title: string | null) => void;
   onRestoreSession: (key: string) => void;
   onReorderSession: (fromIndex: number, toIndex: number) => void;
-  /** Optional: fetch gateway sessions for content-level search in archived dropdown. */
-  fetchGatewaySessions?: () => Promise<GatewaySessionInfo[]>;
 };
 
 /** Abbreviate a raw session key for display: take the last segment. */
@@ -342,11 +332,9 @@ function SwipeableArchivedItem({
 function ArchivedDropdown({
   onRestore,
   onClose,
-  fetchGatewaySessions,
 }: {
   onRestore: (key: string) => void;
   onClose: () => void;
-  fetchGatewaySessions?: () => Promise<GatewaySessionInfo[]>;
 }) {
   const { t } = useTranslation();
   const [items, setItems] = useState<ArchivedItem[]>([]);
@@ -356,33 +344,17 @@ function ArchivedDropdown({
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Fetch both SQLite metadata and gateway session data in parallel
-    const sqliteP = fetchChatSessions({ archived: true });
-    const gatewayP = fetchGatewaySessions?.() ?? Promise.resolve([]);
-
-    Promise.all([sqliteP, gatewayP])
-      .then(([rows, gatewaySessions]) => {
-        // Build a lookup from gateway data
-        const gwMap = new Map<string, GatewaySessionInfo>();
-        for (const gs of gatewaySessions) gwMap.set(gs.key, gs);
-
-        // Merge: archived sessions from SQLite enriched with gateway data
+    fetchChatSessions({ archived: true })
+      .then((rows) => {
         const archived: ArchivedItem[] = rows
           .filter((r) => r.archivedAt != null)
-          .map((r) => {
-            const gw = gwMap.get(r.key);
-            return {
-              ...r,
-              derivedTitle: cleanDerivedTitle(gw?.derivedTitle),
-              lastMessagePreview: gw?.lastMessagePreview,
-            };
-          })
+          .map((r) => ({ ...r }))
           .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
         setItems(archived);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [fetchGatewaySessions]);
+  }, []);
 
   // Auto-focus search input on open
   useEffect(() => {
@@ -476,7 +448,7 @@ const DRAG_THRESHOLD = 5;
 export function SessionTabBar({
   sessions, activeSessionKey, unreadKeys,
   onSwitchSession, onNewChat, onArchiveSession, onRenameSession, onRestoreSession,
-  onReorderSession, fetchGatewaySessions,
+  onReorderSession,
 }: SessionTabBarProps) {
   const { t } = useTranslation();
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -735,7 +707,6 @@ export function SessionTabBar({
             <ArchivedDropdown
               onRestore={onRestoreSession}
               onClose={() => setShowArchived(false)}
-              fetchGatewaySessions={fetchGatewaySessions}
             />
           )}
         </div>

@@ -199,9 +199,10 @@ export class GatewayChatClient {
       this.ws?.close(1000, "keepalive timeout");
     }, KEEPALIVE_TIMEOUT_MS);
 
-    // Use a lightweight RPC call as an application-level ping.
-    // "sessions.list" with limit 1 is cheap and always available.
-    this.request("sessions.list", { limit: 1 })
+    // Use a lightweight RPC call as an application-level ping. Avoid
+    // sessions.list here: it can hydrate session metadata and briefly block the
+    // gateway event loop on large or cold stores.
+    this.request("agent.identity.get", { agentId: "main" })
       .then(() => {
         if (this.keepaliveTimeout) { clearTimeout(this.keepaliveTimeout); this.keepaliveTimeout = null; }
       })

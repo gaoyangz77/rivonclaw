@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
@@ -15,7 +15,6 @@ import { ChatResetModal } from "./components/ChatResetModal.js";
 import { ChatContextOverflowModal } from "./components/ChatContextOverflowModal.js";
 import { useChatExamples } from "./hooks/useChatExamples.js";
 import { useChatModelControls } from "./hooks/useChatModelControls.js";
-import type { GatewaySessionInfo } from "./SessionTabBar.js";
 import { PAGE_SIZE } from "./chat-utils.js";
 import "./ChatPage.css";
 
@@ -203,10 +202,6 @@ const ChatPageInner = observer(function ChatPageInner({
     controller.pushRunProfileToScope(profileId, store.activeSessionKey, runProfiles);
   }
 
-  const fetchGatewaySessions = useCallback(async (): Promise<GatewaySessionInfo[]> => {
-    return controller.fetchGatewaySessions();
-  }, [controller]);
-
   // --- Derived render state ---
   const visibleMessages = messages.slice(Math.max(0, messages.length - visibleCount));
   const showHistoryEnd = allFetched && visibleCount >= messages.length && messages.length > 0;
@@ -226,7 +221,6 @@ const ChatPageInner = observer(function ChatPageInner({
         onRenameSession={(key, title) => controller.renameSession(key, title)}
         onRestoreSession={(key) => controller.restoreSession(key)}
         onReorderSession={(from, to) => controller.reorderSessions(from, to)}
-        fetchGatewaySessions={fetchGatewaySessions}
       />
       {messages.length === 0 && !streaming ? (
         <div className="chat-empty">
