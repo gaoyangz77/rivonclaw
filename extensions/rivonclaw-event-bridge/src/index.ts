@@ -19,7 +19,7 @@
 
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
 
-const CLEANUP_DELAY_MS = 30_000;
+const RUN_SESSION_CLEANUP_DELAY_MS = 5 * 60_000;
 
 type AgentEventPayload = {
   runId: string;
@@ -37,6 +37,49 @@ type PendingInbound = {
   timestamp: number;
   channelId: string;
 };
+
+type TimerHandle = ReturnType<typeof setTimeout>;
+
+export function createRunSessionTracker(cleanupDelayMs = RUN_SESSION_CLEANUP_DELAY_MS) {
+  const sessions = new Map<string, string>();
+  const cleanupTimers = new Map<string, TimerHandle>();
+
+  const clearCleanupTimer = (runId: string): void => {
+    const timer = cleanupTimers.get(runId);
+    if (timer) {
+      clearTimeout(timer);
+      cleanupTimers.delete(runId);
+    }
+  };
+
+  return {
+    set(runId: string, sessionKey: string): void {
+      clearCleanupTimer(runId);
+      sessions.set(runId, sessionKey);
+    },
+    get(runId: string): string | undefined {
+      return sessions.get(runId);
+    },
+    get size(): number {
+      return sessions.size;
+    },
+    clear(): void {
+      for (const timer of cleanupTimers.values()) clearTimeout(timer);
+      cleanupTimers.clear();
+      sessions.clear();
+    },
+    scheduleCleanup(runId: string): void {
+      clearCleanupTimer(runId);
+      cleanupTimers.set(
+        runId,
+        setTimeout(() => {
+          sessions.delete(runId);
+          cleanupTimers.delete(runId);
+        }, cleanupDelayMs),
+      );
+    },
+  };
+}
 
 const CHANNEL_INBOUND_SKIP = new Set(["mobile", "webchat", "openclaw-weixin"]);
 
@@ -68,7 +111,7 @@ function shouldMirrorExternalSession(sessionKey?: string): boolean {
 // State lives at module level so it survives across setup() calls
 // (OpenClaw may call register→activate, invoking setup twice, and may
 // reuse cached registries on gateway restart without calling setup again).
-const runSessionMap = new Map<string, string>();
+const runSessionTracker = createRunSessionTracker();
 // Pending inbound messages from external channels, keyed by channelId.
 // Populated by `message_received`, consumed by `before_agent_start`.
 // Each channelId holds a FIFO queue because multiple conversations on
@@ -88,7 +131,7 @@ export default defineRivonClawPlugin({
       prevUnsubscribe();
       prevUnsubscribe = null;
     }
-    runSessionMap.clear();
+    runSessionTracker.clear();
     pendingInboundMessages.clear();
     eventCount = 0;
     // Keep gatewayBroadcast — it will be recaptured via event_bridge_init if null.
@@ -149,7 +192,7 @@ export default defineRivonClawPlugin({
       "llm_input",
       (evt: { runId?: string }, ctx: { sessionKey?: string; channelId?: string }) => {
         if (evt.runId && ctx?.sessionKey) {
-          runSessionMap.set(evt.runId, ctx.sessionKey);
+          runSessionTracker.set(evt.runId, ctx.sessionKey);
           api.logger.info(`[event-bridge] llm_input mapped runId=${evt.runId} → sessionKey=${ctx.sessionKey}`);
           broadcastPendingInboundForSession(ctx.sessionKey, ctx.channelId, "llm_input");
         } else {
@@ -251,18 +294,15 @@ export default defineRivonClawPlugin({
     );
 
     // ── Cleanup map entries after agent_end with a delay ────────────
+    // External channels (Telegram, WeChat, etc.) reuse the same sessionKey
+    // across many runs. Cleanup must therefore be scoped to the ended runId;
+    // deleting every mapping for the sessionKey can make later assistant
+    // chunks from overlapping runs disappear from the Chat Page.
     api.on(
       "agent_end",
-      (_evt: unknown, ctx: { sessionKey?: string }) => {
-        if (!ctx?.sessionKey) return;
-        const sessionKey = ctx.sessionKey;
-        setTimeout(() => {
-          for (const [runId, sk] of runSessionMap) {
-            if (sk === sessionKey) {
-              runSessionMap.delete(runId);
-            }
-          }
-        }, CLEANUP_DELAY_MS);
+      (evt: { runId?: string }) => {
+        if (!evt?.runId) return;
+        runSessionTracker.scheduleCleanup(evt.runId);
       },
     );
 
@@ -271,7 +311,7 @@ export default defineRivonClawPlugin({
       eventCount++;
       const shouldLog = eventCount <= 5 || eventCount % 50 === 0;
 
-      const mappedSessionKey = runSessionMap.get(evt.runId);
+      const mappedSessionKey = runSessionTracker.get(evt.runId);
       const sessionKey = mappedSessionKey ?? evt.sessionKey;
 
       // If sessionKey is present for a non-external run, server-chat.ts is
@@ -290,7 +330,7 @@ export default defineRivonClawPlugin({
       }
 
       if (!sessionKey) {
-        if (shouldLog) api.logger.warn(`[event-bridge] drop: no sessionKey in map (stream=${evt.stream} runId=${evt.runId} mapSize=${runSessionMap.size})`);
+        if (shouldLog) api.logger.warn(`[event-bridge] drop: no sessionKey in map (stream=${evt.stream} runId=${evt.runId} mapSize=${runSessionTracker.size})`);
         return;
       }
 
@@ -317,7 +357,7 @@ export default defineRivonClawPlugin({
         prevUnsubscribe();
         prevUnsubscribe = null;
       }
-      runSessionMap.clear();
+      runSessionTracker.clear();
       gatewayBroadcast = null;
       eventCount = 0;
     });
