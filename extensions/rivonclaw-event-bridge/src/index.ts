@@ -37,6 +37,21 @@ type PendingInbound = {
   channelId: string;
 };
 
+const CHANNEL_INBOUND_SKIP = new Set(["mobile", "webchat", "openclaw-weixin"]);
+
+function resolveChannelIdFromSessionKey(sessionKey?: string): string | null {
+  if (!sessionKey) return null;
+  const parts = sessionKey.split(":");
+  // Expected external channel key shape:
+  // agent:{agentId}:{channelId}:{accountId}:...
+  const channelId = parts.length >= 3 && parts[0] === "agent" ? parts[2] : null;
+  return channelId && channelId.length > 0 ? channelId : null;
+}
+
+function shouldSkipChannelInbound(channelId: string): boolean {
+  return CHANNEL_INBOUND_SKIP.has(channelId);
+}
+
 // ── Module-level state ───────────────────────────────────────────────
 // State lives at module level so it survives across setup() calls
 // (OpenClaw may call register→activate, invoking setup twice, and may
@@ -123,7 +138,7 @@ export default defineRivonClawPlugin({
         ctx: { channelId?: string; conversationId?: string },
       ) => {
         if (!gatewayBroadcast || !ctx?.channelId || !evt?.content) return;
-        if (ctx.channelId === "mobile" || ctx.channelId === "webchat" || ctx.channelId === "openclaw-weixin") return;
+        if (shouldSkipChannelInbound(ctx.channelId)) return;
 
         const queue = pendingInboundMessages.get(ctx.channelId) ?? [];
         queue.push({
@@ -186,17 +201,22 @@ export default defineRivonClawPlugin({
         _evt: { prompt?: string },
         ctx: { sessionKey?: string; channelId?: string; trigger?: string },
       ) => {
-        if (!gatewayBroadcast || !ctx?.sessionKey || !ctx?.channelId) return;
-        if (ctx.channelId === "mobile" || ctx.channelId === "webchat" || ctx.channelId === "openclaw-weixin") return;
+        if (!gatewayBroadcast || !ctx?.sessionKey) return;
+        const channelId = ctx.channelId ?? resolveChannelIdFromSessionKey(ctx.sessionKey);
+        if (!channelId) {
+          api.logger.warn(`[event-bridge] channel-inbound: cannot resolve channel for sessionKey=${ctx.sessionKey}`);
+          return;
+        }
+        if (shouldSkipChannelInbound(channelId)) return;
 
-        const queue = pendingInboundMessages.get(ctx.channelId);
+        const queue = pendingInboundMessages.get(channelId);
         if (!queue || queue.length === 0) return;
 
         const pending = queue.shift()!;
-        if (queue.length === 0) pendingInboundMessages.delete(ctx.channelId);
+        if (queue.length === 0) pendingInboundMessages.delete(channelId);
 
         api.logger.info(
-          `[event-bridge] channel-inbound: broadcasting for channel=${ctx.channelId} sessionKey=${ctx.sessionKey}`,
+          `[event-bridge] channel-inbound: broadcasting for channel=${channelId} sessionKey=${ctx.sessionKey}`,
         );
         gatewayBroadcast("rivonclaw.channel-inbound", {
           sessionKey: ctx.sessionKey,
