@@ -677,7 +677,7 @@ export const ChannelManagerModel = types
       }
 
       const meta = storage.channelRecipients.getRecipientMeta(channelId);
-      if (channelId === WEIXIN_CHANNEL_ID) {
+      if (channelId !== WEIXIN_CHANNEL_ID) {
         for (const id of Object.keys(meta)) {
           entries.add(id);
         }

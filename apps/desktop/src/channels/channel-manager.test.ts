@@ -278,6 +278,88 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     }
   });
 
+  it("keeps WeChat recipient snapshots scoped to each account", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
+    try {
+      const firstAccountId = "acct-a-im-bot";
+      const secondAccountId = "acct-b-im-bot";
+      const firstRecipientId = "first@im.wechat";
+      const secondRecipientId = "second@im.wechat";
+      const accountsDir = join(stateDir, WEIXIN_CHANNEL_ID, "accounts");
+      mkdirSync(accountsDir, { recursive: true });
+      writeFileSync(
+        join(accountsDir, `${firstAccountId}.context-tokens.json`),
+        JSON.stringify({ [firstRecipientId]: "first-context-token" }),
+        "utf-8",
+      );
+      writeFileSync(
+        join(accountsDir, `${secondAccountId}.context-tokens.json`),
+        JSON.stringify({ [secondRecipientId]: "second-context-token" }),
+        "utf-8",
+      );
+
+      const accounts = [
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId: firstAccountId,
+          name: "微信 A",
+          config: { name: "微信 A" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId: secondAccountId,
+          name: "微信 B",
+          config: { name: "微信 B" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: () => undefined,
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({
+              [firstRecipientId]: { label: "First", isOwner: true },
+              [secondRecipientId]: { label: "Second", isOwner: true },
+            }),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath: join(stateDir, "openclaw.json"),
+        stateDir,
+      });
+
+      root.channelManager.init();
+
+      const firstRecipients = root.channelAccounts.find((account) => account.accountId === firstAccountId)
+        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
+      const secondRecipients = root.channelAccounts.find((account) => account.accountId === secondAccountId)
+        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
+
+      expect(firstRecipients.allowlist).toEqual([firstRecipientId]);
+      expect(firstRecipients.labels).toEqual({ [firstRecipientId]: "First" });
+      expect(secondRecipients.allowlist).toEqual([secondRecipientId]);
+      expect(secondRecipients.labels).toEqual({ [secondRecipientId]: "Second" });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("merges duplicate WeChat QR accounts by provider userId without reusing stale context tokens", async () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
     try {
