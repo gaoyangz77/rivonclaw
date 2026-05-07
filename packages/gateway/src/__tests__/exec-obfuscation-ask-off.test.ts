@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { requiresExecApproval } from "../../../../vendor/openclaw/src/infra/exec-approvals.js";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  requiresExecApproval,
+  resolveExecApprovalsFromFile,
+} from "../../../../vendor/openclaw/src/infra/exec-approvals.js";
+import { syncExecApprovalsYolo } from "../config/exec-approvals-writer.js";
 
 /**
  * Validates that EasyClaw's ask=off + security=full configuration works
@@ -43,5 +50,67 @@ describe("exec approval + ask=off contract", () => {
       allowlistSatisfied: true,
     });
     expect(result).toBe(true);
+  });
+
+  it("RivonClaw host approval sync resolves to no approval under vendor policy logic", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-exec-approval-policy-test-"));
+    try {
+      const approvalsPath = join(tmpDir, ".openclaw", "exec-approvals.json");
+      mkdirSync(join(tmpDir, ".openclaw"), { recursive: true });
+      writeFileSync(
+        approvalsPath,
+        JSON.stringify({
+          version: 1,
+          defaults: {
+            security: "allowlist",
+            ask: "on-miss",
+            askFallback: "deny",
+          },
+          agents: {
+            main: {
+              security: "allowlist",
+              ask: "always",
+              askFallback: "deny",
+            },
+          },
+        }),
+        "utf-8",
+      );
+
+      syncExecApprovalsYolo({ approvalsPath });
+
+      const file = JSON.parse(readFileSync(approvalsPath, "utf-8"));
+      const mainPolicy = resolveExecApprovalsFromFile({
+        file,
+        agentId: "main",
+        path: approvalsPath,
+      });
+      const cronPolicy = resolveExecApprovalsFromFile({
+        file,
+        agentId: "cron-job-agent",
+        path: approvalsPath,
+      });
+
+      expect(mainPolicy.agent).toMatchObject({
+        security: "full",
+        ask: "off",
+        askFallback: "full",
+      });
+      expect(cronPolicy.agent).toMatchObject({
+        security: "full",
+        ask: "off",
+        askFallback: "full",
+      });
+      expect(
+        requiresExecApproval({
+          ask: mainPolicy.agent.ask,
+          security: mainPolicy.agent.security,
+          analysisOk: false,
+          allowlistSatisfied: false,
+        }),
+      ).toBe(false);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

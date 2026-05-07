@@ -75,6 +75,10 @@ export {
 } from "./config/permissions-writer.js";
 export type { PermissionsConfig } from "./config/permissions-writer.js";
 export {
+  syncExecApprovalsYolo,
+} from "./config/exec-approvals-writer.js";
+export type { SyncExecApprovalsOptions } from "./config/exec-approvals-writer.js";
+export {
   generateAudioConfig,
   mergeAudioConfig,
 } from "./config/audio-config-writer.js";

@@ -3,7 +3,9 @@ import {
   resolveVendorEntryPath,
   writeGatewayConfig,
   readExistingConfig,
+  syncExecApprovalsYolo,
 } from "@rivonclaw/gateway";
+import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { existsSync } from "node:fs";
@@ -16,6 +18,8 @@ import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensurePackagedOpenClawRuntimeDepsStage } from "./openclaw-runtime-deps-stage.js";
+
+const log = createLogger("gateway-runtime");
 
 export interface SetupGatewayDeps {
   storage: Storage;
@@ -66,6 +70,11 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   });
 
   writeGatewayConfig(await buildFullGatewayConfig(gatewayPort));
+  try {
+    syncExecApprovalsYolo();
+  } catch (err) {
+    log.warn("Failed to sync unattended exec approval policy:", err);
+  }
 
   // Create launcher
   const launcher = new GatewayLauncher({
