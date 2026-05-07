@@ -137,4 +137,96 @@ describe("ChatGatewayController keepalive gating", () => {
     expect(disconnectBridge).toHaveBeenCalled();
     expect(stop).toHaveBeenCalled();
   });
+
+  it("keeps active run UI state when the webchat socket disconnects", async () => {
+    const runtimeStatusStore = observable({
+      appSettings: {
+        chatTabOrder: "",
+        setChatTabOrder: vi.fn().mockResolvedValue(undefined),
+      },
+      openClawConnector: {
+        rpcConnected: true,
+        sidecarState: "ready",
+      },
+    });
+
+    const fetchGatewayInfo = vi.fn().mockResolvedValue({
+      wsUrl: "ws://127.0.0.1:59457",
+      token: "test-token",
+    });
+    const clientOptions: Array<Record<string, unknown>> = [];
+
+    vi.doMock("../../src/api/index.js", () => ({
+      fetchGatewayInfo,
+      trackEvent: vi.fn(),
+    }));
+    vi.doMock("../../src/api/chat-sessions.js", () => ({
+      fetchChatSessions: vi.fn().mockResolvedValue([]),
+      updateChatSession: vi.fn().mockResolvedValue(undefined),
+    }));
+    vi.doMock("../../src/api/tool-registry.js", () => ({
+      setRunProfileForScope: vi.fn().mockResolvedValue(undefined),
+    }));
+    vi.doMock("../../src/store/runtime-status-store.js", () => ({
+      runtimeStatusStore,
+    }));
+    vi.doMock("../../src/pages/chat/chat-event-bridge.js", () => ({
+      ChatEventBridge: class {
+        connect(): void {}
+        disconnect(): void {}
+      },
+    }));
+    vi.doMock("../../src/pages/chat/image-cache.js", () => ({
+      saveImages: vi.fn().mockResolvedValue(undefined),
+      clearImages: vi.fn().mockResolvedValue(undefined),
+      restoreImages: vi.fn().mockImplementation(async (_sessionKey: string, messages: unknown) => messages),
+    }));
+    vi.doMock("../../src/lib/gateway-client.js", () => ({
+      GatewayChatClient: class {
+        constructor(private opts: Record<string, unknown>) {
+          clientOptions.push(opts);
+        }
+
+        start(): void {
+          const onConnected = this.opts.onConnected as ((hello: unknown) => void) | undefined;
+          onConnected?.({
+            type: "hello-ok",
+            protocol: 3,
+            snapshot: { sessionDefaults: { mainSessionKey: "agent:main" } },
+          });
+        }
+
+        stop(): void {}
+        setKeepaliveEnabled(): void {}
+        request<T = unknown>(method: string): Promise<T> {
+          if (method === "agent.identity.get") return Promise.resolve({ name: "Rivon" } as T);
+          if (method === "chat.history") return Promise.resolve({ messages: [] } as T);
+          return Promise.resolve({} as T);
+        }
+      },
+    }));
+
+    const [{ ChatGatewayController }, { createChatStore }] = await Promise.all([
+      import("../../src/pages/chat/controllers/ChatGatewayController.js"),
+      import("../../src/pages/chat/store/chat-store.js"),
+    ]);
+
+    const store = createChatStore();
+    const controller = new ChatGatewayController(store);
+    await controller.start();
+
+    const session = store.activeSession!;
+    session.runState.beginLocalRun("run-still-executing", store.activeSessionKey);
+    session.runState.appendDelta("run-still-executing", "partial reply");
+
+    const onDisconnected = clientOptions[0]?.onDisconnected as (() => void) | undefined;
+    onDisconnected?.();
+
+    expect(store.connectionState).toBe("connecting");
+    expect(session.runState.localRunId).toBe("run-still-executing");
+    expect(session.runState.isActive).toBe(true);
+    expect(session.runState.displayStreaming).toBe("partial reply");
+
+    controller.stop();
+  });
 });

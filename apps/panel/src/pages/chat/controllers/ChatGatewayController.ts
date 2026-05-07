@@ -102,6 +102,14 @@ function findFirstPanelUserTitle(messages: ChatMessage[]): string | undefined {
   return firstUser ? buildAutoSessionTitle(firstUser.text) : undefined;
 }
 
+function isTransientChatSendTransportError(raw: string): boolean {
+  return (
+    /RPC timeout after \d+ms:\s*chat\.send/i.test(raw) ||
+    /gateway disconnected/i.test(raw) ||
+    /WebSocket not open/i.test(raw)
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Controller
 // ---------------------------------------------------------------------------
@@ -116,7 +124,6 @@ export class ChatGatewayController {
   private sidecarDisposer: (() => void) | null = null;
   private rpcReadyDisposer: (() => void) | null = null;
   private initialConnectDone = false;
-  private needsDisconnectError = false;
   private archivedKeys = new Set<string>();
   private metaMap = new Map<string, ChatSessionMeta>();
   private localSessions = new Map<string, { key: string; updatedAt: number; isLocal: boolean }>();
@@ -316,21 +323,7 @@ export class ChatGatewayController {
           // Gate history loading on sidecar readiness
           const onSidecarReady = () => {
             client.setKeepaliveEnabled(true);
-            this.loadHistory()
-              .then(() => {
-                if (this.needsDisconnectError) {
-                  this.needsDisconnectError = false;
-                  const session = this.store.activeSession;
-                  if (session) {
-                    session.appendMessage({
-                      role: "assistant",
-                      text: `\u26A0 ${this.t("chat.disconnectedError")}`,
-                      timestamp: Date.now(),
-                    });
-                  }
-                }
-              })
-              .catch(() => {});
+            this.loadHistory().catch(() => {});
           };
 
           const sidecar = runtimeStatusStore.openClawConnector.sidecarState;
@@ -363,25 +356,11 @@ export class ChatGatewayController {
           this.sidecarDisposer?.();
           this.sidecarDisposer = null;
 
-          const rs = this.activeRunState;
-          const localId = rs.localRunId;
-          const wasWaiting = !!localId;
-          const disconnectText = localId ? (rs.getRun(localId)?.streaming ?? null) : null;
-          this.resetAllRunStates();
-
-          if (disconnectText) {
-            const session = this.store.activeSession;
-            if (session) {
-              session.appendMessage({
-                role: "assistant",
-                text: disconnectText,
-                timestamp: Date.now(),
-              });
-            }
-          }
-          if (wasWaiting) {
-            this.needsDisconnectError = true;
-          }
+          // A WebSocket disconnect is a transport event, not proof that the
+          // agent run failed. The gateway can keep executing and later replay
+          // chat events after reconnect, so keep in-flight run state visible.
+          // If the run really stalls, the watchdog will surface a terminal
+          // message after its normal inactivity window.
         },
         onEvent: (evt: GatewayEvent) => this.handleEvent(evt),
       });
@@ -1580,6 +1559,10 @@ export class ChatGatewayController {
       await client.request("chat.send", params, 300_000);
     })().catch((err) => {
       const raw = formatError(err) || this.t("chat.sendError");
+      if (isTransientChatSendTransportError(raw)) {
+        console.warn("[chat] chat.send transport error ignored; waiting for run events:", raw);
+        return;
+      }
       const errText = localizeError(raw, this.tFn!);
       session.appendMessage({
         role: "assistant",

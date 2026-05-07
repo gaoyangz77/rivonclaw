@@ -58,4 +58,51 @@ describe("ChatGatewayController run profile selection", () => {
       );
     });
   });
+
+  it("keeps an in-flight local run alive when chat.send hits a transport timeout", async () => {
+    vi.doMock("../../src/api/index.js", () => ({
+      fetchGatewayInfo: vi.fn(),
+      trackEvent: vi.fn(),
+    }));
+    vi.doMock("../../src/api/tool-registry.js", () => ({
+      setRunProfileForScope: vi.fn(),
+    }));
+
+    const [{ ChatGatewayController }, { createChatStore }] = await Promise.all([
+      import("../../src/pages/chat/controllers/ChatGatewayController.js"),
+      import("../../src/pages/chat/store/chat-store.js"),
+    ]);
+
+    const store = createChatStore();
+    store.setConnectionState("connected");
+    const controller = new ChatGatewayController(store);
+    const request = vi.fn().mockRejectedValue(new Error("RPC timeout after 300000ms: chat.send"));
+    (controller as any).client = { request };
+
+    controller.sendMessage("hello", "", { providerKeys: [{ id: "key-1" }] });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const session = store.activeSession!;
+    const runId = session.runState.localRunId!;
+    expect(session.messages.map((msg) => msg.text)).toEqual(["hello"]);
+    expect(session.runState.isActive).toBe(true);
+
+    (controller as any).handleEvent({
+      event: "chat",
+      payload: {
+        runId,
+        sessionKey: store.activeSessionKey,
+        state: "final",
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: "reply after reconnect" }],
+          timestamp: Date.now(),
+        },
+      },
+    });
+
+    expect(session.messages.map((msg) => msg.text)).toEqual(["hello", "reply after reconnect"]);
+    expect(session.runState.isActive).toBe(false);
+  });
 });
