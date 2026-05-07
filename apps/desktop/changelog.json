@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.12",
+    "date": "2026-05-07",
+    "en": [
+      "Add cloud customer service and ecommerce relay flows to support online service handoff, signal routing, and creator-commerce workflows",
+      "Improve desktop stability by centralizing OpenClaw config writes and explicitly materializing RivonClaw plugin tools",
+      "Fix multiple chat and account sync issues, including WeChat account state/recipient handling and codex model catalog updates"
+    ],
+    "zh": [
+      "补上云端客服与电商 relay 流程，支持线上客服接管、信号转发和达人电商协作链路",
+      "加强桌面端稳定性，统一 OpenClaw 配置写入流程，并补齐 RivonClaw 插件工具加载",
+      "修复多项聊天与账号同步问题，包括微信账号状态、消息接收方识别，以及 Codex 模型列表更新"
+    ]
+  },
+  {
     "version": "1.8.11",
     "date": "2026-05-04",
     "en": [
