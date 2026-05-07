@@ -13,7 +13,8 @@
  * 4. Broadcasts `rivonclaw.channel-inbound` for external channel user messages
  *    so they appear on the Chat Page in real time (not only after history sync).
  *    Uses a two-phase approach: `message_received` captures the message text,
- *    then `before_agent_start` resolves the sessionKey and broadcasts.
+ *    then `llm_input` resolves the sessionKey and broadcasts. `before_agent_start`
+ *    is kept as a fallback for vendor hook ordering differences.
  */
 
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
@@ -81,6 +82,37 @@ export default defineRivonClawPlugin({
     eventCount = 0;
     // Keep gatewayBroadcast — it will be recaptured via event_bridge_init if null.
 
+    const broadcastPendingInboundForSession = (
+      sessionKey: string,
+      channelHint?: string,
+      source = "unknown",
+    ): boolean => {
+      if (!gatewayBroadcast) return false;
+      const channelId = channelHint ?? resolveChannelIdFromSessionKey(sessionKey);
+      if (!channelId) {
+        api.logger.warn(`[event-bridge] channel-inbound: cannot resolve channel for sessionKey=${sessionKey}`);
+        return false;
+      }
+      if (shouldSkipChannelInbound(channelId)) return false;
+
+      const queue = pendingInboundMessages.get(channelId);
+      if (!queue || queue.length === 0) return false;
+
+      const pending = queue.shift()!;
+      if (queue.length === 0) pendingInboundMessages.delete(channelId);
+
+      api.logger.info(
+        `[event-bridge] channel-inbound: broadcasting source=${source} channel=${channelId} sessionKey=${sessionKey}`,
+      );
+      gatewayBroadcast("rivonclaw.channel-inbound", {
+        sessionKey,
+        message: pending.content,
+        timestamp: pending.timestamp,
+        channel: pending.channelId,
+      });
+      return true;
+    };
+
     // ── Capture broadcast via a lightweight gateway method ──────────
     // The desktop panel calls "event_bridge_init" once after gateway start
     // to hand the broadcast function to this plugin.
@@ -103,10 +135,11 @@ export default defineRivonClawPlugin({
     // ── Build runId -> sessionKey map from llm_input hook ───────────
     api.on(
       "llm_input",
-      (evt: { runId?: string }, ctx: { sessionKey?: string }) => {
+      (evt: { runId?: string }, ctx: { sessionKey?: string; channelId?: string }) => {
         if (evt.runId && ctx?.sessionKey) {
           runSessionMap.set(evt.runId, ctx.sessionKey);
           api.logger.info(`[event-bridge] llm_input mapped runId=${evt.runId} → sessionKey=${ctx.sessionKey}`);
+          broadcastPendingInboundForSession(ctx.sessionKey, ctx.channelId, "llm_input");
         } else {
           api.logger.warn(`[event-bridge] llm_input missing: runId=${evt.runId ?? "undefined"} sessionKey=${ctx?.sessionKey ?? "undefined"}`);
         }
@@ -116,9 +149,9 @@ export default defineRivonClawPlugin({
     // ── Capture inbound user messages from external channels ────────
     // The `message_received` hook fires for ALL channels when a user message
     // arrives, but its context only has { channelId, conversationId } — no
-    // sessionKey. We store the message in a per-channelId FIFO queue so the
-    // subsequent `before_agent_start` hook (which has sessionKey) can consume
-    // it and broadcast to the Chat Page.
+    // sessionKey. We store the message in a per-channelId FIFO queue so a later
+    // routing hook with sessionKey (`llm_input`, with `before_agent_start` as
+    // fallback) can consume it and broadcast to the Chat Page.
     //
     // Skip list: channels whose messages are already broadcast to the Chat
     // Page by the vendor's server-chat.ts (i.e. NOT suppressed by the
@@ -192,38 +225,16 @@ export default defineRivonClawPlugin({
     );
 
     // ── Resolve sessionKey and broadcast inbound messages ─────────────
-    // `before_agent_start` fires after session routing, so ctx.sessionKey is
-    // available. For external channel runs, consume the pending message and
-    // broadcast `rivonclaw.channel-inbound`.
+    // Fallback for vendor hook ordering differences. The primary path is
+    // `llm_input`, which is known to include sessionKey in current OpenClaw.
     api.on(
       "before_agent_start",
       (
         _evt: { prompt?: string },
         ctx: { sessionKey?: string; channelId?: string; trigger?: string },
       ) => {
-        if (!gatewayBroadcast || !ctx?.sessionKey) return;
-        const channelId = ctx.channelId ?? resolveChannelIdFromSessionKey(ctx.sessionKey);
-        if (!channelId) {
-          api.logger.warn(`[event-bridge] channel-inbound: cannot resolve channel for sessionKey=${ctx.sessionKey}`);
-          return;
-        }
-        if (shouldSkipChannelInbound(channelId)) return;
-
-        const queue = pendingInboundMessages.get(channelId);
-        if (!queue || queue.length === 0) return;
-
-        const pending = queue.shift()!;
-        if (queue.length === 0) pendingInboundMessages.delete(channelId);
-
-        api.logger.info(
-          `[event-bridge] channel-inbound: broadcasting for channel=${channelId} sessionKey=${ctx.sessionKey}`,
-        );
-        gatewayBroadcast("rivonclaw.channel-inbound", {
-          sessionKey: ctx.sessionKey,
-          message: pending.content,
-          timestamp: pending.timestamp,
-          channel: pending.channelId,
-        });
+        if (!ctx?.sessionKey) return;
+        broadcastPendingInboundForSession(ctx.sessionKey, ctx.channelId, "before_agent_start");
       },
     );
 
