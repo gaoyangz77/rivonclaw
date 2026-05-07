@@ -3,6 +3,118 @@ import { ChatGatewayController } from "../../src/pages/chat/controllers/ChatGate
 import { createChatStore } from "../../src/pages/chat/store/chat-store.js";
 
 describe("ChatGatewayController tool events", () => {
+  it("hydrates a switched tab even when realtime inbound already added one message", async () => {
+    const store = createChatStore();
+    const controller = new ChatGatewayController(store);
+    const sessionKey = "agent:main:telegram:acct:direct:123";
+    const session = store.getOrCreateSession(sessionKey);
+    session.appendMessage({
+      role: "user",
+      text: "latest realtime message",
+      timestamp: Date.now(),
+      isExternal: true,
+      channel: "telegram",
+    });
+
+    const request = vi.fn().mockResolvedValue({
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "older message" }],
+          timestamp: 1,
+        },
+        {
+          role: "assistant",
+          content: [{ type: "text", text: "older reply" }],
+          timestamp: 2,
+        },
+        {
+          role: "user",
+          content: [{ type: "text", text: "latest realtime message" }],
+          timestamp: session.messages[0].timestamp,
+          provenance: { kind: "external_user", sourceChannel: "telegram" },
+        },
+      ],
+    });
+    (controller as any).client = { request };
+
+    await controller.switchSession(sessionKey);
+
+    expect(request).toHaveBeenCalledWith("chat.history", expect.objectContaining({
+      sessionKey,
+    }));
+    expect(session.historyHydrated).toBe(true);
+    expect(session.messages.map((msg) => msg.text)).toEqual([
+      "older message",
+      "older reply",
+      "latest realtime message",
+    ]);
+  });
+
+  it("tracks mirrored assistant deltas for background external sessions", () => {
+    const store = createChatStore();
+    const controller = new ChatGatewayController(store);
+    const sessionKey = "agent:main:telegram:acct:direct:123";
+
+    (controller as any).handleEvent({
+      event: "chat",
+      payload: {
+        runId: "run-background",
+        sessionKey,
+        state: "delta",
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: "background reply" }],
+          timestamp: Date.now(),
+        },
+      },
+    });
+
+    const session = store.sessions.get(sessionKey)!;
+    expect(session.runState.getRun("run-background")?.streaming).toBe("background reply");
+    expect(session.unread).toBe(true);
+  });
+
+  it("clears active mirrored external streaming on final without duplicating history bubbles", () => {
+    const store = createChatStore();
+    const controller = new ChatGatewayController(store);
+    const sessionKey = "agent:main:telegram:acct:direct:123";
+    store.setActiveSessionKey(sessionKey);
+    const session = store.getOrCreateSession(sessionKey);
+    session.appendMessage({
+      role: "assistant",
+      text: "already persisted reply",
+      timestamp: 1,
+    });
+
+    (controller as any).handleEvent({
+      event: "chat",
+      payload: {
+        runId: "run-external",
+        sessionKey,
+        state: "delta",
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: "already persisted reply" }],
+          timestamp: Date.now(),
+        },
+      },
+    });
+    expect(session.runState.displayStreaming).toBe("already persisted reply");
+
+    (controller as any).handleEvent({
+      event: "chat",
+      payload: {
+        runId: "run-external",
+        sessionKey,
+        state: "final",
+      },
+    });
+
+    expect(session.runState.isActive).toBe(false);
+    expect(session.messages.map((msg) => msg.text)).toEqual(["already persisted reply"]);
+  });
+
   it("records tool events when agent payload uses toolName", () => {
     const store = createChatStore();
     const controller = new ChatGatewayController(store);

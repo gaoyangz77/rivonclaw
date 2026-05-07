@@ -32,7 +32,10 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       }
     }
 
-    if (evt.event === "rivonclaw.chat-mirror") {
+    if (
+      evt.event === "plugin.rivonclaw.chat-mirror"
+      || evt.event === "rivonclaw.chat-mirror"
+    ) {
       const p = evt.payload as {
         runId: string;
         sessionKey: string;
@@ -43,7 +46,10 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       broadcastEvent("chat-mirror", p);
     }
 
-    if (evt.event === "rivonclaw.channel-inbound") {
+    if (
+      evt.event === "plugin.rivonclaw.channel-inbound"
+      || evt.event === "rivonclaw.channel-inbound"
+    ) {
       const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
       if (p?.sessionKey && p?.message) {
         const session = chatSessions.getByKey(p.sessionKey);

@@ -851,6 +851,44 @@ describe("config-writer", () => {
       expect(paths).not.toContain(siblingMerchantDir);
     });
 
+    it("removes stale managed merchant extension paths from previous installs", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      const extDir = join(tmpDir, "extensions");
+      const currentMerchantDir = join(tmpDir, "extensions-merchant");
+      const stagedCloudDir = join(tmpDir, "runtime-extensions", "rivonclaw-cloud-tools");
+      const currentCsDir = join(currentMerchantDir, "rivonclaw-cs");
+      const oldInstallDir = "/Applications/RivonClaw.app/Contents/Resources/extensions-merchant";
+      mkdirSync(extDir, { recursive: true });
+      mkdirSync(stagedCloudDir, { recursive: true });
+      mkdirSync(currentCsDir, { recursive: true });
+      writeFileSync(configPath, JSON.stringify({
+        plugins: {
+          load: {
+            paths: [
+              join(oldInstallDir, "rivonclaw-cloud-tools"),
+              join(oldInstallDir, "rivonclaw-cs"),
+              "/custom/plugin",
+            ],
+          },
+        },
+      }, null, 2));
+
+      writeGatewayConfig({
+        configPath,
+        extensionsDir: extDir,
+        merchantExtensionPaths: [stagedCloudDir, currentCsDir],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const paths = config.plugins.load.paths as string[];
+      expect(paths).toContain(extDir);
+      expect(paths).toContain(stagedCloudDir);
+      expect(paths).toContain(currentCsDir);
+      expect(paths).toContain("/custom/plugin");
+      expect(paths).not.toContain(join(oldInstallDir, "rivonclaw-cloud-tools"));
+      expect(paths).not.toContain(join(oldInstallDir, "rivonclaw-cs"));
+    });
+
     it("works alongside filePermissionsPluginPath", () => {
       const configPath = join(tmpDir, "openclaw.json");
       const extDir = join(tmpDir, "extensions");

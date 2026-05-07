@@ -9,9 +9,9 @@
  * 1. Builds a runId -> sessionKey map via the `llm_input` hook.
  * 2. Listens to ALL agent events via `runtime.events.onAgentEvent()`.
  * 3. When an event's sessionKey is undefined (suppressed), looks up the real
- *    sessionKey and broadcasts via `gatewayBroadcast`.
- * 4. Broadcasts `rivonclaw.channel-inbound` for external channel user messages
- *    so they appear on the Chat Page in real time (not only after history sync).
+ *    sessionKey and broadcasts via `plugin.rivonclaw.chat-mirror`.
+ * 4. Broadcasts `plugin.rivonclaw.channel-inbound` for external channel user
+ *    messages so they appear on the Chat Page in real time (not only after history sync).
  *    Uses a two-phase approach: `message_received` captures the message text,
  *    then `llm_input` resolves the sessionKey and broadcasts. `before_agent_start`
  *    is kept as a fallback for vendor hook ordering differences.
@@ -53,6 +53,17 @@ function shouldSkipChannelInbound(channelId: string): boolean {
   return CHANNEL_INBOUND_SKIP.has(channelId);
 }
 
+function shouldMirrorExternalSession(sessionKey?: string): boolean {
+  const channelId = resolveChannelIdFromSessionKey(sessionKey);
+  if (!channelId) return false;
+  return (
+    channelId !== "main" &&
+    channelId !== "cs" &&
+    !channelId.startsWith("panel-") &&
+    !shouldSkipChannelInbound(channelId)
+  );
+}
+
 // ── Module-level state ───────────────────────────────────────────────
 // State lives at module level so it survives across setup() calls
 // (OpenClaw may call register→activate, invoking setup twice, and may
@@ -88,7 +99,8 @@ export default defineRivonClawPlugin({
       source = "unknown",
     ): boolean => {
       if (!gatewayBroadcast) return false;
-      const channelId = channelHint ?? resolveChannelIdFromSessionKey(sessionKey);
+      const sessionChannelId = resolveChannelIdFromSessionKey(sessionKey);
+      const channelId = sessionChannelId ?? channelHint;
       if (!channelId) {
         api.logger.warn(`[event-bridge] channel-inbound: cannot resolve channel for sessionKey=${sessionKey}`);
         return false;
@@ -104,7 +116,7 @@ export default defineRivonClawPlugin({
       api.logger.info(
         `[event-bridge] channel-inbound: broadcasting source=${source} channel=${channelId} sessionKey=${sessionKey}`,
       );
-      gatewayBroadcast("rivonclaw.channel-inbound", {
+      gatewayBroadcast("plugin.rivonclaw.channel-inbound", {
         sessionKey,
         message: pending.content,
         timestamp: pending.timestamp,
@@ -259,8 +271,15 @@ export default defineRivonClawPlugin({
       eventCount++;
       const shouldLog = eventCount <= 5 || eventCount % 50 === 0;
 
-      // If sessionKey is present, server-chat.ts is already broadcasting — skip.
-      if (evt.sessionKey) {
+      const mappedSessionKey = runSessionMap.get(evt.runId);
+      const sessionKey = mappedSessionKey ?? evt.sessionKey;
+
+      // If sessionKey is present for a non-external run, server-chat.ts is
+      // already broadcasting to the Control UI. External channel runs are the
+      // exception: OpenClaw may attach sessionKey to lifecycle terminal events
+      // while still suppressing Control UI broadcasts via isControlUiVisible.
+      // Mirror those too so the Chat Page can clear the streaming run state.
+      if (evt.sessionKey && !shouldMirrorExternalSession(sessionKey)) {
         if (shouldLog) api.logger.debug?.(`[event-bridge] skip: vendor-broadcasted (stream=${evt.stream} runId=${evt.runId} seq=${evt.seq})`);
         return;
       }
@@ -270,8 +289,6 @@ export default defineRivonClawPlugin({
         return;
       }
 
-      // Look up real sessionKey from our hook-built map.
-      const sessionKey = runSessionMap.get(evt.runId);
       if (!sessionKey) {
         if (shouldLog) api.logger.warn(`[event-bridge] drop: no sessionKey in map (stream=${evt.stream} runId=${evt.runId} mapSize=${runSessionMap.size})`);
         return;
@@ -284,7 +301,7 @@ export default defineRivonClawPlugin({
       }
 
       if (shouldLog) api.logger.info(`[event-bridge] mirror: stream=${evt.stream} runId=${evt.runId} seq=${evt.seq}`);
-      gatewayBroadcast("rivonclaw.chat-mirror", {
+      gatewayBroadcast("plugin.rivonclaw.chat-mirror", {
         runId: evt.runId,
         sessionKey,
         stream: evt.stream,

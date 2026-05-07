@@ -217,6 +217,13 @@ const RENAMED_PLUGIN_IDS: Record<string, string> = {
   "search-browser-fallback": "rivonclaw-search-browser-fallback",
 };
 
+const MANAGED_MERCHANT_EXTENSION_IDS = new Set([
+  "rivonclaw-cloud-tools",
+  "rivonclaw-cs",
+  "rivonclaw-ecom",
+  "rivonclaw-local-tools",
+]);
+
 /**
  * Find the monorepo root by looking for pnpm-workspace.yaml
  */
@@ -962,15 +969,24 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           (merchantExtensionPaths ?? []).map((p) => resolve(p).replace(/\\/g, "/")),
         );
 
+        const isManagedMerchantExtensionPath = (normalized: string): boolean => {
+          return [...MANAGED_MERCHANT_EXTENSION_IDS].some((id) => (
+            normalized.endsWith(`/extensions-merchant/${id}`) ||
+            normalized.includes(`/extensions-merchant/${id}/`)
+          ));
+        };
+
         const isStaleExtPath = (p: string): boolean => {
           const normalized = p.replace(/\\/g, "/");
+          const resolvedNormalized = resolve(p).replace(/\\/g, "/");
           return (
             normalized.includes("search-browser-fallback") ||
             normalized.includes("rivonclaw-search-browser-fallback") ||
             normalized.includes("extensions/wecom") ||
             normalized.includes("extensions/dingtalk") ||
             normalized.includes("/runtime-extensions/rivonclaw-cloud-tools") ||
-            normalizedMerchantExtensionPaths.has(resolve(p).replace(/\\/g, "/")) ||
+            normalizedMerchantExtensionPaths.has(resolvedNormalized) ||
+            isManagedMerchantExtensionPath(normalized) ||
             normalized.endsWith("/extensions") ||
             normalized.endsWith("/extensions-merchant") ||
             p === extDir

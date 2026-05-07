@@ -35,6 +35,12 @@ export const ChatSessionModel = types
     unread: false,
     isLocal: false,
     totalTokens: 0,
+    /** True while this tab owns an in-flight sessions.describe metadata request. */
+    metadataHydrating: false,
+    /** Timestamp of the last completed/failed metadata hydration attempt. */
+    metadataLastHydratedAt: 0,
+    /** True after derived title metadata has been requested at least once. */
+    metadataDerivedHydrated: false,
 
     // Per-session composer state
     draft: "",
@@ -43,6 +49,8 @@ export const ChatSessionModel = types
     messages: types.array(types.frozen<ChatMessage>()),
     visibleCount: INITIAL_VISIBLE,
     allFetched: false,
+    /** True after this tab has loaded its recent transcript from chat.history. */
+    historyHydrated: false,
     historyLoading: false,
     pendingImages: types.array(types.frozen<PendingImage>()),
     toolEventSeq: 0,
@@ -117,6 +125,9 @@ export const ChatSessionModel = types
     setAllFetched(v: boolean) {
       self.allFetched = v;
     },
+    setHistoryHydrated(v: boolean) {
+      self.historyHydrated = v;
+    },
     setHistoryLoading(v: boolean) {
       self.historyLoading = v;
     },
@@ -164,6 +175,45 @@ export const ChatSessionModel = types
     },
     setCustomTitle(t: string | null) {
       self.customTitle = t;
+    },
+    beginMetadataHydration(params?: {
+      includeDerivedTitles?: boolean;
+      force?: boolean;
+      now?: number;
+      ttlMs?: number;
+    }): boolean {
+      if (self.metadataHydrating) return false;
+      const now = params?.now ?? Date.now();
+      const ttlMs = params?.ttlMs ?? 30_000;
+      const needsDerivedTitle = params?.includeDerivedTitles === true && !self.metadataDerivedHydrated;
+      const recentlyHydrated =
+        self.metadataLastHydratedAt > 0 && now - self.metadataLastHydratedAt < ttlMs;
+      if (!params?.force && !needsDerivedTitle && recentlyHydrated) return false;
+      self.metadataHydrating = true;
+      return true;
+    },
+    completeMetadataHydration(fields: {
+      displayName?: string | null;
+      derivedTitle?: string | null;
+      panelTitle?: string | null;
+      channel?: string | null;
+      updatedAt?: number | null;
+      kind?: string | null;
+      pinned?: boolean;
+      totalTokens?: number;
+      isLocal?: boolean;
+      customTitle?: string | null;
+      includeDerivedTitles?: boolean;
+      now?: number;
+    }) {
+      self.metadataHydrating = false;
+      self.metadataLastHydratedAt = fields.now ?? Date.now();
+      if (fields.includeDerivedTitles) self.metadataDerivedHydrated = true;
+      this.updateMetadata(fields);
+    },
+    failMetadataHydration(now?: number) {
+      self.metadataHydrating = false;
+      self.metadataLastHydratedAt = now ?? Date.now();
     },
     /** Bulk metadata update from local tab metadata or lazy gateway hydration. */
     updateMetadata(fields: {

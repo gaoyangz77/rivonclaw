@@ -55,6 +55,7 @@ import {
   cleanDerivedTitle,
   cleanMessageText,
   isHiddenSession,
+  mergeChatMessagesDedup,
 } from "../chat-utils.js";
 
 // ---------------------------------------------------------------------------
@@ -62,6 +63,8 @@ import {
 // ---------------------------------------------------------------------------
 
 const REFRESH_DEBOUNCE = DEFAULTS.chat.sessionRefreshDebounceMs;
+const SESSION_METADATA_TTL_MS = 30_000;
+const SESSION_DERIVED_METADATA_TTL_MS = 5 * 60_000;
 
 /**
  * Read the user's custom session tab order from the MST-backed appSettings
@@ -134,6 +137,7 @@ export class ChatGatewayController {
   private terminalErrors = new Map<string, { runId: string; text: string; timestamp: number }>();
   private recentlyCompletedTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingStopNotices = new Set<string>();
+  private pendingRunProfileUpdates = new Map<string, Promise<void>>();
   // Scroll hints — one-shot flags consumed by ChatPage on each render
   shouldInstantScroll = false;
   stickyHint = false;
@@ -257,6 +261,11 @@ export class ChatGatewayController {
     session.setPanelTitle(title);
     session.setLocalTitle(title);
     this.persistPanelTitle(sessionKey, title);
+  }
+
+  private appendMessageDedup(session: IChatStore["activeSession"], message: ChatMessage): void {
+    if (!session) return;
+    session.updateMessages((prev) => mergeChatMessagesDedup(prev, [message]));
   }
 
   // ---------------------------------------------------------------------------
@@ -397,7 +406,7 @@ export class ChatGatewayController {
           }
           const session = this.store.activeSession;
           if (session) {
-            session.appendMessage({
+            this.appendMessageDedup(session, {
               role: "user",
               text: msg.text,
               timestamp: msg.timestamp,
@@ -502,7 +511,7 @@ export class ChatGatewayController {
               if (msgText) {
                 const session = this.store.activeSession;
                 if (session) {
-                  session.appendMessage({
+                  this.appendMessageDedup(session, {
                     role: "assistant",
                     text: msgText,
                     timestamp: Date.now(),
@@ -570,6 +579,9 @@ export class ChatGatewayController {
         this.markUnread(agentPayload.sessionKey!);
         const bgRs = this.runStateFor(agentPayload.sessionKey!);
         const bgRunId = agentPayload.runId;
+        if (bgRunId && !bgRs.isTracked(bgRunId) && !bgRs.isRecentlyCompleted(bgRunId)) {
+          bgRs.beginExternalRun(bgRunId, agentPayload.sessionKey!, "unknown", true);
+        }
         if (bgRunId && bgRs.isTracked(bgRunId)) {
           const stream = agentPayload.stream;
           if (stream === "tool") {
@@ -762,6 +774,9 @@ export class ChatGatewayController {
       const bgRs = this.runStateFor(payload.sessionKey);
       const bgRunId = payload.runId;
       if (bgRunId) {
+        if (!bgRs.isTracked(bgRunId) && !bgRs.isRecentlyCompleted(bgRunId)) {
+          bgRs.beginExternalRun(bgRunId, payload.sessionKey, "unknown", true);
+        }
         switch (payload.state) {
           case "delta": {
             const text = extractText(payload.message?.content);
@@ -1184,30 +1199,11 @@ export class ChatGatewayController {
 
     const session = this.store.sessions.get(key)!;
 
-    // If no messages loaded yet, fetch from gateway
-    if (session.messages.length === 0 && !session.allFetched) {
-      const client = this.client;
-      if (client) {
-        try {
-          const result = await client.request<{
-            messages?: Array<{
-              role?: string;
-              content?: unknown;
-              timestamp?: number;
-              idempotencyKey?: string;
-            }>;
-          }>("chat.history", { sessionKey: key, limit: FETCH_BATCH });
-
-          let parsed = parseRawMessages(result?.messages);
-          parsed = await restoreImages(key, parsed).catch(() => parsed);
-          this.ensurePanelSessionTitleFromHistory(key, parsed);
-          const merged = mergeTerminalError(parsed, this.terminalErrors.get(key));
-          session.setMessages(merged);
-          session.setAllFetched(parsed.length < FETCH_BATCH);
-        } catch {
-          // Fetch failure — start with empty
-        }
-      }
+    // Hydrate recent transcript at least once per opened tab. Realtime inbound
+    // messages can create a tab before history is loaded, so message count is
+    // not a reliable proxy for transcript hydration.
+    if (!session.historyHydrated) {
+      await this.loadHistory();
     }
 
     // Clear unread
@@ -1230,6 +1226,7 @@ export class ChatGatewayController {
     });
     const session = this.store.sessions.get(newKey)!;
     session.setAllFetched(true);
+    session.setHistoryHydrated(true);
 
     // Track as local session
     this.localSessions.set(newKey, { key: newKey, updatedAt: Date.now(), isLocal: true });
@@ -1407,27 +1404,30 @@ export class ChatGatewayController {
     options?: { includeDerivedTitles?: boolean; includeLastMessage?: boolean },
   ): Promise<void> {
     if (!this.client || this.cancelled || isHiddenSession(key)) return;
+    const session = this.store.getOrCreateSession(key);
+    const ttlMs = options?.includeDerivedTitles
+      ? SESSION_DERIVED_METADATA_TTL_MS
+      : SESSION_METADATA_TTL_MS;
+    if (!session.beginMetadataHydration({
+      includeDerivedTitles: options?.includeDerivedTitles,
+      ttlMs,
+    })) {
+      return;
+    }
     const result = await this.requestSessionDescribe({
       key,
       includeDerivedTitles: options?.includeDerivedTitles,
       includeLastMessage: options?.includeLastMessage,
     });
-    if (this.cancelled || !result?.session) return;
+    if (this.cancelled || !result?.session) {
+      session.failMetadataHydration();
+      return;
+    }
 
     const s = result.session;
     const meta = this.metaMap.get(s.key);
     const title = cleanDerivedTitle(s.derivedTitle);
-    const session = this.store.getOrCreateSession(s.key, {
-      panelTitle: meta?.panelTitle ?? null,
-      displayName: s.displayName ?? null,
-      derivedTitle: title,
-      channel: s.channel ?? s.lastChannel ?? null,
-      updatedAt: s.updatedAt ?? null,
-      kind: s.kind ?? null,
-      pinned: meta?.pinned,
-      totalTokens: s.totalTokensFresh !== false ? s.totalTokens : undefined,
-    });
-    session.updateMetadata({
+    session.completeMetadataHydration({
       customTitle: meta?.customTitle ?? null,
       panelTitle: meta?.panelTitle ?? null,
       displayName: s.displayName ?? null,
@@ -1437,6 +1437,7 @@ export class ChatGatewayController {
       kind: s.kind ?? null,
       pinned: meta?.pinned,
       totalTokens: s.totalTokensFresh !== false ? s.totalTokens : undefined,
+      includeDerivedTitles: options?.includeDerivedTitles,
     });
 
     if (options?.includeDerivedTitles && isPanelSessionKey(s.key) && title) {
@@ -1570,7 +1571,14 @@ export class ChatGatewayController {
     }
     if (thinkingLevel) params.thinking = thinkingLevel;
 
-    this.client.request("chat.send", params, 300_000).catch((err) => {
+    const client = this.client;
+    const pendingRunProfileUpdate = this.pendingRunProfileUpdates.get(activeKey);
+    (async () => {
+      if (pendingRunProfileUpdate) {
+        await pendingRunProfileUpdate;
+      }
+      await client.request("chat.send", params, 300_000);
+    })().catch((err) => {
       const raw = formatError(err) || this.t("chat.sendError");
       const errText = localizeError(raw, this.tFn!);
       session.appendMessage({
@@ -1630,6 +1638,8 @@ export class ChatGatewayController {
               timestamp: Date.now(),
             },
           ]);
+          session.setAllFetched(true);
+          session.setHistoryHydrated(true);
         }
         clearImages(activeKey).catch(() => {});
         this.terminalErrors.delete(activeKey);
@@ -1659,6 +1669,8 @@ export class ChatGatewayController {
         const session = this.store.sessions.get(sessionKey);
         if (session) {
           session.setMessages([]);
+          session.setAllFetched(true);
+          session.setHistoryHydrated(true);
         }
         clearImages(sessionKey).catch(() => {});
         this.terminalErrors.delete(sessionKey);
@@ -1687,12 +1699,20 @@ export class ChatGatewayController {
     profileId: string,
     scopeKey: string,
     runProfiles: Array<{ id: string }>,
-  ): void {
+  ): Promise<void> {
+    let promise: Promise<void>;
     if (!profileId || !runProfiles.find((p) => p.id === profileId)) {
-      setRunProfileForScope(scopeKey, null).catch(() => {});
-      return;
+      promise = setRunProfileForScope(scopeKey, null);
+    } else {
+      promise = setRunProfileForScope(scopeKey, profileId);
     }
-    setRunProfileForScope(scopeKey, profileId).catch(() => {});
+    this.pendingRunProfileUpdates.set(scopeKey, promise);
+    promise.finally(() => {
+      if (this.pendingRunProfileUpdates.get(scopeKey) === promise) {
+        this.pendingRunProfileUpdates.delete(scopeKey);
+      }
+    }).catch(() => {});
+    return promise;
   }
 
   // ---------------------------------------------------------------------------
@@ -1704,6 +1724,7 @@ export class ChatGatewayController {
     if (!client) return;
     const activeKey = this.store.activeSessionKey;
     const session = this.store.getOrCreateSession(activeKey);
+    if (this.isFetching) return;
     this.fetchLimit = FETCH_BATCH;
     this.isFetching = true;
 
@@ -1723,9 +1744,11 @@ export class ChatGatewayController {
       parsed = await restoreImages(activeKey, parsed).catch(() => parsed);
       this.ensurePanelSessionTitleFromHistory(activeKey, parsed);
       session.setAllFetched(parsed.length < FETCH_BATCH);
+      session.setHistoryHydrated(true);
       this.shouldInstantScroll = true;
       this.stickyHint = true;
-      const merged = mergeTerminalError(parsed, this.terminalErrors.get(activeKey));
+      const withExistingRealtime = mergeChatMessagesDedup(parsed, [...session.messages]);
+      const merged = mergeTerminalError(withExistingRealtime, this.terminalErrors.get(activeKey));
       session.setMessages(merged);
       session.setVisibleCount(INITIAL_VISIBLE);
     } catch {
@@ -1765,8 +1788,9 @@ export class ChatGatewayController {
       }
 
       if (parsed.length > oldCount) {
+        const withExistingRealtime = mergeChatMessagesDedup(parsed, [...session.messages]);
         const merged = mergeTerminalError(
-          parsed,
+          withExistingRealtime,
           this.terminalErrors.get(this.store.activeSessionKey),
         );
         session.setMessages(merged);

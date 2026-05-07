@@ -59,9 +59,9 @@ describe("createGatewayEventDispatcher", () => {
     });
   });
 
-  // ── rivonclaw.chat-mirror ───────────────────────────────────────────────
+  // ── plugin.rivonclaw.chat-mirror ────────────────────────────────────────
 
-  describe("rivonclaw.chat-mirror", () => {
+  describe("plugin.rivonclaw.chat-mirror", () => {
     it("forwards payload to SSE as chat-mirror", () => {
       const payload = {
         runId: "run-1",
@@ -70,18 +70,29 @@ describe("createGatewayEventDispatcher", () => {
         data: { text: "hello" },
         seq: 42,
       };
+      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", payload));
+      expect(deps.broadcastEvent).toHaveBeenCalledWith("chat-mirror", payload);
+    });
+
+    it("keeps legacy rivonclaw.chat-mirror compatible", () => {
+      const payload = {
+        runId: "run-legacy",
+        sessionKey: "sk-legacy",
+        stream: "assistant",
+        data: { text: "legacy" },
+      };
       dispatch(makeEvent("rivonclaw.chat-mirror", payload));
       expect(deps.broadcastEvent).toHaveBeenCalledWith("chat-mirror", payload);
     });
   });
 
-  // ── rivonclaw.channel-inbound ───────────────────────────────────────────
+  // ── plugin.rivonclaw.channel-inbound ────────────────────────────────────
 
-  describe("rivonclaw.channel-inbound", () => {
+  describe("plugin.rivonclaw.channel-inbound", () => {
     it("pushes SSE inbound with runId, sessionKey, channel, message, timestamp", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("rivonclaw.channel-inbound", {
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
         sessionKey: "sk-abc",
         message: "Hi there",
         timestamp: 1700000000,
@@ -110,10 +121,26 @@ describe("createGatewayEventDispatcher", () => {
       expect(deps.broadcastEvent).toHaveBeenCalled();
     });
 
+    it("keeps legacy rivonclaw.channel-inbound compatible", () => {
+      deps.chatSessions.getByKey.mockReturnValue(undefined);
+
+      dispatch(makeEvent("rivonclaw.channel-inbound", {
+        sessionKey: "sk-legacy",
+        message: "Legacy",
+        channel: "telegram",
+      }));
+
+      expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-legacy", { archivedAt: null });
+      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
+        sessionKey: "sk-legacy",
+        channel: "telegram",
+      }));
+    });
+
     it("does NOT write when session is already active", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("rivonclaw.channel-inbound", {
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
         sessionKey: "sk-active",
         message: "Hello",
         channel: "web",
@@ -125,7 +152,7 @@ describe("createGatewayEventDispatcher", () => {
     it("creates local chat session metadata when session is new", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
-      dispatch(makeEvent("rivonclaw.channel-inbound", {
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
         sessionKey: "sk-new",
         message: "Hello",
         channel: "telegram",
@@ -141,7 +168,7 @@ describe("createGatewayEventDispatcher", () => {
     it("defaults channel to 'unknown' when not provided", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
-      dispatch(makeEvent("rivonclaw.channel-inbound", {
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
         sessionKey: "sk-1",
         message: "test",
       }));
@@ -153,12 +180,12 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("does NOT push SSE when sessionKey is missing", () => {
-      dispatch(makeEvent("rivonclaw.channel-inbound", { message: "orphan" }));
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", { message: "orphan" }));
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does NOT push SSE when message is missing", () => {
-      dispatch(makeEvent("rivonclaw.channel-inbound", { sessionKey: "sk-1" }));
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", { sessionKey: "sk-1" }));
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
   });

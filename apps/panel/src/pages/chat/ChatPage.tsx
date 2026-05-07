@@ -86,16 +86,16 @@ const ChatPageInner = observer(function ChatPageInner({
     onOverflowClear: () => controller.resetSessionForOverflow(store.activeSessionKey),
   });
 
-  // --- Background history refresh on session switch ---
+  // --- History hydration on session switch / first active tab open ---
   const prevActiveKeyRef = useRef(store.activeSessionKey);
   useEffect(() => {
     const activeKey = store.activeSessionKey;
-    if (activeKey === prevActiveKeyRef.current) return;
-    prevActiveKeyRef.current = activeKey;
+    const switched = activeKey !== prevActiveKeyRef.current;
+    if (switched) prevActiveKeyRef.current = activeKey;
     if (!controller.gatewayClient || connectionState !== "connected") return;
-    controller.loadHistory();
-    modelControls.refreshModel(activeKey);
-  }, [store.activeSessionKey, connectionState]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!session.historyHydrated) controller.loadHistory();
+    if (switched) modelControls.refreshModel(activeKey);
+  }, [store.activeSessionKey, connectionState, session.historyHydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Auto-scroll ---
   const stickyRef = useRef(true);

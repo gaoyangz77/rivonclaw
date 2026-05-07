@@ -742,6 +742,70 @@ export function mergeTerminalError(
   return [...messages, { role: "assistant", text: error.text, timestamp: error.timestamp }];
 }
 
+const MESSAGE_DEDUPE_WINDOW_MS = 5 * 60_000;
+
+function hasMessageImages(message: ChatMessage): boolean {
+  return Array.isArray(message.images) && message.images.length > 0;
+}
+
+function isToolMessage(message: ChatMessage): boolean {
+  return message.role === "tool-event";
+}
+
+function normalizeMessageTextForDedupe(text: string): string {
+  return cleanMessageText(text).replace(/\s+/g, " ").trim();
+}
+
+function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
+  if (isToolMessage(a) || isToolMessage(b)) return false;
+  if (a.role !== b.role) return false;
+  if (hasMessageImages(a) || hasMessageImages(b)) return false;
+  if (a.idempotencyKey && b.idempotencyKey) return a.idempotencyKey === b.idempotencyKey;
+  const aText = normalizeMessageTextForDedupe(a.text);
+  const bText = normalizeMessageTextForDedupe(b.text);
+  if (!aText || aText !== bText) return false;
+  if (a.channel && b.channel && a.channel !== b.channel) return false;
+  if (a.timestamp > 0 && b.timestamp > 0) {
+    return Math.abs(a.timestamp - b.timestamp) <= MESSAGE_DEDUPE_WINDOW_MS;
+  }
+  return true;
+}
+
+function messageSortTimestamp(message: ChatMessage): number {
+  return typeof message.timestamp === "number" && Number.isFinite(message.timestamp)
+    ? message.timestamp
+    : 0;
+}
+
+function compareChatMessagesByTimeline(
+  a: ChatMessage & { __order?: number },
+  b: ChatMessage & { __order?: number },
+): number {
+  const aTs = messageSortTimestamp(a);
+  const bTs = messageSortTimestamp(b);
+  if (aTs > 0 && bTs > 0 && aTs !== bTs) return aTs - bTs;
+  if (aTs > 0 && bTs <= 0) return 1;
+  if (aTs <= 0 && bTs > 0) return -1;
+  return (a.__order ?? 0) - (b.__order ?? 0);
+}
+
+export function mergeChatMessagesDedup(
+  base: ChatMessage[],
+  incoming: ChatMessage[],
+): ChatMessage[] {
+  const merged: Array<ChatMessage & { __order?: number }> = base.map((message, index) => ({
+    ...message,
+    __order: index,
+  }));
+  for (const message of incoming) {
+    if (merged.some((existing) => areNearDuplicateMessages(existing, message))) {
+      continue;
+    }
+    merged.push({ ...message, __order: merged.length });
+  }
+  return merged.sort(compareChatMessagesByTimeline).map(({ __order: _order, ...message }) => message);
+}
+
 // ---------------------------------------------------------------------------
 // Context overflow detection for model switching
 // ---------------------------------------------------------------------------

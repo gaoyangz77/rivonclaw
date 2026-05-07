@@ -10,6 +10,7 @@ import {
   IMAGE_EXPIRED_PLACEHOLDER,
   STOP_COMMAND_PLACEHOLDER,
   localizeError,
+  mergeChatMessagesDedup,
   mergeTerminalError,
 } from "../../src/pages/chat/chat-utils.js";
 import type { ChatMessage } from "../../src/pages/chat/chat-utils.js";
@@ -408,5 +409,51 @@ describe("mergeTerminalError", () => {
     const result = mergeTerminalError([], { runId: "r1", text: "\u26A0 error", timestamp: 1000 });
     expect(result).toHaveLength(1);
     expect(result[0].text).toBe("\u26A0 error");
+  });
+});
+
+describe("mergeChatMessagesDedup", () => {
+  it("keeps realtime messages in chronological order when history is missing an older assistant reply", () => {
+    const history: ChatMessage[] = [
+      { role: "user", text: "older user", timestamp: 1_000 },
+      { role: "user", text: "new user", timestamp: 3_000 },
+    ];
+    const realtime: ChatMessage[] = [
+      { role: "assistant", text: "older assistant", timestamp: 2_000 },
+    ];
+
+    const result = mergeChatMessagesDedup(history, realtime);
+
+    expect(result.map((message) => message.text)).toEqual([
+      "older user",
+      "older assistant",
+      "new user",
+    ]);
+  });
+
+  it("dedupes realtime external messages that are later returned by history", () => {
+    const realtime: ChatMessage[] = [
+      {
+        role: "user",
+        text: "不用啦。",
+        timestamp: 10_000,
+        isExternal: true,
+        channel: "telegram",
+      },
+    ];
+    const history: ChatMessage[] = [
+      {
+        role: "user",
+        text: "不用啦。",
+        timestamp: 10_100,
+        isExternal: true,
+        channel: "telegram",
+      },
+    ];
+
+    const result = mergeChatMessagesDedup(history, realtime);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("不用啦。");
   });
 });
