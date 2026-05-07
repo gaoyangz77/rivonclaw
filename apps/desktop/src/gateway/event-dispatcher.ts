@@ -47,7 +47,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
       if (p?.sessionKey && p?.message) {
         const session = chatSessions.getByKey(p.sessionKey);
-        if (session?.archivedAt) {
+        if (!session || session.archivedAt) {
           chatSessions.upsert(p.sessionKey, { archivedAt: null });
         }
         broadcastEvent("inbound", {

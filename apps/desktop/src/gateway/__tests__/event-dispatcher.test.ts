@@ -110,7 +110,7 @@ describe("createGatewayEventDispatcher", () => {
       expect(deps.broadcastEvent).toHaveBeenCalled();
     });
 
-    it("does NOT unarchive when session is not archived", () => {
+    it("does NOT write when session is already active", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
       dispatch(makeEvent("rivonclaw.channel-inbound", {
@@ -120,6 +120,22 @@ describe("createGatewayEventDispatcher", () => {
       }));
 
       expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
+    });
+
+    it("creates local chat session metadata when session is new", () => {
+      deps.chatSessions.getByKey.mockReturnValue(undefined);
+
+      dispatch(makeEvent("rivonclaw.channel-inbound", {
+        sessionKey: "sk-new",
+        message: "Hello",
+        channel: "telegram",
+      }));
+
+      expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-new", { archivedAt: null });
+      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
+        sessionKey: "sk-new",
+        channel: "telegram",
+      }));
     });
 
     it("defaults channel to 'unknown' when not provided", () => {
@@ -133,6 +149,7 @@ describe("createGatewayEventDispatcher", () => {
       expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
         channel: "unknown",
       }));
+      expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-1", { archivedAt: null });
     });
 
     it("does NOT push SSE when sessionKey is missing", () => {
