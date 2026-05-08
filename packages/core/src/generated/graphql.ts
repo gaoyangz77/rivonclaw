@@ -503,6 +503,7 @@ export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision
 export interface AffiliateWorkspaceInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   candidateStatus?: InputMaybe<CreatorCandidateStatus>;
+  collaborationProcessingStatus?: InputMaybe<CreatorCollaborationProcessingStatus>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   includePolicies?: InputMaybe<Scalars['Boolean']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
@@ -518,6 +519,7 @@ export interface AffiliateWorkspacePayload {
   campaignProducts: Array<CampaignProduct>;
   campaigns: Array<AffiliateCampaign>;
   candidates: Array<CreatorCandidate>;
+  creatorCollaborations: Array<CreatorCollaboration>;
   creatorRelations: Array<CreatorUserRelation>;
   creatorTags: Array<CreatorTag>;
   searchRuns: Array<CreatorSearchRun>;
@@ -773,6 +775,64 @@ export const CreatorCandidateStatus = {
 } as const;
 
 export type CreatorCandidateStatus = typeof CreatorCandidateStatus[keyof typeof CreatorCandidateStatus];
+/** One creator-product collaboration attempt. If a creator promotes the same product twice, create two collaborations. */
+export interface CreatorCollaboration {
+  campaignId?: Maybe<Scalars['ID']['output']>;
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId: Scalars['ID']['output'];
+  creatorImId?: Maybe<Scalars['String']['output']>;
+  endedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  id: Scalars['ID']['output'];
+  lastAgentActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastInboundMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastInboundMessageId?: Maybe<Scalars['String']['output']>;
+  lastProcessedMessageId?: Maybe<Scalars['String']['output']>;
+  lastProcessedSignalAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lifecycleStage: AffiliateLifecycleStage;
+  nextActionAfter?: Maybe<Scalars['DateTimeISO']['output']>;
+  outreachThreadId?: Maybe<Scalars['ID']['output']>;
+  platformConversationId?: Maybe<Scalars['String']['output']>;
+  processReasons: Array<CreatorCollaborationProcessReason>;
+  processingStatus: CreatorCollaborationProcessingStatus;
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  sampleProvided?: Maybe<Scalars['Boolean']['output']>;
+  shopId: Scalars['ID']['output'];
+  startedAt: Scalars['DateTimeISO']['output'];
+  targetCollaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Typed backend reasons explaining why a creator collaboration is in its processing state. */
+export const CreatorCollaborationProcessReason = {
+  ContentPublished: 'CONTENT_PUBLISHED',
+  CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
+  CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
+  OrderAttributed: 'ORDER_ATTRIBUTED',
+  ProductContextMissing: 'PRODUCT_CONTEXT_MISSING',
+  ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
+  SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
+  SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
+  SampleShippedContentFollowUpDue: 'SAMPLE_SHIPPED_CONTENT_FOLLOW_UP_DUE',
+  TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
+  UserLevelBlocked: 'USER_LEVEL_BLOCKED'
+} as const;
+
+export type CreatorCollaborationProcessReason = typeof CreatorCollaborationProcessReason[keyof typeof CreatorCollaborationProcessReason];
+/** Backend-materialized state that tells Desktop/agents whether a creator collaboration needs processing. */
+export const CreatorCollaborationProcessingStatus = {
+  Blocked: 'BLOCKED',
+  Done: 'DONE',
+  NeedProcess: 'NEED_PROCESS',
+  WaitingApproval: 'WAITING_APPROVAL',
+  WaitingCreator: 'WAITING_CREATOR',
+  WaitingPlatform: 'WAITING_PLATFORM',
+  WaitingStaff: 'WAITING_STAFF'
+} as const;
+
+export type CreatorCollaborationProcessingStatus = typeof CreatorCollaborationProcessingStatus[keyof typeof CreatorCollaborationProcessingStatus];
 export interface CreatorMarketplaceSearchParams {
   advancedFilters?: Maybe<CreatorSearchAdvancedFilter>;
   affiliateData?: Maybe<CreatorSearchAffiliateDataFilter>;
@@ -3241,6 +3301,8 @@ export interface Query {
   checkUpdate?: Maybe<UpdatePayload>;
   /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
   creatorCandidates: Array<CreatorCandidate>;
+  /** Read creator collaborations, including backend-materialized NEED_PROCESS work for affiliate agents. */
+  creatorCollaborations: Array<CreatorCollaboration>;
   /** Read concrete creator marketplace search runs from Mongo state. */
   creatorSearchRuns: Array<CreatorSearchRun>;
   /** Read shop-scoped creator tags used by segmentation and approval policies. */
@@ -3416,6 +3478,11 @@ export interface QueryCheckUpdateArgs {
 
 export interface QueryCreatorCandidatesArgs {
   input: ReadCreatorCandidatesInput;
+}
+
+
+export interface QueryCreatorCollaborationsArgs {
+  input: ReadCreatorCollaborationsInput;
 }
 
 
@@ -3778,6 +3845,19 @@ export interface ReadCreatorCandidatesInput {
   sourceSearchRunId?: InputMaybe<Scalars['ID']['input']>;
   sourceType?: InputMaybe<CreatorCandidateSourceType>;
   status?: InputMaybe<CreatorCandidateStatus>;
+}
+
+export interface ReadCreatorCollaborationsInput {
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  dueOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  processReasons?: InputMaybe<Array<CreatorCollaborationProcessReason>>;
+  processingStatus?: InputMaybe<CreatorCollaborationProcessingStatus>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 export interface ReadCreatorRelationsInput {
