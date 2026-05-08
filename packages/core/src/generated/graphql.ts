@@ -2281,6 +2281,10 @@ export interface InventoryAnalysisOfficialPlatformWarehouseStock {
   platformWarehouseId?: Maybe<Scalars['String']['output']>;
   /** Authoritative platform warehouse quantity. */
   quantity: Scalars['Int']['output'];
+  /** Units being received by this platform warehouse when available. */
+  receivingQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Units shipped toward this platform warehouse when available. */
+  shippedQuantity?: Maybe<Scalars['Int']['output']>;
   /** Shop alias/name. */
   shopAlias?: Maybe<Scalars['String']['output']>;
   /** Shop Mongo ID. */
@@ -2363,6 +2367,8 @@ export interface InventoryAnalysisThirdPartyWmsWarehouseStock {
   inShopQuantities: Array<InventoryAnalysisInShopWarehouseQuantity>;
   /** Units currently in transit to this WMS warehouse when available. */
   inTransitQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Whether the linked canonical inventory_good is ACTIVE in MongoDB. */
+  isActive: Scalars['Boolean']['output'];
   /** Authoritative WMS warehouse quantity when available. */
   quantity?: Maybe<Scalars['Int']['output']>;
   /** Source system label, such as YEJOIN_WMS. */
@@ -4192,7 +4198,7 @@ export interface Subscription {
   affiliateConversationSignal: AffiliateConversationSignal;
   /** Streams ephemeral CS conversation signals to desktop clients. Missing signals are recovered by Airflow/platform pending-conversation checks, not by Mongo replay. */
   csConversationSignal: CsConversationSignal;
-  /** Streams CS escalation side-effect events to desktop actuators. On connect, also yields currently pending events for replay. */
+  /** Streams newly-published CS escalation side-effect events to desktop actuators. Missed events are replayed by Airflow/admin publish mutations, not by subscription connect. */
   csEscalationEvent: CsEscalationEventDelivery;
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
   oauthComplete: OAuthCompletePayload;
