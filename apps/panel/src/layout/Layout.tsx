@@ -204,7 +204,7 @@ export const Layout = observer(function Layout({
     runtimeStatus.deviceId !== "" &&
     entityStore.shops.some((s) => {
       const cs = s.services?.customerService;
-      return cs?.enabled && cs.csDeviceId === runtimeStatus.deviceId && cs.assembledPrompt;
+      return s.handlesCustomerServiceOnDevice(runtimeStatus.deviceId) && cs?.assembledPrompt;
     });
   const customerServiceRoutingProblems = entityStore.shops
     .map((shop) => {

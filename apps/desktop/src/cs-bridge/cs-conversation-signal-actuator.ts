@@ -31,7 +31,7 @@ export async function handleCsConversationSignal(
     return;
   }
 
-  if (cs.csDeviceId !== deviceId) {
+  if (!shop.handlesCustomerServiceOnDevice(deviceId)) {
     log.info(
       `Ignoring CS signal for shop ${signal.platformShopId}: ` +
       `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,

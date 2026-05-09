@@ -71,7 +71,13 @@ export const ShopModel = types.model("Shop", {
   accessTokenExpiresAt: types.maybeNull(types.string),
   refreshTokenExpiresAt: types.maybeNull(types.string),
   services: types.maybeNull(ShopServiceConfigModel),
-});
+}).views((self) => ({
+  handlesCustomerServiceOnDevice(deviceId: string | null | undefined): boolean {
+    if (!deviceId) return false;
+    const cs = self.services?.customerService;
+    return !!(cs?.enabled && cs.csDeviceId === deviceId);
+  },
+}));
 
 export interface Shop extends Instance<typeof ShopModel> {}
 export interface CustomerServiceConfig extends Instance<typeof CustomerServiceConfigModel> {}

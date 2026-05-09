@@ -138,12 +138,12 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
             {t("ecommerce.shopDrawer.aiCS.csBindDevice")}
           </span>
           <span className="form-hint">{t("ecommerce.shopDrawer.aiCS.csBindDeviceHint")}</span>
-          {shop.services?.customerService?.csDeviceId && shop.services?.customerService?.csDeviceId !== myDeviceId && (
+          {shop.services?.customerService?.csDeviceId && !shop.handlesCustomerServiceOnDevice(myDeviceId) && (
             <span className="badge badge-warning shop-badge-inline">
               {t("ecommerce.shopDrawer.aiCS.csOtherDevice")}
             </span>
           )}
-          {shop.services?.customerService?.csDeviceId && shop.services?.customerService?.csDeviceId === myDeviceId && (
+          {shop.handlesCustomerServiceOnDevice(myDeviceId) && (
             <span className="badge badge-success shop-badge-inline">
               {t("ecommerce.shopDrawer.aiCS.csThisDevice")}
             </span>
@@ -152,9 +152,9 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         <label className="toggle-switch">
           <input
             type="checkbox"
-            checked={shop.services?.customerService?.csDeviceId === myDeviceId}
+            checked={shop.handlesCustomerServiceOnDevice(myDeviceId)}
             onChange={() => {
-              if (shop.services?.customerService?.csDeviceId === myDeviceId) {
+              if (shop.handlesCustomerServiceOnDevice(myDeviceId)) {
                 onUnbindDevice(shop.id);
               } else {
                 onBindDevice(shop.id);
@@ -163,10 +163,10 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
             disabled={togglingBindShopId === shop.id || !myDeviceId}
           />
           <span
-            className={`toggle-track ${shop.services?.customerService?.csDeviceId === myDeviceId ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
+            className={`toggle-track ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
           >
             <span
-              className={`toggle-thumb ${shop.services?.customerService?.csDeviceId === myDeviceId ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+              className={`toggle-thumb ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-thumb-on" : "toggle-thumb-off"}`}
             />
           </span>
         </label>

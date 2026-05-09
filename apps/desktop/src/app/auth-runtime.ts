@@ -67,10 +67,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
 
   const getActiveCustomerServiceShopIds = (): string[] =>
     rootStore.shops
-      .filter((shop: any) => {
-        const cs = shop.services?.customerService;
-        return !!(cs?.enabled && cs.csDeviceId === deviceId);
-      })
+      .filter((shop: any) => shop.handlesCustomerServiceOnDevice(deviceId))
       .map((shop: any) => shop.id)
       .filter((shopId: unknown): shopId is string => typeof shopId === "string" && shopId.length > 0);
 

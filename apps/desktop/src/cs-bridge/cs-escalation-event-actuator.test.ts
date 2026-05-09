@@ -83,7 +83,7 @@ const delivery: CsEscalationEventDeliveryPayload = {
   },
 };
 
-function seedShop(): void {
+function seedShop(csDeviceId: string | null = "device-001"): void {
   rootStore.ingestGraphQLResponse({
     shops: [
       {
@@ -101,7 +101,7 @@ function seedShop(): void {
           customerService: {
             enabled: true,
             businessPrompt: "",
-            csDeviceId: null,
+            csDeviceId,
             csProviderOverride: null,
             csModelOverride: null,
             escalationChannelId: "telegram:acct_cloud_send",
@@ -178,5 +178,25 @@ describe("handleCsEscalationEvent", () => {
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not claim escalation events assigned to a different device", async () => {
+    seedShop("other-device");
+    const bridge = new CustomerServiceBridge({
+      gatewayId: "test-gateway",
+      defaultRunProfileId: "CUSTOMER_SERVICE",
+    });
+    mockGetCsBridge.mockReturnValue(bridge);
+
+    const graphqlFetch = vi.fn();
+
+    await handleCsEscalationEvent(
+      { graphqlFetch } as any,
+      "device-001",
+      delivery,
+    );
+
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(mockRpcRequest).not.toHaveBeenCalled();
   });
 });

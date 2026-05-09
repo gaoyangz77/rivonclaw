@@ -24,7 +24,7 @@ export const ShopModel = ShopModelBase.views((self) => ({
     channelAccounts: readonly ChannelAccountForRouting[];
   }): CustomerServiceRoutingIssue | null {
     const cs = self.services?.customerService;
-    if (!cs?.enabled || !params.currentDeviceId || cs.csDeviceId !== params.currentDeviceId) return null;
+    if (!cs?.enabled || !self.handlesCustomerServiceOnDevice(params.currentDeviceId)) return null;
 
     const escalationChannelId = cs.escalationChannelId?.trim();
     if (!escalationChannelId) return null;

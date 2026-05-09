@@ -1,5 +1,6 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { AuthSessionManager } from "../auth/session.js";
+import { rootStore } from "../app/store/desktop-store.js";
 import {
   CS_ACK_ESCALATION_EVENT_MUTATION,
   CS_CLAIM_ESCALATION_EVENT_MUTATION,
@@ -11,6 +12,10 @@ const log = createLogger("cs-escalation-actuator");
 
 const localRetryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const inFlightEvents = new Set<string>();
+
+function findEscalationShop(delivery: CsEscalationEventDeliveryPayload): any | undefined {
+  return rootStore.shops.find((shop: any) => shop.id === delivery.escalation.shopId);
+}
 
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -62,6 +67,21 @@ export async function handleCsEscalationEvent(
 ): Promise<void> {
   const { event } = delivery;
   if (inFlightEvents.has(event.id)) return;
+
+  const shop = findEscalationShop(delivery);
+  const cs = shop?.services?.customerService;
+  if (!shop || !cs?.enabled) {
+    log.info(`Ignoring CS escalation event ${event.id} for unavailable/disabled shop ${delivery.escalation.shopId}`);
+    return;
+  }
+
+  if (!shop.handlesCustomerServiceOnDevice(deviceId)) {
+    log.info(
+      `Ignoring CS escalation event ${event.id} for shop ${shop.platformShopId ?? delivery.escalation.shopId}: ` +
+      `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,
+    );
+    return;
+  }
 
   const bridge = getCsBridge();
   if (!bridge) {
