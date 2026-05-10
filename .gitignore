@@ -7,6 +7,8 @@ dist/
 .vscode/
 .claude/
 .codex/
+.agents/
+skills-lock.json
 *.tsbuildinfo
 .DS_Store
 server/

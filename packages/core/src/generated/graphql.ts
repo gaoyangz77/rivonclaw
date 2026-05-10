@@ -500,6 +500,26 @@ export const AffiliateSampleReviewDecision = {
 } as const;
 
 export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision[keyof typeof AffiliateSampleReviewDecision];
+/** Affiliate creator-management settings per shop (user-configurable) */
+export interface AffiliateServiceSettings {
+  /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Null = no device assigned. */
+  csDeviceId?: Maybe<Scalars['String']['output']>;
+  /** Whether affiliate creator-management inbound automation is enabled for this shop. */
+  enabled: Scalars['Boolean']['output'];
+  /** RunProfile ID for affiliate creator-management agent sessions. */
+  runProfileId?: Maybe<Scalars['String']['output']>;
+}
+
+/** Affiliate creator-management settings patch. Omit a field to keep it, pass null to clear it, or pass a value to set it. */
+export interface AffiliateServiceSettingsInput {
+  /** Device ID of the desktop instance handling affiliate inbound signals. Omit to keep, null or empty string to clear. */
+  csDeviceId?: InputMaybe<Scalars['String']['input']>;
+  /** Affiliate service enabled flag. Omit to keep, null to clear to false, true/false to set. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** RunProfile ID for affiliate sessions. Omit to keep, null or empty string to clear. */
+  runProfileId?: InputMaybe<Scalars['String']['input']>;
+}
+
 export interface AffiliateWorkspaceInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   candidateStatus?: InputMaybe<CreatorCandidateStatus>;
@@ -508,7 +528,10 @@ export interface AffiliateWorkspaceInput {
   includePolicies?: InputMaybe<Scalars['Boolean']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  platformConversationId?: InputMaybe<Scalars['String']['input']>;
   proposalStatus?: InputMaybe<ActionProposalStatus>;
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   shopId: Scalars['ID']['input'];
 }
 
@@ -522,6 +545,7 @@ export interface AffiliateWorkspacePayload {
   creatorCollaborations: Array<CreatorCollaboration>;
   creatorRelations: Array<CreatorUserRelation>;
   creatorTags: Array<CreatorTag>;
+  sampleApplicationRecords: Array<SampleApplicationRecord>;
   searchRuns: Array<CreatorSearchRun>;
 }
 
@@ -695,6 +719,78 @@ export interface CaptchaResponse {
 /** Input for claiming a CS escalation event for local execution */
 export interface ClaimCsEscalationEventInput {
   eventId: Scalars['ID']['input'];
+}
+
+/** Creator content obligation segment after sample delivery or collaboration acceptance. */
+export const ContentFulfillmentStatus = {
+  /** Content follow-up no longer applies. */
+  Cancelled: 'CANCELLED',
+  /** Platform or agent detected a candidate content item. */
+  ContentDetected: 'CONTENT_DETECTED',
+  /** Content deadline passed without qualifying content. */
+  Overdue: 'OVERDUE',
+  /** Creator has not posted qualifying content yet. */
+  Pending: 'PENDING',
+  /** Seller/platform waived the content obligation. */
+  Waived: 'WAIVED'
+} as const;
+
+export type ContentFulfillmentStatus = typeof ContentFulfillmentStatus[keyof typeof ContentFulfillmentStatus];
+/** Local OpenClaw-session anchor used to bound a platform conversation delta without maintaining an external cursor. */
+export interface ConversationMessageDeltaAnchorInput {
+  /** Visible text of the local OpenClaw session message used as the seen-after anchor. The backend uses it as a fuzzy containment check against platform message text. */
+  sessionMessageText?: InputMaybe<Scalars['String']['input']>;
+  /** Timestamp in milliseconds from the local OpenClaw session message used as the seen-after anchor. */
+  sessionMessageTimestampMs?: InputMaybe<Scalars['Float']['input']>;
+}
+
+/** How the backend matched the local session anchor against platform messages. */
+export const ConversationMessageDeltaAnchorMatchType = {
+  ContentAndTime: 'CONTENT_AND_TIME',
+  ContentOnly: 'CONTENT_ONLY',
+  None: 'NONE'
+} as const;
+
+export type ConversationMessageDeltaAnchorMatchType = typeof ConversationMessageDeltaAnchorMatchType[keyof typeof ConversationMessageDeltaAnchorMatchType];
+/** Whether a platform conversation delta was bounded cleanly. */
+export const ConversationMessageDeltaCompleteness = {
+  AnchorNotFound: 'ANCHOR_NOT_FOUND',
+  Complete: 'COMPLETE',
+  CurrentMessageNotFound: 'CURRENT_MESSAGE_NOT_FOUND',
+  PageLimitReached: 'PAGE_LIMIT_REACHED'
+} as const;
+
+export type ConversationMessageDeltaCompleteness = typeof ConversationMessageDeltaCompleteness[keyof typeof ConversationMessageDeltaCompleteness];
+/** Debug/quality metadata for a conversation message delta. */
+export interface ConversationMessageDeltaMeta {
+  /** Unix seconds of the matched platform anchor message. */
+  anchorCreateTime?: Maybe<Scalars['Int']['output']>;
+  anchorMatchType: ConversationMessageDeltaAnchorMatchType;
+  anchorMatched: Scalars['Boolean']['output'];
+  anchorMessageId?: Maybe<Scalars['String']['output']>;
+  completeness: ConversationMessageDeltaCompleteness;
+  currentMessageFound: Scalars['Boolean']['output'];
+  fetchedMessageCount: Scalars['Int']['output'];
+  pageLimitReached: Scalars['Boolean']['output'];
+}
+
+/** Create a provider-backed payment. */
+export interface CreatePaymentGraphqlInput {
+  /** Amount in the currency minor unit: cents for USD, fen for CNY. */
+  amountMinor: Scalars['Int']['input'];
+  /** Stripe Checkout cancel URL. Required for STRIPE. */
+  cancelUrl?: InputMaybe<Scalars['String']['input']>;
+  /** Payment currency. STRIPE currently expects USD; LAKALA expects CNY. */
+  currency: Currency;
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** Optional caller-supplied merchant order ID. Must be unique per provider. */
+  merchantOrderId?: InputMaybe<Scalars['String']['input']>;
+  /** Payment provider to use. STRIPE for USD cards, LAKALA for CNY QR code. */
+  provider: PaymentProviderName;
+  /** Short order title shown to the payment provider. */
+  subject: Scalars['String']['input'];
+  /** Stripe Checkout success URL. Required for STRIPE. */
+  successUrl?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** Input for creating a new RunProfile */
@@ -1268,6 +1364,12 @@ export interface CustomerServiceCreateConversationResult {
   conversationId: Scalars['String']['output'];
 }
 
+/** Bounded customer-service conversation delta from a local OpenClaw session anchor through a current inbound message. */
+export interface CustomerServiceMessageDelta {
+  items: Array<CustomerServiceMessageSummary>;
+  meta: ConversationMessageDeltaMeta;
+}
+
 /** Preview of the latest message in a conversation */
 export interface CustomerServiceMessagePreview {
   /** JSON-stringified message content per message type */
@@ -1292,6 +1394,8 @@ export interface CustomerServiceMessageSender {
 export interface CustomerServiceMessageSummary {
   /** Unix seconds */
   createTime?: Maybe<Scalars['Int']['output']>;
+  /** Platform message ID. */
+  messageId?: Maybe<Scalars['String']['output']>;
   sender?: Maybe<CustomerServiceMessageSender>;
   /** Human-readable message body. For TEXT messages the JSON wire content (`{"content":"..."}`) is unwrapped to the inner string. For rich cards (PRODUCT_CARD / ORDER_CARD / LOGISTICS_CARD) this is the platform-provided plaintext summary when available, otherwise the raw content string. */
   text?: Maybe<Scalars['String']['output']>;
@@ -1411,6 +1515,23 @@ export interface DecideActionProposalInput {
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
   status: ActionProposalStatus;
+}
+
+/** Affiliate message */
+export interface EcomAffiliateMessage {
+  content?: Maybe<Scalars['String']['output']>;
+  conversationId?: Maybe<Scalars['String']['output']>;
+  conversationIndex?: Maybe<Scalars['String']['output']>;
+  createTime?: Maybe<Scalars['Int']['output']>;
+  messageId?: Maybe<Scalars['String']['output']>;
+  senderId?: Maybe<Scalars['String']['output']>;
+  type?: Maybe<Scalars['String']['output']>;
+}
+
+/** Bounded affiliate creator conversation delta from a local OpenClaw session anchor through a current inbound message. */
+export interface EcomAffiliateMessageDelta {
+  items: Array<EcomAffiliateMessage>;
+  meta: ConversationMessageDeltaMeta;
 }
 
 /** Aftersale eligibility for an order */
@@ -2638,6 +2759,8 @@ export interface Mutation {
   affiliatePublishConversationSignal: AffiliateConversationSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
   applyCreatorTag: CreatorUserRelation;
+  /** Create a payment through Stripe or Lakala. */
+  createPayment: Payment;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a new surface */
@@ -2704,8 +2827,12 @@ export interface Mutation {
   publishUpdate: Scalars['Boolean']['output'];
   /** Redeem a service credit to a shop */
   redeemCredit: Shop;
+  /** Query the provider and refresh a payment's status. */
+  refreshPayment: Payment;
   /** Refresh an expired access token */
   refreshToken: AuthPayload;
+  /** Refund a Stripe or Lakala payment. */
+  refundPayment: Payment;
   /** Register a new user account */
   register: AuthPayload;
   /** Remove a shop-scoped tag from a user-level creator relation. */
@@ -2766,6 +2893,11 @@ export interface MutationAffiliatePublishConversationSignalArgs {
 
 export interface MutationApplyCreatorTagArgs {
   input: ApplyCreatorTagInput;
+}
+
+
+export interface MutationCreatePaymentArgs {
+  input: CreatePaymentGraphqlInput;
 }
 
 
@@ -2969,8 +3101,18 @@ export interface MutationRedeemCreditArgs {
 }
 
 
+export interface MutationRefreshPaymentArgs {
+  paymentId: Scalars['ID']['input'];
+}
+
+
 export interface MutationRefreshTokenArgs {
   refreshToken: Scalars['String']['input'];
+}
+
+
+export interface MutationRefundPaymentArgs {
+  input: RefundPaymentGraphqlInput;
 }
 
 
@@ -3110,6 +3252,77 @@ export interface PaginatedBrowserProfiles {
   total: Scalars['Int']['output'];
 }
 
+/** Unified payment record across payment providers. */
+export interface Payment {
+  /** Amount in the currency minor unit: cents for USD, fen for CNY. */
+  amountMinor: Scalars['Int']['output'];
+  /** Redirect checkout URL when the provider creates one. */
+  checkoutUrl?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  currency: Currency;
+  description?: Maybe<Scalars['String']['output']>;
+  expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  id: Scalars['ID']['output'];
+  /** Last provider error code or message. */
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastProviderEventAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** EasyClaw merchant order ID sent to the provider. */
+  merchantOrderId: Scalars['String']['output'];
+  method: PaymentMethod;
+  paidAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  provider: PaymentProviderName;
+  /** Provider order/transaction ID, such as Lakala transactionId. */
+  providerOrderId?: Maybe<Scalars['String']['output']>;
+  /** Provider primary payment/session ID, such as Stripe checkout session ID. */
+  providerPaymentId?: Maybe<Scalars['String']['output']>;
+  /** Raw QR code payload when the provider returns one. */
+  qrCode?: Maybe<Scalars['String']['output']>;
+  /** QR code URL when the provider returns one. */
+  qrCodeUrl?: Maybe<Scalars['String']['output']>;
+  status: PaymentStatus;
+  subject: Scalars['String']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+}
+
+/** Public, limited checkout status for a payment callback page. */
+export interface PaymentCheckoutStatus {
+  amountMinor: Scalars['Int']['output'];
+  currency: Currency;
+  method: PaymentMethod;
+  paidAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  provider: PaymentProviderName;
+  status: PaymentStatus;
+  subject: Scalars['String']['output'];
+  updatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+/** Customer-facing payment method family. */
+export const PaymentMethod = {
+  Card: 'CARD',
+  QrCode: 'QR_CODE'
+} as const;
+
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+/** External payment processor used for a payment. */
+export const PaymentProviderName = {
+  Lakala: 'LAKALA',
+  Stripe: 'STRIPE'
+} as const;
+
+export type PaymentProviderName = typeof PaymentProviderName[keyof typeof PaymentProviderName];
+/** Unified payment lifecycle state. */
+export const PaymentStatus = {
+  Canceled: 'CANCELED',
+  Failed: 'FAILED',
+  PartiallyRefunded: 'PARTIALLY_REFUNDED',
+  Pending: 'PENDING',
+  Refunded: 'REFUNDED',
+  RequiresPayment: 'REQUIRES_PAYMENT',
+  Succeeded: 'SUCCEEDED'
+} as const;
+
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 export interface Plan {
   currency: Scalars['String']['output'];
   planDetail: Array<PlanDetail>;
@@ -3287,6 +3500,8 @@ export interface Query {
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
+  /** Get a bounded affiliate creator conversation delta from a local OpenClaw-session anchor through the current inbound message. */
+  affiliateConversationMessageDelta: EcomAffiliateMessageDelta;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
   affiliateWorkspace: AffiliateWorkspacePayload;
   /** Get a single browser profile by ID */
@@ -3319,6 +3534,8 @@ export interface Query {
   ecommerceGetCSPerformance: Array<CustomerServicePerformance>;
   /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
+  /** Get a bounded customer-service conversation delta from a local OpenClaw-session anchor through the current inbound message. */
+  ecommerceGetConversationMessageDelta: CustomerServiceMessageDelta;
   /** Get messages of a conversation */
   ecommerceGetConversationMessages: CustomerServiceMessageSummaryPage;
   /** Get conversations for a shop as a flat summary list. Pagination is handled internally by the backend. */
@@ -3381,10 +3598,14 @@ export interface Query {
   readInventoryGoodMappings: Array<InventoryGoodMapping>;
   /** Read canonical stockable inventory goods. Use input.id for one row, or filters for a list. */
   readInventoryGoods: Array<InventoryGood>;
+  /** Read payments for the current user. */
+  readPayments: Array<Payment>;
   /** Read active shop SKU coverage against canonical InventoryGood. Returns unrecognized active shop SKUs and active InventoryGoods that this shop does not currently resolve to. */
   readShopInventoryGoodCoverage: ShopInventoryGoodCoveragePayload;
   /** Read shop-scoped platform warehouses. Use input.id for one row, or filters for a list. */
   readShopWarehouses: Array<ShopWarehouse>;
+  /** Read a public, limited Stripe Checkout status by Checkout Session ID. */
+  readStripeCheckoutStatus?: Maybe<PaymentCheckoutStatus>;
   /** Read canonical warehouses. Use input.id for one row, or filters for a list. */
   readWarehouses: Array<Warehouse>;
   /** Read WMS accounts. Use input.id for one account, or filters for a list. Credentials are never returned. */
@@ -3442,6 +3663,15 @@ export interface QueryAffiliateApprovalPoliciesArgs {
 
 export interface QueryAffiliateCampaignsArgs {
   input: ReadAffiliateCampaignsInput;
+}
+
+
+export interface QueryAffiliateConversationMessageDeltaArgs {
+  anchor?: InputMaybe<ConversationMessageDeltaAnchorInput>;
+  conversationId: Scalars['String']['input'];
+  currentMessageId: Scalars['String']['input'];
+  maxPages?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['String']['input'];
 }
 
 
@@ -3527,6 +3757,16 @@ export interface QueryEcommerceGetCsPerformanceArgs {
 
 export interface QueryEcommerceGetConversationDetailsArgs {
   conversationId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetConversationMessageDeltaArgs {
+  anchor?: InputMaybe<ConversationMessageDeltaAnchorInput>;
+  conversationId: Scalars['String']['input'];
+  currentMessageId: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  maxPages?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
 }
 
@@ -3710,6 +3950,11 @@ export interface QueryReadInventoryGoodsArgs {
 }
 
 
+export interface QueryReadPaymentsArgs {
+  input?: InputMaybe<ReadPaymentsInput>;
+}
+
+
 export interface QueryReadShopInventoryGoodCoverageArgs {
   input: ReadShopInventoryGoodCoverageInput;
 }
@@ -3717,6 +3962,11 @@ export interface QueryReadShopInventoryGoodCoverageArgs {
 
 export interface QueryReadShopWarehousesArgs {
   input: ReadShopWarehousesInput;
+}
+
+
+export interface QueryReadStripeCheckoutStatusArgs {
+  sessionId: Scalars['String']['input'];
 }
 
 
@@ -3917,6 +4167,12 @@ export interface ReadInventoryGoodsInput {
   status?: InputMaybe<InventoryGoodStatus>;
 }
 
+/** Read payments by ID, merchant order ID, or list recent payments. */
+export interface ReadPaymentsInput {
+  id?: InputMaybe<Scalars['ID']['input']>;
+  merchantOrderId?: InputMaybe<Scalars['String']['input']>;
+}
+
 /** Read active shop SKU coverage against canonical InventoryGood identity. */
 export interface ReadShopInventoryGoodCoverageInput {
   /** Shop Mongo ID to audit. */
@@ -3961,6 +4217,15 @@ export interface ReadWmsAccountsInput {
   provider?: InputMaybe<WmsAccountProvider>;
   /** Filter by lifecycle status. Defaults to ACTIVE when omitted. */
   status?: InputMaybe<WmsAccountStatus>;
+}
+
+/** Refund a provider-backed payment. */
+export interface RefundPaymentGraphqlInput {
+  /** Refund amount in minor units. Defaults to the full payment amount. */
+  amountMinor?: InputMaybe<Scalars['Int']['input']>;
+  paymentId: Scalars['ID']['input'];
+  /** Optional caller-supplied refund order ID. Must be unique per provider refund. */
+  refundOrderId?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** Registration input */
@@ -4017,6 +4282,65 @@ export interface RunProfile {
   userId?: Maybe<Scalars['String']['output']>;
 }
 
+/** Sample application state from TikTok Shop affiliate workflows. */
+export interface SampleApplicationRecord {
+  carrier?: Maybe<Scalars['String']['output']>;
+  /** Content obligation segment after the creator has or should have received the sample. */
+  contentFulfillmentStatus?: Maybe<ContentFulfillmentStatus>;
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  id: Scalars['ID']['output'];
+  platformApplicationId: Scalars['String']['output'];
+  /** Raw TikTok application status. Use normalized status/shipment/content fields for business logic. */
+  platformApplicationStatus?: Maybe<TikTokSampleApplicationPlatformStatus>;
+  /** Raw TikTok content fulfillment status. Use normalized contentFulfillmentStatus for business logic. */
+  platformContentFulfillmentStatus?: Maybe<TikTokSampleContentFulfillmentPlatformStatus>;
+  platformFulfillmentId?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  /** Shipment segment after sample approval: warehouse allocation, carrier handoff, delivery, return, or cancellation. */
+  shipmentStatus?: Maybe<SampleShipmentStatus>;
+  shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  shopId: Scalars['ID']['output'];
+  status: SampleApplicationStatus;
+  trackingNumber?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Seller-side sample application review segment before shipment and content follow-up. */
+export const SampleApplicationStatus = {
+  /** Seller approved the sample application; shipment can now be prepared. */
+  Approved: 'APPROVED',
+  /** Application was cancelled before completion. */
+  Cancelled: 'CANCELLED',
+  /** Application can no longer proceed because the review or fulfillment window expired. */
+  Expired: 'EXPIRED',
+  /** Seller has not made the sample request review decision yet. */
+  PendingReview: 'PENDING_REVIEW',
+  /** Seller rejected the request during application review. */
+  Rejected: 'REJECTED'
+} as const;
+
+export type SampleApplicationStatus = typeof SampleApplicationStatus[keyof typeof SampleApplicationStatus];
+/** Seller/warehouse shipment segment after a sample application is approved. */
+export const SampleShipmentStatus = {
+  /** Shipment was cancelled after application approval. */
+  Cancelled: 'CANCELLED',
+  /** Package was delivered to the creator; content follow-up can start. */
+  Delivered: 'DELIVERED',
+  /** Carrier or warehouse reported delivery failure. */
+  DeliveryFailed: 'DELIVERY_FAILED',
+  /** Shipment work has not started yet. */
+  Pending: 'PENDING',
+  /** Inventory/warehouse allocation is complete and ready to leave. */
+  ReadyToShip: 'READY_TO_SHIP',
+  /** Sample was returned after shipment. */
+  Returned: 'RETURNED',
+  /** Package has been handed to carrier or platform logistics. */
+  Shipped: 'SHIPPED'
+} as const;
+
+export type SampleShipmentStatus = typeof SampleShipmentStatus[keyof typeof SampleShipmentStatus];
 /** A one-time service credit (top-up) that can be redeemed to a shop */
 export interface ServiceCredit {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -4159,6 +4483,7 @@ export const ShopRegion = {
 export type ShopRegion = typeof ShopRegion[keyof typeof ShopRegion];
 /** Per-shop service feature toggles */
 export interface ShopServiceConfig {
+  affiliateService: AffiliateServiceSettings;
   customerService: CustomerServiceSettings;
   customerServiceBilling: CustomerServiceBilling;
   wms: WmsSettings;
@@ -4166,6 +4491,7 @@ export interface ShopServiceConfig {
 
 /** Input for updating per-shop service toggles */
 export interface ShopServiceConfigInput {
+  affiliateService?: InputMaybe<AffiliateServiceSettingsInput>;
   customerService?: InputMaybe<CustomerServiceSettingsInput>;
   wms?: InputMaybe<WmsSettingsInput>;
 }
@@ -4378,6 +4704,39 @@ export const SystemSurface = {
 } as const;
 
 export type SystemSurface = typeof SystemSurface[keyof typeof SystemSurface];
+/** Raw TikTok sample application status values, preserved separately from normalized seller lifecycle status. */
+export const TikTokSampleApplicationPlatformStatus = {
+  AwaitingShipment: 'AWAITING_SHIPMENT',
+  Completed: 'COMPLETED',
+  ContentPending: 'CONTENT_PENDING',
+  DelOpenCollab: 'DEL_OPEN_COLLAB',
+  OpsCancelled: 'OPS_CANCELLED',
+  OpsCompleted: 'OPS_COMPLETED',
+  OpsFailed: 'OPS_FAILED',
+  OverdueCancelled: 'OVERDUE_CANCELLED',
+  Pending: 'PENDING',
+  RejectCancelled: 'REJECT_CANCELLED',
+  SellerNotShipCancelled: 'SELLER_NOT_SHIP_CANCELLED',
+  Shipped: 'SHIPPED',
+  UnfulfillableCancelled: 'UNFULFILLABLE_CANCELLED',
+  UnfulfillCancelled: 'UNFULFILL_CANCELLED',
+  WithdrawCancelled: 'WITHDRAW_CANCELLED'
+} as const;
+
+export type TikTokSampleApplicationPlatformStatus = typeof TikTokSampleApplicationPlatformStatus[keyof typeof TikTokSampleApplicationPlatformStatus];
+/** Raw TikTok sample content fulfillment status values. */
+export const TikTokSampleContentFulfillmentPlatformStatus = {
+  Cancelled: 'CANCELLED',
+  Exempted: 'EXEMPTED',
+  Failed: 'FAILED',
+  Ongoing: 'ONGOING',
+  Overdue: 'OVERDUE',
+  Pending: 'PENDING',
+  Succeed: 'SUCCEED',
+  Suspend: 'SUSPEND'
+} as const;
+
+export type TikTokSampleContentFulfillmentPlatformStatus = typeof TikTokSampleContentFulfillmentPlatformStatus[keyof typeof TikTokSampleContentFulfillmentPlatformStatus];
 /** Tool functional category */
 export const ToolCategory = {
   AffiliateAction: 'AFFILIATE_ACTION',
