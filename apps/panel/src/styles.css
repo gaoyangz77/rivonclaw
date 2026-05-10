@@ -8914,6 +8914,138 @@ html[lang="zh"] .acct-tool-chips {
   padding: 12px 14px;
 }
 
+/* Affiliate proposal review */
+
+.affiliate-proposal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.affiliate-proposal-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-proposal-toolbar .btn {
+  flex-shrink: 0;
+}
+
+.affiliate-proposal-count {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.affiliate-proposal-empty {
+  padding: 18px 14px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.affiliate-proposal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.affiliate-proposal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-bg);
+}
+
+.affiliate-proposal-card-head,
+.affiliate-proposal-title-wrap,
+.affiliate-proposal-meta,
+.affiliate-proposal-policy,
+.affiliate-proposal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.affiliate-proposal-card-head {
+  justify-content: space-between;
+}
+
+.affiliate-proposal-title-wrap,
+.affiliate-proposal-meta,
+.affiliate-proposal-policy {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.affiliate-proposal-time,
+.affiliate-proposal-meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.affiliate-proposal-summary {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.affiliate-proposal-preview {
+  max-height: 96px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.affiliate-proposal-policy {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.affiliate-proposal-policy code {
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.affiliate-proposal-actions {
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+@media (max-width: 760px) {
+  .affiliate-proposal-toolbar,
+  .affiliate-proposal-card-head,
+  .affiliate-proposal-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .shop-runprofile-tools {
   padding: 12px 14px;
   border-top: 1px solid var(--color-border-light);

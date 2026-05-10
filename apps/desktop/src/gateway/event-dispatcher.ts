@@ -17,6 +17,10 @@ export interface GatewayEventDispatcherDeps {
 
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
 
+function isInternalServiceSessionKey(sessionKey?: string): boolean {
+  return Boolean(sessionKey?.includes(":cs:") || sessionKey?.includes(":affiliate:"));
+}
+
 /**
  * Create a handler that routes Gateway WebSocket events to Panel SSE.
  * Keeps main.ts clean by centralizing event dispatch logic.
@@ -43,6 +47,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
         data: unknown;
         seq?: number;
       };
+      if (isInternalServiceSessionKey(p.sessionKey)) return;
       broadcastEvent("chat-mirror", p);
     }
 
@@ -51,6 +56,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       || evt.event === "rivonclaw.channel-inbound"
     ) {
       const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
+      if (isInternalServiceSessionKey(p?.sessionKey)) return;
       if (p?.sessionKey && p?.message) {
         const session = chatSessions.getByKey(p.sessionKey);
         if (!session || session.archivedAt) {
@@ -96,6 +102,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
 
     if (evt.event === "mobile.inbound") {
       const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string; mediaPaths?: string[] } | undefined;
+      if (isInternalServiceSessionKey(p?.sessionKey)) return;
       if (p?.sessionKey && p?.message) {
         // Auto-unarchive the session so it appears in Active sessions,
         // even when the Panel UI is closed.

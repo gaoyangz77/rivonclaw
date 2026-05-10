@@ -33,6 +33,11 @@ export const SHOP_FIELDS_FRAGMENT = gql`
       wms {
         enabled
       }
+      affiliateService {
+        enabled
+        runProfileId
+        csDeviceId
+      }
     }
   }
 `;
@@ -137,5 +142,136 @@ export const REDEEM_CREDIT_MUTATION = gql`
 export const PRESET_SKILLS_QUERY = gql`
   query PresetSkills($serviceIds: [ServiceId!]) {
     presetSkills(serviceIds: $serviceIds)
+  }
+`;
+
+export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
+  query AffiliateActionProposals($input: ReadActionProposalsInput!) {
+    actionProposals(input: $input) {
+      id
+      shopId
+      campaignId
+      creatorId
+      collaborationId
+      type
+      status
+      summary
+      createdAt
+      updatedAt
+      expiresAt
+      policySnapshot {
+        action
+        requiresApproval
+        matchedPolicyIds
+        reasons
+      }
+      messageIntent {
+        conversationId
+        creatorId
+        creatorOpenId
+        messageType
+        text
+        productId
+        platformApplicationId
+        platformTargetCollaborationId
+        sampleApplicationRecordId
+        targetCollaborationRecordId
+        imageUrl
+        imageWidth
+        imageHeight
+      }
+      sampleReviewIntent {
+        sampleApplicationRecordId
+        platformApplicationId
+        decision
+        rejectReason
+      }
+      sampleShipmentIntent {
+        sampleApplicationRecordId
+        platformApplicationId
+        warehouseId
+        skuId
+        quantity
+      }
+      targetCollaborationIntent {
+        name
+        message
+        endTime
+        hasFreeSample
+        isSampleApprovalExempt
+        creatorIds
+        creatorOpenIds
+        products {
+          productId
+          targetCommissionRateBps
+          shopAdsCommissionRateBps
+        }
+        sellerContactInfo {
+          email
+          phoneNumber
+          whatsapp
+          telegram
+          line
+        }
+      }
+      creatorTagIntent {
+        creatorId
+        tagId
+      }
+      blockCreatorIntent {
+        creatorId
+        reason
+      }
+      campaignProductUpdateIntent {
+        campaignId
+        campaignProductId
+        productId
+        commissionRate
+        maxCommissionRate
+        sampleOfferMode
+        sampleQuota
+        sampleUnitCostAmount
+        sampleUnitCostCurrency
+        promotionPriority
+      }
+      approvalPolicyUpdateIntent {
+        policyId
+        action
+        creatorTagIds
+        campaignIds
+        productIds
+        reason
+        enabled
+      }
+      executionResult {
+        platformObjectId
+        domainObjectId
+        lifecycleEventIds
+        executedAt
+        errorMessage
+      }
+    }
+  }
+`;
+
+export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
+  mutation DecideActionProposal($input: DecideActionProposalInput!) {
+    decideActionProposal(input: $input) {
+      id
+      status
+      updatedAt
+      decision {
+        decidedAt
+        decidedByActorId
+        note
+      }
+      executionResult {
+        platformObjectId
+        domainObjectId
+        lifecycleEventIds
+        executedAt
+        errorMessage
+      }
+    }
   }
 `;

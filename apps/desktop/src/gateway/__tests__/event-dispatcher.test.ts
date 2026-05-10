@@ -84,6 +84,23 @@ describe("createGatewayEventDispatcher", () => {
       dispatch(makeEvent("rivonclaw.chat-mirror", payload));
       expect(deps.broadcastEvent).toHaveBeenCalledWith("chat-mirror", payload);
     });
+
+    it("does NOT push service session mirrors to Webchat SSE", () => {
+      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
+        runId: "run-cs",
+        sessionKey: "agent:main:cs:tiktok:conv-1",
+        stream: "assistant",
+        data: { text: "internal cs run" },
+      }));
+      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
+        runId: "run-affiliate",
+        sessionKey: "agent:main:affiliate:tiktok:conv-2",
+        stream: "assistant",
+        data: { text: "internal affiliate run" },
+      }));
+
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    });
   });
 
   // ── plugin.rivonclaw.channel-inbound ────────────────────────────────────
@@ -188,6 +205,16 @@ describe("createGatewayEventDispatcher", () => {
       dispatch(makeEvent("plugin.rivonclaw.channel-inbound", { sessionKey: "sk-1" }));
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
+
+    it("does NOT push service session inbound messages to Webchat SSE", () => {
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
+        sessionKey: "agent:main:affiliate:tiktok:conv-1",
+        message: "[Affiliate Backend Signal]",
+      }));
+
+      expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    });
   });
 
   // ── mobile.inbound ─────────────────────────────────────────────────────
@@ -278,6 +305,15 @@ describe("createGatewayEventDispatcher", () => {
 
     it("does NOT push SSE when message is missing", () => {
       dispatch(makeEvent("mobile.inbound", { sessionKey: "sk-1" }));
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    });
+
+    it("does NOT push mobile service session inbound messages to Webchat SSE", () => {
+      dispatch(makeEvent("mobile.inbound", {
+        sessionKey: "agent:main:cs:tiktok:conv-1",
+        message: "internal",
+      }));
+
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
