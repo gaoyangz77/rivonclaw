@@ -721,6 +721,13 @@ export interface ClaimCsEscalationEventInput {
   eventId: Scalars['ID']['input'];
 }
 
+/** Public TikTok OAuth callback completion result. */
+export interface CompleteTikTokOAuthResponse {
+  platform: Scalars['String']['output'];
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
+}
+
 /** Creator content obligation segment after sample delivery or collaboration acceptance. */
 export const ContentFulfillmentStatus = {
   /** Content follow-up no longer applies. */
@@ -2759,6 +2766,8 @@ export interface Mutation {
   affiliatePublishConversationSignal: AffiliateConversationSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
   applyCreatorTag: CreatorUserRelation;
+  /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
+  completeTikTokOAuth: CompleteTikTokOAuthResponse;
   /** Create a payment through Stripe or Lakala. */
   createPayment: Payment;
   /** Create a new run profile */
@@ -2893,6 +2902,12 @@ export interface MutationAffiliatePublishConversationSignalArgs {
 
 export interface MutationApplyCreatorTagArgs {
   input: ApplyCreatorTagInput;
+}
+
+
+export interface MutationCompleteTikTokOAuthArgs {
+  code: Scalars['String']['input'];
+  state: Scalars['String']['input'];
 }
 
 
