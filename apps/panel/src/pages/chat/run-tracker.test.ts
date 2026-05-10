@@ -882,6 +882,24 @@ describe("ChatStore.sessionList hides CS sessions", () => {
 });
 
 describe("ChatStore.setSessions reconciliation", () => {
+  it("hydrates custom titles from local session metadata", () => {
+    const store = createChatStore();
+
+    store.setSessions([
+      {
+        key: "agent:main:panel-renamed",
+        customTitle: "手动改名",
+        panelTitle: "自动标题",
+        updatedAt: 2,
+      },
+    ], { pruneMissing: false });
+
+    const session = store.sessions.get("agent:main:panel-renamed");
+    expect(session?.customTitle).toBe("手动改名");
+    expect(store.sessionList.find((s) => s.key === "agent:main:panel-renamed")?.customTitle)
+      .toBe("手动改名");
+  });
+
   it("preserves existing tabs during non-pruning refreshes", () => {
     const store = createChatStore();
     store.getOrCreateSession("agent:main:main");

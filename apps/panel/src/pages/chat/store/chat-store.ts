@@ -102,6 +102,7 @@ export const ChatStoreModel = types
     getOrCreateSession(key: string, defaults?: {
       displayName?: string | null;
       derivedTitle?: string | null;
+      customTitle?: string | null;
       panelTitle?: string | null;
       channel?: string | null;
       updatedAt?: number | null;
@@ -116,6 +117,7 @@ export const ChatStoreModel = types
           key,
           displayName: defaults?.displayName ?? null,
           derivedTitle: defaults?.derivedTitle ?? null,
+          customTitle: defaults?.customTitle ?? null,
           panelTitle: defaults?.panelTitle ?? null,
           channel: defaults?.channel ?? null,
           updatedAt: defaults?.updatedAt ?? null,
@@ -147,6 +149,7 @@ export const ChatStoreModel = types
           existing.updateMetadata({
             displayName: tab.displayName ?? null,
             derivedTitle: tab.derivedTitle,
+            customTitle: tab.customTitle ?? null,
             panelTitle: tab.panelTitle ?? null,
             channel: tab.channel ?? null,
             updatedAt: tab.updatedAt ?? null,
@@ -160,6 +163,7 @@ export const ChatStoreModel = types
             key: tab.key,
             displayName: tab.displayName ?? null,
             derivedTitle: tab.derivedTitle ?? null,
+            customTitle: tab.customTitle ?? null,
             panelTitle: tab.panelTitle ?? null,
             channel: tab.channel ?? null,
             updatedAt: tab.updatedAt ?? null,
