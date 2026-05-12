@@ -243,6 +243,10 @@ interface SubscriptionConfig {
   authRequired?: boolean;
 }
 
+interface ConnectOptions {
+  refreshAuth?: () => Promise<void>;
+}
+
 /**
  * Unified GraphQL subscription client that manages a single shared
  * graphql-ws connection to the backend and exposes per-topic
@@ -264,6 +268,16 @@ export class BackendSubscriptionClient {
   /** Token used by the current authenticated subscription connection. */
   private authenticatedSubscriptionToken: string | null = null;
 
+  /** Optional auth refresh hook supplied by the app auth runtime. */
+  private refreshAuth: (() => Promise<void>) | null = null;
+
+  /** Single-flight recovery for operation-level subscription auth errors. */
+  private authRecoveryPromise: Promise<void> | null = null;
+
+  private authRecoveryRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private authRecoveryFailures = 0;
+
   /** Monotonic per-subscription attempt counters for log correlation. */
   private subscriptionAttemptCounters = new Map<string, number>();
 
@@ -273,9 +287,10 @@ export class BackendSubscriptionClient {
     return this.client !== null;
   }
 
-  connect(getToken: () => string | null): void {
+  connect(getToken: () => string | null, options?: ConnectOptions): void {
     if (this.client) return;
     this.getToken = getToken;
+    this.refreshAuth = options?.refreshAuth ?? null;
     this.doConnect();
   }
 
@@ -287,6 +302,10 @@ export class BackendSubscriptionClient {
 
     this.client?.dispose();
     this.client = null;
+    if (this.authRecoveryRetryTimer) {
+      clearTimeout(this.authRecoveryRetryTimer);
+      this.authRecoveryRetryTimer = null;
+    }
   }
 
   reconnect(): void {
@@ -356,6 +375,102 @@ export class BackendSubscriptionClient {
     }
 
     return { value: String(err) };
+  }
+
+  private collectErrorMessages(err: unknown): string[] {
+    if (!err) return [];
+    if (err instanceof Error) return [err.message];
+    if (Array.isArray(err)) return err.flatMap((item) => this.collectErrorMessages(item));
+    if (typeof err === "object") {
+      const record = err as Record<string, unknown>;
+      const messages: string[] = [];
+      if (typeof record.message === "string") messages.push(record.message);
+      if (Array.isArray(record.errors)) messages.push(...this.collectErrorMessages(record.errors));
+      if (messages.length > 0) return messages;
+    }
+    return [String(err)];
+  }
+
+  private isAuthError(err: unknown): boolean {
+    return this.collectErrorMessages(err).some((message) =>
+      /Not authenticated|Authentication required|Invalid token|Token expired/i.test(message),
+    );
+  }
+
+  private handleSubscriptionError(key: string, attempt: number, label: string, err: unknown): void {
+    log.warn(label, {
+      subscription: key,
+      attempt,
+      ...this.formatUnknownError(err),
+    });
+    if (this.isAuthError(err)) {
+      this.recoverAuthenticatedSubscriptions(key);
+    }
+  }
+
+  private handleResultErrors(
+    key: string,
+    attempt: number,
+    label: string,
+    errors: Array<{ message?: string }> | undefined,
+  ): void {
+    if (!errors?.length) return;
+    log.warn(label, {
+      subscription: key,
+      attempt,
+      errorMessages: errors.map((err) => err.message ?? "(no message)"),
+    });
+    if (this.isAuthError(errors)) {
+      this.recoverAuthenticatedSubscriptions(key);
+    }
+  }
+
+  private recoverAuthenticatedSubscriptions(source: string): void {
+    if (!this.authenticatedSubscriptionsEnabled || !this.refreshAuth) return;
+    if (this.authRecoveryPromise) return;
+
+    if (this.authRecoveryRetryTimer) {
+      clearTimeout(this.authRecoveryRetryTimer);
+      this.authRecoveryRetryTimer = null;
+    }
+
+    this.authRecoveryPromise = (async () => {
+      try {
+        log.info(`Refreshing auth after subscription auth error: ${source}`);
+        await this.refreshAuth!();
+        this.authRecoveryFailures = 0;
+
+        if (!this.getToken?.()) {
+          this.disableAuthenticatedSubscriptions();
+          return;
+        }
+
+        // Prefer the normal lifecycle method: authSession.refresh() usually
+        // emits userChanged, which may already have reconnected us. This call is
+        // idempotent when that happened, and performs the reconnect when it did not.
+        this.enableAuthenticatedSubscriptions();
+      } catch (err) {
+        this.authRecoveryFailures += 1;
+        log.warn("Backend subscription auth refresh failed", {
+          source,
+          failureCount: this.authRecoveryFailures,
+          ...this.formatUnknownError(err),
+        });
+
+        if (!this.getToken?.()) {
+          this.disableAuthenticatedSubscriptions();
+          return;
+        }
+
+        const delay = Math.min(1000 * 2 ** Math.min(this.authRecoveryFailures - 1, 5), 30_000);
+        this.authRecoveryRetryTimer = setTimeout(() => {
+          this.authRecoveryRetryTimer = null;
+          this.recoverAuthenticatedSubscriptions(source);
+        }, delay);
+      } finally {
+        this.authRecoveryPromise = null;
+      }
+    })();
   }
 
   private shouldRetryConnection(errOrCloseEvent: unknown): boolean {
@@ -545,13 +660,7 @@ export class BackendSubscriptionClient {
         },
         {
           next: (result) => {
-            if (result.errors?.length) {
-              log.warn("Shop updated subscription next contained GraphQL errors", {
-                subscription: key,
-                attempt,
-                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
-              });
-            }
+            this.handleResultErrors(key, attempt, "Shop updated subscription next contained GraphQL errors", result.errors);
             const payload = result.data?.shopUpdated;
             if (!payload) {
               this.logUnexpectedResult(key, attempt, "shopUpdated", result as any);
@@ -560,11 +669,7 @@ export class BackendSubscriptionClient {
             onShopUpdated(payload);
           },
           error: (err) => {
-            log.warn("Shop updated subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "Shop updated subscription error", err);
           },
           complete: () => {},
         },
@@ -596,13 +701,7 @@ export class BackendSubscriptionClient {
         },
         {
           next: (result) => {
-            if (result.errors?.length) {
-              log.warn("CS escalation subscription next contained GraphQL errors", {
-                subscription: key,
-                attempt,
-                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
-              });
-            }
+            this.handleResultErrors(key, attempt, "CS escalation subscription next contained GraphQL errors", result.errors);
             const payload = result.data?.csEscalationEvent;
             if (!payload) {
               this.logUnexpectedResult(key, attempt, "csEscalationEvent", result as any);
@@ -611,11 +710,7 @@ export class BackendSubscriptionClient {
             onEvent(payload);
           },
           error: (err) => {
-            log.warn("CS escalation subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "CS escalation subscription error", err);
           },
           complete: () => {},
         },
@@ -644,13 +739,7 @@ export class BackendSubscriptionClient {
         },
         {
           next: (result) => {
-            if (result.errors?.length) {
-              log.warn("CS conversation signal subscription next contained GraphQL errors", {
-                subscription: key,
-                attempt,
-                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
-              });
-            }
+            this.handleResultErrors(key, attempt, "CS conversation signal subscription next contained GraphQL errors", result.errors);
             const payload = result.data?.csConversationSignal;
             if (!payload) {
               this.logUnexpectedResult(key, attempt, "csConversationSignal", result as any);
@@ -659,11 +748,7 @@ export class BackendSubscriptionClient {
             onSignal(payload);
           },
           error: (err) => {
-            log.warn("CS conversation signal subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "CS conversation signal subscription error", err);
           },
           complete: () => {},
         },
@@ -686,13 +771,7 @@ export class BackendSubscriptionClient {
         { query: AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION },
         {
           next: (result) => {
-            if (result.errors?.length) {
-              log.warn("Affiliate conversation signal subscription next contained GraphQL errors", {
-                subscription: key,
-                attempt,
-                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
-              });
-            }
+            this.handleResultErrors(key, attempt, "Affiliate conversation signal subscription next contained GraphQL errors", result.errors);
             const payload = result.data?.affiliateConversationSignal;
             if (!payload) {
               this.logUnexpectedResult(key, attempt, "affiliateConversationSignal", result as any);
@@ -701,11 +780,7 @@ export class BackendSubscriptionClient {
             onSignal(payload);
           },
           error: (err) => {
-            log.warn("Affiliate conversation signal subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "Affiliate conversation signal subscription error", err);
           },
           complete: () => {},
         },

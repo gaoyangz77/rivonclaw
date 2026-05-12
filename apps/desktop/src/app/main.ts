@@ -367,7 +367,10 @@ app.whenReady().then(async () => {
 
   // Public subscriptions may connect immediately; authenticated subscriptions
   // are enabled only after auth bootstrap validates or refreshes the token.
-  backendSubscription.connect(() => authSession.getAccessToken());
+  backendSubscription.connect(
+    () => authSession.getAccessToken(),
+    { refreshAuth: () => authSession.refresh().then(() => undefined) },
+  );
   bootstrapDesktopAuthState(authSession, rootStore)
     .then(() => {
       if (authSession.getAccessToken()) {

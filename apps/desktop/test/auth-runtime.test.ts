@@ -83,6 +83,12 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToCsEscalationEvents() {
       return () => {};
     }
+    subscribeToCsConversationSignals() {
+      return () => {};
+    }
+    subscribeToAffiliateConversationSignals() {
+      return () => {};
+    }
   },
 }));
 

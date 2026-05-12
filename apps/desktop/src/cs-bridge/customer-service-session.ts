@@ -1046,8 +1046,34 @@ export class CustomerServiceSession {
 
   // -- Private — gateway setup ------------------------------------------------
 
+  private getRequiredRunProfileId(): string {
+    const runProfileId = this.shop.runProfileId ?? this.opts?.defaultRunProfileId;
+    if (!runProfileId) {
+      this.emitError(CS_ERROR_STAGE.SETUP, { reason: "no_run_profile" });
+      throw new Error(`Shop ${this.shop.objectId} has no runProfileId configured for CS`);
+    }
+    return runProfileId;
+  }
+
+  private ensureSessionRunProfile(runProfileId: string): boolean {
+    const currentRunProfileId = rootStore.toolCapability.getSessionRunProfileId(this.scopeKey);
+    if (currentRunProfileId === runProfileId) return false;
+    rootStore.toolCapability.setSessionRunProfile(this.scopeKey, runProfileId);
+    return true;
+  }
+
   private async setup(): Promise<void> {
-    if (this.gatewaySetupReady) return;
+    const runProfileId = this.getRequiredRunProfileId();
+
+    if (this.gatewaySetupReady) {
+      if (this.ensureSessionRunProfile(runProfileId)) {
+        log.info(
+          `Gateway runProfile binding refreshed: conv=${this.csContext.conversationId} ` +
+          `scope=${this.scopeKey} runProfileId=${runProfileId}`,
+        );
+      }
+      return;
+    }
 
     const setupStartedAt = Date.now();
     const registerStartedAt = Date.now();
@@ -1058,12 +1084,7 @@ export class CustomerServiceSession {
     const registerMs = Date.now() - registerStartedAt;
 
     const runProfileStartedAt = Date.now();
-    const runProfileId = this.shop.runProfileId ?? this.opts?.defaultRunProfileId;
-    if (!runProfileId) {
-      this.emitError(CS_ERROR_STAGE.SETUP, { reason: "no_run_profile" });
-      throw new Error(`Shop ${this.shop.objectId} has no runProfileId configured for CS`);
-    }
-    rootStore.toolCapability.setSessionRunProfile(this.scopeKey, runProfileId);
+    this.ensureSessionRunProfile(runProfileId);
     const runProfileMs = Date.now() - runProfileStartedAt;
 
     const modelStartedAt = Date.now();

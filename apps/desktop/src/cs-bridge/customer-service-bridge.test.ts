@@ -67,7 +67,7 @@ vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
 import { rootStore } from "../app/store/desktop-store.js";
-import { onAction } from "mobx-state-tree";
+import { applySnapshot, onAction } from "mobx-state-tree";
 
 // Track setSessionRunProfile calls via MST's onAction middleware (no spy mutation needed)
 const setSessionRunProfileCalls: Array<{ sessionKey: string; runProfileId: string | null }> = [];
@@ -206,6 +206,7 @@ function setChannelManagerTestEnv(stateDir: string): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  applySnapshot(rootStore.toolCapability.sessionProfiles, {});
   setSessionRunProfileCalls.length = 0;
   mockRpcRequest.mockResolvedValue({ ok: true });
   mockEnsureRpcReady.mockReturnValue({ request: mockRpcRequest, isConnected: () => true });
@@ -711,6 +712,26 @@ describe("CS RunProfile setup", () => {
     );
   });
 
+  it("refreshes the session RunProfile binding before dispatch when an existing session lost it", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-1" }));
+
+    rootStore.toolCapability.setSessionRunProfile("agent:main:cs:tiktok:conv-789", null);
+    setSessionRunProfileCalls.length = 0;
+    mockRpcRequest.mockClear();
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
+
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:cs:tiktok:conv-789",
+      runProfileId: "CUSTOMER_SERVICE",
+    });
+  });
+
   it("drops message when no runProfileId and no defaultRunProfileId", async () => {
     const bridge = new CustomerServiceBridge({
       gatewayId: "test-gateway",
@@ -720,8 +741,8 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    // cs_register_session is called (step 4), but RunProfile set and agent dispatch are not
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    // Missing RunProfile fails setup before gateway registration/agent dispatch.
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(setSessionRunProfileCalls).toHaveLength(0);
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
