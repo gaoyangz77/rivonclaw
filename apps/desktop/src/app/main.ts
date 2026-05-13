@@ -1133,6 +1133,7 @@ app.whenReady().then(async () => {
         }
         if (previousToolSpecDigest !== nextToolSpecDigest) {
           try {
+            writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
             await openClawConnector.applyConfigMutation(() => {}, "restart_process");
             log.info("Gateway restarted after auth change updated toolSpecs");
           } catch (e) {
