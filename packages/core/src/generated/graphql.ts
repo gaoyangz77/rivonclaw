@@ -4561,7 +4561,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  messageIntent?: InputMaybe<ActionProposalMessageIntentInput>;
+  messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
@@ -4577,6 +4577,23 @@ export interface ResolveAffiliateWorkItemInput {
   nextSellerActionAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   operatorSummary: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
+}
+
+export interface ResolveAffiliateWorkItemMessageIntentInput {
+  affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  conversationId?: InputMaybe<Scalars['String']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  imageHeight?: InputMaybe<Scalars['Int']['input']>;
+  imageUrl?: InputMaybe<Scalars['String']['input']>;
+  imageWidth?: InputMaybe<Scalars['Int']['input']>;
+  /** Optional for agent work-item resolution. Backend defaults text-only messages to TEXT. */
+  messageType?: InputMaybe<AffiliateOutboundMessageType>;
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  text?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface ResolveAffiliateWorkItemPayload {
