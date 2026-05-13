@@ -83,4 +83,88 @@ describe("LLMProviderManager", () => {
       model: null,
     });
   });
+
+  it("resets stored chat/channel sessions on default provider activation unless they have an explicit override", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+    const writeDefaultModelToConfig = vi.fn();
+
+    let keys: ProviderKeyEntry[] = [
+      {
+        id: "key-kimi",
+        provider: "kimi",
+        label: "Kimi",
+        model: "moonshot-v1-8k",
+        isDefault: true,
+        authType: "api_key",
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "key-pro",
+        provider: "rivonclaw-pro",
+        label: "RivonClaw Pro",
+        model: "gpt-5.4",
+        isDefault: false,
+        authType: "custom",
+        baseUrl: "https://example.test/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify([{ id: "gpt-5.4" }]),
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+    const storage = {
+      providerKeys: {
+        getActive: () => keys.find((k) => k.isDefault),
+        getById: (id: string) => keys.find((k) => k.id === id),
+        getAll: () => keys,
+        setDefault: (id: string) => {
+          keys = keys.map((k) => ({ ...k, isDefault: k.id === id }));
+        },
+      },
+      settings: {
+        set: vi.fn(),
+        get: vi.fn(),
+      },
+      chatSessions: {
+        list: () => [
+          { key: "telegram-session-default" },
+          { key: "chat-session-explicit" },
+        ],
+      },
+    };
+    rootStore.loadProviderKeys(await allKeysToMstSnapshots(keys, mockSecretStore as any));
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig,
+      writeFullGatewayConfig: async () => {},
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await rootStore.llmManager.switchModelForSession("chat-session-explicit", "kimi", "moonshot-v1-8k");
+    rpcRequest.mockClear();
+
+    await rootStore.llmManager.activateProvider("key-pro");
+
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "telegram-session-default",
+      model: null,
+    });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
+      key: "chat-session-explicit",
+      model: null,
+    });
+  });
 });

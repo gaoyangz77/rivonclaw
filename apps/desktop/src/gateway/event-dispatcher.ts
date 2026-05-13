@@ -13,6 +13,7 @@ export interface GatewayEventDispatcherDeps {
     inserted: boolean;
     membershipChanged: boolean;
   };
+  onSessionActivity?: (sessionKey: string) => void;
 }
 
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
@@ -26,7 +27,7 @@ function isInternalServiceSessionKey(sessionKey?: string): boolean {
  * Keeps main.ts clean by centralizing event dispatch logic.
  */
 export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, onRecipientSeen } = deps;
+  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity } = deps;
 
   return (evt: GatewayEventFrame): void => {
     if (evt.event === "mobile.session-reset") {
@@ -48,6 +49,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
         seq?: number;
       };
       if (isInternalServiceSessionKey(p.sessionKey)) return;
+      onSessionActivity?.(p.sessionKey);
       broadcastEvent("chat-mirror", p);
     }
 
@@ -58,6 +60,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
       if (isInternalServiceSessionKey(p?.sessionKey)) return;
       if (p?.sessionKey && p?.message) {
+        onSessionActivity?.(p.sessionKey);
         const session = chatSessions.getByKey(p.sessionKey);
         if (!session || session.archivedAt) {
           chatSessions.upsert(p.sessionKey, { archivedAt: null });
@@ -104,6 +107,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string; mediaPaths?: string[] } | undefined;
       if (isInternalServiceSessionKey(p?.sessionKey)) return;
       if (p?.sessionKey && p?.message) {
+        onSessionActivity?.(p.sessionKey);
         // Auto-unarchive the session so it appears in Active sessions,
         // even when the Panel UI is closed.
         const session = chatSessions.getByKey(p.sessionKey);

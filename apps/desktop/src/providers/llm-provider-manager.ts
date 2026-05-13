@@ -129,7 +129,16 @@ export const LLMProviderManagerModel = types
      * Best-effort: failures are logged but do not propagate.
      */
     async function resetDefaultFollowingSessions(): Promise<void> {
-      const toReset = [...self.activeSessions].filter((key) => !self.sessionOverrides.has(key));
+      const { storage } = getEnvDeps();
+      const sessionKeys = new Set(self.activeSessions);
+      const storedSessions = (storage as Storage & {
+        chatSessions?: { list?: () => Array<{ key: string }> };
+      }).chatSessions?.list?.() ?? [];
+      for (const session of storedSessions) {
+        if (session.key) sessionKeys.add(session.key);
+      }
+
+      const toReset = [...sessionKeys].filter((key) => !self.sessionOverrides.has(key));
       if (toReset.length === 0) return;
 
       await Promise.allSettled(
@@ -139,7 +148,7 @@ export const LLMProviderManagerModel = types
           }),
         ),
       );
-      log.info(`Reset ${toReset.length} active session(s) to new global default`);
+      log.info(`Reset ${toReset.length} default-following session(s) to new global default`);
     }
 
     /** Check if a provider/model combo is available in the cached catalog. */
