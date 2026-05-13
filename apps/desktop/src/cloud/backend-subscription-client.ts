@@ -70,6 +70,12 @@ const SHOP_UPDATED_SUBSCRIPTION = `
         wms {
           enabled
         }
+        affiliateService {
+          enabled
+          runProfileId
+          csDeviceId
+          businessPrompt
+        }
       }
     }
   }
@@ -127,18 +133,26 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
     affiliateConversationSignal {
       type
       source
+      workSignal
+      collaborationRecordId
+      processingStatus
+      processReasons
       shopId
       platformShopId
       conversationId
       messageId
       messageIndex
       messageType
+      messageDirection
       creatorImId
       senderRole
       senderId
       platformApplicationId
       platformTargetCollaborationId
       platformStatus
+      platformFulfillmentStatus
+      platformFulfillmentId
+      contentId
       creatorOpenId
       productId
       orderId
@@ -149,9 +163,241 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
   }
 `;
 
+const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
+  subscription AffiliateWorkItemChanged {
+    affiliateWorkItemChanged {
+      workItem {
+        id
+        shopId
+        platformShopId
+        collaborationRecordId
+        workKind
+        agentDispatchRecommended
+        staffReviewRequired
+        processingStatus
+        processReasons
+        versionAt
+        collaboration {
+          id
+          creatorId
+          productId
+          sampleApplicationRecordId
+          affiliateCollaborationId
+          platformConversationId
+          creatorImId
+          lifecycleStage
+          processingStatus
+          processReasons
+          lastCreatorMessageId
+          lastCreatorMessageAt
+          lastSignalAt
+          workHandledUntil
+          nextSellerActionAt
+          updatedAt
+        }
+        sampleApplicationRecord {
+          id
+          platformApplicationId
+          creatorId
+          productId
+          status
+          shipmentStatus
+          contentFulfillmentStatus
+          platformApplicationStatus
+          platformContentFulfillmentStatus
+          shippedAt
+          deliveredAt
+          updatedAt
+        }
+        latestPendingProposal {
+          id
+          type
+          status
+          operatorSummary
+          steps {
+            stepId
+            type
+            operatorSummary
+          }
+          creatorId
+          collaborationRecordId
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+          }
+          sampleShipmentIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            warehouseId
+            skuId
+            quantity
+          }
+          messageIntent {
+            conversationId
+            creatorId
+            sampleApplicationRecordId
+            platformApplicationId
+            messageType
+            text
+          }
+          updatedAt
+        }
+      }
+    }
+  }
+`;
+
+const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
+  subscription AffiliateActionProposalChanged {
+    affiliateActionProposalChanged {
+      proposal {
+        id
+        userId
+        shopId
+        campaignId
+        type
+        status
+        operatorSummary
+        steps {
+          stepId
+          type
+          operatorSummary
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+          }
+          sampleShipmentIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            warehouseId
+            skuId
+            quantity
+          }
+          messageIntent {
+            conversationId
+            creatorId
+            sampleApplicationRecordId
+            platformApplicationId
+            messageType
+            text
+          }
+        }
+        creatorId
+        creatorProfile {
+          id
+          creatorOpenId
+          creatorImId
+          username
+          nickname
+          avatarUrl
+        }
+        collaborationRecordId
+        createdAt
+        updatedAt
+        expiresAt
+        policySnapshot {
+          action
+          requiresApproval
+          matchedPolicyIds
+          reasons
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        sampleShipmentIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          warehouseId
+          skuId
+          quantity
+        }
+        messageIntent {
+          conversationId
+          creatorId
+          sampleApplicationRecordId
+          platformApplicationId
+          messageType
+          text
+        }
+        targetCollaborationIntent {
+          name
+          message
+          endTime
+          hasFreeSample
+          isSampleApprovalExempt
+          creatorIds
+          creatorOpenIds
+          products {
+            productId
+            targetCommissionRateBps
+            shopAdsCommissionRateBps
+          }
+          sellerContactInfo {
+            email
+            phoneNumber
+            whatsapp
+            telegram
+            line
+          }
+        }
+        creatorTagIntent {
+          creatorId
+          tagId
+        }
+        blockCreatorIntent {
+          creatorId
+          reason
+        }
+        campaignProductUpdateIntent {
+          campaignId
+          campaignProductId
+          productId
+          commissionRate
+          maxCommissionRate
+          sampleOfferMode
+          sampleQuota
+          sampleUnitCostAmount
+          sampleUnitCostCurrency
+          promotionPriority
+        }
+        approvalPolicyUpdateIntent {
+          policyId
+          action
+          creatorTagIds
+          campaignIds
+          productIds
+          reason
+          enabled
+        }
+        candidateDecisionIntent {
+          candidateIds
+          status
+          rationale
+        }
+        executionResult {
+          platformObjectId
+          domainObjectId
+          lifecycleEventIds
+          executedAt
+          errorMessage
+        }
+      }
+    }
+  }
+`;
+
 export type UpdatePayload = GQL.UpdatePayload;
 export type CsConversationSignalPayload = GQL.CsConversationSignal;
 export type AffiliateConversationSignalPayload = GQL.AffiliateConversationSignal;
+export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
+export type AffiliateActionProposalPayload = GQL.ActionProposal;
 
 export type CsEscalationEventType =
   | "ESCALATION_CREATED"
@@ -412,7 +658,7 @@ export class BackendSubscriptionClient {
     key: string,
     attempt: number,
     label: string,
-    errors: Array<{ message?: string }> | undefined,
+    errors: ReadonlyArray<{ message?: string }> | undefined,
   ): void {
     if (!errors?.length) return;
     log.warn(label, {
@@ -781,6 +1027,90 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "Affiliate conversation signal subscription error", err);
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true });
+  }
+
+  subscribeToAffiliateWorkItemChanges(
+    onWorkItem: (workItem: AffiliateWorkItemPayload) => void,
+  ): () => void {
+    const key = "affiliate-work-item-changed";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+
+      return this.client.subscribe<{ affiliateWorkItemChanged: { workItem: AffiliateWorkItemPayload } }>(
+        { query: AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION },
+        {
+          next: (result) => {
+            if (result.errors?.length) {
+              log.warn("Affiliate work item subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
+            const payload = result.data?.affiliateWorkItemChanged?.workItem;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "affiliateWorkItemChanged.workItem", result as any);
+              return;
+            }
+            onWorkItem(payload);
+          },
+          error: (err) => {
+            log.warn("Affiliate work item subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true });
+  }
+
+  subscribeToAffiliateActionProposalChanges(
+    onProposal: (proposal: AffiliateActionProposalPayload) => void,
+  ): () => void {
+    const key = "affiliate-action-proposal-changed";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+
+      return this.client.subscribe<{ affiliateActionProposalChanged: { proposal: AffiliateActionProposalPayload } }>(
+        { query: AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION },
+        {
+          next: (result) => {
+            if (result.errors?.length) {
+              log.warn("Affiliate action proposal subscription next contained GraphQL errors", {
+                subscription: key,
+                attempt,
+                errorMessages: result.errors.map((err) => err.message ?? "(no message)"),
+              });
+            }
+            const payload = result.data?.affiliateActionProposalChanged?.proposal;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "affiliateActionProposalChanged.proposal", result as any);
+              return;
+            }
+            onProposal(payload);
+          },
+          error: (err) => {
+            log.warn("Affiliate action proposal subscription error", {
+              subscription: key,
+              attempt,
+              ...this.formatUnknownError(err),
+            });
           },
           complete: () => {},
         },

@@ -53,10 +53,18 @@ export const WmsSettingsModel = types.model("WmsSettings", {
   enabled: types.optional(types.boolean, false),
 });
 
+export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig", {
+  enabled: types.optional(types.boolean, false),
+  csDeviceId: types.maybeNull(types.string),
+  runProfileId: types.maybeNull(types.string),
+  businessPrompt: types.maybeNull(types.string),
+});
+
 export const ShopServiceConfigModel = types.model("ShopServiceConfig", {
   customerService: types.maybeNull(CustomerServiceConfigModel),
   customerServiceBilling: types.maybeNull(CustomerServiceBillingModel),
   wms: types.optional(types.maybeNull(WmsSettingsModel), null),
+  affiliateService: types.optional(types.maybeNull(AffiliateServiceConfigModel), null),
 });
 
 export const ShopModel = types.model("Shop", {
@@ -83,4 +91,5 @@ export interface Shop extends Instance<typeof ShopModel> {}
 export interface CustomerServiceConfig extends Instance<typeof CustomerServiceConfigModel> {}
 export interface CustomerServiceBilling extends Instance<typeof CustomerServiceBillingModel> {}
 export interface WmsSettings extends Instance<typeof WmsSettingsModel> {}
+export interface AffiliateServiceConfig extends Instance<typeof AffiliateServiceConfigModel> {}
 export interface ShopServiceConfig extends Instance<typeof ShopServiceConfigModel> {}

@@ -178,6 +178,31 @@ function seedAffiliateShopContext(bridge: CustomerServiceBridge): void {
   }]);
 }
 
+function seedAffiliateShopInCache(): void {
+  rootStore.ingestGraphQLResponse({
+    shops: [{
+      id: defaultShop.objectId,
+      platform: "TIKTOK_SHOP",
+      platformShopId: defaultShop.platformShopId,
+      shopName: defaultShop.shopName,
+      services: {
+        customerService: {
+          enabled: false,
+          csDeviceId: null,
+          businessPrompt: null,
+          runProfileId: null,
+          platformSystemPrompt: null,
+        },
+        affiliateService: {
+          enabled: true,
+          csDeviceId: "test-gateway",
+          runProfileId: "AFFILIATE_OPERATOR",
+        },
+      },
+    }],
+  });
+}
+
 function setChannelManagerTestEnv(stateDir: string): void {
   rootStore.channelManager.setEnv({
     storage: {
@@ -211,9 +236,59 @@ beforeEach(() => {
   mockRpcRequest.mockResolvedValue({ ok: true });
   mockEnsureRpcReady.mockReturnValue({ request: mockRpcRequest, isConnected: () => true });
   mockReadFullModelCatalog.mockResolvedValue({});
-  mockGraphqlFetch.mockImplementation(async (query: string) => {
+  mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
     if (query.includes("ecommerceGetConversationDetails")) {
       return { ecommerceGetConversationDetails: { buyer: null } };
+    }
+    if (query.includes("affiliateConversationMessageDelta")) {
+      return {
+        affiliateConversationMessageDelta: {
+          items: [{
+            messageId: variables?.currentMessageId ?? "aff-msg-001",
+            type: "TEXT",
+            content: JSON.stringify({ content: "Can you send me a sample?" }),
+            senderId: "creator-001",
+            createTime: 1234567890,
+            cursor: "1",
+          }],
+          meta: {
+            completeness: "COMPLETE",
+            anchorMatchType: "NONE",
+            currentMessageFound: true,
+            anchorMatched: false,
+            pageLimitReached: false,
+            fetchedMessageCount: 1,
+            anchorMessageId: null,
+            anchorCreateTime: null,
+          },
+        },
+      };
+    }
+    if (query.includes("affiliateWorkspace")) {
+      return {
+        affiliateWorkspace: {
+          sampleApplicationRecords: [{
+            id: "sample-record-001",
+            platformApplicationId: variables?.input?.platformApplicationId ?? "sample-app-001",
+            creatorId: null,
+            productId: "product-SUB",
+            status: "PENDING_REVIEW",
+            shipmentStatus: null,
+            contentFulfillmentStatus: null,
+            platformApplicationStatus: "PENDING",
+            platformContentFulfillmentStatus: null,
+            updatedAt: "2026-05-08T10:01:00.000Z",
+          }],
+          collaborationRecords: [],
+          actionProposals: [],
+          approvalPolicies: [{
+            id: "policy-001",
+            reason: "Require approval for affiliate actions",
+            action: "SEND_MESSAGE",
+            enabled: true,
+          }],
+        },
+      };
     }
     if (query.includes("csGetOrCreateSession")) {
       return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
@@ -245,7 +320,7 @@ beforeEach(() => {
   rootStore.ingestGraphQLResponse({
     runProfiles: [
       { id: "CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
-      { id: "AFFILIATE_OPERATOR", name: "Affiliate Operator", userId: "", surfaceId: "Default", selectedToolIds: ["affiliate_get_workspace", "affiliate_request_action", "affiliate_decide_proposal"] },
+      { id: "AFFILIATE_OPERATOR", name: "Affiliate Operator", userId: "", surfaceId: "Default", selectedToolIds: ["affiliate_get_workspace", "affiliate_resolve_work_item", "affiliate_decide_proposal"] },
       { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
     ],
     surfaces: [],
@@ -278,7 +353,7 @@ describe("affiliate message dispatch", () => {
         sessionKey: "agent:main:affiliate:tiktok:aff-conv-ABC",
         promptMode: "raw",
         idempotencyKey: "affiliate:tiktok:aff-msg-001",
-        extraSystemPrompt: expect.stringContaining("affiliate_request_action"),
+        extraSystemPrompt: expect.stringContaining("affiliate_resolve_work_item"),
       }),
     );
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
@@ -311,6 +386,177 @@ describe("affiliate message dispatch", () => {
         extraSystemPrompt: expect.stringContaining("Trigger Kind: SAMPLE_APPLICATION"),
       }),
     );
+  });
+
+  it("dispatches backend affiliate creator-message signals through the subscription path", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopInCache();
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "chat.history") {
+        return {
+          messages: [{
+            role: "user",
+            timestamp: "2026-05-08T09:59:00.000Z",
+            content: "[Affiliate Creator Conversation Work Package]\ntext: Previous creator message",
+          }],
+        };
+      }
+      return { runId: "run-aff-sub" };
+    });
+
+    await bridge.handleAffiliateConversationSignal({
+      type: "CREATOR_MESSAGE_RECEIVED",
+      source: "WEBHOOK",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "aff-conv-SUB",
+      messageId: "aff-msg-SUB",
+      messageType: "TEXT",
+      creatorImId: "creator-im-SUB",
+      eventTime: "2026-05-08T10:00:00.000Z",
+    } as any);
+
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:affiliate:tiktok:aff-conv-SUB",
+      runProfileId: "AFFILIATE_OPERATOR",
+    });
+    expect(mockGraphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("affiliateConversationMessageDelta"),
+      expect.objectContaining({
+        shopId: defaultShop.objectId,
+        conversationId: "aff-conv-SUB",
+        currentMessageId: "aff-msg-SUB",
+        anchor: expect.objectContaining({
+          sessionMessageText: expect.stringContaining("Previous creator message"),
+        }),
+        maxPages: 20,
+      }),
+    );
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:main:affiliate:tiktok:aff-conv-SUB",
+        idempotencyKey: "affiliate:tiktok:signal:CREATOR_MESSAGE_RECEIVED:aff-msg-SUB:2026-05-08T10:00:00.000Z",
+        message: expect.stringContaining("[Affiliate Creator Conversation Work Package]"),
+        extraSystemPrompt: expect.stringContaining("affiliate_resolve_work_item"),
+      }),
+    );
+    const agentCall = mockRpcRequest.mock.calls.find((call: unknown[]) => call[0] === "agent") as unknown[] | undefined;
+    expect(agentCall?.[1]).toEqual(expect.objectContaining({
+      message: expect.stringContaining("Current Message ID: aff-msg-SUB"),
+    }));
+  });
+
+  it("drops stale affiliate creator-message dispatch when a newer inbound overtakes delta fetch", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopInCache();
+    let releaseFirstDelta!: () => void;
+    const firstDeltaReady = new Promise<void>((resolve) => {
+      releaseFirstDelta = resolve;
+    });
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "chat.history") return { messages: [] };
+      return { runId: `run-${mockRpcRequest.mock.calls.length}` };
+    });
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
+      if (query.includes("affiliateConversationMessageDelta")) {
+        if (variables?.currentMessageId === "aff-msg-old") {
+          await firstDeltaReady;
+        }
+        return {
+          affiliateConversationMessageDelta: {
+            items: [{
+              messageId: variables?.currentMessageId,
+              type: "TEXT",
+              content: JSON.stringify({ content: `content for ${variables?.currentMessageId}` }),
+              senderId: "creator-im-SUB",
+              createTime: 1234567890,
+              cursor: String(variables?.currentMessageId),
+            }],
+            meta: {
+              completeness: "COMPLETE",
+              anchorMatchType: "NONE",
+              currentMessageFound: true,
+              anchorMatched: false,
+              pageLimitReached: false,
+              fetchedMessageCount: 1,
+              anchorMessageId: null,
+              anchorCreateTime: null,
+            },
+          },
+        };
+      }
+      return { ecommerceSendMessage: { messageId: "msg-default" } };
+    });
+
+    const oldDispatch = bridge.handleAffiliateConversationSignal({
+      type: "CREATOR_MESSAGE_RECEIVED",
+      source: "WEBHOOK",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "aff-conv-RACE",
+      messageId: "aff-msg-old",
+      messageType: "TEXT",
+      creatorImId: "creator-im-SUB",
+      eventTime: "2026-05-08T10:00:00.000Z",
+    } as any);
+
+    await Promise.resolve();
+
+    await bridge.handleAffiliateConversationSignal({
+      type: "CREATOR_MESSAGE_RECEIVED",
+      source: "WEBHOOK",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "aff-conv-RACE",
+      messageId: "aff-msg-new",
+      messageType: "TEXT",
+      creatorImId: "creator-im-SUB",
+      eventTime: "2026-05-08T10:00:01.000Z",
+    } as any);
+
+    releaseFirstDelta();
+    await oldDispatch;
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((call: unknown[]) => call[0] === "agent");
+    expect(agentCalls).toHaveLength(1);
+    expect(agentCalls[0][1]).toEqual(expect.objectContaining({
+      idempotencyKey: "affiliate:tiktok:signal:CREATOR_MESSAGE_RECEIVED:aff-msg-new:2026-05-08T10:00:01.000Z",
+      message: expect.stringContaining("Current Message ID: aff-msg-new"),
+    }));
+  });
+
+  it("dispatches backend affiliate sample signals to an event-scoped session", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopInCache();
+
+    await bridge.handleAffiliateConversationSignal({
+      type: "SAMPLE_APPLICATION_UPDATED",
+      source: "AIRFLOW",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      platformApplicationId: "sample-app-SUB",
+      platformStatus: "AWAITING_SHIPMENT",
+      productId: "product-SUB",
+      eventTime: "2026-05-08T10:01:00.000Z",
+    } as any);
+
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-SUB",
+      runProfileId: "AFFILIATE_OPERATOR",
+    });
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-SUB",
+        idempotencyKey: "affiliate:tiktok:signal:SAMPLE_APPLICATION_UPDATED:sample-app-SUB:2026-05-08T10:01:00.000Z",
+        message: expect.stringContaining("Sample Application ID: sample-app-SUB"),
+      }),
+    );
+    const agentCall = mockRpcRequest.mock.calls.find((call: unknown[]) => call[0] === "agent") as unknown[] | undefined;
+    expect(agentCall?.[1]).toEqual(expect.objectContaining({
+      message: expect.stringContaining("[Resolved Affiliate Workspace Snapshot]"),
+    }));
   });
 });
 

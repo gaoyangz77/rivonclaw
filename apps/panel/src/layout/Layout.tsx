@@ -335,10 +335,11 @@ export const Layout = observer(function Layout({
           <ul className="nav-list">
             {navRoutes.map((route) => {
               const active = currentPath === route.path;
+              const isSubItem = Boolean(route.parentPath);
               return (
                 <li key={route.path}>
                   <button
-                    className={`nav-btn ${active ? "nav-active" : "nav-item"}`}
+                    className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
                     onClick={() => {
                       if (route.authRequired && authChecking) return;
                       if (route.authRequired && !user) {

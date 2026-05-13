@@ -134,6 +134,12 @@ export const INIT_SHOPS_QUERY = `
         wms {
           enabled
         }
+        affiliateService {
+          enabled
+          runProfileId
+          csDeviceId
+          businessPrompt
+        }
       }
     }
   }

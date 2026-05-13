@@ -7,7 +7,7 @@ import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.
 import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-service-cloud-events.js";
-import { handleAffiliateConversationSignal } from "../affiliate/affiliate-conversation-signal-actuator.js";
+import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item-actuator.js";
 
 export interface SetupAuthDeps {
   storage: Storage;
@@ -78,8 +78,13 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     getShopIds: getActiveCustomerServiceShopIds,
   });
 
-  backendSubscription.subscribeToAffiliateConversationSignals((signal) => {
-    void handleAffiliateConversationSignal(signal);
+  backendSubscription.subscribeToAffiliateWorkItemChanges((workItem) => {
+    broadcastEvent("affiliate-work-item-changed", { workItem });
+    void handleAffiliateWorkItemChanged(deviceId, workItem);
+  });
+
+  backendSubscription.subscribeToAffiliateActionProposalChanges((proposal) => {
+    broadcastEvent("affiliate-action-proposal-changed", { proposal });
   });
 
   return { authSession, backendSubscription };

@@ -440,6 +440,7 @@ export interface AffiliateCollaborationRecord {
 
 /** Typed backend reasons explaining why a creator collaboration is in its processing state. */
 export const AffiliateCollaborationRecordProcessReason = {
+  AgentRunFailed: 'AGENT_RUN_FAILED',
   ContentPublished: 'CONTENT_PUBLISHED',
   CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
   CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
@@ -449,8 +450,10 @@ export const AffiliateCollaborationRecordProcessReason = {
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
   SampleShippedContentFollowUpDue: 'SAMPLE_SHIPPED_CONTENT_FOLLOW_UP_DUE',
+  StaffReviewRequested: 'STAFF_REVIEW_REQUESTED',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
-  UserLevelBlocked: 'USER_LEVEL_BLOCKED'
+  UserLevelBlocked: 'USER_LEVEL_BLOCKED',
+  WorkDeferred: 'WORK_DEFERRED'
 } as const;
 
 export type AffiliateCollaborationRecordProcessReason = typeof AffiliateCollaborationRecordProcessReason[keyof typeof AffiliateCollaborationRecordProcessReason];
@@ -721,6 +724,16 @@ export interface AffiliateWorkItemChanged {
   workItem: AffiliateWorkItem;
 }
 
+/** Terminal decision for an agent-dispatched affiliate work item. */
+export const AffiliateWorkItemResolutionDecision = {
+  Deferred: 'DEFERRED',
+  FailedOrIncomplete: 'FAILED_OR_INCOMPLETE',
+  NeedsStaffReview: 'NEEDS_STAFF_REVIEW',
+  NoActionNeeded: 'NO_ACTION_NEEDED',
+  RequestAction: 'REQUEST_ACTION'
+} as const;
+
+export type AffiliateWorkItemResolutionDecision = typeof AffiliateWorkItemResolutionDecision[keyof typeof AffiliateWorkItemResolutionDecision];
 /** Backend-derived affiliate work item kind consumed by desktop agent-run factories and review UI. */
 export const AffiliateWorkKind = {
   ApprovalWaiting: 'APPROVAL_WAITING',
@@ -3033,6 +3046,8 @@ export interface Mutation {
   requestAffiliateAction: RequestAffiliateActionPayload;
   /** Request a new captcha challenge */
   requestCaptcha: CaptchaResponse;
+  /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the work boundary and update collaboration state. */
+  resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
   /** Set or clear the default RunProfile for the current user */
@@ -3326,6 +3341,11 @@ export interface MutationRemoveCreatorTagArgs {
 
 export interface MutationRequestAffiliateActionArgs {
   input: RequestAffiliateActionInput;
+}
+
+
+export interface MutationResolveAffiliateWorkItemArgs {
+  input: ResolveAffiliateWorkItemInput;
 }
 
 
@@ -4532,6 +4552,42 @@ export interface RequestAffiliateActionPayload {
   proposal?: Maybe<ActionProposal>;
 }
 
+export interface ResolveAffiliateWorkItemActionInput {
+  approvalPolicyUpdateIntent?: InputMaybe<ActionProposalApprovalPolicyUpdateIntentInput>;
+  blockCreatorIntent?: InputMaybe<ActionProposalBlockCreatorIntentInput>;
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  campaignProductUpdateIntent?: InputMaybe<ActionProposalCampaignProductUpdateIntentInput>;
+  candidateDecisionIntent?: InputMaybe<ActionProposalCandidateDecisionIntentInput>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
+  expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  messageIntent?: InputMaybe<ActionProposalMessageIntentInput>;
+  sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
+  sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
+  targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
+  type: ActionProposalType;
+}
+
+export interface ResolveAffiliateWorkItemInput {
+  action?: InputMaybe<ResolveAffiliateWorkItemActionInput>;
+  collaborationRecordId: Scalars['ID']['input'];
+  decision: AffiliateWorkItemResolutionDecision;
+  /** The collaboration.lastSignalAt value that this work-item decision handled. Used as the ack boundary. */
+  handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  nextSellerActionAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  operatorSummary: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+export interface ResolveAffiliateWorkItemPayload {
+  actionMode?: Maybe<AffiliateActionRequestMode>;
+  collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
+  decision: AffiliateWorkItemResolutionDecision;
+  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
+  proposal?: Maybe<ActionProposal>;
+  stale: Scalars['Boolean']['output'];
+}
+
 /** RunProfile entity — defines tool selection for a specific run. userId=null for system presets. */
 export interface RunProfile {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -5048,6 +5104,7 @@ export const ToolId = {
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
   AffiliateRequestAction: 'AFFILIATE_REQUEST_ACTION',
+  AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
   BrowserProfilesGet: 'BROWSER_PROFILES_GET',
   BrowserProfilesList: 'BROWSER_PROFILES_LIST',
   BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',

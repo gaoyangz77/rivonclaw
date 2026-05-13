@@ -45,13 +45,19 @@ export const EcommercePage = observer(function EcommercePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
+  const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingAffiliateSettings, setSavingAffiliateSettings] = useState(false);
   const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
   const [togglingInventoryServiceId, setTogglingInventoryServiceId] = useState<string | null>(null);
+  const [togglingAffiliateServiceId, setTogglingAffiliateServiceId] = useState<string | null>(null);
   const [savingRunProfile, setSavingRunProfile] = useState(false);
+  const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
+  const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(null);
+  const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const selectedShop = shops.find((s) => s.id === selectedShopId) ?? null;
@@ -111,6 +117,12 @@ export const EcommercePage = observer(function EcommercePage() {
       setEditBusinessPrompt(selectedShop.services?.customerService?.businessPrompt ?? "");
     }
   }, [selectedShop?.id, selectedShop?.services?.customerService?.businessPrompt]);
+
+  useEffect(() => {
+    if (selectedShop) {
+      setEditAffiliateBusinessPrompt(selectedShop.services?.affiliateService?.businessPrompt ?? "");
+    }
+  }, [selectedShop?.id, selectedShop?.services?.affiliateService?.businessPrompt]);
 
   // ── Handlers ──
 
@@ -228,6 +240,33 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
+  async function handleToggleAffiliateService(shopId: string, currentValue: boolean) {
+    setTogglingAffiliateServiceId(shopId);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) throw new Error(`Shop ${shopId} not found`);
+      const nextValue = !currentValue;
+      await shop.update({
+        services: {
+          affiliateService: {
+            enabled: nextValue,
+            ...(nextValue && !shop.services?.affiliateService?.runProfileId
+              ? { runProfileId: "AFFILIATE_OPERATOR" }
+              : {}),
+          },
+        },
+      });
+      if (!nextValue && activeTab === "affiliateManagement") {
+        setActiveTab("overview");
+      }
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setTogglingAffiliateServiceId(null);
+    }
+  }
+
   async function handleSaveBusinessPrompt() {
     if (!selectedShopId) return;
     setSavingSettings(true);
@@ -245,6 +284,23 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
+  async function handleSaveAffiliateBusinessPrompt() {
+    if (!selectedShopId) return;
+    setSavingAffiliateSettings(true);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
+        services: { affiliateService: { businessPrompt: editAffiliateBusinessPrompt } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingAffiliateSettings(false);
+    }
+  }
+
   async function handleRunProfileChange(profileId: string) {
     if (!selectedShopId) return;
     setSavingRunProfile(true);
@@ -259,6 +315,77 @@ export const EcommercePage = observer(function EcommercePage() {
       handleError(err, "ecommerce.updateFailed");
     } finally {
       setSavingRunProfile(false);
+    }
+  }
+
+  async function handleAffiliateRunProfileChange(profileId: string) {
+    if (!selectedShopId) return;
+    setSavingAffiliateRunProfile(true);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
+        services: { affiliateService: { runProfileId: profileId } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingAffiliateRunProfile(false);
+    }
+  }
+
+  async function handleBindAffiliateDevice(shopId: string) {
+    if (!deviceBinding.myDeviceId) return;
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
+    const existingDeviceId = shop.services?.affiliateService?.csDeviceId;
+    if (existingDeviceId && existingDeviceId !== deviceBinding.myDeviceId) {
+      setAffiliateBindConflictShopId(shopId);
+      return;
+    }
+    setTogglingAffiliateBindShopId(shopId);
+    try {
+      await shop.update({
+        services: { affiliateService: { csDeviceId: deviceBinding.myDeviceId } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setTogglingAffiliateBindShopId(null);
+    }
+  }
+
+  async function handleForceBindAffiliateConfirmed() {
+    const shopId = affiliateBindConflictShopId;
+    setAffiliateBindConflictShopId(null);
+    if (!shopId || !deviceBinding.myDeviceId) return;
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
+    setTogglingAffiliateBindShopId(shopId);
+    try {
+      await shop.update({
+        services: { affiliateService: { csDeviceId: deviceBinding.myDeviceId } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setTogglingAffiliateBindShopId(null);
+    }
+  }
+
+  async function handleUnbindAffiliateDevice(shopId: string) {
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
+    setTogglingAffiliateBindShopId(shopId);
+    try {
+      await shop.update({
+        services: { affiliateService: { csDeviceId: null } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setTogglingAffiliateBindShopId(null);
     }
   }
 
@@ -321,6 +448,8 @@ export const EcommercePage = observer(function EcommercePage() {
 
   const selectedRunProfileId = selectedShop?.services?.customerService?.runProfileId ?? "";
   const selectedRunProfile = runProfiles.find((p) => p.id === selectedRunProfileId) ?? null;
+  const selectedAffiliateRunProfileId = selectedShop?.services?.affiliateService?.runProfileId ?? "AFFILIATE_OPERATOR";
+  const selectedAffiliateRunProfile = runProfiles.find((p) => p.id === selectedAffiliateRunProfileId) ?? null;
 
   const runProfileOptions = useMemo(
     () => runProfiles.map((p) => ({
@@ -437,6 +566,8 @@ export const EcommercePage = observer(function EcommercePage() {
         onToggleCustomerService={handleToggleCustomerService}
         togglingInventoryServiceId={togglingInventoryServiceId}
         onToggleInventoryManagement={handleToggleInventoryManagement}
+        togglingAffiliateServiceId={togglingAffiliateServiceId}
+        onToggleAffiliateService={handleToggleAffiliateService}
         editBusinessPrompt={editBusinessPrompt}
         onEditBusinessPrompt={setEditBusinessPrompt}
         savingSettings={savingSettings}
@@ -461,6 +592,17 @@ export const EcommercePage = observer(function EcommercePage() {
         togglingBindShopId={deviceBinding.togglingBindShopId}
         onBindDevice={deviceBinding.handleBindDevice}
         onUnbindDevice={deviceBinding.handleUnbindDevice}
+        selectedAffiliateRunProfileId={selectedAffiliateRunProfileId}
+        selectedAffiliateRunProfile={selectedAffiliateRunProfile}
+        savingAffiliateRunProfile={savingAffiliateRunProfile}
+        onAffiliateRunProfileChange={handleAffiliateRunProfileChange}
+        editAffiliateBusinessPrompt={editAffiliateBusinessPrompt}
+        onEditAffiliateBusinessPrompt={setEditAffiliateBusinessPrompt}
+        savingAffiliateSettings={savingAffiliateSettings}
+        onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
+        togglingAffiliateBindShopId={togglingAffiliateBindShopId}
+        onBindAffiliateDevice={handleBindAffiliateDevice}
+        onUnbindAffiliateDevice={handleUnbindAffiliateDevice}
         csCredits={csCredits}
         creditsLoading={creditsLoading}
         redeemingCreditId={redeemingCreditId}
@@ -487,6 +629,16 @@ export const EcommercePage = observer(function EcommercePage() {
         cancelLabel={t("common.cancel")}
         onConfirm={deviceBinding.handleForceBindConfirmed}
         onCancel={() => deviceBinding.setBindConflictShopId(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={affiliateBindConflictShopId !== null}
+        title={t("ecommerce.shopDrawer.affiliate.bindConflictTitle")}
+        message={t("ecommerce.shopDrawer.affiliate.bindConflict")}
+        confirmLabel={t("common.done")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={handleForceBindAffiliateConfirmed}
+        onCancel={() => setAffiliateBindConflictShopId(null)}
       />
     </div>
   );

@@ -31,6 +31,47 @@ export const GET_CONVERSATION_DETAILS_QUERY = `
   }
 `;
 
+export const GET_CONVERSATION_MESSAGE_DELTA_QUERY = `
+  query CsConversationMessageDelta(
+    $shopId: String!,
+    $conversationId: String!,
+    $currentMessageId: String!,
+    $anchor: ConversationMessageDeltaAnchorInput,
+    $maxPages: Int,
+    $locale: String
+  ) {
+    ecommerceGetConversationMessageDelta(
+      shopId: $shopId,
+      conversationId: $conversationId,
+      currentMessageId: $currentMessageId,
+      anchor: $anchor,
+      maxPages: $maxPages,
+      locale: $locale
+    ) {
+      items {
+        messageId
+        type
+        text
+        createTime
+        sender {
+          role
+          nickname
+        }
+      }
+      meta {
+        completeness
+        anchorMatchType
+        currentMessageFound
+        anchorMatched
+        pageLimitReached
+        fetchedMessageCount
+        anchorMessageId
+        anchorCreateTime
+      }
+    }
+  }
+`;
+
 export const GET_BUYER_ORDERS_QUERY = `
   query($shopId: String!, $buyerUserId: String) {
     ecommerceGetOrders(shopId: $shopId, buyerUserId: $buyerUserId) {

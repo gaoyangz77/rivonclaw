@@ -37,6 +37,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         enabled
         runProfileId
         csDeviceId
+        businessPrompt
       }
     }
   }
@@ -149,13 +150,55 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
   query AffiliateActionProposals($input: ReadActionProposalsInput!) {
     actionProposals(input: $input) {
       id
+      userId
       shopId
       campaignId
       creatorId
-      collaborationId
+      creatorProfile {
+        id
+        creatorOpenId
+        creatorImId
+        username
+        nickname
+        avatarUrl
+      }
+      collaborationId: collaborationRecordId
       type
       status
-      summary
+      operatorSummary
+      steps {
+        stepId
+        type
+        operatorSummary
+        messageIntent {
+          conversationId
+          creatorId
+          creatorOpenId
+          messageType
+          text
+          productId
+          platformApplicationId
+          platformTargetCollaborationId
+          sampleApplicationRecordId
+          targetCollaborationRecordId: affiliateCollaborationId
+          imageUrl
+          imageWidth
+          imageHeight
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        sampleShipmentIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          warehouseId
+          skuId
+          quantity
+        }
+      }
       createdAt
       updatedAt
       expiresAt
@@ -175,7 +218,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         platformApplicationId
         platformTargetCollaborationId
         sampleApplicationRecordId
-        targetCollaborationRecordId
+        targetCollaborationRecordId: affiliateCollaborationId
         imageUrl
         imageWidth
         imageHeight
@@ -242,6 +285,11 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         productIds
         reason
         enabled
+      }
+      candidateDecisionIntent {
+        candidateIds
+        status
+        rationale
       }
       executionResult {
         platformObjectId

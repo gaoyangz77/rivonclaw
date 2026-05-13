@@ -64,6 +64,12 @@ export const ShopModel = ShopModelBase.views((self) => ({
         wms?: {
           enabled?: boolean | null;
         };
+        affiliateService?: {
+          enabled?: boolean;
+          runProfileId?: string | null;
+          csDeviceId?: string | null;
+          businessPrompt?: string | null;
+        };
       };
     }) {
       const result = yield client().mutate({

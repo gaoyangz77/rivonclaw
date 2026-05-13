@@ -16,14 +16,22 @@ import {
   type AffiliateShopContext,
 } from "./affiliate-session.js";
 import { normalizePlatform } from "../utils/platform.js";
+import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
+import type { AffiliateWorkItemPayload } from "../cloud/backend-subscription-client.js";
 
 const log = createLogger("affiliate-inbound");
+const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
+  1,
+  Number.parseInt(process.env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS ?? "4", 10) || 4,
+);
 
 export interface AffiliateShopSource {
   id: string;
   platform?: string | null;
   platformShopId?: string | null;
   shopName?: string | null;
+  runProfileId?: string | null;
+  businessPrompt?: string | null;
 }
 
 export class AffiliateInbound {
@@ -35,6 +43,9 @@ export class AffiliateInbound {
 
   /** Agent run id -> affiliate session key, used only for run lifecycle cleanup. */
   private runIndex = new Map<string, string>();
+
+  /** Work item semantic key -> last dispatched backend state version. */
+  private dispatchedWorkItemVersions = new Map<string, string>();
 
   syncFromShops(shops: Iterable<AffiliateShopSource>): Set<string> {
     const activeShopIds = new Set<string>();
@@ -49,7 +60,8 @@ export class AffiliateInbound {
         platformShopId,
         shopName: shop.shopName ?? platformShopId,
         platform: normalizePlatform(shop.platform ?? "TIKTOK_SHOP"),
-        runProfileId: DEFAULT_AFFILIATE_RUN_PROFILE_ID,
+        runProfileId: shop.runProfileId ?? DEFAULT_AFFILIATE_RUN_PROFILE_ID,
+        businessPrompt: shop.businessPrompt ?? "",
       };
 
       const existing = this.shopContexts.get(platformShopId);
@@ -113,6 +125,93 @@ export class AffiliateInbound {
       default:
         return false;
     }
+  }
+
+  async handleSignal(signal: AffiliateConversationSignalPayload): Promise<boolean> {
+    if (signal.workSignal === false) {
+      log.info(`Ignoring non-work affiliate signal: type=${signal.type} shop=${signal.platformShopId}`);
+      return true;
+    }
+
+    const shop = this.shopContexts.get(signal.platformShopId);
+    if (!shop) {
+      log.error(`No affiliate shop context for platform shopId ${signal.platformShopId}, dropping backend signal`);
+      return false;
+    }
+
+    const context = this.buildContextFromSignal(shop, signal);
+    if (context == null) {
+      log.warn(`Affiliate signal missing stable trigger id: type=${signal.type} shop=${signal.platformShopId}`);
+      return false;
+    }
+
+    const session = this.getOrCreateSession(shop, context);
+    try {
+      const result = await session.handleConversationSignal(signal);
+      if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
+      return true;
+    } catch (err) {
+      log.error(`Failed to handle affiliate backend signal ${signal.type}:`, err);
+      return false;
+    }
+  }
+
+  async handleWorkItem(workItem: AffiliateWorkItemPayload): Promise<boolean> {
+    if (!workItem.agentDispatchRecommended) {
+      log.info(`Ignoring affiliate work item without agent dispatch recommendation: id=${workItem.id} kind=${workItem.workKind}`);
+      return true;
+    }
+
+    if (this.runIndex.size >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
+      log.warn(
+        `Deferring affiliate work item because active affiliate runs reached limit: ` +
+        `active=${this.runIndex.size} limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} ` +
+        `id=${workItem.id} kind=${workItem.workKind}`,
+      );
+      return true;
+    }
+
+    const versionKey = this.buildWorkItemVersionKey(workItem);
+    const version = this.buildWorkItemVersion(workItem);
+    if (version && this.dispatchedWorkItemVersions.get(versionKey) === version) {
+      log.info(
+        `Ignoring unchanged affiliate work item version: id=${workItem.id} kind=${workItem.workKind} version=${version}`,
+      );
+      return true;
+    }
+
+    const shop = this.shopContexts.get(workItem.platformShopId);
+    if (!shop) {
+      log.error(`No affiliate shop context for platform shopId ${workItem.platformShopId}, dropping work item`);
+      return false;
+    }
+
+    const context = this.buildContextFromWorkItem(shop, workItem);
+    if (context == null) {
+      log.warn(`Affiliate work item missing stable trigger context: id=${workItem.id} kind=${workItem.workKind}`);
+      return false;
+    }
+
+    const session = this.getOrCreateSession(shop, context);
+    try {
+      const result = await session.handleWorkItem(workItem);
+      if (result.runId) {
+        this.runIndex.set(result.runId, session.scopeKey);
+        if (version) this.dispatchedWorkItemVersions.set(versionKey, version);
+      }
+      return true;
+    } catch (err) {
+      log.error(`Failed to handle affiliate work item ${workItem.id}:`, err);
+      return false;
+    }
+  }
+
+  private buildWorkItemVersionKey(workItem: AffiliateWorkItemPayload): string {
+    return `${workItem.id}:${workItem.workKind}`;
+  }
+
+  private buildWorkItemVersion(workItem: AffiliateWorkItemPayload): string {
+    return workItem.versionAt ?? "";
   }
 
   private onNewConversation(frame: AffiliateNewConversationFrame): void {
@@ -187,7 +286,7 @@ export class AffiliateInbound {
       platformShopId: shop.platformShopId,
       triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
       triggerId: frame.collaborationId,
-      collaborationId: frame.collaborationId,
+      collaborationRecordId: frame.collaborationId,
       creatorId: frame.creatorId,
       productId: frame.productId,
     });
@@ -238,13 +337,127 @@ export class AffiliateInbound {
     return session;
   }
 
+  private buildContextFromSignal(
+    shop: AffiliateShopContext,
+    signal: AffiliateConversationSignalPayload,
+  ): AffiliateContext | null {
+    const base = {
+      shopId: shop.objectId,
+      platformShopId: shop.platformShopId,
+      creatorImUserId: signal.creatorImId ?? undefined,
+      productId: signal.productId ?? undefined,
+      orderId: signal.orderId ?? undefined,
+      collaborationRecordId: signal.collaborationRecordId ?? undefined,
+    };
+
+    switch (signal.type) {
+      case "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED":
+      case "CREATOR_MESSAGE_RECEIVED":
+        if (!signal.conversationId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+          triggerId: signal.conversationId,
+          conversationId: signal.conversationId,
+        };
+      case "AFFILIATE_SAMPLE_APPLICATION_OBSERVED":
+      case "AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED":
+      case "SAMPLE_APPLICATION_UPDATED":
+        if (!signal.platformApplicationId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+          triggerId: signal.platformApplicationId,
+          conversationId: signal.conversationId ?? undefined,
+          sampleApplicationId: signal.platformApplicationId,
+        };
+      case "AFFILIATE_TARGET_COLLABORATION_OBSERVED":
+      case "TARGET_COLLABORATION_UPDATED":
+        if (!signal.platformTargetCollaborationId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
+          triggerId: signal.platformTargetCollaborationId,
+          conversationId: signal.conversationId ?? undefined,
+          collaborationRecordId: signal.collaborationRecordId ?? signal.platformTargetCollaborationId,
+        };
+      case "AFFILIATE_TIMER_DUE":
+      case "AFFILIATE_ACTION_RESULT_OBSERVED":
+        if (!signal.collaborationRecordId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
+          triggerId: signal.collaborationRecordId,
+          conversationId: signal.conversationId ?? undefined,
+        };
+      case "ORDER_ATTRIBUTED":
+        if (!signal.orderId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.ORDER_ATTRIBUTION,
+          triggerId: signal.orderId,
+          conversationId: signal.conversationId ?? undefined,
+          orderId: signal.orderId,
+        };
+      default:
+        return null;
+    }
+  }
+
+  private buildContextFromWorkItem(
+    shop: AffiliateShopContext,
+    workItem: AffiliateWorkItemPayload,
+  ): AffiliateContext | null {
+    const collaboration = workItem.collaboration;
+    const sample = workItem.sampleApplicationRecord;
+    const base = {
+      shopId: shop.objectId,
+      platformShopId: shop.platformShopId,
+      creatorImUserId: collaboration.creatorImId ?? undefined,
+      creatorId: collaboration.creatorId,
+      productId: collaboration.productId ?? sample?.productId ?? undefined,
+      collaborationRecordId: workItem.collaborationRecordId,
+    };
+
+    switch (workItem.workKind) {
+      case "CREATOR_REPLY_NEEDED":
+        if (!collaboration.platformConversationId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+          triggerId: collaboration.platformConversationId,
+          conversationId: collaboration.platformConversationId,
+        };
+      case "SAMPLE_REVIEW_NEEDED":
+      case "SAMPLE_SHIPMENT_NEEDED": {
+        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration.sampleApplicationRecordId;
+        if (!sampleTriggerId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+          triggerId: sampleTriggerId,
+          conversationId: collaboration.platformConversationId ?? undefined,
+          sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
+        };
+      }
+      default:
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
+          triggerId: workItem.collaborationRecordId,
+          conversationId: collaboration.platformConversationId ?? undefined,
+        };
+    }
+  }
+
   private shopContextEqual(a: AffiliateShopContext, b: AffiliateShopContext): boolean {
     return (
       a.objectId === b.objectId &&
       a.platformShopId === b.platformShopId &&
       a.platform === b.platform &&
       a.shopName === b.shopName &&
-      a.runProfileId === b.runProfileId
+      a.runProfileId === b.runProfileId &&
+      (a.businessPrompt ?? "") === (b.businessPrompt ?? "")
     );
   }
 }

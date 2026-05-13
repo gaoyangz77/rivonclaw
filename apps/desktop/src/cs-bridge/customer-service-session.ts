@@ -40,9 +40,11 @@ import {
 import {
   SEND_MESSAGE_MUTATION,
   GET_CONVERSATION_DETAILS_QUERY,
+  GET_CONVERSATION_MESSAGE_DELTA_QUERY,
   GET_BUYER_ORDERS_QUERY,
   CS_GET_OR_CREATE_SESSION_MUTATION,
 } from "../cloud/cs-queries.js";
+import { readLatestUserSessionAnchor } from "../utils/openclaw-session-anchor.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -116,6 +118,7 @@ export interface DispatchResult {
 
 interface CatchUpDispatchOptions {
   operatorInstruction?: string;
+  currentMessageId?: string;
 }
 
 export interface EscalationResult {
@@ -369,8 +372,18 @@ export class CustomerServiceSession {
       return { runId: undefined };
     }
 
+    // Fetch a bounded platform delta before dispatch. The incoming webhook is
+    // the trigger; the platform conversation delta is the authoritative input.
+    const delta = await this.fetchConversationDelta(frame.messageId);
+
+    if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+      return { runId: undefined };
+    }
+
     // If previous runs were aborted, tell the agent its prior replies were not delivered.
-    const message = round.buildBuyerMessage(content, isStagingDevMode());
+    const message = delta
+      ? round.buildConversationWorkPackageMessage(this.buildConversationDeltaMessage(frame.messageId, delta))
+      : round.buildBuyerMessage(content, isStagingDevMode());
 
     const result = await this.dispatch({
       message,
@@ -775,10 +788,82 @@ export class CustomerServiceSession {
     return sections.join("\n\n");
   }
 
+  private async fetchConversationDelta(currentMessageId: string): Promise<GQL.CustomerServiceMessageDelta | null> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn("No auth session available, cannot fetch CS conversation delta");
+      return null;
+    }
+
+    try {
+      const anchor = await readLatestUserSessionAnchor(this.dispatchKey);
+      const result = await authSession.graphqlFetch<{
+        ecommerceGetConversationMessageDelta: GQL.CustomerServiceMessageDelta;
+      }>(GET_CONVERSATION_MESSAGE_DELTA_QUERY, {
+        shopId: this.csContext.shopId,
+        conversationId: this.csContext.conversationId,
+        currentMessageId,
+        anchor: anchor ?? null,
+        maxPages: 20,
+        locale: undefined,
+      });
+      return result.ecommerceGetConversationMessageDelta;
+    } catch (err) {
+      log.warn(`Failed to fetch CS conversation delta for ${this.csContext.conversationId}: ${String(err)}`);
+      return null;
+    }
+  }
+
+  private buildConversationDeltaMessage(
+    currentMessageId: string,
+    delta: GQL.CustomerServiceMessageDelta,
+  ): string {
+    const timeline = (delta.items ?? []).map((message, index) => [
+      `${index + 1}. [${message.sender?.role ?? "UNKNOWN"}${message.sender?.nickname ? ` / ${message.sender.nickname}` : ""}]`,
+      `   messageId: ${message.messageId ?? ""}`,
+      `   createTime: ${message.createTime ?? ""}`,
+      `   type: ${message.type ?? ""}`,
+      `   text: ${message.text ?? ""}`,
+    ].join("\n"));
+
+    return [
+      "[Customer Service Conversation Work Package]",
+      "",
+      "This is the authoritative platform conversation delta for the current inbound trigger.",
+      "It is bounded by the current inbound message ID; newer platform messages must be handled by later triggers.",
+      "The timeline may overlap with earlier session context if the local anchor could not be matched exactly.",
+      "",
+      "## Delta Meta",
+      `- Conversation ID: ${this.csContext.conversationId}`,
+      `- Current Message ID: ${currentMessageId}`,
+      `- Completeness: ${delta.meta.completeness}`,
+      `- Anchor Match: ${delta.meta.anchorMatchType}`,
+      `- Current Message Found: ${delta.meta.currentMessageFound}`,
+      `- Anchor Matched: ${delta.meta.anchorMatched}`,
+      `- Page Limit Reached: ${delta.meta.pageLimitReached}`,
+      "",
+      "## Ordered Platform Timeline",
+      ...(timeline.length ? timeline : ["(No platform messages returned in this delta.)"]),
+      "",
+      "## Task",
+      "Reply to the latest buyer-side message in the ordered platform timeline.",
+      "If the delta is incomplete, first use ecom_cs_get_conversation_messages to verify the latest conversation state before sending a buyer-facing response.",
+    ].join("\n");
+  }
+
   /** Dispatch an agent run to catch up on a missed conversation. Ensures backend session first. */
   async dispatchCatchUp(options?: CatchUpDispatchOptions): Promise<DispatchResult> {
     if (!await this.ensureBackendSession()) {
       throw new Error("Failed to create backend CS session (insufficient balance?)");
+    }
+    if (options?.currentMessageId) {
+      const delta = await this.fetchConversationDelta(options.currentMessageId);
+      if (delta) {
+        return this.dispatch({
+          message: this.buildConversationDeltaMessage(options.currentMessageId, delta),
+          idempotencyKey: `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`,
+        });
+      }
     }
     return this.dispatch({
       message: this.buildCatchUpMessage(options),

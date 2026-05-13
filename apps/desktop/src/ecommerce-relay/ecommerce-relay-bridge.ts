@@ -6,7 +6,12 @@ import {
 } from "@rivonclaw/core";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
 import { reaction, toJS } from "mobx";
-import type { CsConversationSignalPayload, CsEscalationEventDeliveryPayload } from "../cloud/backend-subscription-client.js";
+import type {
+  AffiliateConversationSignalPayload,
+  AffiliateWorkItemPayload,
+  CsConversationSignalPayload,
+  CsEscalationEventDeliveryPayload,
+} from "../cloud/backend-subscription-client.js";
 
 // Re-export for consumers that imported CSShopContext from this file
 export type { CSShopContext } from "../cs-bridge/customer-service-session.js";
@@ -141,11 +146,30 @@ export class EcommerceRelayBridge {
 
     // Build the set of shops that should be active for each service.
     const activeCsShopIds = new Set<string>();
-    this.affiliateInbound.syncFromShops(shops);
+    const activeAffiliateShops: Array<{
+      id: string;
+      platform?: string | null;
+      platformShopId?: string | null;
+      shopName?: string | null;
+      runProfileId?: string | null;
+      businessPrompt?: string | null;
+    }> = [];
 
     for (const shop of shops) {
       const platformShopId = shop.platformShopId;
       if (!platformShopId) continue;
+
+      const affiliateService = shop.services?.affiliateService;
+      if (affiliateService?.enabled && affiliateService.csDeviceId === deviceId) {
+        activeAffiliateShops.push({
+          id: shop.id,
+          platform: shop.platform,
+          platformShopId,
+          shopName: shop.shopName,
+          runProfileId: affiliateService.runProfileId,
+          businessPrompt: affiliateService.businessPrompt,
+        });
+      }
 
       const cs = shop.services?.customerService;
       if (!cs?.enabled || !shop.handlesCustomerServiceOnDevice(deviceId)) continue;
@@ -187,6 +211,8 @@ export class EcommerceRelayBridge {
         this.removeShopContext(platformShopId);
       }
     }
+
+    this.affiliateInbound.syncFromShops(activeAffiliateShops);
   }
 
   /**
@@ -494,6 +520,7 @@ export class EcommerceRelayBridge {
     try {
       await session.dispatchCatchUp({
         operatorInstruction: signal.operatorInstruction ?? undefined,
+        currentMessageId: signal.messageId ?? undefined,
       });
     } catch (err) {
       log.error(`Failed to handle CS signal ${signal.messageId ?? signal.conversationId}:`, err);
@@ -502,6 +529,26 @@ export class EcommerceRelayBridge {
         errorMessage: err,
       });
     }
+  }
+
+  async handleAffiliateConversationSignal(signal: AffiliateConversationSignalPayload): Promise<void> {
+    this.syncFromCache();
+    log.info(
+      `Affiliate signal: type=${signal.type} shop=${signal.platformShopId} ` +
+      `conv=${signal.conversationId ?? ""} msg=${signal.messageId ?? ""}`,
+    );
+
+    await this.affiliateInbound.handleSignal(signal);
+  }
+
+  async handleAffiliateWorkItemChanged(workItem: AffiliateWorkItemPayload): Promise<void> {
+    this.syncFromCache();
+    log.info(
+      `Affiliate work item: kind=${workItem.workKind} shop=${workItem.platformShopId} ` +
+      `collaboration=${workItem.collaborationRecordId} status=${workItem.processingStatus}`,
+    );
+
+    await this.affiliateInbound.handleWorkItem(workItem);
   }
 
   /**
@@ -613,6 +660,7 @@ export class EcommerceRelayBridge {
     buyerUserId?: string;
     orderId?: string;
     operatorInstruction?: string;
+    currentMessageId?: string;
   }) {
     const session = await this.getOrCreateSession(params.shopObjectId, {
       conversationId: params.conversationId,
@@ -621,6 +669,7 @@ export class EcommerceRelayBridge {
     });
     return session.dispatchCatchUp({
       operatorInstruction: params.operatorInstruction,
+      currentMessageId: params.currentMessageId,
     });
   }
 

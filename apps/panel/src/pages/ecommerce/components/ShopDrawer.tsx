@@ -5,6 +5,7 @@ import { CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
 import { InventoryManagementTab } from "./InventoryManagementTab.js";
+import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
 import type { DrawerTab } from "../ecommerce-types.js";
 
 interface ShopDrawerProps {
@@ -19,6 +20,8 @@ interface ShopDrawerProps {
   onToggleCustomerService: (shopId: string, currentValue: boolean) => void;
   togglingInventoryServiceId: string | null;
   onToggleInventoryManagement: (shopId: string, currentValue: boolean) => void;
+  togglingAffiliateServiceId: string | null;
+  onToggleAffiliateService: (shopId: string, currentValue: boolean) => void;
   // AI CS tab props
   editBusinessPrompt: string;
   onEditBusinessPrompt: (value: string) => void;
@@ -44,6 +47,17 @@ interface ShopDrawerProps {
   togglingBindShopId: string | null;
   onBindDevice: (shopId: string) => void;
   onUnbindDevice: (shopId: string) => void;
+  selectedAffiliateRunProfileId: string;
+  selectedAffiliateRunProfile: { selectedToolIds: string[] } | null;
+  savingAffiliateRunProfile: boolean;
+  onAffiliateRunProfileChange: (profileId: string) => void;
+  editAffiliateBusinessPrompt: string;
+  onEditAffiliateBusinessPrompt: (value: string) => void;
+  savingAffiliateSettings: boolean;
+  onSaveAffiliateBusinessPrompt: () => void;
+  togglingAffiliateBindShopId: string | null;
+  onBindAffiliateDevice: (shopId: string) => void;
+  onUnbindAffiliateDevice: (shopId: string) => void;
   csCredits: ServiceCredit[];
   creditsLoading: boolean;
   redeemingCreditId: string | null;
@@ -61,6 +75,8 @@ export const ShopDrawer = observer(function ShopDrawer({
   onToggleCustomerService,
   togglingInventoryServiceId,
   onToggleInventoryManagement,
+  togglingAffiliateServiceId,
+  onToggleAffiliateService,
   editBusinessPrompt,
   onEditBusinessPrompt,
   savingSettings,
@@ -85,6 +101,17 @@ export const ShopDrawer = observer(function ShopDrawer({
   togglingBindShopId,
   onBindDevice,
   onUnbindDevice,
+  selectedAffiliateRunProfileId,
+  selectedAffiliateRunProfile,
+  savingAffiliateRunProfile,
+  onAffiliateRunProfileChange,
+  editAffiliateBusinessPrompt,
+  onEditAffiliateBusinessPrompt,
+  savingAffiliateSettings,
+  onSaveAffiliateBusinessPrompt,
+  togglingAffiliateBindShopId,
+  onBindAffiliateDevice,
+  onUnbindAffiliateDevice,
   csCredits,
   creditsLoading,
   redeemingCreditId,
@@ -148,6 +175,14 @@ export const ShopDrawer = observer(function ShopDrawer({
                   onClick={() => onTabChange("warehouseManagement")}
                 >
                   {t("ecommerce.shopDrawer.tabs.warehouseManagement")}
+                </button>
+              )}
+              {shop.services?.affiliateService?.enabled && (
+                <button
+                  className={`drawer-tab-btn ${activeTab === "affiliateManagement" ? "drawer-tab-btn-active" : ""}`}
+                  onClick={() => onTabChange("affiliateManagement")}
+                >
+                  {t("ecommerce.shopDrawer.tabs.affiliateManagement")}
                 </button>
               )}
             </div>
@@ -264,6 +299,39 @@ export const ShopDrawer = observer(function ShopDrawer({
                     </span>
                   </label>
                 </div>
+
+                <div className="shop-toggle-card">
+                  <div className="shop-toggle-card-left">
+                    <span className="shop-toggle-card-label">
+                      {t("ecommerce.shopDrawer.overview.affiliateToggle")}
+                    </span>
+                    <span className={shop.services?.affiliateService?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                      {shop.services?.affiliateService?.enabled
+                        ? t("common.enabled")
+                        : t("common.disabled")}
+                    </span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={shop.services?.affiliateService?.enabled ?? false}
+                      onChange={() =>
+                        onToggleAffiliateService(
+                          shop.id,
+                          shop.services?.affiliateService?.enabled ?? false,
+                        )
+                      }
+                      disabled={togglingAffiliateServiceId === shop.id}
+                    />
+                    <span
+                      className={`toggle-track ${shop.services?.affiliateService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingAffiliateServiceId === shop.id ? "toggle-track-disabled" : ""}`}
+                    >
+                      <span
+                        className={`toggle-thumb ${shop.services?.affiliateService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                      />
+                    </span>
+                  </label>
+                </div>
               </div>
             )}
 
@@ -304,6 +372,25 @@ export const ShopDrawer = observer(function ShopDrawer({
 
             {activeTab === "warehouseManagement" && shop.services?.wms?.enabled && (
               <InventoryManagementTab shop={shop} />
+            )}
+
+            {activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled && (
+              <AffiliateManagementTab
+                shop={shop}
+                selectedRunProfileId={selectedAffiliateRunProfileId}
+                runProfileOptions={runProfileOptions}
+                selectedRunProfile={selectedAffiliateRunProfile}
+                savingRunProfile={savingAffiliateRunProfile}
+                onRunProfileChange={onAffiliateRunProfileChange}
+                editBusinessPrompt={editAffiliateBusinessPrompt}
+                onEditBusinessPrompt={onEditAffiliateBusinessPrompt}
+                savingSettings={savingAffiliateSettings}
+                onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
+                myDeviceId={myDeviceId}
+                togglingBindShopId={togglingAffiliateBindShopId}
+                onBindDevice={onBindAffiliateDevice}
+                onUnbindDevice={onUnbindAffiliateDevice}
+              />
             )}
           </div>
         )}

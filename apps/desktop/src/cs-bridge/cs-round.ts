@@ -140,7 +140,15 @@ export class CSRound {
 
   buildBuyerMessage(content: string, stagingMode: boolean): string {
     const senderTag = stagingMode ? "[Internal: Developer]" : "[External: Buyer]";
-    let message = `${senderTag}\n${content}`;
+    return this.withUndeliveredNotice(`${senderTag}\n${content}`);
+  }
+
+  buildConversationWorkPackageMessage(content: string): string {
+    return this.withUndeliveredNotice(content);
+  }
+
+  private withUndeliveredNotice(content: string): string {
+    let message = content;
     if (this.undeliveredCountAtStart <= 0) return message;
 
     const notice = this.undeliveredCountAtStart === 1
