@@ -136,257 +136,257 @@
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/shared/string-coerce.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/home-dir.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/plain-object.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/shared/regexp.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/utils.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/shared/string-normalization.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/config/types.models.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/terminal/ansi.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/plugin-cache-primitives.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/openclaw-root.fs.runtime.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/openclaw-root.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/bundled-dir.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/path-guards.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/boundary-path.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/file-identity.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/safe-open-sync.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/boundary-file-read.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/compat/legacy-names.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/prototype-keys.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/authority.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/refs.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/normalize.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/clawhub-spec.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/infra/npm-registry-spec.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/provider-index/normalize.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/provider-index/openclaw-provider-index.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/provider-index/load.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/provider-index/index.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/manifest-planner.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/provider-index-planner.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/model-catalog/index.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/utils/parse-json-compat.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/manifest-command-aliases.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/manifest.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/bundle-manifest.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/path-safety.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/bundled-load-path-aliases.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/bundled-source-overlays.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/package-entrypoints.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/package-entry-resolution.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/plugin-lifecycle-trace.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/roots.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/status-dependencies.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/discovery.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/plugins/channel-catalog-registry.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/channels/bundled-channel-catalog-read.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/channels/ids.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/config/paths.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/terminal/progress-line.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/terminal/restore.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/src/runtime.ts",
-      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.2 vendor artifact)"
+      "reason": "Auto-generated schema bundles vendor OpenClaw config schema (v2026.5.4 vendor artifact)"
     }
   ]
 }

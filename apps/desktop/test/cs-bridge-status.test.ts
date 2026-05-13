@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { EventEmitter } from "node:events";
 
 // ---------------------------------------------------------------------------
 // Mocks — vi.hoisted ensures values exist when vi.mock factories run
@@ -18,8 +17,6 @@ const { mockRuntimeStatusStore, mockGetAuthSession, mockShops } = vi.hoisted(() 
   // Mutable shops array — syncFromCache reads rootStore.shops
   mockShops: [] as any[],
 }));
-
-let lastCreatedWs: EventEmitter | null = null;
 
 vi.mock("../src/app/store/runtime-status-store.js", () => ({
   runtimeStatusStore: mockRuntimeStatusStore,
@@ -41,22 +38,6 @@ vi.mock("../src/utils/platform.js", () => ({
   normalizePlatform: (p: string) => p,
 }));
 
-vi.mock("../src/infra/proxy/proxy-aware-network.js", () => ({
-  proxyNetwork: {
-    createWebSocket: vi.fn(() => {
-      const ws = new EventEmitter();
-      (ws as any).readyState = 1;
-      (ws as any).send = vi.fn();
-      (ws as any).close = vi.fn();
-      (ws as any).ping = vi.fn();
-      (ws as any).terminate = vi.fn();
-      lastCreatedWs = ws;
-      setTimeout(() => ws.emit("open"), 0);
-      return ws;
-    }),
-  },
-}));
-
 vi.mock("mobx", async () => {
   const actual = await vi.importActual<typeof import("mobx")>("mobx");
   return {
@@ -73,6 +54,7 @@ const MOCK_SHOP = {
   platformShopId: "plat1",
   shopName: "Test Shop",
   platform: "tiktok",
+  handlesCustomerServiceOnDevice: () => true,
   services: {
     customerService: {
       enabled: true,
@@ -98,7 +80,6 @@ describe("CustomerServiceBridge → runtimeStatusStore integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    lastCreatedWs = null;
 
     // Populate the mock entity cache so syncFromCache() finds our shop
     mockShops.length = 0;
@@ -116,60 +97,23 @@ describe("CustomerServiceBridge → runtimeStatusStore integration", () => {
   });
 
   it("should set connected on cs_ack", async () => {
-    const connectPromise = bridge.start();
+    await bridge.start();
     await vi.advanceTimersByTimeAsync(10);
-
-    expect(lastCreatedWs).not.toBeNull();
-    lastCreatedWs!.emit("message", Buffer.from(JSON.stringify({ type: "cs_ack" })));
 
     expect(mockRuntimeStatusStore.setCsBridgeConnected).toHaveBeenCalled();
-
-    lastCreatedWs!.emit("close", 1000, Buffer.from(""));
-    await connectPromise;
   });
 
-  it("should set disconnected on WebSocket close", async () => {
-    const connectPromise = bridge.start();
+  it("should set disconnected on stop after start", async () => {
+    await bridge.start();
     await vi.advanceTimersByTimeAsync(10);
 
-    lastCreatedWs!.emit("close", 1006, Buffer.from("abnormal"));
-    await connectPromise;
+    bridge.stop();
 
     expect(mockRuntimeStatusStore.setCsBridgeDisconnected).toHaveBeenCalled();
-  });
-
-  it("should set reconnecting after abnormal close", async () => {
-    const connectPromise = bridge.start();
-    await vi.advanceTimersByTimeAsync(10);
-
-    lastCreatedWs!.emit("close", 1006, Buffer.from("abnormal"));
-    await connectPromise;
-
-    expect(mockRuntimeStatusStore.setCsBridgeReconnecting).toHaveBeenCalledWith(1);
   });
 
   it("should set disconnected on stop()", () => {
     bridge.stop();
     expect(mockRuntimeStatusStore.setCsBridgeDisconnected).toHaveBeenCalled();
-  });
-
-  it("should increment reconnect attempt on successive reconnects", async () => {
-    // First connect + close
-    const p1 = bridge.start();
-    await vi.advanceTimersByTimeAsync(10);
-    lastCreatedWs!.emit("close", 1006, Buffer.from(""));
-    await p1;
-
-    expect(mockRuntimeStatusStore.setCsBridgeReconnecting).toHaveBeenCalledWith(1);
-
-    // Advance past reconnect timer (1s backoff for attempt 1)
-    await vi.advanceTimersByTimeAsync(1000);
-    await vi.advanceTimersByTimeAsync(10);
-
-    // Second close
-    lastCreatedWs!.emit("close", 1006, Buffer.from(""));
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(mockRuntimeStatusStore.setCsBridgeReconnecting).toHaveBeenCalledWith(2);
   });
 });

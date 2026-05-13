@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { fetchChannelStatus, fetchAllowlist, type AllowlistResult, type ChannelsStatusSnapshot } from "../../../api/channels.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
-import { buildAccountsList } from "../../channels/channel-defs.jsx";
+import { buildAccountsList } from "../../../lib/channel-accounts.js";
 import { hasUpgradeRequired } from "../ecommerce-utils.js";
 import { ShopModel } from "../../../store/models/index.js";
 

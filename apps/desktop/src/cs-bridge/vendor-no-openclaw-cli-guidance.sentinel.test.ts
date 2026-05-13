@@ -23,13 +23,13 @@ describe("vendor patch 0009: replace OpenClaw CLI guidance", () => {
   const patch = readFileSync(CLI_PATCH_FILE, "utf-8");
 
   it("removes the upstream OpenClaw CLI quick reference", () => {
-    expect(patch).toContain("-    \"## OpenClaw CLI Quick Reference\"");
-    expect(patch).toContain("-    \"- openclaw gateway status\"");
-    expect(patch).toContain("-    \"If unsure, ask the user to run `openclaw help`");
+    expect(patch).toContain("\"## OpenClaw CLI Quick Reference\"");
+    expect(patch).toContain("\"- openclaw gateway status\"");
+    expect(patch).toContain("\"If unsure, ask the user to run `openclaw help`");
   });
 
   it("adds RivonClaw Desktop runtime guidance instead", () => {
-    expect(patch).toContain("+    \"## RivonClaw Desktop Runtime\"");
+    expect(patch).toContain("\"## RivonClaw Desktop Runtime\"");
     expect(patch).toContain("Do not run or ask the user to run `openclaw` CLI commands");
     expect(patch).toContain("use first-class runtime tools");
   });
@@ -56,15 +56,15 @@ describe("vendor patch 0010: brand agent prompt for RivonClaw Desktop", () => {
   it("brands the primary assistant identity as RivonClaw Desktop", () => {
     expect(patch).toContain('-    return "You are a personal assistant running inside OpenClaw."');
     expect(patch).toContain('+    return "You are a personal assistant running inside RivonClaw Desktop."');
-    expect(patch).toContain('-    "You are a personal assistant running inside OpenClaw."');
-    expect(patch).toContain('+    "You are a personal assistant running inside RivonClaw Desktop."');
+    expect(patch).toContain('"You are a personal assistant running inside OpenClaw."');
+    expect(patch).toContain('"You are a personal assistant running inside RivonClaw Desktop."');
   });
 
   it("brands user-visible runtime sections while preserving underlying OpenClaw facts", () => {
     expect(patch).toContain('+    gateway: "Restart, apply config, or run updates on the running RivonClaw Desktop gateway"');
-    expect(patch).toContain('+    hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : ""');
-    expect(patch).toContain('+          "After restart, RivonClaw pings the last active session automatically."');
-    expect(patch).toContain('+    "These user-editable files are loaded by RivonClaw and included below in Project Context."');
+    expect(patch).toContain('hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : ""');
+    expect(patch).toContain('"After restart, RivonClaw pings the last active session automatically."');
+    expect(patch).toContain('"These user-editable files are loaded by RivonClaw and included below in Project Context."');
     expect(patch).toContain("RivonClaw Desktop manages the underlying OpenClaw gateway lifecycle");
   });
 

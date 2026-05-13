@@ -1,4 +1,4 @@
-From 487d3a9fe2c9b1be6b804afceb2fc579b319ce26 Mon Sep 17 00:00:00 2001
+From f7a1892d6335a781861b191cd8131fea770fb147 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
 Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
@@ -23,10 +23,10 @@ Tests:
  1 file changed, 11 insertions(+), 11 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index a1d80b97b7..0b66b22f78 100644
+index f4dae24b80..d69d95037c 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -403,7 +403,7 @@ function buildMessagingSection(params: {
+@@ -472,7 +472,7 @@ function buildMessagingSection(params: {
      "- Cross-session messaging → use sessions_send(sessionKey, message)",
      subagentOrchestrationGuidance,
      completionEventGuidance,
@@ -35,7 +35,7 @@ index a1d80b97b7..0b66b22f78 100644
      params.availableTools.has("message")
        ? [
            "",
-@@ -566,10 +566,10 @@ export function buildAgentSystemPrompt(params: {
+@@ -637,10 +637,10 @@ export function buildAgentSystemPrompt(params: {
      nodes: "List/describe/notify/camera/screen on paired nodes",
      cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
      message: "Send messages and channel actions",
@@ -49,7 +49,7 @@ index a1d80b97b7..0b66b22f78 100644
      sessions_list: "List other sessions (incl. sub-agents) with filters/last",
      sessions_history: "Fetch history for another session/sub-agent",
      sessions_send: "Send a message to another session/sub-agent",
-@@ -759,7 +759,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -830,7 +830,7 @@ export function buildAgentSystemPrompt(params: {
  
    // For "none" mode, return just the basic identity line
    if (promptMode === "none") {
@@ -58,7 +58,7 @@ index a1d80b97b7..0b66b22f78 100644
    }
  
    const contextFiles = params.contextFiles ?? [];
-@@ -806,7 +806,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -885,7 +885,7 @@ export function buildAgentSystemPrompt(params: {
    });
    const stablePrefix = cacheStablePromptPrefix(stablePrefixCacheKey, () => {
      const lines = [
@@ -67,7 +67,7 @@ index a1d80b97b7..0b66b22f78 100644
        "",
        "## Tooling",
        "Tool availability (filtered by policy):",
-@@ -821,7 +821,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -900,7 +900,7 @@ export function buildAgentSystemPrompt(params: {
              "- apply_patch: apply multi-file patches",
              `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
              `- ${processToolName}: manage background exec sessions`,
@@ -76,7 +76,7 @@ index a1d80b97b7..0b66b22f78 100644
              "- canvas: present/eval/snapshot the Canvas",
              "- nodes: list/describe/notify/camera/screen on paired nodes",
              "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
-@@ -890,21 +890,21 @@ export function buildAgentSystemPrompt(params: {
+@@ -969,21 +969,21 @@ export function buildAgentSystemPrompt(params: {
        }),
        ...safetySection,
        "## RivonClaw Desktop Runtime",
@@ -101,9 +101,9 @@ index a1d80b97b7..0b66b22f78 100644
            ].join("\n")
          : "",
        hasGateway && !isMinimal ? "" : "",
-@@ -996,7 +996,7 @@ export function buildAgentSystemPrompt(params: {
-         userTimezone,
+@@ -1076,7 +1076,7 @@ export function buildAgentSystemPrompt(params: {
        }),
+       ...bootstrapSystemPromptSections,
        "## Workspace Files (injected)",
 -      "These user-editable files are loaded by OpenClaw and included below in Project Context.",
 +      "These user-editable files are loaded by RivonClaw and included below in Project Context.",
@@ -111,4 +111,5 @@ index a1d80b97b7..0b66b22f78 100644
        ...buildAssistantOutputDirectivesSection(isMinimal),
      ];
 -- 
-2.36.1.windows.1
+2.50.1 (Apple Git-155)
+

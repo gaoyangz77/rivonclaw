@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -11,16 +11,26 @@ function findFeishuMonitorChunk(): { distDir: string; chunkPath: string } {
   const distDir = resolve(repoRoot, "vendor/openclaw/dist");
   expect(existsSync(distDir), "vendor/openclaw/dist must exist").toBe(true);
 
-  const chunk = readdirSync(distDir)
-    .filter((name) => name.startsWith("monitor-") && name.endsWith(".js"))
-    .find((name) =>
-      readFileSync(resolve(distDir, name), "utf8").includes(
-        "monitorFeishuProvider",
-      ),
-    );
+  const chunks = [distDir];
+  let chunk: string | undefined;
+  for (const dir of chunks) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        chunks.push(path);
+        continue;
+      }
+      if (!entry.name.endsWith(".js")) continue;
+      if (readFileSync(path, "utf8").includes("monitorFeishuProvider")) {
+        chunk = path;
+        break;
+      }
+    }
+    if (chunk) break;
+  }
 
   expect(chunk, "OpenClaw Feishu monitor chunk must exist").toBeTruthy();
-  return { distDir, chunkPath: resolve(distDir, chunk!) };
+  return { distDir, chunkPath: chunk! };
 }
 
 describe("startup-timer preload", () => {

@@ -1,7 +1,6 @@
 /**
  * Shared channel definitions used across multiple features.
- * Feature-specific rendering (StatusBadge, buildAccountsList) stays
- * in pages/channels/channel-defs.tsx.
+ * Feature-specific rendering (StatusBadge) stays in pages/channels/channel-defs.tsx.
  */
 
 export const KNOWN_CHANNELS = [
