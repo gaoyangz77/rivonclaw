@@ -34,6 +34,8 @@ export interface ActionProposal {
   collaborationRecordStateUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId?: Maybe<Scalars['ID']['output']>;
+  /** Best-known creator identity for staff review display. This is a profile projection, not proposal execution input. */
+  creatorProfile?: Maybe<CreatorGlobalProfile>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   decision?: Maybe<ActionProposalDecisionSnapshot>;
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
@@ -505,10 +507,18 @@ export interface AffiliateConversationSignal {
   contentId?: Maybe<Scalars['String']['output']>;
   /** Platform conversation/thread ID when the signal is message-related. */
   conversationId?: Maybe<Scalars['String']['output']>;
+  /** Best-known creator avatar URL carried by platform sync when available. */
+  creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
+  /** Best-known creator follower count carried by platform sync when available. */
+  creatorFollowerCount?: Maybe<Scalars['Float']['output']>;
   /** Creator IM user ID when available from the platform event. */
   creatorImId?: Maybe<Scalars['String']['output']>;
+  /** Best-known creator display nickname carried by platform sync when available. */
+  creatorNickname?: Maybe<Scalars['String']['output']>;
   /** Creator open ID when carried by the webhook/API event. */
   creatorOpenId?: Maybe<Scalars['String']['output']>;
+  /** Best-known creator username carried by platform sync when available. */
+  creatorUsername?: Maybe<Scalars['String']['output']>;
   /** When the platform event happened or the affiliate condition was detected. */
   eventTime: Scalars['DateTimeISO']['output'];
   /** Observed direction of an affiliate IM message. */
@@ -1088,6 +1098,23 @@ export const CreatorCandidateStatus = {
 } as const;
 
 export type CreatorCandidateStatus = typeof CreatorCandidateStatus[keyof typeof CreatorCandidateStatus];
+/** Marketplace creator identity and durable marketplace facts. Shop-specific relationship state lives elsewhere. */
+export interface CreatorGlobalProfile {
+  /** Aggregated, privacy-safe creator signals produced by RivonClaw. Not merchant-private raw history. */
+  aggregatedSignalsSnapshotJson?: Maybe<Scalars['String']['output']>;
+  avatarUrl?: Maybe<Scalars['String']['output']>;
+  categoryIds: Array<Scalars['String']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorImId?: Maybe<Scalars['String']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  followerCount?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  nickname?: Maybe<Scalars['String']['output']>;
+  platform: ShopPlatform;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  username?: Maybe<Scalars['String']['output']>;
+}
+
 export interface CreatorMarketplaceSearchParams {
   advancedFilters?: Maybe<CreatorSearchAdvancedFilter>;
   affiliateData?: Maybe<CreatorSearchAffiliateDataFilter>;
@@ -1293,6 +1320,8 @@ export interface CsConversationSignal {
   imUserId?: Maybe<Scalars['String']['output']>;
   /** Platform message ID when this signal is tied to a specific buyer message. */
   messageId?: Maybe<Scalars['String']['output']>;
+  /** Platform message index when available for event ordering. */
+  messageIndex?: Maybe<Scalars['String']['output']>;
   /** Platform message type, e.g. TEXT or IMAGE, if tied to a message. */
   messageType?: Maybe<Scalars['String']['output']>;
   /** Optional operator instruction/comment to inject into the local CS agent catch-up prompt. */
@@ -1535,6 +1564,8 @@ export interface CustomerServiceMessagePreview {
   content?: Maybe<Scalars['String']['output']>;
   /** Unix seconds */
   createTime?: Maybe<Scalars['Int']['output']>;
+  /** Opaque platform message index for ordering */
+  index?: Maybe<Scalars['String']['output']>;
   messageId?: Maybe<Scalars['String']['output']>;
   sender?: Maybe<CustomerServiceConversationParticipant>;
   /** Message type (TEXT, IMAGE, ...) — see EcomMessageType */
@@ -3598,10 +3629,18 @@ export interface PublishAffiliateConversationSignalInput {
   contentId?: InputMaybe<Scalars['String']['input']>;
   /** Platform conversation/thread ID when message-related. */
   conversationId?: InputMaybe<Scalars['String']['input']>;
+  /** Best-known creator avatar URL from platform sync. */
+  creatorAvatarUrl?: InputMaybe<Scalars['String']['input']>;
+  /** Best-known creator follower count from platform sync. */
+  creatorFollowerCount?: InputMaybe<Scalars['Float']['input']>;
   /** Creator IM user ID if available. */
   creatorImId?: InputMaybe<Scalars['String']['input']>;
+  /** Best-known creator display nickname from platform sync. */
+  creatorNickname?: InputMaybe<Scalars['String']['input']>;
   /** Creator open ID if available. */
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  /** Best-known creator username from platform sync. */
+  creatorUsername?: InputMaybe<Scalars['String']['input']>;
   /** Event timestamp as an ISO string. Defaults to server publish time. */
   eventTime?: InputMaybe<Scalars['String']['input']>;
   /** Observed message direction. Legacy CREATOR_MESSAGE_RECEIVED defaults to CREATOR when omitted. */
@@ -3660,6 +3699,8 @@ export interface PublishCsConversationSignalInput {
   imUserId?: InputMaybe<Scalars['String']['input']>;
   /** Platform message ID for MESSAGE_RECEIVED signals. */
   messageId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message index when available for event ordering. */
+  messageIndex?: InputMaybe<Scalars['String']['input']>;
   /** Platform message type, e.g. TEXT or IMAGE. */
   messageType?: InputMaybe<Scalars['String']['input']>;
   /** Optional operator instruction/comment to inject into the local CS agent catch-up prompt. */
