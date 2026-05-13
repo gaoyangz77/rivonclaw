@@ -1,14 +1,123 @@
+import { request as httpsRequest } from "node:https";
 import upstreamPlugin from "@tencent-weixin/openclaw-weixin/index.ts";
 
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
+const WEIXIN_DIRECT_FETCH_HOSTS = new Set([
+  "ilinkai.weixin.qq.com",
+  "liteapp.weixin.qq.com",
+]);
 
 // Module-level sessionKey bridge: OpenClaw's web.login.wait gateway handler
 // only forwards { timeoutMs, accountId } to the plugin, dropping sessionKey.
 // We capture it from loginWithQrStart and inject it into loginWithQrWait.
 let lastSessionKey = "";
 let latestQrStartSeq = 0;
+let weixinDirectFetchShimInstalled = false;
+
+function shouldUseDirectWeixinFetch(input: RequestInfo | URL): boolean {
+  try {
+    const url = typeof input === "string"
+      ? new URL(input)
+      : input instanceof URL
+        ? input
+        : new URL(input.url);
+    return url.protocol === "https:" && WEIXIN_DIRECT_FETCH_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function headersToRecord(headers: HeadersInit | undefined): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) return Object.fromEntries(headers.entries());
+  if (Array.isArray(headers)) return Object.fromEntries(headers.map(([key, value]) => [key, value]));
+  return { ...headers };
+}
+
+function responseHeadersToRecord(headers: typeof import("node:http").IncomingMessage.prototype.headers): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (typeof value === "string") {
+      result[key] = value;
+    } else if (Array.isArray(value)) {
+      result[key] = value.join(", ");
+    }
+  }
+  return result;
+}
+
+async function bodyToBuffer(body: BodyInit | null | undefined): Promise<Buffer | undefined> {
+  if (body == null) return undefined;
+  if (typeof body === "string") return Buffer.from(body);
+  if (body instanceof Uint8Array) return Buffer.from(body);
+  if (body instanceof ArrayBuffer) return Buffer.from(body);
+  if (body instanceof URLSearchParams) return Buffer.from(body.toString());
+  if (body instanceof Blob) return Buffer.from(await body.arrayBuffer());
+  return undefined;
+}
+
+async function directWeixinFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const url = typeof input === "string"
+    ? new URL(input)
+    : input instanceof URL
+      ? input
+      : new URL(input.url);
+  const requestBody = await bodyToBuffer(init?.body);
+  const headers = headersToRecord(init?.headers);
+
+  return await new Promise<Response>((resolve, reject) => {
+    const req = httpsRequest({
+      protocol: url.protocol,
+      hostname: url.hostname,
+      port: url.port || 443,
+      path: `${url.pathname}${url.search}`,
+      method: init?.method ?? "GET",
+      headers,
+    }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer | string) => {
+        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+      });
+      res.on("end", () => {
+        resolve(new Response(Buffer.concat(chunks), {
+          status: res.statusCode ?? 200,
+          statusText: res.statusMessage,
+          headers: responseHeadersToRecord(res.headers),
+        }));
+      });
+    });
+
+    req.on("error", reject);
+    if (init?.signal) {
+      if (init.signal.aborted) {
+        req.destroy();
+        reject(new DOMException("The operation was aborted", "AbortError"));
+        return;
+      }
+      init.signal.addEventListener("abort", () => {
+        req.destroy();
+        reject(new DOMException("The operation was aborted", "AbortError"));
+      }, { once: true });
+    }
+    if (requestBody) req.write(requestBody);
+    req.end();
+  });
+}
+
+function installWeixinDirectFetchShim(): void {
+  if (weixinDirectFetchShimInstalled) return;
+  weixinDirectFetchShimInstalled = true;
+
+  const originalFetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    if (shouldUseDirectWeixinFetch(input)) {
+      return directWeixinFetch(input, init);
+    }
+    return originalFetch(input, init);
+  };
+}
 
 function normalizeWeixinTarget(raw: string): string {
   const trimmed = raw.trim();
@@ -150,6 +259,7 @@ function registerRivonClawQrLoginMethods(params: {
 const plugin = {
   ...upstreamPlugin,
   register(api: Parameters<typeof upstreamPlugin.register>[0]) {
+    installWeixinDirectFetchShim();
     const origRegisterChannel = api.registerChannel!.bind(api);
     let rivonClawQrMethodsRegistered = false;
     api.registerChannel = (opts: { plugin: { gatewayMethods?: string[]; gateway?: Record<string, unknown>;[k: string]: unknown };[k: string]: unknown }) => {

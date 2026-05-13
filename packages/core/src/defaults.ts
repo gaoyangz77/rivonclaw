@@ -166,6 +166,8 @@ export const DEFAULTS = {
     lark: "open.larksuite.com",
     line: "api.line.me",
     wecom: "qyapi.weixin.qq.com",
+    weixinIlink: "ilinkai.weixin.qq.com",
+    weixinLiteapp: "liteapp.weixin.qq.com",
   },
 
   /** Third-party provider API hosts. */

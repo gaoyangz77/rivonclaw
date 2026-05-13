@@ -135,6 +135,8 @@ export const CHANNEL_NO_PROXY_DOMAINS: readonly string[] = [
 	DEFAULTS.channels.feishu,
 	DEFAULTS.channels.lark,
 	DEFAULTS.channels.wecom,
+	DEFAULTS.channels.weixinIlink,
+	DEFAULTS.channels.weixinLiteapp,
 ];
 
 // ---------------------------------------------------------------------------
