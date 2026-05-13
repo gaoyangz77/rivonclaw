@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.13",
+    "date": "2026-05-13",
+    "en": [
+      "Add affiliate management and proposal review workflows so creator collaboration tasks can be handled more directly in the desktop app",
+      "Improve cloud and customer-service stability with better auth recovery, device assignment checks, and safer restart/config behavior",
+      "Polish desktop chat behavior with persistent custom tab titles and more reliable default provider session reset handling"
+    ],
+    "zh": [
+      "新增达人合作管理与提案审核能力，达人协作任务现在可以直接在桌面端处理",
+      "增强云端与客服流程稳定性，改进认证恢复、设备指派校验，以及重启/配置切换时的可靠性",
+      "优化桌面端聊天体验，自定义标签名可保留，默认模型会话切换也更稳定"
+    ]
+  },
+  {
     "version": "1.8.12",
     "date": "2026-05-07",
     "en": [
