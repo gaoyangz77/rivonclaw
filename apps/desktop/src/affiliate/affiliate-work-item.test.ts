@@ -89,14 +89,33 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     platformShopId: "platform-shop-001",
     collaborationRecordId: "collab-001",
     workKind: GQL.AffiliateWorkKind.SampleReviewNeeded,
+    workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
     agentDispatchRecommended: true,
     staffReviewRequired: false,
     processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+    recommendedActionTypes: [
+      GQL.ActionProposalType.ApproveSample,
+      GQL.ActionProposalType.RejectSample,
+    ],
     versionAt: "2026-05-11T00:01:00.000Z",
     collaboration,
     sampleApplicationRecord,
     latestPendingProposal: null,
+    context: {
+      affiliateCollaboration: null,
+      creatorProfile: null,
+      creatorRelation: null,
+      missingContext: [],
+      pendingProposals: [],
+      primarySampleApplication: sampleApplicationRecord,
+      productContext: null,
+      recommendedActionTypes: [
+        GQL.ActionProposalType.ApproveSample,
+        GQL.ActionProposalType.RejectSample,
+      ],
+      relatedSampleApplications: [sampleApplicationRecord],
+    },
     ...overrides,
   };
 }

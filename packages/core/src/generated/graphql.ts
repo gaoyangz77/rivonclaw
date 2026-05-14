@@ -714,24 +714,54 @@ export interface AffiliateServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
+/** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
+export const AffiliateWorkBundleKind = {
+  ApprovalReviewOnly: 'APPROVAL_REVIEW_ONLY',
+  ContentFollowUp: 'CONTENT_FOLLOW_UP',
+  CreatorReplyOnly: 'CREATOR_REPLY_ONLY',
+  CreatorReplyWithSampleReview: 'CREATOR_REPLY_WITH_SAMPLE_REVIEW',
+  GeneralReview: 'GENERAL_REVIEW',
+  ObservationOnly: 'OBSERVATION_ONLY',
+  SampleReviewOnly: 'SAMPLE_REVIEW_ONLY',
+  SampleShipmentStaffReview: 'SAMPLE_SHIPMENT_STAFF_REVIEW',
+  StaffReviewOnly: 'STAFF_REVIEW_ONLY'
+} as const;
+
+export type AffiliateWorkBundleKind = typeof AffiliateWorkBundleKind[keyof typeof AffiliateWorkBundleKind];
+/** Record-centered context resolved by backend before Desktop dispatches an affiliate agent. */
+export interface AffiliateWorkContext {
+  affiliateCollaboration?: Maybe<AffiliateCollaboration>;
+  creatorProfile?: Maybe<CreatorGlobalProfile>;
+  creatorRelation?: Maybe<CreatorUserRelation>;
+  missingContext: Array<AffiliateWorkMissingContext>;
+  pendingProposals: Array<ActionProposal>;
+  primarySampleApplication?: Maybe<SampleApplicationRecord>;
+  productContext?: Maybe<AffiliateWorkProductContext>;
+  recommendedActionTypes: Array<ActionProposalType>;
+  relatedSampleApplications: Array<SampleApplicationRecord>;
+}
+
 /** Backend-materialized affiliate work projection. Desktop should treat this as the current source of truth for dispatch/review, not reconstruct work from raw signals. */
 export interface AffiliateWorkItem {
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
   collaboration: AffiliateCollaborationRecord;
   collaborationRecordId: Scalars['ID']['output'];
+  context: AffiliateWorkContext;
   /** Stable work-item ID. Currently the AffiliateCollaborationRecord ID. */
   id: Scalars['ID']['output'];
   latestPendingProposal?: Maybe<ActionProposal>;
   platformShopId: Scalars['String']['output'];
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
+  recommendedActionTypes: Array<ActionProposalType>;
   sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
   shopId: Scalars['ID']['output'];
   /** True when the item should appear in staff review surfaces even if no agent run should start. */
   staffReviewRequired: Scalars['Boolean']['output'];
   /** Projection version timestamp. Desktop can use this for idempotent upsert. */
   versionAt: Scalars['DateTimeISO']['output'];
+  workBundleKind: AffiliateWorkBundleKind;
   workKind: AffiliateWorkKind;
 }
 
@@ -767,6 +797,40 @@ export const AffiliateWorkKind = {
 } as const;
 
 export type AffiliateWorkKind = typeof AffiliateWorkKind[keyof typeof AffiliateWorkKind];
+export interface AffiliateWorkMissingContext {
+  message: Scalars['String']['output'];
+  reason: AffiliateWorkMissingContextReason;
+  severity: AffiliateWorkMissingContextSeverity;
+}
+
+/** Typed missing-context diagnostic for backend-resolved affiliate work context. */
+export const AffiliateWorkMissingContextReason = {
+  CollaborationOfferMissing: 'COLLABORATION_OFFER_MISSING',
+  ConversationIdMissing: 'CONVERSATION_ID_MISSING',
+  CreatorOpenIdMissing: 'CREATOR_OPEN_ID_MISSING',
+  CreatorProfileMissing: 'CREATOR_PROFILE_MISSING',
+  ProductContextMissing: 'PRODUCT_CONTEXT_MISSING',
+  SampleApplicationMissing: 'SAMPLE_APPLICATION_MISSING'
+} as const;
+
+export type AffiliateWorkMissingContextReason = typeof AffiliateWorkMissingContextReason[keyof typeof AffiliateWorkMissingContextReason];
+/** Severity of a missing-context diagnostic for affiliate work. */
+export const AffiliateWorkMissingContextSeverity = {
+  Blocking: 'BLOCKING',
+  Info: 'INFO',
+  Warning: 'WARNING'
+} as const;
+
+export type AffiliateWorkMissingContextSeverity = typeof AffiliateWorkMissingContextSeverity[keyof typeof AffiliateWorkMissingContextSeverity];
+/** Backend-materialized affiliate work projection. Desktop should treat this as the current source of truth for dispatch/review, not reconstruct work from raw signals. */
+export interface AffiliateWorkProductContext {
+  imageUrl?: Maybe<Scalars['String']['output']>;
+  productId: Scalars['String']['output'];
+  /** Where this product context was resolved from, e.g. collaboration, sample application, or offer. */
+  source?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateWorkspaceInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   candidateStatus?: InputMaybe<CreatorCandidateStatus>;
@@ -4587,6 +4651,8 @@ export interface ResolveAffiliateWorkItemActionInput {
 
 export interface ResolveAffiliateWorkItemInput {
   action?: InputMaybe<ResolveAffiliateWorkItemActionInput>;
+  /** Ordered action list for bundled affiliate work. If provided, backend evaluates/executes the whole list together. */
+  actions?: InputMaybe<Array<ResolveAffiliateWorkItemActionInput>>;
   collaborationRecordId: Scalars['ID']['input'];
   decision: AffiliateWorkItemResolutionDecision;
   /** The collaboration.lastSignalAt value that this work-item decision handled. Used as the ack boundary. */
@@ -5040,10 +5106,7 @@ export interface SyncWmsInventoryGoodsPayload {
 
 /** System run profile identifiers declared by tool metadata */
 export const SystemRunProfile = {
-  AffiliateAnalyst: 'AFFILIATE_ANALYST',
-  AffiliateApprover: 'AFFILIATE_APPROVER',
   AffiliateOperator: 'AFFILIATE_OPERATOR',
-  AffiliateSensitiveCreatorOperator: 'AFFILIATE_SENSITIVE_CREATOR_OPERATOR',
   CustomerService: 'CUSTOMER_SERVICE',
   ShopOperations: 'SHOP_OPERATIONS'
 } as const;
@@ -5096,7 +5159,6 @@ export interface ToolContextBinding {
 export const ToolId = {
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
-  AffiliateRequestAction: 'AFFILIATE_REQUEST_ACTION',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
   BrowserProfilesGet: 'BROWSER_PROFILES_GET',
   BrowserProfilesList: 'BROWSER_PROFILES_LIST',

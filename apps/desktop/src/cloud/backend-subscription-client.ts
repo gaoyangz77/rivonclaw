@@ -172,6 +172,8 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         platformShopId
         collaborationRecordId
         workKind
+        workBundleKind
+        recommendedActionTypes
         agentDispatchRecommended
         staffReviewRequired
         processingStatus
@@ -211,6 +213,77 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           shippedAt
           deliveredAt
           updatedAt
+        }
+        context {
+          creatorProfile {
+            id
+            creatorOpenId
+            creatorImId
+            username
+            nickname
+            avatarUrl
+            followerCount
+          }
+          creatorRelation {
+            id
+            creatorId
+            blocked
+            blockedShopIds
+            shopStates {
+              shopId
+              lifecycleStage
+              tagIds
+              lastContactedAt
+              lastInvitedAt
+              lastQualifiedAt
+            }
+          }
+          affiliateCollaboration {
+            id
+            type
+            platformCollaborationId
+            productIds
+            status
+          }
+          productContext {
+            productId
+            title
+            imageUrl
+            source
+          }
+          primarySampleApplication {
+            id
+            platformApplicationId
+            creatorId
+            productId
+            sampleWorkStatus
+            observedContentCount
+            updatedAt
+          }
+          relatedSampleApplications {
+            id
+            platformApplicationId
+            creatorId
+            productId
+            sampleWorkStatus
+            observedContentCount
+            latestObservedContentAt
+            updatedAt
+          }
+          pendingProposals {
+            id
+            type
+            status
+            operatorSummary
+            creatorId
+            collaborationRecordId
+          }
+          missingContext {
+            reason
+            severity
+            message
+          }
+          recommendedActionTypes
         }
         latestPendingProposal {
           id

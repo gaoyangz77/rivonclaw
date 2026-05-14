@@ -50,6 +50,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
+      "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       "For every text reply, action.messageIntent must include messageType: TEXT.",
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
       "If a human should decide, use decision NEEDS_STAFF_REVIEW.",
@@ -78,6 +79,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type APPROVE_SAMPLE or REJECT_SAMPLE.",
+      "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing the sample decision and SEND_MESSAGE.",
       "If you include a creator-facing text message, action.messageIntent must include messageType: TEXT.",
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
       "Use operatorSummary for staff-facing reasoning in the desktop language. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.",
@@ -125,6 +127,7 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "## Backend Work Projection",
     `- Work Item ID: ${workItem.id}`,
     `- Work Kind: ${workItem.workKind}`,
+    `- Work Bundle Kind: ${workItem.workBundleKind ?? ""}`,
     `- Shop ID: ${workItem.shopId}`,
     `- Platform Shop ID: ${workItem.platformShopId}`,
     `- Collaboration ID: ${workItem.collaborationRecordId}`,
@@ -164,6 +167,9 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
       `- Updated At: ${sample.updatedAt}`,
     ] : ["(none)"]),
     "",
+    "## Backend Work Context",
+    ...renderResolvedContext(workItem),
+    "",
     "## Latest Pending Proposal",
     ...(proposal ? [
       `- Proposal ID: ${proposal.id}`,
@@ -174,6 +180,33 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
       `- Collaboration ID: ${proposal.collaborationRecordId ?? ""}`,
     ] : ["(none)"]),
   ].join("\n");
+}
+
+function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
+  const context = workItem.context;
+  if (!context) return ["(none)"];
+  const creator = context.creatorProfile;
+  const product = context.productContext;
+  const relatedSamples = context.relatedSampleApplications ?? [];
+  const missingContext = context.missingContext ?? [];
+  return [
+    `- Recommended Actions: ${(workItem.recommendedActionTypes ?? context.recommendedActionTypes ?? []).join(", ") || "(none)"}`,
+    creator
+      ? `- Creator: ${creator.nickname ?? creator.username ?? creator.creatorOpenId ?? creator.creatorImId ?? creator.id} (id=${creator.id}, openId=${creator.creatorOpenId ?? ""}, imId=${creator.creatorImId ?? ""})`
+      : "- Creator: (unresolved)",
+    product
+      ? `- Product Context: ${product.productId}${product.title ? ` / ${product.title}` : ""} source=${product.source ?? ""}`
+      : "- Product Context: (unresolved)",
+    context.affiliateCollaboration
+      ? `- Affiliate Collaboration Offer: ${context.affiliateCollaboration.type} ${context.affiliateCollaboration.platformCollaborationId} status=${context.affiliateCollaboration.status}`
+      : "- Affiliate Collaboration Offer: (none)",
+    `- Related Sample Applications: ${relatedSamples.length}`,
+    ...relatedSamples.map((sample, index) =>
+      `  ${index + 1}. ${sample.id} platform=${sample.platformApplicationId} status=${sample.sampleWorkStatus} product=${sample.productId ?? ""} contentCount=${sample.observedContentCount}`,
+    ),
+    `- Missing Context: ${missingContext.length ? "" : "(none)"}`,
+    ...missingContext.map(item => `  - ${item.severity} ${item.reason}: ${item.message}`),
+  ];
 }
 
 function renderBusinessPrompt(businessPrompt: string | null | undefined): string {
