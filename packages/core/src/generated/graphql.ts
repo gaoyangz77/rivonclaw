@@ -197,14 +197,14 @@ export interface ActionProposalPolicySnapshot {
 }
 
 export interface ActionProposalSampleReviewIntent {
-  decision: AffiliateSampleReviewDecision;
+  decision?: Maybe<AffiliateSampleReviewDecision>;
   platformApplicationId: Scalars['String']['output'];
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
   sampleApplicationRecordId: Scalars['ID']['output'];
 }
 
 export interface ActionProposalSampleReviewIntentInput {
-  decision: AffiliateSampleReviewDecision;
+  decision?: InputMaybe<AffiliateSampleReviewDecision>;
   platformApplicationId: Scalars['String']['input'];
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
   sampleApplicationRecordId: Scalars['ID']['input'];

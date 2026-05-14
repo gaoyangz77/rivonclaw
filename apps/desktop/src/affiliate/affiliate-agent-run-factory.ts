@@ -82,6 +82,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
       "Use operatorSummary for staff-facing reasoning in the desktop language. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.",
       "Use action.sampleReviewIntent.sampleApplicationRecordId and platformApplicationId from the projection; do not invent campaignId.",
+      "For APPROVE_SAMPLE, set action.sampleReviewIntent.decision to APPROVE. For REJECT_SAMPLE, set action.sampleReviewIntent.decision to REJECT and include rejectReason when known.",
       "Do not write merchant/operator summaries as final assistant text. If approval policy requires review, the backend will create an ActionProposal. Stop there and reply exactly NO_REPLY.",
     ].join("\n"),
     idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${sample?.id ?? "sample"}:${workItem.versionAt}`,
