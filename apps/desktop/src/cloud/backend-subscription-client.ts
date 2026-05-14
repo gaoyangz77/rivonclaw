@@ -200,11 +200,14 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           platformApplicationId
           creatorId
           productId
-          status
-          shipmentStatus
-          contentFulfillmentStatus
-          platformApplicationStatus
-          platformContentFulfillmentStatus
+          sampleWorkStatus
+          observedContentCount
+          latestObservedContentAt
+          latestObservedContentId
+          latestObservedContentUrl
+          latestObservedContentFormat
+          latestObservedContentPaidOrderCount
+          latestObservedContentViewCount
           shippedAt
           deliveredAt
           updatedAt

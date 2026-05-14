@@ -506,8 +506,24 @@ export interface AffiliateConversationSignal {
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   /** Open or target collaboration type when known. */
   collaborationType?: Maybe<AffiliateCollaborationType>;
+  /** Observed content comment count when available. */
+  contentCommentCount?: Maybe<Scalars['Float']['output']>;
+  /** Observed content description/title when available. */
+  contentDescription?: Maybe<Scalars['String']['output']>;
+  /** Observed content format, e.g. VIDEO or LIVE. */
+  contentFormat?: Maybe<Scalars['String']['output']>;
   /** Platform content ID when tied to content/order attribution sync. */
   contentId?: Maybe<Scalars['String']['output']>;
+  /** Observed content like count when available. */
+  contentLikeCount?: Maybe<Scalars['Float']['output']>;
+  /** Observed TikTok content page link when available. */
+  contentPageLink?: Maybe<Scalars['String']['output']>;
+  /** Observed paid order count attributed to the content when available. */
+  contentPaidOrderCount?: Maybe<Scalars['Float']['output']>;
+  /** Observed content source URL when available. */
+  contentUrl?: Maybe<Scalars['String']['output']>;
+  /** Observed content view count when available. */
+  contentViewCount?: Maybe<Scalars['Float']['output']>;
   /** Platform conversation/thread ID when the signal is message-related. */
   conversationId?: Maybe<Scalars['String']['output']>;
   /** Best-known creator avatar URL carried by platform sync when available. */
@@ -961,21 +977,6 @@ export interface CompleteTikTokOAuthResponse {
   shopName: Scalars['String']['output'];
 }
 
-/** Creator content obligation segment after sample delivery or collaboration acceptance. */
-export const ContentFulfillmentStatus = {
-  /** Content follow-up no longer applies. */
-  Cancelled: 'CANCELLED',
-  /** Platform or agent detected a candidate content item. */
-  ContentDetected: 'CONTENT_DETECTED',
-  /** Content deadline passed without qualifying content. */
-  Overdue: 'OVERDUE',
-  /** Creator has not posted qualifying content yet. */
-  Pending: 'PENDING',
-  /** Seller/platform waived the content obligation. */
-  Waived: 'WAIVED'
-} as const;
-
-export type ContentFulfillmentStatus = typeof ContentFulfillmentStatus[keyof typeof ContentFulfillmentStatus];
 /** Local OpenClaw-session anchor used to bound a platform conversation delta without maintaining an external cursor. */
 export interface ConversationMessageDeltaAnchorInput {
   /** Visible text of the local OpenClaw session message used as the seen-after anchor. The backend uses it as a fuzzy containment check against platform message text. */
@@ -3645,8 +3646,24 @@ export interface PublishAffiliateConversationSignalInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Open or target collaboration type when known. */
   collaborationType?: InputMaybe<AffiliateCollaborationType>;
+  /** Observed content comment count when available. */
+  contentCommentCount?: InputMaybe<Scalars['Float']['input']>;
+  /** Observed content description/title when available. */
+  contentDescription?: InputMaybe<Scalars['String']['input']>;
+  /** Observed content format, e.g. VIDEO or LIVE. */
+  contentFormat?: InputMaybe<Scalars['String']['input']>;
   /** Platform content ID if available. */
   contentId?: InputMaybe<Scalars['String']['input']>;
+  /** Observed content like count when available. */
+  contentLikeCount?: InputMaybe<Scalars['Float']['input']>;
+  /** Observed TikTok content page link when available. */
+  contentPageLink?: InputMaybe<Scalars['String']['input']>;
+  /** Observed paid order count attributed to the content when available. */
+  contentPaidOrderCount?: InputMaybe<Scalars['Float']['input']>;
+  /** Observed content source URL when available. */
+  contentUrl?: InputMaybe<Scalars['String']['input']>;
+  /** Observed content view count when available. */
+  contentViewCount?: InputMaybe<Scalars['Float']['input']>;
   /** Platform conversation/thread ID when message-related. */
   conversationId?: InputMaybe<Scalars['String']['input']>;
   /** Best-known creator avatar URL from platform sync. */
@@ -4623,65 +4640,44 @@ export interface SampleApplicationRecord {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   carrier?: Maybe<Scalars['String']['output']>;
   collaborationType?: Maybe<AffiliateCollaborationType>;
-  /** Content obligation segment after the creator has or should have received the sample. */
-  contentFulfillmentStatus?: Maybe<ContentFulfillmentStatus>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
+  latestObservedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  latestObservedContentFormat?: Maybe<Scalars['String']['output']>;
+  latestObservedContentId?: Maybe<Scalars['String']['output']>;
+  latestObservedContentPaidOrderCount?: Maybe<Scalars['Int']['output']>;
+  latestObservedContentUrl?: Maybe<Scalars['String']['output']>;
+  latestObservedContentViewCount?: Maybe<Scalars['Int']['output']>;
+  observedContentCount: Scalars['Int']['output'];
   platformApplicationId: Scalars['String']['output'];
-  /** Raw TikTok application status. Use normalized status/shipment/content fields for business logic. */
-  platformApplicationStatus?: Maybe<TikTokSampleApplicationPlatformStatus>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
-  /** Raw TikTok content fulfillment status. Use normalized contentFulfillmentStatus for business logic. */
-  platformContentFulfillmentStatus?: Maybe<TikTokSampleContentFulfillmentPlatformStatus>;
-  platformFulfillmentId?: Maybe<Scalars['String']['output']>;
   platformOpenCollaborationId?: Maybe<Scalars['String']['output']>;
   platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
-  /** Shipment segment after sample approval: warehouse allocation, carrier handoff, delivery, return, or cancellation. */
-  shipmentStatus?: Maybe<SampleShipmentStatus>;
+  /** RivonClaw-owned sample lifecycle state optimized for agent and operator understanding. */
+  sampleWorkStatus: SampleWorkStatus;
   shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   shopId: Scalars['ID']['output'];
-  status: SampleApplicationStatus;
   trackingNumber?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
 }
 
-/** Seller-side sample application review segment before shipment and content follow-up. */
-export const SampleApplicationStatus = {
-  /** Seller approved the sample application; shipment can now be prepared. */
-  Approved: 'APPROVED',
-  /** Application was cancelled before completion. */
+/** RivonClaw-owned, agent-facing sample lifecycle state. Platform raw statuses stay in platformSnapshotJson. */
+export const SampleWorkStatus = {
+  ApprovedAwaitingShipment: 'APPROVED_AWAITING_SHIPMENT',
   Cancelled: 'CANCELLED',
-  /** Application can no longer proceed because the review or fulfillment window expired. */
+  ContentObservedReviewing: 'CONTENT_OBSERVED_REVIEWING',
+  DeliveredAwaitingContent: 'DELIVERED_AWAITING_CONTENT',
   Expired: 'EXPIRED',
-  /** Seller has not made the sample request review decision yet. */
-  PendingReview: 'PENDING_REVIEW',
-  /** Seller rejected the request during application review. */
-  Rejected: 'REJECTED'
+  Fulfilled: 'FULFILLED',
+  FulfillmentFailed: 'FULFILLMENT_FAILED',
+  RequestPendingReview: 'REQUEST_PENDING_REVIEW',
+  ShippedInTransit: 'SHIPPED_IN_TRANSIT'
 } as const;
 
-export type SampleApplicationStatus = typeof SampleApplicationStatus[keyof typeof SampleApplicationStatus];
-/** Seller/warehouse shipment segment after a sample application is approved. */
-export const SampleShipmentStatus = {
-  /** Shipment was cancelled after application approval. */
-  Cancelled: 'CANCELLED',
-  /** Package was delivered to the creator; content follow-up can start. */
-  Delivered: 'DELIVERED',
-  /** Carrier or warehouse reported delivery failure. */
-  DeliveryFailed: 'DELIVERY_FAILED',
-  /** Shipment work has not started yet. */
-  Pending: 'PENDING',
-  /** Inventory/warehouse allocation is complete and ready to leave. */
-  ReadyToShip: 'READY_TO_SHIP',
-  /** Sample was returned after shipment. */
-  Returned: 'RETURNED',
-  /** Package has been handed to carrier or platform logistics. */
-  Shipped: 'SHIPPED'
-} as const;
-
-export type SampleShipmentStatus = typeof SampleShipmentStatus[keyof typeof SampleShipmentStatus];
+export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkStatus];
 /** A one-time service credit (top-up) that can be redeemed to a shop */
 export interface ServiceCredit {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -5059,26 +5055,6 @@ export const SystemSurface = {
 } as const;
 
 export type SystemSurface = typeof SystemSurface[keyof typeof SystemSurface];
-/** Raw TikTok sample application status values, preserved separately from normalized seller lifecycle status. */
-export const TikTokSampleApplicationPlatformStatus = {
-  AwaitingShipment: 'AWAITING_SHIPMENT',
-  Completed: 'COMPLETED',
-  ContentPending: 'CONTENT_PENDING',
-  DelOpenCollab: 'DEL_OPEN_COLLAB',
-  OpsCancelled: 'OPS_CANCELLED',
-  OpsCompleted: 'OPS_COMPLETED',
-  OpsFailed: 'OPS_FAILED',
-  OverdueCancelled: 'OVERDUE_CANCELLED',
-  Pending: 'PENDING',
-  RejectCancelled: 'REJECT_CANCELLED',
-  SellerNotShipCancelled: 'SELLER_NOT_SHIP_CANCELLED',
-  Shipped: 'SHIPPED',
-  UnfulfillableCancelled: 'UNFULFILLABLE_CANCELLED',
-  UnfulfillCancelled: 'UNFULFILL_CANCELLED',
-  WithdrawCancelled: 'WITHDRAW_CANCELLED'
-} as const;
-
-export type TikTokSampleApplicationPlatformStatus = typeof TikTokSampleApplicationPlatformStatus[keyof typeof TikTokSampleApplicationPlatformStatus];
 /** Raw TikTok sample content fulfillment status values. */
 export const TikTokSampleContentFulfillmentPlatformStatus = {
   Cancelled: 'CANCELLED',

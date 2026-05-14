@@ -50,11 +50,14 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         platformApplicationId
         creatorId
         productId
-        status
-        shipmentStatus
-        contentFulfillmentStatus
-        platformApplicationStatus
-        platformContentFulfillmentStatus
+        sampleWorkStatus
+        observedContentCount
+        latestObservedContentAt
+        latestObservedContentId
+        latestObservedContentUrl
+        latestObservedContentFormat
+        latestObservedContentPaidOrderCount
+        latestObservedContentViewCount
         updatedAt
       }
       collaborationRecords: collaborationRecords {

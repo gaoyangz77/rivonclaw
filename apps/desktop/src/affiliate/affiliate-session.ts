@@ -638,10 +638,14 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
       `   platformApplicationId: ${sample.platformApplicationId}`,
       `   creatorId: ${sample.creatorId ?? ""}`,
       `   productId: ${sample.productId ?? ""}`,
-      `   status: ${sample.status}`,
-      `   shipmentStatus: ${sample.shipmentStatus ?? ""}`,
-      `   contentFulfillmentStatus: ${sample.contentFulfillmentStatus ?? ""}`,
-      `   platformApplicationStatus: ${sample.platformApplicationStatus ?? ""}`,
+      `   sampleWorkStatus: ${sample.sampleWorkStatus}`,
+      `   observedContentCount: ${sample.observedContentCount}`,
+      `   latestObservedContentAt: ${sample.latestObservedContentAt ?? ""}`,
+      `   latestObservedContentId: ${sample.latestObservedContentId ?? ""}`,
+      `   latestObservedContentUrl: ${sample.latestObservedContentUrl ?? ""}`,
+      `   latestObservedContentFormat: ${sample.latestObservedContentFormat ?? ""}`,
+      `   latestObservedContentPaidOrderCount: ${sample.latestObservedContentPaidOrderCount ?? ""}`,
+      `   latestObservedContentViewCount: ${sample.latestObservedContentViewCount ?? ""}`,
       `   updatedAt: ${sample.updatedAt}`,
     ].join("\n"))
     : ["(none)"];
