@@ -1632,7 +1632,7 @@ app.whenReady().then(async () => {
     );
 
     // 5. Start CS Bridge if user has e-commerce module
-    tryStartCsBridge(deviceId ?? "unknown");
+    tryStartCsBridge(deviceId ?? "unknown", locale);
 
     // 6. Push locally-stored cookies for managed profiles to the gateway plugin
     pushStoredCookiesToGateway()

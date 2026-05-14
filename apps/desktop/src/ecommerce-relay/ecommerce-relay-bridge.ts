@@ -29,6 +29,8 @@ const log = createLogger("ecommerce-relay");
 
 export interface EcommerceRelayBridgeOptions {
   gatewayId: string;
+  /** Desktop UI language. Used for staff-facing affiliate summaries. */
+  locale?: string;
   /** Default RunProfile ID for CS sessions (fallback when shop has no runProfileId). */
   defaultRunProfileId?: string;
 }
@@ -75,7 +77,7 @@ export class EcommerceRelayBridge {
   private sessions = new Map<string, CustomerServiceSession>();
 
   /** Affiliate inbound frame handler. Owns affiliate shop contexts and sessions. */
-  private affiliateInbound = new AffiliateInbound();
+  private affiliateInbound: AffiliateInbound;
 
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
@@ -83,7 +85,9 @@ export class EcommerceRelayBridge {
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
-  constructor(private readonly opts: EcommerceRelayBridgeOptions) {}
+  constructor(private readonly opts: EcommerceRelayBridgeOptions) {
+    this.affiliateInbound = new AffiliateInbound(opts.locale);
+  }
 
   // -- Public API ------------------------------------------------------------
 

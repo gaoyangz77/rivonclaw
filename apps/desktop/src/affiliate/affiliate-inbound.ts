@@ -39,6 +39,8 @@ export interface AffiliateShopSource {
 }
 
 export class AffiliateInbound {
+  constructor(private readonly locale?: string) {}
+
   /** Affiliate shop context keyed by platformShopId from relay frames. */
   private shopContexts = new Map<string, AffiliateShopContext>();
 
@@ -72,6 +74,7 @@ export class AffiliateInbound {
         platform: normalizePlatform(shop.platform ?? "TIKTOK_SHOP"),
         runProfileId: shop.runProfileId ?? DEFAULT_AFFILIATE_RUN_PROFILE_ID,
         businessPrompt: shop.businessPrompt ?? "",
+        staffLanguage: normalizeStaffLanguage(this.locale),
       };
 
       const existing = this.shopContexts.get(platformShopId);
@@ -532,7 +535,12 @@ export class AffiliateInbound {
       a.platform === b.platform &&
       a.shopName === b.shopName &&
       a.runProfileId === b.runProfileId &&
-      (a.businessPrompt ?? "") === (b.businessPrompt ?? "")
+      (a.businessPrompt ?? "") === (b.businessPrompt ?? "") &&
+      a.staffLanguage === b.staffLanguage
     );
   }
+}
+
+function normalizeStaffLanguage(locale: string | undefined): "Chinese" | "English" {
+  return locale?.toLowerCase().startsWith("zh") ? "Chinese" : "English";
 }

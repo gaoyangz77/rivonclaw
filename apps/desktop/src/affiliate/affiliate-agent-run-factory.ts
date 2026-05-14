@@ -5,6 +5,7 @@ export interface AffiliateAgentRunFactoryInput {
   platform: string;
   conversationDelta?: string;
   businessPrompt?: string | null;
+  staffLanguage?: "Chinese" | "English";
 }
 
 export interface AffiliateAgentRunRequest {
@@ -54,7 +55,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "For every text reply, action.messageIntent must include messageType: TEXT.",
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
       "If a human should decide, use decision NEEDS_STAFF_REVIEW.",
-      "Use operatorSummary for the merchant/staff-facing rationale. The text you write in action.messageIntent.text is the creator-facing message.",
+      `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}. The text you write in action.messageIntent.text is the creator-facing message.`,
       "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
       "If approval is required, stop after the backend creates the ActionProposal and reply exactly NO_REPLY.",
     ].join("\n"),
@@ -83,7 +84,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing the sample decision and SEND_MESSAGE.",
       "If you include a creator-facing text message, action.messageIntent must include messageType: TEXT.",
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
-      "Use operatorSummary for staff-facing reasoning in the desktop language. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.",
+      `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.`,
       "Use action.sampleReviewIntent.sampleApplicationRecordId and platformApplicationId from the projection; do not invent campaignId.",
       "For APPROVE_SAMPLE, set action.sampleReviewIntent.decision to APPROVE.",
       "For REJECT_SAMPLE, set action.sampleReviewIntent.decision to REJECT. If you set rejectReason, it must be exactly one of NOT_MATCH, OFFLINE, OUT_OF_STOCK, or OTHER; use OTHER for seller-specific rules such as follower-count thresholds, and put free-form rationale only in operatorSummary.",
@@ -112,7 +113,7 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "For every text follow-up, action.messageIntent must include messageType: TEXT.",
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
       "If Platform Conversation ID is empty, this is a proactive follow-up: omit action.messageIntent.conversationId and the backend will create or reuse the TikTok affiliate conversation from creator identity only after approval/execution.",
-      "Use operatorSummary for the merchant/staff-facing rationale.",
+      `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
       "Keep action.messageIntent.text creator-facing, concise, and respectful. Do not threaten or over-pressure the creator.",
       "If the context is incomplete, use decision NEEDS_STAFF_REVIEW.",
       "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",

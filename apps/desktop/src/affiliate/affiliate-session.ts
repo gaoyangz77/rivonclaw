@@ -40,6 +40,8 @@ export interface AffiliateShopContext {
   runProfileId?: string;
   /** Per-shop affiliate business instructions configured by the merchant. */
   businessPrompt?: string | null;
+  /** Staff-facing language for operatorSummary and internal review text. */
+  staffLanguage?: "Chinese" | "English";
 }
 
 export interface AffiliateContext {
@@ -105,6 +107,7 @@ export class AffiliateSession {
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
       "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
       "- Background affiliate runs must not speak in webchat. Put staff-facing detail in operatorSummary, then make the final assistant response exactly NO_REPLY.",
+      `- Write every operatorSummary and staff-facing explanation in ${this.shop.staffLanguage ?? "English"}.`,
       "- If the merchant explicitly approves or rejects a pending proposal in the current conversation, use affiliate_decide_proposal.",
       "- Do not rely on memory for creator history or policy. Ask tools for state when needed.",
       "- Never put a platform sample application ID into campaignId. For sample events, use platformApplicationId or sampleApplicationRecordId.",
@@ -118,6 +121,7 @@ export class AffiliateSession {
       "- Treat collaboration events as lifecycle work: reconcile local state, decide whether follow-up is needed, and avoid duplicate outreach.",
       "- Treat attributed order events as evidence for relation health/ROI; do not message the creator unless there is a clear business reason.",
       "- Use operatorSummary for staff-facing summaries. Keep it short: current fact, recommended/attempted action, proposal id if approval is required.",
+      `- operatorSummary language: ${this.shop.staffLanguage ?? "English"}. Creator-facing messages should use the creator's language instead.`,
       "",
       "## Current Affiliate Context",
       `- Shop ID: ${this.affiliateContext.shopId}`,
@@ -256,6 +260,7 @@ export class AffiliateSession {
       platform: this.platform,
       conversationDelta,
       businessPrompt: this.shop.businessPrompt,
+      staffLanguage: this.shop.staffLanguage,
     });
     if (!request) return { runId: undefined };
 
@@ -557,7 +562,7 @@ export class AffiliateSession {
           ? ["", "## Merchant Affiliate Instructions", this.shop.businessPrompt.trim(), ""]
           : []),
         "If the matching sampleApplicationRecord is PENDING_REVIEW, resolve the work item through affiliate_resolve_work_item.",
-        "Use operatorSummary for staff-facing reasoning. Creator-facing text belongs only in action.messageIntent.text.",
+        `Use operatorSummary for staff-facing reasoning in ${this.shop.staffLanguage ?? "English"}. Creator-facing text belongs only in action.messageIntent.text.`,
         "Do not pass this platform application ID as campaignId.",
       ].join("\n"), workspaceSnapshot),
       idempotencyKey: `affiliate:${this.platform}:sample:${frame.applicationId}:${frame.status}:${frame.eventTime}`,

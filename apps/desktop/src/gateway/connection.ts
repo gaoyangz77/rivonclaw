@@ -39,7 +39,7 @@ export function stopCsBridge(): void {
   // _csBridge !== null to avoid double-create.
 }
 
-export function tryStartCsBridge(gatewayId: string): void {
+export function tryStartCsBridge(gatewayId: string, locale?: string): void {
   const authSession = getAuthSession();
   if (!authSession) return;
 
@@ -55,6 +55,7 @@ export function tryStartCsBridge(gatewayId: string): void {
 
     _csBridge = new CustomerServiceBridge({
       gatewayId,
+      locale,
     });
     rootStore.llmManager.refreshModelCatalog().catch(() => {});
     _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
