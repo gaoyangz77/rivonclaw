@@ -1712,7 +1712,7 @@ describe("config-writer", () => {
         pruneAfter: "7d",
         maxEntries: 200,
         rotateBytes: "10mb",
-        maxDiskBytes: "50mb",
+        maxDiskBytes: "500mb",
       });
     });
 

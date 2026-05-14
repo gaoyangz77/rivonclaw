@@ -86,7 +86,7 @@ export const DEFAULTS = {
     sessionMaintenancePruneAfter: "7d",
     sessionMaintenanceMaxEntries: 200,
     sessionMaintenanceRotateBytes: "10mb",
-    sessionMaintenanceMaxDiskBytes: "50mb",
+    sessionMaintenanceMaxDiskBytes: "500mb",
     toolsProfile: "full" as const,
     execHost: "gateway" as const,
     execSecurity: "full" as const,
