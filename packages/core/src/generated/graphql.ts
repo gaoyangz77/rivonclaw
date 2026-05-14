@@ -856,6 +856,8 @@ export interface AffiliateWorkspacePayload {
   campaigns: Array<AffiliateCampaign>;
   candidates: Array<CreatorCandidate>;
   collaborationRecords: Array<AffiliateCollaborationRecord>;
+  /** Best-known creator profile facts for the selected workspace filters. Use this when a dynamic decision needs creator metrics such as follower count. */
+  creatorProfiles: Array<CreatorGlobalProfile>;
   creatorRelations: Array<CreatorUserRelation>;
   creatorTags: Array<CreatorTag>;
   sampleApplicationRecords: Array<SampleApplicationRecord>;
