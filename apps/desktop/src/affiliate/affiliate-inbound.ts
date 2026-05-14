@@ -24,6 +24,10 @@ const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
   1,
   Number.parseInt(process.env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS ?? "4", 10) || 4,
 );
+const MAX_QUEUED_AFFILIATE_WORK_ITEMS = Math.max(
+  1,
+  Number.parseInt(process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS ?? "100", 10) || 100,
+);
 
 export interface AffiliateShopSource {
   id: string;
@@ -46,6 +50,9 @@ export class AffiliateInbound {
 
   /** Dispatches that have reserved capacity but have not returned a run id yet. */
   private pendingDispatchCount = 0;
+
+  /** Work items waiting for local agent capacity. Keyed by semantic work item key. */
+  private pendingWorkItems = new Map<string, AffiliateWorkItemPayload>();
 
   /** Work item semantic key -> last dispatched backend state version. */
   private dispatchedWorkItemVersions = new Map<string, string>();
@@ -106,6 +113,7 @@ export class AffiliateInbound {
 
     this.sessions.get(sessionKey)?.onRunCompleted(payload.runId, { errored: payload.state === "error" });
     this.runIndex.delete(payload.runId);
+    this.drainWorkItemQueue();
   }
 
   async handleFrame(frame: EcommerceRelayFrame): Promise<boolean> {
@@ -165,16 +173,6 @@ export class AffiliateInbound {
       return true;
     }
 
-    const activeOrPendingRuns = this.runIndex.size + this.pendingDispatchCount;
-    if (activeOrPendingRuns >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
-      log.warn(
-        `Deferring affiliate work item because active affiliate runs reached limit: ` +
-        `active=${this.runIndex.size} pending=${this.pendingDispatchCount} limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} ` +
-        `id=${workItem.id} kind=${workItem.workKind}`,
-      );
-      return true;
-    }
-
     const versionKey = this.buildWorkItemVersionKey(workItem);
     const version = this.buildWorkItemVersion(workItem);
     if (version && this.dispatchedWorkItemVersions.get(versionKey) === version) {
@@ -184,6 +182,20 @@ export class AffiliateInbound {
       return true;
     }
 
+    const activeOrPendingRuns = this.runIndex.size + this.pendingDispatchCount;
+    if (activeOrPendingRuns >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
+      this.enqueueWorkItem(workItem, versionKey, version);
+      return true;
+    }
+
+    return await this.dispatchWorkItem(workItem, versionKey, version);
+  }
+
+  private async dispatchWorkItem(
+    workItem: AffiliateWorkItemPayload,
+    versionKey: string,
+    version: string,
+  ): Promise<boolean> {
     const shop = this.shopContexts.get(workItem.platformShopId);
     if (!shop) {
       log.error(`No affiliate shop context for platform shopId ${workItem.platformShopId}, dropping work item`);
@@ -210,6 +222,62 @@ export class AffiliateInbound {
       return false;
     } finally {
       this.pendingDispatchCount = Math.max(0, this.pendingDispatchCount - 1);
+      this.drainWorkItemQueue();
+    }
+  }
+
+  private enqueueWorkItem(workItem: AffiliateWorkItemPayload, versionKey: string, version: string): void {
+    const queued = this.pendingWorkItems.get(versionKey);
+    const queuedVersion = queued ? this.buildWorkItemVersion(queued) : "";
+    if (queued && queuedVersion === version) {
+      log.info(
+        `Ignoring already queued affiliate work item version: id=${workItem.id} kind=${workItem.workKind} version=${version}`,
+      );
+      return;
+    }
+
+    if (queued) {
+      this.pendingWorkItems.delete(versionKey);
+    } else if (this.pendingWorkItems.size >= MAX_QUEUED_AFFILIATE_WORK_ITEMS) {
+      const oldestKey = this.pendingWorkItems.keys().next().value as string | undefined;
+      if (oldestKey) {
+        const oldest = this.pendingWorkItems.get(oldestKey);
+        this.pendingWorkItems.delete(oldestKey);
+        log.warn(
+          `Dropping oldest queued affiliate work item because queue is full: ` +
+          `id=${oldest?.id ?? oldestKey} kind=${oldest?.workKind ?? "UNKNOWN"} limit=${MAX_QUEUED_AFFILIATE_WORK_ITEMS}`,
+        );
+      }
+    }
+
+    this.pendingWorkItems.set(versionKey, workItem);
+    log.info(
+      `Queued affiliate work item until agent capacity is available: ` +
+      `active=${this.runIndex.size} pending=${this.pendingDispatchCount} queued=${this.pendingWorkItems.size} ` +
+      `limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} id=${workItem.id} kind=${workItem.workKind}`,
+    );
+  }
+
+  private drainWorkItemQueue(): void {
+    while (
+      this.pendingWorkItems.size > 0 &&
+      this.runIndex.size + this.pendingDispatchCount < MAX_ACTIVE_AFFILIATE_AGENT_RUNS
+    ) {
+      const next = this.pendingWorkItems.entries().next().value as [string, AffiliateWorkItemPayload] | undefined;
+      if (!next) return;
+      const [versionKey, workItem] = next;
+      this.pendingWorkItems.delete(versionKey);
+      const version = this.buildWorkItemVersion(workItem);
+      if (version && this.dispatchedWorkItemVersions.get(versionKey) === version) {
+        log.info(
+          `Skipping queued affiliate work item because version already dispatched: ` +
+          `id=${workItem.id} kind=${workItem.workKind} version=${version}`,
+        );
+        continue;
+      }
+      void this.dispatchWorkItem(workItem, versionKey, version).catch((err) => {
+        log.error(`Failed to drain queued affiliate work item ${workItem.id}:`, err);
+      });
     }
   }
 
