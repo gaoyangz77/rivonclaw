@@ -44,6 +44,9 @@ export class AffiliateInbound {
   /** Agent run id -> affiliate session key, used only for run lifecycle cleanup. */
   private runIndex = new Map<string, string>();
 
+  /** Dispatches that have reserved capacity but have not returned a run id yet. */
+  private pendingDispatchCount = 0;
+
   /** Work item semantic key -> last dispatched backend state version. */
   private dispatchedWorkItemVersions = new Map<string, string>();
 
@@ -101,7 +104,7 @@ export class AffiliateInbound {
     const sessionKey = this.runIndex.get(payload.runId);
     if (!sessionKey) return;
 
-    this.sessions.get(sessionKey)?.onRunCompleted(payload.runId);
+    this.sessions.get(sessionKey)?.onRunCompleted(payload.runId, { errored: payload.state === "error" });
     this.runIndex.delete(payload.runId);
   }
 
@@ -162,10 +165,11 @@ export class AffiliateInbound {
       return true;
     }
 
-    if (this.runIndex.size >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
+    const activeOrPendingRuns = this.runIndex.size + this.pendingDispatchCount;
+    if (activeOrPendingRuns >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
       log.warn(
         `Deferring affiliate work item because active affiliate runs reached limit: ` +
-        `active=${this.runIndex.size} limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} ` +
+        `active=${this.runIndex.size} pending=${this.pendingDispatchCount} limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} ` +
         `id=${workItem.id} kind=${workItem.workKind}`,
       );
       return true;
@@ -193,6 +197,7 @@ export class AffiliateInbound {
     }
 
     const session = this.getOrCreateSession(shop, context);
+    this.pendingDispatchCount += 1;
     try {
       const result = await session.handleWorkItem(workItem);
       if (result.runId) {
@@ -203,6 +208,8 @@ export class AffiliateInbound {
     } catch (err) {
       log.error(`Failed to handle affiliate work item ${workItem.id}:`, err);
       return false;
+    } finally {
+      this.pendingDispatchCount = Math.max(0, this.pendingDispatchCount - 1);
     }
   }
 

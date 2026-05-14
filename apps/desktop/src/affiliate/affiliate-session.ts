@@ -103,7 +103,8 @@ export class AffiliateSession {
       "- Every agent-dispatched affiliate work item must end with exactly one affiliate_resolve_work_item call. A final text response alone does not complete the work item.",
       "- If you need to message a creator, approve or reject a sample, create a target collaboration, block a creator, or update campaign setup, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed action payload.",
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
-      "- If affiliate_resolve_work_item returns a proposal requiring approval, stop and summarize the proposal for the merchant; do not try to bypass approval.",
+      "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
+      "- Background affiliate runs must not speak in webchat. Put staff-facing detail in operatorSummary, then make the final assistant response exactly NO_REPLY.",
       "- If the merchant explicitly approves or rejects a pending proposal in the current conversation, use affiliate_decide_proposal.",
       "- Do not rely on memory for creator history or policy. Ask tools for state when needed.",
       "- Never put a platform sample application ID into campaignId. For sample events, use platformApplicationId or sampleApplicationRecordId.",
@@ -264,13 +265,20 @@ export class AffiliateSession {
     return result;
   }
 
-  onRunCompleted(runId: string): void {
+  onRunCompleted(runId: string, options: { errored?: boolean } = {}): void {
     if (this.activeRunId === runId) {
       this.activeRunId = null;
     }
     const workItem = this.pendingRunCompletions.get(runId);
     if (workItem == null) return;
     this.pendingRunCompletions.delete(runId);
+    if (options.errored) {
+      log.warn(
+        `Affiliate agent run ended with gateway error; leaving work item unacked for retry: ` +
+        `runId=${runId} collaboration=${workItem.collaborationRecordId}`,
+      );
+      return;
+    }
     void this.completeWorkItemIfUnresolved(runId, workItem);
   }
 

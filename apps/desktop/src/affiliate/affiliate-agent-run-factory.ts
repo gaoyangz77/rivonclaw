@@ -54,8 +54,8 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
       "If a human should decide, use decision NEEDS_STAFF_REVIEW.",
       "Use operatorSummary for the merchant/staff-facing rationale. The text you write in action.messageIntent.text is the creator-facing message.",
-      "Your final assistant response is only for the merchant/operator and should briefly summarize the proposed action.",
-      "If approval is required, stop after the backend creates the ActionProposal.",
+      "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
+      "If approval is required, stop after the backend creates the ActionProposal and reply exactly NO_REPLY.",
     ].join("\n"),
     idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${currentMessageId}:${workItem.versionAt}`,
     abortActive: false,
@@ -82,7 +82,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
       "Use operatorSummary for staff-facing reasoning in the desktop language. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.",
       "Use action.sampleReviewIntent.sampleApplicationRecordId and platformApplicationId from the projection; do not invent campaignId.",
-      "If approval policy requires review, the backend will create an ActionProposal. Stop there and summarize the proposal id/status for the merchant.",
+      "Do not write merchant/operator summaries as final assistant text. If approval policy requires review, the backend will create an ActionProposal. Stop there and reply exactly NO_REPLY.",
     ].join("\n"),
     idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${sample?.id ?? "sample"}:${workItem.versionAt}`,
   };
@@ -110,6 +110,7 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "Use operatorSummary for the merchant/staff-facing rationale.",
       "Keep action.messageIntent.text creator-facing, concise, and respectful. Do not threaten or over-pressure the creator.",
       "If the context is incomplete, use decision NEEDS_STAFF_REVIEW.",
+      "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
     ].join("\n"),
     idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${workItem.versionAt}`,
   };

@@ -6,6 +6,7 @@ vi.mock("@rivonclaw/logger", () => ({
 }));
 
 const mockRpcRequest = vi.fn();
+const mockGetAuthSession = vi.fn();
 vi.mock("../openclaw/index.js", () => ({
   openClawConnector: {
     request: (...args: unknown[]) => mockRpcRequest(...args),
@@ -13,7 +14,7 @@ vi.mock("../openclaw/index.js", () => ({
 }));
 
 vi.mock("../auth/session-ref.js", () => ({
-  getAuthSession: () => null,
+  getAuthSession: () => mockGetAuthSession(),
 }));
 
 vi.mock("../gateway/provider-keys-ref.js", () => ({
@@ -101,6 +102,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
 describe("affiliate work item dispatch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetAuthSession.mockReturnValue(null);
     mockRpcRequest.mockResolvedValue({ runId: "run-affiliate-001" });
     initLLMProviderManagerEnv({
       storage: {
@@ -167,6 +169,38 @@ describe("affiliate work item dispatch", () => {
     );
     expect(agentCall?.[1]?.message).toContain("APPROVE_SAMPLE or REJECT_SAMPLE");
     expect(agentCall?.[1]?.message).toContain("platform-sample-001");
+    expect(agentCall?.[1]?.message).toContain("reply exactly NO_REPLY");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
+  });
+
+  it("does not ack work items when the gateway reports an agent run error", async () => {
+    const workItem = createSampleReviewWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runId).toBe("run-affiliate-001");
+
+    session.onRunCompleted("run-affiliate-001", { errored: true });
+
+    expect(mockGetAuthSession).not.toHaveBeenCalled();
   });
 
   it("does not dispatch work items that are projection-only", async () => {
