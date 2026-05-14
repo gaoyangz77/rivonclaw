@@ -96,12 +96,13 @@ function shouldSkipChannelInbound(channelId: string): boolean {
   return CHANNEL_INBOUND_SKIP.has(channelId);
 }
 
-function shouldMirrorExternalSession(sessionKey?: string): boolean {
+export function shouldMirrorExternalSession(sessionKey?: string): boolean {
   const channelId = resolveChannelIdFromSessionKey(sessionKey);
   if (!channelId) return false;
   return (
     channelId !== "main" &&
     channelId !== "cs" &&
+    channelId !== "affiliate" &&
     !channelId.startsWith("panel-") &&
     !shouldSkipChannelInbound(channelId)
   );

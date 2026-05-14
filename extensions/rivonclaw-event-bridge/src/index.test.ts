@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createRunSessionTracker } from "./index.js";
+import { createRunSessionTracker, shouldMirrorExternalSession } from "./index.js";
 
 describe("createRunSessionTracker", () => {
   it("cleans up only the ended run instead of every run sharing a session", () => {
@@ -36,5 +36,15 @@ describe("createRunSessionTracker", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("shouldMirrorExternalSession", () => {
+  it("does not mirror background affiliate sessions into webchat", () => {
+    expect(shouldMirrorExternalSession("agent:main:affiliate:tiktok:target_collaboration:collab-1")).toBe(false);
+  });
+
+  it("still mirrors real external chat channels", () => {
+    expect(shouldMirrorExternalSession("agent:main:telegram:account:direct:user")).toBe(true);
   });
 });
