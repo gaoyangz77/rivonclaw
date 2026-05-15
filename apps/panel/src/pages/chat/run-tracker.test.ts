@@ -849,6 +849,10 @@ describe("isHiddenSession", () => {
     expect(isHiddenSession("agent:main:openai-user:rivonclaw-rule-compiler")).toBe(true);
   });
 
+  it("hides Telegram debug support sessions", () => {
+    expect(isHiddenSession("agent:main:telegram:rivonclaw-support:direct:5453468009")).toBe(true);
+  });
+
   it("does not hide normal sessions", () => {
     expect(isHiddenSession("agent:main:main")).toBe(false);
     expect(isHiddenSession("agent:main:telegram:acct_123:direct:456")).toBe(false);

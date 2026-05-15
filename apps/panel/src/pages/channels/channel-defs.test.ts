@@ -90,6 +90,24 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(account.dmPolicy).toBe("manual");
   });
 
+  it("hides the app-managed Telegram debug support account", () => {
+    const result = buildAccountsList(
+      [
+        mst({ channelId: "telegram", accountId: "a1", name: "Prod Bot" }),
+        mst({ channelId: "telegram", accountId: "rivonclaw-support", name: "RivonClaw Support" }),
+      ],
+      snapshot({
+        telegram: [
+          { accountId: "a1", running: true },
+          { accountId: "rivonclaw-support", running: true },
+        ],
+      }),
+      t,
+    );
+
+    expect(result.map((entry) => entry.account.accountId)).toEqual(["a1"]);
+  });
+
   it("uses conservative defaults when snapshot exists but is missing the channel", () => {
     const result = buildAccountsList(
       [mst({ channelId: "feishu", accountId: "a1" })],

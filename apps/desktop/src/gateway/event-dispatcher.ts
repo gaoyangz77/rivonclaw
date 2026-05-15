@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 
+const TELEGRAM_CHANNEL_ID = "telegram";
+const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
+
 /** Dependencies injected from main.ts */
 export interface GatewayEventDispatcherDeps {
   /** Broadcast an event to every Panel SSE client (unified `/api/events` bus). */
@@ -19,7 +22,16 @@ export interface GatewayEventDispatcherDeps {
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
 
 function isInternalServiceSessionKey(sessionKey?: string): boolean {
-  return Boolean(sessionKey?.includes(":cs:") || sessionKey?.includes(":affiliate:"));
+  return Boolean(
+    sessionKey?.includes(":cs:") ||
+    sessionKey?.includes(":affiliate:") ||
+    sessionKey?.includes(`:${TELEGRAM_CHANNEL_ID}:${RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID}:`),
+  );
+}
+
+function isInternalTelegramDebugAccount(input: { channelId?: string; channel?: string; accountId?: string }): boolean {
+  const channel = input.channelId ?? input.channel;
+  return channel === TELEGRAM_CHANNEL_ID && input.accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID;
 }
 
 /**
@@ -57,8 +69,17 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       evt.event === "plugin.rivonclaw.channel-inbound"
       || evt.event === "rivonclaw.channel-inbound"
     ) {
-      const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string } | undefined;
-      if (isInternalServiceSessionKey(p?.sessionKey)) return;
+      const p = evt.payload as {
+        sessionKey?: string;
+        message?: string;
+        timestamp?: number;
+        channel?: string;
+        accountId?: string;
+      } | undefined;
+      if (isInternalServiceSessionKey(p?.sessionKey) || isInternalTelegramDebugAccount({
+        channel: p?.channel,
+        accountId: p?.accountId,
+      })) return;
       if (p?.sessionKey && p?.message) {
         onSessionActivity?.(p.sessionKey);
         const session = chatSessions.getByKey(p.sessionKey);
@@ -87,6 +108,7 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
     ) {
       const p = evt.payload as { channelId?: string; accountId?: string; recipientId?: string } | undefined;
       if (!p?.channelId || !p.recipientId) return;
+      if (isInternalTelegramDebugAccount(p)) return;
 
       const result = onRecipientSeen?.({
         channelId: p.channelId,

@@ -93,6 +93,7 @@ export const DEFAULT_SESSION_KEY = "agent:main:main";
 const HIDDEN_SESSION_KEY_PATTERNS: string[] = [
   ":openai-user:rivonclaw-", // Internal API sessions (rule compilation LLM calls)
   ":cs:", // Customer Service sessions (e.g. agent:main:cs:tiktok:{id})
+  ":telegram:rivonclaw-support:", // RivonClaw operator debug sessions
 ];
 
 /** Returns true if the session key belongs to a hidden subsystem. */

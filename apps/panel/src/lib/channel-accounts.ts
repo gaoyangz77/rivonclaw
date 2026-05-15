@@ -1,6 +1,8 @@
 import type { ChannelAccountSnapshot, ChannelsStatusSnapshot } from "../api/index.js";
 import { KNOWN_CHANNELS } from "./channel-defs.js";
 
+const HIDDEN_CHANNEL_ACCOUNTS = new Set(["telegram:rivonclaw-support"]);
+
 export interface AccountEntry {
   channelId: string;
   channelLabel: string;
@@ -65,6 +67,7 @@ export function buildAccountsList(
 
   for (const mst of mstAccounts) {
     const { channelId, accountId } = mst;
+    if (HIDDEN_CHANNEL_ACCOUNTS.has(`${channelId}:${accountId}`)) continue;
 
     const knownChannel = KNOWN_CHANNELS.find((channel) => channel.id === channelId);
     const channelLabel = knownChannel

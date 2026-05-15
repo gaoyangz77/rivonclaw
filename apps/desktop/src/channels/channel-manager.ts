@@ -249,6 +249,22 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function isRivonClawTelegramDebugAccount(channelId: string, accountId?: string): boolean {
+  return channelId === TELEGRAM_CHANNEL_ID && accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID;
+}
+
+function shouldIncludeChannelWideRecipientMeta(channelId: string, accountId?: string): boolean {
+  // Telegram supports multiple named bot accounts. SQLite recipient metadata is
+  // keyed by channelId for labels/owner flags, so blindly merging every
+  // channel-wide row into every named account leaks recipients between user bots
+  // and the hidden RivonClaw support bot. Account-scoped allowFrom files remain
+  // the membership source; metadata only enriches entries already in that set.
+  if (channelId === TELEGRAM_CHANNEL_ID && accountId && accountId !== "default") {
+    return false;
+  }
+  return true;
+}
+
 function isWeixinAlreadyConnectedQrResult(result: { connected?: boolean; message?: string }): boolean {
   if (result.connected) return false;
   const message = result.message ?? "";
@@ -703,7 +719,7 @@ export const ChannelManagerModel = types
       }
 
       const meta = storage.channelRecipients.getRecipientMeta(channelId);
-      if (channelId !== WEIXIN_CHANNEL_ID) {
+      if (channelId !== WEIXIN_CHANNEL_ID && shouldIncludeChannelWideRecipientMeta(channelId, accountId)) {
         for (const id of Object.keys(meta)) {
           entries.add(id);
         }
@@ -824,6 +840,10 @@ export const ChannelManagerModel = types
         const accountId = params.accountId
           ? normalizeChannelAccountId(params.channelId, params.accountId)
           : undefined;
+
+        if (isRivonClawTelegramDebugAccount(params.channelId, accountId)) {
+          return { inserted: false, membershipChanged: false };
+        }
 
         const inserted = storage.channelRecipients.ensureExists(params.channelId, params.recipientId, true);
         let membershipChanged = false;

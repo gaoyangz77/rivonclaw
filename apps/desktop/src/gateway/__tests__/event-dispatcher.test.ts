@@ -101,6 +101,17 @@ describe("createGatewayEventDispatcher", () => {
 
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
+
+    it("does NOT push Telegram debug support mirrors to Webchat SSE", () => {
+      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
+        runId: "run-support",
+        sessionKey: "agent:main:telegram:rivonclaw-support:direct:5453468009",
+        stream: "assistant",
+        data: { text: "debug internals" },
+      }));
+
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    });
   });
 
   // ── plugin.rivonclaw.channel-inbound ────────────────────────────────────
@@ -212,6 +223,19 @@ describe("createGatewayEventDispatcher", () => {
         message: "[Affiliate Backend Signal]",
       }));
 
+      expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    });
+
+    it("does NOT create chat metadata for Telegram debug support inbound messages", () => {
+      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
+        sessionKey: "agent:main:telegram:rivonclaw-support:direct:5453468009",
+        message: "debug question",
+        channel: "telegram",
+        accountId: "rivonclaw-support",
+      }));
+
+      expect(deps.chatSessions.getByKey).not.toHaveBeenCalled();
       expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
@@ -398,6 +422,17 @@ describe("createGatewayEventDispatcher", () => {
         accountId: undefined,
         recipientId: "123",
       });
+    });
+
+    it("does NOT persist recipients seen through the Telegram debug support account", () => {
+      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
+        channelId: "telegram",
+        accountId: "rivonclaw-support",
+        recipientId: "5453468009",
+      }));
+
+      expect(deps.onRecipientSeen).not.toHaveBeenCalled();
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("accepts the legacy non-plugin event name", () => {

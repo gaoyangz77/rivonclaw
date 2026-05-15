@@ -172,6 +172,69 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     }
   });
 
+  it("does not leak Telegram support recipients into named user accounts", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-telegram-recipients-"));
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      const credentialsDir = join(stateDir, "credentials");
+      mkdirSync(credentialsDir, { recursive: true });
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+      writeFileSync(
+        join(credentialsDir, "telegram-owner-bot-allowFrom.json"),
+        JSON.stringify({ version: 1, allowFrom: ["paired-user"] }, null, 2),
+        "utf-8",
+      );
+
+      const accounts = [{
+        channelId: "telegram",
+        accountId: "owner-bot",
+        name: "Owner Bot",
+        config: { name: "Owner Bot", botToken: "real-user-token" },
+        createdAt: 1,
+        updatedAt: 1,
+      }];
+
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) => accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({
+              "paired-user": { label: "Paired", isOwner: true },
+              "support-operator": { label: "Support", isOwner: true },
+            }),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      root.channelManager.init();
+
+      expect(root.channelAccounts[0].recipients.allowlist).toEqual(["paired-user"]);
+      expect(root.channelAccounts[0].recipients.labels).toEqual({ "paired-user": "Paired" });
+      expect(root.channelAccounts[0].recipients.owners).toEqual({ "paired-user": true });
+    } finally {
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("treats WeChat already-connected QR results as an existing account", async () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
     try {
