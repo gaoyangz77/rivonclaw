@@ -38,6 +38,9 @@ const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
 const WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS = [100, 300, 700, 1_500, 3_000];
+const TELEGRAM_CHANNEL_ID = "telegram";
+export const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
+const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME = "RivonClaw Support";
 
 // ---------------------------------------------------------------------------
 // Environment interface -- late-initialized infrastructure dependencies.
@@ -221,6 +224,29 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
 
 function channelAccountConfigHasWeixinUserId(channelId: string, config: Record<string, unknown>): boolean {
   return channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId");
+}
+
+function normalizeTelegramDebugApiRoot(apiRoot: string): string {
+  return apiRoot.trim().replace(/\/+$/, "");
+}
+
+function buildTelegramDebugAccountConfig(proxyToken: string, apiRoot: string, deviceId: string): Record<string, unknown> {
+  const deviceApiRoot = `${normalizeTelegramDebugApiRoot(apiRoot)}/telegram-debug/devices/${encodeURIComponent(deviceId)}`;
+  return {
+    name: RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME,
+    botToken: proxyToken,
+    apiRoot: deviceApiRoot,
+    dmPolicy: "open",
+    allowFrom: ["*"],
+    groupPolicy: "disabled",
+    streaming: { mode: "block" },
+    commands: { native: false, nativeSkills: false },
+    configWrites: false,
+  };
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(value);
 }
 
 function isWeixinAlreadyConnectedQrResult(result: { connected?: boolean; message?: string }): boolean {
@@ -837,6 +863,48 @@ export const ChannelManagerModel = types
         secrets?: Record<string, string>;
       }) {
         return upsertAccountState(params);
+      },
+
+      /**
+       * Maintain the app-managed Telegram account that talks to RivonClaw's
+       * support/debug relay. User-owned Telegram accounts remain untouched.
+       */
+      syncTelegramDebugProxyAccount(params: {
+        proxyToken?: string | null;
+        apiRoot: string;
+        deviceId: string;
+        writeConfig?: boolean;
+      }): { changed: boolean; channelId: string; accountId: string } {
+        const { storage } = getEnv();
+        const proxyToken = params.proxyToken?.trim() ?? "";
+        const accountId = RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID;
+
+        if (!proxyToken) {
+          if (!storage.channelAccounts.get(TELEGRAM_CHANNEL_ID, accountId)) {
+            return { changed: false, channelId: TELEGRAM_CHANNEL_ID, accountId };
+          }
+          removeAccountById(TELEGRAM_CHANNEL_ID, accountId, { writeConfig: params.writeConfig });
+          return { changed: true, channelId: TELEGRAM_CHANNEL_ID, accountId };
+        }
+
+        const desiredConfig = buildTelegramDebugAccountConfig(proxyToken, params.apiRoot, params.deviceId);
+        const existing = storage.channelAccounts.get(TELEGRAM_CHANNEL_ID, accountId);
+        if (
+          existing?.name === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME &&
+          stableJson(existing.config) === stableJson(desiredConfig)
+        ) {
+          return { changed: false, channelId: TELEGRAM_CHANNEL_ID, accountId };
+        }
+
+        upsertAccountState({
+          channelId: TELEGRAM_CHANNEL_ID,
+          accountId,
+          name: RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME,
+          config: desiredConfig,
+          writeConfig: params.writeConfig,
+        });
+
+        return { changed: true, channelId: TELEGRAM_CHANNEL_ID, accountId };
       },
 
       /**

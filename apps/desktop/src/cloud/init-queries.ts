@@ -70,6 +70,9 @@ export const INIT_ME_QUERY = `
         key
         suspendedUntil
       }
+      support {
+        telegramDebugProxyToken
+      }
     }
   }
 `;

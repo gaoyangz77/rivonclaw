@@ -3007,6 +3007,7 @@ export interface MeResponse {
   llmKey?: Maybe<LlmKey>;
   name?: Maybe<Scalars['String']['output']>;
   plan: UserPlan;
+  support?: Maybe<UserSupport>;
   userId: Scalars['String']['output'];
 }
 
@@ -5371,6 +5372,11 @@ export interface UserSubscription {
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['String']['output'];
   validUntil: Scalars['DateTimeISO']['output'];
+}
+
+export interface UserSupport {
+  /** Per-user Telegram debug proxy token for RivonClaw support sessions. */
+  telegramDebugProxyToken?: Maybe<Scalars['String']['output']>;
 }
 
 export interface VerifyPairingResult {

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applySnapshot, types } from "mobx-state-tree";
-import { ChannelManagerModel } from "./channel-manager.js";
+import { ChannelManagerModel, RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID } from "./channel-manager.js";
 import { WEIXIN_CHANNEL_ID } from "./weixin-account-dedupe.js";
 
 const TestRootModel = types
@@ -64,6 +64,114 @@ const TestRootModel = types
   }));
 
 describe("ChannelManagerModel WeChat provider-owned identity", () => {
+  it("syncs the app-managed Telegram debug proxy account without touching user accounts", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-telegram-debug-"));
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+
+      const accounts: Array<{
+        channelId: string;
+        accountId: string;
+        name: string | null;
+        config: Record<string, unknown>;
+        createdAt: number;
+        updatedAt: number;
+      }> = [{
+        channelId: "telegram",
+        accountId: "owner-bot",
+        name: "Owner Bot",
+        config: { name: "Owner Bot", botToken: "real-user-token" },
+        createdAt: 1,
+        updatedAt: 1,
+      }];
+
+      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
+        const existingIndex = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
+        const record = {
+          channelId,
+          accountId,
+          name,
+          config,
+          createdAt: 1,
+          updatedAt: existingIndex >= 0 ? accounts[existingIndex]!.updatedAt + 1 : 1,
+        };
+        if (existingIndex >= 0) accounts[existingIndex] = record;
+        else accounts.push(record);
+        return record;
+      });
+      const deleteAccount = vi.fn((channelId: string, accountId: string) => {
+        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
+        if (index >= 0) accounts.splice(index, 1);
+      });
+
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) => accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: upsertAccount,
+            delete: deleteAccount,
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      root.channelManager.init();
+
+      expect(root.channelManager.syncTelegramDebugProxyAccount({
+        proxyToken: "proxy-token",
+        apiRoot: "https://relay.example.com/",
+        deviceId: "device-a",
+      }).changed).toBe(true);
+
+      const supportAccount = accounts.find((account) => account.accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID);
+      expect(supportAccount?.config).toMatchObject({
+        name: "RivonClaw Support",
+        botToken: "proxy-token",
+        apiRoot: "https://relay.example.com/telegram-debug/devices/device-a",
+        dmPolicy: "open",
+        allowFrom: ["*"],
+        groupPolicy: "disabled",
+        commands: { native: false, nativeSkills: false },
+      });
+      expect(accounts.find((account) => account.accountId === "owner-bot")).toBeTruthy();
+
+      expect(root.channelManager.syncTelegramDebugProxyAccount({
+        proxyToken: "proxy-token",
+        apiRoot: "https://relay.example.com",
+        deviceId: "device-a",
+      }).changed).toBe(false);
+      expect(upsertAccount).toHaveBeenCalledTimes(1);
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].apiRoot).toBe("https://relay.example.com/telegram-debug/devices/device-a");
+      expect(config.channels.telegram.accounts["owner-bot"].botToken).toBe("real-user-token");
+
+      expect(root.channelManager.syncTelegramDebugProxyAccount({
+        proxyToken: null,
+        apiRoot: "https://relay.example.com",
+        deviceId: "device-a",
+      }).changed).toBe(true);
+      expect(deleteAccount).toHaveBeenCalledWith("telegram", RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID);
+      expect(accounts.map((account) => account.accountId)).toEqual(["owner-bot"]);
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("treats WeChat already-connected QR results as an existing account", async () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
     try {

@@ -161,7 +161,7 @@ export {
   CHANNEL_NO_PROXY_DOMAINS,
   getAnthropicMessagesUrl,
   getOllamaBaseUrl, getOllamaOpenAiBaseUrl,
-  getCsRelayWsUrl,
+  getCsRelayWsUrl, getCsRelayHttpUrl, getTelegramDebugRelayApiRoot,
   isStagingDevMode, setStagingDevMode,
 } from "./api/endpoints.js";
 

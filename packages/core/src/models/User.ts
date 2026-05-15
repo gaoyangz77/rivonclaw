@@ -5,6 +5,10 @@ const LlmKeyModel = types.model("LlmKey", {
   suspendedUntil: types.maybeNull(types.string),
 });
 
+const UserSupportModel = types.model("UserSupport", {
+  telegramDebugProxyToken: types.maybeNull(types.string),
+});
+
 export const UserModel = types.model("User", {
   userId: types.identifier,
   email: types.string,
@@ -15,6 +19,7 @@ export const UserModel = types.model("User", {
   entitlementKeys: types.optional(types.array(types.string), []),
   defaultRunProfileId: types.maybeNull(types.string),
   llmKey: types.maybeNull(LlmKeyModel),
+  support: types.optional(types.maybeNull(UserSupportModel), null),
 });
 
 export interface User extends Instance<typeof UserModel> {}

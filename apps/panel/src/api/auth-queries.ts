@@ -92,6 +92,9 @@ const ME_FIELDS_FRAGMENT = gql`
       key
       suspendedUntil
     }
+    support {
+      telegramDebugProxyToken
+    }
   }
 `;
 

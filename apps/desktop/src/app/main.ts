@@ -21,7 +21,8 @@ import {
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, type LLMProvider } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, getTelegramDebugRelayApiRoot, type LLMProvider } from "@rivonclaw/core";
+import type { GQL } from "@rivonclaw/core";
 import { resolveRivonClawHome, resolveSessionStateDir, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -542,6 +543,45 @@ app.whenReady().then(async () => {
     merchantExtensionPaths: () => merchantExtensionPaths,
     gatewayPort: actualGatewayPort, broadcastEvent,
   });
+
+  let telegramDebugProxySyncQueue: Promise<void> = Promise.resolve();
+  async function syncTelegramDebugProxyChannel(user: GQL.MeResponse | null): Promise<void> {
+    const proxyToken = user?.support?.telegramDebugProxyToken?.trim() || null;
+    const writeConfigBeforeRuntimeStart = currentState !== "running";
+    const result = rootStore.channelManager.syncTelegramDebugProxyAccount({
+      proxyToken,
+      apiRoot: getTelegramDebugRelayApiRoot(),
+      deviceId,
+      writeConfig: writeConfigBeforeRuntimeStart,
+    });
+
+    if (!result.changed) return;
+
+    if (currentState === "running") {
+      await openClawConnector.applyConfigMutation(async () => {
+        writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
+      }, "restart_process");
+    }
+
+    log.info(
+      proxyToken
+        ? `Enabled Telegram debug proxy account ${result.accountId}`
+        : `Removed Telegram debug proxy account ${result.accountId}`,
+    );
+  }
+
+  function queueTelegramDebugProxySync(user: GQL.MeResponse | null): void {
+    telegramDebugProxySyncQueue = telegramDebugProxySyncQueue
+      .then(() => syncTelegramDebugProxyChannel(user))
+      .catch((err: unknown) => {
+        log.warn("Failed to sync Telegram debug proxy channel:", err);
+      });
+  }
+
+  authSession.onUserChanged((user) => {
+    queueTelegramDebugProxySync(user);
+  });
+  queueTelegramDebugProxySync(authSession.getCachedUser());
 
   // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
   // when tools change (e.g. after ingestGraphQLResponse).

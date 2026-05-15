@@ -16,6 +16,9 @@ export const REFRESH_TOKEN_MUTATION = `
           key
           suspendedUntil
         }
+        support {
+          telegramDebugProxyToken
+        }
       }
     }
   }
@@ -35,6 +38,9 @@ export const ME_QUERY = `
       llmKey {
         key
         suspendedUntil
+      }
+      support {
+        telegramDebugProxyToken
       }
     }
   }
@@ -64,6 +70,9 @@ export const LOGIN_MUTATION = `
           key
           suspendedUntil
         }
+        support {
+          telegramDebugProxyToken
+        }
       }
     }
   }
@@ -86,6 +95,9 @@ export const REGISTER_MUTATION = `
         llmKey {
           key
           suspendedUntil
+        }
+        support {
+          telegramDebugProxyToken
         }
       }
     }

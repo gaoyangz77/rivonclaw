@@ -78,6 +78,32 @@ export function getCsRelayWsUrl(): string {
 	return `wss://${DEFAULTS.domains.csRelay}/ws`;
 }
 
+/**
+ * Return the CS relay HTTP base URL.
+ * CS_RELAY_HTTP_URL is the explicit override; CS_RELAY_URL is accepted for
+ * dev setups and converted from ws(s)://.../ws to http(s)://...
+ */
+export function getCsRelayHttpUrl(): string {
+	const explicitOverride = typeof process !== "undefined" ? process.env.CS_RELAY_HTTP_URL : undefined;
+	if (explicitOverride) return explicitOverride.replace(/\/+$/, "");
+
+	const wsOverride = typeof process !== "undefined" ? process.env.CS_RELAY_URL : undefined;
+	if (wsOverride) {
+		return wsOverride
+			.replace(/^wss:\/\//, "https://")
+			.replace(/^ws:\/\//, "http://")
+			.replace(/\/ws\/?$/, "")
+			.replace(/\/+$/, "");
+	}
+
+	return `https://${DEFAULTS.domains.csRelay}`;
+}
+
+/** Telegram Bot API root used by the RivonClaw support/debug proxy. */
+export function getTelegramDebugRelayApiRoot(): string {
+	return getCsRelayHttpUrl();
+}
+
 // ---------------------------------------------------------------------------
 // Release feed URLs
 // ---------------------------------------------------------------------------
