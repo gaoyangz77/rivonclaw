@@ -123,7 +123,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
             getOwners: vi.fn(() => []),
           },
           mobilePairings: { getAllPairings: () => [] },
-          settings: { get: () => "1", set: vi.fn() },
+          settings: { get: () => "1", set: vi.fn(), delete: vi.fn(() => false) },
         } as any,
         configPath,
         stateDir,

@@ -33,14 +33,19 @@ import {
   selectStaleWeixinAccountIdsForLogin,
   selectWeixinReplacementAccountName,
 } from "./weixin-account-dedupe.js";
+import {
+  RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID,
+  RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY,
+  TELEGRAM_CHANNEL_ID,
+  serializeTelegramDebugOperatorUserIds,
+} from "./telegram-debug-support.js";
 
 const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
 const WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS = [100, 300, 700, 1_500, 3_000];
-const TELEGRAM_CHANNEL_ID = "telegram";
-export const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME = "RivonClaw Support";
+export { RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID };
 
 // ---------------------------------------------------------------------------
 // Environment interface -- late-initialized infrastructure dependencies.
@@ -893,23 +898,35 @@ export const ChannelManagerModel = types
         proxyToken?: string | null;
         apiRoot: string;
         deviceId: string;
+        operatorUserIds?: string[];
         writeConfig?: boolean;
       }): { changed: boolean; channelId: string; accountId: string } {
         const { storage } = getEnv();
         const proxyToken = params.proxyToken?.trim() ?? "";
         const accountId = RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID;
+        let settingsChanged = false;
 
         if (!proxyToken) {
+          settingsChanged = storage.settings.delete(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY);
           if (!storage.channelAccounts.get(TELEGRAM_CHANNEL_ID, accountId)) {
-            return { changed: false, channelId: TELEGRAM_CHANNEL_ID, accountId };
+            return { changed: settingsChanged, channelId: TELEGRAM_CHANNEL_ID, accountId };
           }
           removeAccountById(TELEGRAM_CHANNEL_ID, accountId, { writeConfig: params.writeConfig });
           return { changed: true, channelId: TELEGRAM_CHANNEL_ID, accountId };
         }
 
+        if (params.operatorUserIds) {
+          const nextOperatorUserIds = serializeTelegramDebugOperatorUserIds(params.operatorUserIds);
+          if (storage.settings.get(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY) !== nextOperatorUserIds) {
+            storage.settings.set(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY, nextOperatorUserIds);
+            settingsChanged = true;
+          }
+        }
+
         const desiredConfig = buildTelegramDebugAccountConfig(proxyToken, params.apiRoot, params.deviceId);
         const existing = storage.channelAccounts.get(TELEGRAM_CHANNEL_ID, accountId);
         if (
+          !settingsChanged &&
           existing?.name === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME &&
           stableJson(existing.config) === stableJson(desiredConfig)
         ) {

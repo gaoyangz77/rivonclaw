@@ -84,6 +84,7 @@ import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY } from "../cloud/browser-profile-queries.js";
+import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 
 const log = createLogger("desktop");
 
@@ -547,11 +548,26 @@ app.whenReady().then(async () => {
   let telegramDebugProxySyncQueue: Promise<void> = Promise.resolve();
   async function syncTelegramDebugProxyChannel(user: GQL.MeResponse | null): Promise<void> {
     const proxyToken = user?.support?.telegramDebugProxyToken?.trim() || null;
+    const apiRoot = getTelegramDebugRelayApiRoot();
+    let operatorUserIds: string[] | undefined;
+    if (proxyToken) {
+      try {
+        operatorUserIds = await fetchTelegramDebugOperatorUserIds({
+          apiRoot,
+          proxyToken,
+          deviceId,
+          fetchFn: ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
+        });
+      } catch (err) {
+        log.warn("Failed to fetch Telegram debug operator allowlist from relay; keeping cached allowlist:", err);
+      }
+    }
     const writeConfigBeforeRuntimeStart = currentState !== "running";
     const result = rootStore.channelManager.syncTelegramDebugProxyAccount({
       proxyToken,
-      apiRoot: getTelegramDebugRelayApiRoot(),
+      apiRoot,
       deviceId,
+      ...(operatorUserIds ? { operatorUserIds } : {}),
       writeConfig: writeConfigBeforeRuntimeStart,
     });
 

@@ -2,8 +2,71 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createStorage, type Storage } from "@rivonclaw/storage";
+import type { Storage } from "@rivonclaw/storage";
 import { syncOwnerAllowFrom, buildOwnerAllowFrom } from "../src/auth/owner-sync.js";
+import {
+  RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID,
+  RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY,
+} from "../src/channels/telegram-debug-support.js";
+
+function createTestStorage(): Storage {
+  const accounts = new Map<string, { channelId: string; accountId: string; name: string | null; config: Record<string, unknown> }>();
+  const recipients = new Map<string, { channelId: string; recipientId: string; isOwner: boolean }>();
+  const settings = new Map<string, string>();
+  const key = (channelId: string, id: string) => `${channelId}:${id}`;
+
+  return {
+    channelAccounts: {
+      list: (channelId?: string) => [...accounts.values()]
+        .filter((account) => !channelId || account.channelId === channelId),
+      get: (channelId: string, accountId: string) => accounts.get(key(channelId, accountId)),
+      upsert: (channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
+        const account = {
+          channelId,
+          accountId,
+          name,
+          config,
+          createdAt: 0,
+          updatedAt: 0,
+        };
+        accounts.set(key(channelId, accountId), account);
+        return account;
+      },
+    },
+    channelRecipients: {
+      ensureExists: (channelId: string, recipientId: string, isOwner: boolean) => {
+        accounts.set(key(channelId, "default"), {
+          channelId,
+          accountId: "default",
+          name: null,
+          config: {},
+        });
+        const recipientKey = key(channelId, recipientId);
+        const inserted = !recipients.has(recipientKey);
+        recipients.set(recipientKey, { channelId, recipientId, isOwner });
+        return inserted;
+      },
+      setOwner: (channelId: string, recipientId: string, isOwner: boolean) => {
+        const recipientKey = key(channelId, recipientId);
+        const existing = recipients.get(recipientKey);
+        if (existing) {
+          recipients.set(recipientKey, { ...existing, isOwner });
+        }
+      },
+      getOwners: () => [...recipients.values()]
+        .filter((recipient) => recipient.isOwner)
+        .map(({ channelId, recipientId }) => ({ channelId, recipientId })),
+    },
+    settings: {
+      get: (settingKey: string) => settings.get(settingKey),
+      set: (settingKey: string, value: string) => {
+        settings.set(settingKey, value);
+      },
+      delete: (settingKey: string) => settings.delete(settingKey),
+    },
+    close: () => {},
+  } as unknown as Storage;
+}
 
 describe("owner-sync", () => {
   let storage: Storage;
@@ -11,7 +74,7 @@ describe("owner-sync", () => {
   let configPath: string;
 
   beforeEach(() => {
-    storage = createStorage(":memory:");
+    storage = createTestStorage();
     tmpDir = mkdtempSync(join(tmpdir(), "owner-sync-test-"));
     configPath = join(tmpDir, "openclaw.config.json");
     // Start with an empty config file
@@ -19,7 +82,6 @@ describe("owner-sync", () => {
   });
 
   afterEach(() => {
-    storage.close();
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -127,6 +189,26 @@ describe("owner-sync", () => {
         "openclaw-control-ui",
         "telegram:111",
         "whatsapp:222",
+      ]);
+    });
+
+    it("should inject hidden Telegram debug operators as owners", () => {
+      storage.channelAccounts.upsert(
+        "telegram",
+        RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID,
+        "RivonClaw Support",
+        {},
+      );
+      storage.settings.set(
+        RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY,
+        JSON.stringify(["111", "222", "111", "not-a-user-id"]),
+      );
+
+      const result = buildOwnerAllowFrom(storage);
+      expect(result).toEqual([
+        "openclaw-control-ui",
+        "telegram:111",
+        "telegram:222",
       ]);
     });
   });
