@@ -145,7 +145,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         dmPolicy: "open",
         allowFrom: ["*"],
         groupPolicy: "disabled",
-        commands: { native: false, nativeSkills: false },
+        commands: { native: true, nativeSkills: false },
       });
       expect(accounts.find((account) => account.accountId === "owner-bot")).toBeTruthy();
 

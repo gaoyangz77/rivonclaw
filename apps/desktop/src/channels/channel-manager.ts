@@ -245,7 +245,7 @@ function buildTelegramDebugAccountConfig(proxyToken: string, apiRoot: string, de
     allowFrom: ["*"],
     groupPolicy: "disabled",
     streaming: { mode: "block" },
-    commands: { native: false, nativeSkills: false },
+    commands: { native: true, nativeSkills: false },
     configWrites: false,
   };
 }
