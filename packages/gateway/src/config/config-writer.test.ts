@@ -286,6 +286,41 @@ describe("config-writer", () => {
       expect(config.channels.mobile).toEqual({ managed: true });
     });
 
+    it("sets a non-support Telegram account as default in multi-account snapshots", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            telegram: {
+              defaultAccount: "rivonclaw-support",
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        channelAccounts: [
+          {
+            channelId: "telegram",
+            accountId: "rivonclaw-support",
+            config: { name: "RivonClaw Support" },
+          },
+          {
+            channelId: "telegram",
+            accountId: "acct_mnu9pene",
+            config: { botToken: "user-token" },
+          },
+        ],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.defaultAccount).toBe("acct_mnu9pene");
+      expect(config.channels.telegram.accounts["rivonclaw-support"].name).toBe("RivonClaw Support");
+      expect(config.channels.telegram.accounts.acct_mnu9pene.botToken).toBe("user-token");
+    });
+
     it("creates config file with extra skill dirs", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({

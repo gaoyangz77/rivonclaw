@@ -270,6 +270,45 @@ function shouldIncludeChannelWideRecipientMeta(channelId: string, accountId?: st
   return true;
 }
 
+function resolveTelegramDefaultAccountId(
+  accounts: Record<string, Record<string, unknown>>,
+  existingChannel: Record<string, unknown>,
+): string | undefined {
+  const accountIds = Object.keys(accounts);
+  if (accountIds.length === 0) return undefined;
+
+  const configuredDefault = typeof existingChannel.defaultAccount === "string"
+    ? existingChannel.defaultAccount.trim()
+    : "";
+  if (
+    configuredDefault &&
+    configuredDefault !== RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID &&
+    Object.prototype.hasOwnProperty.call(accounts, configuredDefault)
+  ) {
+    return configuredDefault;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(accounts, "default")) {
+    return "default";
+  }
+
+  return accountIds.find((accountId) => accountId !== RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID);
+}
+
+function applyTelegramDefaultAccount(
+  channelId: string,
+  channel: Record<string, unknown>,
+  accounts: Record<string, Record<string, unknown>>,
+): void {
+  if (channelId !== TELEGRAM_CHANNEL_ID) return;
+  const defaultAccount = resolveTelegramDefaultAccountId(accounts, channel);
+  if (defaultAccount) {
+    channel.defaultAccount = defaultAccount;
+  } else {
+    delete channel.defaultAccount;
+  }
+}
+
 function isWeixinAlreadyConnectedQrResult(result: { connected?: boolean; message?: string }): boolean {
   if (result.connected) return false;
   const message = result.message ?? "";
@@ -486,11 +525,13 @@ export const ChannelManagerModel = types
       }
 
       if (Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID) {
-        channels[channelId] = {
+        const nextChannel = {
           ...existingChannel,
           ...(channelId === WEIXIN_CHANNEL_ID ? { managed: true } : {}),
           accounts,
         };
+        applyTelegramDefaultAccount(channelId, nextChannel, accounts);
+        channels[channelId] = nextChannel;
       } else {
         delete channels[channelId];
       }

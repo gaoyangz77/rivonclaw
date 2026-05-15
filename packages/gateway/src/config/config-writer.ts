@@ -541,6 +541,46 @@ export interface WriteGatewayConfigOptions {
   discovery?: { mdns?: { mode?: "off" | "on" } };
 }
 
+const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
+
+function resolveTelegramDefaultAccountId(
+  accounts: Record<string, Record<string, unknown>>,
+  existingChannel: Record<string, unknown>,
+): string | undefined {
+  const accountIds = Object.keys(accounts);
+  if (accountIds.length === 0) return undefined;
+
+  const configuredDefault = typeof existingChannel.defaultAccount === "string"
+    ? existingChannel.defaultAccount.trim()
+    : "";
+  if (
+    configuredDefault &&
+    configuredDefault !== RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID &&
+    Object.prototype.hasOwnProperty.call(accounts, configuredDefault)
+  ) {
+    return configuredDefault;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(accounts, "default")) {
+    return "default";
+  }
+
+  return accountIds.find((accountId) => accountId !== RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID);
+}
+
+function applyTelegramDefaultAccount(
+  channelId: string,
+  channel: Record<string, unknown>,
+  accounts: Record<string, Record<string, unknown>>,
+): void {
+  if (channelId !== "telegram") return;
+  const defaultAccount = resolveTelegramDefaultAccountId(accounts, channel);
+  if (defaultAccount) {
+    channel.defaultAccount = defaultAccount;
+  } else {
+    delete channel.defaultAccount;
+  }
+}
 
 /**
  * Write the OpenClaw gateway config file.
@@ -1483,7 +1523,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         !Array.isArray(channels[channelId])
           ? (channels[channelId] as Record<string, unknown>)
           : {};
-      channels[channelId] = { ...existingChannel, accounts };
+      const nextChannel = { ...existingChannel, accounts };
+      applyTelegramDefaultAccount(channelId, nextChannel, accounts);
+      channels[channelId] = nextChannel;
     }
     config.channels = channels;
   }

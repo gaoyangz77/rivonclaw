@@ -157,6 +157,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(upsertAccount).toHaveBeenCalledTimes(1);
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.telegram.defaultAccount).toBe("owner-bot");
       expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].apiRoot).toBe("https://relay.example.com/telegram-debug/devices/device-a");
       expect(config.channels.telegram.accounts["owner-bot"].botToken).toBe("real-user-token");
 
