@@ -2230,16 +2230,33 @@ export const EcomPackageStatus = {
 export type EcomPackageStatus = typeof EcomPackageStatus[keyof typeof EcomPackageStatus];
 /** Product */
 export interface EcomProduct {
+  brand?: Maybe<EcomProductBrand>;
+  categoryChains?: Maybe<Array<EcomProductCategory>>;
   /** Unix seconds */
   createTime?: Maybe<Scalars['Int']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   images?: Maybe<Array<EcomImage>>;
   productId: Scalars['String']['output'];
+  productTypes?: Maybe<Array<Scalars['String']['output']>>;
   skus?: Maybe<Array<EcomProductSku>>;
   status?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
   /** Unix seconds */
   updateTime?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Product brand metadata */
+export interface EcomProductBrand {
+  id?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+}
+
+/** Product category node in the platform category hierarchy */
+export interface EcomProductCategory {
+  id?: Maybe<Scalars['String']['output']>;
+  isLeaf?: Maybe<Scalars['Boolean']['output']>;
+  localName?: Maybe<Scalars['String']['output']>;
+  parentId?: Maybe<Scalars['String']['output']>;
 }
 
 /** Product SKU */
