@@ -146,6 +146,36 @@ export const PRESET_SKILLS_QUERY = gql`
   }
 `;
 
+export const CS_OPEN_ESCALATIONS_QUERY = gql`
+  query CsOpenEscalations($filter: CsOpenEscalationFilterInput) {
+    csOpenEscalationsPage(filter: $filter) {
+      total
+      limit
+      offset
+      items {
+        id
+        shopId
+        conversationId
+        buyerUserId
+        buyerNickname
+        orderId
+        reason
+        context
+        status
+        version
+        createdAt
+        updatedAt
+        result {
+          decision
+          instructions
+          resolved
+          resolvedAt
+        }
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
   query AffiliateActionProposals($input: ReadActionProposalsInput!) {
     actionProposals(input: $input) {

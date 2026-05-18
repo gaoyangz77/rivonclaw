@@ -1446,6 +1446,7 @@ export interface CsEscalateResult {
 
 /** Cloud-authoritative customer-service escalation */
 export interface CsEscalation {
+  buyerNickname?: Maybe<Scalars['String']['output']>;
   buyerUserId: Scalars['String']['output'];
   context?: Maybe<Scalars['String']['output']>;
   conversationId: Scalars['String']['output'];
@@ -1494,6 +1495,24 @@ export interface CsEscalationEventFilterInput {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
+/** Filter for open CS escalations awaiting manager or agent completion */
+export interface CsOpenEscalationFilterInput {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  /** Case-insensitive search across escalation id, reason, context, conversation id, buyer id, and order id */
+  search?: InputMaybe<Scalars['String']['input']>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  statuses?: InputMaybe<Array<CsEscalationStatus>>;
+}
+
+/** Paged CS escalation list */
+export interface CsOpenEscalationPage {
+  items: Array<CsEscalation>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+}
+
 /** Delivery/execution status of a CS escalation event */
 export const CsEscalationEventStatus = {
   Claimed: 'CLAIMED',
@@ -1513,12 +1532,17 @@ export const CsEscalationEventType = {
 export type CsEscalationEventType = typeof CsEscalationEventType[keyof typeof CsEscalationEventType];
 /** Escalation result plus guidance for the CS agent */
 export interface CsEscalationLookupResult {
+  buyerNickname?: Maybe<Scalars['String']['output']>;
+  buyerUserId: Scalars['String']['output'];
+  conversationId: Scalars['String']['output'];
   context?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   guidance?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  orderId?: Maybe<Scalars['String']['output']>;
   reason: Scalars['String']['output'];
   result?: Maybe<CsEscalationResult>;
+  shopId: Scalars['String']['output'];
   status: CsEscalationStatus;
   version: Scalars['Int']['output'];
 }
@@ -1533,6 +1557,7 @@ export interface CsEscalationResult {
 
 /** Lifecycle status of a CS escalation */
 export const CsEscalationStatus = {
+  Closed: 'CLOSED',
   InProgress: 'IN_PROGRESS',
   Pending: 'PENDING',
   Resolved: 'RESOLVED'
@@ -3220,6 +3245,7 @@ export interface MutationCsClaimEscalationEventArgs {
 
 
 export interface MutationCsEscalateArgs {
+  buyerNickname?: InputMaybe<Scalars['String']['input']>;
   buyerUserId: Scalars['String']['input'];
   context?: InputMaybe<Scalars['String']['input']>;
   conversationId: Scalars['String']['input'];
@@ -3877,6 +3903,10 @@ export interface Query {
   creatorUserRelations: Array<CreatorUserRelation>;
   /** Read the current cloud status and result for a CS escalation */
   csGetEscalationResult?: Maybe<CsEscalationLookupResult>;
+  /** List open CS escalations for the authenticated user, including pending and in-progress items */
+  csOpenEscalations: Array<CsEscalation>;
+  /** List open CS escalations with total count and pagination metadata */
+  csOpenEscalationsPage: CsOpenEscalationPage;
   /** List unhandled CS escalation side-effect events for the authenticated user's desktop actuator */
   csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
   /** Get aftersale eligibility for an order */
@@ -4094,6 +4124,16 @@ export interface QueryCreatorUserRelationsArgs {
 
 export interface QueryCsGetEscalationResultArgs {
   escalationId: Scalars['ID']['input'];
+}
+
+
+export interface QueryCsOpenEscalationsArgs {
+  filter?: InputMaybe<CsOpenEscalationFilterInput>;
+}
+
+
+export interface QueryCsOpenEscalationsPageArgs {
+  filter?: InputMaybe<CsOpenEscalationFilterInput>;
 }
 
 

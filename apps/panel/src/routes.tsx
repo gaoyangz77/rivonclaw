@@ -20,6 +20,7 @@ import { BrowserProfilesPage } from "./pages/browser-profiles/BrowserProfilesPag
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import { AffiliateManagementPage } from "./pages/ecommerce/AffiliateManagementPage.js";
+import { CustomerServiceEscalationsPage } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
 
 export interface RouteEntry {
   /** URL path */
@@ -61,6 +62,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons" },
   { path: "/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
   { path: "/ecommerce", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER" },
+  { path: "/ecommerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER", parentPath: "/ecommerce" },
   { path: "/ecommerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER", parentPath: "/ecommerce" },
   { path: "/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage" },
   { path: "/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings" },

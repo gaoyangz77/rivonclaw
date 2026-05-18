@@ -226,9 +226,14 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       root.channelManager.init();
 
-      expect(root.channelAccounts[0].recipients.allowlist).toEqual(["paired-user"]);
-      expect(root.channelAccounts[0].recipients.labels).toEqual({ "paired-user": "Paired" });
-      expect(root.channelAccounts[0].recipients.owners).toEqual({ "paired-user": true });
+      const recipients = root.channelAccounts[0].recipients as {
+        allowlist: string[];
+        labels: Record<string, string>;
+        owners: Record<string, boolean>;
+      };
+      expect(recipients.allowlist).toEqual(["paired-user"]);
+      expect(recipients.labels).toEqual({ "paired-user": "Paired" });
+      expect(recipients.owners).toEqual({ "paired-user": true });
     } finally {
       if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
       else process.env.OPENCLAW_STATE_DIR = previousStateDir;
