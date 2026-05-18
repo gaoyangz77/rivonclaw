@@ -103,6 +103,8 @@ export interface CSContext {
   /** Platform buyer user ID. Resolved from conversation details during context
    *  resolution. Before resolution, holds the IM user ID as a placeholder. */
   buyerUserId: string;
+  /** Buyer display nickname from platform conversation details, if available. */
+  buyerNickname?: string;
   /** IM user ID from the webhook (preserved as-is). Only set for sessions
    *  created via relay webhook path; undefined for manually started sessions. */
   imUserId?: string;
@@ -252,6 +254,7 @@ export class CustomerServiceSession {
       `- Shop ID: ${this.csContext.shopId}`,
       `- Conversation ID: ${this.csContext.conversationId}`,
       `- Buyer User ID: ${this.csContext.buyerUserId}`,
+      ...(this.csContext.buyerNickname ? [`- Buyer Alias: ${this.csContext.buyerNickname}`] : []),
       ...(this.csContext.recentOrders !== undefined
         ? [
             `- Buyer's Recent Orders: ${this.csContext.recentOrders.length === 0 ? "[]" : ""}`,
@@ -1084,12 +1087,13 @@ export class CustomerServiceSession {
     try {
       // Step 1: resolve platform buyer user ID from conversation participants
       const detailsResult = await authSession.graphqlFetch<{
-        ecommerceGetConversationDetails: { buyer?: { userId?: string } };
+        ecommerceGetConversationDetails: { buyer?: { userId?: string; nickname?: string } };
       }>(GET_CONVERSATION_DETAILS_QUERY, {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
       });
       const platformBuyerId = detailsResult.ecommerceGetConversationDetails.buyer?.userId;
+      this.csContext.buyerNickname = detailsResult.ecommerceGetConversationDetails.buyer?.nickname;
       if (!platformBuyerId) {
         log.warn(`Context resolution: could not resolve platform buyer ID for conv=${this.csContext.conversationId}`);
         this.emitError(CS_ERROR_STAGE.CONTEXT_RESOLUTION, { reason: "no_platform_buyer" });

@@ -89,6 +89,7 @@ const CS_ESCALATION_EVENT_SUBSCRIPTION = `
         shopId
         conversationId
         buyerUserId
+        buyerNickname
         orderId
         reason
         context
@@ -495,6 +496,7 @@ export interface CsEscalationPayload {
   shopId: string;
   conversationId: string;
   buyerUserId: string;
+  buyerNickname?: string | null;
   orderId?: string | null;
   reason: string;
   context?: string | null;

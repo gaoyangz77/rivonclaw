@@ -97,6 +97,7 @@ const CS_ESCALATION_EVENT_FIELDS = `
     shopId
     conversationId
     buyerUserId
+    buyerNickname
     orderId
     reason
     context
@@ -135,6 +136,7 @@ export const CS_ESCALATE_MUTATION = `
     $shopId: ID!,
     $conversationId: String!,
     $buyerUserId: String!,
+    $buyerNickname: String,
     $reason: String!,
     $orderId: String,
     $context: String
@@ -143,6 +145,7 @@ export const CS_ESCALATE_MUTATION = `
       shopId: $shopId,
       conversationId: $conversationId,
       buyerUserId: $buyerUserId,
+      buyerNickname: $buyerNickname,
       reason: $reason,
       orderId: $orderId,
       context: $context
@@ -177,9 +180,10 @@ export const CS_GET_ESCALATION_RESULT_QUERY = `
     csGetEscalationResult(escalationId: $escalationId) {
       id
       shopId
-      conversationId
-      buyerUserId
-      orderId
+    conversationId
+    buyerUserId
+    buyerNickname
+    orderId
       reason
       context
       createdAt

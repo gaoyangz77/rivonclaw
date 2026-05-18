@@ -91,6 +91,7 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
       shopId: body.shopId as string,
       conversationId: body.conversationId as string,
       buyerUserId: body.buyerUserId as string,
+      buyerNickname: typeof body.buyerNickname === "string" ? body.buyerNickname : undefined,
       reason: body.reason as string,
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
       context: typeof body.context === "string" ? body.context : undefined,
@@ -107,18 +108,19 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
   if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
 
   const body = await parseBody(req) as Record<string, unknown>;
-  const missing = ["escalationId", "decision", "instructions"]
+  const missing = ["escalationId", "decision"]
     .filter((f) => !body[f] || typeof body[f] !== "string");
   if (missing.length > 0) {
     sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
     return;
   }
+  const instructions = typeof body.instructions === "string" ? body.instructions : "";
 
   try {
     const result = await _ctx.authSession.graphqlFetch(CS_RESPOND_MUTATION, {
       escalationId: body.escalationId as string,
       decision: body.decision as string,
-      instructions: body.instructions as string,
+      instructions,
       resolved: body.resolved === true,
     }) as CsRespondMutationResult;
     sendJson(res, result.csRespond.ok ? 200 : 400, result.csRespond);

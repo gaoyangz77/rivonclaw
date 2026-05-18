@@ -76,6 +76,9 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     authSession,
     deviceId,
     getShopIds: getActiveCustomerServiceShopIds,
+    onEscalationEvent: (delivery) => {
+      broadcastEvent("cs-escalation-event", { delivery });
+    },
   });
 
   backendSubscription.subscribeToAffiliateWorkItemChanges((workItem) => {
