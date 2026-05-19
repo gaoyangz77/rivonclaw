@@ -2374,6 +2374,7 @@ export default {
       US: "United States",
       GB: "United Kingdom",
       MX: "Mexico",
+      ES: "Spain",
       FR: "France",
       DE: "Germany",
       IT: "Italy",
