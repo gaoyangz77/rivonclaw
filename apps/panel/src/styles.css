@@ -9086,7 +9086,7 @@ html[lang="zh"] .acct-tool-chips {
 .cs-escalation-table-head,
 .cs-escalation-row {
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(92px, 140px) minmax(130px, 160px) minmax(84px, 110px);
+  grid-template-columns: minmax(420px, 1fr) minmax(92px, 140px) minmax(130px, 170px);
   align-items: center;
   gap: 14px;
 }
@@ -9170,12 +9170,6 @@ html[lang="zh"] .acct-tool-chips {
 
 .cs-escalation-row-mono {
   font-family: var(--font-mono);
-}
-
-.cs-escalation-row-action {
-  color: var(--color-primary);
-  font-weight: 700;
-  text-align: right;
 }
 
 .cs-escalation-detail-head,
@@ -9654,10 +9648,6 @@ html[lang="zh"] .acct-tool-chips {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
-  }
-
-  .cs-escalation-row-action {
-    text-align: left;
   }
 
   .cs-escalation-actions,

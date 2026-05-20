@@ -2320,7 +2320,6 @@ export default {
       updatedAt: "更新时间",
       reason: "原因",
       context: "上下文",
-      review: "处理",
       decision: "处理决定",
       decisionPlaceholder: "同意、拒绝、需要更多信息……",
       instructions: "给 Agent 的指令",

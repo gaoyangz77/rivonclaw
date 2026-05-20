@@ -2332,7 +2332,6 @@ export default {
       updatedAt: "Updated",
       reason: "Reason",
       context: "Context",
-      review: "Review",
       decision: "Decision",
       decisionPlaceholder: "Approved, rejected, needs more info...",
       instructions: "Instructions for the agent",
