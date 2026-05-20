@@ -39,15 +39,6 @@ export const migrations: Migration[] = [
         settings TEXT NOT NULL DEFAULT '{}'
       );
 
-      CREATE TABLE IF NOT EXISTS permissions (
-        id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-        read_paths TEXT NOT NULL DEFAULT '[]',
-        write_paths TEXT NOT NULL DEFAULT '[]'
-      );
-
-      INSERT OR IGNORE INTO permissions (id, read_paths, write_paths)
-        VALUES (1, '[]', '[]');
-
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
@@ -74,23 +65,6 @@ export const migrations: Migration[] = [
     name: "add_proxy_support_to_provider_keys",
     sql: `
       ALTER TABLE provider_keys ADD COLUMN proxy_base_url TEXT DEFAULT NULL;
-    `,
-  },
-  {
-    id: 4,
-    name: "default_full_access_mode",
-    // Sync: default must match DEFAULTS.permissions.filePermissionsFullAccess in packages/core/src/defaults.ts
-    sql: `
-      INSERT OR IGNORE INTO settings (key, value) VALUES ('file-permissions-full-access', 'true');
-    `,
-  },
-  {
-    id: 5,
-    name: "cleanup_wildcard_permissions",
-    sql: `
-      UPDATE permissions
-        SET read_paths = '[]', write_paths = '[]'
-        WHERE read_paths LIKE '%"*"%' OR write_paths LIKE '%"*"%';
     `,
   },
   {
@@ -418,6 +392,14 @@ export const migrations: Migration[] = [
     name: "add_panel_title_to_chat_sessions",
     sql: `
       ALTER TABLE chat_sessions ADD COLUMN panel_title TEXT;
+    `,
+  },
+  {
+    id: 30,
+    name: "drop_file_permissions",
+    sql: `
+      DELETE FROM settings WHERE key = 'file-permissions-full-access';
+      DROP TABLE IF EXISTS permissions;
     `,
   },
 ];

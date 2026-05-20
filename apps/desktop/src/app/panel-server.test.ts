@@ -91,9 +91,7 @@ describe("panel-server API", () => {
     it("GET /api/settings returns default settings initially", async () => {
       const { status, body } = await fetchJson<{ settings: Record<string, string> }>("/api/settings");
       expect(status).toBe(200);
-      expect(body.settings).toEqual({
-        "file-permissions-full-access": "true",
-      });
+      expect(body.settings).toEqual({});
     });
 
     it("PUT /api/settings stores settings", async () => {
@@ -117,31 +115,6 @@ describe("panel-server API", () => {
       const { body } = await fetchJson<{ settings: Record<string, string> }>("/api/settings");
       expect(body.settings.theme).toBe("light");
       expect(body.settings.locale).toBe("zh-CN"); // unchanged
-    });
-  });
-
-  // --- Permissions ---
-  describe("Permissions", () => {
-    it("GET /api/permissions returns default empty permissions", async () => {
-      const { status, body } = await fetchJson<{ permissions: { readPaths: string[]; writePaths: string[] } }>("/api/permissions");
-      expect(status).toBe(200);
-      expect(body.permissions.readPaths).toEqual([]);
-      expect(body.permissions.writePaths).toEqual([]);
-    });
-
-    it("PUT /api/permissions updates permissions", async () => {
-      const { status } = await fetchJson("/api/permissions", {
-        method: "PUT",
-        body: JSON.stringify({
-          readPaths: ["/home/user/docs"],
-          writePaths: ["/home/user/output"],
-        }),
-      });
-      expect(status).toBe(200);
-
-      const { body } = await fetchJson<{ permissions: { readPaths: string[]; writePaths: string[] } }>("/api/permissions");
-      expect(body.permissions.readPaths).toEqual(["/home/user/docs"]);
-      expect(body.permissions.writePaths).toEqual(["/home/user/output"]);
     });
   });
 

@@ -7,7 +7,6 @@ export const OUR_PLUGIN_IDS: ReadonlySet<string> = new Set([
   "rivonclaw-cs",
   "rivonclaw-ecom",
   "rivonclaw-event-bridge",
-  "rivonclaw-file-permissions",
   "rivonclaw-local-tools",
   "rivonclaw-mobile-chat-channel",
   "rivonclaw-search-browser-fallback"

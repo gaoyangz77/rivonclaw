@@ -121,14 +121,6 @@ export const AppSettingsModel = AppSettingsModelBase.actions(() => ({
     invalidateCache("settings");
   }),
 
-  setFilePermissionsFullAccess: flow(function* (enabled: boolean) {
-    yield fetchJson(clientPath(API["settings.update"]), {
-      method: "PUT",
-      body: JSON.stringify({ "file-permissions-full-access": enabled ? "true" : "false" }),
-    });
-    invalidateCache("settings");
-  }),
-
   updateBulk: flow(function* (entries: Record<string, string>) {
     yield fetchJson(clientPath(API["settings.update"]), {
       method: "PUT",

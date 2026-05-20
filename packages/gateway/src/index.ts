@@ -29,9 +29,7 @@ export type {
 export {
   resolveSecretEnv,
   buildGatewayEnv,
-  buildFilePermissionsEnv,
 } from "./secrets/secret-injector.js";
-export type { FilePermissions } from "./secrets/secret-injector.js";
 export {
   resolveSkillsDir,
   ensureSkillsDir,
@@ -70,11 +68,6 @@ export type {
   WriteChannelAccountOptions,
   RemoveChannelAccountOptions,
 } from "./config/channel-config-writer.js";
-export {
-  syncPermissions,
-  clearPermissions,
-} from "./config/permissions-writer.js";
-export type { PermissionsConfig } from "./config/permissions-writer.js";
 export {
   syncExecApprovalsYolo,
 } from "./config/exec-approvals-writer.js";

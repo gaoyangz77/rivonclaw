@@ -715,40 +715,6 @@ describe("config-writer", () => {
     });
   });
 
-  describe("writeGatewayConfig - filePermissionsPluginPath override", () => {
-    it("uses provided filePermissionsPluginPath instead of auto-resolving", () => {
-      const configPath = join(tmpDir, "openclaw.json");
-      // Create a real file so existsSync() passes
-      const fpDir = join(tmpDir, "file-permissions-plugin");
-      mkdirSync(fpDir);
-      const customPath = join(fpDir, "rivonclaw-file-permissions.mjs");
-      writeFileSync(customPath, "// plugin");
-
-      writeGatewayConfig({
-        configPath,
-        enableFilePermissions: true,
-        filePermissionsPluginPath: customPath,
-      });
-
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.plugins.load.paths).toContain(customPath);
-      expect(config.plugins.entries["rivonclaw-file-permissions"]).toEqual({ enabled: true });
-    });
-
-    it("falls back to auto-resolved path when filePermissionsPluginPath is omitted", () => {
-      const configPath = join(tmpDir, "openclaw.json");
-      writeGatewayConfig({
-        configPath,
-        enableFilePermissions: true,
-      });
-
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      // paths includes file-permissions plugin + extensions dir
-      expect(config.plugins.load.paths.some((p: string) => p.includes("rivonclaw-file-permissions.mjs"))).toBe(true);
-      expect(config.plugins.load.paths.some((p: string) => p.endsWith("extensions"))).toBe(true);
-    });
-  });
-
   describe("writeGatewayConfig - extensionsDir", () => {
     it("uses provided extensionsDir in plugins.load.paths", () => {
       const configPath = join(tmpDir, "openclaw.json");
@@ -924,27 +890,6 @@ describe("config-writer", () => {
       expect(paths).not.toContain(join(oldInstallDir, "rivonclaw-cs"));
     });
 
-    it("works alongside filePermissionsPluginPath", () => {
-      const configPath = join(tmpDir, "openclaw.json");
-      const extDir = join(tmpDir, "extensions");
-      mkdirSync(extDir);
-      const fpPath = join(tmpDir, "fp-plugin", "rivonclaw-file-permissions.mjs");
-      mkdirSync(join(tmpDir, "fp-plugin"));
-      writeFileSync(fpPath, "// plugin");
-
-      writeGatewayConfig({
-        configPath,
-        enableFilePermissions: true,
-        filePermissionsPluginPath: fpPath,
-        extensionsDir: extDir,
-      });
-
-      const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      const paths = config.plugins.load.paths as string[];
-      expect(paths).toContain(fpPath);
-      expect(paths).toContain(extDir);
-      expect(config.plugins.entries["rivonclaw-file-permissions"]).toEqual({ enabled: true });
-    });
   });
 
   describe("ensureGatewayConfig", () => {
@@ -955,9 +900,6 @@ describe("config-writer", () => {
       expect(result).toBe(configPath);
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(18789);
-      // ensureGatewayConfig enables file permissions plugin by default
-      expect(config.plugins.entries["rivonclaw-file-permissions"].enabled).toBe(true);
-      expect(config.plugins.load.paths[0]).toContain("rivonclaw-file-permissions.mjs");
       expect(config.skills.load.extraDirs).toEqual([]);
     });
 

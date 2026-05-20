@@ -29,7 +29,6 @@ export interface SetupGatewayDeps {
   stateDir: string;
   extensionsDir: string;
   sttCliPath: string;
-  filePermissionsPluginPath: string | undefined;
   vendorDir: string;
   merchantExtensionPaths?: () => string[];
   gatewayPort: number;
@@ -49,7 +48,7 @@ export interface GatewayRuntime {
 export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRuntime> {
   const {
     storage, secretStore, locale, configPath, stateDir,
-    extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir, merchantExtensionPaths,
+    extensionsDir, sttCliPath, vendorDir, merchantExtensionPaths,
     gatewayPort, broadcastEvent,
   } = deps;
 
@@ -63,7 +62,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   // Build gateway config helpers (closures bound to current settings)
   const { buildFullGatewayConfig } = createGatewayConfigBuilder({
     storage, secretStore, locale, configPath, stateDir, extensionsDir,
-    sttCliPath, filePermissionsPluginPath, vendorDir,
+    sttCliPath, vendorDir,
     merchantExtensionPaths,
     channelPluginEntries: () => rootStore.channelManager.buildPluginEntries(),
     channelConfigAccounts: () => rootStore.channelManager.buildConfigAccounts(),

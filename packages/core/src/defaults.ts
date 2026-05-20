@@ -97,10 +97,6 @@ export const DEFAULTS = {
     messagesSuppressToolErrors: true,
   },
 
-  permissions: {
-    filePermissionsFullAccess: true,
-  },
-
   settings: {
     browserMode: "standalone" as const,
     sessionStateCdpEnabled: true,

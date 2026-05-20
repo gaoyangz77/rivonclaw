@@ -202,6 +202,9 @@ const REMOVED_PLUGIN_IDS = new Set([
   // override plugin that told agents not to use the CLI is removed. Vendor prompt
   // patch 0009 also replaces the upstream CLI guidance directly in OpenClaw.
   "easyclaw-tools", "rivonclaw-tools",
+  // v1.9.0: RivonClaw's custom file-permissions plugin and UI were removed.
+  // OpenClaw's native sandbox configuration is the remaining file boundary.
+  "easyclaw-file-permissions", "rivonclaw-file-permissions",
 ]);
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
@@ -210,7 +213,6 @@ const REMOVED_PLUGIN_IDS = new Set([
 const RENAMED_PLUGIN_IDS: Record<string, string> = {
   // v1.6 → v1.7: easyclaw → rivonclaw rebrand
   "easyclaw-event-bridge": "rivonclaw-event-bridge",
-  "easyclaw-file-permissions": "rivonclaw-file-permissions",
   // v1.7 → v1.8: unify all extensions under rivonclaw- prefix
   "browser-profiles-tools": "rivonclaw-browser-profiles-tools",
   "mobile-chat-channel": "rivonclaw-mobile-chat-channel",
@@ -240,22 +242,6 @@ function findMonorepoRoot(startDir: string = process.cwd()): string | null {
   }
 
   return null;
-}
-
-/**
- * Resolve the absolute path to the file permissions plugin.
- * This plugin is built as part of the RivonClaw monorepo.
- *
- * Note: The desktop app bundles all dependencies into a single file,
- * so we cannot rely on import.meta.url. Instead, we find the monorepo root.
- */
-function resolveFilePermissionsPluginPath(): string {
-  const monorepoRoot = findMonorepoRoot();
-  if (!monorepoRoot) {
-    // Fallback: assume we're in the monorepo root
-    return resolve(process.cwd(), "extensions", "rivonclaw-file-permissions", "dist", "rivonclaw-file-permissions.mjs");
-  }
-  return resolve(monorepoRoot, "extensions", "rivonclaw-file-permissions", "dist", "rivonclaw-file-permissions.mjs");
 }
 
 /**
@@ -460,11 +446,6 @@ export interface WriteGatewayConfigOptions {
     /** Env var name containing the API key. Written as ${VAR} in config for OpenClaw to resolve. */
     apiKeyEnvVar?: string;
   };
-  /** Enable file permissions plugin. */
-  enableFilePermissions?: boolean;
-  /** Override path to the file permissions plugin .mjs entry file.
-   *  Used in packaged Electron apps where the monorepo root doesn't exist. */
-  filePermissionsPluginPath?: string;
   /** Absolute path to the RivonClaw extensions/ directory.
    *  When provided, added to plugins.load.paths for auto-discovery of all
    *  extensions with openclaw.plugin.json manifests.
@@ -912,7 +893,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Plugins configuration
-  if (options.plugins !== undefined || options.enableFilePermissions !== undefined || options.extensionsDir !== undefined) {
+  if (options.plugins !== undefined || options.extensionsDir !== undefined) {
     const existingPlugins =
       typeof config.plugins === "object" && config.plugins !== null
         ? (config.plugins as Record<string, unknown>)
@@ -948,40 +929,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     if (options.plugins?.allow !== undefined) {
       const existingAllow = Array.isArray(merged.allow) ? (merged.allow as string[]) : [];
       merged.allow = [...new Set([...existingAllow, ...options.plugins.allow])];
-    }
-
-    // Add file permissions plugin if enabled
-    if (options.enableFilePermissions !== undefined) {
-      const pluginPath = options.filePermissionsPluginPath ?? resolveFilePermissionsPluginPath();
-
-      if (existsSync(pluginPath)) {
-        const existingLoad =
-          typeof merged.load === "object" && merged.load !== null
-            ? (merged.load as Record<string, unknown>)
-            : {};
-        const existingPaths = Array.isArray(existingLoad.paths) ? existingLoad.paths : [];
-
-        // Replace any stale file-permissions plugin paths with the current resolved one
-        const filteredPaths = existingPaths.filter(
-          (p: unknown) => typeof p !== "string" || !p.includes("rivonclaw-file-permissions"),
-        );
-        merged.load = {
-          ...existingLoad,
-          paths: [...filteredPaths, pluginPath],
-        };
-
-        // Enable the plugin in entries
-        const existingEntries =
-          typeof merged.entries === "object" && merged.entries !== null
-            ? (merged.entries as Record<string, unknown>)
-            : {};
-        merged.entries = {
-          ...existingEntries,
-          "rivonclaw-file-permissions": { enabled: options.enableFilePermissions },
-        };
-      } else {
-        log.warn(`file-permissions plugin not found at ${pluginPath}, skipping`);
-      }
     }
 
     // Add RivonClaw extensions directory to plugin load paths.
@@ -1022,6 +969,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           return (
             normalized.includes("search-browser-fallback") ||
             normalized.includes("rivonclaw-search-browser-fallback") ||
+            normalized.includes("rivonclaw-file-permissions") ||
+            normalized.includes("file-permissions-plugin") ||
             normalized.includes("extensions/wecom") ||
             normalized.includes("extensions/dingtalk") ||
             normalized.includes("/runtime-extensions/rivonclaw-cloud-tools") ||
@@ -1593,7 +1542,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 export function ensureGatewayConfig(options?: {
   configPath?: string;
   gatewayPort?: number;
-  enableFilePermissions?: boolean;
 }): string {
   const configPath = options?.configPath ?? resolveOpenClawConfigPath();
 
@@ -1608,7 +1556,6 @@ export function ensureGatewayConfig(options?: {
         entries: {},
       },
       extraSkillDirs: [],
-      enableFilePermissions: options?.enableFilePermissions ?? DEFAULTS.permissions.filePermissionsFullAccess,
     });
   }
 

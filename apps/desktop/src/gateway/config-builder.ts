@@ -16,7 +16,6 @@ export interface GatewayConfigDeps {
   stateDir: string;
   extensionsDir: string;
   sttCliPath: string;
-  filePermissionsPluginPath?: string;
   /** Absolute path to the vendored OpenClaw directory (e.g. vendor/openclaw). */
   vendorDir?: string;
   /** Returns plugin entries for channels with at least one account (from ChannelManager). */
@@ -40,7 +39,7 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = [
  * Returns closures that can be called without passing deps each time.
  */
 export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
-  const { storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath, filePermissionsPluginPath } = deps;
+  const { storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath } = deps;
 
   function isGeminiOAuthActive(): boolean {
     return storage.providerKeys.getAll()
@@ -167,7 +166,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       gatewayPort,
       enableChatCompletions: true,
       commandsRestart: true,
-      enableFilePermissions: true,
       ownerAllowFrom: buildOwnerAllowFrom(storage),
       extensionsDir,
       merchantExtensionPaths: deps.merchantExtensionPaths?.(),
@@ -230,7 +228,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       // RPC handshake and chat.history responses.
       discovery: { mdns: { mode: "off" as const } },
       skipBootstrap: false,
-      filePermissionsPluginPath,
       defaultModel: resolveGeminiOAuthModel(curModel.provider, curModel.modelId),
       stt: {
         enabled: curSttEnabled,

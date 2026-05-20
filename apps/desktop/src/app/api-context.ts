@@ -23,7 +23,6 @@ export interface ApiContext {
   };
   onSttChange?: () => void;
   onExtrasChange?: () => void;
-  onPermissionsChange?: () => void;
   onAuthChange?: () => Promise<void>;
   onToolSelectionChange?: (effectiveToolIds: string[]) => void;
   onBrowserChange?: () => void;

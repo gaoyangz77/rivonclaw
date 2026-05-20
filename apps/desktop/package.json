@@ -58,7 +58,6 @@
     "@rivonclaw/rivonclaw-browser-profiles-tools": "workspace:*",
     "@rivonclaw/rivonclaw-capability-manager": "workspace:*",
     "@rivonclaw/rivonclaw-event-bridge": "workspace:*",
-    "@rivonclaw/rivonclaw-file-permissions": "workspace:*",
     "@rivonclaw/rivonclaw-mobile-chat-channel": "workspace:*",
     "@rivonclaw/rivonclaw-search-browser-fallback": "workspace:*",
     "@types/ws": "^8.18.1",

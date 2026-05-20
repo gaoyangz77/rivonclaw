@@ -103,44 +103,6 @@ describe("ChannelsRepository", () => {
   });
 });
 
-describe("PermissionsRepository", () => {
-  it("should return default empty permissions", () => {
-    const perms = storage.permissions.get();
-    expect(perms.readPaths).toEqual([]);
-    expect(perms.writePaths).toEqual([]);
-  });
-
-  it("should update permissions", () => {
-    const updated = storage.permissions.update({
-      readPaths: ["/home/user/docs", "/tmp"],
-      writePaths: ["/home/user/output"],
-    });
-
-    expect(updated.readPaths).toEqual(["/home/user/docs", "/tmp"]);
-    expect(updated.writePaths).toEqual(["/home/user/output"]);
-
-    const fetched = storage.permissions.get();
-    expect(fetched.readPaths).toEqual(["/home/user/docs", "/tmp"]);
-    expect(fetched.writePaths).toEqual(["/home/user/output"]);
-  });
-
-  it("should overwrite permissions completely", () => {
-    storage.permissions.update({
-      readPaths: ["/old/path"],
-      writePaths: ["/old/write"],
-    });
-
-    storage.permissions.update({
-      readPaths: ["/new/path"],
-      writePaths: [],
-    });
-
-    const fetched = storage.permissions.get();
-    expect(fetched.readPaths).toEqual(["/new/path"]);
-    expect(fetched.writePaths).toEqual([]);
-  });
-});
-
 describe("SettingsRepository", () => {
   it("should return undefined for non-existent setting", () => {
     const value = storage.settings.get("nonexistent");
@@ -169,7 +131,6 @@ describe("SettingsRepository", () => {
 
     const all = storage.settings.getAll();
     expect(all).toEqual({
-      "file-permissions-full-access": "true",
       language: "zh",
       region: "cn",
       theme: "dark",
@@ -699,7 +660,6 @@ describe("Database", () => {
   it("should create storage with in-memory database", () => {
     expect(storage.db).toBeDefined();
     expect(storage.channels).toBeDefined();
-    expect(storage.permissions).toBeDefined();
     expect(storage.settings).toBeDefined();
     expect(storage.providerKeys).toBeDefined();
   });

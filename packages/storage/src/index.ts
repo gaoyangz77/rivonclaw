@@ -1,7 +1,6 @@
 import type Database from "better-sqlite3";
 import { openDatabase, closeDatabase } from "./db/database.js";
 import { ChannelsRepository } from "./repositories/repo-channels.js";
-import { PermissionsRepository } from "./repositories/repo-permissions.js";
 import { SettingsRepository } from "./repositories/repo-settings.js";
 import { ProviderKeysRepository } from "./repositories/repo-provider-keys.js";
 import { UsageSnapshotsRepository } from "./repositories/repo-usage-snapshots.js";
@@ -15,7 +14,6 @@ import { CsEscalationsRepository } from "./repositories/repo-cs-escalations.js";
 export interface Storage {
   db: Database.Database;
   channels: ChannelsRepository;
-  permissions: PermissionsRepository;
   settings: SettingsRepository;
   providerKeys: ProviderKeysRepository;
   usageSnapshots: UsageSnapshotsRepository;
@@ -35,7 +33,6 @@ export function createStorage(dbPath?: string): Storage {
   return {
     db,
     channels: new ChannelsRepository(db),
-    permissions: new PermissionsRepository(db),
     settings: new SettingsRepository(db),
     providerKeys: new ProviderKeysRepository(db),
     usageSnapshots: new UsageSnapshotsRepository(db),
@@ -54,7 +51,6 @@ export function createStorage(dbPath?: string): Storage {
 
 export { openDatabase, closeDatabase } from "./db/database.js";
 export { ChannelsRepository } from "./repositories/repo-channels.js";
-export { PermissionsRepository } from "./repositories/repo-permissions.js";
 export { SettingsRepository } from "./repositories/repo-settings.js";
 export { ProviderKeysRepository } from "./repositories/repo-provider-keys.js";
 export { UsageSnapshotsRepository } from "./repositories/repo-usage-snapshots.js";

@@ -47,7 +47,7 @@ export interface RivonClawPluginOptions {
 
   /**
    * Tool definitions to register with the gateway.
-   * Omit for pure hook / gateway-method plugins (e.g. file-permissions).
+   * Omit for pure hook / gateway-method plugins.
    */
   tools?: ToolDefinition[];
 

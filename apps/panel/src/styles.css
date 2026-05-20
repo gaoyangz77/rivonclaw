@@ -2169,47 +2169,6 @@ tbody td {
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
-.perm-full-access-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.perm-add-path-row {
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-}
-
-.perm-add-path-row .btn {
-  padding: 6px 14px;
-  font-size: 13px;
-}
-
-.perm-path-display {
-  background-color: var(--color-bg-alt);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border: 1px solid var(--color-border-light);
-}
-
-.perm-workspace-row {
-  background-color: transparent;
-}
-
-.perm-workspace-label {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-style: italic;
-}
-
 /* ===== 32. Settings Page ===== */
 
 .settings-toggle-card {
@@ -4552,15 +4511,6 @@ tbody td {
 [data-theme="dark"] .perm-switcher-btn-inactive {
   background-color: rgba(255, 255, 255, 0.03);
   color: rgba(255, 255, 255, 0.85);
-}
-
-[data-theme="dark"] .perm-path-display {
-  background-color: rgba(0, 0, 0, 0.18);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-[data-theme="dark"] .perm-workspace-row {
-  background-color: transparent;
 }
 
 /* ===== D16b. Provider Select ===== */
