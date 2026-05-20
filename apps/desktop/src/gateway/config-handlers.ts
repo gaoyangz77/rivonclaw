@@ -12,7 +12,6 @@ export interface GatewayConfigHandlerDeps {
   secretStore: SecretStore;
   launcher: GatewayLauncher;
   stateDir: string;
-  workspacePath: string;
   buildFullGatewayConfig: () => Promise<WriteGatewayConfigOptions>;
   writeGatewayConfig: (config: WriteGatewayConfigOptions) => string;
   buildFullProxyEnv: () => Record<string, string>;
@@ -28,7 +27,6 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
     secretStore,
     launcher,
     stateDir,
-    workspacePath,
     buildFullGatewayConfig,
     writeGatewayConfig,
     buildFullProxyEnv,
@@ -50,7 +48,7 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
       writeGatewayConfig(await buildFullGatewayConfig());
 
       // Rebuild environment with updated STT credentials (GROQ_API_KEY, etc.)
-      const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath);
+      const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" });
       launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
 
       // Reinitialize STT manager
@@ -72,21 +70,7 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
       writeGatewayConfig(await buildFullGatewayConfig());
 
       // Rebuild environment with updated credentials (BRAVE_API_KEY, VOYAGE_API_KEY, etc.)
-      const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath);
-      launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
-    }, "restart_process");
-  }
-
-  /**
-   * Called when file permissions change.
-   * Rebuilds environment variables and restarts the gateway to apply the new permissions.
-   */
-  async function handlePermissionsChange(): Promise<void> {
-    log.info("File permissions changed, rebuilding environment and restarting gateway");
-
-    await openClawConnector.applyConfigMutation(async () => {
-      // Rebuild environment with updated file permissions
-      const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath);
+      const secretEnv = await buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" });
       launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
     }, "restart_process");
   }
@@ -144,7 +128,6 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
   return {
     handleSttChange,
     handleExtrasChange,
-    handlePermissionsChange,
     handleProviderChange,
   };
 }

@@ -42,30 +42,6 @@ export async function validateCustomApiKey(
   });
 }
 
-// --- Permissions ---
-
-export interface Permissions {
-  readPaths: string[];
-  writePaths: string[];
-}
-
-export async function fetchPermissions(): Promise<Permissions> {
-  const data = await fetchJson<{ permissions: Permissions }>(clientPath(API["permissions.get"]));
-  return data.permissions;
-}
-
-export async function updatePermissions(permissions: Permissions): Promise<void> {
-  await fetchJson(clientPath(API["permissions.update"]), {
-    method: "PUT",
-    body: JSON.stringify(permissions),
-  });
-}
-
-export async function fetchWorkspacePath(): Promise<string> {
-  const data = await fetchJson<{ workspacePath: string }>(clientPath(API["workspace.get"]));
-  return data.workspacePath;
-}
-
 // --- File Dialog ---
 
 export async function openFileDialog(): Promise<string | null> {

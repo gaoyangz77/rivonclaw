@@ -34,7 +34,6 @@ export function OnboardingPage({
   const panelSections = [
     { name: t("onboarding.sectionProviders"), desc: t("onboarding.sectionProvidersDesc") },
     { name: t("onboarding.sectionChannels"), desc: t("onboarding.sectionChannelsDesc") },
-    { name: t("onboarding.sectionPermissions"), desc: t("onboarding.sectionPermissionsDesc") },
     { name: t("onboarding.sectionUsage"), desc: t("onboarding.sectionUsageDesc") },
   ];
 

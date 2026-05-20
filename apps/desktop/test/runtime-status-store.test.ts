@@ -111,7 +111,6 @@ describe("AppSettings defaults — loadAppSettings({})", () => {
     expect(s.sessionStateCdpEnabled).toBe(true);
     expect(s.chatShowAgentEvents).toBe(true);
     expect(s.chatCollapseMessages).toBe(true);
-    expect(s.filePermissionsFullAccess).toBe(true);
 
     // isTrue → absent = false (opt-in settings)
     expect(s.chatPreserveToolEvents).toBe(false);

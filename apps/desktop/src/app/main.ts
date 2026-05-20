@@ -411,9 +411,6 @@ app.whenReady().then(async () => {
 
   // In packaged app, plugins/extensions live in Resources/.
   // In dev, config-writer auto-resolves via monorepo root.
-  const filePermissionsPluginPath = app.isPackaged
-    ? join(process.resourcesPath, "extensions", "rivonclaw-file-permissions", "dist", "rivonclaw-file-permissions.mjs")
-    : undefined;
   const extensionsDir = app.isPackaged
     ? join(process.resourcesPath, "extensions")
     : resolve(dirname(fileURLToPath(import.meta.url)), "../../../extensions");
@@ -541,7 +538,7 @@ app.whenReady().then(async () => {
     buildFullGatewayConfig,
   } = await setupGateway({
     storage, secretStore, locale, configPath, stateDir,
-    extensionsDir, sttCliPath, filePermissionsPluginPath, vendorDir,
+    extensionsDir, sttCliPath, vendorDir,
     merchantExtensionPaths: () => merchantExtensionPaths,
     gatewayPort: actualGatewayPort, broadcastEvent,
   });
@@ -1045,14 +1042,13 @@ app.whenReady().then(async () => {
     getManagedBrowserEntries: () => managedBrowserService.getAllEntries(),
   });
 
-  // Late-bound config handler refs — configHandlers is created after workspacePath
-  // is resolved (post-launcher), but panel-server callbacks need them earlier.
+  // Late-bound config handler refs — configHandlers is created after gateway setup,
+  // but panel-server callbacks need them earlier.
   // The callbacks are only invoked at runtime (user action), never during startup,
   // so the late binding is safe.
   let handleProviderChange!: (hint?: { configOnly?: boolean; keyOnly?: boolean }) => Promise<void>;
   let handleSttChange!: () => Promise<void>;
   let handleExtrasChange!: () => Promise<void>;
-  let handlePermissionsChange!: () => Promise<void>;
   let weixinChannelRestartPromise: Promise<void> | null = null;
 
   const restartGatewayAfterWeixinConfigChange = () => {
@@ -1144,11 +1140,6 @@ app.whenReady().then(async () => {
     onExtrasChange: () => {
       handleExtrasChange().catch((err) => {
         log.error("Failed to handle extras change:", err);
-      });
-    },
-    onPermissionsChange: () => {
-      handlePermissionsChange().catch((err) => {
-        log.error("Failed to handle permissions change:", err);
       });
     },
     onToolSelectionChange: undefined, // Tool visibility is controlled by capability-manager at runtime, no gateway restart needed
@@ -1547,10 +1538,8 @@ app.whenReady().then(async () => {
 
   // Sync auth profiles + build env, then start gateway.
   // System proxy and proxy router config were already written before proxyRouter.start().
-  const workspacePath = stateDir;
-
   // Write the proxy setup CJS module once and build the NODE_OPTIONS string.
-  // This is reused by all restart paths (handleSttChange, handlePermissionsChange)
+  // This is reused by all restart paths (handleSttChange, handleExtrasChange)
   // so the --require is never accidentally dropped.
   const proxySetupPath = writeProxySetupModule(stateDir, vendorDir);
   // Quote the path — Windows usernames with spaces break unquoted --require
@@ -1567,13 +1556,12 @@ app.whenReady().then(async () => {
     return env;
   }
 
-  // Assign the late-bound config handlers now that workspacePath is available
+  // Assign the late-bound config handlers now that gateway setup is available.
   const configHandlers = createGatewayConfigHandlers({
     storage,
     secretStore,
     launcher,
     stateDir,
-    workspacePath,
     buildFullGatewayConfig: () => buildFullGatewayConfig(actualGatewayPort),
     writeGatewayConfig,
     buildFullProxyEnv,
@@ -1585,7 +1573,6 @@ app.whenReady().then(async () => {
   handleProviderChange = configHandlers.handleProviderChange;
   handleSttChange = configHandlers.handleSttChange;
   handleExtrasChange = configHandlers.handleExtrasChange;
-  handlePermissionsChange = configHandlers.handlePermissionsChange;
 
   // Initialize LLM Provider Manager environment — provider key actions use these deps
   // for direct auth-profiles sync and sessions.patch (no config writes, no restart).
@@ -1711,7 +1698,7 @@ app.whenReady().then(async () => {
 
   Promise.all([
     syncAllAuthProfiles(stateDir, storage, secretStore),
-    buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath),
+    buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }),
   ])
     .then(([, secretEnv]) => {
       // Debug: Log which API keys are configured (without showing values)
@@ -1719,13 +1706,7 @@ app.whenReady().then(async () => {
       log.info(`Initial API keys: ${configuredKeys.join(', ') || '(none)'}`);
       log.info(`Proxy router: http://127.0.0.1:${actualProxyRouterPort} (dynamic routing enabled)`);
 
-      // Log file permissions status (without showing paths)
-      if (secretEnv.RIVONCLAW_FILE_PERMISSIONS) {
-        const perms = JSON.parse(secretEnv.RIVONCLAW_FILE_PERMISSIONS);
-        log.info(`File permissions: workspace=${perms.workspacePath}, read=${perms.readPaths.length}, write=${perms.writePaths.length}`);
-      }
-
-      // Set env vars: API keys + proxy (incl. NODE_OPTIONS) + file permissions
+      // Set env vars: API keys + proxy (incl. NODE_OPTIONS)
       // RIVONCLAW_PANEL_PORT lets gateway plugins (e.g. capability-manager) call Desktop APIs.
       launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv(), RIVONCLAW_PANEL_PORT: String(actualPanelPort) });
 

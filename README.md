@@ -94,7 +94,6 @@ rivonclaw/
 ├── extensions/
 │   ├── rivonclaw-policy/                   # OpenClaw plugin shell for policy injection
 │   ├── rivonclaw-tools/                    # Owner-only custom tools plugin
-│   ├── rivonclaw-file-permissions/         # OpenClaw plugin for file access control
 │   ├── rivonclaw-mobile-chat-channel/      # Mobile messaging relay plugin
 │   ├── rivonclaw-browser-profiles-tools/   # Browser profile CDP tool integration
 │   ├── rivonclaw-capability-manager/       # Tool capability / surface availability
@@ -125,7 +124,6 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `@rivonclaw/rivonclaw-policy`                  | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                |
 | `@rivonclaw/rivonclaw-tools`                   | Owner-only custom tools plugin (e.g. system control, desktop integration).                                          |
-| `@rivonclaw/rivonclaw-file-permissions`        | Enforces file access permissions by intercepting and validating tool calls before execution.                        |
 | `@rivonclaw/rivonclaw-mobile-chat-channel`     | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                              |
 | `@rivonclaw/rivonclaw-browser-profiles-tools`  | CDP-based browser profile tool integration for the agent.                                                           |
 | `@rivonclaw/rivonclaw-capability-manager`      | Tool capability and surface availability resolver.                                                                  |

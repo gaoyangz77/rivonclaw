@@ -36,7 +36,6 @@ function createDeps() {
       reload: vi.fn().mockResolvedValue(undefined),
     } as any,
     stateDir: "/tmp/state",
-    workspacePath: "/tmp/workspace",
     buildFullGatewayConfig: vi.fn().mockResolvedValue({ configKey: "configValue" }),
     writeGatewayConfig: vi.fn().mockReturnValue("/tmp/config.json"),
     buildFullProxyEnv: vi.fn().mockReturnValue({ PROXY_KEY: "proxy-val" }),
@@ -77,8 +76,6 @@ describe("createGatewayConfigHandlers", () => {
       expect(mockBuildGatewayEnv).toHaveBeenCalledWith(
         deps.secretStore,
         { ELECTRON_RUN_AS_NODE: "1" },
-        deps.storage,
-        deps.workspacePath,
       );
       expect(deps.launcher.setEnv).toHaveBeenCalledWith({
         SECRET_KEY: "secret-val",
@@ -103,22 +100,6 @@ describe("createGatewayConfigHandlers", () => {
         PROXY_KEY: "proxy-val",
       });
       expect(deps.sttManager.initialize).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── handlePermissionsChange ─────────────────────────────────────────────
-
-  describe("handlePermissionsChange", () => {
-    it("calls buildGatewayEnv, launcher.setEnv via applyConfigMutation(restart_process) (no writeGatewayConfig)", async () => {
-      await handlers.handlePermissionsChange();
-
-      expect(mockApplyConfigMutation).toHaveBeenCalledWith(expect.any(Function), "restart_process");
-      expect(deps.writeGatewayConfig).not.toHaveBeenCalled();
-      expect(mockBuildGatewayEnv).toHaveBeenCalled();
-      expect(deps.launcher.setEnv).toHaveBeenCalledWith({
-        SECRET_KEY: "secret-val",
-        PROXY_KEY: "proxy-val",
-      });
     });
   });
 

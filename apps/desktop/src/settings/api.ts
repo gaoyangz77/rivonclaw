@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, syncPermissions } from "@rivonclaw/gateway";
+import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir } from "@rivonclaw/gateway";
 import { API } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -71,11 +71,10 @@ const getAll: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
 // ── PUT /api/settings ──
 
 const updateSettings: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const { storage, secretStore, onProviderChange, onSttChange, onPermissionsChange, onBrowserChange } = ctx;
+  const { storage, secretStore, onProviderChange, onSttChange, onBrowserChange } = ctx;
   const body = (await parseBody(req)) as Record<string, string>;
   let legacyKeyChanged = false;
   let sttChanged = false;
-  let permissionsChanged = false;
   let browserChanged = false;
   for (const [key, value] of Object.entries(body)) {
     if (typeof key === "string" && typeof value === "string") {
@@ -94,9 +93,6 @@ const updateSettings: EndpointHandler = async (req, res, _url, _params, ctx: Api
         if (key === "stt.enabled" || key === "stt.provider") {
           sttChanged = true;
         }
-        if (key === "file-permissions-full-access") {
-          permissionsChanged = true;
-        }
         if (key === "browser-mode") {
           browserChanged = true;
         }
@@ -108,7 +104,6 @@ const updateSettings: EndpointHandler = async (req, res, _url, _params, ctx: Api
   // Legacy API key changes still need provider change handler for env var sync
   if (legacyKeyChanged) onProviderChange?.();
   if (sttChanged) onSttChange?.();
-  if (permissionsChanged) onPermissionsChange?.();
   if (browserChanged) onBrowserChange?.();
 };
 
@@ -520,38 +515,6 @@ const sttStatus: EndpointHandler = async (_req, res, _url, _params, ctx: ApiCont
   sendJson(res, 200, { enabled, provider });
 };
 
-// ── GET /api/permissions ──
-
-const getPermissions: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
-  const permissions = ctx.storage.permissions.get();
-  sendJson(res, 200, { permissions });
-};
-
-// ── PUT /api/permissions ──
-
-const updatePermissions: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const body = (await parseBody(req)) as { readPaths?: string[]; writePaths?: string[] };
-  const permissions = ctx.storage.permissions.update({
-    readPaths: body.readPaths ?? [],
-    writePaths: body.writePaths ?? [],
-  });
-
-  try {
-    syncPermissions(permissions);
-    log.info("Synced filesystem permissions to OpenClaw config");
-
-    ctx.onPermissionsChange?.();
-    ctx.onTelemetryTrack?.("permissions.updated", {
-      readCount: (body.readPaths ?? []).length,
-      writeCount: (body.writePaths ?? []).length,
-    });
-  } catch (err) {
-    log.error("Failed to sync permissions to OpenClaw:", err);
-  }
-
-  sendJson(res, 200, { permissions });
-};
-
 // ── GET /api/settings/openclaw-state-dir ──
 
 const getOpenclawStateDir: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
@@ -586,13 +549,6 @@ const deleteOpenclawStateDir: EndpointHandler = async (_req, res, _url, _params,
   ctx.storage.settings.delete("openclaw_import_checked");
   log.info("OpenClaw state dir override cleared (restart required)");
   sendJson(res, 200, { ok: true, restartRequired: true });
-};
-
-// ── GET /api/workspace ──
-
-const getWorkspace: EndpointHandler = async (_req, res, _url, _params, _ctx) => {
-  const workspacePath = resolveOpenClawStateDir();
-  sendJson(res, 200, { workspacePath });
 };
 
 // ── POST /api/file-dialog ──
@@ -647,16 +603,11 @@ export function registerSettingsHandlers(registry: RouteRegistry): void {
   registry.register(API["stt.transcribe"], sttTranscribe);
   registry.register(API["stt.status"], sttStatus);
 
-  // Permissions
-  registry.register(API["permissions.get"], getPermissions);
-  registry.register(API["permissions.update"], updatePermissions);
-
   // OpenClaw state dir
   registry.register(API["settings.openclawStateDir.get"], getOpenclawStateDir);
   registry.register(API["settings.openclawStateDir.set"], setOpenclawStateDir);
   registry.register(API["settings.openclawStateDir.delete"], deleteOpenclawStateDir);
 
-  // Workspace & file dialog
-  registry.register(API["workspace.get"], getWorkspace);
+  // File dialog
   registry.register(API["fileDialog.open"], openFileDialog);
 }

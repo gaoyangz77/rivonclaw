@@ -94,7 +94,6 @@ rivonclaw/
 ├── extensions/
 │   ├── rivonclaw-policy/                   # OpenClaw 策略注入插件壳
 │   ├── rivonclaw-tools/                    # 仅限所有者的自定义工具插件
-│   ├── rivonclaw-file-permissions/         # 文件访问控制插件
 │   ├── rivonclaw-mobile-chat-channel/      # 移动端消息中继插件
 │   ├── rivonclaw-browser-profiles-tools/   # 浏览器 Profile CDP 工具集成
 │   ├── rivonclaw-capability-manager/       # 工具能力 / Surface 可用性
@@ -125,7 +124,6 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 | -------------------- | -------------------------------------------------------------------------------------------- |
 | `@rivonclaw/rivonclaw-policy`                  | 薄 OpenClaw 插件壳，将策略注入接入网关的 `before_agent_start` 钩子。                |
 | `@rivonclaw/rivonclaw-tools`                   | 仅限所有者的自定义工具插件（如系统控制、桌面集成）。                                |
-| `@rivonclaw/rivonclaw-file-permissions`        | 通过在工具调用执行前拦截和验证来强制执行文件访问权限。                              |
 | `@rivonclaw/rivonclaw-mobile-chat-channel`     | 移动端 PWA 消息中继 — 通过 WebSocket 将移动端聊天客户端桥接到网关。                 |
 | `@rivonclaw/rivonclaw-browser-profiles-tools`  | 基于 CDP 的浏览器 Profile 工具集成。                                                |
 | `@rivonclaw/rivonclaw-capability-manager`      | 工具能力和 Surface 可用性解析器。                                                   |

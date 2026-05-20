@@ -1,14 +1,13 @@
 import type { ComponentType, ReactNode } from "react";
 import {
   ChatIcon, ProvidersIcon, ChannelsIcon,
-  PermissionsIcon, ExtrasIcon, UsageIcon, SkillsIcon,
+  ExtrasIcon, UsageIcon, SkillsIcon,
   BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
   ShopIcon, EcommerceIcon,
 } from "./components/icons.js";
 import { ChatPage } from "./pages/chat/ChatPage.js";
 import { ProvidersPage } from "./pages/providers/ProvidersPage.js";
 import { ChannelsPage } from "./pages/channels/ChannelsPage.js";
-import { PermissionsPage } from "./pages/permissions/PermissionsPage.js";
 import { ExtrasPage } from "./pages/extras/ExtrasPage.js";
 import { KeyUsagePage } from "./pages/usage/KeyUsagePage.js";
 import { SkillsPage } from "./pages/skills/SkillsPage.js";
@@ -55,7 +54,6 @@ export const ROUTES: RouteEntry[] = [
   { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true },
   { path: "/providers", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers" },
   { path: "/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", keepMounted: true },
-  { path: "/permissions", pageKey: "permissions", component: PermissionsPage, icon: <PermissionsIcon />, navLabelKey: "nav.permissions" },
   { path: "/extras", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras" },
   { path: "/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills" },
   { path: "/browser-profiles", pageKey: "browser-profiles", component: BrowserProfilesPage, icon: <BrowserProfilesIcon />, navLabelKey: "nav.browserProfiles", authRequired: true },

@@ -1,5 +1,4 @@
 import type { SecretStore } from "@rivonclaw/secrets";
-import type { Storage } from "@rivonclaw/storage";
 import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 
 const log = createQuietLogger("gateway:secret-injector", DEBUG_FLAGS.SECRETS);
@@ -63,48 +62,6 @@ export async function resolveSecretEnv(
 }
 
 /**
- * File permissions object for environment injection.
- */
-export interface FilePermissions {
-  workspacePath: string;
-  fullAccess: boolean;
-  readPaths: string[];
-  writePaths: string[];
-}
-
-/**
- * Build file permissions environment variable for the gateway.
- *
- * Reads permissions from storage and constructs the RIVONCLAW_FILE_PERMISSIONS
- * environment variable as a JSON string containing workspace path and access rules.
- *
- * @param storage - Storage instance to read permissions from
- * @param workspacePath - Path to the workspace directory (default cwd)
- * @returns JSON string to inject as RIVONCLAW_FILE_PERMISSIONS, or null if no storage
- */
-export function buildFilePermissionsEnv(
-  storage: Storage | null,
-  workspacePath?: string,
-): string | null {
-  if (!storage) {
-    return null;
-  }
-
-  const permissions = storage.permissions.get();
-  const fullAccess = storage.settings.get("file-permissions-full-access") === "true";
-  const filePermissions: FilePermissions = {
-    workspacePath: workspacePath ?? process.cwd(),
-    fullAccess,
-    readPaths: permissions.readPaths,
-    writePaths: permissions.writePaths,
-  };
-
-  const json = JSON.stringify(filePermissions);
-  log.debug(`File permissions env built: ${json.length} chars, ${permissions.readPaths.length} read paths, ${permissions.writePaths.length} write paths`);
-  return json;
-}
-
-/**
  * Build the complete environment for the gateway process.
  *
  * Merges the current process.env, any user-provided env overrides, and
@@ -113,14 +70,10 @@ export function buildFilePermissionsEnv(
  *
  * @param store - Secret store for API keys and credentials
  * @param extraEnv - Additional environment variables to merge
- * @param storage - Optional storage instance for file permissions
- * @param workspacePath - Optional workspace path (defaults to process.cwd())
  */
 export async function buildGatewayEnv(
   store: SecretStore,
   extraEnv?: Record<string, string>,
-  storage?: Storage | null,
-  workspacePath?: string,
 ): Promise<Record<string, string>> {
   const secretEnv = await resolveSecretEnv(store);
 
@@ -140,14 +93,6 @@ export async function buildGatewayEnv(
 
   // Secrets take highest priority
   Object.assign(merged, secretEnv);
-
-  // File permissions injection
-  if (storage) {
-    const filePermissionsJson = buildFilePermissionsEnv(storage, workspacePath);
-    if (filePermissionsJson) {
-      merged.RIVONCLAW_FILE_PERMISSIONS = filePermissionsJson;
-    }
-  }
 
   return merged;
 }

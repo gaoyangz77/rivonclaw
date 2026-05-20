@@ -26,7 +26,7 @@ type Applier = (s: typeof RuntimeStatusStoreModel.Type.appSettings, raw: string 
  *
  * - isNotFalse: absent → true  (opt-out: enabled unless explicitly "false")
  *     Used by: telemetry_enabled, session-state-cdp-enabled, chat_collapse_messages,
- *              chat_show_agent_events, file-permissions-full-access
+ *              chat_show_agent_events
  * - isTrue:    absent → false  (opt-in: disabled unless explicitly "true")
  *     Used by: chat_preserve_tool_events, privacy_mode, auto_launch_enabled,
  *              stt.enabled, webSearch.enabled, embedding.enabled
@@ -52,7 +52,6 @@ const SETTING_APPLIERS: Record<string, Applier> = {
   "webSearch.provider":           (s, v) => { s.webSearchProvider        = v ?? ""; },
   "embedding.enabled":            (s, v) => { s.embeddingEnabled         = isTrue(v); },
   "embedding.provider":           (s, v) => { s.embeddingProvider        = v ?? ""; },
-  "file-permissions-full-access": (s, v) => { s.filePermissionsFullAccess = isNotFalse(v); },
 
   // Panel UI preferences (previously localStorage-only, see ADR/PROGRESS).
   "telemetry_consent_shown":      (s, v) => { s.telemetryConsentShown     = v === "1"; },

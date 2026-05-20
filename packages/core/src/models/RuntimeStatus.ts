@@ -48,9 +48,6 @@ export const AppSettingsModel = types.model("AppSettings", {
   webSearchProvider: types.optional(types.string, ""),
   embeddingEnabled: types.optional(types.boolean, false),
   embeddingProvider: types.optional(types.string, ""),
-  // Permissions (isNotFalse → absent = true)
-  filePermissionsFullAccess: types.optional(types.boolean, true),
-
   // Panel UI preferences (previously localStorage, now MST-backed to survive
   // Panel's dynamic-port origin changes across restarts/updates)
   /** Whether the telemetry consent modal has been shown ("1" in storage). */

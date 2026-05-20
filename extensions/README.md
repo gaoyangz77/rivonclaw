@@ -8,7 +8,6 @@ electron-builder.yml.
 
 | Extension | Type | Description |
 |-----------|------|-------------|
-| `rivonclaw-file-permissions` | Hook | Validates file operations against permission policies |
 | `rivonclaw-search-browser-fallback` | Hook (single-file) | Falls back to browser search when `web_search` fails |
 
 ### Deprecated: rivonclaw-tools
