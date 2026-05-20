@@ -334,7 +334,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceE
                 <span>{t("ecommerce.customerServiceWorkspace.reason")}</span>
                 <span>{t("ecommerce.customerServiceWorkspace.statusOpen")}</span>
                 <span>{t("ecommerce.customerServiceWorkspace.updatedAt")}</span>
-                <span />
               </div>
               {items.map((item) => (
                 <button
@@ -354,9 +353,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceE
                     </span>
                   </span>
                   <span>{formatCompactDateTime(item.updatedAt)}</span>
-                  <span className="cs-escalation-row-action">
-                    {t("ecommerce.customerServiceWorkspace.review")}
-                  </span>
                 </button>
               ))}
             </div>
