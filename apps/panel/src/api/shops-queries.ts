@@ -176,6 +176,109 @@ export const CS_OPEN_ESCALATIONS_QUERY = gql`
   }
 `;
 
+export const CS_CONVERSATION_INBOX_QUERY = gql`
+  query CustomerServiceInbox(
+    $shopIds: [ID!]
+    $status: CustomerServiceConversationStatus
+    $aiEnabled: Boolean
+    $limit: Int
+    $offset: Int
+  ) {
+    ecommerceGetCustomerServiceInbox(
+      shopIds: $shopIds
+      status: $status
+      aiEnabled: $aiEnabled
+      limit: $limit
+      offset: $offset
+    ) {
+      totalCount
+      items {
+        shopId
+        platformShopId
+        conversationId
+        status
+        aiEnabled
+        buyerUserId
+        buyerImUserId
+        buyerNickname
+        orderId
+        latestMessageTime
+        latestMessageId
+        latestMessageIndex
+        latestMessageType
+        latestSenderRole
+        latestMessagePreview
+        lastPendingAt
+        resolvedAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const CS_CONVERSATION_MESSAGES_QUERY = gql`
+  query CustomerServiceConversationMessages(
+    $shopId: String!
+    $conversationId: String!
+    $pageSize: Float!
+    $pageToken: String
+    $locale: String
+  ) {
+    ecommerceGetConversationMessages(
+      shopId: $shopId
+      conversationId: $conversationId
+      pageSize: $pageSize
+      pageToken: $pageToken
+      locale: $locale
+    ) {
+      nextPageToken
+      items {
+        messageId
+        type
+        text
+        createTime
+        sender {
+          role
+          nickname
+        }
+      }
+    }
+  }
+`;
+
+export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
+  mutation SetCustomerServiceConversationAiEnabled(
+    $shopId: String!
+    $conversationId: String!
+    $aiEnabled: Boolean!
+  ) {
+    ecommerceSetCustomerServiceConversationAiEnabled(
+      shopId: $shopId
+      conversationId: $conversationId
+      aiEnabled: $aiEnabled
+    ) {
+      shopId
+      platformShopId
+      conversationId
+      status
+      aiEnabled
+      buyerUserId
+      buyerImUserId
+      buyerNickname
+      orderId
+      latestMessageTime
+      latestMessageId
+      latestMessageIndex
+      latestMessageType
+      latestSenderRole
+      latestMessagePreview
+      lastPendingAt
+      resolvedAt
+      updatedAt
+    }
+  }
+`;
+
 export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
   query AffiliateActionProposals($input: ReadActionProposalsInput!) {
     actionProposals(input: $input) {

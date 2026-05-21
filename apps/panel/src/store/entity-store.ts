@@ -18,6 +18,7 @@ import {
   MobileManagerModel,
 } from "./models/index.js";
 import { EcommerceInventoryModel } from "./models/EcommerceInventoryModel.js";
+import { CustomerServiceWorkspaceModel } from "./models/CustomerServiceWorkspaceModel.js";
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
@@ -40,7 +41,7 @@ import {
 } from "../api/auth-queries.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
-import type { GQL, ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
+import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { panelEventBus } from "../lib/event-bus.js";
 import { gql } from "@apollo/client/core";
@@ -89,6 +90,7 @@ const PanelRootStoreModel = RootStoreModel.props({
   channelManager: types.optional(ChannelManagerModel, {}),
   mobileManager: types.optional(MobileManagerModel, {}),
   ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
+  customerServiceWorkspace: types.optional(CustomerServiceWorkspaceModel, {}),
 }).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 

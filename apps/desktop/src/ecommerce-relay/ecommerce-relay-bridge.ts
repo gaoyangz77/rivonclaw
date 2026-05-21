@@ -497,6 +497,11 @@ export class EcommerceRelayBridge {
   // -- Backend signal handling -----------------------------------------------
 
   async handleCsConversationSignal(signal: CsConversationSignalPayload): Promise<void> {
+    if (signal.aiEnabled === false) {
+      log.info(`Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`);
+      return;
+    }
+
     this.syncFromCache();
     log.info(
       `CS signal: type=${signal.type} shop=${signal.platformShopId} ` +

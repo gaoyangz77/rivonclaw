@@ -600,8 +600,8 @@ describe("shop context management", () => {
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
-    // Session registration + sessions.patch (model) + agent dispatch = 3 RPC calls
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    // chat.history + session registration + sessions.patch (model) + agent dispatch = 4 RPC calls
+    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
   });
 });
 
@@ -1065,14 +1065,17 @@ describe("session registration", () => {
   });
 
   it("if registration fails, message is dropped (no RunProfile set, no agent dispatch)", async () => {
-    mockRpcRequest.mockRejectedValueOnce(new Error("registration failed"));
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "cs_register_session") throw new Error("registration failed");
+      return { ok: true, messages: [] };
+    });
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    // Only the failed register call; no agent call
-    expect(mockRpcRequest).toHaveBeenCalledTimes(1);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
+    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     // No RunProfile set should have been called
     expect(setSessionRunProfileCalls).toHaveLength(0);
@@ -1174,6 +1177,23 @@ describe("agent dispatch", () => {
     expect(message).toContain("This user's request is unreasonable");
   });
 
+  it("handleCsConversationSignal skips dispatch when conversation AI is disabled", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    await bridge.handleCsConversationSignal({
+      type: "MESSAGE_RECEIVED",
+      source: "WEBHOOK",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "conv-disabled",
+      aiEnabled: false,
+      eventTime: new Date().toISOString(),
+    } as any);
+
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+  });
+
   it("extraSystemPrompt includes orderId when present", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -1219,11 +1239,11 @@ describe("agent dispatch", () => {
   });
 
   it("if dispatch fails, error is logged but bridge continues running", async () => {
-    // First call (register) succeeds, second (sessions.patch) succeeds, third (agent) fails
-    mockRpcRequest
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: true })
-      .mockRejectedValueOnce(new Error("agent dispatch failed"));
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") throw new Error("agent dispatch failed");
+      if (method === "chat.history") return { messages: [] };
+      return { ok: true };
+    });
 
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -1231,8 +1251,8 @@ describe("agent dispatch", () => {
     // Should not throw
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
-    // All three calls were attempted
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
@@ -1264,13 +1284,18 @@ describe("error scenarios", () => {
   });
 
   it("session registration fails → RunProfile set and agent dispatch skipped", async () => {
-    mockRpcRequest.mockRejectedValueOnce(new Error("session reg failed"));
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "cs_register_session") throw new Error("session reg failed");
+      return { ok: true, messages: [] };
+    });
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(1);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
+    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
@@ -1282,8 +1307,9 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     // Bridge no longer validates profile existence — it stores the ID.
-    // cs_register_session + sessions.patch (model) + agent dispatch = 3 RPC calls.
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    // chat.history + cs_register_session + sessions.patch (model) + agent dispatch = 4 RPC calls.
+    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
@@ -2245,7 +2271,7 @@ describe("escalate", () => {
     );
   });
 
-  it("returns an explicit error for WeChat escalation before the recipient has a context token", async () => {
+  it("sends WeChat escalation even before the recipient has a cached context token", async () => {
     const tmpStateDir = mkdtempSync(join(tmpdir(), "rivonclaw-weixin-context-test-"));
     const previousStateDir = process.env.OPENCLAW_STATE_DIR;
     process.env.OPENCLAW_STATE_DIR = tmpStateDir;
@@ -2262,11 +2288,15 @@ describe("escalate", () => {
       const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
       const result = await session.escalate({ reason: defaultEscalateParams.reason });
 
-      expect(result).toEqual({
-        ok: false,
-        error: "WeChat escalation recipient is not active yet. Ask this WeChat account to send one message to the agent first.",
-      });
-      expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
+      expect(result.ok).toBe(true);
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "send",
+        expect.objectContaining({
+          to: "manager@im.wechat",
+          channel: "openclaw-weixin",
+          accountId: "acct_test123",
+        }),
+      );
     } finally {
       if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
       else process.env.OPENCLAW_STATE_DIR = previousStateDir;
@@ -2274,7 +2304,7 @@ describe("escalate", () => {
     }
   });
 
-  it("does not reload WeChat context tokens during escalation; recipient-seen is the sync boundary", async () => {
+  it("does not require WeChat context tokens before sending escalation", async () => {
     const tmpStateDir = mkdtempSync(join(tmpdir(), "rivonclaw-weixin-context-test-"));
     const previousStateDir = process.env.OPENCLAW_STATE_DIR;
     process.env.OPENCLAW_STATE_DIR = tmpStateDir;
@@ -2290,7 +2320,7 @@ describe("escalate", () => {
 
       const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
       const firstResult = await session.escalate({ reason: defaultEscalateParams.reason });
-      expect(firstResult.ok).toBe(false);
+      expect(firstResult.ok).toBe(true);
 
       const accountsDir = join(tmpStateDir, "openclaw-weixin", "accounts");
       mkdirSync(accountsDir, { recursive: true });
@@ -2300,7 +2330,7 @@ describe("escalate", () => {
       );
 
       const secondResult = await session.escalate({ reason: defaultEscalateParams.reason });
-      expect(secondResult.ok).toBe(false);
+      expect(secondResult.ok).toBe(true);
       rootStore.channelManager.recordRecipientSeen({
         channelId: "openclaw-weixin",
         accountId: "acct_test123",

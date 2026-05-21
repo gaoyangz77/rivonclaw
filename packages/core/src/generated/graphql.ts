@@ -1297,6 +1297,8 @@ export interface CreatorUserRelation {
 
 /** Ephemeral customer-service conversation signal pushed to desktop. The platform API remains the source of truth for messages and conversation state. */
 export interface CsConversationSignal {
+  /** Whether desktop should let the local AI agent run for this conversation. False means skip automation. */
+  aiEnabled?: Maybe<Scalars['Boolean']['output']>;
   /** Platform buyer user ID if already known. */
   buyerUserId?: Maybe<Scalars['String']['output']>;
   /** Platform conversation/thread ID that desktop should inspect. */
@@ -1305,6 +1307,8 @@ export interface CsConversationSignal {
   eventTime: Scalars['DateTimeISO']['output'];
   /** Platform IM user ID if available from webhook/API context. */
   imUserId?: Maybe<Scalars['String']['output']>;
+  /** Human-readable preview of the latest platform message when available. */
+  latestMessagePreview?: Maybe<Scalars['String']['output']>;
   /** Platform message ID when this signal is tied to a specific buyer message. */
   messageId?: Maybe<Scalars['String']['output']>;
   /** Platform message index when available for event ordering. */
@@ -1504,12 +1508,20 @@ export interface CustomerServiceBilling {
 
 /** A CS conversation between buyer and seller */
 export interface CustomerServiceConversation {
+  /** Whether desktop should run the local AI agent for this conversation. */
+  aiEnabled?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the seller can send messages in this conversation */
   canSendMessage?: Maybe<Scalars['Boolean']['output']>;
   conversationId: Scalars['String']['output'];
   /** Unix seconds when the conversation was created */
   createTime?: Maybe<Scalars['Int']['output']>;
+  /** Backend-normalized platform lifecycle. False means the platform conversation is closed. */
+  isOpen?: Maybe<Scalars['Boolean']['output']>;
+  /** Unix seconds when the latest pending buyer message arrived. */
+  lastPendingAt?: Maybe<Scalars['Int']['output']>;
   latestMessage?: Maybe<CustomerServiceMessagePreview>;
+  /** Human-readable preview of the latest materialized message. */
+  latestMessagePreview?: Maybe<Scalars['String']['output']>;
   /** Unix seconds of last update */
   latestMessageTime?: Maybe<Scalars['Int']['output']>;
   /** Associated order ID if any */
@@ -1517,9 +1529,21 @@ export interface CustomerServiceConversation {
   /** Number of participants in the conversation */
   participantCount?: Maybe<Scalars['Int']['output']>;
   participants?: Maybe<Array<CustomerServiceConversationParticipant>>;
+  /** Raw platform conversation lifecycle/status value when observed. */
+  platformConversationStatus?: Maybe<Scalars['String']['output']>;
+  /** Platform shop ID when this conversation is backend-materialized */
+  platformShopId?: Maybe<Scalars['String']['output']>;
+  /** Backend-owned customer-service reply state when materialized */
+  replyStatus?: Maybe<CustomerServiceConversationStatus>;
+  /** Unix seconds when the conversation was last resolved. */
+  resolvedAt?: Maybe<Scalars['Int']['output']>;
+  /** MongoDB shop ID when this conversation is backend-materialized */
+  shopId?: Maybe<Scalars['String']['output']>;
   /** Conversation status per platform */
   status?: Maybe<Scalars['String']['output']>;
   unreadCount?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds of the backend materialized record update time. */
+  updatedAt?: Maybe<Scalars['Int']['output']>;
 }
 
 /** Conversation details: the full conversation entity plus a normalized buyer participant slice for convenience. */
@@ -1527,6 +1551,42 @@ export interface CustomerServiceConversationDetails {
   /** The buyer participant, if resolvable from the conversation's participant list. */
   buyer?: Maybe<CustomerServiceConversationParticipant>;
   conversation: CustomerServiceConversation;
+}
+
+/** Backend-materialized customer service conversation inbox item. */
+export interface CustomerServiceConversationInboxItem {
+  aiEnabled: Scalars['Boolean']['output'];
+  buyerImUserId?: Maybe<Scalars['String']['output']>;
+  buyerNickname?: Maybe<Scalars['String']['output']>;
+  buyerUserId?: Maybe<Scalars['String']['output']>;
+  conversationId: Scalars['String']['output'];
+  /** Backend-normalized platform lifecycle. False means the platform conversation is closed. */
+  isOpen: Scalars['Boolean']['output'];
+  /** Unix seconds when the latest pending buyer message arrived. */
+  lastPendingAt?: Maybe<Scalars['Int']['output']>;
+  latestMessageId?: Maybe<Scalars['String']['output']>;
+  latestMessageIndex?: Maybe<Scalars['String']['output']>;
+  latestMessagePreview?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds of latest materialized message. */
+  latestMessageTime?: Maybe<Scalars['Int']['output']>;
+  latestMessageType?: Maybe<Scalars['String']['output']>;
+  latestSenderRole?: Maybe<Scalars['String']['output']>;
+  orderId?: Maybe<Scalars['String']['output']>;
+  /** Raw platform conversation lifecycle/status value when observed. */
+  platformConversationStatus?: Maybe<Scalars['String']['output']>;
+  platformShopId?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds when the conversation was last resolved. */
+  resolvedAt?: Maybe<Scalars['Int']['output']>;
+  shopId: Scalars['String']['output'];
+  status: CustomerServiceConversationStatus;
+  /** Unix seconds of the backend record update time. */
+  updatedAt?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Page of backend-materialized customer service inbox conversations. */
+export interface CustomerServiceConversationInboxPage {
+  items: Array<CustomerServiceConversationInboxItem>;
+  totalCount: Scalars['Int']['output'];
 }
 
 /** Participant in a CS conversation */
@@ -1541,6 +1601,13 @@ export interface CustomerServiceConversationParticipant {
   userId?: Maybe<Scalars['String']['output']>;
 }
 
+/** Backend-owned customer-service conversation reply state. */
+export const CustomerServiceConversationStatus = {
+  Pending: 'PENDING',
+  Resolved: 'RESOLVED'
+} as const;
+
+export type CustomerServiceConversationStatus = typeof CustomerServiceConversationStatus[keyof typeof CustomerServiceConversationStatus];
 /** A customer service conversation, trimmed for agent-facing tool output. */
 export interface CustomerServiceConversationSummary {
   /** Display nickname of the buyer (extracted from participants[]) */
@@ -3024,6 +3091,8 @@ export interface Mutation {
   ecommerceMarkConversationRead: Scalars['Boolean']['output'];
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: CustomerServiceSendMessageResult;
+  /** Enable or disable AI automation for one backend-materialized CS conversation. */
+  ecommerceSetCustomerServiceConversationAiEnabled: CustomerServiceConversationInboxItem;
   /** Update inventory for one or more shops. Each input item contains shopId and its SKU inventory updates. */
   ecommerceUpdateInventory: Array<EcomUpdateInventoryResult>;
   /** Update shop settings (agent-facing, flat params) */
@@ -3255,6 +3324,13 @@ export interface MutationEcommerceSendMessageArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
   type: EcomMessageType;
+}
+
+
+export interface MutationEcommerceSetCustomerServiceConversationAiEnabledArgs {
+  aiEnabled: Scalars['Boolean']['input'];
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
 }
 
 
@@ -3715,6 +3791,8 @@ export interface PublishAffiliateConversationSignalInput {
 
 /** Input for publishing an ephemeral CS conversation signal */
 export interface PublishCsConversationSignalInput {
+  /** Buyer display nickname if already known. */
+  buyerNickname?: InputMaybe<Scalars['String']['input']>;
   /** Platform buyer user ID if available. */
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   /** Platform conversation/thread ID that desktop should inspect. */
@@ -3723,6 +3801,8 @@ export interface PublishCsConversationSignalInput {
   eventTime?: InputMaybe<Scalars['String']['input']>;
   /** Platform IM user ID if available. */
   imUserId?: InputMaybe<Scalars['String']['input']>;
+  /** Human-readable preview of the latest platform message when available. */
+  latestMessagePreview?: InputMaybe<Scalars['String']['input']>;
   /** Platform message ID for MESSAGE_RECEIVED signals. */
   messageId?: InputMaybe<Scalars['String']['input']>;
   /** Platform message index when available for event ordering. */
@@ -3794,6 +3874,8 @@ export interface Query {
   ecommerceGetConversationMessages: CustomerServiceMessageSummaryPage;
   /** Get conversations for a shop as a flat summary list. Pagination is handled internally by the backend. */
   ecommerceGetConversations: Array<CustomerServiceConversationSummary>;
+  /** List backend-materialized customer-service conversations across one or more owned shops. */
+  ecommerceGetCustomerServiceInbox: CustomerServiceConversationInboxPage;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
@@ -4040,6 +4122,15 @@ export interface QueryEcommerceGetConversationsArgs {
   limit?: InputMaybe<Scalars['Int']['input']>;
   locale?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetCustomerServiceInboxArgs {
+  aiEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  status?: InputMaybe<CustomerServiceConversationStatus>;
 }
 
 
@@ -4901,6 +4992,8 @@ export interface Subscription {
   affiliateConversationSignal: AffiliateConversationSignal;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
+  /** Streams backend-materialized CS conversation snapshots whenever a conversation changes. Desktop UI should treat each payload as the latest whole-entity snapshot; this subscription does not imply an agent run. */
+  csConversationChanged: CustomerServiceConversation;
   /** Streams CS conversation signals to desktop clients. Missed pending signals are retried from backend state by Airflow. */
   csConversationSignal: CsConversationSignal;
   /** Streams newly-published CS escalation side-effect events to desktop actuators. Missed events are replayed by Airflow/admin publish mutations, not by subscription connect. */
@@ -4924,6 +5017,11 @@ export interface SubscriptionAffiliateConversationSignalArgs {
 
 
 export interface SubscriptionAffiliateWorkItemChangedArgs {
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+
+export interface SubscriptionCsConversationChangedArgs {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 

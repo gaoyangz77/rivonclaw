@@ -39,6 +39,11 @@ export async function handleCsConversationSignal(
     return;
   }
 
+  if (signal.aiEnabled === false) {
+    log.info(`Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`);
+    return;
+  }
+
   const bridge = getCsBridge();
   if (!bridge) {
     log.warn(`CS signal arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
