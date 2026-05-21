@@ -1,8 +1,8 @@
-From 22a2c834c9fa247a7a29e8222247efbd58e70cdc Mon Sep 17 00:00:00 2001
+From 27c1e34b1aab3816b0f282ffca4222139335ec79 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 12 Apr 2026 03:59:46 -0700
-Subject: [PATCH 6/8] vendor(openclaw): bypass SSRF-guarded fetch for FormData
- audio transcription
+Subject: [PATCH 06/12] vendor(openclaw): bypass SSRF-guarded fetch for
+ FormData audio transcription
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -125,5 +125,5 @@ index 6ae7cf8a37..09f1b5ce2c 100644
    }
  }
 -- 
-2.36.1.windows.1
+2.50.1 (Apple Git-155)
 

@@ -1,8 +1,8 @@
-From 2c8f468f707d57b89d64134f160debec9bcac9da Mon Sep 17 00:00:00 2001
+From 79696472c9e00b48db04654041873d746068429f Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 13 May 2026 00:20:04 -0700
-Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
- agents
+Subject: [PATCH 03/12] vendor(openclaw): add promptMode "raw" for custom
+ persona agents
 
 Why:
 - EasyClaw's customer-service agent must not reveal it is an AI, but

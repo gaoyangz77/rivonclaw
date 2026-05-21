@@ -1,7 +1,8 @@
-From 488b470a6a1638816ca4d88fe058cd1ae312d754 Mon Sep 17 00:00:00 2001
+From faeb7daa206f8c112ffe48f87505bc7e58dea690 Mon Sep 17 00:00:00 2001
 From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
 Date: Wed, 6 May 2026 05:47:35 -0700
-Subject: [PATCH] vendor(openclaw): keep tool discovery off channel registry
+Subject: [PATCH 11/12] vendor(openclaw): keep tool discovery off channel
+ registry
 
 Why:
 - RivonClaw cloud tools are loaded through OpenClaw plugin tool discovery.

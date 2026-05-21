@@ -1,7 +1,7 @@
-From 8238e6589d6d5a53d7c93cd10b36df5abf066d02 Mon Sep 17 00:00:00 2001
+From 43f6e58ea061b445b692cfebcf7dd774180db1b1 Mon Sep 17 00:00:00 2001
 From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
 Date: Wed, 6 May 2026 07:23:04 -0700
-Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
+Subject: [PATCH 12/12] vendor(openclaw): allow disabling startup recovery
 
 Why:
 - RivonClaw receives customer-service retries from backend/Airflow rather than relying on local gateway replay.

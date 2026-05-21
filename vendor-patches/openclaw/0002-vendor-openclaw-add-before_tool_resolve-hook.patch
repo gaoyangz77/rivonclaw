@@ -1,7 +1,7 @@
-From 3592a38658b3ac00939f10539687123c01e2221b Mon Sep 17 00:00:00 2001
+From 758b9c04df4500eed0c6e562627acad5bc438975 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:12:32 -0700
-Subject: [PATCH 2/8] vendor(openclaw): add before_tool_resolve hook for
+Subject: [PATCH 02/12] vendor(openclaw): add before_tool_resolve hook for
  per-session tool filtering
 
 Why:
@@ -19,15 +19,15 @@ Tests:
 ---
  src/agents/pi-embedded-runner/compact.ts     | 18 ++++++++++++++-
  src/agents/pi-embedded-runner/run/attempt.ts | 15 +++++++++++-
- src/plugins/hook-types.ts                    | 14 ++++++++++++
+ src/plugins/hook-types.ts                    | 15 +++++++++++-
  src/plugins/hooks.ts                         | 24 ++++++++++++++++++++
- 4 files changed, 69 insertions(+), 2 deletions(-)
+ 4 files changed, 69 insertions(+), 3 deletions(-)
 
 diff --git a/src/agents/pi-embedded-runner/compact.ts b/src/agents/pi-embedded-runner/compact.ts
-index 6b14b2d9f9..d38c7242a0 100644
+index 9917ddc936..1eab961067 100644
 --- a/src/agents/pi-embedded-runner/compact.ts
 +++ b/src/agents/pi-embedded-runner/compact.ts
-@@ -582,10 +582,26 @@ export async function compactEmbeddedPiSessionDirect(
+@@ -701,10 +701,26 @@ async function compactEmbeddedPiSessionDirectOnce(
        modelApi: model.api,
        model,
      };
@@ -56,10 +56,10 @@ index 6b14b2d9f9..d38c7242a0 100644
        ? await createBundleMcpToolRuntime({
            workspaceDir: effectiveWorkspace,
 diff --git a/src/agents/pi-embedded-runner/run/attempt.ts b/src/agents/pi-embedded-runner/run/attempt.ts
-index 9576989e1b..4e557762df 100644
+index d1187f131e..129ae59f6a 100644
 --- a/src/agents/pi-embedded-runner/run/attempt.ts
 +++ b/src/agents/pi-embedded-runner/run/attempt.ts
-@@ -862,7 +862,7 @@ export async function runEmbeddedAttempt(
+@@ -1006,7 +1006,7 @@ export async function runEmbeddedAttempt(
        modelApi: params.model.api,
        model: params.model,
      };
@@ -68,7 +68,7 @@ index 9576989e1b..4e557762df 100644
        runtimePlan: params.runtimePlan,
        tools: toolsEnabled ? toolsRaw : [],
        provider: params.provider,
-@@ -873,6 +873,19 @@ export async function runEmbeddedAttempt(
+@@ -1017,6 +1017,19 @@ export async function runEmbeddedAttempt(
        modelApi: params.model.api,
        model: params.model,
      });
@@ -89,26 +89,28 @@ index 9576989e1b..4e557762df 100644
      const bundleMcpEnabled = shouldCreateBundleMcpRuntimeForAttempt({
        toolsEnabled,
 diff --git a/src/plugins/hook-types.ts b/src/plugins/hook-types.ts
-index 386eb7d692..9ecaa60c1d 100644
+index 996e41b88e..4563498465 100644
 --- a/src/plugins/hook-types.ts
 +++ b/src/plugins/hook-types.ts
-@@ -102,6 +102,7 @@ export type PluginHookName =
+@@ -103,7 +103,8 @@ export type PluginHookName =
+   | "cron_changed"
    | "before_dispatch"
    | "reply_dispatch"
-   | "before_install"
-+  | "before_tool_resolve"
-   | "browser_session_start"
-   | "browser_session_end"
-   | "before_browser_action"
-@@ -142,6 +143,7 @@ export const PLUGIN_HOOK_NAMES = [
+-  | "before_install";
++  | "before_install"
++  | "before_tool_resolve";
+ 
+ export const PLUGIN_HOOK_NAMES = [
+   "before_model_resolve",
+@@ -141,6 +142,7 @@ export const PLUGIN_HOOK_NAMES = [
    "before_dispatch",
    "reply_dispatch",
    "before_install",
 +  "before_tool_resolve",
-   "browser_session_start",
-   "browser_session_end",
-   "before_browser_action",
-@@ -654,6 +656,14 @@ export type PluginHookGatewayCronService = {
+ ] as const satisfies readonly PluginHookName[];
+ 
+ type MissingPluginHookNames = Exclude<PluginHookName, (typeof PLUGIN_HOOK_NAMES)[number]>;
+@@ -708,6 +710,13 @@ export type PluginHookGatewayCronService = {
    remove: (id: string) => Promise<PluginHookGatewayCronRemoveResult>;
  };
  
@@ -119,11 +121,10 @@ index 386eb7d692..9ecaa60c1d 100644
 +export type PluginHookBeforeToolResolveResult = {
 +  tools?: string[];
 +};
-+
- export type PluginHookBrowserContext = {
-   sessionKey?: string;
-   profile?: string;
-@@ -920,6 +930,10 @@ export type PluginHookHandlerMap = {
+ export type PluginInstallTargetType = "skill" | "plugin";
+ export type PluginInstallRequestKind =
+   | "skill-install"
+@@ -944,6 +953,10 @@ export type PluginHookHandlerMap = {
      event: PluginHookBeforeInstallEvent,
      ctx: PluginHookBeforeInstallContext,
    ) => Promise<PluginHookBeforeInstallResult | void> | PluginHookBeforeInstallResult | void;
@@ -131,23 +132,23 @@ index 386eb7d692..9ecaa60c1d 100644
 +    event: PluginHookBeforeToolResolveEvent,
 +    ctx: PluginHookAgentContext,
 +  ) => Promise<PluginHookBeforeToolResolveResult | void> | PluginHookBeforeToolResolveResult | void;
-   browser_session_start: (
-     event: PluginHookBrowserSessionStartEvent,
-     ctx: PluginHookBrowserContext,
+ };
+ 
+ export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = {
 diff --git a/src/plugins/hooks.ts b/src/plugins/hooks.ts
-index 530788ee36..92e380d0d2 100644
+index fe3035e08a..acf7a2ce4d 100644
 --- a/src/plugins/hooks.ts
 +++ b/src/plugins/hooks.ts
-@@ -80,6 +80,8 @@ import type {
-   PluginHookBeforeBrowserActionEvent,
-   PluginHookBeforeBrowserActionResult,
-   PluginHookAfterBrowserActionEvent,
+@@ -78,6 +78,8 @@ import type {
+   PluginHookBeforeInstallContext,
+   PluginHookBeforeInstallEvent,
+   PluginHookBeforeInstallResult,
 +  PluginHookBeforeToolResolveEvent,
 +  PluginHookBeforeToolResolveResult,
  } from "./hook-types.js";
  
  // Re-export types for consumers
-@@ -985,6 +987,27 @@ export function createHookRunner(
+@@ -1054,6 +1056,27 @@ export function createHookRunner(
    // Tool Hooks
    // =========================================================================
  
@@ -175,7 +176,7 @@ index 530788ee36..92e380d0d2 100644
    /**
     * Run before_tool_call hook.
     * Allows plugins to modify or block tool calls.
-@@ -1394,6 +1417,7 @@ export function createHookRunner(
+@@ -1436,6 +1459,7 @@ export function createHookRunner(
      runMessageSending,
      runMessageSent,
      // Tool hooks
@@ -184,5 +185,5 @@ index 530788ee36..92e380d0d2 100644
      runAfterToolCall,
      runToolResultPersist,
 -- 
-2.36.1.windows.1
+2.50.1 (Apple Git-155)
 

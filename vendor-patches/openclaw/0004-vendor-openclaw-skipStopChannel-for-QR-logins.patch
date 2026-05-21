@@ -1,7 +1,7 @@
-From 8a0d93779957294dbbfeab2cff8d759f69051c35 Mon Sep 17 00:00:00 2001
+From 10ac0b819a40c66c5712ea739f411ce02a302b03 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:17:51 -0700
-Subject: [PATCH 4/8] vendor(openclaw): skip stopChannel for new-account QR
+Subject: [PATCH 04/12] vendor(openclaw): skip stopChannel for new-account QR
  logins
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -42,5 +42,5 @@ index 8f8df9582d..a9947f0b79 100644
          force: Boolean((params as { force?: boolean }).force),
          timeoutMs:
 -- 
-2.36.1.windows.1
+2.50.1 (Apple Git-155)
 

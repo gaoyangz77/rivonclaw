@@ -1,7 +1,8 @@
-From f7a1892d6335a781861b191cd8131fea770fb147 Mon Sep 17 00:00:00 2001
+From bf8ad7ceddeb05e6e324fc9d9f40d990a211c40a Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
-Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
+Subject: [PATCH 10/12] vendor(openclaw): brand agent prompt for RivonClaw
+ desktop
 
 Why:
 - Patch 0009 removes the CLI quick reference, but the default agent prompt still
