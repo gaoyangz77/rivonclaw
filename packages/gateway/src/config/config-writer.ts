@@ -205,6 +205,8 @@ const REMOVED_PLUGIN_IDS = new Set([
   // v1.9.0: RivonClaw's custom file-permissions plugin and UI were removed.
   // OpenClaw's native sandbox configuration is the remaining file boundary.
   "easyclaw-file-permissions", "rivonclaw-file-permissions",
+  // v1.9.0: Browser Profiles and the CDP/session-state plugin were removed.
+  "browser-profiles-tools", "rivonclaw-browser-profiles-tools",
 ]);
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
@@ -214,7 +216,6 @@ const RENAMED_PLUGIN_IDS: Record<string, string> = {
   // v1.6 → v1.7: easyclaw → rivonclaw rebrand
   "easyclaw-event-bridge": "rivonclaw-event-bridge",
   // v1.7 → v1.8: unify all extensions under rivonclaw- prefix
-  "browser-profiles-tools": "rivonclaw-browser-profiles-tools",
   "mobile-chat-channel": "rivonclaw-mobile-chat-channel",
   "search-browser-fallback": "rivonclaw-search-browser-fallback",
 };
@@ -508,7 +509,7 @@ export interface WriteGatewayConfigOptions {
    * Tool allowlist for optional plugin tools (ADR-031).
    * Written to `tools.allow` in openclaw.json so that `collectExplicitAllowlist()`
    * includes these entries and `resolvePluginTools()` makes optional tools visible.
-   * Entries can be tool names (e.g. "browser_profiles_list") or plugin IDs.
+   * Entries can be tool names or plugin IDs.
    */
   toolAllowlist?: string[];
   /**

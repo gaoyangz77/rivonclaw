@@ -50,7 +50,7 @@ describe("before_tool_call enforcement", () => {
     mockFetchFailure();
 
     const result = await hook(
-      { toolName: "browser_profiles_list", params: {} },
+      { toolName: "ecom_get_conversations", params: {} },
       { sessionKey: "session-1" },
     );
 
@@ -64,10 +64,10 @@ describe("before_tool_call enforcement", () => {
     const { handlers } = activatePlugin();
     const hook = handlers["before_tool_call"];
 
-    mockEffectiveToolsResponse(["BROWSER_PROFILES_LIST"]);
+    mockEffectiveToolsResponse(["ECOM_GET_CONVERSATIONS"]);
 
     const result = await hook(
-      { toolName: "browser_profiles_list", params: {} },
+      { toolName: "ecom_get_conversations", params: {} },
       { sessionKey: "session-1" },
     );
 
@@ -81,7 +81,7 @@ describe("before_tool_call enforcement", () => {
     mockEffectiveToolsResponse(["SOME_OTHER_TOOL"]);
 
     const result = await hook(
-      { toolName: "browser_profiles_list", params: {} },
+      { toolName: "ecom_get_conversations", params: {} },
       { sessionKey: "session-1" },
     );
 
@@ -96,7 +96,7 @@ describe("before_tool_call enforcement", () => {
     const hook = handlers["before_tool_call"];
 
     const result = await hook(
-      { toolName: "browser_profiles_list", params: {} },
+      { toolName: "ecom_get_conversations", params: {} },
       {},
     );
 
@@ -148,18 +148,18 @@ describe("no caching — always fetches fresh", () => {
     const { handlers } = activatePlugin();
     const hook = handlers["before_tool_call"];
 
-    mockEffectiveToolsResponse(["BROWSER_PROFILES_LIST"]);
-    mockEffectiveToolsResponse(["BROWSER_PROFILES_LIST"]);
+    mockEffectiveToolsResponse(["ECOM_GET_CONVERSATIONS"]);
+    mockEffectiveToolsResponse(["ECOM_GET_CONVERSATIONS"]);
 
     // First call
     await hook(
-      { toolName: "browser_profiles_list", params: {} },
+      { toolName: "ecom_get_conversations", params: {} },
       { sessionKey: "session-1" },
     );
 
     // Second call — should also fetch (no cache)
     await hook(
-      { toolName: "browser_profiles_list", params: {} },
+      { toolName: "ecom_get_conversations", params: {} },
       { sessionKey: "session-1" },
     );
 

@@ -1,5 +1,4 @@
 import type { ToolScopeType } from "./tool-selection.js";
-import type { BrowserProfilesCapabilityBinding } from "./browser-profiles.js";
 
 // --- Unified Runtime Context ---
 
@@ -35,7 +34,6 @@ export interface AgentRunCapabilityContext {
   effectiveTools: string[];
 
   // --- Domain-specific capability bindings (extensible) ---
-  browserProfiles?: BrowserProfilesCapabilityBinding;
   entitlementSnapshot?: Record<string, boolean>;
 }
 

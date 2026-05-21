@@ -44,12 +44,12 @@ while ((m = valuePattern.exec(toolIdBlockMatch[1])) !== null) {
 console.log(`Found ${generatedToolIds.size} ToolId values in generated/graphql.ts`);
 
 // ---------------------------------------------------------------------------
-// 2. Parse backend ToolId enum from server/backend/src/types/tool-enums.ts
+// 2. Parse backend ToolId enum from server/backend/src/tools/tool-enums.ts
 // ---------------------------------------------------------------------------
 
 const backendEnumPath = join(
   root,
-  "server/backend/src/types/tool-enums.ts",
+  "server/backend/src/tools/tool-enums.ts",
 );
 const backendToolIds = new Set();
 
@@ -140,7 +140,7 @@ function extractI18nToolNames(filePath) {
   const names = new Set();
   if (!existsSync(filePath)) return names;
   const src = readFileSync(filePath, "utf8");
-  // Match keys like TIKTOK_SEND_MESSAGE: "..." or BROWSER_PROFILES_LIST: "..."
+  // Match keys like TIKTOK_SEND_MESSAGE: "..." in i18n files.
   const keyPattern = /^\s+([A-Z][A-Z_]+[A-Z]):/gm;
   let km;
   while ((km = keyPattern.exec(src)) !== null) {

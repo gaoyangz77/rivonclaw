@@ -40,12 +40,6 @@ export const DEFAULTS = {
     defaultEnabled: false,
   },
 
-  browserProfiles: {
-    defaultSessionStateMode: "cookies_only" as const,
-    defaultSessionStateStorage: "local" as const,
-    defaultCheckpointIntervalSec: 60,
-  },
-
   mobileSync: {
     sentHistoryLimit: 200,
     outboxLimit: 500,
@@ -99,7 +93,6 @@ export const DEFAULTS = {
 
   settings: {
     browserMode: "standalone" as const,
-    sessionStateCdpEnabled: true,
     collapseMessages: true,
     showAgentEvents: false,
     preserveToolEvents: false,
@@ -127,8 +120,6 @@ export const DEFAULTS = {
   pagination: {
     skills: 12,
     cronHistory: 20,
-    browserProfiles: 20,
-    browserProfilesOptions: [20, 50, 100] as number[],
   },
 
   polling: {

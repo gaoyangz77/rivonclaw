@@ -48,10 +48,8 @@ export const SettingsPage = observer(function SettingsPage() {
         saving={agentSettings.saving || toggles.saving}
         settingsReady={toggles.settingsReady}
         browserMode={toggles.browserMode}
-        sessionStateCdpEnabled={toggles.sessionStateCdpEnabled}
         handleDmScopeChange={agentSettings.handleDmScopeChange}
         handleBrowserModeChange={toggles.handleBrowserModeChange}
-        handleToggleSessionStateCdp={toggles.handleToggleSessionStateCdp}
       />
 
       <ChatSettingsSection

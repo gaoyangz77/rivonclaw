@@ -110,10 +110,3 @@ export function resolveAgentSessionsDir(
 ): string {
   return join(resolveOpenClawStateDir(env), "agents", agentId, "sessions");
 }
-
-/** Resolve the browser session-state base directory. */
-export function resolveSessionStateDir(
-  env: Record<string, string | undefined> = process.env,
-): string {
-  return join(resolveOpenClawStateDir(env), "session-state");
-}

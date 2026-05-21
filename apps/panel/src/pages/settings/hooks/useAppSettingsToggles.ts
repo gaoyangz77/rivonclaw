@@ -18,7 +18,6 @@ export function useAppSettingsToggles() {
   const collapseMessages = runtimeStatus.appSettings.chatCollapseMessages;
   const autoLaunchEnabled = runtimeStatus.appSettings.autoLaunchEnabled;
   const browserMode = runtimeStatus.appSettings.browserMode as "standalone" | "cdp";
-  const sessionStateCdpEnabled = runtimeStatus.appSettings.sessionStateCdpEnabled;
   const privacyMode = runtimeStatus.appSettings.privacyMode;
 
   async function handleToggleShowAgentEvents(enabled: boolean) {
@@ -90,18 +89,6 @@ export function useAppSettingsToggles() {
     }
   }
 
-  async function handleToggleSessionStateCdp(enabled: boolean) {
-    try {
-      setSaving(true);
-      await runtimeStatus.appSettings.setSessionStateCdpEnabled(enabled);
-      trackEvent("settings.session_state_cdp_toggled", { enabled });
-    } catch (err) {
-      showToast(t("settings.browser.failedToSave") + String(err), "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   function handleBrowserModeChange(value: string) {
     const newMode = value as "standalone" | "cdp";
     if (newMode === "cdp" && browserMode !== "cdp") {
@@ -132,7 +119,6 @@ export function useAppSettingsToggles() {
     collapseMessages,
     autoLaunchEnabled,
     browserMode,
-    sessionStateCdpEnabled,
     privacyMode,
     cdpConfirmOpen,
     setCdpConfirmOpen,
@@ -142,7 +128,6 @@ export function useAppSettingsToggles() {
     handleToggleTelemetry,
     handleToggleAutoLaunch,
     handleTogglePrivacyMode,
-    handleToggleSessionStateCdp,
     handleBrowserModeChange,
     applyBrowserMode,
   };

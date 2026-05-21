@@ -5,7 +5,7 @@
  * tool selection via ToolMultiSelect, and consistency warnings when a Surface
  * narrows its tools below what a child RunProfile uses.
  *
- * Requires staging login for entitled tools (browser_profiles_*).
+ * Requires staging login for entitled tools.
  */
 import { test, expect } from "./electron-fixture.js";
 import { DEFAULTS } from "@rivonclaw/core/defaults";

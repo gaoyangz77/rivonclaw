@@ -4,8 +4,6 @@ import type { UsageSnapshotEngine } from "../usage/usage-snapshot-engine.js";
 import type { UsageQueryService } from "../usage/usage-query-service.js";
 import type { MobileManagerInstance } from "../mobile/mobile-manager.js";
 import type { AuthSessionManager } from "../auth/session.js";
-import type { SessionLifecycleManager } from "../browser-profiles/session-lifecycle-manager.js";
-import type { ManagedBrowserService } from "../browser-profiles/managed-browser-service.js";
 import type { CloudClient } from "../cloud/cloud-client.js";
 import type { ChannelManagerInstance } from "../channels/channel-manager.js";
 
@@ -71,7 +69,5 @@ export interface ApiContext {
   mobileManager?: MobileManagerInstance;
   authSession?: AuthSessionManager;
   cloudClient?: CloudClient;
-  sessionLifecycleManager?: SessionLifecycleManager;
-  managedBrowserService?: ManagedBrowserService;
   channelManager?: ChannelManagerInstance;
 }

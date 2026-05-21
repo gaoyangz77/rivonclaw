@@ -402,4 +402,11 @@ export const migrations: Migration[] = [
       DROP TABLE IF EXISTS permissions;
     `,
   },
+  {
+    id: 31,
+    name: "drop_browser_profiles_settings",
+    sql: `
+      DELETE FROM settings WHERE key = 'session-state-cdp-enabled';
+    `,
+  },
 ];

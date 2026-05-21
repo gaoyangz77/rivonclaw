@@ -65,14 +65,6 @@ export const AppSettingsModel = AppSettingsModelBase.actions(() => ({
     invalidateCache("settings");
   }),
 
-  setSessionStateCdpEnabled: flow(function* (enabled: boolean) {
-    yield fetchJson(clientPath(API["settings.update"]), {
-      method: "PUT",
-      body: JSON.stringify({ "session-state-cdp-enabled": enabled ? "true" : "false" }),
-    });
-    invalidateCache("settings");
-  }),
-
   setSttEnabled: flow(function* (enabled: boolean) {
     yield fetchJson(clientPath(API["settings.update"]), {
       method: "PUT",

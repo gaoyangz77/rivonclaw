@@ -895,99 +895,6 @@ export interface AuthPayload {
   user: MeResponse;
 }
 
-/** Isolated browser profile for multi-profile agent sessions */
-export interface BrowserProfile {
-  createdAt: Scalars['DateTimeISO']['output'];
-  id: Scalars['ID']['output'];
-  name: Scalars['String']['output'];
-  notes?: Maybe<Scalars['String']['output']>;
-  proxyPolicy: BrowserProfileProxyPolicy;
-  sessionStatePolicy: BrowserProfileSessionStatePolicy;
-  status: BrowserProfileStatus;
-  tags?: Maybe<Array<Scalars['String']['output']>>;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['String']['output'];
-}
-
-/** Browser profile management action */
-export const BrowserProfileAction = {
-  Archive: 'ARCHIVE',
-  BatchDelete: 'BATCH_DELETE',
-  Create: 'CREATE',
-  Delete: 'DELETE',
-  Update: 'UPDATE'
-} as const;
-
-export type BrowserProfileAction = typeof BrowserProfileAction[keyof typeof BrowserProfileAction];
-/** Actions recorded in browser profile audit log */
-export const BrowserProfileAuditAction = {
-  Archived: 'ARCHIVED',
-  Created: 'CREATED',
-  Deleted: 'DELETED',
-  Unarchived: 'UNARCHIVED',
-  Updated: 'UPDATED'
-} as const;
-
-export type BrowserProfileAuditAction = typeof BrowserProfileAuditAction[keyof typeof BrowserProfileAuditAction];
-/** Audit log entry for a browser profile action */
-export interface BrowserProfileAuditEntry {
-  action: BrowserProfileAuditAction;
-  createdAt: Scalars['DateTimeISO']['output'];
-  /** JSON-encoded detail payload */
-  details?: Maybe<Scalars['String']['output']>;
-  profileId: Scalars['String']['output'];
-  userId: Scalars['String']['output'];
-}
-
-/** Result of a browser profile management operation */
-export interface BrowserProfileManageResult {
-  /** JSON-serialized result data (profile object, count, etc.) */
-  data?: Maybe<Scalars['String']['output']>;
-  ok: Scalars['Boolean']['output'];
-}
-
-/** Proxy configuration for a browser profile */
-export interface BrowserProfileProxyPolicy {
-  /** Proxy authentication string — NOT stored directly, reference to secret store */
-  auth?: Maybe<Scalars['String']['output']>;
-  baseUrl?: Maybe<Scalars['String']['output']>;
-  enabled: Scalars['Boolean']['output'];
-}
-
-/** Session state persistence policy for a browser profile */
-export interface BrowserProfileSessionStatePolicy {
-  checkpointIntervalSec: Scalars['Float']['output'];
-  enabled: Scalars['Boolean']['output'];
-  mode: Scalars['String']['output'];
-  storage: Scalars['String']['output'];
-}
-
-/** Lifecycle status of a browser profile */
-export const BrowserProfileStatus = {
-  Active: 'ACTIVE',
-  Archived: 'ARCHIVED',
-  Disabled: 'DISABLED'
-} as const;
-
-export type BrowserProfileStatus = typeof BrowserProfileStatus[keyof typeof BrowserProfileStatus];
-/** Filter input for listing browser profiles */
-export interface BrowserProfilesFilterInput {
-  /** Filter by name prefixes */
-  namePrefixes?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Free-text search query against profile name */
-  query?: InputMaybe<Scalars['String']['input']>;
-  /** Filter by status values */
-  status?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Filter by tags (profiles matching ANY of these tags) */
-  tags?: InputMaybe<Array<Scalars['String']['input']>>;
-}
-
-/** Pagination input for listing browser profiles */
-export interface BrowserProfilesPaginationInput {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-}
-
 /** One product/SKU included in an affiliate campaign setup. */
 export interface CampaignProduct {
   campaignId: Scalars['ID']['output'];
@@ -1495,24 +1402,6 @@ export interface CsEscalationEventFilterInput {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
-/** Filter for open CS escalations awaiting manager or agent completion */
-export interface CsOpenEscalationFilterInput {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  /** Case-insensitive search across escalation id, reason, context, conversation id, buyer id, and order id */
-  search?: InputMaybe<Scalars['String']['input']>;
-  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  statuses?: InputMaybe<Array<CsEscalationStatus>>;
-}
-
-/** Paged CS escalation list */
-export interface CsOpenEscalationPage {
-  items: Array<CsEscalation>;
-  limit: Scalars['Int']['output'];
-  offset: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
-}
-
 /** Delivery/execution status of a CS escalation event */
 export const CsEscalationEventStatus = {
   Claimed: 'CLAIMED',
@@ -1534,8 +1423,8 @@ export type CsEscalationEventType = typeof CsEscalationEventType[keyof typeof Cs
 export interface CsEscalationLookupResult {
   buyerNickname?: Maybe<Scalars['String']['output']>;
   buyerUserId: Scalars['String']['output'];
-  conversationId: Scalars['String']['output'];
   context?: Maybe<Scalars['String']['output']>;
+  conversationId: Scalars['String']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
   guidance?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
@@ -1564,6 +1453,24 @@ export const CsEscalationStatus = {
 } as const;
 
 export type CsEscalationStatus = typeof CsEscalationStatus[keyof typeof CsEscalationStatus];
+/** Filter for open CS escalations awaiting manager or agent completion */
+export interface CsOpenEscalationFilterInput {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  /** Case-insensitive search across escalation id, reason, context, conversation id, buyer id, and order id */
+  search?: InputMaybe<Scalars['String']['input']>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  statuses?: InputMaybe<Array<CsEscalationStatus>>;
+}
+
+/** Paged CS escalation list */
+export interface CsOpenEscalationPage {
+  items: Array<CsEscalation>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+}
+
 /** Result returned after a manager responds to a CS escalation */
 export interface CsRespondResult {
   error?: Maybe<Scalars['String']['output']>;
@@ -2687,8 +2594,7 @@ export const EntitlementKey = {
   EcomProductRead: 'ECOM_PRODUCT_READ',
   EcomProductWrite: 'ECOM_PRODUCT_WRITE',
   EcomReturnRefundRead: 'ECOM_RETURN_REFUND_READ',
-  EcomReturnRefundWrite: 'ECOM_RETURN_REFUND_WRITE',
-  MultiBrowserProfiles: 'MULTI_BROWSER_PROFILES'
+  EcomReturnRefundWrite: 'ECOM_RETURN_REFUND_WRITE'
 } as const;
 
 export type EntitlementKey = typeof EntitlementKey[keyof typeof EntitlementKey];
@@ -3102,8 +3008,6 @@ export interface Mutation {
   decideActionProposal: ActionProposal;
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
-  /** Delete the session state backup for a profile */
-  deleteSessionStateBackup: Scalars['Boolean']['output'];
   /** Disconnect a shop (soft delete — balance preserved for reconnection) */
   deleteShop: Scalars['Boolean']['output'];
   /** Delete a surface */
@@ -3134,8 +3038,6 @@ export interface Mutation {
   login: AuthPayload;
   /** Log out (revoke the provided refresh token) */
   logout: Scalars['Boolean']['output'];
-  /** Unified browser profile management: create, update, delete, archive, or batch delete profiles */
-  manageBrowserProfile: BrowserProfileManageResult;
   /** Promote a temporary uploaded image into permanent object storage and link it to an entity. Pass the assetId returned by POST /api/uploads/images; imageUri is accepted as a fallback. */
   promoteImageAsset: ImageAsset;
   /** Publish an update notification to all connected clients (admin only) */
@@ -3176,8 +3078,6 @@ export interface Mutation {
   updateShop?: Maybe<Shop>;
   /** Update an existing surface */
   updateSurface?: Maybe<Surface>;
-  /** Upload (upsert) an encrypted session state backup */
-  uploadSessionStateBackup: Scalars['Boolean']['output'];
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
   /** Create or update an affiliate approval interception policy. */
@@ -3302,11 +3202,6 @@ export interface MutationDeleteRunProfileArgs {
 }
 
 
-export interface MutationDeleteSessionStateBackupArgs {
-  profileId: Scalars['ID']['input'];
-}
-
-
 export interface MutationDeleteShopArgs {
   id: Scalars['ID']['input'];
 }
@@ -3398,14 +3293,6 @@ export interface MutationLoginArgs {
 
 export interface MutationLogoutArgs {
   refreshToken: Scalars['String']['input'];
-}
-
-
-export interface MutationManageBrowserProfileArgs {
-  action: BrowserProfileAction;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  ids?: InputMaybe<Array<Scalars['ID']['input']>>;
-  input?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -3504,13 +3391,6 @@ export interface MutationUpdateSurfaceArgs {
 }
 
 
-export interface MutationUploadSessionStateBackupArgs {
-  manifest: SessionStateBackupManifestInput;
-  payload: Scalars['String']['input'];
-  profileId: Scalars['ID']['input'];
-}
-
-
 export interface MutationVerifyPairingCodeArgs {
   mobileDeviceId: Scalars['String']['input'];
   pairingCode: Scalars['String']['input'];
@@ -3571,14 +3451,6 @@ export interface OAuthCompletePayload {
   platform: Scalars['String']['output'];
   shopId: Scalars['String']['output'];
   shopName: Scalars['String']['output'];
-}
-
-/** Paginated browser profiles result */
-export interface PaginatedBrowserProfiles {
-  items: Array<BrowserProfile>;
-  limit: Scalars['Int']['output'];
-  offset: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
 }
 
 /** Unified payment record across payment providers. */
@@ -3888,12 +3760,6 @@ export interface Query {
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
   affiliateWorkspace: AffiliateWorkspacePayload;
-  /** Get a single browser profile by ID */
-  browserProfile?: Maybe<BrowserProfile>;
-  /** Get audit log for a browser profile */
-  browserProfileAuditLog: Array<BrowserProfileAuditEntry>;
-  /** List browser profiles for the authenticated user */
-  browserProfiles: PaginatedBrowserProfiles;
   /** Read campaign product setup rows from Mongo state. */
   campaignProducts: Array<CampaignProduct>;
   /** Check if a newer version is available (public, no auth required) */
@@ -4006,8 +3872,6 @@ export interface Query {
   runProfile?: Maybe<RunProfile>;
   /** List run profiles for the authenticated user, optionally filtered by surface */
   runProfiles: Array<RunProfile>;
-  /** Download the encrypted session state backup for a profile */
-  sessionStateBackup?: Maybe<SessionStateBackupDownload>;
   /** Get a single shop by ID */
   shop?: Maybe<Shop>;
   /** Get OAuth token status for a shop */
@@ -4075,22 +3939,6 @@ export interface QueryAffiliateWorkItemsArgs {
 
 export interface QueryAffiliateWorkspaceArgs {
   input: AffiliateWorkspaceInput;
-}
-
-
-export interface QueryBrowserProfileArgs {
-  id: Scalars['ID']['input'];
-}
-
-
-export interface QueryBrowserProfileAuditLogArgs {
-  profileId: Scalars['ID']['input'];
-}
-
-
-export interface QueryBrowserProfilesArgs {
-  filter?: InputMaybe<BrowserProfilesFilterInput>;
-  pagination?: InputMaybe<BrowserProfilesPaginationInput>;
 }
 
 
@@ -4407,11 +4255,6 @@ export interface QueryRunProfileArgs {
 
 export interface QueryRunProfilesArgs {
   surfaceId?: InputMaybe<Scalars['ID']['input']>;
-}
-
-
-export interface QuerySessionStateBackupArgs {
-  profileId: Scalars['ID']['input'];
 }
 
 
@@ -4850,30 +4693,6 @@ export const ServiceId = {
 } as const;
 
 export type ServiceId = typeof ServiceId[keyof typeof ServiceId];
-/** Session state backup with payload for download */
-export interface SessionStateBackupDownload {
-  manifest: SessionStateBackupManifest;
-  payload: Scalars['String']['output'];
-}
-
-/** Manifest metadata for a session state backup */
-export interface SessionStateBackupManifest {
-  cookieCount: Scalars['Float']['output'];
-  hash: Scalars['String']['output'];
-  profileId: Scalars['String']['output'];
-  target: Scalars['String']['output'];
-  updatedAt: Scalars['Float']['output'];
-}
-
-/** Input for session state backup manifest */
-export interface SessionStateBackupManifestInput {
-  cookieCount: Scalars['Float']['input'];
-  hash: Scalars['String']['input'];
-  profileId: Scalars['String']['input'];
-  target: Scalars['String']['input'];
-  updatedAt: Scalars['Float']['input'];
-}
-
 /** A connected e-commerce shop */
 export interface Shop {
   accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -5210,7 +5029,6 @@ export const ToolCategory = {
   AffiliateApproval: 'AFFILIATE_APPROVAL',
   AffiliateRead: 'AFFILIATE_READ',
   AffiliateSearch: 'AFFILIATE_SEARCH',
-  BrowserProfiles: 'BROWSER_PROFILES',
   EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
   EcomCs: 'ECOM_CS',
   EcomCsManagement: 'ECOM_CS_MANAGEMENT',
@@ -5233,9 +5051,6 @@ export const ToolId = {
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
-  BrowserProfilesGet: 'BROWSER_PROFILES_GET',
-  BrowserProfilesList: 'BROWSER_PROFILES_LIST',
-  BrowserProfilesManage: 'BROWSER_PROFILES_MANAGE',
   CsEscalate: 'CS_ESCALATE',
   CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
   CsRespond: 'CS_RESPOND',

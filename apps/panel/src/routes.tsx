@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import {
   ChatIcon, ProvidersIcon, ChannelsIcon,
   ExtrasIcon, UsageIcon, SkillsIcon,
-  BrowserProfilesIcon, CronsIcon, SettingsIcon, AccountIcon,
+  CronsIcon, SettingsIcon, AccountIcon,
   ShopIcon, EcommerceIcon,
 } from "./components/icons.js";
 import { ChatPage } from "./pages/chat/ChatPage.js";
@@ -15,7 +15,6 @@ import { CronsPage } from "./pages/crons/CronsPage.js";
 import { SettingsPage } from "./pages/settings/SettingsPage.js";
 import { OnboardingPage } from "./pages/onboarding/OnboardingPage.js";
 import { AccountPage } from "./pages/account/AccountPage.js";
-import { BrowserProfilesPage } from "./pages/browser-profiles/BrowserProfilesPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import { AffiliateManagementPage } from "./pages/ecommerce/AffiliateManagementPage.js";
@@ -56,7 +55,6 @@ export const ROUTES: RouteEntry[] = [
   { path: "/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", keepMounted: true },
   { path: "/extras", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras" },
   { path: "/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills" },
-  { path: "/browser-profiles", pageKey: "browser-profiles", component: BrowserProfilesPage, icon: <BrowserProfilesIcon />, navLabelKey: "nav.browserProfiles", authRequired: true },
   { path: "/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons" },
   { path: "/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
   { path: "/ecommerce", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER" },

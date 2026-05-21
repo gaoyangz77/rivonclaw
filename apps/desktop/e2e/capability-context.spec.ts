@@ -63,13 +63,6 @@ test.describe("Capability Context — Public Queries", () => {
     const tools = body.data!.toolRegistry!;
     expect(tools.length).toBeGreaterThan(0);
 
-    // Verify uppercase enum conventions (W30 four-layer model)
-    const browserTool = tools.find((t) => t.id === "BROWSER_PROFILES_LIST");
-    if (browserTool) {
-      expect(browserTool.category).toBe("BROWSER_PROFILES");
-      expect(browserTool.serviceCategory).toBe("BROWSER_PROFILES");
-    }
-
     // All tool IDs should be UPPER_SNAKE_CASE
     for (const tool of tools) {
       expect(tool.id).toMatch(/^[A-Z][A-Z0-9_]*$/);
