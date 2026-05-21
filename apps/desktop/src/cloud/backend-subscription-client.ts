@@ -123,8 +123,56 @@ const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       orderId
       messageType
       senderRole
+      aiEnabled
+      latestMessagePreview
       operatorInstruction
       eventTime
+    }
+  }
+`;
+
+const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
+  subscription CsConversationChanged($shopIds: [ID!]) {
+    csConversationChanged(shopIds: $shopIds) {
+      shopId
+      platformShopId
+      conversationId
+      unreadCount
+      status
+      replyStatus
+      isOpen
+      platformConversationStatus
+      aiEnabled
+      createTime
+      latestMessageTime
+      latestMessagePreview
+      lastPendingAt
+      resolvedAt
+      updatedAt
+      orderId
+      participantCount
+      canSendMessage
+      participants {
+        role
+        userId
+        imUserId
+        nickname
+        avatar
+      }
+      latestMessage {
+        messageId
+        type
+        content
+        index
+        createTime
+        sender {
+          role
+          userId
+          imUserId
+          nickname
+          avatar
+        }
+      }
     }
   }
 `;
@@ -472,6 +520,7 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
 
 export type UpdatePayload = GQL.UpdatePayload;
 export type CsConversationSignalPayload = GQL.CsConversationSignal;
+export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
 export type AffiliateConversationSignalPayload = GQL.AffiliateConversationSignal;
 export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
 export type AffiliateActionProposalPayload = GQL.ActionProposal;
@@ -1073,6 +1122,44 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "CS conversation signal subscription error", err);
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true });
+  }
+
+  subscribeToCsConversationChanges(
+    onConversation: (conversation: CsConversationChangedPayload) => void,
+    options?: { getShopIds?: () => string[] },
+  ): () => void {
+    const key = "cs-conversation-changes";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+      const shopIds = Array.from(new Set(options?.getShopIds?.() ?? []))
+        .filter((shopId) => typeof shopId === "string" && shopId.length > 0);
+
+      return this.client.subscribe<{ csConversationChanged: CsConversationChangedPayload }>(
+        {
+          query: CS_CONVERSATION_CHANGED_SUBSCRIPTION,
+          variables: { shopIds },
+        },
+        {
+          next: (result) => {
+            this.handleResultErrors(key, attempt, "CS conversation changed subscription next contained GraphQL errors", result.errors);
+            const payload = result.data?.csConversationChanged;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "csConversationChanged", result as any);
+              return;
+            }
+            onConversation(payload);
+          },
+          error: (err) => {
+            this.handleSubscriptionError(key, attempt, "CS conversation changed subscription error", err);
           },
           complete: () => {},
         },

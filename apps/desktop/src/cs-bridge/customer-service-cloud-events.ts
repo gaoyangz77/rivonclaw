@@ -2,7 +2,11 @@ import type { AuthSessionManager } from "../auth/session.js";
 import type { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
 import { handleCsConversationSignal } from "./cs-conversation-signal-actuator.js";
 import { handleCsEscalationEvent } from "./cs-escalation-event-actuator.js";
-import type { CsEscalationEventDeliveryPayload } from "../cloud/backend-subscription-client.js";
+import type {
+  CsConversationChangedPayload,
+  CsConversationSignalPayload,
+  CsEscalationEventDeliveryPayload,
+} from "../cloud/backend-subscription-client.js";
 
 export interface RegisterCustomerServiceCloudEventsOptions {
   backendSubscription: BackendSubscriptionClient;
@@ -10,6 +14,8 @@ export interface RegisterCustomerServiceCloudEventsOptions {
   deviceId: string;
   getShopIds: () => string[];
   onEscalationEvent?: (delivery: CsEscalationEventDeliveryPayload) => void;
+  onConversationSignal?: (signal: CsConversationSignalPayload) => void;
+  onConversationChanged?: (conversation: CsConversationChangedPayload) => void;
 }
 
 /**
@@ -25,6 +31,8 @@ export function registerCustomerServiceCloudEvents({
   deviceId,
   getShopIds,
   onEscalationEvent,
+  onConversationSignal,
+  onConversationChanged,
 }: RegisterCustomerServiceCloudEventsOptions): void {
   backendSubscription.subscribeToCsEscalationEvents((event) => {
     onEscalationEvent?.(event);
@@ -33,7 +41,15 @@ export function registerCustomerServiceCloudEvents({
 
   backendSubscription.subscribeToCsConversationSignals(
     (signal) => {
+      onConversationSignal?.(signal);
       void handleCsConversationSignal(deviceId, signal);
+    },
+    { getShopIds },
+  );
+
+  backendSubscription.subscribeToCsConversationChanges(
+    (conversation) => {
+      onConversationChanged?.(conversation);
     },
     { getShopIds },
   );
