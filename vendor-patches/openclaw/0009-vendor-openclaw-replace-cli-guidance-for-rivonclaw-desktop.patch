@@ -1,7 +1,8 @@
-From 35455ab0fe3775a4c6fbd2164d61fc1b56c33e19 Mon Sep 17 00:00:00 2001
+From ecb34e2531bc9d94217e7287cc4772822f496ad6 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 25 Apr 2026 20:08:44 -0700
-Subject: [PATCH] vendor(openclaw): replace CLI guidance for RivonClaw desktop
+Subject: [PATCH 09/12] vendor(openclaw): replace CLI guidance for RivonClaw
+ desktop
 
 Why:
 - RivonClaw Desktop does not expose a reliable OpenClaw CLI to agents or end users.
@@ -17,10 +18,10 @@ Tests:
  1 file changed, 6 insertions(+), 13 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index cf09705e3b..a1d80b97b7 100644
+index 747b309f28..f4dae24b80 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -469,7 +469,7 @@ function buildDocsSection(params: {
+@@ -538,7 +538,7 @@ function buildDocsSection(params: {
      sourcePath
        ? "If docs are incomplete or stale, inspect the local OpenClaw source code before answering."
        : "If docs are incomplete or stale, review the OpenClaw source on GitHub before answering.",
@@ -29,7 +30,7 @@ index cf09705e3b..a1d80b97b7 100644
      "",
    ];
    return lines.filter((line): line is string => line !== undefined);
-@@ -889,18 +889,11 @@ export function buildAgentSystemPrompt(params: {
+@@ -968,18 +968,11 @@ export function buildAgentSystemPrompt(params: {
          fallback: [],
        }),
        ...safetySection,
@@ -54,5 +55,5 @@ index cf09705e3b..a1d80b97b7 100644
        ...skillsSection,
        ...memorySection,
 -- 
-2.36.1.windows.1
+2.50.1 (Apple Git-155)
 

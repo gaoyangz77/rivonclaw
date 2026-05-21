@@ -1,8 +1,8 @@
-From 621b62397ee3d4e4e92829636c064c56391fbec0 Mon Sep 17 00:00:00 2001
+From 50be8d4cab202adef891ed9a081d748b1a59c67c Mon Sep 17 00:00:00 2001
 From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
 Date: Wed, 13 May 2026 00:06:20 -0700
-Subject: [PATCH] vendor(openclaw): re-apply system prompt override before LLM
- call
+Subject: [PATCH 05/12] vendor(openclaw): re-apply system prompt override
+ before LLM call
 
 Why:
 - pi-coding-agent internal session management (tool refresh, compaction,
