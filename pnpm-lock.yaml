@@ -112,9 +112,6 @@ importers:
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
-      '@rivonclaw/rivonclaw-browser-profiles-tools':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-browser-profiles-tools
       '@rivonclaw/rivonclaw-capability-manager':
         specifier: workspace:*
         version: link:../../extensions/rivonclaw-capability-manager
@@ -323,12 +320,6 @@ importers:
       '@rivonclaw/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
-      '@rivonclaw/rivonclaw-browser-profiles-tools':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-browser-profiles-tools
-      '@sinclair/typebox':
-        specifier: ^0.34.0
-        version: 0.34.48
     devDependencies:
       '@rivonclaw/core':
         specifier: workspace:*
@@ -355,34 +346,6 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
-
-  extensions/rivonclaw-browser-profiles-tools:
-    dependencies:
-      '@rivonclaw/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@rivonclaw/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      '@sinclair/typebox':
-        specifier: ^0.34.0
-        version: 0.34.48
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
-      ws:
-        specifier: ^8.18.0
-        version: 8.19.0
 
   extensions/rivonclaw-capability-manager:
     dependencies:

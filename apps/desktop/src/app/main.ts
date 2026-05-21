@@ -23,7 +23,7 @@ import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCrede
 import type { GatewayState } from "@rivonclaw/gateway";
 import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, getTelegramDebugRelayApiRoot, type LLMProvider } from "@rivonclaw/core";
 import type { GQL } from "@rivonclaw/core";
-import { resolveRivonClawHome, resolveSessionStateDir, findFreePort } from "@rivonclaw/core/node";
+import { resolveRivonClawHome, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
 import { ProxyRouter } from "@rivonclaw/proxy-router";
@@ -39,8 +39,7 @@ import { createTrayIcon } from "../tray/tray-icon.js";
 import { buildTrayMenu } from "../tray/tray-menu.js";
 import { startPanelServer, broadcastEvent } from "./panel-server.js";
 import { SttManager } from "../stt/stt-manager.js";
-import { createCdpManager } from "../browser-profiles/cdp-manager.js";
-import { CdpCookieAdapter } from "../browser-profiles/cdp-cookie-adapter.js";
+import { createCdpManager } from "../infra/browser/cdp-manager.js";
 import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "../infra/proxy/proxy-manager.js";
 import { createAutoUpdater } from "../updater/auto-updater.js";
 import { queryCheckUpdate, type UpdatePayload } from "../cloud/backend-subscription-client.js";
@@ -52,14 +51,8 @@ import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-
 import { syncActiveKey } from "../providers/provider-validator.js";
 import { reaction } from "mobx";
 import { rootStore, initLLMProviderManagerEnv, initChannelManagerEnv } from "./store/desktop-store.js";
-import { createSessionStateStack, type SessionStateStack } from "../browser-profiles/session-state-wiring.js";
-import { createCloudBackupProvider } from "../browser-profiles/session-state/backup-provider.js";
-import type { ProfilePolicyResolver } from "../browser-profiles/runtime-service.js";
-import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
-import { ManagedBrowserService } from "../browser-profiles/managed-browser-service.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
-import { initCookieSync, pullAndPersistCookies, pushStoredCookiesToGateway } from "../browser-profiles/cookie-sync.js";
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
@@ -83,7 +76,6 @@ import {
 import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
-import { BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY } from "../cloud/browser-profile-queries.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
 
@@ -600,34 +592,11 @@ app.whenReady().then(async () => {
   // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
   // when tools change (e.g. after ingestGraphQLResponse).
 
-  // Late-bound reference: sessionStateStack is created after cdpManager,
-  // so we capture it via a mutable binding that the callback closes over.
-  // eslint-disable-next-line prefer-const -- assigned later, after cdpManager creation
-  let sessionStateStackRef = null as SessionStateStack | null;
-
   const cdpManager = createCdpManager({
     storage,
     launcher,
     writeGatewayConfig,
     buildFullGatewayConfig: () => buildFullGatewayConfig(actualGatewayPort),
-    onCdpReady: (port) => {
-      const stack = sessionStateStackRef;
-      if (!stack) {
-        log.warn("onCdpReady fired before sessionStateStack initialized — skipping session start");
-        return;
-      }
-      // Check if CDP session-state tracking is enabled (default: true)
-      const cdpSessionEnabled = storage.settings.get("session-state-cdp-enabled");
-      if (cdpSessionEnabled === "false") {
-        log.info("CDP session-state tracking disabled by user setting — skipping");
-        return;
-      }
-      // CDP compatibility session — uses "__cdp__" as the scope key since
-      // CDP mode operates on the user's existing Chrome, not an RivonClaw-managed profile.
-      const adapter = new CdpCookieAdapter(port);
-      stack.lifecycleManager.startSession("__cdp__", adapter, "cdp")
-        .catch((err: unknown) => log.warn("Failed to start CDP session state tracking:", err));
-    },
   });
 
   // Determine system locale for tray menu i18n
@@ -911,17 +880,6 @@ app.whenReady().then(async () => {
   launcher.on("stopped", () => {
     log.info("Gateway stopped");
 
-    // Pull cookies from the gateway plugin for all running profiles before
-    // the RPC client is torn down. Best-effort: failures are logged.
-    // The connector handles RPC disconnect via initLauncher() → disconnectRpc().
-    const runningProfiles = managedBrowserService.getRunningProfiles();
-    const pullPromises = runningProfiles.map(profileId =>
-      pullAndPersistCookies(profileId)
-        .catch((e: unknown) => log.debug(`Failed to pull cookies for ${profileId} on gateway stop:`, e)),
-    );
-    Promise.all(pullPromises)
-      .catch(() => {}); // swallow aggregate errors
-
     updateTray("stopped");
 
     // Gateway stopped -- CS bridge must be torn down so it can be recreated
@@ -929,13 +887,6 @@ app.whenReady().then(async () => {
     // process-death path may not fire onClose if the socket is already dead.)
     stopCsBridge();
 
-    // Gateway stopped -- managed browsers lose their runtime
-    managedBrowserService.shutdown()
-      .catch(err => log.warn("Failed to shutdown managed browser service:", err));
-
-    // End any remaining sessions (CDP compatibility)
-    sessionStateStack.lifecycleManager.endAllSessions()
-      .catch((err) => log.warn("Failed to end sessions on gateway stop:", err));
   });
 
   launcher.on("restarting", (attempt, delayMs) => {
@@ -1000,47 +951,6 @@ app.whenReady().then(async () => {
   // Initialize STT manager
   const sttManager = new SttManager(storage, secretStore, (url, init) => proxyNetwork.fetch(url, init));
   await sttManager.initialize();
-
-  // Initialize session state stack for browser profile session persistence.
-  // The policy resolver reads sessionStatePolicy from the canonical cloud
-  // BrowserProfile model. For CDP-only profiles (__cdp__) or when auth is
-  // unavailable, it returns null so the runtime falls back to defaults.
-  const policyResolver: ProfilePolicyResolver = async (profileId: string) => {
-    if (profileId === "__cdp__") return null;
-    if (!authSession?.getAccessToken()) return null;
-    try {
-      const data = await authSession.graphqlFetch<{
-        browserProfile: { sessionStatePolicy: BrowserProfileSessionStatePolicy } | null;
-      }>(
-        BROWSER_PROFILE_SESSION_STATE_POLICY_LITE_QUERY,
-        { id: profileId },
-      );
-      if (!data.browserProfile?.sessionStatePolicy) return null;
-      const sp = data.browserProfile.sessionStatePolicy;
-      return {
-        mode: sp.mode as BrowserProfileSessionStatePolicy["mode"],
-        checkpointIntervalSec: sp.checkpointIntervalSec,
-        storage: sp.storage as BrowserProfileSessionStatePolicy["storage"],
-      };
-    } catch {
-      return null; // Fall back to default policy on network failure
-    }
-  };
-  const backupProvider = authSession ? createCloudBackupProvider(authSession) : undefined;
-  const sessionStateStack = await createSessionStateStack(resolveSessionStateDir(), secretStore, policyResolver, backupProvider);
-  sessionStateStackRef = sessionStateStack;
-
-  // Create managed browser service for multi-profile browser management
-  const managedBrowserService = new ManagedBrowserService(
-    sessionStateStack.lifecycleManager,
-    join(stateDir, "managed-browsers"),
-  );
-
-  // Wire cookie-sync module to session state and managed browser service
-  initCookieSync({
-    getSessionStateStack: () => sessionStateStackRef,
-    getManagedBrowserEntries: () => managedBrowserService.getAllEntries(),
-  });
 
   // Late-bound config handler refs — configHandlers is created after gateway setup,
   // but panel-server callbacks need them earlier.
@@ -1143,22 +1053,10 @@ app.whenReady().then(async () => {
       });
     },
     onToolSelectionChange: undefined, // Tool visibility is controlled by capability-manager at runtime, no gateway restart needed
-    sessionLifecycleManager: sessionStateStack.lifecycleManager,
-    managedBrowserService,
     onBrowserChange: () => {
-      // End all session state tracking BEFORE reconfiguring browser mode.
-      // Sessions must flush while the browser is still running.
-      managedBrowserService.shutdown()
-        .catch((err: unknown) => log.error("Failed to shutdown managed browsers on change:", err))
-        .finally(() => {
-          sessionStateStack.lifecycleManager.endAllSessions()
-            .catch((err: unknown) => log.error("Failed to end sessions on browser change:", err))
-            .finally(() => {
-              cdpManager.handleBrowserChange().catch((err: unknown) => {
-                log.error("Failed to handle browser change:", err);
-              });
-            });
-        });
+      cdpManager.handleBrowserChange().catch((err: unknown) => {
+        log.error("Failed to handle browser change:", err);
+      });
     },
     onAuthChange: () => {
       return (async () => {
@@ -1684,9 +1582,6 @@ app.whenReady().then(async () => {
     // 5. Start CS Bridge if user has e-commerce module
     tryStartCsBridge(deviceId ?? "unknown", locale);
 
-    // 6. Push locally-stored cookies for managed profiles to the gateway plugin
-    pushStoredCookiesToGateway()
-      .catch((e: unknown) => log.debug("Failed to push stored cookies to gateway (best-effort):", e));
   });
 
   // ── Register onRpcDisconnected callback ────────────────────────────────────
@@ -1809,12 +1704,6 @@ app.whenReady().then(async () => {
     removeHeartbeat();
 
     const cleanup = async () => {
-      // Shutdown managed browser service (ends all managed profile sessions)
-      await managedBrowserService.shutdown();
-
-      // Flush any remaining sessions (e.g., CDP compatibility sessions)
-      await sessionStateStack.lifecycleManager.endAllSessions();
-
       // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches
       // go through proxy-router for HTTP CONNECT. If the router is down
       // first, the flush fails 9× (3 outer × 3 inner retries) wasting

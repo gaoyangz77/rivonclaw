@@ -7,7 +7,6 @@ import { cronsSteps } from "./crons.js"
 import { extrasSteps } from "./extras.js"
 import { usageSteps } from "./usage.js"
 import { settingsSteps } from "./settings.js"
-import { browserProfilesSteps } from "./browser-profiles.js"
 import { accountSteps } from "./account.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
@@ -19,7 +18,6 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/extras": extrasSteps,
   "/usage": usageSteps,
   "/settings": settingsSteps,
-  "/browser-profiles": browserProfilesSteps,
   "/account": accountSteps,
 }
 

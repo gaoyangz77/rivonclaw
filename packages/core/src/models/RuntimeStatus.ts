@@ -38,8 +38,6 @@ export const AppSettingsModel = types.model("AppSettings", {
   autoLaunchEnabled: types.optional(types.boolean, false),
   // Browser
   browserMode: types.optional(types.string, DEFAULTS.settings.browserMode),
-  // Session state CDP (isNotFalse → absent = true)
-  sessionStateCdpEnabled: types.optional(types.boolean, true),
   // STT (isTrue → absent = false)
   sttEnabled: types.optional(types.boolean, false),
   sttProvider: types.optional(types.string, ""),

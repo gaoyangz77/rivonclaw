@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
-import { ToggleSwitch } from "./ToggleSwitch.js";
 import { DM_SCOPE_OPTIONS } from "../settings-types.js";
 
 interface AgentSettingsSectionProps {
@@ -8,10 +7,8 @@ interface AgentSettingsSectionProps {
   saving: boolean;
   settingsReady: boolean;
   browserMode: "standalone" | "cdp";
-  sessionStateCdpEnabled: boolean;
   handleDmScopeChange: (value: string) => void;
   handleBrowserModeChange: (value: string) => void;
-  handleToggleSessionStateCdp: (enabled: boolean) => void;
 }
 
 export function AgentSettingsSection({
@@ -19,10 +16,8 @@ export function AgentSettingsSection({
   saving,
   settingsReady,
   browserMode,
-  sessionStateCdpEnabled,
   handleDmScopeChange,
   handleBrowserModeChange,
-  handleToggleSessionStateCdp,
 }: AgentSettingsSectionProps) {
   const { t } = useTranslation();
 
@@ -65,18 +60,6 @@ export function AgentSettingsSection({
           {t("settings.browser.modeHint")}
         </div>
       </div>
-
-      {browserMode === "cdp" && (
-        <div className="settings-toggle-card">
-          <div className="settings-toggle-label">
-            <span>{t("settings.browser.sessionStateCdp")}</span>
-            <ToggleSwitch checked={sessionStateCdpEnabled} onChange={handleToggleSessionStateCdp} disabled={saving || !settingsReady} />
-          </div>
-          <div className="form-hint">
-            {t("settings.browser.sessionStateCdpHint")}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

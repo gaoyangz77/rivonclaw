@@ -55,7 +55,6 @@
     "@electron/notarize": "^3.0.0",
     "@electron/rebuild": "^4.0.3",
     "@playwright/test": "^1.58.2",
-    "@rivonclaw/rivonclaw-browser-profiles-tools": "workspace:*",
     "@rivonclaw/rivonclaw-capability-manager": "workspace:*",
     "@rivonclaw/rivonclaw-event-bridge": "workspace:*",
     "@rivonclaw/rivonclaw-mobile-chat-channel": "workspace:*",

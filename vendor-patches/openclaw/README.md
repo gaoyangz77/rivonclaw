@@ -78,20 +78,6 @@ vendor upgrade, the AI must still inspect whether each patch:
 
 ## Current Patches
 
-### 0001 — Browser lifecycle hooks for plugin integration
-
-**File:** `0001-vendor-openclaw-add-browser-lifecycle-hooks-for-plug.patch`
-
-**Why:** OpenClaw's browser subsystem has no plugin hooks for lifecycle events
-(launch, close, page navigation). EasyClaw's
-`extensions/rivonclaw-browser-profiles-tools/` needs these hooks to manage
-browser profiles, inject CDP sessions, and synchronize browser state with the
-gateway. Without this patch, browser-profile plugins cannot observe or control
-browser lifecycle.
-
-**Removal:** Drop when upstream OpenClaw adds a browser plugin lifecycle API
-(hooks or event emitter) that covers launch/close/navigate events.
-
 ### 0002 — `before_tool_resolve` hook for per-session tool filtering
 
 **File:** `0002-vendor-openclaw-add-before_tool_resolve-hook-for-per.patch`

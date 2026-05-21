@@ -95,7 +95,6 @@ rivonclaw/
 │   ├── rivonclaw-policy/                   # OpenClaw plugin shell for policy injection
 │   ├── rivonclaw-tools/                    # Owner-only custom tools plugin
 │   ├── rivonclaw-mobile-chat-channel/      # Mobile messaging relay plugin
-│   ├── rivonclaw-browser-profiles-tools/   # Browser profile CDP tool integration
 │   ├── rivonclaw-capability-manager/       # Tool capability / surface availability
 │   ├── rivonclaw-event-bridge/             # Bridges gateway agent events to Chat UI
 │   └── rivonclaw-search-browser-fallback/  # Web-search fallback via headless browser
@@ -125,7 +124,6 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 | `@rivonclaw/rivonclaw-policy`                  | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                |
 | `@rivonclaw/rivonclaw-tools`                   | Owner-only custom tools plugin (e.g. system control, desktop integration).                                          |
 | `@rivonclaw/rivonclaw-mobile-chat-channel`     | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                              |
-| `@rivonclaw/rivonclaw-browser-profiles-tools`  | CDP-based browser profile tool integration for the agent.                                                           |
 | `@rivonclaw/rivonclaw-capability-manager`      | Tool capability and surface availability resolver.                                                                  |
 | `@rivonclaw/rivonclaw-event-bridge`            | Mirrors selected gateway agent events onto the Chat UI stream.                                                      |
 | `@rivonclaw/rivonclaw-search-browser-fallback` | Web-search fallback that uses a headless browser when direct search API fails.                                      |
@@ -224,7 +222,6 @@ Endpoints today span the following categories:
 | Rules & skills          | `/api/rules`, `/api/skills`                                                  |
 | Providers & OAuth       | `/api/providers`, `/api/provider-keys`, `/api/oauth/*`                       |
 | Channels & mobile chat  | `/api/channels/*`, `/api/channels/accounts`, `/api/mobile/*`                 |
-| Browser profiles        | `/api/browser-profiles/*` (managed launch/connect, sessions, proxy test)    |
 | Customer-service bridge | `/api/cs-bridge/*` (binding, escalation, conversations)                      |
 | Chat & streaming        | `/api/chat/events` (SSE), `/api/chat-sessions`                               |
 | Settings & status       | `/api/settings`, `/api/agent-settings`, `/api/status`, `/api/doctor/*`       |

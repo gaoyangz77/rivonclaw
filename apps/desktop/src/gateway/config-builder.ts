@@ -188,9 +188,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
             enabled: true,
             hooks: { allowConversationAccess: true },
           },
-          "rivonclaw-browser-profiles-tools": {
-            enabled: true,
-          },
           "rivonclaw-capability-manager": {
             enabled: true,
             hooks: { allowConversationAccess: true },

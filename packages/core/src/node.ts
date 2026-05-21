@@ -23,5 +23,4 @@ export {
   DEFAULT_AGENT_ID,
   resolveAgentConfigDir,
   resolveAgentSessionsDir,
-  resolveSessionStateDir,
 } from "./node-utils/paths.js";

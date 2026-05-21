@@ -25,8 +25,7 @@ type Applier = (s: typeof RuntimeStatusStoreModel.Type.appSettings, raw: string 
  * Absent-value semantics must match the old REST getter / main.ts logic:
  *
  * - isNotFalse: absent → true  (opt-out: enabled unless explicitly "false")
- *     Used by: telemetry_enabled, session-state-cdp-enabled, chat_collapse_messages,
- *              chat_show_agent_events
+ *     Used by: telemetry_enabled, chat_collapse_messages, chat_show_agent_events
  * - isTrue:    absent → false  (opt-in: disabled unless explicitly "true")
  *     Used by: chat_preserve_tool_events, privacy_mode, auto_launch_enabled,
  *              stt.enabled, webSearch.enabled, embedding.enabled
@@ -45,7 +44,6 @@ const SETTING_APPLIERS: Record<string, Applier> = {
   "telemetry_enabled":            (s, v) => { s.telemetryEnabled         = isNotFalse(v); },
   "auto_launch_enabled":          (s, v) => { s.autoLaunchEnabled        = isTrue(v); },
   "browser-mode":                 (s, v) => { s.browserMode              = v ?? "standalone"; },
-  "session-state-cdp-enabled":    (s, v) => { s.sessionStateCdpEnabled   = isNotFalse(v); },
   "stt.enabled":                  (s, v) => { s.sttEnabled               = isTrue(v); },
   "stt.provider":                 (s, v) => { s.sttProvider              = v ?? ""; },
   "webSearch.enabled":            (s, v) => { s.webSearchEnabled         = isTrue(v); },

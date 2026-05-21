@@ -38,17 +38,9 @@ import {
   SUBSCRIPTION_STATUS_QUERY,
   LLM_QUOTA_STATUS_QUERY,
 } from "../api/auth-queries.js";
-import {
-  BROWSER_PROFILES_QUERY,
-  CREATE_BROWSER_PROFILE_MUTATION,
-  UPDATE_BROWSER_PROFILE_MUTATION,
-  DELETE_BROWSER_PROFILE_MUTATION,
-  BATCH_ARCHIVE_BROWSER_PROFILES_MUTATION,
-  BATCH_DELETE_BROWSER_PROFILES_MUTATION,
-} from "../api/browser-profiles-queries.js";
-import { fetchJson, fetchVoid, invalidateCache } from "../api/client.js";
+import { fetchJson, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
-import type { BrowserProfileProxyTestResult, GQL, ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
+import type { GQL, ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { panelEventBus } from "../lib/event-bus.js";
 import { gql } from "@apollo/client/core";
@@ -373,114 +365,6 @@ const PanelRootStoreModel = RootStoreModel.props({
         return { error: response.errors[0]!.message } as { success?: boolean; error?: string };
       }
       return { success: response.data?.registerPairing?.success } as { success?: boolean; error?: string };
-    }),
-
-    // ── Browser profile operations (cloud-only, not in Desktop MST) ──
-
-    fetchBrowserProfiles: flow(function* (
-      filter?: { status?: string[]; tags?: string[]; query?: string },
-      pagination?: { offset?: number; limit?: number },
-    ) {
-      const result = yield client().query<{ browserProfiles: GQL.PaginatedBrowserProfiles }>({
-        query: BROWSER_PROFILES_QUERY,
-        variables: { filter, pagination },
-        fetchPolicy: "network-only",
-      });
-      if (!result.data) {
-        throw new Error("No data returned from browserProfiles query");
-      }
-      return result.data.browserProfiles as GQL.PaginatedBrowserProfiles;
-    }),
-
-    createBrowserProfile: flow(function* (input: {
-      name: string;
-      proxyEnabled?: boolean;
-      proxyBaseUrl?: string | null;
-      tags?: string[];
-      notes?: string | null;
-      sessionStatePolicy?: {
-        enabled?: boolean;
-        checkpointIntervalSec?: number;
-        mode?: string;
-        storage?: string;
-      };
-    }) {
-      const result = yield client().mutate<{ createBrowserProfile: GQL.BrowserProfile }>({
-        mutation: CREATE_BROWSER_PROFILE_MUTATION,
-        variables: { input },
-      });
-      if (!result.data?.createBrowserProfile) {
-        throw new Error("No data returned from createBrowserProfile mutation");
-      }
-      return result.data.createBrowserProfile as GQL.BrowserProfile;
-    }),
-
-    updateBrowserProfile: flow(function* (
-      id: string,
-      input: {
-        name?: string;
-        proxyEnabled?: boolean;
-        proxyBaseUrl?: string | null;
-        tags?: string[];
-        notes?: string | null;
-        status?: string;
-        sessionStatePolicy?: {
-          enabled?: boolean;
-          checkpointIntervalSec?: number;
-          mode?: string;
-          storage?: string;
-        };
-      },
-    ) {
-      const result = yield client().mutate<{ updateBrowserProfile: GQL.BrowserProfile }>({
-        mutation: UPDATE_BROWSER_PROFILE_MUTATION,
-        variables: { id, input },
-      });
-      if (!result.data?.updateBrowserProfile) {
-        throw new Error("No data returned from updateBrowserProfile mutation");
-      }
-      return result.data.updateBrowserProfile as GQL.BrowserProfile;
-    }),
-
-    deleteBrowserProfile: flow(function* (id: string) {
-      yield client().mutate<{ deleteBrowserProfile: boolean }>({
-        mutation: DELETE_BROWSER_PROFILE_MUTATION,
-        variables: { id },
-      });
-
-      // Fire-and-forget: clean up local Chrome profile directory
-      fetchVoid(clientPath(API["browserProfiles.deleteData"], { id }), { method: "DELETE" });
-    }),
-
-    batchArchiveBrowserProfiles: flow(function* (ids: string[]) {
-      const result = yield client().mutate<{ batchArchiveBrowserProfiles: number }>({
-        mutation: BATCH_ARCHIVE_BROWSER_PROFILES_MUTATION,
-        variables: { ids },
-      });
-      if (result.data?.batchArchiveBrowserProfiles == null) {
-        throw new Error("No data returned from batchArchiveBrowserProfiles mutation");
-      }
-      return result.data.batchArchiveBrowserProfiles as number;
-    }),
-
-    batchDeleteBrowserProfiles: flow(function* (ids: string[]) {
-      const result = yield client().mutate<{ batchDeleteBrowserProfiles: number }>({
-        mutation: BATCH_DELETE_BROWSER_PROFILES_MUTATION,
-        variables: { ids },
-      });
-      if (result.data?.batchDeleteBrowserProfiles == null) {
-        throw new Error("No data returned from batchDeleteBrowserProfiles mutation");
-      }
-      return result.data.batchDeleteBrowserProfiles as number;
-    }),
-
-    testBrowserProfileProxy: flow(function* (id: string) {
-      const result: BrowserProfileProxyTestResult =
-        yield fetchJson<BrowserProfileProxyTestResult>(clientPath(API["browserProfiles.testProxy"]), {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
-      return result;
     }),
 
   };

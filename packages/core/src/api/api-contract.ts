@@ -173,19 +173,6 @@ export const API = {
   "mobile.deviceStatus":     { method: "GET",    path: "/api/mobile/device-status",       desc: "Get device presence status" },
   "mobile.disconnect":       { method: "DELETE", path: "/api/mobile/disconnect",          desc: "Disconnect mobile pairing" },
 
-  // ── Browser Profiles ──
-  "browserProfiles.managed":        { method: "GET",    path: "/api/browser-profiles/managed",            desc: "List managed browser entries" },
-  "browserProfiles.launch":         { method: "POST",   path: "/api/browser-profiles/:id/managed/launch", desc: "Launch managed browser" },
-  "browserProfiles.connect":        { method: "POST",   path: "/api/browser-profiles/:id/managed/connect", desc: "Connect to external browser" },
-  "browserProfiles.stop":           { method: "POST",   path: "/api/browser-profiles/:id/managed/stop",   desc: "Stop tracking managed browser" },
-  "browserProfiles.testProxy":      { method: "POST",   path: "/api/browser-profiles/test-proxy",         desc: "Test proxy connectivity" },
-  "browserProfiles.sessions":       { method: "GET",    path: "/api/browser-profiles/sessions",           desc: "List active session profiles" },
-  "browserProfiles.sessionStart":   { method: "POST",   path: "/api/browser-profiles/:id/session/start",  desc: "Start session state tracking" },
-  "browserProfiles.sessionEnd":     { method: "POST",   path: "/api/browser-profiles/:id/session/end",    desc: "End session state tracking" },
-  "browserProfiles.sessionPolicy.get": { method: "GET",  path: "/api/browser-profiles/:id/session-policy", desc: "Get session state policy" },
-  "browserProfiles.sessionPolicy.set": { method: "PUT",  path: "/api/browser-profiles/:id/session-policy", desc: "Update session state policy" },
-  "browserProfiles.deleteData":     { method: "DELETE", path: "/api/browser-profiles/:id/data",            desc: "Clean up local Chrome profile" },
-
   // ── CS Bridge ──
   "csBridge.sync":           { method: "POST",   path: "/api/cs-bridge/sync",             desc: "Sync CS bridge from entity cache" },
   "csBridge.refreshShop":    { method: "POST",   path: "/api/cs-bridge/refresh-shop",     desc: "Refresh shop context" },

@@ -227,13 +227,6 @@ const telemetryTrack: EndpointHandler = async (req, res, _url, _params, ctx: Api
     "skills.install",
     "skills.delete",
     "telemetry.toggled",
-    // Browser Profiles Events
-    "browser_profile.created",
-    "browser_profile.updated",
-    "browser_profile.deleted",
-    "browser_profile.archived",
-    "browser_profile.proxy_tested",
-    "browser_profile.data_cleaned",
     // Auth Events
     "auth.login",
     "auth.register",

@@ -31,11 +31,10 @@ These rules are enforced by `infra/api/__tests__/layer-boundary.test.ts`.
 | `infra/proxy/` | System proxy detection, proxy-aware HTTP | `proxy-manager.ts`, `proxy-aware-network.ts` |
 | `gateway/` | Gateway process lifecycle, RPC, config | `connection.ts`, `config-builder.ts`, `rpc-client-ref.ts` |
 | `auth/` | Authentication, session management | `session.ts`, `session-ref.ts`, `api.ts` |
-| `settings/` | App settings, permissions, agent config | `api.ts` |
+| `settings/` | App settings and agent config | `api.ts` |
 | `providers/` | LLM provider keys, model management | `api.ts`, `llm-provider-manager.ts` |
 | `channels/` | Messaging channel accounts, pairing | `api.ts`, `channel-manager.ts` |
 | `cs-bridge/` | Customer service relay bridge | `api.ts`, `customer-service-bridge.ts` |
-| `browser-profiles/` | Browser profile management, CDP, cookies | `api.ts`, `managed-browser-service.ts` |
 | `mobile/` | Mobile pairing, device management | `api.ts`, `mobile-manager.ts` |
 | `chat/` | Chat session metadata | `api.ts` |
 | `skills/` | Skill marketplace, install/delete | `api.ts` |

@@ -16,8 +16,6 @@ import { rootStore, subscribeToPatch } from "./store/desktop-store.js";
 import { runtimeStatusStore, subscribeToRuntimeStatusPatch } from "./store/runtime-status-store.js";
 import { openClawConnector } from "../openclaw/index.js";
 import type { AuthSessionManager } from "../auth/session.js";
-import type { SessionLifecycleManager } from "../browser-profiles/session-lifecycle-manager.js";
-import type { ManagedBrowserService } from "../browser-profiles/managed-browser-service.js";
 import { CloudClient } from "../cloud/cloud-client.js";
 import { startPairingNotifier } from "../channels/pairing-notifier.js";
 import type { ApiContext } from "./api-context.js";
@@ -146,8 +144,6 @@ export interface PanelServerOptions {
   getUpdateDownloadState?: () => { status: string;[key: string]: unknown };
   authSession?: AuthSessionManager;
   proxyFetch?: (url: string | URL, init?: RequestInit) => Promise<Response>;
-  sessionLifecycleManager?: SessionLifecycleManager;
-  managedBrowserService?: ManagedBrowserService;
   channelManager?: import("../channels/channel-manager.js").ChannelManagerInstance;
 }
 
@@ -166,7 +162,7 @@ registerAllHandlers(registry);
 export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
   const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService, channelManager } = options;
+  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, channelManager } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -218,8 +214,6 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
     cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,
-    sessionLifecycleManager,
-    managedBrowserService,
     channelManager,
   };
 

@@ -108,7 +108,6 @@ describe("AppSettings defaults — loadAppSettings({})", () => {
 
     // isNotFalse → absent = true (opt-out settings)
     expect(s.telemetryEnabled).toBe(true);
-    expect(s.sessionStateCdpEnabled).toBe(true);
     expect(s.chatShowAgentEvents).toBe(true);
     expect(s.chatCollapseMessages).toBe(true);
 
@@ -124,12 +123,10 @@ describe("AppSettings defaults — loadAppSettings({})", () => {
   it("explicit 'false' disables isNotFalse settings", () => {
     store.loadAppSettings({
       telemetry_enabled: "false",
-      "session-state-cdp-enabled": "false",
       chat_show_agent_events: "false",
     });
 
     expect(store.appSettings.telemetryEnabled).toBe(false);
-    expect(store.appSettings.sessionStateCdpEnabled).toBe(false);
     expect(store.appSettings.chatShowAgentEvents).toBe(false);
   });
 

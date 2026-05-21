@@ -27,12 +27,6 @@ export const settingsSteps: TutorialStep[] = [
     bodyKey: "tutorial.settings.browserModeBody",
     placement: "bottom",
   },
-  {
-    target: ".page-enter > .section-card:nth-of-type(1) .settings-toggle-card",
-    titleKey: "tutorial.settings.sessionStateCdpTitle",
-    bodyKey: "tutorial.settings.sessionStateCdpBody",
-    placement: "bottom",
-  },
   // --- Chat Settings Section ---
   {
     target: ".page-enter > .section-card:nth-of-type(2) h3",
