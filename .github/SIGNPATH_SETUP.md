@@ -1,4 +1,9 @@
-# SignPath Foundation Free Code Signing Setup Guide
+# Historical SignPath Foundation Free Code Signing Setup Guide
+
+> Historical note: RivonClaw is now maintained as a private/proprietary
+> repository. The SignPath Foundation open-source program requirements below no
+> longer apply unless the project is opened again. The remaining contents are
+> kept only as historical reference.
 
 SignPath Foundation provides **completely free** Windows code signing for open source projects.
 

@@ -371,4 +371,6 @@ pnpm format:fix   # Auto-fix
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+RivonClaw-owned code in this repository is proprietary and all rights are
+reserved. See [LICENSE](LICENSE) for details. Third-party components remain
+governed by their own licenses.

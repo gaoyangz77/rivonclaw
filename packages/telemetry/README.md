@@ -286,4 +286,4 @@ This generates ESM output with TypeScript declarations in the `dist/` directory.
 
 ## License
 
-MIT
+Proprietary. See the repository root [LICENSE](../../LICENSE) for details.

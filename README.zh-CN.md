@@ -370,4 +370,5 @@ pnpm format:fix   # 自动修复
 
 ## 许可证
 
-详见 [LICENSE](LICENSE)。
+本仓库中 RivonClaw 自有代码为专有软件，保留所有权利。详见 [LICENSE](LICENSE)。
+第三方组件仍遵循其各自许可证。
