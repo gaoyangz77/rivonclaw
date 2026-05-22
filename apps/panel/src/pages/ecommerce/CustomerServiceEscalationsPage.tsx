@@ -515,7 +515,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         <strong>{buyerLabel(item)}</strong>
                         <span className="cs-conversation-badges">
                           {item.openEscalationCount > 0 && (
-                            <EscalationStateBadge conversation={item} onClick={() => void openConversationEscalation(item)} />
+                            <EscalationStateBadge conversation={item} />
                           )}
                           <span className={item.status === GQL.CustomerServiceConversationStatus.Pending ? "badge badge-warning" : "badge badge-info"}>
                             {conversationStatusLabel(item.status, t)}
@@ -555,7 +555,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         <div className="cs-conversation-title-row">
                           <h2>{buyerLabel(selectedConversation)}</h2>
                           {selectedConversation.openEscalationCount > 0 && (
-                            <EscalationStateBadge conversation={selectedConversation} onClick={() => void openConversationEscalation(selectedConversation)} />
+                            <EscalationStateBadge conversation={selectedConversation} onClick={() => void openConversationEscalation(selectedConversation)} variant="detail" />
                           )}
                         </div>
                         <p>{shopLabel(selectedConversation.shopId)}</p>
@@ -615,7 +615,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                           <div className="cs-conversation-popover-head">
                             <span>{t("ecommerce.customerServiceWorkspace.conversationDetails")}</span>
                             {selectedConversation.openEscalationCount > 0 && (
-                              <EscalationStateBadge conversation={selectedConversation} onClick={() => void openConversationEscalation(selectedConversation)} />
+                              <EscalationStateBadge conversation={selectedConversation} onClick={() => void openConversationEscalation(selectedConversation)} variant="detail" />
                             )}
                           </div>
                           <div className="cs-conversation-facts">
@@ -1118,9 +1118,11 @@ function conversationStatusLabel(status: GQL.CustomerServiceConversationStatus, 
 function EscalationStateBadge({
   conversation,
   onClick,
+  variant = "list",
 }: {
   conversation: Conversation;
   onClick?: () => void;
+  variant?: "list" | "detail";
 }) {
   const { t } = useTranslation();
   if (!(conversation.openEscalationCount > 0)) return null;
@@ -1128,16 +1130,24 @@ function EscalationStateBadge({
   if (!onClick) {
     return <span className="badge badge-warning cs-open-escalation-badge">{label}</span>;
   }
+  const className = variant === "detail"
+    ? "badge badge-warning cs-open-escalation-badge cs-open-escalation-button cs-open-escalation-button-detail"
+    : "badge badge-warning cs-open-escalation-badge cs-open-escalation-button";
   return (
     <button
-      className="badge badge-warning cs-open-escalation-badge cs-open-escalation-button"
+      className={className}
       type="button"
+      aria-label={t("ecommerce.customerServiceWorkspace.openEscalationDetails")}
+      title={t("ecommerce.customerServiceWorkspace.openEscalationDetails")}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
       }}
     >
       {label}
+      {variant === "detail" && (
+        <span className="cs-open-escalation-action-label">{t("ecommerce.customerServiceWorkspace.viewEscalationDetails")}</span>
+      )}
     </button>
   );
 }
