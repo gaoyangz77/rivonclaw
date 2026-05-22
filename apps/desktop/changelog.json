@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.14",
+    "date": "2026-05-22",
+    "en": [
+      "Add a customer service workspace for tracking escalations and conversation state directly in the desktop app",
+      "Improve ecommerce and affiliate workflows with fresher conversation snapshots, stronger work context, and TikTok Shop market labels",
+      "Simplify the app by removing legacy browser profile and file permission features, while improving chat model defaults and context budget display"
+    ],
+    "zh": [
+      "新增客服工作台，可在桌面端集中查看升级工单与会话状态",
+      "优化电商与达人协作流程，补强会话快照、任务上下文，以及 TikTok Shop 市场标签",
+      "精简旧版浏览器资料与文件权限功能，同时改进聊天默认模型切换和上下文预算显示"
+    ]
+  },
+  {
     "version": "1.8.13",
     "date": "2026-05-13",
     "en": [
