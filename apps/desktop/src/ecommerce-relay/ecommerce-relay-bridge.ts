@@ -530,6 +530,13 @@ export class EcommerceRelayBridge {
       await session.dispatchCatchUp({
         operatorInstruction: signal.operatorInstruction ?? undefined,
         currentMessageId: signal.messageId ?? undefined,
+        currentMessageCursor: signal.messageId || signal.messageIndex || signal.eventTime
+          ? {
+              messageId: signal.messageId ?? undefined,
+              messageIndex: signal.messageIndex ?? undefined,
+              createTime: signal.eventTime ? Math.floor(new Date(signal.eventTime).getTime() / 1000) : undefined,
+            }
+          : undefined,
       });
     } catch (err) {
       log.error(`Failed to handle CS signal ${signal.messageId ?? signal.conversationId}:`, err);
@@ -670,6 +677,8 @@ export class EcommerceRelayBridge {
     orderId?: string;
     operatorInstruction?: string;
     currentMessageId?: string;
+    currentMessageIndex?: string;
+    currentMessageCreateTime?: number;
   }) {
     const session = await this.getOrCreateSession(params.shopObjectId, {
       conversationId: params.conversationId,
@@ -679,6 +688,13 @@ export class EcommerceRelayBridge {
     return session.dispatchCatchUp({
       operatorInstruction: params.operatorInstruction,
       currentMessageId: params.currentMessageId,
+      currentMessageCursor: params.currentMessageId || params.currentMessageIndex || params.currentMessageCreateTime != null
+        ? {
+            messageId: params.currentMessageId,
+            messageIndex: params.currentMessageIndex,
+            createTime: params.currentMessageCreateTime,
+          }
+        : undefined,
     });
   }
 

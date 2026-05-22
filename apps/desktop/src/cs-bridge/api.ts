@@ -8,6 +8,10 @@ import {
   CS_GET_ESCALATION_RESULT_QUERY,
   CS_RESPOND_MUTATION,
 } from "../cloud/cs-queries.js";
+import {
+  generateConversationSummary,
+  getLocalConversationSummary,
+} from "./cs-conversation-summary-service.js";
 
 type CsEscalateMutationResult = {
   csEscalate: { ok: boolean; escalationId?: string | null; status?: string | null; error?: string | null };
@@ -185,6 +189,50 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
   }
 };
 
+// ── GET /api/cs-bridge/conversation-summary ──
+
+const getConversationSummary: EndpointHandler = async (_req, res, url, _params, _ctx) => {
+  const shopId = url.searchParams.get("shopId")?.trim();
+  const conversationId = url.searchParams.get("conversationId")?.trim();
+  if (!shopId || !conversationId) {
+    sendJson(res, 400, { error: "Missing shopId or conversationId" });
+    return;
+  }
+
+  try {
+    const summary = await getLocalConversationSummary({ shopId, conversationId });
+    sendJson(res, 200, { summary: summary ?? null });
+  } catch (err) {
+    sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
+  }
+};
+
+// ── POST /api/cs-bridge/conversation-summary ──
+
+const createConversationSummary: EndpointHandler = async (req, res, _url, _params, _ctx) => {
+  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
+
+  const body = await parseBody(req) as Record<string, unknown>;
+  const missing = ["shopId", "conversationId"]
+    .filter((f) => !body[f] || typeof body[f] !== "string");
+  if (missing.length > 0) {
+    sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
+    return;
+  }
+
+  try {
+    const summary = await generateConversationSummary({
+      authSession: _ctx.authSession,
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      locale: typeof body.locale === "string" ? body.locale : undefined,
+    });
+    sendJson(res, 200, { summary });
+  } catch (err) {
+    sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
+  }
+};
+
 // ── Registration ──
 
 export function registerCsBridgeHandlers(registry: RouteRegistry): void {
@@ -196,4 +244,6 @@ export function registerCsBridgeHandlers(registry: RouteRegistry): void {
   registry.register(API["csBridge.escalationResult"], escalationResult);
   registry.register(API["csBridge.escalation.get"], getEscalation);
   registry.register(API["csBridge.startConversation"], startConversation);
+  registry.register(API["csBridge.conversationSummary.get"], getConversationSummary);
+  registry.register(API["csBridge.conversationSummary.create"], createConversationSummary);
 }

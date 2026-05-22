@@ -25,6 +25,11 @@ const VENDOR_FILE = resolve(
   "../../../../vendor/openclaw/src/agents/system-prompt.ts",
 );
 
+const VENDOR_TYPES_FILE = resolve(
+  __dirname,
+  "../../../../vendor/openclaw/src/agents/system-prompt.types.ts",
+);
+
 const ATTEMPT_FILE = resolve(
   __dirname,
   "../../../../vendor/openclaw/src/agents/pi-embedded-runner/run/attempt.ts",
@@ -33,7 +38,7 @@ const ATTEMPT_FILE = resolve(
 /** Check if the vendor source has the promptMode raw patch applied. */
 function isVendorPatched(): boolean {
   try {
-    const src = readFileSync(VENDOR_FILE, "utf-8");
+    const src = readFileSync(VENDOR_TYPES_FILE, "utf-8");
     return /export type PromptMode\b[^;]*"raw"/.test(src);
   } catch {
     return false;
@@ -44,9 +49,10 @@ const runOrSkip = isVendorPatched() ? describe : describe.skip;
 
 runOrSkip("vendor patch 0004: promptMode raw", () => {
   const source = readFileSync(VENDOR_FILE, "utf-8");
+  const typesSource = readFileSync(VENDOR_TYPES_FILE, "utf-8");
 
   it("PromptMode type includes 'raw'", () => {
-    expect(source).toMatch(/export type PromptMode\b[^;]*"raw"/);
+    expect(typesSource).toMatch(/export type PromptMode\b[^;]*"raw"/);
   });
 
   it("early return for raw mode exists before none mode check", () => {
@@ -70,7 +76,10 @@ runOrSkip("vendor patch 0004: promptMode raw", () => {
       if (lines[i].includes("applySystemPromptOverrideToSession(activeSession, systemPromptText)")) {
         lastOverrideIdx = i;
       }
-      if (lines[i].includes("activeSession.prompt(effectivePrompt")) {
+      if (
+        lines[i].includes("activeSession.prompt(effectivePrompt")
+        || lines[i].includes("activeSession.prompt(promptForModel")
+      ) {
         if (promptCallIdx === -1) promptCallIdx = i;
       }
     }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, shell, dialog } from "electron";
+import { app, BrowserWindow, Menu, Tray, shell, dialog, screen } from "electron";
 import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   ensureGatewayConfig,
@@ -769,9 +769,23 @@ app.whenReady().then(async () => {
 
   // Create main panel window (hidden initially, loaded when gateway starts)
   const isDev = !!process.env.PANEL_DEV_URL;
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
+  const maxDefaultWidth = Math.min(Math.round(workArea.width * 0.96), isDev ? 2000 : 1728);
+  const maxDefaultHeight = Math.min(Math.round(workArea.height * 0.92), 1080);
+  const targetAspectRatio = 16 / 9;
+  let defaultWidth = maxDefaultWidth;
+  let defaultHeight = Math.round(defaultWidth / targetAspectRatio);
+  if (defaultHeight > maxDefaultHeight) {
+    defaultHeight = maxDefaultHeight;
+    defaultWidth = Math.round(defaultHeight * targetAspectRatio);
+  }
+  defaultWidth = Math.max(defaultWidth, 1280);
+  defaultHeight = Math.max(defaultHeight, 720);
   mainWindow = new BrowserWindow({
-    width: isDev ? 2000 : 1400,
-    height: 800,
+    width: defaultWidth,
+    height: defaultHeight,
+    minWidth: 1180,
+    minHeight: 720,
     show: false,
     title: brandName(systemLocale),
     webPreferences: {

@@ -50,6 +50,7 @@ export const GET_CONVERSATION_MESSAGE_DELTA_QUERY = `
     ) {
       items {
         messageId
+        index
         type
         text
         createTime
@@ -67,6 +68,37 @@ export const GET_CONVERSATION_MESSAGE_DELTA_QUERY = `
         fetchedMessageCount
         anchorMessageId
         anchorCreateTime
+      }
+    }
+  }
+`;
+
+export const GET_CONVERSATION_MESSAGES_QUERY = `
+  query CustomerServiceConversationMessages(
+    $shopId: String!
+    $conversationId: String!
+    $pageSize: Float!
+    $pageToken: String
+    $locale: String
+  ) {
+    ecommerceGetConversationMessages(
+      shopId: $shopId
+      conversationId: $conversationId
+      pageSize: $pageSize
+      pageToken: $pageToken
+      locale: $locale
+    ) {
+      nextPageToken
+      items {
+        messageId
+        index
+        type
+        text
+        createTime
+        sender {
+          role
+          nickname
+        }
       }
     }
   }

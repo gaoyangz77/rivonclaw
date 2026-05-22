@@ -182,6 +182,8 @@ export const API = {
   "csBridge.escalationResult": { method: "POST", path: "/api/cs-bridge/escalation-result", desc: "Write escalation approval/denial" },
   "csBridge.escalation.get": { method: "GET",    path: "/api/cs-bridge/escalation/:id",   desc: "Read escalation result" },
   "csBridge.startConversation": { method: "POST", path: "/api/cs-bridge/start-conversation", desc: "Manually start CS for a conversation" },
+  "csBridge.conversationSummary.get": { method: "GET", path: "/api/cs-bridge/conversation-summary", desc: "Read local CS conversation summary" },
+  "csBridge.conversationSummary.create": { method: "POST", path: "/api/cs-bridge/conversation-summary", desc: "Generate local CS conversation summary" },
 
   // ── Dependencies ──
   "deps.provision":          { method: "POST",   path: "/api/deps/provision",             desc: "Trigger dependency provisioner" },

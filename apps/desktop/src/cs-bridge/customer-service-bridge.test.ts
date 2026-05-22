@@ -63,6 +63,16 @@ vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
   },
 }));
 
+vi.mock("./cs-session-cursor-store.js", () => ({
+  readOpenClawSessionCursor: vi.fn(async () => ({
+    messageId: "msg-seen",
+    messageIndex: "1",
+    createTime: 100,
+  })),
+  advanceOpenClawSessionCursor: vi.fn(async () => undefined),
+  compareMessageCursor: vi.fn(() => 0),
+}));
+
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
@@ -600,8 +610,8 @@ describe("shop context management", () => {
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
-    // chat.history + session registration + sessions.patch (model) + agent dispatch = 4 RPC calls
-    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    // session registration + sessions.patch (model) + agent dispatch = 3 RPC calls
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -1074,8 +1084,7 @@ describe("session registration", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
-    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledTimes(1);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     // No RunProfile set should have been called
     expect(setSessionRunProfileCalls).toHaveLength(0);
@@ -1138,6 +1147,36 @@ describe("agent dispatch", () => {
     expect(message).toContain("ecom_cs_get_conversation_messages");
     expect(message).toContain("[Internal: Operator Instruction]");
     expect(message).toContain("This refund request looks unreasonable.");
+  });
+
+  it("dispatchCatchUp skips platform delta when no local OpenClaw session anchor exists", async () => {
+    const cursorStore = await import("./cs-session-cursor-store.js");
+    vi.mocked(cursorStore.readOpenClawSessionCursor).mockResolvedValueOnce(undefined);
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "chat.history") return { messages: [] };
+      return { ok: true, runId: "run-new-cs-session" };
+    });
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-new-session",
+    });
+
+    await session.dispatchCatchUp({
+      currentMessageId: "msg-new-session",
+    });
+
+    expect(mockGraphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("ecommerceGetConversationMessageDelta"),
+      expect.anything(),
+    );
+    const agentCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
+    const message = agentCall?.[1].message as string;
+    expect(message).toContain("[Internal: System]");
+    expect(message).toContain("ecom_cs_get_conversation_messages");
+    expect(message).not.toContain("[Customer Service Conversation Work Package]");
   });
 
   it("handleCsConversationSignal passes operator instruction into catch-up dispatch", async () => {
@@ -1251,8 +1290,7 @@ describe("agent dispatch", () => {
     // Should not throw
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
-    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
@@ -1293,8 +1331,7 @@ describe("error scenarios", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
-    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledTimes(1);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(setSessionRunProfileCalls).toHaveLength(0);
   });
@@ -1307,9 +1344,8 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     // Bridge no longer validates profile existence — it stores the ID.
-    // chat.history + cs_register_session + sessions.patch (model) + agent dispatch = 4 RPC calls.
-    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
-    expect(mockRpcRequest).toHaveBeenCalledWith("chat.history", expect.anything());
+    // cs_register_session + sessions.patch (model) + agent dispatch = 3 RPC calls.
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());

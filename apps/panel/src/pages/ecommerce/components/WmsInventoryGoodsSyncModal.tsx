@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
+import type { GQL } from "@rivonclaw/core";
 import { Modal } from "../../../components/modals/Modal.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
@@ -22,8 +23,8 @@ export const WmsInventoryGoodsSyncModal = observer(function WmsInventoryGoodsSyn
   const account = inventory.wmsInventoryGoodsSyncAccountId
     ? entityStore.getWmsAccount(inventory.wmsInventoryGoodsSyncAccountId)
     : null;
-  const coverage = inventory.wmsInventoryGoodsCoverage;
-  const result = inventory.wmsInventoryGoodsSyncResult;
+  const coverage = inventory.wmsInventoryGoodsCoverage as GQL.WmsInventoryGoodCoveragePayload | null;
+  const result = inventory.wmsInventoryGoodsSyncResult as GQL.SyncWmsInventoryGoodsPayload | null;
   const unrecognized = coverage?.unrecognizedWmsInventoryGoods ?? [];
   const recognizedCount = coverage?.recognizedWmsGoodsCount ?? 0;
   const busy = inventory.wmsInventoryGoodsCoverageLoading || inventory.wmsInventoryGoodsSyncing;

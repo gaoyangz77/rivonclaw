@@ -45,6 +45,11 @@ import {
   CS_GET_OR_CREATE_SESSION_MUTATION,
 } from "../cloud/cs-queries.js";
 import { readLatestUserSessionAnchor } from "../utils/openclaw-session-anchor.js";
+import {
+  advanceOpenClawSessionCursor,
+  readOpenClawSessionCursor,
+  type CustomerServiceMessageCursor,
+} from "./cs-session-cursor-store.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -121,6 +126,7 @@ export interface DispatchResult {
 interface CatchUpDispatchOptions {
   operatorInstruction?: string;
   currentMessageId?: string;
+  currentMessageCursor?: CustomerServiceMessageCursor;
 }
 
 export interface EscalationResult {
@@ -394,6 +400,10 @@ export class CustomerServiceSession {
       attachments,
       round,
       placeholder,
+      advanceSessionCursor: {
+        messageId: frame.messageId,
+        createTime: frame.createTime,
+      },
     });
 
     // Emit the inbound `cs.message` BI event — one row per message crossing
@@ -799,7 +809,18 @@ export class CustomerServiceSession {
     }
 
     try {
-      const anchor = await readLatestUserSessionAnchor(this.dispatchKey);
+      const sessionCursor = await readOpenClawSessionCursor({
+        shopId: this.csContext.shopId,
+        conversationId: this.csContext.conversationId,
+      });
+      const anchor = sessionCursor ?? await readLatestUserSessionAnchor(this.dispatchKey);
+      if (!anchor) {
+        log.info(
+          `Skipping CS conversation delta for ${this.csContext.conversationId}: ` +
+          "no local OpenClaw session anchor exists yet",
+        );
+        return null;
+      }
       const result = await authSession.graphqlFetch<{
         ecommerceGetConversationMessageDelta: GQL.CustomerServiceMessageDelta;
       }>(GET_CONVERSATION_MESSAGE_DELTA_QUERY, {
@@ -824,6 +845,7 @@ export class CustomerServiceSession {
     const timeline = (delta.items ?? []).map((message, index) => [
       `${index + 1}. [${message.sender?.role ?? "UNKNOWN"}${message.sender?.nickname ? ` / ${message.sender.nickname}` : ""}]`,
       `   messageId: ${message.messageId ?? ""}`,
+      `   messageIndex: ${message.index ?? ""}`,
       `   createTime: ${message.createTime ?? ""}`,
       `   type: ${message.type ?? ""}`,
       `   text: ${message.text ?? ""}`,
@@ -865,12 +887,14 @@ export class CustomerServiceSession {
         return this.dispatch({
           message: this.buildConversationDeltaMessage(options.currentMessageId, delta),
           idempotencyKey: `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`,
+          advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
         });
       }
     }
     return this.dispatch({
       message: this.buildCatchUpMessage(options),
       idempotencyKey: `cs-start:${this.csContext.conversationId}:${Date.now()}`,
+      advanceSessionCursor: options?.currentMessageCursor,
     });
   }
 
@@ -1198,6 +1222,7 @@ export class CustomerServiceSession {
     round?: CSRound;
     /** Placeholder run ID claimed by the round before this dispatch. */
     placeholder?: string;
+    advanceSessionCursor?: CustomerServiceMessageCursor;
   }): Promise<DispatchResult> {
     await this.setup();
 
@@ -1227,6 +1252,15 @@ export class CustomerServiceSession {
       this.activeRound = round;
     }
     if (runId) {
+      if (params.advanceSessionCursor) {
+        void advanceOpenClawSessionCursor({
+          shopId: this.csContext.shopId,
+          conversationId: this.csContext.conversationId,
+          cursor: params.advanceSessionCursor,
+          sessionKey: this.dispatchKey,
+          runId,
+        });
+      }
       // If the placeholder was aborted while dispatch was in flight,
       // transfer the abort marker to the real runId so bridge can detect it.
       // Don't overwrite the active round — a newer message already claimed the slot.
