@@ -246,6 +246,94 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
 
+  extensions-merchant/rivonclaw-cloud-tools:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@sinclair/typebox':
+        specifier: ^0.34.0
+        version: 0.34.48
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  extensions-merchant/rivonclaw-cs:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  extensions-merchant/rivonclaw-ecom:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  extensions-merchant/rivonclaw-local-tools:
+    dependencies:
+      '@rivonclaw/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.9
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+
   extensions/channel-weixin:
     dependencies:
       '@tencent-weixin/openclaw-weixin':
@@ -1643,7 +1731,6 @@ packages:
   '@mariozechner/pi-coding-agent@0.73.0':
     resolution: {integrity: sha512-Fs2dRIgtjDT8X5VDGNGzxj251B0FvkRsgX03YJv1FK4wg5Maj+jkf8/5A6tbPnPcXsCgs41xxJRf3tF5vJRccA==}
     engines: {node: '>=20.6.0'}
-    deprecated: please use @earendil-works/pi-coding-agent instead going forward
     hasBin: true
 
   '@mariozechner/pi-tui@0.73.0':
@@ -2107,6 +2194,9 @@ packages:
   '@silvia-odwyer/photon-node@0.3.4':
     resolution: {integrity: sha512-bnly4BKB3KDTFxrUIcgCLbaeVVS8lrAkri1pEzskpmxu9MdfGQTy8b8EgcD83ywD3RPMsIulY8xJH5Awa+t9fA==}
 
+  '@sinclair/typebox@0.34.48':
+    resolution: {integrity: sha512-kKJTNuK3AQOrgjjotVxMrCn1sUJwM76wMszfq1kdU4uYVJjvEWuFQ6HgvLt4Xz3fSmZlTOxJ/Ie13KnIcWQXFA==}
+
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
@@ -2561,7 +2651,6 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
-    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@vitejs/plugin-react@4.7.0':
     resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
@@ -2617,7 +2706,6 @@ packages:
   '@xmldom/xmldom@0.8.11':
     resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
     engines: {node: '>=10.0.0'}
-    deprecated: this version has critical issues, please update to the latest version
 
   abbrev@3.0.1:
     resolution: {integrity: sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg==}
@@ -8099,6 +8187,8 @@ snapshots:
     optional: true
 
   '@silvia-odwyer/photon-node@0.3.4': {}
+
+  '@sinclair/typebox@0.34.48': {}
 
   '@sindresorhus/is@4.6.0': {}
 
