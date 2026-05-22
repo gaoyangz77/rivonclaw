@@ -79,9 +79,6 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     onEscalationEvent: (delivery) => {
       broadcastEvent("cs-escalation-event", { delivery });
     },
-    onConversationSignal: (signal) => {
-      broadcastEvent("cs-conversation-signal", { signal });
-    },
     onConversationChanged: (conversation) => {
       broadcastEvent("cs-conversation-changed", { conversation });
     },

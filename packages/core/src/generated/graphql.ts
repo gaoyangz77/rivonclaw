@@ -1526,6 +1526,8 @@ export interface CustomerServiceConversation {
   createTime?: Maybe<Scalars['Int']['output']>;
   /** Current platform customer-service session ID, when returned by the platform. */
   currentSessionId?: Maybe<Scalars['String']['output']>;
+  /** Optional transient dispatch hint. Present only when this snapshot should wake the assigned desktop CS agent. */
+  dispatchHint?: Maybe<CustomerServiceConversationDispatchHint>;
   /** Backend-normalized platform lifecycle. False means the platform conversation is closed. */
   isOpen?: Maybe<Scalars['Boolean']['output']>;
   /** Unix seconds when the latest pending buyer message arrived. */
@@ -1570,6 +1572,33 @@ export interface CustomerServiceConversationDetails {
   conversation: CustomerServiceConversation;
 }
 
+/** Optional dispatch metadata attached to a full CS conversation snapshot. */
+export interface CustomerServiceConversationDispatchHint {
+  /** Unix seconds of the event that triggered this dispatch. */
+  eventTime?: Maybe<Scalars['Int']['output']>;
+  messageId?: Maybe<Scalars['String']['output']>;
+  messageIndex?: Maybe<Scalars['String']['output']>;
+  /** Optional internal operator instruction to inject into the local CS agent run. */
+  operatorInstruction?: Maybe<Scalars['String']['output']>;
+  reason: CustomerServiceConversationDispatchReason;
+  source: CustomerServiceConversationDispatchSource;
+}
+
+/** Reason a customer-service conversation snapshot should wake the local CS agent. */
+export const CustomerServiceConversationDispatchReason = {
+  ManualStart: 'MANUAL_START',
+  PendingBuyerMessage: 'PENDING_BUYER_MESSAGE'
+} as const;
+
+export type CustomerServiceConversationDispatchReason = typeof CustomerServiceConversationDispatchReason[keyof typeof CustomerServiceConversationDispatchReason];
+/** Origin of a customer-service conversation dispatch hint. */
+export const CustomerServiceConversationDispatchSource = {
+  Airflow: 'AIRFLOW',
+  Manual: 'MANUAL',
+  Webhook: 'WEBHOOK'
+} as const;
+
+export type CustomerServiceConversationDispatchSource = typeof CustomerServiceConversationDispatchSource[keyof typeof CustomerServiceConversationDispatchSource];
 /** Backend-materialized escalation state filter for CS conversations. */
 export const CustomerServiceConversationEscalationFilter = {
   All: 'ALL',
