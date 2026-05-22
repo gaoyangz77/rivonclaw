@@ -8990,13 +8990,13 @@ html[lang="zh"] .acct-tool-chips {
   display: inline-flex;
   align-items: center;
   min-height: 18px;
-  padding: 0 6px;
+  padding: 0 0 0 8px;
   border-left: 1px solid color-mix(in srgb, #f59e0b 28%, transparent);
-  margin-left: 2px;
-  color: color-mix(in srgb, #8a5a00 76%, var(--color-text));
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
+  margin-left: 4px;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-transform: none;
   letter-spacing: 0;
 }
 
