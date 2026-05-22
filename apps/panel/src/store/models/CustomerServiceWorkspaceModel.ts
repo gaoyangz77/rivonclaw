@@ -85,6 +85,7 @@ function isSideAlignedConversationMessage(message: Record<string, any>): boolean
   return isCustomerServiceRichMessage(message) ||
     role === "BUYER" ||
     role === "CUSTOMER_SERVICE" ||
+    role === "ROBOT" ||
     role === "SHOP" ||
     role === "SELLER";
 }

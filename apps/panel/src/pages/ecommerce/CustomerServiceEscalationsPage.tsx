@@ -142,12 +142,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   }, [workspace]);
 
   useEffect(() => {
-    return panelEventBus.subscribe("cs-conversation-signal", () => {
-      if (workspace.activeTab === "conversations") workspace.fetchConversations();
-    });
-  }, [workspace]);
-
-  useEffect(() => {
     return panelEventBus.subscribe("cs-conversation-changed", (raw) => {
       workspace.ingestConversationChanged(raw);
       if (workspace.activeTab === "conversations" && workspace.selectedConversationId) {

@@ -154,6 +154,14 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
       latestOpenEscalationId
       latestOpenEscalationStatus
       latestOpenEscalationUpdatedAt
+      dispatchHint {
+        reason
+        source
+        messageId
+        messageIndex
+        eventTime
+        operatorInstruction
+      }
       orderId
       participantCount
       canSendMessage

@@ -1,7 +1,10 @@
 import { createLogger } from "@rivonclaw/logger";
 import { rootStore } from "../app/store/desktop-store.js";
 import { getCsBridge } from "../gateway/connection.js";
-import type { CsConversationSignalPayload } from "../cloud/backend-subscription-client.js";
+import type {
+  CsConversationChangedPayload,
+  CsConversationSignalPayload,
+} from "../cloud/backend-subscription-client.js";
 
 const log = createLogger("cs-signal-actuator");
 
@@ -9,6 +12,44 @@ function findSignalShop(signal: CsConversationSignalPayload): any | undefined {
   return rootStore.shops.find((shop: any) =>
     shop.id === signal.shopId || shop.platformShopId === signal.platformShopId,
   );
+}
+
+function findConversationShop(conversation: CsConversationChangedPayload): any | undefined {
+  return rootStore.shops.find((shop: any) =>
+    shop.id === conversation.shopId || shop.platformShopId === conversation.platformShopId,
+  );
+}
+
+function conversationToSignal(
+  conversation: CsConversationChangedPayload,
+  shop: any,
+): CsConversationSignalPayload | null {
+  const hint = conversation.dispatchHint;
+  if (!hint) return null;
+  const buyer = conversation.participants?.find((participant) => participant?.role === "BUYER")
+    ?? conversation.participants?.find(Boolean);
+  const eventTime = hint.eventTime != null
+    ? new Date(hint.eventTime * 1000).toISOString()
+    : new Date().toISOString();
+
+  return {
+    type: hint.reason === "MANUAL_START" ? "MANUAL_START" : "UNREAD_DETECTED",
+    source: hint.source,
+    shopId: conversation.shopId ?? shop.id,
+    platformShopId: conversation.platformShopId ?? shop.platformShopId,
+    conversationId: conversation.conversationId,
+    messageId: hint.messageId ?? conversation.latestMessage?.messageId ?? undefined,
+    messageIndex: hint.messageIndex ?? conversation.latestMessage?.index ?? undefined,
+    imUserId: buyer?.imUserId ?? undefined,
+    buyerUserId: buyer?.userId ?? undefined,
+    orderId: conversation.orderId ?? undefined,
+    messageType: conversation.latestMessage?.type ?? undefined,
+    senderRole: conversation.latestMessage?.sender?.role ?? undefined,
+    aiEnabled: conversation.aiEnabled ?? true,
+    latestMessagePreview: conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined,
+    operatorInstruction: hint.operatorInstruction ?? undefined,
+    eventTime,
+  };
 }
 
 /**
@@ -47,6 +88,45 @@ export async function handleCsConversationSignal(
   const bridge = getCsBridge();
   if (!bridge) {
     log.warn(`CS signal arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
+    return;
+  }
+
+  await bridge.handleCsConversationSignal(signal);
+}
+
+export async function handleCsConversationChanged(
+  deviceId: string,
+  conversation: CsConversationChangedPayload,
+): Promise<void> {
+  if (!conversation.dispatchHint) return;
+
+  const shop = findConversationShop(conversation);
+  const cs = shop?.services?.customerService;
+
+  if (!shop || !cs?.enabled) {
+    log.info(`Ignoring CS conversation change for unavailable/disabled shop ${conversation.platformShopId}`);
+    return;
+  }
+
+  if (!shop.handlesCustomerServiceOnDevice(deviceId)) {
+    log.info(
+      `Ignoring CS conversation change for shop ${conversation.platformShopId}: ` +
+      `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,
+    );
+    return;
+  }
+
+  if (conversation.aiEnabled === false) {
+    log.info(`Ignoring CS conversation change for shop ${conversation.platformShopId} conv=${conversation.conversationId}: AI disabled`);
+    return;
+  }
+
+  const signal = conversationToSignal(conversation, shop);
+  if (!signal) return;
+
+  const bridge = getCsBridge();
+  if (!bridge) {
+    log.warn(`CS conversation change arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
     return;
   }
 
