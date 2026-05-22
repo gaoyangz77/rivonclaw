@@ -2152,6 +2152,8 @@ export default {
       escalationNone: "No open escalation",
       openEscalationBadge: "{{count}} escalation",
       escalationBadge: "Escalation",
+      openEscalationDetails: "Open escalation details",
+      viewEscalationDetails: "View",
       escalationUnavailable: "Escalation details are unavailable.",
       resizeConversationList: "Resize conversation list",
       enableAi: "Enable AI",

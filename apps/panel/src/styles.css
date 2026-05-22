@@ -8951,14 +8951,53 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .cs-open-escalation-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-height: 0;
   padding: 3px 8px;
   cursor: pointer;
+  position: relative;
+  z-index: 4;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .cs-open-escalation-button:hover {
-  border-color: color-mix(in srgb, #f59e0b 42%, transparent);
+  border-color: color-mix(in srgb, #f59e0b 46%, var(--color-border));
   background: color-mix(in srgb, #f59e0b 17%, var(--color-bg));
+  box-shadow: 0 6px 16px rgb(245 158 11 / 16%);
+  transform: translateY(-1px);
+}
+
+.cs-open-escalation-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, #f59e0b 50%, transparent);
+  outline-offset: 2px;
+}
+
+.cs-open-escalation-button-detail {
+  min-height: 28px;
+  padding: 4px 10px;
+  border-color: color-mix(in srgb, #f59e0b 36%, var(--color-border));
+  background: color-mix(in srgb, #f59e0b 14%, var(--color-bg));
+  box-shadow: 0 1px 0 rgb(255 255 255 / 68%) inset;
+}
+
+.cs-open-escalation-action-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 6px;
+  border-left: 1px solid color-mix(in srgb, #f59e0b 28%, transparent);
+  margin-left: 2px;
+  color: color-mix(in srgb, #8a5a00 76%, var(--color-text));
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .cs-conversation-preview {

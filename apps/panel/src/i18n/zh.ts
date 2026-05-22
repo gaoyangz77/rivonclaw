@@ -2140,6 +2140,8 @@ export default {
       escalationNone: "无未完成升级",
       openEscalationBadge: "{{count}} 个升级",
       escalationBadge: "升级",
+      openEscalationDetails: "打开升级详情",
+      viewEscalationDetails: "查看",
       escalationUnavailable: "升级详情暂不可用。",
       resizeConversationList: "调整会话列表宽度",
       enableAi: "开启 AI",
