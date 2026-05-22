@@ -43,31 +43,6 @@ export function CollapsibleContent({ children, defaultCollapsed = true }: { chil
   );
 }
 
-/**
- * Collapsible display for tool call arguments.
- * Toggle button renders inline in the header; expanded JSON renders below.
- */
-export function ToolArgsDisplay({ args }: { args: Record<string, unknown> }) {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const formatted = JSON.stringify(args, null, 2);
-
-  return (
-    <>
-      <button
-        className={`chat-tool-args-toggle${expanded ? " chat-tool-args-toggle-expanded" : ""}`}
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <svg className="chat-tool-args-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
-        <span>{t("chat.toolArgsLabel", "Parameters")}</span>
-      </button>
-      {expanded && (
-        <pre className="chat-tool-args-code">{formatted}</pre>
-      )}
-    </>
-  );
-}
-
 export function CopyButton({ text }: { text: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
