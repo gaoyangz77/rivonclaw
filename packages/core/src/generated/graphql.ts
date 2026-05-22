@@ -950,8 +950,14 @@ export interface CompleteTikTokOAuthResponse {
   shopName: Scalars['String']['output'];
 }
 
-/** Local OpenClaw-session anchor used to bound a platform conversation delta without maintaining an external cursor. */
+/** OpenClaw-session anchor used to bound a platform conversation delta. Prefer platform cursor fields; session text/timestamp are legacy fuzzy fallback fields. */
 export interface ConversationMessageDeltaAnchorInput {
+  /** Platform message create time in Unix seconds. */
+  createTime?: InputMaybe<Scalars['Int']['input']>;
+  /** Platform message ID, preferred for exact cursor matching. */
+  messageId?: InputMaybe<Scalars['String']['input']>;
+  /** Platform message index, used when messageId is unavailable or as an ordering cursor. */
+  messageIndex?: InputMaybe<Scalars['String']['input']>;
   /** Visible text of the local OpenClaw session message used as the seen-after anchor. The backend uses it as a fuzzy containment check against platform message text. */
   sessionMessageText?: InputMaybe<Scalars['String']['input']>;
   /** Timestamp in milliseconds from the local OpenClaw session message used as the seen-after anchor. */
@@ -962,7 +968,10 @@ export interface ConversationMessageDeltaAnchorInput {
 export const ConversationMessageDeltaAnchorMatchType = {
   ContentAndTime: 'CONTENT_AND_TIME',
   ContentOnly: 'CONTENT_ONLY',
-  None: 'NONE'
+  None: 'NONE',
+  PlatformCreateTime: 'PLATFORM_CREATE_TIME',
+  PlatformMessageId: 'PLATFORM_MESSAGE_ID',
+  PlatformMessageIndex: 'PLATFORM_MESSAGE_INDEX'
 } as const;
 
 export type ConversationMessageDeltaAnchorMatchType = typeof ConversationMessageDeltaAnchorMatchType[keyof typeof ConversationMessageDeltaAnchorMatchType];
@@ -1515,6 +1524,8 @@ export interface CustomerServiceConversation {
   conversationId: Scalars['String']['output'];
   /** Unix seconds when the conversation was created */
   createTime?: Maybe<Scalars['Int']['output']>;
+  /** Current platform customer-service session ID, when returned by the platform. */
+  currentSessionId?: Maybe<Scalars['String']['output']>;
   /** Backend-normalized platform lifecycle. False means the platform conversation is closed. */
   isOpen?: Maybe<Scalars['Boolean']['output']>;
   /** Unix seconds when the latest pending buyer message arrived. */
@@ -1524,6 +1535,12 @@ export interface CustomerServiceConversation {
   latestMessagePreview?: Maybe<Scalars['String']['output']>;
   /** Unix seconds of last update */
   latestMessageTime?: Maybe<Scalars['Int']['output']>;
+  latestOpenEscalationId?: Maybe<Scalars['String']['output']>;
+  latestOpenEscalationStatus?: Maybe<CsEscalationStatus>;
+  /** Unix seconds when the latest open escalation was updated. */
+  latestOpenEscalationUpdatedAt?: Maybe<Scalars['Int']['output']>;
+  /** Number of currently open escalations linked to this conversation. */
+  openEscalationCount?: Maybe<Scalars['Int']['output']>;
   /** Associated order ID if any */
   orderId?: Maybe<Scalars['String']['output']>;
   /** Number of participants in the conversation */
@@ -1553,6 +1570,14 @@ export interface CustomerServiceConversationDetails {
   conversation: CustomerServiceConversation;
 }
 
+/** Backend-materialized escalation state filter for CS conversations. */
+export const CustomerServiceConversationEscalationFilter = {
+  All: 'ALL',
+  None: 'NONE',
+  Open: 'OPEN'
+} as const;
+
+export type CustomerServiceConversationEscalationFilter = typeof CustomerServiceConversationEscalationFilter[keyof typeof CustomerServiceConversationEscalationFilter];
 /** Backend-materialized customer service conversation inbox item. */
 export interface CustomerServiceConversationInboxItem {
   aiEnabled: Scalars['Boolean']['output'];
@@ -1570,7 +1595,13 @@ export interface CustomerServiceConversationInboxItem {
   /** Unix seconds of latest materialized message. */
   latestMessageTime?: Maybe<Scalars['Int']['output']>;
   latestMessageType?: Maybe<Scalars['String']['output']>;
+  latestOpenEscalationId?: Maybe<Scalars['String']['output']>;
+  latestOpenEscalationStatus?: Maybe<CsEscalationStatus>;
+  /** Unix seconds when the latest open escalation was updated. */
+  latestOpenEscalationUpdatedAt?: Maybe<Scalars['Int']['output']>;
   latestSenderRole?: Maybe<Scalars['String']['output']>;
+  /** Number of currently open escalations linked to this conversation. */
+  openEscalationCount: Scalars['Int']['output'];
   orderId?: Maybe<Scalars['String']['output']>;
   /** Raw platform conversation lifecycle/status value when observed. */
   platformConversationStatus?: Maybe<Scalars['String']['output']>;
@@ -1663,6 +1694,8 @@ export interface CustomerServiceMessageSender {
 export interface CustomerServiceMessageSummary {
   /** Unix seconds */
   createTime?: Maybe<Scalars['Int']['output']>;
+  /** Platform message index/cursor when available. */
+  index?: Maybe<Scalars['String']['output']>;
   /** Platform message ID. */
   messageId?: Maybe<Scalars['String']['output']>;
   sender?: Maybe<CustomerServiceMessageSender>;
@@ -3057,6 +3090,12 @@ export interface Mutation {
   csAckEscalationEvent?: Maybe<CsEscalationEventDelivery>;
   /** Claim a CS escalation side-effect event for exactly-once local execution */
   csClaimEscalationEvent?: Maybe<CsEscalationEventDelivery>;
+  /** Dismiss all open CS escalations for a conversation without queueing desktop agent side-effect events */
+  csDismissConversationEscalations: CustomerServiceConversationInboxItem;
+  /** Dismiss one CS escalation without queueing a desktop agent side-effect event */
+  csDismissEscalation: CsRespondResult;
+  /** End an active platform CS session and clear the backend active-session marker */
+  csEndSession: Scalars['Boolean']['output'];
   /** Create a cloud CS escalation and queue a local manager-notification side-effect event */
   csEscalate: CsEscalateResult;
   /** Get an existing CS session or create a new one for a conversation */
@@ -3089,6 +3128,8 @@ export interface Mutation {
   ecommerceCreateConversation: CustomerServiceCreateConversationResult;
   /** Mark a conversation as read. Returns true on success. */
   ecommerceMarkConversationRead: Scalars['Boolean']['output'];
+  /** Send a manual text reply in a CS conversation without waking or requiring an AI session. */
+  ecommerceSendCustomerServiceTextReply: CustomerServiceSendMessageResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: CustomerServiceSendMessageResult;
   /** Enable or disable AI automation for one backend-materialized CS conversation. */
@@ -3213,6 +3254,24 @@ export interface MutationCsClaimEscalationEventArgs {
 }
 
 
+export interface MutationCsDismissConversationEscalationsArgs {
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsDismissEscalationArgs {
+  escalationId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsEndSessionArgs {
+  conversationId: Scalars['String']['input'];
+  sessionId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface MutationCsEscalateArgs {
   buyerNickname?: InputMaybe<Scalars['String']['input']>;
   buyerUserId: Scalars['String']['input'];
@@ -3315,6 +3374,13 @@ export interface MutationEcommerceCreateConversationArgs {
 
 export interface MutationEcommerceMarkConversationReadArgs {
   conversationId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceSendCustomerServiceTextReplyArgs {
+  conversationId: Scalars['String']['input'];
+  message: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
 
@@ -4127,6 +4193,7 @@ export interface QueryEcommerceGetConversationsArgs {
 
 export interface QueryEcommerceGetCustomerServiceInboxArgs {
   aiEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  escalation?: InputMaybe<CustomerServiceConversationEscalationFilter>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;

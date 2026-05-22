@@ -176,11 +176,39 @@ export const CS_OPEN_ESCALATIONS_QUERY = gql`
   }
 `;
 
+export const CS_ESCALATION_BY_ID_QUERY = gql`
+  query CsEscalationById($filter: CsOpenEscalationFilterInput) {
+    csOpenEscalationsPage(filter: $filter) {
+      items {
+        id
+        shopId
+        conversationId
+        buyerUserId
+        buyerNickname
+        orderId
+        reason
+        context
+        status
+        version
+        createdAt
+        updatedAt
+        result {
+          decision
+          instructions
+          resolved
+          resolvedAt
+        }
+      }
+    }
+  }
+`;
+
 export const CS_CONVERSATION_INBOX_QUERY = gql`
   query CustomerServiceInbox(
     $shopIds: [ID!]
     $status: CustomerServiceConversationStatus
     $aiEnabled: Boolean
+    $escalation: CustomerServiceConversationEscalationFilter
     $limit: Int
     $offset: Int
   ) {
@@ -188,6 +216,7 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
       shopIds: $shopIds
       status: $status
       aiEnabled: $aiEnabled
+      escalation: $escalation
       limit: $limit
       offset: $offset
     ) {
@@ -211,6 +240,10 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
         lastPendingAt
         resolvedAt
         updatedAt
+        openEscalationCount
+        latestOpenEscalationId
+        latestOpenEscalationStatus
+        latestOpenEscalationUpdatedAt
       }
     }
   }
@@ -234,6 +267,7 @@ export const CS_CONVERSATION_MESSAGES_QUERY = gql`
       nextPageToken
       items {
         messageId
+        index
         type
         text
         createTime
@@ -275,6 +309,67 @@ export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
       lastPendingAt
       resolvedAt
       updatedAt
+      openEscalationCount
+      latestOpenEscalationId
+      latestOpenEscalationStatus
+      latestOpenEscalationUpdatedAt
+    }
+  }
+`;
+
+export const CS_SEND_MANUAL_TEXT_REPLY_MUTATION = gql`
+  mutation SendCustomerServiceManualTextReply(
+    $shopId: String!
+    $conversationId: String!
+    $message: String!
+  ) {
+    ecommerceSendCustomerServiceTextReply(
+      shopId: $shopId
+      conversationId: $conversationId
+      message: $message
+    ) {
+      messageId
+    }
+  }
+`;
+
+export const CS_DISMISS_ESCALATION_MUTATION = gql`
+  mutation DismissCustomerServiceEscalation($escalationId: ID!) {
+    csDismissEscalation(escalationId: $escalationId) {
+      ok
+      escalationId
+      status
+      version
+      error
+    }
+  }
+`;
+
+export const CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION = gql`
+  mutation DismissConversationEscalations($shopId: ID!, $conversationId: String!) {
+    csDismissConversationEscalations(shopId: $shopId, conversationId: $conversationId) {
+      shopId
+      platformShopId
+      conversationId
+      status
+      aiEnabled
+      buyerUserId
+      buyerImUserId
+      buyerNickname
+      orderId
+      latestMessageTime
+      latestMessageId
+      latestMessageIndex
+      latestMessageType
+      latestSenderRole
+      latestMessagePreview
+      lastPendingAt
+      resolvedAt
+      updatedAt
+      openEscalationCount
+      latestOpenEscalationId
+      latestOpenEscalationStatus
+      latestOpenEscalationUpdatedAt
     }
   }
 `;

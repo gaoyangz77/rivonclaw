@@ -118,6 +118,7 @@ const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       platformShopId
       conversationId
       messageId
+      messageIndex
       imUserId
       buyerUserId
       orderId
@@ -149,6 +150,10 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
       lastPendingAt
       resolvedAt
       updatedAt
+      openEscalationCount
+      latestOpenEscalationId
+      latestOpenEscalationStatus
+      latestOpenEscalationUpdatedAt
       orderId
       participantCount
       canSendMessage
