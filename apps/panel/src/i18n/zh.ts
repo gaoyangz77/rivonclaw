@@ -1498,6 +1498,7 @@ export default {
         ECOM_CS_GET_PRODUCT: "获取商品",
         ECOM_CS_SEARCH_PRODUCTS: "搜索商品",
         ECOM_CS_CREATE_CONVERSATION: "创建会话",
+        ECOM_CS_END_SESSION: "结束会话",
         // 电商客服 — 售后退款
         ECOM_CS_SEARCH_RETURNS: "搜索退货",
         ECOM_CS_SEARCH_CANCELLATIONS: "搜索取消单",

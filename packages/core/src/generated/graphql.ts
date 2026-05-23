@@ -1308,6 +1308,8 @@ export interface CreatorUserRelation {
 export interface CsConversationSignal {
   /** Whether desktop should let the local AI agent run for this conversation. False means skip automation. */
   aiEnabled?: Maybe<Scalars['Boolean']['output']>;
+  /** Buyer display nickname if already known. */
+  buyerNickname?: Maybe<Scalars['String']['output']>;
   /** Platform buyer user ID if already known. */
   buyerUserId?: Maybe<Scalars['String']['output']>;
   /** Platform conversation/thread ID that desktop should inspect. */
@@ -1587,7 +1589,9 @@ export interface CustomerServiceConversationDispatchHint {
 /** Reason a customer-service conversation snapshot should wake the local CS agent. */
 export const CustomerServiceConversationDispatchReason = {
   ManualStart: 'MANUAL_START',
-  PendingBuyerMessage: 'PENDING_BUYER_MESSAGE'
+  PendingBuyerMessage: 'PENDING_BUYER_MESSAGE',
+  SessionExpiringCustomerFollowUp: 'SESSION_EXPIRING_CUSTOMER_FOLLOW_UP',
+  SessionExpiringEscalationFollowUp: 'SESSION_EXPIRING_ESCALATION_FOLLOW_UP'
 } as const;
 
 export type CustomerServiceConversationDispatchReason = typeof CustomerServiceConversationDispatchReason[keyof typeof CustomerServiceConversationDispatchReason];
@@ -1614,6 +1618,8 @@ export interface CustomerServiceConversationInboxItem {
   buyerNickname?: Maybe<Scalars['String']['output']>;
   buyerUserId?: Maybe<Scalars['String']['output']>;
   conversationId: Scalars['String']['output'];
+  /** Current platform customer-service session ID, when returned by the platform. */
+  currentSessionId?: Maybe<Scalars['String']['output']>;
   /** Backend-normalized platform lifecycle. False means the platform conversation is closed. */
   isOpen: Scalars['Boolean']['output'];
   /** Unix seconds when the latest pending buyer message arrived. */
@@ -3296,7 +3302,6 @@ export interface MutationCsDismissEscalationArgs {
 
 export interface MutationCsEndSessionArgs {
   conversationId: Scalars['String']['input'];
-  sessionId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
 }
 
@@ -5088,7 +5093,7 @@ export interface Subscription {
   affiliateConversationSignal: AffiliateConversationSignal;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
-  /** Streams backend-materialized CS conversation snapshots whenever a conversation changes. Desktop UI should treat each payload as the latest whole-entity snapshot; this subscription does not imply an agent run. */
+  /** Streams backend-materialized CS conversation snapshots whenever a conversation changes. Desktop should treat each payload as the latest whole-entity snapshot and only wake the local CS agent when dispatchHint is present. */
   csConversationChanged: CustomerServiceConversation;
   /** Streams CS conversation signals to desktop clients. Missed pending signals are retried from backend state by Airflow. */
   csConversationSignal: CsConversationSignal;
@@ -5255,6 +5260,7 @@ export const ToolId = {
   EcomCsApproveCancellation: 'ECOM_CS_APPROVE_CANCELLATION',
   EcomCsApproveRefund: 'ECOM_CS_APPROVE_REFUND',
   EcomCsApproveReturn: 'ECOM_CS_APPROVE_RETURN',
+  EcomCsEndSession: 'ECOM_CS_END_SESSION',
   EcomCsGetAftersaleEligibility: 'ECOM_CS_GET_AFTERSALE_ELIGIBILITY',
   EcomCsGetConversationDetails: 'ECOM_CS_GET_CONVERSATION_DETAILS',
   EcomCsGetConversationMessages: 'ECOM_CS_GET_CONVERSATION_MESSAGES',

@@ -1509,6 +1509,7 @@ export default {
         ECOM_CS_GET_PRODUCT: "Get Product",
         ECOM_CS_SEARCH_PRODUCTS: "Search Products",
         ECOM_CS_CREATE_CONVERSATION: "Create Conversation",
+        ECOM_CS_END_SESSION: "End Session",
         // E-commerce CS — Return & Refund
         ECOM_CS_SEARCH_RETURNS: "Search Returns",
         ECOM_CS_SEARCH_CANCELLATIONS: "Search Cancellations",
