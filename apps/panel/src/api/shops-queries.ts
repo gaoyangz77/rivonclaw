@@ -226,6 +226,8 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
         platformShopId
         conversationId
         status
+        isOpen
+        platformConversationStatus
         aiEnabled
         buyerUserId
         buyerImUserId
@@ -295,6 +297,8 @@ export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
       platformShopId
       conversationId
       status
+      isOpen
+      platformConversationStatus
       aiEnabled
       buyerUserId
       buyerImUserId
@@ -333,6 +337,12 @@ export const CS_SEND_MANUAL_TEXT_REPLY_MUTATION = gql`
   }
 `;
 
+export const CS_END_CUSTOMER_SERVICE_SESSION_MUTATION = gql`
+  mutation EndCustomerServiceSession($shopId: ID!, $conversationId: String!) {
+    csEndCustomerServiceSession(shopId: $shopId, conversationId: $conversationId)
+  }
+`;
+
 export const CS_DISMISS_ESCALATION_MUTATION = gql`
   mutation DismissCustomerServiceEscalation($escalationId: ID!) {
     csDismissEscalation(escalationId: $escalationId) {
@@ -352,6 +362,8 @@ export const CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION = gql`
       platformShopId
       conversationId
       status
+      isOpen
+      platformConversationStatus
       aiEnabled
       buyerUserId
       buyerImUserId
