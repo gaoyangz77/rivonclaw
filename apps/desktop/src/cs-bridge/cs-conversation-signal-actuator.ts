@@ -8,6 +8,13 @@ import type {
 
 const log = createLogger("cs-signal-actuator");
 
+const DISPATCH_REASON_TO_SIGNAL_TYPE: Record<string, CsConversationSignalPayload["type"]> = {
+  MANUAL_START: "MANUAL_START",
+  PENDING_BUYER_MESSAGE: "UNREAD_DETECTED",
+  SESSION_EXPIRING_ESCALATION_FOLLOW_UP: "UNREAD_DETECTED",
+  SESSION_EXPIRING_CUSTOMER_FOLLOW_UP: "UNREAD_DETECTED",
+};
+
 function findSignalShop(signal: CsConversationSignalPayload): any | undefined {
   return rootStore.shops.find((shop: any) =>
     shop.id === signal.shopId || shop.platformShopId === signal.platformShopId,
@@ -26,6 +33,16 @@ function conversationToSignal(
 ): CsConversationSignalPayload | null {
   const hint = conversation.dispatchHint;
   if (!hint) return null;
+  const signalType = DISPATCH_REASON_TO_SIGNAL_TYPE[String(hint.reason)];
+  if (!signalType) {
+    log.warn(
+      `Ignoring CS conversation dispatch with unknown reason ${String(hint.reason)} ` +
+      `for shop=${conversation.platformShopId ?? conversation.shopId ?? ""} ` +
+      `conv=${conversation.conversationId}`,
+    );
+    return null;
+  }
+
   const buyer = conversation.participants?.find((participant) => participant?.role === "BUYER")
     ?? conversation.participants?.find(Boolean);
   const eventTime = hint.eventTime != null
@@ -33,7 +50,7 @@ function conversationToSignal(
     : new Date().toISOString();
 
   return {
-    type: hint.reason === "MANUAL_START" ? "MANUAL_START" : "UNREAD_DETECTED",
+    type: signalType,
     source: hint.source,
     shopId: conversation.shopId ?? shop.id,
     platformShopId: conversation.platformShopId ?? shop.platformShopId,
