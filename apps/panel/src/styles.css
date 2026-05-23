@@ -9260,6 +9260,21 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
+.cs-end-session-button {
+  min-height: 30px;
+  white-space: nowrap;
+}
+
+.cs-end-session-action {
+  display: inline-flex;
+}
+
+.cs-end-session-action::after {
+  max-width: 280px;
+  white-space: normal;
+  text-align: left;
+}
+
 .cs-summary-button {
   min-height: 30px;
   white-space: nowrap;
@@ -9346,6 +9361,60 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.cs-end-session-modal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 2px 0 12px;
+}
+
+.cs-end-session-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, var(--color-border-light));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg));
+  color: var(--color-danger);
+}
+
+.cs-end-session-copy {
+  margin: 0 0 6px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.cs-end-session-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cs-end-session-target {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 8px;
+  padding: 5px 8px;
+  margin-top: 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-alt) 70%, var(--color-bg) 30%);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.cs-end-session-target code {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 11px;
 }
 
 .cs-message-working-overlay {

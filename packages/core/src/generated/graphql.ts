@@ -3137,6 +3137,8 @@ export interface Mutation {
   csDismissConversationEscalations: CustomerServiceConversationInboxItem;
   /** Dismiss one CS escalation without queueing a desktop agent side-effect event */
   csDismissEscalation: CsRespondResult;
+  /** Manually end an active platform CS session from the operator customer-service UI */
+  csEndCustomerServiceSession: Scalars['Boolean']['output'];
   /** End an active platform CS session and clear the backend active-session marker */
   csEndSession: Scalars['Boolean']['output'];
   /** Create or update the active cloud CS escalation and queue a local manager-notification side-effect event */
@@ -3305,6 +3307,12 @@ export interface MutationCsDismissConversationEscalationsArgs {
 
 export interface MutationCsDismissEscalationArgs {
   escalationId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsEndCustomerServiceSessionArgs {
+  conversationId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
 }
 
 

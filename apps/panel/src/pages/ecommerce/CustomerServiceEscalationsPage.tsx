@@ -34,6 +34,7 @@ type ParsedRichMessage =
 type DismissEscalationConfirm =
   | { kind: "conversation"; conversation: Conversation }
   | { kind: "single" };
+type EndSessionConfirm = { conversation: Conversation };
 
 const mediaElementStyle: CSSProperties = {
   display: "block",
@@ -49,6 +50,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const workspace = entityStore.customerServiceWorkspace;
   const [conversationDetailsOpen, setConversationDetailsOpen] = useState(false);
   const [dismissEscalationConfirm, setDismissEscalationConfirm] = useState<DismissEscalationConfirm | null>(null);
+  const [endSessionConfirm, setEndSessionConfirm] = useState<EndSessionConfirm | null>(null);
   const conversationDetailsRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -307,6 +309,17 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       showToast(t("ecommerce.customerServiceWorkspace.manualReplySent"), "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.customerServiceWorkspace.manualReplyFailed"), "error");
+    }
+  }
+
+  async function endConversationSession(conversation: Conversation) {
+    try {
+      const result = await workspace.endConversationSession(conversation);
+      if (!result) return;
+      setEndSessionConfirm(null);
+      showToast(t("ecommerce.customerServiceWorkspace.endSessionSuccess"), "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t("ecommerce.customerServiceWorkspace.endSessionFailed"), "error");
     }
   }
 
@@ -589,6 +602,25 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             </button>
                           </span>
                       )}
+                      {selectedConversation.isOpen !== false && (
+                        <span
+                          className="has-tooltip cs-end-session-action"
+                          data-tooltip={selectedConversation.openEscalationCount > 0
+                            ? t("ecommerce.customerServiceWorkspace.endSessionDisabledTooltip")
+                            : t("ecommerce.customerServiceWorkspace.endSessionTooltip")}
+                        >
+                          <button
+                            className="btn btn-secondary btn-sm cs-end-session-button"
+                            type="button"
+                            onClick={() => setEndSessionConfirm({ conversation: selectedConversation })}
+                            disabled={selectedConversation.openEscalationCount > 0 || workspace.isConversationSessionEnding(selectedConversation.conversationId)}
+                          >
+                            {workspace.isConversationSessionEnding(selectedConversation.conversationId)
+                              ? t("common.loading")
+                              : t("ecommerce.customerServiceWorkspace.endSession")}
+                          </button>
+                        </span>
+                      )}
                       <button
                         className={selectedConversation.aiEnabled ? "cs-ai-switch enabled" : "cs-ai-switch"}
                         type="button"
@@ -771,6 +803,15 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
             return;
           }
           void dismissEscalation();
+        }}
+      />
+      <EndSessionConfirmModal
+        confirm={endSessionConfirm}
+        isBusy={Boolean(endSessionConfirm && workspace.isConversationSessionEnding(endSessionConfirm.conversation.conversationId))}
+        onClose={() => setEndSessionConfirm(null)}
+        onConfirm={() => {
+          if (!endSessionConfirm) return;
+          void endConversationSession(endSessionConfirm.conversation);
         }}
       />
     </div>
@@ -1059,6 +1100,59 @@ const DismissEscalationConfirmModal = observer(function DismissEscalationConfirm
         </button>
         <button className="btn btn-danger" type="button" onClick={onConfirm} disabled={isBusy}>
           {isBusy ? t("common.loading") : t("ecommerce.customerServiceWorkspace.dismissEscalation")}
+        </button>
+      </div>
+    </Modal>
+  );
+});
+
+const EndSessionConfirmModal = observer(function EndSessionConfirmModal({
+  confirm,
+  isBusy,
+  onClose,
+  onConfirm,
+}: {
+  confirm: EndSessionConfirm | null;
+  isBusy: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const { t } = useTranslation();
+  const conversation = confirm?.conversation;
+
+  return (
+    <Modal
+      isOpen={Boolean(confirm)}
+      onClose={onClose}
+      title={t("ecommerce.customerServiceWorkspace.endSession")}
+      maxWidth={420}
+      preventBackdropClose={isBusy}
+    >
+      <div className="cs-end-session-modal">
+        <div className="cs-end-session-icon">
+          <InfoIcon size={18} />
+        </div>
+        <div>
+          <p className="cs-end-session-copy">
+            {t("ecommerce.customerServiceWorkspace.endSessionConfirmTitle")}
+          </p>
+          <p className="cs-end-session-hint">
+            {t("ecommerce.customerServiceWorkspace.endSessionConfirmBody")}
+          </p>
+          {conversation && (
+            <div className="cs-end-session-target">
+              <span>{t("ecommerce.customerServiceWorkspace.conversation")}</span>
+              <code>{shortId(conversation.conversationId)}</code>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-secondary" type="button" onClick={onClose} disabled={isBusy}>
+          {t("common.cancel")}
+        </button>
+        <button className="btn btn-danger" type="button" onClick={onConfirm} disabled={isBusy}>
+          {isBusy ? t("common.loading") : t("ecommerce.customerServiceWorkspace.endSession")}
         </button>
       </div>
     </Modal>

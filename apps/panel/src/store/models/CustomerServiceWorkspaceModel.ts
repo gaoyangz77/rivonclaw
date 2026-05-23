@@ -5,6 +5,7 @@ import { fetchJson } from "../../api/client.js";
 import {
   CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
   CS_DISMISS_ESCALATION_MUTATION,
+  CS_END_CUSTOMER_SERVICE_SESSION_MUTATION,
   CS_ESCALATION_BY_ID_QUERY,
   CS_CONVERSATION_INBOX_QUERY,
   CS_CONVERSATION_MESSAGES_QUERY,
@@ -257,6 +258,7 @@ export const CustomerServiceWorkspaceModel = types
     updatingConversationAiIds: types.optional(types.array(types.string), []),
     startingConversationIds: types.optional(types.array(types.string), []),
     clearingConversationEscalationIds: types.optional(types.array(types.string), []),
+    endingConversationSessionIds: types.optional(types.array(types.string), []),
     selectedConversationShopId: types.maybeNull(types.string),
     conversationListWidth: types.maybeNull(types.number),
     manualReplyDraft: types.optional(types.string, ""),
@@ -340,6 +342,9 @@ export const CustomerServiceWorkspaceModel = types
     },
     isConversationEscalationClearing(conversationId: string) {
       return self.clearingConversationEscalationIds.includes(conversationId);
+    },
+    isConversationSessionEnding(conversationId: string) {
+      return self.endingConversationSessionIds.includes(conversationId);
     },
     get escalationPageCount() {
       return Math.max(1, Math.ceil(self.escalationTotal / self.escalationPageSize));
@@ -841,6 +846,33 @@ export const CustomerServiceWorkspaceModel = types
           return Boolean(result.data?.ecommerceSendCustomerServiceTextReply?.messageId);
         } finally {
           self.sendingManualReply = false;
+        }
+      }),
+      endConversationSession: flow(function* (item: any) {
+        const key = item.conversationId;
+        pushUnique(self.endingConversationSessionIds as unknown as string[], key);
+        try {
+          const result = yield client().mutate({
+            mutation: CS_END_CUSTOMER_SERVICE_SESSION_MUTATION,
+            variables: {
+              shopId: item.shopId,
+              conversationId: item.conversationId,
+            },
+          });
+          if (!result.data?.csEndCustomerServiceSession) return false;
+          removeConversation(item);
+          self.conversationTotal = Math.max(0, self.conversationTotal - 1);
+          if (self.selectedConversationId === item.conversationId && self.selectedConversationShopId === item.shopId) {
+            self.selectedConversationId = null;
+            self.selectedConversationShopId = null;
+            self.conversationMessages.replace([]);
+            self.conversationMessagesNextPageToken = null;
+            self.conversationSummary = null;
+            self.manualReplyDraft = "";
+          }
+          return true;
+        } finally {
+          removeValue(self.endingConversationSessionIds as unknown as string[], key);
         }
       }),
       dismissConversationEscalations: flow(function* (item: any) {
