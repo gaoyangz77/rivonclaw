@@ -1145,6 +1145,8 @@ describe("agent dispatch", () => {
     const message = agentCall?.[1].message as string;
     expect(message).toContain("[Internal: System]");
     expect(message).toContain("ecom_cs_get_conversation_messages");
+    expect(message).toContain("ecom_cs_end_session");
+    expect(message).toContain("there is no open escalation");
     expect(message).toContain("[Internal: Operator Instruction]");
     expect(message).toContain("This refund request looks unreasonable.");
   });
