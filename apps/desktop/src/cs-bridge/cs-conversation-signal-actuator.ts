@@ -5,15 +5,12 @@ import type {
   CsConversationChangedPayload,
   CsConversationSignalPayload,
 } from "../cloud/backend-subscription-client.js";
+import {
+  resolveCsConversationDispatch,
+  resolveCsSignalDispatch,
+} from "./cs-agent-dispatch-resolver.js";
 
 const log = createLogger("cs-signal-actuator");
-
-const DISPATCH_REASON_TO_SIGNAL_TYPE: Record<string, CsConversationSignalPayload["type"]> = {
-  MANUAL_START: "MANUAL_START",
-  PENDING_BUYER_MESSAGE: "UNREAD_DETECTED",
-  SESSION_EXPIRING_ESCALATION_FOLLOW_UP: "UNREAD_DETECTED",
-  SESSION_EXPIRING_CUSTOMER_FOLLOW_UP: "UNREAD_DETECTED",
-};
 
 function findSignalShop(signal: CsConversationSignalPayload): any | undefined {
   return rootStore.shops.find((shop: any) =>
@@ -25,48 +22,6 @@ function findConversationShop(conversation: CsConversationChangedPayload): any |
   return rootStore.shops.find((shop: any) =>
     shop.id === conversation.shopId || shop.platformShopId === conversation.platformShopId,
   );
-}
-
-function conversationToSignal(
-  conversation: CsConversationChangedPayload,
-  shop: any,
-): CsConversationSignalPayload | null {
-  const hint = conversation.dispatchHint;
-  if (!hint) return null;
-  const signalType = DISPATCH_REASON_TO_SIGNAL_TYPE[String(hint.reason)];
-  if (!signalType) {
-    log.warn(
-      `Ignoring CS conversation dispatch with unknown reason ${String(hint.reason)} ` +
-      `for shop=${conversation.platformShopId ?? conversation.shopId ?? ""} ` +
-      `conv=${conversation.conversationId}`,
-    );
-    return null;
-  }
-
-  const buyer = conversation.participants?.find((participant) => participant?.role === "BUYER")
-    ?? conversation.participants?.find(Boolean);
-  const eventTime = hint.eventTime != null
-    ? new Date(hint.eventTime * 1000).toISOString()
-    : new Date().toISOString();
-
-  return {
-    type: signalType,
-    source: hint.source,
-    shopId: conversation.shopId ?? shop.id,
-    platformShopId: conversation.platformShopId ?? shop.platformShopId,
-    conversationId: conversation.conversationId,
-    messageId: hint.messageId ?? conversation.latestMessage?.messageId ?? undefined,
-    messageIndex: hint.messageIndex ?? conversation.latestMessage?.index ?? undefined,
-    imUserId: buyer?.imUserId ?? undefined,
-    buyerUserId: buyer?.userId ?? undefined,
-    orderId: conversation.orderId ?? undefined,
-    messageType: conversation.latestMessage?.type ?? undefined,
-    senderRole: conversation.latestMessage?.sender?.role ?? undefined,
-    aiEnabled: conversation.aiEnabled ?? true,
-    latestMessagePreview: conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined,
-    operatorInstruction: hint.operatorInstruction ?? undefined,
-    eventTime,
-  };
 }
 
 /**
@@ -102,13 +57,22 @@ export async function handleCsConversationSignal(
     return;
   }
 
+  const dispatch = resolveCsSignalDispatch(signal);
+  if (!dispatch) {
+    log.warn(
+      `Ignoring CS signal with unknown type ${String(signal.type)} ` +
+      `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
+    );
+    return;
+  }
+
   const bridge = getCsBridge();
   if (!bridge) {
     log.warn(`CS signal arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
     return;
   }
 
-  await bridge.handleCsConversationSignal(signal);
+  await bridge.handleCsConversationSignal(dispatch);
 }
 
 export async function handleCsConversationChanged(
@@ -138,14 +102,21 @@ export async function handleCsConversationChanged(
     return;
   }
 
-  const signal = conversationToSignal(conversation, shop);
-  if (!signal) return;
-
-  const bridge = getCsBridge();
-  if (!bridge) {
-    log.warn(`CS conversation change arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
+  const dispatch = resolveCsConversationDispatch(conversation, shop);
+  if (!dispatch) {
+    log.warn(
+      `Ignoring CS conversation dispatch with unknown reason ${String(conversation.dispatchHint.reason)} ` +
+      `for shop=${conversation.platformShopId ?? conversation.shopId ?? ""} ` +
+      `conv=${conversation.conversationId}`,
+    );
     return;
   }
 
-  await bridge.handleCsConversationSignal(signal);
+  const bridge = getCsBridge();
+  if (!bridge) {
+    log.warn(`CS conversation change arrived before bridge was ready: shop=${dispatch.platformShopId} conv=${dispatch.conversationId}`);
+    return;
+  }
+
+  await bridge.handleCsConversationSignal(dispatch);
 }

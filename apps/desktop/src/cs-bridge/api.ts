@@ -179,6 +179,8 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
       conversationId: body.conversationId as string,
       buyerUserId: typeof body.buyerUserId === "string" ? body.buyerUserId : undefined,
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      dispatchReason: "MANUAL_START",
+      useMessageDelta: false,
       operatorInstruction: typeof body.operatorInstruction === "string"
         ? body.operatorInstruction
         : undefined,

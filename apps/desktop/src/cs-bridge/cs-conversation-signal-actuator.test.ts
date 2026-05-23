@@ -79,6 +79,8 @@ describe("handleCsConversationChanged", () => {
 
     expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
       type: "UNREAD_DETECTED",
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      useMessageDelta: true,
       source: "AIRFLOW",
       shopId: "shop-1",
       platformShopId: "platform-shop-1",
@@ -92,6 +94,8 @@ describe("handleCsConversationChanged", () => {
 
     expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
       type: "UNREAD_DETECTED",
+      dispatchReason: "SESSION_EXPIRING_ESCALATION_FOLLOW_UP",
+      useMessageDelta: false,
       conversationId: "conv-1",
     }));
   });

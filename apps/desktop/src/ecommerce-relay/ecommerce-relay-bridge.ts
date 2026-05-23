@@ -12,6 +12,10 @@ import type {
   CsConversationSignalPayload,
   CsEscalationEventDeliveryPayload,
 } from "../cloud/backend-subscription-client.js";
+import {
+  resolveCsSignalDispatch,
+  type CsAgentDispatchRequest,
+} from "../cs-bridge/cs-agent-dispatch-resolver.js";
 
 // Re-export for consumers that imported CSShopContext from this file
 export type { CSShopContext } from "../cs-bridge/customer-service-session.js";
@@ -496,50 +500,60 @@ export class EcommerceRelayBridge {
 
   // -- Backend signal handling -----------------------------------------------
 
-  async handleCsConversationSignal(signal: CsConversationSignalPayload): Promise<void> {
+  async handleCsConversationSignal(signal: CsConversationSignalPayload | CsAgentDispatchRequest): Promise<void> {
     if (signal.aiEnabled === false) {
       log.info(`Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`);
+      return;
+    }
+    const dispatch = resolveCsSignalDispatch(signal);
+    if (!dispatch) {
+      log.warn(
+        `Ignoring CS signal with unknown type ${String(signal.type)} ` +
+        `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
+      );
       return;
     }
 
     this.syncFromCache();
     log.info(
-      `CS signal: type=${signal.type} shop=${signal.platformShopId} ` +
-      `conv=${signal.conversationId} msg=${signal.messageId ?? ""}`,
+      `CS signal: type=${dispatch.type} reason=${dispatch.dispatchReason} shop=${dispatch.platformShopId} ` +
+      `conv=${dispatch.conversationId} msg=${dispatch.messageId ?? ""}`,
     );
 
-    const shop = this.shopContexts.get(signal.platformShopId);
+    const shop = this.shopContexts.get(dispatch.platformShopId);
     if (!shop) {
-      log.info(`Ignoring CS signal for inactive/non-owned-device shop ${signal.platformShopId}`);
+      log.info(`Ignoring CS signal for inactive/non-owned-device shop ${dispatch.platformShopId}`);
       emitCsError(CS_ERROR_STAGE.DISPATCH, {
-        platformShopId: signal.platformShopId,
-        conversationId: signal.conversationId,
+        platformShopId: dispatch.platformShopId,
+        conversationId: dispatch.conversationId,
         reason: "no_shop_context",
       });
       return;
     }
 
     const session = await this.getOrCreateSession(shop.objectId, {
-      conversationId: signal.conversationId,
-      buyerUserId: signal.buyerUserId ?? signal.imUserId ?? undefined,
-      imUserId: signal.imUserId ?? undefined,
-      orderId: signal.orderId ?? undefined,
+      conversationId: dispatch.conversationId,
+      buyerUserId: dispatch.buyerUserId ?? dispatch.imUserId ?? undefined,
+      imUserId: dispatch.imUserId ?? undefined,
+      orderId: dispatch.orderId ?? undefined,
     });
 
     try {
       await session.dispatchCatchUp({
-        operatorInstruction: signal.operatorInstruction ?? undefined,
-        currentMessageId: signal.messageId ?? undefined,
-        currentMessageCursor: signal.messageId || signal.messageIndex || signal.eventTime
+        dispatchReason: dispatch.dispatchReason,
+        operatorInstruction: dispatch.operatorInstruction ?? undefined,
+        currentMessageId: dispatch.messageId ?? undefined,
+        useMessageDelta: dispatch.useMessageDelta,
+        currentMessageCursor: dispatch.messageId || dispatch.messageIndex || dispatch.eventTime
           ? {
-              messageId: signal.messageId ?? undefined,
-              messageIndex: signal.messageIndex ?? undefined,
-              createTime: signal.eventTime ? Math.floor(new Date(signal.eventTime).getTime() / 1000) : undefined,
+              messageId: dispatch.messageId ?? undefined,
+              messageIndex: dispatch.messageIndex ?? undefined,
+              createTime: dispatch.eventTime ? Math.floor(new Date(dispatch.eventTime).getTime() / 1000) : undefined,
             }
           : undefined,
       });
     } catch (err) {
-      log.error(`Failed to handle CS signal ${signal.messageId ?? signal.conversationId}:`, err);
+      log.error(`Failed to handle CS signal ${dispatch.messageId ?? dispatch.conversationId}:`, err);
       session.emitError(CS_ERROR_STAGE.DISPATCH, {
         reason: "unhandled_exception",
         errorMessage: err,
@@ -675,10 +689,12 @@ export class EcommerceRelayBridge {
     conversationId: string;
     buyerUserId?: string;
     orderId?: string;
+    dispatchReason?: CsAgentDispatchRequest["dispatchReason"];
     operatorInstruction?: string;
     currentMessageId?: string;
     currentMessageIndex?: string;
     currentMessageCreateTime?: number;
+    useMessageDelta?: boolean;
   }) {
     const session = await this.getOrCreateSession(params.shopObjectId, {
       conversationId: params.conversationId,
@@ -686,8 +702,10 @@ export class EcommerceRelayBridge {
       orderId: params.orderId,
     });
     return session.dispatchCatchUp({
+      dispatchReason: params.dispatchReason,
       operatorInstruction: params.operatorInstruction,
       currentMessageId: params.currentMessageId,
+      useMessageDelta: params.useMessageDelta,
       currentMessageCursor: params.currentMessageId || params.currentMessageIndex || params.currentMessageCreateTime != null
         ? {
             messageId: params.currentMessageId,
