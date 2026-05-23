@@ -14,7 +14,7 @@ import {
 } from "./cs-conversation-summary-service.js";
 
 type CsEscalateMutationResult = {
-  csEscalate: { ok: boolean; escalationId?: string | null; status?: string | null; error?: string | null };
+  csEscalate: { ok: boolean; action?: string | null; escalationId?: string | null; status?: string | null; error?: string | null };
 };
 
 type CsRespondMutationResult = {

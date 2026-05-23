@@ -183,6 +183,7 @@ export const CS_ESCALATE_MUTATION = `
       context: $context
     ) {
       ok
+      action
       escalationId
       status
       error

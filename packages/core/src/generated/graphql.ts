@@ -1358,8 +1358,16 @@ export const CsConversationSignalType = {
 } as const;
 
 export type CsConversationSignalType = typeof CsConversationSignalType[keyof typeof CsConversationSignalType];
+/** Whether csEscalate created a new escalation or updated the active one */
+export const CsEscalateAction = {
+  Created: 'CREATED',
+  Updated: 'UPDATED'
+} as const;
+
+export type CsEscalateAction = typeof CsEscalateAction[keyof typeof CsEscalateAction];
 /** Result of creating a CS escalation */
 export interface CsEscalateResult {
+  action?: Maybe<CsEscalateAction>;
   error?: Maybe<Scalars['String']['output']>;
   escalationId?: Maybe<Scalars['ID']['output']>;
   ok: Scalars['Boolean']['output'];
@@ -3131,7 +3139,7 @@ export interface Mutation {
   csDismissEscalation: CsRespondResult;
   /** End an active platform CS session and clear the backend active-session marker */
   csEndSession: Scalars['Boolean']['output'];
-  /** Create a cloud CS escalation and queue a local manager-notification side-effect event */
+  /** Create or update the active cloud CS escalation and queue a local manager-notification side-effect event */
   csEscalate: CsEscalateResult;
   /** Get an existing CS session or create a new one for a conversation */
   csGetOrCreateSession: CsSessionResult;
