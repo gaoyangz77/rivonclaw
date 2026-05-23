@@ -20,7 +20,7 @@ This builds Mac DMG/ZIP (separate arm64 + x64) + Windows EXE along with blockmap
 ./scripts/test-local.sh --skip-tests  # build + pack only
 ```
 
-### Step 3: Publish the release
+### Step 3: Publish the GitHub release
 
 After both CI build and local tests complete successfully:
 
@@ -30,6 +30,28 @@ After both CI build and local tests complete successfully:
 ```
 
 This validates the draft has at least 13 artifacts (arm64.dmg, x64.dmg, arm64.zip, x64.zip, arm64-mac.yml, x64-mac.yml, EXE, portable EXE, EXE.blockmap, latest.yml, AppImage, deb, latest-linux.yml), pushes the git tag `v{version}`, and promotes the draft release to public.
+
+**Important:** this only publishes the GitHub release. Production rollout is not finished until the website, update manifests, production `/releases/` directory, and CDN are updated.
+
+### Step 4: Promote production website + downloads
+
+Follow `docs/release-flow.md` for the full production promotion checklist.
+
+In short:
+1. Update `server/website/site/index.html`
+2. Update `server/website/site/update-manifest.json`
+3. Update `server/website/site/update-manifest-cn.json`
+4. Push the `server/` repo
+5. On main-server, pull and run:
+   ```bash
+   ./scripts/deploy.sh --current-env
+   ```
+6. Copy the new version from `website/site/stg-releases/` to `website/site/releases/`
+7. Run CDN refresh:
+   ```bash
+   ./scripts/cdn-refresh.sh <version> --all
+   ```
+8. Verify both macOS and Windows production URLs with cache-busting query params
 
 **Incremental updates:** The build generates `.blockmap` files and `latest.yml`/`{arch}-mac.yml` manifests that enable `electron-updater` differential downloads. Users only download changed ~64KB blocks instead of the full installer.
 
