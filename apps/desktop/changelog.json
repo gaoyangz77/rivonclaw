@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.15",
+    "date": "2026-05-23",
+    "en": [
+      "Let customer-service agents explicitly end sessions so conversations close cleanly when work is finished",
+      "Improve escalation and dispatch handling with clearer conversation snapshots, safer hint routing, and more reliable session state updates",
+      "Polish the customer-service workspace with better escalation actions and stronger shop query coverage"
+    ],
+    "zh": [
+      "支持客服 AI 主动结束会话，任务处理完后能更干净地收尾",
+      "优化升级单与分派链路，补强会话快照、提示路由和会话状态更新的可靠性",
+      "继续打磨客服工作台，改进升级单操作体验并补全店铺查询覆盖"
+    ]
+  },
+  {
     "version": "1.8.14",
     "date": "2026-05-22",
     "en": [
