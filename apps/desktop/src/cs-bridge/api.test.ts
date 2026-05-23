@@ -85,6 +85,8 @@ describe("POST /api/cs-bridge/start-conversation", () => {
       conversationId: "conv-1",
       buyerUserId: undefined,
       orderId: "order-1",
+      dispatchReason: "MANUAL_START",
+      useMessageDelta: false,
       operatorInstruction: undefined,
     });
   });
@@ -105,6 +107,8 @@ describe("POST /api/cs-bridge/start-conversation", () => {
       conversationId: "conv-1",
       buyerUserId: "buyer-1",
       orderId: undefined,
+      dispatchReason: "MANUAL_START",
+      useMessageDelta: false,
       operatorInstruction: undefined,
     });
   });
@@ -125,6 +129,8 @@ describe("POST /api/cs-bridge/start-conversation", () => {
       conversationId: "conv-1",
       buyerUserId: undefined,
       orderId: undefined,
+      dispatchReason: "MANUAL_START",
+      useMessageDelta: false,
       operatorInstruction: "This refund request looks suspicious. Review carefully before offering any compensation.",
     });
   });

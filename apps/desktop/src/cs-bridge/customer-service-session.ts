@@ -50,6 +50,10 @@ import {
   readOpenClawSessionCursor,
   type CustomerServiceMessageCursor,
 } from "./cs-session-cursor-store.js";
+import {
+  buildCsAgentDispatchSystemPrompt,
+  type CsAgentDispatchReason,
+} from "./cs-agent-dispatch-resolver.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -124,9 +128,11 @@ export interface DispatchResult {
 }
 
 interface CatchUpDispatchOptions {
+  dispatchReason?: CsAgentDispatchReason;
   operatorInstruction?: string;
   currentMessageId?: string;
   currentMessageCursor?: CustomerServiceMessageCursor;
+  useMessageDelta?: boolean;
 }
 
 export interface EscalationResult {
@@ -782,12 +788,10 @@ export class CustomerServiceSession {
   }
 
   private buildCatchUpMessage(options?: CatchUpDispatchOptions): string {
+    const dispatchReason = options?.dispatchReason ?? "PENDING_BUYER_MESSAGE";
     const sections = [
       "[Internal: System]\n" +
-      "A customer may be waiting for a response in this conversation. " +
-      "WARNING: There may have been messages exchanged since your last interaction that you did not receive. " +
-      "You MUST call ecom_cs_get_conversation_messages to check the latest conversation state before responding. " +
-      "Do not rely on your existing context — verify what the buyer actually said most recently.",
+      buildCsAgentDispatchSystemPrompt(dispatchReason),
     ];
 
     const operatorInstruction = options?.operatorInstruction?.trim();
@@ -881,7 +885,7 @@ export class CustomerServiceSession {
     if (!await this.ensureBackendSession()) {
       throw new Error("Failed to create backend CS session (insufficient balance?)");
     }
-    if (options?.currentMessageId) {
+    if (options?.useMessageDelta !== false && options?.currentMessageId) {
       const delta = await this.fetchConversationDelta(options.currentMessageId);
       if (delta) {
         return this.dispatch({
