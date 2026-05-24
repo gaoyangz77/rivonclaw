@@ -906,6 +906,10 @@ export class CustomerServiceSession {
 
   /** Dispatch an agent run to catch up on a missed conversation. Ensures backend session first. */
   async dispatchCatchUp(options?: CatchUpDispatchOptions): Promise<DispatchResult> {
+    if (this.shouldUseBuyerRoundForCatchUp(options)) {
+      return this.dispatchBuyerCatchUp(options);
+    }
+
     if (!await this.ensureBackendSession()) {
       throw new Error("Failed to create backend CS session (insufficient balance?)");
     }
@@ -921,9 +925,78 @@ export class CustomerServiceSession {
     }
     return this.dispatch({
       message: this.buildCatchUpMessage(options),
-      idempotencyKey: `cs-start:${this.csContext.conversationId}:${Date.now()}`,
+      idempotencyKey: this.catchUpIdempotencyKey(options),
       advanceSessionCursor: options?.currentMessageCursor,
     });
+  }
+
+  private shouldUseBuyerRoundForCatchUp(options?: CatchUpDispatchOptions): options is CatchUpDispatchOptions & { currentMessageId: string } {
+    if (!options?.currentMessageId) return false;
+    return (options.dispatchReason ?? "PENDING_BUYER_MESSAGE") === "PENDING_BUYER_MESSAGE";
+  }
+
+  private catchUpIdempotencyKey(options?: CatchUpDispatchOptions): string {
+    return options?.currentMessageId
+      ? `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`
+      : `cs-start:${this.csContext.conversationId}:${Date.now()}`;
+  }
+
+  private async dispatchBuyerCatchUp(
+    options: CatchUpDispatchOptions & { currentMessageId: string },
+  ): Promise<DispatchResult> {
+    // Cloud conversation snapshots are now the primary CS dispatch path. Keep
+    // their rapid-message semantics identical to webhook frames: claim a local
+    // placeholder before any await so the next buyer message can abort this run.
+    const previousRunId = this.activeRound?.abortActiveRun();
+    if (previousRunId) {
+      log.info(`New CS snapshot during active/pending run ${previousRunId}, aborting`);
+      this.fireAbort();
+      this.undeliveredCount++;
+    }
+
+    const round = this.createBuyerRound(options.currentMessageId);
+    this.activeRound = round;
+    const placeholder = round.placeholderRunId;
+
+    try {
+      if (!await this.ensureBackendSession()) {
+        if (this.activeRound === round) round.clearPlaceholderIfCurrent(placeholder);
+        return { runId: undefined };
+      }
+
+      if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+        return { runId: undefined };
+      }
+
+      let message = this.buildCatchUpMessage(options);
+      if (options.useMessageDelta !== false) {
+        const delta = await this.fetchConversationDelta(options.currentMessageId);
+        if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+          return { runId: undefined };
+        }
+        if (delta) {
+          message = this.buildConversationDeltaMessage(options.currentMessageId, delta);
+        }
+      }
+
+      if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+        return { runId: undefined };
+      }
+
+      return this.dispatch({
+        message: round.buildConversationWorkPackageMessage(message),
+        idempotencyKey: this.catchUpIdempotencyKey(options),
+        round,
+        placeholder,
+        advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
+      });
+    } catch (err) {
+      if (this.activeRound === round) {
+        round.clearPlaceholderIfCurrent(placeholder);
+        this.markRoundTerminal(round);
+      }
+      throw err;
+    }
   }
 
   /**
