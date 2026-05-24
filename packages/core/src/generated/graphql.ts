@@ -926,12 +926,20 @@ export interface BillingOverview {
 
 /** Plan definition with pricing and product scope. */
 export interface BillingPlanDefinition {
+  /** Exchange-rate date used for priceMonthlyCny. */
+  exchangeRateDate?: Maybe<Scalars['String']['output']>;
   metered: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
   planId: BillingPlanId;
   priceCurrency: Currency;
   priceMonthly: Scalars['String']['output'];
+  /** Monthly price converted from USD to CNY using the latest backend exchange-rate snapshot. */
+  priceMonthlyCny?: Maybe<Scalars['String']['output']>;
+  /** Monthly CNY amount in fen converted from the USD price. */
+  priceMonthlyCnyMinor?: Maybe<Scalars['Int']['output']>;
   product: BillableProduct;
+  /** USD/CNY rate used for priceMonthlyCny. */
+  usdToCnyRate?: Maybe<Scalars['String']['output']>;
 }
 
 export const BillingPlanId = {
@@ -2868,6 +2876,7 @@ export const EntitlementGrantStatus = {
 export type EntitlementGrantStatus = typeof EntitlementGrantStatus[keyof typeof EntitlementGrantStatus];
 /** Feature entitlement identifiers */
 export const EntitlementKey = {
+  EcomAffiliateManagement: 'ECOM_AFFILIATE_MANAGEMENT',
   EcomCsEscalationRead: 'ECOM_CS_ESCALATION_READ',
   EcomCsEscalationWrite: 'ECOM_CS_ESCALATION_WRITE',
   EcomCsRead: 'ECOM_CS_READ',
@@ -5048,7 +5057,9 @@ export interface ShopAuthStatusResponse {
 }
 
 export interface ShopBillingStatus {
+  affiliate: BillingEntitlementStatus;
   customerService: BillingEntitlementStatus;
+  inventory: BillingEntitlementStatus;
   shopId: Scalars['String']['output'];
   shopName: Scalars['String']['output'];
 }
@@ -5565,6 +5576,8 @@ export const UsageLimitWindow = {
 export type UsageLimitWindow = typeof UsageLimitWindow[keyof typeof UsageLimitWindow];
 export const UsageMetric = {
   CsConversationStarted: 'CS_CONVERSATION_STARTED',
+  EcomAffiliateAction: 'ECOM_AFFILIATE_ACTION',
+  EcomInventoryAction: 'ECOM_INVENTORY_ACTION',
   LlmToken: 'LLM_TOKEN'
 } as const;
 
