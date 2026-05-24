@@ -1054,6 +1054,13 @@ export const CampaignProductSampleOfferMode = {
 } as const;
 
 export type CampaignProductSampleOfferMode = typeof CampaignProductSampleOfferMode[keyof typeof CampaignProductSampleOfferMode];
+export interface CancelBillingSubscriptionInput {
+  product: BillableProduct;
+  /** User ID for account-scoped subscriptions, shop ID for shop-scoped subscriptions. */
+  scopeId: Scalars['String']['input'];
+  scopeType: BillingScopeType;
+}
+
 /** Captcha challenge response */
 export interface CaptchaResponse {
   svg: Scalars['String']['output'];
@@ -3303,6 +3310,8 @@ export interface Mutation {
   applyCreatorTag: CreatorUserRelation;
   /** Assign a manual subscription for testing or operator-driven activation. */
   assignManualBillingSubscription: BillingSubscription;
+  /** Cancel an active subscription at the end of its current billing period. */
+  cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
   /** Create a plan-scoped billing checkout. Amounts are calculated by the backend from the selected plan. */
@@ -3459,6 +3468,11 @@ export interface MutationAssignManualBillingSubscriptionArgs {
   planId: BillingPlanId;
   scopeId: Scalars['String']['input'];
   scopeType: BillingScopeType;
+}
+
+
+export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
+  input: CancelBillingSubscriptionInput;
 }
 
 
