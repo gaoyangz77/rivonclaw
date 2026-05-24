@@ -1183,8 +1183,8 @@ export interface CreateSurfaceInput {
 }
 
 export interface CreatedLlmApiKeyPayload {
-  key: LlmApiKey;
-  rawKey: Scalars['String']['output'];
+  /** Newly created original LLM API key. Desktop should usually call provisionLlmApiKey instead, which reuses the active key when one already exists. */
+  apiKey: LlmApiKey;
 }
 
 /** Creator candidate discovered by search before or during qualification. */
@@ -3274,10 +3274,12 @@ export const InventoryWeightUnit = {
 } as const;
 
 export type InventoryWeightUnit = typeof InventoryWeightUnit[keyof typeof InventoryWeightUnit];
-/** LLM proxy API key metadata. The raw key is only returned when created. */
+/** LLM proxy API key issued by RivonClaw Cloud. The key value is returned to authenticated subscription users so desktop can sync across devices. */
 export interface LlmApiKey {
   createdAt: Scalars['DateTimeISO']['output'];
   id: Scalars['ID']['output'];
+  /** Original API key value used by desktop and the LLM proxy. */
+  key: Scalars['String']['output'];
   keyPrefix: Scalars['String']['output'];
   lastUsedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   status: LlmApiKeyStatus;
@@ -3336,7 +3338,7 @@ export interface Mutation {
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
-  /** Create an LLM proxy API key. The raw key is returned only once. */
+  /** Create an additional original LLM proxy API key for the current user. Requires an active RivonClaw AI subscription. Most clients should use provisionLlmApiKey instead. */
   createLlmApiKey: CreatedLlmApiKeyPayload;
   /** Create a payment through Stripe or Lakala. */
   createPayment: Payment;
@@ -3412,6 +3414,8 @@ export interface Mutation {
   logout: Scalars['Boolean']['output'];
   /** Promote a temporary uploaded image into permanent object storage and link it to an entity. Pass the assetId returned by POST /api/uploads/images; imageUri is accepted as a fallback. */
   promoteImageAsset: ImageAsset;
+  /** Return the current user's active original LLM API key for desktop sync. Requires an active RivonClaw AI subscription. If the user has no active key yet, one is created. */
+  provisionLlmApiKey: LlmApiKey;
   /** Publish an update notification to all connected clients (admin only) */
   publishUpdate: Scalars['Boolean']['output'];
   /** Query the provider and refresh a payment's status. */
