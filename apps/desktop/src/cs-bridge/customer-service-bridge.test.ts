@@ -45,9 +45,12 @@ vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
 }));
 
+const mockEmitCsTelemetry = vi.fn();
 const mockEmitCsError = vi.fn();
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
+  emitCsTelemetry: (...args: unknown[]) => mockEmitCsTelemetry(...args),
   emitCsError: (...args: unknown[]) => mockEmitCsError(...args),
+  emitCsDeliveryRecovery: vi.fn(),
   emitCsDispatchEvent: vi.fn(),
   emitCsEscalationEvent: vi.fn(),
   emitCsSessionEvent: vi.fn(),
@@ -2894,6 +2897,8 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       dispatchReason: "PENDING_BUYER_MESSAGE",
       currentMessageId: "msg-B",
       currentMessageCursor: { messageId: "msg-B", messageIndex: "2", createTime: 101 },
+      latestMessagePreview: "Latest buyer message",
+      source: "backend_subscription",
       useMessageDelta: false,
     });
 
@@ -2937,6 +2942,13 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     );
     expect(forwardCalls).toHaveLength(1);
     expect(forwardCalls[0][1].content).toContain("Latest cloud response");
+    expect(mockEmitCsTelemetry).toHaveBeenCalledWith("cs.message", expect.objectContaining({
+      direction: "inbound",
+      messageId: "msg-B",
+      contentLength: "Latest buyer message".length,
+      runId: "run-B",
+      source: "backend_subscription",
+    }));
   });
 
   it("cloud catch-up snapshots: newer buyer message wins while the older delta fetch is pending", async () => {
