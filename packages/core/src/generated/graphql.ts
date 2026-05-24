@@ -1008,11 +1008,12 @@ export interface BillingSubscriptionSummary {
 }
 
 export interface BillingUsageStatus {
-  limit: Scalars['Int']['output'];
   metric: UsageMetric;
   refreshAt: Scalars['DateTimeISO']['output'];
-  remaining: Scalars['Int']['output'];
-  used: Scalars['Int']['output'];
+  /** Percentage of the quota still available, from 0 to 100. */
+  remainingPercent: Scalars['Float']['output'];
+  /** Percentage of the quota already consumed, from 0 to 100. */
+  usedPercent: Scalars['Float']['output'];
   window: UsageLimitWindow;
 }
 
