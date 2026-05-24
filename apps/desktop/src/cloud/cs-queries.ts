@@ -118,7 +118,6 @@ export const CS_GET_OR_CREATE_SESSION_MUTATION = `
     csGetOrCreateSession(shopId: $shopId, conversationId: $conversationId) {
       sessionId
       isNew
-      balance
     }
   }
 `;

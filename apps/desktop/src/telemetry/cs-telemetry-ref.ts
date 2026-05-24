@@ -81,7 +81,7 @@ export const CS_ERROR_STAGE = {
   RUN_ERROR: "run_error",
   /** Failed to dispatch the buyer message to the agent (pre-run). */
   DISPATCH: "dispatch",
-  /** Backend CS session creation (balance check / server RPC) failed. */
+  /** Backend CS session creation (entitlement check / server RPC) failed. */
   BACKEND_SESSION: "backend_session",
   /** Gateway-side session setup threw (e.g. shop missing runProfileId). */
   SETUP: "setup",

@@ -1,114 +1,63 @@
 import { useTranslation } from "react-i18next";
-import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
-import { formatBalanceDisplay, isBalanceExpiringSoon, getBalanceBadgeInfo } from "../tiktok-shops-utils.js";
+import type { Shop } from "@rivonclaw/core/models";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 interface TikTokShopBillingTabProps {
   shop: Shop;
-  csCredits: ServiceCredit[];
-  creditsLoading: boolean;
-  redeemingCreditId: string | null;
-  onRedeemCredit: (credit: ServiceCredit) => void;
 }
 
-export function TikTokShopBillingTab({
-  shop,
-  csCredits,
-  creditsLoading,
-  redeemingCreditId,
-  onRedeemCredit,
-}: TikTokShopBillingTabProps) {
+export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
   const { t } = useTranslation();
-
-  function renderBalanceBadge() {
-    const info = getBalanceBadgeInfo(shop);
-    if (!info) return null;
-    return <span className={info.className}>{t(info.labelKey, info.labelOpts)}</span>;
-  }
+  const entityStore = useEntityStore();
+  const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
 
   return (
     <div className="shop-detail-section">
-      {/* Current Plan */}
       <div className="shop-detail-field">
         <span className="form-label-block">{t("tiktokShops.modal.billing.currentTier")}</span>
         <span>
-          {shop.services?.customerServiceBilling?.tier
-            ? t(`tiktokShops.tier.${shop.services?.customerServiceBilling?.tier}`, { defaultValue: shop.services?.customerServiceBilling?.tier })
-            : t("tiktokShops.modal.billing.noTier")}
+          {entitlement?.source ?? entitlement?.code ?? t("tiktokShops.modal.billing.noTier")}
         </span>
       </div>
 
-      {/* Balance */}
       <div className="shop-detail-field">
         <span className="form-label-block">{t("tiktokShops.tableHeaders.balance")}</span>
         <span className="shop-balance-cell">
-          {shop.services?.customerServiceBilling
-            ? formatBalanceDisplay(
-                shop.services?.customerServiceBilling?.balance,
-                shop.services?.customerServiceBilling?.tier,
-                t,
-              )
-            : "\u2014"}
-          {renderBalanceBadge()}
+          {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
+          {entitlement && (
+            <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
+              {entitlement.allowed ? t("common.enabled") : entitlement.code}
+            </span>
+          )}
         </span>
       </div>
 
-      {/* Balance Expiry */}
-      {shop.services?.customerServiceBilling?.balanceExpiresAt && (
+      {entitlement?.validUntil && (
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.detail.balanceExpiry")}</span>
-          <span>
-            {new Date(shop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString()}
-            {isBalanceExpiringSoon(shop.services?.customerServiceBilling?.balanceExpiresAt) && (
-              <span className="badge badge-warning shop-badge-inline">
-                {t("tiktokShops.balance.expiring", {
-                  date: new Date(shop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString(),
-                })}
-              </span>
-            )}
-          </span>
+          <span>{new Date(entitlement.validUntil).toLocaleDateString()}</span>
         </div>
       )}
 
-      {/* Available Credits */}
-      <div>
-        <span className="form-label-block">{t("tiktokShops.modal.billing.credits")}</span>
-        {creditsLoading ? (
-          <div className="empty-cell">{t("common.loading")}</div>
-        ) : csCredits.length === 0 ? (
-          <div className="form-hint">{t("tiktokShops.credits.noCredits")}</div>
-        ) : (
+      {entitlement?.usage.length ? (
+        <div>
+          <span className="form-label-block">{t("tiktokShops.modal.billing.credits")}</span>
           <div className="acct-item-list">
-            {csCredits.map((credit) => (
-              <div key={credit.id} className="acct-item">
+            {entitlement.usage.map((usage) => (
+              <div key={`${usage.metric}:${usage.window}`} className="acct-item">
                 <div className="acct-item-title-row">
-                  <span className="acct-item-name">
-                    {t("tiktokShops.credits.quota", { quota: credit.quota })}
-                  </span>
-                  <span className="badge badge-muted">{credit.source}</span>
-                  <div className="acct-item-actions">
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => onRedeemCredit(credit)}
-                      disabled={redeemingCreditId === credit.id}
-                    >
-                      {redeemingCreditId === credit.id
-                        ? t("common.loading")
-                        : t("tiktokShops.credits.redeem")}
-                    </button>
-                  </div>
+                  <span className="acct-item-name">{usage.metric}</span>
+                  <span className="badge badge-muted">{usage.window}</span>
                 </div>
                 <div className="acct-item-meta">
-                  <span>
-                    {t("tiktokShops.credits.expires", {
-                      date: new Date(credit.expiresAt).toLocaleDateString(),
-                    })}
-                  </span>
+                  <span>{usage.remaining}/{usage.limit}</span>
+                  <span>{new Date(usage.refreshAt).toLocaleString()}</span>
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -13,9 +13,8 @@ import type { SurfaceModel } from "./Surface.js";
 import type { RunProfileModel } from "./RunProfile.js";
 import type { ShopModel } from "./Shop.js";
 import type { ToolSpecModel } from "./ToolSpec.js";
-import type { UserSubscriptionModel, LlmQuotaStatusModel } from "./Subscription.js";
+import type { BillingOverviewModel } from "./Subscription.js";
 import type { PlatformAppModel } from "./PlatformApp.js";
-import type { ServiceCreditModel } from "./ServiceCredit.js";
 import type { InventoryGoodModel } from "./InventoryGood.js";
 import type { ShopWarehouseModel, WarehouseModel, WmsAccountModel } from "./Warehouse.js";
 
@@ -43,21 +42,13 @@ const _shopGuard: _AssertShopCompat = true;
 type _AssertToolSpecCompat = AssertSubset<GQL.ToolSpec, Omit<SnapshotIn<typeof ToolSpecModel>, "source">>;
 const _toolSpecGuard: _AssertToolSpecCompat = true;
 
-// ── UserSubscription ─────────────────────────────────────────────────
-type _AssertUserSubscriptionCompat = AssertSubset<GQL.UserSubscription, SnapshotIn<typeof UserSubscriptionModel>>;
-const _userSubscriptionGuard: _AssertUserSubscriptionCompat = true;
-
-// ── LlmQuotaStatus ──────────────────────────────────────────────────
-type _AssertLlmQuotaStatusCompat = AssertSubset<GQL.LlmQuotaStatus, SnapshotIn<typeof LlmQuotaStatusModel>>;
-const _llmQuotaStatusGuard: _AssertLlmQuotaStatusCompat = true;
+// ── BillingOverview ─────────────────────────────────────────────────
+type _AssertBillingOverviewCompat = AssertSubset<GQL.BillingOverview, SnapshotIn<typeof BillingOverviewModel>>;
+const _billingOverviewGuard: _AssertBillingOverviewCompat = true;
 
 // ── PlatformApp ──────────────────────────────────────────────────────
 type _AssertPlatformAppCompat = AssertSubset<GQL.PlatformApp, SnapshotIn<typeof PlatformAppModel>>;
 const _platformAppGuard: _AssertPlatformAppCompat = true;
-
-// ── ServiceCredit ────────────────────────────────────────────────────
-type _AssertServiceCreditCompat = AssertSubset<GQL.ServiceCredit, SnapshotIn<typeof ServiceCreditModel>>;
-const _serviceCreditGuard: _AssertServiceCreditCompat = true;
 
 // ── InventoryGood ───────────────────────────────────────────────────
 type _AssertInventoryGoodCompat = AssertSubset<GQL.InventoryGood, SnapshotIn<typeof InventoryGoodModel>>;

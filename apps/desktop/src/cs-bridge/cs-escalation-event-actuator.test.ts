@@ -111,7 +111,6 @@ function seedShop(csDeviceId: string | null = "device-001"): void {
             escalationRecipientId: "987654321",
             runProfileId: null,
           },
-          customerServiceBilling: null,
         },
       },
     ],

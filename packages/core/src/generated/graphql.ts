@@ -16,6 +16,11 @@ export interface Scalars {
   DateTimeISO: { input: any; output: any; }
 }
 
+export interface AccountLlmBillingStatus {
+  entitlement: BillingEntitlementStatus;
+  planId?: Maybe<BillingPlanId>;
+}
+
 /** Input for acknowledging a CS escalation event */
 export interface AckCsEscalationEventInput {
   eventId: Scalars['ID']['input'];
@@ -895,6 +900,102 @@ export interface AuthPayload {
   user: MeResponse;
 }
 
+export const BillableProduct = {
+  AccountLlm: 'ACCOUNT_LLM',
+  EcomAffiliate: 'ECOM_AFFILIATE',
+  EcomCustomerService: 'ECOM_CUSTOMER_SERVICE',
+  EcomInventory: 'ECOM_INVENTORY'
+} as const;
+
+export type BillableProduct = typeof BillableProduct[keyof typeof BillableProduct];
+export interface BillingEntitlementStatus {
+  allowed: Scalars['Boolean']['output'];
+  code: EntitlementDecisionCode;
+  product: BillableProduct;
+  scopeId: Scalars['String']['output'];
+  scopeType: BillingScopeType;
+  source?: Maybe<EntitlementGrantSource>;
+  usage: Array<BillingUsageStatus>;
+  validUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+export interface BillingOverview {
+  accountLlm: AccountLlmBillingStatus;
+  shops: Array<ShopBillingStatus>;
+}
+
+/** Plan definition with pricing and product scope. */
+export interface BillingPlanDefinition {
+  metered: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  planId: BillingPlanId;
+  priceCurrency: Currency;
+  priceMonthly: Scalars['String']['output'];
+  product: BillableProduct;
+}
+
+export const BillingPlanId = {
+  AccountLlmMax: 'ACCOUNT_LLM_MAX',
+  AccountLlmPlus: 'ACCOUNT_LLM_PLUS',
+  AccountLlmPro: 'ACCOUNT_LLM_PRO',
+  EcomCustomerServiceUnlimitedMonthly: 'ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY'
+} as const;
+
+export type BillingPlanId = typeof BillingPlanId[keyof typeof BillingPlanId];
+export const BillingProvider = {
+  Lakala: 'LAKALA',
+  Manual: 'MANUAL',
+  Stripe: 'STRIPE'
+} as const;
+
+export type BillingProvider = typeof BillingProvider[keyof typeof BillingProvider];
+export const BillingScopeType = {
+  Account: 'ACCOUNT',
+  Shop: 'SHOP'
+} as const;
+
+export type BillingScopeType = typeof BillingScopeType[keyof typeof BillingScopeType];
+/** A billing subscription for an account- or shop-scoped product. */
+export interface BillingSubscription {
+  amountMinor: Scalars['Int']['output'];
+  cancelAtPeriodEnd: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  currency: Currency;
+  currentPeriodEnd: Scalars['DateTimeISO']['output'];
+  currentPeriodStart: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  ownerUserId: Scalars['String']['output'];
+  planId: BillingPlanId;
+  product: BillableProduct;
+  provider: BillingProvider;
+  providerCustomerId?: Maybe<Scalars['String']['output']>;
+  providerPriceId?: Maybe<Scalars['String']['output']>;
+  providerSubscriptionId?: Maybe<Scalars['String']['output']>;
+  scopeId: Scalars['String']['output'];
+  scopeType: BillingScopeType;
+  status: BillingSubscriptionStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+export const BillingSubscriptionStatus = {
+  Active: 'ACTIVE',
+  Canceled: 'CANCELED',
+  Expired: 'EXPIRED',
+  Incomplete: 'INCOMPLETE',
+  PastDue: 'PAST_DUE',
+  Trialing: 'TRIALING'
+} as const;
+
+export type BillingSubscriptionStatus = typeof BillingSubscriptionStatus[keyof typeof BillingSubscriptionStatus];
+export interface BillingUsageStatus {
+  limit: Scalars['Int']['output'];
+  metric: UsageMetric;
+  refreshAt: Scalars['DateTimeISO']['output'];
+  remaining: Scalars['Int']['output'];
+  used: Scalars['Int']['output'];
+  window: UsageLimitWindow;
+}
+
 /** One product/SKU included in an affiliate campaign setup. */
 export interface CampaignProduct {
   campaignId: Scalars['ID']['output'];
@@ -1028,6 +1129,11 @@ export interface CreateSurfaceInput {
   allowedToolIds: Array<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+}
+
+export interface CreatedLlmApiKeyPayload {
+  key: LlmApiKey;
+  rawKey: Scalars['String']['output'];
 }
 
 /** Creator candidate discovered by search before or during qualification. */
@@ -1505,7 +1611,6 @@ export interface CsRespondResult {
 
 /** Result of getting or creating a CS session */
 export interface CsSessionResult {
-  balance: Scalars['Int']['output'];
   isNew: Scalars['Boolean']['output'];
   sessionId: Scalars['String']['output'];
 }
@@ -1517,14 +1622,6 @@ export const Currency = {
 } as const;
 
 export type Currency = typeof Currency[keyof typeof Currency];
-/** Customer service billing/quota state (system-managed) */
-export interface CustomerServiceBilling {
-  balance: Scalars['Int']['output'];
-  balanceExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  periodEnd?: Maybe<Scalars['DateTimeISO']['output']>;
-  tier?: Maybe<Scalars['String']['output']>;
-}
-
 /** A CS conversation between buyer and seller */
 export interface CustomerServiceConversation {
   /** Whether desktop should run the local AI agent for this conversation. */
@@ -2726,6 +2823,49 @@ export interface EcommerceUpdateShopResult {
   shopId: Scalars['String']['output'];
 }
 
+export const EntitlementDecisionCode = {
+  Allowed: 'ALLOWED',
+  FeatureDisabled: 'FEATURE_DISABLED',
+  PastDue: 'PAST_DUE',
+  PaymentRequired: 'PAYMENT_REQUIRED',
+  QuotaExceeded: 'QUOTA_EXCEEDED',
+  TrialExpired: 'TRIAL_EXPIRED'
+} as const;
+
+export type EntitlementDecisionCode = typeof EntitlementDecisionCode[keyof typeof EntitlementDecisionCode];
+/** A local entitlement grant projected from billing, trial, promotion, or operator action. */
+export interface EntitlementGrant {
+  createdAt: Scalars['DateTimeISO']['output'];
+  entitlementKeys: Array<EntitlementKey>;
+  id: Scalars['ID']['output'];
+  ownerUserId: Scalars['String']['output'];
+  product: BillableProduct;
+  scopeId: Scalars['String']['output'];
+  scopeType: BillingScopeType;
+  source: EntitlementGrantSource;
+  sourceId?: Maybe<Scalars['String']['output']>;
+  status: EntitlementGrantStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  usagePolicies: Array<UsagePolicy>;
+  validFrom: Scalars['DateTimeISO']['output'];
+  validUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+export const EntitlementGrantSource = {
+  Manual: 'MANUAL',
+  Promotion: 'PROMOTION',
+  Subscription: 'SUBSCRIPTION',
+  Trial: 'TRIAL'
+} as const;
+
+export type EntitlementGrantSource = typeof EntitlementGrantSource[keyof typeof EntitlementGrantSource];
+export const EntitlementGrantStatus = {
+  Active: 'ACTIVE',
+  Expired: 'EXPIRED',
+  Revoked: 'REVOKED'
+} as const;
+
+export type EntitlementGrantStatus = typeof EntitlementGrantStatus[keyof typeof EntitlementGrantStatus];
 /** Feature entitlement identifiers */
 export const EntitlementKey = {
   EcomCsEscalationRead: 'ECOM_CS_ESCALATION_READ',
@@ -3070,16 +3210,23 @@ export const InventoryWeightUnit = {
 } as const;
 
 export type InventoryWeightUnit = typeof InventoryWeightUnit[keyof typeof InventoryWeightUnit];
-export interface LlmKey {
-  key: Scalars['String']['output'];
-  suspendedUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+/** LLM proxy API key metadata. The raw key is only returned when created. */
+export interface LlmApiKey {
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  keyPrefix: Scalars['String']['output'];
+  lastUsedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: LlmApiKeyStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
 }
 
-export interface LlmQuotaStatus {
-  fiveHour: QuotaCircleStatus;
-  weekly: QuotaCircleStatus;
-}
+export const LlmApiKeyStatus = {
+  Active: 'ACTIVE',
+  Revoked: 'REVOKED'
+} as const;
 
+export type LlmApiKeyStatus = typeof LlmApiKeyStatus[keyof typeof LlmApiKeyStatus];
 /** Login input */
 export interface LoginInput {
   captchaAnswer: Scalars['String']['input'];
@@ -3095,9 +3242,7 @@ export interface MeResponse {
   email: Scalars['String']['output'];
   enrolledModules: Array<ModuleId>;
   entitlementKeys: Array<EntitlementKey>;
-  llmKey?: Maybe<LlmKey>;
   name?: Maybe<Scalars['String']['output']>;
-  plan: UserPlan;
   support?: Maybe<UserSupport>;
   userId: Scalars['String']['output'];
 }
@@ -3121,8 +3266,12 @@ export interface Mutation {
   affiliatePublishConversationSignal: AffiliateConversationSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
   applyCreatorTag: CreatorUserRelation;
+  /** Assign a manual subscription for testing or operator-driven activation. */
+  assignManualBillingSubscription: BillingSubscription;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
+  /** Create an LLM proxy API key. The raw key is returned only once. */
+  createLlmApiKey: CreatedLlmApiKeyPayload;
   /** Create a payment through Stripe or Lakala. */
   createPayment: Payment;
   /** Create a new run profile */
@@ -3159,7 +3308,7 @@ export interface Mutation {
   decideActionProposal: ActionProposal;
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
-  /** Disconnect a shop (soft delete — balance preserved for reconnection) */
+  /** Disconnect a shop (soft delete) */
   deleteShop: Scalars['Boolean']['output'];
   /** Delete a surface */
   deleteSurface: Scalars['Boolean']['output'];
@@ -3197,8 +3346,6 @@ export interface Mutation {
   promoteImageAsset: ImageAsset;
   /** Publish an update notification to all connected clients (admin only) */
   publishUpdate: Scalars['Boolean']['output'];
-  /** Redeem a service credit to a shop */
-  redeemCredit: Shop;
   /** Query the provider and refresh a payment's status. */
   refreshPayment: Payment;
   /** Refresh an expired access token */
@@ -3219,6 +3366,8 @@ export interface Mutation {
   revokeAllSessions: Scalars['Int']['output'];
   /** Set or clear the default RunProfile for the current user */
   setDefaultRunProfile: MeResponse;
+  /** Start the one-time 7-day / 100 conversation customer-service trial for a shop. */
+  startCustomerServiceTrial: EntitlementGrant;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
   syncShopWarehouses: ShopWarehouseSyncPayload;
   /** Import inventory goods from a WMS account into canonical InventoryGood. When overrideExisting is false or omitted, existing InventoryGood rows win and are preserved. When true, WMS attributes overwrite existing rows with the same SKU. */
@@ -3265,6 +3414,13 @@ export interface MutationAffiliatePublishConversationSignalArgs {
 
 export interface MutationApplyCreatorTagArgs {
   input: ApplyCreatorTagInput;
+}
+
+
+export interface MutationAssignManualBillingSubscriptionArgs {
+  planId: BillingPlanId;
+  scopeId: Scalars['String']['input'];
+  scopeType: BillingScopeType;
 }
 
 
@@ -3498,12 +3654,6 @@ export interface MutationPublishUpdateArgs {
 }
 
 
-export interface MutationRedeemCreditArgs {
-  creditId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
-}
-
-
 export interface MutationRefreshPaymentArgs {
   paymentId: Scalars['ID']['input'];
 }
@@ -3541,6 +3691,11 @@ export interface MutationResolveAffiliateWorkItemArgs {
 
 export interface MutationSetDefaultRunProfileArgs {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface MutationStartCustomerServiceTrialArgs {
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -3721,15 +3876,6 @@ export interface Plan {
   planDetail: Array<PlanDetail>;
   planName: Scalars['String']['output'];
   price: Scalars['String']['output'];
-}
-
-/** Plan definition with limits and pricing */
-export interface PlanDefinition {
-  maxSeats: Scalars['Int']['output'];
-  name: Scalars['String']['output'];
-  planId: UserPlan;
-  priceCurrency: Currency;
-  priceMonthly: Scalars['String']['output'];
 }
 
 export interface PlanDetail {
@@ -3956,6 +4102,10 @@ export interface Query {
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
   affiliateWorkspace: AffiliateWorkspacePayload;
+  /** Read account- and shop-scoped billing entitlement decisions for the current user. */
+  billingOverview: BillingOverview;
+  /** List billable product plan definitions. */
+  billingPlanDefinitions: Array<BillingPlanDefinition>;
   /** Read campaign product setup rows from Mongo state. */
   campaignProducts: Array<CampaignProduct>;
   /** Check if a newer version is available (public, no auth required) */
@@ -4026,16 +4176,10 @@ export interface Query {
   ecommerceSearchReturns: Array<EcomReturn>;
   /** List recent image assets for the authenticated user */
   imageAssets: Array<ImageAsset>;
-  /** Get LLM quota status for the current user */
-  llmQuotaStatus: LlmQuotaStatus;
   /** Get current authenticated user profile */
   me: MeResponse;
   /** Get PWA install URL (base URL without pairing code) */
   mobileInstallUrl: Scalars['String']['output'];
-  /** List available credits for the authenticated user */
-  myCredits: Array<ServiceCredit>;
-  /** List all available plan definitions */
-  planDefinitions: Array<PlanDefinition>;
   /** List all active platform app secrets (admin-only, for relay startup) */
   platformAppSecrets: Array<PlatformAppSecretResult>;
   /** List active PlatformApps (for OAuth target selection) */
@@ -4082,8 +4226,6 @@ export interface Query {
   skillCategories: Array<SkillCategoryResult>;
   /** Search and browse marketplace skills */
   skills: SkillConnection;
-  /** Get current user subscription status */
-  subscriptionStatus?: Maybe<UserSubscription>;
   /** Get a single surface by ID */
   surface?: Maybe<Surface>;
   /** List surfaces for the authenticated user */
@@ -4521,11 +4663,6 @@ export interface QueryWaitForPairingArgs {
   code: Scalars['String']['input'];
 }
 
-export interface QuotaCircleStatus {
-  refreshAt: Scalars['DateTimeISO']['output'];
-  remainingPercent: Scalars['Float']['output'];
-}
-
 export interface ReadActionProposalsInput {
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -4862,36 +4999,6 @@ export const SampleWorkStatus = {
 } as const;
 
 export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkStatus];
-/** A one-time service credit (top-up) that can be redeemed to a shop */
-export interface ServiceCredit {
-  createdAt: Scalars['DateTimeISO']['output'];
-  expiresAt: Scalars['DateTimeISO']['output'];
-  id: Scalars['ID']['output'];
-  quota: Scalars['Int']['output'];
-  redeemedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  redeemedShopId?: Maybe<Scalars['String']['output']>;
-  service: ServiceId;
-  source: ServiceCreditSource;
-  status: ServiceCreditStatus;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['String']['output'];
-}
-
-/** Origin of a service credit */
-export const ServiceCreditSource = {
-  Promotion: 'PROMOTION',
-  Trial: 'TRIAL'
-} as const;
-
-export type ServiceCreditSource = typeof ServiceCreditSource[keyof typeof ServiceCreditSource];
-/** Status of a service credit */
-export const ServiceCreditStatus = {
-  Available: 'AVAILABLE',
-  Expired: 'EXPIRED',
-  Redeemed: 'REDEEMED'
-} as const;
-
-export type ServiceCreditStatus = typeof ServiceCreditStatus[keyof typeof ServiceCreditStatus];
 /** Business service type identifiers */
 export const ServiceId = {
   AffiliateManagement: 'AFFILIATE_MANAGEMENT',
@@ -4938,6 +5045,12 @@ export interface ShopAuthStatusResponse {
   accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   hasToken: Scalars['Boolean']['output'];
   refreshTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+export interface ShopBillingStatus {
+  customerService: BillingEntitlementStatus;
+  shopId: Scalars['String']['output'];
+  shopName: Scalars['String']['output'];
 }
 
 /** Coverage view for active shop SKUs and canonical InventoryGoods. */
@@ -4988,7 +5101,6 @@ export type ShopRegion = typeof ShopRegion[keyof typeof ShopRegion];
 export interface ShopServiceConfig {
   affiliateService: AffiliateServiceSettings;
   customerService: CustomerServiceSettings;
-  customerServiceBilling: CustomerServiceBilling;
   wms: WmsSettings;
 }
 
@@ -5157,15 +5269,6 @@ export interface SubscriptionUpdateAvailableArgs {
   clientVersion: Scalars['String']['input'];
 }
 
-/** Subscription lifecycle states */
-export const SubscriptionStatus = {
-  Active: 'ACTIVE',
-  Canceled: 'CANCELED',
-  Expired: 'EXPIRED',
-  PastDue: 'PAST_DUE'
-} as const;
-
-export type SubscriptionStatus = typeof SubscriptionStatus[keyof typeof SubscriptionStatus];
 /** Surface entity — defines tool exposure boundary for a usage scenario. userId=null for system presets. */
 export interface Surface {
   allowedToolIds: Array<Scalars['String']['output']>;
@@ -5452,27 +5555,25 @@ export interface UpdateSurfaceInput {
   name?: InputMaybe<Scalars['String']['input']>;
 }
 
-/** Subscription plan tiers */
-export const UserPlan = {
-  Enterprise: 'ENTERPRISE',
-  Free: 'FREE',
-  Max: 'MAX',
-  Plus: 'PLUS',
-  Pro: 'PRO'
+export const UsageLimitWindow = {
+  FiveHours: 'FIVE_HOURS',
+  GrantLifetime: 'GRANT_LIFETIME',
+  Month: 'MONTH',
+  Week: 'WEEK'
 } as const;
 
-export type UserPlan = typeof UserPlan[keyof typeof UserPlan];
-/** User subscription record */
-export interface UserSubscription {
-  createdAt: Scalars['DateTimeISO']['output'];
-  plan: UserPlan;
-  seatsMax: Scalars['Int']['output'];
-  seatsUsed: Scalars['Int']['output'];
-  status: SubscriptionStatus;
-  stripeSubscriptionId?: Maybe<Scalars['String']['output']>;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['String']['output'];
-  validUntil: Scalars['DateTimeISO']['output'];
+export type UsageLimitWindow = typeof UsageLimitWindow[keyof typeof UsageLimitWindow];
+export const UsageMetric = {
+  CsConversationStarted: 'CS_CONVERSATION_STARTED',
+  LlmToken: 'LLM_TOKEN'
+} as const;
+
+export type UsageMetric = typeof UsageMetric[keyof typeof UsageMetric];
+/** A usage rule attached to an entitlement grant. */
+export interface UsagePolicy {
+  limit: Scalars['Int']['output'];
+  metric: UsageMetric;
+  window: UsageLimitWindow;
 }
 
 export interface UserSupport {

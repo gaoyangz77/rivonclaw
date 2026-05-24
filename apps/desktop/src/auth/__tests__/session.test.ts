@@ -19,11 +19,10 @@ const mockUser = {
   userId: "u1",
   email: "test@example.com",
   name: "Test",
-  plan: "FREE" as any,
   createdAt: "2025-01-01T00:00:00Z",
   enrolledModules: [],
   entitlementKeys: [],
-  llmKey: null,
+  defaultRunProfileId: null,
 };
 
 // ---------------------------------------------------------------------------

@@ -2182,7 +2182,6 @@ function seedShopWithEscalation(overrides?: {
               : "987654321",
             runProfileId: null,
           },
-          customerServiceBilling: null,
         },
       },
     ],

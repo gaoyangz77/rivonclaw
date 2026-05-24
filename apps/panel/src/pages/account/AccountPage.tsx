@@ -36,8 +36,7 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
 
   const toolDisplayLabel = useToolDisplayLabel();
 
-  const subscription = entityStore.subscriptionStatus;
-  const llmQuota = entityStore.llmQuotaStatus;
+  const billingOverview = entityStore.billingOverview;
 
   // Refresh billing (subscription + LLM quota) on mount and whenever the
   // window becomes visible again. Quota changes as the user consumes LLM
@@ -152,8 +151,7 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
       <AccountProfileCard
         user={user}
         initial={initial}
-        subscription={subscription}
-        llmQuota={llmQuota}
+        billingOverview={billingOverview}
         onLogout={handleLogout}
       />
 

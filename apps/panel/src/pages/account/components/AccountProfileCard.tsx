@@ -1,24 +1,26 @@
 import { useTranslation } from "react-i18next";
+import type { BillingOverview } from "@rivonclaw/core/models";
 
 interface AccountProfileCardProps {
-  user: { name: string | null; email: string; plan: string; createdAt: string };
+  user: { name: string | null; email: string; createdAt: string };
   initial: string;
-  subscription: { plan: string; validUntil: string } | null;
-  llmQuota: {
-    fiveHour: { remainingPercent: number; refreshAt: string };
-    weekly: { remainingPercent: number; refreshAt: string };
-  } | null;
+  billingOverview: BillingOverview | null;
   onLogout: () => void;
 }
 
 export function AccountProfileCard({
   user,
   initial,
-  subscription,
-  llmQuota,
+  billingOverview,
   onLogout,
 }: AccountProfileCardProps) {
   const { t } = useTranslation();
+  const accountLlm = billingOverview?.accountLlm ?? null;
+  const llmUsage = accountLlm?.entitlement.usage[0] ?? null;
+  const validUntil = accountLlm?.entitlement.validUntil ?? null;
+  const usagePercent = llmUsage && llmUsage.limit > 0
+    ? Math.max(0, Math.min(100, (llmUsage.remaining / llmUsage.limit) * 100))
+    : null;
 
   return (
     <div className="section-card account-profile-card">
@@ -39,7 +41,9 @@ export function AccountProfileCard({
         <div className="account-info-item">
           <span className="account-info-label">{t("account.plan")}</span>
           <span className="account-info-value">
-            <span className="acct-badge acct-badge-plan">{t(`subscription.${(subscription?.plan ?? user.plan).toLowerCase()}`)}</span>
+            <span className="acct-badge acct-badge-plan">
+              {accountLlm?.planId ?? accountLlm?.entitlement.code ?? "\u2014"}
+            </span>
           </span>
         </div>
         <div className="account-info-item">
@@ -51,44 +55,28 @@ export function AccountProfileCard({
         <div className="account-info-item">
           <span className="account-info-label">{t("account.validUntil")}</span>
           <span className="account-info-value">
-            {subscription ? new Date(subscription.validUntil).toLocaleDateString() : "\u2014"}
+            {validUntil ? new Date(validUntil).toLocaleDateString() : "\u2014"}
           </span>
         </div>
-        {llmQuota && (
-          <>
-            <div className="account-info-item account-info-item-wide quota-five-hour">
-              <div className="quota-header">
-                <span className="account-info-label">{t("account.quotaFiveHour")}</span>
-                <span className="quota-refresh-time">
-                  {t("account.quotaRefreshAt", { time: new Date(llmQuota.fiveHour.refreshAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}
-                </span>
-              </div>
-              <div className="quota-bar-wrap">
-                <progress
-                  className={`quota-bar${llmQuota.fiveHour.remainingPercent < 20 ? " quota-bar-low" : ""}`}
-                  value={llmQuota.fiveHour.remainingPercent}
-                  max={100}
-                />
-                <span className="quota-bar-label">{Math.round(llmQuota.fiveHour.remainingPercent)}%</span>
-              </div>
+        {llmUsage && usagePercent !== null && (
+          <div className="account-info-item account-info-item-wide quota-weekly">
+            <div className="quota-header">
+              <span className="account-info-label">{llmUsage.metric}</span>
+              <span className="quota-refresh-time">
+                {t("account.quotaRefreshAt", { time: new Date(llmUsage.refreshAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}
+              </span>
             </div>
-            <div className="account-info-item account-info-item-wide quota-weekly">
-              <div className="quota-header">
-                <span className="account-info-label">{t("account.quotaWeekly")}</span>
-                <span className="quota-refresh-time">
-                  {t("account.quotaRefreshAt", { time: new Date(llmQuota.weekly.refreshAt).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}
-                </span>
-              </div>
-              <div className="quota-bar-wrap">
-                <progress
-                  className={`quota-bar${llmQuota.weekly.remainingPercent < 20 ? " quota-bar-low" : ""}`}
-                  value={llmQuota.weekly.remainingPercent}
-                  max={100}
-                />
-                <span className="quota-bar-label">{Math.round(llmQuota.weekly.remainingPercent)}%</span>
-              </div>
+            <div className="quota-bar-wrap">
+              <progress
+                className={`quota-bar${usagePercent < 20 ? " quota-bar-low" : ""}`}
+                value={usagePercent}
+                max={100}
+              />
+              <span className="quota-bar-label">
+                {llmUsage.remaining}/{llmUsage.limit}
+              </span>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

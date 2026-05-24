@@ -4,10 +4,22 @@ export { SurfaceModel } from "./Surface.js";
 export type { Surface } from "./Surface.js";
 export { RunProfileModel } from "./RunProfile.js";
 export type { RunProfile } from "./RunProfile.js";
-export { ShopModel, CustomerServiceConfigModel, CustomerServiceBillingModel, ShopServiceConfigModel } from "./Shop.js";
-export type { Shop, CustomerServiceConfig, CustomerServiceBilling, ShopServiceConfig } from "./Shop.js";
-export { QuotaCircleModel, LlmQuotaStatusModel, UserSubscriptionModel } from "./Subscription.js";
-export type { QuotaCircle, LlmQuotaStatus, UserSubscription } from "./Subscription.js";
+export { ShopModel, CustomerServiceConfigModel, ShopServiceConfigModel } from "./Shop.js";
+export type { Shop, CustomerServiceConfig, ShopServiceConfig } from "./Shop.js";
+export {
+  AccountLlmBillingStatusModel,
+  BillingEntitlementStatusModel,
+  BillingOverviewModel,
+  BillingUsageStatusModel,
+  ShopBillingStatusModel,
+} from "./Subscription.js";
+export type {
+  AccountLlmBillingStatus,
+  BillingEntitlementStatus,
+  BillingOverview,
+  BillingUsageStatus,
+  ShopBillingStatus,
+} from "./Subscription.js";
 export { ProviderKeyModel, ProviderKeyUsageModel, ProviderKeyUsageWindowModel } from "./ProviderKey.js";
 export type { ProviderKey, ProviderKeyUsage, ProviderKeyUsageWindow } from "./ProviderKey.js";
 export { ChannelAccountModel } from "./ChannelAccount.js";
@@ -20,8 +32,6 @@ export { UserModel } from "./User.js";
 export type { User } from "./User.js";
 export { PlatformAppModel } from "./PlatformApp.js";
 export type { PlatformApp } from "./PlatformApp.js";
-export { ServiceCreditModel } from "./ServiceCredit.js";
-export type { ServiceCredit } from "./ServiceCredit.js";
 export { WarehouseAddressModel, WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./Warehouse.js";
 export type { WarehouseAddress, WmsAccount, Warehouse, ShopWarehouse } from "./Warehouse.js";
 export { InventoryGoodModel } from "./InventoryGood.js";

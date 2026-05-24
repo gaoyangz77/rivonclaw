@@ -1,27 +1,17 @@
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
-import { isBalanceLow, isBalanceExpiringSoon } from "../tiktok-shops-utils.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 interface TikTokShopSessionsTabProps {
   shop: Shop;
 }
 
-/**
- * Per-shop CS balance view.
- *
- * Historical note: this tab previously also showed `activeSessions` and
- * `totalSessions` counters sourced from the `csSessionStats` GraphQL query.
- * Those counters were derived from `cs_sessions` document writes and disappeared
- * when CS BI data moved to the ClickHouse event stream — volume / throughput
- * dashboards now live in Grafana, not per-shop in the panel. The remaining
- * balance display comes straight off the Shop entity
- * (`shop.services.customerServiceBilling`), which is kept in MST sync via SSE.
- */
 export function TikTokShopSessionsTab({ shop }: TikTokShopSessionsTabProps) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
 
-  const billing = shop.services?.customerServiceBilling;
-  if (!billing) {
+  if (!entitlement) {
     return (
       <div className="shop-detail-section">
         <div className="empty-cell">{t("tiktokShops.modal.sessions.noData")}</div>
@@ -29,37 +19,22 @@ export function TikTokShopSessionsTab({ shop }: TikTokShopSessionsTabProps) {
     );
   }
 
-  const balance = billing.balance ?? 0;
-  const balanceExpiresAt = billing.balanceExpiresAt;
-
   return (
     <div className="shop-detail-section">
       <div className="shop-detail-grid">
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.modal.sessions.balance")}</span>
           <span className="shop-balance-cell">
-            {balance}
-            {balance === 0 && (
-              <span className="badge badge-danger">{t("tiktokShops.balance.none")}</span>
-            )}
-            {isBalanceLow(balance) && (
-              <span className="badge badge-warning">{t("tiktokShops.balance.low")}</span>
-            )}
+            {entitlement.allowed ? t("common.enabled") : entitlement.code}
+            <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
+              {entitlement.allowed ? t("common.enabled") : entitlement.code}
+            </span>
           </span>
         </div>
-        {balanceExpiresAt && (
+        {entitlement.validUntil && (
           <div className="shop-detail-field">
             <span className="form-label-block">{t("tiktokShops.detail.balanceExpiry")}</span>
-            <span>
-              {new Date(balanceExpiresAt).toLocaleDateString()}
-              {isBalanceExpiringSoon(balanceExpiresAt) && (
-                <span className="badge badge-warning shop-badge-inline">
-                  {t("tiktokShops.balance.expiring", {
-                    date: new Date(balanceExpiresAt).toLocaleDateString(),
-                  })}
-                </span>
-              )}
-            </span>
+            <span>{new Date(entitlement.validUntil).toLocaleDateString()}</span>
           </div>
         )}
       </div>

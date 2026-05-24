@@ -3,14 +3,13 @@ import { ToolModel } from "./ToolSpec.js";
 import { SurfaceModel } from "./Surface.js";
 import { RunProfileModel } from "./RunProfile.js";
 import { ShopModel } from "./Shop.js";
-import { UserSubscriptionModel, LlmQuotaStatusModel } from "./Subscription.js";
+import { BillingOverviewModel } from "./Subscription.js";
 import { ProviderKeyModel } from "./ProviderKey.js";
 import { ChannelAccountModel } from "./ChannelAccount.js";
 import { MobilePairingModel } from "./MobilePairing.js";
 import { ToolCapabilityModel } from "./ToolCapability.js";
 import { UserModel } from "./User.js";
 import { PlatformAppModel } from "./PlatformApp.js";
-import { ServiceCreditModel } from "./ServiceCredit.js";
 import { WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./Warehouse.js";
 import { InventoryGoodModel } from "./InventoryGood.js";
 import {
@@ -54,13 +53,11 @@ export const RootStoreModel = types
     providerKeys: types.optional(types.array(ProviderKeyModel), []),
     channelAccounts: types.optional(types.array(ChannelAccountModel), []),
     mobilePairings: types.optional(types.array(MobilePairingModel), []),
-    subscriptionStatus: types.maybeNull(UserSubscriptionModel),
-    llmQuotaStatus: types.maybeNull(LlmQuotaStatusModel),
+    billingOverview: types.maybeNull(BillingOverviewModel),
     toolCapability: types.optional(ToolCapabilityModel, {}),
     currentUser: types.maybeNull(UserModel),
     authBootstrap: types.optional(AuthBootstrapStateModel, { status: "signed_out", error: null }),
     platformApps: types.optional(types.array(PlatformAppModel), []),
-    credits: types.optional(types.array(ServiceCreditModel), []),
     wmsAccounts: types.optional(types.array(WmsAccountModel), []),
     warehouses: types.optional(types.array(WarehouseModel), []),
     shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),

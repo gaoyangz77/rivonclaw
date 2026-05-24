@@ -1,28 +1,43 @@
 import { types, type Instance } from "mobx-state-tree";
 
-export const QuotaCircleModel = types.model("QuotaCircle", {
-  remainingPercent: types.number,
-  refreshAt: types.string, // ISO DateTime
+export const BillingUsageStatusModel = types.model("BillingUsageStatus", {
+  metric: types.string,
+  window: types.string,
+  used: types.integer,
+  limit: types.integer,
+  remaining: types.integer,
+  refreshAt: types.string,
 });
 
-export const LlmQuotaStatusModel = types.model("LlmQuotaStatus", {
-  fiveHour: QuotaCircleModel,
-  weekly: QuotaCircleModel,
+export const BillingEntitlementStatusModel = types.model("BillingEntitlementStatus", {
+  scopeType: types.string,
+  scopeId: types.string,
+  product: types.string,
+  allowed: types.boolean,
+  code: types.string,
+  source: types.maybeNull(types.string),
+  validUntil: types.maybeNull(types.string),
+  usage: types.optional(types.array(BillingUsageStatusModel), []),
 });
 
-export const UserSubscriptionModel = types.model("UserSubscription", {
-  userId: types.string,
-  plan: types.string, // UserPlan enum value
-  status: types.string, // SubscriptionStatus enum value
-  // seatsMax/seatsUsed remain on the backend GraphQL type but are not
-  // consumed by any Panel / Desktop surface. MST accepts them when present
-  // (so nothing breaks if a caller re-selects them) and tolerates absence.
-  seatsMax: types.maybe(types.integer),
-  seatsUsed: types.maybe(types.integer),
-  validUntil: types.string, // ISO DateTime
-  stripeSubscriptionId: types.maybeNull(types.string),
+export const AccountLlmBillingStatusModel = types.model("AccountLlmBillingStatus", {
+  planId: types.maybeNull(types.string),
+  entitlement: BillingEntitlementStatusModel,
 });
 
-export interface QuotaCircle extends Instance<typeof QuotaCircleModel> {}
-export interface LlmQuotaStatus extends Instance<typeof LlmQuotaStatusModel> {}
-export interface UserSubscription extends Instance<typeof UserSubscriptionModel> {}
+export const ShopBillingStatusModel = types.model("ShopBillingStatus", {
+  shopId: types.identifier,
+  shopName: types.string,
+  customerService: BillingEntitlementStatusModel,
+});
+
+export const BillingOverviewModel = types.model("BillingOverview", {
+  accountLlm: AccountLlmBillingStatusModel,
+  shops: types.optional(types.array(ShopBillingStatusModel), []),
+});
+
+export interface BillingUsageStatus extends Instance<typeof BillingUsageStatusModel> {}
+export interface BillingEntitlementStatus extends Instance<typeof BillingEntitlementStatusModel> {}
+export interface AccountLlmBillingStatus extends Instance<typeof AccountLlmBillingStatusModel> {}
+export interface ShopBillingStatus extends Instance<typeof ShopBillingStatusModel> {}
+export interface BillingOverview extends Instance<typeof BillingOverviewModel> {}

@@ -9,7 +9,7 @@
  * - Session key construction (scopeKey / dispatchKey)
  * - System prompt assembly (with optional admin directive guidance)
  * - Gateway session registration (cs_register_session + RunProfile + model override)
- * - Backend session creation (balance check / idempotency record)
+ * - Backend session creation (entitlement check / idempotency record)
  * - Agent run dispatch (buyer message, admin directive, catch-up)
  * - CS business-telemetry emission (BI events to ClickHouse via the
  *   always-on `cs` telemetry client — see `cs-telemetry-ref.ts`)
@@ -192,7 +192,7 @@ export class CustomerServiceSession {
   readonly scopeKey: string;
   readonly dispatchKey: string;
 
-  /** Whether a backend session has been created (balance checked). */
+  /** Whether a backend session has been created (entitlement checked). */
   private backendSessionReady = false;
 
   /** Whether gateway session setup has been completed (cs_register_session + RunProfile + model). */
@@ -394,7 +394,7 @@ export class CustomerServiceSession {
   // -- Session lifecycle ----------------------------------------------------
 
   /**
-   * Ensure a backend CS session exists (balance check + session creation).
+   * Ensure a backend CS session exists (entitlement check + session creation).
    * Idempotent — skips if already called successfully.
    */
   async ensureBackendSession(): Promise<boolean> {
@@ -417,7 +417,7 @@ export class CustomerServiceSession {
 
     try {
       const result = await authSession.graphqlFetch<{
-        csGetOrCreateSession: { sessionId: string; isNew: boolean; balance: number };
+        csGetOrCreateSession: { sessionId: string; isNew: boolean };
       }>(CS_GET_OR_CREATE_SESSION_MUTATION, {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
@@ -429,7 +429,6 @@ export class CustomerServiceSession {
         conversationId: this.csContext.conversationId,
         sessionId: session.sessionId,
         isNew: session.isNew,
-        balance: session.balance,
       });
       this.backendSessionReady = true;
       this.emitSessionTelemetry({
@@ -1108,7 +1107,7 @@ export class CustomerServiceSession {
         messageType: options?.messageType,
         senderRole: options?.senderRole,
       });
-      throw new Error("Failed to create backend CS session (insufficient balance?)");
+      throw new Error("Failed to create backend CS session (entitlement denied?)");
     }
     if (options?.useMessageDelta !== false && options?.currentMessageId) {
       const delta = await this.fetchConversationDelta(options.currentMessageId);

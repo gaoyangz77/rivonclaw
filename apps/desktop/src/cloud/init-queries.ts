@@ -61,15 +61,10 @@ export const INIT_ME_QUERY = `
       userId
       email
       name
-      plan
       createdAt
       enrolledModules
       entitlementKeys
       defaultRunProfileId
-      llmKey {
-        key
-        suspendedUntil
-      }
       support {
         telegramDebugProxyToken
       }
@@ -128,12 +123,6 @@ export const INIT_SHOPS_QUERY = `
           escalationRecipientId
           platformSystemPrompt
         }
-        customerServiceBilling {
-          tier
-          balance
-          balanceExpiresAt
-          periodEnd
-        }
         wms {
           enabled
         }
@@ -162,15 +151,50 @@ export const INIT_PLATFORM_APPS_QUERY = `
   }
 `;
 
-export const INIT_CREDITS_QUERY = `
+export const INIT_BILLING_OVERVIEW_QUERY = `
   query {
-    myCredits {
-      id
-      service
-      quota
-      status
-      expiresAt
-      source
+    billingOverview {
+      accountLlm {
+        planId
+        entitlement {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          validUntil
+          usage {
+            metric
+            window
+            used
+            limit
+            remaining
+            refreshAt
+          }
+        }
+      }
+      shops {
+        shopId
+        shopName
+        customerService {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          validUntil
+          usage {
+            metric
+            window
+            used
+            limit
+            remaining
+            refreshAt
+          }
+        }
+      }
     }
   }
 `;
