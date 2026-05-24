@@ -22,7 +22,7 @@ export type { CSShopContext } from "../cs-bridge/customer-service-session.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import { normalizePlatform } from "../utils/platform.js";
-import { emitCsError, CS_ERROR_STAGE } from "../telemetry/cs-telemetry-ref.js";
+import { emitCsDispatchEvent, emitCsError, CS_ERROR_STAGE } from "../telemetry/cs-telemetry-ref.js";
 import { AffiliateInbound } from "../affiliate/affiliate-inbound.js";
 
 const log = createLogger("ecommerce-relay");
@@ -503,6 +503,19 @@ export class EcommerceRelayBridge {
   async handleCsConversationSignal(signal: CsConversationSignalPayload | CsAgentDispatchRequest): Promise<void> {
     if (signal.aiEnabled === false) {
       log.info(`Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`);
+      emitCsDispatchEvent({
+        shopId: signal.shopId,
+        platformShopId: signal.platformShopId,
+        conversationId: signal.conversationId,
+        buyerUserId: signal.buyerUserId ?? "",
+        imUserId: signal.imUserId ?? "",
+        orderId: signal.orderId ?? "",
+        signalType: signal.type,
+        source: signal.source,
+        outcome: "skipped",
+        reason: "ai_disabled",
+        messageId: signal.messageId ?? undefined,
+      });
       return;
     }
     const dispatch = resolveCsSignalDispatch(signal);
@@ -511,6 +524,19 @@ export class EcommerceRelayBridge {
         `Ignoring CS signal with unknown type ${String(signal.type)} ` +
         `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
       );
+      emitCsDispatchEvent({
+        shopId: signal.shopId,
+        platformShopId: signal.platformShopId,
+        conversationId: signal.conversationId,
+        buyerUserId: signal.buyerUserId ?? "",
+        imUserId: signal.imUserId ?? "",
+        orderId: signal.orderId ?? "",
+        signalType: signal.type,
+        source: signal.source,
+        outcome: "skipped",
+        reason: "unknown_signal_type",
+        messageId: signal.messageId ?? undefined,
+      });
       return;
     }
 
@@ -523,6 +549,23 @@ export class EcommerceRelayBridge {
     const shop = this.shopContexts.get(dispatch.platformShopId);
     if (!shop) {
       log.info(`Ignoring CS signal for inactive/non-owned-device shop ${dispatch.platformShopId}`);
+      emitCsDispatchEvent({
+        shopId: dispatch.shopId,
+        platformShopId: dispatch.platformShopId,
+        conversationId: dispatch.conversationId,
+        buyerUserId: dispatch.buyerUserId ?? "",
+        imUserId: dispatch.imUserId ?? "",
+        orderId: dispatch.orderId ?? "",
+        signalType: dispatch.type,
+        source: dispatch.source,
+        dispatchReason: dispatch.dispatchReason,
+        outcome: "skipped",
+        reason: "no_shop_context",
+        messageId: dispatch.messageId ?? undefined,
+        messageIndex: dispatch.messageIndex ?? undefined,
+        messageType: dispatch.messageType ?? undefined,
+        senderRole: dispatch.senderRole ?? undefined,
+      });
       emitCsError(CS_ERROR_STAGE.DISPATCH, {
         platformShopId: dispatch.platformShopId,
         conversationId: dispatch.conversationId,
@@ -543,6 +586,11 @@ export class EcommerceRelayBridge {
         dispatchReason: dispatch.dispatchReason,
         operatorInstruction: dispatch.operatorInstruction ?? undefined,
         currentMessageId: dispatch.messageId ?? undefined,
+        currentMessageIndex: dispatch.messageIndex ?? undefined,
+        signalType: dispatch.type,
+        source: dispatch.source ?? "backend_subscription",
+        messageType: dispatch.messageType ?? undefined,
+        senderRole: dispatch.senderRole ?? undefined,
         useMessageDelta: dispatch.useMessageDelta,
         currentMessageCursor: dispatch.messageId || dispatch.messageIndex || dispatch.eventTime
           ? {
@@ -705,6 +753,8 @@ export class EcommerceRelayBridge {
       dispatchReason: params.dispatchReason,
       operatorInstruction: params.operatorInstruction,
       currentMessageId: params.currentMessageId,
+      currentMessageIndex: params.currentMessageIndex,
+      source: "panel",
       useMessageDelta: params.useMessageDelta,
       currentMessageCursor: params.currentMessageId || params.currentMessageIndex || params.currentMessageCreateTime != null
         ? {

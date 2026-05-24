@@ -35,6 +35,9 @@ import {
   emitCsTelemetry,
   emitCsError,
   emitCsDeliveryRecovery,
+  emitCsDispatchEvent,
+  emitCsEscalationEvent,
+  emitCsSessionEvent,
   CS_ERROR_STAGE,
 } from "../telemetry/cs-telemetry-ref.js";
 import {
@@ -154,6 +157,11 @@ interface CatchUpDispatchOptions {
   dispatchReason?: CsAgentDispatchReason;
   operatorInstruction?: string;
   currentMessageId?: string;
+  currentMessageIndex?: string;
+  signalType?: string;
+  source?: string;
+  messageType?: string;
+  senderRole?: string;
   currentMessageCursor?: CustomerServiceMessageCursor;
   useMessageDelta?: boolean;
 }
@@ -217,6 +225,61 @@ export class CustomerServiceSession {
     this.platform = shop.platform ?? "tiktok";
     this.scopeKey = `agent:main:cs:${this.platform}:${csContext.conversationId}`;
     this.dispatchKey = `cs:${this.platform}:${csContext.conversationId}`;
+  }
+
+  private telemetryContext(extra: {
+    buyerUserId?: string;
+    imUserId?: string;
+    orderId?: string | null;
+  } = {}): {
+    shopId: string;
+    platformShopId: string;
+    conversationId: string;
+    buyerUserId: string;
+    imUserId: string;
+    orderId: string | null | undefined;
+    platform: string;
+  } {
+    return {
+      shopId: this.csContext.shopId,
+      platformShopId: this.shop.platformShopId,
+      conversationId: this.csContext.conversationId,
+      buyerUserId: extra.buyerUserId ?? this.csContext.buyerUserId,
+      imUserId: extra.imUserId ?? this.csContext.imUserId ?? "",
+      orderId: extra.orderId ?? this.csContext.orderId,
+      platform: this.platform,
+    };
+  }
+
+  private emitDispatchTelemetry(fields: Parameters<typeof emitCsDispatchEvent>[0]): void {
+    emitCsDispatchEvent({
+      ...this.telemetryContext({
+        buyerUserId: fields.buyerUserId,
+        imUserId: fields.imUserId,
+        orderId: fields.orderId,
+      }),
+      ...fields,
+    });
+  }
+
+  private emitSessionTelemetry(fields: Parameters<typeof emitCsSessionEvent>[0]): void {
+    emitCsSessionEvent({
+      ...this.telemetryContext({
+        buyerUserId: fields.buyerUserId,
+        orderId: fields.orderId,
+      }),
+      ...fields,
+    });
+  }
+
+  private emitEscalationTelemetry(fields: Parameters<typeof emitCsEscalationEvent>[0]): void {
+    emitCsEscalationEvent({
+      ...this.telemetryContext({
+        buyerUserId: fields.buyerUserId,
+        orderId: fields.orderId,
+      }),
+      ...fields,
+    });
   }
 
   // -- Round lifecycle --------------------------------------------------------
@@ -337,10 +400,18 @@ export class CustomerServiceSession {
   async ensureBackendSession(): Promise<boolean> {
     if (this.backendSessionReady) return true;
 
+    const startedAt = Date.now();
     const authSession = getAuthSession();
     if (!authSession) {
       log.warn("No auth session available, cannot create backend CS session");
       this.emitError(CS_ERROR_STAGE.BACKEND_SESSION, { reason: "no_auth_session" });
+      this.emitSessionTelemetry({
+        action: "backend_session",
+        source: "desktop",
+        outcome: "failed",
+        reason: "no_auth_session",
+        durationMs: Date.now() - startedAt,
+      });
       return false;
     }
 
@@ -361,10 +432,24 @@ export class CustomerServiceSession {
         balance: session.balance,
       });
       this.backendSessionReady = true;
+      this.emitSessionTelemetry({
+        action: "backend_session",
+        source: "desktop",
+        outcome: session.isNew ? "created" : "reused",
+        durationMs: Date.now() - startedAt,
+      });
       return true;
     } catch (err) {
       log.warn(`CS backend session creation failed: ${err instanceof Error ? err.message : String(err)}`);
       this.emitError(CS_ERROR_STAGE.BACKEND_SESSION, { reason: "graphql_error", errorMessage: err });
+      this.emitSessionTelemetry({
+        action: "backend_session",
+        source: "desktop",
+        outcome: "failed",
+        reason: "graphql_error",
+        durationMs: Date.now() - startedAt,
+        errorMessage: err,
+      });
       return false;
     }
   }
@@ -386,6 +471,15 @@ export class CustomerServiceSession {
       log.info(`New message during active/pending run ${previousRunId}, aborting`);
       this.fireAbort();
       this.undeliveredCount++;
+      this.emitDispatchTelemetry({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "aborted",
+        reason: "superseded_by_new_message",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+        runId: previousRunId,
+      });
     }
 
     const round = this.createBuyerRound(frame.messageId);
@@ -396,17 +490,41 @@ export class CustomerServiceSession {
 
     if (!await this.ensureBackendSession()) {
       if (this.activeRound === round) round.clearPlaceholderIfCurrent();
+      this.emitDispatchTelemetry({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "backend_session_failed",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+      });
       return { runId: undefined };
     }
 
     // If a newer message took over while we were awaiting, bail out.
     if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+      this.emitDispatchTelemetry({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "superseded_before_context",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+      });
       return { runId: undefined };
     }
 
     const attachments = await this.fetchImageAttachment(frame);
 
     if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+      this.emitDispatchTelemetry({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "superseded_before_delta",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+      });
       return { runId: undefined };
     }
 
@@ -415,6 +533,14 @@ export class CustomerServiceSession {
     const delta = await this.fetchConversationDelta(frame.messageId);
 
     if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+      this.emitDispatchTelemetry({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "superseded_after_delta",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+      });
       return { runId: undefined };
     }
 
@@ -429,6 +555,10 @@ export class CustomerServiceSession {
       attachments,
       round,
       placeholder,
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      dispatchSource: "relay",
+      currentMessageId: frame.messageId,
+      messageType: frame.messageType,
       advanceSessionCursor: {
         messageId: frame.messageId,
         createTime: frame.createTime,
@@ -490,6 +620,12 @@ export class CustomerServiceSession {
     this.escalations.set(id, escalation);
 
     log.info(`Escalation created: ${id} for conv=${this.csContext.conversationId}`);
+    this.emitEscalationTelemetry({
+      escalationId: id,
+      action: "created",
+      source: "desktop_local",
+      outcome: "ok",
+    });
     return escalation;
   }
 
@@ -509,6 +645,13 @@ export class CustomerServiceSession {
     };
 
     log.info(`Escalation ${params.resolved ? "resolved" : "updated"}: ${escalationId} decision=${params.decision}`);
+    this.emitEscalationTelemetry({
+      escalationId,
+      action: params.resolved ? "resolved" : "updated",
+      source: "desktop_local",
+      outcome: "ok",
+      resolved: params.resolved,
+    });
     return escalation;
   }
 
@@ -525,6 +668,8 @@ export class CustomerServiceSession {
     return this.dispatch({
       message,
       idempotencyKey: `esc-resolved:${escalationId}:${Date.now()}`,
+      dispatchReason: "MANUAL_START",
+      dispatchSource: "local_escalation_update",
     });
   }
 
@@ -537,12 +682,22 @@ export class CustomerServiceSession {
     resolved: boolean;
     version: number;
   }): Promise<DispatchResult> {
+    this.emitEscalationTelemetry({
+      escalationId: params.escalationId,
+      action: params.resolved ? "resolved_event_received" : "update_event_received",
+      source: "backend_subscription",
+      outcome: "received",
+      resolved: params.resolved,
+      version: params.version,
+    });
     const message = params.resolved
       ? `[Internal: System]\nYour escalation (${params.escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID to retrieve the decision and instructions.`
       : `[Internal: System]\nYour manager has sent an update regarding escalation (${params.escalationId}). Use the cs_get_escalation_result tool to check the latest status.`;
     return this.dispatch({
       message,
       idempotencyKey: `esc-event:${params.escalationId}:${params.version}`,
+      dispatchReason: "MANUAL_START",
+      dispatchSource: "backend_escalation_event",
     });
   }
 
@@ -567,14 +722,37 @@ export class CustomerServiceSession {
         reason: "no_auth_session",
         textLength: text.length,
       });
+      this.emitSessionTelemetry({
+        action: "auto_reply_send",
+        source: "agent",
+        outcome: "failed",
+        reason: "no_auth_session",
+        runId,
+        textLength: text.length,
+      });
       return;
     }
-    await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
-      shopId: this.csContext.shopId,
-      conversationId: this.csContext.conversationId,
-      type: GQL.EcomMessageType.Text,
-      content: JSON.stringify({ content: text }),
-    });
+    const startedAt = Date.now();
+    try {
+      await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
+        shopId: this.csContext.shopId,
+        conversationId: this.csContext.conversationId,
+        type: GQL.EcomMessageType.Text,
+        content: JSON.stringify({ content: text }),
+      });
+    } catch (err) {
+      this.emitSessionTelemetry({
+        action: "auto_reply_send",
+        source: "agent",
+        outcome: "failed",
+        reason: "graphql_error",
+        runId,
+        durationMs: Date.now() - startedAt,
+        textLength: text.length,
+        errorMessage: err,
+      });
+      throw err;
+    }
     this.undeliveredCount = 0;
     const round = this.roundsByRunId.get(runId);
     const delivery = round?.onDeliverySucceeded();
@@ -582,6 +760,14 @@ export class CustomerServiceSession {
       this.disposeRound(round);
     }
     log.info(`Auto-forwarded agent text to buyer (${text.length} chars)`);
+    this.emitSessionTelemetry({
+      action: "auto_reply_send",
+      source: "agent",
+      outcome: "ok",
+      runId,
+      durationMs: Date.now() - startedAt,
+      textLength: text.length,
+    });
 
     // BI emits (fire-and-forget). Collect the cumulative token snapshot from
     // the JSONL transcript first; if it's unavailable (RPC down, file miss)
@@ -911,6 +1097,17 @@ export class CustomerServiceSession {
     }
 
     if (!await this.ensureBackendSession()) {
+      this.emitDispatchTelemetry({
+        source: options?.source ?? "desktop",
+        signalType: options?.signalType,
+        dispatchReason: options?.dispatchReason ?? "MANUAL_START",
+        outcome: "skipped",
+        reason: "backend_session_failed",
+        messageId: options?.currentMessageId,
+        messageIndex: options?.currentMessageIndex,
+        messageType: options?.messageType,
+        senderRole: options?.senderRole,
+      });
       throw new Error("Failed to create backend CS session (insufficient balance?)");
     }
     if (options?.useMessageDelta !== false && options?.currentMessageId) {
@@ -919,6 +1116,13 @@ export class CustomerServiceSession {
         return this.dispatch({
           message: this.buildConversationDeltaMessage(options.currentMessageId, delta),
           idempotencyKey: `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`,
+          dispatchReason: options.dispatchReason,
+          dispatchSource: options.source ?? "desktop",
+          signalType: options.signalType,
+          currentMessageId: options.currentMessageId,
+          currentMessageIndex: options.currentMessageIndex,
+          messageType: options.messageType,
+          senderRole: options.senderRole,
           advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
         });
       }
@@ -926,6 +1130,13 @@ export class CustomerServiceSession {
     return this.dispatch({
       message: this.buildCatchUpMessage(options),
       idempotencyKey: this.catchUpIdempotencyKey(options),
+      dispatchReason: options?.dispatchReason,
+      dispatchSource: options?.source ?? "desktop",
+      signalType: options?.signalType,
+      currentMessageId: options?.currentMessageId,
+      currentMessageIndex: options?.currentMessageIndex,
+      messageType: options?.messageType,
+      senderRole: options?.senderRole,
       advanceSessionCursor: options?.currentMessageCursor,
     });
   }
@@ -952,6 +1163,18 @@ export class CustomerServiceSession {
       log.info(`New CS snapshot during active/pending run ${previousRunId}, aborting`);
       this.fireAbort();
       this.undeliveredCount++;
+      this.emitDispatchTelemetry({
+        source: options.source ?? "cloud",
+        signalType: options.signalType,
+        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+        outcome: "aborted",
+        reason: "superseded_by_new_snapshot",
+        messageId: options.currentMessageId,
+        messageIndex: options.currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
+        runId: previousRunId,
+      });
     }
 
     const round = this.createBuyerRound(options.currentMessageId);
@@ -961,10 +1184,32 @@ export class CustomerServiceSession {
     try {
       if (!await this.ensureBackendSession()) {
         if (this.activeRound === round) round.clearPlaceholderIfCurrent(placeholder);
+        this.emitDispatchTelemetry({
+          source: options.source ?? "cloud",
+          signalType: options.signalType,
+          dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+          outcome: "skipped",
+          reason: "backend_session_failed",
+          messageId: options.currentMessageId,
+          messageIndex: options.currentMessageIndex,
+          messageType: options.messageType,
+          senderRole: options.senderRole,
+        });
         return { runId: undefined };
       }
 
       if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+        this.emitDispatchTelemetry({
+          source: options.source ?? "cloud",
+          signalType: options.signalType,
+          dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+          outcome: "skipped",
+          reason: "superseded_before_delta",
+          messageId: options.currentMessageId,
+          messageIndex: options.currentMessageIndex,
+          messageType: options.messageType,
+          senderRole: options.senderRole,
+        });
         return { runId: undefined };
       }
 
@@ -972,6 +1217,17 @@ export class CustomerServiceSession {
       if (options.useMessageDelta !== false) {
         const delta = await this.fetchConversationDelta(options.currentMessageId);
         if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+          this.emitDispatchTelemetry({
+            source: options.source ?? "cloud",
+            signalType: options.signalType,
+            dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+            outcome: "skipped",
+            reason: "superseded_after_delta",
+            messageId: options.currentMessageId,
+            messageIndex: options.currentMessageIndex,
+            messageType: options.messageType,
+            senderRole: options.senderRole,
+          });
           return { runId: undefined };
         }
         if (delta) {
@@ -980,6 +1236,17 @@ export class CustomerServiceSession {
       }
 
       if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+        this.emitDispatchTelemetry({
+          source: options.source ?? "cloud",
+          signalType: options.signalType,
+          dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+          outcome: "skipped",
+          reason: "superseded_before_dispatch",
+          messageId: options.currentMessageId,
+          messageIndex: options.currentMessageIndex,
+          messageType: options.messageType,
+          senderRole: options.senderRole,
+        });
         return { runId: undefined };
       }
 
@@ -988,6 +1255,13 @@ export class CustomerServiceSession {
         idempotencyKey: this.catchUpIdempotencyKey(options),
         round,
         placeholder,
+        dispatchReason: options.dispatchReason,
+        dispatchSource: options.source ?? "cloud",
+        signalType: options.signalType,
+        currentMessageId: options.currentMessageId,
+        currentMessageIndex: options.currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
         advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
       });
     } catch (err) {
@@ -995,6 +1269,18 @@ export class CustomerServiceSession {
         round.clearPlaceholderIfCurrent(placeholder);
         this.markRoundTerminal(round);
       }
+      this.emitDispatchTelemetry({
+        source: options.source ?? "cloud",
+        signalType: options.signalType,
+        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+        outcome: "failed",
+        reason: "exception",
+        messageId: options.currentMessageId,
+        messageIndex: options.currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
+        errorMessage: err,
+      });
       throw err;
     }
   }
@@ -1046,6 +1332,13 @@ export class CustomerServiceSession {
 
     if (!escalationChannelId || !escalationRecipientId) {
       this.emitError(CS_ERROR_STAGE.ESCALATE, {
+        reason: !escalationChannelId ? "missing_channel" : "missing_recipient",
+      });
+      this.emitEscalationTelemetry({
+        escalationId: params.escalationId,
+        action: "notification_send",
+        source: "desktop",
+        outcome: "failed",
         reason: !escalationChannelId ? "missing_channel" : "missing_recipient",
       });
       throw new Error("Escalation routing not configured");
@@ -1116,9 +1409,22 @@ export class CustomerServiceSession {
         reason: "send_failed",
         errorMessage: err,
       });
+      this.emitEscalationTelemetry({
+        escalationId: params.escalationId,
+        action: "notification_send",
+        source: "desktop",
+        outcome: "failed",
+        errorMessage: err,
+      });
       throw err;
     }
 
+    this.emitEscalationTelemetry({
+      escalationId: params.escalationId,
+      action: "notification_send",
+      source: "desktop",
+      outcome: "ok",
+    });
     log.info(`Escalation ${params.escalationId} sent for conv=${this.csContext.conversationId} via ${channel}`);
   }
 
@@ -1323,73 +1629,158 @@ export class CustomerServiceSession {
     round?: CSRound;
     /** Placeholder run ID claimed by the round before this dispatch. */
     placeholder?: string;
+    dispatchReason?: CsAgentDispatchReason;
+    dispatchSource?: string;
+    signalType?: string;
+    currentMessageId?: string;
+    currentMessageIndex?: string;
+    messageType?: string;
+    senderRole?: string;
     advanceSessionCursor?: CustomerServiceMessageCursor;
   }): Promise<DispatchResult> {
-    await this.setup();
-
     const dispatchStartedAt = Date.now();
-    const extraSystemPrompt = this.extraSystemPrompt;
-    log.info(
-      `Agent dispatch request starting: conv=${this.csContext.conversationId} session=${this.dispatchKey} ` +
-      `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
-      `messageChars=${params.message.length}`,
-    );
-    const response = await openClawConnector.request<DispatchResult>("agent", {
-      sessionKey: this.dispatchKey,
-      message: params.message,
-      extraSystemPrompt,
-      promptMode: "raw",
-      idempotencyKey: params.idempotencyKey,
-      ...(params.attachments ? { attachments: params.attachments } : {}),
-    });
+    let extraSystemPrompt = "";
+    try {
+      await this.setup();
+      extraSystemPrompt = this.extraSystemPrompt;
+      this.emitDispatchTelemetry({
+        source: params.dispatchSource ?? "desktop",
+        signalType: params.signalType,
+        dispatchReason: params.dispatchReason ?? "MANUAL_START",
+        outcome: "requested",
+        messageId: params.currentMessageId,
+        messageIndex: params.currentMessageIndex,
+        messageType: params.messageType,
+        senderRole: params.senderRole,
+        idempotencyKey: params.idempotencyKey,
+        promptChars: extraSystemPrompt.length,
+        messageChars: params.message.length,
+        attachmentCount: params.attachments?.length ?? 0,
+      });
+      log.info(
+        `Agent dispatch request starting: conv=${this.csContext.conversationId} session=${this.dispatchKey} ` +
+        `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
+        `messageChars=${params.message.length}`,
+      );
+      const response = await openClawConnector.request<DispatchResult>("agent", {
+        sessionKey: this.dispatchKey,
+        message: params.message,
+        extraSystemPrompt,
+        promptMode: "raw",
+        idempotencyKey: params.idempotencyKey,
+        ...(params.attachments ? { attachments: params.attachments } : {}),
+      });
 
-    const runId = response?.runId;
-    log.info(
-      `Agent dispatch accepted: runId=${runId ?? "none"} conv=${this.csContext.conversationId} ` +
-      `acceptedMs=${Date.now() - dispatchStartedAt}`,
-    );
-    const round = params.round ?? this.ensureActiveRound(`dispatch:${params.idempotencyKey}`);
-    if (!this.activeRound) {
-      this.activeRound = round;
-    }
-    if (runId) {
-      if (params.advanceSessionCursor) {
-        void advanceOpenClawSessionCursor({
-          shopId: this.csContext.shopId,
-          conversationId: this.csContext.conversationId,
-          cursor: params.advanceSessionCursor,
-          sessionKey: this.dispatchKey,
-          runId,
-        });
+      const runId = response?.runId;
+      log.info(
+        `Agent dispatch accepted: runId=${runId ?? "none"} conv=${this.csContext.conversationId} ` +
+        `acceptedMs=${Date.now() - dispatchStartedAt}`,
+      );
+      this.emitDispatchTelemetry({
+        source: params.dispatchSource ?? "desktop",
+        signalType: params.signalType,
+        dispatchReason: params.dispatchReason ?? "MANUAL_START",
+        outcome: runId ? "accepted" : "failed",
+        reason: runId ? "" : "no_run_id",
+        messageId: params.currentMessageId,
+        messageIndex: params.currentMessageIndex,
+        messageType: params.messageType,
+        senderRole: params.senderRole,
+        idempotencyKey: params.idempotencyKey,
+        runId,
+        durationMs: Date.now() - dispatchStartedAt,
+        promptChars: extraSystemPrompt.length,
+        messageChars: params.message.length,
+        attachmentCount: params.attachments?.length ?? 0,
+      });
+      const round = params.round ?? this.ensureActiveRound(`dispatch:${params.idempotencyKey}`);
+      if (!this.activeRound) {
+        this.activeRound = round;
       }
-      // If the placeholder was aborted while dispatch was in flight,
-      // transfer the abort marker to the real runId so bridge can detect it.
-      // Don't overwrite the active round — a newer message already claimed the slot.
-      if (round && params.placeholder) {
-        const disposition = round.markDispatchResolved(runId, this.activeRound === round, params.placeholder);
-        this.attachRunToRound(runId, round);
-        if (disposition === "aborted") {
-          log.info(`Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`);
-          this.opts?.onRunDispatched?.(runId);
-        } else if (disposition === "stale") {
-          log.info(`Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`);
-          this.opts?.onRunDispatched?.(runId);
+      if (runId) {
+        if (params.advanceSessionCursor) {
+          void advanceOpenClawSessionCursor({
+            shopId: this.csContext.shopId,
+            conversationId: this.csContext.conversationId,
+            cursor: params.advanceSessionCursor,
+            sessionKey: this.dispatchKey,
+            runId,
+          });
+        }
+        // If the placeholder was aborted while dispatch was in flight,
+        // transfer the abort marker to the real runId so bridge can detect it.
+        // Don't overwrite the active round — a newer message already claimed the slot.
+        if (round && params.placeholder) {
+          const disposition = round.markDispatchResolved(runId, this.activeRound === round, params.placeholder);
+          this.attachRunToRound(runId, round);
+          if (disposition === "aborted") {
+            log.info(`Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`);
+            this.emitDispatchTelemetry({
+              source: params.dispatchSource ?? "desktop",
+              signalType: params.signalType,
+              dispatchReason: params.dispatchReason ?? "MANUAL_START",
+              outcome: "aborted",
+              reason: "placeholder_aborted",
+              messageId: params.currentMessageId,
+              messageIndex: params.currentMessageIndex,
+              messageType: params.messageType,
+              senderRole: params.senderRole,
+              idempotencyKey: params.idempotencyKey,
+              runId,
+            });
+            this.opts?.onRunDispatched?.(runId);
+          } else if (disposition === "stale") {
+            log.info(`Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`);
+            this.emitDispatchTelemetry({
+              source: params.dispatchSource ?? "desktop",
+              signalType: params.signalType,
+              dispatchReason: params.dispatchReason ?? "MANUAL_START",
+              outcome: "aborted",
+              reason: "placeholder_stale",
+              messageId: params.currentMessageId,
+              messageIndex: params.currentMessageIndex,
+              messageType: params.messageType,
+              senderRole: params.senderRole,
+              idempotencyKey: params.idempotencyKey,
+              runId,
+            });
+            this.opts?.onRunDispatched?.(runId);
+          } else {
+            log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
+            this.opts?.onRunDispatched?.(runId);
+          }
         } else {
+          round.assumeRunDispatched(runId);
+          this.attachRunToRound(runId, round);
           log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
           this.opts?.onRunDispatched?.(runId);
         }
       } else {
-        round.assumeRunDispatched(runId);
-        this.attachRunToRound(runId, round);
-        log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
-        this.opts?.onRunDispatched?.(runId);
+        if (round && params.placeholder && this.activeRound === round) {
+          round.clearPlaceholderIfCurrent(params.placeholder);
+        }
       }
-    } else {
-      if (round && params.placeholder && this.activeRound === round) {
-        round.clearPlaceholderIfCurrent(params.placeholder);
-      }
+      return { runId };
+    } catch (err) {
+      this.emitDispatchTelemetry({
+        source: params.dispatchSource ?? "desktop",
+        signalType: params.signalType,
+        dispatchReason: params.dispatchReason ?? "MANUAL_START",
+        outcome: "failed",
+        reason: "exception",
+        messageId: params.currentMessageId,
+        messageIndex: params.currentMessageIndex,
+        messageType: params.messageType,
+        senderRole: params.senderRole,
+        idempotencyKey: params.idempotencyKey,
+        durationMs: Date.now() - dispatchStartedAt,
+        promptChars: extraSystemPrompt.length,
+        messageChars: params.message.length,
+        attachmentCount: params.attachments?.length ?? 0,
+        errorMessage: err,
+      });
+      throw err;
     }
-    return { runId };
   }
 
   private parseMessageContent(frame: CSNewMessageFrame): string {

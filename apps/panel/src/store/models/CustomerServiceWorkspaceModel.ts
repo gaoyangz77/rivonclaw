@@ -1,7 +1,7 @@
 import { flow, getEnv, types } from "mobx-state-tree";
 import { GQL } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
-import { fetchJson } from "../../api/client.js";
+import { fetchJson, fetchVoid } from "../../api/client.js";
 import {
   CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
   CS_DISMISS_ESCALATION_MUTATION,
@@ -25,6 +25,24 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Request failed";
+}
+
+function emitCsTelemetry(eventType: string, metadata: Record<string, unknown>): void {
+  fetchVoid(clientPath(API["telemetry.cs.track"]), {
+    method: "POST",
+    body: JSON.stringify({ eventType, metadata }),
+  });
+}
+
+function conversationTelemetryContext(item: Partial<GQL.CustomerServiceConversationInboxItem> | null | undefined): Record<string, unknown> {
+  return {
+    shopId: item?.shopId ?? "",
+    platformShopId: item?.platformShopId ?? "",
+    conversationId: item?.conversationId ?? "",
+    buyerUserId: item?.buyerUserId ?? "",
+    orderId: item?.orderId ?? "",
+    platform: "",
+  };
 }
 
 function normalizedSearch(value: string): string {
@@ -832,6 +850,7 @@ export const CustomerServiceWorkspaceModel = types
         if (!selected || !message) return null;
         self.sendingManualReply = true;
         try {
+          const startedAt = Date.now();
           const result = yield client().mutate({
             mutation: CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
             variables: {
@@ -843,7 +862,38 @@ export const CustomerServiceWorkspaceModel = types
           self.manualReplyDraft = "";
           yield (self as any).fetchConversationMessages(locale);
           yield (self as any).fetchConversations();
-          return Boolean(result.data?.ecommerceSendCustomerServiceTextReply?.messageId);
+          const messageId = result.data?.ecommerceSendCustomerServiceTextReply?.messageId;
+          emitCsTelemetry("cs.session_event", {
+            ...conversationTelemetryContext(selected),
+            action: "manual_reply_send",
+            source: "panel",
+            outcome: messageId ? "ok" : "empty",
+            messageId: messageId ?? "",
+            durationMs: Date.now() - startedAt,
+            textLength: message.length,
+          });
+          if (messageId) {
+            emitCsTelemetry("cs.message", {
+              ...conversationTelemetryContext(selected),
+              buyerUserId: selected.buyerUserId ?? selected.buyerImUserId ?? "",
+              direction: "outbound",
+              messageId,
+              contentLength: message.length,
+              runId: "",
+              source: "manual_panel_reply",
+            });
+          }
+          return Boolean(messageId);
+        } catch (err) {
+          emitCsTelemetry("cs.session_event", {
+            ...conversationTelemetryContext(selected),
+            action: "manual_reply_send",
+            source: "panel",
+            outcome: "failed",
+            textLength: message.length,
+            errorMessage: errorMessage(err),
+          });
+          throw err;
         } finally {
           self.sendingManualReply = false;
         }
@@ -852,6 +902,7 @@ export const CustomerServiceWorkspaceModel = types
         const key = item.conversationId;
         pushUnique(self.endingConversationSessionIds as unknown as string[], key);
         try {
+          const startedAt = Date.now();
           const result = yield client().mutate({
             mutation: CS_END_CUSTOMER_SERVICE_SESSION_MUTATION,
             variables: {
@@ -860,6 +911,13 @@ export const CustomerServiceWorkspaceModel = types
             },
           });
           if (!result.data?.csEndCustomerServiceSession) return false;
+          emitCsTelemetry("cs.session_event", {
+            ...conversationTelemetryContext(item),
+            action: "end_session",
+            source: "panel",
+            outcome: "ok",
+            durationMs: Date.now() - startedAt,
+          });
           removeConversation(item);
           self.conversationTotal = Math.max(0, self.conversationTotal - 1);
           if (self.selectedConversationId === item.conversationId && self.selectedConversationShopId === item.shopId) {
@@ -871,6 +929,15 @@ export const CustomerServiceWorkspaceModel = types
             self.manualReplyDraft = "";
           }
           return true;
+        } catch (err) {
+          emitCsTelemetry("cs.session_event", {
+            ...conversationTelemetryContext(item),
+            action: "end_session",
+            source: "panel",
+            outcome: "failed",
+            errorMessage: errorMessage(err),
+          });
+          throw err;
         } finally {
           removeValue(self.endingConversationSessionIds as unknown as string[], key);
         }
@@ -878,6 +945,7 @@ export const CustomerServiceWorkspaceModel = types
       dismissConversationEscalations: flow(function* (item: any) {
         pushUnique(self.clearingConversationEscalationIds as unknown as string[], item.conversationId);
         try {
+          const startedAt = Date.now();
           const result = yield client().mutate({
             mutation: CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
             variables: {
@@ -887,6 +955,16 @@ export const CustomerServiceWorkspaceModel = types
           });
           const updated = result.data?.csDismissConversationEscalations as GQL.CustomerServiceConversationInboxItem | undefined;
           if (updated) replaceConversation(updated);
+          emitCsTelemetry("cs.escalation_event", {
+            ...conversationTelemetryContext(item),
+            escalationId: item.latestOpenEscalationId ?? "",
+            action: "dismiss_conversation",
+            source: "panel",
+            outcome: "ok",
+            status: updated?.latestOpenEscalationStatus ?? "",
+            count: Number(item.openEscalationCount ?? 0),
+            durationMs: Date.now() - startedAt,
+          });
           self.escalationItems.replace(self.escalationItems.filter((candidate) => (
             candidate.shopId !== item.shopId || candidate.conversationId !== item.conversationId
           )) as any);
@@ -901,6 +979,17 @@ export const CustomerServiceWorkspaceModel = types
             setEscalationDraftFromSelection();
           }
           return true;
+        } catch (err) {
+          emitCsTelemetry("cs.escalation_event", {
+            ...conversationTelemetryContext(item),
+            escalationId: item.latestOpenEscalationId ?? "",
+            action: "dismiss_conversation",
+            source: "panel",
+            outcome: "failed",
+            count: Number(item.openEscalationCount ?? 0),
+            errorMessage: errorMessage(err),
+          });
+          throw err;
         } finally {
           removeValue(self.clearingConversationEscalationIds as unknown as string[], item.conversationId);
         }
@@ -961,6 +1050,7 @@ export const CustomerServiceWorkspaceModel = types
         if (!selected || !guidance) return null;
         self.respondingEscalation = true;
         try {
+          const startedAt = Date.now();
           const result = yield fetchJson<{
             ok: boolean;
             escalationId?: string | null;
@@ -977,6 +1067,20 @@ export const CustomerServiceWorkspaceModel = types
             }),
           });
           if (!result.ok) throw new Error(result.error ?? "Escalation response failed");
+          emitCsTelemetry("cs.escalation_event", {
+            shopId: selected.shopId,
+            conversationId: selected.conversationId,
+            buyerUserId: selected.buyerUserId ?? "",
+            orderId: selected.orderId ?? "",
+            escalationId: selected.id,
+            action: self.escalationResolved ? "respond_resolve" : "respond_update",
+            source: "panel",
+            outcome: "ok",
+            status: result.status ?? "",
+            resolved: self.escalationResolved,
+            version: result.version ?? 0,
+            durationMs: Date.now() - startedAt,
+          });
           if (self.escalationResolved) {
             const nextId = nextEscalationId(selected.id);
             self.escalationItems.replace(self.escalationItems.filter((item) => item.id !== selected.id) as any);
@@ -985,6 +1089,20 @@ export const CustomerServiceWorkspaceModel = types
             setEscalationDraftFromSelection();
           }
           return result;
+        } catch (err) {
+          emitCsTelemetry("cs.escalation_event", {
+            shopId: selected.shopId,
+            conversationId: selected.conversationId,
+            buyerUserId: selected.buyerUserId ?? "",
+            orderId: selected.orderId ?? "",
+            escalationId: selected.id,
+            action: self.escalationResolved ? "respond_resolve" : "respond_update",
+            source: "panel",
+            outcome: "failed",
+            resolved: self.escalationResolved,
+            errorMessage: errorMessage(err),
+          });
+          throw err;
         } finally {
           self.respondingEscalation = false;
         }
@@ -994,6 +1112,7 @@ export const CustomerServiceWorkspaceModel = types
         if (!selected) return null;
         self.dismissingEscalation = true;
         try {
+          const startedAt = Date.now();
           const result = yield client().mutate({
             mutation: CS_DISMISS_ESCALATION_MUTATION,
             variables: { escalationId: selected.id },
@@ -1003,6 +1122,17 @@ export const CustomerServiceWorkspaceModel = types
             error?: string | null;
           } | undefined;
           if (!payload?.ok) throw new Error(payload?.error ?? "Escalation dismiss failed");
+          emitCsTelemetry("cs.escalation_event", {
+            shopId: selected.shopId,
+            conversationId: selected.conversationId,
+            buyerUserId: selected.buyerUserId ?? "",
+            orderId: selected.orderId ?? "",
+            escalationId: selected.id,
+            action: "dismiss",
+            source: "panel",
+            outcome: "ok",
+            durationMs: Date.now() - startedAt,
+          });
           const nextId = nextEscalationId(selected.id);
           self.escalationItems.replace(self.escalationItems.filter((item) => item.id !== selected.id) as any);
           self.escalationTotal = Math.max(0, self.escalationTotal - 1);
@@ -1012,6 +1142,19 @@ export const CustomerServiceWorkspaceModel = types
           setEscalationDraftFromSelection();
           yield (self as any).fetchConversations();
           return true;
+        } catch (err) {
+          emitCsTelemetry("cs.escalation_event", {
+            shopId: selected.shopId,
+            conversationId: selected.conversationId,
+            buyerUserId: selected.buyerUserId ?? "",
+            orderId: selected.orderId ?? "",
+            escalationId: selected.id,
+            action: "dismiss",
+            source: "panel",
+            outcome: "failed",
+            errorMessage: errorMessage(err),
+          });
+          throw err;
         } finally {
           self.dismissingEscalation = false;
         }

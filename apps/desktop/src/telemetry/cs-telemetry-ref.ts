@@ -39,6 +39,9 @@ export type CsTelemetryEventType =
   | "cs.message"
   | "cs.token_snapshot"
   | "cs.delivery_recovery"
+  | "cs.dispatch_event"
+  | "cs.escalation_event"
+  | "cs.session_event"
   | "ecom.tool_call"
   | "cs.error";
 
@@ -125,6 +128,142 @@ export function emitCsDeliveryRecovery(
     maxAttempts: fields.maxAttempts ?? 0,
     errorMessage: formatDetailedErrorMessage(fields.errorMessage),
     textLength: fields.textLength ?? 0,
+  });
+}
+
+export function emitCsDispatchEvent(
+  fields: {
+    shopId?: string;
+    platformShopId?: string;
+    conversationId?: string;
+    buyerUserId?: string;
+    imUserId?: string;
+    orderId?: string | null;
+    platform?: string;
+    signalType?: string;
+    source?: string;
+    dispatchReason?: string;
+    outcome: string;
+    reason?: string;
+    messageId?: string;
+    messageIndex?: string;
+    messageType?: string;
+    senderRole?: string;
+    idempotencyKey?: string;
+    runId?: string;
+    durationMs?: number;
+    promptChars?: number;
+    messageChars?: number;
+    attachmentCount?: number;
+    errorMessage?: unknown;
+  },
+): void {
+  emitCsTelemetry("cs.dispatch_event", {
+    shopId: fields.shopId ?? "",
+    platformShopId: fields.platformShopId ?? "",
+    conversationId: fields.conversationId ?? "",
+    buyerUserId: fields.buyerUserId ?? "",
+    imUserId: fields.imUserId ?? "",
+    orderId: fields.orderId ?? "",
+    platform: fields.platform ?? "",
+    signalType: fields.signalType ?? "",
+    source: fields.source ?? "",
+    dispatchReason: fields.dispatchReason ?? "",
+    outcome: fields.outcome,
+    reason: fields.reason ?? "",
+    messageId: fields.messageId ?? "",
+    messageIndex: fields.messageIndex ?? "",
+    messageType: fields.messageType ?? "",
+    senderRole: fields.senderRole ?? "",
+    idempotencyKey: fields.idempotencyKey ?? "",
+    runId: fields.runId ?? "",
+    durationMs: fields.durationMs ?? 0,
+    promptChars: fields.promptChars ?? 0,
+    messageChars: fields.messageChars ?? 0,
+    attachmentCount: fields.attachmentCount ?? 0,
+    errorMessage: formatDetailedErrorMessage(fields.errorMessage),
+  });
+}
+
+export function emitCsEscalationEvent(
+  fields: {
+    shopId?: string;
+    platformShopId?: string;
+    conversationId?: string;
+    buyerUserId?: string;
+    orderId?: string | null;
+    platform?: string;
+    escalationId?: string;
+    action: string;
+    source?: string;
+    outcome: string;
+    reason?: string;
+    status?: string | null;
+    resolved?: boolean;
+    version?: number | null;
+    count?: number;
+    durationMs?: number;
+    errorMessage?: unknown;
+  },
+): void {
+  emitCsTelemetry("cs.escalation_event", {
+    shopId: fields.shopId ?? "",
+    platformShopId: fields.platformShopId ?? "",
+    conversationId: fields.conversationId ?? "",
+    buyerUserId: fields.buyerUserId ?? "",
+    orderId: fields.orderId ?? "",
+    platform: fields.platform ?? "",
+    escalationId: fields.escalationId ?? "",
+    action: fields.action,
+    source: fields.source ?? "",
+    outcome: fields.outcome,
+    reason: fields.reason ?? "",
+    status: fields.status ?? "",
+    resolved: fields.resolved === true ? 1 : 0,
+    version: fields.version ?? 0,
+    count: fields.count ?? 0,
+    durationMs: fields.durationMs ?? 0,
+    errorMessage: formatDetailedErrorMessage(fields.errorMessage),
+  });
+}
+
+export function emitCsSessionEvent(
+  fields: {
+    shopId?: string;
+    platformShopId?: string;
+    conversationId?: string;
+    buyerUserId?: string;
+    orderId?: string | null;
+    platform?: string;
+    action: string;
+    source?: string;
+    outcome: string;
+    reason?: string;
+    messageId?: string;
+    runId?: string;
+    durationMs?: number;
+    textLength?: number;
+    messageCount?: number;
+    errorMessage?: unknown;
+  },
+): void {
+  emitCsTelemetry("cs.session_event", {
+    shopId: fields.shopId ?? "",
+    platformShopId: fields.platformShopId ?? "",
+    conversationId: fields.conversationId ?? "",
+    buyerUserId: fields.buyerUserId ?? "",
+    orderId: fields.orderId ?? "",
+    platform: fields.platform ?? "",
+    action: fields.action,
+    source: fields.source ?? "",
+    outcome: fields.outcome,
+    reason: fields.reason ?? "",
+    messageId: fields.messageId ?? "",
+    runId: fields.runId ?? "",
+    durationMs: fields.durationMs ?? 0,
+    textLength: fields.textLength ?? 0,
+    messageCount: fields.messageCount ?? 0,
+    errorMessage: formatDetailedErrorMessage(fields.errorMessage),
   });
 }
 

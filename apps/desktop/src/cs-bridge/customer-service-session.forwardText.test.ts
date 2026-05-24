@@ -51,10 +51,16 @@ vi.mock("../usage/session-usage.js", () => ({
 const mockEmitCsTelemetry = vi.fn();
 const mockEmitCsError = vi.fn();
 const mockEmitCsDeliveryRecovery = vi.fn();
+const mockEmitCsDispatchEvent = vi.fn();
+const mockEmitCsEscalationEvent = vi.fn();
+const mockEmitCsSessionEvent = vi.fn();
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
   emitCsTelemetry: (...args: unknown[]) => mockEmitCsTelemetry(...args),
   emitCsError: (...args: unknown[]) => mockEmitCsError(...args),
   emitCsDeliveryRecovery: (...args: unknown[]) => mockEmitCsDeliveryRecovery(...args),
+  emitCsDispatchEvent: (...args: unknown[]) => mockEmitCsDispatchEvent(...args),
+  emitCsEscalationEvent: (...args: unknown[]) => mockEmitCsEscalationEvent(...args),
+  emitCsSessionEvent: (...args: unknown[]) => mockEmitCsSessionEvent(...args),
   CS_ERROR_STAGE: {
     DELIVER: "deliver",
     SANITIZE: "sanitize",
