@@ -51,22 +51,20 @@ interface CloudModel {
   input_modalities?: string[];
 }
 
-interface CreateLlmApiKeyMutationResult {
-  createLlmApiKey: GQL.CreatedLlmApiKeyPayload;
+interface ProvisionLlmApiKeyMutationResult {
+  provisionLlmApiKey: GQL.LlmApiKey;
 }
 
-const CREATE_LLM_API_KEY_MUTATION = `
-  mutation CreateLlmApiKey {
-    createLlmApiKey {
-      rawKey
-      key {
-        id
-        keyPrefix
-        status
-        createdAt
-        updatedAt
-        lastUsedAt
-      }
+const PROVISION_LLM_API_KEY_MUTATION = `
+  mutation ProvisionLlmApiKey {
+    provisionLlmApiKey {
+      id
+      key
+      keyPrefix
+      status
+      createdAt
+      updatedAt
+      lastUsedAt
     }
   }
 `;
@@ -762,9 +760,8 @@ export const LLMProviderManagerModel = types
       /**
        * Sync cloud provider key from user auth state.
        *
-       * Backend no longer returns a raw LLM proxy key on the user object. The
-       * desktop creates one on demand and stores the raw key only in the local
-       * secret store.
+       * Backend owns the RivonClaw LLM proxy key. Desktop fetches the active
+       * original key on login so a new device can sync without rotating it.
        */
       syncCloud: flow(function* (user: GQL.MeResponse | null) {
         const { storage, secretStore, syncActiveKey, toMstSnapshot, allKeysToMstSnapshots } = getEnvDeps();
@@ -810,19 +807,19 @@ export const LLMProviderManagerModel = types
           return;
         }
 
-        async function createCloudApiKey(): Promise<string> {
+        async function provisionCloudApiKey(): Promise<string> {
           const { graphqlFetch } = getEnvDeps();
           if (!graphqlFetch) {
             throw new Error("Authenticated GraphQL fetch is not available for cloud key provisioning");
           }
-          const data = await graphqlFetch<CreateLlmApiKeyMutationResult>(CREATE_LLM_API_KEY_MUTATION);
-          return data.createLlmApiKey.rawKey;
+          const data = await graphqlFetch<ProvisionLlmApiKeyMutationResult>(PROVISION_LLM_API_KEY_MUTATION);
+          return data.provisionLlmApiKey.key;
         }
 
-        async function fetchCloudModels(baseUrl: string, rawKey: string): Promise<CloudModel[]> {
+        async function fetchCloudModels(baseUrl: string, apiKeyValue: string): Promise<CloudModel[]> {
           const { proxyFetch } = getEnvDeps();
           const res = await proxyFetch(baseUrl + "/models", {
-            headers: { Authorization: `Bearer ${rawKey}` },
+            headers: { Authorization: `Bearer ${apiKeyValue}` },
           });
           if (!res.ok) {
             throw new Error(`Cloud model catalog request failed (${res.status})`);
@@ -836,7 +833,7 @@ export const LLMProviderManagerModel = types
           const currentBaseUrl = `${getApiBaseUrl("en")}/llm/v1`;
           let currentKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
           if (!currentKey) {
-            currentKey = yield createCloudApiKey();
+            currentKey = yield provisionCloudApiKey();
             yield secretStore.set(`provider-key-${existing.id}`, currentKey);
             if (existing.isDefault) {
               yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
@@ -885,12 +882,12 @@ export const LLMProviderManagerModel = types
         // Create new entry
         const baseUrl = `${getApiBaseUrl("en")}/llm/v1`;
         const shouldActivate = !storage.providerKeys.getActive();
-        const rawKey: string = yield createCloudApiKey();
+        const apiKeyValue: string = yield provisionCloudApiKey();
 
         // Fetch available models from cloud endpoint (preserving per-model capabilities)
         let cloudModels: CloudModel[] = [];
         try {
-          cloudModels = yield fetchCloudModels(baseUrl, rawKey);
+          cloudModels = yield fetchCloudModels(baseUrl, apiKeyValue);
         } catch {
           // Model fetch failed — create entry with empty models
         }
@@ -913,7 +910,7 @@ export const LLMProviderManagerModel = types
           updatedAt: "",
         });
 
-        yield secretStore.set(`provider-key-${entry.id}`, rawKey);
+        yield secretStore.set(`provider-key-${entry.id}`, apiKeyValue);
 
         if (shouldActivate) {
           storage.settings.set("llm-provider", CLOUD_PROVIDER_ID);

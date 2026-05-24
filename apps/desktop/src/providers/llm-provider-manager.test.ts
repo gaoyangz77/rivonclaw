@@ -236,16 +236,14 @@ describe("LLMProviderManager", () => {
       writeFullGatewayConfig,
       restartGateway,
       graphqlFetch: vi.fn().mockResolvedValue({
-        createLlmApiKey: {
-          rawKey: "cloud-token",
-          key: {
-            id: "llm-key-1",
-            keyPrefix: "rcl_",
-            status: "ACTIVE",
-            createdAt: "2026-01-01T00:00:00Z",
-            updatedAt: "2026-01-01T00:00:00Z",
-            lastUsedAt: null,
-          },
+        provisionLlmApiKey: {
+          id: "llm-key-1",
+          key: "cloud-token",
+          keyPrefix: "cloud-token".slice(0, 14),
+          status: "ACTIVE",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          lastUsedAt: null,
         },
       }),
       proxyFetch: vi.fn().mockResolvedValue({
