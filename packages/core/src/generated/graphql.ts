@@ -1106,6 +1106,19 @@ export interface ConversationMessageDeltaMeta {
   pageLimitReached: Scalars['Boolean']['output'];
 }
 
+export interface CreateBillingCheckoutInput {
+  /** Stripe Checkout cancel URL. Required for STRIPE. */
+  cancelUrl?: InputMaybe<Scalars['String']['input']>;
+  planId: BillingPlanId;
+  /** STRIPE creates a USD subscription checkout; LAKALA creates a CNY monthly QR payment. */
+  provider: PaymentProviderName;
+  /** User ID for account-scoped plans, shop ID for shop-scoped plans. */
+  scopeId: Scalars['String']['input'];
+  scopeType: BillingScopeType;
+  /** Stripe Checkout success URL. Required for STRIPE. */
+  successUrl?: InputMaybe<Scalars['String']['input']>;
+}
+
 /** Create a provider-backed payment. */
 export interface CreatePaymentGraphqlInput {
   /** Amount in the currency minor unit: cents for USD, fen for CNY. */
@@ -3279,6 +3292,8 @@ export interface Mutation {
   assignManualBillingSubscription: BillingSubscription;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
+  /** Create a plan-scoped billing checkout. Amounts are calculated by the backend from the selected plan. */
+  createBillingCheckout: Payment;
   /** Create an LLM proxy API key. The raw key is returned only once. */
   createLlmApiKey: CreatedLlmApiKeyPayload;
   /** Create a payment through Stripe or Lakala. */
@@ -3427,6 +3442,7 @@ export interface MutationApplyCreatorTagArgs {
 
 
 export interface MutationAssignManualBillingSubscriptionArgs {
+  ownerUserId?: InputMaybe<Scalars['String']['input']>;
   planId: BillingPlanId;
   scopeId: Scalars['String']['input'];
   scopeType: BillingScopeType;
@@ -3436,6 +3452,11 @@ export interface MutationAssignManualBillingSubscriptionArgs {
 export interface MutationCompleteTikTokOAuthArgs {
   code: Scalars['String']['input'];
   state: Scalars['String']['input'];
+}
+
+
+export interface MutationCreateBillingCheckoutArgs {
+  input: CreateBillingCheckoutInput;
 }
 
 
@@ -3813,6 +3834,11 @@ export interface OAuthCompletePayload {
 export interface Payment {
   /** Amount in the currency minor unit: cents for USD, fen for CNY. */
   amountMinor: Scalars['Int']['output'];
+  billingActivatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  billingPlanId?: Maybe<BillingPlanId>;
+  billingProduct?: Maybe<BillableProduct>;
+  billingScopeId?: Maybe<Scalars['String']['output']>;
+  billingScopeType?: Maybe<BillingScopeType>;
   /** Redirect checkout URL when the provider creates one. */
   checkoutUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
@@ -3832,6 +3858,8 @@ export interface Payment {
   providerOrderId?: Maybe<Scalars['String']['output']>;
   /** Provider primary payment/session ID, such as Stripe checkout session ID. */
   providerPaymentId?: Maybe<Scalars['String']['output']>;
+  /** Provider recurring subscription ID, such as a Stripe subscription ID. */
+  providerSubscriptionId?: Maybe<Scalars['String']['output']>;
   /** Raw QR code payload when the provider returns one. */
   qrCode?: Maybe<Scalars['String']['output']>;
   /** QR code URL when the provider returns one. */
