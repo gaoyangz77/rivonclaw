@@ -6,7 +6,6 @@ export { ShopModel } from "./ShopModel.js";
 export { WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./WarehouseModel.js";
 export { InventoryGoodModel } from "./InventoryGoodModel.js";
 export { ProviderKeyModel } from "./ProviderKeyModel.js";
-export { ServiceCreditModel } from "./ServiceCreditModel.js";
 export { LLMProviderModel } from "./LLMProviderModel.js";
 export type { SwitchModelResult, SessionModelInfo } from "./LLMProviderModel.js";
 export { ChannelAccountModel } from "./ChannelAccountModel.js";

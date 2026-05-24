@@ -2,19 +2,16 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
-import type { ServiceCredit } from "@rivonclaw/core/models";
 import type { ModalTab } from "../tiktok-shops-types.js";
 
 interface UseTikTokShopDetailParams {
   handleError: (err: unknown, fallbackKey: string) => void;
   setUpgradePrompt: (v: boolean) => void;
-  fetchCredits: () => Promise<void>;
 }
 
 export function useTikTokShopDetail({
   handleError,
   setUpgradePrompt,
-  fetchCredits,
 }: UseTikTokShopDetailParams) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -25,18 +22,10 @@ export function useTikTokShopDetail({
   const [activeTab, setActiveTab] = useState<ModalTab>("overview");
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
-  const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
 
   const selectedShop = shops.find((s) => s.id === selectedShopId) ?? null;
-
-  // Load detail data when a shop is selected
-  useEffect(() => {
-    if (selectedShopId) {
-      fetchCredits();
-    }
-  }, [selectedShopId]);
 
   // Set business prompt when shop selection changes
   useEffect(() => {
@@ -96,23 +85,6 @@ export function useTikTokShopDetail({
     }
   }
 
-  async function handleRedeemCredit(credit: ServiceCredit) {
-    if (!selectedShopId) return;
-    setRedeemingCreditId(credit.id);
-    setUpgradePrompt(false);
-    try {
-      const creditInstance = entityStore.credits.find((c) => c.id === credit.id);
-      if (!creditInstance) throw new Error(`Credit ${credit.id} not found`);
-      await creditInstance.redeem(selectedShopId);
-      showToast(t("tiktokShops.modal.billing.redeemSuccess"), "success");
-      // Shop balance auto-refreshes via MST patch from the redeem mutation response.
-    } catch (err) {
-      handleError(err, "tiktokShops.updateFailed");
-    } finally {
-      setRedeemingCreditId(null);
-    }
-  }
-
   function openDetailModal(shopId: string) {
     setSelectedShopId(shopId);
     setActiveTab("overview");
@@ -132,7 +104,6 @@ export function useTikTokShopDetail({
     editBusinessPrompt,
     setEditBusinessPrompt,
     savingSettings,
-    redeemingCreditId,
     togglingServiceId,
     confirmDeleteShopId,
     setConfirmDeleteShopId,
@@ -140,7 +111,6 @@ export function useTikTokShopDetail({
     closeDetailModal,
     handleSaveBusinessPrompt,
     handleToggleCustomerService,
-    handleRedeemCredit,
     handleDeleteShop,
   };
 }

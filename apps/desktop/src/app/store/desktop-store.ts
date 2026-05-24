@@ -102,7 +102,6 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       RunProfile: self.runProfiles,
       ToolSpec: self.entitledTools,
       PlatformApp: self.platformApps,
-      ServiceCredit: self.credits,
       WmsAccount: self.wmsAccounts,
       Warehouse: self.warehouses,
       ShopWarehouse: self.shopWarehouses,
@@ -111,13 +110,9 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
 
     // --- Nullable singletons: __typename → getter/setter ---
       const SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
-      UserSubscription: {
-        get: () => self.subscriptionStatus,
-        set: (v) => { self.subscriptionStatus = v; },
-      },
-      LlmQuotaStatus: {
-        get: () => self.llmQuotaStatus,
-        set: (v) => { self.llmQuotaStatus = v; },
+      BillingOverview: {
+        get: () => self.billingOverview,
+        set: (v) => { self.billingOverview = v; },
       },
       MeResponse: {
         get: () => self.currentUser,
@@ -127,8 +122,7 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
 
       const KEY_SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
         me: SINGLETONS.MeResponse,
-        subscriptionStatus: SINGLETONS.UserSubscription,
-        llmQuotaStatus: SINGLETONS.LlmQuotaStatus,
+        billingOverview: SINGLETONS.BillingOverview,
       };
 
     // --- Key-based fallback for arrays without __typename ---
@@ -138,7 +132,6 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       runProfiles: self.runProfiles,
       toolSpecs: self.entitledTools,
       platformApps: self.platformApps,
-      myCredits: self.credits,
       readWmsAccounts: self.wmsAccounts,
       readWarehouses: self.warehouses,
       readShopWarehouses: self.shopWarehouses,
@@ -250,13 +243,11 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       applySnapshot(self.runProfiles, []);
       applySnapshot(self.shops, []);
       applySnapshot(self.platformApps, []);
-      applySnapshot(self.credits, []);
       applySnapshot(self.wmsAccounts, []);
       applySnapshot(self.warehouses, []);
       applySnapshot(self.shopWarehouses, []);
       applySnapshot(self.inventoryGoods, []);
-      self.subscriptionStatus = null;
-      self.llmQuotaStatus = null;
+      self.billingOverview = null;
     },
 
     clearCloudDataExceptUser() {
@@ -265,13 +256,11 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       applySnapshot(self.runProfiles, []);
       applySnapshot(self.shops, []);
       applySnapshot(self.platformApps, []);
-      applySnapshot(self.credits, []);
       applySnapshot(self.wmsAccounts, []);
       applySnapshot(self.warehouses, []);
       applySnapshot(self.shopWarehouses, []);
       applySnapshot(self.inventoryGoods, []);
-      self.subscriptionStatus = null;
-      self.llmQuotaStatus = null;
+      self.billingOverview = null;
     },
 
     /** Clear user on logout. */

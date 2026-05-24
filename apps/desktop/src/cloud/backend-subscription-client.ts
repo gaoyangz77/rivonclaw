@@ -61,12 +61,6 @@ const SHOP_UPDATED_SUBSCRIPTION = `
           escalationRecipientId
           platformSystemPrompt
         }
-        customerServiceBilling {
-          tier
-          balance
-          balanceExpiresAt
-          periodEnd
-        }
         wms {
           enabled
         }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { bootstrapDesktopAuthState } from "../src/app/bootstrap-auth-state.js";
 import {
-  INIT_CREDITS_QUERY,
+  INIT_BILLING_OVERVIEW_QUERY,
   INIT_INVENTORY_GOODS_QUERY,
   INIT_PLATFORM_APPS_QUERY,
   INIT_RUN_PROFILES_QUERY,
@@ -17,7 +17,7 @@ function createStore() {
     currentUser: null as Record<string, unknown> | null,
     shops: [{ id: "stale-shop" }] as Array<Record<string, unknown>>,
     platformApps: [{ id: "stale-app" }] as Array<Record<string, unknown>>,
-    credits: [{ id: "stale-credit" }] as Array<Record<string, unknown>>,
+    billingOverview: null as Record<string, unknown> | null,
     wmsAccounts: [{ id: "stale-wms" }] as Array<Record<string, unknown>>,
     warehouses: [{ id: "stale-warehouse" }] as Array<Record<string, unknown>>,
     inventoryGoods: [{ id: "stale-good" }] as Array<Record<string, unknown>>,
@@ -33,7 +33,7 @@ function createStore() {
       state.currentUser = null;
       state.shops = [];
       state.platformApps = [];
-      state.credits = [];
+      state.billingOverview = null;
       state.wmsAccounts = [];
       state.warehouses = [];
       state.inventoryGoods = [];
@@ -45,7 +45,7 @@ function createStore() {
     clearCloudDataExceptUser: vi.fn(() => {
       state.shops = [];
       state.platformApps = [];
-      state.credits = [];
+      state.billingOverview = null;
       state.wmsAccounts = [];
       state.warehouses = [];
       state.inventoryGoods = [];
@@ -60,7 +60,7 @@ function createStore() {
       if (data.me) state.currentUser = data.me as Record<string, unknown>;
       if (data.shops) state.shops = data.shops as Array<Record<string, unknown>>;
       if (data.platformApps) state.platformApps = data.platformApps as Array<Record<string, unknown>>;
-      if (data.myCredits) state.credits = data.myCredits as Array<Record<string, unknown>>;
+      if (data.billingOverview) state.billingOverview = data.billingOverview as Record<string, unknown>;
       if (data.readWmsAccounts) state.wmsAccounts = data.readWmsAccounts as Array<Record<string, unknown>>;
       if (data.readWarehouses) state.warehouses = data.readWarehouses as Array<Record<string, unknown>>;
       if (data.readInventoryGoods) state.inventoryGoods = data.readInventoryGoods as Array<Record<string, unknown>>;
@@ -86,7 +86,7 @@ describe("bootstrapDesktopAuthState", () => {
       [INIT_RUN_PROFILES_QUERY, { runProfiles: [{ id: "profile-1", name: "Profile", userId: "u1", surfaceId: "surface-1", selectedToolIds: [] }] }],
       [INIT_SHOPS_QUERY, { shops: [{ id: "shop-1", platform: "tiktok", platformAppId: "app-1", platformShopId: "p-shop-1", shopName: "Shop 1", authStatus: "ok", region: "US", accessTokenExpiresAt: null, refreshTokenExpiresAt: null, services: null }] }],
       [INIT_PLATFORM_APPS_QUERY, { platformApps: [{ id: "app-1", platform: "tiktok", market: "US", status: "ACTIVE", label: "TikTok US", apiBaseUrl: "https://example.com", authLinkUrl: "https://example.com/auth" }] }],
-      [INIT_CREDITS_QUERY, { myCredits: [{ id: "credit-1", service: "cs", quota: 1, status: "active", expiresAt: null, source: "grant" }] }],
+      [INIT_BILLING_OVERVIEW_QUERY, { billingOverview: { accountLlm: { planId: null, entitlement: { scopeType: "ACCOUNT", scopeId: "u1", product: "ACCOUNT_LLM", allowed: false, code: "PAYMENT_REQUIRED", source: null, validUntil: null, usage: [] } }, shops: [] } }],
       [INIT_WMS_ACCOUNTS_QUERY, { readWmsAccounts: [{ id: "wms-1", label: "WMS 1", provider: "YEJOIN", endpoint: "https://wms.example.com", status: "ACTIVE", userId: "u1", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
       [INIT_WAREHOUSES_QUERY, { readWarehouses: [{ id: "warehouse-1", name: "Warehouse 1", provider: "YEJOIN", warehouseType: "THIRD_PARTY_WMS", status: "ACTIVE", userId: "u1", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
       [INIT_INVENTORY_GOODS_QUERY, { readInventoryGoods: [{ id: "good-1", userId: "u1", sku: "SKU-1", name: "Good 1", status: "ACTIVE", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
@@ -110,13 +110,13 @@ describe("bootstrapDesktopAuthState", () => {
     expect(store.clearCloudDataExceptUser).toHaveBeenCalledTimes(1);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_SHOPS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
-    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_CREDITS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WMS_ACCOUNTS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);
     expect(store.state.shops).toEqual(queryResults.get(INIT_SHOPS_QUERY)?.shops);
     expect(store.state.platformApps).toEqual(queryResults.get(INIT_PLATFORM_APPS_QUERY)?.platformApps);
-    expect(store.state.credits).toEqual(queryResults.get(INIT_CREDITS_QUERY)?.myCredits);
+    expect(store.state.billingOverview).toEqual(queryResults.get(INIT_BILLING_OVERVIEW_QUERY)?.billingOverview);
     expect(store.state.wmsAccounts).toEqual(queryResults.get(INIT_WMS_ACCOUNTS_QUERY)?.readWmsAccounts);
     expect(store.state.warehouses).toEqual(queryResults.get(INIT_WAREHOUSES_QUERY)?.readWarehouses);
     expect(store.state.inventoryGoods).toEqual(queryResults.get(INIT_INVENTORY_GOODS_QUERY)?.readInventoryGoods);
@@ -143,7 +143,7 @@ describe("bootstrapDesktopAuthState", () => {
 
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_SHOPS_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_CREDITS_QUERY);
+    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_WMS_ACCOUNTS_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);

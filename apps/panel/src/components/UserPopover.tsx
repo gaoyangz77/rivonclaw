@@ -35,7 +35,7 @@ export const UserPopover = observer(function UserPopover({ open, onClose, onNavi
         return () => document.removeEventListener("keydown", handleKey);
     }, [open, onClose]);
 
-    const sub = entityStore.subscriptionStatus;
+    const accountLlm = entityStore.billingOverview?.accountLlm ?? null;
 
     if (!open || !user) return null;
     const initial = getUserInitial(user);
@@ -55,12 +55,12 @@ export const UserPopover = observer(function UserPopover({ open, onClose, onNavi
                 <div className="upop-plan-card">
                     <div className="upop-plan-row">
                         <span className="upop-plan-label">{t("account.plan")}</span>
-                        <span className="upop-plan-badge">{sub?.plan ?? user.plan}</span>
+                        <span className="upop-plan-badge">{accountLlm?.planId ?? accountLlm?.entitlement.code ?? "-"}</span>
                     </div>
                     <div className="upop-plan-row">
                         <span className="upop-plan-label">{t("account.validUntil")}</span>
                         <span className="upop-plan-value">
-                            {sub ? new Date(sub.validUntil).toLocaleDateString() : "-"}
+                            {accountLlm?.entitlement.validUntil ? new Date(accountLlm.entitlement.validUntil).toLocaleDateString() : "-"}
                         </span>
                     </div>
                 </div>

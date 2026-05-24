@@ -24,12 +24,6 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         escalationRecipientId
         platformSystemPrompt
       }
-      customerServiceBilling {
-        tier
-        balance
-        balanceExpiresAt
-        periodEnd
-      }
       wms {
         enabled
       }
@@ -114,28 +108,6 @@ export const INITIATE_TIKTOK_OAUTH_MUTATION = gql`
     initiateTikTokOAuth(platformAppId: $platformAppId) {
       authUrl
       state
-    }
-  }
-`;
-
-export const MY_CREDITS_QUERY = gql`
-  query MyCredits {
-    myCredits {
-      id
-      service
-      quota
-      status
-      expiresAt
-      source
-    }
-  }
-`;
-
-export const REDEEM_CREDIT_MUTATION = gql`
-  ${SHOP_FIELDS_FRAGMENT}
-  mutation RedeemCredit($creditId: ID!, $shopId: ID!) {
-    redeemCredit(creditId: $creditId, shopId: $shopId) {
-      ...ShopFields
     }
   }
 `;

@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
+import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
-import { isBalanceExpiringSoon } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
@@ -40,11 +39,6 @@ interface AiCustomerServiceTabProps {
   togglingBindShopId: string | null;
   onBindDevice: (shopId: string) => void;
   onUnbindDevice: (shopId: string) => void;
-  // Credits
-  csCredits: ServiceCredit[];
-  creditsLoading: boolean;
-  redeemingCreditId: string | null;
-  onRedeemCredit: (credit: ServiceCredit) => void;
 }
 
 export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
@@ -73,14 +67,11 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   togglingBindShopId,
   onBindDevice,
   onUnbindDevice,
-  csCredits,
-  creditsLoading,
-  redeemingCreditId,
-  onRedeemCredit,
 }: AiCustomerServiceTabProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
+  const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
@@ -97,34 +88,21 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         <div className="shop-info-row">
           <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.balance")}</span>
           <span className="shop-info-value">
-            {shop.services?.customerServiceBilling
-              ? (shop.services?.customerServiceBilling?.balance ?? 0)
-              : 0}
+            {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
             <BalanceBadge shop={shop} />
           </span>
         </div>
         <div className="shop-info-row">
           <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.currentTier")}</span>
           <span className="shop-info-value">
-            {shop.services?.customerServiceBilling?.tier ? (
-              <span className="badge badge-active">{t(`tiktokShops.tier.${shop.services?.customerServiceBilling?.tier}`, { defaultValue: shop.services?.customerServiceBilling?.tier })}</span>
-            ) : (
-              t("ecommerce.shopDrawer.billing.noTier")
-            )}
+            {entitlement?.source ?? t("ecommerce.shopDrawer.billing.noTier")}
           </span>
         </div>
-        {shop.services?.customerServiceBilling?.balanceExpiresAt && (
+        {entitlement?.validUntil && (
           <div className="shop-info-row">
             <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.expiry")}</span>
             <span className="shop-info-value">
-              {new Date(shop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString()}
-              {isBalanceExpiringSoon(shop.services?.customerServiceBilling?.balanceExpiresAt) && (
-                <span className="badge badge-warning shop-badge-inline">
-                  {t("tiktokShops.balance.expiring", {
-                    date: new Date(shop.services!.customerServiceBilling!.balanceExpiresAt!).toLocaleDateString(),
-                  })}
-                </span>
-              )}
+              {new Date(entitlement.validUntil).toLocaleDateString()}
             </span>
           </div>
         )}
@@ -285,53 +263,21 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         </div>
       </div>
 
-      {/* Service Credits */}
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.credits")}</div>
-      {creditsLoading ? (
-        <div className="empty-cell">{t("common.loading")}</div>
-      ) : csCredits.length === 0 ? (
-        <div className="form-hint">{t("ecommerce.shopDrawer.aiCS.noCredits")}</div>
-      ) : (
-        <div className="acct-item-list">
-          {csCredits.map((credit) => (
-            <div key={credit.id} className="acct-item">
-              <div className="acct-item-title-row">
-                <span className="acct-item-name">
-                  {t("tiktokShops.credits.quota", { quota: credit.quota })}
-                </span>
-                <span className="badge badge-muted">{credit.source}</span>
-                <div className="acct-item-actions">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => onRedeemCredit(credit)}
-                    disabled={redeemingCreditId === credit.id}
-                  >
-                    {redeemingCreditId === credit.id
-                      ? t("common.loading")
-                      : t("ecommerce.shopDrawer.billing.redeem")}
-                  </button>
-                </div>
-              </div>
-              <div className="acct-item-meta">
-                <span>
-                  {t("tiktokShops.credits.expires", {
-                    date: new Date(credit.expiresAt).toLocaleDateString(),
-                  })}
+      {entitlement?.usage.length ? (
+        <>
+          <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.credits")}</div>
+          <div className="shop-info-card">
+            {entitlement.usage.map((usage) => (
+              <div className="shop-info-row" key={`${usage.metric}:${usage.window}`}>
+                <span className="shop-info-label">{usage.metric}</span>
+                <span className="shop-info-value">
+                  {usage.remaining}/{usage.limit}
                 </span>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/*
-        Session-volume stats (active / total) used to render here, sourced
-        from the `csSessionStats` GraphQL query. They moved to the ClickHouse
-        BI stream (see `cs.message` / `cs.token_snapshot` events) and are now
-        observed in Grafana, not in-app. The remaining CS balance is shown in
-        the "credits" block above — sourced directly from
-        `shop.services.customerServiceBilling`.
-      */}
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 });

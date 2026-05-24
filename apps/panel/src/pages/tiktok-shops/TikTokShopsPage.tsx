@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { GQL } from "@rivonclaw/core";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useTikTokShopData } from "./hooks/useTikTokShopData.js";
@@ -18,11 +17,10 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const platformApps = entityStore.platformApps;
-  const credits = entityStore.credits;
 
   const [upgradePrompt, setUpgradePrompt] = useState(false);
 
-  const { creditsLoading, fetchCredits } = useTikTokShopData();
+  useTikTokShopData();
 
   const {
     oauthLoading,
@@ -44,7 +42,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     editBusinessPrompt,
     setEditBusinessPrompt,
     savingSettings,
-    redeemingCreditId,
     togglingServiceId,
     confirmDeleteShopId,
     setConfirmDeleteShopId,
@@ -52,13 +49,8 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     closeDetailModal,
     handleSaveBusinessPrompt,
     handleToggleCustomerService,
-    handleRedeemCredit,
     handleDeleteShop,
-  } = useTikTokShopDetail({ handleError, setUpgradePrompt, fetchCredits });
-
-  const csCredits = credits.filter(
-    (c) => c.service === GQL.ServiceId.CustomerService && c.status === GQL.ServiceCreditStatus.Available,
-  );
+  } = useTikTokShopDetail({ handleError, setUpgradePrompt });
 
   if (authChecking) {
     return (
@@ -139,10 +131,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
         savingSettings={savingSettings}
         onToggleCustomerService={handleToggleCustomerService}
         onSaveBusinessPrompt={handleSaveBusinessPrompt}
-        csCredits={csCredits}
-        creditsLoading={creditsLoading}
-        redeemingCreditId={redeemingCreditId}
-        onRedeemCredit={handleRedeemCredit}
       />
 
       <ConfirmDialog

@@ -235,6 +235,19 @@ describe("LLMProviderManager", () => {
       writeDefaultModelToConfig,
       writeFullGatewayConfig,
       restartGateway,
+      graphqlFetch: vi.fn().mockResolvedValue({
+        createLlmApiKey: {
+          rawKey: "cloud-token",
+          key: {
+            id: "llm-key-1",
+            keyPrefix: "rcl_",
+            status: "ACTIVE",
+            createdAt: "2026-01-01T00:00:00Z",
+            updatedAt: "2026-01-01T00:00:00Z",
+            lastUsedAt: null,
+          },
+        },
+      }),
       proxyFetch: vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ data: [{ id: "gpt-5.4" }] }),
@@ -244,7 +257,15 @@ describe("LLMProviderManager", () => {
     });
 
     rootStore.llmManager.trackSessionActivity("agent:main:telegram:default:direct:42");
-    await rootStore.llmManager.syncCloud({ llmKey: { key: "cloud-token" } });
+    await rootStore.llmManager.syncCloud({
+      userId: "u1",
+      email: "test@example.com",
+      name: "Test",
+      createdAt: "2026-01-01T00:00:00Z",
+      enrolledModules: [],
+      entitlementKeys: [],
+      defaultRunProfileId: null,
+    });
 
     expect(keys[0]).toMatchObject({
       provider: "rivonclaw-pro",

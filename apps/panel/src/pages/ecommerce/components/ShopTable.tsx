@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
-import { formatBalanceDisplay, getAuthStatusBadgeClass } from "../ecommerce-utils.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
 
 interface ShopTableProps {
@@ -31,6 +32,7 @@ export function ShopTable({
   onRequestDelete,
 }: ShopTableProps) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
   const [savingAliasShopId, setSavingAliasShopId] = useState<string | null>(null);
 
@@ -102,7 +104,7 @@ export function ShopTable({
             </thead>
             <tbody>
               {shops.map((shop) => {
-                const billing = shop.services?.customerServiceBilling;
+                const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
                 return (
                   <tr key={shop.id}>
                     <td>
@@ -141,9 +143,7 @@ export function ShopTable({
                     </td>
                     <td>
                       <span className="shop-balance-cell">
-                        {billing
-                          ? formatBalanceDisplay(billing.balance, billing.tier, t)
-                          : "\u2014"}
+                        {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
                         <BalanceBadge shop={shop} />
                       </span>
                     </td>

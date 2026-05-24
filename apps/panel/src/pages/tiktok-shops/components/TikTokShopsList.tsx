@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
-import { formatBalanceDisplay, getAuthStatusBadgeClass, getBalanceBadgeInfo } from "../tiktok-shops-utils.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
 
 interface TikTokShopsListProps {
   shops: Shop[];
@@ -22,12 +23,7 @@ export function TikTokShopsList({
   onDelete,
 }: TikTokShopsListProps) {
   const { t } = useTranslation();
-
-  function renderBalanceBadge(shop: Shop) {
-    const info = getBalanceBadgeInfo(shop);
-    if (!info) return null;
-    return <span className={info.className}>{t(info.labelKey, info.labelOpts)}</span>;
-  }
+  const entityStore = useEntityStore();
 
   function renderCsStatusBadge(shop: Shop) {
     if (shop.services?.customerService?.enabled) {
@@ -69,7 +65,7 @@ export function TikTokShopsList({
           </thead>
           <tbody>
             {shops.map((shop) => {
-              const billing = shop.services?.customerServiceBilling;
+              const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
               return (
                 <tr key={shop.id}>
                   <td>
@@ -84,10 +80,12 @@ export function TikTokShopsList({
                   <td>{renderCsStatusBadge(shop)}</td>
                   <td>
                     <span className="shop-balance-cell">
-                      {billing
-                        ? formatBalanceDisplay(billing.balance, billing.tier, t)
-                        : "\u2014"}
-                      {renderBalanceBadge(shop)}
+                      {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
+                      {entitlement && (
+                        <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
+                          {entitlement.allowed ? t("common.enabled") : entitlement.code}
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className="text-right">

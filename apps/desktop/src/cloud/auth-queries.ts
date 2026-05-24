@@ -7,15 +7,10 @@ export const REFRESH_TOKEN_MUTATION = `
         userId
         email
         name
-        plan
         createdAt
         enrolledModules
         entitlementKeys
         defaultRunProfileId
-        llmKey {
-          key
-          suspendedUntil
-        }
         support {
           telegramDebugProxyToken
         }
@@ -30,15 +25,10 @@ export const ME_QUERY = `
       userId
       email
       name
-      plan
       createdAt
       enrolledModules
       entitlementKeys
       defaultRunProfileId
-      llmKey {
-        key
-        suspendedUntil
-      }
       support {
         telegramDebugProxyToken
       }
@@ -61,15 +51,10 @@ export const LOGIN_MUTATION = `
         userId
         email
         name
-        plan
         createdAt
         enrolledModules
         entitlementKeys
         defaultRunProfileId
-        llmKey {
-          key
-          suspendedUntil
-        }
         support {
           telegramDebugProxyToken
         }
@@ -87,15 +72,10 @@ export const REGISTER_MUTATION = `
         userId
         email
         name
-        plan
         createdAt
         enrolledModules
         entitlementKeys
         defaultRunProfileId
-        llmKey {
-          key
-          suspendedUntil
-        }
         support {
           telegramDebugProxyToken
         }

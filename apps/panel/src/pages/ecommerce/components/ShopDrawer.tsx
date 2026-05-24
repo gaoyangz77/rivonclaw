@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
+import type { Shop } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
@@ -58,10 +58,6 @@ interface ShopDrawerProps {
   togglingAffiliateBindShopId: string | null;
   onBindAffiliateDevice: (shopId: string) => void;
   onUnbindAffiliateDevice: (shopId: string) => void;
-  csCredits: ServiceCredit[];
-  creditsLoading: boolean;
-  redeemingCreditId: string | null;
-  onRedeemCredit: (credit: ServiceCredit) => void;
 }
 
 export const ShopDrawer = observer(function ShopDrawer({
@@ -112,10 +108,6 @@ export const ShopDrawer = observer(function ShopDrawer({
   togglingAffiliateBindShopId,
   onBindAffiliateDevice,
   onUnbindAffiliateDevice,
-  csCredits,
-  creditsLoading,
-  redeemingCreditId,
-  onRedeemCredit,
 }: ShopDrawerProps) {
   const { t } = useTranslation();
 
@@ -363,10 +355,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                 togglingBindShopId={togglingBindShopId}
                 onBindDevice={onBindDevice}
                 onUnbindDevice={onUnbindDevice}
-                csCredits={csCredits}
-                creditsLoading={creditsLoading}
-                redeemingCreditId={redeemingCreditId}
-                onRedeemCredit={onRedeemCredit}
               />
             )}
 

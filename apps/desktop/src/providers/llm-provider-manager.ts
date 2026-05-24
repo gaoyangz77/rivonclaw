@@ -1,7 +1,7 @@
 import { types, flow, getRoot } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
 import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, isUsageQueryableProvider } from "@rivonclaw/core";
-import type { LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
+import type { GQL, LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
@@ -37,9 +37,39 @@ export interface LLMProviderManagerEnv {
   restartGateway: () => Promise<void>;
   /** Proxy-aware fetch (routes through proxy-router for users behind a proxy). */
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
+  /** Authenticated backend GraphQL fetch, used to provision user-scoped cloud API keys. */
+  graphqlFetch?: <T = unknown>(query: string, variables?: Record<string, unknown>) => Promise<T>;
   stateDir: string;
   getLastSystemProxy: () => string | null;
 }
+
+const CLOUD_PROVIDER_ID = "rivonclaw-pro";
+const CLOUD_KEY_LABEL = "RivonClaw Pro";
+
+interface CloudModel {
+  id: string;
+  input_modalities?: string[];
+}
+
+interface CreateLlmApiKeyMutationResult {
+  createLlmApiKey: GQL.CreatedLlmApiKeyPayload;
+}
+
+const CREATE_LLM_API_KEY_MUTATION = `
+  mutation CreateLlmApiKey {
+    createLlmApiKey {
+      rawKey
+      key {
+        id
+        keyPrefix
+        status
+        createdAt
+        updatedAt
+        lastUsedAt
+      }
+    }
+  }
+`;
 
 // ---------------------------------------------------------------------------
 // Helper: resolve the gateway model reference (e.g., "anthropic/claude-sonnet-4-20250514")
@@ -730,18 +760,18 @@ export const LLMProviderManagerModel = types
       }),
 
       /**
-       * Sync cloud provider key from user auth state (login/logout/key rotation).
+       * Sync cloud provider key from user auth state.
+       *
+       * Backend no longer returns a raw LLM proxy key on the user object. The
+       * desktop creates one on demand and stores the raw key only in the local
+       * secret store.
        */
-      syncCloud: flow(function* (user: { llmKey?: { key: string } | null } | null) {
+      syncCloud: flow(function* (user: GQL.MeResponse | null) {
         const { storage, secretStore, syncActiveKey, toMstSnapshot, allKeysToMstSnapshots } = getEnvDeps();
-
-        const CLOUD_PROVIDER_ID = "rivonclaw-pro";
-        const CLOUD_KEY_LABEL = "RivonClaw Pro";
-        const llmKey = user?.llmKey?.key;
         const existing = storage.providerKeys.getAll().find((k) => k.provider === CLOUD_PROVIDER_ID);
 
-        if (!llmKey) {
-          // Logged out or no key — clean up if exists
+        if (!user) {
+          // Logged out — clean up the cloud provider key from this device.
           if (existing) {
             const wasDefault = existing.isDefault;
             storage.providerKeys.delete(existing.id);
@@ -775,25 +805,44 @@ export const LLMProviderManagerModel = types
               yield resetDefaultFollowingSessions();
             }
 
-            log.info("Removed cloud provider key (user logged out or key absent)");
+            log.info("Removed cloud provider key (user logged out)");
           }
           return;
         }
 
-        // User has llmKey — upsert
+        async function createCloudApiKey(): Promise<string> {
+          const { graphqlFetch } = getEnvDeps();
+          if (!graphqlFetch) {
+            throw new Error("Authenticated GraphQL fetch is not available for cloud key provisioning");
+          }
+          const data = await graphqlFetch<CreateLlmApiKeyMutationResult>(CREATE_LLM_API_KEY_MUTATION);
+          return data.createLlmApiKey.rawKey;
+        }
+
+        async function fetchCloudModels(baseUrl: string, rawKey: string): Promise<CloudModel[]> {
+          const { proxyFetch } = getEnvDeps();
+          const res = await proxyFetch(baseUrl + "/models", {
+            headers: { Authorization: `Bearer ${rawKey}` },
+          });
+          if (!res.ok) {
+            throw new Error(`Cloud model catalog request failed (${res.status})`);
+          }
+          const data = (await res.json()) as { data?: CloudModel[] };
+          return data.data ?? [];
+        }
+
+        // User is logged in — upsert the local cloud provider entry.
         if (existing) {
           const currentBaseUrl = `${getApiBaseUrl("en")}/llm/v1`;
-          const currentKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
-          const keyChanged = currentKey !== llmKey;
-          const baseUrlChanged = existing.baseUrl !== currentBaseUrl;
-
-          // Update secret if changed
-          if (keyChanged) {
-            yield secretStore.set(`provider-key-${existing.id}`, llmKey);
+          let currentKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
+          if (!currentKey) {
+            currentKey = yield createCloudApiKey();
+            yield secretStore.set(`provider-key-${existing.id}`, currentKey);
             if (existing.isDefault) {
               yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
             }
           }
+          const baseUrlChanged = existing.baseUrl !== currentBaseUrl;
 
           // Update baseUrl if environment changed (e.g., staging vs production)
           if (baseUrlChanged) {
@@ -802,24 +851,16 @@ export const LLMProviderManagerModel = types
           }
 
           // Always refresh model list (capabilities may have changed on the backend)
-          interface CloudModel { id: string; input_modalities?: string[] }
           try {
             const effectiveBaseUrl = baseUrlChanged ? currentBaseUrl : existing.baseUrl!;
-            const { proxyFetch } = getEnvDeps();
-            const res: Response = yield proxyFetch(effectiveBaseUrl + "/models", {
-              headers: { Authorization: `Bearer ${llmKey}` },
-            });
-            if (res.ok) {
-              const data = (yield res.json()) as { data?: CloudModel[] };
-              const cloudModels = data.data ?? [];
-              if (cloudModels.length > 0) {
-                storage.providerKeys.update(existing.id, {
-                  customModelsJson: JSON.stringify(cloudModels),
-                  inputModalities: cloudModels.some((m) => m.input_modalities?.includes("image"))
-                    ? ["text", "image"]
-                    : ["text"],
-                });
-              }
+            const cloudModels: CloudModel[] = yield fetchCloudModels(effectiveBaseUrl, currentKey);
+            if (cloudModels.length > 0) {
+              storage.providerKeys.update(existing.id, {
+                customModelsJson: JSON.stringify(cloudModels),
+                inputModalities: cloudModels.some((m) => m.input_modalities?.includes("image"))
+                  ? ["text", "image"]
+                  : ["text"],
+              });
             }
           } catch {
             // Model refresh failed — keep existing list
@@ -844,19 +885,12 @@ export const LLMProviderManagerModel = types
         // Create new entry
         const baseUrl = `${getApiBaseUrl("en")}/llm/v1`;
         const shouldActivate = !storage.providerKeys.getActive();
+        const rawKey: string = yield createCloudApiKey();
 
         // Fetch available models from cloud endpoint (preserving per-model capabilities)
-        interface CloudModel { id: string; input_modalities?: string[] }
         let cloudModels: CloudModel[] = [];
         try {
-          const { proxyFetch } = getEnvDeps();
-          const res: Response = yield proxyFetch(baseUrl + "/models", {
-            headers: { Authorization: `Bearer ${llmKey}` },
-          });
-          if (res.ok) {
-            const data = (yield res.json()) as { data?: CloudModel[] };
-            cloudModels = data.data ?? [];
-          }
+          cloudModels = yield fetchCloudModels(baseUrl, rawKey);
         } catch {
           // Model fetch failed — create entry with empty models
         }
@@ -879,7 +913,7 @@ export const LLMProviderManagerModel = types
           updatedAt: "",
         });
 
-        yield secretStore.set(`provider-key-${entry.id}`, llmKey);
+        yield secretStore.set(`provider-key-${entry.id}`, rawKey);
 
         if (shouldActivate) {
           storage.settings.set("llm-provider", CLOUD_PROVIDER_ID);

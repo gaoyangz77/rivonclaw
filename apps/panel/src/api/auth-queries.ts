@@ -18,15 +18,10 @@ export const LOGIN_MUTATION = gql`
         userId
         email
         name
-        plan
         createdAt
         enrolledModules
         entitlementKeys
         defaultRunProfileId
-        llmKey {
-          key
-          suspendedUntil
-        }
       }
     }
   }
@@ -41,15 +36,10 @@ export const REGISTER_MUTATION = gql`
         userId
         email
         name
-        plan
         createdAt
         enrolledModules
         entitlementKeys
         defaultRunProfileId
-        llmKey {
-          key
-          suspendedUntil
-        }
       }
     }
   }
@@ -64,15 +54,10 @@ export const REFRESH_TOKEN_MUTATION = gql`
         userId
         email
         name
-        plan
         createdAt
         enrolledModules
         entitlementKeys
         defaultRunProfileId
-        llmKey {
-          key
-          suspendedUntil
-        }
       }
     }
   }
@@ -83,15 +68,10 @@ const ME_FIELDS_FRAGMENT = gql`
     userId
     email
     name
-    plan
     createdAt
     enrolledModules
     entitlementKeys
     defaultRunProfileId
-    llmKey {
-      key
-      suspendedUntil
-    }
     support {
       telegramDebugProxyToken
     }
@@ -134,50 +114,49 @@ export const SET_DEFAULT_RUN_PROFILE_MUTATION = gql`
   }
 `;
 
-export const PLAN_DEFINITIONS_QUERY = gql`
-  query PlanDefinitions {
-    planDefinitions {
-      planId
-      name
-      maxSeats
-      priceMonthly
-      priceCurrency
-    }
-  }
-`;
-
-export const SUBSCRIPTION_STATUS_QUERY = gql`
-  query SubscriptionStatus {
-    subscriptionStatus {
-      userId
-      plan
-      status
-      validUntil
-    }
-  }
-`;
-
-export const CHECKOUT_MUTATION = gql`
-  mutation Checkout($planId: UserPlan!) {
-    checkout(planId: $planId) {
-      userId
-      plan
-      status
-      validUntil
-    }
-  }
-`;
-
-export const LLM_QUOTA_STATUS_QUERY = gql`
-  query LlmQuotaStatus {
-    llmQuotaStatus {
-      fiveHour {
-        remainingPercent
-        refreshAt
+export const BILLING_OVERVIEW_QUERY = gql`
+  query BillingOverview {
+    billingOverview {
+      accountLlm {
+        planId
+        entitlement {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          validUntil
+          usage {
+            metric
+            window
+            used
+            limit
+            remaining
+            refreshAt
+          }
+        }
       }
-      weekly {
-        remainingPercent
-        refreshAt
+      shops {
+        shopId
+        shopName
+        customerService {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          validUntil
+          usage {
+            metric
+            window
+            used
+            limit
+            remaining
+            refreshAt
+          }
+        }
       }
     }
   }

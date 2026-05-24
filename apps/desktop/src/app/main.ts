@@ -1517,6 +1517,7 @@ app.whenReady().then(async () => {
       await launcher.start();
     },
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
+    graphqlFetch: (query, variables) => authSession.graphqlFetch(query, variables),
     stateDir,
     getLastSystemProxy: () => lastSystemProxy,
   });

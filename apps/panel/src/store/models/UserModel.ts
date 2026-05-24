@@ -8,7 +8,6 @@ import {
 import {
   SHOPS_QUERY,
   PLATFORM_APPS_QUERY,
-  MY_CREDITS_QUERY,
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
@@ -27,7 +26,6 @@ export const UserModel = UserModelBase.actions((self) => {
         yield Promise.all([
           client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
           client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-          client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
         ]).catch(() => {});
       }
     }),

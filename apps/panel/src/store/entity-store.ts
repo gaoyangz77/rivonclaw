@@ -10,7 +10,6 @@ import {
   ShopWarehouseModel,
   InventoryGoodModel,
   ProviderKeyModel,
-  ServiceCreditModel,
   LLMProviderModel,
   ChannelAccountModel,
   ChannelManagerModel,
@@ -25,7 +24,6 @@ import {
   SHOPS_QUERY,
   SHOP_QUERY,
   PLATFORM_APPS_QUERY,
-  MY_CREDITS_QUERY,
   INITIATE_TIKTOK_OAUTH_MUTATION,
   PRESET_SKILLS_QUERY,
 } from "../api/shops-queries.js";
@@ -35,10 +33,7 @@ import {
   READ_INVENTORY_GOODS_QUERY,
 } from "../api/inventory-queries.js";
 import { GENERATE_PAIRING_CODE, WAIT_FOR_PAIRING, GET_INSTALL_URL } from "../api/pairing-queries.js";
-import {
-  SUBSCRIPTION_STATUS_QUERY,
-  LLM_QUOTA_STATUS_QUERY,
-} from "../api/auth-queries.js";
+import { BILLING_OVERVIEW_QUERY } from "../api/auth-queries.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
 import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
@@ -83,7 +78,6 @@ const PanelRootStoreModel = RootStoreModel.props({
   shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),
   inventoryGoods: types.optional(types.array(InventoryGoodModel), []),
   providerKeys: types.optional(types.array(ProviderKeyModel), []),
-  credits: types.optional(types.array(ServiceCreditModel), []),
   channelAccounts: types.optional(types.array(ChannelAccountModel), []),
   mobilePairings: types.optional(types.array(MobilePairingModel), []),
   llmManager: types.optional(LLMProviderModel, {}),
@@ -102,15 +96,11 @@ const PanelRootStoreModel = RootStoreModel.props({
       try {
         const session: { authenticated: boolean; tokenPresent?: boolean } = yield fetchJson(clientPath(API["auth.session"]));
         if (session.authenticated || session.tokenPresent) {
-          yield Promise.all([
-            client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
-          ]).catch(() => {});
+          yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }).catch(() => {});
           if ((self as any).currentUser?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
             yield Promise.all([
               client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
               client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" }),
               client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
               client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
               client().query({ query: READ_INVENTORY_GOODS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
@@ -240,11 +230,6 @@ const PanelRootStoreModel = RootStoreModel.props({
       yield client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" });
     }),
 
-    /** Fire credits query to populate MST via Desktop proxy. */
-    fetchCredits: flow(function* () {
-      yield client().query({ query: MY_CREDITS_QUERY, fetchPolicy: "network-only" });
-    }),
-
     // ── Tool specs refresh ──
 
     /** Re-fetch toolSpecs from backend via Desktop proxy. */
@@ -253,16 +238,13 @@ const PanelRootStoreModel = RootStoreModel.props({
     }),
 
     /**
-     * Re-fetch subscription + LLM quota from backend via Desktop proxy.
-     * Quota changes whenever the user makes LLM calls, so Panel surfaces
+     * Re-fetch account/shop billing overview from backend via Desktop proxy.
+     * Usage changes whenever the user makes LLM or CS calls, so Panel surfaces
      * that display it (e.g. Account page) should call this on mount and on
      * window visibility changes to keep the user-visible numbers fresh.
      */
     refreshBilling: flow(function* () {
-      yield Promise.all([
-        client().query({ query: SUBSCRIPTION_STATUS_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: LLM_QUOTA_STATUS_QUERY, fetchPolicy: "network-only" }),
-      ]);
+      yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" });
     }),
 
     // ── Surface mutations ──
@@ -384,7 +366,6 @@ interface PanelEntityOverrides {
   readonly shopWarehouses: Instance<typeof ShopWarehouseModel>[];
   readonly inventoryGoods: Instance<typeof InventoryGoodModel>[];
   readonly providerKeys: Instance<typeof ProviderKeyModel>[];
-  readonly credits: Instance<typeof ServiceCreditModel>[];
   readonly channelAccounts: Instance<typeof ChannelAccountModel>[];
   readonly mobilePairings: Instance<typeof MobilePairingModel>[];
   readonly channelManager: Instance<typeof ChannelManagerModel>;

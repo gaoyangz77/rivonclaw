@@ -1,4 +1,3 @@
-import { GQL } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
@@ -119,7 +118,15 @@ const storeTokens: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
   if (!user) {
     const payload = decodeJwtPayload(body.accessToken);
     if (payload && typeof payload.email === "string") {
-      user = { userId: (payload.sub as string) ?? "", email: payload.email, name: null, plan: ((payload.plan as string) ?? "") as GQL.UserPlan, enrolledModules: [], entitlementKeys: [], createdAt: new Date().toISOString() };
+      user = {
+        userId: (payload.sub as string) ?? "",
+        email: payload.email,
+        name: null,
+        enrolledModules: [],
+        entitlementKeys: [],
+        defaultRunProfileId: null,
+        createdAt: new Date().toISOString(),
+      };
       ctx.authSession.setCachedUser(user);
     }
   }

@@ -2,9 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { observer } from "mobx-react-lite";
-import { GQL } from "@rivonclaw/core";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import type { ServiceCredit } from "@rivonclaw/core/models";
 import { useToast } from "../../components/Toast.js";
 import { hasUpgradeRequired } from "./ecommerce-utils.js";
 import type { DrawerTab } from "./ecommerce-types.js";
@@ -28,7 +26,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const shops = entityStore.shops;
   const runProfiles = entityStore.allRunProfiles;
   const platformApps = entityStore.platformApps;
-  const credits = entityStore.credits;
   const wmsAccounts = entityStore.wmsAccounts;
   const warehouses = entityStore.warehouses;
 
@@ -36,7 +33,6 @@ export const EcommercePage = observer(function EcommercePage() {
 
   // Loading flags
   const [_platformAppsLoading, setPlatformAppsLoading] = useState(false);
-  const [creditsLoading, setCreditsLoading] = useState(false);
 
   // Top-level UI state
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
@@ -48,7 +44,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAffiliateSettings, setSavingAffiliateSettings] = useState(false);
-  const [redeemingCreditId, setRedeemingCreditId] = useState<string | null>(null);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
   const [togglingInventoryServiceId, setTogglingInventoryServiceId] = useState<string | null>(null);
   const [togglingAffiliateServiceId, setTogglingAffiliateServiceId] = useState<string | null>(null);
@@ -82,11 +77,6 @@ export const EcommercePage = observer(function EcommercePage() {
     setPlatformAppsLoading(true);
     try { await entityStore.fetchPlatformApps(); } catch { /* ignore */ } finally { setPlatformAppsLoading(false); }
   }
-  async function handleFetchCredits() {
-    setCreditsLoading(true);
-    try { await entityStore.fetchCredits(); } catch { /* ignore */ } finally { setCreditsLoading(false); }
-  }
-
   // ── Effects ──
 
   // Fetch platform apps on mount (shops arrive via MST/SSE)
@@ -103,13 +93,6 @@ export const EcommercePage = observer(function EcommercePage() {
       entityStore.llmManager.refreshCatalog();
     }
   }, []);
-
-  // Fetch credits on mount (user-level, not shop-specific)
-  useEffect(() => {
-    if (user) {
-      handleFetchCredits();
-    }
-  }, [user]);
 
   // Sync business prompt from shop data (re-runs when shop changes or after mutations refresh the shop)
   useEffect(() => {
@@ -410,24 +393,6 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  async function handleRedeemCredit(credit: ServiceCredit) {
-    if (!selectedShopId) return;
-    setRedeemingCreditId(credit.id);
-    setUpgradePrompt(false);
-    try {
-      const creditInstance = entityStore.credits.find((c) => c.id === credit.id);
-      if (!creditInstance) throw new Error(`Credit ${credit.id} not found`);
-      await creditInstance.redeem(selectedShopId);
-      showToast(t("ecommerce.shopDrawer.billing.redeemSuccess"), "success");
-      // Credits list is refreshed inside redeem() action.
-      // Shop billing data auto-syncs via mutation response -> Desktop proxy -> SSE patch.
-    } catch (err) {
-      handleError(err, "ecommerce.updateFailed");
-    } finally {
-      setRedeemingCreditId(null);
-    }
-  }
-
   function openDrawer(shopId: string) {
     setSelectedShopId(shopId);
     setActiveTab("overview");
@@ -461,10 +426,6 @@ export const EcommercePage = observer(function EcommercePage() {
 
   const selectedCSProvider = selectedShop?.services?.customerService?.csProviderOverride ?? "";
   const selectedCSModel = selectedShop?.services?.customerService?.csModelOverride ?? "";
-
-  const csCredits = credits.filter(
-    (c) => c.service === GQL.ServiceId.CustomerService && c.status === GQL.ServiceCreditStatus.Available,
-  );
 
   // ── Render ──
 
@@ -603,10 +564,6 @@ export const EcommercePage = observer(function EcommercePage() {
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}
-        csCredits={csCredits}
-        creditsLoading={creditsLoading}
-        redeemingCreditId={redeemingCreditId}
-        onRedeemCredit={handleRedeemCredit}
       />
 
       {/* Delete Shop Confirm */}

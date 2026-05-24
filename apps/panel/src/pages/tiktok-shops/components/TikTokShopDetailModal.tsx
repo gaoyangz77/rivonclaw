@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "../../../components/modals/Modal.js";
-import type { Shop, ServiceCredit } from "@rivonclaw/core/models";
+import type { Shop } from "@rivonclaw/core/models";
 import type { ModalTab } from "../tiktok-shops-types.js";
 import { TikTokShopOverviewTab } from "./TikTokShopOverviewTab.js";
 import { TikTokShopBillingTab } from "./TikTokShopBillingTab.js";
@@ -19,11 +19,6 @@ interface TikTokShopDetailModalProps {
   savingSettings: boolean;
   onToggleCustomerService: (shopId: string, currentValue: boolean) => void;
   onSaveBusinessPrompt: () => void;
-  // Billing tab props
-  csCredits: ServiceCredit[];
-  creditsLoading: boolean;
-  redeemingCreditId: string | null;
-  onRedeemCredit: (credit: ServiceCredit) => void;
 }
 
 export function TikTokShopDetailModal({
@@ -38,10 +33,6 @@ export function TikTokShopDetailModal({
   savingSettings,
   onToggleCustomerService,
   onSaveBusinessPrompt,
-  csCredits,
-  creditsLoading,
-  redeemingCreditId,
-  onRedeemCredit,
 }: TikTokShopDetailModalProps) {
   const { t } = useTranslation();
 
@@ -95,13 +86,7 @@ export function TikTokShopDetailModal({
           )}
 
           {activeTab === "billing" && (
-            <TikTokShopBillingTab
-              shop={shop}
-              csCredits={csCredits}
-              creditsLoading={creditsLoading}
-              redeemingCreditId={redeemingCreditId}
-              onRedeemCredit={onRedeemCredit}
-            />
+            <TikTokShopBillingTab shop={shop} />
           )}
 
           {activeTab === "sessions" && (

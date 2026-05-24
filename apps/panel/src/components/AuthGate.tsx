@@ -28,7 +28,7 @@ export const AuthGate = observer(function AuthGate({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
-  const subscription = entityStore.subscriptionStatus;
+  const accountLlm = entityStore.billingOverview?.accountLlm ?? null;
   const authLoading = (entityStore as any).authBootstrap?.status === "loading";
 
   if (authLoading) {
@@ -56,7 +56,7 @@ export const AuthGate = observer(function AuthGate({
     );
   }
 
-  if (!skipSubscriptionCheck && subscription?.status !== "ACTIVE") {
+  if (!skipSubscriptionCheck && accountLlm?.entitlement.allowed !== true) {
     return (
       <div className="section-card auth-gate-card" data-testid="auth-gate-upgrade">
         <h3>{t("authGate.subscriptionRequired")}</h3>

@@ -83,12 +83,10 @@ function seedTestStore(): void {
     userId: "test-user",
     email: "test@test.com",
     name: "Test",
-    plan: "free",
     createdAt: "2026-01-01T00:00:00Z",
     enrolledModules: [],
     entitlementKeys: [],
     defaultRunProfileId: null as string | null,
-    llmKey: null,
   });
 
   // Seed MST store with mock entitled tools

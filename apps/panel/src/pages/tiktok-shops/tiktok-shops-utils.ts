@@ -1,5 +1,3 @@
-import type { Shop } from "@rivonclaw/core/models";
-
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 export const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -56,27 +54,4 @@ export function getAuthStatusBadgeClass(status: string): string {
     default:
       return "badge badge-muted";
   }
-}
-
-export function getBalanceBadgeInfo(shop: Shop): { className: string; labelKey: string; labelOpts?: Record<string, unknown> } | null {
-  const billing = shop.services?.customerServiceBilling;
-  if (!billing) return null;
-
-  if (billing.balance === 0) {
-    return { className: "badge badge-danger", labelKey: "tiktokShops.balance.none" };
-  }
-  if (isBalanceExpired(billing.balanceExpiresAt)) {
-    return { className: "badge badge-danger", labelKey: "tiktokShops.balance.expired" };
-  }
-  if (isBalanceLow(billing.balance)) {
-    return { className: "badge badge-warning", labelKey: "tiktokShops.balance.low" };
-  }
-  if (isBalanceExpiringSoon(billing.balanceExpiresAt)) {
-    return {
-      className: "badge badge-warning",
-      labelKey: "tiktokShops.balance.expiring",
-      labelOpts: { date: new Date(billing.balanceExpiresAt!).toLocaleDateString() },
-    };
-  }
-  return null;
 }
