@@ -12,6 +12,10 @@ import {
   generateConversationSummary,
   getLocalConversationSummary,
 } from "./cs-conversation-summary-service.js";
+import {
+  emitCsEscalationEvent,
+  emitCsSessionEvent,
+} from "../telemetry/cs-telemetry-ref.js";
 
 type CsEscalateMutationResult = {
   csEscalate: { ok: boolean; action?: string | null; escalationId?: string | null; status?: string | null; error?: string | null };
@@ -91,6 +95,7 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
   }
 
   try {
+    const startedAt = Date.now();
     const result = await _ctx.authSession.graphqlFetch(CS_ESCALATE_MUTATION, {
       shopId: body.shopId as string,
       conversationId: body.conversationId as string,
@@ -100,8 +105,31 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
       context: typeof body.context === "string" ? body.context : undefined,
     }) as CsEscalateMutationResult;
+    emitCsEscalationEvent({
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      buyerUserId: body.buyerUserId as string,
+      orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      escalationId: result.csEscalate.escalationId ?? "",
+      action: result.csEscalate.action === "updated" ? "updated" : "created",
+      source: "desktop_api",
+      outcome: result.csEscalate.ok ? "ok" : "failed",
+      status: result.csEscalate.status ?? "",
+      durationMs: Date.now() - startedAt,
+      errorMessage: result.csEscalate.error ?? "",
+    });
     sendJson(res, result.csEscalate.ok ? 200 : 400, result.csEscalate);
   } catch (err) {
+    emitCsEscalationEvent({
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      buyerUserId: body.buyerUserId as string,
+      orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      action: "created",
+      source: "desktop_api",
+      outcome: "failed",
+      errorMessage: err,
+    });
     sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };
@@ -121,14 +149,34 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
   const instructions = typeof body.instructions === "string" ? body.instructions : "";
 
   try {
+    const startedAt = Date.now();
     const result = await _ctx.authSession.graphqlFetch(CS_RESPOND_MUTATION, {
       escalationId: body.escalationId as string,
       decision: body.decision as string,
       instructions,
       resolved: body.resolved === true,
     }) as CsRespondMutationResult;
+    emitCsEscalationEvent({
+      escalationId: body.escalationId as string,
+      action: body.resolved === true ? "respond_resolve" : "respond_update",
+      source: "desktop_api",
+      outcome: result.csRespond.ok ? "ok" : "failed",
+      status: result.csRespond.status ?? "",
+      resolved: body.resolved === true,
+      version: result.csRespond.version ?? 0,
+      durationMs: Date.now() - startedAt,
+      errorMessage: result.csRespond.error ?? "",
+    });
     sendJson(res, result.csRespond.ok ? 200 : 400, result.csRespond);
   } catch (err) {
+    emitCsEscalationEvent({
+      escalationId: body.escalationId as string,
+      action: body.resolved === true ? "respond_resolve" : "respond_update",
+      source: "desktop_api",
+      outcome: "failed",
+      resolved: body.resolved === true,
+      errorMessage: err,
+    });
     sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };
@@ -174,6 +222,7 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
   }
 
   try {
+    const startedAt = Date.now();
     const result = await bridge.dispatchCatchUp({
       shopObjectId: body.shopId as string,
       conversationId: body.conversationId as string,
@@ -185,8 +234,29 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
         ? body.operatorInstruction
         : undefined,
     });
+    emitCsSessionEvent({
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      buyerUserId: typeof body.buyerUserId === "string" ? body.buyerUserId : undefined,
+      orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      action: "manual_start",
+      source: "desktop_api",
+      outcome: result.runId ? "accepted" : "empty",
+      runId: result.runId ?? "",
+      durationMs: Date.now() - startedAt,
+    });
     sendJson(res, 200, result);
   } catch (err) {
+    emitCsSessionEvent({
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      buyerUserId: typeof body.buyerUserId === "string" ? body.buyerUserId : undefined,
+      orderId: typeof body.orderId === "string" ? body.orderId : undefined,
+      action: "manual_start",
+      source: "desktop_api",
+      outcome: "failed",
+      errorMessage: err,
+    });
     sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };
@@ -223,14 +293,33 @@ const createConversationSummary: EndpointHandler = async (req, res, _url, _param
   }
 
   try {
+    const startedAt = Date.now();
     const summary = await generateConversationSummary({
       authSession: _ctx.authSession,
       shopId: body.shopId as string,
       conversationId: body.conversationId as string,
       locale: typeof body.locale === "string" ? body.locale : undefined,
     });
+    emitCsSessionEvent({
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      action: "summary_generate",
+      source: "desktop_api",
+      outcome: "ok",
+      runId: summary.runId,
+      messageCount: summary.messageCount,
+      durationMs: Date.now() - startedAt,
+    });
     sendJson(res, 200, { summary });
   } catch (err) {
+    emitCsSessionEvent({
+      shopId: body.shopId as string,
+      conversationId: body.conversationId as string,
+      action: "summary_generate",
+      source: "desktop_api",
+      outcome: "failed",
+      errorMessage: err,
+    });
     sendJson(res, 500, { error: formatDetailedErrorMessage(err) });
   }
 };

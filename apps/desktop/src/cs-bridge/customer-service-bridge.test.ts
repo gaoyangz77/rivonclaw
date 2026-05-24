@@ -48,6 +48,9 @@ vi.mock("@rivonclaw/gateway", () => ({
 const mockEmitCsError = vi.fn();
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
   emitCsError: (...args: unknown[]) => mockEmitCsError(...args),
+  emitCsDispatchEvent: vi.fn(),
+  emitCsEscalationEvent: vi.fn(),
+  emitCsSessionEvent: vi.fn(),
   CS_ERROR_STAGE: {
     DELIVER: "deliver",
     SANITIZE: "sanitize",
