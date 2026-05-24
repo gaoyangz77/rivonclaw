@@ -1000,6 +1000,13 @@ export interface BillingSubscription {
   updatedAt: Scalars['DateTimeISO']['output'];
 }
 
+export const BillingSubscriptionStartAction = {
+  AlreadyActive: 'ALREADY_ACTIVE',
+  CheckoutCreated: 'CHECKOUT_CREATED',
+  SubscriptionResumed: 'SUBSCRIPTION_RESUMED'
+} as const;
+
+export type BillingSubscriptionStartAction = typeof BillingSubscriptionStartAction[keyof typeof BillingSubscriptionStartAction];
 export const BillingSubscriptionStatus = {
   Active: 'ACTIVE',
   Canceled: 'CANCELED',
@@ -1140,19 +1147,6 @@ export interface ConversationMessageDeltaMeta {
   currentMessageFound: Scalars['Boolean']['output'];
   fetchedMessageCount: Scalars['Int']['output'];
   pageLimitReached: Scalars['Boolean']['output'];
-}
-
-export interface CreateBillingCheckoutInput {
-  /** Stripe Checkout cancel URL. Required for STRIPE. */
-  cancelUrl?: InputMaybe<Scalars['String']['input']>;
-  planId: BillingPlanId;
-  /** STRIPE creates a USD subscription checkout; LAKALA creates a CNY monthly QR payment. */
-  provider: PaymentProviderName;
-  /** User ID for account-scoped plans, shop ID for shop-scoped plans. */
-  scopeId: Scalars['String']['input'];
-  scopeType: BillingScopeType;
-  /** Stripe Checkout success URL. Required for STRIPE. */
-  successUrl?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** Create a provider-backed payment. */
@@ -3342,8 +3336,6 @@ export interface Mutation {
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
-  /** Create a plan-scoped billing checkout. Amounts are calculated by the backend from the selected plan. */
-  createBillingCheckout: Payment;
   /** Create an LLM proxy API key. The raw key is returned only once. */
   createLlmApiKey: CreatedLlmApiKeyPayload;
   /** Create a payment through Stripe or Lakala. */
@@ -3442,6 +3434,8 @@ export interface Mutation {
   revokeAllSessions: Scalars['Int']['output'];
   /** Set or clear the default RunProfile for the current user */
   setDefaultRunProfile: MeResponse;
+  /** Single frontend entry point for paid billing. The backend decides whether to create a Stripe Checkout, resume a scheduled Stripe cancellation, return ALREADY_ACTIVE, create a Stripe trial that starts after existing free/prepaid access ends, process a Stripe upgrade, or create a Lakala prepaid QR payment. */
+  startBillingSubscription: StartBillingSubscriptionResult;
   /** Start the one-time 7-day / 100 conversation customer-service trial for a shop. */
   startCustomerServiceTrial: EntitlementGrant;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
@@ -3509,11 +3503,6 @@ export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
 export interface MutationCompleteTikTokOAuthArgs {
   code: Scalars['String']['input'];
   state: Scalars['String']['input'];
-}
-
-
-export interface MutationCreateBillingCheckoutArgs {
-  input: CreateBillingCheckoutInput;
 }
 
 
@@ -3786,6 +3775,11 @@ export interface MutationSetDefaultRunProfileArgs {
 }
 
 
+export interface MutationStartBillingSubscriptionArgs {
+  input: StartBillingSubscriptionInput;
+}
+
+
 export interface MutationStartCustomerServiceTrialArgs {
   shopId: Scalars['ID']['input'];
 }
@@ -3901,6 +3895,8 @@ export interface Payment {
   billingProduct?: Maybe<BillableProduct>;
   billingScopeId?: Maybe<Scalars['String']['output']>;
   billingScopeType?: Maybe<BillingScopeType>;
+  /** For Stripe subscription checkouts created during an existing free/prepaid entitlement, billing starts after this trial end. */
+  billingTrialEnd?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Redirect checkout URL when the provider creates one. */
   checkoutUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
@@ -5315,6 +5311,30 @@ export const SkillLabel = {
 } as const;
 
 export type SkillLabel = typeof SkillLabel[keyof typeof SkillLabel];
+export interface StartBillingSubscriptionInput {
+  /** Stripe Checkout cancel redirect URL. Required when provider is STRIPE and a checkout must be created; ignored when an existing Stripe subscription is only resumed. */
+  cancelUrl?: InputMaybe<Scalars['String']['input']>;
+  /** Commercial plan the user wants to start, resume, renew, or upgrade to. The backend calculates all prices from this plan. */
+  planId: BillingPlanId;
+  /** Payment rail to use. STRIPE creates or resumes an auto-renewing USD subscription; LAKALA creates a CNY prepaid QR payment. */
+  provider: PaymentProviderName;
+  /** Target scope ID. Use the current user ID for ACCOUNT-scoped plans, or the shop ID for SHOP-scoped plans. */
+  scopeId: Scalars['String']['input'];
+  /** Billing scope for the selected plan. LLM usage plans are ACCOUNT-scoped; ecommerce service plans are SHOP-scoped. */
+  scopeType: BillingScopeType;
+  /** Stripe Checkout success redirect URL. Required when provider is STRIPE and a checkout must be created; ignored when an existing Stripe subscription is only resumed. */
+  successUrl?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface StartBillingSubscriptionResult {
+  /** Backend action taken: CHECKOUT_CREATED means use payment.checkoutUrl/qrCodeUrl; SUBSCRIPTION_RESUMED means a scheduled Stripe cancellation was removed; ALREADY_ACTIVE means no payment action was needed. */
+  action: BillingSubscriptionStartAction;
+  /** Created payment or checkout. Present for Stripe Checkout sessions, Stripe upgrade invoices, and Lakala QR payments. */
+  payment?: Maybe<Payment>;
+  /** Current subscription when the backend resumed or found an already-active Stripe subscription. */
+  subscription?: Maybe<BillingSubscription>;
+}
+
 export interface Subscription {
   /** Streams affiliate action proposal changes so desktop review tables can update without polling. */
   affiliateActionProposalChanged: AffiliateActionProposalChanged;
