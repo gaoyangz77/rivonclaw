@@ -901,10 +901,10 @@ export interface AuthPayload {
 }
 
 export const BillableProduct = {
-  AccountLlm: 'ACCOUNT_LLM',
   EcomAffiliate: 'ECOM_AFFILIATE',
   EcomCustomerService: 'ECOM_CUSTOMER_SERVICE',
-  EcomInventory: 'ECOM_INVENTORY'
+  EcomInventory: 'ECOM_INVENTORY',
+  LlmUsage: 'LLM_USAGE'
 } as const;
 
 export type BillableProduct = typeof BillableProduct[keyof typeof BillableProduct];
@@ -944,10 +944,10 @@ export interface BillingPlanDefinition {
 }
 
 export const BillingPlanId = {
-  AccountLlmMax: 'ACCOUNT_LLM_MAX',
-  AccountLlmPlus: 'ACCOUNT_LLM_PLUS',
-  AccountLlmPro: 'ACCOUNT_LLM_PRO',
-  EcomCustomerServiceUnlimitedMonthly: 'ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY'
+  EcomCustomerServiceUnlimitedMonthly: 'ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY',
+  RivonclawAiMax: 'RIVONCLAW_AI_MAX',
+  RivonclawAiPlus: 'RIVONCLAW_AI_PLUS',
+  RivonclawAiPro: 'RIVONCLAW_AI_PRO'
 } as const;
 
 export type BillingPlanId = typeof BillingPlanId[keyof typeof BillingPlanId];
