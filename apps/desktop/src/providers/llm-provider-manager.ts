@@ -831,9 +831,9 @@ export const LLMProviderManagerModel = types
         // User is logged in — upsert the local cloud provider entry.
         if (existing) {
           const currentBaseUrl = `${getApiBaseUrl("en")}/llm/v1`;
-          let currentKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
-          if (!currentKey) {
-            currentKey = yield provisionCloudApiKey();
+          const storedKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
+          const currentKey: string = yield provisionCloudApiKey();
+          if (storedKey !== currentKey) {
             yield secretStore.set(`provider-key-${existing.id}`, currentKey);
             if (existing.isDefault) {
               yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
