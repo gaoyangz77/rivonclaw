@@ -27,7 +27,11 @@ function useSystemName() {
     isSystem ? (t(`surfaces.systemNames.${name}`, { defaultValue: name }) as string) : name;
 }
 
-export const AccountPage = observer(function AccountPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+export const AccountPage = observer(function AccountPage({
+  onNavigate,
+}: {
+  onNavigate: (path: string) => void;
+}) {
   const { t } = useTranslation();
   const resolveSystemName = useSystemName();
   const entityStore = useEntityStore();
@@ -100,7 +104,8 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
       } else {
         await entityStore.currentUser!.enrollModule("GLOBAL_ECOMMERCE_SELLER");
         // Download service preset skills on module enrollment (fire-and-forget, always overwrite)
-        entityStore.fetchPresetSkills(ECOMMERCE_PRESET_SKILL_SERVICE_IDS)
+        entityStore
+          .fetchPresetSkills(ECOMMERCE_PRESET_SKILL_SERVICE_IDS)
           .then(async (skills: Record<string, string> | null) => {
             if (!skills) return;
             for (const [key, content] of Object.entries(skills)) {
@@ -109,6 +114,7 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
           })
           .catch(() => {});
       }
+      await entityStore.refreshToolSpecs();
     } catch {
       // Error will surface via network layer
     } finally {
@@ -146,7 +152,6 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
 
   return (
     <div className="account-page page-enter">
-
       {/* ── Profile & Subscription ── */}
       <AccountProfileCard
         user={user}
@@ -230,7 +235,12 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
         message={t("surfaces.confirmDeleteSurface")}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
-        onConfirm={() => { if (confirmDeleteSurfaceId) { setConfirmDeleteSurfaceId(null); surfaceForm.handleDeleteSurface(confirmDeleteSurfaceId); } }}
+        onConfirm={() => {
+          if (confirmDeleteSurfaceId) {
+            setConfirmDeleteSurfaceId(null);
+            surfaceForm.handleDeleteSurface(confirmDeleteSurfaceId);
+          }
+        }}
         onCancel={() => setConfirmDeleteSurfaceId(null)}
       />
 
@@ -241,7 +251,12 @@ export const AccountPage = observer(function AccountPage({ onNavigate }: { onNav
         message={t("surfaces.confirmDeleteRunProfile")}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
-        onConfirm={() => { if (confirmDeleteProfileId) { setConfirmDeleteProfileId(null); profileForm.handleDeleteProfile(confirmDeleteProfileId); } }}
+        onConfirm={() => {
+          if (confirmDeleteProfileId) {
+            setConfirmDeleteProfileId(null);
+            profileForm.handleDeleteProfile(confirmDeleteProfileId);
+          }
+        }}
         onCancel={() => setConfirmDeleteProfileId(null)}
       />
 
