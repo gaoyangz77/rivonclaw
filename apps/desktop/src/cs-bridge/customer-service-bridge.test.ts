@@ -2871,6 +2871,139 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     expect(forwardCalls[0][1].content).toContain("C response");
   });
 
+  it("cloud catch-up snapshots: newer buyer message aborts an in-flight dispatch", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const ctrl = createControllableRpc();
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-cloud-rapid",
+      buyerUserId: "buyer-001",
+    });
+
+    const promiseA = session.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-A",
+      currentMessageCursor: { messageId: "msg-A", messageIndex: "1", createTime: 100 },
+      useMessageDelta: false,
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    const promiseB = session.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-B",
+      currentMessageCursor: { messageId: "msg-B", messageIndex: "2", createTime: 101 },
+      useMessageDelta: false,
+    });
+
+    ctrl.resolveNext("run-A");
+    await promiseA;
+    await new Promise((r) => setTimeout(r, 10));
+
+    ctrl.resolveNext("run-B");
+    await promiseB;
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("chat.abort", expect.objectContaining({
+      sessionKey: "agent:main:cs:tiktok:conv-cloud-rapid",
+    }));
+
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-A", stream: "assistant", data: { text: "Stale cloud response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-A", stream: "lifecycle", data: { phase: "end" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: "run-A", state: "final" },
+    } as any);
+
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-B", stream: "assistant", data: { text: "Latest cloud response" } },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: { runId: "run-B", stream: "lifecycle", data: { phase: "end" } },
+    } as any);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const forwardCalls = mockGraphqlFetch.mock.calls.filter(
+      (c: any[]) => typeof c[0] === "string" && c[0].includes("ecommerceSendMessage"),
+    );
+    expect(forwardCalls).toHaveLength(1);
+    expect(forwardCalls[0][1].content).toContain("Latest cloud response");
+  });
+
+  it("cloud catch-up snapshots: newer buyer message wins while the older delta fetch is pending", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    let releaseFirstDelta: (() => void) | undefined;
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        if (variables?.currentMessageId === "msg-A") {
+          await new Promise<void>((resolve) => { releaseFirstDelta = resolve; });
+        }
+        return {
+          ecommerceGetConversationMessageDelta: {
+            items: [{
+              messageId: variables?.currentMessageId,
+              index: variables?.currentMessageId === "msg-A" ? "1" : "2",
+              type: "TEXT",
+              text: variables?.currentMessageId === "msg-A" ? "First duplicate" : "Second duplicate",
+              createTime: variables?.currentMessageId === "msg-A" ? 100 : 101,
+              sender: { role: "BUYER", nickname: "Alice" },
+            }],
+            meta: {
+              completeness: "COMPLETE",
+              anchorMatchType: "PLATFORM_MESSAGE_ID",
+              currentMessageFound: true,
+              anchorMatched: true,
+              pageLimitReached: false,
+              fetchedMessageCount: 1,
+              anchorMessageId: "msg-seen",
+              anchorCreateTime: 99,
+            },
+          },
+        };
+      }
+      return { ecommerceSendMessage: { messageId: "msg-default" } };
+    });
+
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-cloud-delta-rapid",
+      buyerUserId: "buyer-001",
+    });
+
+    const promiseA = session.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-A",
+      currentMessageCursor: { messageId: "msg-A", messageIndex: "1", createTime: 100 },
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    const promiseB = session.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-B",
+      currentMessageCursor: { messageId: "msg-B", messageIndex: "2", createTime: 101 },
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    releaseFirstDelta?.();
+
+    await Promise.all([promiseA, promiseB]);
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
+    expect(agentCalls).toHaveLength(1);
+    expect(agentCalls[0][1].idempotencyKey).toBe("cs-start:conv-cloud-delta-rapid:msg-B");
+    expect(agentCalls[0][1].message).toContain("Second duplicate");
+    expect(agentCalls[0][1].message).not.toContain("First duplicate");
+  });
+
   it("undelivered notice: second message includes notice about 1 undelivered reply", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
