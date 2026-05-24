@@ -1181,6 +1181,66 @@ describe("agent dispatch", () => {
     expect(message).not.toContain("[Customer Service Conversation Work Package]");
   });
 
+  it("dispatchCatchUp strips local cursor metadata before requesting platform delta", async () => {
+    const cursorStore = await import("./cs-session-cursor-store.js");
+    vi.mocked(cursorStore.readOpenClawSessionCursor).mockResolvedValueOnce({
+      messageId: "msg-seen",
+      messageIndex: "1779000000000000",
+      createTime: 1779000000,
+      sessionKey: "cs:tiktok:conv-delta",
+      runId: "run-local",
+      updatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        expect(variables?.anchor).toEqual({
+          messageId: "msg-seen",
+          messageIndex: "1779000000000000",
+          createTime: 1779000000,
+        });
+        return {
+          ecommerceGetConversationMessageDelta: {
+            items: [{
+              messageId: "msg-current",
+              index: "1779000000000001",
+              type: "TEXT",
+              text: "Where is my order?",
+              createTime: 1779000001,
+              sender: { role: "BUYER", nickname: "Alice" },
+            }],
+            meta: {
+              completeness: "COMPLETE",
+              anchorMatchType: "PLATFORM_MESSAGE_ID",
+              currentMessageFound: true,
+              anchorMatched: true,
+              pageLimitReached: false,
+              fetchedMessageCount: 1,
+              anchorMessageId: "msg-seen",
+              anchorCreateTime: 1779000000,
+            },
+          },
+        };
+      }
+      return { ecommerceSendMessage: { messageId: "msg-default" } };
+    });
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-delta",
+    });
+
+    await session.dispatchCatchUp({ currentMessageId: "msg-current" });
+
+    const agentCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
+    const message = agentCall?.[1].message as string;
+    expect(message).toContain("[Customer Service Conversation Work Package]");
+    expect(message).toContain("Where is my order?");
+  });
+
   it("handleCsConversationSignal passes operator instruction into catch-up dispatch", async () => {
     const bridge = createBridge();
     rootStore.ingestGraphQLResponse({
