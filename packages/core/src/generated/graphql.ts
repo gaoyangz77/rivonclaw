@@ -958,6 +958,12 @@ export const BillingProvider = {
 } as const;
 
 export type BillingProvider = typeof BillingProvider[keyof typeof BillingProvider];
+export const BillingRenewalMode = {
+  AutoRenews: 'AUTO_RENEWS',
+  Prepaid: 'PREPAID'
+} as const;
+
+export type BillingRenewalMode = typeof BillingRenewalMode[keyof typeof BillingRenewalMode];
 export const BillingScopeType = {
   Account: 'ACCOUNT',
   Shop: 'SHOP'
@@ -978,6 +984,12 @@ export interface BillingSubscription {
   ownerUserId: Scalars['String']['output'];
   planId: BillingPlanId;
   product: BillableProduct;
+  /** Time when the latest complimentary service period was granted. */
+  promotionGrantedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Admin user ID that granted the latest complimentary service period. */
+  promotionGrantedByUserId?: Maybe<Scalars['String']['output']>;
+  /** Admin/operator note for a complimentary service-period grant. */
+  promotionReason?: Maybe<Scalars['String']['output']>;
   provider: BillingProvider;
   providerCustomerId?: Maybe<Scalars['String']['output']>;
   providerPriceId?: Maybe<Scalars['String']['output']>;
@@ -1007,6 +1019,7 @@ export interface BillingSubscriptionSummary {
   graceUntil?: Maybe<Scalars['DateTimeISO']['output']>;
   planId: BillingPlanId;
   provider: BillingProvider;
+  renewalMode: BillingRenewalMode;
   status: BillingSubscriptionStatus;
 }
 
@@ -2931,6 +2944,18 @@ export interface GeneratePairingResult {
   qrUrl?: Maybe<Scalars['String']['output']>;
 }
 
+export interface GrantBillingPromotionInput {
+  /** Number of complimentary billing months to add. Allowed range: 1-24. */
+  months: Scalars['Int']['input'];
+  /** Target owner user ID. */
+  ownerUserId: Scalars['String']['input'];
+  planId: BillingPlanId;
+  reason?: InputMaybe<Scalars['String']['input']>;
+  /** User ID for account-scoped plans, shop ID for shop-scoped plans. */
+  scopeId: Scalars['String']['input'];
+  scopeType: BillingScopeType;
+}
+
 /** Image file metadata stored in object storage */
 export interface ImageAsset {
   bucket: Scalars['String']['output'];
@@ -3385,6 +3410,8 @@ export interface Mutation {
   enrollModule: MeResponse;
   /** Generate a 6-character pairing code for QR display */
   generatePairingCode: GeneratePairingResult;
+  /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
+  grantBillingPromotion: BillingSubscription;
   /** Generate TikTok OAuth authorization URL */
   initiateTikTokOAuth: InitiateOAuthResponse;
   /** Log in with email and password */
@@ -3686,6 +3713,11 @@ export interface MutationEnrollModuleArgs {
 
 export interface MutationGeneratePairingCodeArgs {
   desktopDeviceId: Scalars['String']['input'];
+}
+
+
+export interface MutationGrantBillingPromotionArgs {
+  input: GrantBillingPromotionInput;
 }
 
 
