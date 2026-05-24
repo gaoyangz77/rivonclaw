@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../../app/api-context.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
-import { registerCloudHandlers } from "../api.js";
+import { __resetCloudGraphqlProxyForTests, registerCloudHandlers } from "../api.js";
 
 // ---------------------------------------------------------------------------
 // Test registry
@@ -12,12 +12,19 @@ import { registerCloudHandlers } from "../api.js";
 let registry: RouteRegistry;
 
 beforeEach(() => {
+  __resetCloudGraphqlProxyForTests();
   registry = new RouteRegistry();
   registerCloudHandlers(registry);
 });
 
-async function dispatch(method: string, path: string, ctx: ApiContext, body?: unknown) {
-  const req = makeReq(method, body);
+async function dispatch(
+  method: string,
+  path: string,
+  ctx: ApiContext,
+  body?: unknown,
+  headers?: Record<string, string>,
+) {
+  const req = makeReq(method, body, headers);
   const res = makeRes();
   const url = new URL(`http://localhost${path}`);
   const handled = await registry.dispatch(req, res, url, path, ctx);
@@ -28,14 +35,18 @@ async function dispatch(method: string, path: string, ctx: ApiContext, body?: un
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeReq(method: string, body?: unknown): IncomingMessage {
+function makeReq(
+  method: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+): IncomingMessage {
   const readable = new Readable({ read() {} });
   if (body !== undefined) {
     readable.push(JSON.stringify(body));
   }
   readable.push(null);
   (readable as any).method = method;
-  (readable as any).headers = {};
+  (readable as any).headers = headers;
   return readable as unknown as IncomingMessage;
 }
 
@@ -106,7 +117,9 @@ describe("cloud-graphql handler", () => {
       },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ skills { slug } }" });
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: "{ skills { slug } }",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -132,7 +145,9 @@ describe("cloud-graphql handler", () => {
       },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", pathname, ctx, { query: "{ me { userId email } }" });
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: "{ me { userId email } }",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -197,5 +212,89 @@ describe("cloud-graphql handler", () => {
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
     expect(res._body).toEqual({ errors: [{ message: "Cloud GraphQL request failed" }] });
+  });
+
+  it("invalidates cached toolSpecs and refreshes auth state after module enrollment changes", async () => {
+    const toolSpecsQuery = "query ToolSpecsSync { toolSpecs { id name displayName category } }";
+    const enrollMutation =
+      "mutation EnrollModule($moduleId: ModuleId!) { enrollModule(moduleId: $moduleId) { __typename userId email name createdAt enrolledModules entitlementKeys defaultRunProfileId } }";
+    const onAuthChange = vi.fn().mockResolvedValue(undefined);
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query === toolSpecsQuery) {
+        const toolSpecsCallCount = graphqlFetch.mock.calls.filter(
+          ([q]) => q === toolSpecsQuery,
+        ).length;
+        return {
+          toolSpecs: [
+            {
+              id: toolSpecsCallCount === 1 ? "old-tool" : "new-tool",
+              name: toolSpecsCallCount === 1 ? "old-tool" : "new-tool",
+              displayName: toolSpecsCallCount === 1 ? "Old tool" : "New tool",
+              category: "ecommerce",
+            },
+          ],
+        };
+      }
+      if (query === enrollMutation) {
+        return {
+          enrollModule: {
+            __typename: "MeResponse",
+            userId: "1",
+            email: "user@example.com",
+            name: "User",
+            createdAt: "2026-05-24T00:00:00.000Z",
+            enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
+            entitlementKeys: [],
+            defaultRunProfileId: null,
+          },
+        };
+      }
+      throw new Error(`Unexpected query: ${query}`);
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+      onAuthChange,
+    } as unknown as ApiContext;
+
+    const first = await dispatch(
+      "POST",
+      pathname,
+      ctx,
+      { query: toolSpecsQuery },
+      { "x-request-source": "extension" },
+    );
+    const cached = await dispatch(
+      "POST",
+      pathname,
+      ctx,
+      { query: toolSpecsQuery },
+      { "x-request-source": "extension" },
+    );
+    await dispatch("POST", pathname, ctx, {
+      query: enrollMutation,
+      variables: { moduleId: "GLOBAL_ECOMMERCE_SELLER" },
+    });
+    const refreshed = await dispatch(
+      "POST",
+      pathname,
+      ctx,
+      { query: toolSpecsQuery },
+      { "x-request-source": "extension" },
+    );
+
+    expect(first.res._body).toEqual({
+      data: { toolSpecs: [expect.objectContaining({ id: "old-tool" })] },
+    });
+    expect(cached.res._body).toEqual({
+      data: { toolSpecs: [expect.objectContaining({ id: "old-tool" })] },
+    });
+    expect(refreshed.res._body).toEqual({
+      data: { toolSpecs: [expect.objectContaining({ id: "new-tool" })] },
+    });
+    expect(graphqlFetch.mock.calls.filter(([query]) => query === toolSpecsQuery)).toHaveLength(2);
+    expect(onAuthChange).toHaveBeenCalledTimes(1);
   });
 });

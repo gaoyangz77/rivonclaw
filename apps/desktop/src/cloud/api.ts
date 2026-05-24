@@ -24,11 +24,31 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
 // Cache it briefly to coalesce concurrent requests into a single backend call.
 const TOOLSPECS_CACHE_TTL_MS = 5_000;
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
+const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
 let toolSpecsCache: { data: unknown; ts: number; inflight?: Promise<unknown> } | null = null;
 
 function extractOperationName(query: string): string | null {
   const m = query.match(/(?:query|mutation)\s+(\w+)/);
   return m?.[1] ?? null;
+}
+
+function isModuleEnrollmentOperation(opName: string | null): boolean {
+  return opName !== null && MODULE_ENROLLMENT_OP_NAMES.has(opName);
+}
+
+function runAuthChangeInBackground(ctx: ApiContext): void {
+  if (!ctx.onAuthChange) return;
+  try {
+    void Promise.resolve(ctx.onAuthChange()).catch((err: unknown) => {
+      log.warn("Background auth change after module enrollment failed", err);
+    });
+  } catch (err) {
+    log.warn("Background auth change after module enrollment failed", err);
+  }
+}
+
+export function __resetCloudGraphqlProxyForTests(): void {
+  toolSpecsCache = null;
 }
 
 // ── POST /api/cloud/graphql ──
@@ -39,7 +59,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     return;
   }
 
-  const body = await parseBody(req) as { query?: string; variables?: Record<string, unknown> };
+  const body = (await parseBody(req)) as { query?: string; variables?: Record<string, unknown> };
   if (!body.query) {
     sendJson(res, 200, { errors: [{ message: "Missing query" }] });
     return;
@@ -56,12 +76,17 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
         if (!isExtension) rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
         sendJson(res, 200, { data });
       } catch (err) {
-        sendJson(res, 200, { errors: [{ message: err instanceof Error ? err.message : "Cloud GraphQL request failed" }] });
+        sendJson(res, 200, {
+          errors: [
+            { message: err instanceof Error ? err.message : "Cloud GraphQL request failed" },
+          ],
+        });
       }
       return;
     }
     if (Date.now() - toolSpecsCache.ts < TOOLSPECS_CACHE_TTL_MS) {
-      if (!isExtension) rootStore.ingestGraphQLResponse(toolSpecsCache.data as Record<string, unknown>);
+      if (!isExtension)
+        rootStore.ingestGraphQLResponse(toolSpecsCache.data as Record<string, unknown>);
       sendJson(res, 200, { data: toolSpecsCache.data });
       return;
     }
@@ -73,7 +98,11 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
 
     const prevCache = opName === TOOLSPECS_OP_NAME ? toolSpecsCache : null;
     if (opName === TOOLSPECS_OP_NAME) {
-      toolSpecsCache = { data: prevCache?.data ?? null, ts: prevCache?.ts ?? 0, inflight: fetchPromise };
+      toolSpecsCache = {
+        data: prevCache?.data ?? null,
+        ts: prevCache?.ts ?? 0,
+        inflight: fetchPromise,
+      };
     }
 
     const data = await fetchPromise;
@@ -104,12 +133,25 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       }
     }
 
+    if (isModuleEnrollmentOperation(opName)) {
+      toolSpecsCache = null;
+      runAuthChangeInBackground(ctx);
+    }
+
     sendJson(res, 200, { data });
   } catch (err) {
     if (opName === TOOLSPECS_OP_NAME) toolSpecsCache = null;
     // undici's "fetch failed" TypeError hides the real error in .cause
-    const cause = err instanceof Error && "cause" in err ? (err as Error & { cause?: unknown }).cause : undefined;
-    const detail = cause instanceof Error ? `${(err as Error).message}: ${cause.message}` : (err instanceof Error ? err.message : "Cloud GraphQL request failed");
+    const cause =
+      err instanceof Error && "cause" in err
+        ? (err as Error & { cause?: unknown }).cause
+        : undefined;
+    const detail =
+      cause instanceof Error
+        ? `${(err as Error).message}: ${cause.message}`
+        : err instanceof Error
+          ? err.message
+          : "Cloud GraphQL request failed";
     log.warn(`Cloud GraphQL proxy error (op=${opName ?? "unknown"}): ${detail}`);
     sendJson(res, 200, { errors: [{ message: detail }] });
   }
