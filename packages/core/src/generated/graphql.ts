@@ -972,6 +972,8 @@ export interface BillingSubscription {
   currency: Currency;
   currentPeriodEnd: Scalars['DateTimeISO']['output'];
   currentPeriodStart: Scalars['DateTimeISO']['output'];
+  /** Temporary access deadline after a recurring invoice payment failure. */
+  graceUntil?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
   ownerUserId: Scalars['String']['output'];
   planId: BillingPlanId;
@@ -1002,6 +1004,7 @@ export interface BillingSubscriptionSummary {
   currency: Currency;
   currentPeriodEnd: Scalars['DateTimeISO']['output'];
   currentPeriodStart: Scalars['DateTimeISO']['output'];
+  graceUntil?: Maybe<Scalars['DateTimeISO']['output']>;
   planId: BillingPlanId;
   provider: BillingProvider;
   status: BillingSubscriptionStatus;
