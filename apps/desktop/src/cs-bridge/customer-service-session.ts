@@ -58,6 +58,29 @@ import {
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 
+function buildConversationDeltaAnchor(
+  anchor: Partial<GQL.ConversationMessageDeltaAnchorInput> | null | undefined,
+): GQL.ConversationMessageDeltaAnchorInput | null {
+  if (!anchor) return null;
+  const result: GQL.ConversationMessageDeltaAnchorInput = {};
+  if (typeof anchor.messageId === "string" && anchor.messageId.trim()) {
+    result.messageId = anchor.messageId.trim();
+  }
+  if (typeof anchor.messageIndex === "string" && anchor.messageIndex.trim()) {
+    result.messageIndex = anchor.messageIndex.trim();
+  }
+  if (typeof anchor.createTime === "number" && Number.isFinite(anchor.createTime)) {
+    result.createTime = anchor.createTime;
+  }
+  if (typeof anchor.sessionMessageText === "string" && anchor.sessionMessageText.trim()) {
+    result.sessionMessageText = anchor.sessionMessageText.trim();
+  }
+  if (typeof anchor.sessionMessageTimestampMs === "number" && Number.isFinite(anchor.sessionMessageTimestampMs)) {
+    result.sessionMessageTimestampMs = anchor.sessionMessageTimestampMs;
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
 function classifyDeliveryFailure(err: unknown): {
   reason: string;
   shouldAttemptLocalRecovery: boolean;
@@ -817,7 +840,8 @@ export class CustomerServiceSession {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
       });
-      const anchor = sessionCursor ?? await readLatestUserSessionAnchor(this.dispatchKey);
+      const rawAnchor = sessionCursor ?? await readLatestUserSessionAnchor(this.dispatchKey);
+      const anchor = buildConversationDeltaAnchor(rawAnchor);
       if (!anchor) {
         log.info(
           `Skipping CS conversation delta for ${this.csContext.conversationId}: ` +
@@ -831,7 +855,7 @@ export class CustomerServiceSession {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
         currentMessageId,
-        anchor: anchor ?? null,
+        anchor,
         maxPages: 20,
         locale: undefined,
       });
