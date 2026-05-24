@@ -915,6 +915,7 @@ export interface BillingEntitlementStatus {
   scopeId: Scalars['String']['output'];
   scopeType: BillingScopeType;
   source?: Maybe<EntitlementGrantSource>;
+  subscription?: Maybe<BillingSubscriptionSummary>;
   usage: Array<BillingUsageStatus>;
   validUntil?: Maybe<Scalars['DateTimeISO']['output']>;
 }
@@ -995,6 +996,17 @@ export const BillingSubscriptionStatus = {
 } as const;
 
 export type BillingSubscriptionStatus = typeof BillingSubscriptionStatus[keyof typeof BillingSubscriptionStatus];
+export interface BillingSubscriptionSummary {
+  amountMinor: Scalars['Int']['output'];
+  cancelAtPeriodEnd: Scalars['Boolean']['output'];
+  currency: Currency;
+  currentPeriodEnd: Scalars['DateTimeISO']['output'];
+  currentPeriodStart: Scalars['DateTimeISO']['output'];
+  planId: BillingPlanId;
+  provider: BillingProvider;
+  status: BillingSubscriptionStatus;
+}
+
 export interface BillingUsageStatus {
   limit: Scalars['Int']['output'];
   metric: UsageMetric;
