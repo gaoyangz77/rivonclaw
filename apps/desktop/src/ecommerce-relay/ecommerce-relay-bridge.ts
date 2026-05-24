@@ -591,6 +591,7 @@ export class EcommerceRelayBridge {
         source: dispatch.source ?? "backend_subscription",
         messageType: dispatch.messageType ?? undefined,
         senderRole: dispatch.senderRole ?? undefined,
+        latestMessagePreview: dispatch.latestMessagePreview ?? undefined,
         useMessageDelta: dispatch.useMessageDelta,
         currentMessageCursor: dispatch.messageId || dispatch.messageIndex || dispatch.eventTime
           ? {

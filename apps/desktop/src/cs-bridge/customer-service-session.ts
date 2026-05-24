@@ -162,6 +162,7 @@ interface CatchUpDispatchOptions {
   source?: string;
   messageType?: string;
   senderRole?: string;
+  latestMessagePreview?: string;
   currentMessageCursor?: CustomerServiceMessageCursor;
   useMessageDelta?: boolean;
 }
@@ -1249,7 +1250,7 @@ export class CustomerServiceSession {
         return { runId: undefined };
       }
 
-      return this.dispatch({
+      const result = await this.dispatch({
         message: round.buildConversationWorkPackageMessage(message),
         idempotencyKey: this.catchUpIdempotencyKey(options),
         round,
@@ -1263,6 +1264,20 @@ export class CustomerServiceSession {
         senderRole: options.senderRole,
         advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
       });
+      if (result.runId) {
+        emitCsTelemetry("cs.message", {
+          shopId: this.csContext.shopId,
+          platformShopId: this.shop.platformShopId,
+          conversationId: this.csContext.conversationId,
+          buyerUserId: this.csContext.buyerUserId,
+          direction: "inbound",
+          messageId: options.currentMessageId,
+          contentLength: options.latestMessagePreview?.length ?? 0,
+          runId: result.runId,
+          source: options.source ?? "cloud",
+        });
+      }
+      return result;
     } catch (err) {
       if (this.activeRound === round) {
         round.clearPlaceholderIfCurrent(placeholder);
