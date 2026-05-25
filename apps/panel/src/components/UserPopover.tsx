@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { getUserInitial } from "../lib/user-manager.js";
 import { LogOutIcon } from "./icons.js";
+import { billingPlanDisplayName, entitlementStatusLabel, findPlanDefinition } from "./billing/billing-labels.js";
 
 interface UserPopoverProps {
     open: boolean;
@@ -36,6 +37,11 @@ export const UserPopover = observer(function UserPopover({ open, onClose, onNavi
     }, [open, onClose]);
 
     const accountLlm = entityStore.billingOverview?.accountLlm ?? null;
+    const accountPlan = findPlanDefinition(
+        entityStore.billingPlanDefinitions,
+        accountLlm?.planId,
+        accountLlm?.entitlement.product,
+    );
 
     if (!open || !user) return null;
     const initial = getUserInitial(user);
@@ -55,7 +61,9 @@ export const UserPopover = observer(function UserPopover({ open, onClose, onNavi
                 <div className="upop-plan-card">
                     <div className="upop-plan-row">
                         <span className="upop-plan-label">{t("account.plan")}</span>
-                        <span className="upop-plan-badge">{accountLlm?.planId ?? accountLlm?.entitlement.code ?? "-"}</span>
+                        <span className="upop-plan-badge">
+                            {accountPlan ? billingPlanDisplayName(t, accountPlan) : (accountLlm?.entitlement ? entitlementStatusLabel(t, accountLlm.entitlement) : "-")}
+                        </span>
                     </div>
                     <div className="upop-plan-row">
                         <span className="upop-plan-label">{t("account.validUntil")}</span>

@@ -116,6 +116,17 @@ export function SettingsIcon(props: IconProps) {
     );
 }
 
+export function BillingIcon(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+            <path d="M7 15h3" />
+            <path d="M14 15h3" />
+        </Icon>
+    );
+}
+
 export function AccountIcon(props: IconProps) {
     return (
         <Icon {...props}>

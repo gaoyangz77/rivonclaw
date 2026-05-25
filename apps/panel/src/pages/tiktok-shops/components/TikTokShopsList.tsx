@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
+import { entitlementStatusLabel } from "../../../components/billing/billing-labels.js";
 
 interface TikTokShopsListProps {
   shops: Shop[];
@@ -25,11 +26,17 @@ export function TikTokShopsList({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
 
-  function renderCsStatusBadge(shop: Shop) {
-    if (shop.services?.customerService?.enabled) {
-      return <span className="badge badge-active">{t("common.enabled")}</span>;
+  function renderCsAccessBadge(shop: Shop) {
+    if (!shop.services?.customerService?.enabled) {
+      return <span className="badge badge-muted">{t("common.disabled")}</span>;
     }
-    return <span className="badge badge-muted">{t("common.disabled")}</span>;
+    const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+    if (!entitlement) return <span className="badge badge-muted">{t("common.loading")}</span>;
+    return (
+      <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
+        {entitlementStatusLabel(t, entitlement)}
+      </span>
+    );
   }
 
   return (
@@ -58,14 +65,12 @@ export function TikTokShopsList({
               <th>{t("tiktokShops.tableHeaders.name")}</th>
               <th>{t("tiktokShops.tableHeaders.region")}</th>
               <th>{t("tiktokShops.tableHeaders.authStatus")}</th>
-              <th>{t("tiktokShops.tableHeaders.csStatus")}</th>
               <th>{t("tiktokShops.tableHeaders.balance")}</th>
               <th className="text-right">{t("tiktokShops.tableHeaders.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {shops.map((shop) => {
-              const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
               return (
                 <tr key={shop.id}>
                   <td>
@@ -77,16 +82,8 @@ export function TikTokShopsList({
                       {t(`tiktokShops.authStatus_${shop.authStatus}`)}
                     </span>
                   </td>
-                  <td>{renderCsStatusBadge(shop)}</td>
                   <td>
-                    <span className="shop-balance-cell">
-                      {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
-                      {entitlement && (
-                        <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
-                          {entitlement.allowed ? t("common.enabled") : entitlement.code}
-                        </span>
-                      )}
-                    </span>
+                    {renderCsAccessBadge(shop)}
                   </td>
                   <td className="text-right">
                     <div className="td-actions">

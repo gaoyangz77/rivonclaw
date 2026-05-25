@@ -35,6 +35,11 @@ type DismissEscalationConfirm =
   | { kind: "conversation"; conversation: Conversation }
   | { kind: "single" };
 type EndSessionConfirm = { conversation: Conversation };
+type OlderMessagesScrollSnapshot = {
+  conversationKey: string;
+  scrollHeight: number;
+  scrollTop: number;
+};
 
 const mediaElementStyle: CSSProperties = {
   display: "block",
@@ -54,7 +59,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const conversationDetailsRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
-  const olderMessagesScrollRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+  const olderMessagesScrollRef = useRef<OlderMessagesScrollSnapshot | null>(null);
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
@@ -94,6 +99,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
 
   useEffect(() => {
     if (!workspace.selectedConversationId) return;
+    olderMessagesScrollRef.current = null;
     setConversationDetailsOpen(false);
     workspace.fetchConversationMessages(i18n.language);
     workspace.fetchConversationSummary();
@@ -103,6 +109,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const conversationMessages = workspace.displayConversationMessages as ConversationMessage[];
   const selectedConversation = workspace.selectedConversation as Conversation | null;
   const selectedEscalation = workspace.selectedEscalation as Escalation | null;
+  const selectedConversationKey = selectedConversation
+    ? `${selectedConversation.shopId}:${selectedConversation.conversationId}`
+    : "";
 
   useLayoutEffect(() => {
     if (!selectedConversation || workspace.conversationMessagesLoading) return;
@@ -111,16 +120,23 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       if (!list) return;
       const olderSnapshot = olderMessagesScrollRef.current;
       if (olderSnapshot) {
+        if (olderSnapshot.conversationKey !== selectedConversationKey) {
+          olderMessagesScrollRef.current = null;
+          return;
+        }
+        if (workspace.conversationMessagesLoadingMore) return;
         olderMessagesScrollRef.current = null;
-        list.scrollTop = list.scrollHeight - olderSnapshot.scrollHeight + olderSnapshot.scrollTop;
+        list.scrollTop = Math.max(
+          0,
+          list.scrollHeight - olderSnapshot.scrollHeight + olderSnapshot.scrollTop,
+        );
         return;
       }
       list.scrollTop = list.scrollHeight;
     });
     return () => window.cancelAnimationFrame(frame);
   }, [
-    selectedConversation?.shopId,
-    selectedConversation?.conversationId,
+    selectedConversationKey,
     workspace.conversationMessagesLoading,
     workspace.conversationMessagesLoadingMore,
     conversationMessages.length,
@@ -326,7 +342,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   async function loadOlderConversationMessages() {
     const list = messageListRef.current;
     if (!list || !workspace.canLoadOlderConversationMessages) return;
+    const conversationKey = selectedConversation
+      ? `${selectedConversation.shopId}:${selectedConversation.conversationId}`
+      : "";
     olderMessagesScrollRef.current = {
+      conversationKey,
       scrollHeight: list.scrollHeight,
       scrollTop: list.scrollTop,
     };

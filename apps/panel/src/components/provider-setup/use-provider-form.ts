@@ -305,7 +305,10 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
               setOauthFlowId("");
             } else if (status.status === "failed") {
               stopPolling();
-              // Don't show error — manual paste still works
+              setError({
+                key: "providers.oauthFailed",
+                detail: status.error || "Browser callback did not complete. Paste the redirect URL to continue.",
+              });
             }
           } catch {
             // Network error during poll — ignore, keep polling

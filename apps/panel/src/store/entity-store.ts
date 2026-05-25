@@ -16,6 +16,7 @@ import {
   MobilePairingModel,
   MobileManagerModel,
 } from "./models/index.js";
+import { PaymentModel } from "@rivonclaw/core/models";
 import { EcommerceInventoryModel } from "./models/EcommerceInventoryModel.js";
 import { CustomerServiceWorkspaceModel } from "./models/CustomerServiceWorkspaceModel.js";
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
@@ -33,7 +34,15 @@ import {
   READ_INVENTORY_GOODS_QUERY,
 } from "../api/inventory-queries.js";
 import { GENERATE_PAIRING_CODE, WAIT_FOR_PAIRING, GET_INSTALL_URL } from "../api/pairing-queries.js";
-import { BILLING_OVERVIEW_QUERY } from "../api/auth-queries.js";
+import {
+  BILLING_OVERVIEW_QUERY,
+  BILLING_PLAN_DEFINITIONS_QUERY,
+  CANCEL_BILLING_SUBSCRIPTION_MUTATION,
+  CREATE_STRIPE_BILLING_PORTAL_SESSION_MUTATION,
+  READ_PAYMENTS_QUERY,
+  REFRESH_PAYMENT_MUTATION,
+  START_BILLING_SUBSCRIPTION_MUTATION,
+} from "../api/billing-queries.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
 import { trackEvent } from "../api/settings.js";
 import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
@@ -57,6 +66,18 @@ const TOOL_SPECS_SYNC_QUERY = gql`
     }
   }
 `;
+
+function stripTypename<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(stripTypename) as T;
+  if (value && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      if (key !== "__typename") result[key] = stripTypename(item);
+    }
+    return result as T;
+  }
+  return value;
+}
 
 /**
  * Panel-specific extension of RootStoreModel with CRUD mutation actions,
@@ -85,6 +106,11 @@ const PanelRootStoreModel = RootStoreModel.props({
   mobileManager: types.optional(MobileManagerModel, {}),
   ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
   customerServiceWorkspace: types.optional(CustomerServiceWorkspaceModel, {}),
+  activeCheckout: types.maybeNull(PaymentModel),
+  checkoutScopeId: types.maybeNull(types.string),
+  paymentInFlight: types.optional(types.boolean, false),
+  checkoutError: types.maybeNull(types.string),
+  checkoutNotice: types.maybeNull(types.string),
 }).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
@@ -96,7 +122,11 @@ const PanelRootStoreModel = RootStoreModel.props({
       try {
         const session: { authenticated: boolean; tokenPresent?: boolean } = yield fetchJson(clientPath(API["auth.session"]));
         if (session.authenticated || session.tokenPresent) {
-          yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }).catch(() => {});
+          yield Promise.all([
+            client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: BILLING_PLAN_DEFINITIONS_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: READ_PAYMENTS_QUERY, fetchPolicy: "network-only" }),
+          ]).catch(() => {});
           if ((self as any).currentUser?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
             yield Promise.all([
               client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
@@ -247,6 +277,124 @@ const PanelRootStoreModel = RootStoreModel.props({
       yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" });
     }),
 
+    refreshPlanDefinitions: flow(function* () {
+      yield client().query({ query: BILLING_PLAN_DEFINITIONS_QUERY, fetchPolicy: "network-only" });
+    }),
+
+    readPayments: flow(function* (input?: { id?: string; merchantOrderId?: string }) {
+      yield client().query({
+        query: READ_PAYMENTS_QUERY,
+        variables: input ? { input } : {},
+        fetchPolicy: "network-only",
+      });
+    }),
+
+    /**
+     * Canonical follow-up after a payment/subscription state transition.
+     * Payment success changes both entitlement decisions and payment history;
+     * keep this paired so checkout surfaces do not forget one side.
+     */
+    refreshBillingAfterPayment: flow(function* () {
+      yield Promise.all([
+        client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
+        client().query({ query: READ_PAYMENTS_QUERY, variables: {}, fetchPolicy: "network-only" }),
+      ]);
+    }),
+
+    startBillingSubscription: flow(function* (input: {
+      planId: string;
+      scopeType: string;
+      scopeId: string;
+      provider: string;
+      successUrl?: string;
+      cancelUrl?: string;
+    }) {
+      self.paymentInFlight = true;
+      self.activeCheckout = null;
+      self.checkoutScopeId = input.scopeId;
+      self.checkoutError = null;
+      self.checkoutNotice = null;
+      try {
+        const result = yield client().mutate({
+          mutation: START_BILLING_SUBSCRIPTION_MUTATION,
+          variables: { input },
+        });
+        const subscriptionResult = result.data?.startBillingSubscription;
+        const payment = subscriptionResult?.payment;
+        self.activeCheckout = payment ? stripTypename(payment) : null;
+        self.checkoutScopeId = input.scopeId;
+        if (subscriptionResult?.action === "SUBSCRIPTION_RESUMED" || subscriptionResult?.action === "ALREADY_ACTIVE") {
+          self.checkoutNotice = subscriptionResult.action;
+          yield (self as any).refreshBillingAfterPayment();
+        }
+        return subscriptionResult;
+      } catch (err) {
+        self.checkoutError = err instanceof Error ? err.message : String(err);
+        throw err;
+      } finally {
+        self.paymentInFlight = false;
+      }
+    }),
+
+    refreshPayment: flow(function* (paymentId: string) {
+      self.checkoutError = null;
+      try {
+        const result = yield client().mutate({
+          mutation: REFRESH_PAYMENT_MUTATION,
+          variables: { paymentId },
+        });
+        const payment = result.data?.refreshPayment;
+        if (payment && self.activeCheckout?.id === payment.id) {
+          self.activeCheckout = stripTypename(payment);
+        }
+        return payment;
+      } catch (err) {
+        self.checkoutError = err instanceof Error ? err.message : String(err);
+        throw err;
+      }
+    }),
+
+    cancelBillingSubscriptionAtPeriodEnd: flow(function* (input: {
+      product: string;
+      scopeType: string;
+      scopeId: string;
+    }) {
+      yield client().mutate({
+        mutation: CANCEL_BILLING_SUBSCRIPTION_MUTATION,
+        variables: { input },
+      });
+      yield (self as any).refreshBillingAfterPayment();
+    }),
+
+    createStripeBillingPortalSession: flow(function* (input: {
+      product: string;
+      scopeType: string;
+      scopeId: string;
+    }) {
+      const result = yield client().mutate({
+        mutation: CREATE_STRIPE_BILLING_PORTAL_SESSION_MUTATION,
+        variables: { input },
+      });
+      return result.data?.createStripeBillingPortalSession?.url ?? null;
+    }),
+
+    setCheckoutError(message: string | null, scopeId?: string | null) {
+      if (scopeId !== undefined) self.checkoutScopeId = scopeId;
+      self.checkoutError = message;
+    },
+
+    setCheckoutNotice(message: string | null, scopeId?: string | null) {
+      if (scopeId !== undefined) self.checkoutScopeId = scopeId;
+      self.checkoutNotice = message;
+    },
+
+    clearActiveCheckout() {
+      self.activeCheckout = null;
+      self.checkoutScopeId = null;
+      self.checkoutError = null;
+      self.checkoutNotice = null;
+    },
+
     // ── Surface mutations ──
 
     createSurface: flow(function* (input: {
@@ -372,6 +520,22 @@ interface PanelEntityOverrides {
   readonly llmManager: Instance<typeof LLMProviderModel>;
   readonly mobileManager: Instance<typeof MobileManagerModel>;
   readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
+  readonly activeCheckout: Instance<typeof PaymentModel> | null;
+  readonly checkoutScopeId: string | null;
+  readonly paymentInFlight: boolean;
+  readonly checkoutError: string | null;
+  readonly checkoutNotice: string | null;
+  startBillingSubscription(input: {
+    planId: string;
+    scopeType: string;
+    scopeId: string;
+    provider: string;
+    successUrl?: string;
+    cancelUrl?: string;
+  }): Promise<{ action: string; payment?: Instance<typeof PaymentModel> | null } | null>;
+  refreshBillingAfterPayment(): Promise<void>;
+  cancelBillingSubscriptionAtPeriodEnd(input: { product: string; scopeType: string; scopeId: string }): Promise<void>;
+  createStripeBillingPortalSession(input: { product: string; scopeType: string; scopeId: string }): Promise<string | null>;
 }
 export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
 

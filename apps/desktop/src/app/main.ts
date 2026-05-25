@@ -60,6 +60,7 @@ import { stageMerchantExtensionsForCloudTools } from "../gateway/cloud-tools-ext
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
+import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { setStorageRef } from "./storage-ref.js";
 import { setProviderKeysStore } from "../gateway/provider-keys-ref.js";
 import { setVendorDir } from "../gateway/vendor-dir-ref.js";
@@ -457,6 +458,8 @@ app.whenReady().then(async () => {
     const now = Date.now();
     for (const [id, flow] of pendingOAuthFlows) {
       if (now - flow._createdAt > 10 * 60 * 1000) {
+        flow.cancelCallback?.();
+        flow.rejectManualInput?.(new Error("Flow expired"));
         pendingOAuthFlows.delete(id);
         log.info(`Cleaned up abandoned OAuth flow ${id}`);
       }
@@ -1102,6 +1105,11 @@ app.whenReady().then(async () => {
         }
       })();
     },
+    onCloudLlmEntitlementAvailable: async () => {
+      const user = authSession.getCachedUser();
+      if (!user) return;
+      await syncCloudProviderKey(user, storage, secretStore);
+    },
     onAutoLaunchChange: (enabled: boolean) => {
       applyAutoLaunch(enabled);
     },
@@ -1123,6 +1131,7 @@ app.whenReady().then(async () => {
           _createdAt: Date.now(),
           resolveManualInput: hybrid.resolveManualInput,
           rejectManualInput: hybrid.rejectManualInput,
+          cancelCallback: hybrid.cancel,
           completionPromise: hybrid.completionPromise,
         };
 
@@ -1605,6 +1614,11 @@ app.whenReady().then(async () => {
   openClawConnector.onRpcDisconnected(() => {
     stopCsBridge();
   });
+
+  await syncCloudProviderKey(authSession.getCachedUser(), storage, secretStore)
+    .catch((err: unknown) => {
+      log.warn("Initial cloud LLM provider sync failed:", err);
+    });
 
   Promise.all([
     syncAllAuthProfiles(stateDir, storage, secretStore),

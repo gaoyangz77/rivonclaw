@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { entitlementStatusLabel } from "../../../components/billing/billing-labels.js";
 
 interface TikTokShopSessionsTabProps {
   shop: Shop;
@@ -25,9 +26,9 @@ export function TikTokShopSessionsTab({ shop }: TikTokShopSessionsTabProps) {
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.modal.sessions.balance")}</span>
           <span className="shop-balance-cell">
-            {entitlement.allowed ? t("common.enabled") : entitlement.code}
+            {entitlementStatusLabel(t, entitlement)}
             <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
-              {entitlement.allowed ? t("common.enabled") : entitlement.code}
+              {entitlementStatusLabel(t, entitlement)}
             </span>
           </span>
         </div>

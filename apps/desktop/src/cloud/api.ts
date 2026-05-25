@@ -47,6 +47,29 @@ function runAuthChangeInBackground(ctx: ApiContext): void {
   }
 }
 
+function hasAllowedAccountLlmEntitlement(data: unknown): boolean {
+  if (!data || typeof data !== "object") return false;
+  const overview = (data as { billingOverview?: unknown }).billingOverview;
+  if (!overview || typeof overview !== "object") return false;
+  const accountLlm = (overview as { accountLlm?: unknown }).accountLlm;
+  if (!accountLlm || typeof accountLlm !== "object") return false;
+  const entitlement = (accountLlm as { entitlement?: unknown }).entitlement;
+  return !!entitlement
+    && typeof entitlement === "object"
+    && (entitlement as { allowed?: unknown }).allowed === true;
+}
+
+function runCloudLlmEntitlementSyncInBackground(ctx: ApiContext): void {
+  if (!ctx.authSession?.getAccessToken() || !ctx.onCloudLlmEntitlementAvailable) return;
+  try {
+    void Promise.resolve(ctx.onCloudLlmEntitlementAvailable()).catch((err: unknown) => {
+      log.warn("Background cloud LLM provider sync after billing refresh failed", err);
+    });
+  } catch (err) {
+    log.warn("Background cloud LLM provider sync after billing refresh failed", err);
+  }
+}
+
 export function __resetCloudGraphqlProxyForTests(): void {
   toolSpecsCache = null;
 }
@@ -136,6 +159,10 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     if (isModuleEnrollmentOperation(opName)) {
       toolSpecsCache = null;
       runAuthChangeInBackground(ctx);
+    }
+
+    if (!isExtension && hasAllowedAccountLlmEntitlement(data)) {
+      runCloudLlmEntitlementSyncInBackground(ctx);
     }
 
     sendJson(res, 200, { data });

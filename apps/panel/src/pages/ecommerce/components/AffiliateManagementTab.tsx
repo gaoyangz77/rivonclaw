@@ -47,7 +47,7 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((candidate) => candidate.id === toolId);
-    const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: "" }) : "";
+    const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category }) : "";
     const nameLabel = t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   }

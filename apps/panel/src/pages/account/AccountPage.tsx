@@ -49,6 +49,7 @@ export const AccountPage = observer(function AccountPage({
   // coverage for "I came back to check".
   useEffect(() => {
     entityStore.refreshBilling().catch(() => {});
+    entityStore.refreshPlanDefinitions().catch(() => {});
     function onVisibilityChange() {
       if (document.visibilityState === "visible") {
         entityStore.refreshBilling().catch(() => {});
@@ -157,6 +158,7 @@ export const AccountPage = observer(function AccountPage({
         user={user}
         initial={initial}
         billingOverview={billingOverview}
+        planDefinitions={entityStore.billingPlanDefinitions}
         onLogout={handleLogout}
       />
 

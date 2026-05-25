@@ -249,7 +249,9 @@ export const AffiliateManagementPage = observer(function AffiliateManagementPage
                           </span>
                           <span className="affiliate-proposal-time">{formatProposalTime(proposal.createdAt)}</span>
                         </div>
-                        <span className="badge badge-muted">{proposal.status}</span>
+                        <span className="badge badge-muted">
+                          {t(`ecommerce.shopDrawer.affiliate.proposalStatuses.${proposal.status}`, { defaultValue: proposal.status })}
+                        </span>
                       </div>
                       <div className="affiliate-proposal-summary">{proposal.operatorSummary}</div>
                       <div className="affiliate-proposal-preview">

@@ -4,7 +4,8 @@ import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
-import { BalanceBadge } from "./BalanceBadge.js";
+import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
+import { billingEnumLabel, usagePercentLabel } from "../../../components/billing/billing-labels.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 
@@ -75,7 +76,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
-    const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: "" }) : "";
+    const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category }) : "";
     const nameLabel = t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   }
@@ -84,29 +85,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
     <div className="shop-detail-section">
       {/* Service Status */}
       <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.serviceStatus")}</div>
-      <div className="shop-info-card">
-        <div className="shop-info-row">
-          <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.balance")}</span>
-          <span className="shop-info-value">
-            {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
-            <BalanceBadge shop={shop} />
-          </span>
-        </div>
-        <div className="shop-info-row">
-          <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.currentTier")}</span>
-          <span className="shop-info-value">
-            {entitlement?.source ?? t("ecommerce.shopDrawer.billing.noTier")}
-          </span>
-        </div>
-        {entitlement?.validUntil && (
-          <div className="shop-info-row">
-            <span className="shop-info-label">{t("ecommerce.shopDrawer.billing.expiry")}</span>
-            <span className="shop-info-value">
-              {new Date(entitlement.validUntil).toLocaleDateString()}
-            </span>
-          </div>
-        )}
-      </div>
+      <CustomerServiceBillingCta shopId={shop.id} shopName={shop.alias || shop.shopName} entitlement={entitlement} />
 
       {/* Device CS Binding Toggle */}
       <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csBindDevice")}</div>
@@ -269,9 +248,9 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
           <div className="shop-info-card">
             {entitlement.usage.map((usage) => (
               <div className="shop-info-row" key={`${usage.metric}:${usage.window}`}>
-                <span className="shop-info-label">{usage.metric}</span>
+                <span className="shop-info-label">{billingEnumLabel(t, "usageMetric", usage.metric)}</span>
                 <span className="shop-info-value">
-                  {usage.remaining}/{usage.limit}
+                  {t("billing.usageUsedPercent", { percent: usagePercentLabel(usage.usedPercent) })}
                 </span>
               </div>
             ))}

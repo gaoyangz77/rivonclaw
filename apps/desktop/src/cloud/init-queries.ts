@@ -163,13 +163,24 @@ export const INIT_BILLING_OVERVIEW_QUERY = `
           allowed
           code
           source
+          subscription {
+            planId
+            provider
+            status
+            currency
+            amountMinor
+            currentPeriodStart
+            currentPeriodEnd
+            graceUntil
+            renewalMode
+            cancelAtPeriodEnd
+          }
           validUntil
           usage {
             metric
             window
-            used
-            limit
-            remaining
+            usedPercent
+            remainingPercent
             refreshAt
           }
         }
@@ -184,13 +195,80 @@ export const INIT_BILLING_OVERVIEW_QUERY = `
           allowed
           code
           source
+          subscription {
+            planId
+            provider
+            status
+            currency
+            amountMinor
+            currentPeriodStart
+            currentPeriodEnd
+            graceUntil
+            renewalMode
+            cancelAtPeriodEnd
+          }
           validUntil
           usage {
             metric
             window
-            used
-            limit
-            remaining
+            usedPercent
+            remainingPercent
+            refreshAt
+          }
+        }
+        inventory {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          subscription {
+            planId
+            provider
+            status
+            currency
+            amountMinor
+            currentPeriodStart
+            currentPeriodEnd
+            graceUntil
+            renewalMode
+            cancelAtPeriodEnd
+          }
+          validUntil
+          usage {
+            metric
+            window
+            usedPercent
+            remainingPercent
+            refreshAt
+          }
+        }
+        affiliate {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          subscription {
+            planId
+            provider
+            status
+            currency
+            amountMinor
+            currentPeriodStart
+            currentPeriodEnd
+            graceUntil
+            renewalMode
+            cancelAtPeriodEnd
+          }
+          validUntil
+          usage {
+            metric
+            window
+            usedPercent
+            remainingPercent
             refreshAt
           }
         }

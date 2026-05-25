@@ -3,7 +3,7 @@ import { ToolModel } from "./ToolSpec.js";
 import { SurfaceModel } from "./Surface.js";
 import { RunProfileModel } from "./RunProfile.js";
 import { ShopModel } from "./Shop.js";
-import { BillingOverviewModel } from "./Subscription.js";
+import { BillingOverviewModel, BillingPlanDefinitionModel, PaymentModel } from "./Subscription.js";
 import { ProviderKeyModel } from "./ProviderKey.js";
 import { ChannelAccountModel } from "./ChannelAccount.js";
 import { MobilePairingModel } from "./MobilePairing.js";
@@ -54,6 +54,8 @@ export const RootStoreModel = types
     channelAccounts: types.optional(types.array(ChannelAccountModel), []),
     mobilePairings: types.optional(types.array(MobilePairingModel), []),
     billingOverview: types.maybeNull(BillingOverviewModel),
+    billingPlanDefinitions: types.optional(types.array(BillingPlanDefinitionModel), []),
+    payments: types.optional(types.array(PaymentModel), []),
     toolCapability: types.optional(ToolCapabilityModel, {}),
     currentUser: types.maybeNull(UserModel),
     authBootstrap: types.optional(AuthBootstrapStateModel, { status: "signed_out", error: null }),
