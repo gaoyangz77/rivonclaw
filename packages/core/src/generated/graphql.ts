@@ -3922,9 +3922,9 @@ export interface Payment {
   providerPaymentId?: Maybe<Scalars['String']['output']>;
   /** Provider recurring subscription ID, such as a Stripe subscription ID. */
   providerSubscriptionId?: Maybe<Scalars['String']['output']>;
-  /** Raw QR code payload when the provider returns one. */
+  /** QR payload the client should encode into a QR image. For Lakala aggregate QR this is a short-lived payment URL, not an image URL. */
   qrCode?: Maybe<Scalars['String']['output']>;
-  /** QR code URL when the provider returns one. */
+  /** Provider QR payment URL kept for compatibility. Clients should render payment.qrCode as the QR payload instead of treating this as an image URL. */
   qrCodeUrl?: Maybe<Scalars['String']['output']>;
   status: PaymentStatus;
   subject: Scalars['String']['output'];
@@ -5331,7 +5331,7 @@ export interface StartBillingSubscriptionInput {
 }
 
 export interface StartBillingSubscriptionResult {
-  /** Backend action taken: CHECKOUT_CREATED means use payment.checkoutUrl/qrCodeUrl; SUBSCRIPTION_RESUMED means a scheduled Stripe cancellation was removed; ALREADY_ACTIVE means no payment action was needed. */
+  /** Backend action taken: CHECKOUT_CREATED means use payment.checkoutUrl for Stripe or render payment.qrCode as a QR payload for Lakala; SUBSCRIPTION_RESUMED means a scheduled Stripe cancellation was removed; ALREADY_ACTIVE means no payment action was needed. */
   action: BillingSubscriptionStartAction;
   /** Created payment or checkout. Present for Stripe Checkout sessions, Stripe upgrade invoices, and Lakala QR payments. */
   payment?: Maybe<Payment>;
