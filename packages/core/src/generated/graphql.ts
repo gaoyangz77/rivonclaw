@@ -3959,6 +3959,7 @@ export type PaymentProviderName = typeof PaymentProviderName[keyof typeof Paymen
 /** Unified payment lifecycle state. */
 export const PaymentStatus = {
   Canceled: 'CANCELED',
+  Expired: 'EXPIRED',
   Failed: 'FAILED',
   PartiallyRefunded: 'PARTIALLY_REFUNDED',
   Pending: 'PENDING',
