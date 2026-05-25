@@ -3924,8 +3924,6 @@ export interface Payment {
   providerSubscriptionId?: Maybe<Scalars['String']['output']>;
   /** QR payload the client should encode into a QR image. For Lakala aggregate QR this is a short-lived payment URL, not an image URL. */
   qrCode?: Maybe<Scalars['String']['output']>;
-  /** Provider QR payment URL kept for compatibility. Clients should render payment.qrCode as the QR payload instead of treating this as an image URL. */
-  qrCodeUrl?: Maybe<Scalars['String']['output']>;
   status: PaymentStatus;
   subject: Scalars['String']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
