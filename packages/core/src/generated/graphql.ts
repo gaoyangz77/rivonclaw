@@ -960,6 +960,7 @@ export const BillingProvider = {
 export type BillingProvider = typeof BillingProvider[keyof typeof BillingProvider];
 export const BillingRenewalMode = {
   AutoRenews: 'AUTO_RENEWS',
+  NonRenewing: 'NON_RENEWING',
   Prepaid: 'PREPAID'
 } as const;
 
@@ -1173,6 +1174,15 @@ export interface CreateRunProfileInput {
   name: Scalars['String']['input'];
   selectedToolIds: Array<Scalars['String']['input']>;
   surfaceId: Scalars['String']['input'];
+}
+
+export interface CreateStripeBillingPortalSessionInput {
+  /** Product whose active Stripe subscription should be managed in Stripe Customer Portal. */
+  product: BillableProduct;
+  /** Target scope ID. Use the current user ID for ACCOUNT-scoped subscriptions, or the shop ID for SHOP-scoped subscriptions. */
+  scopeId: Scalars['String']['input'];
+  /** Billing scope to manage. Use ACCOUNT for LLM subscriptions and SHOP for shop-scoped service subscriptions. */
+  scopeType: BillingScopeType;
 }
 
 /** Input for creating a new Surface */
@@ -3344,6 +3354,8 @@ export interface Mutation {
   createPayment: Payment;
   /** Create a new run profile */
   createRunProfile: RunProfile;
+  /** Create a temporary Stripe Customer Portal session for the current user's active Stripe subscription. Use this for changing cards, viewing invoices, or Stripe-hosted subscription management. */
+  createStripeBillingPortalSession: StripeBillingPortalSessionPayload;
   /** Create a new surface */
   createSurface: Surface;
   /** Acknowledge success/failure after executing a local CS escalation side-effect */
@@ -3517,6 +3529,11 @@ export interface MutationCreatePaymentArgs {
 
 export interface MutationCreateRunProfileArgs {
   input: CreateRunProfileInput;
+}
+
+
+export interface MutationCreateStripeBillingPortalSessionArgs {
+  input: CreateStripeBillingPortalSessionInput;
 }
 
 
@@ -3916,6 +3933,8 @@ export interface Payment {
   method: PaymentMethod;
   paidAt?: Maybe<Scalars['DateTimeISO']['output']>;
   provider: PaymentProviderName;
+  /** Provider customer ID, such as a Stripe customer ID. */
+  providerCustomerId?: Maybe<Scalars['String']['output']>;
   /** Provider order/transaction ID, such as Lakala transactionId. */
   providerOrderId?: Maybe<Scalars['String']['output']>;
   /** Provider primary payment/session ID, such as Stripe checkout session ID. */
@@ -4330,7 +4349,7 @@ export interface Query {
   surfaces: Array<Surface>;
   /** Get system preset run profiles (userId=null), optionally filtered by moduleId */
   systemRunProfiles: Array<RunProfile>;
-  /** Get tool specifications for dynamic client-side registration (filtered by user entitlements) */
+  /** Get tool specifications for dynamic client-side registration (filtered by enrolled modules) */
   toolSpecs: Array<ToolSpec>;
   /** Batch-verify relay access tokens */
   verifyRelayTokens: Array<RelayTokenResult>;
@@ -5315,7 +5334,7 @@ export const SkillLabel = {
 
 export type SkillLabel = typeof SkillLabel[keyof typeof SkillLabel];
 export interface StartBillingSubscriptionInput {
-  /** Stripe Checkout cancel redirect URL. Required when provider is STRIPE and a checkout must be created; ignored when an existing Stripe subscription is only resumed. */
+  /** Legacy client-supplied Stripe cancel redirect URL. The backend now uses the canonical RivonClaw payment status page for STRIPE checkouts; ignored when an existing Stripe subscription is only resumed. */
   cancelUrl?: InputMaybe<Scalars['String']['input']>;
   /** Commercial plan the user wants to start, resume, renew, or upgrade to. The backend calculates all prices from this plan. */
   planId: BillingPlanId;
@@ -5325,7 +5344,7 @@ export interface StartBillingSubscriptionInput {
   scopeId: Scalars['String']['input'];
   /** Billing scope for the selected plan. LLM usage plans are ACCOUNT-scoped; ecommerce service plans are SHOP-scoped. */
   scopeType: BillingScopeType;
-  /** Stripe Checkout success redirect URL. Required when provider is STRIPE and a checkout must be created; ignored when an existing Stripe subscription is only resumed. */
+  /** Legacy client-supplied Stripe success redirect URL. The backend now uses the canonical RivonClaw payment status page for STRIPE checkouts; ignored when an existing Stripe subscription is only resumed. */
   successUrl?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -5336,6 +5355,11 @@ export interface StartBillingSubscriptionResult {
   payment?: Maybe<Payment>;
   /** Current subscription when the backend resumed or found an already-active Stripe subscription. */
   subscription?: Maybe<BillingSubscription>;
+}
+
+export interface StripeBillingPortalSessionPayload {
+  /** Stripe-hosted Customer Portal URL. The client should open this URL externally; the session is temporary. */
+  url: Scalars['String']['output'];
 }
 
 export interface Subscription {
