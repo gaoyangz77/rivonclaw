@@ -114,53 +114,7 @@ export const SET_DEFAULT_RUN_PROFILE_MUTATION = gql`
   }
 `;
 
-export const BILLING_OVERVIEW_QUERY = gql`
-  query BillingOverview {
-    billingOverview {
-      accountLlm {
-        planId
-        entitlement {
-          scopeType
-          scopeId
-          product
-          allowed
-          code
-          source
-          validUntil
-          usage {
-            metric
-            window
-            used
-            limit
-            remaining
-            refreshAt
-          }
-        }
-      }
-      shops {
-        shopId
-        shopName
-        customerService {
-          scopeType
-          scopeId
-          product
-          allowed
-          code
-          source
-          validUntil
-          usage {
-            metric
-            window
-            used
-            limit
-            remaining
-            refreshAt
-          }
-        }
-      }
-    }
-  }
-`;
+export { BILLING_OVERVIEW_QUERY } from "./billing-queries.js";
 
 export const LOGOUT_MUTATION = gql`
   mutation Logout($refreshToken: String!) {

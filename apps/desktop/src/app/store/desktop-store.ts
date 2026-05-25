@@ -106,6 +106,8 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       Warehouse: self.warehouses,
       ShopWarehouse: self.shopWarehouses,
       InventoryGood: self.inventoryGoods,
+      BillingPlanDefinition: self.billingPlanDefinitions,
+      Payment: self.payments,
     };
 
     // --- Nullable singletons: __typename → getter/setter ---
@@ -138,6 +140,8 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       readInventoryGoods: self.inventoryGoods,
       writeInventoryGoods: self.inventoryGoods,
       writeShopWarehouseMappings: self.shopWarehouses,
+      billingPlanDefinitions: self.billingPlanDefinitions,
+      readPayments: self.payments,
     };
 
     for (const [key, raw] of Object.entries(rawData)) {
@@ -247,6 +251,8 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       applySnapshot(self.warehouses, []);
       applySnapshot(self.shopWarehouses, []);
       applySnapshot(self.inventoryGoods, []);
+      applySnapshot(self.billingPlanDefinitions, []);
+      applySnapshot(self.payments, []);
       self.billingOverview = null;
     },
 
@@ -260,12 +266,17 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       applySnapshot(self.warehouses, []);
       applySnapshot(self.shopWarehouses, []);
       applySnapshot(self.inventoryGoods, []);
+      applySnapshot(self.billingPlanDefinitions, []);
+      applySnapshot(self.payments, []);
       self.billingOverview = null;
     },
 
     /** Clear user on logout. */
     clearUser() {
       self.currentUser = null;
+      self.billingOverview = null;
+      applySnapshot(self.billingPlanDefinitions, []);
+      applySnapshot(self.payments, []);
     },
 
   /** Replace all client tool specs in the MST store (from gateway RPC). */

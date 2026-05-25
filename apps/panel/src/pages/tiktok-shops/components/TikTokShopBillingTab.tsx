@@ -1,6 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import type { Shop } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
+import {
+  billingEnumLabel,
+  usagePercentLabel,
+} from "../../../components/billing/billing-labels.js";
 
 interface TikTokShopBillingTabProps {
   shop: Shop;
@@ -11,33 +17,14 @@ export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
   const entityStore = useEntityStore();
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
 
+  useEffect(() => {
+    entityStore.refreshPlanDefinitions().catch(() => {});
+    entityStore.refreshBilling().catch(() => {});
+  }, [entityStore]);
+
   return (
     <div className="shop-detail-section">
-      <div className="shop-detail-field">
-        <span className="form-label-block">{t("tiktokShops.modal.billing.currentTier")}</span>
-        <span>
-          {entitlement?.source ?? entitlement?.code ?? t("tiktokShops.modal.billing.noTier")}
-        </span>
-      </div>
-
-      <div className="shop-detail-field">
-        <span className="form-label-block">{t("tiktokShops.tableHeaders.balance")}</span>
-        <span className="shop-balance-cell">
-          {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
-          {entitlement && (
-            <span className={entitlement.allowed ? "badge badge-active" : "badge badge-warning"}>
-              {entitlement.allowed ? t("common.enabled") : entitlement.code}
-            </span>
-          )}
-        </span>
-      </div>
-
-      {entitlement?.validUntil && (
-        <div className="shop-detail-field">
-          <span className="form-label-block">{t("tiktokShops.detail.balanceExpiry")}</span>
-          <span>{new Date(entitlement.validUntil).toLocaleDateString()}</span>
-        </div>
-      )}
+      <CustomerServiceBillingCta shopId={shop.id} shopName={shop.alias || shop.shopName} entitlement={entitlement} />
 
       {entitlement?.usage.length ? (
         <div>
@@ -46,11 +33,11 @@ export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
             {entitlement.usage.map((usage) => (
               <div key={`${usage.metric}:${usage.window}`} className="acct-item">
                 <div className="acct-item-title-row">
-                  <span className="acct-item-name">{usage.metric}</span>
-                  <span className="badge badge-muted">{usage.window}</span>
+                  <span className="acct-item-name">{billingEnumLabel(t, "usageMetric", usage.metric)}</span>
+                  <span className="badge badge-muted">{billingEnumLabel(t, "usageWindow", usage.window)}</span>
                 </div>
                 <div className="acct-item-meta">
-                  <span>{usage.remaining}/{usage.limit}</span>
+                  <span>{t("billing.usageUsedPercent", { percent: usagePercentLabel(usage.usedPercent) })}</span>
                   <span>{new Date(usage.refreshAt).toLocaleString()}</span>
                 </div>
               </div>

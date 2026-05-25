@@ -10,14 +10,20 @@ export {
   AccountLlmBillingStatusModel,
   BillingEntitlementStatusModel,
   BillingOverviewModel,
+  BillingPlanDefinitionModel,
+  BillingSubscriptionSummaryModel,
   BillingUsageStatusModel,
+  PaymentModel,
   ShopBillingStatusModel,
 } from "./Subscription.js";
 export type {
   AccountLlmBillingStatus,
   BillingEntitlementStatus,
   BillingOverview,
+  BillingPlanDefinition,
+  BillingSubscriptionSummary,
   BillingUsageStatus,
+  Payment,
   ShopBillingStatus,
 } from "./Subscription.js";
 export { ProviderKeyModel, ProviderKeyUsageModel, ProviderKeyUsageWindowModel } from "./ProviderKey.js";

@@ -297,4 +297,78 @@ describe("cloud-graphql handler", () => {
     expect(graphqlFetch.mock.calls.filter(([query]) => query === toolSpecsQuery)).toHaveLength(2);
     expect(onAuthChange).toHaveBeenCalledTimes(1);
   });
+
+  it("syncs cloud LLM provider when billing overview reports account LLM entitlement is allowed", async () => {
+    const onCloudLlmEntitlementAvailable = vi.fn().mockResolvedValue(undefined);
+    const data = {
+      billingOverview: {
+        accountLlm: {
+          planId: "RIVONCLAW_AI_PRO",
+          entitlement: {
+            scopeType: "ACCOUNT",
+            scopeId: "user-1",
+            product: "RIVONCLAW_AI",
+            allowed: true,
+            code: "ALLOWED",
+            source: "SUBSCRIPTION",
+            subscription: null,
+            validUntil: null,
+            usage: [],
+          },
+        },
+        shops: [],
+      },
+    };
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch: vi.fn().mockResolvedValue(data),
+      },
+      onCloudLlmEntitlementAvailable,
+    } as unknown as ApiContext;
+
+    const { res } = await dispatch("POST", pathname, ctx, {
+      query: "query BillingOverview { billingOverview { accountLlm { entitlement { allowed } } } }",
+    });
+    await Promise.resolve();
+
+    expect(res._body).toEqual({ data });
+    expect(onCloudLlmEntitlementAvailable).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not sync cloud LLM provider for signed-out billing overview responses", async () => {
+    const onCloudLlmEntitlementAvailable = vi.fn().mockResolvedValue(undefined);
+    const ctx = {
+      authSession: {
+        getAccessToken: () => null,
+        graphqlFetch: vi.fn().mockResolvedValue({
+          billingOverview: {
+            accountLlm: {
+              planId: "RIVONCLAW_AI_PRO",
+              entitlement: {
+                scopeType: "ACCOUNT",
+                scopeId: "user-1",
+                product: "RIVONCLAW_AI",
+                allowed: true,
+                code: "ALLOWED",
+                source: "SUBSCRIPTION",
+                subscription: null,
+                validUntil: null,
+                usage: [],
+              },
+            },
+            shops: [],
+          },
+        }),
+      },
+      onCloudLlmEntitlementAvailable,
+    } as unknown as ApiContext;
+
+    await dispatch("POST", pathname, ctx, {
+      query: "query BillingOverview { billingOverview { accountLlm { entitlement { allowed } } } }",
+    });
+    await Promise.resolve();
+
+    expect(onCloudLlmEntitlementAvailable).not.toHaveBeenCalled();
+  });
 });

@@ -1,26 +1,56 @@
 import { useTranslation } from "react-i18next";
-import type { BillingOverview } from "@rivonclaw/core/models";
+import type { BillingOverview, BillingPlanDefinition, BillingUsageStatus } from "@rivonclaw/core/models";
+import {
+  billingEnumLabel,
+  billingPlanDisplayName,
+  entitlementStatusLabel,
+  findPlanDefinition,
+  usagePercentLabel,
+} from "../../../components/billing/billing-labels.js";
 
 interface AccountProfileCardProps {
   user: { name: string | null; email: string; createdAt: string };
   initial: string;
   billingOverview: BillingOverview | null;
+  planDefinitions: readonly BillingPlanDefinition[];
   onLogout: () => void;
+}
+
+const USAGE_WINDOW_ORDER: Record<string, number> = {
+  WEEK: 0,
+  FIVE_HOURS: 1,
+};
+
+function sortUsageWindows(usages: readonly BillingUsageStatus[]): BillingUsageStatus[] {
+  return [...usages].sort((left, right) => {
+    const leftOrder = USAGE_WINDOW_ORDER[left.window] ?? 10;
+    const rightOrder = USAGE_WINDOW_ORDER[right.window] ?? 10;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return left.window.localeCompare(right.window);
+  });
 }
 
 export function AccountProfileCard({
   user,
   initial,
   billingOverview,
+  planDefinitions,
   onLogout,
 }: AccountProfileCardProps) {
   const { t } = useTranslation();
   const accountLlm = billingOverview?.accountLlm ?? null;
-  const llmUsage = accountLlm?.entitlement.usage[0] ?? null;
+  const llmUsages = sortUsageWindows(accountLlm?.entitlement.usage ?? []);
   const validUntil = accountLlm?.entitlement.validUntil ?? null;
-  const usagePercent = llmUsage && llmUsage.limit > 0
-    ? Math.max(0, Math.min(100, (llmUsage.remaining / llmUsage.limit) * 100))
-    : null;
+  const accountPlan = findPlanDefinition(
+    planDefinitions,
+    accountLlm?.planId,
+    accountLlm?.entitlement.product,
+  );
+  const planLabel = accountPlan
+    ? billingPlanDisplayName(t, accountPlan)
+    : accountLlm?.entitlement.subscription
+      ? entitlementStatusLabel(t, accountLlm.entitlement)
+      : t("billing.notSubscribed");
 
   return (
     <div className="section-card account-profile-card">
@@ -42,7 +72,7 @@ export function AccountProfileCard({
           <span className="account-info-label">{t("account.plan")}</span>
           <span className="account-info-value">
             <span className="acct-badge acct-badge-plan">
-              {accountLlm?.planId ?? accountLlm?.entitlement.code ?? "\u2014"}
+              {accountLlm?.entitlement ? planLabel : "\u2014"}
             </span>
           </span>
         </div>
@@ -58,24 +88,36 @@ export function AccountProfileCard({
             {validUntil ? new Date(validUntil).toLocaleDateString() : "\u2014"}
           </span>
         </div>
-        {llmUsage && usagePercent !== null && (
-          <div className="account-info-item account-info-item-wide quota-weekly">
-            <div className="quota-header">
-              <span className="account-info-label">{llmUsage.metric}</span>
-              <span className="quota-refresh-time">
-                {t("account.quotaRefreshAt", { time: new Date(llmUsage.refreshAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}
-              </span>
-            </div>
-            <div className="quota-bar-wrap">
-              <progress
-                className={`quota-bar${usagePercent < 20 ? " quota-bar-low" : ""}`}
-                value={usagePercent}
-                max={100}
-              />
-              <span className="quota-bar-label">
-                {llmUsage.remaining}/{llmUsage.limit}
-              </span>
-            </div>
+        {llmUsages.length > 0 && (
+          <div className="account-info-item account-info-item-wide quota-weekly account-usage-list">
+            {llmUsages.map((usage) => {
+              const remainingPercent = usage.remainingPercent;
+              return (
+                <div className="account-usage-row" key={`${usage.metric}:${usage.window}`}>
+                  <div className="quota-header">
+                    <span className="account-info-label">
+                      {billingEnumLabel(t, "usageMetric", usage.metric)}
+                      <span className="account-usage-window">
+                        {billingEnumLabel(t, "usageWindow", usage.window)}
+                      </span>
+                    </span>
+                    <span className="quota-refresh-time">
+                      {t("account.quotaRefreshAt", { time: new Date(usage.refreshAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}
+                    </span>
+                  </div>
+                  <div className="quota-bar-wrap">
+                    <progress
+                      className={`quota-bar${remainingPercent < 20 ? " quota-bar-low" : ""}`}
+                      value={remainingPercent}
+                      max={100}
+                    />
+                    <span className="quota-bar-label">
+                      {t("billing.usageRemainingPercent", { percent: usagePercentLabel(remainingPercent) })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,0 +1,305 @@
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { observer } from "mobx-react-lite";
+import { GQL } from "@rivonclaw/core";
+import type { BillingEntitlementStatus, BillingPlanDefinition } from "@rivonclaw/core/models";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { ConfirmDialog } from "../modals/ConfirmDialog.js";
+import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
+import { resumeBillingSubscription } from "./start-billing-checkout.js";
+import {
+  billingEnumLabel,
+  billingPlanDisplayName,
+  customerServicePlan,
+  entitlementStatusLabel,
+  shouldShowRenewalReminder,
+} from "./billing-labels.js";
+
+const LAKALA_ONLY = ["LAKALA"] as const;
+
+interface CustomerServiceBillingCtaProps {
+  shopId: string;
+  shopName?: string | null;
+  entitlement: BillingEntitlementStatus | null;
+}
+
+function formatDateTime(value?: string | null): string {
+  return value ? new Date(value).toLocaleString() : "-";
+}
+
+function formatMoneyFromMajor(value: string | null | undefined, currency: string): string {
+  if (!value) return "-";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return `${currency} ${value}`;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function planPriceLine(plan: BillingPlanDefinition | null, monthLabel: string): string {
+  if (!plan) return "-";
+  return `${formatMoneyFromMajor(plan.priceMonthly, plan.priceCurrency)}/${monthLabel}`;
+}
+
+export const CustomerServiceBillingCta = observer(function CustomerServiceBillingCta({
+  shopId,
+  shopName,
+  entitlement,
+}: CustomerServiceBillingCtaProps) {
+  const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const plan = customerServicePlan(entityStore.billingPlanDefinitions);
+  const allowed = entitlement?.allowed ?? false;
+  const monthLabel = t("subscription.month");
+  const subscription = entitlement?.subscription ?? null;
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [prepaidCheckout, setPrepaidCheckout] = useState(false);
+  const [resumePending, setResumePending] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
+  const [portalPending, setPortalPending] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
+  const showRenewalReminder = shouldShowRenewalReminder(entitlement);
+  const canResumeSubscription = !!subscription
+    && subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid
+    && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
+  const canCancelSubscription = !!subscription
+    && subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews
+    && !subscription.cancelAtPeriodEnd;
+  const canManagePaymentMethod = canCancelSubscription;
+  const canExtendPrepaid = !!subscription
+    && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid;
+
+  useEffect(() => {
+    entityStore.refreshPlanDefinitions().catch(() => {});
+  }, [entityStore]);
+
+  async function confirmCancelSubscription() {
+    if (!entitlement) return;
+    await entityStore.cancelBillingSubscriptionAtPeriodEnd({
+      product: entitlement.product,
+      scopeType: entitlement.scopeType,
+      scopeId: entitlement.scopeId,
+    });
+    setCancelConfirmOpen(false);
+  }
+
+  async function resumeSubscription() {
+    if (!entitlement || !subscription) return;
+    setResumePending(true);
+    setResumeError(null);
+    setResumeNotice(null);
+    try {
+      const result = await resumeBillingSubscription({
+        entityStore,
+        t,
+        planId: subscription.planId,
+        scopeType: entitlement.scopeType,
+        scopeId: entitlement.scopeId,
+      });
+      if (result?.action) setResumeNotice(t(`billing.subscriptionStartAction.${result.action}`));
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResumePending(false);
+    }
+  }
+
+  async function managePaymentMethod() {
+    if (!entitlement) return;
+    setPortalPending(true);
+    setPortalError(null);
+    try {
+      const url = await entityStore.createStripeBillingPortalSession({
+        product: entitlement.product,
+        scopeType: entitlement.scopeType,
+        scopeId: entitlement.scopeId,
+      });
+      if (!url) throw new Error(t("billing.errors.missingBillingPortalUrl"));
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setPortalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPortalPending(false);
+    }
+  }
+
+  if (allowed) {
+    return (
+      <>
+        <div className="cs-billing-access-card cs-billing-access-active">
+          <div className="cs-billing-access-head">
+            <span>{t("billing.customerService")}</span>
+            <span className="badge badge-active">{t("billing.active")}</span>
+          </div>
+          <div className="cs-billing-access-meta">
+            <div className="cs-billing-metric">
+              <span>{t("billing.source")}</span>
+              <strong>{billingEnumLabel(t, "entitlementSource", entitlement?.source)}</strong>
+            </div>
+            {subscription && (
+              <>
+                <div className="cs-billing-metric">
+                  <span>{t("billing.renewalMode")}</span>
+                  <strong>{billingEnumLabel(t, "renewalMode", subscription.renewalMode)}</strong>
+                </div>
+                <div className="cs-billing-metric">
+                  <span>{t("billing.startsAt")}</span>
+                  <strong>{formatDateTime(subscription.currentPeriodStart)}</strong>
+                </div>
+                {(subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
+                  <span className="billing-warning-text">{t("billing.cancelAtPeriodEnd")}</span>
+                )}
+              </>
+            )}
+            <div className="cs-billing-metric">
+              <span>{t("billing.validUntil")}</span>
+              <strong>{formatDateTime(entitlement?.validUntil)}</strong>
+            </div>
+          </div>
+          {showRenewalReminder && (
+            <div className="billing-renewal-warning">
+              {t("billing.renewalReminder", {
+                date: formatDateTime(subscription?.currentPeriodEnd),
+              })}
+            </div>
+          )}
+          {(canExtendPrepaid || showRenewalReminder || canResumeSubscription || canCancelSubscription) && (
+            <div className="cs-billing-payment-actions">
+              {canResumeSubscription && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => resumeSubscription().catch(() => {})}
+                  disabled={resumePending}
+                >
+                  {resumePending ? t("common.loading") : t("billing.resumeSubscription")}
+                </button>
+              )}
+              {canExtendPrepaid && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setPrepaidCheckout(true);
+                    setCheckoutModalOpen(true);
+                  }}
+                  disabled={!plan}
+                >
+                  {t("billing.extendPrepaid")}
+                </button>
+              )}
+              {showRenewalReminder && !canResumeSubscription && !canExtendPrepaid && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setCheckoutModalOpen(true)}
+                  disabled={!plan}
+                >
+                  {t("billing.renewSubscription")}
+                </button>
+              )}
+              {canManagePaymentMethod && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => managePaymentMethod().catch(() => {})}
+                  disabled={portalPending}
+                >
+                  {portalPending ? t("common.loading") : t("billing.changePaymentMethod")}
+                </button>
+              )}
+              {canCancelSubscription && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setCancelConfirmOpen(true)}
+                >
+                  {t("billing.cancelSubscription")}
+                </button>
+              )}
+            </div>
+          )}
+          {resumeError && (
+            <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: resumeError })}</div>
+          )}
+          {resumeNotice && (
+            <div className="info-box info-box-blue">{resumeNotice}</div>
+          )}
+          {portalError && (
+            <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: portalError })}</div>
+          )}
+          <ShopServiceCheckoutModal
+            isOpen={checkoutModalOpen}
+            onClose={() => setCheckoutModalOpen(false)}
+            title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
+            plans={plan ? [plan] : []}
+            shops={[{ shopId, shopName: shopName ?? shopId }]}
+            initialShopId={shopId}
+            initialPlanId={plan?.planId}
+            providerOptions={prepaidCheckout ? LAKALA_ONLY : undefined}
+            initialProvider={prepaidCheckout ? "LAKALA" : undefined}
+          />
+        </div>
+        <ConfirmDialog
+          isOpen={cancelConfirmOpen}
+          title={t("billing.cancelSubscriptionTitle")}
+          message={t("billing.cancelSubscriptionMessage", {
+            date: formatDateTime(subscription?.currentPeriodEnd),
+          })}
+          confirmLabel={t("billing.cancelSubscriptionConfirm")}
+          cancelLabel={t("common.cancel")}
+          onCancel={() => setCancelConfirmOpen(false)}
+          onConfirm={() => {
+            confirmCancelSubscription().catch(() => setCancelConfirmOpen(false));
+          }}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="cs-billing-access-card">
+        <div className="cs-billing-access-head">
+          <span>{plan ? billingPlanDisplayName(t, plan) : t("billing.customerServiceUnlimited")}</span>
+          <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
+        </div>
+        <p className="cs-billing-access-copy">
+          {t("billing.customerServiceUpgrade", {
+            price: planPriceLine(plan, monthLabel),
+          })}
+        </p>
+        {!plan && (
+          <div className="modal-error-box">{t("billing.planDefinitionsUnavailable")}</div>
+        )}
+        <div className="cs-billing-payment-actions">
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setPrepaidCheckout(false);
+              setCheckoutModalOpen(true);
+            }}
+            disabled={!plan}
+          >
+            {t("billing.subscribeCustomerService")}
+          </button>
+        </div>
+      </div>
+      <ShopServiceCheckoutModal
+        isOpen={checkoutModalOpen}
+        onClose={() => setCheckoutModalOpen(false)}
+        title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
+        plans={plan ? [plan] : []}
+        shops={[{ shopId, shopName: shopName ?? shopId }]}
+        initialShopId={shopId}
+        initialPlanId={plan?.planId}
+        providerOptions={prepaidCheckout ? LAKALA_ONLY : undefined}
+        initialProvider={prepaidCheckout ? "LAKALA" : undefined}
+      />
+    </>
+  );
+});

@@ -76,7 +76,10 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
               setTokenReady(true);
             } else if (status.status === "failed") {
               stopPolling();
-              // Manual path still works — leave tokenReady false
+              showToast(
+                status.error || t("providers.oauthFailed") || "Browser callback did not complete. Paste the redirect URL to continue.",
+                "error",
+              );
             }
           } catch {
             // Transient poll error — keep trying

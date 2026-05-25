@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
-import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
 
@@ -32,7 +31,6 @@ export function ShopTable({
   onRequestDelete,
 }: ShopTableProps) {
   const { t } = useTranslation();
-  const entityStore = useEntityStore();
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
   const [savingAliasShopId, setSavingAliasShopId] = useState<string | null>(null);
 
@@ -103,9 +101,7 @@ export function ShopTable({
               </tr>
             </thead>
             <tbody>
-              {shops.map((shop) => {
-                const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
-                return (
+              {shops.map((shop) => (
                   <tr key={shop.id}>
                     <td>
                       <span className="shop-table-name">{shop.shopName}</span>
@@ -142,10 +138,7 @@ export function ShopTable({
                       </span>
                     </td>
                     <td>
-                      <span className="shop-balance-cell">
-                        {entitlement?.allowed ? t("common.enabled") : (entitlement?.code ?? "\u2014")}
-                        <BalanceBadge shop={shop} />
-                      </span>
+                      <BalanceBadge shop={shop} />
                     </td>
                     <td className="text-right">
                       <div className="td-actions shop-table-actions">
@@ -173,8 +166,7 @@ export function ShopTable({
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                ))}
             </tbody>
           </table>
         </div>

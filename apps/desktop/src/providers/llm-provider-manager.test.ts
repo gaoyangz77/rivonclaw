@@ -27,7 +27,7 @@ describe("LLMProviderManager", () => {
     let entry: ProviderKeyEntry = {
       id: "key-default",
       provider: "rivonclaw-pro",
-      label: "RivonClaw Pro",
+      label: "RivonClaw AI",
       model: "gpt-5.1",
       isDefault: true,
       authType: "custom",
@@ -115,7 +115,7 @@ describe("LLMProviderManager", () => {
       {
         id: "key-pro",
         provider: "rivonclaw-pro",
-        label: "RivonClaw Pro",
+        label: "RivonClaw AI",
         model: "gpt-5.4",
         isDefault: false,
         authType: "custom",
@@ -248,7 +248,7 @@ describe("LLMProviderManager", () => {
       }),
       proxyFetch: vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ data: [{ id: "gpt-5.4" }] }),
+        json: async () => ({ data: [{ id: "gpt-5.4" }, { id: "gpt-5.5" }] }),
       }) as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",
       getLastSystemProxy: () => null,
@@ -267,23 +267,236 @@ describe("LLMProviderManager", () => {
 
     expect(keys[0]).toMatchObject({
       provider: "rivonclaw-pro",
-      model: "gpt-5.4",
+      label: "RivonClaw AI",
+      model: "gpt-5.5",
       isDefault: true,
     });
     expect(writeFullGatewayConfig).toHaveBeenCalled();
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.5");
     expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:telegram:default:direct:42",
-      model: "rivonclaw-pro/gpt-5.4",
+      model: "rivonclaw-pro/gpt-5.5",
     });
     expect(rootStore.llmManager.getSessionModelFact("agent:main:telegram:default:direct:42")).toMatchObject({
       mode: "default",
       provider: null,
       model: null,
       appliedProvider: "rivonclaw-pro",
-      appliedModel: "gpt-5.4",
+      appliedModel: "gpt-5.5",
     });
     expect(restartGateway).not.toHaveBeenCalled();
+  });
+
+  it("rotates an existing cloud provider key when the cloud model catalog returns auth failure", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+    const writeDefaultModelToConfig = vi.fn();
+    const writeFullGatewayConfig = vi.fn();
+    const restartGateway = vi.fn();
+
+    let entry: ProviderKeyEntry = {
+      id: "cloud-rivonclaw-pro",
+      provider: "rivonclaw-pro",
+      label: ["RivonClaw", "Pro"].join(" "),
+      model: "gpt-5.1",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://api.rivonclaw.com/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "gpt-5.1" }]),
+      inputModalities: ["text"],
+      source: "cloud",
+      createdAt: "",
+      updatedAt: "",
+    };
+    const storage = {
+      providerKeys: {
+        getActive: () => entry,
+        getById: (id: string) => (id === entry.id ? entry : undefined),
+        getAll: () => [entry],
+        update: (id: string, fields: Partial<ProviderKeyEntry>) => {
+          if (id !== entry.id) return undefined;
+          entry = { ...entry, ...fields, updatedAt: "updated" };
+          return entry;
+        },
+      },
+      settings: {
+        set: vi.fn(),
+        get: vi.fn(),
+      },
+      chatSessions: {
+        list: () => [],
+      },
+    };
+    await mockSecretStore.set(`provider-key-${entry.id}`, "stale-cloud-token");
+    rootStore.loadProviderKeys([await toMstSnapshot(entry, mockSecretStore as any)]);
+
+    const graphqlFetch = vi.fn()
+      .mockResolvedValueOnce({
+        provisionLlmApiKey: {
+          id: "llm-key-1",
+          key: "rcllm_test_fresh_cloud_token_1",
+          keyPrefix: "rcllm_test_fre",
+          status: "ACTIVE",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          lastUsedAt: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        provisionLlmApiKey: {
+          id: "llm-key-1",
+          key: "rcllm_test_fresh_cloud_token_2",
+          keyPrefix: "rcllm_test_fre",
+          status: "ACTIVE",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          lastUsedAt: null,
+        },
+      });
+    const proxyFetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Unauthorized" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: [{ id: "gpt-5.4", input_modalities: ["text", "image"] }] }),
+      });
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig,
+      writeFullGatewayConfig,
+      restartGateway,
+      graphqlFetch,
+      proxyFetch: proxyFetch as any,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await rootStore.llmManager.syncCloud({
+      userId: "u1",
+      email: "test@example.com",
+      name: "Test",
+      createdAt: "2026-01-01T00:00:00Z",
+      enrolledModules: [],
+      entitlementKeys: [],
+      defaultRunProfileId: null,
+    });
+
+    expect(await mockSecretStore.get(`provider-key-${entry.id}`)).toBe("rcllm_test_fresh_cloud_token_2");
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
+    expect(proxyFetch).toHaveBeenCalledTimes(2);
+    expect(proxyFetch.mock.calls[0]?.[1]?.headers).toEqual({ Authorization: "Bearer rcllm_test_fresh_cloud_token_1" });
+    expect(proxyFetch.mock.calls[1]?.[1]?.headers).toEqual({ Authorization: "Bearer rcllm_test_fresh_cloud_token_2" });
+    expect(entry.label).toBe("RivonClaw AI");
+    expect(entry.customModelsJson).toBe(JSON.stringify([{ id: "gpt-5.4", input_modalities: ["text", "image"] }]));
+    expect(entry.inputModalities).toEqual(["text", "image"]);
+    expect(writeFullGatewayConfig).toHaveBeenCalled();
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.1");
+    expect(restartGateway).not.toHaveBeenCalled();
+  });
+
+  it("removes the local cloud provider key when the signed-in account lacks LLM entitlement", async () => {
+    const writeDefaultModelToConfig = vi.fn();
+    const writeFullGatewayConfig = vi.fn();
+    const syncActiveKeyMock = vi.fn().mockResolvedValue(undefined);
+
+    let keys: ProviderKeyEntry[] = [
+      {
+        id: "cloud-rivonclaw-pro",
+        provider: "rivonclaw-pro",
+        label: "RivonClaw AI",
+        model: "gpt-5.1",
+        isDefault: true,
+        authType: "custom",
+        baseUrl: "https://api.rivonclaw.com/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify([{ id: "gpt-5.1" }]),
+        source: "cloud",
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "key-kimi",
+        provider: "kimi",
+        label: "Kimi",
+        model: "moonshot-v1-8k",
+        isDefault: false,
+        authType: "api_key",
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+    const storage = {
+      providerKeys: {
+        getActive: () => keys.find((k) => k.isDefault),
+        getById: (id: string) => keys.find((k) => k.id === id),
+        getAll: () => keys,
+        delete: (id: string) => {
+          keys = keys.filter((k) => k.id !== id);
+        },
+        setDefault: (id: string) => {
+          keys = keys.map((k) => ({ ...k, isDefault: k.id === id }));
+        },
+      },
+      settings: {
+        set: vi.fn(),
+        get: vi.fn(),
+      },
+      chatSessions: {
+        list: () => [],
+      },
+    };
+    await mockSecretStore.set("provider-key-cloud-rivonclaw-pro", "stale-cloud-token");
+    await mockSecretStore.set("provider-key-key-kimi", "kimi-token");
+    rootStore.loadProviderKeys(await allKeysToMstSnapshots(keys, mockSecretStore as any));
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => null,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: syncActiveKeyMock,
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig,
+      writeFullGatewayConfig,
+      restartGateway: async () => {},
+      graphqlFetch: vi.fn().mockRejectedValue(new Error("Requires active RivonClaw AI subscription")),
+      proxyFetch: vi.fn() as any,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await rootStore.llmManager.syncCloud({
+      userId: "u1",
+      email: "test@example.com",
+      name: "Test",
+      createdAt: "2026-01-01T00:00:00Z",
+      enrolledModules: [],
+      entitlementKeys: [],
+      defaultRunProfileId: null,
+    });
+
+    expect(keys.map((k) => k.id)).toEqual(["key-kimi"]);
+    expect(keys[0].isDefault).toBe(true);
+    expect(await mockSecretStore.get("provider-key-cloud-rivonclaw-pro")).toBeNull();
+    expect(storage.settings.set).toHaveBeenCalledWith("llm-provider", "kimi");
+    expect(syncActiveKeyMock).toHaveBeenCalledWith("kimi", storage, mockSecretStore);
+    expect(syncActiveKeyMock).toHaveBeenCalledWith("rivonclaw-pro", storage, mockSecretStore);
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("kimi", "moonshot-v1-8k");
+    expect(writeFullGatewayConfig).toHaveBeenCalled();
   });
 
   it("does not overwrite customer-service scope model overrides on global default activation", async () => {
@@ -304,7 +517,7 @@ describe("LLMProviderManager", () => {
       {
         id: "key-pro",
         provider: "rivonclaw-pro",
-        label: "RivonClaw Pro",
+        label: "RivonClaw AI",
         model: "gpt-5.4",
         isDefault: false,
         authType: "custom",

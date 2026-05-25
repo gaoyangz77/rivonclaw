@@ -44,11 +44,16 @@ export interface LLMProviderManagerEnv {
 }
 
 const CLOUD_PROVIDER_ID = "rivonclaw-pro";
-const CLOUD_KEY_LABEL = "RivonClaw Pro";
+const CLOUD_KEY_LABEL = "RivonClaw AI";
+const CLOUD_DEFAULT_MODEL_ID = "gpt-5.5";
 
 interface CloudModel {
   id: string;
   input_modalities?: string[];
+}
+
+function selectCloudDefaultModel(cloudModels: CloudModel[]): string {
+  return cloudModels.find((model) => model.id === CLOUD_DEFAULT_MODEL_ID)?.id ?? cloudModels[0]?.id ?? "";
 }
 
 interface ProvisionLlmApiKeyMutationResult {
@@ -68,6 +73,20 @@ const PROVISION_LLM_API_KEY_MUTATION = `
     }
   }
 `;
+
+class CloudModelCatalogError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+function isCloudLlmKeyUnavailableError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /subscription|entitlement|payment required|requires active|not allowed|forbidden|inactive|no active/i.test(message);
+}
 
 // ---------------------------------------------------------------------------
 // Helper: resolve the gateway model reference (e.g., "anthropic/claude-sonnet-4-20250514")
@@ -767,43 +786,44 @@ export const LLMProviderManagerModel = types
         const { storage, secretStore, syncActiveKey, toMstSnapshot, allKeysToMstSnapshots } = getEnvDeps();
         const existing = storage.providerKeys.getAll().find((k) => k.provider === CLOUD_PROVIDER_ID);
 
+        function* removeExistingCloudProvider(reason: string) {
+          if (!existing) return;
+          const wasDefault = existing.isDefault;
+          storage.providerKeys.delete(existing.id);
+          yield secretStore.delete(`provider-key-${existing.id}`);
+
+          if (wasDefault) {
+            const remaining = storage.providerKeys.getAll();
+            if (remaining.length > 0) {
+              storage.providerKeys.setDefault(remaining[0].id);
+              storage.settings.set("llm-provider", remaining[0].provider);
+              yield syncActiveKey(remaining[0].provider, storage, secretStore);
+              self.activeKeyId = remaining[0].id;
+              writeDefaultModel(remaining[0].provider, remaining[0].model, remaining[0].authType);
+            } else {
+              storage.settings.set("llm-provider", "");
+              self.activeKeyId = null;
+            }
+          }
+          yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
+
+          const mstKeys: MstProviderKeySnapshot[] = yield allKeysToMstSnapshots(
+            storage.providerKeys.getAll(),
+            secretStore,
+          );
+          self.root.loadProviderKeys(mstKeys);
+
+          yield syncAuthProxyAndConfig();
+          if (wasDefault) {
+            yield resetDefaultFollowingSessions();
+          }
+
+          log.info(`Removed cloud provider key (${reason})`);
+        }
+
         if (!user) {
           // Logged out — clean up the cloud provider key from this device.
-          if (existing) {
-            const wasDefault = existing.isDefault;
-            storage.providerKeys.delete(existing.id);
-            yield secretStore.delete(`provider-key-${existing.id}`);
-
-            if (wasDefault) {
-              const remaining = storage.providerKeys.getAll();
-              if (remaining.length > 0) {
-                storage.providerKeys.setDefault(remaining[0].id);
-                storage.settings.set("llm-provider", remaining[0].provider);
-                yield syncActiveKey(remaining[0].provider, storage, secretStore);
-                self.activeKeyId = remaining[0].id;
-                writeDefaultModel(remaining[0].provider, remaining[0].model, remaining[0].authType);
-              } else {
-                storage.settings.set("llm-provider", "");
-                self.activeKeyId = null;
-              }
-            }
-            yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
-
-            // MST state (reload all — isDefault may have shifted)
-            const mstKeys: MstProviderKeySnapshot[] = yield allKeysToMstSnapshots(
-              storage.providerKeys.getAll(),
-              secretStore,
-            );
-            self.root.loadProviderKeys(mstKeys);
-
-            // Sync auth + proxy + full config (cloud provider removed)
-            yield syncAuthProxyAndConfig();
-            if (wasDefault) {
-              yield resetDefaultFollowingSessions();
-            }
-
-            log.info("Removed cloud provider key (user logged out)");
-          }
+          yield* removeExistingCloudProvider("user logged out");
           return;
         }
 
@@ -813,7 +833,11 @@ export const LLMProviderManagerModel = types
             throw new Error("Authenticated GraphQL fetch is not available for cloud key provisioning");
           }
           const data = await graphqlFetch<ProvisionLlmApiKeyMutationResult>(PROVISION_LLM_API_KEY_MUTATION);
-          return data.provisionLlmApiKey.key;
+          const key = data.provisionLlmApiKey.key;
+          if (!key) {
+            throw new Error("Cloud LLM key provisioning returned an empty key");
+          }
+          return key;
         }
 
         async function fetchCloudModels(baseUrl: string, apiKeyValue: string): Promise<CloudModel[]> {
@@ -822,7 +846,7 @@ export const LLMProviderManagerModel = types
             headers: { Authorization: `Bearer ${apiKeyValue}` },
           });
           if (!res.ok) {
-            throw new Error(`Cloud model catalog request failed (${res.status})`);
+            throw new CloudModelCatalogError(`Cloud model catalog request failed (${res.status})`, res.status);
           }
           const data = (await res.json()) as { data?: CloudModel[] };
           return data.data ?? [];
@@ -832,7 +856,14 @@ export const LLMProviderManagerModel = types
         if (existing) {
           const currentBaseUrl = `${getApiBaseUrl("en")}/llm/v1`;
           const storedKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
-          const currentKey: string = yield provisionCloudApiKey();
+          let currentKey: string;
+          try {
+            currentKey = yield provisionCloudApiKey();
+          } catch (err) {
+            if (!isCloudLlmKeyUnavailableError(err)) throw err;
+            yield* removeExistingCloudProvider("cloud LLM entitlement unavailable");
+            return;
+          }
           if (storedKey !== currentKey) {
             yield secretStore.set(`provider-key-${existing.id}`, currentKey);
             if (existing.isDefault) {
@@ -840,17 +871,40 @@ export const LLMProviderManagerModel = types
             }
           }
           const baseUrlChanged = existing.baseUrl !== currentBaseUrl;
+          const labelChanged = existing.label !== CLOUD_KEY_LABEL;
 
-          // Update baseUrl if environment changed (e.g., staging vs production)
-          if (baseUrlChanged) {
-            storage.providerKeys.update(existing.id, { baseUrl: currentBaseUrl });
-            log.info(`Updated cloud provider baseUrl: ${existing.baseUrl} -> ${currentBaseUrl}`);
+          // Update local metadata if environment/name changed.
+          if (baseUrlChanged || labelChanged) {
+            storage.providerKeys.update(existing.id, {
+              baseUrl: baseUrlChanged ? currentBaseUrl : existing.baseUrl,
+              label: labelChanged ? CLOUD_KEY_LABEL : existing.label,
+            });
+            if (baseUrlChanged) {
+              log.info(`Updated cloud provider baseUrl: ${existing.baseUrl} -> ${currentBaseUrl}`);
+            }
           }
 
           // Always refresh model list (capabilities may have changed on the backend)
           try {
             const effectiveBaseUrl = baseUrlChanged ? currentBaseUrl : existing.baseUrl!;
-            const cloudModels: CloudModel[] = yield fetchCloudModels(effectiveBaseUrl, currentKey);
+            let cloudModels: CloudModel[];
+            try {
+              cloudModels = yield fetchCloudModels(effectiveBaseUrl, currentKey);
+            } catch (err) {
+              if (!(err instanceof CloudModelCatalogError) || (err.status !== 401 && err.status !== 403)) {
+                throw err;
+              }
+              const provisionedKey: string = yield provisionCloudApiKey();
+              if (provisionedKey !== currentKey) {
+                currentKey = provisionedKey;
+                yield secretStore.set(`provider-key-${existing.id}`, currentKey);
+                if (existing.isDefault) {
+                  yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
+                }
+              }
+              cloudModels = yield fetchCloudModels(effectiveBaseUrl, currentKey);
+              log.info("Rotated cloud provider key after authentication failure");
+            }
             if (cloudModels.length > 0) {
               storage.providerKeys.update(existing.id, {
                 customModelsJson: JSON.stringify(cloudModels),
@@ -882,7 +936,14 @@ export const LLMProviderManagerModel = types
         // Create new entry
         const baseUrl = `${getApiBaseUrl("en")}/llm/v1`;
         const shouldActivate = !storage.providerKeys.getActive();
-        const apiKeyValue: string = yield provisionCloudApiKey();
+        let apiKeyValue: string;
+        try {
+          apiKeyValue = yield provisionCloudApiKey();
+        } catch (err) {
+          if (!isCloudLlmKeyUnavailableError(err)) throw err;
+          log.info("Cloud provider key unavailable for current account; no local key created");
+          return;
+        }
 
         // Fetch available models from cloud endpoint (preserving per-model capabilities)
         let cloudModels: CloudModel[] = [];
@@ -896,7 +957,7 @@ export const LLMProviderManagerModel = types
           id: `cloud-${CLOUD_PROVIDER_ID}`,
           provider: CLOUD_PROVIDER_ID,
           label: CLOUD_KEY_LABEL,
-          model: cloudModels[0]?.id ?? "",
+          model: selectCloudDefaultModel(cloudModels),
           isDefault: shouldActivate,
           authType: "custom",
           baseUrl,

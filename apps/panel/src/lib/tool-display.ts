@@ -14,7 +14,7 @@ export function useToolDisplayLabel(): (toolId: string) => string {
     const tool = entityStore.allTools.find((tt) => tt.id === toolId);
     if (!tool) return toolId;
 
-    const catLabel = t(tool.categoryKey, { defaultValue: "" });
+    const catLabel = t(tool.categoryKey, { defaultValue: tool.category });
     const nameLabel = t(tool.nameKey, { defaultValue: tool.displayName });
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   };

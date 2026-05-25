@@ -13,7 +13,7 @@ import type { SurfaceModel } from "./Surface.js";
 import type { RunProfileModel } from "./RunProfile.js";
 import type { ShopModel } from "./Shop.js";
 import type { ToolSpecModel } from "./ToolSpec.js";
-import type { BillingOverviewModel } from "./Subscription.js";
+import type { BillingOverviewModel, BillingPlanDefinitionModel, PaymentModel } from "./Subscription.js";
 import type { PlatformAppModel } from "./PlatformApp.js";
 import type { InventoryGoodModel } from "./InventoryGood.js";
 import type { ShopWarehouseModel, WarehouseModel, WmsAccountModel } from "./Warehouse.js";
@@ -45,6 +45,12 @@ const _toolSpecGuard: _AssertToolSpecCompat = true;
 // ── BillingOverview ─────────────────────────────────────────────────
 type _AssertBillingOverviewCompat = AssertSubset<GQL.BillingOverview, SnapshotIn<typeof BillingOverviewModel>>;
 const _billingOverviewGuard: _AssertBillingOverviewCompat = true;
+
+type _AssertBillingPlanDefinitionCompat = AssertSubset<GQL.BillingPlanDefinition, SnapshotIn<typeof BillingPlanDefinitionModel>>;
+const _billingPlanDefinitionGuard: _AssertBillingPlanDefinitionCompat = true;
+
+type _AssertPaymentCompat = AssertSubset<GQL.Payment, SnapshotIn<typeof PaymentModel>>;
+const _paymentGuard: _AssertPaymentCompat = true;
 
 // ── PlatformApp ──────────────────────────────────────────────────────
 type _AssertPlatformAppCompat = AssertSubset<GQL.PlatformApp, SnapshotIn<typeof PlatformAppModel>>;

@@ -22,6 +22,7 @@ export interface ApiContext {
   onSttChange?: () => void;
   onExtrasChange?: () => void;
   onAuthChange?: () => Promise<void>;
+  onCloudLlmEntitlementAvailable?: () => Promise<void>;
   onToolSelectionChange?: (effectiveToolIds: string[]) => void;
   onBrowserChange?: () => void;
   onAutoLaunchChange?: (enabled: boolean) => void;

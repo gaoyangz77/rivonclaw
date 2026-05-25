@@ -6,6 +6,8 @@ import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
 import { InventoryManagementTab } from "./InventoryManagementTab.js";
 import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
+import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { DrawerTab } from "../ecommerce-types.js";
 
 interface ShopDrawerProps {
@@ -110,6 +112,10 @@ export const ShopDrawer = observer(function ShopDrawer({
   onUnbindAffiliateDevice,
 }: ShopDrawerProps) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const customerServiceEntitlement = shop
+    ? entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null
+    : null;
 
   return (
     <>
@@ -258,6 +264,17 @@ export const ShopDrawer = observer(function ShopDrawer({
                     </span>
                   </label>
                 </div>
+
+                {!customerServiceEntitlement?.allowed && (
+                  <>
+                    <div className="drawer-section-label">{t("billing.customerService")}</div>
+                    <CustomerServiceBillingCta
+                      shopId={shop.id}
+                      shopName={shop.alias || shop.shopName}
+                      entitlement={customerServiceEntitlement}
+                    />
+                  </>
+                )}
 
                 <div className="shop-toggle-card">
                   <div className="shop-toggle-card-left">

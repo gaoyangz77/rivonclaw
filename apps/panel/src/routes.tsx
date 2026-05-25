@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import {
   ChatIcon, ProvidersIcon, ChannelsIcon,
   ExtrasIcon, UsageIcon, SkillsIcon,
-  CronsIcon, SettingsIcon, AccountIcon,
+  CronsIcon, SettingsIcon, BillingIcon, AccountIcon,
   ShopIcon, EcommerceIcon,
 } from "./components/icons.js";
 import { ChatPage } from "./pages/chat/ChatPage.js";
@@ -15,6 +15,7 @@ import { CronsPage } from "./pages/crons/CronsPage.js";
 import { SettingsPage } from "./pages/settings/SettingsPage.js";
 import { OnboardingPage } from "./pages/onboarding/OnboardingPage.js";
 import { AccountPage } from "./pages/account/AccountPage.js";
+import { BillingPage } from "./pages/billing/BillingPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import { AffiliateManagementPage } from "./pages/ecommerce/AffiliateManagementPage.js";
@@ -39,6 +40,8 @@ export interface RouteEntry {
   moduleGate?: string;
   /** Temporarily hidden from sidebar nav (route still resolves) */
   navHidden?: boolean;
+  /** Only show in nav after the user is signed in */
+  navAuthOnly?: boolean;
   /** Internal route — not user-navigable via URL, falls back to "/" */
   internal?: boolean;
   /** Optional parent route for sidebar subitems */
@@ -62,6 +65,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/ecommerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER", parentPath: "/ecommerce" },
   { path: "/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage" },
   { path: "/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings" },
+  { path: "/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", authRequired: true, navAuthOnly: true },
   { path: "/account", pageKey: "account", component: AccountPage, icon: <AccountIcon /> },
   { path: "/onboarding", pageKey: "onboarding", component: OnboardingPage, internal: true },
 ];
