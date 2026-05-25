@@ -1439,7 +1439,7 @@ export default {
     graceUntil: "Grace Until",
     subscriptionAmount: "Subscription Amount",
     monthlyPlanPrice: "Monthly plan price",
-    upgradeProrationHint: "Upgrade checkout deducts the unused value from your current plan, so today's charge may be lower than this monthly price.",
+    upgradeProrationHint: "Upgrades deduct the unused value from your current plan, so today's charge may be lower than this monthly price.",
     cnyMonthlyPrice: "CNY Monthly Price",
     cancelAtPeriodEnd: "Cancels at period end",
     serviceAccess: "Service Subscription",

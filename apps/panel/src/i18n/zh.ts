@@ -1439,7 +1439,7 @@ export default {
     graceUntil: "宽限期至",
     subscriptionAmount: "订阅金额",
     monthlyPlanPrice: "套餐月费",
-    upgradeProrationHint: "升级时会抵扣当前套餐未使用部分的价值，因此本次实际扣款可能低于这里显示的整月价格。",
+    upgradeProrationHint: "升级会抵扣当前套餐未使用部分的价值，因此本次实际扣款可能低于这里显示的整月价格。",
     cnyMonthlyPrice: "人民币月费",
     cancelAtPeriodEnd: "将在周期结束时取消",
     serviceAccess: "服务订阅状态",
