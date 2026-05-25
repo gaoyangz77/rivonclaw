@@ -1,18 +1,21 @@
 /**
  * Gemini CLI OAuth module — copied from vendor/openclaw/extensions/google-gemini-cli-auth/oauth.ts
  *
- * The only change: `isWSL2Sync()` import from `openclaw/plugin-sdk` is replaced
- * with a hardcoded `false`. The desktop Electron app is never WSL2/remote.
+ * Desktop keeps a few integration differences: shared loopback callback handling,
+ * dynamic callback redirect URIs, and personal OAuth post-token handling.
+ * `isWSL2Sync()` is replaced with a hardcoded `false` because the desktop
+ * Electron app is never WSL2/remote.
  *
  * When updating the vendor submodule, diff this file against the original.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, realpathSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
-import { createServer } from "node:http";
 import { execFile, execFileSync } from "node:child_process";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { resolveRivonClawHome } from "@rivonclaw/core/node";
 import { enrichedPath, findInPath } from "../utils/cli-utils.js";
+import { startLoopbackOAuthCallback } from "./loopback-oauth.js";
 
 /** Error that carries a user-friendly message plus technical detail for hover tooltip. */
 export class DetailedError extends Error {
@@ -34,6 +37,9 @@ const CLIENT_SECRET_KEYS = [
 // when another process occupies the IPv6 loopback.  Google OAuth desktop
 // clients accept any loopback IP on any port.
 const REDIRECT_URI = "http://127.0.0.1:8085/oauth2callback";
+const CALLBACK_PATH = "/oauth2callback";
+const PREFERRED_CALLBACK_PORT = 8085;
+const LOCAL_CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo?alt=json";
@@ -89,6 +95,91 @@ function resolveEnv(keys: string[]): string | undefined {
     }
   }
   return undefined;
+}
+
+type GeminiCliAuthSettings = {
+  security?: {
+    auth?: {
+      selectedType?: unknown;
+      enforcedType?: unknown;
+    };
+  };
+  selectedAuthType?: unknown;
+  enforcedAuthType?: unknown;
+};
+
+type GeminiCliSettingsFs = {
+  existsSync: (path: string) => boolean;
+  readFileSync: (path: string, encoding: "utf8") => string;
+  homedir: () => string;
+};
+
+const defaultGeminiCliSettingsFs: GeminiCliSettingsFs = {
+  existsSync: (path) => existsSync(path),
+  readFileSync: (path, encoding) => readFileSync(path, encoding),
+  homedir,
+};
+
+let geminiCliSettingsFs = defaultGeminiCliSettingsFs;
+
+/** @internal */
+export function setGeminiCliSettingsFsForTest(overrides?: Partial<GeminiCliSettingsFs>): void {
+  geminiCliSettingsFs = overrides
+    ? { ...defaultGeminiCliSettingsFs, ...overrides }
+    : defaultGeminiCliSettingsFs;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function readGeminiCliSettings(): GeminiCliAuthSettings | null {
+  const settingsPath = join(geminiCliSettingsFs.homedir(), ".gemini", "settings.json");
+  if (!geminiCliSettingsFs.existsSync(settingsPath)) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(geminiCliSettingsFs.readFileSync(settingsPath, "utf8")) as unknown;
+    return isRecord(parsed) ? (parsed as GeminiCliAuthSettings) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveGeminiCliSelectedAuthType(): string | undefined {
+  const settings = readGeminiCliSettings();
+  if (settings) {
+    const security = isRecord(settings.security) ? settings.security : undefined;
+    const auth = isRecord(security?.auth) ? security.auth : undefined;
+    const selectedAuthType =
+      normalizeOptionalString(auth?.selectedType) ??
+      normalizeOptionalString(auth?.enforcedType) ??
+      normalizeOptionalString(settings.selectedAuthType) ??
+      normalizeOptionalString(settings.enforcedAuthType);
+    if (selectedAuthType) {
+      return selectedAuthType;
+    }
+  }
+
+  if (process.env.GOOGLE_GENAI_USE_GCA === "true") {
+    return "oauth-personal";
+  }
+
+  return undefined;
+}
+
+export function shouldUseGeminiPersonalOAuth(): boolean {
+  const selectedAuthType = resolveGeminiCliSelectedAuthType();
+  if (selectedAuthType) {
+    return selectedAuthType === "oauth-personal";
+  }
+  return !resolveEnv(["GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_PROJECT_ID"]);
 }
 
 let cachedGeminiCliCredentials: { clientId: string; clientSecret: string } | null = null;
@@ -395,12 +486,16 @@ export function generatePkce(): { verifier: string; challenge: string } {
   return { verifier, challenge };
 }
 
-export function buildAuthUrl(challenge: string, verifier: string): string {
+export function buildAuthUrl(
+  challenge: string,
+  verifier: string,
+  redirectUri = REDIRECT_URI,
+): string {
   const { clientId } = resolveOAuthClientConfig();
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: "code",
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     scope: SCOPES.join(" "),
     code_challenge: challenge,
     code_challenge_method: "S256",
@@ -444,115 +539,26 @@ export async function waitForLocalCallback(params: {
   timeoutMs: number;
   onProgress?: (message: string) => void;
 }): Promise<{ code: string; state: string }> {
-  const port = 8085;
-  const hostname = "127.0.0.1";
-  const expectedPath = "/oauth2callback";
-
-  return new Promise<{ code: string; state: string }>((resolve, reject) => {
-    let timeout: NodeJS.Timeout | null = null;
-    const server = createServer((req, res) => {
-      try {
-        const requestUrl = new URL(req.url ?? "/", `http://${hostname}:${port}`);
-        if (requestUrl.pathname !== expectedPath) {
-          res.statusCode = 404;
-          res.setHeader("Content-Type", "text/plain");
-          res.end("Not found");
-          return;
-        }
-
-        const error = requestUrl.searchParams.get("error");
-        const code = requestUrl.searchParams.get("code")?.trim();
-        const state = requestUrl.searchParams.get("state")?.trim();
-
-        if (error) {
-          res.statusCode = 400;
-          res.setHeader("Content-Type", "text/plain");
-          res.end(`Authentication failed: ${error}`);
-          finish(new Error(`OAuth error: ${error}`));
-          return;
-        }
-
-        if (!code || !state) {
-          res.statusCode = 400;
-          res.setHeader("Content-Type", "text/plain");
-          res.end("Missing code or state");
-          finish(new Error("Missing OAuth code or state"));
-          return;
-        }
-
-        if (state !== params.expectedState) {
-          // Stale callback from a previous OAuth attempt — don't close the server;
-          // keep waiting for the callback that matches the current flow.
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "text/html; charset=utf-8");
-          res.end(
-            "<!doctype html><html><head><meta charset='utf-8'/></head>" +
-              "<body><h2>Session expired</h2>" +
-              "<p>This authorization link is from a previous attempt. " +
-              "Please go back to RivonClaw and click the login button again.</p></body></html>",
-          );
-          return;
-        }
-
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(
-          "<!doctype html><html><head><meta charset='utf-8'/></head>" +
-            "<body><h2>Gemini CLI OAuth complete</h2>" +
-            "<p>You can close this window and return to RivonClaw.</p></body></html>",
-        );
-
-        finish(undefined, { code, state });
-      } catch (err) {
-        finish(err instanceof Error ? err : new Error("OAuth callback failed"));
-      }
-    });
-
-    const finish = (err?: Error, result?: { code: string; state: string }) => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      try {
-        server.close();
-      } catch {
-        // ignore close errors
-      }
-      if (err) {
-        reject(err);
-      } else if (result) {
-        resolve(result);
-      }
-    };
-
-    server.once("error", (err) => {
-      finish(err instanceof Error ? err : new Error("OAuth callback server error"));
-    });
-
-    server.listen(port, hostname, () => {
-      params.onProgress?.(`Waiting for OAuth callback on ${REDIRECT_URI}…`);
-    });
-
-    timeout = setTimeout(() => {
-      finish(new DetailedError(
-        "OAuth login timed out. The browser did not redirect back. " +
-        "Check if a VPN/proxy (TUN mode) or firewall is blocking localhost:8085.",
-        `Waited ${params.timeoutMs / 1000}s for callback on ${hostname}:${port}`,
-      ));
-    }, params.timeoutMs);
+  const callback = await startGeminiLoopbackCallback({
+    expectedState: params.expectedState,
+    timeoutMs: params.timeoutMs,
+    onProgress: params.onProgress,
   });
+  return callback.waitForCallback.finally(() => callback.close());
 }
 
 export async function exchangeCodeForTokens(
   code: string,
   verifier: string,
   proxyUrl?: string,
+  redirectUri = REDIRECT_URI,
 ): Promise<GeminiCliOAuthCredentials> {
   const { clientId, clientSecret } = resolveOAuthClientConfig();
   const body = new URLSearchParams({
     client_id: clientId,
     code,
     grant_type: "authorization_code",
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     code_verifier: verifier,
   });
   if (clientSecret) {
@@ -581,10 +587,9 @@ export async function exchangeCodeForTokens(
   }
 
   const email = await getUserEmail(data.access_token, proxyUrl);
-  // discoverProject provisions a Google Cloud project for the Code Assist API.
-  // The vendor layer requires a valid projectId to make Gemini API calls, so
-  // this must succeed — do NOT silence errors here.
-  const projectId = await discoverProject(data.access_token, proxyUrl);
+  const projectId = shouldUseGeminiPersonalOAuth()
+    ? undefined
+    : await discoverProject(data.access_token, proxyUrl);
   const expiresAt = Date.now() + data.expires_in * 1000 - 5 * 60 * 1000;
 
   return {
@@ -594,6 +599,26 @@ export async function exchangeCodeForTokens(
     projectId,
     email,
   };
+}
+
+export async function startGeminiLoopbackCallback(params: {
+  expectedState: string;
+  timeoutMs?: number;
+  onProgress?: (message: string) => void;
+}) {
+  return startLoopbackOAuthCallback({
+    providerLabel: "Gemini CLI",
+    preferredPort: PREFERRED_CALLBACK_PORT,
+    callbackPath: CALLBACK_PATH,
+    expectedState: params.expectedState,
+    timeoutMs: params.timeoutMs ?? LOCAL_CALLBACK_TIMEOUT_MS,
+    onProgress: params.onProgress,
+    successTitle: "Gemini CLI OAuth Complete",
+    successBody: "You can close this window and return to RivonClaw.",
+    staleTitle: "Session Expired",
+    staleBody:
+      "This authorization link is from a previous attempt. Return to RivonClaw and click the login button again.",
+  });
 }
 
 async function getUserEmail(accessToken: string, proxyUrl?: string): Promise<string | undefined> {
@@ -815,15 +840,15 @@ export async function loginGeminiCliOAuth(
       : [
           "Browser will open for Google authentication.",
           "Sign in with your Google account for Gemini CLI access.",
-          "The callback will be captured automatically on localhost:8085.",
+          "The callback will be captured automatically on a local loopback port.",
         ].join("\n"),
     "Gemini CLI OAuth",
   );
 
   const { verifier, challenge } = generatePkce();
-  const authUrl = buildAuthUrl(challenge, verifier);
 
   if (needsManual) {
+    const authUrl = buildAuthUrl(challenge, verifier);
     ctx.progress.update("OAuth URL ready");
     ctx.log(`\nOpen this URL in your LOCAL browser:\n\n${authUrl}\n`);
     ctx.progress.update("Waiting for you to paste the callback URL...");
@@ -839,6 +864,12 @@ export async function loginGeminiCliOAuth(
     return exchangeCodeForTokens(parsed.code, verifier, ctx.proxyUrl);
   }
 
+  const callback = await startGeminiLoopbackCallback({
+    expectedState: verifier,
+    timeoutMs: LOCAL_CALLBACK_TIMEOUT_MS,
+    onProgress: (msg) => ctx.progress.update(msg),
+  });
+  const authUrl = buildAuthUrl(challenge, verifier, callback.redirectUri);
   ctx.progress.update("Complete sign-in in browser...");
   try {
     await ctx.openUrl(authUrl);
@@ -847,13 +878,9 @@ export async function loginGeminiCliOAuth(
   }
 
   try {
-    const { code } = await waitForLocalCallback({
-      expectedState: verifier,
-      timeoutMs: 5 * 60 * 1000,
-      onProgress: (msg) => ctx.progress.update(msg),
-    });
+    const { code } = await callback.waitForCallback;
     ctx.progress.update("Exchanging authorization code for tokens...");
-    return await exchangeCodeForTokens(code, verifier, ctx.proxyUrl);
+    return await exchangeCodeForTokens(code, verifier, ctx.proxyUrl, callback.redirectUri);
   } catch (err) {
     if (
       err instanceof Error &&
@@ -881,8 +908,10 @@ export async function loginGeminiCliOAuth(
         throw new Error("OAuth state mismatch - please try again", { cause: err });
       }
       ctx.progress.update("Exchanging authorization code for tokens...");
-      return exchangeCodeForTokens(parsed.code, verifier, ctx.proxyUrl);
+      return exchangeCodeForTokens(parsed.code, verifier, ctx.proxyUrl, callback.redirectUri);
     }
     throw err;
+  } finally {
+    callback.close();
   }
 }

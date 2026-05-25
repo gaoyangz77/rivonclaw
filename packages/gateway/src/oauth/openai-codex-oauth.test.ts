@@ -1,5 +1,6 @@
+import { createServer } from "node:http";
 import { describe, it, expect } from "vitest";
-import { extractCodexSubscriptionActiveUntilMs } from "./openai-codex-oauth.js";
+import { extractCodexSubscriptionActiveUntilMs, startHybridCodexOAuthFlow } from "./openai-codex-oauth.js";
 
 /**
  * Build a fake 3-segment JWT whose payload is the given object, base64url-encoded.
@@ -66,5 +67,47 @@ describe("extractCodexSubscriptionActiveUntilMs", () => {
 
   it("returns undefined for an invalid base64/JSON payload", () => {
     expect(extractCodexSubscriptionActiveUntilMs("aaa.###.zzz")).toBeUndefined();
+  });
+});
+
+describe("startHybridCodexOAuthFlow", () => {
+  it("uses the registered fallback redirect URI when 1455 is unavailable", async () => {
+    const blocker = createServer((_req, res) => res.end("busy"));
+    let blockerListening = false;
+    await new Promise<void>((resolve, reject) => {
+      blocker.once("listening", () => {
+        blockerListening = true;
+        resolve();
+      });
+      blocker.once("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "EADDRINUSE" || err.code === "EACCES") {
+          resolve();
+          return;
+        }
+        reject(err);
+      });
+      blocker.listen(1455, "127.0.0.1");
+    });
+
+    let openedUrl = "";
+    const flow = await startHybridCodexOAuthFlow({
+      openUrl: async (url) => {
+        openedUrl = url;
+      },
+    });
+
+    const redirectUri = new URL(openedUrl).searchParams.get("redirect_uri");
+    expect(redirectUri).toBeTruthy();
+    const redirect = new URL(redirectUri!);
+    expect(redirect.hostname).toBe("localhost");
+    expect(redirect.port).toBe("1457");
+    expect(redirect.pathname).toBe("/auth/callback");
+
+    flow.rejectManualInput(new Error("test cleanup"));
+    await expect(flow.completionPromise).rejects.toThrow("test cleanup");
+
+    if (blockerListening) {
+      await new Promise<void>((resolve) => blocker.close(() => resolve()));
+    }
   });
 });

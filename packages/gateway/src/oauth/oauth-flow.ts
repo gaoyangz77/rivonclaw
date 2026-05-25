@@ -9,7 +9,7 @@ import {
   buildAuthUrl,
   parseCallbackInput,
   exchangeCodeForTokens,
-  waitForLocalCallback,
+  startGeminiLoopbackCallback,
 } from "./gemini-cli-oauth.js";
 import type { GeminiCliOAuthCredentials } from "./gemini-cli-oauth.js";
 
@@ -99,22 +99,14 @@ export async function acquireGeminiOAuthToken(
 
 /**
  * Step 2: Validate a Gemini OAuth access token by calling Google's userinfo endpoint.
- * Also checks that a Google Cloud projectId was successfully provisioned — without it
- * the vendor Gemini provider will reject every request.
+ * Personal Gemini CLI OAuth credentials may not include a Google Cloud projectId.
  * Routes through the local proxy router which handles system proxy + per-key proxy.
  */
 export async function validateGeminiAccessToken(
   accessToken: string,
   proxyUrl?: string,
-  projectId?: string,
+  _projectId?: string,
 ): Promise<{ valid: boolean; error?: string }> {
-  if (!projectId) {
-    return {
-      valid: false,
-      error: "Google Cloud project was not provisioned. Please sign in again — if the problem persists, visit https://aistudio.google.com/ first to accept the Gemini terms of service, then retry.",
-    };
-  }
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
@@ -299,31 +291,37 @@ export async function startHybridGeminiOAuthFlow(
   }
 
   const { verifier, challenge } = generatePkce();
-  const authUrl = buildAuthUrl(challenge, verifier);
+  const callback = await startGeminiLoopbackCallback({
+    expectedState: verifier,
+    timeoutMs: 300_000,
+    onProgress: (msg) => callbacks.onStatusUpdate?.(msg),
+  });
+  const authUrl = buildAuthUrl(challenge, verifier, callback.redirectUri);
   log.info("Hybrid Gemini OAuth flow started, authUrl generated");
 
   let cancelFn = () => {};
-
-  // Start the local callback server in the background (best-effort)
   let settled = false;
 
   const completionPromise = new Promise<AcquiredOAuthCredentials>((resolve, reject) => {
     cancelFn = () => {
       if (settled) return;
       settled = true;
+      callback.close(new Error("Flow cancelled"));
       reject(new Error("Flow cancelled"));
     };
 
-    waitForLocalCallback({
-      expectedState: verifier,
-      timeoutMs: 300_000, // 5 minutes
-      onProgress: (msg) => callbacks.onStatusUpdate?.(msg),
-    })
+    callback.waitForCallback
       .then(async ({ code }) => {
         if (settled) return;
         log.info("Gemini hybrid OAuth: auto-callback received, exchanging code");
-        const creds = await exchangeCodeForTokens(code, verifier, callbacks.proxyUrl);
+        const creds = await exchangeCodeForTokens(
+          code,
+          verifier,
+          callbacks.proxyUrl,
+          callback.redirectUri,
+        );
         settled = true;
+        callback.close();
         resolve({
           credentials: creds,
           email: creds.email,
@@ -332,16 +330,10 @@ export async function startHybridGeminiOAuthFlow(
       })
       .catch((err) => {
         if (settled) return;
-        // EADDRINUSE or timeout — not fatal, manual paste still works
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("EADDRINUSE") || msg.includes("EACCES")) {
-          log.warn(`Gemini callback server failed (${msg}), manual paste still available`);
-          // Don't reject — leave promise pending so manual path can work
-        } else {
-          settled = true;
-          log.error("Gemini hybrid OAuth auto-callback failed:", msg);
-          reject(err);
-        }
+        settled = true;
+        log.error("Gemini hybrid OAuth auto-callback failed:", msg);
+        reject(err);
       });
   });
 
@@ -377,7 +369,12 @@ export async function completeManualOAuthFlow(
     codePrefix: parsed.code.slice(0, 12) + "…",
     verifierPrefix: effectiveVerifier.slice(0, 12) + "…",
   });
-  const creds = await exchangeCodeForTokens(parsed.code, effectiveVerifier, proxyUrl);
+  const creds = await exchangeCodeForTokens(
+    parsed.code,
+    effectiveVerifier,
+    proxyUrl,
+    getRedirectUriFromCallbackInput(callbackUrl),
+  );
   log.info(`Manual OAuth complete, email=${creds.email ?? "(none)"}`);
 
   return {
@@ -385,6 +382,18 @@ export async function completeManualOAuthFlow(
     email: creds.email,
     tokenPreview: maskToken(creds.access ?? ""),
   };
+}
+
+function getRedirectUriFromCallbackInput(input: string): string | undefined {
+  try {
+    const url = new URL(input.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return undefined;
+    }
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

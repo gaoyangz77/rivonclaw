@@ -1,13 +1,28 @@
-import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
 import { decodeJwtPayload, type ProviderKeyEntry } from "@rivonclaw/core";
 import type { OAuthFlowCallbacks, OAuthFlowResult } from "./oauth-flow.js";
-import { resolveVendorDir } from "../vendor/vendor.js";
+import { startLoopbackOAuthCallback } from "./loopback-oauth.js";
 
 const log = createLogger("gateway:openai-codex-oauth");
+
+const CODEX_CALLBACK_PATH = "/auth/callback";
+const CODEX_PREFERRED_CALLBACK_PORT = 1455;
+const CODEX_FALLBACK_CALLBACK_PORT = 1457;
+const CODEX_LOCAL_CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
+// OpenAI registers this Codex client against literal localhost callback ports.
+// Do not change it to 127.0.0.1 or an arbitrary dynamic port; Hydra rejects the authorize request.
+function codexRedirectUriForPort(port: number): string {
+  return `http://localhost:${port}${CODEX_CALLBACK_PATH}`;
+}
+const OPENAI_AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize";
+const OPENAI_TOKEN_URL = "https://auth.openai.com/oauth/token";
+// Copied from pi-ai's openai-codex OAuth module. If OpenAI rotates this client
+// id, the authorization-code and refresh-token exchanges will start returning
+// invalid_client; the fix is to re-sync this constant from `@mariozechner/pi-ai`.
+const OPENAI_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
+const OPENAI_CODEX_SCOPE = "openid profile email offline_access";
+const OPENAI_AUTH_CLAIM_PATH = "https://api.openai.com/auth";
 
 export interface OpenAICodexOAuthCredentials {
   access: string;
@@ -30,46 +45,113 @@ function maskToken(token: string): string {
   return token.slice(0, 10) + "••••••••";
 }
 
-/** loginOpenAICodex function signature from pi-ai. */
-type LoginFn = (options: {
-  onAuth: (info: { url: string; instructions: string }) => void;
-  onProgress?: (msg: string) => void;
-  onPrompt?: (opts: { message: string }) => Promise<string>;
-  onManualCodeInput?: () => Promise<string>;
+function generatePkce(): { verifier: string; challenge: string } {
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { verifier, challenge };
+}
+
+function buildCodexAuthUrl(params: {
+  challenge: string;
+  state: string;
+  redirectUri: string;
   originator?: string;
-}) => Promise<OpenAICodexOAuthCredentials>;
+}): string {
+  const url = new URL(OPENAI_AUTHORIZE_URL);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", OPENAI_CLIENT_ID);
+  url.searchParams.set("redirect_uri", params.redirectUri);
+  url.searchParams.set("scope", OPENAI_CODEX_SCOPE);
+  url.searchParams.set("code_challenge", params.challenge);
+  url.searchParams.set("code_challenge_method", "S256");
+  url.searchParams.set("state", params.state);
+  url.searchParams.set("id_token_add_organizations", "true");
+  url.searchParams.set("codex_cli_simplified_flow", "true");
+  url.searchParams.set("originator", params.originator ?? "openclaw");
+  return url.toString();
+}
 
-/**
- * Resolve and load loginOpenAICodex from the extracted vendor helper.
- * Falls back to the upstream pi-ai subpath in dev if the extracted file
- * has not been generated yet.
- */
-async function loadLoginOpenAICodex(vendorDir?: string): Promise<LoginFn> {
-  const vendor = resolveVendorDir(vendorDir);
-  const extractedHelperPath = join(vendor, "dist", "vendor-codex-oauth.js");
-  const fallbackHelperPath = join(
-    vendor,
-    "node_modules",
-    "@mariozechner",
-    "pi-ai",
-    "dist",
-    "utils",
-    "oauth",
-    "openai-codex.js",
-  );
-  const helperPath = existsSync(extractedHelperPath) ? extractedHelperPath : fallbackHelperPath;
-
+function parseAuthorizationInput(input: string): { code?: string; state?: string } {
+  const value = input.trim();
+  if (!value) return {};
   try {
-    const mod = (await import(pathToFileURL(helperPath).href)) as { loginOpenAICodex?: LoginFn };
-    if (typeof mod.loginOpenAICodex !== "function") {
-      throw new Error("loginOpenAICodex not exported from helper");
-    }
-    return mod.loginOpenAICodex;
-  } catch (err) {
-    throw new Error(
-      `OpenAI Codex OAuth helper is unavailable in vendor/openclaw. ${err instanceof Error ? err.message : String(err)}`,
-    );
+    const url = new URL(value);
+    return {
+      code: url.searchParams.get("code") ?? undefined,
+      state: url.searchParams.get("state") ?? undefined,
+    };
+  } catch {
+    // Not a URL; fall through to code-only formats.
   }
+  if (value.includes("#")) {
+    const [code, state] = value.split("#", 2);
+    return { code, state };
+  }
+  if (value.includes("code=")) {
+    const params = new URLSearchParams(value);
+    return {
+      code: params.get("code") ?? undefined,
+      state: params.get("state") ?? undefined,
+    };
+  }
+  return { code: value };
+}
+
+async function exchangeCodexAuthorizationCode(params: {
+  code: string;
+  verifier: string;
+  redirectUri: string;
+  proxyUrl?: string;
+}): Promise<OpenAICodexOAuthCredentials> {
+  let dispatcher: any;
+  if (params.proxyUrl) {
+    const { ProxyAgent } = await import("undici");
+    dispatcher = new ProxyAgent(params.proxyUrl);
+  }
+
+  const res = await fetch(OPENAI_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: OPENAI_CLIENT_ID,
+      code: params.code,
+      code_verifier: params.verifier,
+      redirect_uri: params.redirectUri,
+    }),
+    ...(dispatcher && { dispatcher }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`OpenAI Codex token exchange failed (${res.status}): ${body.slice(0, 200)}`);
+  }
+  const body = (await res.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+  };
+  if (
+    typeof body.access_token !== "string" ||
+    typeof body.refresh_token !== "string" ||
+    typeof body.expires_in !== "number"
+  ) {
+    throw new Error("OpenAI Codex token response missing required fields");
+  }
+  const payload = decodeJwtPayload(body.access_token);
+  const auth = payload?.[OPENAI_AUTH_CLAIM_PATH];
+  const accountId =
+    auth && typeof auth === "object"
+      ? (auth as Record<string, unknown>).chatgpt_account_id
+      : undefined;
+  if (typeof accountId !== "string" || !accountId) {
+    throw new Error("Failed to extract accountId from OpenAI Codex token");
+  }
+  return {
+    access: body.access_token,
+    refresh: body.refresh_token,
+    expires: Date.now() + body.expires_in * 1000,
+    accountId,
+  };
 }
 
 /**
@@ -83,27 +165,8 @@ export async function acquireCodexOAuthToken(
 ): Promise<AcquiredCodexOAuthCredentials> {
   log.info("Starting OpenAI Codex OAuth flow (acquire only)");
 
-  const loginOpenAICodex = await loadLoginOpenAICodex(vendorDir);
-
-  const creds = await loginOpenAICodex({
-    onAuth: (info) => {
-      log.info("OpenAI Codex OAuth: opening browser for auth");
-      callbacks.openUrl(info.url);
-      callbacks.onStatusUpdate?.(info.instructions || "Complete sign-in in browser…");
-    },
-    onProgress: (msg) => {
-      log.info(`OAuth: ${msg}`);
-      callbacks.onStatusUpdate?.(msg);
-    },
-  });
-
-  log.info(`OpenAI Codex OAuth acquire complete, accountId=${creds.accountId}`);
-
-  return {
-    credentials: creds,
-    email: undefined, // Codex OAuth doesn't return email
-    tokenPreview: maskToken(creds.access ?? ""),
-  };
+  const flow = await startHybridCodexOAuthFlow(callbacks, vendorDir);
+  return await flow.completionPromise;
 }
 
 export interface HybridCodexOAuthFlow {
@@ -115,23 +178,50 @@ export interface HybridCodexOAuthFlow {
   rejectManualInput: (err: Error) => void;
   /** Resolves with acquired credentials when either auto or manual flow completes. */
   completionPromise: Promise<AcquiredCodexOAuthCredentials>;
+  /** Cancel the local callback server and pending completion promise. */
+  cancel: () => void;
 }
 
 export async function startHybridCodexOAuthFlow(
   callbacks: OAuthFlowCallbacks,
-  vendorDir?: string,
+  _vendorDir?: string,
 ): Promise<HybridCodexOAuthFlow> {
   log.info("Starting hybrid OpenAI Codex OAuth flow");
 
-  const loginOpenAICodex = await loadLoginOpenAICodex(vendorDir);
-
-  // Deferred for the auth URL (resolved by onAuth callback)
-  let resolveAuthUrl: (url: string) => void;
-  let rejectAuthUrl: (err: Error) => void;
-  const authUrlPromise = new Promise<string>((resolve, reject) => {
-    resolveAuthUrl = resolve;
-    rejectAuthUrl = reject;
+  const { verifier, challenge } = generatePkce();
+  const state = randomBytes(16).toString("hex");
+  let callbackServer: Awaited<ReturnType<typeof startLoopbackOAuthCallback>> | undefined;
+  try {
+    callbackServer = await startLoopbackOAuthCallback({
+      providerLabel: "OpenAI Codex",
+      preferredPort: CODEX_PREFERRED_CALLBACK_PORT,
+      fallbackPorts: [CODEX_FALLBACK_CALLBACK_PORT],
+      callbackPath: CODEX_CALLBACK_PATH,
+      expectedState: state,
+      timeoutMs: CODEX_LOCAL_CALLBACK_TIMEOUT_MS,
+      allowEphemeralPort: false,
+      onProgress: (message) => log.info(message),
+      successTitle: "Authentication Complete",
+      successBody: "You can close this window.",
+      staleTitle: "OAuth Error",
+      staleBody: "State mismatch. Return to the app and retry sign-in.",
+    });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "EADDRINUSE" && code !== "EACCES") {
+      throw err;
+    }
+    log.warn(
+      `Codex callback port ${CODEX_PREFERRED_CALLBACK_PORT} unavailable (${code}); ` +
+        "continuing with manual callback URL paste",
+    );
+  }
+  const authUrl = buildCodexAuthUrl({
+    challenge,
+    state,
+    redirectUri: codexRedirectUriForPort(callbackServer?.port ?? CODEX_PREFERRED_CALLBACK_PORT),
   });
+  const redirectUri = codexRedirectUriForPort(callbackServer?.port ?? CODEX_PREFERRED_CALLBACK_PORT);
 
   // Deferred for manual code input (resolved externally when user pastes callback URL)
   let resolveManualInput: (url: string) => void;
@@ -141,51 +231,70 @@ export async function startHybridCodexOAuthFlow(
     rejectManualInput = reject;
   });
 
-  // Start the vendor OAuth flow in the background
-  const completionPromise = loginOpenAICodex({
-    onAuth: (info) => {
-      log.info("Codex hybrid OAuth: auth URL received");
-      callbacks.openUrl(info.url);
-      callbacks.onStatusUpdate?.(info.instructions || "Complete sign-in in browser…");
-      resolveAuthUrl!(info.url);
-    },
-    onProgress: (msg) => {
-      log.info(`OAuth: ${msg}`);
-      callbacks.onStatusUpdate?.(msg);
-    },
-    onPrompt: async () => {
-      // Fallback prompt — should not be reached in hybrid mode since onManualCodeInput is provided
-      log.warn("Codex OAuth: onPrompt called unexpectedly in hybrid mode");
-      return manualInputPromise;
-    },
-    onManualCodeInput: () => manualInputPromise,
-  }).then((creds) => {
+  callbacks.onStatusUpdate?.(
+    callbackServer
+      ? callbackServer.usedPreferredPort
+        ? "Complete sign-in in browser..."
+        : `Callback port ${CODEX_PREFERRED_CALLBACK_PORT} is busy; using ${CODEX_FALLBACK_CALLBACK_PORT} instead.`
+      : `Callback ports ${CODEX_PREFERRED_CALLBACK_PORT} and ${CODEX_FALLBACK_CALLBACK_PORT} are busy. Complete sign-in in browser, then paste the callback URL manually.`,
+  );
+  try {
+    await callbacks.openUrl(authUrl);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log.warn(`Codex OAuth browser open failed; returning auth URL for manual opening: ${msg}`);
+    callbacks.onStatusUpdate?.("Open the authorization URL manually to continue sign-in.");
+  }
+
+  const exchange = async (code: string) =>
+    exchangeCodexAuthorizationCode({
+      code,
+      verifier,
+      redirectUri,
+      proxyUrl: callbacks.proxyUrl,
+    });
+
+  const autoCompletion = callbackServer
+    ? callbackServer.waitForCallback.then(async ({ code }) => {
+        log.info(`Codex OAuth callback received on ${callbackServer.redirectUri}`);
+        return exchange(code);
+      })
+    : new Promise<OpenAICodexOAuthCredentials>(() => {});
+  const manualCompletion = manualInputPromise.then(async (input) => {
+    const parsed = parseAuthorizationInput(input);
+    if (parsed.state && parsed.state !== state) {
+      throw new Error("State mismatch");
+    }
+    if (!parsed.code) {
+      throw new Error("Missing authorization code");
+    }
+    return exchange(parsed.code);
+  });
+  autoCompletion.catch(() => {});
+  manualCompletion.catch(() => {});
+
+  let completed = false;
+  const completionPromise = Promise.race([autoCompletion, manualCompletion]).then((creds) => {
+    completed = true;
     log.info(`Codex hybrid OAuth complete, accountId=${creds.accountId}`);
     return {
       credentials: creds,
       email: undefined,
       tokenPreview: maskToken(creds.access ?? ""),
     } as AcquiredCodexOAuthCredentials;
-  });
-
-  // If the vendor flow fails before calling onAuth, reject the auth URL promise
-  completionPromise.catch((err) => {
-    rejectAuthUrl!(err instanceof Error ? err : new Error(String(err)));
-  });
-
-  // Wait for the auth URL to be available before returning
-  let authUrl: string;
-  try {
-    authUrl = await authUrlPromise;
-  } catch (err) {
-    throw err instanceof Error ? err : new Error(`Failed to start Codex OAuth: ${err}`);
-  }
+  }).finally(() => callbackServer?.close());
 
   return {
     authUrl,
     resolveManualInput: resolveManualInput!,
     rejectManualInput: rejectManualInput!,
     completionPromise,
+    cancel: () => {
+      if (!completed) {
+        rejectManualInput!(new Error("Flow cancelled"));
+      }
+      callbackServer?.close(new Error("Flow cancelled"));
+    },
   };
 }
 
@@ -236,12 +345,6 @@ export async function validateCodexAccessToken(
     clearTimeout(timeout);
   }
 }
-
-const OPENAI_TOKEN_URL = "https://auth.openai.com/oauth/token";
-// Copied from pi-ai's openai-codex OAuth module. If pi-ai rotates this client
-// id, we'll start getting "invalid_client" on the id_token capture — the fix
-// is to re-sync this constant from `@mariozechner/pi-ai` dist.
-const OPENAI_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 
 const ID_TOKEN_CAPTURE_TIMEOUT_MS = 8000;
 
