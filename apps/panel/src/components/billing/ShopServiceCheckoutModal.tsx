@@ -44,6 +44,7 @@ function formatMoneyFromMajor(value: string | null | undefined, currency: string
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
+    currencyDisplay: "narrowSymbol",
     maximumFractionDigits: 2,
   }).format(amount);
 }
@@ -52,6 +53,7 @@ function formatMoneyFromMinor(amountMinor: number, currency: string): string {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
+    currencyDisplay: "narrowSymbol",
     maximumFractionDigits: 2,
   }).format(amountMinor / 100);
 }
