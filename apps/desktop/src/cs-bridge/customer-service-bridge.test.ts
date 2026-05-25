@@ -2951,6 +2951,65 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     }));
   });
 
+  it("cloud catch-up snapshots: Airflow retry-pending duplicate batch keeps existing runs", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockImplementation((method: string, params?: any) => {
+      if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
+      if (method === "chat.abort") return Promise.resolve({ aborted: true });
+      if (method === "cs_register_session") return Promise.resolve(true);
+      if (method === "sessions.patch") return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
+    });
+
+    const sessionA = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-airflow-a",
+      buyerUserId: "buyer-001",
+    });
+    const sessionB = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-airflow-b",
+      buyerUserId: "buyer-002",
+    });
+
+    await sessionA.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-airflow-a",
+      currentMessageCursor: { messageId: "msg-airflow-a", messageIndex: "1", createTime: 100 },
+      source: "AIRFLOW",
+      useMessageDelta: false,
+    });
+    await sessionB.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-airflow-b",
+      currentMessageCursor: { messageId: "msg-airflow-b", messageIndex: "1", createTime: 100 },
+      source: "AIRFLOW",
+      useMessageDelta: false,
+    });
+
+    await sessionA.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-airflow-a",
+      currentMessageCursor: { messageId: "msg-airflow-a", messageIndex: "1", createTime: 100 },
+      source: "AIRFLOW",
+      useMessageDelta: false,
+    });
+    await sessionB.dispatchCatchUp({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      currentMessageId: "msg-airflow-b",
+      currentMessageCursor: { messageId: "msg-airflow-b", messageIndex: "1", createTime: 100 },
+      source: "AIRFLOW",
+      useMessageDelta: false,
+    });
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
+    expect(agentCalls).toHaveLength(2);
+    expect(agentCalls.map((c: any[]) => c[1].idempotencyKey)).toEqual([
+      "cs-start:conv-airflow-a:msg-airflow-a",
+      "cs-start:conv-airflow-b:msg-airflow-b",
+    ]);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("chat.abort", expect.anything());
+  });
+
   it("cloud catch-up snapshots: newer buyer message wins while the older delta fetch is pending", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);

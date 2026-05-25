@@ -31,6 +31,10 @@ export class CSRound {
     return this.activeRunId !== null;
   }
 
+  getActiveRunId(): string | null {
+    return this.activeRunId;
+  }
+
   isCurrentRun(runId: string): boolean {
     return this.activeRunId === runId;
   }
