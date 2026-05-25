@@ -33,6 +33,8 @@ interface ShopServiceCheckoutModalProps {
   providerOptions?: readonly CheckoutProvider[];
   initialProvider?: CheckoutProvider;
   planLabel?: string;
+  priceNotice?: string;
+  priceNoticePlanIds?: readonly string[];
 }
 
 function formatMoneyFromMajor(value: string | null | undefined, currency: string): string {
@@ -86,6 +88,8 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
   providerOptions,
   initialProvider,
   planLabel,
+  priceNotice,
+  priceNoticePlanIds,
 }: ShopServiceCheckoutModalProps) {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
@@ -117,6 +121,10 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
   const checkoutNotice = !!targetScopeId && entityStore.checkoutScopeId === targetScopeId
     ? entityStore.checkoutNotice
     : null;
+  const showPriceNotice = !!priceNotice
+    && selectedProvider === "STRIPE"
+    && !!selectedPlan
+    && (!priceNoticePlanIds?.length || priceNoticePlanIds.includes(selectedPlan.planId));
   useEffect(() => {
     if (!isOpen) return;
     setSelectedShopId(initialShopId ?? firstShopId);
@@ -205,11 +213,14 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
           {selectedPlan && (
             <div className="service-checkout-summary">
               <div>
-                <span>{t("billing.subscriptionAmount")}</span>
+                <span>{showPriceNotice ? t("billing.monthlyPlanPrice") : t("billing.subscriptionAmount")}</span>
                 <strong>
                   {checkoutPriceLine(selectedPlan, selectedProvider)}
                   <small>/{t("subscription.month")}</small>
                 </strong>
+                {showPriceNotice && (
+                  <p>{priceNotice}</p>
+                )}
               </div>
             </div>
           )}

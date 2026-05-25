@@ -337,9 +337,10 @@ function EntitlementSummary({
     && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
   const canRenewOrResumeAccountPlan = !!subscription
     && (canResumeAccountSubscription || showRenewalReminder);
+  const upgradeAccountPlans = upgradeableAccountPlans(planDefinitions ?? [], accountLlm?.planId);
   const accountPlans = [
     ...(canRenewOrResumeAccountPlan && currentAccountPlan ? [currentAccountPlan] : []),
-    ...upgradeableAccountPlans(planDefinitions ?? [], accountLlm?.planId),
+    ...upgradeAccountPlans,
   ].filter((plan, index, plans) => plans.findIndex((item) => item.planId === plan.planId) === index);
   const isHighestPlan = isHighestAccountPlan(accountLlm?.planId);
   const canCancelSubscription = !!subscription
@@ -513,6 +514,8 @@ function EntitlementSummary({
             providerOptions={checkoutProviderOptions}
             initialProvider={checkoutInitialProvider}
             planLabel={t("billing.chooseAccountPlan")}
+            priceNotice={t("billing.upgradeProrationHint")}
+            priceNoticePlanIds={upgradeAccountPlans.map((plan) => plan.planId)}
           />
           <AccountSubscriptionDetailModal
             isOpen={detailModalOpen}

@@ -6769,6 +6769,13 @@ tbody td {
   font-size: 12px;
 }
 
+.service-checkout-summary p {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .service-checkout-payment-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
