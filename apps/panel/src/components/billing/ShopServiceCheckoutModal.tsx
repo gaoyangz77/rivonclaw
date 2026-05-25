@@ -122,7 +122,6 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
     ? entityStore.checkoutNotice
     : null;
   const showPriceNotice = !!priceNotice
-    && selectedProvider === "STRIPE"
     && !!selectedPlan
     && (!priceNoticePlanIds?.length || priceNoticePlanIds.includes(selectedPlan.planId));
   useEffect(() => {
