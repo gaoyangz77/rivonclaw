@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
-import type { BillingOverview, BillingPlanDefinition, BillingUsageStatus } from "@rivonclaw/core/models";
+import type { BillingOverview, BillingPlanDefinition } from "@rivonclaw/core/models";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
   entitlementStatusLabel,
   findPlanDefinition,
+  sortUsageWindows,
   usagePercentLabel,
 } from "../../../components/billing/billing-labels.js";
 
@@ -14,20 +15,6 @@ interface AccountProfileCardProps {
   billingOverview: BillingOverview | null;
   planDefinitions: readonly BillingPlanDefinition[];
   onLogout: () => void;
-}
-
-const USAGE_WINDOW_ORDER: Record<string, number> = {
-  WEEK: 0,
-  FIVE_HOURS: 1,
-};
-
-function sortUsageWindows(usages: readonly BillingUsageStatus[]): BillingUsageStatus[] {
-  return [...usages].sort((left, right) => {
-    const leftOrder = USAGE_WINDOW_ORDER[left.window] ?? 10;
-    const rightOrder = USAGE_WINDOW_ORDER[right.window] ?? 10;
-    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
-    return left.window.localeCompare(right.window);
-  });
 }
 
 export function AccountProfileCard({

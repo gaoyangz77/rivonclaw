@@ -23,6 +23,7 @@ import {
   findPlanDefinition,
   isHighestAccountPlan,
   shouldShowRenewalReminder,
+  sortUsageWindows,
   upgradeableAccountPlans,
   type CheckoutProvider,
   usagePercentLabel,
@@ -114,7 +115,7 @@ function UsageList({ entitlement }: { entitlement: BillingEntitlementStatus | nu
 
   return (
     <div className="billing-usage-list">
-      {entitlement.usage.map((usage) => (
+      {sortUsageWindows(entitlement.usage).map((usage) => (
         <div key={`${usage.metric}:${usage.window}`} className="billing-usage-card">
           <div className="billing-usage-card-head">
             <span className="billing-usage-name">{billingEnumLabel(t, "usageMetric", usage.metric)}</span>
