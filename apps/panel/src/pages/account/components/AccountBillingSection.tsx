@@ -353,7 +353,7 @@ function EntitlementSummary({
     && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid
     && !!currentAccountPlan
     && !!accountScopeId;
-  const canOpenAccountPlanPicker = !isHighestPlan || canRenewOrResumeAccountPlan || !hasAccountSubscription;
+  const canOpenAccountPlanPicker = !isHighestPlan || canRenewOrResumeAccountPlan || canExtendPrepaid || !hasAccountSubscription;
 
   async function confirmCancelSubscription() {
     if (!entitlement) return;
