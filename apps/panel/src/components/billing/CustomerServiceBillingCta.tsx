@@ -6,16 +6,14 @@ import type { BillingEntitlementStatus, BillingPlanDefinition } from "@rivonclaw
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ConfirmDialog } from "../modals/ConfirmDialog.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
-import { resumeBillingSubscription } from "./start-billing-checkout.js";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
+  checkoutProviderFromBillingProvider,
   customerServicePlan,
   entitlementStatusLabel,
   shouldShowRenewalReminder,
 } from "./billing-labels.js";
-
-const LAKALA_ONLY = ["LAKALA"] as const;
 
 interface CustomerServiceBillingCtaProps {
   shopId: string;
@@ -58,9 +56,6 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [prepaidCheckout, setPrepaidCheckout] = useState(false);
-  const [resumePending, setResumePending] = useState(false);
-  const [resumeError, setResumeError] = useState<string | null>(null);
-  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
   const showRenewalReminder = shouldShowRenewalReminder(entitlement);
@@ -86,27 +81,6 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
       scopeId: entitlement.scopeId,
     });
     setCancelConfirmOpen(false);
-  }
-
-  async function resumeSubscription() {
-    if (!entitlement || !subscription) return;
-    setResumePending(true);
-    setResumeError(null);
-    setResumeNotice(null);
-    try {
-      const result = await resumeBillingSubscription({
-        entityStore,
-        t,
-        planId: subscription.planId,
-        scopeType: entitlement.scopeType,
-        scopeId: entitlement.scopeId,
-      });
-      if (result?.action) setResumeNotice(t(`billing.subscriptionStartAction.${result.action}`));
-    } catch (err) {
-      setResumeError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setResumePending(false);
-    }
   }
 
   async function managePaymentMethod() {
@@ -174,10 +148,13 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() => resumeSubscription().catch(() => {})}
-                  disabled={resumePending}
+                  onClick={() => {
+                    setPrepaidCheckout(true);
+                    setCheckoutModalOpen(true);
+                  }}
+                  disabled={!plan}
                 >
-                  {resumePending ? t("common.loading") : t("billing.resumeSubscription")}
+                  {t("billing.renewSubscription")}
                 </button>
               )}
               {canExtendPrepaid && (
@@ -197,7 +174,10 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() => setCheckoutModalOpen(true)}
+                  onClick={() => {
+                    setPrepaidCheckout(true);
+                    setCheckoutModalOpen(true);
+                  }}
                   disabled={!plan}
                 >
                   {t("billing.renewSubscription")}
@@ -224,12 +204,6 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
               )}
             </div>
           )}
-          {resumeError && (
-            <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: resumeError })}</div>
-          )}
-          {resumeNotice && (
-            <div className="info-box info-box-blue">{resumeNotice}</div>
-          )}
           {portalError && (
             <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: portalError })}</div>
           )}
@@ -241,8 +215,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
             shops={[{ shopId, shopName: shopName ?? shopId }]}
             initialShopId={shopId}
             initialPlanId={plan?.planId}
-            providerOptions={prepaidCheckout ? LAKALA_ONLY : undefined}
-            initialProvider={prepaidCheckout ? "LAKALA" : undefined}
+            initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
           />
         </div>
         <ConfirmDialog
@@ -298,8 +271,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
         shops={[{ shopId, shopName: shopName ?? shopId }]}
         initialShopId={shopId}
         initialPlanId={plan?.planId}
-        providerOptions={prepaidCheckout ? LAKALA_ONLY : undefined}
-        initialProvider={prepaidCheckout ? "LAKALA" : undefined}
+        initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
       />
     </>
   );

@@ -69,6 +69,10 @@ export function checkoutProviderLabelKey(provider: CheckoutProvider): string {
   return provider === "STRIPE" ? "billing.payByCard" : "billing.payByWechatAlipay";
 }
 
+export function checkoutProviderFromBillingProvider(provider?: string | null): CheckoutProvider | undefined {
+  return provider === "STRIPE" || provider === "LAKALA" ? provider : undefined;
+}
+
 export function shouldShowRenewalReminder(
   entitlement: BillingEntitlementStatus | null,
   thresholdDays = 5,

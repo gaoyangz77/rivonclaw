@@ -1476,6 +1476,7 @@ export default {
     extendPrepaid: "续费",
     extendPrepaidTitle: "续费",
     extendPrepaidMessage: "使用微信或支付宝付款，会在 {{date}} 之后延长服务访问时间。",
+    renewSubscriptionMessage: "选择付款方式续费。信用卡会恢复或开启自动续订，微信 / 支付宝会以预付费方式延长服务。",
     resumeSubscription: "恢复自动续费",
     resumeSubscriptionTitle: "恢复自动续费",
     resumeSubscriptionMessage: "恢复后会取消原定的到期退订，服务保持生效，并在 {{date}} 后继续续费。",

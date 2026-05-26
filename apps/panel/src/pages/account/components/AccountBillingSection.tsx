@@ -13,12 +13,12 @@ import type {
 } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { ShopServiceCheckoutModal } from "../../../components/billing/ShopServiceCheckoutModal.js";
-import { resumeBillingSubscription } from "../../../components/billing/start-billing-checkout.js";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../../components/modals/Modal.js";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
+  checkoutProviderFromBillingProvider,
   entitlementStatusLabel,
   findPlanDefinition,
   isHighestAccountPlan,
@@ -35,8 +35,6 @@ interface AccountBillingSectionProps {
 }
 
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
-
-const LAKALA_ONLY: readonly CheckoutProvider[] = ["LAKALA"];
 
 interface ShopServiceBillingRow {
   shop: Shop;
@@ -158,7 +156,6 @@ function AccountSubscriptionDetailModal({
   onExtendPrepaid,
   onManagePaymentMethod,
   onCancelSubscription,
-  onResumeSubscription,
 }: {
   isOpen: boolean;
   title: string;
@@ -167,30 +164,11 @@ function AccountSubscriptionDetailModal({
   onExtendPrepaid?: () => void;
   onManagePaymentMethod?: () => Promise<void>;
   onCancelSubscription?: () => void;
-  onResumeSubscription?: () => Promise<string | null | undefined>;
 }) {
   const { t } = useTranslation();
   const subscription = entitlement?.subscription ?? null;
-  const [resumePending, setResumePending] = useState(false);
-  const [resumeError, setResumeError] = useState<string | null>(null);
-  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
-
-  async function handleResumeSubscription() {
-    if (!onResumeSubscription) return;
-    setResumePending(true);
-    setResumeError(null);
-    setResumeNotice(null);
-    try {
-      const action = await onResumeSubscription();
-      if (action) setResumeNotice(t(`billing.subscriptionStartAction.${action}`));
-    } catch (err) {
-      setResumeError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setResumePending(false);
-    }
-  }
 
   async function handleManagePaymentMethod() {
     if (!onManagePaymentMethod) return;
@@ -226,35 +204,11 @@ function AccountSubscriptionDetailModal({
         {(subscription?.cancelAtPeriodEnd || subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
           <div className="billing-renewal-warning">{t("billing.cancelAtPeriodEnd")}</div>
         )}
-        {onResumeSubscription && (
-          <div className="billing-action-zone">
-            <div>
-              <strong>{t("billing.resumeSubscriptionTitle")}</strong>
-              <span>{t("billing.resumeSubscriptionMessage", {
-                date: formatDateTime(subscription?.currentPeriodEnd),
-              })}</span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => handleResumeSubscription().catch(() => {})}
-              disabled={resumePending}
-            >
-              {resumePending ? t("common.loading") : t("billing.resumeSubscription")}
-            </button>
-          </div>
-        )}
-        {resumeError && (
-          <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: resumeError })}</div>
-        )}
-        {resumeNotice && (
-          <div className="info-box info-box-blue">{resumeNotice}</div>
-        )}
         {onExtendPrepaid && (
           <div className="billing-action-zone">
             <div>
               <strong>{t("billing.extendPrepaidTitle")}</strong>
-              <span>{t("billing.extendPrepaidMessage", {
+              <span>{t("billing.renewSubscriptionMessage", {
                 date: formatDateTime(subscription?.currentPeriodEnd),
               })}</span>
             </div>
@@ -325,11 +279,8 @@ function EntitlementSummary({
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<readonly CheckoutProvider[] | undefined>(undefined);
   const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<CheckoutProvider | undefined>(undefined);
-  const [resumePending, setResumePending] = useState(false);
-  const [resumeError, setResumeError] = useState<string | null>(null);
-  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
+  const [checkoutIsRenewal, setCheckoutIsRenewal] = useState(false);
   const accountScopeId = entitlement?.scopeId || entityStore.currentUser?.userId || null;
   const hasAccountSubscription = !!subscription;
   const showRenewalReminder = shouldShowRenewalReminder(entitlement);
@@ -366,32 +317,6 @@ function EntitlementSummary({
     setDetailModalOpen(false);
   }
 
-  async function resumeAccountSubscription() {
-    if (!entitlement || !subscription || !accountScopeId) return null;
-    const result = await resumeBillingSubscription({
-      entityStore,
-      t,
-      planId: subscription.planId,
-      scopeType: entitlement.scopeType,
-      scopeId: accountScopeId,
-    });
-    return result?.action ?? null;
-  }
-
-  async function resumeAccountSubscriptionFromSummary() {
-    setResumePending(true);
-    setResumeError(null);
-    setResumeNotice(null);
-    try {
-      const action = await resumeAccountSubscription();
-      if (action) setResumeNotice(t(`billing.subscriptionStartAction.${action}`));
-    } catch (err) {
-      setResumeError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setResumePending(false);
-    }
-  }
-
   async function manageAccountPaymentMethod() {
     if (!entitlement || !accountScopeId) return;
     const url = await entityStore.createStripeBillingPortalSession({
@@ -403,9 +328,9 @@ function EntitlementSummary({
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  function openAccountCheckout(options?: { prepaidOnly?: boolean }) {
-    setCheckoutProviderOptions(options?.prepaidOnly ? LAKALA_ONLY : undefined);
-    setCheckoutInitialProvider(options?.prepaidOnly ? "LAKALA" : undefined);
+  function openAccountCheckout(options?: { renewal?: boolean; preferredProvider?: CheckoutProvider }) {
+    setCheckoutIsRenewal(!!options?.renewal);
+    setCheckoutInitialProvider(options?.preferredProvider);
     setCheckoutModalOpen(true);
   }
 
@@ -466,23 +391,27 @@ function EntitlementSummary({
               className="btn btn-primary"
               onClick={() => {
                 if (canResumeAccountSubscription) {
-                  resumeAccountSubscriptionFromSummary().catch(() => {});
+                  openAccountCheckout({
+                    renewal: true,
+                    preferredProvider: checkoutProviderFromBillingProvider(subscription?.provider),
+                  });
                   return;
                 }
                 if (canExtendPrepaid) {
-                  openAccountCheckout({ prepaidOnly: true });
+                  openAccountCheckout({
+                    renewal: true,
+                    preferredProvider: checkoutProviderFromBillingProvider(subscription?.provider),
+                  });
                   return;
                 }
                 openAccountCheckout();
               }}
-              disabled={!accountScopeId || resumePending}
+              disabled={!accountScopeId}
             >
-              {resumePending
-                ? t("common.loading")
-                : !hasAccountSubscription
+              {!hasAccountSubscription
                 ? t("billing.subscribeAccountPlan")
                 : canResumeAccountSubscription
-                  ? t("billing.resumeSubscription")
+                  ? t("billing.renewSubscription")
                   : canExtendPrepaid
                     ? t("billing.extendPrepaid")
                   : canRenewOrResumeAccountPlan && isHighestPlan
@@ -492,28 +421,21 @@ function EntitlementSummary({
           )}
         </div>
       )}
-      {resumeError && (
-        <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: resumeError })}</div>
-      )}
-      {resumeNotice && (
-        <div className="info-box info-box-blue">{resumeNotice}</div>
-      )}
       {accountLlm && (
         <>
           <ShopServiceCheckoutModal
             isOpen={checkoutModalOpen}
             onClose={() => setCheckoutModalOpen(false)}
-            title={checkoutInitialProvider === "LAKALA" ? t("billing.extendPrepaidTitle") : hasAccountSubscription ? t("billing.changeAccountPlan") : t("billing.subscribeAccountPlan")}
-            plans={checkoutProviderOptions?.length === 1 && checkoutInitialProvider === "LAKALA" && currentAccountPlan
+            title={checkoutIsRenewal ? t("billing.extendPrepaidTitle") : hasAccountSubscription ? t("billing.changeAccountPlan") : t("billing.subscribeAccountPlan")}
+            plans={checkoutIsRenewal && currentAccountPlan
               ? [currentAccountPlan]
               : accountPlans}
             shops={[]}
             scopeType={GQL.BillingScopeType.Account}
             scopeId={accountScopeId}
-            initialPlanId={checkoutProviderOptions?.length === 1 && checkoutInitialProvider === "LAKALA" && currentAccountPlan
+            initialPlanId={checkoutIsRenewal && currentAccountPlan
               ? currentAccountPlan.planId
               : accountPlans[0]?.planId}
-            providerOptions={checkoutProviderOptions}
             initialProvider={checkoutInitialProvider}
             planLabel={t("billing.chooseAccountPlan")}
             priceNotice={t("billing.upgradeProrationHint")}
@@ -524,13 +446,15 @@ function EntitlementSummary({
             title={title}
             entitlement={entitlement}
             onClose={() => setDetailModalOpen(false)}
-            onExtendPrepaid={canExtendPrepaid ? () => {
-              setDetailModalOpen(false);
-              openAccountCheckout({ prepaidOnly: true });
-            } : undefined}
             onManagePaymentMethod={canManagePaymentMethod ? manageAccountPaymentMethod : undefined}
             onCancelSubscription={canCancelSubscription ? () => setCancelConfirmOpen(true) : undefined}
-            onResumeSubscription={canResumeAccountSubscription ? resumeAccountSubscription : undefined}
+            onExtendPrepaid={canExtendPrepaid || canResumeAccountSubscription ? () => {
+              setDetailModalOpen(false);
+              openAccountCheckout({
+                renewal: true,
+                preferredProvider: checkoutProviderFromBillingProvider(subscription?.provider),
+              });
+            } : undefined}
           />
           <ConfirmDialog
             isOpen={cancelConfirmOpen}
@@ -558,7 +482,6 @@ function ShopServiceDetailModal({
   onExtendPrepaid,
   onManagePaymentMethod,
   onCancelSubscription,
-  onResumeSubscription,
 }: {
   row: ShopServiceBillingRow;
   serviceKey: ShopServiceKey | null;
@@ -566,7 +489,6 @@ function ShopServiceDetailModal({
   onExtendPrepaid?: (serviceKey: ShopServiceKey, entitlement: BillingEntitlementStatus) => void;
   onManagePaymentMethod?: (entitlement: BillingEntitlementStatus) => Promise<void>;
   onCancelSubscription?: (entitlement: BillingEntitlementStatus) => void;
-  onResumeSubscription?: (entitlement: BillingEntitlementStatus) => Promise<string | null | undefined>;
 }) {
   const { t } = useTranslation();
   const entitlement = serviceKey ? row.billing?.[serviceKey] ?? null : null;
@@ -583,29 +505,11 @@ function ShopServiceDetailModal({
     && !!subscription
     && subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid
     && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
-  const [resumePending, setResumePending] = useState(false);
-  const [resumeError, setResumeError] = useState<string | null>(null);
-  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
   const title = serviceKey
     ? `${shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName)} · ${t(`billing.services.${serviceKey}`)}`
     : t("billing.shopServices");
-
-  async function handleResumeSubscription() {
-    if (!entitlement || !onResumeSubscription) return;
-    setResumePending(true);
-    setResumeError(null);
-    setResumeNotice(null);
-    try {
-      const action = await onResumeSubscription(entitlement);
-      if (action) setResumeNotice(t(`billing.subscriptionStartAction.${action}`));
-    } catch (err) {
-      setResumeError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setResumePending(false);
-    }
-  }
 
   async function handleManagePaymentMethod() {
     if (!entitlement || !onManagePaymentMethod) return;
@@ -642,35 +546,11 @@ function ShopServiceDetailModal({
         {(subscription?.cancelAtPeriodEnd || subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
           <div className="billing-renewal-warning">{t("billing.cancelAtPeriodEnd")}</div>
         )}
-        {canResumeSubscription && onResumeSubscription && (
-          <div className="billing-action-zone">
-            <div>
-              <strong>{t("billing.resumeSubscriptionTitle")}</strong>
-              <span>{t("billing.resumeSubscriptionMessage", {
-                date: formatDateTime(subscription.currentPeriodEnd),
-              })}</span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => handleResumeSubscription().catch(() => {})}
-              disabled={resumePending}
-            >
-              {resumePending ? t("common.loading") : t("billing.resumeSubscription")}
-            </button>
-          </div>
-        )}
-        {resumeError && (
-          <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: resumeError })}</div>
-        )}
-        {resumeNotice && (
-          <div className="info-box info-box-blue">{resumeNotice}</div>
-        )}
-        {canExtendPrepaid && serviceKey && entitlement && onExtendPrepaid && (
+        {(canExtendPrepaid || canResumeSubscription) && serviceKey && entitlement && onExtendPrepaid && (
           <div className="billing-action-zone">
             <div>
               <strong>{t("billing.extendPrepaidTitle")}</strong>
-              <span>{t("billing.extendPrepaidMessage", {
+              <span>{t("billing.renewSubscriptionMessage", {
                 date: formatDateTime(subscription.currentPeriodEnd),
               })}</span>
             </div>
@@ -738,6 +618,7 @@ function ShopServiceRow({
   const [checkoutServiceKey, setCheckoutServiceKey] = useState<ShopServiceKey | null>(null);
   const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<readonly CheckoutProvider[] | undefined>(undefined);
   const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<CheckoutProvider | undefined>(undefined);
+  const [checkoutIsRenewal, setCheckoutIsRenewal] = useState(false);
   const serviceKeys = enabledShopServiceKeys(row.shop);
 
   async function confirmCancelService() {
@@ -749,19 +630,6 @@ function ShopServiceRow({
     });
     setCancelTarget(null);
     setDetailServiceKey(null);
-  }
-
-  async function resumeServiceSubscription(target: BillingEntitlementStatus) {
-    const subscription = target.subscription;
-    if (!subscription) return null;
-    const result = await resumeBillingSubscription({
-      entityStore,
-      t,
-      planId: subscription.planId,
-      scopeType: target.scopeType,
-      scopeId: target.scopeId,
-    });
-    return result?.action ?? null;
   }
 
   async function manageServicePaymentMethod(target: BillingEntitlementStatus) {
@@ -784,6 +652,7 @@ function ShopServiceRow({
       return;
     }
     if (servicePlans(key).length) {
+      setCheckoutIsRenewal(false);
       setCheckoutProviderOptions(undefined);
       setCheckoutInitialProvider(undefined);
       setCheckoutServiceKey(key);
@@ -794,8 +663,9 @@ function ShopServiceRow({
 
   function openPrepaidExtension(key: ShopServiceKey) {
     setDetailServiceKey(null);
-    setCheckoutProviderOptions(LAKALA_ONLY);
-    setCheckoutInitialProvider("LAKALA");
+    setCheckoutIsRenewal(true);
+    setCheckoutProviderOptions(undefined);
+    setCheckoutInitialProvider(checkoutProviderFromBillingProvider(row.billing?.[key]?.subscription?.provider));
     setCheckoutServiceKey(key);
   }
 
@@ -859,12 +729,11 @@ function ShopServiceRow({
         onExtendPrepaid={(key) => openPrepaidExtension(key)}
         onManagePaymentMethod={manageServicePaymentMethod}
         onCancelSubscription={(target) => setCancelTarget(target)}
-        onResumeSubscription={resumeServiceSubscription}
       />
       <ShopServiceCheckoutModal
         isOpen={checkoutServiceKey !== null}
         onClose={() => setCheckoutServiceKey(null)}
-        title={checkoutInitialProvider === "LAKALA" ? t("billing.extendPrepaidTitle") : checkoutServiceKey ? t(`billing.subscribeService.${checkoutServiceKey}`) : t("billing.subscribeShopServices")}
+        title={checkoutIsRenewal ? t("billing.extendPrepaidTitle") : checkoutServiceKey ? t(`billing.subscribeService.${checkoutServiceKey}`) : t("billing.subscribeShopServices")}
         plans={checkoutPlans}
         shops={[{
           shopId: row.shop.id,
