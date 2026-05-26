@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.16",
+    "date": "2026-05-25",
+    "en": [
+      "Add billing renewal and plan-switch flows so subscriptions and prepaid MAX plans can be renewed more flexibly in the desktop app",
+      "Improve account and provider management with clearer renewal UI, smoother desktop OAuth recovery, and more reliable cloud key syncing",
+      "Harden customer-service and Windows runtime behavior with safer retry snapshots, better billing state handling, and a fix for plugin skill linking on Windows"
+    ],
+    "zh": [
+      "新增订阅续费与套餐切换流程，桌面端现在可以更灵活地处理订阅和预付费 MAX 套餐续费",
+      "优化账号与服务商管理，补强续费界面、桌面端 OAuth 恢复流程，以及云端密钥同步稳定性",
+      "继续加固客服与 Windows 运行稳定性，修复重试快照、账单状态处理，以及 Windows 插件技能链接问题"
+    ]
+  },
+  {
     "version": "1.8.15",
     "date": "2026-05-23",
     "en": [
