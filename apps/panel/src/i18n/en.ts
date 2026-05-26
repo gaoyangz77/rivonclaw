@@ -1476,6 +1476,7 @@ export default {
     extendPrepaid: "Renew",
     extendPrepaidTitle: "Renew",
     extendPrepaidMessage: "Pay with WeChat Pay or Alipay to extend service access after {{date}}.",
+    renewSubscriptionMessage: "Choose a payment method to renew. Credit card restores or starts auto-renewal; WeChat Pay / Alipay extends service as prepaid access.",
     resumeSubscription: "Resume automatic renewal",
     resumeSubscriptionTitle: "Resume automatic renewal",
     resumeSubscriptionMessage: "This removes the scheduled cancellation. Your service stays active and renews after {{date}}.",
