@@ -6887,7 +6887,9 @@ tbody td {
 }
 
 .billing-shop-service-foot {
-  justify-content: flex-end;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .billing-shop-service-active {
@@ -6905,6 +6907,12 @@ tbody td {
   color: var(--color-text);
   font-weight: 550;
   overflow-wrap: anywhere;
+}
+
+.billing-shop-service-date {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 @media (max-width: 1180px) {
