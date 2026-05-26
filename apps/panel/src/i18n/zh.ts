@@ -1426,6 +1426,7 @@ export default {
     noShopBilling: "暂无店铺服务订阅数据。",
     noUsage: "后端未返回用量限制。",
     allowed: "已开通",
+    limitedTimeFree: "限时免费",
     unknown: "未知",
     notSubscribed: "未订阅",
     active: "生效中",
