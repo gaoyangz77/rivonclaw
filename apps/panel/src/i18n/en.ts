@@ -1426,6 +1426,7 @@ export default {
     noShopBilling: "No shop service subscription data.",
     noUsage: "No usage limits reported.",
     allowed: "Allowed",
+    limitedTimeFree: "Limited-time free",
     unknown: "Unknown",
     notSubscribed: "Not subscribed",
     active: "Active",

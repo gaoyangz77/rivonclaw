@@ -684,6 +684,7 @@ function ShopServiceRow({
             const entitlement = row.billing?.[key] ?? null;
             const subscription = entitlement?.subscription ?? null;
             const serviceValidUntil = entitlement?.validUntil ?? subscription?.currentPeriodEnd ?? null;
+            const showLimitedTimeFree = !!entitlement?.allowed && !serviceValidUntil;
             const showRenewalReminder = shouldShowRenewalReminder(entitlement);
 	            return (
 	              <div
@@ -705,11 +706,16 @@ function ShopServiceRow({
                     {entitlementStatusLabel(t, entitlement)}
                   </span>
                 </div>
-                {(serviceValidUntil || subscription) && (
+                {(serviceValidUntil || showLimitedTimeFree || subscription) && (
                   <div className="billing-shop-service-foot">
                     {serviceValidUntil && (
                       <span className="billing-shop-service-date">
                         {t("billing.validUntil")}: {formatDateTime(serviceValidUntil)}
+                      </span>
+                    )}
+                    {showLimitedTimeFree && (
+                      <span className="billing-shop-service-promo">
+                        {t("billing.limitedTimeFree")}
                       </span>
                     )}
                     {subscription && showRenewalReminder && (

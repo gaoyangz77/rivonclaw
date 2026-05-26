@@ -6915,6 +6915,17 @@ tbody td {
   line-height: 1.35;
 }
 
+.billing-shop-service-promo {
+  align-self: flex-start;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-bg) 90%);
+  color: var(--color-success);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 5px 10px;
+}
+
 @media (max-width: 1180px) {
   .billing-shop-services {
     grid-template-columns: repeat(2, minmax(0, 1fr));
