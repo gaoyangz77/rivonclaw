@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import { GQL } from "@rivonclaw/core";
-import type { BillingEntitlementStatus, BillingPlanDefinition } from "@rivonclaw/core/models";
+import type { BillingEntitlementStatus, BillingPlanDefinition, BillingUsageStatus } from "@rivonclaw/core/models";
 
 export type CheckoutProvider = "STRIPE" | "LAKALA";
 
@@ -42,6 +42,20 @@ export function billingPlanDisplayName(t: TFunction, plan: BillingPlanDefinition
 export function usagePercentLabel(value?: number | null): string {
   if (value == null || !Number.isFinite(value)) return "-";
   return `${Math.max(0, Math.min(100, value)).toFixed(value % 1 === 0 ? 0 : 1)}%`;
+}
+
+const USAGE_WINDOW_ORDER: Record<string, number> = {
+  FIVE_HOURS: 0,
+  WEEK: 1,
+};
+
+export function sortUsageWindows(usages: readonly BillingUsageStatus[]): BillingUsageStatus[] {
+  return [...usages].sort((left, right) => {
+    const leftOrder = USAGE_WINDOW_ORDER[left.window] ?? 10;
+    const rightOrder = USAGE_WINDOW_ORDER[right.window] ?? 10;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return left.window.localeCompare(right.window);
+  });
 }
 
 export function findPlanDefinition(
