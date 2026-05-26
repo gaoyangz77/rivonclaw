@@ -683,6 +683,7 @@ function ShopServiceRow({
           {serviceKeys.length ? serviceKeys.map((key) => {
             const entitlement = row.billing?.[key] ?? null;
             const subscription = entitlement?.subscription ?? null;
+            const serviceValidUntil = entitlement?.validUntil ?? subscription?.currentPeriodEnd ?? null;
             const showRenewalReminder = shouldShowRenewalReminder(entitlement);
 	            return (
 	              <div
@@ -704,14 +705,19 @@ function ShopServiceRow({
                     {entitlementStatusLabel(t, entitlement)}
                   </span>
                 </div>
-                {subscription && (
+                {(serviceValidUntil || subscription) && (
                   <div className="billing-shop-service-foot">
-                    {showRenewalReminder && (
+                    {serviceValidUntil && (
+                      <span className="billing-shop-service-date">
+                        {t("billing.validUntil")}: {formatDateTime(serviceValidUntil)}
+                      </span>
+                    )}
+                    {subscription && showRenewalReminder && (
                       <span className="billing-warning-text">
                         {t("billing.renewBefore", { date: formatDateTime(subscription.currentPeriodEnd) })}
                       </span>
                     )}
-                    {subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing ? (
+                    {subscription && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing) ? (
                       <span className="billing-warning-text">{t("billing.cancelAtPeriodEnd")}</span>
                     ) : null}
                   </div>
