@@ -333,17 +333,19 @@ describe("affiliate work item dispatch", () => {
           },
         };
       }
-      if (query.includes("AffiliateWorkspace")) {
+      if (query.includes("AffiliateWorkItems")) {
         return {
-          affiliateWorkspace: {
-            sampleApplicationRecords: [],
-            collaborationRecords: [{
+          affiliateWorkItems: [
+            {
+              id: "work-collab-001",
+              collaborationRecordId: "collab-001",
+              versionAt: "2026-05-11T00:01:00.000Z",
+              collaboration: {
               id: "collab-001",
               workHandledUntil: "2026-05-11T00:01:00.000Z",
-            }],
-            actionProposals: [],
-            approvalPolicies: [],
-          },
+              },
+            },
+          ],
         };
       }
       throw new Error(`Unexpected GraphQL call: ${query}`);
@@ -382,7 +384,7 @@ describe("affiliate work item dispatch", () => {
 
     await vi.waitFor(() => {
       expect(graphqlFetch).toHaveBeenCalledWith(
-        expect.stringContaining("AffiliateWorkspace"),
+        expect.stringContaining("AffiliateWorkItems"),
         expect.anything(),
       );
     });

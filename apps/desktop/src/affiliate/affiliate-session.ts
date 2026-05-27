@@ -15,10 +15,12 @@ import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY,
   AFFILIATE_P50_SALES_PREDICTIONS_QUERY,
+  AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateP50SalesPredictionsQueryResult,
   type AffiliateConversationMessageDeltaQueryResult,
+  type AffiliateWorkItemsQueryResult,
   type AffiliateWorkspaceQueryResult,
   type ResolveAffiliateWorkItemMutationResult,
 } from "../cloud/affiliate-queries.js";
@@ -417,16 +419,21 @@ export class AffiliateSession {
     const boundary = parseOptionalDate(workItem.collaboration.lastSignalAt ?? workItem.versionAt);
     if (!boundary) return false;
 
-    const workspace = await this.fetchWorkspace({
-      includePolicies: false,
-      platformApplicationId: workItem.sampleApplicationRecord?.platformApplicationId ?? undefined,
-      platformConversationId: workItem.collaboration.platformConversationId ?? undefined,
-      limit: 20,
-    });
-    const collaboration = workspace?.collaborationRecords?.find(
-      record => record.id === workItem.collaborationRecordId,
+    const authSession = getAuthSession();
+    if (!authSession) return false;
+
+    const result = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+      AFFILIATE_WORK_ITEMS_QUERY,
+      {
+        input: {
+          shopId: this.affiliateContext.shopId,
+          collaborationRecordId: workItem.collaborationRecordId,
+          limit: 1,
+        },
+      },
     );
-    const handledUntil = parseOptionalDate(collaboration?.workHandledUntil);
+    const currentWorkItem = result.affiliateWorkItems[0];
+    const handledUntil = parseOptionalDate(currentWorkItem?.collaboration?.workHandledUntil);
     return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
   }
 
