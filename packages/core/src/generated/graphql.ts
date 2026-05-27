@@ -364,6 +364,7 @@ export interface AffiliateApprovalPolicy {
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
   createdAt: Scalars['DateTimeISO']['output'];
+  decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   objectiveType: AffiliateCampaignObjectiveType;
@@ -646,6 +647,17 @@ export const AffiliateConversationSignalType = {
 } as const;
 
 export type AffiliateConversationSignalType = typeof AffiliateConversationSignalType[keyof typeof AffiliateConversationSignalType];
+/** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
+export interface AffiliateDecisionThresholds {
+  /** Minimum predicted median sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
+  minP50SalesUnits?: Maybe<Scalars['Int']['output']>;
+}
+
+export interface AffiliateDecisionThresholdsInput {
+  /** Minimum predicted median sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
+  minP50SalesUnits?: InputMaybe<Scalars['Int']['input']>;
+}
+
 export const AffiliateLifecycleActorType = {
   Agent: 'AGENT',
   CloudWorker: 'CLOUD_WORKER',
@@ -896,6 +908,8 @@ export interface AffiliateServiceSettings {
   businessPrompt?: Maybe<Scalars['String']['output']>;
   /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Null = no device assigned. */
   csDeviceId?: Maybe<Scalars['String']['output']>;
+  /** Structured default decision thresholds for affiliate automation. Campaign-level thresholds override these values when present. */
+  decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
   /** Whether affiliate creator-management inbound automation is enabled for this shop. */
   enabled: Scalars['Boolean']['output'];
   /** RunProfile ID for affiliate creator-management agent sessions. */
@@ -908,6 +922,8 @@ export interface AffiliateServiceSettingsInput {
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
   /** Device ID of the desktop instance handling affiliate inbound signals. Omit to keep, null or empty string to clear. */
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
+  /** Default affiliate decision thresholds. Omit to keep, null to clear. */
+  decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
   /** Affiliate service enabled flag. Omit to keep, null to clear to false, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   /** RunProfile ID for affiliate sessions. Omit to keep, null or empty string to clear. */
@@ -1676,6 +1692,8 @@ export interface CsConversationSignal {
   buyerUserId?: Maybe<Scalars['String']['output']>;
   /** Platform conversation/thread ID that desktop should inspect. */
   conversationId: Scalars['String']['output'];
+  /** Current platform customer-service session ID if already known. */
+  currentSessionId?: Maybe<Scalars['String']['output']>;
   /** When the platform event happened or the unread condition was detected. */
   eventTime: Scalars['DateTimeISO']['output'];
   /** Platform IM user ID if available from webhook/API context. */
@@ -4375,6 +4393,8 @@ export interface PublishCsConversationSignalInput {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   /** Platform conversation/thread ID that desktop should inspect. */
   conversationId: Scalars['String']['input'];
+  /** Current platform customer-service session ID if already known. */
+  currentSessionId?: InputMaybe<Scalars['String']['input']>;
   /** Event timestamp as an ISO string. Defaults to server publish time. */
   eventTime?: InputMaybe<Scalars['String']['input']>;
   /** Platform IM user ID if available. */
@@ -6122,6 +6142,7 @@ export interface WriteAffiliateApprovalPolicyInput {
 }
 
 export interface WriteAffiliateCampaignInput {
+  decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
   id?: InputMaybe<Scalars['ID']['input']>;
   name: Scalars['String']['input'];
   objectiveType?: InputMaybe<AffiliateCampaignObjectiveType>;

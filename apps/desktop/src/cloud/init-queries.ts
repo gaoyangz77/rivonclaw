@@ -131,6 +131,9 @@ export const INIT_SHOPS_QUERY = `
           runProfileId
           csDeviceId
           businessPrompt
+          decisionThresholds {
+            minP50SalesUnits
+          }
         }
       }
     }
