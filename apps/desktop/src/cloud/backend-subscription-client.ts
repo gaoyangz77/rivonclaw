@@ -313,6 +313,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           affiliateCollaboration {
             id
             type
+            campaignId
             platformCollaborationId
             productIds
             status

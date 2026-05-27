@@ -8,6 +8,7 @@ export interface AffiliateAgentRunFactoryInput {
   predictionCacheIds?: readonly string[];
   businessPrompt?: string | null;
   decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
+  decisionThresholdSource?: string | null;
   staffLanguage?: "Chinese" | "English";
 }
 
@@ -46,7 +47,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderPredictionSection(input),
       "",
-      renderDecisionThresholds(input.decisionThresholds),
+      renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
       "",
       renderBusinessPrompt(input.businessPrompt),
       "",
@@ -83,7 +84,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderPredictionSection(input),
       "",
-      renderDecisionThresholds(input.decisionThresholds),
+      renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
       "",
       renderBusinessPrompt(input.businessPrompt),
       "",
@@ -122,7 +123,7 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "",
       renderPredictionSection(input),
       "",
-      renderDecisionThresholds(input.decisionThresholds),
+      renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
       "",
       renderBusinessPrompt(input.businessPrompt),
       "",
@@ -149,7 +150,10 @@ function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
 }
 
-function renderDecisionThresholds(thresholds: GQL.AffiliateDecisionThresholds | null | undefined): string {
+function renderDecisionThresholds(
+  thresholds: GQL.AffiliateDecisionThresholds | null | undefined,
+  source: string | null | undefined,
+): string {
   const minP50SalesUnits = thresholds?.minP50SalesUnits;
   if (typeof minP50SalesUnits !== "number") {
     return [
@@ -161,6 +165,7 @@ function renderDecisionThresholds(thresholds: GQL.AffiliateDecisionThresholds | 
 
   return [
     "## Affiliate Decision Thresholds",
+    `- Source: ${source ?? "configured threshold"}`,
     `- minP50SalesUnits: ${minP50SalesUnits}`,
     "Use this as the default investment/continuation threshold when merchant instructions do not provide a more specific rule for the current product, campaign, or creator.",
     "If Affiliate Prediction p50Units is below minP50SalesUnits, do not approve, invest in, or continue the collaboration by default unless stronger merchant instructions or workspace facts justify an exception.",

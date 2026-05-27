@@ -314,6 +314,7 @@ describe("affiliate work item dispatch", () => {
 
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("## Affiliate Decision Thresholds");
+    expect(agentCall?.[1]?.message).toContain("- Source: shop default");
     expect(agentCall?.[1]?.message).toContain("- minP50SalesUnits: 5");
     expect(agentCall?.[1]?.message).toContain("p50Units below it should generally lead to REJECT_SAMPLE");
   });
