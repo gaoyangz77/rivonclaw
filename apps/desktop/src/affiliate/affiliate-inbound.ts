@@ -1,6 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
+  type GQL,
   type AffiliateNewConversationFrame,
   type AffiliateNewMessageFrame,
   type AffiliateOrderAttributedFrame,
@@ -36,6 +37,7 @@ export interface AffiliateShopSource {
   shopName?: string | null;
   runProfileId?: string | null;
   businessPrompt?: string | null;
+  decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
 }
 
 export class AffiliateInbound {
@@ -74,6 +76,7 @@ export class AffiliateInbound {
         platform: normalizePlatform(shop.platform ?? "TIKTOK_SHOP"),
         runProfileId: shop.runProfileId ?? DEFAULT_AFFILIATE_RUN_PROFILE_ID,
         businessPrompt: shop.businessPrompt ?? "",
+        decisionThresholds: shop.decisionThresholds ?? null,
         staffLanguage: normalizeStaffLanguage(this.locale),
       };
 
@@ -536,6 +539,7 @@ export class AffiliateInbound {
       a.shopName === b.shopName &&
       a.runProfileId === b.runProfileId &&
       (a.businessPrompt ?? "") === (b.businessPrompt ?? "") &&
+      (a.decisionThresholds?.minP50SalesUnits ?? null) === (b.decisionThresholds?.minP50SalesUnits ?? null) &&
       a.staffLanguage === b.staffLanguage
     );
   }

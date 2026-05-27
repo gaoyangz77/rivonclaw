@@ -7,6 +7,7 @@ export interface AffiliateAgentRunFactoryInput {
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
   businessPrompt?: string | null;
+  decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
   staffLanguage?: "Chinese" | "English";
 }
 
@@ -45,6 +46,8 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderPredictionSection(input),
       "",
+      renderDecisionThresholds(input.decisionThresholds),
+      "",
       renderBusinessPrompt(input.businessPrompt),
       "",
       input.conversationDelta
@@ -80,6 +83,8 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderPredictionSection(input),
       "",
+      renderDecisionThresholds(input.decisionThresholds),
+      "",
       renderBusinessPrompt(input.businessPrompt),
       "",
       "## Task",
@@ -87,6 +92,9 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the merchant instructions depend on dynamic creator or shop facts, such as follower count, GMV, prior performance, sample cost, inventory, or current fulfillment state, call affiliate_get_workspace with the narrowest available filters before deciding.",
+      "If merchant instructions are not configured, do not invent follower-count, GMV, or sales thresholds. Use Affiliate Decision Thresholds when configured, otherwise use the Affiliate Prediction section as the primary decision signal plus concrete workspace facts such as block/risk tags and sample/product context.",
+      "For sample review with prediction status OK: if minP50SalesUnits is configured, p50Units below it should generally lead to REJECT_SAMPLE unless stronger merchant instructions or workspace facts override it; p50Units at or above it can support APPROVE_SAMPLE. If no threshold is configured, low p50Units plus low threshold probabilities should generally lead to REJECT_SAMPLE, while meaningful p50Units or high threshold probabilities can support APPROVE_SAMPLE. If the prediction quality is weak or conflicts with important workspace facts, use NEEDS_STAFF_REVIEW.",
+      "In operatorSummary, cite the prediction and threshold values that drove the decision, such as p50Units, minP50SalesUnits, confidence level, and threshold probabilities. Do not claim a merchant rule exists unless it is explicitly present in Merchant Affiliate Instructions or Affiliate Decision Thresholds.",
       "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type APPROVE_SAMPLE or REJECT_SAMPLE.",
       "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing the sample decision and SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
@@ -94,8 +102,10 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
       `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.`,
       "Use action.sampleReviewIntent.sampleApplicationRecordId and platformApplicationId from the projection; do not invent campaignId.",
+      "For sample review actions, do not put productId, creatorId, or campaignId on the action payload unless the tool schema explicitly asks for them; keep sample identifiers inside action.sampleReviewIntent.",
       "For APPROVE_SAMPLE, set action.sampleReviewIntent.decision to APPROVE.",
       "For REJECT_SAMPLE, set action.sampleReviewIntent.decision to REJECT. If you set rejectReason, it must be exactly one of NOT_MATCH, OFFLINE, OUT_OF_STOCK, or OTHER; use OTHER for seller-specific rules such as follower-count thresholds, and put free-form rationale only in operatorSummary.",
+      "Do not include null fields in affiliate_resolve_work_item input. Omit optional fields entirely when they are not needed.",
       "Do not write merchant/operator summaries as final assistant text. If approval policy requires review, the backend will create an ActionProposal. Stop there and reply exactly NO_REPLY.",
     ].join("\n"),
     idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${sample?.id ?? "sample"}:${workItem.versionAt}`,
@@ -111,6 +121,8 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       renderWorkItemProjection(workItem),
       "",
       renderPredictionSection(input),
+      "",
+      renderDecisionThresholds(input.decisionThresholds),
       "",
       renderBusinessPrompt(input.businessPrompt),
       "",
@@ -135,6 +147,27 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
 
 function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
+}
+
+function renderDecisionThresholds(thresholds: GQL.AffiliateDecisionThresholds | null | undefined): string {
+  const minP50SalesUnits = thresholds?.minP50SalesUnits;
+  if (typeof minP50SalesUnits !== "number") {
+    return [
+      "## Affiliate Decision Thresholds",
+      "(none configured)",
+      "No default numeric sales threshold is configured for this shop or campaign. Do not invent one. Use merchant instructions, prediction quality, p50Units, probability bands, and concrete workspace facts to decide.",
+    ].join("\n");
+  }
+
+  return [
+    "## Affiliate Decision Thresholds",
+    `- minP50SalesUnits: ${minP50SalesUnits}`,
+    "Use this as the default investment/continuation threshold when merchant instructions do not provide a more specific rule for the current product, campaign, or creator.",
+    "If Affiliate Prediction p50Units is below minP50SalesUnits, do not approve, invest in, or continue the collaboration by default unless stronger merchant instructions or workspace facts justify an exception.",
+    "If Affiliate Prediction p50Units meets or exceeds minP50SalesUnits, that supports proceeding, subject to risk tags, product/sample context, inventory/fulfillment facts, and approval policy.",
+    "For existing commitments that already require operational follow-up, use the threshold as background context; do not use it as the only reason to ignore an overdue creator follow-up.",
+    "This threshold is a decision aid, not creator-facing copy. Mention it only in operatorSummary, never in action.messageIntent.text.",
+  ].join("\n");
 }
 
 function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput): string {

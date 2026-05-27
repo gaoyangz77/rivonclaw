@@ -69,6 +69,9 @@ const SHOP_UPDATED_SUBSCRIPTION = `
           runProfileId
           csDeviceId
           businessPrompt
+          decisionThresholds {
+            minP50SalesUnits
+          }
         }
       }
     }

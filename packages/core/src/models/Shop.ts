@@ -46,11 +46,16 @@ export const WmsSettingsModel = types.model("WmsSettings", {
   enabled: types.optional(types.boolean, false),
 });
 
+export const AffiliateDecisionThresholdsConfigModel = types.model("AffiliateDecisionThresholdsConfig", {
+  minP50SalesUnits: types.maybeNull(types.number),
+});
+
 export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig", {
   enabled: types.optional(types.boolean, false),
   csDeviceId: types.maybeNull(types.string),
   runProfileId: types.maybeNull(types.string),
   businessPrompt: types.maybeNull(types.string),
+  decisionThresholds: types.maybeNull(AffiliateDecisionThresholdsConfigModel),
 });
 
 export const ShopServiceConfigModel = types.model("ShopServiceConfig", {
@@ -82,5 +87,6 @@ export const ShopModel = types.model("Shop", {
 export interface Shop extends Instance<typeof ShopModel> {}
 export interface CustomerServiceConfig extends Instance<typeof CustomerServiceConfigModel> {}
 export interface WmsSettings extends Instance<typeof WmsSettingsModel> {}
+export interface AffiliateDecisionThresholdsConfig extends Instance<typeof AffiliateDecisionThresholdsConfigModel> {}
 export interface AffiliateServiceConfig extends Instance<typeof AffiliateServiceConfigModel> {}
 export interface ShopServiceConfig extends Instance<typeof ShopServiceConfigModel> {}

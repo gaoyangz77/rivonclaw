@@ -287,6 +287,37 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("predictionCacheIds");
   });
 
+  it("injects shop affiliate decision thresholds into work item prompts", async () => {
+    const workItem = createSampleReviewWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+        decisionThresholds: { minP50SalesUnits: 5 },
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    await session.handleWorkItem(workItem);
+
+    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.message).toContain("## Affiliate Decision Thresholds");
+    expect(agentCall?.[1]?.message).toContain("- minP50SalesUnits: 5");
+    expect(agentCall?.[1]?.message).toContain("p50Units below it should generally lead to REJECT_SAMPLE");
+  });
+
   it("does not ack work items when the gateway reports an agent run error", async () => {
     const workItem = createSampleReviewWorkItem();
     const session = new AffiliateSession(

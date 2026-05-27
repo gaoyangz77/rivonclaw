@@ -1,6 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
+  type GQL,
   type CSNewMessageFrame,
   stripReasoningTagsFromText,
 } from "@rivonclaw/core";
@@ -161,6 +162,7 @@ export class EcommerceRelayBridge {
       shopName?: string | null;
       runProfileId?: string | null;
       businessPrompt?: string | null;
+      decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
     }> = [];
 
     for (const shop of shops) {
@@ -176,6 +178,7 @@ export class EcommerceRelayBridge {
           shopName: shop.shopName,
           runProfileId: affiliateService.runProfileId,
           businessPrompt: affiliateService.businessPrompt,
+          decisionThresholds: affiliateService.decisionThresholds,
         });
       }
 

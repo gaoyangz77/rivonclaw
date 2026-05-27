@@ -46,6 +46,8 @@ export interface AffiliateShopContext {
   runProfileId?: string;
   /** Per-shop affiliate business instructions configured by the merchant. */
   businessPrompt?: string | null;
+  /** Per-shop default affiliate decision thresholds configured by the merchant. */
+  decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
   /** Staff-facing language for operatorSummary and internal review text. */
   staffLanguage?: "Chinese" | "English";
 }
@@ -267,6 +269,7 @@ export class AffiliateSession {
       conversationDelta,
       ...(await this.resolvePredictionDispatchContext(workItem)),
       businessPrompt: this.shop.businessPrompt,
+      decisionThresholds: this.shop.decisionThresholds,
       staffLanguage: this.shop.staffLanguage,
     });
     if (!request) return { runId: undefined };
