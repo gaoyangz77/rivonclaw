@@ -268,8 +268,8 @@ export class AffiliateSession {
       platform: this.platform,
       conversationDelta,
       ...(await this.resolvePredictionDispatchContext(workItem)),
+      ...(await this.resolveDecisionThresholdDispatchContext(workItem)),
       businessPrompt: this.shop.businessPrompt,
-      decisionThresholds: this.shop.decisionThresholds,
       staffLanguage: this.shop.staffLanguage,
     });
     if (!request) return { runId: undefined };
@@ -541,6 +541,7 @@ export class AffiliateSession {
 
   private async fetchWorkspace(params: {
     includePolicies?: boolean;
+    campaignId?: string;
     platformApplicationId?: string;
     platformConversationId?: string;
     limit?: number;
@@ -558,6 +559,7 @@ export class AffiliateSession {
           input: {
             shopId: this.affiliateContext.shopId,
             includePolicies: params.includePolicies ?? true,
+            campaignId: params.campaignId,
             platformApplicationId: params.platformApplicationId,
             platformConversationId: params.platformConversationId,
             limit: params.limit ?? 20,
@@ -580,6 +582,33 @@ export class AffiliateSession {
     const workspace = await this.fetchWorkspace(params);
     if (!workspace) return undefined;
     return renderWorkspaceSnapshot(workspace);
+  }
+
+  private async resolveDecisionThresholdDispatchContext(
+    workItem: GQL.AffiliateWorkItem,
+  ): Promise<AffiliateDecisionThresholdDispatchContext> {
+    const shopThresholds = this.shop.decisionThresholds ?? null;
+    const campaignId = workItem.context?.affiliateCollaboration?.campaignId ?? null;
+
+    if (campaignId) {
+      const workspace = await this.fetchWorkspace({
+        includePolicies: false,
+        campaignId,
+        limit: 1,
+      });
+      const campaign = workspace?.campaigns?.find(item => item.id === campaignId);
+      if (hasConfiguredDecisionThreshold(campaign?.decisionThresholds)) {
+        return {
+          decisionThresholds: campaign.decisionThresholds,
+          decisionThresholdSource: `campaign:${campaign.name || campaign.id}`,
+        };
+      }
+    }
+
+    return {
+      decisionThresholds: shopThresholds,
+      decisionThresholdSource: hasConfiguredDecisionThreshold(shopThresholds) ? "shop default" : null,
+    };
   }
 
   private async resolvePredictionDispatchContext(
@@ -748,6 +777,17 @@ function buildSignalIdempotencyKey(platform: string, signal: AffiliateConversati
 interface AffiliatePredictionDispatchContext {
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
+}
+
+interface AffiliateDecisionThresholdDispatchContext {
+  decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
+  decisionThresholdSource?: string | null;
+}
+
+function hasConfiguredDecisionThreshold(
+  thresholds: GQL.AffiliateDecisionThresholds | null | undefined,
+): thresholds is GQL.AffiliateDecisionThresholds {
+  return typeof thresholds?.minP50SalesUnits === "number";
 }
 
 function selectP50PredictionScenario(

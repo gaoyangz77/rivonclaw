@@ -115,6 +115,13 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         action
         enabled
       }
+      campaigns {
+        id
+        name
+        decisionThresholds {
+          minP50SalesUnits
+        }
+      }
     }
   }
 `;
