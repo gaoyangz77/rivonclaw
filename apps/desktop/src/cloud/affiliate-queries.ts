@@ -123,6 +123,66 @@ export interface AffiliateWorkspaceQueryResult {
   affiliateWorkspace: GQL.AffiliateWorkspacePayload;
 }
 
+export const AFFILIATE_P50_SALES_PREDICTIONS_QUERY = `
+  query AffiliateP50SalesPredictions($input: AffiliateP50SalesPredictionInput!) {
+    affiliateP50SalesPredictions(input: $input) {
+      status
+      requestId
+      modelTag
+      modelType
+      trainedAt
+      featureVersion
+      predictions {
+        cacheId
+        status
+        message
+        p50Units
+        subject {
+          sampleApplicationRecordId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          affiliateCollaborationId
+          platformCollaborationId
+          productId
+        }
+        resolvedContext {
+          sampleApplicationRecordId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          creatorUsername
+          creatorNickname
+          affiliateCollaborationId
+          platformCollaborationId
+          productId
+          productTitle
+          source
+        }
+        predictionQuality {
+          score
+          level
+          featureCompletenessScore
+          dataSupportScore
+          probabilityMarginScore
+          interpretation
+        }
+        thresholdProbabilities {
+          unitsGe1
+          unitsGe2
+          unitsGe3
+          unitsGe5
+          unitsGe10
+        }
+      }
+    }
+  }
+`;
+
+export interface AffiliateP50SalesPredictionsQueryResult {
+  affiliateP50SalesPredictions: GQL.AffiliateP50SalesPredictionPayload;
+}
+
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
   mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
     resolveAffiliateWorkItem(input: $input) {

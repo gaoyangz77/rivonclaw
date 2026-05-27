@@ -238,9 +238,11 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         collaboration {
           id
           creatorId
+          creatorOpenId
           productId
           sampleApplicationRecordId
           affiliateCollaborationId
+          platformCollaborationId
           platformConversationId
           creatorImId
           lifecycleStage
@@ -252,6 +254,17 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           workHandledUntil
           nextSellerActionAt
           updatedAt
+          predictionSnapshots {
+            sourceCacheId
+            predictionType
+            scenario
+            status
+            output
+            model
+            diagnostics
+            predictedAt
+            capturedAt
+          }
         }
         sampleApplicationRecord {
           id

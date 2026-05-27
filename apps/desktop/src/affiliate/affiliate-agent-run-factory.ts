@@ -4,6 +4,8 @@ export interface AffiliateAgentRunFactoryInput {
   workItem: GQL.AffiliateWorkItem;
   platform: string;
   conversationDelta?: string;
+  predictionSection?: string;
+  predictionCacheIds?: readonly string[];
   businessPrompt?: string | null;
   staffLanguage?: "Chinese" | "English";
 }
@@ -41,6 +43,8 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderWorkItemProjection(workItem),
       "",
+      renderPredictionSection(input),
+      "",
       renderBusinessPrompt(input.businessPrompt),
       "",
       input.conversationDelta
@@ -52,6 +56,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
+      renderPredictionCacheInstruction(input),
       "For every text reply, action.messageIntent must include messageType: TEXT.",
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
       "If a human should decide, use decision NEEDS_STAFF_REVIEW.",
@@ -73,6 +78,8 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderWorkItemProjection(workItem),
       "",
+      renderPredictionSection(input),
+      "",
       renderBusinessPrompt(input.businessPrompt),
       "",
       "## Task",
@@ -82,6 +89,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If the merchant instructions depend on dynamic creator or shop facts, such as follower count, GMV, prior performance, sample cost, inventory, or current fulfillment state, call affiliate_get_workspace with the narrowest available filters before deciding.",
       "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type APPROVE_SAMPLE or REJECT_SAMPLE.",
       "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing the sample decision and SEND_MESSAGE.",
+      renderPredictionCacheInstruction(input),
       "If you include a creator-facing text message, action.messageIntent must include messageType: TEXT.",
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
       `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.`,
@@ -102,6 +110,8 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "",
       renderWorkItemProjection(workItem),
       "",
+      renderPredictionSection(input),
+      "",
       renderBusinessPrompt(input.businessPrompt),
       "",
       "## Task",
@@ -110,6 +120,7 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If a follow-up is appropriate, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
+      renderPredictionCacheInstruction(input),
       "For every text follow-up, action.messageIntent must include messageType: TEXT.",
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
       "If Platform Conversation ID is empty, this is a proactive follow-up: omit action.messageIntent.conversationId and the backend will create or reuse the TikTok affiliate conversation from creator identity only after approval/execution.",
@@ -120,6 +131,21 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
     ].join("\n"),
     idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${workItem.versionAt}`,
   };
+}
+
+function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
+  return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
+}
+
+function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput): string {
+  const cacheIds = input.predictionCacheIds?.filter(Boolean) ?? [];
+  if (cacheIds.length === 0) {
+    return "No affiliate prediction cache id was provided for this work item.";
+  }
+  return [
+    `For any REQUEST_ACTION decision in this work item, include predictionCacheIds: ${JSON.stringify(cacheIds)} on the typed action payload.`,
+    "If you use input.actions, include the same predictionCacheIds on each action that creates, updates, approves, rejects, or messages within this collaboration.",
+  ].join(" ");
 }
 
 export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): string {
