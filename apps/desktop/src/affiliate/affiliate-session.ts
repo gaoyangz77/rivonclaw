@@ -14,8 +14,10 @@ import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY,
+  AFFILIATE_P50_SALES_PREDICTIONS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
+  type AffiliateP50SalesPredictionsQueryResult,
   type AffiliateConversationMessageDeltaQueryResult,
   type AffiliateWorkspaceQueryResult,
   type ResolveAffiliateWorkItemMutationResult,
@@ -28,6 +30,8 @@ const log = createLogger("affiliate-session");
 export const DEFAULT_AFFILIATE_RUN_PROFILE_ID = "AFFILIATE_OPERATOR";
 const DEBUG_AFFILIATE_PROMPT =
   process.env.DEBUG_AFFILIATE_PROMPT === "1" || process.env.RIVONCLAW_DEBUG_AFFILIATE_PROMPT === "1";
+
+const predictionMemo = new Map<string, Promise<AffiliatePredictionDispatchContext>>();
 
 export interface AffiliateShopContext {
   /** MongoDB ObjectId used by backend affiliate tools. */
@@ -259,6 +263,7 @@ export class AffiliateSession {
       workItem,
       platform: this.platform,
       conversationDelta,
+      ...(await this.resolvePredictionDispatchContext(workItem)),
       businessPrompt: this.shop.businessPrompt,
       staffLanguage: this.shop.staffLanguage,
     });
@@ -542,6 +547,87 @@ export class AffiliateSession {
     return renderWorkspaceSnapshot(workspace);
   }
 
+  private async resolvePredictionDispatchContext(
+    workItem: GQL.AffiliateWorkItem,
+  ): Promise<AffiliatePredictionDispatchContext> {
+    const scenario = selectP50PredictionScenario(workItem);
+    if (!scenario) {
+      return { predictionSection: "## Affiliate Prediction\n(not applicable for this work item)" };
+    }
+
+    const existingSnapshot = workItem.collaboration.predictionSnapshots?.find(
+      snapshot => snapshot.status === GQL.AffiliatePredictionStatus.Ok,
+    );
+    if (existingSnapshot) {
+      return {
+        predictionSection: renderP50PredictionSnapshotSection(existingSnapshot.scenario, existingSnapshot),
+        predictionCacheIds: [],
+      };
+    }
+
+    const memoKey = workItem.collaborationRecordId;
+    const existing = predictionMemo.get(memoKey);
+    if (existing) return existing;
+
+    const promise = this.fetchAndRenderP50Prediction(workItem, scenario)
+      .then((context) => {
+        if ((context.predictionCacheIds?.length ?? 0) === 0) {
+          predictionMemo.delete(memoKey);
+        }
+        return context;
+      })
+      .catch((err: unknown) => {
+        predictionMemo.delete(memoKey);
+        log.warn(`Failed to resolve affiliate prediction for ${memoKey}: ${String(err)}`);
+        return {
+          predictionSection: [
+            "## Affiliate Prediction",
+            `- Scenario: ${scenario}`,
+            "- Status: UNAVAILABLE",
+            "- Cache IDs: (none)",
+            "- Note: prediction could not be resolved before dispatch; continue with current backend work context.",
+          ].join("\n"),
+          predictionCacheIds: [],
+        };
+      });
+    predictionMemo.set(memoKey, promise);
+    return promise;
+  }
+
+  private async fetchAndRenderP50Prediction(
+    workItem: GQL.AffiliateWorkItem,
+    scenario: GQL.AffiliateP50SalesPredictionScenario,
+  ): Promise<AffiliatePredictionDispatchContext> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      return {
+        predictionSection: [
+          "## Affiliate Prediction",
+          `- Scenario: ${scenario}`,
+          "- Status: UNAVAILABLE",
+          "- Cache IDs: (none)",
+          "- Note: no auth session was available before dispatch.",
+        ].join("\n"),
+        predictionCacheIds: [],
+      };
+    }
+
+    const input = buildP50PredictionInput(this.affiliateContext.shopId, scenario, workItem);
+    const result = await authSession.graphqlFetch<AffiliateP50SalesPredictionsQueryResult>(
+      AFFILIATE_P50_SALES_PREDICTIONS_QUERY,
+      { input },
+    );
+    const payload = result.affiliateP50SalesPredictions;
+    const predictions = payload.predictions ?? [];
+    const cacheIds = predictions
+      .map(prediction => prediction.cacheId)
+      .filter((cacheId): cacheId is string => typeof cacheId === "string" && cacheId.length > 0);
+    return {
+      predictionSection: renderP50PredictionPayloadSection(scenario, payload),
+      predictionCacheIds: cacheIds,
+    };
+  }
+
   async handleSampleApplicationUpdated(frame: AffiliateSampleApplicationUpdatedFrame): Promise<AffiliateDispatchResult> {
     const workspaceSnapshot = await this.buildWorkspaceSnapshot({
       includePolicies: true,
@@ -622,6 +708,133 @@ function buildSignalIdempotencyKey(platform: string, signal: AffiliateConversati
     ?? signal.notificationId
     ?? "unknown";
   return `affiliate:${platform}:signal:${signal.type}:${stableId}:${signal.eventTime}`;
+}
+
+interface AffiliatePredictionDispatchContext {
+  predictionSection?: string;
+  predictionCacheIds?: readonly string[];
+}
+
+function selectP50PredictionScenario(
+  workItem: GQL.AffiliateWorkItem,
+): GQL.AffiliateP50SalesPredictionScenario | null {
+  switch (workItem.workKind) {
+    case GQL.AffiliateWorkKind.SampleReviewNeeded:
+      return GQL.AffiliateP50SalesPredictionScenario.SampleReview;
+    case GQL.AffiliateWorkKind.CreatorReplyNeeded:
+    case GQL.AffiliateWorkKind.ContentFollowUpDue:
+      return GQL.AffiliateP50SalesPredictionScenario.TargetCollaborationPlanning;
+    default:
+      return null;
+  }
+}
+
+function buildP50PredictionInput(
+  shopId: string,
+  scenario: GQL.AffiliateP50SalesPredictionScenario,
+  workItem: GQL.AffiliateWorkItem,
+): GQL.AffiliateP50SalesPredictionInput {
+  const collaboration = workItem.collaboration;
+  const sample = workItem.sampleApplicationRecord ?? workItem.context?.primarySampleApplication ?? null;
+  const creatorProfile = workItem.context?.creatorProfile ?? null;
+  const productId = collaboration.productId ?? sample?.productId ?? workItem.context?.productContext?.productId ?? null;
+  const subject: GQL.AffiliateP50SalesPredictionSubjectInput = {
+    creatorId: collaboration.creatorId ?? creatorProfile?.id ?? undefined,
+    creatorOpenId: collaboration.creatorOpenId ?? creatorProfile?.creatorOpenId ?? undefined,
+    productId: productId ?? undefined,
+    affiliateCollaborationId: collaboration.affiliateCollaborationId ?? undefined,
+    platformCollaborationId: collaboration.platformCollaborationId ?? undefined,
+  };
+
+  if (scenario === GQL.AffiliateP50SalesPredictionScenario.SampleReview) {
+    subject.sampleApplicationRecordId = sample?.id ?? collaboration.sampleApplicationRecordId ?? undefined;
+    subject.platformApplicationId = sample?.platformApplicationId ?? undefined;
+  }
+
+  return {
+    shopId,
+    scenario,
+    context: {
+      affiliateCollaborationId: collaboration.affiliateCollaborationId ?? undefined,
+      platformCollaborationId: collaboration.platformCollaborationId ?? undefined,
+      productId: productId ?? undefined,
+    },
+    subjects: [subject],
+  };
+}
+
+function renderP50PredictionSnapshotSection(
+  scenario: GQL.AffiliateP50SalesPredictionScenario,
+  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot,
+): string {
+  const output = snapshot.output ?? {};
+  const quality = readRecord(output.predictionQuality);
+  return [
+    "## Affiliate Prediction",
+    `- Scenario: ${scenario}`,
+    "- Status: ALREADY_CAPTURED_ON_COLLABORATION",
+    `- Captured At: ${snapshot.capturedAt ?? ""}`,
+    `- Prediction Type: ${snapshot.predictionType ?? ""}`,
+    `- P50 Units: ${formatMaybeValue(output.p50Units)}`,
+    `- Confidence Level: ${formatMaybeValue(quality?.level)}`,
+    `- Confidence Score: ${formatMaybeNumber(numberFromUnknown(quality?.score))}`,
+    "- Cache IDs: (none needed; this collaboration already has a persisted prediction snapshot)",
+  ].join("\n");
+}
+
+function renderP50PredictionPayloadSection(
+  scenario: GQL.AffiliateP50SalesPredictionScenario,
+  payload: GQL.AffiliateP50SalesPredictionPayload,
+): string {
+  const predictions = payload.predictions ?? [];
+  const lines = predictions.length
+    ? predictions.map((prediction, index) => renderP50PredictionLine(index, prediction))
+    : ["(none)"];
+  const cacheIds = predictions
+    .map(prediction => prediction.cacheId)
+    .filter((cacheId): cacheId is string => typeof cacheId === "string" && cacheId.length > 0);
+  return [
+    "## Affiliate Prediction",
+    "This prediction was resolved by Desktop before dispatch. If you request an action, preserve the cache IDs so Backend can snapshot the exact prediction used for this decision.",
+    `- Scenario: ${scenario}`,
+    `- Payload Status: ${payload.status}`,
+    `- Request ID: ${payload.requestId ?? ""}`,
+    `- Model: ${payload.modelTag ?? ""} ${payload.modelType ?? ""}`.trim(),
+    `- Cache IDs: ${cacheIds.length ? cacheIds.join(", ") : "(none)"}`,
+    "",
+    "### Subject Predictions",
+    ...lines,
+  ].join("\n");
+}
+
+function renderP50PredictionLine(index: number, prediction: GQL.AffiliateP50SalesSubjectPrediction): string {
+  return [
+    `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
+    `   p50Units=${prediction.p50Units ?? ""} confidenceLevel=${prediction.predictionQuality?.level ?? ""} confidenceScore=${formatMaybeNumber(prediction.predictionQuality?.score)}`,
+    `   creator=${prediction.resolvedContext?.creatorNickname ?? prediction.resolvedContext?.creatorUsername ?? prediction.resolvedContext?.creatorId ?? prediction.subject.creatorId ?? ""}`,
+    `   product=${prediction.resolvedContext?.productTitle ?? prediction.resolvedContext?.productId ?? prediction.subject.productId ?? ""}`,
+    `   sample=${prediction.resolvedContext?.sampleApplicationRecordId ?? prediction.subject.sampleApplicationRecordId ?? ""}`,
+    `   thresholdP(units>=1)=${formatMaybeNumber(prediction.thresholdProbabilities?.unitsGe1)} P(units>=3)=${formatMaybeNumber(prediction.thresholdProbabilities?.unitsGe3)} P(units>=10)=${formatMaybeNumber(prediction.thresholdProbabilities?.unitsGe10)}`,
+    ...(prediction.message ? [`   message=${prediction.message}`] : []),
+  ].join("\n");
+}
+
+function formatMaybeNumber(value: number | null | undefined): string {
+  return typeof value === "number" ? value.toFixed(3) : "";
+}
+
+function formatMaybeValue(value: unknown): string {
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
+  if (typeof value === "string") return value;
+  return "";
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function numberFromUnknown(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
 }
 
 function isAffiliateMessageSignal(type: AffiliateConversationSignalPayload["type"]): boolean {

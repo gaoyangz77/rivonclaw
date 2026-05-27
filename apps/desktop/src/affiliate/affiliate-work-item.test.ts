@@ -59,6 +59,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     affiliateCollaborationId: null,
     collaborationType: null,
     platformCollaborationId: null,
+    predictionSnapshots: [],
   } as GQL.AffiliateCollaborationRecord;
 
   const sampleApplicationRecord: GQL.SampleApplicationRecord = {
@@ -194,6 +195,98 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
   });
 
+  it("resolves P50 prediction cache ids before dispatching affiliate work", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      affiliateP50SalesPredictions: {
+        status: GQL.AffiliateP50SalesPredictionStatus.Ok,
+        requestId: "prediction-request-001",
+        modelTag: "affiliate-p50-test",
+        modelType: "ridge",
+        trainedAt: "2026-05-11T00:00:00.000Z",
+        featureVersion: "v1",
+        predictions: [{
+          cacheId: "prediction-cache-001",
+          status: GQL.AffiliatePredictionStatus.Ok,
+          message: null,
+          p50Units: 3,
+          subject: {
+            sampleApplicationRecordId: "sample-record-001",
+            platformApplicationId: "platform-sample-001",
+            creatorId: "creator-001",
+            productId: "product-001",
+          },
+          resolvedContext: {
+            shopId: "shop-001",
+            sampleApplicationRecordId: "sample-record-001",
+            platformApplicationId: "platform-sample-001",
+            creatorId: "creator-001",
+            productId: "product-001",
+            productTitle: "Test Product",
+          },
+          predictionQuality: {
+            score: 0.82,
+            level: "HIGH",
+            featureCompletenessScore: 0.9,
+            dataSupportScore: 0.8,
+            probabilityMarginScore: 0.75,
+            interpretation: "sufficient signal",
+          },
+          thresholdProbabilities: {
+            unitsGe1: 0.7,
+            unitsGe2: 0.55,
+            unitsGe3: 0.45,
+            unitsGe5: 0.2,
+            unitsGe10: 0.05,
+          },
+          validation: null,
+        }],
+      },
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const workItem = createSampleReviewWorkItem({
+      id: "collab-p50-001",
+      collaborationRecordId: "collab-p50-001",
+      collaboration: {
+        ...createSampleReviewWorkItem().collaboration,
+        id: "collab-p50-001",
+      },
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-p50-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    await session.handleWorkItem(workItem);
+
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("affiliateP50SalesPredictions"),
+      expect.objectContaining({
+        input: expect.objectContaining({
+          shopId: "shop-001",
+          scenario: GQL.AffiliateP50SalesPredictionScenario.SampleReview,
+        }),
+      }),
+    );
+    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.message).toContain("prediction-cache-001");
+    expect(agentCall?.[1]?.message).toContain("predictionCacheIds");
+  });
+
   it("does not ack work items when the gateway reports an agent run error", async () => {
     const workItem = createSampleReviewWorkItem();
     const session = new AffiliateSession(
@@ -219,6 +312,7 @@ describe("affiliate work item dispatch", () => {
     const result = await session.handleWorkItem(workItem);
     expect(result.runId).toBe("run-affiliate-001");
 
+    mockGetAuthSession.mockClear();
     session.onRunCompleted("run-affiliate-001", { errored: true });
 
     expect(mockGetAuthSession).not.toHaveBeenCalled();

@@ -14,6 +14,8 @@ export interface Scalars {
   Float: { input: number; output: number; }
   /** A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.This scalar is serialized to a string in ISO 8601 format and parsed from a string in ISO 8601 format. */
   DateTimeISO: { input: any; output: any; }
+  /** Arbitrary JSON object used for model-specific prediction output and diagnostics. */
+  JSONObject: { input: any; output: any; }
 }
 
 export interface AccountLlmBillingStatus {
@@ -50,6 +52,8 @@ export interface ActionProposal {
   /** Staff-facing proposal summary. Creator-facing text, if any, lives in messageIntent.text or a message step. */
   operatorSummary: Scalars['String']['output'];
   policySnapshot?: Maybe<ActionProposalPolicySnapshot>;
+  /** Short-lived affiliate prediction cache ids carried with the frozen proposal until approval execution. */
+  predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
   shopId: Scalars['ID']['output'];
@@ -267,6 +271,8 @@ export interface ActionProposalStep {
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing summary for this action step. Use the desktop/operator language. */
   operatorSummary: Scalars['String']['output'];
+  /** Short-lived affiliate prediction cache ids used to promote exact search/review predictions when this step is executed. */
+  predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
   stepId: Scalars['String']['output'];
@@ -432,6 +438,7 @@ export interface AffiliateCollaborationRecord {
   nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   platformConversationId?: Maybe<Scalars['String']['output']>;
+  predictionSnapshots: Array<AffiliateCollaborationRecordPredictionSnapshot>;
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
   productId?: Maybe<Scalars['String']['output']>;
@@ -442,6 +449,26 @@ export interface AffiliateCollaborationRecord {
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   workHandledUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+/** Immutable affiliate prediction evidence copied from the short-lived prediction cache into a collaboration record. */
+export interface AffiliateCollaborationRecordPredictionSnapshot {
+  captureMode: AffiliatePredictionCaptureMode;
+  capturedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Model-specific validation, warnings, and diagnostic details. */
+  diagnostics: Scalars['JSONObject']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  /** Model identity and version metadata captured with the prediction. */
+  model: Scalars['JSONObject']['output'];
+  /** Model-specific prediction output, for example p50Units or threshold probabilities. */
+  output: Scalars['JSONObject']['output'];
+  predictedAt: Scalars['DateTimeISO']['output'];
+  predictionType: AffiliatePredictionType;
+  resolvedContext?: Maybe<AffiliateP50SalesResolvedContext>;
+  scenario: AffiliateP50SalesPredictionScenario;
+  sourceCacheId?: Maybe<Scalars['String']['output']>;
+  status: AffiliatePredictionStatus;
+  subject: AffiliateP50SalesSubjectRef;
 }
 
 /** Typed backend reasons explaining why a creator collaboration is in its processing state. */
@@ -659,6 +686,18 @@ export const AffiliateOutreachPersonalizationMode = {
 } as const;
 
 export type AffiliateOutreachPersonalizationMode = typeof AffiliateOutreachPersonalizationMode[keyof typeof AffiliateOutreachPersonalizationMode];
+export interface AffiliateP50SalesModelVersion {
+  bentomlTag?: Maybe<Scalars['String']['output']>;
+  featureVersion?: Maybe<Scalars['String']['output']>;
+  modelFamily?: Maybe<Scalars['String']['output']>;
+  modelVersionKey?: Maybe<Scalars['String']['output']>;
+  tenantModelName?: Maybe<Scalars['String']['output']>;
+  tenantScope?: Maybe<Scalars['String']['output']>;
+  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  trainingIndex?: Maybe<Scalars['Int']['output']>;
+  trainingRunId?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateP50SalesPredictionContextInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   campaignId?: InputMaybe<Scalars['ID']['input']>;
@@ -677,10 +716,20 @@ export interface AffiliateP50SalesPredictionPayload {
   featureVersion?: Maybe<Scalars['String']['output']>;
   modelTag?: Maybe<Scalars['String']['output']>;
   modelType?: Maybe<Scalars['String']['output']>;
+  modelVersion?: Maybe<AffiliateP50SalesModelVersion>;
   predictions: Array<AffiliateP50SalesSubjectPrediction>;
   requestId?: Maybe<Scalars['String']['output']>;
   status: AffiliateP50SalesPredictionStatus;
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+export interface AffiliateP50SalesPredictionQuality {
+  dataSupportScore?: Maybe<Scalars['Float']['output']>;
+  featureCompletenessScore?: Maybe<Scalars['Float']['output']>;
+  interpretation?: Maybe<Scalars['String']['output']>;
+  level?: Maybe<Scalars['String']['output']>;
+  probabilityMarginScore?: Maybe<Scalars['Float']['output']>;
+  score?: Maybe<Scalars['Float']['output']>;
 }
 
 export const AffiliateP50SalesPredictionScenario = {
@@ -737,11 +786,11 @@ export interface AffiliateP50SalesResolvedContext {
 }
 
 export interface AffiliateP50SalesSubjectPrediction {
-  confidence?: Maybe<Scalars['Float']['output']>;
-  confidenceLevel?: Maybe<Scalars['String']['output']>;
-  decision?: Maybe<Scalars['String']['output']>;
+  /** Short-lived backend cache id for promoting this exact prediction into a persisted affiliate decision snapshot. */
+  cacheId?: Maybe<Scalars['ID']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   p50Units?: Maybe<Scalars['Int']['output']>;
+  predictionQuality?: Maybe<AffiliateP50SalesPredictionQuality>;
   resolvedContext?: Maybe<AffiliateP50SalesResolvedContext>;
   status: AffiliateP50SalesSubjectPredictionStatus;
   subject: AffiliateP50SalesSubjectRef;
@@ -751,8 +800,8 @@ export interface AffiliateP50SalesSubjectPrediction {
 
 export const AffiliateP50SalesSubjectPredictionStatus = {
   InvalidContext: 'INVALID_CONTEXT',
-  ModelRejected: 'MODEL_REJECTED',
   Ok: 'OK',
+  PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
   ServiceError: 'SERVICE_ERROR'
 } as const;
 
@@ -800,6 +849,25 @@ export const AffiliatePolicyAction = {
 } as const;
 
 export type AffiliatePolicyAction = typeof AffiliatePolicyAction[keyof typeof AffiliatePolicyAction];
+export const AffiliatePredictionCaptureMode = {
+  PromotedFromCache: 'PROMOTED_FROM_CACHE',
+  QueryCache: 'QUERY_CACHE'
+} as const;
+
+export type AffiliatePredictionCaptureMode = typeof AffiliatePredictionCaptureMode[keyof typeof AffiliatePredictionCaptureMode];
+export const AffiliatePredictionStatus = {
+  InvalidContext: 'INVALID_CONTEXT',
+  Ok: 'OK',
+  PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
+  ServiceError: 'SERVICE_ERROR'
+} as const;
+
+export type AffiliatePredictionStatus = typeof AffiliatePredictionStatus[keyof typeof AffiliatePredictionStatus];
+export const AffiliatePredictionType = {
+  SalesUnitsForecast: 'SALES_UNITS_FORECAST'
+} as const;
+
+export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
 /** How much creator research the desktop skill should spend before acting. */
 export const AffiliateResearchDepth = {
   Balanced: 'BALANCED',
@@ -5130,6 +5198,8 @@ export interface RequestAffiliateActionInput {
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   messageIntent?: InputMaybe<ActionProposalMessageIntentInput>;
   operatorSummary: Scalars['String']['input'];
+  /** Prediction cache ids returned by affiliateP50SalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
+  predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
   shopId: Scalars['ID']['input'];
@@ -5153,6 +5223,8 @@ export interface ResolveAffiliateWorkItemActionInput {
   creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
+  /** Prediction cache ids returned by affiliateP50SalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
+  predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
