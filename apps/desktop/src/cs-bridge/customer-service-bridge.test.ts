@@ -1152,7 +1152,10 @@ describe("agent dispatch", () => {
     expect(message).toContain("[Internal: System]");
     expect(message).toContain("ecom_cs_get_conversation_messages");
     expect(message).toContain("ecom_cs_end_session");
-    expect(message).toContain("there is no open escalation");
+    expect(message).toContain("no open escalation");
+    expect(message).toContain("no pending buyer choice/action");
+    expect(message).toContain("short acknowledgements");
+    expect(message).toContain("'oh mb'");
     expect(message).toContain("[Internal: Operator Instruction]");
     expect(message).toContain("This refund request looks unreasonable.");
   });
