@@ -318,6 +318,80 @@ describe("affiliate work item dispatch", () => {
     expect(mockGetAuthSession).not.toHaveBeenCalled();
   });
 
+  it("does not mark a run failed when affiliate_resolve_work_item already handled the work boundary", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("affiliateP50SalesPredictions")) {
+        return {
+          affiliateP50SalesPredictions: {
+            status: GQL.AffiliateP50SalesPredictionStatus.Ok,
+            requestId: "prediction-request-empty",
+            modelTag: "affiliate-p50-test",
+            modelType: "ridge",
+            trainedAt: null,
+            featureVersion: "v1",
+            predictions: [],
+          },
+        };
+      }
+      if (query.includes("AffiliateWorkspace")) {
+        return {
+          affiliateWorkspace: {
+            sampleApplicationRecords: [],
+            collaborationRecords: [{
+              id: "collab-001",
+              workHandledUntil: "2026-05-11T00:01:00.000Z",
+            }],
+            actionProposals: [],
+            approvalPolicies: [],
+          },
+        };
+      }
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const workItem = createSampleReviewWorkItem({
+      collaboration: {
+        ...createSampleReviewWorkItem().collaboration,
+        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      },
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runId).toBe("run-affiliate-001");
+
+    session.onRunCompleted("run-affiliate-001");
+
+    await vi.waitFor(() => {
+      expect(graphqlFetch).toHaveBeenCalledWith(
+        expect.stringContaining("AffiliateWorkspace"),
+        expect.anything(),
+      );
+    });
+    expect(graphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      expect.anything(),
+    );
+  });
+
   it("does not dispatch work items that are projection-only", async () => {
     const workItem = createSampleReviewWorkItem({
       agentDispatchRecommended: false,

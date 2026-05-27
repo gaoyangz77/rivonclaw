@@ -382,6 +382,14 @@ export class AffiliateSession {
     }
 
     try {
+      if (await this.isWorkItemAlreadyHandled(workItem)) {
+        log.info(
+          `Affiliate work item already resolved by agent tool call; skipping fallback completion: ` +
+          `runId=${runId} collaboration=${workItem.collaborationRecordId}`,
+        );
+        return;
+      }
+
       const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
         RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
         {
@@ -403,6 +411,23 @@ export class AffiliateSession {
     } catch (err) {
       log.error(`Failed to complete unresolved affiliate work item for run ${runId}:`, err);
     }
+  }
+
+  private async isWorkItemAlreadyHandled(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
+    const boundary = parseOptionalDate(workItem.collaboration.lastSignalAt ?? workItem.versionAt);
+    if (!boundary) return false;
+
+    const workspace = await this.fetchWorkspace({
+      includePolicies: false,
+      platformApplicationId: workItem.sampleApplicationRecord?.platformApplicationId ?? undefined,
+      platformConversationId: workItem.collaboration.platformConversationId ?? undefined,
+      limit: 20,
+    });
+    const collaboration = workspace?.collaborationRecords?.find(
+      record => record.id === workItem.collaborationRecordId,
+    );
+    const handledUntil = parseOptionalDate(collaboration?.workHandledUntil);
+    return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
   }
 
   private beginConversationTakeover(): number {
@@ -843,6 +868,12 @@ function isAffiliateMessageSignal(type: AffiliateConversationSignalPayload["type
 
 function appendOptionalSection(message: string, section?: string): string {
   return section ? `${message}\n\n${section}` : message;
+}
+
+function parseOptionalDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): string {
