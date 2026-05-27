@@ -398,8 +398,8 @@ export class CustomerServiceSession {
    * Ensure a backend CS session exists (entitlement check + session creation).
    * Idempotent — skips if already called successfully.
    */
-  async ensureBackendSession(): Promise<boolean> {
-    if (this.backendSessionReady) return true;
+  async ensureBackendSession(options?: { forceRefresh?: boolean }): Promise<boolean> {
+    if (this.backendSessionReady && !options?.forceRefresh) return true;
 
     const startedAt = Date.now();
     const authSession = getAuthSession();
@@ -488,7 +488,7 @@ export class CustomerServiceSession {
     const content = this.parseMessageContent(frame);
     // ── END SYNC section ──
 
-    if (!await this.ensureBackendSession()) {
+    if (!await this.ensureBackendSession({ forceRefresh: true })) {
       if (this.activeRound === round) round.clearPlaceholderIfCurrent();
       this.emitDispatchTelemetry({
         source: "relay",
@@ -1205,7 +1205,7 @@ export class CustomerServiceSession {
     const placeholder = round.placeholderRunId;
 
     try {
-      if (!await this.ensureBackendSession()) {
+      if (!await this.ensureBackendSession({ forceRefresh: true })) {
         if (this.activeRound === round) round.clearPlaceholderIfCurrent(placeholder);
         this.emitDispatchTelemetry({
           source: options.source ?? "cloud",
