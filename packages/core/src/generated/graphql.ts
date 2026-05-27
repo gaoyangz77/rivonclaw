@@ -422,6 +422,7 @@ export interface AffiliateCollaborationRecord {
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
   creatorImId?: Maybe<Scalars['String']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
   endedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
   lastCreatorMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -658,6 +659,132 @@ export const AffiliateOutreachPersonalizationMode = {
 } as const;
 
 export type AffiliateOutreachPersonalizationMode = typeof AffiliateOutreachPersonalizationMode[keyof typeof AffiliateOutreachPersonalizationMode];
+export interface AffiliateP50SalesPredictionContextInput {
+  affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  platformCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface AffiliateP50SalesPredictionInput {
+  context?: InputMaybe<AffiliateP50SalesPredictionContextInput>;
+  scenario: AffiliateP50SalesPredictionScenario;
+  shopId: Scalars['ID']['input'];
+  subjects: Array<AffiliateP50SalesPredictionSubjectInput>;
+}
+
+export interface AffiliateP50SalesPredictionPayload {
+  featureVersion?: Maybe<Scalars['String']['output']>;
+  modelTag?: Maybe<Scalars['String']['output']>;
+  modelType?: Maybe<Scalars['String']['output']>;
+  predictions: Array<AffiliateP50SalesSubjectPrediction>;
+  requestId?: Maybe<Scalars['String']['output']>;
+  status: AffiliateP50SalesPredictionStatus;
+  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+export const AffiliateP50SalesPredictionScenario = {
+  CreatorProspecting: 'CREATOR_PROSPECTING',
+  SampleReview: 'SAMPLE_REVIEW',
+  TargetCollaborationPlanning: 'TARGET_COLLABORATION_PLANNING'
+} as const;
+
+export type AffiliateP50SalesPredictionScenario = typeof AffiliateP50SalesPredictionScenario[keyof typeof AffiliateP50SalesPredictionScenario];
+export const AffiliateP50SalesPredictionStatus = {
+  InvalidInput: 'INVALID_INPUT',
+  ModelNotAvailable: 'MODEL_NOT_AVAILABLE',
+  Ok: 'OK',
+  Partial: 'PARTIAL',
+  ServiceUnavailable: 'SERVICE_UNAVAILABLE'
+} as const;
+
+export type AffiliateP50SalesPredictionStatus = typeof AffiliateP50SalesPredictionStatus[keyof typeof AffiliateP50SalesPredictionStatus];
+export interface AffiliateP50SalesPredictionSubjectInput {
+  affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  creatorCandidateId?: InputMaybe<Scalars['ID']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  platformCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface AffiliateP50SalesPredictionValidation {
+  hardErrorCount: Scalars['Int']['output'];
+  hardErrors: Array<AffiliateP50SalesValidationIssue>;
+  softWarningCount: Scalars['Int']['output'];
+  softWarnings: Array<AffiliateP50SalesValidationIssue>;
+  status?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateP50SalesResolvedContext {
+  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  campaignId?: Maybe<Scalars['ID']['output']>;
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorNickname?: Maybe<Scalars['String']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  platformCollaborationId?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  productTitle?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  shopId: Scalars['ID']['output'];
+  skuId?: Maybe<Scalars['String']['output']>;
+  source?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateP50SalesSubjectPrediction {
+  confidence?: Maybe<Scalars['Float']['output']>;
+  confidenceLevel?: Maybe<Scalars['String']['output']>;
+  decision?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  p50Units?: Maybe<Scalars['Int']['output']>;
+  resolvedContext?: Maybe<AffiliateP50SalesResolvedContext>;
+  status: AffiliateP50SalesSubjectPredictionStatus;
+  subject: AffiliateP50SalesSubjectRef;
+  thresholdProbabilities?: Maybe<AffiliateP50SalesThresholdProbabilities>;
+  validation?: Maybe<AffiliateP50SalesPredictionValidation>;
+}
+
+export const AffiliateP50SalesSubjectPredictionStatus = {
+  InvalidContext: 'INVALID_CONTEXT',
+  ModelRejected: 'MODEL_REJECTED',
+  Ok: 'OK',
+  ServiceError: 'SERVICE_ERROR'
+} as const;
+
+export type AffiliateP50SalesSubjectPredictionStatus = typeof AffiliateP50SalesSubjectPredictionStatus[keyof typeof AffiliateP50SalesSubjectPredictionStatus];
+export interface AffiliateP50SalesSubjectRef {
+  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  campaignId?: Maybe<Scalars['ID']['output']>;
+  creatorCandidateId?: Maybe<Scalars['ID']['output']>;
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  platformCollaborationId?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+}
+
+export interface AffiliateP50SalesThresholdProbabilities {
+  unitsGe1?: Maybe<Scalars['Float']['output']>;
+  unitsGe2?: Maybe<Scalars['Float']['output']>;
+  unitsGe3?: Maybe<Scalars['Float']['output']>;
+  unitsGe5?: Maybe<Scalars['Float']['output']>;
+  unitsGe10?: Maybe<Scalars['Float']['output']>;
+}
+
+export interface AffiliateP50SalesValidationIssue {
+  code?: Maybe<Scalars['String']['output']>;
+  field?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  recordIndex?: Maybe<Scalars['Int']['output']>;
+  severity?: Maybe<Scalars['String']['output']>;
+}
+
 export const AffiliatePolicyAction = {
   AddCreatorTag: 'ADD_CREATOR_TAG',
   ApproveSample: 'APPROVE_SAMPLE',
@@ -4219,6 +4346,8 @@ export interface Query {
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Get a bounded affiliate creator conversation delta from a local OpenClaw-session anchor through the current inbound message. */
   affiliateConversationMessageDelta: EcomAffiliateMessageDelta;
+  /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy P50 sales prediction to the BentoML affiliate-p50-sales service. */
+  affiliateP50SalesPredictions: AffiliateP50SalesPredictionPayload;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
@@ -4390,6 +4519,11 @@ export interface QueryAffiliateConversationMessageDeltaArgs {
   currentMessageId: Scalars['String']['input'];
   maxPages?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryAffiliateP50SalesPredictionsArgs {
+  input: AffiliateP50SalesPredictionInput;
 }
 
 
@@ -5083,6 +5217,7 @@ export interface SampleApplicationRecord {
   carrier?: Maybe<Scalars['String']['output']>;
   collaborationType?: Maybe<AffiliateCollaborationType>;
   creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
   deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
   latestObservedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
