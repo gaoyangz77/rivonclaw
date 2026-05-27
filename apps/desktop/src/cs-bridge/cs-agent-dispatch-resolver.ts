@@ -60,7 +60,10 @@ const SIGNAL_DISPATCH_PLANS: Record<string, {
 };
 
 const END_SESSION_GUIDANCE = [
-  "When the buyer's issue is fully handled, there is no open escalation, no unresolved follow-up, and no need to wait for more buyer input, call ecom_cs_end_session after sending the final helpful reply.",
+  "Use ecom_cs_end_session only as a deliberate close-out action after the buyer's issue is clearly complete.",
+  "Before ending, verify there is no open escalation, no unresolved follow-up, no pending buyer choice/action, and the latest buyer message explicitly indicates no more help is needed or confirms a completed action that requires no response.",
+  "Do not end the session after short acknowledgements, apologies, or backchannels such as 'ok', 'oh mb', 'got it', or 'thanks'; reply or leave the session open so the buyer can finish.",
+  "Do not end immediately after offering a choice, cancellation check, replacement/refund step, tracking follow-up, or anything that may invite another buyer response.",
   "Ending the session lets the platform close the support session cleanly and may show the buyer the appropriate review/evaluation flow.",
   "Never call ecom_cs_end_session while an escalation is still open or while the buyer still needs service.",
 ].join(" ");
@@ -149,7 +152,8 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
         "This customer-service session is approaching the platform timeout after customer service sent the latest effective message and the buyer has not replied.",
         "This dispatch is for at most one lightweight follow-up asking whether the buyer still needs help.",
         "Inspect the latest conversation state first, avoid repeating a recent follow-up, and do not introduce new promises or complex workflows unless the buyer has actually asked for them.",
-        "If the current platform context clearly shows the buyer no longer needs help, call ecom_cs_end_session instead of sending another follow-up.",
+        "If the current platform context explicitly shows the buyer no longer needs help and there is no pending buyer choice/action, call ecom_cs_end_session instead of sending another follow-up.",
+        "Do not end after a short acknowledgement such as 'ok', 'oh mb', 'got it', or 'thanks' unless the buyer also clearly said they need nothing else.",
       ].join(" ");
   }
 }
