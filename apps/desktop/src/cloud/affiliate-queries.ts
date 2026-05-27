@@ -183,6 +183,27 @@ export interface AffiliateP50SalesPredictionsQueryResult {
   affiliateP50SalesPredictions: GQL.AffiliateP50SalesPredictionPayload;
 }
 
+export const AFFILIATE_WORK_ITEMS_QUERY = `
+  query AffiliateWorkItems($input: ReadAffiliateWorkItemsInput) {
+    affiliateWorkItems(input: $input) {
+      id
+      collaborationRecordId
+      versionAt
+      collaboration {
+        id
+        lastSignalAt
+        workHandledUntil
+        processingStatus
+        processReasons
+      }
+    }
+  }
+`;
+
+export interface AffiliateWorkItemsQueryResult {
+  affiliateWorkItems: Array<Pick<GQL.AffiliateWorkItem, "id" | "collaborationRecordId" | "versionAt" | "collaboration">>;
+}
+
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
   mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
     resolveAffiliateWorkItem(input: $input) {
