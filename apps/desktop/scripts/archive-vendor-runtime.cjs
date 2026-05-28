@@ -1,7 +1,7 @@
 // @ts-check
-// Build-time script: creates a tar.gz archive of vendor/openclaw for macOS
-// distribution. On macOS (or when ARCHIVE_VENDOR_RUNTIME=1), this replaces the
-// 33k+ exploded files with a single archive that is extracted on first launch.
+// Build-time script: creates an opaque gzip archive of vendor/openclaw for
+// macOS distribution. On macOS (or when ARCHIVE_VENDOR_RUNTIME=1), this replaces
+// the 33k+ exploded files with a single archive that is extracted on first launch.
 //
 // Must run AFTER prune-vendor-deps.cjs (so node_modules is production-only)
 // and BEFORE electron-builder (so the archive is available for extraResources).
@@ -21,7 +21,8 @@ if (!isMacOS && !forceArchive) {
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const vendorDir = path.resolve(repoRoot, "vendor", "openclaw");
-const archivePath = path.join(vendorDir, "vendor-runtime.tar.gz");
+const archiveFile = "vendor-runtime.dat";
+const archivePath = path.join(vendorDir, archiveFile);
 const manifestPath = path.join(vendorDir, "vendor-runtime-manifest.json");
 
 if (!fs.existsSync(vendorDir)) {
@@ -177,7 +178,11 @@ function signMacOSRuntimeBinaries() {
   console.log("[archive-vendor-runtime] Vendor Mach-O signing complete.");
 }
 
-signMacOSRuntimeBinaries();
+if (process.env.SIGN_VENDOR_RUNTIME === "1") {
+  signMacOSRuntimeBinaries();
+} else {
+  console.log("[archive-vendor-runtime] Skipping vendor Mach-O signing; shipping runtime as opaque archive.");
+}
 
 // Build the include arguments — only add paths that actually exist
 const includeArgs = RUNTIME_INCLUDES
@@ -223,7 +228,7 @@ console.log("[archive-vendor-runtime] Archive verification passed (openclaw.mjs 
 // ─── Write manifest ───
 const manifest = {
   version,
-  archiveFile: "vendor-runtime.tar.gz",
+  archiveFile,
   openclawVersion,
   archiveSizeBytes,
 };

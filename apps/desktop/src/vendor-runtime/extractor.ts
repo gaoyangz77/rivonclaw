@@ -1,7 +1,7 @@
 /**
  * macOS vendor runtime extractor.
  *
- * On macOS, the vendor runtime ships as a single tar.gz archive inside the .app
+ * On macOS, the vendor runtime ships as a single opaque gzip archive inside the .app
  * bundle to avoid EMFILE errors during code signing (33k+ exploded files).
  * This module extracts the archive to a user-data directory on first launch and
  * returns the extracted path for use as vendorDir.
@@ -36,7 +36,7 @@ const ENTRY_FILE = "openclaw.mjs";
 /**
  * Ensures the vendor runtime is extracted and ready for use.
  *
- * @param archiveDir - Path to the directory containing vendor-runtime.tar.gz
+ * @param archiveDir - Path to the directory containing vendor-runtime.dat
  *   and vendor-runtime-manifest.json (typically Contents/Resources/vendor/openclaw/).
  * @returns Absolute path to the extracted vendor runtime directory.
  */
