@@ -8,6 +8,7 @@ const path = require("node:path");
 
 const PRODUCT_NAME = "RivonClaw";
 const ENTRY_FILE = "openclaw.mjs";
+const DEFAULT_ARCHIVE_HEADER_BYTES = 16;
 
 function fail(message, cause) {
   process.stderr.write(`openclaw: ${message}\n`);
@@ -19,6 +20,10 @@ function fail(message, cause) {
 
 function mkdirp(dir) {
   fs.mkdirSync(dir, { recursive: true });
+}
+
+function shellQuote(value) {
+  return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
 function defaultUserDataDir() {
@@ -84,11 +89,18 @@ function ensureArchivedRuntime(archiveDir) {
   if (!fs.existsSync(archivePath)) {
     fail(`OpenClaw runtime archive not found: ${archivePath}`);
   }
+  const archiveHeaderBytes =
+    Number.isInteger(manifest.archiveHeaderBytes) && manifest.archiveHeaderBytes > 0
+      ? manifest.archiveHeaderBytes
+      : DEFAULT_ARCHIVE_HEADER_BYTES;
 
   const tempDir = path.join(runtimeBaseDir, `.extracting-${manifest.version}-${process.pid}-${Date.now()}`);
   mkdirp(tempDir);
 
-  const result = spawnSync("tar", ["-xzf", archivePath, "-C", tempDir], {
+  const result = spawnSync("sh", [
+    "-c",
+    `dd if=${shellQuote(archivePath)} bs=${archiveHeaderBytes} skip=1 2>/dev/null | tar -xzf - -C ${shellQuote(tempDir)}`,
+  ], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
