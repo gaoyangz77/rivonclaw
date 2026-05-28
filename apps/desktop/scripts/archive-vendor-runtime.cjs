@@ -105,6 +105,7 @@ function findDeveloperIdIdentity() {
 function listMachOBinaries(rootDir) {
   const files = [];
   const stack = [rootDir];
+  const nativeExtensions = new Set([".bundle", ".dylib", ".node", ".so"]);
 
   while (stack.length > 0) {
     const current = stack.pop();
@@ -121,11 +122,30 @@ function listMachOBinaries(rootDir) {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
         stack.push(fullPath);
-      } else if (entry.isFile()) {
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+
+      const extension = path.extname(entry.name);
+      if (nativeExtensions.has(extension)) {
         files.push(fullPath);
+        continue;
+      }
+
+      try {
+        const mode = fs.statSync(fullPath).mode;
+        if ((mode & 0o111) !== 0) {
+          files.push(fullPath);
+        }
+      } catch {
+        // Non-readable files are ignored; tar validation below still catches
+        // missing runtime payloads.
       }
     }
   }
+
+  console.log(`[archive-vendor-runtime] Checking ${files.length} native binary candidate files...`);
 
   const machoFiles = [];
   for (const file of files) {

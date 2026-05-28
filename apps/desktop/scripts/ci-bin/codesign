@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // CI wrapper that bounds each codesign invocation and delegates to /usr/bin/codesign.
 
-const { spawn } = require("child_process");
+import { spawn } from "node:child_process";
 
 const timeoutSeconds = Number.parseInt(process.env.CODESIGN_TIMEOUT_SECONDS || "300", 10);
 const args = process.argv.slice(2);
