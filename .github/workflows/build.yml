@@ -249,7 +249,8 @@ jobs:
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           # Must have archive
-          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.dat" || { echo "FAIL: archive missing"; exit 1; }
+          test "$(head -c 16 "$VENDOR/vendor-runtime.dat")" = "RIVONVENDOR0001" || { echo "FAIL: archive header missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
@@ -397,7 +398,8 @@ jobs:
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           # Must have archive
-          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.dat" || { echo "FAIL: archive missing"; exit 1; }
+          test "$(head -c 16 "$VENDOR/vendor-runtime.dat")" = "RIVONVENDOR0001" || { echo "FAIL: archive header missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
