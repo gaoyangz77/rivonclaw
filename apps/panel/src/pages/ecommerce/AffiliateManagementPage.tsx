@@ -257,6 +257,10 @@ export const AffiliateManagementPage = observer(function AffiliateManagementPage
                       <div className="affiliate-proposal-preview">
                         {renderProposalPreview(proposal, t)}
                       </div>
+                      <PredictionResult
+                        snapshot={latestPredictionSnapshot(proposal)}
+                        t={t}
+                      />
                       {proposal.policySnapshot?.reasons?.length ? (
                         <div className="affiliate-proposal-policy">
                           <span>{t("ecommerce.shopDrawer.affiliate.policyReasons")}</span>
@@ -349,6 +353,139 @@ function groupProposals(proposals: GQL.ActionProposal[]): ProposalGroup[] {
     const rightTime = Math.max(...right.proposals.map((proposal) => new Date(proposal.createdAt).getTime()));
     return rightTime - leftTime;
   });
+}
+
+function PredictionResult({
+  snapshot,
+  t,
+}: {
+  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot | null;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (!snapshot) return null;
+
+  const output = readRecord(snapshot.output);
+  const quality = readRecord(output.predictionQuality);
+  const probabilities = readRecord(output.thresholdProbabilities);
+  const p50Units = readNumber(output.p50Units);
+  const confidenceLevel = readString(quality.level);
+  const confidenceScore = readNumber(quality.score);
+  const unitsGe1 = readNumber(probabilities.unitsGe1);
+  const unitsGe3 = readNumber(probabilities.unitsGe3);
+  const unitsGe10 = readNumber(probabilities.unitsGe10);
+  const model = readRecord(snapshot.model);
+  const modelLabel = readString(model.modelName)
+    ?? readString(model.name)
+    ?? readString(model.model)
+    ?? readString(model.version)
+    ?? snapshot.predictionType;
+
+  return (
+    <div className="affiliate-prediction-result">
+      <div className="affiliate-prediction-head">
+        <span className="affiliate-prediction-label">
+          {t("ecommerce.affiliateWorkspace.predictionResult")}
+        </span>
+        <span className={`badge ${snapshot.status === GQL.AffiliatePredictionStatus.Ok ? "badge-success" : "badge-muted"}`}>
+          {t(`ecommerce.affiliateWorkspace.predictionStatuses.${snapshot.status}`, {
+            defaultValue: snapshot.status,
+          })}
+        </span>
+      </div>
+      {snapshot.message ? (
+        <div className="affiliate-prediction-message">{snapshot.message}</div>
+      ) : null}
+      <div className="affiliate-prediction-grid">
+        <PredictionMetric
+          label={t("ecommerce.affiliateWorkspace.p50Units")}
+          value={formatMetricValue(p50Units)}
+          emphasis
+        />
+        <PredictionMetric
+          label={t("ecommerce.affiliateWorkspace.confidence")}
+          value={confidenceLevel
+            ? `${confidenceLevel}${typeof confidenceScore === "number" ? ` · ${formatPercent(confidenceScore)}` : ""}`
+            : formatMetricValue(confidenceScore)}
+        />
+        <PredictionMetric
+          label={t("ecommerce.affiliateWorkspace.probUnitsGe1")}
+          value={formatPercent(unitsGe1)}
+        />
+        <PredictionMetric
+          label={t("ecommerce.affiliateWorkspace.probUnitsGe3")}
+          value={formatPercent(unitsGe3)}
+        />
+        <PredictionMetric
+          label={t("ecommerce.affiliateWorkspace.probUnitsGe10")}
+          value={formatPercent(unitsGe10)}
+        />
+        <PredictionMetric
+          label={t("ecommerce.affiliateWorkspace.predictionModel")}
+          value={modelLabel}
+        />
+      </div>
+      <div className="affiliate-prediction-meta">
+        <span>{t("ecommerce.affiliateWorkspace.predictionScenario", { scenario: snapshot.scenario })}</span>
+        <span>{t("ecommerce.affiliateWorkspace.predictedAt", { time: formatProposalTime(snapshot.predictedAt) })}</span>
+      </div>
+    </div>
+  );
+}
+
+function PredictionMetric({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="affiliate-prediction-metric">
+      <span>{label}</span>
+      <strong className={emphasis ? "affiliate-prediction-metric-emphasis" : ""}>{value}</strong>
+    </div>
+  );
+}
+
+function latestPredictionSnapshot(
+  proposal: GQL.ActionProposal,
+): GQL.AffiliateCollaborationRecordPredictionSnapshot | null {
+  const snapshots = proposal.collaborationRecord?.predictionSnapshots ?? [];
+  if (snapshots.length === 0) return null;
+  return [...snapshots].sort((left, right) => {
+    const leftTime = new Date(left.capturedAt ?? left.predictedAt).getTime();
+    const rightTime = new Date(right.capturedAt ?? right.predictedAt).getTime();
+    return rightTime - leftTime;
+  })[0] ?? null;
+}
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function readNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function formatMetricValue(value: number | string | null): string {
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }
+  return value ?? "—";
+}
+
+function formatPercent(value: number | null): string {
+  if (typeof value !== "number") return "—";
+  const percent = Math.abs(value) <= 1 ? value * 100 : value;
+  return `${percent.toFixed(percent >= 10 ? 0 : 1)}%`;
 }
 
 function creatorDisplayName(profile: GQL.CreatorGlobalProfile): string {

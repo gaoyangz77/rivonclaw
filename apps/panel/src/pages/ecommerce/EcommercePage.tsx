@@ -42,6 +42,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
+  const [editAffiliateMinP50SalesUnits, setEditAffiliateMinP50SalesUnits] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAffiliateSettings, setSavingAffiliateSettings] = useState(false);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
@@ -104,8 +105,14 @@ export const EcommercePage = observer(function EcommercePage() {
   useEffect(() => {
     if (selectedShop) {
       setEditAffiliateBusinessPrompt(selectedShop.services?.affiliateService?.businessPrompt ?? "");
+      const minP50SalesUnits = selectedShop.services?.affiliateService?.decisionThresholds?.minP50SalesUnits;
+      setEditAffiliateMinP50SalesUnits(typeof minP50SalesUnits === "number" ? String(minP50SalesUnits) : "");
     }
-  }, [selectedShop?.id, selectedShop?.services?.affiliateService?.businessPrompt]);
+  }, [
+    selectedShop?.id,
+    selectedShop?.services?.affiliateService?.businessPrompt,
+    selectedShop?.services?.affiliateService?.decisionThresholds?.minP50SalesUnits,
+  ]);
 
   // ── Handlers ──
 
@@ -276,6 +283,40 @@ export const EcommercePage = observer(function EcommercePage() {
       if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
       await shop.update({
         services: { affiliateService: { businessPrompt: editAffiliateBusinessPrompt } },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingAffiliateSettings(false);
+    }
+  }
+
+  async function handleSaveAffiliateDecisionThresholds() {
+    if (!selectedShopId) return;
+    const trimmed = editAffiliateMinP50SalesUnits.trim();
+    let minP50SalesUnits: number | null = null;
+    if (trimmed !== "") {
+      const parsed = Number(trimmed);
+      if (!Number.isInteger(parsed) || parsed < 0) {
+        showToast(t("ecommerce.shopDrawer.affiliate.invalidDecisionThreshold"), "error");
+        return;
+      }
+      minP50SalesUnits = parsed;
+    }
+
+    setSavingAffiliateSettings(true);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
+        services: {
+          affiliateService: {
+            decisionThresholds: minP50SalesUnits === null
+              ? null
+              : { minP50SalesUnits },
+          },
+        },
       });
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
@@ -559,8 +600,11 @@ export const EcommercePage = observer(function EcommercePage() {
         onAffiliateRunProfileChange={handleAffiliateRunProfileChange}
         editAffiliateBusinessPrompt={editAffiliateBusinessPrompt}
         onEditAffiliateBusinessPrompt={setEditAffiliateBusinessPrompt}
+        editAffiliateMinP50SalesUnits={editAffiliateMinP50SalesUnits}
+        onEditAffiliateMinP50SalesUnits={setEditAffiliateMinP50SalesUnits}
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
+        onSaveAffiliateDecisionThresholds={handleSaveAffiliateDecisionThresholds}
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}

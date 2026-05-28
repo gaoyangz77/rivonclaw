@@ -9759,6 +9759,35 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-warning);
 }
 
+.affiliate-threshold-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+}
+
+.affiliate-threshold-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.affiliate-threshold-copy .shop-info-card-hint {
+  padding: 4px 0 0;
+  border-top: 0;
+}
+
+.affiliate-threshold-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.affiliate-threshold-input {
+  width: 150px;
+}
+
 /* RunProfile Selector in AI CS tab */
 
 .shop-runprofile-row {
@@ -11536,6 +11565,74 @@ html[lang="zh"] .acct-tool-chips {
   word-break: break-word;
 }
 
+.affiliate-prediction-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+}
+
+.affiliate-prediction-head,
+.affiliate-prediction-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.affiliate-prediction-label {
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.affiliate-prediction-message,
+.affiliate-prediction-meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-prediction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+  gap: 8px;
+}
+
+.affiliate-prediction-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-bg);
+}
+
+.affiliate-prediction-metric span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.affiliate-prediction-metric strong {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-prediction-metric-emphasis {
+  color: var(--color-primary) !important;
+}
+
 .affiliate-proposal-policy {
   color: var(--color-text-muted);
   font-size: 12px;
@@ -11664,9 +11761,15 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-proposal-toolbar,
   .affiliate-proposal-card-head,
   .affiliate-proposal-actions,
-  .affiliate-workspace-actions {
+  .affiliate-workspace-actions,
+  .affiliate-threshold-row,
+  .affiliate-threshold-control {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .affiliate-threshold-input {
+    width: 100%;
   }
 
   .affiliate-workspace-shop-select {
