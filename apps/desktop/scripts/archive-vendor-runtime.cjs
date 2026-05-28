@@ -1,7 +1,7 @@
 // @ts-check
-// Build-time script: creates an opaque gzip archive of vendor/openclaw for
-// macOS distribution. On macOS (or when ARCHIVE_VENDOR_RUNTIME=1), this replaces
-// the 33k+ exploded files with a single archive that is extracted on first launch.
+// Build-time script: creates a tar.gz archive of vendor/openclaw for macOS
+// distribution. On macOS (or when ARCHIVE_VENDOR_RUNTIME=1), this replaces the
+// 33k+ exploded files with a single archive that is extracted on first launch.
 //
 // Must run AFTER prune-vendor-deps.cjs (so node_modules is production-only)
 // and BEFORE electron-builder (so the archive is available for extraResources).
@@ -21,15 +21,9 @@ if (!isMacOS && !forceArchive) {
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const vendorDir = path.resolve(repoRoot, "vendor", "openclaw");
-const archiveFile = "vendor-runtime.dat";
+const archiveFile = "vendor-runtime.tar.gz";
 const archivePath = path.join(vendorDir, archiveFile);
 const manifestPath = path.join(vendorDir, "vendor-runtime-manifest.json");
-const archiveHeader = Buffer.from("RIVONVENDOR0001\n", "utf8");
-
-if (archiveHeader.length !== 16) {
-  console.error("[archive-vendor-runtime] Internal error: archive header must be exactly 16 bytes.");
-  process.exit(1);
-}
 
 if (!fs.existsSync(vendorDir)) {
   console.error("[archive-vendor-runtime] vendor/openclaw not found, aborting.");
@@ -47,7 +41,6 @@ const hash = crypto.createHash("sha256");
 const openclawVersionPath = path.join(repoRoot, ".openclaw-version");
 const openclawVersion = fs.readFileSync(openclawVersionPath, "utf-8").trim();
 hash.update(openclawVersion);
-hash.update("vendor-runtime-archive-format-v2");
 
 // 2. Sorted patch contents
 const patchDir = path.join(repoRoot, "vendor-patches", "openclaw");
@@ -93,27 +86,12 @@ function shellQuote(value) {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
-function writeOpaqueArchive(sourcePath, destPath) {
-  const input = fs.openSync(sourcePath, "r");
-  const output = fs.openSync(destPath, "w");
-  const buffer = Buffer.alloc(1024 * 1024);
-
-  try {
-    fs.writeSync(output, archiveHeader);
-
-    let bytesRead = 0;
-    while ((bytesRead = fs.readSync(input, buffer, 0, buffer.length, null)) > 0) {
-      fs.writeSync(output, buffer, 0, bytesRead);
-    }
-  } finally {
-    fs.closeSync(input);
-    fs.closeSync(output);
-  }
-}
-
 function findDeveloperIdIdentity() {
   try {
-    const output = execSync("security find-identity -v -p codesigning", {
+    const keychainArg = process.env.MACOS_KEYCHAIN_PATH
+      ? ` ${shellQuote(process.env.MACOS_KEYCHAIN_PATH)}`
+      : "";
+    const output = execSync(`security find-identity -v -p codesigning${keychainArg}`, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
@@ -185,6 +163,9 @@ function signMacOSRuntimeBinaries() {
   }
 
   console.log(`[archive-vendor-runtime] Signing ${machoFiles.length} vendor Mach-O binaries with ${identity}...`);
+  const keychainArgs = process.env.MACOS_KEYCHAIN_PATH
+    ? ["--keychain", shellQuote(process.env.MACOS_KEYCHAIN_PATH)]
+    : [];
   machoFiles.forEach((file, index) => {
     const relative = path.relative(vendorDir, file);
     console.log(`[archive-vendor-runtime] Signing ${index + 1}/${machoFiles.length}: ${relative}`);
@@ -193,20 +174,49 @@ function signMacOSRuntimeBinaries() {
         "codesign",
         "--force",
         "--options", "runtime",
-        "--timestamp=http://timestamp.apple.com/ts01",
+        "--timestamp",
+        ...keychainArgs,
         "--sign", shellQuote(identity),
         shellQuote(file),
       ].join(" "),
-      { stdio: "inherit", timeout: 600_000 },
+      { stdio: "inherit", timeout: 120_000 },
     );
   });
   console.log("[archive-vendor-runtime] Vendor Mach-O signing complete.");
 }
 
-if (process.env.SIGN_VENDOR_RUNTIME === "1") {
-  signMacOSRuntimeBinaries();
+function verifyMacOSRuntimeBinaries() {
+  if (!isMacOS) return;
+
+  const machoFiles = listMachOBinaries(vendorDir);
+  if (machoFiles.length === 0) {
+    console.log("[archive-vendor-runtime] No vendor Mach-O binaries to verify.");
+    return;
+  }
+
+  console.log(`[archive-vendor-runtime] Verifying ${machoFiles.length} signed vendor Mach-O binaries...`);
+  for (const file of machoFiles) {
+    try {
+      execSync(`codesign --verify --strict --verbose=2 ${shellQuote(file)}`, {
+        stdio: ["ignore", "ignore", "pipe"],
+        timeout: 30_000,
+      });
+    } catch (err) {
+      console.error(`[archive-vendor-runtime] FAIL: unsigned or invalid Mach-O: ${path.relative(vendorDir, file)}`);
+      if (err && typeof err === "object" && "stderr" in err && err.stderr) {
+        console.error(String(err.stderr));
+      }
+      process.exit(1);
+    }
+  }
+  console.log("[archive-vendor-runtime] Vendor Mach-O verification complete.");
+}
+
+if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
+  console.log("[archive-vendor-runtime] SKIP_VENDOR_RUNTIME_SIGNING=1; skipping vendor Mach-O signing.");
 } else {
-  console.log("[archive-vendor-runtime] Skipping vendor Mach-O signing; shipping runtime as opaque archive.");
+  signMacOSRuntimeBinaries();
+  verifyMacOSRuntimeBinaries();
 }
 
 // Build the include arguments — only add paths that actually exist
@@ -217,14 +227,11 @@ const includeArgs = RUNTIME_INCLUDES
 
 console.log(`[archive-vendor-runtime] Creating archive at ${archivePath}...`);
 const startMs = Date.now();
-const gzipArchivePath = `${archivePath}.tar.gz.tmp`;
 
 execSync(
-  `tar -czf ${shellQuote(gzipArchivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`,
+  `tar -czf ${shellQuote(archivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`,
   { stdio: "inherit", timeout: 300_000 },
 );
-writeOpaqueArchive(gzipArchivePath, archivePath);
-fs.rmSync(gzipArchivePath, { force: true });
 
 const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
 console.log(`[archive-vendor-runtime] Archive created in ${elapsedSec}s`);
@@ -243,12 +250,9 @@ console.log(`[archive-vendor-runtime] Archive size: ${archiveSizeMB}MB`);
 
 // Verify entry point exists in archive (use grep to avoid buffering the full listing)
 try {
-  execSync(
-    `dd if=${shellQuote(archivePath)} bs=${archiveHeader.length} skip=1 2>/dev/null | tar -tzf - | grep -q "openclaw\\.mjs"`,
-    {
+  execSync(`tar -tzf ${shellQuote(archivePath)} | grep -q "openclaw\\.mjs"`, {
     timeout: 60_000,
-    },
-  );
+  });
 } catch (err) {
   console.error("[archive-vendor-runtime] FAIL: openclaw.mjs not found in archive.");
   process.exit(1);
@@ -260,7 +264,6 @@ console.log("[archive-vendor-runtime] Archive verification passed (openclaw.mjs 
 const manifest = {
   version,
   archiveFile,
-  archiveHeaderBytes: archiveHeader.length,
   openclawVersion,
   archiveSizeBytes,
 };

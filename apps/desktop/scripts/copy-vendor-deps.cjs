@@ -40,19 +40,19 @@ exports.default = async function copyVendorDeps(context) {
   }
 
   // ─── macOS: archive-based vendor runtime ───
-  // On macOS, the vendor runtime ships as a single opaque gzip archive instead of
+  // On macOS, the vendor runtime ships as a single tar.gz archive instead of
   // 33k+ exploded files (which cause EMFILE during code signing). The archive
   // is extracted to ~/Library/Application Support/RivonClaw/runtime/<version>/
   // on first launch.
   if (electronPlatformName === "darwin") {
     const vendorDestDir = path.join(resourcesDir, "vendor", "openclaw");
-    const archiveFile = path.join(vendorDestDir, "vendor-runtime.dat");
+    const archiveFile = path.join(vendorDestDir, "vendor-runtime.tar.gz");
     const manifestFile = path.join(vendorDestDir, "vendor-runtime-manifest.json");
 
     // Verify archive files exist (created by archive-vendor-runtime.cjs)
     if (!fs.existsSync(archiveFile)) {
       throw new Error(
-        `[copy-vendor-deps] FAIL: vendor-runtime.dat not found at ${archiveFile}. ` +
+        `[copy-vendor-deps] FAIL: vendor-runtime.tar.gz not found at ${archiveFile}. ` +
         `Run archive-vendor-runtime.cjs before electron-builder.`
       );
     }
@@ -67,7 +67,7 @@ exports.default = async function copyVendorDeps(context) {
     // electron-builder's extraResources filter copies dist/, packages/, extensions/,
     // docs/, openclaw.mjs, package.json, etc. — none of that is needed on macOS
     // since everything is inside the archive.
-    const KEEP_FILES = new Set(["vendor-runtime.dat", "vendor-runtime-manifest.json"]);
+    const KEEP_FILES = new Set(["vendor-runtime.tar.gz", "vendor-runtime-manifest.json"]);
     const entries = fs.readdirSync(vendorDestDir, { withFileTypes: true });
     let removedCount = 0;
     for (const entry of entries) {

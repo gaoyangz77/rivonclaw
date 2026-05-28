@@ -206,6 +206,7 @@ jobs:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -222,16 +223,17 @@ jobs:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
         run: |
           echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed 's/[ "]//g')
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
+          security list-keychains -d user -s "$MACOS_KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/[ "]//g')
+          security default-keychain -s "$MACOS_KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
           curl -fsSL "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer" -o developer-id-g2.cer
-          security import developer-id-g2.cer -k build.keychain -T /usr/bin/codesign
-          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security import developer-id-g2.cer -k "$MACOS_KEYCHAIN_PATH" -T /usr/bin/codesign
+          security import certificate.p12 -k "$MACOS_KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
           security find-identity -v -p codesigning
           rm -f certificate.p12 developer-id-g2.cer
 
@@ -243,14 +245,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
+          RIVONCLAW_MAC_RUNTIME_ARCH: arm64
 
       - name: Validate macOS bundle
         run: |
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           # Must have archive
-          test -f "$VENDOR/vendor-runtime.dat" || { echo "FAIL: archive missing"; exit 1; }
-          test "$(head -c 16 "$VENDOR/vendor-runtime.dat")" = "RIVONVENDOR0001" || { echo "FAIL: archive header missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
@@ -355,6 +358,7 @@ jobs:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -371,16 +375,17 @@ jobs:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
         run: |
           echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed 's/[ "]//g')
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
+          security list-keychains -d user -s "$MACOS_KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/[ "]//g')
+          security default-keychain -s "$MACOS_KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
           curl -fsSL "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer" -o developer-id-g2.cer
-          security import developer-id-g2.cer -k build.keychain -T /usr/bin/codesign
-          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security import developer-id-g2.cer -k "$MACOS_KEYCHAIN_PATH" -T /usr/bin/codesign
+          security import certificate.p12 -k "$MACOS_KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
           security find-identity -v -p codesigning
           rm -f certificate.p12 developer-id-g2.cer
 
@@ -392,14 +397,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
+          RIVONCLAW_MAC_RUNTIME_ARCH: x64
 
       - name: Validate macOS bundle
         run: |
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           # Must have archive
-          test -f "$VENDOR/vendor-runtime.dat" || { echo "FAIL: archive missing"; exit 1; }
-          test "$(head -c 16 "$VENDOR/vendor-runtime.dat")" = "RIVONVENDOR0001" || { echo "FAIL: archive header missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)

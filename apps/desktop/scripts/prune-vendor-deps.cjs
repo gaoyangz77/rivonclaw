@@ -23,6 +23,12 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
+const macRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
+  process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "x64"
+  ? process.env.RIVONCLAW_MAC_RUNTIME_ARCH
+  : process.platform === "darwin" && (process.arch === "arm64" || process.arch === "x64")
+    ? process.arch
+    : null;
 
 if (!fs.existsSync(nmDir)) {
   console.log("[prune-vendor-deps] vendor/openclaw/node_modules not found, skipping.");
@@ -71,6 +77,38 @@ const EXTRA_REMOVE = [
   "lit-element",
   "@lit",
   "@lit-labs",
+  // Optional native feature packages are not part of the desktop gateway's
+  // core runtime. Keeping them inside the macOS app makes Apple notarization
+  // recurse into the vendor archive and reject unsigned Mach-O payloads.
+  "@discordjs/opus",
+  "@img/sharp-darwin-arm64",
+  "@img/sharp-darwin-x64",
+  "@img/sharp-libvips-darwin-arm64",
+  "@img/sharp-libvips-darwin-x64",
+  "@lancedb/lancedb-darwin-arm64",
+  "@lancedb/lancedb-darwin-x64",
+  "@mariozechner/clipboard-darwin-arm64",
+  "@mariozechner/clipboard-darwin-x64",
+  "@mariozechner/clipboard-darwin-universal",
+  "@matrix-org/matrix-sdk-crypto-nodejs",
+  "@napi-rs/canvas-darwin-arm64",
+  "@napi-rs/canvas-darwin-x64",
+  "@openai/codex-darwin-arm64",
+  "@openai/codex-darwin-x64",
+  "@snazzah/davey-darwin-arm64",
+  "@snazzah/davey-darwin-x64",
+  "@tloncorp/tlon-skill-darwin-arm64",
+  "@tloncorp/tlon-skill-darwin-x64",
+  "bare-fs",
+  "bare-os",
+  "bare-url",
+  "fsevents",
+  "koffi",
+  "playwright",
+  "sharp",
+  "sqlite-vec",
+  "sqlite-vec-darwin-arm64",
+  "sqlite-vec-darwin-x64",
 ];
 
 // --- Phase 3 config: non-runtime files to strip ---
@@ -232,6 +270,49 @@ console.log(
   `[prune-vendor-deps] After Phase 2: ${(sizeP2 / 1024 / 1024).toFixed(0)}MB ` +
     `(saved ${((sizeBefore - sizeP2) / 1024 / 1024).toFixed(0)}MB)`,
 );
+
+// ─── Phase 2b: remove native prebuilds for the other macOS architecture ───
+if (macRuntimeArch) {
+  const otherArch = macRuntimeArch === "arm64" ? "x64" : "arm64";
+  const otherArchMarkers = [
+    `darwin-${otherArch}`,
+    `darwin_${otherArch}`,
+    otherArch === "x64" ? "darwin-x86_64" : "darwin-aarch64",
+  ];
+  let removedArchEntries = 0;
+  let removedArchBytes = 0;
+
+  function stripOtherDarwinArch(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(nmDir, full).replace(/\\/g, "/");
+      if (otherArchMarkers.some((marker) => rel.includes(marker))) {
+        const size = entry.isDirectory() ? dirSize(full) : fs.statSync(full).size;
+        const count = entry.isDirectory() ? fileCount(full) : 1;
+        fs.rmSync(full, { recursive: true, force: true });
+        removedArchBytes += size;
+        removedArchEntries += count;
+        continue;
+      }
+      if (entry.isDirectory() && !entry.isSymbolicLink()) {
+        stripOtherDarwinArch(full);
+      }
+    }
+  }
+
+  stripOtherDarwinArch(nmDir);
+  console.log(
+    `[prune-vendor-deps] Phase 2b: removed ${removedArchEntries} non-${macRuntimeArch} macOS files ` +
+      `(${(removedArchBytes / 1024 / 1024).toFixed(1)}MB)`,
+  );
+}
 
 // ─── Phase 3: strip non-runtime files ───
 // This is critical for HFS+ DMGs: 55K+ files cause block allocation overhead

@@ -1,7 +1,7 @@
 /**
  * macOS vendor runtime extractor.
  *
- * On macOS, the vendor runtime ships as a single opaque gzip archive inside the .app
+ * On macOS, the vendor runtime ships as a single tar.gz archive inside the .app
  * bundle to avoid EMFILE errors during code signing (33k+ exploded files).
  * This module extracts the archive to a user-data directory on first launch and
  * returns the extracted path for use as vendorDir.
@@ -27,22 +27,16 @@ import { app } from "electron";
 interface VendorRuntimeManifest {
   version: string;
   archiveFile: string;
-  archiveHeaderBytes?: number;
   openclawVersion: string;
   archiveSizeBytes: number;
 }
 
 const ENTRY_FILE = "openclaw.mjs";
-const DEFAULT_ARCHIVE_HEADER_BYTES = 16;
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, "'\\''")}'`;
-}
 
 /**
  * Ensures the vendor runtime is extracted and ready for use.
  *
- * @param archiveDir - Path to the directory containing vendor-runtime.dat
+ * @param archiveDir - Path to the directory containing vendor-runtime.tar.gz
  *   and vendor-runtime-manifest.json (typically Contents/Resources/vendor/openclaw/).
  * @returns Absolute path to the extracted vendor runtime directory.
  */
@@ -72,11 +66,6 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
       `[vendor-runtime] Archive not found: ${archivePath}`,
     );
   }
-  const archiveHeaderBytes =
-    Number.isInteger(manifest.archiveHeaderBytes) &&
-    (manifest.archiveHeaderBytes ?? 0) > 0
-      ? manifest.archiveHeaderBytes
-      : DEFAULT_ARCHIVE_HEADER_BYTES;
 
   console.log(
     `[vendor-runtime] Extracting vendor runtime (version ${manifest.version})...`,
@@ -94,12 +83,9 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   try {
     mkdirSync(tempDir, { recursive: true });
 
-    execSync(
-      `dd if=${shellQuote(archivePath)} bs=${archiveHeaderBytes} skip=1 2>/dev/null | tar -xzf - -C ${shellQuote(tempDir)}`,
-      {
-        timeout: 300_000,
-      },
-    );
+    execSync(`tar -xzf "${archivePath}" -C "${tempDir}"`, {
+      timeout: 300_000,
+    });
 
     // Verify the entry point was extracted
     const tempEntryPath = join(tempDir, ENTRY_FILE);

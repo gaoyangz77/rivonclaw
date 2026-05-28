@@ -34,7 +34,7 @@ extraResources:
     filter:
       - "openclaw.mjs"
       - "package.json"
-      - "vendor-runtime.dat"
+      - "vendor-runtime.tar.gz"
       - "vendor-runtime-manifest.json"
       - "dist/**"
       - "!dist/**/node_modules/**"
