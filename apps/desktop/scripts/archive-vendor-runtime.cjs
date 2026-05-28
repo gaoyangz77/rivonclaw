@@ -24,6 +24,12 @@ const vendorDir = path.resolve(repoRoot, "vendor", "openclaw");
 const archiveFile = "vendor-runtime.dat";
 const archivePath = path.join(vendorDir, archiveFile);
 const manifestPath = path.join(vendorDir, "vendor-runtime-manifest.json");
+const archiveHeader = Buffer.from("RIVONVENDOR0001\n", "utf8");
+
+if (archiveHeader.length !== 16) {
+  console.error("[archive-vendor-runtime] Internal error: archive header must be exactly 16 bytes.");
+  process.exit(1);
+}
 
 if (!fs.existsSync(vendorDir)) {
   console.error("[archive-vendor-runtime] vendor/openclaw not found, aborting.");
@@ -41,6 +47,7 @@ const hash = crypto.createHash("sha256");
 const openclawVersionPath = path.join(repoRoot, ".openclaw-version");
 const openclawVersion = fs.readFileSync(openclawVersionPath, "utf-8").trim();
 hash.update(openclawVersion);
+hash.update("vendor-runtime-archive-format-v2");
 
 // 2. Sorted patch contents
 const patchDir = path.join(repoRoot, "vendor-patches", "openclaw");
@@ -84,6 +91,24 @@ if (!fs.existsSync(path.join(vendorDir, "openclaw.mjs"))) {
 
 function shellQuote(value) {
   return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function writeOpaqueArchive(sourcePath, destPath) {
+  const input = fs.openSync(sourcePath, "r");
+  const output = fs.openSync(destPath, "w");
+  const buffer = Buffer.alloc(1024 * 1024);
+
+  try {
+    fs.writeSync(output, archiveHeader);
+
+    let bytesRead = 0;
+    while ((bytesRead = fs.readSync(input, buffer, 0, buffer.length, null)) > 0) {
+      fs.writeSync(output, buffer, 0, bytesRead);
+    }
+  } finally {
+    fs.closeSync(input);
+    fs.closeSync(output);
+  }
 }
 
 function findDeveloperIdIdentity() {
@@ -187,16 +212,19 @@ if (process.env.SIGN_VENDOR_RUNTIME === "1") {
 // Build the include arguments — only add paths that actually exist
 const includeArgs = RUNTIME_INCLUDES
   .filter((p) => fs.existsSync(path.join(vendorDir, p)))
-  .map((p) => `"${p}"`)
+  .map((p) => shellQuote(p))
   .join(" ");
 
 console.log(`[archive-vendor-runtime] Creating archive at ${archivePath}...`);
 const startMs = Date.now();
+const gzipArchivePath = `${archivePath}.tar.gz.tmp`;
 
 execSync(
-  `tar -czf "${archivePath}" -C "${vendorDir}" ${includeArgs}`,
+  `tar -czf ${shellQuote(gzipArchivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`,
   { stdio: "inherit", timeout: 300_000 },
 );
+writeOpaqueArchive(gzipArchivePath, archivePath);
+fs.rmSync(gzipArchivePath, { force: true });
 
 const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
 console.log(`[archive-vendor-runtime] Archive created in ${elapsedSec}s`);
@@ -215,9 +243,12 @@ console.log(`[archive-vendor-runtime] Archive size: ${archiveSizeMB}MB`);
 
 // Verify entry point exists in archive (use grep to avoid buffering the full listing)
 try {
-  execSync(`tar -tzf "${archivePath}" | grep -q "openclaw\\.mjs"`, {
+  execSync(
+    `dd if=${shellQuote(archivePath)} bs=${archiveHeader.length} skip=1 2>/dev/null | tar -tzf - | grep -q "openclaw\\.mjs"`,
+    {
     timeout: 60_000,
-  });
+    },
+  );
 } catch (err) {
   console.error("[archive-vendor-runtime] FAIL: openclaw.mjs not found in archive.");
   process.exit(1);
@@ -229,6 +260,7 @@ console.log("[archive-vendor-runtime] Archive verification passed (openclaw.mjs 
 const manifest = {
   version,
   archiveFile,
+  archiveHeaderBytes: archiveHeader.length,
   openclawVersion,
   archiveSizeBytes,
 };

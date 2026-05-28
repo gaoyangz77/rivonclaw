@@ -27,11 +27,17 @@ import { app } from "electron";
 interface VendorRuntimeManifest {
   version: string;
   archiveFile: string;
+  archiveHeaderBytes?: number;
   openclawVersion: string;
   archiveSizeBytes: number;
 }
 
 const ENTRY_FILE = "openclaw.mjs";
+const DEFAULT_ARCHIVE_HEADER_BYTES = 16;
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
 
 /**
  * Ensures the vendor runtime is extracted and ready for use.
@@ -66,6 +72,11 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
       `[vendor-runtime] Archive not found: ${archivePath}`,
     );
   }
+  const archiveHeaderBytes =
+    Number.isInteger(manifest.archiveHeaderBytes) &&
+    (manifest.archiveHeaderBytes ?? 0) > 0
+      ? manifest.archiveHeaderBytes
+      : DEFAULT_ARCHIVE_HEADER_BYTES;
 
   console.log(
     `[vendor-runtime] Extracting vendor runtime (version ${manifest.version})...`,
@@ -83,9 +94,12 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   try {
     mkdirSync(tempDir, { recursive: true });
 
-    execSync(`tar -xzf "${archivePath}" -C "${tempDir}"`, {
-      timeout: 300_000,
-    });
+    execSync(
+      `dd if=${shellQuote(archivePath)} bs=${archiveHeaderBytes} skip=1 2>/dev/null | tar -xzf - -C ${shellQuote(tempDir)}`,
+      {
+        timeout: 300_000,
+      },
+    );
 
     // Verify the entry point was extracted
     const tempEntryPath = join(tempDir, ENTRY_FILE);
