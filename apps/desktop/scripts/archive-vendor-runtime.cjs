@@ -150,15 +150,24 @@ function listMachOBinaries(rootDir) {
 function signMacOSRuntimeBinaries() {
   if (!isMacOS) return;
 
-  const identity = process.env.CSC_NAME || findDeveloperIdIdentity();
-  if (!identity) {
-    console.warn("[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing.");
-    return;
-  }
-
   const machoFiles = listMachOBinaries(vendorDir);
   if (machoFiles.length === 0) {
     console.log("[archive-vendor-runtime] No vendor Mach-O binaries found to sign.");
+    return;
+  }
+
+  if (process.env.RIVONCLAW_REQUIRE_NO_VENDOR_MACHO === "1") {
+    console.error(`[archive-vendor-runtime] FAIL: Found ${machoFiles.length} vendor Mach-O binaries after pruning:`);
+    for (const file of machoFiles) {
+      console.error(`[archive-vendor-runtime]   ${path.relative(vendorDir, file)}`);
+    }
+    console.error("[archive-vendor-runtime] Prune these native runtime files instead of signing them inside vendor-runtime.tar.gz.");
+    process.exit(1);
+  }
+
+  const identity = process.env.CSC_NAME || findDeveloperIdIdentity();
+  if (!identity) {
+    console.warn("[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing.");
     return;
   }
 

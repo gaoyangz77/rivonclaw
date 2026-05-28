@@ -247,6 +247,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: arm64
+          RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
 
       - name: Validate macOS bundle
         run: |
@@ -399,6 +400,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: x64
+          RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
 
       - name: Validate macOS bundle
         run: |
