@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.17",
+    "date": "2026-05-27",
+    "en": [
+      "Add affiliate prediction review and campaign threshold controls so creator collaboration decisions are easier to inspect and tune",
+      "Improve affiliate task execution with clearer proposal IDs, safer acknowledgement guards, and more accurate prediction snapshots",
+      "Polish customer-service and shop subscription handling with stronger session revalidation and clearer free/expiry labels"
+    ],
+    "zh": [
+      "新增达人预测审核与活动阈值控制，达人合作决策现在更容易检查和调整",
+      "优化达人任务执行链路，补强提案 ID、确认保护和预测快照准确性",
+      "继续打磨客服与店铺订阅体验，增强会话复核，并让免费服务与到期状态展示更清楚"
+    ]
+  },
+  {
     "version": "1.8.16",
     "date": "2026-05-25",
     "en": [
