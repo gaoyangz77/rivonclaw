@@ -1679,17 +1679,15 @@ describe("config-writer", () => {
   });
 
   describe("writeGatewayConfig - session maintenance", () => {
-    it("writes session.maintenance with enforce mode and limits", () => {
+    it("writes long-lived session.maintenance with enforce mode", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.session.maintenance).toEqual({
         mode: "enforce",
-        pruneAfter: "7d",
-        maxEntries: 200,
-        rotateBytes: "10mb",
-        maxDiskBytes: "500mb",
+        pruneAfter: "1095d",
+        maxEntries: 1000000,
       });
     });
 
@@ -1700,7 +1698,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.session.reset).toEqual({
         mode: "idle",
-        idleMinutes: 10080,
+        idleMinutes: 1576800,
       });
       expect(config.session.maintenance.mode).toBe("enforce");
     });

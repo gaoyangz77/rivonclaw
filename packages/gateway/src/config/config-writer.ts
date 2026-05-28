@@ -1345,25 +1345,29 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // Reset: RivonClaw is a desktop app; users expect chat history to persist
   // across days.  Override OpenClaw's default "daily" reset with a long idle
   // timeout so sessions only reset after extended inactivity.
-  // Maintenance: enable "enforce" mode so OpenClaw automatically prunes stale
-  // sessions, caps entry count, rotates oversized store files, and enforces a
-  // disk budget.  Without this, the default "warn" mode never cleans up,
-  // causing sessions.json and transcript files to grow indefinitely.
+  // Maintenance: keep business conversation sessions durable while still
+  // removing truly stale records. OpenClaw does not expose a disabled
+  // maxEntries value, so EasyClaw writes a high cap and omits byte limits.
   {
     const existingSession =
       typeof config.session === "object" && config.session !== null
         ? (config.session as Record<string, unknown>)
         : {};
+    const maintenance: Record<string, unknown> = {
+      mode: DEFAULTS.gatewayConfig.sessionMaintenanceMode,
+      pruneAfter: DEFAULTS.gatewayConfig.sessionMaintenancePruneAfter,
+      maxEntries: DEFAULTS.gatewayConfig.sessionMaintenanceMaxEntries,
+    };
+    if (DEFAULTS.gatewayConfig.sessionMaintenanceRotateBytes) {
+      maintenance.rotateBytes = DEFAULTS.gatewayConfig.sessionMaintenanceRotateBytes;
+    }
+    if (DEFAULTS.gatewayConfig.sessionMaintenanceMaxDiskBytes) {
+      maintenance.maxDiskBytes = DEFAULTS.gatewayConfig.sessionMaintenanceMaxDiskBytes;
+    }
     config.session = {
       ...existingSession,
       reset: { mode: DEFAULTS.gatewayConfig.sessionResetMode, idleMinutes: DEFAULTS.gatewayConfig.sessionResetIdleMinutes },
-      maintenance: {
-        mode: DEFAULTS.gatewayConfig.sessionMaintenanceMode,
-        pruneAfter: DEFAULTS.gatewayConfig.sessionMaintenancePruneAfter,
-        maxEntries: DEFAULTS.gatewayConfig.sessionMaintenanceMaxEntries,
-        rotateBytes: DEFAULTS.gatewayConfig.sessionMaintenanceRotateBytes,
-        maxDiskBytes: DEFAULTS.gatewayConfig.sessionMaintenanceMaxDiskBytes,
-      },
+      maintenance,
     };
   }
 
