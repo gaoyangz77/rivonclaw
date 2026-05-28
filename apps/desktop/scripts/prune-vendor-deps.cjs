@@ -83,6 +83,8 @@ const EXTRA_REMOVE = [
   // Optional native feature packages are not part of the desktop gateway's
   // core runtime. Keeping them inside the macOS app makes Apple notarization
   // recurse into the vendor archive and reject unsigned Mach-O payloads.
+  "@anthropic-ai/claude-agent-sdk-darwin-arm64",
+  "@anthropic-ai/claude-agent-sdk-darwin-x64",
   "@discordjs/opus",
   "@img/sharp-darwin-arm64",
   "@img/sharp-darwin-x64",
