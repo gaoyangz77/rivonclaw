@@ -159,19 +159,21 @@ function signMacOSRuntimeBinaries() {
   }
 
   console.log(`[archive-vendor-runtime] Signing ${machoFiles.length} vendor Mach-O binaries with ${identity}...`);
-  for (const file of machoFiles) {
+  machoFiles.forEach((file, index) => {
+    const relative = path.relative(vendorDir, file);
+    console.log(`[archive-vendor-runtime] Signing ${index + 1}/${machoFiles.length}: ${relative}`);
     execSync(
       [
         "codesign",
         "--force",
         "--options", "runtime",
-        "--timestamp",
+        "--timestamp=http://timestamp.apple.com/ts01",
         "--sign", shellQuote(identity),
         shellQuote(file),
       ].join(" "),
-      { stdio: "inherit", timeout: 120_000 },
+      { stdio: "inherit", timeout: 600_000 },
     );
-  }
+  });
   console.log("[archive-vendor-runtime] Vendor Mach-O signing complete.");
 }
 
