@@ -3,6 +3,8 @@
 // Requires: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID env vars.
 // Skips silently when env vars are absent (local dev builds).
 
+const path = require("path");
+
 /**
  * @param {import("electron-builder").AfterPackContext} context
  */
@@ -31,14 +33,19 @@ exports.default = async function notarizeApp(context) {
 
   const productName = context.packager.appInfo.productFilename;
   const appPath = `${appOutDir}/${productName}.app`;
+  const notarytoolPath = path.join(__dirname, "notarytool-timeout-wrapper.cjs");
 
   console.log(`Notarizing ${appPath} ...`);
+  if (process.env.NOTARIZE_TIMEOUT_SECONDS) {
+    console.log(`Notarization wait timeout: ${process.env.NOTARIZE_TIMEOUT_SECONDS}s`);
+  }
 
   await notarize({
     appPath,
     appleId,
     appleIdPassword,
     teamId,
+    notarytoolPath,
   });
 
   console.log("Notarization complete.");

@@ -248,6 +248,8 @@ jobs:
           MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: arm64
           RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
+          NOTARIZE_TIMEOUT_SECONDS: "3600"
+          DEBUG: electron-notarize:*
 
       - name: Validate macOS bundle
         run: |
@@ -401,6 +403,8 @@ jobs:
           MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: x64
           RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
+          NOTARIZE_TIMEOUT_SECONDS: "3600"
+          DEBUG: electron-notarize:*
 
       - name: Validate macOS bundle
         run: |
