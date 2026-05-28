@@ -238,7 +238,7 @@ jobs:
           rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS arm64 DMG + ZIP
-        timeout-minutes: 90
+        timeout-minutes: 150
         run: |
           cd apps/desktop
           export PATH="$PWD/scripts/ci-bin:$PATH"
@@ -248,9 +248,10 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
+          CSC_KEYCHAIN: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: arm64
           RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
-          NOTARIZE_TIMEOUT_SECONDS: "3600"
+          NOTARIZE_TIMEOUT_SECONDS: "7200"
           CODESIGN_TIMEOUT_SECONDS: "300"
           DEBUG: electron-notarize:*
 
@@ -396,7 +397,7 @@ jobs:
           rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS x64 DMG + ZIP
-        timeout-minutes: 90
+        timeout-minutes: 150
         run: |
           cd apps/desktop
           export PATH="$PWD/scripts/ci-bin:$PATH"
@@ -406,9 +407,10 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain-db
+          CSC_KEYCHAIN: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: x64
           RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
-          NOTARIZE_TIMEOUT_SECONDS: "3600"
+          NOTARIZE_TIMEOUT_SECONDS: "7200"
           CODESIGN_TIMEOUT_SECONDS: "300"
           DEBUG: electron-notarize:*
 
