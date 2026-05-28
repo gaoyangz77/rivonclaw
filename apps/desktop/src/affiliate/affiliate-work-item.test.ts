@@ -316,7 +316,8 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("## Affiliate Decision Thresholds");
     expect(agentCall?.[1]?.message).toContain("- Source: shop default");
     expect(agentCall?.[1]?.message).toContain("- minP50SalesUnits: 5");
-    expect(agentCall?.[1]?.message).toContain("p50Units below it should generally lead to REJECT_SAMPLE");
+    expect(agentCall?.[1]?.message).toContain("busy ecommerce seller, not a statistician");
+    expect(agentCall?.[1]?.message).toContain("below the shop's minimum");
   });
 
   it("does not ack work items when the gateway reports an agent run error", async () => {

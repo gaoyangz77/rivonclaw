@@ -843,16 +843,14 @@ function renderP50PredictionSnapshotSection(
   snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot,
 ): string {
   const output = snapshot.output ?? {};
-  const quality = readRecord(output.predictionQuality);
+  const p50Units = numberFromUnknown(output.p50Units);
   return [
     "## Affiliate Prediction",
     `- Scenario: ${scenario}`,
     "- Status: ALREADY_CAPTURED_ON_COLLABORATION",
     `- Captured At: ${snapshot.capturedAt ?? ""}`,
-    `- Prediction Type: ${snapshot.predictionType ?? ""}`,
-    `- P50 Units: ${formatMaybeValue(output.p50Units)}`,
-    `- Confidence Level: ${formatMaybeValue(quality?.level)}`,
-    `- Confidence Score: ${formatMaybeNumber(numberFromUnknown(quality?.score))}`,
+    `- Predicted Sales Units: ${formatMaybeNumber(p50Units)}`,
+    `- Merchant Meaning: ${renderPredictionPlainMeaning(p50Units)}`,
     "- Cache IDs: (none needed; this collaboration already has a persisted prediction snapshot)",
   ].join("\n");
 }
@@ -873,8 +871,6 @@ function renderP50PredictionPayloadSection(
     "This prediction was resolved by Desktop before dispatch. If you request an action, preserve the cache IDs so Backend can snapshot the exact prediction used for this decision.",
     `- Scenario: ${scenario}`,
     `- Payload Status: ${payload.status}`,
-    `- Request ID: ${payload.requestId ?? ""}`,
-    `- Model: ${payload.modelTag ?? ""} ${payload.modelType ?? ""}`.trim(),
     `- Cache IDs: ${cacheIds.length ? cacheIds.join(", ") : "(none)"}`,
     "",
     "### Subject Predictions",
@@ -885,31 +881,36 @@ function renderP50PredictionPayloadSection(
 function renderP50PredictionLine(index: number, prediction: GQL.AffiliateP50SalesSubjectPrediction): string {
   return [
     `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
-    `   p50Units=${prediction.p50Units ?? ""} confidenceLevel=${prediction.predictionQuality?.level ?? ""} confidenceScore=${formatMaybeNumber(prediction.predictionQuality?.score)}`,
+    `   predictedSalesUnits=${prediction.p50Units ?? ""}`,
+    `   merchantMeaning=${renderPredictionPlainMeaning(prediction.p50Units)}`,
     `   creator=${prediction.resolvedContext?.creatorNickname ?? prediction.resolvedContext?.creatorUsername ?? prediction.resolvedContext?.creatorId ?? prediction.subject.creatorId ?? ""}`,
     `   product=${prediction.resolvedContext?.productTitle ?? prediction.resolvedContext?.productId ?? prediction.subject.productId ?? ""}`,
     `   sample=${prediction.resolvedContext?.sampleApplicationRecordId ?? prediction.subject.sampleApplicationRecordId ?? ""}`,
-    `   thresholdP(units>=1)=${formatMaybeNumber(prediction.thresholdProbabilities?.unitsGe1)} P(units>=3)=${formatMaybeNumber(prediction.thresholdProbabilities?.unitsGe3)} P(units>=10)=${formatMaybeNumber(prediction.thresholdProbabilities?.unitsGe10)}`,
     ...(prediction.message ? [`   message=${prediction.message}`] : []),
   ].join("\n");
 }
 
 function formatMaybeNumber(value: number | null | undefined): string {
-  return typeof value === "number" ? value.toFixed(3) : "";
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function formatMaybeValue(value: unknown): string {
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
-  if (typeof value === "string") return value;
-  return "";
+function renderPredictionPlainMeaning(p50Units: number | null | undefined): string {
+  if (typeof p50Units !== "number" || !Number.isFinite(p50Units)) {
+    return "No usable sales estimate is available for this creator/product pair.";
+  }
+  if (p50Units <= 0) {
+    return "The model expects this creator is very likely to sell 0 units for this product.";
+  }
+  if (p50Units === 1) {
+    return "The model expects this creator to sell about 1 unit for this product.";
+  }
+  return `The model expects this creator to sell about ${formatMaybeNumber(p50Units)} units for this product.`;
 }
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-}
-
-function numberFromUnknown(value: unknown): number | undefined {
-  return typeof value === "number" ? value : undefined;
+function numberFromUnknown(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return null;
 }
 
 function isAffiliateMessageSignal(type: AffiliateConversationSignalPayload["type"]): boolean {
