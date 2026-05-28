@@ -81,6 +81,102 @@ if (!fs.existsSync(path.join(vendorDir, "openclaw.mjs"))) {
   process.exit(1);
 }
 
+function shellQuote(value) {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function findDeveloperIdIdentity() {
+  try {
+    const output = execSync("security find-identity -v -p codesigning", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const match = output.match(/"([^"]*Developer ID Application:[^"]+)"/);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function listMachOBinaries(rootDir) {
+  const files = [];
+  const stack = [rootDir];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) continue;
+
+    let entries;
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.isFile()) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  const machoFiles = [];
+  for (const file of files) {
+    try {
+      const description = execSync(`file -b ${shellQuote(file)}`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 10_000,
+      });
+      if (description.includes("Mach-O")) {
+        machoFiles.push(file);
+      }
+    } catch {
+      // Non-readable files are ignored; tar validation below still catches
+      // missing runtime payloads.
+    }
+  }
+
+  return machoFiles;
+}
+
+function signMacOSRuntimeBinaries() {
+  if (!isMacOS) return;
+
+  const identity = process.env.CSC_NAME || findDeveloperIdIdentity();
+  if (!identity) {
+    console.warn("[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing.");
+    return;
+  }
+
+  const machoFiles = listMachOBinaries(vendorDir);
+  if (machoFiles.length === 0) {
+    console.log("[archive-vendor-runtime] No vendor Mach-O binaries found to sign.");
+    return;
+  }
+
+  console.log(`[archive-vendor-runtime] Signing ${machoFiles.length} vendor Mach-O binaries with ${identity}...`);
+  for (const file of machoFiles) {
+    execSync(
+      [
+        "codesign",
+        "--force",
+        "--options", "runtime",
+        "--timestamp",
+        "--sign", shellQuote(identity),
+        shellQuote(file),
+      ].join(" "),
+      { stdio: "inherit", timeout: 120_000 },
+    );
+  }
+  console.log("[archive-vendor-runtime] Vendor Mach-O signing complete.");
+}
+
+signMacOSRuntimeBinaries();
+
 // Build the include arguments — only add paths that actually exist
 const includeArgs = RUNTIME_INCLUDES
   .filter((p) => fs.existsSync(path.join(vendorDir, p)))
