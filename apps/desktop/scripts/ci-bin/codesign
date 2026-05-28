@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+// CI wrapper that bounds each codesign invocation and delegates to /usr/bin/codesign.
+
+const { spawn } = require("child_process");
+
+const timeoutSeconds = Number.parseInt(process.env.CODESIGN_TIMEOUT_SECONDS || "300", 10);
+const args = process.argv.slice(2);
+
+const child = spawn("/usr/bin/codesign", args, {
+  stdio: ["ignore", "pipe", "pipe"],
+});
+
+let timedOut = false;
+const timer = Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
+  ? setTimeout(() => {
+      timedOut = true;
+      console.error(`[codesign-wrapper] Timed out after ${timeoutSeconds}s: /usr/bin/codesign ${args.join(" ")}`);
+      child.kill("SIGTERM");
+      setTimeout(() => child.kill("SIGKILL"), 5_000).unref();
+    }, timeoutSeconds * 1000)
+  : null;
+
+child.stdout.pipe(process.stdout);
+child.stderr.pipe(process.stderr);
+
+child.on("error", (err) => {
+  if (timer) clearTimeout(timer);
+  console.error(`[codesign-wrapper] Failed to launch /usr/bin/codesign: ${err.message}`);
+  process.exit(1);
+});
+
+child.on("close", (code, signal) => {
+  if (timer) clearTimeout(timer);
+  if (timedOut) {
+    process.exit(124);
+  }
+  if (signal) {
+    console.error(`[codesign-wrapper] /usr/bin/codesign exited from signal ${signal}`);
+    process.exit(1);
+  }
+  process.exit(code ?? 1);
+});
