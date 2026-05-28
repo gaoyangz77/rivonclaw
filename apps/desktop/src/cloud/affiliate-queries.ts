@@ -130,6 +130,47 @@ export interface AffiliateWorkspaceQueryResult {
   affiliateWorkspace: GQL.AffiliateWorkspacePayload;
 }
 
+export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
+  query AffiliateActionProposalDelta($input: AffiliateActionProposalDeltaInput!) {
+    affiliateActionProposalDelta(input: $input) {
+      id
+      type
+      status
+      operatorSummary
+      creatorId
+      collaborationRecordId
+      decision {
+        note
+        decidedAt
+      }
+      steps {
+        stepId
+        type
+        operatorSummary
+      }
+      sampleReviewIntent {
+        sampleApplicationRecordId
+        platformApplicationId
+        decision
+        rejectReason
+      }
+      messageIntent {
+        conversationId
+        creatorId
+        sampleApplicationRecordId
+        platformApplicationId
+        messageType
+        text
+      }
+      updatedAt
+    }
+  }
+`;
+
+export interface AffiliateActionProposalDeltaQueryResult {
+  affiliateActionProposalDelta: GQL.ActionProposal[];
+}
+
 export const AFFILIATE_P50_SALES_PREDICTIONS_QUERY = `
   query AffiliateP50SalesPredictions($input: AffiliateP50SalesPredictionInput!) {
     affiliateP50SalesPredictions(input: $input) {

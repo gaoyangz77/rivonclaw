@@ -35,7 +35,6 @@ export interface ActionProposal {
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
-  candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   /** Current collaboration record projection for staff review display. Proposal execution still uses frozen proposal fields. */
   collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
@@ -69,7 +68,7 @@ export interface ActionProposal {
 }
 
 export interface ActionProposalApprovalPolicyUpdateIntent {
-  action: AffiliatePolicyAction;
+  action: ActionProposalType;
   campaignIds?: Maybe<Array<Scalars['ID']['output']>>;
   creatorTagIds?: Maybe<Array<Scalars['ID']['output']>>;
   enabled: Scalars['Boolean']['output'];
@@ -78,24 +77,9 @@ export interface ActionProposalApprovalPolicyUpdateIntent {
   reason?: Maybe<Scalars['String']['output']>;
 }
 
-export interface ActionProposalApprovalPolicyUpdateIntentInput {
-  action: AffiliatePolicyAction;
-  campaignIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  creatorTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  enabled: Scalars['Boolean']['input'];
-  policyId?: InputMaybe<Scalars['ID']['input']>;
-  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  reason?: InputMaybe<Scalars['String']['input']>;
-}
-
 export interface ActionProposalBlockCreatorIntent {
   creatorId: Scalars['ID']['output'];
   reason?: Maybe<Scalars['String']['output']>;
-}
-
-export interface ActionProposalBlockCreatorIntentInput {
-  creatorId: Scalars['ID']['input'];
-  reason?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface ActionProposalCampaignProductUpdateIntent {
@@ -111,26 +95,6 @@ export interface ActionProposalCampaignProductUpdateIntent {
   sampleUnitCostCurrency?: Maybe<EcomProductSkuCurrency>;
 }
 
-export interface ActionProposalCampaignProductUpdateIntentInput {
-  campaignId: Scalars['ID']['input'];
-  campaignProductId?: InputMaybe<Scalars['ID']['input']>;
-  commissionRate?: InputMaybe<Scalars['Float']['input']>;
-  maxCommissionRate?: InputMaybe<Scalars['Float']['input']>;
-  productId: Scalars['String']['input'];
-  promotionPriority?: InputMaybe<CampaignProductPromotionPriority>;
-  sampleOfferMode?: InputMaybe<CampaignProductSampleOfferMode>;
-  sampleQuota?: InputMaybe<Scalars['Int']['input']>;
-  sampleUnitCostAmount?: InputMaybe<Scalars['Float']['input']>;
-  sampleUnitCostCurrency?: InputMaybe<EcomProductSkuCurrency>;
-}
-
-export interface ActionProposalCandidateDecisionIntent {
-  candidateIds: Array<Scalars['ID']['output']>;
-  evidenceItems?: Maybe<Array<CreatorCandidateEvidence>>;
-  rationale?: Maybe<Scalars['String']['output']>;
-  status: CreatorCandidateStatus;
-}
-
 export interface ActionProposalCandidateDecisionIntentInput {
   candidateIds: Array<Scalars['ID']['input']>;
   evidenceItems?: InputMaybe<Array<CreatorCandidateEvidenceInput>>;
@@ -141,11 +105,6 @@ export interface ActionProposalCandidateDecisionIntentInput {
 export interface ActionProposalCreatorTagIntent {
   creatorId: Scalars['ID']['output'];
   tagId: Scalars['ID']['output'];
-}
-
-export interface ActionProposalCreatorTagIntentInput {
-  creatorId: Scalars['ID']['input'];
-  tagId: Scalars['ID']['input'];
 }
 
 export interface ActionProposalDecisionSnapshot {
@@ -201,7 +160,7 @@ export interface ActionProposalMessageIntentInput {
 }
 
 export interface ActionProposalPolicySnapshot {
-  action: AffiliatePolicyAction;
+  action: ActionProposalType;
   matchedPolicyIds: Array<Scalars['ID']['output']>;
   reasons: Array<Scalars['String']['output']>;
   requiresApproval: Scalars['Boolean']['output'];
@@ -227,14 +186,6 @@ export interface ActionProposalSampleShipmentIntent {
   sampleApplicationRecordId: Scalars['ID']['output'];
   skuId?: Maybe<Scalars['String']['output']>;
   warehouseId?: Maybe<Scalars['ID']['output']>;
-}
-
-export interface ActionProposalSampleShipmentIntentInput {
-  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
-  quantity?: InputMaybe<Scalars['Int']['input']>;
-  sampleApplicationRecordId: Scalars['ID']['input'];
-  skuId?: InputMaybe<Scalars['String']['input']>;
-  warehouseId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ActionProposalSellerContactInfoIntent {
@@ -268,7 +219,6 @@ export interface ActionProposalStep {
   approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
-  candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing summary for this action step. Use the desktop/operator language. */
@@ -319,23 +269,22 @@ export interface ActionProposalTargetCollaborationProductIntentInput {
 }
 
 export const ActionProposalType = {
-  AddCreatorTag: 'ADD_CREATOR_TAG',
-  ApproveSample: 'APPROVE_SAMPLE',
-  BlockCreator: 'BLOCK_CREATOR',
   CreateTargetCollaboration: 'CREATE_TARGET_COLLABORATION',
-  RecordCandidateDecision: 'RECORD_CANDIDATE_DECISION',
-  RejectSample: 'REJECT_SAMPLE',
-  RemoveCreatorTag: 'REMOVE_CREATOR_TAG',
-  SendMessage: 'SEND_MESSAGE',
-  ShipSample: 'SHIP_SAMPLE',
-  UpdateApprovalPolicy: 'UPDATE_APPROVAL_POLICY',
-  UpdateCampaignProduct: 'UPDATE_CAMPAIGN_PRODUCT'
+  ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
+  SendMessage: 'SEND_MESSAGE'
 } as const;
 
 export type ActionProposalType = typeof ActionProposalType[keyof typeof ActionProposalType];
 /** Subscription payload for a changed affiliate action proposal. */
 export interface AffiliateActionProposalChanged {
   proposal: ActionProposal;
+}
+
+export interface AffiliateActionProposalDeltaInput {
+  collaborationRecordId: Scalars['ID']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+  since?: InputMaybe<Scalars['DateTimeISO']['input']>;
 }
 
 /** Result mode for an affiliate action request after backend policy evaluation. */
@@ -347,7 +296,7 @@ export const AffiliateActionRequestMode = {
 export type AffiliateActionRequestMode = typeof AffiliateActionRequestMode[keyof typeof AffiliateActionRequestMode];
 /** Approval interception policy for affiliate actions. If all non-empty condition arrays match, the backend creates an ActionProposal instead of executing automatically. */
 export interface AffiliateApprovalPolicy {
-  action: AffiliatePolicyAction;
+  action: ActionProposalType;
   /** AND condition dimension. Empty means any campaign. */
   campaignIds: Array<Scalars['ID']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
@@ -848,21 +797,6 @@ export interface AffiliateP50SalesValidationIssue {
   severity?: Maybe<Scalars['String']['output']>;
 }
 
-export const AffiliatePolicyAction = {
-  AddCreatorTag: 'ADD_CREATOR_TAG',
-  BlockCreator: 'BLOCK_CREATOR',
-  ChangeCampaignSetup: 'CHANGE_CAMPAIGN_SETUP',
-  ChangeCommission: 'CHANGE_COMMISSION',
-  CreateTargetInvite: 'CREATE_TARGET_INVITE',
-  RecordCandidateDecision: 'RECORD_CANDIDATE_DECISION',
-  RemoveCreator: 'REMOVE_CREATOR',
-  ReviewSampleRequest: 'REVIEW_SAMPLE_REQUEST',
-  SendFollowUp: 'SEND_FOLLOW_UP',
-  SendOutreach: 'SEND_OUTREACH',
-  ShipSample: 'SHIP_SAMPLE'
-} as const;
-
-export type AffiliatePolicyAction = typeof AffiliatePolicyAction[keyof typeof AffiliatePolicyAction];
 export const AffiliatePredictionCaptureMode = {
   PromotedFromCache: 'PROMOTED_FROM_CACHE',
   QueryCache: 'QUERY_CACHE'
@@ -4428,6 +4362,8 @@ export interface PublishCsConversationSignalInput {
 export interface Query {
   /** Read human-reviewable affiliate action proposals. */
   actionProposals: Array<ActionProposal>;
+  /** Read bounded proposal events for one affiliate collaboration. Desktop injects this as per-run delta context, not as stable workspace state. */
+  affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read affiliate campaigns from Mongo state. */
@@ -4585,6 +4521,11 @@ export interface Query {
 
 export interface QueryActionProposalsArgs {
   input: ReadActionProposalsInput;
+}
+
+
+export interface QueryAffiliateActionProposalDeltaArgs {
+  input: AffiliateActionProposalDeltaInput;
 }
 
 
@@ -5017,7 +4958,7 @@ export interface ReadActionProposalsInput {
 }
 
 export interface ReadAffiliateApprovalPoliciesInput {
-  action?: InputMaybe<AffiliatePolicyAction>;
+  action?: InputMaybe<ActionProposalType>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   shopId: Scalars['ID']['input'];
 }
@@ -5207,14 +5148,10 @@ export interface RelayTokenResult {
 }
 
 export interface RequestAffiliateActionInput {
-  approvalPolicyUpdateIntent?: InputMaybe<ActionProposalApprovalPolicyUpdateIntentInput>;
-  blockCreatorIntent?: InputMaybe<ActionProposalBlockCreatorIntentInput>;
   campaignId?: InputMaybe<Scalars['ID']['input']>;
-  campaignProductUpdateIntent?: InputMaybe<ActionProposalCampaignProductUpdateIntentInput>;
   candidateDecisionIntent?: InputMaybe<ActionProposalCandidateDecisionIntentInput>;
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** The collaboration.lastSignalAt value that this action request handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
@@ -5223,7 +5160,6 @@ export interface RequestAffiliateActionInput {
   /** Prediction cache ids returned by affiliateP50SalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
   shopId: Scalars['ID']['input'];
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
   type: ActionProposalType;
@@ -5236,19 +5172,13 @@ export interface RequestAffiliateActionPayload {
 }
 
 export interface ResolveAffiliateWorkItemActionInput {
-  approvalPolicyUpdateIntent?: InputMaybe<ActionProposalApprovalPolicyUpdateIntentInput>;
-  blockCreatorIntent?: InputMaybe<ActionProposalBlockCreatorIntentInput>;
   campaignId?: InputMaybe<Scalars['ID']['input']>;
-  campaignProductUpdateIntent?: InputMaybe<ActionProposalCampaignProductUpdateIntentInput>;
-  candidateDecisionIntent?: InputMaybe<ActionProposalCandidateDecisionIntentInput>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
   /** Prediction cache ids returned by affiliateP50SalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  sampleShipmentIntent?: InputMaybe<ActionProposalSampleShipmentIntentInput>;
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
   type: ActionProposalType;
 }
@@ -6133,7 +6063,7 @@ export interface WmsWarehouseSyncPayload {
 }
 
 export interface WriteAffiliateApprovalPolicyInput {
-  action: AffiliatePolicyAction;
+  action: ActionProposalType;
   campaignIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   creatorTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;

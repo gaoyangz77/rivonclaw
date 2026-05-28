@@ -350,6 +350,11 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             operatorSummary
             creatorId
             collaborationRecordId
+            decision {
+              note
+              decidedAt
+            }
+            updatedAt
           }
           missingContext {
             reason

@@ -96,8 +96,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
     recommendedActionTypes: [
-      GQL.ActionProposalType.ApproveSample,
-      GQL.ActionProposalType.RejectSample,
+      GQL.ActionProposalType.ReviewSampleApplication,
     ],
     versionAt: "2026-05-11T00:01:00.000Z",
     collaboration,
@@ -112,8 +111,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       primarySampleApplication: sampleApplicationRecord,
       productContext: null,
       recommendedActionTypes: [
-        GQL.ActionProposalType.ApproveSample,
-        GQL.ActionProposalType.RejectSample,
+        GQL.ActionProposalType.ReviewSampleApplication,
       ],
       relatedSampleApplications: [sampleApplicationRecord],
     },
@@ -189,7 +187,7 @@ describe("affiliate work item dispatch", () => {
         extraSystemPrompt: expect.stringContaining("Affiliate / Creator Management Agent"),
       }),
     );
-    expect(agentCall?.[1]?.message).toContain("APPROVE_SAMPLE or REJECT_SAMPLE");
+    expect(agentCall?.[1]?.message).toContain("REVIEW_SAMPLE_APPLICATION");
     expect(agentCall?.[1]?.message).toContain("platform-sample-001");
     expect(agentCall?.[1]?.message).toContain("reply exactly NO_REPLY");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
