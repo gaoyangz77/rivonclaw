@@ -4,7 +4,7 @@ import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("cs-session-cursor-store");
-const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const RETENTION_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 
 export interface CustomerServiceMessageCursor {
   messageId?: string | null;

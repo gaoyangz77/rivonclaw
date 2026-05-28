@@ -75,12 +75,12 @@ export const DEFAULTS = {
 
   gatewayConfig: {
     sessionResetMode: "idle" as const,
-    sessionResetIdleMinutes: 10080, // 7 days
+    sessionResetIdleMinutes: 1_576_800, // 3 years
     sessionMaintenanceMode: "enforce" as const,
-    sessionMaintenancePruneAfter: "7d",
-    sessionMaintenanceMaxEntries: 200,
-    sessionMaintenanceRotateBytes: "10mb",
-    sessionMaintenanceMaxDiskBytes: "500mb",
+    sessionMaintenancePruneAfter: "1095d",
+    sessionMaintenanceMaxEntries: 1_000_000,
+    sessionMaintenanceRotateBytes: undefined as string | undefined,
+    sessionMaintenanceMaxDiskBytes: undefined as string | undefined,
     toolsProfile: "full" as const,
     execHost: "gateway" as const,
     execSecurity: "full" as const,

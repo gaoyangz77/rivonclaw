@@ -76,7 +76,7 @@ describe("cs-session-cursor-store", () => {
     });
   });
 
-  it("stores summaries and prunes records older than 30 days", async () => {
+  it("stores summaries and prunes records older than 3 years", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-21T00:00:00.000Z"));
     try {
@@ -96,7 +96,7 @@ describe("cs-session-cursor-store", () => {
         messageCount: 10,
       });
 
-      vi.setSystemTime(new Date("2026-06-22T00:00:00.000Z"));
+      vi.setSystemTime(new Date("2029-05-22T00:00:00.000Z"));
 
       expect(await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" })).toBeUndefined();
       expect(await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-1" })).toBeUndefined();
