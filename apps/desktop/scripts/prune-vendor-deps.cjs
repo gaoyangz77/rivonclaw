@@ -102,6 +102,8 @@ const EXTRA_REMOVE = [
   "@snazzah/davey-darwin-x64",
   "@tloncorp/tlon-skill-darwin-arm64",
   "@tloncorp/tlon-skill-darwin-x64",
+  "@zed-industries/codex-acp-darwin-arm64",
+  "@zed-industries/codex-acp-darwin-x64",
   "bare-fs",
   "bare-os",
   "bare-url",
