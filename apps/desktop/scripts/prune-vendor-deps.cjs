@@ -299,8 +299,16 @@ if (macRuntimeArch) {
       const full = path.join(dir, entry.name);
       const rel = path.relative(nmDir, full).replace(/\\/g, "/");
       if (otherArchMarkers.some((marker) => rel.includes(marker))) {
-        const size = entry.isDirectory() ? dirSize(full) : fs.statSync(full).size;
-        const count = entry.isDirectory() ? fileCount(full) : 1;
+        const size = entry.isSymbolicLink()
+          ? 0
+          : entry.isDirectory()
+            ? dirSize(full)
+            : fs.statSync(full).size;
+        const count = entry.isSymbolicLink()
+          ? 1
+          : entry.isDirectory()
+            ? fileCount(full)
+            : 1;
         fs.rmSync(full, { recursive: true, force: true });
         removedArchBytes += size;
         removedArchEntries += count;
