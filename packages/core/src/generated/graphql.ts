@@ -850,13 +850,13 @@ export interface AffiliateP50SalesValidationIssue {
 
 export const AffiliatePolicyAction = {
   AddCreatorTag: 'ADD_CREATOR_TAG',
-  ApproveSample: 'APPROVE_SAMPLE',
   BlockCreator: 'BLOCK_CREATOR',
   ChangeCampaignSetup: 'CHANGE_CAMPAIGN_SETUP',
   ChangeCommission: 'CHANGE_COMMISSION',
   CreateTargetInvite: 'CREATE_TARGET_INVITE',
   RecordCandidateDecision: 'RECORD_CANDIDATE_DECISION',
   RemoveCreator: 'REMOVE_CREATOR',
+  ReviewSampleRequest: 'REVIEW_SAMPLE_REQUEST',
   SendFollowUp: 'SEND_FOLLOW_UP',
   SendOutreach: 'SEND_OUTREACH',
   ShipSample: 'SHIP_SAMPLE'
