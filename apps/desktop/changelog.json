@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.18",
+    "date": "2026-05-28",
+    "en": [
+      "Enable macOS Developer ID signing and notarization in CI so downloads install cleanly without Gatekeeper workarounds",
+      "Restore the signed macOS auto-update flow now that release artifacts can be trusted by electron-updater",
+      "Prepare Windows release signing through Azure Artifact Signing with CI signature verification"
+    ],
+    "zh": [
+      "启用 macOS Developer ID 签名与公证的 CI 流程，下载后的安装体验不再依赖 Gatekeeper 绕行",
+      "恢复已签名 macOS 构建的自动更新流程，让 electron-updater 可以正常接管下载与安装",
+      "接入 Windows Azure Artifact Signing 发布签名准备，并在 CI 中校验签名结果"
+    ]
+  },
+  {
     "version": "1.8.17",
     "date": "2026-05-27",
     "en": [

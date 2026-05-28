@@ -6,11 +6,18 @@ extends: electron-builder.yml
 
 win:
   icon: build/icon
-  # Code signing via environment variables:
-  #   CSC_LINK  — path or URL to the .pfx / .p12 certificate
-  #   CSC_KEY_PASSWORD — certificate password
-  # Set these in CI or locally before running the build.
-  # If not set, the build will succeed but the binary will be unsigned.
+  # Azure Artifact Signing (formerly Trusted Signing) signs during packaging so
+  # NSIS blockmaps and latest.yml are generated from the signed artifacts.
+  # CI must provide AZURE_TENANT_ID, AZURE_CLIENT_ID, and AZURE_CLIENT_SECRET
+  # for a principal with the Artifact Signing Certificate Profile Signer role.
+  azureSignOptions:
+    publisherName: RIVON LLC
+    endpoint: https://eus.codesigning.azure.net
+    codeSigningAccountName: rivonclaw-signing
+    certificateProfileName: rivonclaw-public-trust
+    fileDigest: SHA256
+    timestampRfc3161: http://timestamp.acs.microsoft.com
+    timestampDigest: SHA256
 
   target:
     - target: nsis

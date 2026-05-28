@@ -77,15 +77,15 @@ If local tests fail, delete the draft release on GitHub and fix the issues.
 | File | Description |
 |------|-------------|
 | `RELEASE_BODY.md` | Template body appended to GitHub Releases |
-| `SIGNPATH_SETUP.md` | Guide for free Windows code signing via SignPath Foundation |
+| `AZURE_ARTIFACT_SIGNING_SETUP.md` | Azure Artifact Signing setup for Windows releases |
 | `CI_CD.md` | This file |
 
 ## Code Signing Status
 
 | Platform | Signing | Status |
 |----------|---------|--------|
-| **macOS** | Ad-hoc (`identity: "-"`) | No Apple Developer cert; users need `xattr -cr` after download |
-| **Windows** | SignPath Foundation | Pending setup (see `SIGNPATH_SETUP.md`) |
+| **macOS** | Developer ID Application + notarization | Requires GitHub secrets: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
+| **Windows** | Azure Artifact Signing Basic | Account created; identity validation, certificate profile, and CI principal still need setup (see `AZURE_ARTIFACT_SIGNING_SETUP.md`) |
 
 ## Vendor Pruning
 

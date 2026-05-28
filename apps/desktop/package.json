@@ -1,6 +1,6 @@
 {
   "name": "@rivonclaw/desktop",
-  "version": "1.8.17",
+  "version": "1.8.18",
   "private": true,
   "type": "module",
   "main": "dist/main.cjs",
@@ -24,6 +24,7 @@
     "dist:mac:arm64": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && node scripts/archive-vendor-runtime.cjs && electron-builder --mac --arm64 --publish never",
     "dist:mac:x64": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && node scripts/archive-vendor-runtime.cjs && electron-builder --mac --x64 --publish never",
     "dist:win": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.yml --publish never",
+    "dist:win:unsigned": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.unsigned.yml --publish never",
     "dist:linux": "node scripts/warmup-compile-cache-for-build.cjs && node scripts/prune-vendor-deps.cjs && electron-builder --linux --config electron-builder.linux.yml --publish never"
   },
   "dependencies": {

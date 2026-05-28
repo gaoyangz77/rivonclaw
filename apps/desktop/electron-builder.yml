@@ -90,12 +90,12 @@ mac:
   target:
     - dmg
     - zip
-  hardenedRuntime: false
+  hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: entitlements.mac.plist
   entitlementsInherit: entitlements.mac.plist
-  # Ad-hoc sign so macOS doesn't reject the app as "damaged".
-  identity: "-"
+  # CI imports a Developer ID Application certificate into a temporary
+  # keychain; electron-builder auto-discovers it for release signing.
   # Skip signing files that can't be signed (vendor binaries with
   # unsupported formats, git objects, etc.)
   # Note: vendor/openclaw/node_modules is no longer in the bundle — macOS ships
