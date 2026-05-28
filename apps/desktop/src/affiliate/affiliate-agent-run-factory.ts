@@ -4,6 +4,7 @@ export interface AffiliateAgentRunFactoryInput {
   workItem: GQL.AffiliateWorkItem;
   platform: string;
   conversationDelta?: string;
+  proposalDeltaSection?: string;
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
   businessPrompt?: string | null;
@@ -45,6 +46,8 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderWorkItemProjection(workItem),
       "",
+      renderProposalDeltaSection(input),
+      "",
       renderPredictionSection(input),
       "",
       renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
@@ -82,6 +85,8 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderWorkItemProjection(workItem),
       "",
+      renderProposalDeltaSection(input),
+      "",
       renderPredictionSection(input),
       "",
       renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
@@ -94,9 +99,9 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the merchant instructions depend on dynamic creator or shop facts, such as follower count, GMV, prior performance, sample cost, inventory, or current fulfillment state, call affiliate_get_workspace with the narrowest available filters before deciding.",
       "If merchant instructions are not configured, do not invent follower-count, GMV, or sales thresholds. Use Affiliate Decision Thresholds when configured, otherwise use the Affiliate Prediction section as the primary decision signal plus concrete workspace facts such as block/risk tags and sample/product context.",
-      "For sample review with prediction status OK: compare the predicted sales units with the configured minP50SalesUnits. If the predicted units are below the threshold, generally use REJECT_SAMPLE unless stronger merchant instructions or workspace facts justify an exception. If the predicted units meet or exceed the threshold, that can support APPROVE_SAMPLE.",
+      "For sample review with prediction status OK: compare the predicted sales units with the configured minP50SalesUnits. If the predicted units are below the threshold, generally reject the sample unless stronger merchant instructions or workspace facts justify an exception. If the predicted units meet or exceed the threshold, that can support approving the sample.",
       "Write operatorSummary for a busy ecommerce seller, not a statistician. Explain the business meaning in plain language, for example: \"The model expects this creator to sell around 0 units for this product, below the shop's minimum of 2, so rejecting the sample is recommended.\" Do not include raw model details unless the merchant explicitly asks.",
-      "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type APPROVE_SAMPLE or REJECT_SAMPLE.",
+      "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type REVIEW_SAMPLE_APPLICATION.",
       "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing the sample decision and SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
       "If you include a creator-facing text message, action.messageIntent must include messageType: TEXT.",
@@ -104,8 +109,8 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.`,
       "Use action.sampleReviewIntent.sampleApplicationRecordId and platformApplicationId from the projection; do not invent campaignId.",
       "For sample review actions, do not put productId, creatorId, or campaignId on the action payload unless the tool schema explicitly asks for them; keep sample identifiers inside action.sampleReviewIntent.",
-      "For APPROVE_SAMPLE, set action.sampleReviewIntent.decision to APPROVE.",
-      "For REJECT_SAMPLE, set action.sampleReviewIntent.decision to REJECT. If you set rejectReason, it must be exactly one of NOT_MATCH, OFFLINE, OUT_OF_STOCK, or OTHER; use OTHER for seller-specific rules such as follower-count thresholds, and put free-form rationale only in operatorSummary.",
+      "For sample approval, set action.sampleReviewIntent.decision to APPROVE.",
+      "For sample rejection, set action.sampleReviewIntent.decision to REJECT. If you set rejectReason, it must be exactly one of NOT_MATCH, OFFLINE, OUT_OF_STOCK, or OTHER; use OTHER for seller-specific rules such as follower-count thresholds, and put free-form rationale only in operatorSummary.",
       "Do not include null fields in affiliate_resolve_work_item input. Omit optional fields entirely when they are not needed.",
       "Do not write merchant/operator summaries as final assistant text. If approval policy requires review, the backend will create an ActionProposal. Stop there and reply exactly NO_REPLY.",
     ].join("\n"),
@@ -120,6 +125,8 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "[Affiliate Work Item: Content Follow-Up Due]",
       "",
       renderWorkItemProjection(workItem),
+      "",
+      renderProposalDeltaSection(input),
       "",
       renderPredictionSection(input),
       "",
@@ -148,6 +155,10 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
 
 function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
+}
+
+function renderProposalDeltaSection(input: AffiliateAgentRunFactoryInput): string {
+  return input.proposalDeltaSection?.trim() || "## Proposal Events Since Last Work Boundary\n(none fetched before dispatch)";
 }
 
 function renderDecisionThresholds(

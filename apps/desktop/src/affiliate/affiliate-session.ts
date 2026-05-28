@@ -13,11 +13,13 @@ import { rootStore } from "../app/store/desktop-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
+  AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
   AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY,
   AFFILIATE_P50_SALES_PREDICTIONS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
+  type AffiliateActionProposalDeltaQueryResult,
   type AffiliateP50SalesPredictionsQueryResult,
   type AffiliateConversationMessageDeltaQueryResult,
   type AffiliateWorkItemsQueryResult,
@@ -111,7 +113,7 @@ export class AffiliateSession {
       "## Operating Model",
       "- Use backend affiliate tools as the source of truth for campaigns, creator lifecycle state, tags, approval policies, and action execution.",
       "- Every agent-dispatched affiliate work item must end with exactly one affiliate_resolve_work_item call. A final text response alone does not complete the work item.",
-      "- If you need to message a creator, approve or reject a sample, create a target collaboration, block a creator, or update campaign setup, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed action payload.",
+      "- If you need to message a creator, review a sample application, or create a target collaboration on TikTok, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed platform action payload.",
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
       "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
       "- Background affiliate runs must not speak in webchat. Put staff-facing detail in operatorSummary, then make the final assistant response exactly NO_REPLY.",
@@ -267,6 +269,7 @@ export class AffiliateSession {
       workItem,
       platform: this.platform,
       conversationDelta,
+      proposalDeltaSection: await this.buildProposalDeltaSection(workItem),
       ...(await this.resolvePredictionDispatchContext(workItem)),
       ...(await this.resolveDecisionThresholdDispatchContext(workItem)),
       businessPrompt: this.shop.businessPrompt,
@@ -536,6 +539,39 @@ export class AffiliateSession {
     } catch (err) {
       log.warn(`Failed to fetch affiliate conversation delta for ${params.conversationId}: ${String(err)}`);
       return null;
+    }
+  }
+
+  private async buildProposalDeltaSection(workItem: GQL.AffiliateWorkItem): Promise<string> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn("No auth session available, cannot fetch affiliate proposal delta");
+      return "## Proposal Events Since Last Work Boundary\n(unavailable: no auth session)";
+    }
+
+    try {
+      const since = workItem.collaboration.workHandledUntil ?? null;
+      if (since == null) {
+        return [
+          "## Proposal Events Since Last Work Boundary",
+          "(none: this collaboration has no handled work boundary yet)",
+        ].join("\n");
+      }
+      const result = await authSession.graphqlFetch<AffiliateActionProposalDeltaQueryResult>(
+        AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
+        {
+          input: {
+            shopId: workItem.shopId,
+            collaborationRecordId: workItem.collaborationRecordId,
+            since,
+            limit: 8,
+          },
+        },
+      );
+      return renderProposalDelta(result.affiliateActionProposalDelta ?? [], since);
+    } catch (err) {
+      log.warn(`Failed to fetch affiliate proposal delta for ${workItem.collaborationRecordId}: ${String(err)}`);
+      return "## Proposal Events Since Last Work Boundary\n(unavailable: backend query failed)";
     }
   }
 
@@ -919,6 +955,33 @@ function isAffiliateMessageSignal(type: AffiliateConversationSignalPayload["type
 
 function appendOptionalSection(message: string, section?: string): string {
   return section ? `${message}\n\n${section}` : message;
+}
+
+function renderProposalDelta(proposals: GQL.ActionProposal[], since: string | null | undefined): string {
+  const header = [
+    "## Proposal Events Since Last Work Boundary",
+    `Since: ${since ?? "(no prior work boundary; showing latest bounded proposal events)"}`,
+  ];
+  if (proposals.length === 0) {
+    return [...header, "(none)"].join("\n");
+  }
+  return [
+    ...header,
+    ...proposals.slice(0, 8).flatMap((proposal, index) => [
+      `${index + 1}. proposalId=${proposal.id} type=${proposal.type} status=${proposal.status} updatedAt=${proposal.updatedAt ?? ""}`,
+      `   operatorSummary=${proposal.operatorSummary ?? ""}`,
+      proposal.decision?.note ? `   decisionNote=${proposal.decision.note}` : "   decisionNote=(none)",
+      proposal.steps?.length
+        ? `   steps=${proposal.steps.map(step => `${step.type}:${step.operatorSummary ?? ""}`).join(" | ")}`
+        : "   steps=(none)",
+      proposal.messageIntent?.text ? `   messageText=${proposal.messageIntent.text}` : "   messageText=(none)",
+      proposal.sampleReviewIntent
+        ? `   sampleReview=${proposal.sampleReviewIntent.decision} platformApplicationId=${proposal.sampleReviewIntent.platformApplicationId}`
+        : "   sampleReview=(none)",
+    ]),
+    "",
+    "Use this section only to understand draft actions that were already proposed, rejected, superseded, or executed after the last handled work boundary. Do not treat it as stable workspace state.",
+  ].join("\n");
 }
 
 function parseOptionalDate(value: string | null | undefined): Date | null {
