@@ -225,12 +225,15 @@ jobs:
         run: |
           echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed 's/[ "]//g')
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          curl -fsSL "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer" -o developer-id-g2.cer
+          security import developer-id-g2.cer -k build.keychain -T /usr/bin/codesign
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security find-identity -v -p codesigning build.keychain
-          rm -f certificate.p12
+          security find-identity -v -p codesigning
+          rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS arm64 DMG + ZIP
         run: |
@@ -370,12 +373,15 @@ jobs:
         run: |
           echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed 's/[ "]//g')
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          curl -fsSL "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer" -o developer-id-g2.cer
+          security import developer-id-g2.cer -k build.keychain -T /usr/bin/codesign
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security find-identity -v -p codesigning build.keychain
-          rm -f certificate.p12
+          security find-identity -v -p codesigning
+          rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS x64 DMG + ZIP
         run: |
