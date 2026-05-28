@@ -36,6 +36,8 @@ export interface ActionProposal {
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
+  /** Current collaboration record projection for staff review display. Proposal execution still uses frozen proposal fields. */
+  collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   collaborationRecordLastSignalAt?: Maybe<Scalars['DateTimeISO']['output']>;
   collaborationRecordStateUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -3585,7 +3587,7 @@ export interface Mutation {
   csDismissEscalation: CsRespondResult;
   /** Manually end an active platform CS session from the operator customer-service UI */
   csEndCustomerServiceSession: Scalars['Boolean']['output'];
-  /** End an active platform CS session and clear the backend active-session marker */
+  /** End an active platform CS session and mark the local billing record ended */
   csEndSession: Scalars['Boolean']['output'];
   /** Create or update the active cloud CS escalation and queue a local manager-notification side-effect event */
   csEscalate: CsEscalateResult;

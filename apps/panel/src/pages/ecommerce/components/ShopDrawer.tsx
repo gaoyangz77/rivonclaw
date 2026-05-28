@@ -55,8 +55,11 @@ interface ShopDrawerProps {
   onAffiliateRunProfileChange: (profileId: string) => void;
   editAffiliateBusinessPrompt: string;
   onEditAffiliateBusinessPrompt: (value: string) => void;
+  editAffiliateMinP50SalesUnits: string;
+  onEditAffiliateMinP50SalesUnits: (value: string) => void;
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
+  onSaveAffiliateDecisionThresholds: () => void;
   togglingAffiliateBindShopId: string | null;
   onBindAffiliateDevice: (shopId: string) => void;
   onUnbindAffiliateDevice: (shopId: string) => void;
@@ -105,8 +108,11 @@ export const ShopDrawer = observer(function ShopDrawer({
   onAffiliateRunProfileChange,
   editAffiliateBusinessPrompt,
   onEditAffiliateBusinessPrompt,
+  editAffiliateMinP50SalesUnits,
+  onEditAffiliateMinP50SalesUnits,
   savingAffiliateSettings,
   onSaveAffiliateBusinessPrompt,
+  onSaveAffiliateDecisionThresholds,
   togglingAffiliateBindShopId,
   onBindAffiliateDevice,
   onUnbindAffiliateDevice,
@@ -389,8 +395,11 @@ export const ShopDrawer = observer(function ShopDrawer({
                 onRunProfileChange={onAffiliateRunProfileChange}
                 editBusinessPrompt={editAffiliateBusinessPrompt}
                 onEditBusinessPrompt={onEditAffiliateBusinessPrompt}
+                editMinP50SalesUnits={editAffiliateMinP50SalesUnits}
+                onEditMinP50SalesUnits={onEditAffiliateMinP50SalesUnits}
                 savingSettings={savingAffiliateSettings}
                 onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
+                onSaveDecisionThresholds={onSaveAffiliateDecisionThresholds}
                 myDeviceId={myDeviceId}
                 togglingBindShopId={togglingAffiliateBindShopId}
                 onBindDevice={onBindAffiliateDevice}

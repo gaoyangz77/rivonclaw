@@ -32,6 +32,9 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         runProfileId
         csDeviceId
         businessPrompt
+        decisionThresholds {
+          minP50SalesUnits
+        }
       }
     }
   }
@@ -375,6 +378,22 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         avatarUrl
       }
       collaborationId: collaborationRecordId
+      collaborationRecord {
+        id
+        predictionSnapshots {
+          sourceCacheId
+          predictionType
+          captureMode
+          scenario
+          status
+          output
+          model
+          diagnostics
+          message
+          predictedAt
+          capturedAt
+        }
+      }
       type
       status
       operatorSummary

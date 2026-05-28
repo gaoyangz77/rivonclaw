@@ -69,6 +69,9 @@ export const ShopModel = ShopModelBase.views((self) => ({
           runProfileId?: string | null;
           csDeviceId?: string | null;
           businessPrompt?: string | null;
+          decisionThresholds?: {
+            minP50SalesUnits?: number | null;
+          } | null;
         };
       };
     }) {
