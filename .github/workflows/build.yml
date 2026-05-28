@@ -238,8 +238,10 @@ jobs:
           rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS arm64 DMG + ZIP
+        timeout-minutes: 90
         run: |
           cd apps/desktop
+          export PATH="$PWD/scripts/ci-bin:$PATH"
           pnpm run dist:mac:arm64
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -249,6 +251,7 @@ jobs:
           RIVONCLAW_MAC_RUNTIME_ARCH: arm64
           RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
           NOTARIZE_TIMEOUT_SECONDS: "3600"
+          CODESIGN_TIMEOUT_SECONDS: "300"
           DEBUG: electron-notarize:*
 
       - name: Validate macOS bundle
@@ -393,8 +396,10 @@ jobs:
           rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS x64 DMG + ZIP
+        timeout-minutes: 90
         run: |
           cd apps/desktop
+          export PATH="$PWD/scripts/ci-bin:$PATH"
           pnpm run dist:mac:x64
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -404,6 +409,7 @@ jobs:
           RIVONCLAW_MAC_RUNTIME_ARCH: x64
           RIVONCLAW_REQUIRE_NO_VENDOR_MACHO: "1"
           NOTARIZE_TIMEOUT_SECONDS: "3600"
+          CODESIGN_TIMEOUT_SECONDS: "300"
           DEBUG: electron-notarize:*
 
       - name: Validate macOS bundle

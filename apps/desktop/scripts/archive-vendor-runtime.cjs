@@ -147,10 +147,9 @@ function listMachOBinaries(rootDir) {
   return machoFiles;
 }
 
-function signMacOSRuntimeBinaries() {
+function signMacOSRuntimeBinaries(machoFiles) {
   if (!isMacOS) return;
 
-  const machoFiles = listMachOBinaries(vendorDir);
   if (machoFiles.length === 0) {
     console.log("[archive-vendor-runtime] No vendor Mach-O binaries found to sign.");
     return;
@@ -194,10 +193,9 @@ function signMacOSRuntimeBinaries() {
   console.log("[archive-vendor-runtime] Vendor Mach-O signing complete.");
 }
 
-function verifyMacOSRuntimeBinaries() {
+function verifyMacOSRuntimeBinaries(machoFiles) {
   if (!isMacOS) return;
 
-  const machoFiles = listMachOBinaries(vendorDir);
   if (machoFiles.length === 0) {
     console.log("[archive-vendor-runtime] No vendor Mach-O binaries to verify.");
     return;
@@ -221,11 +219,13 @@ function verifyMacOSRuntimeBinaries() {
   console.log("[archive-vendor-runtime] Vendor Mach-O verification complete.");
 }
 
+const macOSRuntimeMachOBinaries = isMacOS ? listMachOBinaries(vendorDir) : [];
+
 if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
   console.log("[archive-vendor-runtime] SKIP_VENDOR_RUNTIME_SIGNING=1; skipping vendor Mach-O signing.");
 } else {
-  signMacOSRuntimeBinaries();
-  verifyMacOSRuntimeBinaries();
+  signMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
+  verifyMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
 }
 
 // Build the include arguments — only add paths that actually exist
