@@ -378,22 +378,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         avatarUrl
       }
       collaborationRecordId
-      collaborationRecord {
-        id
-        predictionSnapshots {
-          sourceCacheId
-          predictionType
-          captureMode
-          scenario
-          status
-          output
-          model
-          diagnostics
-          message
-          predictedAt
-          capturedAt
-        }
-      }
       type
       status
       operatorSummary
