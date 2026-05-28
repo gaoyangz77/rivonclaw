@@ -1,0 +1,28 @@
+# Windows-specific electron-builder configuration for unsigned fallback builds.
+# Used only while Azure Artifact Signing setup is incomplete.
+
+extends: electron-builder.yml
+
+win:
+  icon: build/icon
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+portable:
+  artifactName: "${productName}-${version}-portable.${ext}"
+
+nsis:
+  artifactName: "${productName}.Setup.${version}.${ext}"
+  include: "installer.nsh"
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerSidebar: build/installerSidebar.png
+  uninstallDisplayName: "RivonClaw"
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "RivonClaw"

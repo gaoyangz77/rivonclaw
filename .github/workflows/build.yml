@@ -81,31 +81,45 @@ jobs:
         run: pnpm run build
 
       - name: Build Windows app
+        shell: pwsh
         run: |
           cd apps/desktop
-          pnpm run dist:win
+          if ($env:AZURE_TENANT_ID -and $env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET) {
+            pnpm run dist:win
+          } else {
+            Write-Warning "Azure Artifact Signing secrets are not configured; building unsigned Windows artifacts."
+            pnpm run dist:win:unsigned
+          }
         env:
-          # Code signing will be handled by SignPath
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      - name: Upload unsigned installer for signing
-        uses: actions/upload-artifact@v6
-        with:
-          name: unsigned-windows-installer
-          path: apps/desktop/release/*.exe
-          retention-days: 1
+      - name: Verify Windows signatures
+        shell: pwsh
+        run: |
+          if (-not ($env:AZURE_TENANT_ID -and $env:AZURE_CLIENT_ID -and $env:AZURE_CLIENT_SECRET)) {
+            Write-Warning "Skipping Windows signature verification because Azure Artifact Signing secrets are not configured."
+            exit 0
+          }
 
-      # TODO: Once SignPath is configured, add signing step here
-      # - name: Submit to SignPath for signing
-      #   uses: signpath/github-action-submit-signing-request@v1
-      #   with:
-      #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-      #     organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-      #     project-slug: 'rivonclaw'
-      #     signing-policy-slug: 'release-signing'
-      #     artifact-configuration-slug: 'windows-installer'
-      #     input-artifact-path: 'apps/desktop/release/RivonClaw-Setup.exe'
-      #     output-artifact-path: 'apps/desktop/release/RivonClaw-Setup-Signed.exe'
+          $files = Get-ChildItem -Path apps/desktop/release -Filter *.exe
+          if (-not $files) {
+            throw "No Windows .exe artifacts found."
+          }
+
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -FilePath $file.FullName
+            Write-Host "$($file.Name): $($signature.Status) $($signature.SignerCertificate.Subject)"
+
+            if ($signature.Status -ne "Valid") {
+              throw "Invalid Authenticode signature for $($file.FullName): $($signature.Status)"
+            }
+          }
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
@@ -187,9 +201,23 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      # Import code signing certificate (when secrets are configured)
+      - name: Verify macOS signing secrets
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          test -n "$MACOS_CERTIFICATE" || { echo "MACOS_CERTIFICATE is required"; exit 1; }
+          test -n "$MACOS_CERTIFICATE_PWD" || { echo "MACOS_CERTIFICATE_PWD is required"; exit 1; }
+          test -n "$KEYCHAIN_PASSWORD" || { echo "KEYCHAIN_PASSWORD is required"; exit 1; }
+          test -n "$APPLE_ID" || { echo "APPLE_ID is required"; exit 1; }
+          test -n "$APPLE_APP_SPECIFIC_PASSWORD" || { echo "APPLE_APP_SPECIFIC_PASSWORD is required"; exit 1; }
+          test -n "$APPLE_TEAM_ID" || { echo "APPLE_TEAM_ID is required"; exit 1; }
+
       - name: Import Code Signing Certificate
-        if: ${{ env.MACOS_CERTIFICATE != '' }}
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -201,6 +229,8 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+          rm -f certificate.p12
 
       - name: Build macOS arm64 DMG + ZIP
         run: |
@@ -222,6 +252,8 @@ jobs:
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl -a -vvv --type exec "$APP"
           echo "PASS"
 
       - name: Upload build artifacts
@@ -314,9 +346,23 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      # Import code signing certificate (when secrets are configured)
+      - name: Verify macOS signing secrets
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          test -n "$MACOS_CERTIFICATE" || { echo "MACOS_CERTIFICATE is required"; exit 1; }
+          test -n "$MACOS_CERTIFICATE_PWD" || { echo "MACOS_CERTIFICATE_PWD is required"; exit 1; }
+          test -n "$KEYCHAIN_PASSWORD" || { echo "KEYCHAIN_PASSWORD is required"; exit 1; }
+          test -n "$APPLE_ID" || { echo "APPLE_ID is required"; exit 1; }
+          test -n "$APPLE_APP_SPECIFIC_PASSWORD" || { echo "APPLE_APP_SPECIFIC_PASSWORD is required"; exit 1; }
+          test -n "$APPLE_TEAM_ID" || { echo "APPLE_TEAM_ID is required"; exit 1; }
+
       - name: Import Code Signing Certificate
-        if: ${{ env.MACOS_CERTIFICATE != '' }}
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -328,6 +374,8 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+          rm -f certificate.p12
 
       - name: Build macOS x64 DMG + ZIP
         run: |
@@ -349,6 +397,8 @@ jobs:
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl -a -vvv --type exec "$APP"
           echo "PASS"
 
       - name: Upload build artifacts

@@ -1,7 +1,7 @@
 import { formatError, getReleaseFeedUrl } from "@rivonclaw/core";
 import { brandName } from "../i18n/brand.js";
 import { createLogger } from "@rivonclaw/logger";
-import { app, Notification, shell } from "electron";
+import { app, Notification } from "electron";
 import type { BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
@@ -220,27 +220,6 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     }
     if (updateDownloadState.status === "ready") {
       log.info("Update already downloaded, ignoring duplicate request");
-      return;
-    }
-
-    // macOS: code signing certificate not yet available, so electron-updater's
-    // download/install flow will fail.  Fall back to opening the browser so the
-    // user can download the DMG manually.
-    // TODO: remove this block once Apple developer certificate is approved.
-    if (process.platform === "darwin") {
-      const downloadUrl = backendUpdateInfo.downloadUrl;
-      if (!downloadUrl) {
-        throw new Error(`No download URL could be resolved for update v${backendUpdateInfo.version}`);
-      }
-      log.info(`macOS: opening browser for update download: ${downloadUrl}`);
-      shell.openExternal(downloadUrl);
-      const isZh = deps.systemLocale === "zh";
-      new Notification({
-        title: isZh ? `${brandName("zh")} 更新` : `${brandName("en")} Update`,
-        body: isZh
-          ? "已在浏览器中打开下载链接，下载完成后请手动安装。"
-          : "Download opened in browser. Install the DMG after downloading.",
-      }).show();
       return;
     }
 
