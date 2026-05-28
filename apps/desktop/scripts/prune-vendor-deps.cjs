@@ -42,11 +42,14 @@ const prunedMarkerPath = path.join(vendorDir, "dist", ".pruned");
 if (fs.existsSync(prunedMarkerPath)) {
   // Quick check: if typescript exists, node_modules was restored (not pruned)
   const hasDevDeps = fs.existsSync(path.join(nmDir, "typescript"));
-  if (!hasDevDeps) {
+  // macOS pruning depends on current target arch and optional native package
+  // policy, so a cached marker from an older prune script is not enough.
+  if (!hasDevDeps && !macRuntimeArch) {
     console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
     process.exit(0);
   }
-  console.log("[prune-vendor-deps] Stale .pruned marker (dev deps present), re-pruning...");
+  const reason = hasDevDeps ? "dev deps present" : "macOS runtime prune must refresh cached marker";
+  console.log(`[prune-vendor-deps] Stale .pruned marker (${reason}), re-pruning...`);
   fs.unlinkSync(prunedMarkerPath);
 }
 
@@ -311,6 +314,19 @@ if (macRuntimeArch) {
   console.log(
     `[prune-vendor-deps] Phase 2b: removed ${removedArchEntries} non-${macRuntimeArch} macOS files ` +
       `(${(removedArchBytes / 1024 / 1024).toFixed(1)}MB)`,
+  );
+}
+
+// tree-sitter-bash is used through its WASM grammar at runtime; the native
+// prebuilds are optional package baggage and create notarization work.
+const treeSitterBashPrebuilds = path.join(nmDir, "tree-sitter-bash", "prebuilds");
+if (fs.existsSync(treeSitterBashPrebuilds)) {
+  const size = dirSize(treeSitterBashPrebuilds);
+  const count = fileCount(treeSitterBashPrebuilds);
+  fs.rmSync(treeSitterBashPrebuilds, { recursive: true, force: true });
+  console.log(
+    `[prune-vendor-deps] Removed tree-sitter-bash native prebuilds ` +
+      `(${(size / 1024 / 1024).toFixed(1)}MB, ${count} files)`,
   );
 }
 
