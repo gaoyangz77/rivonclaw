@@ -377,7 +377,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         nickname
         avatarUrl
       }
-      collaborationId: collaborationRecordId
+      collaborationRecordId
       collaborationRecord {
         id
         predictionSnapshots {
