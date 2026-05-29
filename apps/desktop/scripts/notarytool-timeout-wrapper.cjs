@@ -13,7 +13,6 @@ if (
   !args.includes("--timeout")
 ) {
   args.push("--timeout", `${timeoutSeconds}s`);
-  console.error(`[notarytool-wrapper] Added --timeout ${timeoutSeconds}s`);
 }
 
 const child = spawn("xcrun", ["notarytool", ...args], {
