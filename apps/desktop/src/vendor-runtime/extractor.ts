@@ -6,9 +6,9 @@
  * This module extracts the archive to a user-data directory on first launch and
  * returns the extracted path for use as vendorDir.
  *
- * Extraction is idempotent: if the target directory already contains the entry
- * point (openclaw.mjs), extraction is skipped. Stale versions and incomplete
- * extractions (.extracting-* temp dirs) are cleaned up automatically.
+ * Extraction is idempotent: if the target directory already contains the
+ * required runtime contract, extraction is skipped. Stale versions and
+ * incomplete extractions (.extracting-* temp dirs) are cleaned up automatically.
  */
 
 import { execSync } from "node:child_process";
@@ -32,6 +32,22 @@ interface VendorRuntimeManifest {
 }
 
 const ENTRY_FILE = "openclaw.mjs";
+const REQUIRED_RUNTIME_FILES = [
+  ENTRY_FILE,
+  "package.json",
+  "docs/reference/templates/AGENTS.md",
+  "docs/reference/templates/BOOTSTRAP.md",
+  "docs/reference/templates/SOUL.md",
+  "docs/reference/templates/TOOLS.md",
+  "dist/extensions/acpx/openclaw.plugin.json",
+  "dist/extensions/memory-core/openclaw.plugin.json",
+];
+
+function missingRuntimeFiles(runtimeDir: string): string[] {
+  return REQUIRED_RUNTIME_FILES.filter((relativePath) => {
+    return !existsSync(join(runtimeDir, relativePath));
+  });
+}
 
 /**
  * Ensures the vendor runtime is extracted and ready for use.
@@ -50,13 +66,22 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   const targetDir = join(runtimeBaseDir, manifest.version, "openclaw");
   const entryPath = join(targetDir, ENTRY_FILE);
 
-  // Idempotent: already extracted
+  // Idempotent: already extracted and complete.
   if (existsSync(entryPath)) {
-    console.log(
-      `[vendor-runtime] Already extracted (version ${manifest.version}), skipping.`,
+    const missingFiles = missingRuntimeFiles(targetDir);
+    if (missingFiles.length === 0) {
+      console.log(
+        `[vendor-runtime] Already extracted (version ${manifest.version}), skipping.`,
+      );
+      cleanupStaleVersions(runtimeBaseDir, manifest.version);
+      return targetDir;
+    }
+
+    console.warn(
+      `[vendor-runtime] Existing runtime ${manifest.version} is incomplete; ` +
+        `missing ${missingFiles.join(", ")}. Re-extracting.`,
     );
-    cleanupStaleVersions(runtimeBaseDir, manifest.version);
-    return targetDir;
+    rmSync(join(runtimeBaseDir, manifest.version), { recursive: true, force: true });
   }
 
   // Extract
@@ -87,11 +112,11 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
       timeout: 300_000,
     });
 
-    // Verify the entry point was extracted
-    const tempEntryPath = join(tempDir, ENTRY_FILE);
-    if (!existsSync(tempEntryPath)) {
+    // Verify the runtime contract was extracted.
+    const tempMissingFiles = missingRuntimeFiles(tempDir);
+    if (tempMissingFiles.length > 0) {
       throw new Error(
-        `[vendor-runtime] Extraction failed: ${ENTRY_FILE} not found in extracted archive.`,
+        `[vendor-runtime] Extraction failed: missing ${tempMissingFiles.join(", ")} in extracted archive.`,
       );
     }
 

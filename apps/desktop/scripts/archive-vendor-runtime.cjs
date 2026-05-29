@@ -53,10 +53,13 @@ if (fs.existsSync(patchDir)) {
   }
 }
 
-// 3. Prune script content
-const pruneScriptPath = path.join(__dirname, "prune-vendor-deps.cjs");
-if (fs.existsSync(pruneScriptPath)) {
-  hash.update(fs.readFileSync(pruneScriptPath));
+// 3. Build scripts that define the archive contents
+for (const scriptName of ["prune-vendor-deps.cjs", "archive-vendor-runtime.cjs"]) {
+  const scriptPath = path.join(__dirname, scriptName);
+  if (fs.existsSync(scriptPath)) {
+    hash.update(scriptName);
+    hash.update(fs.readFileSync(scriptPath));
+  }
 }
 
 const version = hash.digest("hex").slice(0, 12);
