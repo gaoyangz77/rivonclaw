@@ -166,11 +166,11 @@ function listMachOBinaries(rootDir) {
 }
 
 function signMacOSRuntimeBinaries(machoFiles) {
-  if (!isMacOS) return;
+  if (!isMacOS) return false;
 
   if (machoFiles.length === 0) {
     console.log("[archive-vendor-runtime] No vendor Mach-O binaries found to sign.");
-    return;
+    return false;
   }
 
   if (process.env.RIVONCLAW_REQUIRE_NO_VENDOR_MACHO === "1") {
@@ -184,8 +184,8 @@ function signMacOSRuntimeBinaries(machoFiles) {
 
   const identity = process.env.CSC_NAME || findDeveloperIdIdentity();
   if (!identity) {
-    console.warn("[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing.");
-    return;
+    console.warn("[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing and verification.");
+    return false;
   }
 
   console.log(`[archive-vendor-runtime] Signing ${machoFiles.length} vendor Mach-O binaries with ${identity}...`);
@@ -209,6 +209,7 @@ function signMacOSRuntimeBinaries(machoFiles) {
     );
   });
   console.log("[archive-vendor-runtime] Vendor Mach-O signing complete.");
+  return true;
 }
 
 function verifyMacOSRuntimeBinaries(machoFiles) {
@@ -240,10 +241,12 @@ function verifyMacOSRuntimeBinaries(machoFiles) {
 const macOSRuntimeMachOBinaries = isMacOS ? listMachOBinaries(vendorDir) : [];
 
 if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
-  console.log("[archive-vendor-runtime] SKIP_VENDOR_RUNTIME_SIGNING=1; skipping vendor Mach-O signing.");
+  console.log("[archive-vendor-runtime] SKIP_VENDOR_RUNTIME_SIGNING=1; skipping vendor Mach-O signing and verification.");
 } else {
-  signMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
-  verifyMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
+  const didSignMacOSRuntimeBinaries = signMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
+  if (didSignMacOSRuntimeBinaries) {
+    verifyMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
+  }
 }
 
 // Build the include arguments — only add paths that actually exist
