@@ -141,6 +141,7 @@ jobs:
           }
           foreach ($removedPath in @(
             "$vendor/node_modules/@openai/codex",
+            "$vendor/node_modules/@tloncorp/tlon-skill",
             "$vendor/node_modules/@zed-industries/codex-acp",
             "$vendor/node_modules/@anthropic-ai/claude-agent-sdk"
           )) {
@@ -589,6 +590,7 @@ jobs:
           done
           for path in \
             "$VENDOR/node_modules/@openai/codex" \
+            "$VENDOR/node_modules/@tloncorp/tlon-skill" \
             "$VENDOR/node_modules/@zed-industries/codex-acp" \
             "$VENDOR/node_modules/@anthropic-ai/claude-agent-sdk"
           do

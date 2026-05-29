@@ -15,18 +15,20 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "conservative-runtime-blacklist-2026-05-29.1";
+const PRUNE_PROFILE_VERSION = "conservative-runtime-blacklist-2026-05-29.2";
 
 const EXTRA_REMOVE = [
   "@agentclientprotocol/claude-agent-acp",
   "@anthropic-ai/claude-agent-sdk",
   "@openai/codex",
+  "@tloncorp/tlon-skill",
   "@zed-industries/codex-acp",
 ];
 
 const EXTRA_REMOVE_PREFIXES = [
   "@anthropic-ai/claude-agent-sdk-",
   "@openai/codex-",
+  "@tloncorp/tlon-skill-",
   "@zed-industries/codex-acp-",
 ];
 
