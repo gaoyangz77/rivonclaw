@@ -103,7 +103,7 @@ function findDeveloperIdIdentity() {
 function listMachOBinaries(rootDir) {
   const files = [];
   const stack = [rootDir];
-  const nativeExtensions = new Set([".bundle", ".dylib", ".node", ".so"]);
+  const nativeExtensions = new Set([".bare", ".bundle", ".dylib", ".node", ".so"]);
 
   while (stack.length > 0) {
     const current = stack.pop();
