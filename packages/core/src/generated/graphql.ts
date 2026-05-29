@@ -35,6 +35,7 @@ export interface ActionProposal {
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
+  candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   /** Current collaboration record projection for staff review display. Proposal execution still uses frozen proposal fields. */
   collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
@@ -93,6 +94,13 @@ export interface ActionProposalCampaignProductUpdateIntent {
   sampleQuota?: Maybe<Scalars['Int']['output']>;
   sampleUnitCostAmount?: Maybe<Scalars['Float']['output']>;
   sampleUnitCostCurrency?: Maybe<EcomProductSkuCurrency>;
+}
+
+export interface ActionProposalCandidateDecisionIntent {
+  candidateIds: Array<Scalars['ID']['output']>;
+  evidenceItems?: Maybe<Array<CreatorCandidateEvidence>>;
+  rationale?: Maybe<Scalars['String']['output']>;
+  status: CreatorCandidateStatus;
 }
 
 export interface ActionProposalCandidateDecisionIntentInput {
@@ -219,6 +227,7 @@ export interface ActionProposalStep {
   approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
+  candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing summary for this action step. Use the desktop/operator language. */
