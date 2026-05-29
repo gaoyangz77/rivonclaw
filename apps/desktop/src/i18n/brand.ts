@@ -2,6 +2,12 @@
 const BRAND: Record<string, string> = {
   zh: "爪爪",
   en: "RivonClaw",
+  de: "RivonClaw",
+  es: "RivonClaw",
+  fr: "RivonClaw",
+  id: "RivonClaw",
+  it: "RivonClaw",
+  th: "RivonClaw",
 };
 
 /** Get the brand name for the given locale. */

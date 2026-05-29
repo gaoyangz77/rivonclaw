@@ -27,6 +27,7 @@ import {
   type ResolveAffiliateWorkItemMutationResult,
 } from "../cloud/affiliate-queries.js";
 import { readLatestUserSessionAnchor } from "../utils/openclaw-session-anchor.js";
+import type { StaffLanguage } from "../i18n/locale.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 
 const log = createLogger("affiliate-session");
@@ -51,7 +52,7 @@ export interface AffiliateShopContext {
   /** Per-shop default affiliate decision thresholds configured by the merchant. */
   decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
   /** Staff-facing language for operatorSummary and internal review text. */
-  staffLanguage?: "Chinese" | "English";
+  staffLanguage?: StaffLanguage;
 }
 
 export interface AffiliateContext {

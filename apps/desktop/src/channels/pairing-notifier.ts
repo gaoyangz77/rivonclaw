@@ -5,22 +5,13 @@ import { resolveCredentialsDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import { proxiedFetch } from "../infra/api/route-utils.js";
 import { sendChannelMessage } from "./channel-senders.js";
+import { getSystemLocale } from "../i18n/locale.js";
 
 const log = createLogger("pairing-notifier");
 
 interface PairingStore {
   version: number;
   requests: Array<{ id: string; code: string; createdAt: string; lastSeenAt: string; meta?: Record<string, string> }>;
-}
-
-/** Detect system locale: "zh" for Chinese systems, "en" for everything else. */
-function getSystemLocale(): "zh" | "en" {
-  try {
-    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-    return locale.startsWith("zh") ? "zh" : "en";
-  } catch {
-    return "en";
-  }
 }
 
 const PAIRING_MESSAGES = {
@@ -33,6 +24,36 @@ const PAIRING_MESSAGES = {
     "💡 [RivonClaw] Your pairing request has been received.",
     "",
     "Please go to the panel → Channels, expand the matching channel account, and click \"Approve\".",
+  ].join("\n"),
+  de: [
+    "💡 [RivonClaw] Ihre Kopplungsanfrage wurde empfangen.",
+    "",
+    "Bitte öffnen Sie das Panel → Kanäle, erweitern Sie das passende Kanalkonto und klicken Sie auf \"Genehmigen\".",
+  ].join("\n"),
+  es: [
+    "💡 [RivonClaw] Hemos recibido tu solicitud de vinculación.",
+    "",
+    "Ve al panel → Canales, despliega la cuenta de canal correspondiente y haz clic en \"Aprobar\".",
+  ].join("\n"),
+  fr: [
+    "💡 [RivonClaw] Votre demande d'association a bien été reçue.",
+    "",
+    "Allez dans le panneau → Canaux, ouvrez le compte de canal correspondant, puis cliquez sur \"Approuver\".",
+  ].join("\n"),
+  id: [
+    "💡 [RivonClaw] Permintaan pemasangan Anda telah diterima.",
+    "",
+    "Buka panel → Channels, perluas akun channel yang sesuai, lalu klik \"Approve\".",
+  ].join("\n"),
+  it: [
+    "💡 [RivonClaw] La tua richiesta di associazione è stata ricevuta.",
+    "",
+    "Vai al pannello → Canali, espandi l'account canale corretto e fai clic su \"Approva\".",
+  ].join("\n"),
+  th: [
+    "💡 [RivonClaw] ได้รับคำขอจับคู่ของคุณแล้ว",
+    "",
+    "ไปที่แผงควบคุม → Channels เปิดบัญชีช่องทางที่ตรงกัน แล้วคลิก \"Approve\"",
   ].join("\n"),
 };
 

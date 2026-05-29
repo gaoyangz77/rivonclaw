@@ -1,8 +1,9 @@
 import { BrowserWindow, app, ipcMain } from "electron";
 import type { DepStatus, ProvisionProgress, ProvisionResult } from "./types.js";
 import { brandName } from "../i18n/brand.js";
+import { localeToHtmlLang, normalizeAppLocale, type AppLocale } from "../i18n/locale.js";
 
-type Locale = "zh" | "en";
+type Locale = AppLocale;
 
 export interface ThemeOptions {
   mode: "light" | "dark";
@@ -48,6 +49,84 @@ const i18n = {
     allPresent: "所有依赖已就绪！",
     failedToInstall: (names: string) => `${names} 安装失败`,
   },
+  de: {
+    subtitle: "Systemabhängigkeiten werden eingerichtet",
+    install: "Installieren",
+    skip: "Überspringen",
+    continue: "Fortfahren",
+    retry: "Erneut versuchen",
+    detecting: "Systemabhängigkeiten werden geprüft...",
+    installing: "Installiere",
+    configuring: "Mirrors werden konfiguriert...",
+    done: "Einrichtung abgeschlossen",
+    allPresent: "Alle Abhängigkeiten gefunden!",
+    failedToInstall: (names: string) => `${names} konnte nicht installiert werden`,
+  },
+  es: {
+    subtitle: "Configurando dependencias del sistema",
+    install: "Instalar",
+    skip: "Omitir",
+    continue: "Continuar",
+    retry: "Reintentar",
+    detecting: "Comprobando dependencias del sistema...",
+    installing: "Instalando",
+    configuring: "Configurando espejos...",
+    done: "Configuración completa",
+    allPresent: "¡Todas las dependencias encontradas!",
+    failedToInstall: (names: string) => `No se pudo instalar ${names}`,
+  },
+  fr: {
+    subtitle: "Configuration des dépendances système",
+    install: "Installer",
+    skip: "Ignorer",
+    continue: "Continuer",
+    retry: "Réessayer",
+    detecting: "Vérification des dépendances système...",
+    installing: "Installation de",
+    configuring: "Configuration des miroirs...",
+    done: "Configuration terminée",
+    allPresent: "Toutes les dépendances sont présentes !",
+    failedToInstall: (names: string) => `Échec de l'installation de ${names}`,
+  },
+  id: {
+    subtitle: "Menyiapkan dependensi sistem",
+    install: "Instal",
+    skip: "Lewati",
+    continue: "Lanjutkan",
+    retry: "Coba lagi",
+    detecting: "Memeriksa dependensi sistem...",
+    installing: "Menginstal",
+    configuring: "Mengonfigurasi mirror...",
+    done: "Penyiapan selesai",
+    allPresent: "Semua dependensi ditemukan!",
+    failedToInstall: (names: string) => `Gagal menginstal ${names}`,
+  },
+  it: {
+    subtitle: "Configurazione delle dipendenze di sistema",
+    install: "Installa",
+    skip: "Salta",
+    continue: "Continua",
+    retry: "Riprova",
+    detecting: "Controllo delle dipendenze di sistema...",
+    installing: "Installazione di",
+    configuring: "Configurazione mirror...",
+    done: "Configurazione completata",
+    allPresent: "Tutte le dipendenze trovate!",
+    failedToInstall: (names: string) => `Installazione di ${names} non riuscita`,
+  },
+  th: {
+    subtitle: "กำลังตั้งค่าการพึ่งพาของระบบ",
+    install: "ติดตั้ง",
+    skip: "ข้าม",
+    continue: "ดำเนินการต่อ",
+    retry: "ลองอีกครั้ง",
+    detecting: "กำลังตรวจสอบการพึ่งพาของระบบ...",
+    installing: "กำลังติดตั้ง",
+    configuring: "กำลังกำหนดค่า mirror...",
+    done: "ตั้งค่าเสร็จแล้ว",
+    allPresent: "พบการพึ่งพาทั้งหมดแล้ว!",
+    failedToInstall: (names: string) => `ติดตั้ง ${names} ไม่สำเร็จ`,
+  },
 } as const;
 
 const depDisplayNames: Record<string, string> = {
@@ -62,7 +141,7 @@ function buildHtml(locale: Locale, theme: ThemeOptions): string {
   const accent = accentColors[theme.accent]?.[theme.mode] ?? accentColors.blue[theme.mode];
   const isDark = theme.mode === "dark";
   return `<!DOCTYPE html>
-<html lang="${locale === "zh" ? "zh-CN" : "en"}">
+<html lang="${localeToHtmlLang(locale)}">
 <head>
 <meta charset="utf-8">
 <title>${brandName(locale)}</title>
@@ -463,7 +542,7 @@ export interface ProvisionerWindow {
  * The window uses inline HTML with no external dependencies.
  */
 export function createProvisionerWindow(theme?: ThemeOptions): ProvisionerWindow {
-  const locale: Locale = app.getLocale().startsWith("zh") ? "zh" : "en";
+  const locale: Locale = normalizeAppLocale(app.getLocale());
   const t = i18n[locale];
   const resolvedTheme: ThemeOptions = theme ?? { mode: "dark", accent: "blue" };
 

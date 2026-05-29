@@ -18,6 +18,7 @@ import { openClawConnector } from "../openclaw/index.js";
 import type { AuthSessionManager } from "../auth/session.js";
 import { CloudClient } from "../cloud/cloud-client.js";
 import { startPairingNotifier } from "../channels/pairing-notifier.js";
+import { getSystemLocale } from "../i18n/locale.js";
 import type { ApiContext } from "./api-context.js";
 import { sendJson } from "../infra/api/route-utils.js";
 import { createPanelEventBus } from "./panel-event-bus.js";
@@ -79,16 +80,6 @@ const MIME_TYPES: Record<string, string> = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
 };
-
-/** Detect system locale: "zh" for Chinese systems, "en" for everything else. */
-function getSystemLocale(): "zh" | "en" {
-  try {
-    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-    return locale.startsWith("zh") ? "zh" : "en";
-  } catch {
-    return "en";
-  }
-}
 
 // --- PanelServerOptions ---
 
