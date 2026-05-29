@@ -63,10 +63,6 @@ const EXTRA_REMOVE = [
   "@rollup",
   "@rolldown",
   "lightningcss",
-  "lightningcss-darwin-arm64",
-  "lightningcss-darwin-x64",
-  "lightningcss-linux-x64-gnu",
-  "lightningcss-win32-x64-msvc",
   // typescript (peer dep only, not used at runtime)
   "typescript",
   // node-llama-cpp (optional peer dep for local LLMs)
@@ -74,41 +70,50 @@ const EXTRA_REMOVE = [
   "@node-llama-cpp",
   // tsx (devDep that survives hoisting)
   "tsx",
+  // test/dev packages that can survive through hoisted workspace edges
+  "jsdom",
+  "vitest",
+  "@vitest",
+  "@copilotkit",
+  "@types",
   // lit (ui/ dependency, not needed by gateway)
   "lit",
   "lit-html",
   "lit-element",
   "@lit",
   "@lit-labs",
+  // Heavy packages that are bundled into vendor/openclaw/dist by OpenClaw's
+  // build or only support source/test/control-ui paths we do not ship.
+  "@jimp",
+  "jimp",
+  "bmp-ts",
+  "gifwrap",
+  "image-q",
+  "jpeg-js",
+  "omggif",
+  "pixelmatch",
+  "pngjs",
+  "utif2",
+  "@shikijs",
+  "shiki",
+  "highlight.js",
+  "react",
+  "react-dom",
+  "@mistralai",
+  "@wasm-audio-decoders",
+  "ogg-opus-decoder",
+  "node-wav",
+  "apache-arrow",
   // Optional native feature packages are not part of the desktop gateway's
   // core runtime. Keeping them inside the macOS app makes Apple notarization
   // recurse into the vendor archive and reject unsigned Mach-O payloads.
-  "@anthropic-ai/claude-agent-sdk-darwin-arm64",
-  "@anthropic-ai/claude-agent-sdk-darwin-x64",
+  "@agentclientprotocol/claude-agent-acp",
+  "@anthropic-ai/claude-agent-sdk",
   "@discordjs/opus",
-  "@img/sharp-darwin-arm64",
-  "@img/sharp-darwin-x64",
-  "@img/sharp-libvips-darwin-arm64",
-  "@img/sharp-libvips-darwin-x64",
-  "@lancedb/lancedb-darwin-arm64",
-  "@lancedb/lancedb-darwin-x64",
   "@lydell/node-pty",
-  "@lydell/node-pty-darwin-arm64",
-  "@lydell/node-pty-darwin-x64",
-  "@mariozechner/clipboard-darwin-arm64",
-  "@mariozechner/clipboard-darwin-x64",
-  "@mariozechner/clipboard-darwin-universal",
   "@matrix-org/matrix-sdk-crypto-nodejs",
-  "@napi-rs/canvas-darwin-arm64",
-  "@napi-rs/canvas-darwin-x64",
-  "@openai/codex-darwin-arm64",
-  "@openai/codex-darwin-x64",
-  "@snazzah/davey-darwin-arm64",
-  "@snazzah/davey-darwin-x64",
-  "@tloncorp/tlon-skill-darwin-arm64",
-  "@tloncorp/tlon-skill-darwin-x64",
-  "@zed-industries/codex-acp-darwin-arm64",
-  "@zed-industries/codex-acp-darwin-x64",
+  "@openai/codex",
+  "@zed-industries/codex-acp",
   "bare-fs",
   "bare-os",
   "bare-url",
@@ -117,8 +122,24 @@ const EXTRA_REMOVE = [
   "playwright",
   "sharp",
   "sqlite-vec",
-  "sqlite-vec-darwin-arm64",
-  "sqlite-vec-darwin-x64",
+];
+
+const EXTRA_REMOVE_PREFIXES = [
+  // One cross-platform rule per optional native family. This keeps the prune
+  // profile unified while still removing darwin/linux/win32 variant packages.
+  "lightningcss-",
+  "@anthropic-ai/claude-agent-sdk-",
+  "@img/sharp-",
+  "@img/sharp-libvips-",
+  "@lancedb/lancedb-",
+  "@lydell/node-pty-",
+  "@mariozechner/clipboard-",
+  "@napi-rs/canvas-",
+  "@openai/codex-",
+  "@snazzah/davey-",
+  "@tloncorp/tlon-skill-",
+  "@zed-industries/codex-acp-",
+  "sqlite-vec-",
 ];
 
 // --- Phase 3 config: non-runtime files to strip ---
@@ -225,6 +246,44 @@ function fileCount(dir) {
   return count;
 }
 
+function packageDirsForPrefix(prefix) {
+  const normalizedPrefix = prefix.replace(/\\/g, "/");
+  const matches = [];
+
+  if (normalizedPrefix.startsWith("@")) {
+    const slashIndex = normalizedPrefix.indexOf("/");
+    if (slashIndex === -1) return matches;
+
+    const scope = normalizedPrefix.slice(0, slashIndex);
+    const packagePrefix = normalizedPrefix.slice(slashIndex + 1);
+    const scopeDir = path.join(nmDir, scope);
+    if (!fs.existsSync(scopeDir)) return matches;
+
+    for (const entry of fs.readdirSync(scopeDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (!entry.name.startsWith(packagePrefix)) continue;
+      matches.push(path.join(scopeDir, entry.name));
+    }
+    return matches;
+  }
+
+  for (const entry of fs.readdirSync(nmDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith(normalizedPrefix)) {
+      matches.push(path.join(nmDir, entry.name));
+    }
+  }
+  return matches;
+}
+
+function removePackageDir(pkgDir, label) {
+  if (!fs.existsSync(pkgDir)) return false;
+  const size = dirSize(pkgDir);
+  fs.rmSync(pkgDir, { recursive: true, force: true });
+  console.log(`  removed ${label} (${(size / 1024 / 1024).toFixed(1)}MB)`);
+  return true;
+}
+
 const sizeBefore = dirSize(nmDir);
 const filesBefore = fileCount(nmDir);
 console.log(
@@ -269,10 +328,12 @@ console.log(
 console.log("[prune-vendor-deps] Phase 2: removing non-gateway packages ...");
 for (const pkg of EXTRA_REMOVE) {
   const pkgDir = path.join(nmDir, pkg);
-  if (!fs.existsSync(pkgDir)) continue;
-  const size = dirSize(pkgDir);
-  fs.rmSync(pkgDir, { recursive: true, force: true });
-  console.log(`  removed ${pkg} (${(size / 1024 / 1024).toFixed(1)}MB)`);
+  removePackageDir(pkgDir, pkg);
+}
+for (const prefix of EXTRA_REMOVE_PREFIXES) {
+  for (const pkgDir of packageDirsForPrefix(prefix)) {
+    removePackageDir(pkgDir, path.relative(nmDir, pkgDir).replace(/\\/g, "/"));
+  }
 }
 
 const sizeP2 = dirSize(nmDir);
@@ -579,6 +640,176 @@ if (fs.existsSync(distRuntimeExtDir)) {
 }
 
 console.log(`  stripped ${phase4Files} files (${(phase4Bytes / 1024 / 1024).toFixed(0)}MB) from dist-runtime/ and extensions/`);
+
+// 4g: Thin source extension metadata and remove other source-only payloads.
+// OpenClaw still needs extension manifests for bundled plugin discovery, but
+// packaged desktop runtime code is loaded from dist/extensions.
+const sourceExtensionsDir = path.join(vendorDir, "extensions");
+if (fs.existsSync(sourceExtensionsDir)) {
+  let removedSourceExtensionFiles = 0;
+  let removedSourceExtensionBytes = 0;
+  const sourceExtensionKeepFiles = new Set();
+  const sourceExtensionStripDirs = new Set([
+    "test",
+    "tests",
+    "__tests__",
+    "__test__",
+    "__fixtures__",
+    "__snapshots__",
+    "fixtures",
+    "coverage",
+    ".turbo",
+    ".cache",
+  ]);
+  const sourceExtensionStripFileRe = /(?:^|[./-])(?:test|spec|mock|mocks|fixture|fixtures|snapshot|snapshots|helper|helpers)\.[cm]?[jt]sx?$/u;
+
+  function addSourceExtensionKeepCandidate(extensionDir, specifier) {
+    if (typeof specifier !== "string") return;
+    const trimmed = specifier.trim();
+    if (!trimmed.startsWith("./") && !trimmed.startsWith("../")) return;
+
+    const basePath = path.resolve(extensionDir, trimmed);
+    const candidates = [
+      basePath,
+      `${basePath}.ts`,
+      `${basePath}.js`,
+      `${basePath}.mjs`,
+      `${basePath}.cjs`,
+      path.join(basePath, "index.ts"),
+      path.join(basePath, "index.js"),
+      path.join(basePath, "index.mjs"),
+      path.join(basePath, "index.cjs"),
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        sourceExtensionKeepFiles.add(path.normalize(candidate));
+      }
+    }
+  }
+
+  function collectRelativeModuleSpecifiers(value, out) {
+    if (typeof value === "string") {
+      if (value.trim().startsWith("./") || value.trim().startsWith("../")) {
+        out.add(value);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) collectRelativeModuleSpecifiers(item, out);
+      return;
+    }
+    if (value && typeof value === "object") {
+      for (const item of Object.values(value)) collectRelativeModuleSpecifiers(item, out);
+    }
+  }
+
+  for (const entry of fs.readdirSync(sourceExtensionsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const extensionDir = path.join(sourceExtensionsDir, entry.name);
+    for (const manifestFile of ["package.json", "openclaw.plugin.json"]) {
+      const file = path.join(extensionDir, manifestFile);
+      if (fs.existsSync(file)) sourceExtensionKeepFiles.add(path.normalize(file));
+    }
+
+    const packageJsonPath = path.join(extensionDir, "package.json");
+    if (!fs.existsSync(packageJsonPath)) continue;
+    try {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+      const specifiers = new Set();
+      collectRelativeModuleSpecifiers(packageJson.openclaw, specifiers);
+      for (const specifier of specifiers) {
+        addSourceExtensionKeepCandidate(extensionDir, specifier);
+      }
+    } catch {}
+  }
+
+  function shouldKeepSourceExtensionFile(filePath) {
+    if (sourceExtensionKeepFiles.has(path.normalize(filePath))) return true;
+    const rel = path.relative(sourceExtensionsDir, filePath).replace(/\\/g, "/");
+    const parts = rel.split("/");
+    if (parts.length < 2) return false;
+    if (parts.length === 2 && (parts[1] === "package.json" || parts[1] === "openclaw.plugin.json")) {
+      return true;
+    }
+    if (parts[1] === "skills" && parts.at(-1) === "SKILL.md") return true;
+    const basename = path.basename(filePath);
+    if (sourceExtensionStripFileRe.test(basename)) return false;
+    if (
+      basename === "tsconfig.json" ||
+      basename.startsWith("tsconfig.") ||
+      basename.startsWith("vitest.config.") ||
+      basename.startsWith("tsdown.config.") ||
+      basename === "README.md" ||
+      basename === "CHANGELOG.md" ||
+      basename.endsWith(".map") ||
+      basename.endsWith(".md") ||
+      STRIP_DTS_RE.test(basename)
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  function thinSourceExtensionDir(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isSymbolicLink()) {
+        fs.unlinkSync(full);
+        removedSourceExtensionFiles++;
+        continue;
+      }
+      if (entry.isDirectory()) {
+        if (sourceExtensionStripDirs.has(entry.name)) {
+          const size = dirSize(full);
+          const count = fileCount(full);
+          fs.rmSync(full, { recursive: true, force: true });
+          removedSourceExtensionBytes += size;
+          removedSourceExtensionFiles += count;
+          continue;
+        }
+        thinSourceExtensionDir(full);
+        try {
+          if (fs.readdirSync(full).length === 0) {
+            fs.rmdirSync(full);
+          }
+        } catch {}
+        continue;
+      }
+      if (shouldKeepSourceExtensionFile(full)) continue;
+      removedSourceExtensionBytes += fs.statSync(full).size;
+      fs.unlinkSync(full);
+      removedSourceExtensionFiles++;
+    }
+  }
+
+  thinSourceExtensionDir(sourceExtensionsDir);
+  phase4Bytes += removedSourceExtensionBytes;
+  phase4Files += removedSourceExtensionFiles;
+  console.log(
+    `  thinned source extensions/ metadata (${removedSourceExtensionFiles} files, ` +
+      `${(removedSourceExtensionBytes / 1024 / 1024).toFixed(1)}MB removed)`,
+  );
+}
+
+for (const relativePath of ["docs", "packages"]) {
+  const target = path.join(vendorDir, relativePath);
+  if (!fs.existsSync(target)) continue;
+  const size = dirSize(target);
+  const count = fileCount(target);
+  fs.rmSync(target, { recursive: true, force: true });
+  phase4Bytes += size;
+  phase4Files += count;
+  console.log(
+    `  removed source-only ${relativePath}/ (${(size / 1024 / 1024).toFixed(1)}MB, ${count} files)`,
+  );
+}
 
 // ─── Phase 5: write .pruned marker ───
 const prunedMarker = path.join(vendorDir, "dist", ".pruned");
