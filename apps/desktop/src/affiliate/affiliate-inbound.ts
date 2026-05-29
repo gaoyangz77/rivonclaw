@@ -17,6 +17,7 @@ import {
   type AffiliateShopContext,
 } from "./affiliate-session.js";
 import { normalizePlatform } from "../utils/platform.js";
+import { localeToStaffLanguage, type StaffLanguage } from "../i18n/locale.js";
 import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
 import type { AffiliateWorkItemPayload } from "../cloud/backend-subscription-client.js";
 
@@ -545,6 +546,6 @@ export class AffiliateInbound {
   }
 }
 
-function normalizeStaffLanguage(locale: string | undefined): "Chinese" | "English" {
-  return locale?.toLowerCase().startsWith("zh") ? "Chinese" : "English";
+function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
+  return localeToStaffLanguage(locale);
 }

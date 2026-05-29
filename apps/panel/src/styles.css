@@ -604,7 +604,9 @@ tbody td {
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  min-width: 120px;
+  min-width: 180px;
+  max-height: min(360px, calc(100vh - 80px));
+  overflow-y: auto;
   background: var(--color-bg);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);

@@ -35,6 +35,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { brandName } from "../i18n/brand.js";
+import { normalizeAppLocale } from "../i18n/locale.js";
 import { createTrayIcon } from "../tray/tray-icon.js";
 import { buildTrayMenu } from "../tray/tray-menu.js";
 import { startPanelServer, broadcastEvent } from "./panel-server.js";
@@ -205,7 +206,7 @@ app.whenReady().then(async () => {
   applyAutoLaunch(autoLaunchEnabled);
 
   // Initialize telemetry client and heartbeat timer
-  const locale = app.getLocale().startsWith("zh") ? "zh" : "en";
+  const locale = normalizeAppLocale(app.getLocale());
   const { client: telemetryClient, csClient: csTelemetryClient, heartbeatTimer } = initTelemetry(
     storage, deviceId, locale, (url, init) => proxyNetwork.fetch(url, init),
   );
@@ -603,7 +604,7 @@ app.whenReady().then(async () => {
   });
 
   // Determine system locale for tray menu i18n
-  const systemLocale = app.getLocale().startsWith("zh") ? "zh" : "en";
+  const systemLocale = normalizeAppLocale(app.getLocale());
 
   // Create tray
   const tray = new Tray(createTrayIcon("stopped"));

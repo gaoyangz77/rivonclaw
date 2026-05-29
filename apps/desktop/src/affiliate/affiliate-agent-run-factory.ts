@@ -1,4 +1,5 @@
 import type { GQL } from "@rivonclaw/core";
+import type { StaffLanguage } from "../i18n/locale.js";
 
 export interface AffiliateAgentRunFactoryInput {
   workItem: GQL.AffiliateWorkItem;
@@ -10,7 +11,7 @@ export interface AffiliateAgentRunFactoryInput {
   businessPrompt?: string | null;
   decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
   decisionThresholdSource?: string | null;
-  staffLanguage?: "Chinese" | "English";
+  staffLanguage?: StaffLanguage;
 }
 
 export interface AffiliateAgentRunRequest {

@@ -7,6 +7,7 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import type { ChannelManagerInstance } from "./channel-manager.js";
 import { sendJson, parseBody, proxiedFetch } from "../infra/api/route-utils.js";
+import { normalizeAppLocale } from "../i18n/locale.js";
 import type { ServerResponse } from "node:http";
 
 const log = createLogger("panel-server");
@@ -64,6 +65,12 @@ function requireChannelManager(ctx: ApiContext, res: ServerResponse): ChannelMan
 const APPROVAL_MESSAGES = {
   zh: "✅ [RivonClaw] 您的访问已获批准！现在可以开始和我对话了。",
   en: "✅ [RivonClaw] Your access has been approved! You can start chatting now.",
+  de: "✅ [RivonClaw] Ihr Zugriff wurde genehmigt! Sie können jetzt mit mir chatten.",
+  es: "✅ [RivonClaw] ¡Tu acceso ha sido aprobado! Ya puedes empezar a chatear conmigo.",
+  fr: "✅ [RivonClaw] Votre accès a été approuvé ! Vous pouvez maintenant discuter avec moi.",
+  id: "✅ [RivonClaw] Akses Anda telah disetujui! Anda bisa mulai mengobrol dengan saya sekarang.",
+  it: "✅ [RivonClaw] Il tuo accesso è stato approvato! Ora puoi iniziare a chattare con me.",
+  th: "✅ [RivonClaw] อนุมัติการเข้าถึงของคุณแล้ว! คุณสามารถเริ่มแชตกับฉันได้เลย",
 };
 
 // ── GET /api/channels/status ──
@@ -422,7 +429,7 @@ const approve: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext
     sendJson(res, 200, { ok: true, id: result.recipientId, entry: result.entry });
 
     // Fire-and-forget confirmation message
-    const locale = (body.locale === "zh" ? "zh" : "en") as "zh" | "en";
+    const locale = normalizeAppLocale(body.locale);
     const confirmMsg = APPROVAL_MESSAGES[locale];
     const boundFetch = (fetchUrl: string | URL, init?: RequestInit) => proxiedFetch(ctx.proxyRouterPort, fetchUrl, init);
     sendChannelMessage(body.channelId, result.recipientId, confirmMsg, boundFetch).then(ok => {

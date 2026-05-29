@@ -1,19 +1,15 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import en from "./en.js";
-import zh from "./zh.js";
+import { LANGUAGE_RESOURCES, SUPPORTED_LANGUAGE_CODES, normalizeLanguageCode } from "./languages.js";
 
-const browserLang = navigator.language.split("-")[0];
-
-const lng = browserLang === "zh" ? "zh" : "en";
+const lng = normalizeLanguageCode(navigator.language);
 
 i18n.use(initReactI18next).init({
-  resources: {
-    en: { translation: en },
-    zh: { translation: zh },
-  },
+  resources: LANGUAGE_RESOURCES,
   lng,
+  supportedLngs: SUPPORTED_LANGUAGE_CODES,
   fallbackLng: "en",
+  load: "languageOnly",
   interpolation: { escapeValue: false },
 });
 

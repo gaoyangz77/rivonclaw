@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../api/index.js";
+import { LANGUAGE_OPTIONS, normalizeLanguageCode } from "../i18n/languages.js";
 import { GlobeIcon } from "./icons.js";
 
 export function LangToggle({ popupDirection = "up" }: { popupDirection?: "up" | "down" }) {
   const { t, i18n } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const activeLanguage = normalizeLanguageCode(i18n.resolvedLanguage ?? i18n.language);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -30,18 +32,19 @@ export function LangToggle({ popupDirection = "up" }: { popupDirection?: "up" | 
       </button>
       {menuOpen && (
         <div className={`lang-menu-popup ${popupDirection === "down" ? "lang-menu-popup-down" : ""}`}>
-          <button
-            className={`lang-menu-option${i18n.language === "en" ? " lang-menu-option-active" : ""}`}
-            onClick={() => { i18n.changeLanguage("en"); setMenuOpen(false); trackEvent("ui.language_changed", { language: "en" }); }}
-          >
-            English
-          </button>
-          <button
-            className={`lang-menu-option${i18n.language === "zh" ? " lang-menu-option-active" : ""}`}
-            onClick={() => { i18n.changeLanguage("zh"); setMenuOpen(false); trackEvent("ui.language_changed", { language: "zh" }); }}
-          >
-            中文
-          </button>
+          {LANGUAGE_OPTIONS.map((language) => (
+            <button
+              key={language.code}
+              className={`lang-menu-option${activeLanguage === language.code ? " lang-menu-option-active" : ""}`}
+              onClick={() => {
+                i18n.changeLanguage(language.code);
+                setMenuOpen(false);
+                trackEvent("ui.language_changed", { language: language.code });
+              }}
+            >
+              {language.label}
+            </button>
+          ))}
         </div>
       )}
     </div>
