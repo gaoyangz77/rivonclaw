@@ -23,6 +23,7 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
+const PRUNE_PROFILE_VERSION = "unified-runtime-prune-2026-05-29.1";
 const macRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
   process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "x64"
   ? process.env.RIVONCLAW_MAC_RUNTIME_ARCH
@@ -42,13 +43,27 @@ const prunedMarkerPath = path.join(vendorDir, "dist", ".pruned");
 if (fs.existsSync(prunedMarkerPath)) {
   // Quick check: if typescript exists, node_modules was restored (not pruned)
   const hasDevDeps = fs.existsSync(path.join(nmDir, "typescript"));
+  const markerText = fs.readFileSync(prunedMarkerPath, "utf-8");
+  const hasCurrentPruneProfile = markerText.includes(`profile=${PRUNE_PROFILE_VERSION}`);
+  const hasRemovedRuntimeBaggage = [
+    path.join(nmDir, "@jimp"),
+    path.join(nmDir, "@openai", "codex"),
+    path.join(nmDir, "@zed-industries", "codex-acp"),
+    path.join(nmDir, "@anthropic-ai", "claude-agent-sdk"),
+  ].some((candidate) => fs.existsSync(candidate));
   // macOS pruning depends on current target arch and optional native package
   // policy, so a cached marker from an older prune script is not enough.
-  if (!hasDevDeps && !macRuntimeArch) {
+  if (!hasDevDeps && !macRuntimeArch && hasCurrentPruneProfile && !hasRemovedRuntimeBaggage) {
     console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
     process.exit(0);
   }
-  const reason = hasDevDeps ? "dev deps present" : "macOS runtime prune must refresh cached marker";
+  const reason = hasDevDeps
+    ? "dev deps present"
+    : !hasCurrentPruneProfile
+      ? "prune profile changed"
+      : hasRemovedRuntimeBaggage
+        ? "new runtime baggage removal required"
+        : "macOS runtime prune must refresh cached marker";
   console.log(`[prune-vendor-deps] Stale .pruned marker (${reason}), re-pruning...`);
   fs.unlinkSync(prunedMarkerPath);
 }
@@ -813,7 +828,11 @@ for (const relativePath of ["docs", "packages"]) {
 
 // ─── Phase 5: write .pruned marker ───
 const prunedMarker = path.join(vendorDir, "dist", ".pruned");
-fs.writeFileSync(prunedMarker, new Date().toISOString() + "\n", "utf-8");
+fs.writeFileSync(
+  prunedMarker,
+  `profile=${PRUNE_PROFILE_VERSION}\ncreatedAt=${new Date().toISOString()}\n`,
+  "utf-8",
+);
 console.log("[prune-vendor-deps] Wrote .pruned marker");
 
 // ─── Summary ───
