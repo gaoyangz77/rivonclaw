@@ -160,6 +160,7 @@ jobs:
               throw "Required runtime file is missing from Windows artifact: $requiredPath"
             }
           }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$vendor"
           $sizeBytes = (Get-ChildItem -Path $vendor -Recurse -File | Measure-Object -Property Length -Sum).Sum
           $sizeMB = [math]::Round($sizeBytes / 1MB, 1)
           Write-Host "Windows vendor payload: ${sizeMB}MB"
@@ -315,6 +316,7 @@ jobs:
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar.gz"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
@@ -480,6 +482,7 @@ jobs:
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar.gz"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
@@ -614,6 +617,7 @@ jobs:
           do
             test -e "$path" || { echo "Required runtime file is missing from Linux artifact: $path"; exit 1; }
           done
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$VENDOR"
           SIZE_MB=$(du -sm "$VENDOR" | awk '{print $1}')
           echo "Linux vendor payload: ${SIZE_MB}MB"
           test "$SIZE_MB" -le 900 || { echo "Linux vendor payload is too large after prune: ${SIZE_MB}MB"; exit 1; }
