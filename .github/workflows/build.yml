@@ -151,10 +151,13 @@ jobs:
           }
           foreach ($requiredPath in @(
             "$vendor/dist/extensions/acpx/openclaw.plugin.json",
-            "$vendor/dist/extensions/memory-core/openclaw.plugin.json"
+            "$vendor/dist/extensions/memory-core/openclaw.plugin.json",
+            "$vendor/docs/reference/templates/AGENTS.md",
+            "$vendor/docs/reference/templates/SOUL.md",
+            "$vendor/docs/reference/templates/TOOLS.md"
           )) {
             if (-not (Test-Path $requiredPath)) {
-              throw "Required runtime manifest is missing from Windows artifact: $requiredPath"
+              throw "Required runtime file is missing from Windows artifact: $requiredPath"
             }
           }
           $sizeBytes = (Get-ChildItem -Path $vendor -Recurse -File | Measure-Object -Property Length -Sum).Sum
@@ -307,6 +310,9 @@ jobs:
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
+          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
+          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
+          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
@@ -469,6 +475,9 @@ jobs:
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
+          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
+          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
+          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
@@ -598,9 +607,12 @@ jobs:
           done
           for path in \
             "$VENDOR/dist/extensions/acpx/openclaw.plugin.json" \
-            "$VENDOR/dist/extensions/memory-core/openclaw.plugin.json"
+            "$VENDOR/dist/extensions/memory-core/openclaw.plugin.json" \
+            "$VENDOR/docs/reference/templates/AGENTS.md" \
+            "$VENDOR/docs/reference/templates/SOUL.md" \
+            "$VENDOR/docs/reference/templates/TOOLS.md"
           do
-            test -e "$path" || { echo "Required runtime manifest is missing from Linux artifact: $path"; exit 1; }
+            test -e "$path" || { echo "Required runtime file is missing from Linux artifact: $path"; exit 1; }
           done
           SIZE_MB=$(du -sm "$VENDOR" | awk '{print $1}')
           echo "Linux vendor payload: ${SIZE_MB}MB"
