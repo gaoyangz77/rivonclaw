@@ -70,9 +70,7 @@ const RUNTIME_INCLUDES = [
   "package.json",
   "dist",
   "dist-runtime",
-  "docs",
   "extensions",
-  "packages",
   "node_modules",
 ];
 

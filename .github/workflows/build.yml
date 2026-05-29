@@ -121,6 +121,35 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
+      - name: Verify Windows vendor prune
+        shell: pwsh
+        run: |
+          $vendor = "apps/desktop/release/win-unpacked/resources/vendor/openclaw"
+          if (-not (Test-Path $vendor)) {
+            throw "Windows unpacked vendor directory not found: $vendor"
+          }
+          if (-not (Test-Path "$vendor/node_modules")) {
+            throw "Windows vendor node_modules missing after packaging."
+          }
+          foreach ($removedPath in @(
+            "$vendor/docs",
+            "$vendor/packages",
+            "$vendor/node_modules/@jimp",
+            "$vendor/node_modules/@openai/codex",
+            "$vendor/node_modules/@zed-industries/codex-acp",
+            "$vendor/node_modules/@anthropic-ai/claude-agent-sdk"
+          )) {
+            if (Test-Path $removedPath) {
+              throw "Pruned vendor path is present in Windows artifact: $removedPath"
+            }
+          }
+          $sizeBytes = (Get-ChildItem -Path $vendor -Recurse -File | Measure-Object -Property Length -Sum).Sum
+          $sizeMB = [math]::Round($sizeBytes / 1MB, 1)
+          Write-Host "Windows vendor payload: ${sizeMB}MB"
+          if ($sizeMB -gt 430) {
+            throw "Windows vendor payload is too large after prune: ${sizeMB}MB"
+          }
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -527,6 +556,25 @@ jobs:
         run: |
           cd apps/desktop
           pnpm run dist:linux
+
+      - name: Verify Linux vendor prune
+        run: |
+          VENDOR="apps/desktop/release/linux-unpacked/resources/vendor/openclaw"
+          test -d "$VENDOR" || { echo "Linux unpacked vendor directory not found: $VENDOR"; exit 1; }
+          test -d "$VENDOR/node_modules" || { echo "Linux vendor node_modules missing after packaging."; exit 1; }
+          for path in \
+            "$VENDOR/docs" \
+            "$VENDOR/packages" \
+            "$VENDOR/node_modules/@jimp" \
+            "$VENDOR/node_modules/@openai/codex" \
+            "$VENDOR/node_modules/@zed-industries/codex-acp" \
+            "$VENDOR/node_modules/@anthropic-ai/claude-agent-sdk"
+          do
+            test ! -e "$path" || { echo "Pruned vendor path is present in Linux artifact: $path"; exit 1; }
+          done
+          SIZE_MB=$(du -sm "$VENDOR" | awk '{print $1}')
+          echo "Linux vendor payload: ${SIZE_MB}MB"
+          test "$SIZE_MB" -le 430 || { echo "Linux vendor payload is too large after prune: ${SIZE_MB}MB"; exit 1; }
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
