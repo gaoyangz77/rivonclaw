@@ -68,6 +68,7 @@ console.log(`[archive-vendor-runtime] Version key: ${version}`);
 const RUNTIME_INCLUDES = [
   "openclaw.mjs",
   "package.json",
+  "docs/reference/templates",
   "dist",
   "dist-runtime",
   "extensions",
@@ -289,6 +290,22 @@ try {
 }
 
 console.log("[archive-vendor-runtime] Archive verification passed (openclaw.mjs found).");
+
+for (const requiredPath of [
+  "docs/reference/templates/AGENTS.md",
+  "docs/reference/templates/SOUL.md",
+  "docs/reference/templates/TOOLS.md",
+]) {
+  try {
+    execSync(`tar -tzf ${shellQuote(archivePath)} | grep -q ${shellQuote(`^${requiredPath}$`)}`, {
+      timeout: 60_000,
+    });
+  } catch {
+    console.error(`[archive-vendor-runtime] FAIL: ${requiredPath} not found in archive.`);
+    process.exit(1);
+  }
+}
+console.log("[archive-vendor-runtime] Archive verification passed (workspace templates found).");
 
 // ─── Write manifest ───
 const manifest = {
