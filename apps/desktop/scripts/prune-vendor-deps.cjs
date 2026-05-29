@@ -1,11 +1,10 @@
 // @ts-check
-// Conservatively prunes vendor/openclaw before electron-builder packages the app.
+// Prunes vendor/openclaw before electron-builder packages the app.
 //
-// This intentionally avoids clever runtime-dependency discovery. OpenClaw loads
-// many plugins from config and dynamic imports, so aggressive pruning breaks
-// real user configurations after vendor upgrades. Keep this script boring:
-// install production deps, remove a tiny blacklist of known-heavy packages, and
-// copy extension manifests into the compiled dist tree.
+// Keep this intentionally boring: no import-graph discovery and no dynamic
+// runtime inference. OpenClaw uses plugins and dynamic imports, so the safest
+// size win is a fixed blacklist of large packages we have explicitly decided
+// not to ship, plus fixed non-runtime file patterns.
 
 const { execSync } = require("child_process");
 const fs = require("fs");
@@ -15,22 +14,137 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "conservative-runtime-blacklist-2026-05-29.2";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-05-29.1";
 
+const macRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
+  process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "x64"
+  ? process.env.RIVONCLAW_MAC_RUNTIME_ARCH
+  : process.platform === "darwin" && (process.arch === "arm64" || process.arch === "x64")
+    ? process.arch
+    : null;
+
+// Package blacklist. Scope-only entries remove every package inside that scope.
 const EXTRA_REMOVE = [
+  // Agent/tool runtimes that RivonClaw does not invoke from packaged OpenClaw.
   "@agentclientprotocol/claude-agent-acp",
   "@anthropic-ai/claude-agent-sdk",
   "@openai/codex",
   "@tloncorp/tlon-skill",
   "@zed-industries/codex-acp",
+
+  // Build/UI dependencies left behind by hoisted production installs.
+  "vite",
+  "esbuild",
+  "@esbuild",
+  "rollup",
+  "@rollup",
+  "@rolldown",
+  "lightningcss",
+  "typescript",
+  "tsx",
+  "lit",
+  "lit-html",
+  "lit-element",
+  "@lit",
+  "@lit-labs",
+
+  // Optional native feature packages not used by the desktop gateway runtime.
+  "node-llama-cpp",
+  "@node-llama-cpp",
+  "@discordjs/opus",
+  "@matrix-org/matrix-sdk-crypto-nodejs",
+  "bare-fs",
+  "bare-os",
+  "bare-url",
+  "fsevents",
+  "koffi",
+  "playwright",
+  "sharp",
+  "sqlite-vec",
 ];
 
 const EXTRA_REMOVE_PREFIXES = [
   "@anthropic-ai/claude-agent-sdk-",
+  "@img/sharp-",
+  "@img/sharp-libvips-",
+  "@lancedb/lancedb-",
+  "@lydell/node-pty-",
+  "@mariozechner/clipboard-",
+  "@napi-rs/canvas-",
   "@openai/codex-",
+  "@snazzah/davey-",
   "@tloncorp/tlon-skill-",
   "@zed-industries/codex-acp-",
+  "lightningcss-",
+  "sqlite-vec-",
 ];
+
+const STRIP_FILES = new Set([
+  "README.md",
+  "README",
+  "readme.md",
+  "CHANGELOG.md",
+  "CHANGELOG",
+  "changelog.md",
+  "HISTORY.md",
+  "CHANGES.md",
+  "LICENSE",
+  "LICENSE.md",
+  "license",
+  "LICENSE.txt",
+  "LICENSE-MIT",
+  "LICENSE-MIT.txt",
+  "AUTHORS",
+  "CONTRIBUTORS",
+  "SECURITY.md",
+  "CONTRIBUTING.md",
+  "CODE_OF_CONDUCT.md",
+  ".npmignore",
+  ".eslintrc",
+  ".eslintrc.json",
+  ".eslintrc.js",
+  ".prettierrc",
+  ".prettierrc.json",
+  ".editorconfig",
+  "tsconfig.json",
+  ".travis.yml",
+  "Makefile",
+  "Gruntfile.js",
+  "Gulpfile.js",
+  ".gitattributes",
+  "appveyor.yml",
+  ".babelrc",
+  "jest.config.js",
+  "karma.conf.js",
+  ".jshintrc",
+  ".nycrc",
+  "tslint.json",
+]);
+
+const STRIP_DIRS = new Set([
+  "test",
+  "tests",
+  "__tests__",
+  "__test__",
+  "testing",
+  "docs",
+  "documentation",
+  "example",
+  "examples",
+  "demo",
+  "demos",
+  ".github",
+  ".idea",
+  ".vscode",
+  "benchmark",
+  "benchmarks",
+  ".nyc_output",
+  "coverage",
+  ".bin",
+]);
+
+const STRIP_EXTS = [".map", ".md", ".mdx", ".c", ".h", ".cc", ".cpp", ".gyp", ".gypi"];
+const STRIP_DTS_RE = /\.d\.[mc]?ts$/;
 
 if (!fs.existsSync(nmDir)) {
   console.log("[prune-vendor-deps] vendor/openclaw/node_modules not found, skipping.");
@@ -170,6 +284,224 @@ function copyExtensionManifestsIntoDist() {
   }
 }
 
+function isPluginSkillMarkdown(filePath) {
+  const rel = path.relative(vendorDir, filePath).replace(/\\/g, "/");
+  return /^(dist\/extensions|dist-runtime\/extensions|extensions)\/[^/]+\/skills\/[^/]+\/SKILL\.md$/u.test(rel);
+}
+
+function stripNonRuntimeFiles(rootDir, depth = 0) {
+  let entries;
+  try {
+    entries = fs.readdirSync(rootDir, { withFileTypes: true });
+  } catch {
+    return { files: 0, bytes: 0 };
+  }
+
+  let files = 0;
+  let bytes = 0;
+
+  for (const entry of entries) {
+    const full = path.join(rootDir, entry.name);
+    if (entry.isSymbolicLink()) continue;
+
+    if (entry.isDirectory()) {
+      if (depth <= 3 && STRIP_DIRS.has(entry.name)) {
+        const size = dirSize(full);
+        const count = fileCount(full);
+        fs.rmSync(full, { recursive: true, force: true });
+        files += count;
+        bytes += size;
+        continue;
+      }
+      const stripped = stripNonRuntimeFiles(full, depth + 1);
+      files += stripped.files;
+      bytes += stripped.bytes;
+      continue;
+    }
+
+    let shouldStrip = STRIP_FILES.has(entry.name) || STRIP_DTS_RE.test(entry.name);
+    if (!shouldStrip) {
+      shouldStrip = STRIP_EXTS.some((ext) => entry.name.endsWith(ext)) && !isPluginSkillMarkdown(full);
+    }
+    if (!shouldStrip) continue;
+
+    try {
+      bytes += fs.statSync(full).size;
+      fs.unlinkSync(full);
+      files++;
+    } catch {}
+  }
+
+  return { files, bytes };
+}
+
+function stripOtherDarwinArch() {
+  if (!macRuntimeArch) return;
+
+  const otherArch = macRuntimeArch === "arm64" ? "x64" : "arm64";
+  const otherArchMarkers = [
+    `darwin-${otherArch}`,
+    `darwin_${otherArch}`,
+    otherArch === "x64" ? "darwin-x86_64" : "darwin-aarch64",
+  ];
+  let removedEntries = 0;
+  let removedBytes = 0;
+
+  function stripDir(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(nmDir, full).replace(/\\/g, "/");
+      if (otherArchMarkers.some((marker) => rel.includes(marker))) {
+        const size = entry.isSymbolicLink()
+          ? 0
+          : entry.isDirectory()
+            ? dirSize(full)
+            : fs.statSync(full).size;
+        const count = entry.isSymbolicLink()
+          ? 1
+          : entry.isDirectory()
+            ? fileCount(full)
+            : 1;
+        fs.rmSync(full, { recursive: true, force: true });
+        removedBytes += size;
+        removedEntries += count;
+        continue;
+      }
+      if (entry.isDirectory() && !entry.isSymbolicLink()) {
+        stripDir(full);
+      }
+    }
+  }
+
+  stripDir(nmDir);
+  console.log(
+    `[prune-vendor-deps] Removed ${removedEntries} non-${macRuntimeArch} macOS files ` +
+      `(${(removedBytes / 1024 / 1024).toFixed(1)}MB)`,
+  );
+}
+
+function removeTreeSitterBashPrebuilds() {
+  const prebuilds = path.join(nmDir, "tree-sitter-bash", "prebuilds");
+  if (!fs.existsSync(prebuilds)) return;
+
+  const size = dirSize(prebuilds);
+  const count = fileCount(prebuilds);
+  fs.rmSync(prebuilds, { recursive: true, force: true });
+  console.log(
+    `[prune-vendor-deps] Removed tree-sitter-bash native prebuilds ` +
+      `(${(size / 1024 / 1024).toFixed(1)}MB, ${count} files)`,
+  );
+}
+
+function removeSymlinksAndNestedNodeModules(rootDir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(rootDir, { withFileTypes: true });
+  } catch {
+    return { files: 0, bytes: 0 };
+  }
+
+  let files = 0;
+  let bytes = 0;
+
+  for (const entry of entries) {
+    const full = path.join(rootDir, entry.name);
+    if (entry.isSymbolicLink()) {
+      try {
+        fs.unlinkSync(full);
+        files++;
+      } catch {}
+      continue;
+    }
+    if (!entry.isDirectory()) continue;
+
+    if (entry.name === "node_modules") {
+      const size = dirSize(full);
+      const count = fileCount(full);
+      fs.rmSync(full, { recursive: true, force: true });
+      files += count;
+      bytes += size;
+      continue;
+    }
+
+    const removed = removeSymlinksAndNestedNodeModules(full);
+    files += removed.files;
+    bytes += removed.bytes;
+  }
+
+  return { files, bytes };
+}
+
+function removeSymlinkMarkerDocs(rootDir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(rootDir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+
+  let files = 0;
+  for (const entry of entries) {
+    const full = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      files += removeSymlinkMarkerDocs(full);
+      continue;
+    }
+    if (entry.name !== "CLAUDE.md" && entry.name !== "AGENTS.md") continue;
+
+    try {
+      if (entry.isSymbolicLink()) {
+        fs.unlinkSync(full);
+        files++;
+        continue;
+      }
+      const content = fs.readFileSync(full, "utf-8").trim();
+      if (content.length < 100 && /^[A-Z][A-Z_-]+\.md$/.test(content)) {
+        fs.unlinkSync(full);
+        files++;
+      }
+    } catch {}
+  }
+  return files;
+}
+
+function removeOrphanedDistRuntimeWrappers() {
+  const distRuntimeExtDir = path.join(vendorDir, "dist-runtime", "extensions");
+  const distExtDir = path.join(vendorDir, "dist", "extensions");
+  if (!fs.existsSync(distRuntimeExtDir)) return { files: 0, bytes: 0 };
+
+  let files = 0;
+  let bytes = 0;
+  const distEntries = fs.existsSync(distExtDir)
+    ? new Set(
+        fs.readdirSync(distExtDir, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => entry.name),
+      )
+    : new Set();
+
+  for (const entry of fs.readdirSync(distRuntimeExtDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || distEntries.has(entry.name)) continue;
+
+    const full = path.join(distRuntimeExtDir, entry.name);
+    const size = dirSize(full);
+    const count = fileCount(full);
+    fs.rmSync(full, { recursive: true, force: true });
+    files += count;
+    bytes += size;
+    console.log(`  removed orphaned dist-runtime wrapper: ${entry.name}`);
+  }
+
+  return { files, bytes };
+}
+
 const prunedMarkerPath = path.join(vendorDir, "dist", ".pruned");
 if (fs.existsSync(prunedMarkerPath)) {
   const markerText = fs.readFileSync(prunedMarkerPath, "utf-8");
@@ -208,7 +540,13 @@ try {
   execSync("git checkout -- .", { cwd: vendorDir, stdio: "ignore" });
 } catch {}
 
-console.log("[prune-vendor-deps] Phase 2: removing conservative blacklist ...");
+const sizeP1 = dirSize(nmDir);
+console.log(
+  `[prune-vendor-deps] After Phase 1: ${(sizeP1 / 1024 / 1024).toFixed(0)}MB ` +
+    `(saved ${((sizeBefore - sizeP1) / 1024 / 1024).toFixed(0)}MB)`,
+);
+
+console.log("[prune-vendor-deps] Phase 2: removing package blacklist ...");
 for (const pkg of EXTRA_REMOVE) {
   for (const pkgDir of packageDirsForExactOrScope(pkg)) {
     removePackageDir(pkgDir);
@@ -219,6 +557,62 @@ for (const prefix of EXTRA_REMOVE_PREFIXES) {
     removePackageDir(pkgDir);
   }
 }
+
+const sizeP2 = dirSize(nmDir);
+console.log(
+  `[prune-vendor-deps] After Phase 2: ${(sizeP2 / 1024 / 1024).toFixed(0)}MB ` +
+    `(saved ${((sizeBefore - sizeP2) / 1024 / 1024).toFixed(0)}MB)`,
+);
+
+stripOtherDarwinArch();
+removeTreeSitterBashPrebuilds();
+
+console.log("[prune-vendor-deps] Phase 3: stripping non-runtime node_modules files ...");
+const strippedNodeModules = stripNonRuntimeFiles(nmDir, 0);
+console.log(
+  `  stripped ${strippedNodeModules.files} files ` +
+    `(${(strippedNodeModules.bytes / 1024 / 1024).toFixed(0)}MB)`,
+);
+
+console.log("[prune-vendor-deps] Phase 4: stripping dist and extension baggage ...");
+let phase4Files = 0;
+let phase4Bytes = 0;
+
+for (const subdir of ["dist", "dist-runtime", "extensions"]) {
+  const target = path.join(vendorDir, subdir);
+  if (!fs.existsSync(target)) continue;
+  const removed = removeSymlinksAndNestedNodeModules(target);
+  phase4Files += removed.files;
+  phase4Bytes += removed.bytes;
+}
+
+for (const subdir of ["dist-runtime", "extensions"]) {
+  const target = path.join(vendorDir, subdir);
+  if (!fs.existsSync(target)) continue;
+  const stripped = stripNonRuntimeFiles(target, 0);
+  phase4Files += stripped.files;
+  phase4Bytes += stripped.bytes;
+}
+
+const controlUiDir = path.join(vendorDir, "dist", "control-ui");
+if (fs.existsSync(controlUiDir)) {
+  const size = dirSize(controlUiDir);
+  const count = fileCount(controlUiDir);
+  fs.rmSync(controlUiDir, { recursive: true, force: true });
+  phase4Bytes += size;
+  phase4Files += count;
+  console.log(`  removed dist/control-ui/ (${(size / 1024 / 1024).toFixed(1)}MB, ${count} files)`);
+}
+
+phase4Files += removeSymlinkMarkerDocs(vendorDir);
+const orphaned = removeOrphanedDistRuntimeWrappers();
+phase4Files += orphaned.files;
+phase4Bytes += orphaned.bytes;
+
+console.log(
+  `  stripped ${phase4Files} files ` +
+    `(${(phase4Bytes / 1024 / 1024).toFixed(0)}MB) from dist-runtime/ and extensions/`,
+);
 
 makeDistVisibleToElectronBuilder();
 copyExtensionManifestsIntoDist();
