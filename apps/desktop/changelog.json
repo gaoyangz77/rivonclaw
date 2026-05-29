@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.19",
+    "date": "2026-05-29",
+    "en": [
+      "Refresh signed desktop release metadata for end-to-end electron-updater validation on macOS and Windows",
+      "Keep the packaged OpenClaw runtime contract checks in CI so update artifacts include required workspace templates",
+      "Use this staging build to confirm signed installer updates complete cleanly across supported desktop platforms"
+    ],
+    "zh": [
+      "刷新已签名桌面端发布元数据，用于在 macOS 与 Windows 上端到端验证 electron-updater",
+      "继续在 CI 中校验打包后的 OpenClaw runtime 契约，确保更新产物包含必需的工作区模板",
+      "使用这次 staging 构建确认签名安装包更新能在支持的桌面平台上顺利完成"
+    ]
+  },
+  {
     "version": "1.8.18",
     "date": "2026-05-28",
     "en": [
