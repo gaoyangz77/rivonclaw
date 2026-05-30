@@ -306,17 +306,17 @@ jobs:
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           # Must have archive
-          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.tar" || { echo "FAIL: archive missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
-          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar.gz"
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
@@ -472,17 +472,17 @@ jobs:
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           # Must have archive
-          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.tar" || { echo "FAIL: archive missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
-          tar -tzf "$VENDOR/vendor-runtime.tar.gz" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
-          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar.gz"
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
