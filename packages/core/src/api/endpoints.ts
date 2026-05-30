@@ -21,13 +21,57 @@ export function isStagingDevMode(): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// First-party domain routing
+// ---------------------------------------------------------------------------
+
+export type FirstPartyDomainRoute = "global" | "cn-relay";
+
+let _firstPartyDomainRoute: FirstPartyDomainRoute | undefined;
+
+function routeFromEnv(): FirstPartyDomainRoute | undefined {
+	const globalRoute = (globalThis as { __RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE__?: unknown })
+		.__RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE__;
+	if (globalRoute === "global" || globalRoute === "cn-relay") return globalRoute;
+
+	if (typeof process === "undefined") return undefined;
+	const raw = process.env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE?.trim().toLowerCase();
+	if (raw === "global" || raw === "cn-relay") return raw;
+	if (process.env.RIVONCLAW_CN_RELAY === "1") return "cn-relay";
+	return undefined;
+}
+
+export function setFirstPartyDomainRoute(route: FirstPartyDomainRoute): void {
+	_firstPartyDomainRoute = route;
+}
+
+export function getFirstPartyDomainRoute(): FirstPartyDomainRoute {
+	return _firstPartyDomainRoute ?? routeFromEnv() ?? "global";
+}
+
+export function resetFirstPartyDomainRouteForTests(): void {
+	_firstPartyDomainRoute = undefined;
+	_apiBaseUrlOverride = undefined;
+	_stagingOverride = undefined;
+	delete (globalThis as { __RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE__?: unknown })
+		.__RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE__;
+}
+
+function useCnRelay(): boolean {
+	return getFirstPartyDomainRoute() === "cn-relay";
+}
+
+function firstPartyDomain(globalDomain: string, cnRelayDomain: string): string {
+	return useCnRelay() ? cnRelayDomain : globalDomain;
+}
+
+// ---------------------------------------------------------------------------
 // API base URL
 // ---------------------------------------------------------------------------
 
 let _apiBaseUrlOverride: string | undefined;
 
 /** Override the API base URL globally (used by tests and Panel init). */
-export function setApiBaseUrlOverride(url: string): void {
+export function setApiBaseUrlOverride(url: string | undefined): void {
 	_apiBaseUrlOverride = url;
 }
 
@@ -35,10 +79,10 @@ export function setApiBaseUrlOverride(url: string): void {
 export function getApiBaseUrl(lang: string): string {
 	void lang;
 	if (_apiBaseUrlOverride) return _apiBaseUrlOverride;
-	if (isStagingDevMode()) return `https://${DEFAULTS.domains.apiStaging}`;
-	// Always use the .com API domain — the .cn domain (api.zhuazhuaai.cn)
-	// resolves to a US IP and gets SNI-blocked by GFW for Chinese users.
-	return `https://${DEFAULTS.domains.api}`;
+	if (isStagingDevMode()) {
+		return `https://${firstPartyDomain(DEFAULTS.domains.apiStaging, DEFAULTS.domains.apiStagingCn)}`;
+	}
+	return `https://${firstPartyDomain(DEFAULTS.domains.api, DEFAULTS.domains.apiCn)}`;
 }
 
 /** Return the GraphQL endpoint URL for the given language/locale. */
@@ -48,9 +92,8 @@ export function getGraphqlUrl(lang: string): string {
 
 /** Return the telemetry endpoint URL for the given locale. */
 export function getTelemetryUrl(locale: string): string {
-	// Always use .com — .cn telemetry domain has same SNI-blocking issue as API.
 	void locale;
-	return `https://${DEFAULTS.domains.telemetry}/`;
+	return `https://${firstPartyDomain(DEFAULTS.domains.telemetry, DEFAULTS.domains.telemetryCn)}/`;
 }
 
 /**
@@ -61,7 +104,7 @@ export function getTelemetryUrl(locale: string): string {
  */
 export function getCsTelemetryUrl(locale: string): string {
 	void locale;
-	return `https://${DEFAULTS.domains.telemetry}/v1/cs-events`;
+	return `https://${firstPartyDomain(DEFAULTS.domains.telemetry, DEFAULTS.domains.telemetryCn)}/v1/cs-events`;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +118,7 @@ export function getCsTelemetryUrl(locale: string): string {
 export function getCsRelayWsUrl(): string {
 	const envOverride = typeof process !== "undefined" ? process.env.CS_RELAY_URL : undefined;
 	if (envOverride) return envOverride;
-	return `wss://${DEFAULTS.domains.csRelay}/ws`;
+	return `wss://${firstPartyDomain(DEFAULTS.domains.csRelay, DEFAULTS.domains.csRelayCn)}/ws`;
 }
 
 /**
@@ -96,7 +139,7 @@ export function getCsRelayHttpUrl(): string {
 			.replace(/\/+$/, "");
 	}
 
-	return `https://${DEFAULTS.domains.csRelay}`;
+	return `https://${firstPartyDomain(DEFAULTS.domains.csRelay, DEFAULTS.domains.csRelayCn)}`;
 }
 
 /** Telegram Bot API root used by the RivonClaw support/debug proxy. */
@@ -117,11 +160,16 @@ export function getReleaseFeedUrl(locale: string): string {
 	const explicitOverride = typeof process !== "undefined" ? process.env.UPDATE_FEED_URL : undefined;
 	if (explicitOverride) return explicitOverride.replace(/\/+$/, "");
 	const useStaging = typeof process !== "undefined" && process.env.UPDATE_FROM_STAGING === "1";
-	if (useStaging) return `https://${DEFAULTS.domains.staging}/releases`;
+	if (useStaging) return `https://${firstPartyDomain(DEFAULTS.domains.staging, DEFAULTS.domains.stagingCn)}/releases`;
 	// Auto-updater uses a dedicated feed domain so update traffic can bypass the
 	// website CDN and hit a source-origin path that fully supports differential
 	// download range requests.
-	return `https://${DEFAULTS.domains.updater}/releases`;
+	return `https://${firstPartyDomain(DEFAULTS.domains.updater, DEFAULTS.domains.webCn)}/releases`;
+}
+
+/** Return the object-storage base URL used for first-party media assets. */
+export function getObjectStorageBaseUrl(): string {
+	return `https://${firstPartyDomain(DEFAULTS.domains.objectStorage, DEFAULTS.domains.objectStorageCn)}`;
 }
 
 // ---------------------------------------------------------------------------

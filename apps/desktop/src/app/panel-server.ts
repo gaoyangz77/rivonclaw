@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, resolve, normalize } from "node:path";
 import { getSnapshot } from "mobx-state-tree";
-import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl } from "@rivonclaw/core";
+import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl, getFirstPartyDomainRoute } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -368,7 +368,12 @@ function serveStatic(
   const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
 
   try {
-    const content = readFileSync(filePath);
+    let content = readFileSync(filePath);
+    if (ext === ".html") {
+      const route = JSON.stringify(getFirstPartyDomainRoute());
+      const bootstrap = `<script>globalThis.__RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE__=${route};</script>`;
+      content = Buffer.from(content.toString("utf-8").replace("</head>", `${bootstrap}</head>`), "utf-8");
+    }
     res.writeHead(200, { "Content-Type": contentType });
     res.end(content);
   } catch {
