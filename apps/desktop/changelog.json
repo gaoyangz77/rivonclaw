@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.20",
+    "date": "2026-05-29",
+    "en": [
+      "Improve first-party domain routing so desktop clients test the real RivonClaw API path before switching to the China relay",
+      "Harden proxy-aware network handling with better redirect, loopback, and first-party domain coverage",
+      "Keep release and update traffic on the correct global or relay endpoint based on runtime connectivity"
+    ],
+    "zh": [
+      "优化首方域名路由，桌面端会先验证真实 RivonClaw API 路径再切换到中国 relay",
+      "加固代理网络处理，补强重定向、本地回环地址和首方域名覆盖",
+      "根据运行时连通性保持发布与更新流量走正确的全球或 relay 端点"
+    ]
+  },
+  {
     "version": "1.8.19",
     "date": "2026-05-29",
     "en": [

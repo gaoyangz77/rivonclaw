@@ -8,7 +8,7 @@ import { useToast } from "../../components/Toast.js";
 import { CheckIcon, CopyIcon, InfoIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { MarkdownMessage } from "../chat/ChatMessage.js";
+import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import type {
   ConversationAiFilter,
   ConversationEscalationFilter,
