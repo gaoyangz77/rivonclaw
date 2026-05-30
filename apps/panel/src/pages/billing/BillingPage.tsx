@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { AccountBillingSection } from "../account/components/AccountBillingSection.js";
+import { AccountBillingSection } from "../../components/billing/AccountBillingSection.js";
 
 export const BillingPage = observer(function BillingPage() {
   const { t } = useTranslation();

@@ -11,10 +11,10 @@ import type {
   Shop,
   ShopBillingStatus,
 } from "@rivonclaw/core/models";
-import { useEntityStore } from "../../../store/EntityStoreProvider.js";
-import { ShopServiceCheckoutModal } from "../../../components/billing/ShopServiceCheckoutModal.js";
-import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
-import { Modal } from "../../../components/modals/Modal.js";
+import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
+import { ConfirmDialog } from "../modals/ConfirmDialog.js";
+import { Modal } from "../modals/Modal.js";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
@@ -27,7 +27,7 @@ import {
   upgradeableAccountPlans,
   type CheckoutProvider,
   usagePercentLabel,
-} from "../../../components/billing/billing-labels.js";
+} from "./billing-labels.js";
 
 interface AccountBillingSectionProps {
   billingOverview: BillingOverview | null;
