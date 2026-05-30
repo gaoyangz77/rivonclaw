@@ -120,6 +120,13 @@ exports.default = async function copyVendorDeps(context) {
     filter: (src) => {
       const basename = path.basename(src);
 
+      // Skip VCS metadata. Nested repos can contain read-only .git/objects files,
+      // which break macOS ShipIt quarantine cleanup and add useless installer weight.
+      if (basename === ".git") {
+        skippedCount++;
+        return false;
+      }
+
       // Skip ALL .bin directories at any depth (CLI convenience links, not needed at runtime)
       if (basename === ".bin") {
         skippedCount++;
