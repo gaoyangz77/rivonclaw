@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  getCnRelaySystemProxyBypassDomains,
+  getCnRelayUrlForGlobalFirstPartyUrl,
   getApiBaseUrl,
   getCsRelayHttpUrl,
   getCsRelayWsUrl,
@@ -8,6 +10,7 @@ import {
   getObjectStorageBaseUrl,
   getReleaseFeedUrl,
   getTelemetryUrl,
+  routeFirstPartyUrl,
   resetFirstPartyDomainRouteForTests,
   setFirstPartyDomainRoute,
   setStagingDevMode,
@@ -91,5 +94,33 @@ describe("first-party domain routing", () => {
     expect(getReleaseFeedUrl("zh")).toBe("https://origin.example.com/releases");
     expect(getCsRelayWsUrl()).toBe("wss://relay.example.test/ws");
     expect(getCsRelayHttpUrl()).toBe("https://relay-http.example.test");
+  });
+
+  it("rewrites first-party .com URLs to the matching CN relay URL", () => {
+    expect(getCnRelayUrlForGlobalFirstPartyUrl("https://api.rivonclaw.com/graphql?x=1")).toBe(
+      "https://api.zhuazhuaai.cn/graphql?x=1",
+    );
+    expect(getCnRelayUrlForGlobalFirstPartyUrl("wss://relay.rivonclaw.com/ws")).toBe(
+      "wss://relay.zhuazhuaai.cn/ws",
+    );
+    expect(getCnRelayUrlForGlobalFirstPartyUrl("https://example.com/path")).toBeNull();
+  });
+
+  it("routes arbitrary first-party URLs when the CN relay route is active", () => {
+    expect(routeFirstPartyUrl("https://api.rivonclaw.com/graphql")).toBe("https://api.rivonclaw.com/graphql");
+
+    setFirstPartyDomainRoute("cn-relay");
+
+    expect(routeFirstPartyUrl("https://api.rivonclaw.com/graphql")).toBe("https://api.zhuazhuaai.cn/graphql");
+    expect(routeFirstPartyUrl("https://example.com/path")).toBe("https://example.com/path");
+  });
+
+  it("lists CN relay domains that should bypass a stale system proxy", () => {
+    expect(getCnRelaySystemProxyBypassDomains()).toEqual(expect.arrayContaining([
+      "api.zhuazhuaai.cn",
+      "api-stg.zhuazhuaai.cn",
+      "relay.zhuazhuaai.cn",
+      "www.zhuazhuaai.cn",
+    ]));
   });
 });

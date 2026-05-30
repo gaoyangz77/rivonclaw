@@ -130,6 +130,7 @@ export { decodeJwtPayload } from "./utils/jwt-utils.js";
 
 export {
   getApiBaseUrl, getGraphqlUrl, getTelemetryUrl, getCsTelemetryUrl, setApiBaseUrlOverride,
+  getCnRelayUrlForGlobalFirstPartyUrl, routeFirstPartyUrl, getCnRelaySystemProxyBypassDomains,
   getReleaseFeedUrl, getObjectStorageBaseUrl,
   getTelegramSendUrl, getFeishuHost, getFeishuTokenUrl, getFeishuMessageUrl, getLinePushUrl,
   CHANNEL_NO_PROXY_DOMAINS,

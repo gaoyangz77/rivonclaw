@@ -1,5 +1,11 @@
 import { createLogger } from "@rivonclaw/logger";
-import { DEFAULTS } from "@rivonclaw/core";
+import {
+  DEFAULTS,
+  getCnRelayUrlForGlobalFirstPartyUrl,
+  getFirstPartyDomainRoute,
+  routeFirstPartyUrl,
+  setFirstPartyDomainRoute,
+} from "@rivonclaw/core";
 import WebSocket from "ws";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
@@ -7,6 +13,10 @@ const log = createLogger("proxy-network");
 
 const MAX_RETRIES = DEFAULTS.proxyNetwork.maxRetries;
 const RETRY_BASE_DELAY_MS = DEFAULTS.proxyNetwork.retryBaseDelayMs;
+
+interface FetchOptions {
+  firstPartyFailover?: boolean;
+}
 
 /**
  * Centralized network layer that routes all outbound connections through
@@ -29,13 +39,15 @@ export class ProxyAwareNetwork {
   }
 
   /** Fetch that routes through the proxy-router when available, with retry on network errors. */
-  async fetch(url: string | URL, init?: RequestInit): Promise<Response> {
-    const sanitizedUrl = this.sanitizeUrl(url);
+  async fetch(url: string | URL, init?: RequestInit, options?: FetchOptions): Promise<Response> {
+    const firstPartyFailover = options?.firstPartyFailover ?? true;
+    const routedUrl = firstPartyFailover ? routeFirstPartyUrl(url) : url;
+    const sanitizedUrl = this.sanitizeUrl(routedUrl);
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        return await this.doFetch(url, init);
+        return await this.doFetch(routedUrl, init);
       } catch (err) {
         lastError = err;
 
@@ -56,6 +68,17 @@ export class ProxyAwareNetwork {
             `Fetch attempt ${attempt}/${MAX_RETRIES} failed for ${sanitizedUrl}: ${err instanceof Error ? err.message : String(err)} — all retries exhausted`,
           );
         }
+      }
+    }
+
+    if (firstPartyFailover && getFirstPartyDomainRoute() === "global" && !this.isAbortError(lastError, init?.signal)) {
+      const cnUrl = getCnRelayUrlForGlobalFirstPartyUrl(url);
+      if (cnUrl) {
+        setFirstPartyDomainRoute("cn-relay");
+        log.warn(
+          `First-party request to ${this.sanitizeUrl(url)} failed; switching first-party domain route to cn-relay and retrying ${this.sanitizeUrl(cnUrl)}`,
+        );
+        return this.fetch(cnUrl, init, { firstPartyFailover: true });
       }
     }
 
@@ -99,11 +122,12 @@ export class ProxyAwareNetwork {
    * Returns a standard `ws` WebSocket instance.
    */
   createWebSocket(url: string, protocols?: string | string[]): WebSocket {
+    const routedUrl = routeFirstPartyUrl(url).toString();
     if (this.proxyRouterPort) {
       const agent = new HttpsProxyAgent(`http://127.0.0.1:${this.proxyRouterPort}`);
-      return new WebSocket(url, protocols, { agent });
+      return new WebSocket(routedUrl, protocols, { agent });
     }
-    return new WebSocket(url, protocols);
+    return new WebSocket(routedUrl, protocols);
   }
 
   /**
@@ -118,7 +142,7 @@ export class ProxyAwareNetwork {
     return class ProxiedWebSocket extends WebSocket {
       constructor(url: string | URL, protocols?: string | string[], options?: WebSocket.ClientOptions) {
         const agent = new HttpsProxyAgent(`http://127.0.0.1:${port}`);
-        super(url, protocols, { ...options, agent });
+        super(routeFirstPartyUrl(url), protocols, { ...options, agent });
       }
     } as typeof WebSocket;
   }
