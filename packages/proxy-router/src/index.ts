@@ -1,7 +1,7 @@
 import { createServer, Socket, type Server as NetServer, type AddressInfo } from "node:net";
 import { readFileSync, existsSync, watch, type FSWatcher } from "node:fs";
 import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
-import { resolveProxyRouterPort } from "@rivonclaw/core";
+import { getCnRelaySystemProxyBypassDomains, resolveProxyRouterPort } from "@rivonclaw/core";
 import type { ProxyRouterConfig, ProxyRouterOptions } from "./types.js";
 
 const log = createQuietLogger("proxy-router", DEBUG_FLAGS.PROXY);
@@ -11,6 +11,12 @@ const CONNECT_TIMEOUT_MS = 10_000;
 
 /** Timeout for completing a proxy handshake after TCP connect (ms). */
 const HANDSHAKE_TIMEOUT_MS = 10_000;
+const SYSTEM_PROXY_BYPASS_DOMAINS = new Set(getCnRelaySystemProxyBypassDomains());
+
+function shouldBypassSystemProxy(host: string): boolean {
+  const normalized = host.toLowerCase();
+  return SYSTEM_PROXY_BYPASS_DOMAINS.has(normalized);
+}
 
 /**
  * Connect a socket with a timeout. Rejects if the connection is not
@@ -284,7 +290,7 @@ export class ProxyRouter {
    */
   private async connectToHost(host: string, port: number): Promise<Socket> {
     const systemProxy = this.config?.systemProxy;
-    if (!systemProxy || systemProxy === "(none)") {
+    if (!systemProxy || systemProxy === "(none)" || shouldBypassSystemProxy(host)) {
       log.debug(`connectToHost ${host}:${port} → direct (no system proxy)`);
       const socket = new Socket();
       await connectWithTimeout(socket, port, host, CONNECT_TIMEOUT_MS);

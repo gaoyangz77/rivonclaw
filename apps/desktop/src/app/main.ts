@@ -337,7 +337,9 @@ app.whenReady().then(async () => {
   proxyNetwork.setProxyRouterPort(actualProxyRouterPort);
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
 
-  await detectAndApplyFirstPartyDomainRoute((url, init) => proxyNetwork.fetch(url, init));
+  await detectAndApplyFirstPartyDomainRoute((url, init) => (
+    proxyNetwork.fetch(url, init, { firstPartyFailover: false })
+  ));
 
   // Initialize telemetry after proxy-router and domain routing are ready, so
   // telemetry uses the same network path and first-party domain route as API.

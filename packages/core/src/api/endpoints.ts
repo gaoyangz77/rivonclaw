@@ -64,6 +64,38 @@ function firstPartyDomain(globalDomain: string, cnRelayDomain: string): string {
 	return useCnRelay() ? cnRelayDomain : globalDomain;
 }
 
+const FIRST_PARTY_CN_HOST_BY_GLOBAL_HOST: Record<string, string> = {
+	[DEFAULTS.domains.api]: DEFAULTS.domains.apiCn,
+	[DEFAULTS.domains.apiStaging]: DEFAULTS.domains.apiStagingCn,
+	[DEFAULTS.domains.web]: DEFAULTS.domains.webCn,
+	[DEFAULTS.domains.updater]: DEFAULTS.domains.webCn,
+	[DEFAULTS.domains.staging]: DEFAULTS.domains.stagingCn,
+	[DEFAULTS.domains.telemetry]: DEFAULTS.domains.telemetryCn,
+	[DEFAULTS.domains.csRelay]: DEFAULTS.domains.csRelayCn,
+	[DEFAULTS.domains.objectStorage]: DEFAULTS.domains.objectStorageCn,
+};
+
+export function getCnRelayUrlForGlobalFirstPartyUrl(url: string | URL): string | null {
+	try {
+		const parsed = new URL(url.toString());
+		const cnHost = FIRST_PARTY_CN_HOST_BY_GLOBAL_HOST[parsed.hostname];
+		if (!cnHost) return null;
+		parsed.hostname = cnHost;
+		return parsed.toString();
+	} catch {
+		return null;
+	}
+}
+
+export function routeFirstPartyUrl(url: string | URL): string | URL {
+	if (!useCnRelay()) return url;
+	return getCnRelayUrlForGlobalFirstPartyUrl(url) ?? url;
+}
+
+export function getCnRelaySystemProxyBypassDomains(): string[] {
+	return Array.from(new Set(Object.values(FIRST_PARTY_CN_HOST_BY_GLOBAL_HOST)));
+}
+
 // ---------------------------------------------------------------------------
 // API base URL
 // ---------------------------------------------------------------------------
