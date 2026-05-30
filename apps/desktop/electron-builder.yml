@@ -34,7 +34,7 @@ extraResources:
     filter:
       - "openclaw.mjs"
       - "package.json"
-      - "vendor-runtime.tar.gz"
+      - "vendor-runtime.tar"
       - "vendor-runtime-manifest.json"
       - "docs/reference/templates/**"
       - "dist/**"
@@ -111,7 +111,7 @@ mac:
   # Skip signing files that can't be signed (vendor binaries with
   # unsupported formats, git objects, etc.)
   # Note: vendor/openclaw/node_modules is no longer in the bundle — macOS ships
-  # the vendor runtime as a single tar.gz archive (extracted on first launch).
+  # the vendor runtime as a single tar archive (extracted on first launch).
   signIgnore:
     - "extensions-merchant"
   notarize: false

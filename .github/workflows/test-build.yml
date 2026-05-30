@@ -83,7 +83,7 @@ jobs:
         run: |
           APP=$(find apps/desktop/release -name "*.app" -maxdepth 3 | head -1)
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
-          test -f "$VENDOR/vendor-runtime.tar.gz" || { echo "FAIL: archive missing"; exit 1; }
+          test -f "$VENDOR/vendor-runtime.tar" || { echo "FAIL: archive missing"; exit 1; }
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"

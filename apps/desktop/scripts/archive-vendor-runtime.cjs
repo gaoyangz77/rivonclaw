@@ -1,5 +1,5 @@
 // @ts-check
-// Build-time script: creates a tar.gz archive of vendor/openclaw for macOS
+// Build-time script: creates a tar archive of vendor/openclaw for macOS
 // distribution. On macOS (or when ARCHIVE_VENDOR_RUNTIME=1), this replaces the
 // 33k+ exploded files with a single archive that is extracted on first launch.
 //
@@ -21,8 +21,9 @@ if (!isMacOS && !forceArchive) {
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const vendorDir = path.resolve(repoRoot, "vendor", "openclaw");
-const archiveFile = "vendor-runtime.tar.gz";
+const archiveFile = "vendor-runtime.tar";
 const archivePath = path.join(vendorDir, archiveFile);
+const legacyGzipArchivePath = path.join(vendorDir, "vendor-runtime.tar.gz");
 const manifestPath = path.join(vendorDir, "vendor-runtime-manifest.json");
 
 if (!fs.existsSync(vendorDir)) {
@@ -65,7 +66,7 @@ for (const scriptName of ["prune-vendor-deps.cjs", "archive-vendor-runtime.cjs"]
 const version = hash.digest("hex").slice(0, 12);
 console.log(`[archive-vendor-runtime] Version key: ${version}`);
 
-// ─── Create tar.gz archive ───
+// ─── Create tar archive ───
 // Explicit include list: only runtime-required payload. This avoids shipping
 // .git (455MB), .github, CI configs, and other repo metadata.
 const RUNTIME_INCLUDES = [
@@ -182,7 +183,7 @@ function signMacOSRuntimeBinaries(machoFiles) {
     for (const file of machoFiles) {
       console.error(`[archive-vendor-runtime]   ${path.relative(vendorDir, file)}`);
     }
-    console.error("[archive-vendor-runtime] Prune these native runtime files instead of signing them inside vendor-runtime.tar.gz.");
+    console.error("[archive-vendor-runtime] Prune these native runtime files instead of signing them inside vendor-runtime.tar.");
     process.exit(1);
   }
 
@@ -262,8 +263,11 @@ const includeArgs = RUNTIME_INCLUDES
 console.log(`[archive-vendor-runtime] Creating archive at ${archivePath}...`);
 const startMs = Date.now();
 
+fs.rmSync(archivePath, { force: true });
+fs.rmSync(legacyGzipArchivePath, { force: true });
+
 execSync(
-  `tar -czf ${shellQuote(archivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`,
+  `tar -cf ${shellQuote(archivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`,
   { stdio: "inherit", timeout: 300_000 },
 );
 
@@ -284,7 +288,7 @@ console.log(`[archive-vendor-runtime] Archive size: ${archiveSizeMB}MB`);
 
 // Verify entry point exists in archive (use grep to avoid buffering the full listing)
 try {
-  execSync(`tar -tzf ${shellQuote(archivePath)} | grep -q "openclaw\\.mjs"`, {
+  execSync(`tar -tf ${shellQuote(archivePath)} | grep -q "openclaw\\.mjs"`, {
     timeout: 60_000,
   });
 } catch (err) {
@@ -300,7 +304,7 @@ for (const requiredPath of [
   "docs/reference/templates/TOOLS.md",
 ]) {
   try {
-    execSync(`tar -tzf ${shellQuote(archivePath)} | grep -q ${shellQuote(`^${requiredPath}$`)}`, {
+    execSync(`tar -tf ${shellQuote(archivePath)} | grep -q ${shellQuote(`^${requiredPath}$`)}`, {
       timeout: 60_000,
     });
   } catch {

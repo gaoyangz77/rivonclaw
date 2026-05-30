@@ -44,7 +44,7 @@ function usage() {
     [
       "Usage:",
       "  node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor <vendor/openclaw>",
-      "  node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive <vendor-runtime.tar.gz>",
+      "  node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive <vendor-runtime.tar>",
       "",
       "Options:",
       "  --skip-prune-checks  Do not fail when known-pruned packages are present",
@@ -109,7 +109,8 @@ function extractArchive(archivePath) {
   }
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-vendor-runtime-"));
-  execFileSync("tar", ["-xzf", archivePath, "-C", tempDir], { stdio: "inherit" });
+  const tarFlags = archivePath.endsWith(".gz") ? "-xzf" : "-xf";
+  execFileSync("tar", [tarFlags, archivePath, "-C", tempDir], { stdio: "inherit" });
   return tempDir;
 }
 

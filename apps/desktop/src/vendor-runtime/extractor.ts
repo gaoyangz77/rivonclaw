@@ -1,7 +1,7 @@
 /**
  * macOS vendor runtime extractor.
  *
- * On macOS, the vendor runtime ships as a single tar.gz archive inside the .app
+ * On macOS, the vendor runtime ships as a single tar archive inside the .app
  * bundle to avoid EMFILE errors during code signing (33k+ exploded files).
  * This module extracts the archive to a user-data directory on first launch and
  * returns the extracted path for use as vendorDir.
@@ -52,7 +52,7 @@ function missingRuntimeFiles(runtimeDir: string): string[] {
 /**
  * Ensures the vendor runtime is extracted and ready for use.
  *
- * @param archiveDir - Path to the directory containing vendor-runtime.tar.gz
+ * @param archiveDir - Path to the directory containing vendor-runtime.tar
  *   and vendor-runtime-manifest.json (typically Contents/Resources/vendor/openclaw/).
  * @returns Absolute path to the extracted vendor runtime directory.
  */
@@ -108,7 +108,8 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   try {
     mkdirSync(tempDir, { recursive: true });
 
-    execSync(`tar -xzf "${archivePath}" -C "${tempDir}"`, {
+    const tarFlags = manifest.archiveFile.endsWith(".gz") ? "-xzf" : "-xf";
+    execSync(`tar ${tarFlags} "${archivePath}" -C "${tempDir}"`, {
       timeout: 300_000,
     });
 

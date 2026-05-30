@@ -88,7 +88,8 @@ function ensureArchivedRuntime(archiveDir) {
   const tempDir = path.join(runtimeBaseDir, `.extracting-${manifest.version}-${process.pid}-${Date.now()}`);
   mkdirp(tempDir);
 
-  const result = spawnSync("tar", ["-xzf", archivePath, "-C", tempDir], {
+  const tarFlags = manifest.archiveFile.endsWith(".gz") ? "-xzf" : "-xf";
+  const result = spawnSync("tar", [tarFlags, archivePath, "-C", tempDir], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
