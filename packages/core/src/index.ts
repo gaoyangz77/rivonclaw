@@ -130,13 +130,15 @@ export { decodeJwtPayload } from "./utils/jwt-utils.js";
 
 export {
   getApiBaseUrl, getGraphqlUrl, getTelemetryUrl, getCsTelemetryUrl, setApiBaseUrlOverride,
-  getReleaseFeedUrl,
+  getReleaseFeedUrl, getObjectStorageBaseUrl,
   getTelegramSendUrl, getFeishuHost, getFeishuTokenUrl, getFeishuMessageUrl, getLinePushUrl,
   CHANNEL_NO_PROXY_DOMAINS,
   getAnthropicMessagesUrl,
   getOllamaBaseUrl, getOllamaOpenAiBaseUrl,
   getCsRelayWsUrl, getCsRelayHttpUrl, getTelegramDebugRelayApiRoot,
   isStagingDevMode, setStagingDevMode,
+  getFirstPartyDomainRoute, setFirstPartyDomainRoute, resetFirstPartyDomainRouteForTests,
+  type FirstPartyDomainRoute,
 } from "./api/endpoints.js";
 
 export {

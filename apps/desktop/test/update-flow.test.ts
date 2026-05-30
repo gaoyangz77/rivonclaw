@@ -5,7 +5,7 @@
  * - caller-side state management (manual check, startup check)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { setApiBaseUrlOverride } from "@rivonclaw/core";
+import { resetFirstPartyDomainRouteForTests, setApiBaseUrlOverride } from "@rivonclaw/core";
 import { queryCheckUpdate } from "../src/cloud/backend-subscription-client.js";
 import { getReleaseFeedUrl } from "../../../packages/core/src/api/endpoints.js";
 
@@ -21,6 +21,7 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 beforeEach(() => {
+  resetFirstPartyDomainRouteForTests();
   setApiBaseUrlOverride("http://test-backend");
   delete process.env.UPDATE_FEED_URL;
   delete process.env.UPDATE_FROM_STAGING;

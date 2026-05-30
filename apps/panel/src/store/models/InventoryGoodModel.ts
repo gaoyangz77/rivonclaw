@@ -1,4 +1,5 @@
 import { InventoryGoodModel as InventoryGoodModelBase } from "@rivonclaw/core/models";
+import { getObjectStorageBaseUrl } from "@rivonclaw/core";
 
 export function inventoryGoodImageUrl(imageUri?: string | null): string | null {
   if (!imageUri) return null;
@@ -7,7 +8,7 @@ export function inventoryGoodImageUrl(imageUri?: string | null): string | null {
   if (!match) return imageUri;
   const [, bucket, objectKey] = match;
   const encodedKey = objectKey.split("/").map(encodeURIComponent).join("/");
-  return `https://minio.rivonclaw.com/${encodeURIComponent(bucket)}/${encodedKey}`;
+  return `${getObjectStorageBaseUrl()}/${encodeURIComponent(bucket)}/${encodedKey}`;
 }
 
 export const InventoryGoodModel = InventoryGoodModelBase.views((self) => ({

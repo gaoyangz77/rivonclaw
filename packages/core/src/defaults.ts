@@ -140,10 +140,15 @@ export const DEFAULTS = {
     webCn: "www.zhuazhuaai.cn",
     updater: "www.rivonclaw.com",
     staging: "stg.rivonclaw.com",
+    stagingCn: "stg.zhuazhuaai.cn",
     apiStaging: "api-stg.rivonclaw.com",
+    apiStagingCn: "api-stg.zhuazhuaai.cn",
     telemetry: "t.rivonclaw.com",
     telemetryCn: "t.zhuazhuaai.cn",
     csRelay: "relay.rivonclaw.com",
+    csRelayCn: "relay.zhuazhuaai.cn",
+    objectStorage: "minio.rivonclaw.com",
+    objectStorageCn: "minio.zhuazhuaai.cn",
   },
 
   /** Third-party channel API hosts. */

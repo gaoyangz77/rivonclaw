@@ -80,6 +80,7 @@ import { setupAuth } from "./auth-runtime.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
+import { detectAndApplyFirstPartyDomainRoute } from "../infra/network/first-party-domain-route.js";
 
 const log = createLogger("desktop");
 
@@ -205,36 +206,10 @@ app.whenReady().then(async () => {
   const autoLaunchEnabled = storage.settings.get("auto_launch_enabled") === "true";
   applyAutoLaunch(autoLaunchEnabled);
 
-  // Initialize telemetry client and heartbeat timer
   const locale = normalizeAppLocale(app.getLocale());
-  const { client: telemetryClient, csClient: csTelemetryClient, heartbeatTimer } = initTelemetry(
-    storage, deviceId, locale, (url, init) => proxyNetwork.fetch(url, init),
-  );
-
-  // Bridge MST user identity → telemetry clients. The CS stream attributes
-  // every row by userId; identity changes must propagate to BOTH clients.
-  if (telemetryClient || csTelemetryClient) {
-    reaction(
-      () => rootStore.currentUser?.userId,
-      (userId) => {
-        if (userId) {
-          telemetryClient?.identify(userId);
-          csTelemetryClient?.identify(userId);
-          log.info(`telemetry identified userId=${userId}`);
-        } else {
-          telemetryClient?.reset();
-          csTelemetryClient?.reset();
-          log.info("telemetry reset (no currentUser.userId)");
-        }
-      },
-      { fireImmediately: true },
-    );
-  }
-
-  // Expose the CS telemetry emitter for the CS bridge + panel-server routes.
-  // Keeping it on a module-level ref (rather than threading through every
-  // function) mirrors `getStorageRef` / `getAuthSession` in this codebase.
-  setCsTelemetryClient(csTelemetryClient);
+  let telemetryClient: ReturnType<typeof initTelemetry>["client"] = null;
+  let csTelemetryClient: ReturnType<typeof initTelemetry>["csClient"] = null;
+  let heartbeatTimer: ReturnType<typeof initTelemetry>["heartbeatTimer"] = null;
 
   // Initialize auth session manager and backend subscription client
   const { authSession, backendSubscription } = await setupAuth({
@@ -361,6 +336,39 @@ app.whenReady().then(async () => {
   const actualProxyRouterPort = proxyRouter.getPort();
   proxyNetwork.setProxyRouterPort(actualProxyRouterPort);
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
+
+  await detectAndApplyFirstPartyDomainRoute((url, init) => proxyNetwork.fetch(url, init));
+
+  // Initialize telemetry after proxy-router and domain routing are ready, so
+  // telemetry uses the same network path and first-party domain route as API.
+  ({ client: telemetryClient, csClient: csTelemetryClient, heartbeatTimer } = initTelemetry(
+    storage, deviceId, locale, (url, init) => proxyNetwork.fetch(url, init),
+  ));
+
+  // Bridge MST user identity -> telemetry clients. The CS stream attributes
+  // every row by userId; identity changes must propagate to BOTH clients.
+  if (telemetryClient || csTelemetryClient) {
+    reaction(
+      () => rootStore.currentUser?.userId,
+      (userId) => {
+        if (userId) {
+          telemetryClient?.identify(userId);
+          csTelemetryClient?.identify(userId);
+          log.info(`telemetry identified userId=${userId}`);
+        } else {
+          telemetryClient?.reset();
+          csTelemetryClient?.reset();
+          log.info("telemetry reset (no currentUser.userId)");
+        }
+      },
+      { fireImmediately: true },
+    );
+  }
+
+  // Expose the CS telemetry emitter for the CS bridge + panel-server routes.
+  // Keeping it on a module-level ref (rather than threading through every
+  // function) mirrors `getStorageRef` / `getAuthSession` in this codebase.
+  setCsTelemetryClient(csTelemetryClient);
 
   // Public subscriptions may connect immediately; authenticated subscriptions
   // are enabled only after auth bootstrap validates or refreshes the token.
