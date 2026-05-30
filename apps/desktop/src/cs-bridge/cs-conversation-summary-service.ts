@@ -3,6 +3,7 @@ import { createLogger } from "@rivonclaw/logger";
 import { GQL } from "@rivonclaw/core";
 import type { AuthSessionManager } from "../auth/session.js";
 import { openClawConnector } from "../openclaw/index.js";
+import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { GET_CONVERSATION_MESSAGES_QUERY } from "../cloud/cs-queries.js";
 import {
   readConversationSummary,
@@ -182,7 +183,7 @@ export async function generateConversationSummary(input: {
 
   const sessionKey = `agent:main:cs-summary:${input.shopId}:${input.conversationId}:${randomUUID()}`;
   const prompt = buildSummaryPrompt({ ...input, messages });
-  const response = await openClawConnector.request<{ runId?: string }>("agent", {
+  const response = await requestAgent<{ runId?: string }>({
     sessionKey,
     message: prompt,
     extraSystemPrompt: "You are a one-shot customer-service summarizer. Do not call tools. Return only the operator-facing summary.",

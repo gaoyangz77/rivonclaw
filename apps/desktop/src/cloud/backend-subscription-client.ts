@@ -847,9 +847,9 @@ export class BackendSubscriptionClient {
           return;
         }
 
-        // Prefer the normal lifecycle method: authSession.refresh() usually
-        // emits userChanged, which may already have reconnected us. This call is
-        // idempotent when that happened, and performs the reconnect when it did not.
+        // Reconnect with the refreshed token. Auth refresh is intentionally not
+        // routed through the full desktop auth lifecycle because it should be a
+        // transparent credential maintenance path.
         this.enableAuthenticatedSubscriptions();
       } catch (err) {
         this.authRecoveryFailures += 1;

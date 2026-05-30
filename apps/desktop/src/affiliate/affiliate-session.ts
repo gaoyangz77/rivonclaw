@@ -9,6 +9,7 @@ import {
 } from "@rivonclaw/core";
 import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
 import { openClawConnector } from "../openclaw/index.js";
+import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
@@ -324,7 +325,7 @@ export class AffiliateSession {
     if (params.abortActive !== false) this.abortActiveRun();
     await this.setup();
     this.logDispatchPromptContext(params);
-    const response = await openClawConnector.request<AffiliateDispatchResult>("agent", {
+    const response = await requestAgent<AffiliateDispatchResult>({
       sessionKey: this.scopeKey,
       message: params.message,
       extraSystemPrompt: this.extraSystemPrompt,

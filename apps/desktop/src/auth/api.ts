@@ -19,12 +19,12 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
-function runAuthChangeInBackground(ctx: ApiContext): void {
+function runAuthChangeInBackground(ctx: ApiContext, action: string): void {
   const onAuthChange = ctx.onAuthChange;
   if (!onAuthChange) return;
 
   try {
-    void Promise.resolve(onAuthChange()).catch((err: unknown) => {
+    void Promise.resolve(onAuthChange(action)).catch((err: unknown) => {
       log.warn("Background auth change failed:", err);
     });
   } catch (err) {
@@ -63,7 +63,7 @@ const login: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) 
   try {
     await ctx.authSession.loginWithCredentials(body);
     sendJson(res, 200, { ok: true });
-    runAuthChangeInBackground(ctx);
+    runAuthChangeInBackground(ctx, "login");
   } catch (err) {
     sendJson(res, 400, { error: err instanceof Error ? err.message : "Login failed" });
   }
@@ -81,7 +81,7 @@ const register: EndpointHandler = async (req, res, _url, _params, ctx: ApiContex
   }
   try {
     await ctx.authSession.registerWithCredentials(body);
-    await ctx.onAuthChange?.();
+    await ctx.onAuthChange?.("register");
     sendJson(res, 200, { ok: true });
   } catch (err) {
     sendJson(res, 400, { error: err instanceof Error ? err.message : "Registration failed" });
@@ -130,7 +130,7 @@ const storeTokens: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
       ctx.authSession.setCachedUser(user);
     }
   }
-  await ctx.onAuthChange?.();
+  await ctx.onAuthChange?.("store-tokens");
   sendJson(res, 200, { ok: true });
 };
 
@@ -154,7 +154,7 @@ const logout: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
   }
   await ctx.authSession.logout();
   rootStore.clearUser();
-  await ctx.onAuthChange?.();
+  await ctx.onAuthChange?.("logout");
   sendJson(res, 200, { ok: true });
 };
 

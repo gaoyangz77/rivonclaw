@@ -25,6 +25,7 @@ import { ScopeType, GQL, type CSNewMessageFrame, normalizeWeixinAccountId } from
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
+import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
@@ -1702,7 +1703,7 @@ export class CustomerServiceSession {
         `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
         `messageChars=${params.message.length}`,
       );
-      const response = await openClawConnector.request<DispatchResult>("agent", {
+      const response = await requestAgent<DispatchResult>({
         sessionKey: this.dispatchKey,
         message: params.message,
         extraSystemPrompt,

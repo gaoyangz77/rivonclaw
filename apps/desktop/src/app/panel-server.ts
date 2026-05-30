@@ -103,7 +103,7 @@ export interface PanelServerOptions {
   onToolSelectionChange?: (effectiveToolIds: string[]) => void;
   onBrowserChange?: () => void;
   onAutoLaunchChange?: (enabled: boolean) => void;
-  onAuthChange?: () => Promise<void>;
+  onAuthChange?: (action?: string) => Promise<void>;
   onCloudLlmEntitlementAvailable?: () => Promise<void>;
   onChannelConfigured?: (channelId: string) => void;
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
