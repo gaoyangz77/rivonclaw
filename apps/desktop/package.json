@@ -6,7 +6,7 @@
   "main": "dist/main.cjs",
   "author": "RivonClaw",
   "homepage": "https://www.rivonclaw.com",
-  "description": "Desktop runtime manager for OpenClaw",
+  "description": "The AI Shop Manager for Sellers",
   "scripts": {
     "prebuild": "node ../../scripts/generate-plugin-ids.mjs",
     "build": "tsdown",
