@@ -1,8 +1,6 @@
-import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { AuthSessionManager } from "../auth/session.js";
 import { setAuthSession } from "../auth/session-ref.js";
-import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
 import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
@@ -10,7 +8,6 @@ import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-servic
 import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item-actuator.js";
 
 export interface SetupAuthDeps {
-  storage: Storage;
   secretStore: SecretStore;
   locale: string;
   deviceId: string;
@@ -29,27 +26,16 @@ export interface AuthRuntime {
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { storage, secretStore, locale, deviceId, proxyFetch, broadcastEvent } = deps;
+  const { secretStore, locale, deviceId, proxyFetch, broadcastEvent } = deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
   setAuthSession(authSession);
-  authSession.onUserChanged((user) => syncCloudProviderKey(user, storage, secretStore));
   await authSession.loadFromKeychain();
   // NOTE: validate() is deferred until after proxy router starts (caller's responsibility).
 
   // Initialize unified backend subscription client (single shared graphql-ws connection)
   const backendSubscription = new BackendSubscriptionClient(locale);
-
-  // Start/stop authenticated subscriptions on auth lifecycle changes. Public
-  // subscriptions are allowed to remain connected while signed out.
-  authSession.onUserChanged((user) => {
-    if (user) {
-      backendSubscription.enableAuthenticatedSubscriptions();
-    } else {
-      backendSubscription.disableAuthenticatedSubscriptions();
-    }
-  });
 
   // Subscribe to OAuth completion events
   backendSubscription.subscribeToOAuthComplete((payload) => {

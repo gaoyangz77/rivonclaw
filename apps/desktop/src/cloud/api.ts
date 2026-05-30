@@ -39,7 +39,7 @@ function isModuleEnrollmentOperation(opName: string | null): boolean {
 function runAuthChangeInBackground(ctx: ApiContext): void {
   if (!ctx.onAuthChange) return;
   try {
-    void Promise.resolve(ctx.onAuthChange()).catch((err: unknown) => {
+    void Promise.resolve(ctx.onAuthChange("module-enrollment")).catch((err: unknown) => {
       log.warn("Background auth change after module enrollment failed", err);
     });
   } catch (err) {
@@ -70,8 +70,12 @@ function runCloudLlmEntitlementSyncInBackground(ctx: ApiContext): void {
   }
 }
 
-export function __resetCloudGraphqlProxyForTests(): void {
+export function invalidateToolSpecsCache(): void {
   toolSpecsCache = null;
+}
+
+export function __resetCloudGraphqlProxyForTests(): void {
+  invalidateToolSpecsCache();
 }
 
 // ── POST /api/cloud/graphql ──

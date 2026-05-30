@@ -69,7 +69,7 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
       rpcWaitMs = Date.now() - rpcWaitStartedAt;
       // After gateway is ready, tool catalog init runs asynchronously.
       // Poll briefly for it to complete.
-      const deadline = Date.now() + 5_000;
+      const deadline = Date.now() + 8_000;
       const catalogWaitStartedAt = Date.now();
       while (!rootStore.toolCapability.initialized && Date.now() < deadline) {
         await new Promise(r => setTimeout(r, 200));

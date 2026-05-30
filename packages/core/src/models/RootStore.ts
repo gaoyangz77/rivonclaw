@@ -36,6 +36,13 @@ const AuthBootstrapStateModel = types.model("AuthBootstrapState", {
     types.enumeration("AuthBootstrapStatus", ["signed_out", "loading", "ready", "error"]),
     "signed_out",
   ),
+  phase: types.optional(
+    types.enumeration("AuthLifecyclePhase", ["settled", "transitioning"]),
+    "settled",
+  ),
+  action: types.maybeNull(types.string),
+  transitionId: types.optional(types.number, 0),
+  settledUserId: types.maybeNull(types.string),
   error: types.maybeNull(types.string),
 });
 

@@ -240,6 +240,23 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       (self as any).authBootstrap.error = error;
     },
 
+    beginAuthLifecycle(action: string): number {
+      const auth = (self as any).authBootstrap;
+      auth.transitionId += 1;
+      auth.phase = "transitioning";
+      auth.action = action;
+      auth.error = null;
+      return auth.transitionId;
+    },
+
+    finishAuthLifecycle(transitionId: number): void {
+      const auth = (self as any).authBootstrap;
+      if (auth.transitionId !== transitionId) return;
+      auth.phase = "settled";
+      auth.action = null;
+      auth.settledUserId = self.currentUser?.userId ?? null;
+    },
+
     clearCloudEntities() {
       self.currentUser = null;
       applySnapshot(self.entitledTools, []);

@@ -21,7 +21,7 @@ import {
 } from "@rivonclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, getTelegramDebugRelayApiRoot, type LLMProvider } from "@rivonclaw/core";
+import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, getFirstPartyDomainRoute, getTelegramDebugRelayApiRoot, type LLMProvider } from "@rivonclaw/core";
 import type { GQL } from "@rivonclaw/core";
 import { resolveRivonClawHome, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
@@ -58,6 +58,8 @@ import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
 import { stageMerchantExtensionsForCloudTools } from "../gateway/cloud-tools-extension-stage.js";
+import { configureAgentToolingReadiness, ensureAgentToolingReady, resetAgentToolingReadiness } from "../gateway/agent-tooling-readiness.js";
+import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
@@ -81,6 +83,7 @@ import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
 import { detectAndApplyFirstPartyDomainRoute } from "../infra/network/first-party-domain-route.js";
+import { invalidateToolSpecsCache } from "../cloud/api.js";
 
 const log = createLogger("desktop");
 
@@ -213,28 +216,24 @@ app.whenReady().then(async () => {
 
   // Initialize auth session manager and backend subscription client
   const { authSession, backendSubscription } = await setupAuth({
-    storage, secretStore, locale, deviceId,
+    secretStore, locale, deviceId,
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     broadcastEvent,
   });
   // NOTE: authSession.validate() is deferred until after proxy router starts (see below).
 
+  configureAgentToolingReadiness({
+    getRpc: () => openClawConnector.ensureRpcReady(),
+    isAuthenticated: () => Boolean(authSession.getAccessToken()),
+    initializeToolCapability: (catalogTools) => {
+      rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
+    },
+    logger: log,
+  });
+
   async function reinitializeToolCapabilityFromCatalog(): Promise<void> {
     if (!openClawConnector.isReady) return;
-    const catalog = await openClawConnector.request<{
-      groups: Array<{
-        tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>;
-      }>;
-    }>("tools.catalog", { includePlugins: true });
-
-    const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
-    for (const group of catalog.groups ?? []) {
-      for (const tool of group.tools ?? []) {
-        catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
-      }
-    }
-
-    rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
+    await ensureAgentToolingReady();
   }
 
   function getEntitledToolSpecDigest(): string {
@@ -247,6 +246,13 @@ app.whenReady().then(async () => {
         runProfiles: [...tool.runProfiles],
       })),
     );
+  }
+
+  function getAgentToolingDigest(): string {
+    return JSON.stringify({
+      userId: rootStore.currentUser?.userId ?? null,
+      toolSpecs: JSON.parse(getEntitledToolSpecDigest()),
+    });
   }
 
   // --- First-start OpenClaw import ---
@@ -378,15 +384,16 @@ app.whenReady().then(async () => {
     () => authSession.getAccessToken(),
     { refreshAuth: () => authSession.refresh().then(() => undefined) },
   );
-  bootstrapDesktopAuthState(authSession, rootStore)
-    .then(() => {
-      if (authSession.getAccessToken()) {
-        backendSubscription.enableAuthenticatedSubscriptions();
-      }
-    })
-    .catch((err) => {
+  const initialAuthBootstrapPromise = (async () => {
+    const transitionId = rootStore.beginAuthLifecycle("startup");
+    try {
+      await bootstrapDesktopAuthState(authSession, rootStore);
+    } catch (err) {
       log.warn("Failed to bootstrap desktop auth state:", err);
-    });
+    } finally {
+      rootStore.finishAuthLifecycle(transitionId);
+    }
+  })();
 
   // Gateway port: use env override if set (nonzero), otherwise ask OS for a free port.
   const envGatewayPort = resolveGatewayPort();
@@ -598,10 +605,24 @@ app.whenReady().then(async () => {
       });
   }
 
-  authSession.onUserChanged((user) => {
+  async function applyAuthLifecycleSideEffects(action: string): Promise<void> {
+    const authReady = rootStore.authBootstrap.status === "ready";
+    const user = authReady ? authSession.getCachedUser() : null;
+    if (authSession.getAccessToken() && user) {
+      backendSubscription.enableAuthenticatedSubscriptions();
+    } else {
+      backendSubscription.disableAuthenticatedSubscriptions();
+    }
+    await syncCloudProviderKey(user, storage, secretStore);
     queueTelegramDebugProxySync(user);
-  });
-  queueTelegramDebugProxySync(authSession.getCachedUser());
+    log.info(`Auth lifecycle settled: ${action} (userId=${user?.userId ?? "signed-out"})`);
+  }
+
+  initialAuthBootstrapPromise
+    .then(() => applyAuthLifecycleSideEffects("startup"))
+    .catch((err: unknown) => {
+      log.warn("Failed to apply startup auth lifecycle side effects:", err);
+    });
 
   // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
   // when tools change (e.g. after ingestGraphQLResponse).
@@ -1086,33 +1107,47 @@ app.whenReady().then(async () => {
         log.error("Failed to handle browser change:", err);
       });
     },
-    onAuthChange: () => {
+    onAuthChange: (action = "auth-change") => {
       return (async () => {
+        const transitionId = rootStore.beginAuthLifecycle(action);
         const previousToolSpecDigest = getEntitledToolSpecDigest();
-        await bootstrapDesktopAuthState(authSession, rootStore);
-        const nextToolSpecDigest = getEntitledToolSpecDigest();
-        if (previousToolSpecDigest !== nextToolSpecDigest) {
-          merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
-            sourceMerchantExtensionsDir: merchantExtensionsDir,
-            stateDir,
-            toolNames: rootStore.entitledTools.map((tool) => tool.name),
-            logger: log,
-          });
-        }
+        const previousAgentToolingDigest = getAgentToolingDigest();
         try {
-          await reinitializeToolCapabilityFromCatalog();
-          log.info("ToolCapability auth change: re-initialized");
-        } catch (e) {
-          log.warn("Failed to re-init ToolCapability on auth change:", e);
-        }
-        if (previousToolSpecDigest !== nextToolSpecDigest) {
-          try {
-            writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
-            await openClawConnector.applyConfigMutation(() => {}, "restart_process");
-            log.info("Gateway restarted after auth change updated toolSpecs");
-          } catch (e) {
-            log.warn("Failed to restart gateway after toolSpecs changed:", e);
+          invalidateToolSpecsCache();
+          resetAgentToolingReadiness(action);
+          stopCsBridge();
+          await bootstrapDesktopAuthState(authSession, rootStore);
+          const nextToolSpecDigest = getEntitledToolSpecDigest();
+          const nextAgentToolingDigest = getAgentToolingDigest();
+          const toolSpecsChanged = previousToolSpecDigest !== nextToolSpecDigest;
+          const agentToolingChanged = previousAgentToolingDigest !== nextAgentToolingDigest;
+          if (toolSpecsChanged) {
+            merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
+              sourceMerchantExtensionsDir: merchantExtensionsDir,
+              stateDir,
+              toolNames: rootStore.entitledTools.map((tool) => tool.name),
+              logger: log,
+            });
           }
+          if (agentToolingChanged) {
+            try {
+              writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
+              await openClawConnector.applyConfigMutation(() => {}, "restart_process");
+              log.info("Gateway restarted after auth change updated agent tooling");
+            } catch (e) {
+              log.warn("Failed to restart gateway after agent tooling changed:", e);
+            }
+          } else {
+            try {
+              await reinitializeToolCapabilityFromCatalog();
+              log.info("ToolCapability auth change: re-initialized");
+            } catch (e) {
+              log.warn("Failed to re-init ToolCapability on auth change:", e);
+            }
+          }
+          await applyAuthLifecycleSideEffects(action);
+        } finally {
+          rootStore.finishAuthLifecycle(transitionId);
         }
       })();
     },
@@ -1484,7 +1519,10 @@ app.whenReady().then(async () => {
    */
   function buildFullProxyEnv(): Record<string, string> {
     const env = buildProxyEnv(actualProxyRouterPort);
+    const firstPartyRoute = getFirstPartyDomainRoute();
     env.NODE_OPTIONS = gatewayNodeOptions;
+    env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE = firstPartyRoute;
+    env.RIVONCLAW_CN_RELAY = firstPartyRoute === "cn-relay" ? "1" : "0";
     return env;
   }
 
@@ -1547,6 +1585,7 @@ app.whenReady().then(async () => {
   // (initial connect + reconnects after restart).
   openClawConnector.onRpcConnected(() => {
     const rpc = openClawConnector.ensureRpcReady();
+    resetAgentToolingReadiness("gateway rpc connected");
 
     // 1. Start Mobile Sync engines for all active pairings (skip stale)
     const allPairings = storage.mobilePairings.getAllPairings();
@@ -1584,38 +1623,27 @@ app.whenReady().then(async () => {
     rpc.request("event_bridge_init", {})
       .catch((e: unknown) => log.debug("Event bridge init (may not be loaded):", e));
 
-    // 3. Initialize ToolCapability with gateway tool catalog + entitlements.
-    // After loading the catalog, fetch essential entity data (ToolSpecs,
-    // user, RunProfiles, Surfaces) so the capability resolver has complete
-    // data before the first agent dispatch — not dependent on Panel loading.
-    (async () => {
-      try {
-        const catalog = await rpc.request<{
-          groups: Array<{
-            tools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }>;
-          }>;
-        }>("tools.catalog", { includePlugins: true });
-
-        const catalogTools: Array<{ id: string; source: "core" | "plugin"; pluginId?: string }> = [];
-        for (const group of catalog.groups ?? []) {
-          for (const tool of group.tools ?? []) {
-            catalogTools.push({ id: tool.id, source: tool.source, pluginId: tool.pluginId });
-          }
-        }
-
-        rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
-      } catch (e) {
-        log.warn("Failed to initialize ToolCapability:", e);
-      }
+    // 3. Initialize gateway-dependent Desktop state. Agent-related business
+    // services go through the shared agent tooling readiness gate.
+    void (async () => {
+      await runGatewayStartupCoordinator({
+        rpc,
+        waitForCloudTools: Boolean(authSession.getAccessToken()),
+        logger: log,
+        ensureAgentToolingReady,
+        tasks: [
+          {
+            name: "client-tool-specs",
+            run: () => loadClientToolSpecs(rpc),
+          },
+          {
+            name: "cs-bridge",
+            requiresCloudTools: true,
+            run: () => tryStartCsBridge(deviceId ?? "unknown", locale),
+          },
+        ],
+      });
     })();
-
-    // 4. Load client tool specs from the rivonclaw-local-tools plugin via RPC
-    loadClientToolSpecs(rpc).catch((e: unknown) =>
-      log.warn("Failed to load client tool specs:", e),
-    );
-
-    // 5. Start CS Bridge if user has e-commerce module
-    tryStartCsBridge(deviceId ?? "unknown", locale);
 
   });
 
@@ -1623,6 +1651,7 @@ app.whenReady().then(async () => {
   // Stop CS bridge when RPC disconnects (network blip, gateway crash, etc.)
   // so it can be recreated on the next connect.
   openClawConnector.onRpcDisconnected(() => {
+    resetAgentToolingReadiness("gateway rpc disconnected");
     stopCsBridge();
   });
 

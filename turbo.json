@@ -13,7 +13,13 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["RIVONCLAW_STAGING", "VITE_API_BASE_URL"]
+      "passThroughEnv": [
+        "RIVONCLAW_STAGING",
+        "RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE",
+        "RIVONCLAW_CN_RELAY",
+        "RIVONCLAW_CONNECTIVITY_PROBE_URL",
+        "VITE_API_BASE_URL"
+      ]
     }
   }
 }

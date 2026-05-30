@@ -6,7 +6,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 /**
  * Sync the cloud LLM provider key into SQLite + secretStore.
  *
- * Called via onUserChanged listener whenever the cached user changes.
+ * Called after the app-level auth lifecycle has settled.
  * Delegates to the LLM Provider Manager's syncCloud action which encapsulates
  * the full transaction: SQLite + Keychain + syncActiveKey + MST state +
  * auth-profiles + sessions.patch + config write.

@@ -29,7 +29,13 @@ export class AuthSessionManager {
     private fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response>,
   ) {}
 
-  /** Register a listener that fires whenever the cached user changes. */
+  /**
+   * Low-level cached-user listener.
+   *
+   * Desktop business side effects should use the app-level auth lifecycle
+   * instead, so they run after bootstrap, ToolSpecs staging, and gateway
+   * restart/reinit have settled.
+   */
   onUserChanged(listener: UserChangedListener): void {
     this.userChangedListeners.push(listener);
   }

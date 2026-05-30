@@ -8,6 +8,7 @@ const {
   mockOpenClawConnector,
   mockRootStore,
   mockAuthSession,
+  mockEnsureAgentToolingReady,
 } = vi.hoisted(() => {
   const mockCsBridgeInstance = {
     start: vi.fn().mockResolvedValue(undefined),
@@ -32,12 +33,15 @@ const {
     onUserChanged: vi.fn(),
   };
 
+  const mockEnsureAgentToolingReady = vi.fn().mockResolvedValue(undefined);
+
   return {
     mockCsBridgeInstance,
     MockCustomerServiceBridge,
     mockOpenClawConnector,
     mockRootStore,
     mockAuthSession,
+    mockEnsureAgentToolingReady,
   };
 });
 
@@ -68,11 +72,20 @@ vi.mock("../../auth/session-ref.js", () => ({
   getAuthSession: () => mockAuthSession,
 }));
 
+vi.mock("../agent-tooling-readiness.js", () => ({
+  ensureAgentToolingReady: mockEnsureAgentToolingReady,
+}));
+
 // ─── Imports (after mocks) ───────────────────────────────────────────────────
 
 import { getCsBridge, tryStartCsBridge, stopCsBridge } from "../connection.js";
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
+
+const flushCsBridgeStart = async () => {
+  await Promise.resolve();
+  await Promise.resolve();
+};
 
 describe("connection.ts CS Bridge", () => {
   beforeEach(() => {
@@ -86,12 +99,14 @@ describe("connection.ts CS Bridge", () => {
     mockAuthSession.getCachedUser.mockReturnValue({
       enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
     });
+    mockEnsureAgentToolingReady.mockResolvedValue(undefined);
   });
 
   describe("stopCsBridge", () => {
-    it("stops and nulls the bridge when one exists", () => {
+    it("stops and nulls the bridge when one exists", async () => {
       // Create a bridge first
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
       expect(getCsBridge()).not.toBeNull();
 
       stopCsBridge();
@@ -107,8 +122,9 @@ describe("connection.ts CS Bridge", () => {
   });
 
   describe("tryStartCsBridge after stopCsBridge", () => {
-    it("can recreate the bridge after stop", () => {
+    it("can recreate the bridge after stop", async () => {
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
       expect(getCsBridge()).not.toBeNull();
 
       stopCsBridge();
@@ -117,6 +133,7 @@ describe("connection.ts CS Bridge", () => {
       // Should be able to create a new one
       MockCustomerServiceBridge.mockClear();
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
 
       expect(MockCustomerServiceBridge).toHaveBeenCalledTimes(1);
       expect(getCsBridge()).not.toBeNull();
@@ -124,39 +141,86 @@ describe("connection.ts CS Bridge", () => {
   });
 
   describe("tryStartCsBridge", () => {
-    it("does not create duplicate when bridge already exists", () => {
+    it("does not create duplicate when bridge already exists", async () => {
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
       const firstBridge = getCsBridge();
       expect(firstBridge).not.toBeNull();
 
       MockCustomerServiceBridge.mockClear();
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
 
       // Constructor should NOT have been called again
       expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
       expect(getCsBridge()).toBe(firstBridge);
     });
 
-    it("does not create bridge when RPC is not ready", () => {
+    it("does not subscribe to auth userChanged events", async () => {
+      tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
+
+      expect(mockAuthSession.onUserChanged).not.toHaveBeenCalled();
+    });
+
+    it("does not create bridge when RPC is not ready", async () => {
       mockOpenClawConnector.ensureRpcReady.mockImplementation(() => {
         throw new Error("not connected");
       });
 
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
 
       expect(getCsBridge()).toBeNull();
       expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
     });
 
-    it("does not create bridge when user lacks ecommerce module", () => {
+    it("does not create bridge when user lacks ecommerce module", async () => {
       mockAuthSession.getCachedUser.mockReturnValue({
         enrolledModules: ["OTHER_MODULE"],
       });
 
       tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
 
       expect(getCsBridge()).toBeNull();
       expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
+    });
+
+    it("waits for agent tooling readiness before creating bridge", async () => {
+      let resolveReady!: () => void;
+      mockEnsureAgentToolingReady.mockReturnValueOnce(new Promise<void>((resolve) => {
+        resolveReady = resolve;
+      }));
+
+      tryStartCsBridge("device-1");
+      await Promise.resolve();
+
+      expect(getCsBridge()).toBeNull();
+      expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
+
+      resolveReady();
+      await flushCsBridgeStart();
+
+      expect(MockCustomerServiceBridge).toHaveBeenCalledTimes(1);
+      expect(getCsBridge()).not.toBeNull();
+    });
+
+    it("does not create bridge when stopped while waiting for agent tooling readiness", async () => {
+      let resolveReady!: () => void;
+      mockEnsureAgentToolingReady.mockReturnValueOnce(new Promise<void>((resolve) => {
+        resolveReady = resolve;
+      }));
+
+      tryStartCsBridge("device-1");
+      await Promise.resolve();
+
+      stopCsBridge();
+      resolveReady();
+      await flushCsBridgeStart();
+
+      expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
+      expect(getCsBridge()).toBeNull();
     });
   });
 });
