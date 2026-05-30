@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.21",
+    "date": "2026-05-30",
+    "en": [
+      "Improve macOS updater efficiency by packaging the OpenClaw runtime as a blockmap-friendly tar archive",
+      "Harden agent tooling startup so cloud tools and customer-service bridges wait for the gateway catalog to be ready",
+      "Keep CI checks aligned with the new macOS runtime archive contract"
+    ],
+    "zh": [
+      "优化 macOS 更新效率，将 OpenClaw runtime 打包为更适合 blockmap 复用的 tar 归档",
+      "加固 Agent 工具启动流程，让云端工具与客服桥接等待 gateway 工具目录就绪后再启动",
+      "同步更新 CI 校验，匹配新的 macOS runtime 归档契约"
+    ]
+  },
+  {
     "version": "1.8.20",
     "date": "2026-05-29",
     "en": [
