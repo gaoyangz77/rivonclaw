@@ -8,10 +8,22 @@ import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import type { UpdateDownloadState } from "@rivonclaw/updater";
 import { isNewerVersion } from "@rivonclaw/updater";
 import type { GQL } from "@rivonclaw/core";
-import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } from "node:fs";
+import {
+  createWriteStream,
+  writeFileSync,
+  readFileSync,
+  unlinkSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { resolveUpdateMarkerPath, resolveRivonClawHome } from "@rivonclaw/core/node";
 
 const log = createLogger("auto-updater");
@@ -32,13 +44,17 @@ const log = createLogger("auto-updater");
 //    only gets updated when NSIS actually runs → blockmap is for the new
 //    version, installer.exe is still the old version.
 //
+// 3. Manual or cross-channel installs can leave blockmap-version looking
+//    correct while current.blockmap was produced from another installer build.
+//
 // Either way, on the next differential download the old blockmap won't
 // match installer.exe → sha512 mismatch → fallback to full download.
 //
-// Fix: write a "blockmap-version" marker after each successful download
-// and check it before the next download.  If the marker doesn't match
-// app.getVersion(), delete the stale blockmap so electron-updater
-// re-downloads the correct one from the server.
+// Fix: write a "blockmap-version" marker after each successful download and
+// check it before the next download. On Windows, be more conservative and
+// always delete current.blockmap before downloading; electron-updater will
+// re-download the old blockmap from the feed (small file) while still using
+// installer.exe as the old binary base for differential downloads.
 // ---------------------------------------------------------------------------
 
 function getUpdaterCacheDir(): string | null {
@@ -67,6 +83,14 @@ function getUpdaterCacheDir(): string | null {
 function ensureBlockmapConsistency(cacheDir: string): void {
   const markerPath = join(cacheDir, "blockmap-version");
   const blockmapPath = join(cacheDir, "current.blockmap");
+  if (process.platform === "win32") {
+    if (existsSync(blockmapPath)) {
+      log.info("Clearing cached Windows blockmap so updater downloads the feed blockmap");
+      try { unlinkSync(blockmapPath); } catch {}
+    }
+    try { unlinkSync(markerPath); } catch {}
+    return;
+  }
   try {
     const markerVersion = readFileSync(markerPath, "utf-8").trim();
     if (markerVersion === app.getVersion()) return; // consistent
@@ -85,6 +109,91 @@ function writeBlockmapVersion(cacheDir: string, version: string): void {
     mkdirSync(cacheDir, { recursive: true });
     writeFileSync(join(cacheDir, "blockmap-version"), version);
   } catch {}
+}
+
+const MAC_UPDATE_ZIP_FILE_NAME = "update.zip";
+const MAC_UPDATE_ZIP_VERSION_FILE_NAME = "update-zip-version";
+
+function resolveMacZipAssetName(version: string): string {
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  return `RivonClaw-${version}-${arch}.zip`;
+}
+
+function readCacheVersion(cacheDir: string, fileName: string): string | null {
+  try {
+    return readFileSync(join(cacheDir, fileName), "utf-8").trim();
+  } catch {
+    return null;
+  }
+}
+
+function writeMacUpdateZipVersion(cacheDir: string, version: string): void {
+  try {
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(join(cacheDir, MAC_UPDATE_ZIP_VERSION_FILE_NAME), version);
+  } catch {}
+}
+
+function hasMacUpdateZipForCurrentVersion(cacheDir: string): boolean {
+  const zipPath = join(cacheDir, MAC_UPDATE_ZIP_FILE_NAME);
+  if (!existsSync(zipPath)) return false;
+  try {
+    if (statSync(zipPath).size <= 0) return false;
+  } catch {
+    return false;
+  }
+
+  const cachedVersion = readCacheVersion(cacheDir, MAC_UPDATE_ZIP_VERSION_FILE_NAME);
+  if (cachedVersion === app.getVersion()) return true;
+  log.info(
+    `macOS update.zip cache is not for the running version ` +
+      `(cached: ${cachedVersion ?? "unknown"}, running: ${app.getVersion()}); refreshing`,
+  );
+  return false;
+}
+
+async function downloadFile(url: string, destinationPath: string): Promise<void> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+  }
+  if (!response.body) {
+    throw new Error("response body is empty");
+  }
+  await pipeline(
+    Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]),
+    createWriteStream(destinationPath),
+  );
+}
+
+async function ensureMacPreviousUpdateZipCached(
+  cacheDir: string,
+  updateFeedUrl: string,
+): Promise<void> {
+  if (process.platform !== "darwin") return;
+  if (hasMacUpdateZipForCurrentVersion(cacheDir)) return;
+
+  const version = app.getVersion();
+  const assetName = resolveMacZipAssetName(version);
+  const sourceUrl = `${updateFeedUrl}/${assetName}`;
+  const destinationPath = join(cacheDir, MAC_UPDATE_ZIP_FILE_NAME);
+  const tempPath = join(cacheDir, `.${assetName}.${Date.now()}.tmp`);
+
+  mkdirSync(cacheDir, { recursive: true });
+  log.info(`Preparing macOS differential update cache from ${sourceUrl}`);
+  try {
+    await downloadFile(sourceUrl, tempPath);
+    const size = statSync(tempPath).size;
+    if (size <= 0) throw new Error("downloaded zip is empty");
+    renameSync(tempPath, destinationPath);
+    writeMacUpdateZipVersion(cacheDir, version);
+    log.info(`Cached macOS update.zip for v${version} (${size} bytes)`);
+  } catch (err) {
+    rmSync(tempPath, { force: true });
+    log.warn(
+      `Unable to prepare macOS differential cache; updater may fall back to full download: ${formatError(err)}`,
+    );
+  }
 }
 
 export interface AutoUpdaterDeps {
@@ -176,7 +285,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     deps.telemetryTrack?.("app.update_downloaded", { version: info.version });
     // Save version marker so we can detect stale blockmap after manual installs
     const cacheDir = getUpdaterCacheDir();
-    if (cacheDir) writeBlockmapVersion(cacheDir, info.version);
+    if (cacheDir) {
+      writeBlockmapVersion(cacheDir, info.version);
+      if (process.platform === "darwin") writeMacUpdateZipVersion(cacheDir, info.version);
+    }
   });
 
   autoUpdater.on("error", (error: Error) => {
@@ -233,7 +345,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
 
     // Ensure blockmap cache matches current app version (may be stale after manual install)
     const cacheDir = getUpdaterCacheDir();
-    if (cacheDir) ensureBlockmapConsistency(cacheDir);
+    if (cacheDir) {
+      ensureBlockmapConsistency(cacheDir);
+      await ensureMacPreviousUpdateZipCached(cacheDir, updateFeedUrl);
+    }
 
     try {
       // electron-updater needs to "discover" the update before it can download
