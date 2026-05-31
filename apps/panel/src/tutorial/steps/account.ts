@@ -47,13 +47,13 @@ export const accountSteps: TutorialStep[] = [
     placement: "bottom",
   },
   {
-    target: ".quota-five-hour",
+    target: ".account-usage-list",
     titleKey: "tutorial.account.quotaFiveHourTitle",
     bodyKey: "tutorial.account.quotaFiveHourBody",
     placement: "bottom",
   },
   {
-    target: ".quota-weekly",
+    target: ".account-usage-row:first-child .quota-bar-wrap",
     titleKey: "tutorial.account.quotaWeeklyTitle",
     bodyKey: "tutorial.account.quotaWeeklyBody",
     placement: "bottom",

@@ -25,7 +25,7 @@ export function AppSettingsSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card settings-section-app">
       <h3>{t("settings.app.title")}</h3>
 
       <div>

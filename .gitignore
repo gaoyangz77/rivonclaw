@@ -23,6 +23,8 @@ CODEX.md
 ANTIGRAVITY.md
 tmp/
 tutorial/
+!apps/panel/src/tutorial/
+!apps/panel/src/tutorial/**
 extensions-merchant/
 apps/desktop/.vendor-bundle-cache/
 apps/desktop/.prebundled-extensions/

@@ -8,6 +8,10 @@ import { extrasSteps } from "./extras.js"
 import { usageSteps } from "./usage.js"
 import { settingsSteps } from "./settings.js"
 import { accountSteps } from "./account.js"
+import { billingSteps } from "./billing.js"
+import { ecommerceSteps } from "./ecommerce.js"
+import { ecommerceCustomerServiceSteps } from "./ecommerceCustomerService.js"
+import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
@@ -18,7 +22,11 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/extras": extrasSteps,
   "/usage": usageSteps,
   "/settings": settingsSteps,
+  "/billing": billingSteps,
   "/account": accountSteps,
+  "/ecommerce": ecommerceSteps,
+  "/ecommerce/customer-service": ecommerceCustomerServiceSteps,
+  "/ecommerce/affiliate": ecommerceAffiliateSteps,
 }
 
 export function getStepsForRoute(route: string): TutorialStep[] {

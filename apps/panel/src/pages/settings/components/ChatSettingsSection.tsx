@@ -25,7 +25,7 @@ export function ChatSettingsSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card settings-section-chat">
       <h3>{t("settings.chat.title")}</h3>
 
       <div className="settings-toggle-card">

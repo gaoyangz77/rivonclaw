@@ -12,7 +12,7 @@ export function TelemetrySection({ telemetryEnabled, saving, settingsReady, hand
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card settings-section-telemetry">
       <h3>{t("settings.telemetry.title")}</h3>
       <p className="text-secondary">
         {t("settings.telemetry.description")}
