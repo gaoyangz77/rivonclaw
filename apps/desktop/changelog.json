@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.22",
+    "date": "2026-05-31",
+    "en": [
+      "Add server-driven desktop log upload so support can request current logs from signed-in clients when troubleshooting",
+      "Expand panel tutorial coverage across billing, ecommerce, customer service, affiliate, and settings workflows",
+      "Refresh the desktop app description around RivonClaw as the AI Shop Manager for sellers"
+    ],
+    "zh": [
+      "新增由服务端触发的桌面端日志上传能力，便于支持排查时请求已登录客户端上传当前日志",
+      "扩展面板教程覆盖范围，补齐账单、电商、客服、达人协作和设置流程引导",
+      "更新桌面端应用描述，将 RivonClaw 定位为面向卖家的 AI Shop Manager"
+    ]
+  },
+  {
     "version": "1.8.21",
     "date": "2026-05-30",
     "en": [
