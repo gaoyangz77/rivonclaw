@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  mockUploadCurrentLog,
   mockSyncCloudProviderKey,
   mockSetAuthSession,
   mockBroadcastEvent,
@@ -8,6 +9,7 @@ const {
   authState,
   backendState,
 } = vi.hoisted(() => ({
+  mockUploadCurrentLog: vi.fn(),
   mockSyncCloudProviderKey: vi.fn(),
   mockSetAuthSession: vi.fn(),
   mockBroadcastEvent: vi.fn(),
@@ -26,6 +28,8 @@ const {
     disableAuthenticatedSubscriptions: vi.fn(),
     reconnect: vi.fn(),
     disconnect: vi.fn(),
+    refreshCsConversationSignals: vi.fn(),
+    clientLogUploadHandler: null as null | ((request: any) => void),
   },
 }));
 
@@ -35,6 +39,10 @@ vi.mock("../src/providers/cloud-provider-sync.js", () => ({
 
 vi.mock("../src/auth/session-ref.js", () => ({
   setAuthSession: mockSetAuthSession,
+}));
+
+vi.mock("../src/logs/upload-current-log.js", () => ({
+  uploadCurrentLog: mockUploadCurrentLog,
 }));
 
 vi.mock("../src/app/store/desktop-store.js", () => ({
@@ -80,6 +88,10 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToShopUpdated() {
       return () => {};
     }
+    subscribeToClientLogUploadRequests(_deviceId: string, handler: (request: any) => void) {
+      backendState.clientLogUploadHandler = handler;
+      return () => {};
+    }
     subscribeToCsEscalationEvents() {
       return () => {};
     }
@@ -98,26 +110,25 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToAffiliateActionProposalChanges() {
       return () => {};
     }
+    refreshCsConversationSignals() {
+      backendState.refreshCsConversationSignals();
+    }
   },
 }));
 
 import { setupAuth } from "../src/app/auth-runtime.js";
 
-async function emitUserChanged(user: any) {
-  for (const listener of authState.listeners) {
-    await listener(user);
-  }
-}
-
-describe("setupAuth subscription lifecycle", () => {
+describe("setupAuth backend subscriptions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUploadCurrentLog.mockResolvedValue({ ok: true });
     authState.token = "token-1";
     authState.listeners.length = 0;
     backendState.connected = false;
+    backendState.clientLogUploadHandler = null;
   });
 
-  it("enables authenticated subscriptions when validate hydrates the initial user", async () => {
+  it("registers client log upload requests for this desktop device", async () => {
     await setupAuth({
       storage: {} as any,
       secretStore: {} as any,
@@ -127,15 +138,15 @@ describe("setupAuth subscription lifecycle", () => {
       broadcastEvent: mockBroadcastEvent as any,
     });
 
-    backendState.connected = true;
-    await emitUserChanged({ userId: "u1" });
-
-    expect(backendState.enableAuthenticatedSubscriptions).toHaveBeenCalledTimes(1);
-    expect(backendState.reconnect).not.toHaveBeenCalled();
-    expect(backendState.disconnect).not.toHaveBeenCalled();
+    expect(backendState.clientLogUploadHandler).toEqual(expect.any(Function));
   });
 
-  it("enables authenticated subscriptions when the authenticated token changes", async () => {
+  it("uploads the current log once per in-flight server request", async () => {
+    let resolveUpload: (value: unknown) => void = () => {};
+    mockUploadCurrentLog.mockReturnValue(new Promise((resolve) => {
+      resolveUpload = resolve;
+    }));
+
     await setupAuth({
       storage: {} as any,
       secretStore: {} as any,
@@ -145,47 +156,22 @@ describe("setupAuth subscription lifecycle", () => {
       broadcastEvent: mockBroadcastEvent as any,
     });
 
-    backendState.connected = true;
-    authState.token = "token-2";
-    await emitUserChanged({ userId: "u1" });
+    const request = {
+      requestId: "req-1",
+      requestedAt: "2026-05-31T12:00:00.000Z",
+      reason: "support",
+    };
 
-    expect(backendState.enableAuthenticatedSubscriptions).toHaveBeenCalledTimes(1);
-    expect(backendState.disableAuthenticatedSubscriptions).not.toHaveBeenCalled();
-  });
+    backendState.clientLogUploadHandler?.(request);
+    backendState.clientLogUploadHandler?.(request);
 
-  it("disables authenticated subscriptions when the user logs out", async () => {
-    await setupAuth({
-      storage: {} as any,
-      secretStore: {} as any,
-      locale: "en",
+    expect(mockUploadCurrentLog).toHaveBeenCalledTimes(1);
+    expect(mockUploadCurrentLog).toHaveBeenCalledWith(expect.anything(), {
       deviceId: "device-1",
-      proxyFetch: vi.fn() as any,
-      broadcastEvent: mockBroadcastEvent as any,
+      requestId: "req-1",
     });
 
-    backendState.connected = true;
-    authState.token = null;
-    await emitUserChanged(null);
-
-    expect(backendState.disableAuthenticatedSubscriptions).toHaveBeenCalledTimes(1);
-    expect(backendState.enableAuthenticatedSubscriptions).not.toHaveBeenCalled();
-  });
-
-  it("enables authenticated subscriptions when a user logs in after startup", async () => {
-    authState.token = null;
-    await setupAuth({
-      storage: {} as any,
-      secretStore: {} as any,
-      locale: "en",
-      deviceId: "device-1",
-      proxyFetch: vi.fn() as any,
-      broadcastEvent: mockBroadcastEvent as any,
-    });
-
-    authState.token = "token-1";
-    await emitUserChanged({ userId: "u1" });
-
-    expect(backendState.enableAuthenticatedSubscriptions).toHaveBeenCalledTimes(1);
-    expect(backendState.disableAuthenticatedSubscriptions).not.toHaveBeenCalled();
+    resolveUpload({ ok: true });
+    await Promise.resolve();
   });
 });
