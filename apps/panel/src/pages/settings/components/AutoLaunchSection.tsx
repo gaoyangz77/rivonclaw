@@ -12,7 +12,7 @@ export function AutoLaunchSection({ autoLaunchEnabled, saving, settingsReady, ha
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card settings-section-auto-launch">
       <h3>{t("settings.autoLaunch.title")}</h3>
 
       <div className="settings-toggle-card">

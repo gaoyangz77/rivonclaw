@@ -10,44 +10,44 @@ export const settingsSteps: TutorialStep[] = [
   },
   // --- Agent Settings Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(1) h3",
+    target: ".settings-section-agent h3",
     titleKey: "tutorial.settings.agentSectionTitle",
     bodyKey: "tutorial.settings.agentSectionBody",
     placement: "bottom",
   },
   {
-    target: ".page-enter > .section-card:nth-of-type(1) .custom-select:nth-of-type(1)",
+    target: ".settings-section-agent .custom-select:nth-of-type(1)",
     titleKey: "tutorial.settings.dmScopeTitle",
     bodyKey: "tutorial.settings.dmScopeBody",
     placement: "bottom",
   },
   {
-    target: ".page-enter > .section-card:nth-of-type(1) > div:nth-of-type(2) .custom-select",
+    target: ".settings-section-agent > div:nth-of-type(2) .custom-select",
     titleKey: "tutorial.settings.browserModeTitle",
     bodyKey: "tutorial.settings.browserModeBody",
     placement: "bottom",
   },
   // --- Chat Settings Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(2) h3",
+    target: ".settings-section-chat h3",
     titleKey: "tutorial.settings.chatSectionTitle",
     bodyKey: "tutorial.settings.chatSectionBody",
     placement: "bottom",
   },
   {
-    target: ".page-enter > .section-card:nth-of-type(2) .settings-toggle-card:nth-of-type(1)",
+    target: ".settings-section-chat .settings-toggle-card:nth-of-type(1)",
     titleKey: "tutorial.settings.showAgentEventsTitle",
     bodyKey: "tutorial.settings.showAgentEventsBody",
     placement: "bottom",
   },
   {
-    target: ".page-enter > .section-card:nth-of-type(2) .settings-toggle-card:nth-of-type(2)",
+    target: ".settings-section-chat .settings-toggle-card:nth-of-type(2)",
     titleKey: "tutorial.settings.preserveToolEventsTitle",
     bodyKey: "tutorial.settings.preserveToolEventsBody",
     placement: "bottom",
   },
   {
-    target: ".page-enter > .section-card:nth-of-type(2) .settings-toggle-card:nth-of-type(3)",
+    target: ".settings-section-chat .settings-toggle-card:nth-of-type(3)",
     titleKey: "tutorial.settings.collapseMessagesTitle",
     bodyKey: "tutorial.settings.collapseMessagesBody",
     placement: "bottom",
@@ -60,21 +60,27 @@ export const settingsSteps: TutorialStep[] = [
     placement: "bottom",
   },
   {
-    target: ".page-enter > .section-card:nth-of-type(3) .settings-toggle-card",
+    target: ".settings-section-app .settings-toggle-card:nth-of-type(1)",
     titleKey: "tutorial.settings.privacyModeTitle",
     bodyKey: "tutorial.settings.privacyModeBody",
     placement: "bottom",
   },
+  {
+    target: ".settings-section-app .settings-toggle-card:nth-of-type(2)",
+    titleKey: "tutorial.settings.showAgentNameTitle",
+    bodyKey: "tutorial.settings.showAgentNameBody",
+    placement: "bottom",
+  },
   // --- Tutorial Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(4) .settings-toggle-card",
+    target: ".settings-section-tutorial .settings-toggle-card",
     titleKey: "tutorial.settings.tutorialToggleTitle",
     bodyKey: "tutorial.settings.tutorialToggleBody",
     placement: "bottom",
   },
   // --- Auto-Launch Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(5) .settings-toggle-card",
+    target: ".settings-section-auto-launch .settings-toggle-card",
     titleKey: "tutorial.settings.autoLaunchTitle",
     bodyKey: "tutorial.settings.autoLaunchBody",
     placement: "bottom",
@@ -94,7 +100,7 @@ export const settingsSteps: TutorialStep[] = [
   },
   // --- Telemetry Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(7) .settings-toggle-card",
+    target: ".settings-section-telemetry .settings-toggle-card",
     titleKey: "tutorial.settings.telemetryToggleTitle",
     bodyKey: "tutorial.settings.telemetryToggleBody",
     placement: "bottom",
@@ -107,14 +113,14 @@ export const settingsSteps: TutorialStep[] = [
   },
   // --- System Dependencies Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(8) .btn-primary",
+    target: ".settings-section-deps .btn-primary",
     titleKey: "tutorial.settings.installDepsTitle",
     bodyKey: "tutorial.settings.installDepsBody",
     placement: "bottom",
   },
   // --- Diagnostics Section ---
   {
-    target: ".page-enter > .section-card:nth-of-type(9) .doctor-actions",
+    target: ".settings-section-diagnostics .doctor-actions",
     titleKey: "tutorial.settings.diagnosticsTitle",
     bodyKey: "tutorial.settings.diagnosticsBody",
     placement: "top",

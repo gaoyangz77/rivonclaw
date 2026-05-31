@@ -16,7 +16,7 @@ export function StateDirectorySection({ dataDirInfo, dataDirRestartNeeded, savin
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card settings-section-data-dir">
       <h3>{t("settings.dataDir.title")}</h3>
 
       <div>

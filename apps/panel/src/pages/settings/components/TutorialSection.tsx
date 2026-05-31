@@ -10,7 +10,7 @@ export function TutorialSection({ tutorialEnabled, handleToggleTutorial }: Tutor
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card settings-section-tutorial">
       <h3>{t("tutorial.settings.toggle")}</h3>
 
       <div className="settings-toggle-card">
