@@ -1,17 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { API } from "@rivonclaw/core/api-contract";
-import { LOG_DIR } from "@rivonclaw/logger";
 import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { sendJson } from "../infra/api/route-utils.js";
 import { CloudRestError } from "../cloud/cloud-client.js";
+import { LocalLogUploadError, uploadCurrentLog } from "./upload-current-log.js";
 
 const log = createLogger("log-upload");
-
-const LOG_FILENAME = "rivonclaw.log";
-const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const uploadLog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
   if (!ctx.cloudClient) {
@@ -19,33 +14,13 @@ const uploadLog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiCont
     return;
   }
 
-  const logPath = join(LOG_DIR, LOG_FILENAME);
-
-  let fileBuffer: Buffer;
   try {
-    fileBuffer = await readFile(logPath);
-  } catch {
-    sendJson(res, 404, { error: "Log file not found" });
-    return;
-  }
-
-  if (fileBuffer.length > MAX_UPLOAD_SIZE) {
-    sendJson(res, 413, { error: "Log file too large" });
-    return;
-  }
-
-  try {
-    const data = await ctx.cloudClient.rest("/api/client-logs/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "x-filename": LOG_FILENAME,
-      },
-      body: fileBuffer,
-    });
+    const data = await uploadCurrentLog(ctx.cloudClient, { deviceId: ctx.deviceId });
     sendJson(res, 200, data);
   } catch (err) {
-    if (err instanceof CloudRestError) {
+    if (err instanceof LocalLogUploadError) {
+      sendJson(res, err.status, err.body);
+    } else if (err instanceof CloudRestError) {
       log.error("Cloud REST error during log upload", { status: err.status, body: err.body });
       sendJson(res, err.status, err.body ?? { error: err.message });
     } else {

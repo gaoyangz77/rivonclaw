@@ -78,6 +78,17 @@ const SHOP_UPDATED_SUBSCRIPTION = `
   }
 `;
 
+const CLIENT_LOG_UPLOAD_REQUESTED_SUBSCRIPTION = `
+  subscription ClientLogUploadRequested($deviceId: String) {
+    clientLogUploadRequested(deviceId: $deviceId) {
+      requestId
+      requestedAt
+      reason
+      deviceId
+    }
+  }
+`;
+
 const CS_ESCALATION_EVENT_SUBSCRIPTION = `
   subscription CsEscalationEvent {
     csEscalationEvent {
@@ -553,6 +564,13 @@ export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
 export type AffiliateConversationSignalPayload = GQL.AffiliateConversationSignal;
 export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
 export type AffiliateActionProposalPayload = GQL.ActionProposal;
+
+export interface ClientLogUploadRequestPayload {
+  requestId: string;
+  requestedAt: string;
+  reason?: string | null;
+  deviceId?: string | null;
+}
 
 export type CsEscalationEventType =
   | "ESCALATION_CREATED"
@@ -1072,6 +1090,42 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "Shop updated subscription error", err);
+          },
+          complete: () => {},
+        },
+      );
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true });
+  }
+
+  subscribeToClientLogUploadRequests(
+    deviceId: string,
+    onRequest: (payload: ClientLogUploadRequestPayload) => void,
+  ): () => void {
+    const key = "client-log-upload-requests";
+
+    const subscribe = (): () => void => {
+      if (!this.client) return () => {};
+      const attempt = this.nextAttempt(key);
+
+      return this.client.subscribe<{ clientLogUploadRequested: ClientLogUploadRequestPayload }>(
+        {
+          query: CLIENT_LOG_UPLOAD_REQUESTED_SUBSCRIPTION,
+          variables: { deviceId },
+        },
+        {
+          next: (result) => {
+            this.handleResultErrors(key, attempt, "Client log upload subscription next contained GraphQL errors", result.errors);
+            const payload = result.data?.clientLogUploadRequested;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "clientLogUploadRequested", result as any);
+              return;
+            }
+            onRequest(payload);
+          },
+          error: (err) => {
+            this.handleSubscriptionError(key, attempt, "Client log upload subscription error", err);
           },
           complete: () => {},
         },

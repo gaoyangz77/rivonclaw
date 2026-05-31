@@ -1,11 +1,16 @@
 import type { SecretStore } from "@rivonclaw/secrets";
+import { createLogger } from "@rivonclaw/logger";
 import { AuthSessionManager } from "../auth/session.js";
 import { setAuthSession } from "../auth/session-ref.js";
+import { CloudClient } from "../cloud/cloud-client.js";
 import { BackendSubscriptionClient } from "../cloud/backend-subscription-client.js";
 import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-service-cloud-events.js";
 import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item-actuator.js";
+import { uploadCurrentLog } from "../logs/upload-current-log.js";
+
+const log = createLogger("auth-runtime");
 
 export interface SetupAuthDeps {
   secretStore: SecretStore;
@@ -33,9 +38,11 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   setAuthSession(authSession);
   await authSession.loadFromKeychain();
   // NOTE: validate() is deferred until after proxy router starts (caller's responsibility).
+  const cloudClient = new CloudClient(authSession, locale, proxyFetch);
 
   // Initialize unified backend subscription client (single shared graphql-ws connection)
   const backendSubscription = new BackendSubscriptionClient(locale);
+  const inFlightLogUploadRequests = new Set<string>();
 
   // Subscribe to OAuth completion events
   backendSubscription.subscribeToOAuthComplete((payload) => {
@@ -49,6 +56,32 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     const shop = rootStore.shops.find((s: any) => s.id === shopId);
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
     backendSubscription.refreshCsConversationSignals();
+  });
+
+  backendSubscription.subscribeToClientLogUploadRequests(deviceId, (request) => {
+    if (inFlightLogUploadRequests.has(request.requestId)) return;
+    inFlightLogUploadRequests.add(request.requestId);
+
+    void uploadCurrentLog(cloudClient, { deviceId, requestId: request.requestId })
+      .then((response) => {
+        log.info("Uploaded client log after server-side request", {
+          requestId: request.requestId,
+          requestedAt: request.requestedAt,
+          response,
+        });
+      })
+      .catch((err) => {
+        log.error("Failed to upload client log after server-side request", {
+          requestId: request.requestId,
+          requestedAt: request.requestedAt,
+          reason: request.reason,
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
+      })
+      .finally(() => {
+        inFlightLogUploadRequests.delete(request.requestId);
+      });
   });
 
   const getActiveCustomerServiceShopIds = (): string[] =>
