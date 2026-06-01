@@ -1504,7 +1504,7 @@ export default {
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "Baseline cloud LLM usage for light daily work.",
       RIVONCLAW_AI_PRO: "3x the Plus usage for heavier daily automation.",
-      RIVONCLAW_AI_MAX: "6x the Plus usage for high-volume workflows.",
+      RIVONCLAW_AI_MAX: "8x the Plus usage for high-volume workflows.",
     },
     exchangeRate: "USD/CNY {{rate}} on {{date}}",
     services: {

@@ -1459,7 +1459,7 @@ export default {
     "planDescriptions": {
       "RIVONCLAW_AI_PLUS": "การใช้งานคลาวด์พื้นฐาน LLM สำหรับงานประจำวันแบบเบาๆ",
       "RIVONCLAW_AI_PRO": "การใช้งาน Plus 3 เท่าสำหรับระบบอัตโนมัติรายวันที่หนักกว่า",
-      "RIVONCLAW_AI_MAX": "การใช้งาน Plus 6 เท่าสำหรับเวิร์กโฟลว์ที่มีปริมาณมาก"
+      "RIVONCLAW_AI_MAX": "การใช้งาน Plus 8 เท่าสำหรับเวิร์กโฟลว์ที่มีปริมาณมาก"
     },
     "exchangeRate": "USD/CNY {{rate}} บน {{date}}",
     "services": {

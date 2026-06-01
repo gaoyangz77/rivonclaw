@@ -1459,7 +1459,7 @@ export default {
     "planDescriptions": {
       "RIVONCLAW_AI_PLUS": "Utilisation de base du cloud LLM pour un travail quotidien léger.",
       "RIVONCLAW_AI_PRO": "3x l'utilisation Plus pour une automatisation quotidienne plus lourde.",
-      "RIVONCLAW_AI_MAX": "6x l'utilisation Plus pour les flux de travail à volume élevé."
+      "RIVONCLAW_AI_MAX": "8x l'utilisation Plus pour les flux de travail à volume élevé."
     },
     "exchangeRate": "USD/CNY {{rate}} sur {{date}}",
     "services": {
