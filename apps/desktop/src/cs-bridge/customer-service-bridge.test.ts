@@ -3006,6 +3006,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       currentMessageId: "msg-airflow-a",
       currentMessageCursor: { messageId: "msg-airflow-a", messageIndex: "1", createTime: 100 },
       source: "AIRFLOW",
+      dispatchEventTime: "2026-06-01T01:00:00.000Z",
       useMessageDelta: false,
     });
     await sessionB.dispatchCatchUp({
@@ -3013,6 +3014,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       currentMessageId: "msg-airflow-b",
       currentMessageCursor: { messageId: "msg-airflow-b", messageIndex: "1", createTime: 100 },
       source: "AIRFLOW",
+      dispatchEventTime: "2026-06-01T01:00:00.000Z",
       useMessageDelta: false,
     });
 
@@ -3021,6 +3023,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       currentMessageId: "msg-airflow-a",
       currentMessageCursor: { messageId: "msg-airflow-a", messageIndex: "1", createTime: 100 },
       source: "AIRFLOW",
+      dispatchEventTime: "2026-06-01T01:00:00.000Z",
       useMessageDelta: false,
     });
     await sessionB.dispatchCatchUp({
@@ -3028,16 +3031,65 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       currentMessageId: "msg-airflow-b",
       currentMessageCursor: { messageId: "msg-airflow-b", messageIndex: "1", createTime: 100 },
       source: "AIRFLOW",
+      dispatchEventTime: "2026-06-01T01:00:00.000Z",
       useMessageDelta: false,
     });
 
     const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
     expect(agentCalls).toHaveLength(2);
     expect(agentCalls.map((c: any[]) => c[1].idempotencyKey)).toEqual([
-      "cs-start:conv-airflow-a:msg-airflow-a",
-      "cs-start:conv-airflow-b:msg-airflow-b",
+      "cs-retry:conv-airflow-a:msg-airflow-a:1780275600000",
+      "cs-retry:conv-airflow-b:msg-airflow-b:1780275600000",
     ]);
     expect(mockRpcRequest).not.toHaveBeenCalledWith("chat.abort", expect.anything());
+  });
+
+  it("cloud catch-up snapshots: Airflow retry after no forwarded text uses a fresh run key", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockImplementation((method: string, params?: any) => {
+      if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
+      if (method === "chat.abort") return Promise.resolve({ aborted: true });
+      if (method === "cs_register_session") return Promise.resolve(true);
+      if (method === "sessions.patch") return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
+    });
+
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-airflow-retry",
+      buyerUserId: "buyer-001",
+    });
+    const options = {
+      dispatchReason: "PENDING_BUYER_MESSAGE" as const,
+      currentMessageId: "msg-airflow-retry",
+      currentMessageCursor: { messageId: "msg-airflow-retry", messageIndex: "1", createTime: 100 },
+      source: "AIRFLOW",
+      dispatchEventTime: "2026-06-01T01:00:00.000Z",
+      useMessageDelta: false,
+    };
+
+    await session.dispatchCatchUp(options);
+    const firstRunId = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent")?.[1].idempotencyKey;
+    expect(firstRunId).toBe("cs-retry:conv-airflow-retry:msg-airflow-retry:1780275600000");
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: firstRunId, state: "final" },
+    } as any);
+
+    await session.dispatchCatchUp({
+      ...options,
+      dispatchEventTime: "2026-06-01T02:00:00.000Z",
+    });
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
+    expect(agentCalls).toHaveLength(2);
+    expect(agentCalls[1][1].idempotencyKey).toBe("cs-retry:conv-airflow-retry:msg-airflow-retry:1780279200000");
+    expect(agentCalls[1][1].idempotencyKey).not.toBe(agentCalls[0][1].idempotencyKey);
+    expect(mockEmitCsError).toHaveBeenCalledWith("run_error", expect.objectContaining({
+      reason: "final_no_text",
+      runId: firstRunId,
+    }));
   });
 
   it("cloud catch-up snapshots: newer buyer message wins while the older delta fetch is pending", async () => {

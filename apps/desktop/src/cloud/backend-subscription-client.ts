@@ -135,6 +135,7 @@ const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       aiEnabled
       latestMessagePreview
       operatorInstruction
+      dispatchEventTime
       eventTime
     }
   }
@@ -168,6 +169,7 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
         messageId
         messageIndex
         eventTime
+        dispatchEventTime
         operatorInstruction
       }
       orderId

@@ -1639,6 +1639,8 @@ export interface CsConversationSignal {
   conversationId: Scalars['String']['output'];
   /** Current platform customer-service session ID if already known. */
   currentSessionId?: Maybe<Scalars['String']['output']>;
+  /** Backend emission time for this dispatch attempt. */
+  dispatchEventTime?: Maybe<Scalars['DateTimeISO']['output']>;
   /** When the platform event happened or the unread condition was detected. */
   eventTime: Scalars['DateTimeISO']['output'];
   /** Platform IM user ID if available from webhook/API context. */
@@ -1900,6 +1902,8 @@ export interface CustomerServiceConversationDetails {
 
 /** Optional dispatch metadata attached to a full CS conversation snapshot. */
 export interface CustomerServiceConversationDispatchHint {
+  /** Unix seconds when backend emitted this dispatch attempt. Used for Airflow retry idempotency. */
+  dispatchEventTime?: Maybe<Scalars['Int']['output']>;
   /** Unix seconds of the event that triggered this dispatch. */
   eventTime?: Maybe<Scalars['Int']['output']>;
   messageId?: Maybe<Scalars['String']['output']>;
@@ -4340,6 +4344,8 @@ export interface PublishCsConversationSignalInput {
   conversationId: Scalars['String']['input'];
   /** Current platform customer-service session ID if already known. */
   currentSessionId?: InputMaybe<Scalars['String']['input']>;
+  /** Dispatch attempt timestamp as an ISO string. Defaults to server publish time. */
+  dispatchEventTime?: InputMaybe<Scalars['String']['input']>;
   /** Event timestamp as an ISO string. Defaults to server publish time. */
   eventTime?: InputMaybe<Scalars['String']['input']>;
   /** Platform IM user ID if available. */
