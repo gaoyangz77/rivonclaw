@@ -101,6 +101,9 @@ export function resolveCsConversationDispatch(
     aiEnabled: conversation.aiEnabled ?? true,
     latestMessagePreview: conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined,
     operatorInstruction: hint.operatorInstruction ?? undefined,
+    dispatchEventTime: hint.dispatchEventTime != null
+      ? new Date(hint.dispatchEventTime * 1000).toISOString()
+      : eventTime,
     eventTime,
   };
 }
@@ -131,6 +134,7 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
         "Treat this dispatch as buyer-message handling: identify the latest buyer-side request, verify the current platform conversation state, and respond only after you understand what the buyer actually needs.",
         "WARNING: there may have been messages exchanged since your last interaction that you did not receive.",
         "You MUST call ecom_cs_get_conversation_messages before sending a buyer-facing response unless this run includes a complete conversation delta in the prompt.",
+        "If you create or update an escalation, you still MUST send a concise buyer-facing status reply in this same run unless you intentionally end the session.",
         END_SESSION_GUIDANCE,
       ].join(" ");
     case "MANUAL_START":

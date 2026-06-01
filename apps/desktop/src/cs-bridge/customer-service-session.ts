@@ -161,6 +161,7 @@ interface CatchUpDispatchOptions {
   currentMessageIndex?: string;
   signalType?: string;
   source?: string;
+  dispatchEventTime?: string;
   messageType?: string;
   senderRole?: string;
   latestMessagePreview?: string;
@@ -734,6 +735,8 @@ export class CustomerServiceSession {
         runId,
         textLength: text.length,
       });
+      const round = this.roundsByRunId.get(runId);
+      if (round) this.markRoundTerminal(round);
       return;
     }
     const startedAt = Date.now();
@@ -1119,7 +1122,7 @@ export class CustomerServiceSession {
       if (delta) {
         return this.dispatch({
           message: this.buildConversationDeltaMessage(options.currentMessageId, delta),
-          idempotencyKey: `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`,
+          idempotencyKey: this.catchUpIdempotencyKey(options),
           dispatchReason: options.dispatchReason,
           dispatchSource: options.source ?? "desktop",
           signalType: options.signalType,
@@ -1151,9 +1154,26 @@ export class CustomerServiceSession {
   }
 
   private catchUpIdempotencyKey(options?: CatchUpDispatchOptions): string {
-    return options?.currentMessageId
-      ? `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`
-      : `cs-start:${this.csContext.conversationId}:${Date.now()}`;
+    if (!options?.currentMessageId) {
+      return `cs-start:${this.csContext.conversationId}:${Date.now()}`;
+    }
+
+    if (this.isRecoveryDispatch(options)) {
+      return `cs-retry:${this.csContext.conversationId}:${options.currentMessageId}:${this.dispatchAttemptToken(options)}`;
+    }
+
+    return `cs-start:${this.csContext.conversationId}:${options.currentMessageId}`;
+  }
+
+  private isRecoveryDispatch(options?: CatchUpDispatchOptions): boolean {
+    return String(options?.source ?? "").toUpperCase() === "AIRFLOW";
+  }
+
+  private dispatchAttemptToken(options?: CatchUpDispatchOptions): string {
+    const time = options?.dispatchEventTime?.trim();
+    if (!time) return "unknown";
+    const ms = new Date(time).getTime();
+    return Number.isFinite(ms) ? String(ms) : time.replace(/[^A-Za-z0-9_.:-]/g, "_");
   }
 
   private async dispatchBuyerCatchUp(

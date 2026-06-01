@@ -267,20 +267,15 @@ export class EcommerceRelayBridge {
       const wasAborted = completion?.wasAborted ?? false;
       if (wasAborted) {
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
+      } else if (!completion?.hadForwardedText) {
+        log.warn(`Agent run ${payload.runId} ended with ${payload.state} and no text was forwarded`);
+        session?.emitError(CS_ERROR_STAGE.RUN_ERROR, {
+          reason: payload.state === "error" ? "no_text" : "final_no_text",
+          runId: payload.runId,
+        });
       } else if (payload.state === "error") {
-        // Non-aborted error: log only, no fallback — fail fast so issues surface immediately.
-        // Emit cs.error only for runs that produced zero output — the buyer
-        // is left hanging and ops needs to see it. If text was already
-        // forwarded, the run was at least partially useful.
-        if (!completion?.hadForwardedText) {
-          log.warn(`Agent run ${payload.runId} ended with error and no text was forwarded`);
-          session?.emitError(CS_ERROR_STAGE.RUN_ERROR, {
-            reason: "no_text",
-            runId: payload.runId,
-          });
-        } else {
-          log.warn(`Agent run ${payload.runId} ended with error (text was previously forwarded)`);
-        }
+        // Non-aborted error after text was already forwarded: log only, no fallback.
+        log.warn(`Agent run ${payload.runId} ended with error (text was previously forwarded)`);
       }
 
       // Safety-net cleanup of turn buffer (normally already flushed by agent events)
@@ -592,6 +587,7 @@ export class EcommerceRelayBridge {
         currentMessageIndex: dispatch.messageIndex ?? undefined,
         signalType: dispatch.type,
         source: dispatch.source ?? "backend_subscription",
+        dispatchEventTime: dispatch.dispatchEventTime,
         messageType: dispatch.messageType ?? undefined,
         senderRole: dispatch.senderRole ?? undefined,
         latestMessagePreview: dispatch.latestMessagePreview ?? undefined,
