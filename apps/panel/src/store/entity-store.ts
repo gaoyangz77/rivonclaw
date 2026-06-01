@@ -151,7 +151,7 @@ const PanelRootStoreModel = RootStoreModel.props({
       trackEvent("auth.login");
     }),
 
-    register: flow(function* (input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string }) {
+    register: flow(function* (input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null }) {
       yield fetchJson(clientPath(API["auth.register"]), {
         method: "POST",
         body: JSON.stringify(input),

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BillingOverview, BillingPlanDefinition } from "@rivonclaw/core/models";
 import {
@@ -8,9 +9,15 @@ import {
   sortUsageWindows,
   usagePercentLabel,
 } from "../../../components/billing/billing-labels.js";
+import { CheckIcon, CopyIcon, InfoIcon } from "../../../components/icons.js";
 
 interface AccountProfileCardProps {
-  user: { name: string | null; email: string; createdAt: string };
+  user: {
+    name: string | null;
+    email: string;
+    createdAt: string;
+    agent?: { active?: boolean; inviteCode?: string | null } | null;
+  };
   initial: string;
   billingOverview: BillingOverview | null;
   planDefinitions: readonly BillingPlanDefinition[];
@@ -25,6 +32,7 @@ export function AccountProfileCard({
   onLogout,
 }: AccountProfileCardProps) {
   const { t } = useTranslation();
+  const [inviteCopied, setInviteCopied] = useState(false);
   const accountLlm = billingOverview?.accountLlm ?? null;
   const llmUsages = sortUsageWindows(accountLlm?.entitlement.usage ?? []);
   const validUntil = accountLlm?.entitlement.validUntil ?? null;
@@ -38,6 +46,30 @@ export function AccountProfileCard({
     : accountLlm?.entitlement.subscription
       ? entitlementStatusLabel(t, accountLlm.entitlement)
       : t("billing.notSubscribed");
+  const inviteCode = user.agent?.active ? user.agent.inviteCode ?? null : null;
+
+  async function copyInviteCode() {
+    if (!inviteCode) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteCode);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = inviteCode;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setInviteCopied(true);
+      window.setTimeout(() => setInviteCopied(false), 1400);
+    } catch {
+      setInviteCopied(false);
+    }
+  }
 
   return (
     <div className="section-card account-profile-card">
@@ -75,6 +107,33 @@ export function AccountProfileCard({
             {validUntil ? new Date(validUntil).toLocaleDateString() : "\u2014"}
           </span>
         </div>
+        {inviteCode && (
+          <div className="account-info-item account-invite-item">
+            <span className="account-info-label account-invite-label">
+              {t("account.inviteCode")}
+              <span
+                className="account-invite-help has-tooltip"
+                data-tooltip={t("account.inviteCodeTooltip")}
+                aria-label={t("account.inviteCodeTooltip")}
+                tabIndex={0}
+              >
+                <InfoIcon size={13} />
+              </span>
+            </span>
+            <span className="account-info-value account-invite-value">
+              <span className="account-invite-code">{inviteCode}</span>
+              <button
+                type="button"
+                className={`account-invite-copy${inviteCopied ? " account-invite-copy-copied" : ""}`}
+                onClick={() => void copyInviteCode()}
+                title={inviteCopied ? t("common.copied") : t("common.copy")}
+                aria-label={inviteCopied ? t("common.copied") : t("common.copy")}
+              >
+                {inviteCopied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+              </button>
+            </span>
+          </div>
+        )}
         {llmUsages.length > 0 && (
           <div className="account-info-item account-info-item-wide quota-weekly account-usage-list">
             {llmUsages.map((usage) => {

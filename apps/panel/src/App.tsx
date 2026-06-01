@@ -1,15 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Layout } from "./layout/Layout.js";
 import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
+import { AnnouncementModal, type ActiveAnnouncement, type ActiveAnnouncementAction } from "./components/modals/AnnouncementModal.js";
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
-import { fetchSettings, fetchChangelog, trackEvent } from "./api/index.js";
+import { fetchSettings, fetchChangelog, fetchUpdateInfo, trackEvent } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
 import { entityStore } from "./store/entity-store.js";
 import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
+import { getClient } from "./api/apollo-client.js";
+import { ACTIVE_ANNOUNCEMENTS_QUERY, RECORD_ANNOUNCEMENT_EVENT_MUTATION } from "./api/announcement-queries.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -32,9 +35,11 @@ export const App = observer(function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showTelemetryConsent, setShowTelemetryConsent] = useState(false);
+  const [activeAnnouncement, setActiveAnnouncement] = useState<ActiveAnnouncement | null>(null);
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);
   const [currentVersion, setCurrentVersion] = useState("");
   const [agentName, setAgentName] = useState<string | null>(null);
+  const impressedAnnouncementKeys = useRef(new Set<string>());
 
   // Keep state in sync when user presses browser Back / Forward
   useEffect(() => {
@@ -116,6 +121,51 @@ export const App = observer(function App() {
     }
   }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.telemetryConsentShown]);
 
+  useEffect(() => {
+    if (showOnboarding !== false) return;
+    if (!runtimeStatus.snapshotReceived) return;
+
+    let cancelled = false;
+    async function loadAnnouncements() {
+      try {
+        const updateInfo = await fetchUpdateInfo().catch(() => ({ currentVersion: null }));
+        const result = await getClient().query<{ activeAnnouncements: ActiveAnnouncement[] }>({
+          query: ACTIVE_ANNOUNCEMENTS_QUERY,
+          variables: {
+            surface: "DESKTOP_MODAL",
+            appVersion: updateInfo.currentVersion,
+            locale: i18n.language,
+            deviceId: runtimeStatus.deviceId || null,
+          },
+          fetchPolicy: "network-only",
+        });
+        if (!cancelled) {
+          setActiveAnnouncement(result.data?.activeAnnouncements?.[0] ?? null);
+        }
+      } catch {
+        if (!cancelled) setActiveAnnouncement(null);
+      }
+    }
+
+    loadAnnouncements();
+    return () => {
+      cancelled = true;
+    };
+  }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.deviceId, entityStore.currentUser?.userId, i18n.language]);
+
+  useEffect(() => {
+    if (!activeAnnouncement) return;
+    if (showWhatsNew || showTelemetryConsent) return;
+    if (impressedAnnouncementKeys.current.has(activeAnnouncement.key)) return;
+    impressedAnnouncementKeys.current.add(activeAnnouncement.key);
+    trackEvent("announcement.impression", {
+      key: activeAnnouncement.key,
+      surface: activeAnnouncement.surface,
+      category: activeAnnouncement.category,
+      templateFormat: activeAnnouncement.template.format,
+    });
+  }, [activeAnnouncement, showWhatsNew, showTelemetryConsent]);
+
   // Track initial page view when main app mounts (not during onboarding)
   useEffect(() => {
     if (showOnboarding === false) {
@@ -126,6 +176,75 @@ export const App = observer(function App() {
   function handleOnboardingComplete() {
     setShowOnboarding(false);
     navigate("/");
+  }
+
+  async function recordAnnouncementEvent(key: string, eventType: "DISMISS" | "PRIMARY_CLICK" | "SECONDARY_CLICK") {
+    const updateInfo = await fetchUpdateInfo().catch(() => ({ currentVersion: null }));
+    await getClient().mutate({
+      mutation: RECORD_ANNOUNCEMENT_EVENT_MUTATION,
+      variables: {
+        input: {
+          key,
+          eventType,
+          surface: "DESKTOP_MODAL",
+          appVersion: updateInfo.currentVersion,
+          locale: i18n.language,
+          deviceId: runtimeStatus.deviceId || null,
+        },
+      },
+    });
+  }
+
+  function dismissActiveAnnouncement() {
+    const announcement = activeAnnouncement;
+    setActiveAnnouncement(null);
+    if (announcement) {
+      trackEvent("announcement.dismiss", {
+        key: announcement.key,
+        surface: announcement.surface,
+        category: announcement.category,
+        templateFormat: announcement.template.format,
+      });
+      if (entityStore.currentUser || runtimeStatus.deviceId) {
+        recordAnnouncementEvent(announcement.key, "DISMISS").catch(() => {});
+      }
+    }
+  }
+
+  function temporarilyHideActiveAnnouncement() {
+    const announcement = activeAnnouncement;
+    setActiveAnnouncement(null);
+    if (announcement) {
+      trackEvent("announcement.backdrop_close", {
+        key: announcement.key,
+        surface: announcement.surface,
+        category: announcement.category,
+        templateFormat: announcement.template.format,
+      });
+    }
+  }
+
+  function handleAnnouncementAction(action: ActiveAnnouncementAction, eventType: "PRIMARY_CLICK" | "SECONDARY_CLICK") {
+    const announcement = activeAnnouncement;
+    setActiveAnnouncement(null);
+    if (announcement) {
+      trackEvent(eventType === "PRIMARY_CLICK" ? "announcement.primary_click" : "announcement.secondary_click", {
+        key: announcement.key,
+        surface: announcement.surface,
+        category: announcement.category,
+        templateFormat: announcement.template.format,
+        actionType: action.type,
+        actionRole: action.role,
+      });
+      if (entityStore.currentUser || runtimeStatus.deviceId) {
+        recordAnnouncementEvent(announcement.key, eventType).catch(() => {});
+      }
+    }
+    if (action.type === "NAVIGATE" && action.path) {
+      navigate(action.path);
+    } else if (action.type === "EXTERNAL_URL" && action.url) {
+      window.open(action.url, "_blank", "noopener,noreferrer");
+    }
   }
 
   if (showOnboarding === null) {
@@ -176,6 +295,13 @@ export const App = observer(function App() {
         <TelemetryConsentModal
           isOpen={showTelemetryConsent && !showWhatsNew}
           onClose={() => setShowTelemetryConsent(false)}
+        />
+        <AnnouncementModal
+          announcement={activeAnnouncement}
+          isOpen={!!activeAnnouncement && !showWhatsNew && !showTelemetryConsent}
+          onClose={dismissActiveAnnouncement}
+          onBackdropClose={temporarilyHideActiveAnnouncement}
+          onAction={handleAnnouncementAction}
         />
       </Layout>
       <TutorialOverlay />

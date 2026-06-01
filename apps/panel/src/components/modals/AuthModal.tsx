@@ -21,6 +21,7 @@ const AUTH_ERROR_MAP: Record<string, string> = {
   "Incorrect captcha": "auth.captchaError",
   "Too many captcha attempts": "auth.captchaExpired",
   "Email not registered": "auth.errorEmailNotRegistered",
+  "Invalid invite code": "auth.errorInvalidInviteCode",
 };
 
 /** Error messages that indicate the email is not registered — triggers auto-register. */
@@ -68,6 +69,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -109,6 +111,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       setActiveTab("login");
       setEmail("");
       setPassword("");
+      setInviteCode("");
       setShowPassword(false);
       setError(null);
       setSubmitting(false);
@@ -158,7 +161,15 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           throw loginErr;
         }
       } else {
-        await register({ email, password, name: null, captchaToken, captchaAnswer });
+        const normalizedInviteCode = inviteCode.trim().toUpperCase();
+        await register({
+          email,
+          password,
+          name: null,
+          captchaToken,
+          captchaAnswer,
+          inviteCode: normalizedInviteCode || null,
+        });
         showToast(t("auth.registerSuccess"));
       }
       onClose();
@@ -258,6 +269,22 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               </div>
             )}
           </div>
+
+          {activeTab === "register" && (
+            <label className="form-label-block">
+              {t("auth.inviteCode")}
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+                maxLength={6}
+                autoComplete="off"
+                placeholder={t("auth.inviteCodePlaceholder")}
+                className="auth-input auth-input-code"
+              />
+              <span className="form-hint">{t("auth.inviteCodeHint")}</span>
+            </label>
+          )}
 
           <div className="captcha-row">
             <div className="captcha-row-input">

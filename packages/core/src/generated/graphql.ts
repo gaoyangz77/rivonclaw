@@ -284,6 +284,34 @@ export const ActionProposalType = {
 } as const;
 
 export type ActionProposalType = typeof ActionProposalType[keyof typeof ActionProposalType];
+/** Server-driven announcement resolved for the current user and locale. */
+export interface ActiveAnnouncement {
+  actions: Array<ActiveAnnouncementAction>;
+  category: AnnouncementCategory;
+  id: Scalars['ID']['output'];
+  key: Scalars['String']['output'];
+  maxWidth: Scalars['Int']['output'];
+  priority: Scalars['Int']['output'];
+  surface: AnnouncementSurface;
+  template: ActiveAnnouncementTemplate;
+  title: Scalars['String']['output'];
+}
+
+/** Resolved action for a server-driven announcement. */
+export interface ActiveAnnouncementAction {
+  label?: Maybe<Scalars['String']['output']>;
+  path?: Maybe<Scalars['String']['output']>;
+  role: AnnouncementActionRole;
+  type: AnnouncementActionType;
+  url?: Maybe<Scalars['String']['output']>;
+}
+
+/** Resolved server-driven announcement template content. */
+export interface ActiveAnnouncementTemplate {
+  format: AnnouncementTemplateFormat;
+  html: Scalars['String']['output'];
+}
+
 /** Subscription payload for a changed affiliate action proposal. */
 export interface AffiliateActionProposalChanged {
   proposal: ActionProposal;
@@ -1043,6 +1071,44 @@ export interface AgentCsSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
+export const AnnouncementActionRole = {
+  Primary: 'PRIMARY',
+  Secondary: 'SECONDARY'
+} as const;
+
+export type AnnouncementActionRole = typeof AnnouncementActionRole[keyof typeof AnnouncementActionRole];
+export const AnnouncementActionType = {
+  Dismiss: 'DISMISS',
+  ExternalUrl: 'EXTERNAL_URL',
+  Navigate: 'NAVIGATE'
+} as const;
+
+export type AnnouncementActionType = typeof AnnouncementActionType[keyof typeof AnnouncementActionType];
+export const AnnouncementCategory = {
+  Billing: 'BILLING',
+  Marketing: 'MARKETING',
+  Product: 'PRODUCT',
+  System: 'SYSTEM'
+} as const;
+
+export type AnnouncementCategory = typeof AnnouncementCategory[keyof typeof AnnouncementCategory];
+export const AnnouncementEventType = {
+  Dismiss: 'DISMISS',
+  PrimaryClick: 'PRIMARY_CLICK',
+  SecondaryClick: 'SECONDARY_CLICK'
+} as const;
+
+export type AnnouncementEventType = typeof AnnouncementEventType[keyof typeof AnnouncementEventType];
+export const AnnouncementSurface = {
+  DesktopModal: 'DESKTOP_MODAL'
+} as const;
+
+export type AnnouncementSurface = typeof AnnouncementSurface[keyof typeof AnnouncementSurface];
+export const AnnouncementTemplateFormat = {
+  SafeHtml: 'SAFE_HTML'
+} as const;
+
+export type AnnouncementTemplateFormat = typeof AnnouncementTemplateFormat[keyof typeof AnnouncementTemplateFormat];
 export interface ApplyCreatorTagInput {
   creatorId: Scalars['ID']['input'];
   shopId: Scalars['ID']['input'];
@@ -1250,6 +1316,14 @@ export interface CaptchaResponse {
 /** Input for claiming a CS escalation event for local execution */
 export interface ClaimCsEscalationEventInput {
   eventId: Scalars['ID']['input'];
+}
+
+/** Server-side request for an authenticated desktop client to upload its local log. */
+export interface ClientLogUploadRequestPayload {
+  deviceId?: Maybe<Scalars['String']['output']>;
+  reason?: Maybe<Scalars['String']['output']>;
+  requestId: Scalars['String']['output'];
+  requestedAt: Scalars['DateTimeISO']['output'];
 }
 
 /** Public TikTok OAuth callback completion result. */
@@ -1852,6 +1926,8 @@ export interface CustomerServiceConversation {
   conversationId: Scalars['String']['output'];
   /** Unix seconds when the conversation was created */
   createTime?: Maybe<Scalars['Int']['output']>;
+  /** Current platform customer-service session metadata, when returned by the platform. */
+  currentSession?: Maybe<CustomerServiceCurrentSession>;
   /** Current platform customer-service session ID, when returned by the platform. */
   currentSessionId?: Maybe<Scalars['String']['output']>;
   /** Optional transient dispatch hint. Present only when this snapshot should wake the assigned desktop CS agent. */
@@ -2023,6 +2099,14 @@ export interface CustomerServiceConversationSummary {
 /** Create conversation result */
 export interface CustomerServiceCreateConversationResult {
   conversationId: Scalars['String']['output'];
+}
+
+/** Current platform customer-service session metadata. */
+export interface CustomerServiceCurrentSession {
+  /** Current session phase, for example AUTO_REPLY, QUEUED, or ASSIGNED. */
+  phase?: Maybe<Scalars['String']['output']>;
+  /** Current session ID. */
+  sessionId?: Maybe<Scalars['String']['output']>;
 }
 
 /** Bounded customer-service conversation delta from a local OpenClaw session anchor through a current inbound message. */
@@ -3479,6 +3563,7 @@ export interface LoginInput {
 
 /** Current user profile */
 export interface MeResponse {
+  agent?: Maybe<UserAgentProfile>;
   createdAt: Scalars['DateTimeISO']['output'];
   defaultRunProfileId?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
@@ -3596,6 +3681,8 @@ export interface Mutation {
   provisionLlmApiKey: LlmApiKey;
   /** Publish an update notification to all connected clients (admin only) */
   publishUpdate: Scalars['Boolean']['output'];
+  /** Record an impression, dismissal, or action click for a server-driven announcement. */
+  recordAnnouncementEvent: Scalars['Boolean']['output'];
   /** Query the provider and refresh a payment's status. */
   refreshPayment: Payment;
   /** Refresh an expired access token */
@@ -3610,10 +3697,14 @@ export interface Mutation {
   requestAffiliateAction: RequestAffiliateActionPayload;
   /** Request a new captcha challenge */
   requestCaptcha: CaptchaResponse;
+  /** Request one user's authenticated desktop client to upload its current local log (admin only) */
+  requestClientLogUpload: ClientLogUploadRequestPayload;
   /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the work boundary and update collaboration state. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
+  /** Admin-only: enable or disable an agent invite code for a user by email. */
+  setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
   setDefaultRunProfile: MeResponse;
   /** Single frontend entry point for paid billing. The backend decides whether to create a Stripe Checkout, resume a scheduled Stripe cancellation, return ALREADY_ACTIVE, create a Stripe trial that starts after existing free/prepaid access ends, process a Stripe upgrade, or create a Lakala prepaid QR payment. */
@@ -3922,6 +4013,11 @@ export interface MutationPublishUpdateArgs {
 }
 
 
+export interface MutationRecordAnnouncementEventArgs {
+  input: RecordAnnouncementEventInput;
+}
+
+
 export interface MutationRefreshPaymentArgs {
   paymentId: Scalars['ID']['input'];
 }
@@ -3952,8 +4048,21 @@ export interface MutationRequestAffiliateActionArgs {
 }
 
 
+export interface MutationRequestClientLogUploadArgs {
+  deviceId?: InputMaybe<Scalars['String']['input']>;
+  email: Scalars['String']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+
 export interface MutationResolveAffiliateWorkItemArgs {
   input: ResolveAffiliateWorkItemInput;
+}
+
+
+export interface MutationSetAgentInviteArgs {
+  active: Scalars['Boolean']['input'];
+  email: Scalars['String']['input'];
 }
 
 
@@ -4377,6 +4486,8 @@ export interface PublishCsConversationSignalInput {
 export interface Query {
   /** Read human-reviewable affiliate action proposals. */
   actionProposals: Array<ActionProposal>;
+  /** Read server-driven announcements for the current user, surface, app version, and locale. */
+  activeAnnouncements: Array<ActiveAnnouncement>;
   /** Read bounded proposal events for one affiliate collaboration. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
@@ -4536,6 +4647,14 @@ export interface Query {
 
 export interface QueryActionProposalsArgs {
   input: ReadActionProposalsInput;
+}
+
+
+export interface QueryActiveAnnouncementsArgs {
+  appVersion?: InputMaybe<Scalars['String']['input']>;
+  deviceId?: InputMaybe<Scalars['String']['input']>;
+  locale: Scalars['String']['input'];
+  surface: AnnouncementSurface;
 }
 
 
@@ -5137,6 +5256,15 @@ export interface ReadWmsAccountsInput {
   status?: InputMaybe<WmsAccountStatus>;
 }
 
+export interface RecordAnnouncementEventInput {
+  appVersion?: InputMaybe<Scalars['String']['input']>;
+  deviceId?: InputMaybe<Scalars['String']['input']>;
+  eventType: AnnouncementEventType;
+  key: Scalars['String']['input'];
+  locale?: InputMaybe<Scalars['String']['input']>;
+  surface: AnnouncementSurface;
+}
+
 /** Refund a provider-backed payment. */
 export interface RefundPaymentGraphqlInput {
   /** Refund amount in minor units. Defaults to the full payment amount. */
@@ -5151,6 +5279,8 @@ export interface RegisterInput {
   captchaAnswer: Scalars['String']['input'];
   captchaToken: Scalars['String']['input'];
   email: Scalars['String']['input'];
+  /** Optional six-character agent invite code. */
+  inviteCode?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   password: Scalars['String']['input'];
 }
@@ -5547,6 +5677,7 @@ export interface Subscription {
   affiliateConversationSignal: AffiliateConversationSignal;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
+  clientLogUploadRequested: ClientLogUploadRequestPayload;
   /** Streams backend-materialized CS conversation snapshots whenever a conversation changes. Desktop should treat each payload as the latest whole-entity snapshot and only wake the local CS agent when dispatchHint is present. */
   csConversationChanged: CustomerServiceConversation;
   /** Streams CS conversation signals to desktop clients. Missed pending signals are retried from backend state by Airflow. */
@@ -5573,6 +5704,11 @@ export interface SubscriptionAffiliateConversationSignalArgs {
 
 export interface SubscriptionAffiliateWorkItemChangedArgs {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+
+export interface SubscriptionClientLogUploadRequestedArgs {
+  deviceId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -5902,6 +6038,18 @@ export interface UsagePolicy {
   limit: Scalars['Int']['output'];
   metric: UsageMetric;
   window: UsageLimitWindow;
+}
+
+export interface UserAgentProfile {
+  active: Scalars['Boolean']['output'];
+  disabledAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Admin user ID that disabled this agent invite code. */
+  disabledByUserId?: Maybe<Scalars['String']['output']>;
+  enabledAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Admin user ID that enabled this agent invite code. */
+  enabledByUserId?: Maybe<Scalars['String']['output']>;
+  /** Six-character invite code for agent referrals. */
+  inviteCode?: Maybe<Scalars['String']['output']>;
 }
 
 export interface UserSupport {

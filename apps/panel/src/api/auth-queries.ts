@@ -22,6 +22,14 @@ export const LOGIN_MUTATION = gql`
         enrolledModules
         entitlementKeys
         defaultRunProfileId
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
       }
     }
   }
@@ -40,6 +48,14 @@ export const REGISTER_MUTATION = gql`
         enrolledModules
         entitlementKeys
         defaultRunProfileId
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
       }
     }
   }
@@ -58,6 +74,14 @@ export const REFRESH_TOKEN_MUTATION = gql`
         enrolledModules
         entitlementKeys
         defaultRunProfileId
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
       }
     }
   }
@@ -74,6 +98,14 @@ const ME_FIELDS_FRAGMENT = gql`
     defaultRunProfileId
     support {
       telegramDebugProxyToken
+    }
+    agent {
+      active
+      inviteCode
+      enabledAt
+      enabledByUserId
+      disabledAt
+      disabledByUserId
     }
   }
 `;
