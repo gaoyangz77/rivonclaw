@@ -254,7 +254,6 @@ test.describe("Local Models E2E", () => {
 
     // Verify it's active (is_default=1 and llm-provider=ollama)
     await expect(ollamaCard).toHaveClass(/key-card-active/);
-    await expect(ollamaCard.locator(".badge-active")).toBeVisible();
 
     // Verify model is shown
     await expect(ollamaCard).toContainText("deepseek-r1");

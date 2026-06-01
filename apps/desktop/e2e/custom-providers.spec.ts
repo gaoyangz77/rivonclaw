@@ -184,7 +184,6 @@ test.describe("Custom Providers", () => {
     // Verify custom provider is now active
     await expect(customCard).toHaveClass(/key-card-active/, { timeout: 10_000 });
     await expect(baseCard).toHaveClass(/key-card-inactive/);
-    await expect(customCard.locator(".badge-active")).toBeVisible();
 
     // -- Switch model within the custom provider --
     const modelTrigger = customCard.locator(".custom-select-trigger");

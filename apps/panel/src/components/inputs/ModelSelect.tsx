@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { getDefaultModelForProvider, getProviderMeta } from "@rivonclaw/core";
+import { getDefaultModelForProvider, getProviderMeta, resolveGatewayProvider } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { fetchModelCatalog } from "../../api/index.js";
 import type { CatalogModelEntry } from "../../api/index.js";
@@ -43,7 +43,10 @@ export function ModelSelect({
     return () => { cancelled = true; };
   }, []);
 
-  const models = (catalog[provider] ?? []).map((m) => ({
+  const catalogProvider = getProviderMeta(provider as LLMProvider)?.catalogProvider ?? provider;
+  const gatewayProvider = resolveGatewayProvider(provider as LLMProvider);
+  const catalogEntries = catalog[catalogProvider] ?? catalog[provider] ?? catalog[gatewayProvider] ?? [];
+  const models = catalogEntries.map((m) => ({
     modelId: m.id,
     displayName: m.name,
   }));

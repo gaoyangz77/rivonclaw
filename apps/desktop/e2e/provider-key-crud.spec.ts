@@ -109,10 +109,8 @@ test.describe("Provider Key CRUD — UI rendering", () => {
       // Click Activate on card B
       await cardB.locator(".btn", { hasText: /Activate/i }).click();
 
-      // B should become active
-      await expect(cardB.locator(".badge-active")).toBeVisible({ timeout: 10_000 });
-      // A should no longer be active
-      await expect(cardA.locator(".badge-active")).toHaveCount(0);
+      await expect(cardB).toHaveClass(/key-card-active/, { timeout: 10_000 });
+      await expect(cardA).toHaveClass(/key-card-inactive/);
     } finally {
       await deleteKey(apiBase, key1.id);
       await deleteKey(apiBase, key2.id);

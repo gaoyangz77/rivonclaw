@@ -59,13 +59,21 @@ async function fillName(modal: import("@playwright/test").Locator, name: string)
   await nameInput.fill(name);
 }
 
-/**
- * Helper: fill the message/text textarea (rows=3, the payload content field).
- * Description textarea has rows=2, so rows=3 uniquely targets the payload field.
- */
+/** Helper: fill the message/text textarea in the payload section. */
 async function fillPayloadText(modal: import("@playwright/test").Locator, text: string) {
-  const textarea = modal.locator("textarea[rows='3']");
+  const textarea = modal.locator(".crons-prompt-textarea");
   await textarea.fill(text);
+}
+
+function intervalInput(modal: import("@playwright/test").Locator) {
+  return modal
+    .locator(".crons-form-card")
+    .filter({ hasText: "Schedule" })
+    .locator("input[type='number']");
+}
+
+async function fillIntervalValue(modal: import("@playwright/test").Locator, value: string) {
+  await intervalInput(modal).fill(value);
 }
 
 /**
@@ -117,8 +125,7 @@ async function createIntervalJob(
   await intervalBtn.click();
 
   // Fill interval value
-  const intervalInput = modal.locator("input[type='number']");
-  await intervalInput.fill(opts?.intervalValue ?? "30");
+  await fillIntervalValue(modal, opts?.intervalValue ?? "30");
 
   // Select unit if specified
   if (opts?.unit) {
@@ -126,7 +133,7 @@ async function createIntervalJob(
     await selectOption(window, unitSelect, opts.unit);
   }
 
-  // Fill message (payload textarea has rows=3)
+  // Fill message.
   await fillPayloadText(modal, opts?.message ?? "Hello from E2E");
 
   await submitForm(modal);
@@ -179,14 +186,13 @@ test.describe("Crons Page", () => {
     await expect(intervalBtn).toHaveClass(/crons-schedule-type-btn-active/);
 
     // Fill interval: 30 minutes
-    const intervalInput = modal.locator("input[type='number']");
-    await intervalInput.fill("30");
+    await fillIntervalValue(modal, "30");
 
     // Change unit to Minutes
     const unitSelect = modal.locator(".crons-form-row .custom-select-trigger");
     await selectOption(window, unitSelect, "Minutes");
 
-    // Fill Agent Message payload (rows=3 textarea)
+    // Fill Agent Message payload.
     await fillPayloadText(modal, "CRUD test message");
 
     // Verify enabled checkbox is checked by default
@@ -321,7 +327,7 @@ test.describe("Crons Page", () => {
     await expect(rawInput).toBeVisible();
     await expect(rawInput).toHaveValue("*/5 * * * 1");
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "Cron expression test");
 
     // Submit
@@ -365,7 +371,7 @@ test.describe("Crons Page", () => {
     const deleteAfterRunCheckbox = modal.locator(".crons-checkbox-label", { hasText: "Delete after run" }).locator("input[type='checkbox']");
     await expect(deleteAfterRunCheckbox).toBeChecked();
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "One-time test message");
 
     // Submit
@@ -393,8 +399,7 @@ test.describe("Crons Page", () => {
     // Select Interval schedule
     const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
     await intervalBtn.click();
-    const intervalInput = modal.locator("input[type='number']");
-    await intervalInput.fill("10");
+    await fillIntervalValue(modal, "10");
 
     // Switch payload type to System Event
     const payloadGroup = modal.locator(".form-group").filter({ hasText: "Payload Type" });
@@ -404,7 +409,7 @@ test.describe("Crons Page", () => {
     // Verify hint text shows "main session" target
     await expect(modal.locator(".form-hint").first()).toContainText(/main session/i);
 
-    // Fill the text field (rows=3 textarea, same selector works after payload switch)
+    // Fill the text field.
     await fillPayloadText(modal, "System event test text");
 
     // Verify delivery mode is disabled for system events
@@ -436,10 +441,9 @@ test.describe("Crons Page", () => {
     // Set interval schedule
     const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
     await intervalBtn.click();
-    const intervalInput = modal.locator("input[type='number']");
-    await intervalInput.fill("60");
+    await fillIntervalValue(modal, "60");
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "Webhook test");
 
     // Change delivery mode to Webhook
@@ -484,15 +488,11 @@ test.describe("Crons Page", () => {
     // Set interval schedule
     const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
     await intervalBtn.click();
-    const intervalInput = modal.locator("input[type='number']");
-    await intervalInput.fill("60");
+    await fillIntervalValue(modal, "60");
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "Advanced test");
 
-    // Open advanced options (the last .crons-advanced-toggle, after the raw cron one)
-    const advancedToggle = modal.locator(".advanced-toggle").last();
-    await advancedToggle.click();
     await expect(modal.locator(".crons-advanced-content")).toBeVisible();
 
     // Change thinking mode to "High"
@@ -524,9 +524,7 @@ test.describe("Crons Page", () => {
     const editModal = window.locator(".modal-backdrop");
     await expect(editModal).toBeVisible();
 
-    // Open advanced options in edit mode
-    const editAdvancedToggle = editModal.locator(".advanced-toggle").last();
-    await editAdvancedToggle.click();
+    await expect(editModal.locator(".crons-advanced-content")).toBeVisible();
 
     // Verify thinking mode shows "High"
     const editThinkingGroup = editModal.locator(".form-group").filter({ hasText: "Thinking Mode" });
@@ -678,7 +676,7 @@ test.describe("Crons Page", () => {
     await expect(editIntervalBtn).toHaveClass(/crons-schedule-type-btn-active/);
 
     // Value should be 2
-    const editIntervalInput = editModal.locator("input[type='number']");
+    const editIntervalInput = intervalInput(editModal);
     await expect(editIntervalInput).toHaveValue("2");
 
     // Unit should be Hours
@@ -706,9 +704,9 @@ test.describe("Crons Page", () => {
     // Set interval schedule
     const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
     await intervalBtn.click();
-    await modal.locator("input[type='number']").fill("60");
+    await fillIntervalValue(modal, "60");
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "Disabled test");
 
     // Uncheck enabled
@@ -760,7 +758,7 @@ test.describe("Crons Page", () => {
     const preset = modal.locator(".crons-preset-chip", { hasText: "Every minute" });
     await preset.click();
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "Validation test message");
 
     // Now should submit successfully
@@ -788,9 +786,9 @@ test.describe("Crons Page", () => {
     // Set schedule
     const intervalBtn = modal.locator(".crons-schedule-type-btn", { hasText: "Interval" });
     await intervalBtn.click();
-    await modal.locator("input[type='number']").fill("60");
+    await fillIntervalValue(modal, "60");
 
-    // Fill message (rows=3 textarea)
+    // Fill message.
     await fillPayloadText(modal, "Description test message");
 
     await submitForm(modal);

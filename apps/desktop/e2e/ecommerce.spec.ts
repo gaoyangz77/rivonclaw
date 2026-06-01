@@ -110,7 +110,7 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(header.locator(".ecommerce-page-subtitle")).toContainText("Manage your connected shops");
 
     // Add Shop button
-    const addBtn = header.locator("button", { hasText: "Add Shop" });
+    const addBtn = window.locator(".section-card").filter({ hasText: "Shops" }).locator("button", { hasText: "Add Shop" });
     await expect(addBtn).toBeVisible();
     await expect(addBtn).toBeEnabled();
   });
@@ -126,11 +126,12 @@ test.describe("Ecommerce Page — Authenticated", () => {
     // Verify table headers
     const headers = shopTable.locator("thead th");
     await expect(headers.nth(0)).toContainText("Shop Name");
-    await expect(headers.nth(1)).toContainText("Platform");
-    await expect(headers.nth(2)).toContainText("Region");
-    await expect(headers.nth(3)).toContainText("Auth Status");
-    await expect(headers.nth(4)).toContainText("CS Balance");
-    await expect(headers.nth(5)).toContainText("Actions");
+    await expect(headers.nth(1)).toContainText("Alias");
+    await expect(headers.nth(2)).toContainText("Platform");
+    await expect(headers.nth(3)).toContainText("Region");
+    await expect(headers.nth(4)).toContainText("Auth Status");
+    await expect(headers.nth(5)).toContainText("AI Customer Service");
+    await expect(headers.nth(6)).toContainText("Actions");
 
     // At least one shop row
     const rows = shopTable.locator("tbody tr");
@@ -192,8 +193,9 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(drawer.locator(".shop-info-card").first()).toBeVisible();
 
     // Overview shows CS toggle
-    await expect(drawer.locator(".shop-toggle-card")).toBeVisible();
-    await expect(drawer.locator(".toggle-switch")).toBeVisible();
+    const csToggleCard = drawer.locator(".shop-toggle-card").filter({ hasText: "AI Customer Service" }).first();
+    await expect(csToggleCard).toBeVisible();
+    await expect(csToggleCard.locator(".toggle-switch")).toBeVisible();
 
     // Close drawer via close button
     await drawer.locator(".drawer-close-btn").click();
@@ -242,8 +244,9 @@ test.describe("Ecommerce Page — Authenticated", () => {
       await expect(drawer.locator(".drawer-tab-btn-active")).toContainText("Overview");
     }
 
-    // Close drawer via overlay
-    await window.locator(".drawer-overlay-visible").click();
+    // Close drawer via close button; clicking the overlay can hit the open
+    // drawer panel depending on scroll position and viewport geometry.
+    await drawer.locator(".drawer-close-btn").click();
     await expect(drawer).not.toBeVisible({ timeout: 5_000 });
   });
 
@@ -261,8 +264,9 @@ test.describe("Ecommerce Page — Authenticated", () => {
 
     // The checkbox input is visually hidden (CSS toggle pattern), so use
     // the label wrapper for clicks and the input for state checks.
-    const toggleInput = drawer.locator(".shop-toggle-card .toggle-switch input[type='checkbox']");
-    const toggleLabel = drawer.locator(".shop-toggle-card .toggle-switch");
+    const csToggleCard = drawer.locator(".shop-toggle-card").filter({ hasText: "AI Customer Service" }).first();
+    const toggleInput = csToggleCard.locator(".toggle-switch input[type='checkbox']");
+    const toggleLabel = csToggleCard.locator(".toggle-switch");
     await expect(toggleLabel).toBeVisible();
     const wasChecked = await toggleInput.isChecked();
 

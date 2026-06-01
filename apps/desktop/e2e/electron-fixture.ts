@@ -18,6 +18,14 @@ const electronPath = require("electron") as unknown as string;
 const DEFAULT_GATEWAY_PORT = 28789;
 const DEFAULT_PANEL_PORT = 3210;
 const DEFAULT_PROXY_ROUTER_PORT = 9999;
+const DESKTOP_VERSION = (() => {
+  try {
+    const raw = readFileSync(path.resolve("package.json"), "utf-8");
+    return (JSON.parse(raw) as { version?: string }).version ?? "";
+  } catch {
+    return "";
+  }
+})();
 
 export type WorkerPorts = {
   gateway: number;
@@ -343,6 +351,34 @@ async function bringWindowToFront(electronApp: ElectronApplication) {
   });
 }
 
+async function setE2ePanelPreferences(apiBase: string): Promise<void> {
+  await fetch(`${apiBase}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      telemetry_consent_shown: "1",
+      ...(DESKTOP_VERSION ? { whats_new_last_seen_version: DESKTOP_VERSION } : {}),
+    }),
+  }).catch(() => {});
+}
+
+async function dismissBlockingModals(window: Page): Promise<void> {
+  for (let i = 0; i < 3; i++) {
+    const backdrop = window.locator(".modal-backdrop").first();
+    if (!await backdrop.isVisible({ timeout: 500 }).catch(() => false)) break;
+    const closeBtn = backdrop.locator(".modal-close-btn");
+    if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await closeBtn.click();
+    } else {
+      const fallbackBtn = backdrop.locator("button", { hasText: /Disagree|Cancel|Close|关闭|取消/i }).first();
+      if (await fallbackBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await fallbackBtn.click();
+      }
+    }
+    await backdrop.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => {});
+  }
+}
+
 
 /**
  * Returning-user fixture: skips onboarding to reach the main page.
@@ -368,8 +404,8 @@ export const test = base.extend<ElectronFixtures>({
     await window.waitForLoadState("domcontentloaded");
 
     // Pre-dismiss telemetry consent so the dialog never blocks test interactions.
-    // Must run before React's useEffect checks localStorage.
-    await window.evaluate(() => localStorage.setItem("telemetry.consentShown", "1"));
+    // This preference is persisted through Desktop settings, not localStorage.
+    await setE2ePanelPreferences(apiBase);
 
     // Wait for the page to render (onboarding or main page)
     await window.waitForSelector(".onboarding-page, .sidebar-brand", {
@@ -382,6 +418,7 @@ export const test = base.extend<ElectronFixtures>({
       await window.locator(".btn-ghost").click();
       await window.waitForSelector(".sidebar-brand", { timeout: 45_000 });
     }
+    await dismissBlockingModals(window);
 
     // Wait for the gateway port to accept TCP connections first.
     // This decouples the fixture from ChatPage's WebSocket exponential backoff
@@ -416,9 +453,10 @@ export const freshTest = base.extend<ElectronFixtures>({
     await launchElectronApp(use, ports, testInfo);
   },
 
-  window: async ({ electronApp }, use) => {
+  window: async ({ electronApp, apiBase }, use) => {
     const window = await electronApp.firstWindow({ timeout: 45_000 });
     await window.waitForLoadState("domcontentloaded");
+    await setE2ePanelPreferences(apiBase);
     await window.waitForSelector(".onboarding-page", { timeout: 45_000 });
     await bringWindowToFront(electronApp);
 

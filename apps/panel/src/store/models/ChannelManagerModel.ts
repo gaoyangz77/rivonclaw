@@ -83,6 +83,41 @@ export const ChannelManagerModel = types
       clearStatusRetryTimer();
     }
 
+    function patchAccountRecipients(
+      channelId: string,
+      accountId: string | undefined,
+      patch: Partial<NonNullable<ChannelsStatusSnapshot["channelAccounts"][string][number]["recipients"]>>,
+    ): void {
+      if (!self.statusSnapshot || !accountId) return;
+      const accounts = self.statusSnapshot.channelAccounts[channelId];
+      if (!accounts) return;
+
+      const nextAccounts = accounts.map((account) => {
+        if (account.accountId !== accountId) return account;
+        const current = account.recipients ?? {
+          allowlist: [],
+          labels: {},
+          owners: {},
+          pairingRequests: [],
+        };
+        return {
+          ...account,
+          recipients: {
+            ...current,
+            ...patch,
+          },
+        };
+      });
+
+      self.statusSnapshot = {
+        ...self.statusSnapshot,
+        channelAccounts: {
+          ...self.statusSnapshot.channelAccounts,
+          [channelId]: nextAccounts,
+        },
+      };
+    }
+
     function setStatusError(err: unknown, showError: boolean): void {
       if (showError || !self.statusSnapshot) {
         self.statusError = String(err);
@@ -316,15 +351,22 @@ export const ChannelManagerModel = types
         const data: { requests: PairingRequest[] } = yield fetchJson(
           clientPath(API["pairing.requests"], { channelId }) + qs,
         );
+        patchAccountRecipients(channelId, accountId, { pairingRequests: data.requests });
         return data.requests;
       }),
 
       /** Refresh allowlist. Desktop updates account.recipients in MST. */
       getAllowlist: flow(function* (channelId: string, accountId?: string) {
         const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-        return yield fetchJson<AllowlistResult>(
+        const result: AllowlistResult = yield fetchJson<AllowlistResult>(
           clientPath(API["pairing.allowlist.get"], { channelId }) + qs,
         );
+        patchAccountRecipients(channelId, accountId, {
+          allowlist: result.allowlist,
+          labels: result.labels,
+          owners: result.owners ?? {},
+        });
+        return result;
       }),
 
       /** Approve a pairing request for a channel account. */
