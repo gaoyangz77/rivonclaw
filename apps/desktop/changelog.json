@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.23",
+    "date": "2026-05-31",
+    "en": [
+      "Improve customer-service Airflow retry handling by using backend dispatch time for more accurate retry windows",
+      "Keep customer-service session retry snapshots aligned with backend timing so repeated attempts are less likely to drift",
+      "Clarify MAX plan usage copy across the desktop panel"
+    ],
+    "zh": [
+      "优化客服 Airflow 重试处理，使用后端分派时间计算更准确的重试窗口",
+      "让客服会话重试快照与后端时间保持一致，减少重复尝试时的时间偏移",
+      "更新桌面面板中的 MAX 套餐使用说明文案"
+    ]
+  },
+  {
     "version": "1.8.22",
     "date": "2026-05-31",
     "en": [
