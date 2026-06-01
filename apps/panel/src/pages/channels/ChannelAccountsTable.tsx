@@ -107,7 +107,7 @@ export function ChannelAccountsTable({
   const entityStore = useEntityStore();
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const [recipientUiState, setRecipientUiState] = useState<Record<string, RecipientUiState>>({});
-  const [mobileRecipientData, setMobileRecipientData] = useState<Record<string, RecipientSnapshot>>({});
+  const [recipientData, setRecipientData] = useState<Record<string, RecipientSnapshot>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState<{ compositeKey: string; channelId: string; accountId?: string; entry: string } | null>(null);
   const [mobileDeviceStatus, setMobileDeviceStatus] = useState<MobileDeviceStatusResponse["devices"]>({});
@@ -163,17 +163,15 @@ export function ChannelAccountsTable({
         entityStore.channelManager.getAllowlist(channelId, accountId),
         entityStore.channelManager.getPairingRequests(channelId, accountId),
       ]);
-      if (channelId === "mobile") {
-        setMobileRecipientData(prev => ({
-          ...prev,
-          [compositeKey]: {
-            allowlist: result.allowlist,
-            labels: result.labels,
-            owners: result.owners ?? {},
-            pairingRequests: requests,
-          },
-        }));
-      }
+      setRecipientData(prev => ({
+        ...prev,
+        [compositeKey]: {
+          allowlist: result.allowlist,
+          labels: result.labels,
+          owners: result.owners ?? {},
+          pairingRequests: requests,
+        },
+      }));
       setRecipientUiState(prev => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
     } catch {
       // Silently ignore background refresh errors to avoid disrupting the UI
@@ -203,6 +201,28 @@ export function ChannelAccountsTable({
     return () => unsubscribe();
   }, [expandedAccounts]);
 
+  useEffect(() => {
+    const nonMobileExpanded = Array.from(expandedAccounts).filter(key => !key.startsWith("mobile:"));
+    if (nonMobileExpanded.length === 0) return;
+
+    let cancelled = false;
+    async function poll() {
+      for (const key of nonMobileExpanded) {
+        if (cancelled) return;
+        const [channelId, accountId] = key.split(":", 2);
+        if (channelId && accountId) {
+          await refreshRecipientData(channelId, accountId);
+        }
+      }
+    }
+
+    const timer = setInterval(poll, 5_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [expandedAccounts]);
+
   async function loadRecipientData(channelId: string, account: ChannelAccountSnapshot) {
     const accountId = account.accountId;
     const compositeKey = `${channelId}:${accountId}`;
@@ -217,17 +237,15 @@ export function ChannelAccountsTable({
         entityStore.channelManager.getAllowlist(channelId, accountId),
         entityStore.channelManager.getPairingRequests(channelId, accountId),
       ]);
-      if (channelId === "mobile") {
-        setMobileRecipientData(prev => ({
-          ...prev,
-          [compositeKey]: {
-            allowlist: result.allowlist,
-            labels: result.labels,
-            owners: result.owners ?? {},
-            pairingRequests: requests,
-          },
-        }));
-      }
+      setRecipientData(prev => ({
+        ...prev,
+        [compositeKey]: {
+          allowlist: result.allowlist,
+          labels: result.labels,
+          owners: result.owners ?? {},
+          pairingRequests: requests,
+        },
+      }));
       setRecipientUiState(prev => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
     } catch (err) {
       setRecipientUiState(prev => ({
@@ -256,6 +274,7 @@ export function ChannelAccountsTable({
     setProcessing(code);
     try {
       await entityStore.channelManager.approvePairing(channelId, code, i18nLang, accountId);
+      await refreshRecipientData(channelId, accountId);
     } catch (err) {
       setRecipientUiState(prev => ({
         ...prev,
@@ -289,7 +308,7 @@ export function ChannelAccountsTable({
         await entityStore.channelManager.removeFromAllowlist(channelId, entry, accountId);
       }
       if (channelId === "mobile") {
-        setMobileRecipientData(prev => {
+        setRecipientData(prev => {
           const data = prev[compositeKey];
           if (!data) return prev;
           return {
@@ -323,7 +342,7 @@ export function ChannelAccountsTable({
     try {
       await entityStore.channelManager.setRecipientOwner(channelId, recipientId, newValue, accountId);
       if (channelId === "mobile") {
-        setMobileRecipientData(prev => {
+        setRecipientData(prev => {
           const data = prev[compositeKey];
           if (!data) return prev;
           return {
@@ -352,7 +371,7 @@ export function ChannelAccountsTable({
     try {
       await entityStore.channelManager.setRecipientLabel(channelId, recipientId, newLabel, accountId);
       if (channelId === "mobile") {
-        setMobileRecipientData(prev => {
+        setRecipientData(prev => {
           const data = prev[compositeKey];
           if (!data) return prev;
           return {
@@ -394,8 +413,8 @@ export function ChannelAccountsTable({
     const accountId = account.accountId;
     const state = recipientUiState[compositeKey] ?? { loading: false, error: null };
     const data = channelId === "mobile"
-      ? (mobileRecipientData[compositeKey] ?? emptyRecipients())
-      : normalizeRecipients(account);
+      ? (recipientData[compositeKey] ?? emptyRecipients())
+      : (recipientData[compositeKey] ?? normalizeRecipients(account));
 
     if (state.loading) {
       return (

@@ -139,9 +139,7 @@ function buildAccountWithRuntime(
   if (mst.status?.hasContextToken !== undefined) {
     merged.contextTokenReady = mst.status.hasContextToken;
   }
-  if (mst.recipients) {
-    merged.recipients = mst.recipients;
-  }
+  merged.recipients = mst.recipients ?? runtime.recipients;
 
   return merged;
 }

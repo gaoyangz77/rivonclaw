@@ -1,9 +1,9 @@
 import { test, expect } from "./electron-fixture.js";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 test.describe("Telegram Pairing Flow", () => {
-  test("add account, simulate pairing request, and approve", async ({ window, electronApp }) => {
+  test("add account, simulate pairing request, and approve", async ({ window, electronApp, apiBase }) => {
     test.slow();
     test.skip(!process.env.E2E_TELEGRAM_BOT_TOKEN, "E2E_TELEGRAM_BOT_TOKEN required");
 
@@ -84,6 +84,11 @@ test.describe("Telegram Pairing Flow", () => {
       return process.env.OPENCLAW_STATE_DIR;
     });
     expect(stateDir).toBeTruthy();
+    const config = JSON.parse(readFileSync(path.join(stateDir!, "openclaw.json"), "utf-8")) as {
+      channels?: { telegram?: { defaultAccount?: string; accounts?: Record<string, unknown> } };
+    };
+    const telegramAccounts = config.channels?.telegram?.accounts ?? {};
+    const accountId = config.channels?.telegram?.defaultAccount ?? Object.keys(telegramAccounts).at(-1) ?? "default";
 
     const credentialsDir = path.join(stateDir!, "credentials");
     mkdirSync(credentialsDir, { recursive: true });
@@ -101,7 +106,7 @@ test.describe("Telegram Pairing Flow", () => {
             username: "e2e_test_user",
             firstName: "E2E",
             lastName: "TestUser",
-            accountId: "default",
+            accountId,
           },
         },
       ],
@@ -111,6 +116,13 @@ test.describe("Telegram Pairing Flow", () => {
       path.join(credentialsDir, "telegram-pairing.json"),
       JSON.stringify(pairingData, null, 2),
     );
+    await expect.poll(async () => {
+      const res = await fetch(
+        `${apiBase}/api/pairing/requests/telegram?accountId=${encodeURIComponent(accountId)}`,
+      );
+      const body = await res.json() as { requests?: Array<unknown> };
+      return body.requests?.length ?? 0;
+    }, { timeout: 10_000 }).toBeGreaterThan(0);
 
     // Wait for the 5s polling to pick up the new pairing request
     const pendingSection = window
