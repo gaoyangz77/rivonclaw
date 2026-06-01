@@ -14,6 +14,14 @@ export const REFRESH_TOKEN_MUTATION = `
         support {
           telegramDebugProxyToken
         }
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
       }
     }
   }
@@ -31,6 +39,14 @@ export const ME_QUERY = `
       defaultRunProfileId
       support {
         telegramDebugProxyToken
+      }
+      agent {
+        active
+        inviteCode
+        enabledAt
+        enabledByUserId
+        disabledAt
+        disabledByUserId
       }
     }
   }
@@ -58,6 +74,14 @@ export const LOGIN_MUTATION = `
         support {
           telegramDebugProxyToken
         }
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
       }
     }
   }
@@ -78,6 +102,14 @@ export const REGISTER_MUTATION = `
         defaultRunProfileId
         support {
           telegramDebugProxyToken
+        }
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
         }
       }
     }

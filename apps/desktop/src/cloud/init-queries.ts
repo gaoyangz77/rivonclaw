@@ -68,6 +68,14 @@ export const INIT_ME_QUERY = `
       support {
         telegramDebugProxyToken
       }
+      agent {
+        active
+        inviteCode
+        enabledAt
+        enabledByUserId
+        disabledAt
+        disabledByUserId
+      }
     }
   }
 `;

@@ -74,7 +74,7 @@ const register: EndpointHandler = async (req, res, _url, _params, ctx: ApiContex
     sendJson(res, 501, { error: "Auth not available" });
     return;
   }
-  const body = await parseBody(req) as { email: string; password: string; name?: string; captchaToken?: string; captchaAnswer?: string };
+  const body = await parseBody(req) as { email: string; password: string; name?: string; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null };
   if (!body.email || !body.password) {
     sendJson(res, 400, { error: "Missing email or password" });
     return;

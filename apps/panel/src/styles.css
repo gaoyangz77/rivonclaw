@@ -5759,6 +5759,127 @@ tbody td {
   text-align: center;
 }
 
+/* ===== Server-driven announcement modal ===== */
+
+.announcement-modal {
+  min-width: 0;
+}
+
+.announcement-modal .ann-card {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.announcement-modal .ann-meter {
+  min-height: 148px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0)),
+    var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.announcement-modal .ann-meter strong {
+  font-size: 68px;
+  line-height: 0.9;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.announcement-modal .ann-meter span {
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.announcement-modal .ann-copy {
+  min-width: 0;
+}
+
+.announcement-modal .ann-lede {
+  margin: 0 0 12px;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.announcement-modal .ann-benefits {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.announcement-modal .ann-benefits li {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-bg-page);
+}
+
+.announcement-modal .ann-benefits strong,
+.announcement-modal .ann-benefits span {
+  display: block;
+}
+
+.announcement-modal .ann-benefits strong {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.announcement-modal .ann-benefits span {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.announcement-modal .ann-note {
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.announcement-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+@media (max-width: 560px) {
+  .announcement-modal .ann-card {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-modal .ann-meter {
+    min-height: 126px;
+  }
+
+  .announcement-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .announcement-modal-actions .btn {
+    width: 100%;
+  }
+}
+
 /* User avatar button in sidebar bottom */
 .user-avatar-btn {
   display: flex;
@@ -6115,6 +6236,77 @@ tbody td {
 .account-info-value {
   font-size: 14px;
   color: var(--color-text);
+}
+
+.account-invite-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account-invite-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+}
+
+.account-invite-code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  padding: 3px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-page);
+}
+
+.account-invite-help {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.account-invite-help:hover,
+.account-invite-help:focus-visible {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  outline: none;
+}
+
+.account-invite-help::after {
+  width: 240px;
+  white-space: normal;
+  text-align: left;
+}
+
+.account-invite-copy {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.account-invite-copy:hover,
+.account-invite-copy-copied {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .account-info-item-wide {

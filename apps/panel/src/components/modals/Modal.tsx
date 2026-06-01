@@ -3,6 +3,7 @@ import { useRef, type ReactNode } from "react";
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onBackdropClose?: () => void;
   title: string;
   children: ReactNode;
   maxWidth?: number;
@@ -11,7 +12,7 @@ export interface ModalProps {
   preventBackdropClose?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, maxWidth = 600, hideCloseButton, preventBackdropClose }: ModalProps) {
+export function Modal({ isOpen, onClose, onBackdropClose, title, children, maxWidth = 600, hideCloseButton, preventBackdropClose }: ModalProps) {
   const mouseDownOnBackdrop = useRef(false);
 
   if (!isOpen) return null;
@@ -22,7 +23,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 600, hideCl
       onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
       onClick={(e) => {
         if (!preventBackdropClose && e.target === e.currentTarget && mouseDownOnBackdrop.current) {
-          onClose();
+          (onBackdropClose ?? onClose)();
         }
         mouseDownOnBackdrop.current = false;
       }}
