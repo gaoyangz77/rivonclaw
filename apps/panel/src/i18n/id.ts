@@ -1459,7 +1459,7 @@ export default {
     "planDescriptions": {
       "RIVONCLAW_AI_PLUS": "Penggunaan cloud dasar LLM untuk pekerjaan ringan sehari-hari.",
       "RIVONCLAW_AI_PRO": "3x penggunaan Plus untuk otomatisasi harian yang lebih berat.",
-      "RIVONCLAW_AI_MAX": "6x penggunaan Plus untuk alur kerja bervolume tinggi."
+      "RIVONCLAW_AI_MAX": "8x penggunaan Plus untuk alur kerja bervolume tinggi."
     },
     "exchangeRate": "USD/CNY {{rate}} dan {{date}}",
     "services": {

@@ -1504,7 +1504,7 @@ export default {
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "适合轻量日常使用的基础云端 LLM 用量。",
       RIVONCLAW_AI_PRO: "用量为 Plus 的 3 倍，适合更高频的日常自动化。",
-      RIVONCLAW_AI_MAX: "用量为 Plus 的 6 倍，适合高频业务流程。",
+      RIVONCLAW_AI_MAX: "用量为 Plus 的 8 倍，适合高频业务流程。",
     },
     exchangeRate: "USD/CNY {{rate}}，日期 {{date}}",
     services: {
