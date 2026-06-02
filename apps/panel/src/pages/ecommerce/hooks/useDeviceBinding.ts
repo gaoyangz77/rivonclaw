@@ -68,7 +68,7 @@ export function useDeviceBinding(shops: Shop[]) {
     setTogglingBindShopId(shopId);
     try {
       await shop.update({
-        services: { customerService: { csDeviceId: null } },
+        services: { customerService: { csDeviceId: "" } },
       });
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
