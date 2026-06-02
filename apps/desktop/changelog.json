@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.26",
+    "date": "2026-06-02",
+    "en": [
+      "Refine the desktop welcome flow and authentication entry points so new sellers land in the right setup path faster",
+      "Localize ecommerce regions and chat example presets across supported panel languages",
+      "Improve China dependency provisioning and harden customer-service escalation and reply-format handling"
+    ],
+    "zh": [
+      "优化桌面端欢迎流程与登录入口，让新卖家更快进入正确的初始化路径",
+      "本地化电商区域与聊天示例预设，覆盖面板支持的多语言",
+      "改进中国网络下的依赖供给，并加固客服升级通知与回复格式处理"
+    ]
+  },
+  {
     "version": "1.8.25",
     "date": "2026-06-02",
     "en": [
