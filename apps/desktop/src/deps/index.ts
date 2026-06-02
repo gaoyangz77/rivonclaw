@@ -1,7 +1,7 @@
 import { platform } from "node:os";
 import { nativeTheme } from "electron";
 import { createLogger } from "@rivonclaw/logger";
-import type { DepName, DepStatus, ProvisionResult } from "./types.js";
+import type { DepName, ProvisionResult } from "./types.js";
 import { detectDeps } from "./dep-detector.js";
 import { installDep } from "./dep-installer.js";
 import { configureMirrors } from "./mirror-config.js";
@@ -44,7 +44,7 @@ export async function runDepsProvisioner(opts: {
   if (allAvailable) {
     const result: ProvisionResult = { installed: [], skipped: [], failed: [] };
     win.updateProgress({ phase: "done", message: "" });
-    const decision = await win.showResult(result);
+    await win.showResult(result);
     // decision is always "continue" when nothing failed
     storage.settings.set("deps_provisioned", "true");
     win.close();
@@ -66,6 +66,11 @@ export async function runDepsProvisioner(opts: {
 
   // 6. User chose "Install" — detect network region and enter install loop
   const region = await detectRegion();
+  if (region === "cn") {
+    win.updateProgress({ phase: "configuring", message: "Configuring mirrors..." });
+    await configureMirrors(region);
+  }
+
   let result: ProvisionResult = { installed: [], skipped: [], failed: [] };
   let depsToInstall: DepName[] = statuses.filter((s) => !s.available).map((s) => s.name);
 
@@ -90,6 +95,11 @@ export async function runDepsProvisioner(opts: {
 
         result.installed.push(dep);
         win.sendLog(`\u2713 ${dep} installed successfully`);
+
+        if (region === "cn") {
+          win.updateProgress({ phase: "configuring", message: "Configuring mirrors..." });
+          await configureMirrors(region);
+        }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         log.error(`Failed to install ${dep}: ${errorMsg}`);
@@ -98,7 +108,7 @@ export async function runDepsProvisioner(opts: {
       }
     }
 
-    // After all deps: configure mirrors for China region
+    // After all deps: configure mirrors again for tools that were just installed.
     if (region === "cn") {
       win.updateProgress({ phase: "configuring", message: "Configuring mirrors..." });
       await configureMirrors(region);

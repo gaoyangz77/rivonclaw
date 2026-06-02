@@ -90,7 +90,10 @@ describe("getAugmentedPath", () => {
     // correct directory components and ";" separator.
     expect(path).toContain("AppData");
     expect(path).toContain("Programs");
+    expect(path).toContain("Git");
     expect(path).toContain("Python");
+    expect(path).toContain("Python313");
+    expect(path).toContain("nodejs");
     expect(path).toContain("scoop");
     expect(path).toContain("shims");
     expect(path).toContain(".cargo");

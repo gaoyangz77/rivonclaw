@@ -26,7 +26,15 @@ export function getAugmentedPath(): string {
     // On Windows the default PATH is generally sufficient; just ensure
     // common scoop / user-local directories are present.
     const extra = [
+      "C:\\Program Files\\Git\\cmd",
+      "C:\\Program Files\\Git\\bin",
+      win32.join(home, "AppData", "Local", "Programs", "Git", "cmd"),
+      win32.join(home, "AppData", "Local", "Programs", "Git", "bin"),
       win32.join(home, "AppData", "Local", "Programs", "Python"),
+      win32.join(home, "AppData", "Local", "Programs", "Python", "Python313"),
+      win32.join(home, "AppData", "Local", "Programs", "Python", "Python313", "Scripts"),
+      "C:\\Program Files\\nodejs",
+      win32.join(home, "AppData", "Local", "Programs", "nodejs"),
       win32.join(home, "scoop", "shims"),
       win32.join(home, ".cargo", "bin"),
     ];

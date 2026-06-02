@@ -36,6 +36,8 @@ function spawnAsync(
   opts: SpawnOpts = {},
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    const timeoutMs = opts.timeout ?? INSTALL_TIMEOUT;
+    let timedOut = false;
     const env = {
       ...(opts.env ?? { ...process.env, PATH: getAugmentedPath() }),
       ...UTF8_ENV,
@@ -44,8 +46,11 @@ function spawnAsync(
       env,
       shell: opts.shell ?? false,
       stdio: ["ignore", "pipe", "pipe"],
-      timeout: opts.timeout ?? INSTALL_TIMEOUT,
     });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeoutMs);
 
     const handleData = (data: Buffer): void => {
       // Replace invalid UTF-8 sequences with U+FFFD to avoid garbled output
@@ -61,10 +66,21 @@ function spawnAsync(
     child.stderr?.on("data", handleData);
 
     child.on("error", (err) => {
+      clearTimeout(timeout);
       reject(new Error(`Failed to spawn ${cmd}: ${err.message}`));
     });
 
     child.on("close", (code) => {
+      clearTimeout(timeout);
+      if (timedOut) {
+        reject(
+          new Error(
+            `${cmd} timed out after ${Math.round(timeoutMs / 1000)}s. ` +
+              "The installer may be waiting for confirmation or stalled while downloading.",
+          ),
+        );
+        return;
+      }
       if (code === 0) {
         resolve();
       } else {
@@ -112,15 +128,33 @@ async function ensureHomebrew(
     ...mirrorEnv,
   };
 
-  await spawnAsync(
-    "/bin/bash",
-    [
-      "-c",
-      `$(curl -fsSL ${DEFAULTS.installers.homebrew})`,
-    ],
-    onOutput,
-    { env },
-  );
+  if (region === "cn") {
+    onOutput("Installing Homebrew from China mirror...");
+    await spawnAsync(
+      "/bin/bash",
+      [
+        "-c",
+        [
+          'tmpdir="$(mktemp -d)"',
+          'git clone --depth=1 https://mirrors.aliyun.com/homebrew/install.git "$tmpdir/brew-install"',
+          '/bin/bash "$tmpdir/brew-install/install.sh"',
+          'rm -rf "$tmpdir"',
+        ].join(" && "),
+      ],
+      onOutput,
+      { env },
+    );
+  } else {
+    await spawnAsync(
+      "/bin/bash",
+      [
+        "-c",
+        `$(curl -fsSL ${DEFAULTS.installers.homebrew})`,
+      ],
+      onOutput,
+      { env },
+    );
+  }
 
   // For cn region, inject mirror env vars into the user's shell profile
   if (region === "cn" && mirrorEnv) {
@@ -230,11 +264,216 @@ const WINGET_IDS: Record<DepName, string> = {
   uv: "astral-sh.uv",
 };
 
+const GIT_FOR_WINDOWS_CN_RELEASE = "v2.54.0.windows.1";
+const GIT_FOR_WINDOWS_CN_VERSION = "2.54.0";
+const GIT_FOR_WINDOWS_CN_MIRROR_BASE =
+  `https://repo.huaweicloud.com/git-for-windows/${GIT_FOR_WINDOWS_CN_RELEASE}`;
+
+const GIT_FOR_WINDOWS_CN_INSTALLERS = {
+  x64: {
+    fileName: `Git-${GIT_FOR_WINDOWS_CN_VERSION}-64-bit.exe`,
+    sha256: "2B96E7854F0520F0F6B709C21041D9801B1BE44D5E1A0D9FA621B2FBC40F1983",
+  },
+  arm64: {
+    fileName: `Git-${GIT_FOR_WINDOWS_CN_VERSION}-arm64.exe`,
+    sha256: "97BF63E5C65152C14B488E191C107AA1CCBEAE2435690693241BE4B2B5EDD0D2",
+  },
+} as const;
+
+const NODE_WINDOWS_CN_VERSION = "24.16.0";
+const NODE_WINDOWS_CN_MIRROR_BASE =
+  `https://mirrors.huaweicloud.com/nodejs/v${NODE_WINDOWS_CN_VERSION}`;
+
+const PYTHON_WINDOWS_CN_VERSION = "3.13.13";
+const PYTHON_WINDOWS_CN_MIRROR_BASE =
+  `https://mirrors.huaweicloud.com/python/${PYTHON_WINDOWS_CN_VERSION}`;
+
+const PYTHON_WINDOWS_CN_INSTALLERS = {
+  x64: {
+    fileName: `python-${PYTHON_WINDOWS_CN_VERSION}-amd64.exe`,
+    sha256: "3C9C81D80F91C002CED86D645422D81432C68C7D9B6B0E974768CA2E449A4D00",
+  },
+  arm64: {
+    fileName: `python-${PYTHON_WINDOWS_CN_VERSION}-arm64.exe`,
+    sha256: "7925FC1D40DC75379AE70EDE7A6217FAF5549BB93CA89A3EA519185D8BC657BF",
+  },
+} as const;
+
+function quotePowerShellString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function getGitForWindowsCnInstaller(): {
+  fileName: string;
+  sha256: string;
+  url: string;
+} {
+  const installer =
+    arch() === "arm64"
+      ? GIT_FOR_WINDOWS_CN_INSTALLERS.arm64
+      : GIT_FOR_WINDOWS_CN_INSTALLERS.x64;
+
+  return {
+    ...installer,
+    url: `${GIT_FOR_WINDOWS_CN_MIRROR_BASE}/${installer.fileName}`,
+  };
+}
+
+async function installGitWindowsFromChinaMirror(
+  onOutput: (line: string) => void,
+): Promise<void> {
+  const installer = getGitForWindowsCnInstaller();
+  onOutput(`Installing git from China mirror (${installer.fileName})...`);
+
+  const tempFileName = `RivonClaw-${installer.fileName}`;
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12",
+    `$url = ${quotePowerShellString(installer.url)}`,
+    `$out = Join-Path $env:TEMP ${quotePowerShellString(tempFileName)}`,
+    `Write-Output ${quotePowerShellString(`Downloading ${installer.fileName} from Huawei Cloud mirror...`)}`,
+    "Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing",
+    `$expected = ${quotePowerShellString(installer.sha256)}`,
+    "$actual = (Get-FileHash -Algorithm SHA256 $out).Hash.ToUpperInvariant()",
+    'if ($actual -ne $expected) { throw "Git installer SHA256 mismatch: expected $expected, got $actual" }',
+    `Write-Output ${quotePowerShellString("Installing Git for Windows silently...")}`,
+    "$arguments = @('/SP-', '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER')",
+    "$process = Start-Process -FilePath $out -ArgumentList $arguments -Wait -PassThru",
+    'if ($process.ExitCode -ne 0) { throw "Git installer exited with code $($process.ExitCode)" }',
+    "Remove-Item $out -Force -ErrorAction SilentlyContinue",
+  ].join("; ");
+
+  await spawnAsync(
+    "powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+    onOutput,
+    { shell: true },
+  );
+}
+
+function getNodeWindowsCnInstaller(): {
+  fileName: string;
+  url: string;
+} {
+  const archName = arch() === "arm64" ? "arm64" : "x64";
+  const fileName = `node-v${NODE_WINDOWS_CN_VERSION}-${archName}.msi`;
+  return {
+    fileName,
+    url: `${NODE_WINDOWS_CN_MIRROR_BASE}/${fileName}`,
+  };
+}
+
+async function installNodeWindowsFromChinaMirror(
+  onOutput: (line: string) => void,
+): Promise<void> {
+  const installer = getNodeWindowsCnInstaller();
+  onOutput(`Installing node from China mirror (${installer.fileName})...`);
+
+  const tempFileName = `RivonClaw-${installer.fileName}`;
+  const shasumsUrl = `${NODE_WINDOWS_CN_MIRROR_BASE}/SHASUMS256.txt`;
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12",
+    `$url = ${quotePowerShellString(installer.url)}`,
+    `$shasumsUrl = ${quotePowerShellString(shasumsUrl)}`,
+    `$fileName = ${quotePowerShellString(installer.fileName)}`,
+    `$out = Join-Path $env:TEMP ${quotePowerShellString(tempFileName)}`,
+    `Write-Output ${quotePowerShellString(`Downloading ${installer.fileName} from Huawei Cloud mirror...`)}`,
+    "$shasums = (Invoke-WebRequest -Uri $shasumsUrl -UseBasicParsing).Content",
+    "$line = ($shasums -split \"`n\" | Where-Object { $_.Trim().EndsWith($fileName) } | Select-Object -First 1)",
+    'if (-not $line) { throw "Cannot find SHA256 entry for $fileName" }',
+    "$expected = ($line.Trim() -split '\\s+')[0].ToUpperInvariant()",
+    "Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing",
+    "$actual = (Get-FileHash -Algorithm SHA256 $out).Hash.ToUpperInvariant()",
+    'if ($actual -ne $expected) { throw "Node installer SHA256 mismatch: expected $expected, got $actual" }',
+    `Write-Output ${quotePowerShellString("Installing Node.js silently...")}`,
+    "$arguments = @('/i', $out, '/qn', '/norestart', 'ALLUSERS=2', 'MSIINSTALLPERUSER=1')",
+    "$process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru",
+    'if ($process.ExitCode -ne 0) { throw "Node installer exited with code $($process.ExitCode)" }',
+    "Remove-Item $out -Force -ErrorAction SilentlyContinue",
+  ].join("; ");
+
+  await spawnAsync(
+    "powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+    onOutput,
+    { shell: true },
+  );
+}
+
+function getPythonWindowsCnInstaller(): {
+  fileName: string;
+  sha256: string;
+  url: string;
+} {
+  const installer =
+    arch() === "arm64"
+      ? PYTHON_WINDOWS_CN_INSTALLERS.arm64
+      : PYTHON_WINDOWS_CN_INSTALLERS.x64;
+
+  return {
+    ...installer,
+    url: `${PYTHON_WINDOWS_CN_MIRROR_BASE}/${installer.fileName}`,
+  };
+}
+
+async function installPythonWindowsFromChinaMirror(
+  onOutput: (line: string) => void,
+): Promise<void> {
+  const installer = getPythonWindowsCnInstaller();
+  onOutput(`Installing python from China mirror (${installer.fileName})...`);
+
+  const tempFileName = `RivonClaw-${installer.fileName}`;
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12",
+    `$url = ${quotePowerShellString(installer.url)}`,
+    `$out = Join-Path $env:TEMP ${quotePowerShellString(tempFileName)}`,
+    `Write-Output ${quotePowerShellString(`Downloading ${installer.fileName} from Huawei Cloud mirror...`)}`,
+    "Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing",
+    `$expected = ${quotePowerShellString(installer.sha256)}`,
+    "$actual = (Get-FileHash -Algorithm SHA256 $out).Hash.ToUpperInvariant()",
+    'if ($actual -ne $expected) { throw "Python installer SHA256 mismatch: expected $expected, got $actual" }',
+    `Write-Output ${quotePowerShellString("Installing Python silently...")}`,
+    "$arguments = @('/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_launcher=1', 'Include_pip=1')",
+    "$process = Start-Process -FilePath $out -ArgumentList $arguments -Wait -PassThru",
+    'if ($process.ExitCode -ne 0) { throw "Python installer exited with code $($process.ExitCode)" }',
+    "Remove-Item $out -Force -ErrorAction SilentlyContinue",
+  ].join("; ");
+
+  await spawnAsync(
+    "powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+    onOutput,
+    { shell: true },
+  );
+}
+
 async function installDepWindows(
   dep: DepName,
   region: Region,
   onOutput: (line: string) => void,
 ): Promise<void> {
+  if (region === "cn") {
+    if (dep === "git") {
+      await installGitWindowsFromChinaMirror(onOutput);
+      return;
+    }
+    if (dep === "python") {
+      await installPythonWindowsFromChinaMirror(onOutput);
+      return;
+    }
+    if (dep === "node") {
+      await installNodeWindowsFromChinaMirror(onOutput);
+      return;
+    }
+    if (dep === "uv") {
+      onOutput("Installing uv via pip...");
+      await spawnAsync("pip", ["install", "uv"], onOutput, { shell: true });
+      return;
+    }
+  }
+
   const hasWinget = await isWingetAvailable();
 
   if (hasWinget) {
@@ -251,6 +490,7 @@ async function installDepWindows(
         "winget",
         "--accept-package-agreements",
         "--accept-source-agreements",
+        "--disable-interactivity",
       ],
       onOutput,
       { shell: true },
