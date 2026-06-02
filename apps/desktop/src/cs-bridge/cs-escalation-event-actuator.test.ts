@@ -86,7 +86,13 @@ const delivery: CsEscalationEventDeliveryPayload = {
   },
 };
 
-function seedShop(csDeviceId: string | null = "device-001"): void {
+function seedShop(
+  csDeviceId: string | null = "device-001",
+  routing: {
+    escalationChannelId?: string | null;
+    escalationRecipientId?: string | null;
+  } = {},
+): void {
   rootStore.ingestGraphQLResponse({
     shops: [
       {
@@ -107,8 +113,12 @@ function seedShop(csDeviceId: string | null = "device-001"): void {
             csDeviceId,
             csProviderOverride: null,
             csModelOverride: null,
-            escalationChannelId: "telegram:acct_cloud_send",
-            escalationRecipientId: "987654321",
+            escalationChannelId: routing.escalationChannelId === undefined
+              ? "telegram:acct_cloud_send"
+              : routing.escalationChannelId,
+            escalationRecipientId: routing.escalationRecipientId === undefined
+              ? "987654321"
+              : routing.escalationRecipientId,
             runProfileId: null,
           },
         },
@@ -178,6 +188,46 @@ describe("handleCsEscalationEvent", () => {
       }),
     );
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("acks escalation-created events as handled when channel routing is not configured", async () => {
+    seedShop("device-001", { escalationChannelId: null });
+    const bridge = new CustomerServiceBridge({
+      gatewayId: "test-gateway",
+      defaultRunProfileId: "CUSTOMER_SERVICE",
+    });
+    bridge.setShopContext({
+      objectId: "shop-mongo-001",
+      platformShopId: "platform-shop-001",
+      shopName: "Cloud Escalation Shop",
+      systemPrompt: "You are a CS assistant.",
+      runProfileId: "CUSTOMER_SERVICE",
+    });
+    mockGetCsBridge.mockReturnValue(bridge);
+
+    const graphqlFetch = vi.fn(async (query: string, variables: unknown) => {
+      if (query.includes("CsClaimEscalationEvent")) {
+        expect(variables).toEqual({ input: { eventId: delivery.event.id } });
+        return { csClaimEscalationEvent: delivery };
+      }
+      if (query.includes("CsAckEscalationEvent")) {
+        expect(variables).toEqual({
+          input: { eventId: delivery.event.id, success: true },
+        });
+        return { csAckEscalationEvent: delivery };
+      }
+      throw new Error(`Unexpected GraphQL query: ${query}`);
+    });
+
+    await handleCsEscalationEvent(
+      { graphqlFetch } as any,
+      "device-001",
+      delivery,
+    );
+
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
   });
