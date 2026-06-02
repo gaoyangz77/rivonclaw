@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.27",
+    "date": "2026-06-02",
+    "en": [
+      "Treat null shop-update fields as no-ops so existing ecommerce shop details are not cleared accidentally",
+      "Keep the ecommerce panel aligned with the updated shop-update contract when backend payloads omit optional values",
+      "Relax customer-service platform catchup eligibility so recovery can proceed in more valid conversation states"
+    ],
+    "zh": [
+      "将店铺更新中的 null 字段视为无操作，避免意外清空已有电商店铺信息",
+      "让电商面板匹配新的店铺更新契约，后端省略可选值时不覆盖现有状态",
+      "放宽客服平台 catchup eligibility，让更多有效会话状态可以继续恢复"
+    ]
+  },
+  {
     "version": "1.8.26",
     "date": "2026-06-02",
     "en": [
