@@ -22,6 +22,15 @@ function formatError(err: unknown): string {
   return String(err ?? "unknown_error");
 }
 
+function getMissingEscalationRoutingReason(delivery: CsEscalationEventDeliveryPayload): string | null {
+  if (delivery.event.type !== "ESCALATION_CREATED") return null;
+  const shop = findEscalationShop(delivery);
+  const cs = shop?.services?.customerService;
+  if (!cs?.escalationChannelId) return "missing_channel";
+  if (!cs?.escalationRecipientId) return "missing_recipient";
+  return null;
+}
+
 function scheduleLocalRetry(
   authSession: AuthSessionManager,
   deviceId: string,
@@ -95,6 +104,20 @@ export async function handleCsEscalationEvent(
     const claimed = await claimEvent(authSession, event.id);
     if (!claimed) {
       log.info(`CS escalation event ${event.id} was not claimable; skipping`);
+      return;
+    }
+
+    const missingRoutingReason = getMissingEscalationRoutingReason(claimed);
+    if (missingRoutingReason) {
+      await ackEvent({
+        authSession,
+        eventId: claimed.event.id,
+        success: true,
+      });
+      log.info(
+        `Skipped CS escalation channel notification ${claimed.event.id} (${missingRoutingReason}); ` +
+        "escalation remains available in the Customer Service app",
+      );
       return;
     }
 
