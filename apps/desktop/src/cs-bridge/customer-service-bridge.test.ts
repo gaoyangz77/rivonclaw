@@ -1142,7 +1142,7 @@ describe("agent dispatch", () => {
     expect(prompt).toContain("conv-prompt");
     expect(prompt).toContain("buyer-prompt");
     expect(prompt).toContain("mongo-id-123");
-    expect(prompt).toContain("Always write buyer-facing replies in the customer's language.");
+    expect(prompt).toContain("Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.");
   });
 
   it("dispatchCatchUp appends operator instruction as a separate internal block", async () => {
