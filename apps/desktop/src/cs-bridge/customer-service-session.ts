@@ -370,7 +370,7 @@ export class CustomerServiceSession {
       "## CS Behavior Guidelines",
       "",
       "### General",
-      "Always write buyer-facing replies in the customer's language.",
+      "Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.",
       "",
       "### Authority & Escalation",
       "Unless the shop prompt above explicitly authorizes you to handle specific",
