@@ -5,6 +5,8 @@ import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { OAUTH_TIMEOUT_MS, hasUpgradeRequired } from "../tiktok-shops-utils.js";
 
+const OAUTH_COMPLETE_QUIET_MS = 1000;
+
 interface UseTikTokOAuthFlowParams {
   setUpgradePrompt: (v: boolean) => void;
 }
@@ -20,12 +22,17 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   const [selectedPlatformAppId, setSelectedPlatformAppId] = useState<string>("");
 
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const oauthCompleteSettleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unsubscribeOAuthRef = useRef<(() => void) | null>(null);
 
   const cleanupOAuthWait = useCallback(() => {
     if (oauthTimeoutRef.current) {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
+    }
+    if (oauthCompleteSettleRef.current) {
+      clearTimeout(oauthCompleteSettleRef.current);
+      oauthCompleteSettleRef.current = null;
     }
     if (unsubscribeOAuthRef.current) {
       unsubscribeOAuthRef.current();
@@ -38,6 +45,7 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   useEffect(() => {
     return () => {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
+      if (oauthCompleteSettleRef.current) clearTimeout(oauthCompleteSettleRef.current);
       if (unsubscribeOAuthRef.current) unsubscribeOAuthRef.current();
     };
   }, []);
@@ -61,10 +69,19 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
 
   function startOAuthSSEListener() {
     unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
-      // Shops auto-update via MST/SSE — no manual fetch needed
       void raw;
-      cleanupOAuthWait();
-      showToast(t("tiktokShops.oauthSuccess"), "success");
+      if (oauthTimeoutRef.current) {
+        clearTimeout(oauthTimeoutRef.current);
+        oauthTimeoutRef.current = null;
+      }
+      if (oauthCompleteSettleRef.current) {
+        clearTimeout(oauthCompleteSettleRef.current);
+      }
+      oauthCompleteSettleRef.current = setTimeout(() => {
+        cleanupOAuthWait();
+        showToast(t("tiktokShops.oauthSuccess"), "success");
+        entityStore.fetchShops().catch(() => {});
+      }, OAUTH_COMPLETE_QUIET_MS);
     });
 
     oauthTimeoutRef.current = setTimeout(() => {
