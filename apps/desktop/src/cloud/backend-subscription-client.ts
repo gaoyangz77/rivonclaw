@@ -31,6 +31,44 @@ const OAUTH_COMPLETE_SUBSCRIPTION = `
       shopId
       shopName
       platform
+      shops {
+        shopName
+        __typename
+        id
+        platform
+        platformAppId
+        platformShopId
+        alias
+        authStatus
+        region
+        accessTokenExpiresAt
+        refreshTokenExpiresAt
+        services {
+          customerService {
+            enabled
+            businessPrompt
+            runProfileId
+            csDeviceId
+            csProviderOverride
+            csModelOverride
+            escalationChannelId
+            escalationRecipientId
+            platformSystemPrompt
+          }
+          wms {
+            enabled
+          }
+          affiliateService {
+            enabled
+            runProfileId
+            csDeviceId
+            businessPrompt
+            decisionThresholds {
+              minP50SalesUnits
+            }
+          }
+        }
+      }
     }
   }
 `;
@@ -653,6 +691,11 @@ export interface OAuthCompletePayload {
   shopId: string;
   shopName: string;
   platform: string;
+  shops?: Array<Record<string, unknown> & {
+    id: string;
+    shopName: string;
+    platform: string;
+  }>;
 }
 
 /**
