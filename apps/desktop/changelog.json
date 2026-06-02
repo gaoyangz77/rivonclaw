@@ -5,12 +5,12 @@
     "en": [
       "Add desktop announcements and invite-code UI so users can see product notices and account access details in the app",
       "Improve the new-user ecommerce setup path with default client updates, preset shop skills, and refreshed chat examples",
-      "Keep Telegram debug support polling enabled and refresh desktop E2E coverage for ecommerce, provider, channel, and pairing flows"
+      "Fix customer-service Airflow retry dispatch recovery, keep Telegram debug polling enabled, and refresh desktop E2E coverage"
     ],
     "zh": [
       "新增桌面端公告与邀请码界面，用户可以在应用内查看产品通知和账号访问状态",
       "优化新用户电商初始化路径，补齐默认客户端更新、店铺预设技能和聊天示例",
-      "保持 Telegram debug 支持轮询开启，并刷新电商、服务商、渠道和配对流程的桌面端 E2E 覆盖"
+      "修复客服 Airflow 重试分派恢复，保持 Telegram debug 轮询开启，并刷新桌面端 E2E 覆盖"
     ]
   },
   {
