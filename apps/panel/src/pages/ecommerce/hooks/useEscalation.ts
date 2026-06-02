@@ -60,7 +60,7 @@ export function useEscalation(
     // Clear recipient when channel changes — the previous recipient is invalid for a different channel
     setDraftEscalationRecipient("");
 
-    // If user cleared the channel (selected "—"), immediately save both as null
+    // If user cleared the channel (selected "—"), immediately save both as empty strings
     if (!value) {
       const shopId = selectedShop?.id;
       if (!shopId) return;
@@ -72,8 +72,8 @@ export function useEscalation(
         await shop.update({
           services: {
             customerService: {
-              escalationChannelId: null,
-              escalationRecipientId: null,
+              escalationChannelId: "",
+              escalationRecipientId: "",
             },
           },
         });

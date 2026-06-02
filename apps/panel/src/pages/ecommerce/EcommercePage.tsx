@@ -294,14 +294,14 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleSaveAffiliateDecisionThresholds() {
     if (!selectedShopId) return;
     const trimmed = editAffiliateMinP50SalesUnits.trim();
-    let minP50SalesUnits: number | null = null;
+    let decisionThresholds: { minP50SalesUnits?: number } = {};
     if (trimmed !== "") {
       const parsed = Number(trimmed);
       if (!Number.isInteger(parsed) || parsed < 0) {
         showToast(t("ecommerce.shopDrawer.affiliate.invalidDecisionThreshold"), "error");
         return;
       }
-      minP50SalesUnits = parsed;
+      decisionThresholds = { minP50SalesUnits: parsed };
     }
 
     setSavingAffiliateSettings(true);
@@ -312,9 +312,7 @@ export const EcommercePage = observer(function EcommercePage() {
       await shop.update({
         services: {
           affiliateService: {
-            decisionThresholds: minP50SalesUnits === null
-              ? null
-              : { minP50SalesUnits },
+            decisionThresholds,
           },
         },
       });
@@ -404,7 +402,7 @@ export const EcommercePage = observer(function EcommercePage() {
     setTogglingAffiliateBindShopId(shopId);
     try {
       await shop.update({
-        services: { affiliateService: { csDeviceId: null } },
+        services: { affiliateService: { csDeviceId: "" } },
       });
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
@@ -423,8 +421,8 @@ export const EcommercePage = observer(function EcommercePage() {
       // Empty provider+model means "use global default"
       await shop.update({
         services: { customerService: {
-          csProviderOverride: provider || null,
-          csModelOverride: model || null,
+          csProviderOverride: provider,
+          csModelOverride: model,
         } },
       });
     } catch (err) {

@@ -879,7 +879,7 @@ export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision
 export interface AffiliateServiceSettings {
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;
-  /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Null = no device assigned. */
+  /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
   csDeviceId?: Maybe<Scalars['String']['output']>;
   /** Structured default decision thresholds for affiliate automation. Campaign-level thresholds override these values when present. */
   decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
@@ -889,17 +889,17 @@ export interface AffiliateServiceSettings {
   runProfileId?: Maybe<Scalars['String']['output']>;
 }
 
-/** Affiliate creator-management settings patch. Omit a field to keep it, pass null to clear it, or pass a value to set it. */
+/** Affiliate creator-management settings patch. Omit a field or pass null to keep it; pass empty string to clear string fields; pass a value to set it. */
 export interface AffiliateServiceSettingsInput {
-  /** Per-shop affiliate business instructions. Omit to keep, null or empty string to clear. */
+  /** Per-shop affiliate business instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
-  /** Device ID of the desktop instance handling affiliate inbound signals. Omit to keep, null or empty string to clear. */
+  /** Device ID of the desktop instance handling affiliate inbound signals. Omit or pass null to keep, empty string to clear. */
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
-  /** Default affiliate decision thresholds. Omit to keep, null to clear. */
+  /** Default affiliate decision thresholds. Omit or pass null to keep, empty object to clear. */
   decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
-  /** Affiliate service enabled flag. Omit to keep, null to clear to false, true/false to set. */
+  /** Affiliate service enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** RunProfile ID for affiliate sessions. Omit to keep, null or empty string to clear. */
+  /** RunProfile ID for affiliate sessions. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -1053,21 +1053,21 @@ export interface AffiliateWorkspacePayload {
   searchRuns: Array<CreatorSearchRun>;
 }
 
-/** Agent-facing CS settings patch. Omit a field to keep it, pass null to clear it, or pass a value to set it. */
+/** Agent-facing CS settings patch. Omit a field or pass null to keep it; pass empty string to clear string fields; pass a value to set it. */
 export interface AgentCsSettingsInput {
-  /** Store instructions. Omit to keep, null or empty string to clear. */
+  /** Store instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
-  /** CS model override. Omit to keep, null or empty string to clear. */
+  /** CS model override. Omit or pass null to keep, empty string to clear. */
   csModelOverride?: InputMaybe<Scalars['String']['input']>;
-  /** CS provider override. Omit to keep, null or empty string to clear. */
+  /** CS provider override. Omit or pass null to keep, empty string to clear. */
   csProviderOverride?: InputMaybe<Scalars['String']['input']>;
-  /** CS enabled flag. Omit to keep, null to clear to false, true/false to set. */
+  /** CS enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Escalation channel ID. Omit to keep, null or empty string to clear. */
+  /** Escalation channel ID. Omit or pass null to keep, empty string to clear. */
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
-  /** Escalation recipient ID. Omit to keep, null or empty string to clear. */
+  /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
-  /** RunProfile ID for CS. Omit to keep, null or empty string to clear. */
+  /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -2242,21 +2242,21 @@ export interface CustomerServiceSettings {
 
 /** Full CS settings including device-level fields (Panel/backend use) */
 export interface CustomerServiceSettingsInput {
-  /** Store instructions. Omit to keep, null or empty string to clear. */
+  /** Store instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
-  /** Device ID (machine fingerprint) of the desktop instance handling CS. Set by desktop app via Panel UI. Null = no device assigned. */
+  /** Device ID (machine fingerprint) of the desktop instance handling CS. Set by desktop app via Panel UI. Omit or pass null to keep, empty string to clear. */
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
-  /** CS model override. Omit to keep, null or empty string to clear. */
+  /** CS model override. Omit or pass null to keep, empty string to clear. */
   csModelOverride?: InputMaybe<Scalars['String']['input']>;
-  /** CS provider override. Omit to keep, null or empty string to clear. */
+  /** CS provider override. Omit or pass null to keep, empty string to clear. */
   csProviderOverride?: InputMaybe<Scalars['String']['input']>;
-  /** CS enabled flag. Omit to keep, null to clear to false, true/false to set. */
+  /** CS enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Escalation channel ID. Omit to keep, null or empty string to clear. */
+  /** Escalation channel ID. Omit or pass null to keep, empty string to clear. */
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
-  /** Escalation recipient ID. Omit to keep, null or empty string to clear. */
+  /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
-  /** RunProfile ID for CS. Omit to keep, null or empty string to clear. */
+  /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -6244,9 +6244,9 @@ export interface WmsSettings {
   enabled: Scalars['Boolean']['output'];
 }
 
-/** WMS settings patch. Omit a field to keep it, pass null to clear it to default, or pass a value to set it. */
+/** WMS settings patch. Omit a field or pass null to keep it; pass a value to set it. */
 export interface WmsSettingsInput {
-  /** WMS/inventory management enabled flag. Omit to keep, null to clear to false, true/false to set. */
+  /** WMS/inventory management enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
