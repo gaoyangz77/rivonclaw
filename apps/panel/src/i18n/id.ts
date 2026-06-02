@@ -2416,12 +2416,15 @@ export default {
       "ES": "Spanyol",
       "FR": "Perancis",
       "DE": "Jerman",
+      "GE": "Jerman",
       "IT": "Italia",
       "IE": "Irlandia",
       "MY": "Malaysia",
+      "SG": "Singapura",
       "TH": "Thailand",
       "ID": "Indonesia",
       "PH": "Filipina",
+      "VN": "Vietnam",
       "ROW": "Seluruh Dunia"
     },
     "platform": {

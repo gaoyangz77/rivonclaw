@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
 import { entitlementStatusLabel } from "../../../components/billing/billing-labels.js";
 
@@ -76,7 +77,7 @@ export function TikTokShopsList({
                   <td>
                     <span className="shop-table-name">{shop.shopName}</span>
                   </td>
-                  <td>{shop.region}</td>
+                  <td>{formatShopRegionLabel(shop.region, t)}</td>
                   <td>
                     <span className={getAuthStatusBadgeClass(shop.authStatus)}>
                       {t(`tiktokShops.authStatus_${shop.authStatus}`)}
