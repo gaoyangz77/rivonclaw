@@ -649,6 +649,7 @@ describe("session key construction", () => {
       expect.objectContaining({
         sessionKey: "cs:tiktok:conv-ABC",
       }),
+      120000,
     );
   });
 
@@ -682,6 +683,7 @@ describe("session key construction", () => {
         sessionKey: "cs:shopee:conv-PLAT",
         idempotencyKey: "shopee:msg-001",
       }),
+      120000,
     );
   });
 
@@ -716,6 +718,7 @@ describe("message content parsing", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({ message: "[External: Buyer]\n你好" }),
+      120000,
     );
   });
 
@@ -731,6 +734,7 @@ describe("message content parsing", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({ message: "[External: Buyer]\nFallback text" }),
+      120000,
     );
   });
 
@@ -746,6 +750,7 @@ describe("message content parsing", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({ message: "[External: Buyer]\nplain text message" }),
+      120000,
     );
   });
 
@@ -762,6 +767,7 @@ describe("message content parsing", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({ message: `[External: Buyer]\n[IMAGE] ${content}` }),
+      120000,
     );
   });
 
@@ -778,6 +784,7 @@ describe("message content parsing", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({ message: `[External: Buyer]\n[ORDER_CARD] ${content}` }),
+      120000,
     );
   });
 
@@ -794,6 +801,7 @@ describe("message content parsing", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({ message: `[External: Buyer]\n[VIDEO] ${content}` }),
+      120000,
     );
   });
 });
@@ -957,7 +965,7 @@ describe("CS RunProfile setup", () => {
       "cs_register_session",
       expect.anything(),
     );
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",
       runProfileId: "CUSTOMER_SERVICE",
@@ -990,7 +998,7 @@ describe("CS RunProfile setup", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",
       runProfileId: "CUSTOMER_SERVICE",
@@ -1111,6 +1119,7 @@ describe("agent dispatch", () => {
       expect.objectContaining({
         sessionKey: "cs:tiktok:conv-dispatch",
       }),
+      120000,
     );
   });
 
@@ -1346,6 +1355,7 @@ describe("agent dispatch", () => {
       expect.objectContaining({
         idempotencyKey: "tiktok:msg-unique-42",
       }),
+      120000,
     );
   });
 
@@ -1364,8 +1374,8 @@ describe("agent dispatch", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
   });
 });
 
@@ -1419,8 +1429,8 @@ describe("error scenarios", () => {
     // cs_register_session + sessions.patch (model) + agent dispatch = 3 RPC calls.
     expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
   });
 
   it("agent dispatch fails → bridge does not throw (continues running)", async () => {
@@ -2103,7 +2113,7 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "zhipu/glm-5",
-    });
+    }, 120000);
   });
 
   it("two-field override: falls back to null when provider/model not in catalog", async () => {
@@ -2116,7 +2126,7 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: null,
-    });
+    }, 120000);
   });
 
   it("no override: neither provider nor model set, sessions.patch called with null (global default)", async () => {
@@ -2130,7 +2140,7 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: null,
-    });
+    }, 120000);
   });
 
   it("refreshModelCatalog caches all providers, not just active provider", async () => {
@@ -2144,7 +2154,7 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "openai/gpt-4o",
-    });
+    }, 120000);
   });
 
   it("provider set without model: sessions.patch called with null (treated as no override)", async () => {
@@ -2158,7 +2168,7 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: null,
-    });
+    }, 120000);
   });
 });
 
@@ -2796,7 +2806,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     // Should dispatch agent
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.objectContaining({
       message: expect.stringContaining("Hello"),
-    }));
+    }), 120000);
 
     // No abort should have been called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("chat.abort", expect.anything());

@@ -61,6 +61,8 @@ import {
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
+const CS_GATEWAY_SETUP_RPC_TIMEOUT_MS = 120_000;
+const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 120_000;
 
 function buildConversationDeltaAnchor(
   anchor: Partial<GQL.ConversationMessageDeltaAnchorInput> | null | undefined,
@@ -1649,6 +1651,8 @@ export class CustomerServiceSession {
     await rootStore.llmManager.applyModelForSession(this.scopeKey, {
       type: ScopeType.CS_SESSION,
       shopId: this.shop.objectId,
+    }, {
+      requestTimeoutMs: CS_GATEWAY_SETUP_RPC_TIMEOUT_MS,
     });
     const modelMs = Date.now() - modelStartedAt;
 
@@ -1707,7 +1711,7 @@ export class CustomerServiceSession {
         promptMode: "raw",
         idempotencyKey: params.idempotencyKey,
         ...(params.attachments ? { attachments: params.attachments } : {}),
-      });
+      }, CS_AGENT_DISPATCH_RPC_TIMEOUT_MS);
 
       const runId = response?.runId;
       log.info(

@@ -52,6 +52,10 @@ interface CloudModel {
   input_modalities?: string[];
 }
 
+interface ApplyModelForSessionOptions {
+  requestTimeoutMs?: number;
+}
+
 function selectCloudDefaultModel(cloudModels: CloudModel[]): string {
   return cloudModels.find((model) => model.id === CLOUD_DEFAULT_MODEL_ID)?.id ?? cloudModels[0]?.id ?? "";
 }
@@ -209,11 +213,20 @@ export const LLMProviderManagerModel = types
     /**
      * Patch a single session with a model reference, or null for global default.
      */
-    async function patchSession(sessionKey: string, modelRef: string | null): Promise<void> {
+    async function patchSession(
+      sessionKey: string,
+      modelRef: string | null,
+      options?: ApplyModelForSessionOptions,
+    ): Promise<void> {
       const { getRpcClient } = getEnvDeps();
       const rpc = getRpcClient();
       if (!rpc) throw new Error("RPC client not available");
-      await rpc.request("sessions.patch", { key: sessionKey, model: modelRef });
+      const payload = { key: sessionKey, model: modelRef };
+      if (options?.requestTimeoutMs === undefined) {
+        await rpc.request("sessions.patch", payload);
+      } else {
+        await rpc.request("sessions.patch", payload, options.requestTimeoutMs);
+      }
     }
 
     function getActiveDefaultModel(): (SessionModelOverride & { modelRef: string }) | null {
@@ -257,14 +270,17 @@ export const LLMProviderManagerModel = types
       });
     }
 
-    async function patchSessionToActiveDefault(sessionKey: string): Promise<SessionModelOverride | null> {
+    async function patchSessionToActiveDefault(
+      sessionKey: string,
+      options?: ApplyModelForSessionOptions,
+    ): Promise<SessionModelOverride | null> {
       const active = getActiveDefaultModel();
       if (!active) {
-        await patchSession(sessionKey, null);
+        await patchSession(sessionKey, null, options);
         markDefaultFollowing(sessionKey);
         return null;
       }
-      await patchSession(sessionKey, active.modelRef);
+      await patchSession(sessionKey, active.modelRef, options);
       const applied = { provider: active.provider, model: active.model };
       markDefaultFollowing(sessionKey, applied);
       return applied;
@@ -435,7 +451,11 @@ export const LLMProviderManagerModel = types
        *
        * If a resolved model is unavailable in the catalog, falls through to the next layer.
        */
-      applyModelForSession: flow(function* (sessionKey: string, scope?: ModelScope) {
+      applyModelForSession: flow(function* (
+        sessionKey: string,
+        scope?: ModelScope,
+        options?: ApplyModelForSessionOptions,
+      ) {
         self.activeSessions.add(sessionKey);
 
         // Layer 1: session-level override
@@ -443,7 +463,7 @@ export const LLMProviderManagerModel = types
         if (sessionOverride) {
           if (isModelAvailable(sessionOverride.provider, sessionOverride.model)) {
             const ref = resolveModelRef(sessionOverride.provider, sessionOverride.model);
-            yield patchSession(sessionKey, ref);
+            yield patchSession(sessionKey, ref, options);
             markExplicit(sessionKey, sessionOverride);
             log.info(`Applied session override ${ref} to ${sessionKey}`);
             return sessionOverride;
@@ -456,7 +476,7 @@ export const LLMProviderManagerModel = types
           const scopeModel = resolveModelForScope(scope);
           if (scopeModel) {
             const ref = resolveModelRef(scopeModel.provider, scopeModel.model);
-            yield patchSession(sessionKey, ref);
+            yield patchSession(sessionKey, ref, options);
             markScope(sessionKey, scopeModel);
             log.info(`Applied scope override ${ref} to ${sessionKey} (${scope.type}/${scope.shopId ?? ""})`);
             return scopeModel;
@@ -464,7 +484,7 @@ export const LLMProviderManagerModel = types
         }
 
         // Layer 3: global default
-        yield patchSessionToActiveDefault(sessionKey);
+        yield patchSessionToActiveDefault(sessionKey, options);
         log.info(`Applied global default to ${sessionKey}`);
         return null;
       }),
