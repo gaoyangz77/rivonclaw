@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
+import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
 
@@ -131,7 +132,7 @@ export function ShopTable({
                       />
                     </td>
                     <td>{shop.platform === "TIKTOK_SHOP" ? "TikTok" : shop.platform}</td>
-                    <td>{shop.region}</td>
+                    <td>{formatShopRegionLabel(shop.region, t)}</td>
                     <td>
                       <span className={getAuthStatusBadgeClass(shop.authStatus)}>
                         {t(`tiktokShops.authStatus_${shop.authStatus}`)}

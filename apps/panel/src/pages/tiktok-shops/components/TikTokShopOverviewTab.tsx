@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
+import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
 
 interface TikTokShopOverviewTabProps {
@@ -33,7 +34,7 @@ export function TikTokShopOverviewTab({
         </div>
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.tableHeaders.region")}</span>
-          <span>{shop.region}</span>
+          <span>{formatShopRegionLabel(shop.region, t)}</span>
         </div>
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.detail.platform")}</span>

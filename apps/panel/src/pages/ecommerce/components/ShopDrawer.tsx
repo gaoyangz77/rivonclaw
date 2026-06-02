@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
+import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
 import { InventoryManagementTab } from "./InventoryManagementTab.js";
@@ -202,7 +203,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                   </div>
                   <div className="shop-info-row">
                     <span className="shop-info-label">{t("ecommerce.table.headers.region")}</span>
-                    <span className="shop-info-value">{shop.region}</span>
+                    <span className="shop-info-value">{formatShopRegionLabel(shop.region, t)}</span>
                   </div>
                   <div className="shop-info-row">
                     <span className="shop-info-label">{t("ecommerce.table.headers.platform")}</span>
