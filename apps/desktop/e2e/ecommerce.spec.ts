@@ -1,7 +1,7 @@
 /**
  * Ecommerce Page — UI rendering, navigation, and drawer interaction.
  *
- * Requires staging login with GLOBAL_ECOMMERCE_SELLER module enrollment.
+ * Requires staging login. Ecommerce navigation is visible by default.
  * Assumes the test account always has at least one connected shop.
  *
  * All tests are read-only or toggle UI state that doesn't require teardown.
@@ -17,45 +17,87 @@ const LOGIN_MUTATION = `
   }
 `;
 
+const REGISTER_MUTATION = `
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
+      accessToken
+      refreshToken
+      user {
+        email
+        enrolledModules
+        defaultRunProfileId
+      }
+    }
+  }
+`;
+
+const ME_QUERY = `
+  query Me {
+    me {
+      email
+      enrolledModules
+      defaultRunProfileId
+    }
+  }
+`;
+
+const ECOMMERCE_MODULE_ID = "GLOBAL_ECOMMERCE_SELLER";
+const SHOP_OPERATIONS_RUN_PROFILE_ID = "SHOP_OPERATIONS";
+
 const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
 const captchaBypass = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
 
-/** Login via staging GraphQL, store tokens in Desktop, reload Panel. */
-async function loginAndNavigateToEcommerce(
-  window: import("@playwright/test").Page,
-  apiBase: string,
-): Promise<void> {
-  const loginRes = await fetch(STAGING_GRAPHQL_URL, {
+async function graphqlRequest<TData>(
+  query: string,
+  variables?: Record<string, unknown>,
+  accessToken?: string,
+): Promise<TData> {
+  const res = await fetch(STAGING_GRAPHQL_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: LOGIN_MUTATION,
-      variables: {
-        input: {
-          email: testEmail,
-          password: testPassword,
-          captchaToken: captchaBypass ?? "test",
-          captchaAnswer: "bypass",
-        },
-      },
-    }),
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ query, variables }),
   });
-  const loginBody = (await loginRes.json()) as {
-    data?: { login: { accessToken: string; refreshToken: string } };
+  const body = (await res.json()) as {
+    data?: TData;
     errors?: Array<{ message: string }>;
   };
-  if (loginBody.errors?.length) {
-    throw new Error(`Login failed: ${loginBody.errors[0].message}`);
+  if (!res.ok || body.errors?.length || !body.data) {
+    throw new Error(`GraphQL request failed: ${body.errors?.[0]?.message ?? res.statusText}`);
   }
-  const { accessToken, refreshToken } = loginBody.data!.login;
+  return body.data;
+}
 
+async function storeTokens(apiBase: string, accessToken: string, refreshToken: string): Promise<void> {
   const storeRes = await fetch(`${apiBase}/api/auth/store-tokens`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accessToken, refreshToken }),
   });
   expect(storeRes.status).toBe(200);
+}
+
+/** Login via staging GraphQL, store tokens in Desktop, reload Panel. */
+async function loginAndNavigateToEcommerce(
+  window: import("@playwright/test").Page,
+  apiBase: string,
+): Promise<void> {
+  const loginBody = await graphqlRequest<{
+    login: { accessToken: string; refreshToken: string };
+  }>(LOGIN_MUTATION, {
+    input: {
+      email: testEmail,
+      password: testPassword,
+      captchaToken: captchaBypass ?? "test",
+      captchaAnswer: "bypass",
+    },
+  });
+  const { accessToken, refreshToken } = loginBody.login;
+
+  await storeTokens(apiBase, accessToken, refreshToken);
 
   await window.reload({ waitUntil: "domcontentloaded" });
   await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 15_000 });
@@ -74,15 +116,84 @@ async function dismissModals(window: import("@playwright/test").Page): Promise<v
   }
 }
 
+async function skipOnboardingIfVisible(window: import("@playwright/test").Page): Promise<void> {
+  if (!await window.locator(".onboarding-page").isVisible({ timeout: 2_000 }).catch(() => false)) return;
+  await window.locator(".btn-ghost", { hasText: /Skip/i }).click();
+  await window.waitForSelector(".sidebar-brand", { timeout: 30_000 });
+}
+
+// ── New User Defaults ────────────────────────────────────────────────
+
+test.describe("Ecommerce Page — New User Defaults", () => {
+  test.skip(!captchaBypass, "STAGING_CAPTCHA_BYPASS_TOKEN is required to register staging users");
+
+  test("newly registered staging users default to ecommerce and shop operations", async ({ window, apiBase }) => {
+    await dismissModals(window);
+
+    const unique = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const email = `e2e-ecommerce-default-${unique}@rivonclaw.com`;
+    const password = `RivonClaw-e2e-${unique}!`;
+
+    const registerBody = await graphqlRequest<{
+      register: {
+        accessToken: string;
+        refreshToken: string;
+        user: {
+          email: string;
+          enrolledModules: string[];
+          defaultRunProfileId: string | null;
+        };
+      };
+    }>(REGISTER_MUTATION, {
+      input: {
+        email,
+        password,
+        name: "E2E Ecommerce Default",
+        captchaToken: captchaBypass,
+        captchaAnswer: "bypass",
+      },
+    });
+
+    expect(registerBody.register.user.email).toBe(email);
+    expect(registerBody.register.user.enrolledModules).toContain(ECOMMERCE_MODULE_ID);
+    expect(registerBody.register.user.defaultRunProfileId).toBe(SHOP_OPERATIONS_RUN_PROFILE_ID);
+
+    const meBody = await graphqlRequest<{
+      me: {
+        email: string;
+        enrolledModules: string[];
+        defaultRunProfileId: string | null;
+      };
+    }>(ME_QUERY, undefined, registerBody.register.accessToken);
+
+    expect(meBody.me.email).toBe(email);
+    expect(meBody.me.enrolledModules).toContain(ECOMMERCE_MODULE_ID);
+    expect(meBody.me.defaultRunProfileId).toBe(SHOP_OPERATIONS_RUN_PROFILE_ID);
+
+    await storeTokens(apiBase, registerBody.register.accessToken, registerBody.register.refreshToken);
+    await window.reload({ waitUntil: "domcontentloaded" });
+    await skipOnboardingIfVisible(window);
+    await dismissModals(window);
+
+    await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 15_000 });
+    const navBtn = window.locator(".nav-btn", { hasText: "Global E-commerce" });
+    await expect(navBtn).toBeVisible({ timeout: 15_000 });
+    await navBtn.click();
+
+    const header = window.locator(".ecommerce-page-header");
+    await expect(header).toBeVisible({ timeout: 15_000 });
+    await expect(header.locator("h1")).toContainText("Global E-commerce Seller");
+  });
+});
+
 // ── Auth Gating ──────────────────────────────────────────────────────
 
 test.describe("Ecommerce Page — Auth Gating", () => {
   test("clicking ecommerce nav without login opens auth modal", async ({ window }) => {
     await dismissModals(window);
 
-    // The ecommerce nav item only appears when GLOBAL_ECOMMERCE_SELLER module
-    // is enrolled, which requires login. Without login the nav item won't exist.
-    // So we test that the page is not directly accessible by URL.
+    // Ecommerce navigation is visible to guests, but direct route entry still
+    // requires auth and should not render the page content.
     const urlBefore = window.url();
     await window.evaluate(() => window.history.pushState(null, "", "/ecommerce"));
     // Panel resolves unknown routes to "/" — ecommerce without auth should fall back
