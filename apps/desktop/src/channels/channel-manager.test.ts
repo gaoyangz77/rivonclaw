@@ -142,9 +142,11 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         name: "RivonClaw Support",
         botToken: "proxy-token",
         apiRoot: "https://relay.example.com/telegram-debug/devices/device-a",
+        enabled: true,
         dmPolicy: "open",
         allowFrom: ["*"],
         groupPolicy: "disabled",
+        actions: { sendMessage: true, poll: true },
         commands: { native: true, nativeSkills: false },
       });
       expect(accounts.find((account) => account.accountId === "owner-bot")).toBeTruthy();
