@@ -572,14 +572,15 @@ export class EcommerceRelayBridge {
       return;
     }
 
-    const session = await this.getOrCreateSession(shop.objectId, {
-      conversationId: dispatch.conversationId,
-      buyerUserId: dispatch.buyerUserId ?? dispatch.imUserId ?? undefined,
-      imUserId: dispatch.imUserId ?? undefined,
-      orderId: dispatch.orderId ?? undefined,
-    });
-
+    let session: CustomerServiceSession | undefined;
     try {
+      session = await this.getOrCreateSession(shop.objectId, {
+        conversationId: dispatch.conversationId,
+        buyerUserId: dispatch.buyerUserId ?? dispatch.imUserId ?? undefined,
+        imUserId: dispatch.imUserId ?? undefined,
+        orderId: dispatch.orderId ?? undefined,
+      });
+
       await session.dispatchCatchUp({
         dispatchReason: dispatch.dispatchReason,
         operatorInstruction: dispatch.operatorInstruction ?? undefined,
@@ -602,7 +603,7 @@ export class EcommerceRelayBridge {
       });
     } catch (err) {
       log.error(`Failed to handle CS signal ${dispatch.messageId ?? dispatch.conversationId}:`, err);
-      session.emitError(CS_ERROR_STAGE.DISPATCH, {
+      session?.emitError(CS_ERROR_STAGE.DISPATCH, {
         reason: "unhandled_exception",
         errorMessage: err,
       });
