@@ -1370,6 +1370,12 @@ export default {
     "llmKeySuspended": "ถูกระงับ",
     "quotaFiveHour": "โควต้า (5ชม.)",
     "quotaWeekly": "โควต้า (รายสัปดาห์)",
+    "officialTemplatesTitle": "เทมเพลตทางการ",
+    "officialTemplatesDesc": "กู้คืนเทมเพลตสกิลอีคอมเมิร์ซทางการล่าสุด การทำเช่นนี้จะเขียนทับการแก้ไขในเครื่อง",
+    "refreshOfficialTemplates": "รีเฟรชเทมเพลต",
+    "refreshingOfficialTemplates": "กำลังรีเฟรช...",
+    "officialTemplatesRefreshSuccess": "รีเฟรชเทมเพลตทางการแล้ว (อัปเดต {{count}} รายการ)",
+    "officialTemplatesRefreshError": "รีเฟรชเทมเพลตทางการไม่สำเร็จ",
     "quotaRefreshAt": "รีเฟรชที่ {{time}}"
   },
   "billing": {

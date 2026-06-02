@@ -123,7 +123,7 @@ describe("bootstrapDesktopAuthState", () => {
     expect(store.state.authBootstrap).toEqual({ status: "ready", error: null });
   });
 
-  it("does not fetch ecommerce account state for non-ecommerce users", async () => {
+  it("fetches ecommerce account state for every signed-in user", async () => {
     const store = createStore();
     const authSession = {
       getAccessToken: vi.fn(() => "token"),
@@ -135,17 +135,23 @@ describe("bootstrapDesktopAuthState", () => {
         if (query === TOOL_SPECS_SYNC_QUERY) return { toolSpecs: [] };
         if (query === INIT_SURFACES_QUERY) return { surfaces: [] };
         if (query === INIT_RUN_PROFILES_QUERY) return { runProfiles: [] };
+        if (query === INIT_SHOPS_QUERY) return { shops: [] };
+        if (query === INIT_PLATFORM_APPS_QUERY) return { platformApps: [] };
+        if (query === INIT_BILLING_OVERVIEW_QUERY) return { billingOverview: { accountLlm: null, shops: [] } };
+        if (query === INIT_WMS_ACCOUNTS_QUERY) return { readWmsAccounts: [] };
+        if (query === INIT_WAREHOUSES_QUERY) return { readWarehouses: [] };
+        if (query === INIT_INVENTORY_GOODS_QUERY) return { readInventoryGoods: [] };
         throw new Error(`Unexpected query: ${query}`);
       }),
     };
 
     await bootstrapDesktopAuthState(authSession, store);
 
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_SHOPS_QUERY);
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_WMS_ACCOUNTS_QUERY);
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
-    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_SHOPS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WMS_ACCOUNTS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);
   });
 });

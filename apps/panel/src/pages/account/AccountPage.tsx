@@ -15,10 +15,8 @@ import { SurfacePresetModal } from "./components/SurfacePresetModal.js";
 import { RunProfilesSection } from "./components/RunProfilesSection.js";
 import { RunProfileFormModal } from "./components/RunProfileFormModal.js";
 import { RunProfilePresetModal } from "./components/RunProfilePresetModal.js";
-import { ModulesSection } from "./components/ModulesSection.js";
-import { writeSkillTemplate } from "../../api/skills.js";
-
-const ECOMMERCE_PRESET_SKILL_SERVICE_IDS = ["CUSTOMER_SERVICE", "INVENTORY_MANAGEMENT"];
+import { syncOfficialPresetSkills } from "../../api/official-preset-skills.js";
+import { useToast } from "../../components/Toast.js";
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
@@ -33,6 +31,7 @@ export const AccountPage = observer(function AccountPage({
   onNavigate: (path: string) => void;
 }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const resolveSystemName = useSystemName();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
@@ -63,8 +62,8 @@ export const AccountPage = observer(function AccountPage({
   const surfaces = entityStore.allSurfaces;
   const profiles = entityStore.allRunProfiles;
 
-  // ── Module toggle state ──
-  const [moduleToggling, setModuleToggling] = useState(false);
+  // ── Official skill template state ──
+  const [refreshingTemplates, setRefreshingTemplates] = useState(false);
 
   // ── Refresh tools state ──
   const [refreshingTools, setRefreshingTools] = useState(false);
@@ -97,29 +96,18 @@ export const AccountPage = observer(function AccountPage({
     onNavigate("/");
   }
 
-  async function handleModuleToggle() {
-    setModuleToggling(true);
+  async function handleRefreshOfficialTemplates() {
+    setRefreshingTemplates(true);
     try {
-      if (entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")) {
-        await entityStore.currentUser!.unenrollModule("GLOBAL_ECOMMERCE_SELLER");
-      } else {
-        await entityStore.currentUser!.enrollModule("GLOBAL_ECOMMERCE_SELLER");
-        // Download service preset skills on module enrollment (fire-and-forget, always overwrite)
-        entityStore
-          .fetchPresetSkills(ECOMMERCE_PRESET_SKILL_SERVICE_IDS)
-          .then(async (skills: Record<string, string> | null) => {
-            if (!skills) return;
-            for (const [key, content] of Object.entries(skills)) {
-              await writeSkillTemplate(key, content);
-            }
-          })
-          .catch(() => {});
-      }
+      const result = await syncOfficialPresetSkills("force");
       await entityStore.refreshToolSpecs();
+      showToast(t("account.officialTemplatesRefreshSuccess", {
+        count: result.installed + result.updated,
+      }));
     } catch {
-      // Error will surface via network layer
+      showToast(t("account.officialTemplatesRefreshError"), "error");
     } finally {
-      setModuleToggling(false);
+      setRefreshingTemplates(false);
     }
   }
 
@@ -195,12 +183,25 @@ export const AccountPage = observer(function AccountPage({
         onDeleteProfile={(id) => setConfirmDeleteProfileId(id)}
       />
 
-      {/* ── Modules ── */}
-      <ModulesSection
-        isEnrolled={entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER")}
-        moduleToggling={moduleToggling}
-        onToggle={handleModuleToggle}
-      />
+      {/* ── Official Templates ── */}
+      <div className="section-card official-templates-section">
+        <div className="acct-section-header">
+          <div>
+            <h3>{t("account.officialTemplatesTitle")}</h3>
+            <p className="acct-section-desc">{t("account.officialTemplatesDesc")}</p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void handleRefreshOfficialTemplates()}
+            disabled={refreshingTemplates}
+          >
+            {refreshingTemplates
+              ? t("account.refreshingOfficialTemplates")
+              : t("account.refreshOfficialTemplates")}
+          </button>
+        </div>
+      </div>
 
       {/* ── Surface Modal ── */}
       <SurfaceFormModal

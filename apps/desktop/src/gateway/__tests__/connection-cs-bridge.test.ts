@@ -94,10 +94,10 @@ describe("connection.ts CS Bridge", () => {
     // Reset module-level state by stopping any existing bridge
     stopCsBridge();
 
-    // Default: RPC connected + user has ecommerce
+    // Default: RPC connected + signed-in user.
     mockOpenClawConnector.ensureRpcReady.mockReturnValue({});
     mockAuthSession.getCachedUser.mockReturnValue({
-      enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
+      userId: "user-1",
     });
     mockEnsureAgentToolingReady.mockResolvedValue(undefined);
   });
@@ -175,10 +175,8 @@ describe("connection.ts CS Bridge", () => {
       expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
     });
 
-    it("does not create bridge when user lacks ecommerce module", async () => {
-      mockAuthSession.getCachedUser.mockReturnValue({
-        enrolledModules: ["OTHER_MODULE"],
-      });
+    it("does not create bridge when no user is signed in", async () => {
+      mockAuthSession.getCachedUser.mockReturnValue(null);
 
       tryStartCsBridge("device-1");
       await flushCsBridgeStart();

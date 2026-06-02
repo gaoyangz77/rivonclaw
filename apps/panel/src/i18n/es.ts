@@ -1370,6 +1370,12 @@ export default {
     "llmKeySuspended": "suspendido",
     "quotaFiveHour": "Cuota (5h)",
     "quotaWeekly": "Cuota (semanal)",
+    "officialTemplatesTitle": "Plantillas oficiales",
+    "officialTemplatesDesc": "Restaura las plantillas oficiales más recientes para skills de ecommerce. Esto sobrescribe cambios locales.",
+    "refreshOfficialTemplates": "Actualizar plantillas",
+    "refreshingOfficialTemplates": "Actualizando...",
+    "officialTemplatesRefreshSuccess": "Plantillas oficiales actualizadas ({{count}} actualizadas).",
+    "officialTemplatesRefreshError": "No se pudieron actualizar las plantillas oficiales.",
     "quotaRefreshAt": "Se actualiza en {{time}}"
   },
   "billing": {

@@ -1370,6 +1370,12 @@ export default {
     "llmKeySuspended": "Suspendiert",
     "quotaFiveHour": "Kontingent (5h)",
     "quotaWeekly": "Kontingent (wöchentlich)",
+    "officialTemplatesTitle": "Offizielle Vorlagen",
+    "officialTemplatesDesc": "Stellt die neuesten offiziellen E-Commerce-Skill-Vorlagen wieder her. Lokale Vorlagenänderungen werden überschrieben.",
+    "refreshOfficialTemplates": "Vorlagen aktualisieren",
+    "refreshingOfficialTemplates": "Wird aktualisiert...",
+    "officialTemplatesRefreshSuccess": "Offizielle Vorlagen aktualisiert ({{count}} aktualisiert).",
+    "officialTemplatesRefreshError": "Offizielle Vorlagen konnten nicht aktualisiert werden.",
     "quotaRefreshAt": "Aktualisierungen bei {{time}}"
   },
   "billing": {

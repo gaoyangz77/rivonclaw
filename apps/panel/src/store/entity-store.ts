@@ -44,6 +44,7 @@ import {
   START_BILLING_SUBSCRIPTION_MUTATION,
 } from "../api/billing-queries.js";
 import { fetchJson, invalidateCache } from "../api/client.js";
+import { syncOfficialPresetSkills } from "../api/official-preset-skills.js";
 import { trackEvent } from "../api/settings.js";
 import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
@@ -127,15 +128,14 @@ const PanelRootStoreModel = RootStoreModel.props({
             client().query({ query: BILLING_PLAN_DEFINITIONS_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: READ_PAYMENTS_QUERY, fetchPolicy: "network-only" }),
           ]).catch(() => {});
-          if ((self as any).currentUser?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
-            yield Promise.all([
-              client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-              client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
-              client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
-              client().query({ query: READ_INVENTORY_GOODS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
-            ]).catch(() => {});
-          }
+          yield Promise.all([
+            client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
+            client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
+            client().query({ query: READ_INVENTORY_GOODS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
+          ]).catch(() => {});
+          yield syncOfficialPresetSkills("safe").catch(() => {});
           return;
         }
       } catch {
@@ -148,6 +148,7 @@ const PanelRootStoreModel = RootStoreModel.props({
         method: "POST",
         body: JSON.stringify(input),
       });
+      yield syncOfficialPresetSkills("safe").catch(() => {});
       trackEvent("auth.login");
     }),
 
@@ -156,6 +157,7 @@ const PanelRootStoreModel = RootStoreModel.props({
         method: "POST",
         body: JSON.stringify(input),
       });
+      yield syncOfficialPresetSkills("safe").catch(() => {});
       trackEvent("auth.register");
     }),
 

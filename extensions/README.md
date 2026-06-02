@@ -1,116 +1,88 @@
 # RivonClaw Extensions
 
-Extensions are OpenClaw plugins that ship with RivonClaw. They are auto-discovered
-at runtime — no per-extension wiring needed in config-writer, main.ts, or
-electron-builder.yml.
+Extensions are OpenClaw plugins that ship with RivonClaw. The gateway config
+writer points OpenClaw at the entire `extensions/` directory, so public
+extensions are discovered by manifest instead of being wired one by one.
 
-## Extension Inventory
+Merchant-specific plugins live in `../extensions-merchant/` and are checked out
+from the private merchant extensions repository in CI/dev environments.
 
-| Extension | Type | Description |
-|-----------|------|-------------|
-| `rivonclaw-search-browser-fallback` | Hook (single-file) | Falls back to browser search when `web_search` fails |
+## Public Extension Inventory
 
-### Deprecated: rivonclaw-tools
+| Extension | Plugin ID | Type | Purpose |
+| --- | --- | --- | --- |
+| `channel-weixin` | `openclaw-weixin` | Channel plugin | Wrapper around the Tencent Weixin channel with RivonClaw compatibility fixes. |
+| `rivonclaw-capability-manager` | `rivonclaw-capability-manager` | Hook/enforcement plugin | Enforces effective tool availability from entitlement, surface, run profile, and session context. |
+| `rivonclaw-event-bridge` | `rivonclaw-event-bridge` | Hook/event plugin | Mirrors selected OpenClaw agent events into the panel event stream. |
+| `rivonclaw-mobile-chat-channel` | `rivonclaw-mobile-chat-channel` | Channel plugin | Mobile chat channel and relay synchronization. |
+| `rivonclaw-search-browser-fallback` | `rivonclaw-search-browser-fallback` | Hook plugin | Guides fallback to browser search when direct web-search credentials are unavailable. |
 
-`rivonclaw-tools` was a prompt-prepend extension that told agents not to use the
-OpenClaw CLI. It is deprecated and removed because vendor patch 0009 replaces the
-upstream CLI guidance directly in OpenClaw's system prompt, avoiding conflicting
-system instructions.
+## Merchant Extension Inventory
 
-### Deprecated: rivonclaw-policy
+These packages are part of the workspace when `extensions-merchant/` is present:
 
-`rivonclaw-policy` injected compiled rules and guard directives into the agent
-prompt. The rules/policy layer has been removed, so the extension is no longer
-shipped or loaded.
+| Extension | Plugin ID | Purpose |
+| --- | --- | --- |
+| `rivonclaw-cloud-tools` | `rivonclaw-cloud-tools` | Dynamic backend-defined cloud tools. |
+| `rivonclaw-cs` | `rivonclaw-cs` | Customer-service runtime support. |
+| `rivonclaw-ecom` | `rivonclaw-ecom` | Ecommerce runtime support. |
+| `rivonclaw-local-tools` | `rivonclaw-local-tools` | RivonClaw-owned local desktop tools. |
 
-## How Loading Works
+## Loading Model
 
-RivonClaw points `plugins.load.paths` at the **entire `extensions/` directory**.
-OpenClaw's `discoverInDirectory()` scans each subdirectory and discovers plugins via:
+`packages/gateway/src/config/config-writer.ts` adds plugin discovery paths to
+`plugins.load.paths`:
 
-1. `package.json` with `openclaw.extensions` field (channel plugins)
-2. `index.ts` / `index.mjs` fallback (hook plugins like search-browser-fallback)
-3. `openclaw.plugin.json` manifest validation (subdirs without it are skipped)
+- Dev: `<repo>/extensions`
+- Packaged app: `process.resourcesPath + "/extensions"`
+- Merchant plugins: sibling `extensions-merchant` paths when available
 
-### Dev vs Packaged App
-
-| Environment | Extensions Path |
-|---|---|
-| Dev (monorepo) | `<monorepo-root>/extensions/` — auto-resolved via `pnpm-workspace.yaml` |
-| Packaged Electron | `process.resourcesPath + "/extensions"` — bundled by electron-builder |
-
-The `extensionsDir` option in `writeGatewayConfig()` handles both cases.
-`electron-builder.yml` copies all extensions into `Contents/Resources/extensions/`.
+The generated `apps/desktop/src/generated/our-plugin-ids.ts` file is produced by
+`scripts/generate-plugin-ids.mjs`; do not edit it manually.
 
 ## Required Files
 
-Every extension **must** have:
+Every extension must include:
 
-- **`openclaw.plugin.json`** — Plugin manifest with at minimum:
-  ```json
-  {
-    "id": "<plugin-id>",
-    "configSchema": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {}
-    }
+- `openclaw.plugin.json`
+- an entry point (`index.ts`, `index.mjs`, or a built file referenced by
+  `package.json` `openclaw.extensions`)
+
+Minimum manifest:
+
+```json
+{
+  "id": "my-plugin",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
   }
-  ```
-  The `id` and `configSchema` fields are **required** by OpenClaw's manifest
-  validator. Without `configSchema`, the gateway will crash on startup.
-
-- **An entry point** — Either:
-  - `index.ts` (loaded by jiti at runtime, no build step needed)
-  - A built `.mjs` referenced in `package.json` `openclaw.extensions`
-
-## Two Extension Patterns
-
-### Pattern A: Single-file hook plugin (no build step)
-
-For simple plugins that intercept/augment tool calls. Example: `search-browser-fallback/`.
-
-```
-my-plugin/
-  openclaw.plugin.json    # required manifest
-  index.ts                # entry point, loaded by jiti
+}
 ```
 
-No `package.json`, no build, no `node_modules`. The `.ts` file is transpiled
-on-the-fly by OpenClaw's jiti loader.
+Channel plugins also declare `channels` and `channelConfigs`.
 
-### Pattern B: Channel plugin (built with tsdown)
+## Development Checklist
 
-For channel integrations with dependencies and build output.
+1. Add `extensions/<name>/openclaw.plugin.json`.
+2. Add the source entry point and package config if the extension needs a build.
+3. Add the package to `pnpm-workspace.yaml` if it is a built package.
+4. Run `pnpm build` so `scripts/generate-plugin-ids.mjs` refreshes plugin IDs.
+5. Start the desktop app and check gateway logs for plugin discovery.
+6. For packaged builds, verify the extension appears under
+   `Contents/Resources/extensions/` or the Windows/Linux equivalent.
 
-```
-my-channel/
-  openclaw.plugin.json    # required manifest
-  package.json            # with openclaw.extensions: ["./openclaw-plugin.mjs"]
-  openclaw-plugin.mjs     # built entry point
-  openclaw-plugin.ts      # source for the entry point
-  src/                    # additional source files
-  dist/                   # build output
-  tsdown.config.ts        # build config
-  vitest.config.ts        # test config
-```
+## Deprecated Extensions
 
-The `package.json` `openclaw.extensions` array tells OpenClaw which `.mjs` file(s)
-to load. The extension must be built (`pnpm build`) before it can be loaded.
+These extension names were removed and should not be reintroduced without a new
+architecture decision:
 
-## Checklist: Adding a New Extension
-
-1. Create `extensions/<name>/openclaw.plugin.json` with `id` and `configSchema`
-2. Create the entry point (`index.ts` for Pattern A, or `openclaw-plugin.ts` + build for Pattern B)
-3. If Pattern B, add the package to `pnpm-workspace.yaml` packages list
-4. **No changes needed** in:
-   - `packages/gateway/src/config-writer.ts`
-   - `apps/desktop/src/main.ts`
-   - `apps/desktop/electron-builder.yml`
-5. Test in dev: start the app, check gateway logs for plugin discovery
-6. Test packaged build: verify the extension appears in `Contents/Resources/extensions/`
-
-## What NOT to Put Here
-
-- **Vendor-bundled plugins** (e.g. `google-gemini-cli-auth`) — These ship inside
-  `vendor/openclaw/extensions/` and are enabled via `plugins.entries` only
+- `rivonclaw-policy`: replaced by current data-driven tool authority and
+  OpenClaw-native skills/config behavior.
+- `rivonclaw-tools`: replaced by vendor prompt patches and merchant/local tool
+  extensions.
+- `rivonclaw-file-permissions`: removed with the old file-permissions UI/table.
+  OpenClaw native sandbox/tool policy remains the local boundary layer.
+- `wecom` / `dingtalk`: old planned channel extensions that are not present in
+  the current public extension tree.

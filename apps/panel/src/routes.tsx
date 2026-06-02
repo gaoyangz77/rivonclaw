@@ -36,8 +36,6 @@ export interface RouteEntry {
   authRequired?: boolean;
   /** Always mounted, shown/hidden via CSS toggle (preserves component state) */
   keepMounted?: boolean;
-  /** Only show in nav when entityStore.isModuleEnrolled(moduleGate) returns true */
-  moduleGate?: string;
   /** Temporarily hidden from sidebar nav (route still resolves) */
   navHidden?: boolean;
   /** Only show in nav after the user is signed in */
@@ -60,9 +58,9 @@ export const ROUTES: RouteEntry[] = [
   { path: "/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills" },
   { path: "/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons" },
   { path: "/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
-  { path: "/ecommerce", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER" },
-  { path: "/ecommerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER", parentPath: "/ecommerce" },
-  { path: "/ecommerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, moduleGate: "GLOBAL_ECOMMERCE_SELLER", parentPath: "/ecommerce" },
+  { path: "/ecommerce", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", authRequired: true },
+  { path: "/ecommerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, parentPath: "/ecommerce" },
+  { path: "/ecommerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, parentPath: "/ecommerce" },
   { path: "/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage" },
   { path: "/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings" },
   { path: "/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", authRequired: true, navAuthOnly: true },

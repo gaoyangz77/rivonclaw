@@ -9,6 +9,7 @@ export interface InstalledSkill {
   description: string;
   author: string;
   version: string;
+  sha256?: string;
   filePath: string;
   installedAt: string;
 }
