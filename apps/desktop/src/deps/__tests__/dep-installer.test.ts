@@ -226,6 +226,81 @@ describe("installDep", () => {
   // ─── Windows ────────────────────────────────────────────────────────────
 
   describe("Windows (win32)", () => {
+    it("installs git from China mirror in cn region", async () => {
+      setupSpawn();
+      mockArch.mockReturnValue("x64");
+
+      await installDep("git", "win32", "cn", onOutput);
+
+      const wingetCall = spawnCalls.find((c) => c.cmd === "winget");
+      expect(wingetCall).toBeUndefined();
+
+      const psCall = spawnCalls.find((c) => c.cmd === "powershell");
+      expect(psCall).toBeDefined();
+      expect(psCall!.args).toContain("-NoProfile");
+      expect(psCall!.args.join(" ")).toContain(
+        "https://repo.huaweicloud.com/git-for-windows/v2.54.0.windows.1/Git-2.54.0-64-bit.exe",
+      );
+      expect(psCall!.args.join(" ")).toContain(
+        "2B96E7854F0520F0F6B709C21041D9801B1BE44D5E1A0D9FA621B2FBC40F1983",
+      );
+    });
+
+    it("installs python from China mirror in cn region", async () => {
+      setupSpawn();
+      mockArch.mockReturnValue("arm64");
+
+      await installDep("python", "win32", "cn", onOutput);
+
+      const wingetCall = spawnCalls.find((c) => c.cmd === "winget");
+      expect(wingetCall).toBeUndefined();
+
+      const psCall = spawnCalls.find((c) => c.cmd === "powershell");
+      expect(psCall).toBeDefined();
+      expect(psCall!.args.join(" ")).toContain(
+        "https://mirrors.huaweicloud.com/python/3.13.13/python-3.13.13-arm64.exe",
+      );
+      expect(psCall!.args.join(" ")).toContain("PrependPath=1");
+      expect(psCall!.args.join(" ")).toContain(
+        "7925FC1D40DC75379AE70EDE7A6217FAF5549BB93CA89A3EA519185D8BC657BF",
+      );
+    });
+
+    it("installs node from China mirror in cn region", async () => {
+      setupSpawn();
+      mockArch.mockReturnValue("x64");
+
+      await installDep("node", "win32", "cn", onOutput);
+
+      const wingetCall = spawnCalls.find((c) => c.cmd === "winget");
+      expect(wingetCall).toBeUndefined();
+
+      const psCall = spawnCalls.find((c) => c.cmd === "powershell");
+      expect(psCall).toBeDefined();
+      expect(psCall!.args.join(" ")).toContain(
+        "https://mirrors.huaweicloud.com/nodejs/v24.16.0/node-v24.16.0-x64.msi",
+      );
+      expect(psCall!.args.join(" ")).toContain("SHASUMS256.txt");
+      expect(psCall!.args.join(" ")).toContain("MSIINSTALLPERUSER=1");
+    });
+
+    it("installs uv via pip in cn region without winget", async () => {
+      setupSpawn();
+
+      await installDep("uv", "win32", "cn", onOutput);
+
+      const wingetCall = spawnCalls.find((c) => c.cmd === "winget");
+      expect(wingetCall).toBeUndefined();
+
+      const pipCall = spawnCalls.find(
+        (c) =>
+          c.cmd === "pip" &&
+          c.args.includes("install") &&
+          c.args.includes("uv"),
+      );
+      expect(pipCall).toBeDefined();
+    });
+
     it("installs git via winget when available", async () => {
       // First spawn call is where.exe winget (succeed), then winget install
       setupSpawn();
@@ -246,25 +321,9 @@ describe("installDep", () => {
           c.args.includes("Git.Git"),
       );
       expect(wingetCall).toBeDefined();
+      expect(wingetCall!.args).toContain("--disable-interactivity");
       // Windows commands should use shell: true
       const opts = wingetCall!.opts as { shell?: boolean };
-      expect(opts.shell).toBe(true);
-    });
-
-    it("installs uv via pip in cn region when no winget", async () => {
-      // where.exe winget fails (exit code 1)
-      setupSpawn({ "where.exe winget": 1 });
-
-      await installDep("uv", "win32", "cn", onOutput);
-
-      const pipCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "pip" &&
-          c.args.includes("install") &&
-          c.args.includes("uv"),
-      );
-      expect(pipCall).toBeDefined();
-      const opts = pipCall!.opts as { shell?: boolean };
       expect(opts.shell).toBe(true);
     });
 
