@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.25",
+    "date": "2026-06-02",
+    "en": [
+      "Return completed OAuth shop payloads so the desktop app can refresh connected shop state immediately",
+      "Handle multi-shop OAuth event bursts more reliably when several shops finish authorization together",
+      "Fix customer-service dispatch RPC timeout handling so retry and recovery paths stay aligned"
+    ],
+    "zh": [
+      "OAuth 完成后返回店铺 payload，让桌面端可以立即刷新已连接店铺状态",
+      "增强多店铺 OAuth 事件突发处理，多个店铺同时完成授权时更稳定",
+      "修复客服分派 RPC 超时处理，让重试与恢复路径保持一致"
+    ]
+  },
+  {
     "version": "1.8.24",
     "date": "2026-06-01",
     "en": [
