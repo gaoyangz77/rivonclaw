@@ -10,7 +10,7 @@ e2e/
 ├── electron-fixture.ts    # Custom fixtures — `test` (returning user) & `freshTest` (fresh user)
 ├── global-setup.ts        # Loads e2e/.env, kills stale RivonClaw processes
 ├── smoke.spec.ts          # Returning-user smoke tests (uses `test` fixture)
-├── onboarding.spec.ts     # Fresh-user onboarding tests (uses `freshTest` fixture)
+├── welcome.spec.ts     # Fresh-user welcome tests (uses `freshTest` fixture)
 ├── .env                   # API keys for testing (gitignored)
 ├── package.json           # { "type": "commonjs" } override for Playwright compatibility
 └── README.md              # This file
@@ -33,26 +33,27 @@ The temp directory is deleted after each test via `rmSync`, ensuring tests are *
 | Fixture | Import | Simulates | Entry Point |
 |---------|--------|-----------|-------------|
 | `test` | `import { test } from "./electron-fixture.js"` | Returning user (has a provider key) | Main page with sidebar |
-| `freshTest` | `import { freshTest as test } from "./electron-fixture.js"` | Brand-new user (empty database) | Onboarding page |
+| `freshTest` | `import { freshTest as test } from "./electron-fixture.js"` | Brand-new user (empty database) | Welcome page |
 
-**Returning user (`test`)**: Skips onboarding by clicking "Skip setup" to reach the main page. No API keys required.
+**Returning user (`test`)**: Skips welcome by clicking "Use as guest" to reach the main page. No API keys required.
 
-**Fresh user (`freshTest`)**: Launches with an empty database so the app shows the onboarding page. Requires `E2E_ZHIPU_API_KEY` for the full onboarding test (otherwise that test is skipped).
+**Fresh user (`freshTest`)**: Launches with an empty database so the app shows the welcome page.
 
 ## Test Suites
 
-### `onboarding.spec.ts` — Fresh User Onboarding (2 tests)
+### `welcome.spec.ts` — Fresh User Welcome (3 tests)
 
-Uses the `freshTest` fixture (empty database, lands on onboarding page).
+Uses the `freshTest` fixture (empty database, lands on welcome page).
 
 | # | Test | Steps | Requires API Key |
 |---|------|-------|-----------------|
-| 1 | Fresh user completes onboarding with GLM API key | Switch to API tab -> Select "Zhipu (GLM) - China" -> Select "GLM-4.7-Flash" -> Fill API key -> Click "Save & Continue" -> Wait for "All Set" page -> Click "Go to Dashboard" -> Verify sidebar loads | `E2E_ZHIPU_API_KEY` |
-| 2 | Fresh user can skip onboarding | Click "Skip setup" -> Verify sidebar loads | No |
+| 1 | Fresh user sees account entry actions | Verify the seller-account welcome page, registration action, and login action render | No |
+| 2 | Fresh user can open register and login auth flows | Open registration modal -> verify Register tab -> close -> open login modal -> verify Login tab | No |
+| 3 | Fresh user can continue as guest | Click "Use as guest" -> Verify sidebar loads | No |
 
 ### `smoke.spec.ts` — Returning User Smoke Tests (5 tests)
 
-Uses the `test` fixture (skips onboarding, lands on main page).
+Uses the `test` fixture (skips welcome, lands on main page).
 
 | # | Test | Steps | Requires API Key |
 |---|------|-------|-----------------|
@@ -72,7 +73,7 @@ E2E_ZHIPU_API_KEY=your-zhipu-key-here
 
 `global-setup.ts` auto-loads this file before tests. CLI env vars take priority over `.env` values.
 
-**Without API keys**: All tests pass except the onboarding completion test (which is skipped).
+**Without API keys**: Welcome tests still run; provider-specific tests skip themselves when their required keys are absent.
 
 ## Dev vs Prod Modes
 
@@ -135,7 +136,7 @@ Both dev and prod E2E are included in `scripts/test-local.sh`. See the script he
 ### Choosing a fixture
 
 - **`test`** (from `electron-fixture.js`) — for tests that need the main page with a pre-seeded provider. Import as: `import { test, expect } from "./electron-fixture.js"`
-- **`freshTest`** (from `electron-fixture.js`) — for tests that need the onboarding page. Import as: `import { freshTest as test, expect } from "./electron-fixture.js"`
+- **`freshTest`** (from `electron-fixture.js`) — for tests that need the welcome page. Import as: `import { freshTest as test, expect } from "./electron-fixture.js"`
 
 ### Basic structure
 

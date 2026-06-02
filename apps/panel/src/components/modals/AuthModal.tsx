@@ -38,6 +38,8 @@ function translateAuthError(err: unknown, t: TFunction): string {
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: "login" | "register";
+  modeSwitch?: "tabs" | "inlineLink";
   /** Called after successful login/register (e.g. to navigate to a gated page). */
   onSuccess?: () => void;
 }
@@ -60,7 +62,7 @@ function getPasswordChecks(pw: string) {
   };
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = "tabs", onSuccess }: AuthModalProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const login = entityStore.login;
@@ -86,6 +88,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     const passed = Object.values(pwChecks).filter(Boolean).length;
     return passed; // 0-4
   }, [pwChecks]);
+  const compactModeSwitch = modeSwitch === "inlineLink";
+  const modalTitle = compactModeSwitch
+    ? activeTab === "login"
+      ? t("auth.loginAction")
+      : t("auth.registerAction")
+    : t("auth.title");
 
   const refreshCaptcha = useCallback(async () => {
     setCaptchaAnswer("");
@@ -106,6 +114,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   // Reset form state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
+      setActiveTab(initialTab);
       refreshCaptcha();
     } else {
       setActiveTab("login");
@@ -120,7 +129,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       setCaptchaSvg("");
       setCaptchaError(false);
     }
-  }, [isOpen, refreshCaptcha]);
+  }, [isOpen, initialTab, refreshCaptcha]);
 
   // Clear errors when switching tabs, reset password visibility
   function switchTab(tab: "login" | "register") {
@@ -183,32 +192,47 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("auth.title")} maxWidth={400}>
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth={400}>
       <div className="auth-modal-form">
         <p className="auth-subtitle">
           {activeTab === "login" ? t("auth.subtitle") : t("auth.subtitleRegister")}
         </p>
 
-        <div className="auth-tab-pill" role="tablist">
-          <button
-            className={`auth-tab-pill-btn${activeTab === "login" ? " auth-tab-pill-btn--active" : ""}`}
-            onClick={() => switchTab("login")}
-            role="tab"
-            aria-selected={activeTab === "login"}
-            type="button"
-          >
-            {t("auth.login")}
-          </button>
-          <button
-            className={`auth-tab-pill-btn${activeTab === "register" ? " auth-tab-pill-btn--active" : ""}`}
-            onClick={() => switchTab("register")}
-            role="tab"
-            aria-selected={activeTab === "register"}
-            type="button"
-          >
-            {t("auth.register")}
-          </button>
-        </div>
+        {compactModeSwitch ? (
+          <p className="auth-inline-switch">
+            <span>
+              {activeTab === "login" ? t("auth.switchToRegisterPrompt") : t("auth.switchToLoginPrompt")}
+            </span>
+            <button
+              type="button"
+              className="auth-inline-switch-btn"
+              onClick={() => switchTab(activeTab === "login" ? "register" : "login")}
+            >
+              {activeTab === "login" ? t("auth.register") : t("auth.login")}
+            </button>
+          </p>
+        ) : (
+          <div className="auth-tab-pill" role="tablist">
+            <button
+              className={`auth-tab-pill-btn${activeTab === "login" ? " auth-tab-pill-btn--active" : ""}`}
+              onClick={() => switchTab("login")}
+              role="tab"
+              aria-selected={activeTab === "login"}
+              type="button"
+            >
+              {t("auth.login")}
+            </button>
+            <button
+              className={`auth-tab-pill-btn${activeTab === "register" ? " auth-tab-pill-btn--active" : ""}`}
+              onClick={() => switchTab("register")}
+              role="tab"
+              aria-selected={activeTab === "register"}
+              type="button"
+            >
+              {t("auth.register")}
+            </button>
+          </div>
+        )}
 
         {error && <div className="error-alert">{error}</div>}
 

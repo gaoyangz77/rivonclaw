@@ -116,9 +116,9 @@ async function dismissModals(window: import("@playwright/test").Page): Promise<v
   }
 }
 
-async function skipOnboardingIfVisible(window: import("@playwright/test").Page): Promise<void> {
-  if (!await window.locator(".onboarding-page").isVisible({ timeout: 2_000 }).catch(() => false)) return;
-  await window.locator(".btn-ghost", { hasText: /Skip/i }).click();
+async function skipWelcomeIfVisible(window: import("@playwright/test").Page): Promise<void> {
+  if (!await window.locator(".welcome-page").isVisible({ timeout: 2_000 }).catch(() => false)) return;
+  await window.locator(".welcome-skip-guest").click();
   await window.waitForSelector(".sidebar-brand", { timeout: 30_000 });
 }
 
@@ -172,7 +172,7 @@ test.describe("Ecommerce Page — New User Defaults", () => {
 
     await storeTokens(apiBase, registerBody.register.accessToken, registerBody.register.refreshToken);
     await window.reload({ waitUntil: "domcontentloaded" });
-    await skipOnboardingIfVisible(window);
+    await skipWelcomeIfVisible(window);
     await dismissModals(window);
 
     await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 15_000 });
