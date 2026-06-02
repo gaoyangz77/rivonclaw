@@ -181,9 +181,9 @@ const setAutoLaunch: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
 
 const telemetryTrack: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const PANEL_EVENT_ALLOWLIST = new Set([
-    "onboarding.started",
-    "onboarding.provider_saved",
-    "onboarding.completed",
+    "welcome.started",
+    "welcome.skipped_as_guest",
+    "welcome.completed",
     "panel.page_viewed",
     "chat.message_sent",
     "chat.response_received",

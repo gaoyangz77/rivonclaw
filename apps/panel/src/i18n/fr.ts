@@ -1047,6 +1047,16 @@ export default {
     "cancel": "Annuler",
     "retry": "Réessayer"
   },
+  "welcome": {
+    "useAsGuest": "Utiliser en invité",
+    "kicker": "Espace de travail ecommerce",
+    "accountTitle": "Commencez avec votre compte vendeur",
+    "accountDesc": "Créez un compte RivonClaw pour connecter des boutiques, activer les essais éligibles et synchroniser votre espace ecommerce. Vous avez déjà un compte? Connectez-vous et continuez.",
+    "createAccountTitle": "Inscription nouvel utilisateur",
+    "createAccountDesc": "Créez un compte, saisissez un code d'invitation si vous en avez un, puis connectez votre première boutique éligible.",
+    "loginTitle": "Connexion utilisateur existant",
+    "loginDesc": "Connectez-vous pour restaurer vos boutiques, votre facturation, vos modèles et votre espace cloud."
+  },
   "onboarding": {
     "skipSetup": "Ignorer la configuration",
     "welcomeTitle": "Bienvenue à RivonClaw",
@@ -1305,6 +1315,8 @@ export default {
     "register": "S'inscrire",
     "loginAction": "Connectez-vous",
     "registerAction": "Créer un compte",
+    "switchToRegisterPrompt": "Nouveau ici ?",
+    "switchToLoginPrompt": "Vous avez déjà un compte ?",
     "email": "Courriel",
     "password": "Mot de passe",
     "inviteCode": "Code d’invitation",

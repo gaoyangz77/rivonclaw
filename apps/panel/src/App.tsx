@@ -7,12 +7,14 @@ import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import { AnnouncementModal, type ActiveAnnouncement, type ActiveAnnouncementAction } from "./components/modals/AnnouncementModal.js";
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
-import { fetchSettings, fetchChangelog, fetchUpdateInfo, trackEvent } from "./api/index.js";
+import { fetchSettings, fetchChangelog, fetchUpdateInfo, trackEvent, updateSettings } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
+import { fetchJson } from "./api/client.js";
 import { entityStore } from "./store/entity-store.js";
 import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
 import { getClient } from "./api/apollo-client.js";
 import { ACTIVE_ANNOUNCEMENTS_QUERY, RECORD_ANNOUNCEMENT_EVENT_MUTATION } from "./api/announcement-queries.js";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -23,6 +25,9 @@ function pageNameFromRoute(path: string): string {
   return ROUTE_MAP.get(path)?.pageKey ?? "chat";
 }
 
+const WELCOME_PAGE_COMPLETED_KEY = "welcome_page_completed";
+const LEGACY_ONBOARDING_ACCOUNT_ENTRY_COMPLETED_KEY = "onboarding_account_entry_completed";
+
 export const App = observer(function App() {
   const { t, i18n } = useTranslation();
   const runtimeStatus = useRuntimeStatus();
@@ -32,7 +37,7 @@ export const App = observer(function App() {
   useEffect(() => {
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
-  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showTelemetryConsent, setShowTelemetryConsent] = useState(false);
   const [activeAnnouncement, setActiveAnnouncement] = useState<ActiveAnnouncement | null>(null);
@@ -67,35 +72,42 @@ export const App = observer(function App() {
   }, []);
 
   useEffect(() => {
-    if (import.meta.env.VITE_FORCE_ONBOARDING === "1") {
-      setShowOnboarding(true);
+    if (import.meta.env.VITE_FORCE_WELCOME === "1") {
+      setShowWelcome(true);
       return;
     }
-    checkOnboarding();
+    checkWelcome();
   }, []);
 
-  async function checkOnboarding() {
+  async function checkWelcome() {
     try {
       const settings = await fetchSettings();
+      if (
+        settings[WELCOME_PAGE_COMPLETED_KEY] === "1" ||
+        settings[LEGACY_ONBOARDING_ACCOUNT_ENTRY_COMPLETED_KEY] === "1"
+      ) {
+        setShowWelcome(false);
+        return;
+      }
 
-      const provider = settings["llm-provider"];
-      // API keys are masked to "configured" by the server when present
-      const hasApiKey = provider
-        ? settings[`${provider}-api-key`] === "configured"
-        : false;
+      const session = await fetchJson<{ authenticated: boolean; tokenPresent?: boolean }>(clientPath(API["auth.session"])).catch(() => null);
+      if (session?.authenticated || session?.tokenPresent) {
+        updateSettings({ [WELCOME_PAGE_COMPLETED_KEY]: "1" }).catch(() => {});
+        setShowWelcome(false);
+        return;
+      }
 
-      // Show onboarding until a provider with a valid API key is configured
-      setShowOnboarding(!hasApiKey);
+      setShowWelcome(true);
     } catch {
-      setShowOnboarding(false);
+      setShowWelcome(false);
     }
   }
 
-  // Check for "What's New" after onboarding is resolved.
+  // Check for "What's New" after the welcome page is resolved.
   // Wait for the SSE snapshot so we compare against the persisted MST value,
   // not the empty default (which would show "What's New" on every launch).
   useEffect(() => {
-    if (showOnboarding !== false) return;
+    if (showWelcome !== false) return;
     if (!runtimeStatus.snapshotReceived) return;
     fetchChangelog()
       .then((data) => {
@@ -108,21 +120,21 @@ export const App = observer(function App() {
         }
       })
       .catch(() => { });
-  }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.whatsNewLastSeenVersion]);
+  }, [showWelcome, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.whatsNewLastSeenVersion]);
 
-  // Show telemetry consent dialog on first launch (after onboarding).
+  // Show telemetry consent dialog on first launch (after the welcome page).
   // Gate on snapshotReceived so we don't flash the modal based on the MST
   // default before the real persisted value arrives via SSE.
   useEffect(() => {
-    if (showOnboarding !== false) return;
+    if (showWelcome !== false) return;
     if (!runtimeStatus.snapshotReceived) return;
     if (!runtimeStatus.appSettings.telemetryConsentShown) {
       setShowTelemetryConsent(true);
     }
-  }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.telemetryConsentShown]);
+  }, [showWelcome, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.telemetryConsentShown]);
 
   useEffect(() => {
-    if (showOnboarding !== false) return;
+    if (showWelcome !== false) return;
     if (!runtimeStatus.snapshotReceived) return;
 
     let cancelled = false;
@@ -151,7 +163,7 @@ export const App = observer(function App() {
     return () => {
       cancelled = true;
     };
-  }, [showOnboarding, runtimeStatus.snapshotReceived, runtimeStatus.deviceId, entityStore.currentUser?.userId, i18n.language]);
+  }, [showWelcome, runtimeStatus.snapshotReceived, runtimeStatus.deviceId, entityStore.currentUser?.userId, i18n.language]);
 
   useEffect(() => {
     if (!activeAnnouncement) return;
@@ -166,15 +178,15 @@ export const App = observer(function App() {
     });
   }, [activeAnnouncement, showWhatsNew, showTelemetryConsent]);
 
-  // Track initial page view when main app mounts (not during onboarding)
+  // Track initial page view when main app mounts (not during the welcome page)
   useEffect(() => {
-    if (showOnboarding === false) {
+    if (showWelcome === false) {
       trackEvent("panel.page_viewed", { page: pageNameFromRoute(currentPath) });
     }
-  }, [showOnboarding === false]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showWelcome === false]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleOnboardingComplete() {
-    setShowOnboarding(false);
+  function handleWelcomeComplete() {
+    setShowWelcome(false);
     navigate("/");
   }
 
@@ -247,7 +259,7 @@ export const App = observer(function App() {
     }
   }
 
-  if (showOnboarding === null) {
+  if (showWelcome === null) {
     return (
       <div className="app-loading">
         {t("common.loading")}
@@ -255,9 +267,9 @@ export const App = observer(function App() {
     );
   }
 
-  if (showOnboarding) {
-    const OnboardingComponent = ROUTE_MAP.get("/onboarding")!.component;
-    return <OnboardingComponent onComplete={handleOnboardingComplete} />;
+  if (showWelcome) {
+    const WelcomeComponent = ROUTE_MAP.get("/welcome")!.component;
+    return <WelcomeComponent onComplete={handleWelcomeComplete} />;
   }
 
   const ChatComponent = ROUTE_MAP.get("/")!.component;

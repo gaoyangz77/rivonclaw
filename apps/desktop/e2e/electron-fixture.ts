@@ -381,7 +381,7 @@ async function dismissBlockingModals(window: Page): Promise<void> {
 
 
 /**
- * Returning-user fixture: skips onboarding to reach the main page.
+ * Returning-user fixture: skips welcome to reach the main page.
  *
  * Always lands on the main page with a fully connected gateway, so
  * individual tests don't race against gateway startup time.
@@ -407,15 +407,15 @@ export const test = base.extend<ElectronFixtures>({
     // This preference is persisted through Desktop settings, not localStorage.
     await setE2ePanelPreferences(apiBase);
 
-    // Wait for the page to render (onboarding or main page)
-    await window.waitForSelector(".onboarding-page, .sidebar-brand", {
+    // Wait for the page to render (welcome or main page)
+    await window.waitForSelector(".welcome-page, .sidebar-brand", {
       timeout: 45_000,
     });
     await bringWindowToFront(electronApp);
 
-    // If onboarding is shown, skip it to reach the main page
-    if (await window.locator(".onboarding-page").isVisible()) {
-      await window.locator(".btn-ghost").click();
+    // If welcome is shown, skip it to reach the main page
+    if (await window.locator(".welcome-page").isVisible()) {
+      await window.locator(".welcome-skip-guest").click();
       await window.waitForSelector(".sidebar-brand", { timeout: 45_000 });
     }
     await dismissBlockingModals(window);
@@ -438,7 +438,7 @@ export const test = base.extend<ElectronFixtures>({
 
 /**
  * Fresh-user fixture: launches with an empty database so the app
- * shows the onboarding page.
+ * shows the welcome page.
  */
 export const freshTest = base.extend<ElectronFixtures>({
   ports: async ({}, use, testInfo) => {
@@ -457,7 +457,7 @@ export const freshTest = base.extend<ElectronFixtures>({
     const window = await electronApp.firstWindow({ timeout: 45_000 });
     await window.waitForLoadState("domcontentloaded");
     await setE2ePanelPreferences(apiBase);
-    await window.waitForSelector(".onboarding-page", { timeout: 45_000 });
+    await window.waitForSelector(".welcome-page", { timeout: 45_000 });
     await bringWindowToFront(electronApp);
 
     await use(window);

@@ -13,7 +13,7 @@ import { KeyUsagePage } from "./pages/usage/KeyUsagePage.js";
 import { SkillsPage } from "./pages/skills/SkillsPage.js";
 import { CronsPage } from "./pages/crons/CronsPage.js";
 import { SettingsPage } from "./pages/settings/SettingsPage.js";
-import { OnboardingPage } from "./pages/onboarding/OnboardingPage.js";
+import { WelcomePage } from "./pages/welcome/WelcomePage.js";
 import { AccountPage } from "./pages/account/AccountPage.js";
 import { BillingPage } from "./pages/billing/BillingPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
@@ -65,7 +65,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings" },
   { path: "/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", authRequired: true, navAuthOnly: true },
   { path: "/account", pageKey: "account", component: AccountPage, icon: <AccountIcon /> },
-  { path: "/onboarding", pageKey: "onboarding", component: OnboardingPage, internal: true },
+  { path: "/welcome", pageKey: "welcome", component: WelcomePage, internal: true },
 ];
 
 /** Valid user-navigable paths for URL resolution */

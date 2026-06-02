@@ -1047,6 +1047,16 @@ export default {
     "cancel": "Batalkan",
     "retry": "Coba lagi"
   },
+  "welcome": {
+    "useAsGuest": "Gunakan sebagai tamu",
+    "kicker": "Ruang kerja ecommerce",
+    "accountTitle": "Mulai dengan akun penjual Anda",
+    "accountDesc": "Buat akun RivonClaw untuk menghubungkan toko, mengaktifkan uji coba yang memenuhi syarat, dan menyinkronkan ruang kerja ecommerce Anda. Sudah punya akun? Masuk dan lanjutkan.",
+    "createAccountTitle": "Pendaftaran pengguna baru",
+    "createAccountDesc": "Buat akun, masukkan kode undangan jika ada, lalu hubungkan toko pertama yang memenuhi syarat.",
+    "loginTitle": "Login pengguna lama",
+    "loginDesc": "Masuk untuk memulihkan toko, penagihan, template, dan ruang kerja cloud Anda."
+  },
   "onboarding": {
     "skipSetup": "Lewati penyiapan",
     "welcomeTitle": "Selamat datang di RivonClaw",
@@ -1305,6 +1315,8 @@ export default {
     "register": "Daftar",
     "loginAction": "Masuk",
     "registerAction": "Buat Akun",
+    "switchToRegisterPrompt": "Baru di sini?",
+    "switchToLoginPrompt": "Sudah punya akun?",
     "email": "Surel",
     "password": "Kata sandi",
     "inviteCode": "Kode undangan",
