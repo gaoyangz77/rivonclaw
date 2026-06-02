@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { OAUTH_TIMEOUT_MS } from "../ecommerce-utils.js";
 
-const OAUTH_COMPLETE_QUIET_MS = 1000;
-
 export function useOAuthFlow() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -18,17 +16,12 @@ export function useOAuthFlow() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const oauthCompleteSettleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unsubscribeOAuthRef = useRef<(() => void) | null>(null);
 
   const cleanupOAuthWait = useCallback(() => {
     if (oauthTimeoutRef.current) {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
-    }
-    if (oauthCompleteSettleRef.current) {
-      clearTimeout(oauthCompleteSettleRef.current);
-      oauthCompleteSettleRef.current = null;
     }
     if (unsubscribeOAuthRef.current) {
       unsubscribeOAuthRef.current();
@@ -43,29 +36,21 @@ export function useOAuthFlow() {
   useEffect(() => {
     return () => {
       if (oauthTimeoutRef.current) clearTimeout(oauthTimeoutRef.current);
-      if (oauthCompleteSettleRef.current) clearTimeout(oauthCompleteSettleRef.current);
       if (unsubscribeOAuthRef.current) unsubscribeOAuthRef.current();
     };
   }, []);
 
   function startOAuthSSEListener(onOAuthComplete: () => void) {
     unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
-      void raw;
-      if (oauthTimeoutRef.current) {
-        clearTimeout(oauthTimeoutRef.current);
-        oauthTimeoutRef.current = null;
-      }
-      if (oauthCompleteSettleRef.current) {
-        clearTimeout(oauthCompleteSettleRef.current);
-      }
-      oauthCompleteSettleRef.current = setTimeout(() => {
+      const data = raw as { shops?: unknown[] };
+      if (!Array.isArray(data.shops) || data.shops.length === 0) {
         cleanupOAuthWait();
-        onOAuthComplete();
-        showToast(t("ecommerce.oauthSuccess"), "success");
-        // OAuth can authorize multiple shops in one callback; fetch the list
-        // after the event burst so Desktop ingests every newly-created shop.
-        entityStore.fetchShops().catch(() => {});
-      }, OAUTH_COMPLETE_QUIET_MS);
+        showToast(t("ecommerce.oauthFailed"), "error");
+        return;
+      }
+      cleanupOAuthWait();
+      onOAuthComplete();
+      showToast(t("ecommerce.oauthSuccess"), "success");
     });
 
     oauthTimeoutRef.current = setTimeout(() => {

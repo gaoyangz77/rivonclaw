@@ -4180,6 +4180,8 @@ export interface OAuthCompletePayload {
   platform: Scalars['String']['output'];
   shopId: Scalars['String']['output'];
   shopName: Scalars['String']['output'];
+  /** All shops connected by this OAuth callback. */
+  shops: Array<Shop>;
 }
 
 /** Unified payment record across payment providers. */
