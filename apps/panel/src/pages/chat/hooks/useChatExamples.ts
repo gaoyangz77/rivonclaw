@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { reaction } from "mobx";
 import { useTranslation } from "react-i18next";
 import { useChatPreferenceStore } from "../ChatPreferenceStoreProvider.js";
-import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../../store/RuntimeStatusProvider.js";
 import { fetchSettings, updateSettings } from "../../../api/index.js";
 import { EXAMPLE_KEYS, getPresetExamples } from "../store/chat-example-presets.js";
@@ -22,7 +20,7 @@ function isNewFormat(parsed: unknown): parsed is NewOverridesFormat {
 
 /**
  * Chat example prompts — reactive bridge between ChatPreferenceStore,
- * entityStore module enrollment, and i18n.
+ * ecommerce-first defaults, and i18n.
  *
  * These are the 6 customizable quick-send message templates shown below
  * the chat input. They are NOT session-scoped state and do NOT belong
@@ -31,7 +29,6 @@ function isNewFormat(parsed: unknown): parsed is NewOverridesFormat {
 export function useChatExamples() {
   const { t, i18n } = useTranslation();
   const prefStore = useChatPreferenceStore();
-  const entityStore = useEntityStore();
   const runtimeStatus = useRuntimeStatus();
 
   const [editingExample, setEditingExample] = useState<string | null>(null);
@@ -40,17 +37,10 @@ export function useChatExamples() {
   // writes to the correct preset even if activePresetId changes mid-edit.
   const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
 
-  // --- Auto-switch preset based on module enrollment ---
+  // RivonClaw is ecommerce-first; use ecommerce prompt examples by default.
   useEffect(() => {
-    const dispose = reaction(
-      () => entityStore.isModuleEnrolled("GLOBAL_ECOMMERCE_SELLER"),
-      (isEcommerce) => {
-        prefStore.setActivePresetId(isEcommerce ? "ecommerce" : "default");
-      },
-      { fireImmediately: true },
-    );
-    return dispose;
-  }, [entityStore, prefStore]);
+    prefStore.setActivePresetId("ecommerce");
+  }, [prefStore]);
 
   // --- Load overrides from settings on mount ---
   useEffect(() => {

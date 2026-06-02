@@ -57,16 +57,14 @@ export async function bootstrapDesktopAuthState(
       INIT_RUN_PROFILES_QUERY,
     ];
 
-    if (me.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER")) {
-      queries.push(
-        INIT_SHOPS_QUERY,
-        INIT_PLATFORM_APPS_QUERY,
-        INIT_BILLING_OVERVIEW_QUERY,
-        INIT_WMS_ACCOUNTS_QUERY,
-        INIT_WAREHOUSES_QUERY,
-        INIT_INVENTORY_GOODS_QUERY,
-      );
-    }
+    queries.push(
+      INIT_SHOPS_QUERY,
+      INIT_PLATFORM_APPS_QUERY,
+      INIT_BILLING_OVERVIEW_QUERY,
+      INIT_WMS_ACCOUNTS_QUERY,
+      INIT_WAREHOUSES_QUERY,
+      INIT_INVENTORY_GOODS_QUERY,
+    );
 
     const results = await Promise.all(queries.map((query) => authSession.graphqlFetch(query)));
     for (const data of results) {

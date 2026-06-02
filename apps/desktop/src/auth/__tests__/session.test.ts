@@ -20,9 +20,9 @@ const mockUser = {
   email: "test@example.com",
   name: "Test",
   createdAt: "2025-01-01T00:00:00Z",
-  enrolledModules: [],
+  enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
   entitlementKeys: [],
-  defaultRunProfileId: null,
+  defaultRunProfileId: "SHOP_OPERATIONS",
 };
 
 // ---------------------------------------------------------------------------
@@ -70,6 +70,7 @@ describe("AuthSessionManager.loginWithCredentials", () => {
 
     // Verify the cached user is set
     expect(manager.getCachedUser()).toEqual(mockUser);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
 
     // Verify graphqlFetch was called with a login mutation
     const callBody = JSON.parse(fetchFn.mock.calls[0][1].body);
@@ -132,6 +133,7 @@ describe("AuthSessionManager.registerWithCredentials", () => {
     });
 
     expect(result).toEqual(mockUser);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
 
     // Verify tokens were stored
     expect(secretStore.set).toHaveBeenCalledWith("auth.accessToken", "at-reg");

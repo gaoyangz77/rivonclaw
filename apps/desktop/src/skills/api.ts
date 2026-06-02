@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { promises as fs } from "node:fs";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import AdmZip from "adm-zip";
 import { formatError, getApiBaseUrl } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
@@ -10,6 +11,10 @@ import type { ApiContext } from "../app/api-context.js";
 import { sendJson, parseBody, proxiedFetch, parseSkillFrontmatter, invalidateSkillsSnapshot, getUserSkillsDir } from "../infra/api/route-utils.js";
 
 const log = createLogger("skills-routes");
+
+function hashSkillContent(content: string): string {
+  return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
+}
 
 function parseHttpUrl(value: string): string | null {
   try {
@@ -50,15 +55,17 @@ const installed: EndpointHandler = async (_req, res, _url, _params, _ctx) => {
       return;
     }
 
-    const skills: Array<{ slug: string; name?: string; description?: string; author?: string; version?: string }> = [];
+    const skills: Array<{ slug: string; name?: string; description?: string; author?: string; version?: string; sha256?: string }> = [];
     for (const entry of entries) {
       const entryPath = join(skillsDir, entry);
       const stat = await fs.stat(entryPath);
       if (!stat.isDirectory()) continue;
 
       let fmMeta: { name?: string; description?: string; author?: string; version?: string } = {};
+      let sha256: string | undefined;
       try {
         const content = await fs.readFile(join(entryPath, "SKILL.md"), "utf-8");
+        sha256 = hashSkillContent(content);
         fmMeta = parseSkillFrontmatter(content);
       } catch { /* SKILL.md missing or unreadable */ }
 
@@ -73,6 +80,7 @@ const installed: EndpointHandler = async (_req, res, _url, _params, _ctx) => {
         description: installMeta.description || fmMeta.description,
         author: installMeta.author || fmMeta.author,
         version: installMeta.version || fmMeta.version,
+        sha256,
       });
     }
     sendJson(res, 200, { skills });

@@ -22,7 +22,7 @@ export function getCsBridge(): CustomerServiceBridge | null {
 // ---------------------------------------------------------------------------
 // The bridge must start when BOTH conditions are met:
 //   1. Gateway RPC is connected (we can dispatch agent runs)
-//   2. User data shows ecommerce module enrolled
+//   2. A user is signed in
 // Auth changes are coordinated at the app lifecycle level. Do not subscribe
 // directly to authSession.onUserChanged here: login sets cachedUser before the
 // auth-change bootstrap/restart sequence has settled.
@@ -50,7 +50,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
 
     void (async () => {
       try {
-        // Both conditions: RPC connected + user has ecommerce
+        // Both conditions: RPC connected + signed-in user.
         let rpc: unknown;
         try {
           rpc = openClawConnector.ensureRpcReady();
@@ -59,8 +59,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
         }
         if (!rpc) return;
         const user = authSession.getCachedUser();
-        const hasEcommerce = user?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
-        if (!hasEcommerce) return;
+        if (!user) return;
 
         try {
           await ensureAgentToolingReady();
@@ -80,8 +79,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
         }
         if (!rpc) return;
         const latestUser = authSession.getCachedUser();
-        const latestHasEcommerce = latestUser?.enrolledModules?.includes("GLOBAL_ECOMMERCE_SELLER");
-        if (!latestHasEcommerce) return;
+        if (!latestUser) return;
 
         _csBridge = new CustomerServiceBridge({
           gatewayId,
@@ -89,7 +87,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
         });
         rootStore.llmManager.refreshModelCatalog().catch(() => {});
         _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
-        log.info("CS bridge started (ecommerce module detected)");
+        log.info("CS bridge started (signed-in ecommerce workspace)");
       } finally {
         if (generation === _csBridgeLifecycleGeneration) {
           _csBridgeStarting = false;

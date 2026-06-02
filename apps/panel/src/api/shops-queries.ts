@@ -121,6 +121,22 @@ export const PRESET_SKILLS_QUERY = gql`
   }
 `;
 
+export const PRESET_SKILL_MANIFEST_QUERY = gql`
+  query PresetSkillManifest($serviceIds: [ServiceId!]) {
+    presetSkillManifest(serviceIds: $serviceIds) {
+      serviceId
+      slug
+      localSlug
+      displayName
+      currentHash
+      previousHashes
+      autoUpdatePolicy
+      version
+      updatedAt
+    }
+  }
+`;
+
 export const CS_OPEN_ESCALATIONS_QUERY = gql`
   query CsOpenEscalations($filter: CsOpenEscalationFilterInput) {
     csOpenEscalationsPage(filter: $filter) {

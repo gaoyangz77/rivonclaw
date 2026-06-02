@@ -1415,6 +1415,12 @@ export default {
     llmKeySuspended: "Suspended",
     quotaFiveHour: "Quota (5h)",
     quotaWeekly: "Quota (Weekly)",
+    officialTemplatesTitle: "Official templates",
+    officialTemplatesDesc: "Restore the latest official ecommerce skill templates. This overwrites local template edits.",
+    refreshOfficialTemplates: "Refresh templates",
+    refreshingOfficialTemplates: "Refreshing...",
+    officialTemplatesRefreshSuccess: "Official templates refreshed ({{count}} updated).",
+    officialTemplatesRefreshError: "Failed to refresh official templates.",
     quotaRefreshAt: "Refreshes at {{time}}",
   },
   billing: {

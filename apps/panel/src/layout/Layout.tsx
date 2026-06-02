@@ -190,8 +190,7 @@ export const Layout = observer(function Layout({
   const navRoutes = ROUTES.filter(r =>
     r.navLabelKey &&
     !r.navHidden &&
-    (!r.navAuthOnly || !!user) &&
-    (!r.moduleGate || entityStore.isModuleEnrolled(r.moduleGate))
+    (!r.navAuthOnly || !!user)
   );
 
   const showBanner = !!updateInfo;

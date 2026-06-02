@@ -8,56 +8,57 @@
 
 ## Why RivonClaw?
 
-[OpenClaw](https://github.com/openclaw/openclaw) is a powerful agent runtime — but it's built for engineers. Setting it up means editing config files, managing processes, and juggling API keys from the terminal. For non-programmers (designers, operators, small business owners), that barrier is too high.
+[OpenClaw](https://github.com/openclaw/openclaw) is a powerful agent runtime,
+but operating it directly means managing config files, local processes, provider
+credentials, channel plugins, and update workflows. RivonClaw packages that
+runtime into a desktop application with a local panel, provider management,
+mobile/channel integrations, ecommerce workflows, and release infrastructure.
 
-RivonClaw wraps OpenClaw into a desktop app that **anyone can use**: install, launch from the system tray, and manage everything through a local web panel. Write rules in plain language instead of code, configure LLM providers and messaging channels with a few clicks, and let the agent learn your preferences over time. No terminal required.
+OpenClaw is the engine; RivonClaw is the desktop cockpit and business layer.
 
-**In short:** OpenClaw is the engine; RivonClaw is the cockpit.
+## Current Features
 
-## Features
-
-- **Natural Language Rules**: Write rules in plain language—they compile to policy, guards, or skills and take effect immediately (no restart)
-- **Multi-Provider LLM Support**: 20+ providers (OpenAI, Anthropic, Google Gemini, DeepSeek, Zhipu/Z.ai, Moonshot/Kimi, Qwen, Groq, Mistral, xAI, OpenRouter, MiniMax, Venice AI, Xiaomi/MiMo, Volcengine/Doubao, Amazon Bedrock, NVIDIA NIM, etc.) plus subscription/coding plans (Claude, Gemini, Zhipu Coding, Qwen Coding, Kimi Code, MiniMax Coding, Volcengine Coding) and Ollama for local models
-- **OAuth & Subscription Plans**: Sign in with Google for free-tier Gemini access or connect Claude/Anthropic subscription—no API key needed. Auto-detects or installs CLI credentials
-- **Per-Provider Proxy Support**: Configure HTTP/SOCKS5 proxies per LLM provider or API key, with automatic routing and hot reload—essential for restricted regions
-- **Multi-Account Channels**: Configure Telegram, WhatsApp, Discord, Slack, Google Chat, Signal, iMessage, Feishu/Lark, LINE, Matrix, Mattermost, Microsoft Teams, and more through UI with secure secret storage (Keychain/DPAPI)
-- **Token Usage Tracking**: Real-time statistics by model and provider, auto-refreshed from OpenClaw session files
-- **Speech-to-Text**: Region-aware STT integration for voice messages (Groq, Volcengine)
-- **Visual Permissions**: Control file read/write access through UI
-- **Zero-Restart Updates**: API key, proxy, and channel changes apply instantly via hot reload—no gateway restart needed
-- **Local-First & Private**: All data stays on your machine; secrets never stored in plaintext
-- **Chat with Agent**: Real-time WebSocket chat with markdown rendering, emoji picker, image attachments, model switching, and persistent conversation history
-- **Skills Marketplace**: Browse, search, and install community skills from a built-in marketplace; manage installed skills with one click
-- **Auto-Update**: Client update checker with static manifest hosting
-- **Privacy-First Telemetry**: Optional anonymous usage analytics—no PII collected
-
-### How File Permissions Work
-
-RivonClaw enforces file access permissions through an OpenClaw plugin that intercepts tool calls *before* they execute. Here's what's protected:
-
-- **File access tools** (`read`, `write`, `edit`, `image`, `apply-patch`): Fully protected—paths are validated against your configured permissions
-- **Command execution** (`exec`, `process`): Working directory is validated, but paths *inside* command strings (like `cat /etc/passwd`) cannot be inspected
-
-**Coverage**: ~85-90% of file access scenarios. For maximum security, consider restricting or disabling `exec` tools through Rules.
-
-**Technical note**: The file permissions plugin uses OpenClaw's `before_tool_call` hook—no vendor source code modifications needed, so RivonClaw can cleanly pull upstream OpenClaw updates.
+- **Desktop runtime manager**: Electron desktop app that owns the OpenClaw
+  gateway lifecycle, local HTTP panel server, update checks, and user data.
+- **Local panel UI**: React/Vite panel for chat, providers, channels, skills,
+  crons, usage, settings, account/billing, and gated ecommerce modules.
+- **LLM provider management**: API-key, OAuth, custom OpenAI-compatible, local
+  Ollama, subscription/coding-plan, proxy, model catalog, reauth, and usage
+  surfaces.
+- **Channel integrations**: OpenClaw channel configuration plus RivonClaw-owned
+  mobile chat, Weixin wrapper, event bridge, and capability enforcement plugins.
+- **Cloud-backed business modules**: authenticated cloud GraphQL proxy, account
+  and billing state, TikTok/ecommerce surfaces, customer-service bridge, and
+  affiliate workflow support.
+- **Skills marketplace**: browse/install cloud skills, manage installed skills,
+  and open the local user skills directory.
+- **Token and key usage**: session usage aggregation plus per-key usage history
+  and subscription quota fetches where providers support it.
+- **Speech-to-text and extras**: STT credentials/transcription routes plus web
+  search and embedding credential management.
+- **Dynamic tool authority**: runtime tool visibility and enforcement via
+  generated tool specs, run profiles, surfaces, and the capability-manager
+  extension.
+- **Auto-update and release pipeline**: electron-builder installers, update
+  manifests, draft GitHub releases, production website promotion, and CDN refresh
+  scripts.
 
 ## Prerequisites
 
-| Tool    | Version    |
-| ------- | ---------- |
-| Git     | any        |
-| Node.js | >= 24      |
-| pnpm    | 10.6.2     |
+| Tool | Version |
+| --- | --- |
+| Git | any |
+| Node.js | >= 24 |
+| pnpm | 10.6.2 |
 
 ## Quick Start
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/nicepkg/rivonclaw.git
+git clone https://github.com/gaoyangz77/rivonclaw.git
 cd rivonclaw
 
-# 2. Clone and build the vendored OpenClaw runtime (applies vendor patches automatically)
+# 2. Clone/build the pinned OpenClaw runtime and apply vendor patches
 ./scripts/setup-vendor.sh
 
 # 3. Install workspace dependencies and build
@@ -68,309 +69,160 @@ pnpm build
 pnpm --filter @rivonclaw/desktop dev
 ```
 
-This starts the Electron tray app, which spawns the OpenClaw gateway and serves the management panel on a dynamically assigned localhost port.
+The desktop app starts Electron, launches the OpenClaw gateway, and serves the
+panel on a dynamically assigned localhost port. In dev mode the panel uses the
+Vite dev server at `http://localhost:5180`.
 
 ## Repository Structure
 
-```
+```text
 rivonclaw/
 ├── apps/
-│   ├── desktop/          # Electron tray app (main process)
-│   └── panel/            # React management UI (served by desktop)
+│   ├── desktop/              # Electron main process, local APIs, gateway runtime
+│   └── panel/                # React management panel
 ├── packages/
-│   ├── core/             # Shared types, Zod schemas, API contract, MST models
-│   ├── device-id/        # Machine fingerprinting for device identity
-│   ├── gateway/          # Gateway lifecycle, config writer, secret injection, OAuth flows
-│   ├── logger/           # Structured logging (tslog) with DEBUG_* flag gating
-│   ├── plugin-sdk/       # Thin SDK for RivonClaw-authored OpenClaw plugins
-│   ├── storage/          # SQLite persistence (better-sqlite3)
-│   ├── rules/            # Rule compilation & skill file writer
-│   ├── secrets/          # Keychain / DPAPI / file-based secret stores
-│   ├── updater/          # Auto-update client
-│   ├── stt/              # Speech-to-text abstraction (Groq, Volcengine)
-│   ├── proxy-router/     # HTTP CONNECT proxy multiplexer for restricted regions
-│   ├── telemetry/        # Privacy-first anonymous analytics client
-│   └── policy/           # Policy injector & guard evaluator logic
+│   ├── core/                 # Shared types, defaults, API contract, MST models
+│   ├── device-id/            # Machine fingerprinting
+│   ├── gateway/              # OpenClaw config, launcher, OAuth, skills, vendor helpers
+│   ├── logger/               # Structured logging
+│   ├── plugin-sdk/           # Helpers for RivonClaw/OpenClaw extensions
+│   ├── proxy-router/         # Local proxy routing
+│   ├── secrets/              # Keychain / DPAPI / fallback secret storage
+│   ├── storage/              # SQLite repositories and migrations
+│   ├── stt/                  # Speech-to-text abstractions
+│   ├── telemetry/            # Telemetry client
+│   └── updater/              # Update manifest client
 ├── extensions/
-│   ├── rivonclaw-policy/                   # OpenClaw plugin shell for policy injection
-│   ├── rivonclaw-tools/                    # Owner-only custom tools plugin
-│   ├── rivonclaw-mobile-chat-channel/      # Mobile messaging relay plugin
-│   ├── rivonclaw-capability-manager/       # Tool capability / surface availability
-│   ├── rivonclaw-event-bridge/             # Bridges gateway agent events to Chat UI
-│   └── rivonclaw-search-browser-fallback/  # Web-search fallback via headless browser
-├── scripts/
-│   ├── test-local.sh             # Local test pipeline (build + unit + e2e tests)
-│   ├── publish-release.sh        # Publish draft GitHub Release
-│   └── rebuild-native.sh         # Prebuild better-sqlite3 for Node.js + Electron
-└── vendor/
-    └── openclaw/         # Vendored OpenClaw binary (gitignored)
+│   ├── channel-weixin/
+│   ├── rivonclaw-capability-manager/
+│   ├── rivonclaw-event-bridge/
+│   ├── rivonclaw-mobile-chat-channel/
+│   └── rivonclaw-search-browser-fallback/
+├── extensions-merchant/      # Private merchant plugins checked out in CI/dev
+├── server/                   # Backend, relay, website, telemetry, deploy scripts
+├── scripts/                  # Repo automation
+├── vendor-patches/openclaw/  # Replayable OpenClaw patches
+└── vendor/openclaw/          # Pinned OpenClaw checkout (generated/ignored locally)
 ```
 
 ## Workspaces
 
-The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with [Turbo](https://turbo.build) for build orchestration. All packages produce ESM output via [tsdown](https://github.com/nicolo-ribaudo/tsdown).
+The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`,
+`extensions-merchant/*`) with Turbo for build orchestration.
 
 ### Apps
 
-| Package                  | Description                                                                                                            |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `@rivonclaw/desktop`      | Electron 40 tray app. Manages gateway lifecycle, hosts the panel server on a dynamic port, stores data in SQLite.      |
-| `@rivonclaw/panel`        | React 19 + Vite 6 SPA. Pages for chat, rules, providers, channels, permissions, STT, usage, skills marketplace, and a first-launch onboarding wizard. |
-
-### Extensions
-
-| Package              | Description                                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `@rivonclaw/rivonclaw-policy`                  | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                |
-| `@rivonclaw/rivonclaw-tools`                   | Owner-only custom tools plugin (e.g. system control, desktop integration).                                          |
-| `@rivonclaw/rivonclaw-mobile-chat-channel`     | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                              |
-| `@rivonclaw/rivonclaw-capability-manager`      | Tool capability and surface availability resolver.                                                                  |
-| `@rivonclaw/rivonclaw-event-bridge`            | Mirrors selected gateway agent events onto the Chat UI stream.                                                      |
-| `@rivonclaw/rivonclaw-search-browser-fallback` | Web-search fallback that uses a headless browser when direct search API fails.                                      |
+| Package | Description |
+| --- | --- |
+| `@rivonclaw/desktop` | Electron 40 desktop app. Owns app lifecycle, local API routes, gateway startup, config writes, storage, updater, telemetry, and cloud/CS/mobile bridges. |
+| `@rivonclaw/panel` | React 19 + Vite 6 SPA. Implements chat, provider setup, channels, extras, skills, crons, usage, settings, account, billing, and ecommerce surfaces. |
 
 ### Packages
 
-| Package                            | Description                                                                                                                                                                                         |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@rivonclaw/core`                   | Zod-validated types: `Rule`, `ChannelConfig`, `PermissionConfig`, `ModelConfig`, LLM provider definitions (20+ providers including subscription/coding plans and Ollama), region-aware defaults. |
-| `@rivonclaw/gateway`                | `GatewayLauncher` (spawn/stop/restart with exponential backoff), config writer, secret injection from system keychain, Gemini CLI OAuth flow, auth profile sync, skills directory watcher for hot reload. |
-| `@rivonclaw/logger`                 | tslog-based logger. Writes to `~/.rivonclaw/logs/`. Supports `DEBUG_*` env flags via `createQuietLogger` for noisy modules (see [Debug Flags](#debug-flags)).                                       |
-| `@rivonclaw/plugin-sdk`             | Thin runtime helpers and shared types for RivonClaw-authored OpenClaw plugins under `extensions/`.                                                                                                  |
-| `@rivonclaw/storage`                | SQLite via better-sqlite3. Repositories for rules, artifacts, channels, permissions, settings. Migration system included. DB at `~/.rivonclaw/rivonclaw.db`.                                          |
-| `@rivonclaw/rules`                  | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw.                                                                  |
-| `@rivonclaw/secrets`                | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests.                                                                                                            |
-| `@rivonclaw/updater`                | Checks `update-manifest.json` on the website, notifies user of new versions.                                                                                                                        |
-| `@rivonclaw/device-id`              | Machine fingerprinting (SHA-256 of hardware UUID) for device identity and quota enforcement.                                                                                                        |
-| `@rivonclaw/stt`                    | Speech-to-text provider abstraction (Groq for international, Volcengine for China).                                                                                                                 |
-| `@rivonclaw/proxy-router`           | HTTP CONNECT proxy that routes requests to different upstream proxies based on per-provider domain configuration.                                                                                    |
-| `@rivonclaw/telemetry`              | Privacy-first telemetry client with batch uploads and retry logic; no PII collected.                                                                                                                |
-| `@rivonclaw/policy`                 | Policy injector & guard evaluator — compiles policies into prompt fragments and guards into enforcement checks.                                                                                     |
+| Package | Description |
+| --- | --- |
+| `@rivonclaw/core` | Shared defaults, types, API route contract, provider catalog, MST models, generated GraphQL types, and utility helpers. |
+| `@rivonclaw/gateway` | OpenClaw config writer, launcher, OAuth profile sync, channel config writer, model catalog reader, skills reload helper, and vendor helpers. |
+| `@rivonclaw/storage` | SQLite repositories for settings, provider keys, usage, chat sessions, channel accounts/recipients, mobile pairings, tool selections, and CS escalations. |
+| `@rivonclaw/secrets` | Platform-aware secret storage for API keys and OAuth credentials. |
+| `@rivonclaw/proxy-router` | Local HTTP proxy router for provider and first-party network paths. |
+| `@rivonclaw/stt` | STT provider utilities. |
+| `@rivonclaw/telemetry` | Telemetry client with opt-in app events and business telemetry channels. |
+| `@rivonclaw/updater` | Version and manifest utilities used by the desktop updater. |
+| `@rivonclaw/logger` | Shared logger setup. |
+| `@rivonclaw/device-id` | Stable device identity helpers. |
+| `@rivonclaw/plugin-sdk` | Shared helpers for extension packages. |
+
+### Extensions
+
+| Package | Description |
+| --- | --- |
+| `openclaw-weixin` | Wrapper around the Tencent Weixin OpenClaw channel with RivonClaw compatibility fixes. |
+| `@rivonclaw/rivonclaw-capability-manager` | Enforces effective tool availability for the current run context. |
+| `@rivonclaw/rivonclaw-event-bridge` | Mirrors selected OpenClaw agent events into the panel event stream. |
+| `@rivonclaw/rivonclaw-mobile-chat-channel` | Mobile chat channel plugin and relay synchronization logic. |
+| `@rivonclaw/rivonclaw-search-browser-fallback` | Guides search fallback behavior when direct search credentials are unavailable. |
+
+Merchant-specific plugins live in `extensions-merchant/*` and are checked out by
+CI from the private merchant extensions repository.
 
 ## Scripts
 
-Most root scripts run through Turbo:
-
 ```bash
-pnpm build              # Build all packages (respects dependency graph)
-pnpm dev                # Run desktop + panel in dev mode
-pnpm test               # Run all tests (vitest)
-pnpm lint               # Lint all packages (oxlint)
-pnpm format             # Check formatting (oxfmt, runs directly)
-pnpm format:fix         # Auto-fix formatting (oxfmt, runs directly)
+pnpm build                    # Generate vendor artifacts, check extension deps, build all packages
+pnpm dev                      # Run desktop + panel dev workflow
+pnpm test                     # Run workspace tests
+pnpm lint                     # Run workspace lint
+pnpm format                   # Check formatting with oxfmt
+pnpm format:fix               # Apply oxfmt formatting
+pnpm check:vendor-boundary    # Verify vendor boundary rules
+pnpm check:tools              # Verify generated tool IDs/i18n/backend consistency
 ```
 
-### Per-package
+Per-package examples:
 
 ```bash
-# Desktop
-pnpm --filter @rivonclaw/desktop dev        # Launch Electron in dev mode
-pnpm --filter @rivonclaw/desktop build      # Bundle main process
-pnpm --filter @rivonclaw/desktop test       # Run desktop tests
-pnpm --filter @rivonclaw/desktop dist:mac:arm64  # Build macOS DMG (arm64)
-pnpm --filter @rivonclaw/desktop dist:mac:x64    # Build macOS DMG (x64)
-pnpm --filter @rivonclaw/desktop dist:win   # Build Windows NSIS installer
-
-# Panel
-pnpm --filter @rivonclaw/panel dev          # Vite dev server
-pnpm --filter @rivonclaw/panel build        # Production build
-
-# Any package
-pnpm --filter @rivonclaw/core test
-pnpm --filter @rivonclaw/gateway test
+pnpm --filter @rivonclaw/desktop dev
+pnpm --filter @rivonclaw/desktop test
+pnpm --filter @rivonclaw/desktop test:e2e
+pnpm --filter @rivonclaw/desktop dist:mac:arm64
+pnpm --filter @rivonclaw/desktop dist:win
+pnpm --filter @rivonclaw/panel dev
+pnpm --filter @rivonclaw/panel build
 ```
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────┐
-│  System Tray (Electron main process)    │
-│  ├── GatewayLauncher → vendor/openclaw  │
-│  ├── Panel HTTP Server (dynamic port)   │
-│  │   ├── Static files (panel dist/)     │
-│  │   └── REST API (/api/*)              │
-│  ├── SQLite Storage                     │
-│  ├── Auth Profile Sync                  │
-│  └── Auto-Updater                       │
-└─────────────────────────────────────────┘
-         │                    ▲
-         ▼                    │
-┌─────────────┐    ┌─────────────────┐
-│  OpenClaw   │    │  Panel (React)  │
-│  Gateway    │    │  Panel (React)  │
-│  Process    │    └─────────────────┘
-└─────────────┘
-```
+```text
+Electron Desktop
+  ├─ Local panel server and typed REST/SSE routes
+  ├─ SQLite storage + OS secret store
+  ├─ OpenClaw config writer and launcher
+  ├─ Proxy-aware cloud GraphQL/REST clients
+  ├─ Backend subscription client
+  ├─ Channel / mobile / CS / ecommerce bridges
+  └─ Auto-updater
 
-The desktop app runs as a **tray-only** application (hidden from the dock on macOS). It:
+React Panel
+  ├─ Local REST APIs through Desktop
+  ├─ Cloud GraphQL through Desktop proxy
+  ├─ MST entity/runtime stores via /api/events
+  └─ Chat, providers, channels, skills, crons, ecommerce, settings
 
-1. Spawns the OpenClaw gateway from `vendor/openclaw/`
-2. Serves the panel UI and REST API on a dynamically assigned localhost port
-3. Writes gateway config and auth profiles to `~/.openclaw/`
-4. Injects secrets (API keys + OAuth tokens) from the system keychain at runtime
-5. Watches `~/.openclaw/skills/` for hot-reload of rule-generated skill files
-6. Syncs refreshed OAuth tokens back to keychain on shutdown
-
-### REST API
-
-All Desktop ↔ Panel REST endpoints, SSE streams, and path parameters are declared as a single typed contract in [`packages/core/src/api/api-contract.ts`](packages/core/src/api/api-contract.ts) — both Desktop (route registry) and Panel (`fetchJson` / `EventSource`) import from it, so it stays the source of truth.
-
-Endpoints today span the following categories:
-
-| Category                | Examples                                                                     |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| Auth & session          | `/api/auth/login`, `/api/auth/refresh`, `/api/auth/session`                  |
-| Rules & skills          | `/api/rules`, `/api/skills`                                                  |
-| Providers & OAuth       | `/api/providers`, `/api/provider-keys`, `/api/oauth/*`                       |
-| Channels & mobile chat  | `/api/channels/*`, `/api/channels/accounts`, `/api/mobile/*`                 |
-| Customer-service bridge | `/api/cs-bridge/*` (binding, escalation, conversations)                      |
-| Chat & streaming        | `/api/chat/events` (SSE), `/api/chat-sessions`                               |
-| Settings & status       | `/api/settings`, `/api/agent-settings`, `/api/status`, `/api/doctor/*`       |
-| Usage, telemetry, STT   | `/api/usage`, `/api/telemetry`, `/api/stt`                                   |
-| App lifecycle           | `/api/app/update/*`, `/api/app/changelog`, `/api/app/api-base-url`           |
-| Cloud GraphQL proxy     | `/api/cloud/graphql`, `/api/cloud/*`                                         |
-
-### Data Directories
-
-Defaults below; each path can be overridden via the matching `RIVONCLAW_*` / `OPENCLAW_*` env var (see `packages/core/src/node-utils/paths.ts`).
-
-| Path                                                | Purpose                                                     |
-| --------------------------------------------------- | ----------------------------------------------------------- |
-| `~/.rivonclaw/db.sqlite`                            | SQLite database (rules, channels, provider keys, settings)  |
-| `~/.rivonclaw/logs/`                                | Application logs (rotated at 5 MB)                          |
-| `~/.rivonclaw/secrets/`                             | File-based secret store (non-macOS fallback)                |
-| `~/.rivonclaw/openclaw/`                            | OpenClaw state directory                                    |
-| `~/.rivonclaw/openclaw/openclaw.json`               | Gateway configuration (written by `@rivonclaw/gateway`)     |
-| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/`  | Agent session transcripts (JSONL)                           |
-| `~/.rivonclaw/openclaw/skills/`                     | Auto-generated skill files materialized from rules          |
-| `~/.rivonclaw/openclaw/credentials/`                | OAuth credential cache (Gemini CLI, Codex)                  |
-
-## Building Installers
-
-The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces the vendor file count and size via esbuild bundling and node_modules pruning. Vendor is copied into the installer via `extraResources` — the source `vendor/openclaw/` is never modified.
-
-### macOS (DMG, per-arch)
-
-```bash
-pnpm build
-pnpm --filter @rivonclaw/desktop dist:mac:arm64   # Apple Silicon
-pnpm --filter @rivonclaw/desktop dist:mac:x64     # Intel
-# Output: apps/desktop/release/RivonClaw-<version>-arm64.dmg
-#         apps/desktop/release/RivonClaw-<version>-x64.dmg
+OpenClaw Gateway
+  ├─ Pinned vendor runtime
+  ├─ Vendor patches from vendor-patches/openclaw
+  ├─ Auto-discovered extensions
+  └─ User-installed skills
 ```
 
-For code signing and notarization, set these environment variables:
+The current Desktop ↔ Panel API source of truth is
+[`packages/core/src/api/api-contract.ts`](packages/core/src/api/api-contract.ts).
+The generated route reference lives at [`docs/API_ROUTES.md`](docs/API_ROUTES.md).
 
-```bash
-CSC_LINK=<path-to-.p12-certificate>
-CSC_KEY_PASSWORD=<certificate-password>
-APPLE_ID=<your-apple-id>
-APPLE_APP_SPECIFIC_PASSWORD=<app-specific-password>
-APPLE_TEAM_ID=<team-id>
-```
+## Data Directories
 
-### Windows (NSIS installer, x64)
+Defaults are resolved by [`packages/core/src/node-utils/paths.ts`](packages/core/src/node-utils/paths.ts).
 
-```bash
-pnpm build
-pnpm --filter @rivonclaw/desktop dist:win
-# Output: apps/desktop/release/RivonClaw.Setup.<version>.exe
-#         apps/desktop/release/RivonClaw-<version>-portable.exe
-```
+| Path | Purpose |
+| --- | --- |
+| `~/.rivonclaw/db.sqlite` | Desktop SQLite database |
+| `~/.rivonclaw/logs/` | Application logs |
+| `~/.rivonclaw/secrets/` | File-based secret fallback |
+| `~/.rivonclaw/openclaw/` | OpenClaw state directory |
+| `~/.rivonclaw/openclaw/openclaw.json` | Generated gateway config |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw sessions |
+| `~/.rivonclaw/openclaw/skills/` | User-installed skills |
+| `~/.rivonclaw/openclaw/credentials/` | OAuth/channel/mobile credentials |
 
-Cross-compiling from macOS works (NSIS doesn't need Wine). For code signing on Windows, set:
+## Releases
 
-```bash
-CSC_LINK=<path-to-.pfx-certificate>
-CSC_KEY_PASSWORD=<certificate-password>
-```
-
-### Local Testing
-
-The `scripts/test-local.sh` script runs the full local test pipeline:
-
-```bash
-./scripts/test-local.sh 1.2.8            # full pipeline
-./scripts/test-local.sh --skip-tests      # build + pack only
-```
-
-This will:
-
-1. Prebuild native modules for Node.js + Electron
-2. Build all workspace packages
-3. Run unit tests and E2E tests (dev + prod)
-4. Pack the app (electron-builder --dir)
-
-### Publishing
-
-After CI builds complete and local tests pass:
-
-```bash
-./scripts/publish-release.sh             # publish draft release
-```
-
-## Note: better-sqlite3 native module
-
-better-sqlite3 runs under two runtimes with incompatible ABIs (Node.js for tests, Electron for the app). `scripts/rebuild-native.sh` compiles it for both and places the binaries in `lib/binding/`. This runs automatically via the root `postinstall` hook.
-
-If tests fail with `NODE_MODULE_VERSION` mismatch after an Electron upgrade:
-
-```bash
-bash scripts/rebuild-native.sh   # rebuild for both ABIs
-```
-
-## Testing
-
-Tests use [Vitest](https://vitest.dev/). Run all tests:
-
-```bash
-pnpm test
-```
-
-Run tests for a specific package:
-
-```bash
-pnpm --filter @rivonclaw/storage test
-pnpm --filter @rivonclaw/gateway test
-```
-
-## Debug Flags
-
-Chatty modules default to INFO+ and emit DEBUG only when the matching `DEBUG_*` env var is set to `1`. Flags are registered centrally in [`packages/logger/src/debug-flags.ts`](packages/logger/src/debug-flags.ts) and consumed via `createQuietLogger(name, DEBUG_FLAGS.X)`.
-
-| Flag            | Unmutes DEBUG for                                           |
-| --------------- | ----------------------------------------------------------- |
-| `DEBUG_PROXY`   | `proxy-router`, `proxy-manager` (system proxy discovery, upstream connects) |
-| `DEBUG_SECRETS` | `secrets:keychain`, `gateway:secret-injector` (keychain reads, env injection) |
-
-```bash
-DEBUG_PROXY=1 pnpm dev                      # trace proxy routing
-DEBUG_SECRETS=1 pnpm dev                    # trace secret reads
-DEBUG_PROXY=1 DEBUG_SECRETS=1 pnpm dev      # both
-```
-
-To add a new flag: append an entry to `DEBUG_FLAGS` and switch the relevant `createLogger(...)` call to `createQuietLogger(name, DEBUG_FLAGS.NEW_FLAG)`.
-
-## Code Style
-
-- **Linting**: [oxlint](https://oxc-project.github.io/) (Rust-based, fast)
-- **Formatting**: [oxfmt](https://oxc-project.github.io/) (Rust-based, fast)
-- **TypeScript**: Strict mode, ES2023 target, NodeNext module resolution
-
-```bash
-pnpm lint
-pnpm format       # Check
-pnpm format:fix   # Auto-fix
-```
-
-## Community
-
-- **Telegram** (International): [Join Discussion Group](https://t.me/+IN_vVZxckbgxODIx)
-- **WeChat** (中国大陆): Scan to join
-
-  <img src="assets/WECHAT_GROUP_QR.png" width="200" alt="WeChat Group QR Code">
+The current release flow is documented in [`docs/RELEASE.md`](docs/RELEASE.md).
+At a high level: bump `apps/desktop/package.json`, trigger the manual
+`Build & Release` GitHub workflow, run `./scripts/test-local.sh`, publish the
+draft GitHub Release with `./scripts/publish-release.sh`, then promote website
+download files and CDN state from the `server/` repo.
 
 ## License
 
-RivonClaw-owned code in this repository is proprietary and all rights are
-reserved. See [LICENSE](LICENSE) for details. Third-party components remain
-governed by their own licenses.
+MIT. See [LICENSE](LICENSE).

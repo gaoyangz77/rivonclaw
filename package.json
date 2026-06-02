@@ -14,6 +14,8 @@
     "postinstall": "node scripts/run-bash.mjs scripts/rebuild-native.sh",
     "check:ext-deps": "node scripts/check-extension-deps.mjs",
     "check:ext-externals": "node scripts/check-extension-externals.mjs",
+    "generate:api-routes": "node scripts/generate-api-routes-doc.mjs",
+    "check:api-routes": "node scripts/generate-api-routes-doc.mjs --check",
     "generate:vendor-artifacts": "node scripts/generate-vendor-artifacts.mjs",
     "check:vendor-boundary": "node scripts/check-vendor-boundary.mjs",
     "check:tools": "node scripts/check-tool-consistency.mjs",

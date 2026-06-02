@@ -4329,6 +4329,32 @@ export const PlatformType = {
 } as const;
 
 export type PlatformType = typeof PlatformType[keyof typeof PlatformType];
+/** Client policy for keeping official preset skills in sync. */
+export const PresetSkillAutoUpdatePolicy = {
+  Always: 'ALWAYS',
+  MissingOnly: 'MISSING_ONLY',
+  OfficialOnly: 'OFFICIAL_ONLY'
+} as const;
+
+export type PresetSkillAutoUpdatePolicy = typeof PresetSkillAutoUpdatePolicy[keyof typeof PresetSkillAutoUpdatePolicy];
+/** Official preset skill metadata used by desktop to sync local templates safely. */
+export interface PresetSkillManifestItem {
+  autoUpdatePolicy: PresetSkillAutoUpdatePolicy;
+  /** Hash of the current official SKILL.md content. */
+  currentHash: Scalars['String']['output'];
+  /** Human-readable display name for the preset skill. */
+  displayName: Scalars['String']['output'];
+  /** Local skill directory slug used by desktop. */
+  localSlug: Scalars['String']['output'];
+  /** Recent official hashes. If local content matches one, desktop may update automatically. */
+  previousHashes: Array<Scalars['String']['output']>;
+  serviceId: ServiceId;
+  /** Preset skill content key. */
+  slug: Scalars['String']['output'];
+  updatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  version?: Maybe<Scalars['String']['output']>;
+}
+
 /** Promote a temporary uploaded image into permanent object storage */
 export interface PromoteImageAssetInput {
   /** ImageAsset ID returned by POST /api/uploads/images. Prefer this over imageUri. */
@@ -4586,6 +4612,8 @@ export interface Query {
   platformAppSecrets: Array<PlatformAppSecretResult>;
   /** List active PlatformApps (for OAuth target selection) */
   platformApps: Array<PlatformApp>;
+  /** Get official preset skill metadata for safe desktop-side template synchronization. */
+  presetSkillManifest: Array<PresetSkillManifestItem>;
   /** Get preset skills for services. Returns a JSON object { key: markdownContentOrZipUrl, ... } or null if none configured. */
   presetSkills?: Maybe<Scalars['String']['output']>;
   /** Get pricing for all providers */
@@ -4945,6 +4973,11 @@ export interface QueryEcommerceSearchReturnsArgs {
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
+}
+
+
+export interface QueryPresetSkillManifestArgs {
+  serviceIds?: InputMaybe<Array<ServiceId>>;
 }
 
 

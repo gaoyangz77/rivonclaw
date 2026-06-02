@@ -1415,6 +1415,12 @@ export default {
     llmKeySuspended: "已暂停",
     quotaFiveHour: "配额（5小时）",
     quotaWeekly: "配额（每周）",
+    officialTemplatesTitle: "官方模板",
+    officialTemplatesDesc: "恢复最新官方电商技能模板。此操作会覆盖本地模板修改。",
+    refreshOfficialTemplates: "刷新模板",
+    refreshingOfficialTemplates: "刷新中...",
+    officialTemplatesRefreshSuccess: "官方模板已刷新（更新 {{count}} 个）。",
+    officialTemplatesRefreshError: "官方模板刷新失败。",
     quotaRefreshAt: "{{time}} 刷新",
   },
   billing: {
