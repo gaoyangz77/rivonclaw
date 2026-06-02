@@ -1182,29 +1182,6 @@ export class CustomerServiceSession {
     // Cloud conversation snapshots are now the primary CS dispatch path. Keep
     // their rapid-message semantics identical to webhook frames: claim a local
     // placeholder before any await so the next buyer message can abort this run.
-    const duplicateRunId = this.activeRound?.roundId === options.currentMessageId
-      ? this.activeRound.getActiveRunId()
-      : null;
-    if (duplicateRunId) {
-      log.info(
-        `Duplicate CS snapshot for current message ${options.currentMessageId} ` +
-        `while run ${duplicateRunId} is active/pending; keeping existing dispatch`,
-      );
-      this.emitDispatchTelemetry({
-        source: options.source ?? "cloud",
-        signalType: options.signalType,
-        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "duplicate_snapshot_active",
-        messageId: options.currentMessageId,
-        messageIndex: options.currentMessageIndex,
-        messageType: options.messageType,
-        senderRole: options.senderRole,
-        runId: duplicateRunId.startsWith("pending:") ? undefined : duplicateRunId,
-      });
-      return { runId: duplicateRunId.startsWith("pending:") ? undefined : duplicateRunId };
-    }
-
     const previousRunId = this.activeRound?.abortActiveRun();
     if (previousRunId) {
       log.info(`Newer CS snapshot superseded active/pending run ${previousRunId}; aborting prior dispatch`);
