@@ -2170,6 +2170,54 @@ describe("multi-provider model override", () => {
       model: null,
     }, 120000);
   });
+
+  it("refreshes an existing CS session when the shop model override changes", async () => {
+    const bridge = createBridge();
+    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-model-1" }));
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: "zhipu/glm-5",
+    }, 120000);
+
+    await seedCatalogAndShop({ csProviderOverride: "openai", csModelOverride: "gpt-4o" });
+    mockRpcRequest.mockClear();
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-model-2" }));
+
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: "openai/gpt-4o",
+    }, 120000);
+  });
+
+  it("clears an existing CS session model override when the shop returns to global default", async () => {
+    const bridge = createBridge();
+    await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
+    bridge.setShopContext(defaultShop);
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-1" }));
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: "zhipu/glm-5",
+    }, 120000);
+
+    await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
+    mockRpcRequest.mockClear();
+
+    await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-2" }));
+
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      model: null,
+    }, 120000);
+  });
 });
 
 // ── 12. Escalation ───────────────────────────────────────────────────────────
