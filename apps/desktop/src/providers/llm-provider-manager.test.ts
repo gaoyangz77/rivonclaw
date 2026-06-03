@@ -270,6 +270,7 @@ describe("LLMProviderManager", () => {
       label: "RivonClaw AI",
       model: "gpt-5.5",
       isDefault: true,
+      inputModalities: ["text", "image"],
     });
     expect(writeFullGatewayConfig).toHaveBeenCalled();
     expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.5");

@@ -34,6 +34,84 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = [
   "rivonclaw-local-tools",
 ];
 
+type GatewayInputModality = "text" | "image";
+const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
+const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
+type RawCustomModel =
+  | string
+  | {
+      id?: string;
+      input?: unknown;
+      input_modalities?: unknown;
+      inputModalities?: unknown;
+    };
+type ProviderKeyLike = {
+  provider: string;
+  authType?: string;
+  baseUrl?: string | null;
+  customProtocol?: string | null;
+  customModelsJson?: string | null;
+  inputModalities?: string[] | null;
+};
+
+function normalizeInputModalities(
+  value: unknown,
+  fallback: GatewayInputModality[] = ["text"],
+): GatewayInputModality[] {
+  if (!Array.isArray(value)) return fallback;
+  const result: GatewayInputModality[] = [];
+  for (const raw of value) {
+    if (raw === "text" || raw === "image") {
+      result.push(raw);
+    }
+  }
+  return result.length > 0 ? Array.from(new Set(result)) : fallback;
+}
+
+function rawModelInputModalities(
+  model: Exclude<RawCustomModel, string>,
+  fallback: GatewayInputModality[],
+): GatewayInputModality[] {
+  return normalizeInputModalities(
+    model.input_modalities ?? model.inputModalities ?? model.input,
+    fallback,
+  );
+}
+
+export function buildCustomProviderOverridesFromKeys(
+  allKeys: ProviderKeyLike[],
+): Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: GatewayInputModality[] }> }> {
+  const overrides: Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: GatewayInputModality[] }> }> = {};
+  const customKeys = allKeys.filter((k) => k.authType === "custom");
+
+  for (const key of customKeys) {
+    if (!key.baseUrl || !key.customModelsJson || !key.customProtocol) continue;
+    let rawModels: RawCustomModel[];
+    try { rawModels = JSON.parse(key.customModelsJson) as RawCustomModel[]; } catch { continue; }
+    if (!Array.isArray(rawModels)) continue;
+    const api = key.customProtocol === "anthropic" ? "anthropic-messages" : "openai-completions";
+    const forceImageInput = key.provider === RIVONCLAW_CLOUD_PROVIDER_ID;
+    const keyLevelInput = forceImageInput
+      ? TEXT_AND_IMAGE_INPUT
+      : normalizeInputModalities(key.inputModalities, ["text"]);
+    overrides[key.provider] = {
+      baseUrl: key.baseUrl,
+      api,
+      models: rawModels.flatMap((m) => {
+        if (typeof m === "string") return [{ id: m, name: m, input: keyLevelInput }];
+        const id = typeof m.id === "string" ? m.id.trim() : "";
+        if (!id) return [];
+        return [{
+          id,
+          name: id,
+          input: forceImageInput ? keyLevelInput : rawModelInputModalities(m, keyLevelInput),
+        }];
+      }),
+    };
+  }
+  return overrides;
+}
+
 /**
  * Create gateway config builder functions bound to the given dependencies.
  * Returns closures that can be called without passing deps each time.
@@ -89,26 +167,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
   }
 
   function buildCustomProviderOverrides(): Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: Array<"text" | "image"> }> }> {
-    const overrides: Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: Array<"text" | "image"> }> }> = {};
-    const allKeys = storage.providerKeys.getAll();
-    const customKeys = allKeys.filter((k) => k.authType === "custom");
-
-    for (const key of customKeys) {
-      if (!key.baseUrl || !key.customModelsJson || !key.customProtocol) continue;
-      let rawModels: Array<string | { id: string; input_modalities?: string[] }>;
-      try { rawModels = JSON.parse(key.customModelsJson); } catch { continue; }
-      const api = key.customProtocol === "anthropic" ? "anthropic-messages" : "openai-completions";
-      const keyLevelInput = (key.inputModalities ?? ["text"]) as Array<"text" | "image">;
-      overrides[key.provider] = {
-        baseUrl: key.baseUrl,
-        api,
-        models: rawModels.map((m) => {
-          if (typeof m === "string") return { id: m, name: m, input: keyLevelInput };
-          return { id: m.id, name: m.id, input: (m.input_modalities ?? ["text"]) as Array<"text" | "image"> };
-        }),
-      };
-    }
-    return overrides;
+    return buildCustomProviderOverridesFromKeys(storage.providerKeys.getAll());
   }
 
   const WS_ENV_MAP: Record<string, string> = {
