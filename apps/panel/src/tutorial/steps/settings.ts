@@ -16,13 +16,7 @@ export const settingsSteps: TutorialStep[] = [
     placement: "bottom",
   },
   {
-    target: ".settings-section-agent .custom-select:nth-of-type(1)",
-    titleKey: "tutorial.settings.dmScopeTitle",
-    bodyKey: "tutorial.settings.dmScopeBody",
-    placement: "bottom",
-  },
-  {
-    target: ".settings-section-agent > div:nth-of-type(2) .custom-select",
+    target: ".settings-section-agent .custom-select",
     titleKey: "tutorial.settings.browserModeTitle",
     bodyKey: "tutorial.settings.browserModeBody",
     placement: "bottom",

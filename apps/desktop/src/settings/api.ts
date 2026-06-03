@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir } from "@rivonclaw/gateway";
+import { resolveOpenClawConfigPath, resolveOpenClawStateDir } from "@rivonclaw/gateway";
 import { API } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -11,6 +11,7 @@ import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("settings-routes");
+const FIXED_DM_SCOPE = "per-account-channel-peer";
 
 // ── GET /api/status ──
 
@@ -201,7 +202,6 @@ const telemetryTrack: EndpointHandler = async (req, res, _url, _params, ctx: Api
     "provider.key_added",
     "provider.key_deleted",
     "provider.key_activated",
-    "settings.dm_scope_changed",
     "settings.auto_launch_toggled",
     "settings.browser_mode_changed",
     "settings.privacy_mode_toggled",
@@ -300,25 +300,16 @@ const telemetryCsTrack: EndpointHandler = async (req, res, _url, _params, ctx: A
 // ── GET /api/agent-settings ──
 
 const getAgentSettings: EndpointHandler = async (_req, res, _url, _params, _ctx) => {
-  try {
-    const configPath = resolveOpenClawConfigPath();
-    const fullConfig = readExistingConfig(configPath);
-    const sessionCfg = typeof fullConfig.session === "object" && fullConfig.session !== null
-      ? (fullConfig.session as Record<string, unknown>)
-      : {};
-    sendJson(res, 200, {
-      dmScope: (sessionCfg.dmScope as string) ?? "main",
-    });
-  } catch (err) {
-    sendJson(res, 500, { error: String(err) });
-  }
+  sendJson(res, 200, {
+    dmScope: FIXED_DM_SCOPE,
+  });
 };
 
 // ── PUT /api/agent-settings ──
 
 const setAgentSettings: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   try {
-    const body = (await parseBody(req)) as Record<string, unknown>;
+    await parseBody(req);
     const configPath = resolveOpenClawConfigPath();
 
     mutateDesktopOpenClawConfig(configPath, "agent settings", (fullConfig) => {
@@ -326,9 +317,7 @@ const setAgentSettings: EndpointHandler = async (req, res, _url, _params, ctx: A
         ? (fullConfig.session as Record<string, unknown>)
         : {};
 
-      if (body.dmScope !== undefined) {
-        existingSession.dmScope = body.dmScope;
-      }
+      existingSession.dmScope = FIXED_DM_SCOPE;
 
       fullConfig.session = existingSession;
     });

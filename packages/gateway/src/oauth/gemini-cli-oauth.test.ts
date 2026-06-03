@@ -8,6 +8,7 @@ import {
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo?alt=json";
 const LOAD_CODE_ASSIST_URL = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist";
+type FetchInput = Parameters<typeof fetch>[0];
 
 const ENV_KEYS = [
   "OPENCLAW_GEMINI_OAUTH_CLIENT_ID",
@@ -63,7 +64,7 @@ describe("exchangeCodeForTokens", () => {
 
   it("skips Code Assist project discovery for the default Desktop personal OAuth flow", async () => {
     const requests: string[] = [];
-    globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
+    globalThis.fetch = vi.fn(async (url: FetchInput) => {
       const urlString = String(url);
       requests.push(urlString);
       if (urlString === TOKEN_URL) {
@@ -94,7 +95,7 @@ describe("exchangeCodeForTokens", () => {
   it("still performs Code Assist discovery when a Cloud project is explicitly configured", async () => {
     process.env.GOOGLE_CLOUD_PROJECT = "env-project";
     const requests: string[] = [];
-    globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
+    globalThis.fetch = vi.fn(async (url: FetchInput) => {
       const urlString = String(url);
       requests.push(urlString);
       if (urlString === TOKEN_URL) {
@@ -136,7 +137,7 @@ describe("exchangeCodeForTokens", () => {
     });
 
     const requests: string[] = [];
-    globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
+    globalThis.fetch = vi.fn(async (url: FetchInput) => {
       const urlString = String(url);
       requests.push(urlString);
       if (urlString === TOKEN_URL) {

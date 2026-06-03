@@ -1703,12 +1703,12 @@ describe("config-writer", () => {
       expect(config.session.maintenance.mode).toBe("enforce");
     });
 
-    it("preserves existing session fields not managed by EasyClaw", () => {
+    it("forces fully isolated DM scope while preserving unmanaged session fields", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
         JSON.stringify({
-          session: { dmScope: "per-account-channel-peer", scope: "global" },
+          session: { dmScope: "main", scope: "global" },
         }),
       );
 
