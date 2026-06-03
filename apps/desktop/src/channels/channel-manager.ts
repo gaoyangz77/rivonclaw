@@ -45,6 +45,12 @@ const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
 const WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS = [100, 300, 700, 1_500, 3_000];
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME = "RivonClaw Support";
+const RIVONCLAW_TELEGRAM_DEBUG_MEDIA_PROMPT = [
+  "RivonClaw Debugging media delivery rules:",
+  'When sending a local image, screenshot, or file back to the Telegram operator, call the message tool with action "send" and set media or mediaUrl to the exact local file path. Put any caption in message or caption.',
+  "Do not send only the file path as plain text. Do not use upload-file for Telegram. Do not set timeoutMs.",
+  'If you emit a MEDIA directive in a final reply, quote local paths that contain spaces, for example MEDIA:"C:\\\\path with spaces\\\\image.png".',
+].join("\n");
 export { RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID };
 
 // ---------------------------------------------------------------------------
@@ -245,6 +251,11 @@ function buildTelegramDebugAccountConfig(proxyToken: string, apiRoot: string, de
     dmPolicy: "open",
     allowFrom: ["*"],
     groupPolicy: "disabled",
+    direct: {
+      "*": {
+        systemPrompt: RIVONCLAW_TELEGRAM_DEBUG_MEDIA_PROMPT,
+      },
+    },
     actions: { sendMessage: true, poll: true },
     streaming: { mode: "block" },
     commands: { native: true, nativeSkills: false },
