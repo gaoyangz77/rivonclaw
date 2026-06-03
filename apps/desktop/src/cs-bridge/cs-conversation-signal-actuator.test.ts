@@ -68,6 +68,24 @@ function makeConversation(reason: string): CsConversationChangedPayload {
   } as any;
 }
 
+function makeConversationWithoutHintCursor(): CsConversationChangedPayload {
+  const conversation = makeConversation("PENDING_BUYER_MESSAGE") as any;
+  conversation.dispatchHint = {
+    reason: "PENDING_BUYER_MESSAGE",
+    source: "AIRFLOW",
+    eventTime: 1,
+  };
+  conversation.latestMessage = {
+    messageId: "old-local-msg",
+    index: "old-local-idx",
+    type: "TEXT",
+    content: "old local message",
+    createTime: 1,
+    sender: { role: "CUSTOMER_SERVICE" },
+  };
+  return conversation;
+}
+
 describe("handleCsConversationChanged", () => {
   beforeEach(() => {
     state.bridge.handleCsConversationSignal.mockReset();
@@ -102,6 +120,12 @@ describe("handleCsConversationChanged", () => {
 
   it("ignores unknown dispatch hints instead of defaulting to an agent run", async () => {
     await handleCsConversationChanged("device-1", makeConversation("FUTURE_REASON"));
+
+    expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+  });
+
+  it("ignores pending buyer hints without backend cursor instead of falling back to local latest message", async () => {
+    await handleCsConversationChanged("device-1", makeConversationWithoutHintCursor());
 
     expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
   });
