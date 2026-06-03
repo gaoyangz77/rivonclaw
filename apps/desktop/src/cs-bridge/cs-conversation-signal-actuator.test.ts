@@ -86,6 +86,25 @@ function makeConversationWithoutHintCursor(): CsConversationChangedPayload {
   return conversation;
 }
 
+function makeConversationWithMessageIdOnlyHint(): CsConversationChangedPayload {
+  const conversation = makeConversation("PENDING_BUYER_MESSAGE") as any;
+  conversation.dispatchHint = {
+    reason: "PENDING_BUYER_MESSAGE",
+    source: "AIRFLOW",
+    messageId: "msg-id-only",
+    eventTime: 1,
+  };
+  conversation.latestMessage = {
+    messageId: "old-local-msg",
+    index: "old-local-idx",
+    type: "TEXT",
+    content: "old local message",
+    createTime: 1,
+    sender: { role: "CUSTOMER_SERVICE" },
+  };
+  return conversation;
+}
+
 describe("handleCsConversationChanged", () => {
   beforeEach(() => {
     state.bridge.handleCsConversationSignal.mockReset();
@@ -128,5 +147,18 @@ describe("handleCsConversationChanged", () => {
     await handleCsConversationChanged("device-1", makeConversationWithoutHintCursor());
 
     expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+  });
+
+  it("dispatches pending buyer hints anchored by message id without local latest fallback", async () => {
+    await handleCsConversationChanged("device-1", makeConversationWithMessageIdOnlyHint());
+
+    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      messageId: "msg-id-only",
+      messageIndex: undefined,
+      messageType: undefined,
+      senderRole: "BUYER",
+      latestMessagePreview: undefined,
+    }));
   });
 });
