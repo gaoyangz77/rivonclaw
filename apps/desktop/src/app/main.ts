@@ -618,7 +618,7 @@ app.whenReady().then(async () => {
     log.info(`Auth lifecycle settled: ${action} (userId=${user?.userId ?? "signed-out"})`);
   }
 
-  initialAuthBootstrapPromise
+  const startupAuthSideEffectsPromise = initialAuthBootstrapPromise
     .then(() => applyAuthLifecycleSideEffects("startup"))
     .catch((err: unknown) => {
       log.warn("Failed to apply startup auth lifecycle side effects:", err);
@@ -1655,10 +1655,7 @@ app.whenReady().then(async () => {
     stopCsBridge();
   });
 
-  await syncCloudProviderKey(authSession.getCachedUser(), storage, secretStore)
-    .catch((err: unknown) => {
-      log.warn("Initial cloud LLM provider sync failed:", err);
-    });
+  await startupAuthSideEffectsPromise;
 
   Promise.all([
     syncAllAuthProfiles(stateDir, storage, secretStore),
