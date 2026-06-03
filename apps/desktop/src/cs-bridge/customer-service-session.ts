@@ -1622,16 +1622,31 @@ export class CustomerServiceSession {
     return true;
   }
 
+  private async applyCurrentSessionModel(): Promise<void> {
+    await rootStore.llmManager.applyModelForSession(this.scopeKey, {
+      type: ScopeType.CS_SESSION,
+      shopId: this.shop.objectId,
+    }, {
+      requestTimeoutMs: CS_GATEWAY_SETUP_RPC_TIMEOUT_MS,
+    });
+  }
+
   private async setup(): Promise<void> {
     const runProfileId = this.getRequiredRunProfileId();
 
     if (this.gatewaySetupReady) {
+      const modelStartedAt = Date.now();
+      await this.applyCurrentSessionModel();
       if (this.ensureSessionRunProfile(runProfileId)) {
         log.info(
           `Gateway runProfile binding refreshed: conv=${this.csContext.conversationId} ` +
           `scope=${this.scopeKey} runProfileId=${runProfileId}`,
         );
       }
+      log.info(
+        `Gateway model binding refreshed: conv=${this.csContext.conversationId} ` +
+        `scope=${this.scopeKey} modelMs=${Date.now() - modelStartedAt}`,
+      );
       return;
     }
 
@@ -1648,12 +1663,7 @@ export class CustomerServiceSession {
     const runProfileMs = Date.now() - runProfileStartedAt;
 
     const modelStartedAt = Date.now();
-    await rootStore.llmManager.applyModelForSession(this.scopeKey, {
-      type: ScopeType.CS_SESSION,
-      shopId: this.shop.objectId,
-    }, {
-      requestTimeoutMs: CS_GATEWAY_SETUP_RPC_TIMEOUT_MS,
-    });
+    await this.applyCurrentSessionModel();
     const modelMs = Date.now() - modelStartedAt;
 
     this.gatewaySetupReady = true;
