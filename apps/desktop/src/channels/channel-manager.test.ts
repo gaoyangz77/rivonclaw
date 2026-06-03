@@ -146,6 +146,11 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         dmPolicy: "open",
         allowFrom: ["*"],
         groupPolicy: "disabled",
+        direct: {
+          "*": {
+            systemPrompt: expect.stringContaining("RivonClaw Debugging media delivery rules"),
+          },
+        },
         actions: { sendMessage: true, poll: true },
         commands: { native: true, nativeSkills: false },
       });
@@ -161,7 +166,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.telegram.defaultAccount).toBe("owner-bot");
       expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].apiRoot).toBe("https://relay.example.com/telegram-debug/devices/device-a");
+      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].direct["*"].systemPrompt).toContain("Do not set timeoutMs");
       expect(config.channels.telegram.accounts["owner-bot"].botToken).toBe("real-user-token");
+      expect(config.channels.telegram.accounts["owner-bot"].direct).toBeUndefined();
 
       expect(root.channelManager.syncTelegramDebugProxyAccount({
         proxyToken: null,
