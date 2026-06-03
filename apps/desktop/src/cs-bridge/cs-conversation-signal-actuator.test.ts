@@ -105,6 +105,25 @@ function makeConversationWithMessageIdOnlyHint(): CsConversationChangedPayload {
   return conversation;
 }
 
+function makeConversationWithIndexOnlyHint(): CsConversationChangedPayload {
+  const conversation = makeConversation("PENDING_BUYER_MESSAGE") as any;
+  conversation.dispatchHint = {
+    reason: "PENDING_BUYER_MESSAGE",
+    source: "AIRFLOW",
+    messageIndex: "idx-only",
+    eventTime: 1,
+  };
+  conversation.latestMessage = {
+    messageId: "old-local-msg",
+    index: "old-local-idx",
+    type: "TEXT",
+    content: "old local message",
+    createTime: 1,
+    sender: { role: "CUSTOMER_SERVICE" },
+  };
+  return conversation;
+}
+
 describe("handleCsConversationChanged", () => {
   beforeEach(() => {
     state.bridge.handleCsConversationSignal.mockReset();
@@ -145,6 +164,12 @@ describe("handleCsConversationChanged", () => {
 
   it("ignores pending buyer hints without backend cursor instead of falling back to local latest message", async () => {
     await handleCsConversationChanged("device-1", makeConversationWithoutHintCursor());
+
+    expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+  });
+
+  it("ignores pending buyer hints without message id even when message index exists", async () => {
+    await handleCsConversationChanged("device-1", makeConversationWithIndexOnlyHint());
 
     expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
   });

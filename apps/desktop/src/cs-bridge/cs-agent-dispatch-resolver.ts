@@ -85,7 +85,7 @@ export function resolveCsConversationDispatch(
   const isPendingBuyerDispatch = plan.dispatchReason === "PENDING_BUYER_MESSAGE";
   const hintMessageId = hint.messageId ?? undefined;
   const hintMessageIndex = hint.messageIndex ?? undefined;
-  if (isPendingBuyerDispatch && !hintMessageId && !hintMessageIndex) return null;
+  if (isPendingBuyerDispatch && !hintMessageId) return null;
   const localLatestMatchesHint = Boolean(
     hintMessageId &&
     conversation.latestMessage?.messageId &&
