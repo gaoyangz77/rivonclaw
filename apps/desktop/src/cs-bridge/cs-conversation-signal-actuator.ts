@@ -105,7 +105,7 @@ export async function handleCsConversationChanged(
   const dispatch = resolveCsConversationDispatch(conversation, shop);
   if (!dispatch) {
     log.warn(
-      `Ignoring CS conversation dispatch with unknown reason ${String(conversation.dispatchHint.reason)} ` +
+      `Ignoring CS conversation dispatch with unsupported or incomplete hint ${String(conversation.dispatchHint.reason)} ` +
       `for shop=${conversation.platformShopId ?? conversation.shopId ?? ""} ` +
       `conv=${conversation.conversationId}`,
     );

@@ -82,6 +82,15 @@ export function resolveCsConversationDispatch(
   const eventTime = hint.eventTime != null
     ? new Date(hint.eventTime * 1000).toISOString()
     : new Date().toISOString();
+  const isPendingBuyerDispatch = plan.dispatchReason === "PENDING_BUYER_MESSAGE";
+  const hintMessageId = hint.messageId ?? undefined;
+  const hintMessageIndex = hint.messageIndex ?? undefined;
+  if (isPendingBuyerDispatch && (!hintMessageId || !hintMessageIndex)) return null;
+  const localLatestMatchesHint = Boolean(
+    hintMessageId &&
+    conversation.latestMessage?.messageId &&
+    hintMessageId === conversation.latestMessage.messageId,
+  );
 
   return {
     type: plan.signalType,
@@ -91,15 +100,21 @@ export function resolveCsConversationDispatch(
     shopId: conversation.shopId ?? shop.id ?? "",
     platformShopId: conversation.platformShopId ?? shop.platformShopId ?? "",
     conversationId: conversation.conversationId,
-    messageId: hint.messageId ?? conversation.latestMessage?.messageId ?? undefined,
-    messageIndex: hint.messageIndex ?? conversation.latestMessage?.index ?? undefined,
+    messageId: hintMessageId ?? (isPendingBuyerDispatch ? undefined : conversation.latestMessage?.messageId ?? undefined),
+    messageIndex: hintMessageIndex ?? (isPendingBuyerDispatch ? undefined : conversation.latestMessage?.index ?? undefined),
     imUserId: buyer?.imUserId ?? undefined,
     buyerUserId: buyer?.userId ?? undefined,
     orderId: conversation.orderId ?? undefined,
-    messageType: conversation.latestMessage?.type ?? undefined,
-    senderRole: conversation.latestMessage?.sender?.role ?? undefined,
+    messageType: isPendingBuyerDispatch && !localLatestMatchesHint
+      ? undefined
+      : conversation.latestMessage?.type ?? undefined,
+    senderRole: isPendingBuyerDispatch
+      ? "BUYER"
+      : conversation.latestMessage?.sender?.role ?? undefined,
     aiEnabled: conversation.aiEnabled ?? true,
-    latestMessagePreview: conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined,
+    latestMessagePreview: isPendingBuyerDispatch && !localLatestMatchesHint
+      ? undefined
+      : conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined,
     operatorInstruction: hint.operatorInstruction ?? undefined,
     dispatchEventTime: hint.dispatchEventTime != null
       ? new Date(hint.dispatchEventTime * 1000).toISOString()
