@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.29",
+    "date": "2026-06-03",
+    "en": [
+      "Fix RivonClaw cloud model vision inputs so image-aware requests are routed with the expected payload shape",
+      "Keep desktop cloud-model calls aligned with the latest vision-capable RivonClaw API contract",
+      "Refresh signed desktop release metadata for the production updater rollout"
+    ],
+    "zh": [
+      "修复 RivonClaw 云模型 vision input，确保带图片请求使用符合预期的 payload 结构",
+      "让桌面端云模型调用匹配最新支持视觉能力的 RivonClaw API 契约",
+      "刷新签名桌面发布元数据，用于 production updater 推送"
+    ]
+  },
+  {
     "version": "1.8.28",
     "date": "2026-06-03",
     "en": [
