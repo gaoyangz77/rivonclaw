@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.28",
+    "date": "2026-06-03",
+    "en": [
+      "Harden customer-service pending dispatch recovery by anchoring retries to explicit message IDs",
+      "Fix startup cloud model synchronization and keep desktop sessions fully isolated between runs",
+      "Refresh customer-service session state handling and guide Telegram debug media sends more clearly"
+    ],
+    "zh": [
+      "加固客服 pending dispatch 恢复流程，使用明确的 message ID 锚定重试",
+      "修复启动时云模型同步竞态，并让桌面会话在不同运行之间保持完全隔离",
+      "刷新客服会话状态处理，并更清晰地引导 Telegram debug 媒体发送"
+    ]
+  },
+  {
     "version": "1.8.27",
     "date": "2026-06-02",
     "en": [
