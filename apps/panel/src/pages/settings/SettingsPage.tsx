@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { observer } from "mobx-react-lite";
-import { useAgentSettings } from "./hooks/useAgentSettings.js";
 import { useAppSettingsToggles } from "./hooks/useAppSettingsToggles.js";
 import { useAppearanceSettings } from "./hooks/useAppearanceSettings.js";
 import { useOpenClawStateDir } from "./hooks/useOpenClawStateDir.js";
@@ -20,22 +19,12 @@ import { DiagnosticsSection } from "./components/DiagnosticsSection.js";
 
 export const SettingsPage = observer(function SettingsPage() {
   const { t } = useTranslation();
-  const agentSettings = useAgentSettings();
   const toggles = useAppSettingsToggles();
   const appearance = useAppearanceSettings();
   const stateDir = useOpenClawStateDir();
   const doctor = useDoctorRunner();
   const logUpload = useLogUpload();
   const entityStore = useEntityStore();
-
-  if (agentSettings.loading) {
-    return (
-      <div>
-        <h1>{t("settings.title")}</h1>
-        <p>{t("common.loading")}</p>
-      </div>
-    );
-  }
 
   return (
     <div className="page-enter">
@@ -44,11 +33,9 @@ export const SettingsPage = observer(function SettingsPage() {
       <p className="page-description">{t("settings.description")}</p>
 
       <AgentSettingsSection
-        dmScope={agentSettings.dmScope}
-        saving={agentSettings.saving || toggles.saving}
+        saving={toggles.saving}
         settingsReady={toggles.settingsReady}
         browserMode={toggles.browserMode}
-        handleDmScopeChange={agentSettings.handleDmScopeChange}
         handleBrowserModeChange={toggles.handleBrowserModeChange}
       />
 

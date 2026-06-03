@@ -18,6 +18,8 @@ import { OpenClawSchema } from "../generated/openclaw-schema.js";
 
 const log = createLogger("gateway:config");
 
+const FIXED_DM_SCOPE = "per-account-channel-peer";
+
 const WEB_SEARCH_PROVIDER_PLUGIN_IDS = {
   brave: "brave",
   perplexity: "perplexity",
@@ -1366,6 +1368,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
     config.session = {
       ...existingSession,
+      dmScope: FIXED_DM_SCOPE,
       reset: { mode: DEFAULTS.gatewayConfig.sessionResetMode, idleMinutes: DEFAULTS.gatewayConfig.sessionResetIdleMinutes },
       maintenance,
     };

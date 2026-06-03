@@ -75,8 +75,8 @@ export const API = {
   "settings.openclawStateDir.delete": { method: "DELETE", path: "/api/settings/openclaw-state-dir",  desc: "Clear state dir override" },
 
   // ── Agent Settings ──
-  "agentSettings.get":       { method: "GET",    path: "/api/agent-settings",             desc: "Get agent session config (dmScope)" },
-  "agentSettings.set":       { method: "PUT",    path: "/api/agent-settings",             desc: "Update agent session config" },
+  "agentSettings.get":       { method: "GET",    path: "/api/agent-settings",             desc: "Get fixed agent session config" },
+  "agentSettings.set":       { method: "PUT",    path: "/api/agent-settings",             desc: "Normalize fixed agent session config" },
 
   // ── Telemetry ──
   "telemetry.track":         { method: "POST",   path: "/api/telemetry/track",            desc: "Track analytics event" },

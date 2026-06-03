@@ -1,22 +1,17 @@
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
-import { DM_SCOPE_OPTIONS } from "../settings-types.js";
 
 interface AgentSettingsSectionProps {
-  dmScope: string;
   saving: boolean;
   settingsReady: boolean;
   browserMode: "standalone" | "cdp";
-  handleDmScopeChange: (value: string) => void;
   handleBrowserModeChange: (value: string) => void;
 }
 
 export function AgentSettingsSection({
-  dmScope,
   saving,
   settingsReady,
   browserMode,
-  handleDmScopeChange,
   handleBrowserModeChange,
 }: AgentSettingsSectionProps) {
   const { t } = useTranslation();
@@ -24,24 +19,6 @@ export function AgentSettingsSection({
   return (
     <div className="section-card settings-section-agent">
       <h3>{t("settings.agent.title")}</h3>
-
-      <div>
-        <label className="form-label-block">
-          {t("settings.agent.dmScope")}
-        </label>
-        <Select
-          value={dmScope}
-          onChange={handleDmScopeChange}
-          options={DM_SCOPE_OPTIONS.map(opt => ({
-            value: opt.value,
-            label: t(opt.labelKey),
-          }))}
-          disabled={saving}
-        />
-        <div className="form-hint">
-          {t("settings.agent.dmScopeHint")}
-        </div>
-      </div>
 
       <div>
         <label className="form-label-block">
