@@ -49,7 +49,9 @@ const CLOUD_DEFAULT_MODEL_ID = "gpt-5.5";
 
 interface CloudModel {
   id: string;
-  input_modalities?: string[];
+  input?: unknown;
+  input_modalities?: unknown;
+  inputModalities?: unknown;
 }
 
 interface ApplyModelForSessionOptions {
@@ -928,9 +930,7 @@ export const LLMProviderManagerModel = types
             if (cloudModels.length > 0) {
               storage.providerKeys.update(existing.id, {
                 customModelsJson: JSON.stringify(cloudModels),
-                inputModalities: cloudModels.some((m) => m.input_modalities?.includes("image"))
-                  ? ["text", "image"]
-                  : ["text"],
+                inputModalities: ["text", "image"],
               });
             }
           } catch {
@@ -983,9 +983,7 @@ export const LLMProviderManagerModel = types
           baseUrl,
           customProtocol: "openai",
           customModelsJson: cloudModels.length > 0 ? JSON.stringify(cloudModels) : null,
-          inputModalities: cloudModels.some((m) => m.input_modalities?.includes("image"))
-            ? ["text", "image"]
-            : ["text"],
+          inputModalities: ["text", "image"],
           source: "cloud",
           createdAt: "",
           updatedAt: "",
