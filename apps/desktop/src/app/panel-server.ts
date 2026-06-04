@@ -137,6 +137,7 @@ export interface PanelServerOptions {
   authSession?: AuthSessionManager;
   proxyFetch?: (url: string | URL, init?: RequestInit) => Promise<Response>;
   channelManager?: import("../channels/channel-manager.js").ChannelManagerInstance;
+  desktopApiToken?: string;
 }
 
 // --- Route registry (all endpoints registered here) ---
@@ -154,7 +155,7 @@ registerAllHandlers(registry);
 export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
   const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, channelManager } = options;
+  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, channelManager, desktopApiToken } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -207,6 +208,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
     cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,
     channelManager,
+    desktopApiToken,
   };
 
   const server = createServer(async (req, res) => {
@@ -216,7 +218,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     // CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-RivonClaw-Desktop-Token");
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);
