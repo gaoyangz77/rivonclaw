@@ -710,6 +710,7 @@ interface SubscriptionConfig {
 
 interface ConnectOptions {
   refreshAuth?: () => Promise<void>;
+  onConnectedAfterRetry?: () => void | Promise<void>;
 }
 
 /**
@@ -736,6 +737,9 @@ export class BackendSubscriptionClient {
   /** Optional auth refresh hook supplied by the app auth runtime. */
   private refreshAuth: (() => Promise<void>) | null = null;
 
+  /** Optional cache recovery hook after a transport reconnect succeeds. */
+  private onConnectedAfterRetry: (() => void | Promise<void>) | null = null;
+
   /** Single-flight recovery for operation-level subscription auth errors. */
   private authRecoveryPromise: Promise<void> | null = null;
 
@@ -756,6 +760,7 @@ export class BackendSubscriptionClient {
     if (this.client) return;
     this.getToken = getToken;
     this.refreshAuth = options?.refreshAuth ?? null;
+    this.onConnectedAfterRetry = options?.onConnectedAfterRetry ?? null;
     this.doConnect();
   }
 
@@ -1002,6 +1007,11 @@ export class BackendSubscriptionClient {
 
   refreshCsConversationSignals(): void {
     const config = this.subscriptionConfigs.get("cs-conversation-signals");
+    if (config) this.startSubscription(config);
+  }
+
+  refreshCsConversationChanges(): void {
+    const config = this.subscriptionConfigs.get("cs-conversation-changes");
     if (config) this.startSubscription(config);
   }
 
@@ -1435,6 +1445,11 @@ export class BackendSubscriptionClient {
       on: {
         connected: (_socket, _payload, retrying) => {
           log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`);
+          if (retrying && this.onConnectedAfterRetry) {
+            void Promise.resolve(this.onConnectedAfterRetry()).catch((err) => {
+              log.warn("Backend subscription reconnect recovery hook failed", this.formatUnknownError(err));
+            });
+          }
         },
         closed: (event) => {
           log.info("Backend subscription WebSocket closed", this.formatUnknownError(event));
