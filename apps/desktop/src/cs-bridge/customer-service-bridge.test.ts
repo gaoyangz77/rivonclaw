@@ -1604,7 +1604,7 @@ describe("reactive entity cache sync", () => {
     });
   });
 
-  it("syncFromCache keeps existing CS context when shop cache is transiently empty", () => {
+  it("syncFromCache keeps existing CS context while shop lifecycle is refreshing", () => {
     const bridge = createBridge();
 
     // First: add a shop context manually
@@ -1616,10 +1616,10 @@ describe("reactive entity cache sync", () => {
       systemPrompt: "Old prompt",
     });
 
-    // Then: sync from empty cache. This can happen during auth/subscription
-    // reconnects; CS must keep using the last known context instead of
-    // silently dropping buyer-message dispatches.
-    rootStore.ingestGraphQLResponse({ shops: [] });
+    // Then: sync while the shop lifecycle is loading. Failed/in-flight refreshes
+    // must not make CS silently drop buyer-message dispatches; a successful
+    // empty shop response still removes the context.
+    rootStore.beginShopRefresh("test_refresh");
     bridge.syncFromCache();
 
     return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {

@@ -1,12 +1,36 @@
 import { onPatch, applySnapshot, getSnapshot, types, type IJsonPatch } from "mobx-state-tree";
-import { createLogger } from "@rivonclaw/logger";
 import { RootStoreModel } from "@rivonclaw/core/models";
+import type { GQL } from "@rivonclaw/core";
 import { SYSTEM_TOOL_CATALOG } from "../../generated/system-tool-catalog.js";
 import { LLMProviderManagerModel, type LLMProviderManagerEnv } from "../../providers/llm-provider-manager.js";
 import { ChannelManagerModel, type ChannelManagerEnv } from "../../channels/channel-manager.js";
 import { MobileManagerModel, type MobileManagerEnv } from "../../mobile/mobile-manager.js";
+import { normalizePlatform } from "../../utils/platform.js";
 
-const log = createLogger("desktop-store");
+export interface CustomerServiceShopContextProjection {
+  objectId: string;
+  platformShopId: string;
+  shopName: string;
+  platform: string;
+  systemPrompt: string;
+  csProviderOverride?: string | null;
+  csModelOverride?: string | null;
+  runProfileId?: string | null;
+}
+
+export interface AffiliateShopContextProjection {
+  id: string;
+  platform?: string | null;
+  platformShopId?: string | null;
+  shopName?: string | null;
+  runProfileId?: string | null;
+  businessPrompt?: string | null;
+  decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
 
 // ---------------------------------------------------------------------------
 // Strip __typename from Apollo GraphQL responses before MST ingestion.
@@ -60,7 +84,122 @@ export type { LLMProviderManagerEnv, ChannelManagerEnv, MobileManagerEnv };
 // Desktop-specific RootStore: extends shared model with ingestion actions
 // ---------------------------------------------------------------------------
 
-const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
+const DesktopRootStoreModel = RootStoreModel
+  .views((self) => ({
+    getCustomerServiceShopContextsForDevice(deviceId: string | null | undefined): CustomerServiceShopContextProjection[] {
+      if (!deviceId) return [];
+      const contexts: CustomerServiceShopContextProjection[] = [];
+      for (const shop of self.shops as any[]) {
+        const platformShopId = shop.platformShopId;
+        if (!platformShopId || !shop.handlesCustomerServiceOnDevice(deviceId)) continue;
+        const assembledPrompt = shop.services?.customerService?.assembledPrompt;
+        if (!assembledPrompt) continue;
+        contexts.push({
+          objectId: shop.id,
+          platformShopId,
+          shopName: shop.shopName ?? platformShopId,
+          platform: normalizePlatform(shop.platform),
+          systemPrompt: assembledPrompt,
+          csProviderOverride: shop.services?.customerService?.csProviderOverride ?? undefined,
+          csModelOverride: shop.services?.customerService?.csModelOverride ?? undefined,
+          runProfileId: shop.services?.customerService?.runProfileId ?? undefined,
+        });
+      }
+      return contexts;
+    },
+
+    getAffiliateShopContextsForDevice(deviceId: string | null | undefined): AffiliateShopContextProjection[] {
+      if (!deviceId) return [];
+      const contexts: AffiliateShopContextProjection[] = [];
+      for (const shop of self.shops as any[]) {
+        const affiliateService = shop.services?.affiliateService;
+        if (!shop.platformShopId || !affiliateService?.enabled || affiliateService.csDeviceId !== deviceId) continue;
+        contexts.push({
+          id: shop.id,
+          platform: shop.platform,
+          platformShopId: shop.platformShopId,
+          shopName: shop.shopName,
+          runProfileId: affiliateService.runProfileId,
+          businessPrompt: affiliateService.businessPrompt,
+          decisionThresholds: affiliateService.decisionThresholds,
+        });
+      }
+      return contexts;
+    },
+
+    isKnownShopCacheReady(): boolean {
+      return self.shopLifecycle.status === "ready";
+    },
+
+    isCustomerServiceShopAvailableForDevice(
+      shopId: string | null | undefined,
+      platformShopId: string | null | undefined,
+      deviceId: string | null | undefined,
+    ): boolean {
+      const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
+      return !!shop?.handlesCustomerServiceOnDevice(deviceId);
+    },
+
+    isAffiliateShopAvailableForDevice(
+      shopId: string | null | undefined,
+      platformShopId: string | null | undefined,
+      deviceId: string | null | undefined,
+    ): boolean {
+      if (!deviceId) return false;
+      const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
+      const affiliateService = shop?.services?.affiliateService;
+      return !!(affiliateService?.enabled && affiliateService.csDeviceId === deviceId);
+    },
+  }))
+  .actions((self) => ({
+    beginShopRefresh(reason: string) {
+      self.shopLifecycle.status = "loading";
+      self.shopLifecycle.lastRefreshReason = reason;
+      self.shopLifecycle.error = null;
+    },
+
+    replaceShopsFromGraphQL(rawShops: unknown[], reason: string) {
+      applySnapshot(self.shops, sanitizeForMst(rawShops) as any);
+      self.shopLifecycle.status = "ready";
+      self.shopLifecycle.generation += 1;
+      self.shopLifecycle.lastRefreshReason = reason;
+      self.shopLifecycle.lastRefreshAt = nowIso();
+      self.shopLifecycle.error = null;
+    },
+
+    upsertShopFromGraphQL(rawShop: unknown, reason: string) {
+      const sanitized = sanitizeForMst(rawShop) as any;
+      const id = sanitized?.id;
+      if (!id) return;
+      const idx = self.shops.findIndex((item: any) => item.id === id);
+      if (idx >= 0) {
+        applySnapshot(self.shops[idx], sanitized);
+      } else {
+        self.shops.push(sanitized);
+      }
+      self.shopLifecycle.status = "ready";
+      self.shopLifecycle.generation += 1;
+      self.shopLifecycle.lastRefreshReason = reason;
+      self.shopLifecycle.lastRefreshAt = nowIso();
+      self.shopLifecycle.error = null;
+    },
+
+    markShopRefreshFailed(reason: string, error: string) {
+      self.shopLifecycle.status = "error";
+      self.shopLifecycle.lastRefreshReason = reason;
+      self.shopLifecycle.error = error;
+    },
+
+    clearShopCache(reason: string) {
+      applySnapshot(self.shops, []);
+      self.shopLifecycle.status = "empty";
+      self.shopLifecycle.generation += 1;
+      self.shopLifecycle.lastRefreshReason = reason;
+      self.shopLifecycle.lastRefreshAt = nowIso();
+      self.shopLifecycle.error = null;
+    },
+  }))
+  .actions((self) => ({
   /**
    * Update systemTools from gateway catalog IDs.
    * Preserves metadata from pre-seeded SYSTEM_TOOL_CATALOG entries.
@@ -151,7 +290,13 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       if (Array.isArray(raw)) {
         const typeName = (raw[0] as any)?.__typename;
         const target = (typeName && COLLECTIONS[typeName]) || KEY_FALLBACK[key];
-        if (target) applySnapshot(target, sanitizeForMst(raw));
+        if (target) {
+          if (target === self.shops) {
+            (self as any).replaceShopsFromGraphQL(raw, `graphql:${key}`);
+          } else {
+            applySnapshot(target, sanitizeForMst(raw));
+          }
+        }
         continue;
       }
 
@@ -167,11 +312,15 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
         const target = COLLECTIONS[typeName];
         const id = (sanitized as any).id;
         if (id) {
-          const idx = target.findIndex((item: any) => item.id === id);
-          if (idx >= 0) {
-            applySnapshot(target[idx], sanitized);
+          if (target === self.shops) {
+            (self as any).upsertShopFromGraphQL(obj, `graphql:${key || typeName}`);
           } else {
-            target.push(sanitized as any);
+            const idx = target.findIndex((item: any) => item.id === id);
+            if (idx >= 0) {
+              applySnapshot(target[idx], sanitized);
+            } else {
+              target.push(sanitized as any);
+            }
           }
         }
         continue;
@@ -262,7 +411,7 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       applySnapshot(self.entitledTools, []);
       applySnapshot(self.surfaces, []);
       applySnapshot(self.runProfiles, []);
-      applySnapshot(self.shops, []);
+      (self as any).clearShopCache("clear_cloud_entities");
       applySnapshot(self.platformApps, []);
       applySnapshot(self.wmsAccounts, []);
       applySnapshot(self.warehouses, []);
@@ -273,11 +422,13 @@ const DesktopRootStoreModel = RootStoreModel.actions((self) => ({
       self.billingOverview = null;
     },
 
-    clearCloudDataExceptUser() {
+    clearCloudDataExceptUser(options?: { preserveShops?: boolean }) {
       applySnapshot(self.entitledTools, []);
       applySnapshot(self.surfaces, []);
       applySnapshot(self.runProfiles, []);
-      applySnapshot(self.shops, []);
+      if (!options?.preserveShops) {
+        (self as any).clearShopCache("clear_cloud_data_except_user");
+      }
       applySnapshot(self.platformApps, []);
       applySnapshot(self.wmsAccounts, []);
       applySnapshot(self.warehouses, []);

@@ -1366,7 +1366,7 @@ export class CustomerServiceSession {
     context?: string | null;
     idempotencyKey?: string;
   }): Promise<void> {
-    const shopMst = rootStore.shops.find(s => s.id === this.csContext.shopId);
+    const shopMst = rootStore.findShopByObjectOrPlatformId(this.csContext.shopId, null);
     const escalationChannelId = shopMst?.services?.customerService?.escalationChannelId;
     const escalationRecipientId = shopMst?.services?.customerService?.escalationRecipientId;
 

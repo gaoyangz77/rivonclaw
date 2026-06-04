@@ -326,8 +326,7 @@ export const LLMProviderManagerModel = types
      */
     function resolveModelForScope(scope: ModelScope): SessionModelOverride | null {
       if (scope.type === ScopeType.CS_SESSION && scope.shopId) {
-        const shops = self.root.shops;
-        const shop = shops?.find?.((s: any) => s.id === scope.shopId);
+        const shop = self.root.findShopByObjectOrPlatformId?.(scope.shopId, null);
         const cs = shop?.services?.customerService;
         const provider = cs?.csProviderOverride;
         const model = cs?.csModelOverride;

@@ -23,7 +23,21 @@ vi.mock("../src/app/store/runtime-status-store.js", () => ({
 }));
 
 vi.mock("../src/app/store/desktop-store.js", () => ({
-  rootStore: { get shops() { return mockShops; } },
+  rootStore: {
+    shopLifecycle: { generation: 1 },
+    getCustomerServiceShopContextsForDevice: () => mockShops.map((shop) => ({
+      objectId: shop.id,
+      platformShopId: shop.platformShopId,
+      shopName: shop.shopName,
+      platform: shop.platform,
+      systemPrompt: shop.services.customerService.assembledPrompt,
+      csProviderOverride: shop.services.customerService.csProviderOverride,
+      csModelOverride: shop.services.customerService.csModelOverride,
+      runProfileId: shop.services.customerService.runProfileId,
+    })),
+    getAffiliateShopContextsForDevice: () => [],
+    isKnownShopCacheReady: () => true,
+  },
 }));
 
 vi.mock("../src/auth/session-ref.js", () => ({

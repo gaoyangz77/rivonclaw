@@ -6,9 +6,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 const log = createLogger("affiliate-work-item-actuator");
 
 function findWorkItemShop(workItem: AffiliateWorkItemPayload): any | undefined {
-  return rootStore.shops.find((shop: any) =>
-    shop.id === workItem.shopId || shop.platformShopId === workItem.platformShopId,
-  );
+  return rootStore.findShopByObjectOrPlatformId(workItem.shopId, workItem.platformShopId);
 }
 
 export async function handleAffiliateWorkItemChanged(

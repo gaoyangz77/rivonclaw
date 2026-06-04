@@ -13,15 +13,11 @@ import {
 const log = createLogger("cs-signal-actuator");
 
 function findSignalShop(signal: CsConversationSignalPayload): any | undefined {
-  return rootStore.shops.find((shop: any) =>
-    shop.id === signal.shopId || shop.platformShopId === signal.platformShopId,
-  );
+  return rootStore.findShopByObjectOrPlatformId(signal.shopId, signal.platformShopId);
 }
 
 function findConversationShop(conversation: CsConversationChangedPayload): any | undefined {
-  return rootStore.shops.find((shop: any) =>
-    shop.id === conversation.shopId || shop.platformShopId === conversation.platformShopId,
-  );
+  return rootStore.findShopByObjectOrPlatformId(conversation.shopId, conversation.platformShopId);
 }
 
 /**
@@ -39,9 +35,8 @@ export async function handleCsConversationSignal(
   const shop = findSignalShop(signal);
   const cs = shop?.services?.customerService;
   const bridge = getCsBridge();
-  const hasCachedContext = bridge?.hasShopContext(signal.platformShopId) ?? false;
 
-  if ((!shop || !cs?.enabled) && !hasCachedContext) {
+  if (!shop || !cs?.enabled) {
     log.info(`Ignoring CS signal for unavailable/disabled shop ${signal.platformShopId}`);
     return;
   }
@@ -85,9 +80,8 @@ export async function handleCsConversationChanged(
   const shop = findConversationShop(conversation);
   const cs = shop?.services?.customerService;
   const bridge = getCsBridge();
-  const hasCachedContext = bridge?.hasShopContext(conversation.platformShopId) ?? false;
 
-  if ((!shop || !cs?.enabled) && !hasCachedContext) {
+  if (!shop || !cs?.enabled) {
     log.info(`Ignoring CS conversation change for unavailable/disabled shop ${conversation.platformShopId}`);
     return;
   }
@@ -105,10 +99,7 @@ export async function handleCsConversationChanged(
     return;
   }
 
-  const dispatch = resolveCsConversationDispatch(conversation, shop ?? {
-    id: conversation.shopId ?? undefined,
-    platformShopId: conversation.platformShopId ?? undefined,
-  });
+  const dispatch = resolveCsConversationDispatch(conversation, shop);
   if (!dispatch) {
     log.warn(
       `Ignoring CS conversation dispatch with unsupported or incomplete hint ${String(conversation.dispatchHint.reason)} ` +

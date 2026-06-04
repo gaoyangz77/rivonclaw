@@ -1,12 +1,11 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
-  type GQL,
   type CSNewMessageFrame,
   stripReasoningTagsFromText,
 } from "@rivonclaw/core";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
-import { reaction, toJS } from "mobx";
+import { reaction } from "mobx";
 import type {
   AffiliateConversationSignalPayload,
   AffiliateWorkItemPayload,
@@ -22,7 +21,6 @@ import {
 export type { CSShopContext } from "../cs-bridge/customer-service-session.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
-import { normalizePlatform } from "../utils/platform.js";
 import { emitCsDispatchEvent, emitCsError, CS_ERROR_STAGE } from "../telemetry/cs-telemetry-ref.js";
 import { AffiliateInbound } from "../affiliate/affiliate-inbound.js";
 
@@ -128,10 +126,6 @@ export class EcommerceRelayBridge {
     this.shopContexts.delete(platformShopId);
   }
 
-  hasShopContext(platformShopId: string | null | undefined): boolean {
-    return !!platformShopId && this.shopContexts.has(platformShopId);
-  }
-
   removeAffiliateShopContext(platformShopId: string): void {
     this.affiliateInbound.removeShopContext(platformShopId);
   }
@@ -154,73 +148,21 @@ export class EcommerceRelayBridge {
    * `csDeviceId` matches this desktop device can dispatch CS runs.
    */
   syncFromCache(): void {
-    const shops = rootStore.shops;
     const deviceId = this.opts.gatewayId;
+    const activeCsShops = rootStore.getCustomerServiceShopContextsForDevice(deviceId);
+    const activeCsPlatformShopIds = new Set(activeCsShops.map((shop) => shop.platformShopId));
 
-    // Build the set of shops that should be active for each service.
-    const activeAffiliateShops: Array<{
-      id: string;
-      platform?: string | null;
-      platformShopId?: string | null;
-      shopName?: string | null;
-      runProfileId?: string | null;
-      businessPrompt?: string | null;
-      decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
-    }> = [];
-
-    for (const shop of shops) {
-      const platformShopId = shop.platformShopId;
-      if (!platformShopId) continue;
-
-      const affiliateService = shop.services?.affiliateService;
-      if (affiliateService?.enabled && affiliateService.csDeviceId === deviceId) {
-        activeAffiliateShops.push({
-          id: shop.id,
-          platform: shop.platform,
-          platformShopId,
-          shopName: shop.shopName,
-          runProfileId: affiliateService.runProfileId,
-          businessPrompt: affiliateService.businessPrompt,
-          decisionThresholds: affiliateService.decisionThresholds,
-        });
-      }
-
-      const cs = shop.services?.customerService;
-      if (!cs?.enabled || !shop.handlesCustomerServiceOnDevice(deviceId)) {
-        if (this.shopContexts.has(platformShopId)) {
-          log.info(`Shop ${platformShopId} no longer CS-enabled for this device, removing context`);
-          this.removeShopContext(platformShopId);
-        }
-        continue;
-      }
-      // The shop MST composes the final prompt locally from its own
-      // `platformSystemPrompt` (embedded by the backend on each shop
-      // response) and the user-owned `businessPrompt`. A null result means
-      // the shop payload has not arrived yet. If we already have a working
-      // context, keep it; transient partial cache payloads must not make CS
-      // stop handling buyer messages until the app is restarted.
-      const assembledPrompt = cs.assembledPrompt;
-      if (!assembledPrompt) {
-        const existing = this.shopContexts.get(platformShopId);
-        if (existing) {
-          log.info(`Shop ${shop.shopName} (${shop.id}) has no assembledPrompt yet, keeping existing context`);
-        } else {
-          log.info(`Shop ${shop.shopName} (${shop.id}) has no assembledPrompt yet, skipping`);
-        }
-        continue;
-      }
-
-      // Check if context needs updating
-      const existing = this.shopContexts.get(platformShopId);
+    for (const shop of activeCsShops) {
+      const existing = this.shopContexts.get(shop.platformShopId);
       const newCtx: CSShopContext = {
-        objectId: shop.id,
-        platformShopId,
-        shopName: shop.shopName ?? platformShopId,
-        platform: normalizePlatform(shop.platform),
-        systemPrompt: assembledPrompt,
-        csProviderOverride: cs.csProviderOverride ?? undefined,
-        csModelOverride: cs.csModelOverride ?? undefined,
-        runProfileId: cs.runProfileId ?? undefined,
+        objectId: shop.objectId,
+        platformShopId: shop.platformShopId,
+        shopName: shop.shopName,
+        platform: shop.platform,
+        systemPrompt: shop.systemPrompt,
+        csProviderOverride: shop.csProviderOverride ?? undefined,
+        csModelOverride: shop.csModelOverride ?? undefined,
+        runProfileId: shop.runProfileId ?? undefined,
       };
 
       if (!existing || !this.shopContextEqual(existing, newCtx)) {
@@ -228,7 +170,16 @@ export class EcommerceRelayBridge {
       }
     }
 
-    this.affiliateInbound.syncFromShops(activeAffiliateShops);
+    if (rootStore.isKnownShopCacheReady()) {
+      for (const [platformShopId] of this.shopContexts) {
+        if (!activeCsPlatformShopIds.has(platformShopId)) {
+          log.info(`Shop ${platformShopId} no longer CS-enabled for this device, removing context`);
+          this.removeShopContext(platformShopId);
+        }
+      }
+    }
+
+    this.affiliateInbound.syncFromShops(rootStore.getAffiliateShopContextsForDevice(deviceId));
   }
 
   /**
@@ -496,7 +447,11 @@ export class EcommerceRelayBridge {
     if (this.cacheUnsubscribe) return;
 
     this.cacheUnsubscribe = reaction(
-      () => toJS(rootStore.shops),
+      () => ({
+        generation: rootStore.shopLifecycle.generation,
+        cs: rootStore.getCustomerServiceShopContextsForDevice(this.opts.gatewayId),
+        affiliate: rootStore.getAffiliateShopContextsForDevice(this.opts.gatewayId),
+      }),
       () => this.syncFromCache(),
     );
   }
