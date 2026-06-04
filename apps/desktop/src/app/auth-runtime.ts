@@ -59,6 +59,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     const shop = rootStore.shops.find((s: any) => s.id === shopId);
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
     backendSubscription.refreshCsConversationSignals();
+    backendSubscription.refreshCsConversationChanges();
   });
 
   backendSubscription.subscribeToClientLogUploadRequests(deviceId, (request) => {

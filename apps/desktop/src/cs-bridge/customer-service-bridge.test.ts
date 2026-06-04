@@ -1604,7 +1604,7 @@ describe("reactive entity cache sync", () => {
     });
   });
 
-  it("syncFromCache removes shops that are no longer in cache", () => {
+  it("syncFromCache keeps existing CS context when shop cache is transiently empty", () => {
     const bridge = createBridge();
 
     // First: add a shop context manually
@@ -1616,11 +1616,53 @@ describe("reactive entity cache sync", () => {
       systemPrompt: "Old prompt",
     });
 
-    // Then: sync from empty cache (shop was removed)
+    // Then: sync from empty cache. This can happen during auth/subscription
+    // reconnects; CS must keep using the last known context instead of
+    // silently dropping buyer-message dispatches.
     rootStore.ingestGraphQLResponse({ shops: [] });
     bridge.syncFromCache();
 
-    // Should not have context anymore
+    return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
+      expect(mockRpcRequest).toHaveBeenCalledWith(
+        "cs_register_session",
+        expect.objectContaining({
+          csContext: expect.objectContaining({ shopId: "shop-1" }),
+        }),
+      );
+    });
+  });
+
+  it("syncFromCache removes existing CS context when the shop is explicitly disabled", () => {
+    const bridge = createBridge();
+
+    bridge.setShopContext({
+      objectId: "shop-1",
+      platformShopId: "ps-1",
+      shopName: "Test Shop",
+      platform: "tiktok",
+      systemPrompt: "Old prompt",
+    });
+
+    rootStore.ingestGraphQLResponse({
+      shops: [
+        {
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Disabled Shop",
+          services: {
+            customerService: {
+              enabled: false,
+              csDeviceId: "test-gateway",
+              businessPrompt: "prompt",
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+            },
+          },
+        },
+      ],
+    });
+    bridge.syncFromCache();
+
     return triggerMessage(bridge, createFrame({ shopId: "ps-1" })).then(() => {
       expect(mockRpcRequest).not.toHaveBeenCalled();
     });

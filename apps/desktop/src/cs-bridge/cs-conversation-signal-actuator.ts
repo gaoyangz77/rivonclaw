@@ -38,16 +38,18 @@ export async function handleCsConversationSignal(
 ): Promise<void> {
   const shop = findSignalShop(signal);
   const cs = shop?.services?.customerService;
+  const bridge = getCsBridge();
+  const hasCachedContext = bridge?.hasShopContext(signal.platformShopId) ?? false;
 
-  if (!shop || !cs?.enabled) {
+  if ((!shop || !cs?.enabled) && !hasCachedContext) {
     log.info(`Ignoring CS signal for unavailable/disabled shop ${signal.platformShopId}`);
     return;
   }
 
-  if (!shop.handlesCustomerServiceOnDevice(deviceId)) {
+  if (shop && !shop.handlesCustomerServiceOnDevice(deviceId)) {
     log.info(
       `Ignoring CS signal for shop ${signal.platformShopId}: ` +
-      `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,
+      `assignedDevice=${cs?.csDeviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }
@@ -66,7 +68,6 @@ export async function handleCsConversationSignal(
     return;
   }
 
-  const bridge = getCsBridge();
   if (!bridge) {
     log.warn(`CS signal arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
     return;
@@ -83,16 +84,18 @@ export async function handleCsConversationChanged(
 
   const shop = findConversationShop(conversation);
   const cs = shop?.services?.customerService;
+  const bridge = getCsBridge();
+  const hasCachedContext = bridge?.hasShopContext(conversation.platformShopId) ?? false;
 
-  if (!shop || !cs?.enabled) {
+  if ((!shop || !cs?.enabled) && !hasCachedContext) {
     log.info(`Ignoring CS conversation change for unavailable/disabled shop ${conversation.platformShopId}`);
     return;
   }
 
-  if (!shop.handlesCustomerServiceOnDevice(deviceId)) {
+  if (shop && !shop.handlesCustomerServiceOnDevice(deviceId)) {
     log.info(
       `Ignoring CS conversation change for shop ${conversation.platformShopId}: ` +
-      `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,
+      `assignedDevice=${cs?.csDeviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }
@@ -102,7 +105,10 @@ export async function handleCsConversationChanged(
     return;
   }
 
-  const dispatch = resolveCsConversationDispatch(conversation, shop);
+  const dispatch = resolveCsConversationDispatch(conversation, shop ?? {
+    id: conversation.shopId ?? undefined,
+    platformShopId: conversation.platformShopId ?? undefined,
+  });
   if (!dispatch) {
     log.warn(
       `Ignoring CS conversation dispatch with unsupported or incomplete hint ${String(conversation.dispatchHint.reason)} ` +
@@ -112,7 +118,6 @@ export async function handleCsConversationChanged(
     return;
   }
 
-  const bridge = getCsBridge();
   if (!bridge) {
     log.warn(`CS conversation change arrived before bridge was ready: shop=${dispatch.platformShopId} conv=${dispatch.conversationId}`);
     return;

@@ -5,6 +5,7 @@ import type { CsConversationChangedPayload } from "../cloud/backend-subscription
 const state = vi.hoisted(() => ({
   bridge: {
     handleCsConversationSignal: vi.fn(),
+    hasShopContext: vi.fn(),
   },
   shops: [] as any[],
 }));
@@ -127,6 +128,8 @@ function makeConversationWithIndexOnlyHint(): CsConversationChangedPayload {
 describe("handleCsConversationChanged", () => {
   beforeEach(() => {
     state.bridge.handleCsConversationSignal.mockReset();
+    state.bridge.hasShopContext.mockReset();
+    state.bridge.hasShopContext.mockReturnValue(false);
     state.shops = [makeShop()];
   });
 
@@ -184,6 +187,21 @@ describe("handleCsConversationChanged", () => {
       messageType: undefined,
       senderRole: "BUYER",
       latestMessagePreview: undefined,
+    }));
+  });
+
+  it("dispatches through an existing bridge context when the local shop cache is temporarily missing", async () => {
+    state.shops = [];
+    state.bridge.hasShopContext.mockReturnValue(true);
+
+    await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
+
+    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      shopId: "shop-1",
+      platformShopId: "platform-shop-1",
+      conversationId: "conv-1",
+      messageId: "msg-1",
     }));
   });
 });

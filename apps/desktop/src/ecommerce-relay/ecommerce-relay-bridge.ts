@@ -128,6 +128,10 @@ export class EcommerceRelayBridge {
     this.shopContexts.delete(platformShopId);
   }
 
+  hasShopContext(platformShopId: string | null | undefined): boolean {
+    return !!platformShopId && this.shopContexts.has(platformShopId);
+  }
+
   removeAffiliateShopContext(platformShopId: string): void {
     this.affiliateInbound.removeShopContext(platformShopId);
   }
@@ -154,7 +158,6 @@ export class EcommerceRelayBridge {
     const deviceId = this.opts.gatewayId;
 
     // Build the set of shops that should be active for each service.
-    const activeCsShopIds = new Set<string>();
     const activeAffiliateShops: Array<{
       id: string;
       platform?: string | null;
@@ -183,19 +186,29 @@ export class EcommerceRelayBridge {
       }
 
       const cs = shop.services?.customerService;
-      if (!cs?.enabled || !shop.handlesCustomerServiceOnDevice(deviceId)) continue;
+      if (!cs?.enabled || !shop.handlesCustomerServiceOnDevice(deviceId)) {
+        if (this.shopContexts.has(platformShopId)) {
+          log.info(`Shop ${platformShopId} no longer CS-enabled for this device, removing context`);
+          this.removeShopContext(platformShopId);
+        }
+        continue;
+      }
       // The shop MST composes the final prompt locally from its own
       // `platformSystemPrompt` (embedded by the backend on each shop
       // response) and the user-owned `businessPrompt`. A null result means
-      // CS is disabled or the shop payload has not arrived yet — skip
-      // until it's ready.
+      // the shop payload has not arrived yet. If we already have a working
+      // context, keep it; transient partial cache payloads must not make CS
+      // stop handling buyer messages until the app is restarted.
       const assembledPrompt = cs.assembledPrompt;
       if (!assembledPrompt) {
-        log.info(`Shop ${shop.shopName} (${shop.id}) has no assembledPrompt yet, skipping`);
+        const existing = this.shopContexts.get(platformShopId);
+        if (existing) {
+          log.info(`Shop ${shop.shopName} (${shop.id}) has no assembledPrompt yet, keeping existing context`);
+        } else {
+          log.info(`Shop ${shop.shopName} (${shop.id}) has no assembledPrompt yet, skipping`);
+        }
         continue;
       }
-
-      activeCsShopIds.add(platformShopId);
 
       // Check if context needs updating
       const existing = this.shopContexts.get(platformShopId);
@@ -212,14 +225,6 @@ export class EcommerceRelayBridge {
 
       if (!existing || !this.shopContextEqual(existing, newCtx)) {
         this.setShopContext(newCtx);
-      }
-    }
-
-    // Remove shops that are no longer active
-    for (const [platformShopId] of this.shopContexts) {
-      if (!activeCsShopIds.has(platformShopId)) {
-        log.info(`Shop ${platformShopId} no longer active in cache, removing context`);
-        this.removeShopContext(platformShopId);
       }
     }
 

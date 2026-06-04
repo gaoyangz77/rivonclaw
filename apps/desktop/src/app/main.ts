@@ -84,6 +84,7 @@ import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-re
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
 import { detectAndApplyFirstPartyDomainRoute } from "../infra/network/first-party-domain-route.js";
 import { invalidateToolSpecsCache } from "../cloud/api.js";
+import { INIT_SHOPS_QUERY } from "../cloud/init-queries.js";
 
 const log = createLogger("desktop");
 
@@ -381,9 +382,31 @@ app.whenReady().then(async () => {
 
   // Public subscriptions may connect immediately; authenticated subscriptions
   // are enabled only after auth bootstrap validates or refreshes the token.
+  let subscriptionReconnectShopRehydrate: Promise<void> | null = null;
   backendSubscription.connect(
     () => authSession.getAccessToken(),
-    { refreshAuth: () => authSession.refresh().then(() => undefined) },
+    {
+      refreshAuth: () => authSession.refresh().then(() => undefined),
+      onConnectedAfterRetry: () => {
+        if (!authSession.getAccessToken()) return;
+        if (subscriptionReconnectShopRehydrate) return subscriptionReconnectShopRehydrate;
+
+        subscriptionReconnectShopRehydrate = (async () => {
+          try {
+            const data = await authSession.graphqlFetch<Record<string, unknown>>(INIT_SHOPS_QUERY);
+            rootStore.ingestGraphQLResponse(data);
+            const shopCount = Array.isArray((data as Record<string, unknown>).shops)
+              ? ((data as Record<string, unknown>).shops as unknown[]).length
+              : 0;
+            log.info(`Rehydrated shop cache after backend subscription reconnect (shops=${shopCount})`);
+          } finally {
+            subscriptionReconnectShopRehydrate = null;
+          }
+        })();
+
+        return subscriptionReconnectShopRehydrate;
+      },
+    },
   );
   const initialAuthBootstrapPromise = (async () => {
     const transitionId = rootStore.beginAuthLifecycle("startup");
