@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.30",
+    "date": "2026-06-04",
+    "en": [
+      "Stabilize customer-service shop lifecycle handling for the CS relay",
+      "Keep customer-service shop context intact across subscription reconnects",
+      "Route remote media through the cached proxy so media attachments load more reliably"
+    ],
+    "zh": [
+      "稳定客服 relay 的店铺生命周期处理",
+      "在订阅重连后保持客服店铺上下文不丢失",
+      "让远端媒体通过缓存代理转发，提高媒体附件加载可靠性"
+    ]
+  },
+  {
     "version": "1.8.29",
     "date": "2026-06-03",
     "en": [
