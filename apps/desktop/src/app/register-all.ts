@@ -13,6 +13,7 @@ import { registerDepsHandlers } from "../deps/api.js";
 import { registerLogsHandlers } from "../logs/api.js";
 import { registerDoctorHandlers } from "../doctor/api.js";
 import { registerToolRegistryHandlers } from "../gateway/api.js";
+import { registerMediaCacheHandlers } from "../media-cache/api.js";
 
 export function registerAllHandlers(registry: RouteRegistry): void {
   registerAuthHandlers(registry);
@@ -25,6 +26,7 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerSkillsHandlers(registry);
   registerUsageHandlers(registry);
   registerCloudHandlers(registry);
+  registerMediaCacheHandlers(registry);
   registerDepsHandlers(registry);
   registerLogsHandlers(registry);
   registerDoctorHandlers(registry);

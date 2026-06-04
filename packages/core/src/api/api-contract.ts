@@ -193,6 +193,9 @@ export const API = {
 
   // ── Cloud Proxy ──
   "cloud.graphql":           { method: "POST",   path: DEFAULTS.api.cloudGraphql,          desc: "Cloud GraphQL proxy (JWT injected)" },
+
+  // ── Remote Media Cache ──
+  "mediaCache.resolve":      { method: "POST",   path: "/api/media-cache/resolve",        desc: "Resolve remote media through authenticated cache when routed via CN relay" },
   // cloud.rest is a prefix-based wildcard — see PrefixRouteEntry
 } as const satisfies Record<string, RouteEntry>;
 

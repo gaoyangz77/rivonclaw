@@ -331,6 +331,30 @@ recovery.
 recovery policies or makes startup recovery sufficiently budgeted for RivonClaw
 customer-service workloads.
 
+### 0014 — Route remote media through RivonClaw cache
+
+**File:** `0014-vendor-openclaw-route-remote-media-through-rivonclaw-cache.patch`
+
+**Why:** RivonClaw Desktop users on the CN relay route cannot reliably fetch
+GFW-blocked third-party media URLs such as TikTok Shop image/video assets from
+agent media tools. Desktop owns the authenticated media-cache endpoint and the
+first-party route decision, so OpenClaw should resolve remote media through
+that local bridge before its normal guarded fetch.
+
+**Change:** `fetchRemoteMedia()` asks `http://127.0.0.1:$RIVONCLAW_PANEL_PORT`
+for `/api/media-cache/resolve` when the Desktop bridge token is present. The
+Desktop endpoint returns the original URL on the global route and a cached
+proxy URL on the CN relay route. If the bridge is unavailable outside the CN
+relay route, upstream fetch behavior is preserved; on the CN relay route,
+resolver failures surface as explicit RivonClaw media-cache errors.
+
+**Tests:**
+- `vendor/openclaw/src/media/fetch.test.ts`
+- `apps/desktop/src/gateway/vendor-media-cache-proxy.sentinel.test.ts`
+
+**Removal:** Drop when upstream OpenClaw exposes a host-provided remote-media
+URL resolver hook that RivonClaw can configure without patching source.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals

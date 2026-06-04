@@ -100,6 +100,7 @@ const sttCliPath = app.isPackaged
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let lastSystemProxy: string | null = null;
+const desktopApiToken = randomUUID();
 
 // Check if a pending auto-update blocks this launch
 const _updateBlocked = checkUpdateBlocked();
@@ -1049,6 +1050,7 @@ app.whenReady().then(async () => {
     secretStore,
     proxyRouterPort: actualProxyRouterPort,
     gatewayPort: actualGatewayPort,
+    desktopApiToken,
     deviceId,
     getUpdateResult: () => {
       const info = updater.getLatestInfo();
@@ -1523,6 +1525,8 @@ app.whenReady().then(async () => {
     env.NODE_OPTIONS = gatewayNodeOptions;
     env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE = firstPartyRoute;
     env.RIVONCLAW_CN_RELAY = firstPartyRoute === "cn-relay" ? "1" : "0";
+    env.RIVONCLAW_PANEL_PORT = String(actualPanelPort);
+    env.RIVONCLAW_DESKTOP_API_TOKEN = desktopApiToken;
     return env;
   }
 
@@ -1667,9 +1671,8 @@ app.whenReady().then(async () => {
       log.info(`Initial API keys: ${configuredKeys.join(', ') || '(none)'}`);
       log.info(`Proxy router: http://127.0.0.1:${actualProxyRouterPort} (dynamic routing enabled)`);
 
-      // Set env vars: API keys + proxy (incl. NODE_OPTIONS)
-      // RIVONCLAW_PANEL_PORT lets gateway plugins (e.g. capability-manager) call Desktop APIs.
-      launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv(), RIVONCLAW_PANEL_PORT: String(actualPanelPort) });
+      // Set env vars: API keys + proxy (incl. NODE_OPTIONS) + Desktop API bridge.
+      launcher.setEnv({ ...secretEnv, ...buildFullProxyEnv() });
 
       // If CDP browser mode was previously saved, ensure Chrome is running with
       // --remote-debugging-port.  This may kill and relaunch Chrome — an inherent

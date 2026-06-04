@@ -9,6 +9,7 @@ import { CheckIcon, CopyIcon, InfoIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
+import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import type {
   ConversationAiFilter,
   ConversationEscalationFilter,
@@ -47,6 +48,42 @@ const mediaElementStyle: CSSProperties = {
   height: "100%",
   objectFit: "contain",
 };
+
+function CustomerServiceRemoteImageMessage({
+  alt,
+  rich,
+}: {
+  alt: string;
+  rich: Extract<ParsedRichMessage, { kind: "image" }>;
+}) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | undefined>();
+
+  useEffect(() => {
+    setResolvedUrl(undefined);
+  }, [rich.url]);
+
+  return (
+    <a
+      className="cs-message-image-link"
+      href={resolvedUrl}
+      rel="noreferrer"
+      target="_blank"
+    >
+      <span className="cs-message-media-frame" style={mediaFrameStyle(rich)}>
+        <RemoteMediaImage
+          alt={alt}
+          className="cs-message-image"
+          height={rich.height}
+          loading="lazy"
+          onResolvedUrlChange={setResolvedUrl}
+          sourceUrl={rich.url}
+          style={mediaElementStyle}
+          width={rich.width}
+        />
+      </span>
+    </a>
+  );
+}
 
 export const CustomerServiceEscalationsPage = observer(function CustomerServiceWorkspacePage() {
   const { t, i18n } = useTranslation();
@@ -366,24 +403,10 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
 
     if (rich.kind === "image") {
       return (
-        <a
-          className="cs-message-image-link"
-          href={rich.url}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <span className="cs-message-media-frame" style={mediaFrameStyle(rich)}>
-            <img
-              alt={t("ecommerce.customerServiceWorkspace.imageMessage")}
-              className="cs-message-image"
-              height={rich.height}
-              loading="lazy"
-              src={rich.url}
-              style={mediaElementStyle}
-              width={rich.width}
-            />
-          </span>
-        </a>
+        <CustomerServiceRemoteImageMessage
+          alt={t("ecommerce.customerServiceWorkspace.imageMessage")}
+          rich={rich}
+        />
       );
     }
 

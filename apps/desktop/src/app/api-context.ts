@@ -71,4 +71,5 @@ export interface ApiContext {
   authSession?: AuthSessionManager;
   cloudClient?: CloudClient;
   channelManager?: ChannelManagerInstance;
+  desktopApiToken?: string;
 }
