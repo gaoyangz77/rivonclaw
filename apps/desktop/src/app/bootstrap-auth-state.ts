@@ -14,7 +14,7 @@ type BootstrapStatus = "signed_out" | "loading" | "ready" | "error";
 
 interface BootstrapRootStore {
   clearCloudEntities(): void;
-  clearCloudDataExceptUser(): void;
+  clearCloudDataExceptUser(options?: { preserveShops?: boolean }): void;
   setAuthBootstrap(status: BootstrapStatus, error?: string | null): void;
   ingestGraphQLResponse(data: Record<string, unknown>): void;
 }
@@ -48,9 +48,6 @@ export async function bootstrapDesktopAuthState(
       throw new Error("Failed to load account profile");
     }
 
-    rootStore.clearCloudDataExceptUser();
-    rootStore.ingestGraphQLResponse({ me });
-
     const queries = [
       TOOL_SPECS_SYNC_QUERY,
       INIT_SURFACES_QUERY,
@@ -67,6 +64,9 @@ export async function bootstrapDesktopAuthState(
     );
 
     const results = await Promise.all(queries.map((query) => authSession.graphqlFetch(query)));
+
+    rootStore.clearCloudDataExceptUser({ preserveShops: true });
+    rootStore.ingestGraphQLResponse({ me });
     for (const data of results) {
       rootStore.ingestGraphQLResponse(data);
     }

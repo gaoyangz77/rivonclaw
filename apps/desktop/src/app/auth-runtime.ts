@@ -56,10 +56,8 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   backendSubscription.subscribeToShopUpdated((shopData) => {
     const shopId = (shopData as any).id as string;
     rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
-    const shop = rootStore.shops.find((s: any) => s.id === shopId);
+    const shop = rootStore.findShopByObjectOrPlatformId(shopId, null);
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
-    backendSubscription.refreshCsConversationSignals();
-    backendSubscription.refreshCsConversationChanges();
   });
 
   backendSubscription.subscribeToClientLogUploadRequests(deviceId, (request) => {
@@ -89,10 +87,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   });
 
   const getActiveCustomerServiceShopIds = (): string[] =>
-    rootStore.shops
-      .filter((shop: any) => shop.handlesCustomerServiceOnDevice(deviceId))
-      .map((shop: any) => shop.id)
-      .filter((shopId: unknown): shopId is string => typeof shopId === "string" && shopId.length > 0);
+    rootStore.getCustomerServiceShopIdsForDevice(deviceId);
 
   registerCustomerServiceCloudEvents({
     backendSubscription,

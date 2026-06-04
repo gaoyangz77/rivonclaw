@@ -46,6 +46,30 @@ const AuthBootstrapStateModel = types.model("AuthBootstrapState", {
   error: types.maybeNull(types.string),
 });
 
+const ShopLifecycleStateModel = types.model("ShopLifecycleState", {
+  status: types.optional(
+    types.enumeration("ShopLifecycleStatus", ["empty", "loading", "ready", "error"]),
+    "empty",
+  ),
+  generation: types.optional(types.number, 0),
+  lastRefreshReason: types.maybeNull(types.string),
+  lastRefreshAt: types.maybeNull(types.string),
+  error: types.maybeNull(types.string),
+});
+
+type RootShopInstance = Instance<typeof ShopModel>;
+
+function findShopByObjectOrPlatformId(
+  shops: RootShopInstance[],
+  shopId: string | null | undefined,
+  platformShopId: string | null | undefined,
+): RootShopInstance | undefined {
+  return shops.find((shop) =>
+    (!!shopId && shop.id === shopId) ||
+    (!!platformShopId && shop.platformShopId === platformShopId),
+  );
+}
+
 export const RootStoreModel = types
   .model("RootStore", {
     /** System (core) tools — pre-seeded from SYSTEM_TOOL_CATALOG, filtered on gateway init. */
@@ -66,6 +90,7 @@ export const RootStoreModel = types
     toolCapability: types.optional(ToolCapabilityModel, {}),
     currentUser: types.maybeNull(UserModel),
     authBootstrap: types.optional(AuthBootstrapStateModel, { status: "signed_out", error: null }),
+    shopLifecycle: types.optional(ShopLifecycleStateModel, {}),
     platformApps: types.optional(types.array(PlatformAppModel), []),
     wmsAccounts: types.optional(types.array(WmsAccountModel), []),
     warehouses: types.optional(types.array(WarehouseModel), []),
@@ -147,6 +172,22 @@ export const RootStoreModel = types
     },
     getShop(id: string) {
       return self.shops.find((s) => s.id === id);
+    },
+    findShopByObjectOrPlatformId(
+      shopId: string | null | undefined,
+      platformShopId: string | null | undefined,
+    ) {
+      return findShopByObjectOrPlatformId(self.shops, shopId, platformShopId);
+    },
+    getCustomerServiceShopIdsForDevice(deviceId: string | null | undefined): string[] {
+      if (!deviceId) return [];
+      return self.shops
+        .filter((shop) => shop.handlesCustomerServiceOnDevice(deviceId))
+        .map((shop) => shop.id)
+        .filter((shopId): shopId is string => typeof shopId === "string" && shopId.length > 0);
+    },
+    get customerServiceEnabledShopCount(): number {
+      return self.shops.filter((shop) => shop.services?.customerService?.enabled).length;
     },
     getWmsAccount(id: string) {
       return self.wmsAccounts.find((a) => a.id === id);

@@ -14,7 +14,7 @@ const localRetryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const inFlightEvents = new Set<string>();
 
 function findEscalationShop(delivery: CsEscalationEventDeliveryPayload): any | undefined {
-  return rootStore.shops.find((shop: any) => shop.id === delivery.escalation.shopId);
+  return rootStore.findShopByObjectOrPlatformId(delivery.escalation.shopId, null);
 }
 
 function formatError(err: unknown): string {

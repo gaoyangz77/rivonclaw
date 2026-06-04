@@ -6,9 +6,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 const log = createLogger("affiliate-signal-actuator");
 
 function findSignalShop(signal: AffiliateConversationSignalPayload): any | undefined {
-  return rootStore.shops.find((shop: any) =>
-    shop.id === signal.shopId || shop.platformShopId === signal.platformShopId,
-  );
+  return rootStore.findShopByObjectOrPlatformId(signal.shopId, signal.platformShopId);
 }
 
 /**

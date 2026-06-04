@@ -42,8 +42,10 @@ function createStore() {
       state.entitledTools = [];
       state.authBootstrap = { status: "signed_out", error: null };
     }),
-    clearCloudDataExceptUser: vi.fn(() => {
-      state.shops = [];
+    clearCloudDataExceptUser: vi.fn((options?: { preserveShops?: boolean }) => {
+      if (!options?.preserveShops) {
+        state.shops = [];
+      }
       state.platformApps = [];
       state.billingOverview = null;
       state.wmsAccounts = [];
@@ -108,6 +110,7 @@ describe("bootstrapDesktopAuthState", () => {
     await bootstrapDesktopAuthState(authSession, store);
 
     expect(store.clearCloudDataExceptUser).toHaveBeenCalledTimes(1);
+    expect(store.clearCloudDataExceptUser).toHaveBeenCalledWith({ preserveShops: true });
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_SHOPS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
