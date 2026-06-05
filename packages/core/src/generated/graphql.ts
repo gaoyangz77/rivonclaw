@@ -5866,6 +5866,7 @@ export const ToolId = {
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
+  CsDismissConversationEscalations: 'CS_DISMISS_CONVERSATION_ESCALATIONS',
   CsEscalate: 'CS_ESCALATE',
   CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
   CsRespond: 'CS_RESPOND',

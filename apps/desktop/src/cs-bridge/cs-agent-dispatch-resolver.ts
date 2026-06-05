@@ -162,9 +162,12 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
     case "SESSION_EXPIRING_ESCALATION_FOLLOW_UP":
       return [
         "This customer-service session is approaching the platform timeout and still has an open escalation.",
-        "This dispatch is for a concise, truthful progress update if the issue is still being worked on.",
-        "Inspect the latest conversation and escalation/order context before messaging.",
-        "Do not claim resolution, close/dismiss the escalation, or offer compensation unless the operator explicitly instructed it and the conversation context supports it.",
+        "Inspect the latest conversation, escalation, and order context before taking action.",
+        "If the escalated request is still needed, send the buyer a concise, truthful progress update when appropriate.",
+        "If the buyer's request changed, normal customer-service handling already resolved the issue, or a human customer-service operator already handled the case, call cs_dismiss_conversation_escalations.",
+        "After dismissing open escalations, call ecom_cs_end_session only when the close-out criteria are satisfied.",
+        "Do not claim resolution, dismiss an escalation, end the session, or offer compensation unless the current conversation context supports it.",
+        END_SESSION_GUIDANCE,
       ].join(" ");
     case "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP":
       return [
