@@ -371,6 +371,7 @@ export class CustomerServiceSession {
       "",
       "### General",
       "Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.",
+      "Before asking a customer for photos, videos, screenshots, or other evidence, verify it would prove an unknown fact that changes your next action.",
       "",
       "### Authority & Escalation",
       "Unless the shop prompt above explicitly authorizes you to handle specific",
