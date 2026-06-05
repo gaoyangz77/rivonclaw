@@ -12,6 +12,13 @@ import { BackendSubscriptionClient } from "../src/cloud/backend-subscription-cli
 
 describe("BackendSubscriptionClient auth recovery", () => {
   const disposes: Array<ReturnType<typeof vi.fn>> = [];
+  const clientOptions: Array<{
+    on?: {
+      closed?: (event: unknown) => void;
+      error?: (err: unknown) => void;
+    };
+    connectionParams?: () => unknown;
+  }> = [];
   const subscriptions: Array<{
     query: string;
     sink: {
@@ -23,9 +30,11 @@ describe("BackendSubscriptionClient auth recovery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     disposes.length = 0;
+    clientOptions.length = 0;
     subscriptions.length = 0;
 
-    createClientMock.mockImplementation(() => {
+    createClientMock.mockImplementation((options) => {
+      clientOptions.push(options);
       const dispose = vi.fn();
       disposes.push(dispose);
       return {
@@ -61,6 +70,33 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     const latestConnectionParams = createClientMock.mock.calls.at(-1)?.[0].connectionParams;
     expect(latestConnectionParams()).toEqual({ authorization: "Bearer fresh-token" });
+
+    client.disconnect();
+  });
+
+  it("refreshes auth and re-subscribes after authenticated connection close", async () => {
+    let token = "expired-token";
+    const refreshAuth = vi.fn(async () => {
+      token = "fresh-token";
+    });
+
+    const client = new BackendSubscriptionClient("en");
+    client.connect(() => token, { refreshAuth });
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
+    client.subscribeToAffiliateWorkItemChanges(vi.fn());
+
+    expect(subscriptions).toHaveLength(2);
+
+    clientOptions.at(-1)?.on?.closed?.({ code: 4401, reason: "Unauthorized" });
+
+    await vi.waitFor(() => {
+      expect(refreshAuth).toHaveBeenCalledTimes(1);
+      expect(createClientMock).toHaveBeenCalledTimes(3);
+      expect(subscriptions).toHaveLength(4);
+    });
+
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer fresh-token" });
 
     client.disconnect();
   });

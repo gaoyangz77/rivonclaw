@@ -639,7 +639,11 @@ app.whenReady().then(async () => {
     } else {
       backendSubscription.disableAuthenticatedSubscriptions();
     }
-    await syncCloudProviderKey(user, storage, secretStore);
+    try {
+      await syncCloudProviderKey(user, storage, secretStore);
+    } catch (err) {
+      log.warn("Failed to sync cloud provider key during auth lifecycle:", err);
+    }
     queueTelegramDebugProxySync(user);
     log.info(`Auth lifecycle settled: ${action} (userId=${user?.userId ?? "signed-out"})`);
   }
