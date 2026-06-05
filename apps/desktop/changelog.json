@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.32",
+    "date": "2026-06-05",
+    "en": [
+      "Tie desktop backend subscriptions to the authentication lifecycle so reconnects recover cleanly",
+      "Patch OpenClaw media tool model overrides for more reliable media handling",
+      "Add customer-service evidence request guardrails and expose escalation dismissal to agents"
+    ],
+    "zh": [
+      "将桌面端后台订阅绑定到认证生命周期，让重连恢复更稳定",
+      "修补 OpenClaw 媒体工具模型覆盖逻辑，提升媒体处理可靠性",
+      "增加客服证据请求防护，并向 agent 暴露升级单关闭能力"
+    ]
+  },
+  {
     "version": "1.8.31",
     "date": "2026-06-04",
     "en": [
