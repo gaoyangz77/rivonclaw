@@ -101,6 +101,23 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.disconnect();
   });
 
+  it("can force reconnect authenticated subscriptions after auth lifecycle settles", async () => {
+    const client = new BackendSubscriptionClient("en");
+    client.connect(() => "stable-token");
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
+
+    expect(subscriptions).toHaveLength(1);
+
+    client.enableAuthenticatedSubscriptions({ forceReconnect: true });
+
+    expect(createClientMock).toHaveBeenCalledTimes(3);
+    expect(subscriptions).toHaveLength(2);
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer stable-token" });
+
+    client.disconnect();
+  });
+
   it("coalesces simultaneous auth errors into one refresh", async () => {
     let token = "expired-token";
     let resolveRefresh!: () => void;

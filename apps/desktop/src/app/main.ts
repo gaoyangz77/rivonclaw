@@ -635,7 +635,7 @@ app.whenReady().then(async () => {
     const authReady = rootStore.authBootstrap.status === "ready";
     const user = authReady ? authSession.getCachedUser() : null;
     if (authSession.getAccessToken() && user) {
-      backendSubscription.enableAuthenticatedSubscriptions();
+      backendSubscription.enableAuthenticatedSubscriptions({ forceReconnect: true });
     } else {
       backendSubscription.disableAuthenticatedSubscriptions();
     }
