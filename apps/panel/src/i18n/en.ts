@@ -1761,6 +1761,7 @@ export default {
         ECOM_CS_REJECT_CANCELLATION: "Reject Cancellation",
         // E-commerce CS — Escalation
         CS_ESCALATE: "Escalate",
+        CS_DISMISS_CONVERSATION_ESCALATIONS: "Dismiss Conversation Escalations",
         CS_RESPOND: "Respond to Escalation",
         CS_GET_ESCALATION_RESULT: "Get Escalation Result",
         CS_START_SESSION: "Start Session",
