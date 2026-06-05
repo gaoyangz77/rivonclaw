@@ -3,6 +3,7 @@ import { INIT_SHOPS_QUERY } from "../cloud/init-queries.js";
 import { rootStore } from "./store/desktop-store.js";
 
 const log = createLogger("shop-lifecycle");
+const ECOMMERCE_MODULE_ID = "GLOBAL_ECOMMERCE_SELLER";
 
 export interface ShopLifecycleAuthSession {
   graphqlFetch<T = Record<string, unknown>>(query: string): Promise<T>;
@@ -12,6 +13,11 @@ export async function refreshShopLifecycle(
   authSession: ShopLifecycleAuthSession,
   reason: string,
 ): Promise<void> {
+  if (!rootStore.isModuleEnrolled(ECOMMERCE_MODULE_ID)) {
+    log.info(`Skipped shop lifecycle refresh (reason=${reason}, module=not_enrolled)`);
+    return;
+  }
+
   rootStore.beginShopRefresh(reason);
   try {
     const data = await authSession.graphqlFetch<Record<string, unknown>>(INIT_SHOPS_QUERY);

@@ -1,12 +1,25 @@
+import { routeFirstPartyUrl } from "@rivonclaw/core";
+
+function firstPartyWebUrl(path: string): string {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    return routeFirstPartyUrl(`https://www.rivonclaw.com${normalizedPath}`).toString();
+}
+
 /**
  * Centralized external links configuration.
  * All outbound URLs should be managed here for easy maintenance.
  */
 export const EXTERNAL_LINKS = {
     /** Project homepage / GitHub repo */
-    homepage: "https://www.rivonclaw.com/",
+    get homepage() {
+        return firstPartyWebUrl("/");
+    },
     /** Terms of Service page */
-    termsOfService: "https://www.rivonclaw.com/terms",
+    get termsOfService() {
+        return firstPartyWebUrl("/terms");
+    },
     /** Privacy Policy page */
-    privacyPolicy: "https://www.rivonclaw.com/privacy",
+    get privacyPolicy() {
+        return firstPartyWebUrl("/privacy");
+    },
 } as const;

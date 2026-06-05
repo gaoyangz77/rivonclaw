@@ -5,9 +5,9 @@ import { useEntityStore } from "../store/EntityStoreProvider.js";
 
 interface AuthGateProps {
   children: ReactNode;
-  /** Where to navigate for login (default: "/account") */
+  /** Where to navigate for login (default: "/account/profile") */
   loginPath?: string;
-  /** Where to navigate for upgrade (default: "/account") */
+  /** Where to navigate for upgrade (default: "/account/profile") */
   upgradePath?: string;
   /** Navigation callback */
   onNavigate: (path: string) => void;
@@ -19,8 +19,8 @@ interface AuthGateProps {
 
 export const AuthGate = observer(function AuthGate({
   children,
-  loginPath = "/account",
-  upgradePath = "/account",
+  loginPath = "/account/profile",
+  upgradePath = "/account/profile",
   onNavigate,
   loadingElement,
   skipSubscriptionCheck = false,

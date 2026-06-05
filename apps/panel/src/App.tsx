@@ -273,10 +273,10 @@ export const App = observer(function App() {
   }
 
   const ChatComponent = ROUTE_MAP.get("/")!.component;
-  const ChannelsComponent = ROUTE_MAP.get("/channels")!.component;
+  const ChannelsComponent = ROUTE_MAP.get("/connections/channels")!.component;
   const currentRoute = ROUTE_MAP.get(currentPath);
   const isKeepMounted = currentRoute?.keepMounted;
-  const isAccount = currentPath === "/account";
+  const isAccount = currentPath === "/account/profile";
   const StandardPage = currentRoute?.component && !isKeepMounted && !isAccount
     ? currentRoute.component
     : null;
@@ -290,7 +290,7 @@ export const App = observer(function App() {
           <ChatComponent onAgentNameChange={setAgentName} />
         </div>
         {/* Keep ChannelsPage mounted to avoid re-fetching channel status on every visit. */}
-        <div className={currentPath === "/channels" ? "contents-toggle" : "hidden-toggle"}>
+        <div className={currentPath === "/connections/channels" ? "contents-toggle" : "hidden-toggle"}>
           <ChannelsComponent />
         </div>
         {isAccount && (() => {

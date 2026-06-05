@@ -19,7 +19,7 @@ export const UserAvatarButton = observer(function UserAvatarButton({ onNavigate 
 
   function handleClick() {
     if (user) {
-      onNavigate("/account");
+      onNavigate("/account/profile");
     } else if (authChecking) {
       return;
     } else {

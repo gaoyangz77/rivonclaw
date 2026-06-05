@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { EXTERNAL_LINKS } from "../lib/external-links.js";
-import { HelpCircleIcon } from "./icons.js";
+import { ExternalLinkIcon } from "./icons.js";
 
 export function HelpLink() {
     const { t } = useTranslation();
@@ -11,9 +11,9 @@ export function HelpLink() {
             href={EXTERNAL_LINKS.homepage}
             target="_blank"
             rel="noopener noreferrer"
-            title={t("common.help")}
+            title={t("common.website")}
         >
-            <HelpCircleIcon />
+            <ExternalLinkIcon size={18} />
         </a>
     );
 }

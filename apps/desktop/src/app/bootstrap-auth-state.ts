@@ -10,6 +10,8 @@ import {
   INIT_INVENTORY_GOODS_QUERY,
 } from "../cloud/init-queries.js";
 
+const ECOMMERCE_MODULE_ID = "GLOBAL_ECOMMERCE_SELLER";
+
 type BootstrapStatus = "signed_out" | "loading" | "ready" | "error";
 
 interface BootstrapRootStore {
@@ -55,17 +57,23 @@ export async function bootstrapDesktopAuthState(
     ];
 
     queries.push(
-      INIT_SHOPS_QUERY,
       INIT_PLATFORM_APPS_QUERY,
       INIT_BILLING_OVERVIEW_QUERY,
-      INIT_WMS_ACCOUNTS_QUERY,
-      INIT_WAREHOUSES_QUERY,
-      INIT_INVENTORY_GOODS_QUERY,
     );
+
+    const hasEcommerceModule = me.enrolledModules?.includes(ECOMMERCE_MODULE_ID) ?? false;
+    if (hasEcommerceModule) {
+      queries.push(
+        INIT_SHOPS_QUERY,
+        INIT_WMS_ACCOUNTS_QUERY,
+        INIT_WAREHOUSES_QUERY,
+        INIT_INVENTORY_GOODS_QUERY,
+      );
+    }
 
     const results = await Promise.all(queries.map((query) => authSession.graphqlFetch(query)));
 
-    rootStore.clearCloudDataExceptUser({ preserveShops: true });
+    rootStore.clearCloudDataExceptUser({ preserveShops: hasEcommerceModule });
     rootStore.ingestGraphQLResponse({ me });
     for (const data of results) {
       rootStore.ingestGraphQLResponse(data);
