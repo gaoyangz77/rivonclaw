@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.31",
+    "date": "2026-06-04",
+    "en": [
+      "Recover long-lived backend subscriptions after complete events so desktop sessions keep receiving updates",
+      "Refine ecommerce authentication bootstrap and panel navigation for smoother startup handoff"
+    ],
+    "zh": [
+      "在 complete 事件后恢复长连接后台订阅，确保桌面会话持续接收更新",
+      "优化电商认证启动引导和面板导航，让启动交接更顺畅"
+    ]
+  },
+  {
     "version": "1.8.30",
     "date": "2026-06-04",
     "en": [
