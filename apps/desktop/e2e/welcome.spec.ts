@@ -54,6 +54,6 @@ test.describe("RivonClaw Welcome Flow", () => {
     await modal.locator(".captcha-row-input input").fill("0000");
     await modal.locator("button[type='submit']").click();
 
-    await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 30_000 });
+    await expect(window.locator(".user-avatar-btn, .nav-btn", { hasText: /Account/i }).first()).toBeVisible({ timeout: 30_000 });
   });
 });
