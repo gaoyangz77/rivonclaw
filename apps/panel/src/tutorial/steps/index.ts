@@ -15,18 +15,18 @@ import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
-  "/channels": channelsSteps,
-  "/providers": providersSteps,
-  "/skills": skillsSteps,
-  "/crons": cronsSteps,
-  "/extras": extrasSteps,
-  "/usage": usageSteps,
-  "/settings": settingsSteps,
-  "/billing": billingSteps,
-  "/account": accountSteps,
-  "/ecommerce": ecommerceSteps,
-  "/ecommerce/customer-service": ecommerceCustomerServiceSteps,
-  "/ecommerce/affiliate": ecommerceAffiliateSteps,
+  "/commerce/shops": ecommerceSteps,
+  "/commerce/customer-service": ecommerceCustomerServiceSteps,
+  "/commerce/affiliate": ecommerceAffiliateSteps,
+  "/automation/skills": skillsSteps,
+  "/automation/crons": cronsSteps,
+  "/connections/channels": channelsSteps,
+  "/connections/models": providersSteps,
+  "/connections/extensions": extrasSteps,
+  "/account/usage": usageSteps,
+  "/account/billing": billingSteps,
+  "/account/profile": accountSteps,
+  "/account/settings": settingsSteps,
 }
 
 export function getStepsForRoute(route: string): TutorialStep[] {

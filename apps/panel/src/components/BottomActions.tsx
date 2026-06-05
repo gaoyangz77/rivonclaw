@@ -1,7 +1,6 @@
 import { ThemeToggle } from "./ThemeToggle.js";
 import { LangToggle } from "./LangToggle.js";
 import { HelpLink } from "./HelpLink.js";
-import { UserAvatarButton } from "./UserAvatarButton.js";
 
 /**
  * Unified bottom-actions bar used in both the sidebar and the onboarding page.
@@ -9,10 +8,8 @@ import { UserAvatarButton } from "./UserAvatarButton.js";
  */
 export function BottomActions({
     collapsed = false,
-    onNavigate,
 }: {
     collapsed?: boolean;
-    onNavigate?: (path: string) => void;
 }) {
     return (
         <div
@@ -21,7 +18,6 @@ export function BottomActions({
             <ThemeToggle />
             <LangToggle />
             <HelpLink />
-            {onNavigate && <UserAvatarButton onNavigate={onNavigate} />}
         </div>
     );
 }

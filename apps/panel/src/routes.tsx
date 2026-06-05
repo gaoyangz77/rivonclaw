@@ -32,6 +32,8 @@ export interface RouteEntry {
   icon?: ReactNode;
   /** i18n key for sidebar nav label; absent = not shown in sidebar */
   navLabelKey?: string;
+  /** Optional sidebar group heading. Routes with no group render as primary items. */
+  navGroupKey?: string;
   /** Navigation requires authentication */
   authRequired?: boolean;
   /** Always mounted, shown/hidden via CSS toggle (preserves component state) */
@@ -52,19 +54,19 @@ export interface RouteEntry {
  */
 export const ROUTES: RouteEntry[] = [
   { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true },
-  { path: "/providers", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers" },
-  { path: "/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", keepMounted: true },
-  { path: "/extras", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras" },
-  { path: "/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills" },
-  { path: "/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons" },
-  { path: "/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
-  { path: "/ecommerce", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", authRequired: true },
-  { path: "/ecommerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, parentPath: "/ecommerce" },
-  { path: "/ecommerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, parentPath: "/ecommerce" },
-  { path: "/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage" },
-  { path: "/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings" },
-  { path: "/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", authRequired: true, navAuthOnly: true },
-  { path: "/account", pageKey: "account", component: AccountPage, icon: <AccountIcon /> },
+  { path: "/commerce/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
+  { path: "/commerce/shops", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", navGroupKey: "nav.group.shopOperations", authRequired: true },
+  { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
+  { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
+  { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.group.automation" },
+  { path: "/automation/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons", navGroupKey: "nav.group.automation" },
+  { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", navGroupKey: "nav.group.connections", keepMounted: true },
+  { path: "/connections/models", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers", navGroupKey: "nav.group.connections" },
+  { path: "/connections/extensions", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras", navGroupKey: "nav.group.connections" },
+  { path: "/account/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage", navGroupKey: "nav.group.accountSystem" },
+  { path: "/account/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", navGroupKey: "nav.group.accountSystem", authRequired: true, navAuthOnly: true },
+  { path: "/account/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings", navGroupKey: "nav.group.accountSystem" },
+  { path: "/account/profile", pageKey: "account", component: AccountPage, icon: <AccountIcon />, navLabelKey: "nav.account", navGroupKey: "nav.group.accountSystem", authRequired: true },
   { path: "/welcome", pageKey: "welcome", component: WelcomePage, internal: true },
 ];
 

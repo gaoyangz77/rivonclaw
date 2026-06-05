@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,13 +12,14 @@ import { formatError } from "@rivonclaw/core";
 import { panelEventBus } from "../lib/event-bus.js";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
-import { MenuIcon } from "../components/icons.js";
-import { ROUTES } from "../routes.js";
+import { MenuIcon, UserPlusIcon } from "../components/icons.js";
+import { ROUTES, type RouteEntry } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { useToast } from "../components/Toast.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
+import { getUserInitial } from "../lib/user-manager.js";
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -193,8 +194,29 @@ export const Layout = observer(function Layout({
     (!r.navAuthOnly || !!user)
   );
 
+  function renderNavIcon(route: RouteEntry) {
+    if (route.pageKey !== "account") return route.icon;
+    if (user) {
+      return <span className="nav-account-avatar">{getUserInitial(user)}</span>;
+    }
+    if (authChecking) {
+      return <span className="nav-account-avatar nav-account-avatar-loading">...</span>;
+    }
+    return <UserPlusIcon />;
+  }
+
+  function getNavTitle(route: RouteEntry) {
+    if (route.pageKey === "account") {
+      if (user) return user.email ?? t(route.navLabelKey!);
+      if (authChecking) return t("common.loading");
+      return t("auth.login");
+    }
+    return collapsed ? t(route.navLabelKey!) : undefined;
+  }
+
   const showBanner = !!updateInfo;
   const ds = downloadStatus;
+  let currentNavGroupKey: string | undefined;
 
   // CS bridge warning: show when shops need CS on this device but bridge isn't connected.
   // Derived from entity store + device identity — mirrors CS bridge's syncFromCache() filter.
@@ -336,31 +358,38 @@ export const Layout = observer(function Layout({
             {navRoutes.map((route) => {
               const active = currentPath === route.path;
               const isSubItem = Boolean(route.parentPath);
+              const startsGroup = !collapsed && route.navGroupKey && route.navGroupKey !== currentNavGroupKey;
+              currentNavGroupKey = route.navGroupKey;
               return (
-                <li key={route.path}>
-                  <button
-                    className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
-                    onClick={() => {
-                      if (route.authRequired && authChecking) return;
-                      if (route.authRequired && !user) {
-                        setPendingAuthPath(route.path);
-                        setAuthModalOpen(true);
-                      } else {
-                        onNavigate(route.path);
-                      }
-                    }}
-                    title={collapsed ? t(route.navLabelKey!) : undefined}
-                  >
-                    <span className="nav-icon">{route.icon}</span>
-                    {!collapsed && (
-                      <span className="nav-label">{t(route.navLabelKey!)}</span>
-                    )}
-                  </button>
-                </li>
+                <Fragment key={route.path}>
+                  {startsGroup && (
+                    <li className="nav-group-heading">{t(route.navGroupKey!)}</li>
+                  )}
+                  <li>
+                    <button
+                      className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
+                      onClick={() => {
+                        if (route.authRequired && authChecking) return;
+                        if (route.authRequired && !user) {
+                          setPendingAuthPath(route.path);
+                          setAuthModalOpen(true);
+                        } else {
+                          onNavigate(route.path);
+                        }
+                      }}
+                      title={getNavTitle(route)}
+                    >
+                      <span className="nav-icon">{renderNavIcon(route)}</span>
+                      {!collapsed && (
+                        <span className="nav-label">{t(route.navLabelKey!)}</span>
+                      )}
+                    </button>
+                  </li>
+                </Fragment>
               );
             })}
           </ul>
-          <BottomActions collapsed={collapsed} onNavigate={onNavigate} />
+          <BottomActions collapsed={collapsed} />
           {!collapsed && (
             <div
               className="sidebar-resize-handle"
