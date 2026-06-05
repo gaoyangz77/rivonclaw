@@ -10,11 +10,14 @@ const NON_RETRYABLE_WS_CLOSE_CODES = new Set([
   4004, // BadResponse
   4005, // InternalClientError
   4400, // BadRequest
-  4401, // Unauthorized
-  4403, // Forbidden
   4406, // SubprotocolNotAcceptable
   4409, // SubscriberAlreadyExists
   4429, // TooManyInitialisationRequests
+]);
+
+const AUTH_WS_CLOSE_CODES = new Set([
+  4401, // Unauthorized
+  4403, // Forbidden
 ]);
 
 const UPDATE_SUBSCRIPTION = `
@@ -826,6 +829,22 @@ export class BackendSubscriptionClient {
     }
   }
 
+  refreshAuthenticatedSubscriptions(): void {
+    if (!this.authenticatedSubscriptionsEnabled) return;
+    const token = this.getToken?.() ?? null;
+    if (!token) {
+      this.disableAuthenticatedSubscriptions();
+      return;
+    }
+
+    this.authenticatedSubscriptionToken = token;
+    if (this.client) {
+      this.reconnect();
+    } else {
+      this.doConnect();
+    }
+  }
+
   disableAuthenticatedSubscriptions(): void {
     if (!this.authenticatedSubscriptionsEnabled && !this.authenticatedSubscriptionToken) {
       return;
@@ -952,7 +971,7 @@ export class BackendSubscriptionClient {
 
   private isAuthError(err: unknown): boolean {
     return this.collectErrorMessages(err).some((message) =>
-      /Not authenticated|Authentication required|Invalid token|Token expired/i.test(message),
+      /Not authenticated|Authentication required|Invalid token|Token expired|Access denied|Unauthorized|Forbidden|4401|4403/i.test(message),
     );
   }
 
@@ -965,6 +984,15 @@ export class BackendSubscriptionClient {
     if (this.isAuthError(err)) {
       this.recoverAuthenticatedSubscriptions(key);
     }
+  }
+
+  private handleConnectionAuthFailure(source: string, err: unknown): void {
+    if (!this.authenticatedSubscriptionsEnabled) return;
+    log.warn("Backend subscription connection auth failure; refreshing auth", {
+      source,
+      ...this.formatUnknownError(err),
+    });
+    this.recoverAuthenticatedSubscriptions(source);
   }
 
   private handleResultErrors(
@@ -1007,7 +1035,7 @@ export class BackendSubscriptionClient {
         // Reconnect with the refreshed token. Auth refresh is intentionally not
         // routed through the full desktop auth lifecycle because it should be a
         // transparent credential maintenance path.
-        this.enableAuthenticatedSubscriptions();
+        this.refreshAuthenticatedSubscriptions();
       } catch (err) {
         this.authRecoveryFailures += 1;
         log.warn("Backend subscription auth refresh failed", {
@@ -1036,6 +1064,10 @@ export class BackendSubscriptionClient {
     const code = typeof errOrCloseEvent === "object" && errOrCloseEvent !== null
       ? (errOrCloseEvent as { code?: unknown }).code
       : undefined;
+
+    if (typeof code === "number" && AUTH_WS_CLOSE_CODES.has(code)) {
+      return false;
+    }
 
     if (typeof code === "number" && NON_RETRYABLE_WS_CLOSE_CODES.has(code)) {
       return false;
@@ -1077,8 +1109,22 @@ export class BackendSubscriptionClient {
   }
 
   private startSubscription(config: SubscriptionConfig, reason = "start"): void {
-    if (!this.client || !this.shouldSubscribe(config)) return;
+    if (!this.client) return;
+    if (!this.shouldSubscribe(config)) {
+      log.debug("Skipping backend subscription until auth is ready", {
+        subscription: config.key,
+        reason,
+        authRequired: config.authRequired === true,
+      });
+      return;
+    }
     this.stopActiveSubscription(config.key, reason);
+    log.debug("Starting backend subscription operation", {
+      subscription: config.key,
+      reason,
+      authRequired: config.authRequired === true,
+      authenticated: this.authenticatedSubscriptionsEnabled,
+    });
     const active = config.subscribe();
     this.activeSubscriptions.set(config.key, active);
   }
@@ -1561,8 +1607,19 @@ export class BackendSubscriptionClient {
         },
         closed: (event) => {
           log.info("Backend subscription WebSocket closed", this.formatUnknownError(event));
+          const code = typeof event === "object" && event !== null
+            ? (event as { code?: unknown }).code
+            : undefined;
+          if (typeof code === "number" && AUTH_WS_CLOSE_CODES.has(code)) {
+            this.handleConnectionAuthFailure(`connection_close_${code}`, event);
+          }
         },
-        error: (err) => log.warn("Backend subscription WebSocket error (will auto-retry)", this.formatUnknownError(err)),
+        error: (err) => {
+          log.warn("Backend subscription WebSocket error (will auto-retry)", this.formatUnknownError(err));
+          if (this.isAuthError(err)) {
+            this.handleConnectionAuthFailure("connection_error", err);
+          }
+        },
       },
     });
 
