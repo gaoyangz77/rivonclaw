@@ -807,7 +807,7 @@ export class BackendSubscriptionClient {
     this.doConnect();
   }
 
-  enableAuthenticatedSubscriptions(): void {
+  enableAuthenticatedSubscriptions(options?: { forceReconnect?: boolean }): void {
     const token = this.getToken?.() ?? null;
     if (!token) {
       this.disableAuthenticatedSubscriptions();
@@ -824,7 +824,7 @@ export class BackendSubscriptionClient {
       return;
     }
 
-    if (!wasEnabled || tokenChanged) {
+    if (!wasEnabled || tokenChanged || options?.forceReconnect) {
       this.reconnect();
     }
   }
