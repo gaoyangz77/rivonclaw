@@ -1,5 +1,9 @@
 import { freshTest as test, expect } from "./electron-fixture.js";
 
+const testEmail = process.env.STAGING_TEST_USERNAME;
+const testPassword = process.env.STAGING_TEST_PASSWORD;
+const captchaToken = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+
 test.describe("RivonClaw Welcome Flow", () => {
   test("fresh user sees account entry actions", async ({ window }) => {
     await expect(window.locator(".welcome-page")).toBeVisible();
@@ -33,5 +37,23 @@ test.describe("RivonClaw Welcome Flow", () => {
     await window.locator(".welcome-skip-guest").click();
 
     await expect(window.locator(".sidebar-brand")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("fresh user can login through deterministic captcha UI", async ({ window }) => {
+    test.skip(!testEmail || !testPassword || !captchaToken, "Staging credentials and captcha token are required");
+
+    await expect(window.locator(".welcome-page")).toBeVisible();
+    await window.locator(".welcome-choice-button", { hasText: /Existing user login/i }).click();
+
+    const modal = window.locator(".modal-backdrop .modal-content").first();
+    await expect(modal).toBeVisible({ timeout: 10_000 });
+    await expect(modal.locator(".captcha-svg")).toContainText("0000", { timeout: 10_000 });
+
+    await modal.locator('input[type="email"]').fill(testEmail!);
+    await modal.locator('input[type="password"]').fill(testPassword!);
+    await modal.locator(".captcha-row-input input").fill("0000");
+    await modal.locator("button[type='submit']").click();
+
+    await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 30_000 });
   });
 });

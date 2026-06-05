@@ -17,6 +17,12 @@ const LOGIN_MUTATION = `
   }
 `;
 
+const REQUEST_CAPTCHA_MUTATION = `
+  mutation RequestCaptcha($deterministicToken: String) {
+    requestCaptcha(deterministicToken: $deterministicToken) { token svg }
+  }
+`;
+
 const REGISTER_MUTATION = `
   mutation Register($input: RegisterInput!) {
     register(input: $input) {
@@ -46,7 +52,7 @@ const SHOP_OPERATIONS_RUN_PROFILE_ID = "SHOP_OPERATIONS";
 
 const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
-const captchaBypass = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+const deterministicCaptchaToken = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
 
 async function graphqlRequest<TData>(
   query: string,
@@ -80,6 +86,15 @@ async function storeTokens(apiBase: string, accessToken: string, refreshToken: s
   expect(storeRes.status).toBe(200);
 }
 
+async function requestDeterministicCaptcha(): Promise<string> {
+  const body = await graphqlRequest<{ requestCaptcha: { token: string; svg: string } }>(
+    REQUEST_CAPTCHA_MUTATION,
+    { deterministicToken: deterministicCaptchaToken },
+  );
+  expect(body.requestCaptcha.svg).toContain("0000");
+  return body.requestCaptcha.token;
+}
+
 /** Login via staging GraphQL, store tokens in Desktop, reload Panel. */
 async function loginAndNavigateToEcommerce(
   window: import("@playwright/test").Page,
@@ -91,8 +106,8 @@ async function loginAndNavigateToEcommerce(
     input: {
       email: testEmail,
       password: testPassword,
-      captchaToken: captchaBypass ?? "test",
-      captchaAnswer: "bypass",
+      captchaToken: await requestDeterministicCaptcha(),
+      captchaAnswer: "0000",
     },
   });
   const { accessToken, refreshToken } = loginBody.login;
@@ -125,7 +140,7 @@ async function skipWelcomeIfVisible(window: import("@playwright/test").Page): Pr
 // ── New User Defaults ────────────────────────────────────────────────
 
 test.describe("Ecommerce Page — New User Defaults", () => {
-  test.skip(!captchaBypass, "STAGING_CAPTCHA_BYPASS_TOKEN is required to register staging users");
+  test.skip(!deterministicCaptchaToken, "STAGING_CAPTCHA_BYPASS_TOKEN is required to register staging users");
 
   test("newly registered staging users default to ecommerce and shop operations", async ({ window, apiBase }) => {
     await dismissModals(window);
@@ -149,8 +164,8 @@ test.describe("Ecommerce Page — New User Defaults", () => {
         email,
         password,
         name: "E2E Ecommerce Default",
-        captchaToken: captchaBypass,
-        captchaAnswer: "bypass",
+        captchaToken: await requestDeterministicCaptcha(),
+        captchaAnswer: "0000",
       },
     });
 
@@ -208,7 +223,7 @@ test.describe("Ecommerce Page — Auth Gating", () => {
 // ── Authenticated Tests ──────────────────────────────────────────────
 
 test.describe("Ecommerce Page — Authenticated", () => {
-  test.skip(!testEmail || !testPassword, "Staging credentials not configured");
+  test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
 
   test("page renders with title, subtitle, and add shop button", async ({ window, apiBase }) => {
     await dismissModals(window);

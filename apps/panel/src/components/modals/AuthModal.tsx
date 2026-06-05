@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation } from "@apollo/client/react";
 import type { TFunction } from "i18next";
-import { GQL } from "@rivonclaw/core";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { REQUEST_CAPTCHA } from "../../api/auth-queries.js";
 import { formatError } from "@rivonclaw/core";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { Modal } from "./Modal.js";
 import { useToast } from "../Toast.js";
 import { EyeIcon, EyeOffIcon, RefreshIcon } from "../icons.js";
 import { EXTERNAL_LINKS } from "../../lib/external-links.js";
+import { fetchJson } from "../../api/client.js";
 
 /** Map known backend error messages to i18n keys. */
 const AUTH_ERROR_MAP: Record<string, string> = {
@@ -81,8 +80,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
   const [captchaSvg, setCaptchaSvg] = useState("");
   const [captchaError, setCaptchaError] = useState(false);
 
-  const [requestCaptcha] = useMutation<{ requestCaptcha: GQL.CaptchaResponse }>(REQUEST_CAPTCHA);
-
   const pwChecks = useMemo(() => getPasswordChecks(password), [password]);
   const pwStrength = useMemo(() => {
     const passed = Object.values(pwChecks).filter(Boolean).length;
@@ -99,17 +96,19 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     setCaptchaAnswer("");
     setCaptchaError(false);
     try {
-      const { data } = await requestCaptcha();
-      if (data?.requestCaptcha) {
-        setCaptchaToken(data.requestCaptcha.token);
-        setCaptchaSvg(data.requestCaptcha.svg);
+      const data = await fetchJson<{ token: string; svg: string }>(clientPath(API["auth.requestCaptcha"]), {
+        method: "POST",
+      });
+      if (data) {
+        setCaptchaToken(data.token);
+        setCaptchaSvg(data.svg);
       } else {
         setCaptchaError(true);
       }
     } catch {
       setCaptchaError(true);
     }
-  }, [requestCaptcha]);
+  }, []);
 
   // Reset form state when modal opens/closes
   useEffect(() => {

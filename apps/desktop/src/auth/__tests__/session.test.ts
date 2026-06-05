@@ -191,6 +191,25 @@ describe("AuthSessionManager.requestCaptcha", () => {
 
     const callBody = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(callBody.query).toContain("requestCaptcha");
+    expect(callBody.variables).toBeUndefined();
+  });
+
+  it("passes deterministic captcha request token to the cloud", async () => {
+    const captchaData = { token: "backend-cap-tok", svg: "<svg>0000</svg>" };
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        data: { requestCaptcha: captchaData },
+      }),
+    });
+
+    const result = await manager.requestCaptcha({ deterministicToken: "request-token" });
+
+    expect(result).toEqual(captchaData);
+
+    const callBody = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(callBody.query).toContain("requestCaptcha");
+    expect(callBody.variables).toEqual({ deterministicToken: "request-token" });
   });
 
   it("throws on captcha request failure", async () => {

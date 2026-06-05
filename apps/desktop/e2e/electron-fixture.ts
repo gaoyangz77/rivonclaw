@@ -182,6 +182,9 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   // Isolate logs per worker so parallel test failures can be diagnosed independently.
   env.RIVONCLAW_LOG_DIR = path.join(tempDir, "logs");
 
+  // Explicit local test marker for Desktop-only deterministic test affordances.
+  env.RIVONCLAW_E2E = "1";
+
   // Assign unique ports so parallel workers don't collide
   env.RIVONCLAW_GATEWAY_PORT = String(ports.gateway);
   env.RIVONCLAW_PANEL_PORT = String(ports.panel);
