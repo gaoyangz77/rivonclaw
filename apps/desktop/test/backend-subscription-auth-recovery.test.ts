@@ -12,7 +12,13 @@ import { BackendSubscriptionClient } from "../src/cloud/backend-subscription-cli
 
 describe("BackendSubscriptionClient auth recovery", () => {
   const disposes: Array<ReturnType<typeof vi.fn>> = [];
-  const subscriptions: Array<{ query: string; sink: { error: (err: unknown) => void } }> = [];
+  const subscriptions: Array<{
+    query: string;
+    sink: {
+      error: (err: unknown) => void;
+      complete: () => void;
+    };
+  }> = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,5 +94,69 @@ describe("BackendSubscriptionClient auth recovery", () => {
     });
 
     client.disconnect();
+  });
+
+  it("re-subscribes long-lived authenticated subscriptions after operation complete", async () => {
+    vi.useFakeTimers();
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "token");
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(vi.fn());
+
+      expect(subscriptions).toHaveLength(1);
+      subscriptions[0].sink.complete();
+
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      expect(subscriptions).toHaveLength(2);
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not re-subscribe short-lived subscriptions after operation complete", async () => {
+    vi.useFakeTimers();
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "token");
+      client.subscribeToOAuthComplete(vi.fn());
+
+      expect(subscriptions).toHaveLength(1);
+      subscriptions[0].sink.complete();
+
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      expect(subscriptions).toHaveLength(1);
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not recover a locally disposed operation during shop-id refresh", async () => {
+    vi.useFakeTimers();
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "token");
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(vi.fn(), { getShopIds: () => ["shop-1"] });
+
+      expect(subscriptions).toHaveLength(1);
+      client.refreshCsConversationChanges();
+      expect(subscriptions).toHaveLength(2);
+
+      subscriptions[0].sink.complete();
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      expect(subscriptions).toHaveLength(2);
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
   });
 });
