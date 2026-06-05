@@ -18,16 +18,43 @@ const LOGIN_MUTATION = `
   }
 `;
 
+const REQUEST_CAPTCHA_MUTATION = `
+  mutation RequestCaptcha($deterministicToken: String) {
+    requestCaptcha(deterministicToken: $deterministicToken) { token svg }
+  }
+`;
+
 const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
-const captchaBypass = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+const deterministicCaptchaToken = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+
+async function requestDeterministicCaptcha(): Promise<string> {
+  const res = await fetch(STAGING_GRAPHQL_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: REQUEST_CAPTCHA_MUTATION,
+      variables: { deterministicToken: deterministicCaptchaToken },
+    }),
+  });
+  const body = (await res.json()) as {
+    data?: { requestCaptcha: { token: string; svg: string } };
+    errors?: Array<{ message: string }>;
+  };
+  if (body.errors?.length || !body.data?.requestCaptcha) {
+    throw new Error(`Captcha request failed: ${body.errors?.[0]?.message ?? res.statusText}`);
+  }
+  expect(body.data.requestCaptcha.svg).toContain("0000");
+  return body.data.requestCaptcha.token;
+}
 
 /** Login via staging API bypass, store tokens, reload Panel to pick up auth state. */
 async function loginAndNavigateToAccount(
   window: import("@playwright/test").Page,
   apiBase: string,
 ): Promise<void> {
-  // 1. Login via GraphQL mutation (staging captcha bypass)
+  // 1. Login via GraphQL mutation (staging deterministic captcha challenge)
+  const captchaToken = await requestDeterministicCaptcha();
   const loginRes = await fetch(STAGING_GRAPHQL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -37,8 +64,8 @@ async function loginAndNavigateToAccount(
         input: {
           email: testEmail,
           password: testPassword,
-          captchaToken: captchaBypass ?? "test",
-          captchaAnswer: "bypass",
+          captchaToken,
+          captchaAnswer: "0000",
         },
       },
     }),
@@ -79,7 +106,7 @@ async function dismissModals(window: import("@playwright/test").Page): Promise<v
 }
 
 test.describe("Account Page — Surfaces & RunProfiles", () => {
-  test.skip(!testEmail || !testPassword, "Staging credentials not configured");
+  test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
 
   test("full Surface & RunProfile CRUD lifecycle", async ({ window, apiBase }) => {
     // Use unique names per run to avoid "name already exists" from leftover Cloud data

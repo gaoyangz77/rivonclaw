@@ -7,6 +7,39 @@ import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("auth-api");
 
+function truthyEnv(value: string | undefined): boolean {
+  return value === "1" || value === "true" || value === "TRUE" || value === "yes" || value === "on";
+}
+
+function isProductionBuildOrMode(): boolean {
+  if (process.env.NODE_ENV === "production" || truthyEnv(process.env.RIVONCLAW_PRODUCTION)) {
+    return true;
+  }
+  const electronProcess = process as NodeJS.Process & { defaultApp?: boolean };
+  if (process.versions.electron && electronProcess.defaultApp !== true) {
+    return true;
+  }
+  return false;
+}
+
+function isDeterministicCaptchaMode(): boolean {
+  if (isProductionBuildOrMode()) return false;
+  return (
+    truthyEnv(process.env.RIVONCLAW_STAGING)
+    || truthyEnv(process.env.RIVONCLAW_E2E)
+    || truthyEnv(process.env.RIVONCLAW_TUTORIAL)
+    || truthyEnv(process.env.RIVONCLAW_DEV_AUTH_TEST)
+    || process.env.NODE_ENV === "test"
+    || process.env.NODE_ENV === "development"
+  );
+}
+
+function getDeterministicCaptchaToken(): string | null {
+  const token = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+  if (!token || !isDeterministicCaptchaMode()) return null;
+  return token;
+}
+
 /** Decode the payload of a JWT without verification (already validated elsewhere). */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -94,7 +127,10 @@ const requestCaptcha: EndpointHandler = async (_req, res, _url, _params, ctx: Ap
     return;
   }
   try {
-    const captcha = await ctx.authSession.requestCaptcha();
+    const deterministicToken = getDeterministicCaptchaToken();
+    const captcha = deterministicToken
+      ? await ctx.authSession.requestCaptcha({ deterministicToken })
+      : await ctx.authSession.requestCaptcha();
     sendJson(res, 200, captcha);
   } catch (err) {
     sendJson(res, 500, { error: err instanceof Error ? err.message : "Captcha request failed" });

@@ -30,11 +30,17 @@ const adminEmail = process.env.STAGING_ADMIN_USERNAME;
 const adminPassword = process.env.STAGING_ADMIN_PASSWORD;
 const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
-const captchaBypass = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+const deterministicCaptchaToken = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
 
 const LOGIN_MUTATION = `
   mutation Login($input: LoginInput!) {
     login(input: $input) { accessToken refreshToken }
+  }
+`;
+
+const REQUEST_CAPTCHA_MUTATION = `
+  mutation RequestCaptcha($deterministicToken: String) {
+    requestCaptcha(deterministicToken: $deterministicToken) { token svg }
   }
 `;
 
@@ -61,6 +67,23 @@ interface UpdatePayload {
 // ---------------------------------------------------------------------------
 
 async function loginToStaging(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
+  const captchaRes = await fetch(STAGING_GRAPHQL_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: REQUEST_CAPTCHA_MUTATION,
+      variables: { deterministicToken: deterministicCaptchaToken },
+    }),
+  });
+  const captchaBody = (await captchaRes.json()) as {
+    data?: { requestCaptcha: { token: string; svg: string } };
+    errors?: Array<{ message: string }>;
+  };
+  if (captchaBody.errors?.length || !captchaBody.data?.requestCaptcha) {
+    throw new Error(`Captcha request failed: ${captchaBody.errors?.[0]?.message ?? captchaRes.statusText}`);
+  }
+  expect(captchaBody.data.requestCaptcha.svg).toContain("0000");
+
   const res = await fetch(STAGING_GRAPHQL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,8 +93,8 @@ async function loginToStaging(email: string, password: string): Promise<{ access
         input: {
           email,
           password,
-          captchaToken: captchaBypass ?? "test",
-          captchaAnswer: "bypass",
+          captchaToken: captchaBody.data.requestCaptcha.token,
+          captchaAnswer: "0000",
         },
       },
     }),
@@ -168,7 +191,7 @@ async function callPublishUpdate(
 // ---------------------------------------------------------------------------
 
 rawTest.describe("Update Subscription — protocol level", () => {
-  rawTest.skip(!adminEmail || !adminPassword, "Staging admin credentials not configured");
+  rawTest.skip(!adminEmail || !adminPassword || !deterministicCaptchaToken, "Staging admin credentials not configured");
 
   let adminToken: string;
 
@@ -236,7 +259,7 @@ rawTest.describe("Update Subscription — protocol level", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Update Subscription — full app E2E", () => {
-  test.skip(!adminEmail || !adminPassword, "Staging admin credentials not configured");
+  test.skip(!adminEmail || !adminPassword || !deterministicCaptchaToken, "Staging admin credentials not configured");
 
   let adminToken: string;
 
@@ -252,7 +275,7 @@ test.describe("Update Subscription — full app E2E", () => {
 
   test("update banner appears after admin pushes a new version", async ({ window, apiBase }) => {
     // 1. Login the running Electron app to staging so it connects the subscription
-    if (!testEmail || !testPassword) {
+    if (!testEmail || !testPassword || !deterministicCaptchaToken) {
       test.skip();
       return;
     }

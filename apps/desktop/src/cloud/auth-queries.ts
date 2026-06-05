@@ -117,8 +117,8 @@ export const REGISTER_MUTATION = `
 `;
 
 export const REQUEST_CAPTCHA_MUTATION = `
-  mutation RequestCaptcha {
-    requestCaptcha {
+  mutation RequestCaptcha($deterministicToken: String) {
+    requestCaptcha(deterministicToken: $deterministicToken) {
       token
       svg
     }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../../app/api-context.js";
@@ -11,12 +11,23 @@ import { registerAuthHandlers } from "../api.js";
 // ---------------------------------------------------------------------------
 
 let registry: RouteRegistry;
+const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   registry = new RouteRegistry();
   registerAuthHandlers(registry);
   rootStore.clearCloudEntities();
   rootStore.setAuthBootstrap("signed_out", null);
+  delete process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
+  delete process.env.RIVONCLAW_STAGING;
+  delete process.env.RIVONCLAW_E2E;
+  delete process.env.RIVONCLAW_TUTORIAL;
+  delete process.env.RIVONCLAW_DEV_AUTH_TEST;
+  delete process.env.RIVONCLAW_PRODUCTION;
+});
+
+afterEach(() => {
+  process.env = { ...ORIGINAL_ENV };
 });
 
 async function dispatch(method: string, path: string, ctx: ApiContext, body?: unknown) {
@@ -276,7 +287,7 @@ describe("GET /api/auth/session", () => {
 // ---------------------------------------------------------------------------
 
 describe("POST /api/auth/request-captcha", () => {
-  it("returns captcha data on success", async () => {
+  it("returns cloud captcha data on success", async () => {
     const captchaData = { token: "cap-tok", svg: "<svg>...</svg>" };
     const ctx = {
       authSession: {
@@ -289,6 +300,70 @@ describe("POST /api/auth/request-captcha", () => {
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
     expect(res._body).toEqual(captchaData);
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledTimes(1);
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledWith();
+  });
+
+  it("requests deterministic captcha in staging e2e tutorial mode", async () => {
+    const captchaData = { token: "backend-challenge-token", svg: "<svg>0000</svg>" };
+    process.env.STAGING_CAPTCHA_BYPASS_TOKEN = "fixed-cap-token";
+    process.env.RIVONCLAW_E2E = "1";
+    process.env.RIVONCLAW_TUTORIAL = "1";
+    const ctx = {
+      authSession: {
+        requestCaptcha: vi.fn().mockResolvedValue(captchaData),
+      },
+    } as unknown as ApiContext;
+
+    const { handled, res } = await dispatch("POST", "/api/auth/request-captcha", ctx);
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual(captchaData);
+    expect((res._body as { token: string }).token).not.toBe("fixed-cap-token");
+    expect((res._body as { svg: string }).svg).toContain("0000");
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledWith({
+      deterministicToken: "fixed-cap-token",
+    });
+  });
+
+  it("does not use deterministic captcha in production mode even with env token", async () => {
+    const captchaData = { token: "cloud-token", svg: "<svg>cloud</svg>" };
+    process.env.STAGING_CAPTCHA_BYPASS_TOKEN = "fixed-cap-token";
+    process.env.RIVONCLAW_E2E = "1";
+    process.env.RIVONCLAW_PRODUCTION = "1";
+    const ctx = {
+      authSession: {
+        requestCaptcha: vi.fn().mockResolvedValue(captchaData),
+      },
+    } as unknown as ApiContext;
+
+    const { handled, res } = await dispatch("POST", "/api/auth/request-captcha", ctx);
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual(captchaData);
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledTimes(1);
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledWith();
+  });
+
+  it("does not use deterministic captcha without an explicit test mode", async () => {
+    const captchaData = { token: "cloud-token", svg: "<svg>cloud</svg>" };
+    process.env.STAGING_CAPTCHA_BYPASS_TOKEN = "fixed-cap-token";
+    process.env.NODE_ENV = "";
+    const ctx = {
+      authSession: {
+        requestCaptcha: vi.fn().mockResolvedValue(captchaData),
+      },
+    } as unknown as ApiContext;
+
+    const { handled, res } = await dispatch("POST", "/api/auth/request-captcha", ctx);
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual(captchaData);
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledTimes(1);
+    expect(ctx.authSession!.requestCaptcha).toHaveBeenCalledWith();
   });
 
   it("returns 500 on captcha failure", async () => {

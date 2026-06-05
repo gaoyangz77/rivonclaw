@@ -3574,6 +3574,55 @@ export interface MeResponse {
   userId: Scalars['String']['output'];
 }
 
+/** Cached proxy URL for an external media object */
+export interface MediaCachedProxy {
+  canonicalUrl: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  extension?: Maybe<MediaCachedProxyExtension>;
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  mimeType?: Maybe<MediaCachedProxyMimeType>;
+  proxyUrl?: Maybe<Scalars['String']['output']>;
+  sha256?: Maybe<Scalars['String']['output']>;
+  sizeBytes?: Maybe<Scalars['Int']['output']>;
+  status: MediaCachedProxyStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** File extension used for cached external media objects */
+export const MediaCachedProxyExtension = {
+  Gif: 'GIF',
+  Jpg: 'JPG',
+  Mov: 'MOV',
+  Mp4: 'MP4',
+  Png: 'PNG',
+  Webm: 'WEBM',
+  Webp: 'WEBP'
+} as const;
+
+export type MediaCachedProxyExtension = typeof MediaCachedProxyExtension[keyof typeof MediaCachedProxyExtension];
+/** Allowed MIME type for cached external media */
+export const MediaCachedProxyMimeType = {
+  Gif: 'GIF',
+  Jpeg: 'JPEG',
+  Mp4: 'MP4',
+  Png: 'PNG',
+  Quicktime: 'QUICKTIME',
+  Webm: 'WEBM',
+  Webp: 'WEBP'
+} as const;
+
+export type MediaCachedProxyMimeType = typeof MediaCachedProxyMimeType[keyof typeof MediaCachedProxyMimeType];
+/** Lifecycle state for a cached external media proxy object */
+export const MediaCachedProxyStatus = {
+  Deleted: 'DELETED',
+  Failed: 'FAILED',
+  Fetching: 'FETCHING',
+  Ready: 'READY'
+} as const;
+
+export type MediaCachedProxyStatus = typeof MediaCachedProxyStatus[keyof typeof MediaCachedProxyStatus];
 export interface ModelPricing {
   displayName: Scalars['String']['output'];
   inputPricePerMillion: Scalars['String']['output'];
@@ -3665,6 +3714,8 @@ export interface Mutation {
   ecommerceUpdateShop: EcommerceUpdateShopResult;
   /** Enroll in a product module */
   enrollModule: MeResponse;
+  /** Generate or retrieve a cached proxy URL for an external image/video URL. Requires login. */
+  genOrGetCachedProxyUrl: MediaCachedProxy;
   /** Generate a 6-character pairing code for QR display */
   generatePairingCode: GeneratePairingResult;
   /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
@@ -3978,6 +4029,11 @@ export interface MutationEnrollModuleArgs {
 }
 
 
+export interface MutationGenOrGetCachedProxyUrlArgs {
+  sourceUrl: Scalars['String']['input'];
+}
+
+
 export interface MutationGeneratePairingCodeArgs {
   desktopDeviceId: Scalars['String']['input'];
 }
@@ -4045,6 +4101,11 @@ export interface MutationRemoveCreatorTagArgs {
 
 export interface MutationRequestAffiliateActionArgs {
   input: RequestAffiliateActionInput;
+}
+
+
+export interface MutationRequestCaptchaArgs {
+  deterministicToken?: InputMaybe<Scalars['String']['input']>;
 }
 
 

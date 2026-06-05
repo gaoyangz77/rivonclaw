@@ -167,8 +167,14 @@ export class AuthSessionManager {
   }
 
   /** Request a CAPTCHA challenge from the Cloud. */
-  async requestCaptcha(): Promise<{ token: string; svg: string }> {
-    const data = await this.graphqlFetch<{ requestCaptcha: { token: string; svg: string } }>(REQUEST_CAPTCHA_MUTATION);
+  async requestCaptcha(options?: { deterministicToken?: string }): Promise<{ token: string; svg: string }> {
+    const variables = options?.deterministicToken
+      ? { deterministicToken: options.deterministicToken }
+      : undefined;
+    const data = await this.graphqlFetch<{ requestCaptcha: { token: string; svg: string } }>(
+      REQUEST_CAPTCHA_MUTATION,
+      variables,
+    );
     return data.requestCaptcha;
   }
 
