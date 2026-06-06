@@ -43,7 +43,7 @@ import { SttManager } from "../stt/stt-manager.js";
 import { createCdpManager } from "../infra/browser/cdp-manager.js";
 import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "../infra/proxy/proxy-manager.js";
 import { createAutoUpdater } from "../updater/auto-updater.js";
-import { queryCheckUpdate, type UpdatePayload } from "../cloud/backend-subscription-client.js";
+import { queryCheckUpdate, type DebugChannelRequestPayload, type UpdatePayload } from "../cloud/backend-subscription-client.js";
 import { isNewerVersion } from "@rivonclaw/updater";
 import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch } from "../gateway/startup-utils.js";
 import { initTelemetry } from "../telemetry/telemetry-init.js";
@@ -87,6 +87,12 @@ import { invalidateToolSpecsCache } from "../cloud/api.js";
 import { refreshShopLifecycle } from "./shop-lifecycle.js";
 
 const log = createLogger("desktop");
+
+const REPORT_DEBUG_CHANNEL_RESPONSE_MUTATION = `
+  mutation ReportDebugChannelResponse($input: AdminDebugChannelResponseInput!) {
+    reportDebugChannelResponse(input: $input)
+  }
+`;
 
 // Late-bound: actual panel port is determined after startPanelServer() resolves.
 // PANEL_DEV_URL overrides dynamic allocation entirely (Vite dev server).
@@ -219,6 +225,7 @@ app.whenReady().then(async () => {
   // Initialize auth session manager and backend subscription client
   const { authSession, backendSubscription } = await setupAuth({
     secretStore, locale, deviceId,
+    appVersion: app.getVersion(),
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     broadcastEvent,
   });
@@ -583,9 +590,14 @@ app.whenReady().then(async () => {
   });
 
   let telegramDebugProxySyncQueue: Promise<void> = Promise.resolve();
-  async function syncTelegramDebugProxyChannel(user: GQL.MeResponse | null): Promise<void> {
-    const proxyToken = user?.support?.telegramDebugProxyToken?.trim() || null;
-    const apiRoot = getTelegramDebugRelayApiRoot();
+  const inFlightAdminDebugChannelRequests = new Set<string>();
+
+  async function applyTelegramDebugProxyChannelConfig(input: {
+    proxyToken: string | null;
+    apiRoot: string;
+  }): Promise<void> {
+    const proxyToken = input.proxyToken?.trim() || null;
+    const apiRoot = input.apiRoot.trim() || getTelegramDebugRelayApiRoot();
     let operatorUserIds: string[] | undefined;
     if (proxyToken) {
       try {
@@ -622,6 +634,56 @@ app.whenReady().then(async () => {
         : `Removed Telegram debug proxy account ${result.accountId}`,
     );
   }
+
+  async function syncTelegramDebugProxyChannel(user: GQL.MeResponse | null): Promise<void> {
+    await applyTelegramDebugProxyChannelConfig({
+      proxyToken: user?.support?.telegramDebugProxyToken?.trim() || null,
+      apiRoot: getTelegramDebugRelayApiRoot(),
+    });
+  }
+
+  async function handleAdminDebugChannelRequest(request: DebugChannelRequestPayload): Promise<void> {
+    if (request.deviceId !== deviceId) return;
+    if (inFlightAdminDebugChannelRequests.has(request.requestId)) return;
+    inFlightAdminDebugChannelRequests.add(request.requestId);
+
+    try {
+      await applyTelegramDebugProxyChannelConfig({
+        proxyToken: request.enabled ? request.proxyToken?.trim() || null : null,
+        apiRoot: request.apiRoot,
+      });
+      await authSession.graphqlFetch(REPORT_DEBUG_CHANNEL_RESPONSE_MUTATION, {
+        input: {
+          requestId: request.requestId,
+          deviceId,
+          status: request.enabled ? "ENABLED" : "DISABLED",
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log.warn("Failed to apply admin debug channel request:", {
+        requestId: request.requestId,
+        enabled: request.enabled,
+        error: message,
+      });
+      await authSession.graphqlFetch(REPORT_DEBUG_CHANNEL_RESPONSE_MUTATION, {
+        input: {
+          requestId: request.requestId,
+          deviceId,
+          status: "FAILED",
+          message,
+        },
+      }).catch((reportErr) => {
+        log.warn("Failed to report admin debug channel failure:", reportErr);
+      });
+    } finally {
+      inFlightAdminDebugChannelRequests.delete(request.requestId);
+    }
+  }
+
+  backendSubscription.subscribeToDebugChannelRequests(deviceId, (request) => {
+    void handleAdminDebugChannelRequest(request);
+  });
 
   function queueTelegramDebugProxySync(user: GQL.MeResponse | null): void {
     telegramDebugProxySyncQueue = telegramDebugProxySyncQueue

@@ -312,6 +312,90 @@ export interface ActiveAnnouncementTemplate {
   html: Scalars['String']['output'];
 }
 
+/** Client log file uploaded by a desktop device. */
+export interface AdminClientLogFile {
+  downloadUrl: Scalars['String']['output'];
+  filename: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  sizeBytes: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Admin request for a desktop client to enable or disable the debug channel. */
+export interface AdminDebugChannelRequest {
+  apiRoot: Scalars['String']['output'];
+  deviceId: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  proxyToken?: Maybe<Scalars['String']['output']>;
+  requestId: Scalars['String']['output'];
+  requestedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Desktop response after applying an admin debug-channel request. */
+export interface AdminDebugChannelResponseInput {
+  deviceId: Scalars['String']['input'];
+  message?: InputMaybe<Scalars['String']['input']>;
+  requestId: Scalars['String']['input'];
+  status: AdminDebugChannelStatus;
+}
+
+/** Admin debug-channel mutation result. */
+export interface AdminDebugChannelResult {
+  deviceId: Scalars['String']['output'];
+  email: Scalars['String']['output'];
+  enabled: Scalars['Boolean']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  requestId: Scalars['String']['output'];
+  respondedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: AdminDebugChannelStatus;
+  userId: Scalars['String']['output'];
+}
+
+export const AdminDebugChannelStatus = {
+  Disabled: 'DISABLED',
+  Enabled: 'ENABLED',
+  Failed: 'FAILED'
+} as const;
+
+export type AdminDebugChannelStatus = typeof AdminDebugChannelStatus[keyof typeof AdminDebugChannelStatus];
+export const AdminDesktopPlatform = {
+  Darwin: 'DARWIN',
+  Linux: 'LINUX',
+  Unknown: 'UNKNOWN',
+  Windows: 'WINDOWS'
+} as const;
+
+export type AdminDesktopPlatform = typeof AdminDesktopPlatform[keyof typeof AdminDesktopPlatform];
+/** A short-lived admin probe request sent to online desktop clients. */
+export interface AdminDevicePresenceProbeRequest {
+  requestId: Scalars['String']['output'];
+  requestedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Desktop response to a short-lived admin device probe. */
+export interface AdminDevicePresenceProbeResponseInput {
+  appVersion?: InputMaybe<Scalars['String']['input']>;
+  deviceId: Scalars['String']['input'];
+  platform: AdminDesktopPlatform;
+  requestId: Scalars['String']['input'];
+}
+
+/** An online desktop device that answered an admin presence probe. */
+export interface AdminOnlineDevice {
+  appVersion?: Maybe<Scalars['String']['output']>;
+  deviceId: Scalars['String']['output'];
+  platform: AdminDesktopPlatform;
+  respondedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Result of probing one user's online desktop clients. */
+export interface AdminUserDevicesProbeResult {
+  devices: Array<AdminOnlineDevice>;
+  email: Scalars['String']['output'];
+  requestId: Scalars['String']['output'];
+  userId: Scalars['String']['output'];
+}
+
 /** Subscription payload for a changed affiliate action proposal. */
 export interface AffiliateActionProposalChanged {
   proposal: ActionProposal;
@@ -3638,6 +3722,12 @@ export const ModuleId = {
 
 export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
+  /** Admin-only: probe the target user's currently online desktop clients. The backend publishes a short-lived request over GraphQL subscriptions and returns devices that respond before timeoutMs. */
+  adminProbeUserDevices: AdminUserDevicesProbeResult;
+  /** Admin-only: request a selected online desktop device to upload its current local log. Call adminProbeUserDevices first and pass one returned deviceId. */
+  adminRequestClientLogUpload: ClientLogUploadRequestPayload;
+  /** Admin-only: ask one selected online desktop device to enable or disable the RivonClaw debugging channel. The backend waits for the desktop acknowledgement before returning. */
+  adminSetDebugChannel: AdminDebugChannelResult;
   /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
   affiliatePublishConversationSignal: AffiliateConversationSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
@@ -3744,6 +3834,10 @@ export interface Mutation {
   register: AuthPayload;
   /** Remove a shop-scoped tag from a user-level creator relation. */
   removeCreatorTag: CreatorUserRelation;
+  /** Desktop-only: acknowledge completion of an admin debugging-channel request for this authenticated user. */
+  reportDebugChannelResponse: Scalars['Boolean']['output'];
+  /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
+  reportDevicePresenceProbe: Scalars['Boolean']['output'];
   /** Request one typed affiliate action. Backend policy decides direct execution vs ActionProposal. */
   requestAffiliateAction: RequestAffiliateActionPayload;
   /** Request a new captcha challenge */
@@ -3798,6 +3892,27 @@ export interface Mutation {
   writeWarehouses: Array<Warehouse>;
   /** Write WMS accounts in batch. New accounts and endpoint/apiToken changes automatically sync warehouses. apiToken is write-only. */
   writeWmsAccounts: Array<WriteWmsAccountPayload>;
+}
+
+
+export interface MutationAdminProbeUserDevicesArgs {
+  email: Scalars['String']['input'];
+  timeoutMs?: InputMaybe<Scalars['Int']['input']>;
+}
+
+
+export interface MutationAdminRequestClientLogUploadArgs {
+  deviceId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface MutationAdminSetDebugChannelArgs {
+  deviceId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  timeoutMs?: InputMaybe<Scalars['Int']['input']>;
 }
 
 
@@ -4096,6 +4211,16 @@ export interface MutationRegisterArgs {
 
 export interface MutationRemoveCreatorTagArgs {
   input: ApplyCreatorTagInput;
+}
+
+
+export interface MutationReportDebugChannelResponseArgs {
+  input: AdminDebugChannelResponseInput;
+}
+
+
+export interface MutationReportDevicePresenceProbeArgs {
+  input: AdminDevicePresenceProbeResponseInput;
 }
 
 
@@ -4577,6 +4702,8 @@ export interface Query {
   actionProposals: Array<ActionProposal>;
   /** Read server-driven announcements for the current user, surface, app version, and locale. */
   activeAnnouncements: Array<ActiveAnnouncement>;
+  /** Admin-only: list uploaded client log files for a customer, optionally narrowed to one device. */
+  adminClientLogFiles: Array<AdminClientLogFile>;
   /** Read bounded proposal events for one affiliate collaboration. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
@@ -4746,6 +4873,12 @@ export interface QueryActiveAnnouncementsArgs {
   deviceId?: InputMaybe<Scalars['String']['input']>;
   locale: Scalars['String']['input'];
   surface: AnnouncementSurface;
+}
+
+
+export interface QueryAdminClientLogFilesArgs {
+  deviceId?: InputMaybe<Scalars['String']['input']>;
+  email: Scalars['String']['input'];
 }
 
 
@@ -5780,6 +5913,10 @@ export interface Subscription {
   csConversationSignal: CsConversationSignal;
   /** Streams newly-published CS escalation side-effect events to desktop actuators. Missed events are replayed by Airflow/admin publish mutations, not by subscription connect. */
   csEscalationEvent: CsEscalationEventDelivery;
+  /** Desktop subscription: receives admin requests to enable or disable the debugging channel on a selected device. */
+  debugChannelRequested: AdminDebugChannelRequest;
+  /** Desktop subscription: receives short-lived admin presence probes for the authenticated user. */
+  devicePresenceProbeRequested: AdminDevicePresenceProbeRequest;
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
   oauthComplete: OAuthCompletePayload;
   /** Fires when a shop is updated. Only receives updates for shops owned by the authenticated user. */
@@ -5820,6 +5957,11 @@ export interface SubscriptionCsConversationSignalArgs {
 
 export interface SubscriptionCsEscalationEventArgs {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+
+export interface SubscriptionDebugChannelRequestedArgs {
+  deviceId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
