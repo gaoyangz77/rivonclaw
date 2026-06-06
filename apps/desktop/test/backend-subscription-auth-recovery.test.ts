@@ -15,10 +15,15 @@ describe("BackendSubscriptionClient auth recovery", () => {
   const clientOptions: Array<{
     on?: {
       closed?: (event: unknown) => void;
+      connected?: (socket: unknown, payload: unknown, retrying: boolean) => void;
       error?: (err: unknown) => void;
+      opened?: (socket: unknown) => void;
+      ping?: (received: boolean) => void;
+      pong?: (received: boolean) => void;
     };
     connectionParams?: () => unknown;
   }> = [];
+  const sockets: Array<{ readyState: number; close: ReturnType<typeof vi.fn> }> = [];
   const subscriptions: Array<{
     query: string;
     sink: {
@@ -31,14 +36,18 @@ describe("BackendSubscriptionClient auth recovery", () => {
     vi.clearAllMocks();
     disposes.length = 0;
     clientOptions.length = 0;
+    sockets.length = 0;
     subscriptions.length = 0;
 
     createClientMock.mockImplementation((options) => {
       clientOptions.push(options);
       const dispose = vi.fn();
       disposes.push(dispose);
+      const socket = { readyState: 1, close: vi.fn() };
+      sockets.push(socket);
       return {
         dispose,
+        terminate: vi.fn(),
         subscribe: (request: { query: string }, sink: { error: (err: unknown) => void }) => {
           subscriptions.push({ query: request.query, sink });
           return vi.fn();
@@ -57,6 +66,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.connect(() => token, { refreshAuth });
     client.enableAuthenticatedSubscriptions();
     client.subscribeToCsConversationSignals(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
 
     expect(subscriptions).toHaveLength(1);
 
@@ -64,12 +74,12 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     await vi.waitFor(() => {
       expect(refreshAuth).toHaveBeenCalledTimes(1);
-      expect(createClientMock).toHaveBeenCalledTimes(3);
       expect(subscriptions).toHaveLength(2);
     });
 
-    const latestConnectionParams = createClientMock.mock.calls.at(-1)?.[0].connectionParams;
-    expect(latestConnectionParams()).toEqual({ authorization: "Bearer fresh-token" });
+    expect(createClientMock).toHaveBeenCalledTimes(1);
+    expect(sockets.at(-1)?.close).toHaveBeenCalledWith(4205, "Client Restart");
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer fresh-token" });
 
     client.disconnect();
   });
@@ -85,6 +95,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.enableAuthenticatedSubscriptions();
     client.subscribeToCsConversationChanges(vi.fn());
     client.subscribeToAffiliateWorkItemChanges(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
 
     expect(subscriptions).toHaveLength(2);
 
@@ -92,10 +103,10 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     await vi.waitFor(() => {
       expect(refreshAuth).toHaveBeenCalledTimes(1);
-      expect(createClientMock).toHaveBeenCalledTimes(3);
-      expect(subscriptions).toHaveLength(4);
     });
 
+    expect(createClientMock).toHaveBeenCalledTimes(1);
+    expect(subscriptions).toHaveLength(2);
     expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer fresh-token" });
 
     client.disconnect();
@@ -106,13 +117,15 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.connect(() => "stable-token");
     client.enableAuthenticatedSubscriptions();
     client.subscribeToCsConversationChanges(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
 
     expect(subscriptions).toHaveLength(1);
 
     client.enableAuthenticatedSubscriptions({ forceReconnect: true });
 
-    expect(createClientMock).toHaveBeenCalledTimes(3);
-    expect(subscriptions).toHaveLength(2);
+    expect(createClientMock).toHaveBeenCalledTimes(1);
+    expect(subscriptions).toHaveLength(1);
+    expect(sockets.at(-1)?.close).toHaveBeenCalledWith(4205, "Client Restart");
     expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer stable-token" });
 
     client.disconnect();
@@ -134,6 +147,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.subscribeToCsEscalationEvents(vi.fn());
     client.subscribeToCsConversationSignals(vi.fn());
     client.subscribeToAffiliateConversationSignals(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
 
     subscriptions[0].sink.error([{ message: "Authentication required" }]);
     subscriptions[1].sink.error([{ message: "Authentication required" }]);
@@ -143,7 +157,8 @@ describe("BackendSubscriptionClient auth recovery", () => {
     resolveRefresh();
 
     await vi.waitFor(() => {
-      expect(createClientMock).toHaveBeenCalledTimes(3);
+      expect(createClientMock).toHaveBeenCalledTimes(1);
+      expect(subscriptions).toHaveLength(6);
     });
 
     client.disconnect();
@@ -170,7 +185,50 @@ describe("BackendSubscriptionClient auth recovery", () => {
     }
   });
 
-  it("does not re-subscribe short-lived subscriptions after operation complete", async () => {
+  it("lets graphql-ws replay active subscriptions after transport reconnect", async () => {
+    const onConnectedAfterRetry = vi.fn(async () => {});
+    const client = new BackendSubscriptionClient("en");
+
+    client.connect(() => "token", { onConnectedAfterRetry });
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
+    client.subscribeToUpdates("1.0.0", vi.fn());
+
+    expect(subscriptions).toHaveLength(2);
+
+    clientOptions.at(-1)?.on?.connected?.({}, undefined, true);
+
+    await vi.waitFor(() => {
+      expect(onConnectedAfterRetry).toHaveBeenCalledTimes(1);
+    });
+    expect(subscriptions).toHaveLength(2);
+
+    client.disconnect();
+  });
+
+  it("does not manually restart subscriptions if the transport reconnect hook fails", async () => {
+    const onConnectedAfterRetry = vi.fn(async () => {
+      throw new Error("shop refresh failed");
+    });
+    const client = new BackendSubscriptionClient("en");
+
+    client.connect(() => "token", { onConnectedAfterRetry });
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
+
+    expect(subscriptions).toHaveLength(1);
+
+    clientOptions.at(-1)?.on?.connected?.({}, undefined, true);
+
+    await vi.waitFor(() => {
+      expect(onConnectedAfterRetry).toHaveBeenCalledTimes(1);
+    });
+    expect(subscriptions).toHaveLength(1);
+
+    client.disconnect();
+  });
+
+  it("re-subscribes public long-lived subscriptions after operation complete", async () => {
     vi.useFakeTimers();
     const client = new BackendSubscriptionClient("en");
 
@@ -181,9 +239,9 @@ describe("BackendSubscriptionClient auth recovery", () => {
       expect(subscriptions).toHaveLength(1);
       subscriptions[0].sink.complete();
 
-      await vi.advanceTimersByTimeAsync(5_000);
+      await vi.advanceTimersByTimeAsync(1_000);
 
-      expect(subscriptions).toHaveLength(1);
+      expect(subscriptions).toHaveLength(2);
     } finally {
       client.disconnect();
       vi.useRealTimers();
