@@ -696,7 +696,7 @@ app.whenReady().then(async () => {
   async function applyAuthLifecycleSideEffects(action: string): Promise<void> {
     const authReady = rootStore.authBootstrap.status === "ready";
     const user = authReady ? authSession.getCachedUser() : null;
-    if (authSession.getAccessToken() && user) {
+    if (authSession.getAccessToken()) {
       backendSubscription.enableAuthenticatedSubscriptions({ forceReconnect: true });
     } else {
       backendSubscription.disableAuthenticatedSubscriptions();

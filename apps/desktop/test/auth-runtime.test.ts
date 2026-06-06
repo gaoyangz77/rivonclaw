@@ -92,6 +92,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
       backendState.clientLogUploadHandler = handler;
       return () => {};
     }
+    subscribeToDevicePresenceProbeRequests() {
+      return () => {};
+    }
     subscribeToCsEscalationEvents() {
       return () => {};
     }

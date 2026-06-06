@@ -737,10 +737,7 @@ export interface OAuthCompletePayload {
   }>;
 }
 
-/**
- * Subscription config stored so that active subscriptions can be
- * re-established after a reconnect.
- */
+/** Subscription config stored as desired state for long-lived operations. */
 interface SubscriptionConfig {
   key: string;
   subscribe: () => StartedSubscription;
@@ -758,19 +755,28 @@ interface ConnectOptions {
   onConnectedAfterRetry?: () => void | Promise<void>;
 }
 
+type RestartableSocket = {
+  readyState: number;
+  close: (code?: number, reason?: string) => void;
+};
+
+type RestartableClient = Client & {
+  restart: () => void;
+};
+
 /**
  * Unified GraphQL subscription client that manages a single shared
  * graphql-ws connection to the backend and exposes per-topic
  * subscribe methods.
  */
 export class BackendSubscriptionClient {
-  private client: Client | null = null;
+  private client: RestartableClient | null = null;
   private getToken: (() => string | null) | null = null;
 
   /** Active operation unsubscribe functions keyed by subscription name. */
   private activeSubscriptions = new Map<string, StartedSubscription>();
 
-  /** Stored configs for re-subscribing after reconnect. */
+  /** Stored configs for reconciling desired long-lived operations. */
   private subscriptionConfigs = new Map<string, SubscriptionConfig>();
 
   /** Whether authenticated subscription configs should be active. */
@@ -788,8 +794,6 @@ export class BackendSubscriptionClient {
   /** Single-flight recovery for operation-level subscription auth errors. */
   private authRecoveryPromise: Promise<void> | null = null;
 
-  private authRecoveryRetryTimer: ReturnType<typeof setTimeout> | null = null;
-
   private authRecoveryFailures = 0;
 
   /** Monotonic per-subscription attempt counters for log correlation. */
@@ -803,6 +807,9 @@ export class BackendSubscriptionClient {
 
   /** Backoff counters for repeated unexpected operation completes. */
   private completeRecoveryFailures = new Map<string, number>();
+
+  /** Pong watchdog for graphql-ws keep-alive pings. */
+  private pongTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly locale: string) {}
 
@@ -832,15 +839,11 @@ export class BackendSubscriptionClient {
 
     this.client?.dispose();
     this.client = null;
-    if (this.authRecoveryRetryTimer) {
-      clearTimeout(this.authRecoveryRetryTimer);
-      this.authRecoveryRetryTimer = null;
-    }
+    this.clearPongTimeout();
   }
 
   reconnect(): void {
-    this.disconnect();
-    this.doConnect();
+    this.restartTransport("manual_reconnect");
   }
 
   enableAuthenticatedSubscriptions(options?: { forceReconnect?: boolean }): void {
@@ -861,8 +864,9 @@ export class BackendSubscriptionClient {
     }
 
     if (!wasEnabled || tokenChanged || options?.forceReconnect) {
-      this.reconnect();
+      this.restartTransport(options?.forceReconnect ? "auth_force_reconnect" : "auth_enable");
     }
+    this.reconcileSubscriptions("auth_enable");
   }
 
   refreshAuthenticatedSubscriptions(): void {
@@ -875,7 +879,8 @@ export class BackendSubscriptionClient {
 
     this.authenticatedSubscriptionToken = token;
     if (this.client) {
-      this.reconnect();
+      this.restartTransport("auth_refresh");
+      this.reconcileSubscriptions("auth_refresh");
     } else {
       this.doConnect();
     }
@@ -890,7 +895,12 @@ export class BackendSubscriptionClient {
     this.authenticatedSubscriptionToken = null;
 
     if (this.client) {
-      this.reconnect();
+      for (const config of this.subscriptionConfigs.values()) {
+        if (config.authRequired) {
+          this.stopActiveSubscription(config.key, "auth_disable");
+        }
+      }
+      this.restartTransport("auth_disable");
     }
   }
 
@@ -1012,6 +1022,10 @@ export class BackendSubscriptionClient {
   }
 
   private handleSubscriptionError(key: string, attempt: number, label: string, err: unknown): void {
+    const active = this.activeSubscriptions.get(key);
+    if (active?.attempt === attempt) {
+      this.activeSubscriptions.delete(key);
+    }
     log.warn(label, {
       subscription: key,
       attempt,
@@ -1052,11 +1066,6 @@ export class BackendSubscriptionClient {
     if (!this.authenticatedSubscriptionsEnabled || !this.refreshAuth) return;
     if (this.authRecoveryPromise) return;
 
-    if (this.authRecoveryRetryTimer) {
-      clearTimeout(this.authRecoveryRetryTimer);
-      this.authRecoveryRetryTimer = null;
-    }
-
     this.authRecoveryPromise = (async () => {
       try {
         log.info(`Refreshing auth after subscription auth error: ${source}`);
@@ -1085,11 +1094,7 @@ export class BackendSubscriptionClient {
           return;
         }
 
-        const delay = Math.min(1000 * 2 ** Math.min(this.authRecoveryFailures - 1, 5), 30_000);
-        this.authRecoveryRetryTimer = setTimeout(() => {
-          this.authRecoveryRetryTimer = null;
-          this.recoverAuthenticatedSubscriptions(source);
-        }, delay);
+        this.restartTransport("auth_refresh_failed");
       } finally {
         this.authRecoveryPromise = null;
       }
@@ -1165,6 +1170,25 @@ export class BackendSubscriptionClient {
     this.activeSubscriptions.set(config.key, active);
   }
 
+  private reconcileSubscriptions(reason: string): void {
+    for (const config of this.subscriptionConfigs.values()) {
+      if (!config.longLived || this.activeSubscriptions.has(config.key)) continue;
+      this.startSubscription(config, reason);
+    }
+  }
+
+  private restartTransport(reason: string): void {
+    if (!this.client) return;
+    log.info("Restarting backend subscription transport", { reason });
+    this.client.restart();
+  }
+
+  private clearPongTimeout(): void {
+    if (!this.pongTimeout) return;
+    clearTimeout(this.pongTimeout);
+    this.pongTimeout = null;
+  }
+
   private registerSubscription(config: SubscriptionConfig): () => void {
     this.subscriptionConfigs.set(config.key, config);
     this.startSubscription(config);
@@ -1226,11 +1250,7 @@ export class BackendSubscriptionClient {
             onUpdate(payload);
           },
           error: (err) => {
-            log.warn("Update subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "Update subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -1238,7 +1258,7 @@ export class BackendSubscriptionClient {
       return { attempt, unsubscribe };
     };
 
-    return this.registerSubscription({ key, subscribe });
+    return this.registerSubscription({ key, subscribe, longLived: true });
   }
 
   /**
@@ -1275,11 +1295,7 @@ export class BackendSubscriptionClient {
             onComplete(payload);
           },
           error: (err) => {
-            log.warn("OAuth subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "OAuth subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -1287,7 +1303,7 @@ export class BackendSubscriptionClient {
       return { attempt, unsubscribe };
     };
 
-    return this.registerSubscription({ key, subscribe });
+    return this.registerSubscription({ key, subscribe, longLived: true });
   }
 
   /**
@@ -1628,11 +1644,7 @@ export class BackendSubscriptionClient {
             onWorkItem(payload);
           },
           error: (err) => {
-            log.warn("Affiliate work item subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "Affiliate work item subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -1672,11 +1684,7 @@ export class BackendSubscriptionClient {
             onProposal(payload);
           },
           error: (err) => {
-            log.warn("Affiliate action proposal subscription error", {
-              subscription: key,
-              attempt,
-              ...this.formatUnknownError(err),
-            });
+            this.handleSubscriptionError(key, attempt, "Affiliate action proposal subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -1692,8 +1700,17 @@ export class BackendSubscriptionClient {
 
     const baseUrl = getApiBaseUrl(this.locale);
     const wsUrl = baseUrl.replace(/^http/, "ws") + "/graphql";
+    let activeSocket: RestartableSocket | null = null;
+    let restartRequested = false;
+    const restart = () => {
+      if (activeSocket?.readyState === 1) {
+        activeSocket.close(4205, "Client Restart");
+      } else {
+        restartRequested = true;
+      }
+    };
 
-    this.client = createClient({
+    const client = createClient({
       url: wsUrl,
       webSocketImpl: proxyNetwork.createProxiedWebSocketClass() as any,
       connectionParams: () => {
@@ -1705,17 +1722,31 @@ export class BackendSubscriptionClient {
         const delay = Math.min(1000 * 2 ** retries, 30_000);
         await new Promise((r) => setTimeout(r, delay));
       },
+      keepAlive: 30_000,
       shouldRetry: (errOrCloseEvent) => this.shouldRetryConnection(errOrCloseEvent),
       on: {
+        opened: (socket) => {
+          activeSocket = socket as RestartableSocket;
+          if (restartRequested) {
+            restartRequested = false;
+            restart();
+          }
+        },
         connected: (_socket, _payload, retrying) => {
           log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`);
-          if (retrying && this.onConnectedAfterRetry) {
-            void Promise.resolve(this.onConnectedAfterRetry()).catch((err) => {
+          if (retrying) {
+            void (async () => {
+              if (this.onConnectedAfterRetry) {
+                await this.onConnectedAfterRetry();
+              }
+            })().catch((err) => {
               log.warn("Backend subscription reconnect recovery hook failed", this.formatUnknownError(err));
             });
           }
         },
         closed: (event) => {
+          activeSocket = null;
+          this.clearPongTimeout();
           log.info("Backend subscription WebSocket closed", this.formatUnknownError(event));
           const code = typeof event === "object" && event !== null
             ? (event as { code?: unknown }).code
@@ -1730,8 +1761,22 @@ export class BackendSubscriptionClient {
             this.handleConnectionAuthFailure("connection_error", err);
           }
         },
+        ping: (received) => {
+          if (received) return;
+          this.clearPongTimeout();
+          this.pongTimeout = setTimeout(() => {
+            log.warn("Backend subscription pong timeout; terminating transport");
+            this.client?.terminate();
+          }, 10_000);
+        },
+        pong: (received) => {
+          if (received) {
+            this.clearPongTimeout();
+          }
+        },
       },
     });
+    this.client = Object.assign(client, { restart });
 
     // Establish previously registered subscriptions (e.g. after disconnect → connect cycle)
     for (const config of this.subscriptionConfigs.values()) {
