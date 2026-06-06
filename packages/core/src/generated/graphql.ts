@@ -321,6 +321,32 @@ export interface AdminClientLogFile {
   updatedAt: Scalars['DateTimeISO']['output'];
 }
 
+/** Admin view of the current Telegram debugging channel target stored in the relay. */
+export interface AdminDebugChannelOverview {
+  /** Desktop device ID that currently receives debug-channel Telegram updates. */
+  deviceId?: Maybe<Scalars['String']['output']>;
+  /** Last Telegram proxy method observed for the targeted desktop device. */
+  deviceLastMethod?: Maybe<Scalars['String']['output']>;
+  /** Last relay activity timestamp for the targeted desktop device, if currently known. */
+  deviceLastSeenAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Number of relay requests observed for the targeted desktop device in the active window. */
+  deviceRequestCount?: Maybe<Scalars['Int']['output']>;
+  /** Account email matched from the active debug proxy token. */
+  email?: Maybe<Scalars['String']['output']>;
+  /** True when the relay currently has a debug-channel target. */
+  enabled: Scalars['Boolean']['output'];
+  /** Relay target label, usually the customer email. */
+  label?: Maybe<Scalars['String']['output']>;
+  /** Account display name matched from the active debug proxy token. */
+  name?: Maybe<Scalars['String']['output']>;
+  /** True when the active relay token can be matched to a RivonClaw account. */
+  tokenMatched: Scalars['Boolean']['output'];
+  /** When the relay target was last changed. */
+  updatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Account ID matched from the active debug proxy token. */
+  userId?: Maybe<Scalars['String']['output']>;
+}
+
 /** Admin request for a desktop client to enable or disable the debug channel. */
 export interface AdminDebugChannelRequest {
   apiRoot: Scalars['String']['output'];
@@ -4704,6 +4730,8 @@ export interface Query {
   activeAnnouncements: Array<ActiveAnnouncement>;
   /** Admin-only: list uploaded client log files for a customer, optionally narrowed to one device. */
   adminClientLogFiles: Array<AdminClientLogFile>;
+  /** Admin-only: read the current Telegram debugging-channel target from the relay and resolve it back to the RivonClaw account/device when possible. */
+  adminDebugChannelOverview: AdminDebugChannelOverview;
   /** Read bounded proposal events for one affiliate collaboration. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
