@@ -139,19 +139,6 @@ const DEVICE_PRESENCE_PROBE_REQUESTED_SUBSCRIPTION = `
   }
 `;
 
-const DEBUG_CHANNEL_REQUESTED_SUBSCRIPTION = `
-  subscription DebugChannelRequested($deviceId: String) {
-    debugChannelRequested(deviceId: $deviceId) {
-      requestId
-      requestedAt
-      deviceId
-      enabled
-      proxyToken
-      apiRoot
-    }
-  }
-`;
-
 const CS_ESCALATION_EVENT_SUBSCRIPTION = `
   subscription CsEscalationEvent {
     csEscalationEvent {
@@ -640,15 +627,6 @@ export interface ClientLogUploadRequestPayload {
 export interface DevicePresenceProbeRequestPayload {
   requestId: string;
   requestedAt: string;
-}
-
-export interface DebugChannelRequestPayload {
-  requestId: string;
-  requestedAt: string;
-  deviceId: string;
-  enabled: boolean;
-  proxyToken?: string | null;
-  apiRoot: string;
 }
 
 export type CsEscalationEventType =
@@ -1410,44 +1388,6 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "Device presence probe subscription error", err);
-          },
-          complete: () => this.handleSubscriptionComplete(key, attempt),
-        },
-      );
-      return { attempt, unsubscribe };
-    };
-
-    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
-  }
-
-  subscribeToDebugChannelRequests(
-    deviceId: string,
-    onRequest: (payload: DebugChannelRequestPayload) => void,
-  ): () => void {
-    const key = "debug-channel-requests";
-
-    const subscribe = (): StartedSubscription => {
-      if (!this.client) return { attempt: this.nextAttempt(key), unsubscribe: () => {} };
-      const attempt = this.nextAttempt(key);
-
-      const unsubscribe = this.client.subscribe<{ debugChannelRequested: DebugChannelRequestPayload }>(
-        {
-          query: DEBUG_CHANNEL_REQUESTED_SUBSCRIPTION,
-          variables: { deviceId },
-        },
-        {
-          next: (result) => {
-            this.noteSubscriptionNext(key);
-            this.handleResultErrors(key, attempt, "Debug channel subscription next contained GraphQL errors", result.errors);
-            const payload = result.data?.debugChannelRequested;
-            if (!payload) {
-              this.logUnexpectedResult(key, attempt, "debugChannelRequested", result as any);
-              return;
-            }
-            onRequest(payload);
-          },
-          error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Debug channel subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
