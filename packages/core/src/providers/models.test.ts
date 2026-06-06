@@ -125,7 +125,8 @@ describe("initKnownModels", () => {
     const models = getModelsForProvider("openai-codex");
 
     expect(models[0].modelId).toBe("gpt-upstream-latest");
-    expect(models.map((m) => m.modelId)).toContain("gpt-5.2-codex");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.5");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.4-mini");
   });
 
   it("should ignore unknown providers", () => {
@@ -255,9 +256,7 @@ describe("getModelsForProvider", () => {
     const models = getModelsForProvider("openai-codex");
     const ids = models.map((m) => m.modelId);
 
-    expect(ids).toContain("gpt-5.2-codex");
-    expect(ids).toContain("gpt-5-codex");
-    expect(ids).toContain("gpt-5.1-codex");
+    expect(ids).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
   });
 
   it("should return empty array for providers with no models", () => {
@@ -380,7 +379,7 @@ describe("openai-codex defaults", () => {
 
     const model = getDefaultModelForProvider("openai-codex");
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-5.2-codex");
+    expect(model!.modelId).toBe("gpt-5.5");
   });
 
   it("should prefer the latest upstream catalog model when available", () => {

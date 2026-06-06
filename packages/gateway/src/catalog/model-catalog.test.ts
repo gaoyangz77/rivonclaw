@@ -56,8 +56,8 @@ describe("normalizeCatalog", () => {
 
   it("should merge OpenClaw codex catalog models into openai-codex", () => {
     const catalog = {
-      codex: [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.4", "GPT-5.4")],
-      "openai-codex": [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.2-codex", "GPT-5.2 Codex")],
+      codex: [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.4-mini", "GPT-5.4 Mini")],
+      "openai-codex": [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.4-mini", "GPT-5.4 Mini")],
     };
 
     const result = normalizeCatalog(catalog);
@@ -65,8 +65,7 @@ describe("normalizeCatalog", () => {
     expect(result.codex).toBeUndefined();
     expect(result["openai-codex"]!.map((m) => m.id)).toEqual([
       "gpt-5.5",
-      "gpt-5.4",
-      "gpt-5.2-codex",
+      "gpt-5.4-mini",
     ]);
   });
 
@@ -168,6 +167,18 @@ describe("normalizeCatalog", () => {
     expect(result["openai-codex"]![0]).toMatchObject({
       id: "gpt-5.4",
       contextWindow: 1_050_000,
+      contextTokens: 272_000,
+    });
+  });
+
+  it("should use the Codex subscription context window for GPT-5.5", () => {
+    const result = normalizeCatalog({
+      codex: [entry("gpt-5.5", "GPT-5.5", { contextWindow: 1_050_000 })],
+    });
+
+    expect(result["openai-codex"]![0]).toMatchObject({
+      id: "gpt-5.5",
+      contextWindow: 400_000,
       contextTokens: 272_000,
     });
   });
@@ -293,7 +304,7 @@ describe("readFullModelCatalog", () => {
     expect(KNOWN_MODELS.volcengine).toBeDefined();
     expect(KNOWN_MODELS.volcengine!.length).toBeGreaterThan(0);
     expect(KNOWN_MODELS["openai-codex"]).toBeDefined();
-    expect(KNOWN_MODELS["openai-codex"]!.some((m) => m.modelId === "gpt-5.2-codex")).toBe(true);
+    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
   });
 
   it("should populate KNOWN_MODELS with gateway models", async () => {
@@ -374,7 +385,7 @@ describe("readFullModelCatalog", () => {
 
     // openai-codex is fallback-only and should keep its own list instead of inheriting openai.
     expect(result["openai-codex"]).toBeDefined();
-    expect(result["openai-codex"]!.some((m) => m.id === "gpt-5.2-codex")).toBe(true);
+    expect(result["openai-codex"]!.map((m) => m.id)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
   });
 
   it("should supplement (not replace) gateway models with extraModels", async () => {
@@ -441,7 +452,8 @@ describe("readFullModelCatalog", () => {
     const ids = result["openai-codex"]!.map((m) => m.id);
 
     expect(ids).toContain("vendor-only-codex");
-    expect(ids).toContain("gpt-5.2-codex");
+    expect(ids).toContain("gpt-5.5");
+    expect(ids).toContain("gpt-5.4-mini");
   });
 
   it("should expose upstream codex models under openai-codex even when openai-codex is empty", async () => {
@@ -468,6 +480,7 @@ describe("readFullModelCatalog", () => {
     expect(result.codex).toBeUndefined();
     expect(ids).toContain("gpt-upstream-latest");
     expect(ids).toContain("gpt-upstream-mini");
-    expect(ids).toContain("gpt-5.2-codex");
+    expect(ids).toContain("gpt-5.5");
+    expect(ids).toContain("gpt-5.4-mini");
   });
 });
