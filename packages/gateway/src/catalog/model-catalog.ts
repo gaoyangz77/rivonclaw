@@ -46,6 +46,9 @@ const LOCAL_CONTEXT_OVERRIDES: Record<string, { contextWindow?: number; contextT
   "openai/gpt-5.4": { contextWindow: 272_000 },
   "openai/gpt-5.4-pro": { contextWindow: 1_050_000 },
   "openai/gpt-5.4-mini": { contextWindow: 400_000 },
+  // Codex subscription routes expose a larger native window than the effective
+  // runtime budget OpenClaw uses for compaction and prompt assembly.
+  "openai-codex/gpt-5.5": { contextWindow: 400_000, contextTokens: 272_000 },
   "openai-codex/gpt-5.5-pro": { contextWindow: 1_000_000, contextTokens: 272_000 },
   "openai-codex/gpt-5.4": { contextWindow: 1_050_000, contextTokens: 272_000 },
   "openai-codex/gpt-5.4-pro": { contextWindow: 1_050_000, contextTokens: 272_000 },

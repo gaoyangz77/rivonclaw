@@ -56,7 +56,7 @@ export interface ModelConfig {
   supportsVision?: boolean;
   /** Context window size in tokens. Used by config-writer; falls back to 128000 if omitted. */
   contextWindow?: number;
-  /** Effective context budget when runtime caps usable context below the raw window. */
+  /** Effective runtime context budget cap when OpenClaw budgets below the native window. */
   contextTokens?: number;
 }
 
@@ -177,14 +177,13 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         oauth: true,
         catalogProvider: "openai-codex",
         api: "openai-codex-responses",
-        validationModel: "gpt-5.2-codex",
+        validationModel: "gpt-5.4-mini",
         preferredModel: "latest",
+        // OpenClaw separates native contextWindow from the default runtime
+        // contextTokens budget used for compaction on Codex subscription routes.
         fallbackModels: [
-          { provider: "openai-codex", modelId: "gpt-5.2-codex", displayName: "GPT-5.2 Codex", contextWindow: 200000 },
-          { provider: "openai-codex", modelId: "gpt-5-codex", displayName: "GPT-5 Codex", contextWindow: 200000 },
-          { provider: "openai-codex", modelId: "gpt-5.1-codex", displayName: "GPT-5.1 Codex", contextWindow: 200000 },
-          { provider: "openai-codex", modelId: "gpt-5.1-codex-max", displayName: "GPT-5.1 Codex Max", contextWindow: 200000 },
-          { provider: "openai-codex", modelId: "gpt-5.1-codex-mini", displayName: "GPT-5.1 Codex Mini", contextWindow: 200000 },
+          { provider: "openai-codex", modelId: "gpt-5.5", displayName: "GPT-5.5", contextWindow: 400000, contextTokens: 272000 },
+          { provider: "openai-codex", modelId: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", contextWindow: 400000, contextTokens: 272000 },
         ],
       },
     ],

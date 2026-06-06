@@ -545,7 +545,7 @@ export async function saveCodexOAuthCredentials(
   },
 ): Promise<OAuthFlowResult> {
   const provider = "openai-codex";
-  const model = options?.model || "gpt-5.2-codex";
+  const model = options?.model || "gpt-5.5";
   const id = randomUUID();
 
   // Store credential JSON in Keychain + derive refresh-token expiry
