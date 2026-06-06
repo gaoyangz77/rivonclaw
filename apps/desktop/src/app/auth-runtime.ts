@@ -16,6 +16,7 @@ export interface SetupAuthDeps {
   secretStore: SecretStore;
   locale: string;
   deviceId: string;
+  appVersion: string;
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
   /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
   broadcastEvent: BroadcastEvent;
@@ -26,12 +27,25 @@ export interface AuthRuntime {
   backendSubscription: BackendSubscriptionClient;
 }
 
+const REPORT_DEVICE_PRESENCE_PROBE_MUTATION = `
+  mutation ReportDevicePresenceProbe($input: AdminDevicePresenceProbeResponseInput!) {
+    reportDevicePresenceProbe(input: $input)
+  }
+`;
+
+function adminDesktopPlatform(): "DARWIN" | "LINUX" | "WINDOWS" | "UNKNOWN" {
+  if (process.platform === "darwin") return "DARWIN";
+  if (process.platform === "linux") return "LINUX";
+  if (process.platform === "win32") return "WINDOWS";
+  return "UNKNOWN";
+}
+
 /**
  * Create the auth session manager, load from keychain, wire up the
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { secretStore, locale, deviceId, proxyFetch, broadcastEvent } = deps;
+  const { secretStore, locale, deviceId, appVersion, proxyFetch, broadcastEvent } = deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
@@ -84,6 +98,22 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
       .finally(() => {
         inFlightLogUploadRequests.delete(request.requestId);
       });
+  });
+
+  backendSubscription.subscribeToDevicePresenceProbeRequests((request) => {
+    void cloudClient.graphql(REPORT_DEVICE_PRESENCE_PROBE_MUTATION, {
+      input: {
+        requestId: request.requestId,
+        deviceId,
+        platform: adminDesktopPlatform(),
+        appVersion,
+      },
+    }).catch((err) => {
+      log.warn("Failed to report admin device presence probe", {
+        requestId: request.requestId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
   });
 
   const getActiveCustomerServiceShopIds = (): string[] =>
