@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.33",
+    "date": "2026-06-05",
+    "en": [
+      "Wire desktop admin device controls and remove the debug channel subscription",
+      "Fix desktop subscription authentication lifecycle handling so live updates recover cleanly",
+      "Stabilize deterministic captcha login flows and refresh generated GraphQL admin types"
+    ],
+    "zh": [
+      "接入桌面端 admin 设备控制，并移除调试频道订阅",
+      "修复桌面端订阅认证生命周期处理，让实时更新能稳定恢复",
+      "稳定确定性验证码登录流程，并刷新生成的 GraphQL admin 类型"
+    ]
+  },
+  {
     "version": "1.8.32",
     "date": "2026-06-05",
     "en": [
