@@ -3125,8 +3125,14 @@ export interface EcomSkuPerformance {
   gmv?: Maybe<EcomAnalyticsMoney>;
   /** Product ID that owns the SKU */
   productId?: Maybe<Scalars['String']['output']>;
+  /** Product name captured from order facts */
+  productName?: Maybe<Scalars['String']['output']>;
+  /** Seller SKU captured from order facts */
+  sellerSku?: Maybe<Scalars['String']['output']>;
   /** SKU ID */
   skuId: Scalars['String']['output'];
+  /** SKU display name captured from order facts */
+  skuName?: Maybe<Scalars['String']['output']>;
   /** Total orders for the SKU */
   skuOrders?: Maybe<Scalars['Int']['output']>;
   /** Total units sold for the SKU */
