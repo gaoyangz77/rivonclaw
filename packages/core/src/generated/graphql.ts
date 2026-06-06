@@ -5399,7 +5399,7 @@ export interface ReadCreatorSearchRunsInput {
 export interface ReadInventoryAnalysisInput {
   /** End date exclusive in shop-local analytics date format (YYYY-MM-DD). */
   endDateLt: Scalars['String']['input'];
-  /** Exact seller SKUs to analyze. Omit or pass an empty list to include active shop SKUs plus seller SKUs that currently have stock or have sales in the requested date range. */
+  /** Exact seller SKUs to analyze. Omit or pass an empty list to include shop SKUs plus seller SKUs that currently have stock or have sales in the requested date range. */
   sellerSkus?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Shop Mongo IDs to include in the analysis. */
   shopIds: Array<Scalars['ID']['input']>;
