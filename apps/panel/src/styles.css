@@ -185,6 +185,45 @@ code {
   letter-spacing: 0.01em;
 }
 
+/* Recording-only tutorial highlights, controlled by Playwright during video takes. */
+.recording-highlight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+.recording-highlight-box {
+  position: fixed;
+  top: var(--recording-highlight-top);
+  left: var(--recording-highlight-left);
+  width: var(--recording-highlight-width);
+  height: var(--recording-highlight-height);
+  border-radius: 12px;
+  border: 3px solid rgba(37, 99, 235, 0.95);
+  box-shadow:
+    0 0 0 9999px rgba(15, 23, 42, 0.18),
+    0 0 0 6px rgba(37, 99, 235, 0.16),
+    0 18px 42px rgba(37, 99, 235, 0.22);
+  transition:
+    top 180ms cubic-bezier(0.2, 0, 0, 1),
+    left 180ms cubic-bezier(0.2, 0, 0, 1),
+    width 180ms cubic-bezier(0.2, 0, 0, 1),
+    height 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.recording-highlight-ring {
+  box-shadow:
+    0 0 0 6px rgba(37, 99, 235, 0.16),
+    0 18px 42px rgba(37, 99, 235, 0.22);
+}
+
+.recording-highlight-layer:not(.recording-highlight-layer-dim) .recording-highlight-box {
+  box-shadow:
+    0 0 0 6px rgba(37, 99, 235, 0.16),
+    0 18px 42px rgba(37, 99, 235, 0.22);
+}
+
 /* Tables */
 table {
   border-collapse: separate;

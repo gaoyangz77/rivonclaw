@@ -1,4 +1,8 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { request as httpsRequest } from "node:https";
+import { hostname, tmpdir } from "node:os";
+import { join } from "node:path";
 import upstreamPlugin from "@tencent-weixin/openclaw-weixin/index.ts";
 
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -8,6 +12,7 @@ const WEIXIN_DIRECT_FETCH_HOSTS = new Set([
   "ilinkai.weixin.qq.com",
   "liteapp.weixin.qq.com",
 ]);
+const POSIX_OPENCLAW_TMP_DIR = "/tmp/openclaw";
 
 // Module-level sessionKey bridge: OpenClaw's web.login.wait gateway handler
 // only forwards { timeoutMs, accountId } to the plugin, dropping sessionKey.
@@ -15,6 +20,60 @@ const WEIXIN_DIRECT_FETCH_HOSTS = new Set([
 let lastSessionKey = "";
 let latestQrStartSeq = 0;
 let weixinDirectFetchShimInstalled = false;
+let weixinLogDirEnsured = false;
+
+const weixinSendContext = new AsyncLocalStorage<{
+  accountId?: string | null;
+  to?: string | null;
+}>();
+
+function toLocalISO(now: Date): string {
+  const offsetMs = -now.getTimezoneOffset() * 60_000;
+  const sign = offsetMs >= 0 ? "+" : "-";
+  const abs = Math.abs(now.getTimezoneOffset());
+  const offStr = `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+  return new Date(now.getTime() + offsetMs).toISOString().replace("Z", offStr);
+}
+
+function writeWeixinLog(level: "INFO" | "WARN" | "ERROR", message: string): void {
+  const now = new Date();
+  const logDir = process.platform === "win32"
+    ? join(tmpdir(), typeof process.getuid === "function" ? `openclaw-${process.getuid()}` : "openclaw")
+    : POSIX_OPENCLAW_TMP_DIR;
+  const loggerName = "gateway/channels/openclaw-weixin";
+  const entry = JSON.stringify({
+    "0": loggerName,
+    "1": message,
+    _meta: {
+      runtime: "node",
+      runtimeVersion: process.versions.node,
+      hostname: hostname() || "unknown",
+      name: loggerName,
+      parentNames: ["openclaw"],
+      date: now.toISOString(),
+      logLevelId: level === "ERROR" ? 5 : level === "WARN" ? 4 : 3,
+      logLevelName: level,
+    },
+    time: toLocalISO(now),
+  });
+  const consoleLine = `[openclaw-weixin] ${message}`;
+  if (level === "ERROR") {
+    console.error(consoleLine);
+  } else if (level === "WARN") {
+    console.warn(consoleLine);
+  } else {
+    console.info(consoleLine);
+  }
+  try {
+    if (!weixinLogDirEnsured) {
+      mkdirSync(logDir, { recursive: true });
+      weixinLogDirEnsured = true;
+    }
+    appendFileSync(join(logDir, `openclaw-${toLocalISO(now).slice(0, 10)}.log`), `${entry}\n`, "utf-8");
+  } catch {
+    // Logging is best-effort; send failures must still propagate from the caller.
+  }
+}
 
 function shouldUseDirectWeixinFetch(input: RequestInfo | URL): boolean {
   try {
@@ -106,16 +165,138 @@ async function directWeixinFetch(input: RequestInfo | URL, init?: RequestInit): 
   });
 }
 
-function installWeixinDirectFetchShim(): void {
+function shouldValidateWeixinSendMessage(input: RequestInfo | URL): boolean {
+  try {
+    const url = typeof input === "string"
+      ? new URL(input)
+      : input instanceof URL
+        ? input
+        : new URL(input.url);
+    return url.pathname.endsWith("/ilink/bot/sendmessage");
+  } catch {
+    return false;
+  }
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function parseSendMessageRequest(init?: RequestInit): {
+  clientId?: string;
+  to?: string;
+} {
+  try {
+    if (typeof init?.body !== "string") return {};
+    const parsed = JSON.parse(init.body) as {
+      msg?: { client_id?: unknown; to_user_id?: unknown };
+    };
+    return {
+      clientId: readString(parsed.msg?.client_id),
+      to: readString(parsed.msg?.to_user_id),
+    };
+  } catch {
+    return {};
+  }
+}
+
+function parseWeixinBusinessStatus(rawText: string): {
+  ret?: number;
+  errcode?: number;
+  errmsg?: string;
+} | null {
+  const trimmed = rawText.trim();
+  if (!trimmed) return {};
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      ret?: unknown;
+      errcode?: unknown;
+      errmsg?: unknown;
+      base_resp?: { ret?: unknown; errcode?: unknown; errmsg?: unknown };
+    };
+    return {
+      ret: readNumber(parsed.ret) ?? readNumber(parsed.base_resp?.ret),
+      errcode: readNumber(parsed.errcode) ?? readNumber(parsed.base_resp?.errcode),
+      errmsg: readString(parsed.errmsg) ?? readString(parsed.base_resp?.errmsg),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function assertWeixinSendMessageAccepted(
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  res: Response,
+): Promise<Response> {
+  if (!shouldValidateWeixinSendMessage(input)) return res;
+
+  const requestInfo = parseSendMessageRequest(init);
+  const context = weixinSendContext.getStore();
+  const accountId = context?.accountId ?? undefined;
+  const to = requestInfo.to ?? context?.to ?? undefined;
+  const clientId = requestInfo.clientId ?? "unknown";
+
+  let rawText = "";
+  try {
+    rawText = await res.clone().text();
+  } catch (err) {
+    writeWeixinLog(
+      "WARN",
+      `sendmessage response body unreadable status=${res.status} clientId=${clientId} accountId=${accountId ?? ""} to=${to ?? ""} err=${String(err)}`,
+    );
+    return res;
+  }
+
+  const status = parseWeixinBusinessStatus(rawText);
+  if (status === null) {
+    writeWeixinLog(
+      "WARN",
+      `sendmessage response body not json status=${res.status} clientId=${clientId} accountId=${accountId ?? ""} to=${to ?? ""}`,
+    );
+    return res;
+  }
+
+  const ret = status.ret;
+  const errcode = status.errcode;
+  const errmsg = status.errmsg ?? "";
+  const businessFailed =
+    (ret !== undefined && ret !== 0)
+    || (errcode !== undefined && errcode !== 0);
+  const logLine =
+    `sendmessage result status=${res.status} ret=${ret ?? ""} errcode=${errcode ?? ""} errmsg=${errmsg} ` +
+    `clientId=${clientId} accountId=${accountId ?? ""} to=${to ?? ""}`;
+
+  if (!businessFailed) {
+    writeWeixinLog("INFO", logLine);
+    return res;
+  }
+
+  writeWeixinLog("ERROR", logLine);
+  throw new Error(`WeChat sendmessage business failure: ${logLine}`);
+}
+
+function runWithWeixinSendContext<T>(
+  ctx: { accountId?: string | null; to?: string | null },
+  fn: () => Promise<T>,
+): Promise<T> {
+  return weixinSendContext.run(ctx, fn);
+}
+
+function installWeixinFetchShim(): void {
   if (weixinDirectFetchShimInstalled) return;
   weixinDirectFetchShimInstalled = true;
 
   const originalFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    if (shouldUseDirectWeixinFetch(input)) {
-      return directWeixinFetch(input, init);
-    }
-    return originalFetch(input, init);
+    const res = shouldUseDirectWeixinFetch(input)
+      ? await directWeixinFetch(input, init)
+      : await originalFetch(input, init);
+    return assertWeixinSendMessageAccepted(input, init, res);
   };
 }
 
@@ -259,7 +440,7 @@ function registerRivonClawQrLoginMethods(params: {
 const plugin = {
   ...upstreamPlugin,
   register(api: Parameters<typeof upstreamPlugin.register>[0]) {
-    installWeixinDirectFetchShim();
+    installWeixinFetchShim();
     const origRegisterChannel = api.registerChannel!.bind(api);
     let rivonClawQrMethodsRegistered = false;
     api.registerChannel = (opts: { plugin: { gatewayMethods?: string[]; gateway?: Record<string, unknown>;[k: string]: unknown };[k: string]: unknown }) => {
@@ -382,6 +563,19 @@ const plugin = {
           }
           return origResolveOutboundSessionRoute?.(params) ?? null;
         };
+      }
+
+      const outbound = opts.plugin.outbound as {
+        sendText?: (ctx: { accountId?: string | null; to?: string | null }) => Promise<unknown>;
+        sendMedia?: (ctx: { accountId?: string | null; to?: string | null }) => Promise<unknown>;
+      } | undefined;
+      if (outbound?.sendText) {
+        const origSendText = outbound.sendText;
+        outbound.sendText = (ctx) => runWithWeixinSendContext(ctx, () => origSendText(ctx));
+      }
+      if (outbound?.sendMedia) {
+        const origSendMedia = outbound.sendMedia;
+        outbound.sendMedia = (ctx) => runWithWeixinSendContext(ctx, () => origSendMedia(ctx));
       }
 
       return origRegisterChannel(opts);

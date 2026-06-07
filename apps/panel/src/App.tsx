@@ -7,6 +7,7 @@ import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import { AnnouncementModal, type ActiveAnnouncement, type ActiveAnnouncementAction } from "./components/modals/AnnouncementModal.js";
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
+import { RecordingHighlightLayer } from "./tutorial/components/RecordingHighlightLayer.js";
 import { fetchSettings, fetchChangelog, fetchUpdateInfo, trackEvent, updateSettings } from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
 import { fetchJson } from "./api/client.js";
@@ -78,6 +79,11 @@ export const App = observer(function App() {
     }
     checkWelcome();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.rivonclawAppReady = showWelcome === null ? "0" : "1";
+    document.documentElement.dataset.rivonclawAppSurface = showWelcome ? "welcome" : "shell";
+  }, [showWelcome]);
 
   async function checkWelcome() {
     try {
@@ -318,6 +324,7 @@ export const App = observer(function App() {
       </Layout>
       <TutorialOverlay />
       <TutorialBubble />
+      <RecordingHighlightLayer />
     </TutorialProvider>
   );
 });
