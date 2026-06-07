@@ -1,5 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
 
 describe("channel-weixin QR session bridge", () => {
   it("declares channel config metadata for startup config validation", () => {
@@ -60,6 +66,65 @@ describe("channel-weixin QR session bridge", () => {
     expect(registered.plugin.id).toBe("openclaw-weixin");
     expect(registered.plugin.outbound?.sendText).toEqual(expect.any(Function));
     expect(registered.plugin.outbound?.sendMedia).toEqual(expect.any(Function));
+  });
+
+  it("rejects sendmessage HTTP 200 responses with WeChat business errors", async () => {
+    vi.resetModules();
+
+    const mockFetch = vi.fn(async () =>
+      new Response(JSON.stringify({ errcode: -14, errmsg: "context token expired" }), { status: 200 })
+    );
+    globalThis.fetch = mockFetch as typeof fetch;
+
+    vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
+      default: {
+        register(api: { registerChannel: (opts: unknown) => void }) {
+          api.registerChannel({
+            plugin: {
+              id: "openclaw-weixin",
+              outbound: {
+                sendText: async (ctx: { accountId?: string; to: string }) => {
+                  await fetch("https://mock.weixin.test/ilink/bot/sendmessage", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      msg: {
+                        to_user_id: ctx.to,
+                        client_id: "client-123",
+                        context_token: "redacted-by-test",
+                      },
+                    }),
+                  });
+                  return { channel: "openclaw-weixin", messageId: "client-123" };
+                },
+              },
+              gateway: {},
+            },
+          });
+        },
+      },
+    }));
+
+    const { default: plugin } = await import("./index.js");
+    let registered!: {
+      plugin: {
+        outbound?: {
+          sendText?: (ctx: { accountId?: string; to: string; text: string }) => Promise<unknown>;
+        };
+      };
+    };
+
+    plugin.register({
+      registerChannel(opts: unknown) {
+        registered = opts as typeof registered;
+      },
+    } as Parameters<typeof plugin.register>[0]);
+
+    await expect(registered.plugin.outbound?.sendText?.({
+      accountId: "acct-1",
+      to: "manager@im.wechat",
+      text: "CS Escalation",
+    })).rejects.toThrow(/WeChat sendmessage business failure: .*errcode=-14.*clientId=client-123.*accountId=acct-1.*to=manager@im\.wechat/);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("registers RivonClaw QR login gateway methods that call the upstream gateway directly", async () => {

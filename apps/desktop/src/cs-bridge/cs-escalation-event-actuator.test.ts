@@ -192,6 +192,59 @@ describe("handleCsEscalationEvent", () => {
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
   });
 
+  it("acks failure when WeChat sendmessage returns a business error", async () => {
+    seedShop("device-001", {
+      escalationChannelId: "openclaw-weixin:acct-1",
+      escalationRecipientId: "manager@im.wechat",
+    });
+    mockRpcRequest.mockRejectedValueOnce(
+      new Error(
+        "WeChat sendmessage business failure: sendmessage result status=200 ret= errcode=-14 errmsg=context token expired clientId=client-123 accountId=acct-1 to=manager@im.wechat",
+      ),
+    );
+    const bridge = new CustomerServiceBridge({
+      gatewayId: "test-gateway",
+      defaultRunProfileId: "CUSTOMER_SERVICE",
+    });
+    bridge.setShopContext({
+      objectId: "shop-mongo-001",
+      platformShopId: "platform-shop-001",
+      shopName: "Cloud Escalation Shop",
+      systemPrompt: "You are a CS assistant.",
+      runProfileId: "CUSTOMER_SERVICE",
+    });
+    mockGetCsBridge.mockReturnValue(bridge);
+
+    const graphqlFetch = vi.fn(async (query: string, variables: unknown) => {
+      if (query.includes("CsClaimEscalationEvent")) {
+        return { csClaimEscalationEvent: delivery };
+      }
+      if (query.includes("CsAckEscalationEvent")) {
+        expect(variables).toEqual({
+          input: { eventId: delivery.event.id, success: false },
+        });
+        return { csAckEscalationEvent: delivery };
+      }
+      throw new Error(`Unexpected GraphQL query: ${query}`);
+    });
+
+    await handleCsEscalationEvent(
+      { graphqlFetch } as any,
+      "device-001",
+      delivery,
+    );
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "send",
+      expect.objectContaining({
+        to: "manager@im.wechat",
+        channel: "openclaw-weixin",
+        accountId: "acct-1",
+      }),
+    );
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
+  });
+
   it("acks escalation-created events as handled when channel routing is not configured", async () => {
     seedShop("device-001", { escalationChannelId: null });
     const bridge = new CustomerServiceBridge({

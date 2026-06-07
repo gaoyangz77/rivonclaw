@@ -1432,14 +1432,18 @@ export class CustomerServiceSession {
     if (params.context) lines.push(`Context: ${params.context}`);
     lines.push("", "Please reply with your decision (e.g., \"Approved, process full refund\").");
 
+    let sendMessageId: string | undefined;
     try {
-      await openClawConnector.request("send", {
+      const sendResult = await openClawConnector.request("send", {
         to: escalationRecipientId,
         channel,
         accountId: outboundAccountId,
         message: lines.join("\n"),
         idempotencyKey: params.idempotencyKey ?? `cs-escalate:${params.escalationId}`,
       });
+      sendMessageId = typeof (sendResult as { messageId?: unknown } | undefined)?.messageId === "string"
+        ? (sendResult as { messageId: string }).messageId
+        : undefined;
     } catch (err) {
       // Channel adapter failed to dispatch the escalation message (e.g. the
       // target channel isn't logged in, platform rejected the send, network).
@@ -1466,7 +1470,10 @@ export class CustomerServiceSession {
       source: "desktop",
       outcome: "ok",
     });
-    log.info(`Escalation ${params.escalationId} sent for conv=${this.csContext.conversationId} via ${channel}`);
+    log.info(
+      `Escalation ${params.escalationId} sent for conv=${this.csContext.conversationId} via ${channel} ` +
+      `account=${outboundAccountId} to=${escalationRecipientId} messageId=${sendMessageId ?? "unknown"}`,
+    );
   }
 
   // -- Telemetry helpers ------------------------------------------------------
