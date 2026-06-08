@@ -11,6 +11,7 @@ import {
   billingPlanDisplayName,
   checkoutProviderLabelKey,
   checkoutProviderOptions,
+  preferredCheckoutProvider,
   type CheckoutProvider,
 } from "./billing-labels.js";
 import { startBillingCheckout } from "./start-billing-checkout.js";
@@ -99,9 +100,13 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
     () => providerOptions?.length ? [...providerOptions] : checkoutProviderOptions(i18n.language),
     [i18n.language, providerOptions],
   );
+  const defaultProvider = useMemo(
+    () => initialProvider ?? preferredCheckoutProvider(i18n.language, providers),
+    [i18n.language, initialProvider, providers],
+  );
   const [selectedShopId, setSelectedShopId] = useState(initialShopId ?? "");
   const [selectedPlanId, setSelectedPlanId] = useState(initialPlanId ?? "");
-  const [selectedProvider, setSelectedProvider] = useState<CheckoutProvider>(initialProvider ?? providers[0] ?? "STRIPE");
+  const [selectedProvider, setSelectedProvider] = useState<CheckoutProvider>(defaultProvider);
   const firstPlanId = plans[0]?.planId ?? "";
   const firstShopId = shops[0]?.shopId ?? "";
 
@@ -130,8 +135,8 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
     if (!isOpen) return;
     setSelectedShopId(initialShopId ?? firstShopId);
     setSelectedPlanId(initialPlanId ?? firstPlanId);
-    setSelectedProvider(initialProvider ?? providers[0] ?? "STRIPE");
-  }, [firstPlanId, firstShopId, initialPlanId, initialProvider, initialShopId, isOpen, providers]);
+    setSelectedProvider(defaultProvider);
+  }, [defaultProvider, firstPlanId, firstShopId, initialPlanId, initialShopId, isOpen]);
 
   async function startCheckout() {
     if (!selectedPlan || !targetScopeId) return null;
