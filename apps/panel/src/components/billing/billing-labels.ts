@@ -75,8 +75,15 @@ export function customerServicePlan(plans: readonly BillingPlanDefinition[]): Bi
     ?? null;
 }
 
-export function checkoutProviderOptions(language: string): CheckoutProvider[] {
-  return language.startsWith("zh") ? ["LAKALA", "STRIPE"] : ["STRIPE", "LAKALA"];
+const CHECKOUT_PROVIDER_OPTIONS: readonly CheckoutProvider[] = ["STRIPE", "LAKALA"];
+
+export function checkoutProviderOptions(_language: string): CheckoutProvider[] {
+  return [...CHECKOUT_PROVIDER_OPTIONS];
+}
+
+export function preferredCheckoutProvider(language: string, providers: readonly CheckoutProvider[] = checkoutProviderOptions(language)): CheckoutProvider {
+  const preferred = language.startsWith("zh") ? "LAKALA" : "STRIPE";
+  return providers.includes(preferred) ? preferred : providers[0] ?? "STRIPE";
 }
 
 export function checkoutProviderLabelKey(provider: CheckoutProvider): string {
