@@ -27,6 +27,28 @@ interface BootstrapAuthSession {
   graphqlFetch(query: string): Promise<Record<string, unknown>>;
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchBootstrapQuery(
+  authSession: BootstrapAuthSession,
+  query: string,
+): Promise<Record<string, unknown>> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await authSession.graphqlFetch(query);
+    } catch (err) {
+      lastError = err;
+      if (attempt === 0) {
+        await wait(350);
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 export async function bootstrapDesktopAuthState(
   authSession: BootstrapAuthSession,
   rootStore: BootstrapRootStore,
@@ -71,7 +93,9 @@ export async function bootstrapDesktopAuthState(
       );
     }
 
-    const results = await Promise.all(queries.map((query) => authSession.graphqlFetch(query)));
+    const results = await Promise.all(
+      queries.map((query) => fetchBootstrapQuery(authSession, query)),
+    );
 
     rootStore.clearCloudDataExceptUser({ preserveShops: hasEcommerceModule });
     rootStore.ingestGraphQLResponse({ me });
