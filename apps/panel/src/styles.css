@@ -10018,6 +10018,47 @@ html[lang="zh"] .acct-tool-chips {
   margin-top: 12px;
 }
 
+.cs-billing-access-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.cs-billing-access-actions .btn {
+  height: 32px;
+  padding: 6px 11px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cs-billing-access-actions .btn svg {
+  flex: 0 0 auto;
+}
+
+.cs-billing-action-btn {
+  border-color: color-mix(in srgb, var(--color-border) 84%, var(--color-primary) 16%);
+  background: color-mix(in srgb, var(--color-bg) 96%, var(--color-primary) 4%);
+  color: var(--color-text);
+}
+
+.cs-billing-action-card:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border) 64%);
+  background: color-mix(in srgb, var(--color-bg) 91%, var(--color-primary) 9%);
+  color: var(--color-primary);
+}
+
+.cs-billing-action-cancel {
+  border-color: color-mix(in srgb, var(--color-danger) 20%, var(--color-border) 80%);
+  background: var(--color-bg);
+  color: color-mix(in srgb, var(--color-danger) 68%, var(--color-text) 32%);
+}
+
+.cs-billing-action-cancel:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-danger) 34%, var(--color-border) 66%);
+  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-danger) 8%);
+  color: var(--color-danger);
+}
+
 .payment-pending-body {
   display: flex;
   flex-direction: column;

@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { GQL } from "@rivonclaw/core";
 import type { BillingEntitlementStatus, BillingPlanDefinition } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { BillingIcon, CloseIcon } from "../icons.js";
 import { ConfirmDialog } from "../modals/ConfirmDialog.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
 import {
@@ -145,7 +146,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
             </div>
           )}
           {(canExtendPrepaid || showRenewalReminder || canResumeSubscription || canCancelSubscription) && (
-            <div className="cs-billing-payment-actions">
+            <div className="cs-billing-payment-actions cs-billing-access-actions">
               {canResumeSubscription && (
                 <button
                   type="button"
@@ -188,19 +189,21 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
               {canManagePaymentMethod && (
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-sm cs-billing-action-btn cs-billing-action-card"
                   onClick={() => managePaymentMethod().catch(() => {})}
                   disabled={portalPending}
                 >
+                  <BillingIcon size={15} />
                   {portalPending ? t("common.loading") : t("billing.changePaymentMethod")}
                 </button>
               )}
               {canCancelSubscription && (
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-sm cs-billing-action-btn cs-billing-action-cancel"
                   onClick={() => setCancelConfirmOpen(true)}
                 >
+                  <CloseIcon size={15} />
                   {t("billing.cancelSubscription")}
                 </button>
               )}
