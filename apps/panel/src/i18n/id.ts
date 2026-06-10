@@ -1359,6 +1359,10 @@ export default {
     "termsOfService": "Ketentuan Layanan",
     "agreeTermsMiddle": " dan ",
     "privacyPolicy": "Kebijakan Privasi",
+    "agreeUserAgreementPrefix": "Saya telah membaca dan menyetujui ",
+    "userAgreement": "Perjanjian Pengguna",
+    "agreeUserAgreementSuffix": ".",
+    "errorUserAgreementRequired": "Harap setujui Perjanjian Pengguna untuk membuat akun.",
     "autoRegisterNotice": "Tidak ada akun yang ditemukan untuk email ini. Silakan verifikasi captcha Anda dan klik Buat Akun.",
     "errorEmailNotRegistered": "Email tidak terdaftar"
   },

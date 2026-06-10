@@ -1359,6 +1359,10 @@ export default {
     "termsOfService": "ข้อกำหนดในการให้บริการ",
     "agreeTermsMiddle": " และ ",
     "privacyPolicy": "นโยบายความเป็นส่วนตัว",
+    "agreeUserAgreementPrefix": "ฉันได้อ่านและยอมรับ ",
+    "userAgreement": "ข้อตกลงผู้ใช้",
+    "agreeUserAgreementSuffix": ".",
+    "errorUserAgreementRequired": "โปรดยอมรับข้อตกลงผู้ใช้เพื่อสร้างบัญชี",
     "autoRegisterNotice": "ไม่พบบัญชีสำหรับอีเมลนี้ โปรดตรวจสอบ captcha ของคุณแล้วคลิกสร้างบัญชี",
     "errorEmailNotRegistered": "อีเมล์ไม่ได้ลงทะเบียน"
   },
