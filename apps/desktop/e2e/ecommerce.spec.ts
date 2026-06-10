@@ -54,6 +54,10 @@ const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
 const deterministicCaptchaToken = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function graphqlRequest<TData>(
   query: string,
   variables?: Record<string, unknown>,
@@ -78,12 +82,27 @@ async function graphqlRequest<TData>(
 }
 
 async function storeTokens(apiBase: string, accessToken: string, refreshToken: string): Promise<void> {
-  const storeRes = await fetch(`${apiBase}/api/auth/store-tokens`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accessToken, refreshToken }),
-  });
-  expect(storeRes.status).toBe(200);
+  let lastStatus = 0;
+  let lastBody = "";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const storeRes = await fetch(`${apiBase}/api/auth/store-tokens`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken, refreshToken }),
+    });
+    lastStatus = storeRes.status;
+    lastBody = await storeRes.text().catch(() => "");
+    if (storeRes.status === 200) return;
+    await wait(750);
+  }
+  throw new Error(`/api/auth/store-tokens failed with ${lastStatus}: ${lastBody}`);
+}
+
+async function waitForSignedInShell(window: import("@playwright/test").Page): Promise<void> {
+  const accountAvatar = window
+    .locator(".nav-btn", { hasText: "Account" })
+    .locator(".nav-account-avatar:not(.nav-account-avatar-loading)");
+  await expect(accountAvatar).toBeVisible({ timeout: 15_000 });
 }
 
 async function requestDeterministicCaptcha(): Promise<string> {
@@ -115,10 +134,10 @@ async function loginAndNavigateToEcommerce(
   await storeTokens(apiBase, accessToken, refreshToken);
 
   await window.reload({ waitUntil: "domcontentloaded" });
-  await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 15_000 });
+  await waitForSignedInShell(window);
 
   // Navigate to ecommerce page via sidebar
-  const navBtn = window.locator(".nav-btn", { hasText: "Global E-commerce" });
+  const navBtn = window.locator(".nav-btn", { hasText: /Shops & Authorization|Global E-commerce/ });
   await navBtn.click({ timeout: 15_000 });
 }
 
@@ -190,8 +209,8 @@ test.describe("Ecommerce Page — New User Defaults", () => {
     await skipWelcomeIfVisible(window);
     await dismissModals(window);
 
-    await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 15_000 });
-    const navBtn = window.locator(".nav-btn", { hasText: "Global E-commerce" });
+    await waitForSignedInShell(window);
+    const navBtn = window.locator(".nav-btn", { hasText: /Shops & Authorization|Global E-commerce/ });
     await expect(navBtn).toBeVisible({ timeout: 15_000 });
     await navBtn.click();
 

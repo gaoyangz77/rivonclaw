@@ -28,6 +28,13 @@ const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
 const deterministicCaptchaToken = process.env.STAGING_CAPTCHA_BYPASS_TOKEN;
 
+async function waitForSignedInShell(window: import("@playwright/test").Page): Promise<void> {
+  const accountAvatar = window
+    .locator(".nav-btn", { hasText: "Account" })
+    .locator(".nav-account-avatar:not(.nav-account-avatar-loading)");
+  await expect(accountAvatar).toBeVisible({ timeout: 15_000 });
+}
+
 async function requestDeterministicCaptcha(): Promise<string> {
   const res = await fetch(STAGING_GRAPHQL_URL, {
     method: "POST",
@@ -89,10 +96,10 @@ async function loginAndNavigateToAccount(
 
   // 3. Reload Panel so it picks up the stored auth state
   await window.reload({ waitUntil: "domcontentloaded" });
-  await expect(window.locator(".user-avatar-circle")).toBeVisible({ timeout: 15_000 });
+  await waitForSignedInShell(window);
 
   // 4. Click avatar to navigate to Account page
-  await window.locator(".user-avatar-btn").click();
+  await window.locator(".nav-btn", { hasText: "Account" }).click();
   await expect(window.locator(".account-page")).toBeVisible({ timeout: 10_000 });
 }
 
