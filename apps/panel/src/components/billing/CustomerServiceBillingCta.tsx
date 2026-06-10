@@ -19,6 +19,7 @@ interface CustomerServiceBillingCtaProps {
   shopId: string;
   shopName?: string | null;
   entitlement: BillingEntitlementStatus | null;
+  variant?: "card" | "inline";
 }
 
 function formatDateTime(value?: string | null): string {
@@ -46,6 +47,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
   shopId,
   shopName,
   entitlement,
+  variant = "card",
 }: CustomerServiceBillingCtaProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -235,6 +237,53 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
     );
   }
 
+  const checkoutModal = (
+    <ShopServiceCheckoutModal
+      isOpen={checkoutModalOpen}
+      onClose={() => setCheckoutModalOpen(false)}
+      title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
+      plans={plan ? [plan] : []}
+      shops={[{ shopId, shopName: shopName ?? shopId }]}
+      initialShopId={shopId}
+      initialPlanId={plan?.planId}
+      initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
+    />
+  );
+
+  if (variant === "inline") {
+    return (
+      <>
+        <div className="cs-billing-inline">
+          <div className="cs-billing-inline-head">
+            <span>{plan ? billingPlanDisplayName(t, plan) : t("billing.customerServiceUnlimited")}</span>
+            <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
+          </div>
+          <p className="cs-billing-access-copy">
+            {t("billing.customerServiceUpgrade", {
+              price: planPriceLine(plan, monthLabel),
+            })}
+          </p>
+          {!plan && (
+            <div className="modal-error-box">{t("billing.planDefinitionsUnavailable")}</div>
+          )}
+          <div className="cs-billing-payment-actions cs-billing-payment-actions-inline">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setPrepaidCheckout(false);
+                setCheckoutModalOpen(true);
+              }}
+              disabled={!plan}
+            >
+              {t("billing.subscribeCustomerService")}
+            </button>
+          </div>
+        </div>
+        {checkoutModal}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="cs-billing-access-card">
@@ -263,16 +312,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
           </button>
         </div>
       </div>
-      <ShopServiceCheckoutModal
-        isOpen={checkoutModalOpen}
-        onClose={() => setCheckoutModalOpen(false)}
-        title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
-        plans={plan ? [plan] : []}
-        shops={[{ shopId, shopName: shopName ?? shopId }]}
-        initialShopId={shopId}
-        initialPlanId={plan?.planId}
-        initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
-      />
+      {checkoutModal}
     </>
   );
 });
