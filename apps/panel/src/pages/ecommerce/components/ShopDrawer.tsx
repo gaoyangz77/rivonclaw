@@ -249,6 +249,14 @@ export const ShopDrawer = observer(function ShopDrawer({
                         ? t("common.enabled")
                         : t("common.disabled")}
                     </span>
+                    {!customerServiceEntitlement?.allowed && (
+                      <CustomerServiceBillingCta
+                        shopId={shop.id}
+                        shopName={shop.alias || shop.shopName}
+                        entitlement={customerServiceEntitlement}
+                        variant="inline"
+                      />
+                    )}
                   </div>
                   <label className="toggle-switch">
                     <input
@@ -271,17 +279,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                     </span>
                   </label>
                 </div>
-
-                {!customerServiceEntitlement?.allowed && (
-                  <>
-                    <div className="drawer-section-label">{t("billing.customerService")}</div>
-                    <CustomerServiceBillingCta
-                      shopId={shop.id}
-                      shopName={shop.alias || shop.shopName}
-                      entitlement={customerServiceEntitlement}
-                    />
-                  </>
-                )}
 
                 <div className="shop-toggle-card">
                   <div className="shop-toggle-card-left">
