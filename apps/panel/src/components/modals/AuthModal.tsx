@@ -72,6 +72,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
   const [password, setPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedUserAgreement, setAcceptedUserAgreement] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -121,6 +122,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
       setPassword("");
       setInviteCode("");
       setShowPassword(false);
+      setAcceptedUserAgreement(false);
       setError(null);
       setSubmitting(false);
       setCaptchaToken("");
@@ -135,6 +137,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     setActiveTab(tab);
     setError(null);
     setShowPassword(false);
+    setAcceptedUserAgreement(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -142,6 +145,10 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     setError(null);
 
     if (activeTab === "register") {
+      if (!acceptedUserAgreement) {
+        setError(t("auth.errorUserAgreementRequired"));
+        return;
+      }
       const pwError = validatePassword(password);
       if (pwError) {
         setError(t(`auth.${pwError}`));
@@ -336,6 +343,24 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
             </div>
           </div>
 
+          {activeTab === "register" && (
+            <label className="auth-agreement-checkbox">
+              <input
+                type="checkbox"
+                checked={acceptedUserAgreement}
+                onChange={(e) => setAcceptedUserAgreement(e.target.checked)}
+                required
+              />
+              <span>
+                {t("auth.agreeUserAgreementPrefix")}
+                <a href={EXTERNAL_LINKS.termsOfService} target="_blank" rel="noopener noreferrer" className="auth-terms-link">
+                  {t("auth.userAgreement")}
+                </a>
+                {t("auth.agreeUserAgreementSuffix")}
+              </span>
+            </label>
+          )}
+
           <button
             type="submit"
             className="btn btn-primary auth-submit-btn"
@@ -347,17 +372,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
                 ? t("auth.loginAction")
                 : t("auth.registerAction")}
           </button>
-
-          <p className="auth-terms-notice">
-            {t("auth.agreeTermsPrefix")}
-            <a href={EXTERNAL_LINKS.termsOfService} target="_blank" rel="noopener noreferrer" className="auth-terms-link">
-              {t("auth.termsOfService")}
-            </a>
-            {t("auth.agreeTermsMiddle")}
-            <a href={EXTERNAL_LINKS.privacyPolicy} target="_blank" rel="noopener noreferrer" className="auth-terms-link">
-              {t("auth.privacyPolicy")}
-            </a>
-          </p>
         </form>
       </div>
     </Modal>

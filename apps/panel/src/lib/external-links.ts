@@ -16,7 +16,7 @@ export const EXTERNAL_LINKS = {
     },
     /** Terms of Service page */
     get termsOfService() {
-        return firstPartyWebUrl("/terms");
+        return firstPartyWebUrl("/terms/");
     },
     /** Privacy Policy page */
     get privacyPolicy() {

@@ -1359,6 +1359,10 @@ export default {
     "termsOfService": "Términos de servicio",
     "agreeTermsMiddle": " y ",
     "privacyPolicy": "Política de privacidad",
+    "agreeUserAgreementPrefix": "He leído y acepto el ",
+    "userAgreement": "Acuerdo de usuario",
+    "agreeUserAgreementSuffix": ".",
+    "errorUserAgreementRequired": "Acepta el Acuerdo de usuario para crear una cuenta.",
     "autoRegisterNotice": "No se encontró ninguna cuenta para este correo electrónico. Verifique su captcha y haga clic en Crear cuenta.",
     "errorEmailNotRegistered": "Correo electrónico no registrado"
   },

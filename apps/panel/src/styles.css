@@ -5647,7 +5647,29 @@ tbody td {
   border-radius: 8px;
 }
 
-/* Terms / privacy notice below submit button */
+.auth-agreement-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: -2px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.auth-agreement-checkbox input {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  accent-color: var(--color-primary);
+}
+
+.auth-agreement-checkbox span {
+  min-width: 0;
+}
+
 .auth-terms-notice {
   margin: 4px 0 0;
   font-size: 11px;
