@@ -39,6 +39,12 @@ interface ShopDrawerProps {
   selectedCSModel: string;
   savingModel: boolean;
   onCSModelChange: (provider: string, model: string) => void;
+  draftUnpaidReachoutEnabled: boolean;
+  draftUnpaidReachoutDelayHours: string;
+  savingUnpaidReachout: boolean;
+  onDraftUnpaidReachoutEnabledChange: (value: boolean) => void;
+  onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
+  onSaveUnpaidReachout: () => void;
   savingEscalation: boolean;
   draftEscalationChannel: string;
   draftEscalationRecipient: string;
@@ -92,6 +98,12 @@ export const ShopDrawer = observer(function ShopDrawer({
   selectedCSModel,
   savingModel,
   onCSModelChange,
+  draftUnpaidReachoutEnabled,
+  draftUnpaidReachoutDelayHours,
+  savingUnpaidReachout,
+  onDraftUnpaidReachoutEnabledChange,
+  onDraftUnpaidReachoutDelayHoursChange,
+  onSaveUnpaidReachout,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -365,6 +377,12 @@ export const ShopDrawer = observer(function ShopDrawer({
                 selectedCSModel={selectedCSModel}
                 savingModel={savingModel}
                 onCSModelChange={onCSModelChange}
+                draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
+                draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
+                savingUnpaidReachout={savingUnpaidReachout}
+                onDraftUnpaidReachoutEnabledChange={onDraftUnpaidReachoutEnabledChange}
+                onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
+                onSaveUnpaidReachout={onSaveUnpaidReachout}
                 savingEscalation={savingEscalation}
                 draftEscalationChannel={draftEscalationChannel}
                 draftEscalationRecipient={draftEscalationRecipient}

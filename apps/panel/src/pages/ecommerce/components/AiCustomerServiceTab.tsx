@@ -27,6 +27,13 @@ interface AiCustomerServiceTabProps {
   selectedCSModel: string;
   savingModel: boolean;
   onCSModelChange: (provider: string, model: string) => void;
+  // Unpaid-order reachout
+  draftUnpaidReachoutEnabled: boolean;
+  draftUnpaidReachoutDelayHours: string;
+  savingUnpaidReachout: boolean;
+  onDraftUnpaidReachoutEnabledChange: (value: boolean) => void;
+  onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
+  onSaveUnpaidReachout: () => void;
   // Escalation
   savingEscalation: boolean;
   draftEscalationChannel: string;
@@ -57,6 +64,12 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   selectedCSModel,
   savingModel,
   onCSModelChange,
+  draftUnpaidReachoutEnabled,
+  draftUnpaidReachoutDelayHours,
+  savingUnpaidReachout,
+  onDraftUnpaidReachoutEnabledChange,
+  onDraftUnpaidReachoutDelayHoursChange,
+  onSaveUnpaidReachout,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -73,6 +86,11 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+  const currentUnpaidReachoutEnabled = shop.services?.customerService?.unpaidOrderReachoutEnabled ?? false;
+  const currentUnpaidReachoutDelayHours = shop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24;
+  const unpaidReachoutDirty =
+    draftUnpaidReachoutEnabled !== currentUnpaidReachoutEnabled ||
+    draftUnpaidReachoutDelayHours !== String(currentUnpaidReachoutDelayHours);
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
@@ -183,6 +201,62 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
           />
         </div>
         <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.csModelOverrideHint")}</div>
+      </div>
+
+      <div className="drawer-section-label">
+        {t("ecommerce.shopDrawer.aiCS.unpaidReachout", { defaultValue: "Unpaid order reachout" })}
+      </div>
+      <div className="shop-info-card">
+        <div className="shop-toggle-card-left">
+          <span className="shop-toggle-card-label">
+            {t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled", { defaultValue: "Reach out to unpaid orders" })}
+          </span>
+          <span className="form-hint">
+            {t("ecommerce.shopDrawer.aiCS.unpaidReachoutHint", {
+              defaultValue: "When enabled, the bound desktop CS agent sends one proactive reminder after the configured delay.",
+            })}
+          </span>
+        </div>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={draftUnpaidReachoutEnabled}
+            onChange={(e) => onDraftUnpaidReachoutEnabledChange(e.target.checked)}
+            disabled={savingUnpaidReachout}
+          />
+          <span className={`toggle-track ${draftUnpaidReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingUnpaidReachout ? "toggle-track-disabled" : ""}`}>
+            <span className={`toggle-thumb ${draftUnpaidReachoutEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
+          </span>
+        </label>
+        <div className="shop-runprofile-row">
+          <label className="form-label-block">
+            {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelay", { defaultValue: "Delay hours" })}
+          </label>
+          <input
+            className="input-full"
+            type="number"
+            min={1}
+            max={47}
+            step={1}
+            value={draftUnpaidReachoutDelayHours}
+            onChange={(e) => onDraftUnpaidReachoutDelayHoursChange(e.target.value)}
+            disabled={savingUnpaidReachout}
+          />
+        </div>
+        <div className="shop-info-card-hint">
+          {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelayHint", {
+            defaultValue: "Use a whole number from 1 to 47. TikTok proactive reachout is limited to 48 hours.",
+          })}
+        </div>
+        <div className="modal-actions">
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onSaveUnpaidReachout}
+            disabled={savingUnpaidReachout || !unpaidReachoutDirty}
+          >
+            {savingUnpaidReachout ? t("common.loading") : t("common.save")}
+          </button>
+        </div>
       </div>
 
       {/* Escalation Routing (side-by-side channel -> recipient selector) */}

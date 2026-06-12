@@ -410,9 +410,16 @@ export interface AdsAdvertiser {
   advertiserName?: Maybe<Scalars['String']['output']>;
   advertiserRole?: Maybe<Scalars['String']['output']>;
   auth: AdsAdvertiserAuth;
+  biSyncStatus: AdsBiSyncStatus;
   createdAt: Scalars['DateTimeISO']['output'];
   currency?: Maybe<Scalars['String']['output']>;
+  firstConnectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
+  lastAdsObjectSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastBiSyncError?: Maybe<Scalars['String']['output']>;
+  lastContextSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastReportSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastStoreAccessSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   ownerType: AdsAdvertiserOwnerType;
   platform: AdsPlatform;
   platformStatus?: Maybe<Scalars['String']['output']>;
@@ -446,6 +453,14 @@ export const AdsAdvertiserOwnerType = {
 } as const;
 
 export type AdsAdvertiserOwnerType = typeof AdsAdvertiserOwnerType[keyof typeof AdsAdvertiserOwnerType];
+/** BI warehouse sync state for an advertising account */
+export const AdsBiSyncStatus = {
+  Disabled: 'DISABLED',
+  Enabled: 'ENABLED',
+  Paused: 'PAUSED'
+} as const;
+
+export type AdsBiSyncStatus = typeof AdsBiSyncStatus[keyof typeof AdsBiSyncStatus];
 /** Advertising platform identifier */
 export const AdsPlatform = {
   TiktokAds: 'TIKTOK_ADS'
@@ -1209,6 +1224,10 @@ export interface AgentCsSettingsInput {
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
+  unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
+  /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
+  unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
 export const AnnouncementActionRole = {
@@ -1900,6 +1919,7 @@ export type CsConversationSignalSource = typeof CsConversationSignalSource[keyof
 export const CsConversationSignalType = {
   ManualStart: 'MANUAL_START',
   MessageReceived: 'MESSAGE_RECEIVED',
+  UnpaidOrderFollowUp: 'UNPAID_ORDER_FOLLOW_UP',
   UnreadDetected: 'UNREAD_DETECTED'
 } as const;
 
@@ -2140,7 +2160,8 @@ export const CustomerServiceConversationDispatchReason = {
   ManualStart: 'MANUAL_START',
   PendingBuyerMessage: 'PENDING_BUYER_MESSAGE',
   SessionExpiringCustomerFollowUp: 'SESSION_EXPIRING_CUSTOMER_FOLLOW_UP',
-  SessionExpiringEscalationFollowUp: 'SESSION_EXPIRING_ESCALATION_FOLLOW_UP'
+  SessionExpiringEscalationFollowUp: 'SESSION_EXPIRING_ESCALATION_FOLLOW_UP',
+  UnpaidOrderFollowUp: 'UNPAID_ORDER_FOLLOW_UP'
 } as const;
 
 export type CustomerServiceConversationDispatchReason = typeof CustomerServiceConversationDispatchReason[keyof typeof CustomerServiceConversationDispatchReason];
@@ -2383,6 +2404,10 @@ export interface CustomerServiceSettings {
   platformSystemPrompt?: Maybe<Scalars['String']['output']>;
   /** RunProfile ID for CS agent sessions */
   runProfileId?: Maybe<Scalars['String']['output']>;
+  /** Whole-hour delay before unpaid-order proactive reachout. Valid range: 1-47. */
+  unpaidOrderReachoutDelayHours?: Maybe<Scalars['Int']['output']>;
+  /** Whether CS should proactively reach out for eligible unpaid orders. */
+  unpaidOrderReachoutEnabled: Scalars['Boolean']['output'];
 }
 
 /** Full CS settings including device-level fields (Panel/backend use) */
@@ -2403,6 +2428,10 @@ export interface CustomerServiceSettingsInput {
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
+  unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
+  /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
+  unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
 export interface DecideActionProposalInput {
@@ -2927,8 +2956,6 @@ export interface EcomProduct {
   createTime?: Maybe<Scalars['Int']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   images?: Maybe<Array<EcomImage>>;
-  /** Package weight normalized to kilograms when provided by the platform. */
-  packageWeightKg?: Maybe<Scalars['String']['output']>;
   productId: Scalars['String']['output'];
   productTypes?: Maybe<Array<Scalars['String']['output']>>;
   skus?: Maybe<Array<EcomProductSku>>;
@@ -3229,19 +3256,6 @@ export interface EcomShippingDocument {
   /** URL of the document (label, packing slip, etc.) */
   docUrl?: Maybe<Scalars['String']['output']>;
   trackingNumber?: Maybe<Scalars['String']['output']>;
-}
-
-/** Seller Center-style order SKU export rows generated directly from the authorized shop API. */
-export interface EcomShopOrderSkuExportResult {
-  /** Column order matching the Seller Center order export. */
-  columns: Array<Scalars['String']['output']>;
-  orderCount: Scalars['Int']['output'];
-  /** True when optional enrichment failed for one or more rows; base order rows are still returned. */
-  partial: Scalars['Boolean']['output'];
-  rowCount: Scalars['Int']['output'];
-  /** Rows keyed by export column name. */
-  rows: Array<Scalars['JSONObject']['output']>;
-  warnings?: Maybe<Array<Scalars['String']['output']>>;
 }
 
 /** Inventory updates for one shop */
@@ -4952,8 +4966,6 @@ export interface Query {
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
-  /** Return Seller Center-style order SKU export rows using the authorized shop API instead of MySQL facts. */
-  ecommerceGetShopOrderSkuExport: EcomShopOrderSkuExportResult;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
   /** Search customer service sessions for a shop */
@@ -5293,22 +5305,6 @@ export interface QueryEcommerceGetReturnRecordsArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   returnId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryEcommerceGetShopOrderSkuExportArgs {
-  createTimeGe?: InputMaybe<Scalars['Int']['input']>;
-  createTimeLt?: InputMaybe<Scalars['Int']['input']>;
-  includeAftersale?: InputMaybe<Scalars['Boolean']['input']>;
-  includeProducts?: InputMaybe<Scalars['Boolean']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  shopId: Scalars['String']['input'];
-  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  updateTimeGe?: InputMaybe<Scalars['Int']['input']>;
-  updateTimeLt?: InputMaybe<Scalars['Int']['input']>;
 }
 
 
@@ -6315,7 +6311,6 @@ export const ToolId = {
   EcomGetReturnRecords: 'ECOM_GET_RETURN_RECORDS',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomGetShop: 'ECOM_GET_SHOP',
-  EcomGetShopOrderSkuExport: 'ECOM_GET_SHOP_ORDER_SKU_EXPORT',
   EcomGetShopSkuPerformanceList: 'ECOM_GET_SHOP_SKU_PERFORMANCE_LIST',
   EcomListOrders: 'ECOM_LIST_ORDERS',
   EcomListShops: 'ECOM_LIST_SHOPS',

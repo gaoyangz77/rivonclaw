@@ -41,6 +41,8 @@ export const EcommercePage = observer(function EcommercePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
+  const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
+  const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [editAffiliateMinP50SalesUnits, setEditAffiliateMinP50SalesUnits] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
@@ -51,6 +53,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [savingRunProfile, setSavingRunProfile] = useState(false);
   const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
+  const [savingUnpaidReachout, setSavingUnpaidReachout] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
   const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(null);
   const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(null);
@@ -99,8 +102,19 @@ export const EcommercePage = observer(function EcommercePage() {
   useEffect(() => {
     if (selectedShop) {
       setEditBusinessPrompt(selectedShop.services?.customerService?.businessPrompt ?? "");
+      setDraftUnpaidReachoutEnabled(
+        selectedShop.services?.customerService?.unpaidOrderReachoutEnabled ?? false,
+      );
+      setDraftUnpaidReachoutDelayHours(
+        String(selectedShop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24),
+      );
     }
-  }, [selectedShop?.id, selectedShop?.services?.customerService?.businessPrompt]);
+  }, [
+    selectedShop?.id,
+    selectedShop?.services?.customerService?.businessPrompt,
+    selectedShop?.services?.customerService?.unpaidOrderReachoutEnabled,
+    selectedShop?.services?.customerService?.unpaidOrderReachoutDelayHours,
+  ]);
 
   useEffect(() => {
     if (selectedShop) {
@@ -271,6 +285,40 @@ export const EcommercePage = observer(function EcommercePage() {
       handleError(err, "ecommerce.updateFailed");
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function handleSaveUnpaidReachout() {
+    if (!selectedShopId) return;
+    const parsedDelay = Number(draftUnpaidReachoutDelayHours);
+    if (!Number.isInteger(parsedDelay) || parsedDelay < 1 || parsedDelay > 47) {
+      showToast(
+        t("ecommerce.shopDrawer.aiCS.unpaidReachoutInvalidDelay", {
+          defaultValue: "Delay hours must be a whole number from 1 to 47.",
+        }),
+        "error",
+      );
+      return;
+    }
+
+    setSavingUnpaidReachout(true);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
+        services: {
+          customerService: {
+            unpaidOrderReachoutEnabled: draftUnpaidReachoutEnabled,
+            unpaidOrderReachoutDelayHours: parsedDelay,
+          },
+        },
+      });
+      showToast(t("common.saved"), "success");
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingUnpaidReachout(false);
     }
   }
 
@@ -581,6 +629,12 @@ export const EcommercePage = observer(function EcommercePage() {
         selectedCSModel={selectedCSModel}
         savingModel={savingModel}
         onCSModelChange={handleCSModelChange}
+        draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
+        draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
+        savingUnpaidReachout={savingUnpaidReachout}
+        onDraftUnpaidReachoutEnabledChange={setDraftUnpaidReachoutEnabled}
+        onDraftUnpaidReachoutDelayHoursChange={setDraftUnpaidReachoutDelayHours}
+        onSaveUnpaidReachout={handleSaveUnpaidReachout}
         savingEscalation={escalation.savingEscalation}
         draftEscalationChannel={escalation.draftEscalationChannel}
         draftEscalationRecipient={escalation.draftEscalationRecipient}

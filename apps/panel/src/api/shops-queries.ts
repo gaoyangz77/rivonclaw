@@ -15,6 +15,8 @@ export const SHOP_FIELDS_FRAGMENT = gql`
     services {
       customerService {
         enabled
+        unpaidOrderReachoutEnabled
+        unpaidOrderReachoutDelayHours
         businessPrompt
         runProfileId
         csDeviceId

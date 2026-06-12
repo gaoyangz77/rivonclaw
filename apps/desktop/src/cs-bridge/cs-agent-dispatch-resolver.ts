@@ -7,7 +7,8 @@ export type CsAgentDispatchReason =
   | "PENDING_BUYER_MESSAGE"
   | "MANUAL_START"
   | "SESSION_EXPIRING_ESCALATION_FOLLOW_UP"
-  | "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP";
+  | "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"
+  | "UNPAID_ORDER_FOLLOW_UP";
 
 export interface CsAgentDispatchRequest extends CsConversationSignalPayload {
   dispatchReason: CsAgentDispatchReason;
@@ -39,6 +40,11 @@ const CONVERSATION_DISPATCH_PLANS: Record<string, {
     dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
     useMessageDelta: false,
   },
+  UNPAID_ORDER_FOLLOW_UP: {
+    signalType: "UNPAID_ORDER_FOLLOW_UP",
+    dispatchReason: "UNPAID_ORDER_FOLLOW_UP",
+    useMessageDelta: false,
+  },
 };
 
 const SIGNAL_DISPATCH_PLANS: Record<string, {
@@ -56,6 +62,10 @@ const SIGNAL_DISPATCH_PLANS: Record<string, {
   UNREAD_DETECTED: {
     dispatchReason: "PENDING_BUYER_MESSAGE",
     useMessageDelta: true,
+  },
+  UNPAID_ORDER_FOLLOW_UP: {
+    dispatchReason: "UNPAID_ORDER_FOLLOW_UP",
+    useMessageDelta: false,
   },
 };
 
@@ -176,6 +186,15 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
         "Inspect the latest conversation state first, avoid repeating a recent follow-up, and do not introduce new promises or complex workflows unless the buyer has actually asked for them.",
         "If the current platform context explicitly shows the buyer no longer needs help and there is no pending buyer choice/action, call ecom_cs_end_session instead of sending another follow-up.",
         "Do not end after a short acknowledgement such as 'ok', 'oh mb', 'got it', or 'thanks' unless the buyer also clearly said they need nothing else.",
+      ].join(" ");
+    case "UNPAID_ORDER_FOLLOW_UP":
+      return [
+        "This is a backend/Airflow-driven proactive reachout for a TikTok Shop unpaid order.",
+        "The backend has already selected the order as unpaid and eligible; do not spend tokens rechecking unpaid status or eligibility.",
+        "Use the target language specified in the operator instruction.",
+        "Send at most one concise, natural seller-initiated reminder that can help the buyer continue checkout or ask a relevant question.",
+        "Do not imply the buyer contacted support first, do not claim a discount or urgency unless current product/promotion context supports it, and do not create an escalation unless you find a real customer-service issue.",
+        "You may use customer-service order, product, or promotion tools when useful for personalization.",
       ].join(" ");
   }
 }

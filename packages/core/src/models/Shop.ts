@@ -4,6 +4,8 @@ import { assembleCsPrompt } from "../prompts/cs-prompt.js";
 export const CustomerServiceConfigModel = types
   .model("CustomerServiceConfig", {
     enabled: types.optional(types.boolean, false),
+    unpaidOrderReachoutEnabled: types.optional(types.boolean, false),
+    unpaidOrderReachoutDelayHours: types.maybeNull(types.number),
     businessPrompt: types.optional(types.string, ""),
     csDeviceId: types.maybeNull(types.string),
     csProviderOverride: types.maybeNull(types.string),
