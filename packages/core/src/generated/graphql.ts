@@ -404,6 +404,54 @@ export interface AdminUserDevicesProbeResult {
   userId: Scalars['String']['output'];
 }
 
+/** Connected advertising account */
+export interface AdsAdvertiser {
+  advertiserId: Scalars['String']['output'];
+  advertiserName?: Maybe<Scalars['String']['output']>;
+  advertiserRole?: Maybe<Scalars['String']['output']>;
+  auth: AdsAdvertiserAuth;
+  createdAt: Scalars['DateTimeISO']['output'];
+  currency?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  ownerType: AdsAdvertiserOwnerType;
+  platform: AdsPlatform;
+  platformStatus?: Maybe<Scalars['String']['output']>;
+  timezone?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+}
+
+/** OAuth status for an advertising account */
+export interface AdsAdvertiserAuth {
+  accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  authorizedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastRefreshedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  refreshTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: AdsAdvertiserAuthStatus;
+}
+
+/** OAuth authorization status for an advertising account */
+export const AdsAdvertiserAuthStatus = {
+  Authorized: 'AUTHORIZED',
+  Disconnected: 'DISCONNECTED',
+  Revoked: 'REVOKED',
+  TokenExpired: 'TOKEN_EXPIRED'
+} as const;
+
+export type AdsAdvertiserAuthStatus = typeof AdsAdvertiserAuthStatus[keyof typeof AdsAdvertiserAuthStatus];
+/** Who owns or operates this advertising account */
+export const AdsAdvertiserOwnerType = {
+  UserOwned: 'USER_OWNED'
+} as const;
+
+export type AdsAdvertiserOwnerType = typeof AdsAdvertiserOwnerType[keyof typeof AdsAdvertiserOwnerType];
+/** Advertising platform identifier */
+export const AdsPlatform = {
+  TiktokAds: 'TIKTOK_ADS'
+} as const;
+
+export type AdsPlatform = typeof AdsPlatform[keyof typeof AdsPlatform];
 /** Subscription payload for a changed affiliate action proposal. */
 export interface AffiliateActionProposalChanged {
   proposal: ActionProposal;
@@ -1416,6 +1464,11 @@ export interface ClientLogUploadRequestPayload {
   reason?: Maybe<Scalars['String']['output']>;
   requestId: Scalars['String']['output'];
   requestedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Result of completing TikTok Ads OAuth */
+export interface CompleteTikTokAdsOAuthResponse {
+  advertisers: Array<AdsAdvertiser>;
 }
 
 /** Public TikTok OAuth callback completion result. */
@@ -2511,6 +2564,73 @@ export const EcomMessageType = {
 } as const;
 
 export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageType];
+/** Read a report-shaped ecommerce dataset. endDateLt is exclusive; dates are shop-local report dates. */
+export interface EcomOperationReportInput {
+  /** Optional campaign IDs. */
+  campaignIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Optional creator usernames. */
+  creatorUsernames?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** End date exclusive in YYYY-MM-DD format. */
+  endDateLt: Scalars['String']['input'];
+  /** Maximum rows to return. Defaults to 500; use 0 for the backend maximum. */
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Optional order IDs. */
+  orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Optional product IDs. */
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Operation report type to read. */
+  reportType: EcomOperationReportType;
+  /** Shop Mongo IDs (the id field from ecommerce_list_shops). */
+  shopIds: Array<Scalars['ID']['input']>;
+  /** Optional SKU IDs. */
+  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Optional sort field. Defaults to DATE_KEY. */
+  sortBy?: InputMaybe<EcomOperationReportSortField>;
+  /** Optional sort order. Defaults to ASC. */
+  sortOrder?: InputMaybe<EcomSortOrder>;
+  /** Start date inclusive in YYYY-MM-DD format. */
+  startDateGe: Scalars['String']['input'];
+}
+
+/** Report-shaped ecommerce operation rows. */
+export interface EcomOperationReportResult {
+  /** Column order for spreadsheet-style rendering. */
+  columns: Array<Scalars['String']['output']>;
+  /** Short caveat for partially populated report families. */
+  note?: Maybe<Scalars['String']['output']>;
+  /** Report type returned. */
+  reportType: EcomOperationReportType;
+  /** Report rows keyed by column name. */
+  rows: Array<Scalars['JSONObject']['output']>;
+  /** Number of rows returned. */
+  totalCount: Scalars['Int']['output'];
+}
+
+/** Sort field for operation report rows. */
+export const EcomOperationReportSortField = {
+  CampaignId: 'CAMPAIGN_ID',
+  Cost: 'COST',
+  DateKey: 'DATE_KEY',
+  GrossRevenue: 'GROSS_REVENUE',
+  OrderId: 'ORDER_ID',
+  ProductId: 'PRODUCT_ID',
+  Roi: 'ROI',
+  SkuId: 'SKU_ID'
+} as const;
+
+export type EcomOperationReportSortField = typeof EcomOperationReportSortField[keyof typeof EcomOperationReportSortField];
+/** Report-shaped ecommerce operation datasets served by one compact tool. */
+export const EcomOperationReportType = {
+  AdCampaignTotal: 'AD_CAMPAIGN_TOTAL',
+  AdCreativeDetail: 'AD_CREATIVE_DETAIL',
+  AffiliateOrder: 'AFFILIATE_ORDER',
+  ShopOrderSku: 'SHOP_ORDER_SKU',
+  ShopPerformanceOverview: 'SHOP_PERFORMANCE_OVERVIEW',
+  ShopProductPerformance: 'SHOP_PRODUCT_PERFORMANCE',
+  ShopVideoPerformance: 'SHOP_VIDEO_PERFORMANCE'
+} as const;
+
+export type EcomOperationReportType = typeof EcomOperationReportType[keyof typeof EcomOperationReportType];
 /** Order */
 export interface EcomOrder {
   /** Platform buyer user ID */
@@ -2807,6 +2927,8 @@ export interface EcomProduct {
   createTime?: Maybe<Scalars['Int']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   images?: Maybe<Array<EcomImage>>;
+  /** Package weight normalized to kilograms when provided by the platform. */
+  packageWeightKg?: Maybe<Scalars['String']['output']>;
   productId: Scalars['String']['output'];
   productTypes?: Maybe<Array<Scalars['String']['output']>>;
   skus?: Maybe<Array<EcomProductSku>>;
@@ -3109,6 +3231,19 @@ export interface EcomShippingDocument {
   trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
+/** Seller Center-style order SKU export rows generated directly from the authorized shop API. */
+export interface EcomShopOrderSkuExportResult {
+  /** Column order matching the Seller Center order export. */
+  columns: Array<Scalars['String']['output']>;
+  orderCount: Scalars['Int']['output'];
+  /** True when optional enrichment failed for one or more rows; base order rows are still returned. */
+  partial: Scalars['Boolean']['output'];
+  rowCount: Scalars['Int']['output'];
+  /** Rows keyed by export column name. */
+  rows: Array<Scalars['JSONObject']['output']>;
+  warnings?: Maybe<Array<Scalars['String']['output']>>;
+}
+
 /** Inventory updates for one shop */
 export interface EcomShopUpdateInventoryInput {
   /** Shop ID (the 'id' field from ecommerce_list_shops) */
@@ -3343,6 +3478,12 @@ export const ImageAssetStatus = {
 } as const;
 
 export type ImageAssetStatus = typeof ImageAssetStatus[keyof typeof ImageAssetStatus];
+/** Ads OAuth initiation response with authorization URL */
+export interface InitiateAdsOAuthResponse {
+  authUrl: Scalars['String']['output'];
+  state: Scalars['String']['output'];
+}
+
 /** OAuth initiation response with authorization URL */
 export interface InitiateOAuthResponse {
   authUrl: Scalars['String']['output'];
@@ -3750,6 +3891,8 @@ export interface Mutation {
   assignManualBillingSubscription: BillingSubscription;
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
+  /** Complete TikTok Ads OAuth from the public callback using the one-time auth_code and CSRF state. */
+  completeTikTokAdsOAuth: CompleteTikTokAdsOAuthResponse;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
   /** Create an additional original LLM proxy API key for the current user. Requires an active RivonClaw AI subscription. Most clients should use provisionLlmApiKey instead. */
@@ -3796,6 +3939,8 @@ export interface Mutation {
   deleteShop: Scalars['Boolean']['output'];
   /** Delete a surface */
   deleteSurface: Scalars['Boolean']['output'];
+  /** Disconnect one advertising account for the authenticated user. */
+  disconnectAdsAdvertiser: Scalars['Boolean']['output'];
   /** Approve a cancellation request. Returns true on success. */
   ecommerceApproveCancellation: Scalars['Boolean']['output'];
   /** Approve a refund request. Returns true on success. */
@@ -3824,6 +3969,8 @@ export interface Mutation {
   generatePairingCode: GeneratePairingResult;
   /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
   grantBillingPromotion: BillingSubscription;
+  /** Generate a TikTok Ads OAuth authorization URL for the authenticated user. */
+  initiateTikTokAdsOAuth: InitiateAdsOAuthResponse;
   /** Generate TikTok OAuth authorization URL */
   initiateTikTokOAuth: InitiateOAuthResponse;
   /** Log in with email and password */
@@ -3950,6 +4097,12 @@ export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
 }
 
 
+export interface MutationCompleteTikTokAdsOAuthArgs {
+  authCode: Scalars['String']['input'];
+  state: Scalars['String']['input'];
+}
+
+
 export interface MutationCompleteTikTokOAuthArgs {
   code: Scalars['String']['input'];
   state: Scalars['String']['input'];
@@ -4073,6 +4226,11 @@ export interface MutationDeleteShopArgs {
 
 
 export interface MutationDeleteSurfaceArgs {
+  id: Scalars['ID']['input'];
+}
+
+
+export interface MutationDisconnectAdsAdvertiserArgs {
   id: Scalars['ID']['input'];
 }
 
@@ -4712,6 +4870,10 @@ export interface Query {
   adminClientLogFiles: Array<AdminClientLogFile>;
   /** Admin-only: read the current Telegram debugging-channel target from the relay and resolve it back to the RivonClaw account/device when possible. */
   adminDebugChannelOverview: AdminDebugChannelOverview;
+  /** Get one connected advertising account by ID. */
+  adsAdvertiser?: Maybe<AdsAdvertiser>;
+  /** List connected advertising accounts for the authenticated user */
+  adsAdvertisers: Array<AdsAdvertiser>;
   /** Read bounded proposal events for one affiliate collaboration. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
@@ -4770,6 +4932,8 @@ export interface Query {
   ecommerceGetCustomerServiceInbox: CustomerServiceConversationInboxPage;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
+  /** Read report-shaped ecommerce operation rows from fct_*_report tables. This is the preferred compact backend for spreadsheet-generating skills. */
+  ecommerceGetOperationReport: EcomOperationReportResult;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
   ecommerceGetOrder?: Maybe<EcomOrder>;
   /** Get order-derived sales statistics from fct_order_shop_daily, fct_order_product_daily, or fct_order_sku_daily. */
@@ -4788,6 +4952,8 @@ export interface Query {
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
+  /** Return Seller Center-style order SKU export rows using the authorized shop API instead of MySQL facts. */
+  ecommerceGetShopOrderSkuExport: EcomShopOrderSkuExportResult;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
   /** Search customer service sessions for a shop */
@@ -4854,6 +5020,8 @@ export interface Query {
   skillCategories: Array<SkillCategoryResult>;
   /** Search and browse marketplace skills */
   skills: SkillConnection;
+  /** List advertising platforms supported by this backend. */
+  supportedAdsPlatforms: Array<AdsPlatform>;
   /** Get a single surface by ID */
   surface?: Maybe<Surface>;
   /** List surfaces for the authenticated user */
@@ -4887,6 +5055,16 @@ export interface QueryActiveAnnouncementsArgs {
 export interface QueryAdminClientLogFilesArgs {
   deviceId?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
+}
+
+
+export interface QueryAdsAdvertiserArgs {
+  id: Scalars['ID']['input'];
+}
+
+
+export interface QueryAdsAdvertisersArgs {
+  status?: InputMaybe<AdsAdvertiserAuthStatus>;
 }
 
 
@@ -5052,6 +5230,11 @@ export interface QueryEcommerceGetFulfillmentTrackingArgs {
 }
 
 
+export interface QueryEcommerceGetOperationReportArgs {
+  input: EcomOperationReportInput;
+}
+
+
 export interface QueryEcommerceGetOrderArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
@@ -5110,6 +5293,22 @@ export interface QueryEcommerceGetReturnRecordsArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   returnId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetShopOrderSkuExportArgs {
+  createTimeGe?: InputMaybe<Scalars['Int']['input']>;
+  createTimeLt?: InputMaybe<Scalars['Int']['input']>;
+  includeAftersale?: InputMaybe<Scalars['Boolean']['input']>;
+  includeProducts?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  shopId: Scalars['String']['input'];
+  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  status?: InputMaybe<Scalars['String']['input']>;
+  updateTimeGe?: InputMaybe<Scalars['Int']['input']>;
+  updateTimeLt?: InputMaybe<Scalars['Int']['input']>;
 }
 
 
@@ -6106,6 +6305,7 @@ export const ToolId = {
   EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetInventoryAnalysis: 'ECOM_GET_INVENTORY_ANALYSIS',
+  EcomGetOperationReport: 'ECOM_GET_OPERATION_REPORT',
   EcomGetOrder: 'ECOM_GET_ORDER',
   EcomGetOrderSalesStats: 'ECOM_GET_ORDER_SALES_STATS',
   EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',
@@ -6115,6 +6315,7 @@ export const ToolId = {
   EcomGetReturnRecords: 'ECOM_GET_RETURN_RECORDS',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomGetShop: 'ECOM_GET_SHOP',
+  EcomGetShopOrderSkuExport: 'ECOM_GET_SHOP_ORDER_SKU_EXPORT',
   EcomGetShopSkuPerformanceList: 'ECOM_GET_SHOP_SKU_PERFORMANCE_LIST',
   EcomListOrders: 'ECOM_LIST_ORDERS',
   EcomListShops: 'ECOM_LIST_SHOPS',
@@ -6126,6 +6327,7 @@ export const ToolId = {
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchReturns: 'ECOM_SEARCH_RETURNS',
+  EcomSetCustomerServiceConversationAiEnabled: 'ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED',
   EcomUpdateInventory: 'ECOM_UPDATE_INVENTORY',
   EcomUpdateShop: 'ECOM_UPDATE_SHOP'
 } as const;

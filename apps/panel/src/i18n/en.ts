@@ -1705,10 +1705,12 @@ export default {
         ECOM_GET_CONVERSATION_DETAILS: "Get Conversation Details",
         ECOM_GET_CS_PERFORMANCE: "CS Performance",
         ECOM_SEARCH_CS_SESSIONS: "Search CS Sessions",
+        ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED: "Set Conversation AI",
         // E-commerce Ops — Orders
         ECOM_GET_ORDER: "Get Order",
         ECOM_GET_ORDER_SALES_STATS: "Get Order Sales Stats",
         ECOM_LIST_ORDERS: "List Orders",
+        ECOM_GET_SHOP_ORDER_SKU_EXPORT: "Export Order SKUs",
         // E-commerce Ops — Fulfillment
         ECOM_GET_FULFILLMENT_TRACKING: "Get Tracking",
         ECOM_SEARCH_PACKAGES: "Search Packages",
@@ -1719,6 +1721,7 @@ export default {
         ECOM_SEARCH_PRODUCTS: "Search Products",
         ECOM_GET_INVENTORY_ANALYSIS: "Get Inventory Analysis",
         ECOM_GET_SHOP_SKU_PERFORMANCE_LIST: "Get Shop SKU Performance List",
+        ECOM_GET_OPERATION_REPORT: "Get Operation Report",
         ECOM_UPDATE_INVENTORY: "Update Inventory",
         // E-commerce Ops — Conversations (Write)
         ECOM_MARK_CONVERSATION_READ: "Mark Read",
