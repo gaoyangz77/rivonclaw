@@ -1705,10 +1705,12 @@ export default {
         ECOM_GET_CONVERSATION_DETAILS: "获取会话详情",
         ECOM_GET_CS_PERFORMANCE: "客服绩效",
         ECOM_SEARCH_CS_SESSIONS: "搜索客服会话",
+        ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED: "设置会话 AI",
         // 电商运营 — 订单
         ECOM_GET_ORDER: "获取订单",
         ECOM_GET_ORDER_SALES_STATS: "获取订单销售统计",
         ECOM_LIST_ORDERS: "订单列表",
+        ECOM_GET_SHOP_ORDER_SKU_EXPORT: "导出订单 SKU",
         // 电商运营 — 履约
         ECOM_GET_FULFILLMENT_TRACKING: "获取物流追踪",
         ECOM_SEARCH_PACKAGES: "搜索包裹",
@@ -1719,6 +1721,7 @@ export default {
         ECOM_SEARCH_PRODUCTS: "搜索商品",
         ECOM_GET_INVENTORY_ANALYSIS: "获取库存分析",
         ECOM_GET_SHOP_SKU_PERFORMANCE_LIST: "获取店铺 SKU 绩效列表",
+        ECOM_GET_OPERATION_REPORT: "获取运营报表",
         ECOM_UPDATE_INVENTORY: "更新库存",
         // 电商运营 — 会话操作
         ECOM_MARK_CONVERSATION_READ: "标记已读",
