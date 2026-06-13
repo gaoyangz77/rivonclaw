@@ -226,11 +226,15 @@ function readAccountAllowFromListSync(channelId: string, accountId?: string): st
 }
 
 function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
-  if (channelId !== WEIXIN_CHANNEL_ID || !Object.prototype.hasOwnProperty.call(config, "userId")) {
-    return config;
+  let next = config;
+  if (channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId")) {
+    const { userId: _providerOwnedUserId, ...rest } = config;
+    next = rest;
   }
-  const { userId: _providerOwnedUserId, ...rest } = config;
-  return rest;
+  if (channelId === TELEGRAM_CHANNEL_ID) {
+    return { ...next, streaming: { mode: "block" } };
+  }
+  return next;
 }
 
 function channelAccountConfigHasWeixinUserId(channelId: string, config: Record<string, unknown>): boolean {
