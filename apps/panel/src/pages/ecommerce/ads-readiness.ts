@@ -12,14 +12,8 @@ export function findAdsBindingForShop(
   bindings: readonly AdsStoreBinding[],
 ): AdsStoreBinding | null {
   return bindings.find((binding) =>
-    binding.isManagedByEasyClaw &&
-    binding.linkStatus === "LINKED" &&
-    (
-      binding.linkedShopId === shop.id ||
-      binding.shopId === shop.id ||
-      binding.shopPlatformShopId === shop.platformShopId ||
-      binding.storeId === shop.platformShopId
-    )
+    !!shop.platformShopId &&
+    binding.storeId === shop.platformShopId
   ) ?? null;
 }
 

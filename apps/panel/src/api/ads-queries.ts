@@ -5,7 +5,6 @@ export const ADS_ADVERTISER_FIELDS_FRAGMENT = gql`
     id
     userId
     platform
-    businessConnectionId
     ownerType
     advertiserId
     advertiserName
@@ -26,26 +25,6 @@ export const ADS_ADVERTISER_FIELDS_FRAGMENT = gql`
   }
 `;
 
-export const ADS_BUSINESS_CONNECTION_FIELDS_FRAGMENT = gql`
-  fragment AdsBusinessConnectionFields on AdsBusinessConnection {
-    id
-    userId
-    platform
-    authGrantId
-    authStatus
-    displayName
-    authorizedAt
-    accessTokenExpiresAt
-    refreshTokenExpiresAt
-    advertiserCount
-    managedShopCount
-    lastSyncedAt
-    lastError
-    createdAt
-    updatedAt
-  }
-`;
-
 export const ADS_STORE_ACCESS_FIELDS_FRAGMENT = gql`
   fragment AdsStoreAccessFields on AdsStoreAccess {
     id
@@ -54,12 +33,6 @@ export const ADS_STORE_ACCESS_FIELDS_FRAGMENT = gql`
     adsAdvertiserId
     advertiserId
     shopId
-    linkedShopId
-    shopPlatformShopId
-    linkedShopName
-    linkedShopAuthStatus
-    linkStatus
-    isManagedByEasyClaw
     storeId
     storeName
     storeAuthorizedBcId
@@ -75,12 +48,8 @@ export const ADS_STORE_ACCESS_FIELDS_FRAGMENT = gql`
 `;
 
 export const ADS_ADVERTISERS_QUERY = gql`
-  ${ADS_BUSINESS_CONNECTION_FIELDS_FRAGMENT}
   ${ADS_ADVERTISER_FIELDS_FRAGMENT}
   query AdsAdvertisers {
-    adsBusinessConnections {
-      ...AdsBusinessConnectionFields
-    }
     adsAdvertisers {
       ...AdsAdvertiserFields
     }
@@ -89,8 +58,8 @@ export const ADS_ADVERTISERS_QUERY = gql`
 
 export const ADS_STORE_ACCESSES_QUERY = gql`
   ${ADS_STORE_ACCESS_FIELDS_FRAGMENT}
-  query AdsStoreAccesses($managedOnly: Boolean) {
-    adsStoreAccesses(managedOnly: $managedOnly) {
+  query AdsStoreAccesses {
+    adsStoreAccesses {
       ...AdsStoreAccessFields
     }
   }

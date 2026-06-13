@@ -4,7 +4,6 @@ export { SurfaceModel } from "./SurfaceModel.js";
 export { RunProfileModel } from "./RunProfileModel.js";
 export { ShopModel } from "./ShopModel.js";
 export { AdsAdvertiserModel } from "./AdsAdvertiserModel.js";
-export { AdsBusinessConnectionModel } from "@rivonclaw/core/models";
 export { AdsStoreBindingModel } from "@rivonclaw/core/models";
 export { WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./WarehouseModel.js";
 export { InventoryGoodModel } from "./InventoryGoodModel.js";
