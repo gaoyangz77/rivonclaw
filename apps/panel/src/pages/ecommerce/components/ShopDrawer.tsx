@@ -4,6 +4,7 @@ import type { Shop } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
+import { getReadinessBadgeClass, navigateToAdsManagement, resolveShopAdsReadiness } from "../ads-readiness.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
 import { InventoryManagementTab } from "./InventoryManagementTab.js";
 import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
@@ -135,6 +136,9 @@ export const ShopDrawer = observer(function ShopDrawer({
   const customerServiceEntitlement = shop
     ? entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null
     : null;
+  const adsReadiness = shop
+    ? resolveShopAdsReadiness(shop, entityStore.adsAdvertisers, entityStore.adsStoreBindings)
+    : null;
 
   return (
     <>
@@ -226,6 +230,42 @@ export const ShopDrawer = observer(function ShopDrawer({
                     <span className={getAuthStatusBadgeClass(shop.authStatus)}>
                       {t(`tiktokShops.authStatus_${shop.authStatus}`)}
                     </span>
+                  </div>
+                </div>
+
+                <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.adsReadiness")}</div>
+                <div className="shop-info-card">
+                  <div className="shop-info-row">
+                    <span className="shop-info-label">{t("ecommerce.table.headers.adsStatus")}</span>
+                    <span className="shop-info-value">
+                      {adsReadiness && (
+                        <span className={getReadinessBadgeClass(adsReadiness.status)}>
+                          {t(`ecommerce.shopAdsStatus.${adsReadiness.status}`)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="shop-info-row">
+                    <span className="shop-info-label">{t("adsManagement.shopColumns.advertiser")}</span>
+                    <span className="shop-info-value td-code">
+                      {adsReadiness?.binding?.advertiserId ?? "-"}
+                    </span>
+                  </div>
+                  <div className="shop-info-row">
+                    <span className="shop-info-label">{t("adsManagement.shopColumns.gmvMax")}</span>
+                    <span className="shop-info-value">
+                      {adsReadiness?.binding?.isGmvMaxAvailable == null
+                        ? "-"
+                        : adsReadiness.binding.isGmvMaxAvailable ? t("common.yes") : t("common.no")}
+                    </span>
+                  </div>
+                  <div className="shop-info-card-hint">
+                    {adsReadiness && t(`ecommerce.shopAdsStatus.hint_${adsReadiness.status}`)}
+                  </div>
+                  <div className="shop-info-card-actions">
+                    <button className="btn btn-secondary btn-sm" onClick={navigateToAdsManagement}>
+                      {t("ecommerce.table.manageAds")}
+                    </button>
                   </div>
                 </div>
 

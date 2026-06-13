@@ -317,6 +317,17 @@ export function EcommerceIcon(props: IconProps) {
     );
 }
 
+export function AdsIcon(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M4 13V7a2 2 0 0 1 2-2h3l8-3v18l-8-3H6a2 2 0 0 1-2-2v-2z" />
+            <path d="M9 5v12" />
+            <path d="M17 8a4 4 0 0 1 0 6" />
+            <path d="M6 17l1 4h3l-1-4" />
+        </Icon>
+    );
+}
+
 /** X mark for close buttons */
 export function CloseIcon(props: IconProps) {
     return (

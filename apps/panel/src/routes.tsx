@@ -4,6 +4,7 @@ import {
   ExtrasIcon, UsageIcon, SkillsIcon,
   CronsIcon, SettingsIcon, BillingIcon, AccountIcon,
   ShopIcon, EcommerceIcon,
+  AdsIcon,
 } from "./components/icons.js";
 import { ChatPage } from "./pages/chat/ChatPage.js";
 import { ProvidersPage } from "./pages/providers/ProvidersPage.js";
@@ -20,6 +21,7 @@ import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import { AffiliateManagementPage } from "./pages/ecommerce/AffiliateManagementPage.js";
 import { CustomerServiceEscalationsPage } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
+import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
 
 export interface RouteEntry {
   /** URL path */
@@ -56,6 +58,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true },
   { path: "/commerce/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
   { path: "/commerce/shops", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", navGroupKey: "nav.group.shopOperations", authRequired: true },
+  { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
   { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
   { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.group.automation" },

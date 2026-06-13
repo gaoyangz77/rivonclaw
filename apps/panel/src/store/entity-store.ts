@@ -5,6 +5,9 @@ import {
   SurfaceModel,
   RunProfileModel,
   ShopModel,
+  AdsBusinessConnectionModel,
+  AdsAdvertiserModel,
+  AdsStoreBindingModel,
   WmsAccountModel,
   WarehouseModel,
   ShopWarehouseModel,
@@ -28,6 +31,11 @@ import {
   INITIATE_TIKTOK_OAUTH_MUTATION,
   PRESET_SKILLS_QUERY,
 } from "../api/shops-queries.js";
+import {
+  ADS_ADVERTISERS_QUERY,
+  ADS_STORE_ACCESSES_QUERY,
+  INITIATE_TIKTOK_ADS_OAUTH_MUTATION,
+} from "../api/ads-queries.js";
 import {
   READ_WMS_ACCOUNTS_QUERY,
   READ_WAREHOUSES_QUERY,
@@ -95,6 +103,9 @@ const PanelRootStoreModel = RootStoreModel.props({
   surfaces: types.optional(types.array(SurfaceModel), []),
   runProfiles: types.optional(types.array(RunProfileModel), []),
   shops: types.optional(types.array(ShopModel), []),
+  adsBusinessConnections: types.optional(types.array(AdsBusinessConnectionModel), []),
+  adsAdvertisers: types.optional(types.array(AdsAdvertiserModel), []),
+  adsStoreBindings: types.optional(types.array(AdsStoreBindingModel), []),
   wmsAccounts: types.optional(types.array(WmsAccountModel), []),
   warehouses: types.optional(types.array(WarehouseModel), []),
   shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),
@@ -130,6 +141,8 @@ const PanelRootStoreModel = RootStoreModel.props({
           ]).catch(() => {});
           yield Promise.all([
             client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" }),
+            client().query({ query: ADS_STORE_ACCESSES_QUERY, variables: { managedOnly: false }, fetchPolicy: "network-only" }),
             client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
             client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
@@ -247,9 +260,30 @@ const PanelRootStoreModel = RootStoreModel.props({
       return result.data!.initiateTikTokOAuth as { authUrl: string; state: string };
     }),
 
+    initiateTikTokAdsOAuth: flow(function* () {
+      const result = yield client().mutate({
+        mutation: INITIATE_TIKTOK_ADS_OAUTH_MUTATION,
+      });
+      return result.data!.initiateTikTokAdsOAuth as { authUrl: string; state: string };
+    }),
+
     /** Fire shops query to populate MST via Desktop proxy. */
     fetchShops: flow(function* () {
       yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+    }),
+
+    /** Fire ads advertisers query to populate MST via Desktop proxy. */
+    fetchAdsAdvertisers: flow(function* () {
+      yield client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" });
+    }),
+
+    /** Fire ads store access query to populate MST via Desktop proxy. */
+    fetchAdsStoreAccesses: flow(function* (managedOnly = false) {
+      yield client().query({
+        query: ADS_STORE_ACCESSES_QUERY,
+        variables: { managedOnly },
+        fetchPolicy: "network-only",
+      });
     }),
 
     /** Fire single shop query to refresh one shop via Desktop proxy. */
@@ -511,6 +545,9 @@ interface PanelEntityOverrides {
   readonly surfaces: Instance<typeof SurfaceModel>[];
   readonly runProfiles: Instance<typeof RunProfileModel>[];
   readonly shops: Instance<typeof ShopModel>[];
+  readonly adsBusinessConnections: Instance<typeof AdsBusinessConnectionModel>[];
+  readonly adsAdvertisers: Instance<typeof AdsAdvertiserModel>[];
+  readonly adsStoreBindings: Instance<typeof AdsStoreBindingModel>[];
   readonly wmsAccounts: Instance<typeof WmsAccountModel>[];
   readonly warehouses: Instance<typeof WarehouseModel>[];
   readonly shopWarehouses: Instance<typeof ShopWarehouseModel>[];
@@ -538,6 +575,9 @@ interface PanelEntityOverrides {
   refreshBillingAfterPayment(): Promise<void>;
   cancelBillingSubscriptionAtPeriodEnd(input: { product: string; scopeType: string; scopeId: string }): Promise<void>;
   createStripeBillingPortalSession(input: { product: string; scopeType: string; scopeId: string }): Promise<string | null>;
+  initiateTikTokAdsOAuth(): Promise<{ authUrl: string; state: string }>;
+  fetchAdsAdvertisers(): Promise<void>;
+  fetchAdsStoreAccesses(managedOnly?: boolean): Promise<void>;
 }
 export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
 

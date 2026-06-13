@@ -15,6 +15,7 @@ const log = createLogger("cloud-graphql-proxy");
 // (ingestGraphQLResponse skips boolean responses — this fills the gap.)
 const DELETION_MUTATION_MAP: Record<string, string> = {
   DeleteShop: "Shop",
+  DisconnectAdsAdvertiser: "AdsAdvertiser",
   DeleteSurface: "Surface",
   DeleteRunProfile: "RunProfile",
 };
