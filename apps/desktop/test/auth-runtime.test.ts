@@ -15,6 +15,7 @@ const {
   mockBroadcastEvent: vi.fn(),
   mockRootStore: {
     ingestGraphQLResponse: vi.fn(),
+    upsertShopsFromGraphQL: vi.fn(),
     shops: [],
   },
   authState: {
@@ -29,6 +30,7 @@ const {
     reconnect: vi.fn(),
     disconnect: vi.fn(),
     refreshCsConversationSignals: vi.fn(),
+    oauthCompleteHandler: null as null | ((payload: any) => void),
     clientLogUploadHandler: null as null | ((request: any) => void),
   },
 }));
@@ -82,7 +84,8 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     disconnect() {
       backendState.disconnect();
     }
-    subscribeToOAuthComplete() {
+    subscribeToOAuthComplete(handler: (payload: any) => void) {
+      backendState.oauthCompleteHandler = handler;
       return () => {};
     }
     subscribeToShopUpdated() {
@@ -128,7 +131,56 @@ describe("setupAuth backend subscriptions", () => {
     authState.token = "token-1";
     authState.listeners.length = 0;
     backendState.connected = false;
+    backendState.oauthCompleteHandler = null;
     backendState.clientLogUploadHandler = null;
+  });
+
+  it("bulk-upserts OAuth-complete shops without replacing the whole shop cache", async () => {
+    await setupAuth({
+      storage: {} as any,
+      secretStore: {} as any,
+      locale: "en",
+      deviceId: "device-1",
+      proxyFetch: vi.fn() as any,
+      broadcastEvent: mockBroadcastEvent as any,
+    });
+
+    backendState.oauthCompleteHandler?.({
+      shopId: "shop-2",
+      shopName: "Shop 2",
+      platform: "TIKTOK_SHOP",
+      shops: [
+        {
+          __typename: "Shop",
+          id: "shop-2",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "platform-shop-2",
+          shopName: "Shop 2",
+        },
+        {
+          __typename: "Shop",
+          id: "shop-3",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "platform-shop-3",
+          shopName: "Shop 3",
+        },
+      ],
+    });
+
+    expect(mockRootStore.upsertShopsFromGraphQL).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ id: "shop-2" }),
+        expect.objectContaining({ id: "shop-3" }),
+      ],
+      "oauth-complete",
+    );
+    expect(mockRootStore.ingestGraphQLResponse).not.toHaveBeenCalledWith({
+      shops: expect.any(Array),
+    });
+    expect(mockBroadcastEvent).toHaveBeenCalledWith(
+      "oauth-complete",
+      expect.objectContaining({ shopId: "shop-2" }),
+    );
   });
 
   it("registers client log upload requests for this desktop device", async () => {

@@ -184,6 +184,28 @@ const DesktopRootStoreModel = RootStoreModel
       self.shopLifecycle.error = null;
     },
 
+    upsertShopsFromGraphQL(rawShops: unknown[], reason: string) {
+      let changed = false;
+      for (const rawShop of rawShops) {
+        const sanitized = sanitizeForMst(rawShop) as any;
+        const id = sanitized?.id;
+        if (!id) continue;
+        const idx = self.shops.findIndex((item: any) => item.id === id);
+        if (idx >= 0) {
+          applySnapshot(self.shops[idx], sanitized);
+        } else {
+          self.shops.push(sanitized);
+        }
+        changed = true;
+      }
+      if (!changed) return;
+      self.shopLifecycle.status = "ready";
+      self.shopLifecycle.generation += 1;
+      self.shopLifecycle.lastRefreshReason = reason;
+      self.shopLifecycle.lastRefreshAt = nowIso();
+      self.shopLifecycle.error = null;
+    },
+
     markShopRefreshFailed(reason: string, error: string) {
       self.shopLifecycle.status = "error";
       self.shopLifecycle.lastRefreshReason = reason;
