@@ -150,30 +150,11 @@ export const INIT_SHOPS_QUERY = `
 
 export const INIT_ADS_ADVERTISERS_QUERY = `
   query {
-    adsBusinessConnections {
-      __typename
-      id
-      userId
-      platform
-      authGrantId
-      authStatus
-      displayName
-      authorizedAt
-      accessTokenExpiresAt
-      refreshTokenExpiresAt
-      advertiserCount
-      managedShopCount
-      lastSyncedAt
-      lastError
-      createdAt
-      updatedAt
-    }
     adsAdvertisers {
       __typename
       id
       userId
       platform
-      businessConnectionId
       ownerType
       advertiserId
       advertiserName
@@ -192,7 +173,7 @@ export const INIT_ADS_ADVERTISERS_QUERY = `
         lastError
       }
     }
-    adsStoreAccesses(managedOnly: false) {
+    adsStoreAccesses {
       __typename
       id
       userId
@@ -200,12 +181,6 @@ export const INIT_ADS_ADVERTISERS_QUERY = `
       adsAdvertiserId
       advertiserId
       shopId
-      linkedShopId
-      shopPlatformShopId
-      linkedShopName
-      linkedShopAuthStatus
-      linkStatus
-      isManagedByEasyClaw
       storeId
       storeName
       storeAuthorizedBcId

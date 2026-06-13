@@ -29,7 +29,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const { showToast } = useToast();
-  const businessConnections = entityStore.adsBusinessConnections;
   const advertisers = entityStore.adsAdvertisers;
   const storeAccesses = entityStore.adsStoreBindings;
   const shops = entityStore.shops;
@@ -41,24 +40,28 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [confirmDisconnectId, setConfirmDisconnectId] = useState<string | null>(null);
 
-  const baselineConnectionIdsRef = useRef<Set<string>>(new Set());
   const baselineAdvertiserIdsRef = useRef<Set<string>>(new Set());
-  const baselineConnectionStatusRef = useRef<Map<string, string>>(new Map());
   const baselineAdvertiserStatusRef = useRef<Map<string, string>>(new Map());
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const authorizedConnections = businessConnections.filter((connection) => connection.authStatus === "AUTHORIZED");
   const authorizedAdvertisers = advertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED");
-  const managedStoreAccesses = storeAccesses.filter((access) => access.isManagedByEasyClaw && access.linkStatus === "LINKED");
-  const unmatchedStoreAccesses = storeAccesses.filter((access) => access.linkStatus === "UNMATCHED");
-
   const shopCoverageRows = useMemo(() => (
     shops.map((shop) => ({
       shop,
       readiness: resolveShopAdsReadiness(shop, advertisers, storeAccesses),
     }))
   ), [shops, advertisers, storeAccesses]);
+  const coveredShopCount = shopCoverageRows.filter((row) => row.readiness.status === "connected").length;
+  const onboardedStoreIds = new Set(shops.map((shop) => shop.platformShopId).filter(Boolean));
+  const unonboardedStoreAccessCount = storeAccesses.filter((access) => !onboardedStoreIds.has(access.storeId)).length;
+
+  function storeAccessCountForAdvertiser(advertiser: { id: string; advertiserId: string }): number {
+    return storeAccesses.filter((access) => (
+      access.adsAdvertiserId === advertiser.id ||
+      access.advertiserId === advertiser.advertiserId
+    )).length;
+  }
 
   function cleanupOAuthWait() {
     if (pollTimerRef.current) {
@@ -84,7 +87,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
     try {
       await Promise.all([
         entityStore.fetchAdsAdvertisers(),
-        entityStore.fetchAdsStoreAccesses(false),
+        entityStore.fetchAdsStoreAccesses(),
         entityStore.fetchShops(),
       ]);
     } catch (err) {
@@ -96,11 +99,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   async function handleConnectBusiness() {
     setOauthLoading(true);
-    baselineConnectionIdsRef.current = new Set(businessConnections.map((connection) => connection.id));
     baselineAdvertiserIdsRef.current = new Set(advertisers.map((advertiser) => advertiser.id));
-    baselineConnectionStatusRef.current = new Map(
-      businessConnections.map((connection) => [connection.id, connection.authStatus]),
-    );
     baselineAdvertiserStatusRef.current = new Map(
       advertisers.map((advertiser) => [advertiser.id, advertiser.auth.status]),
     );
@@ -113,26 +112,18 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       pollTimerRef.current = setInterval(() => {
         Promise.all([
           entityStore.fetchAdsAdvertisers(),
-          entityStore.fetchAdsStoreAccesses(false),
+          entityStore.fetchAdsStoreAccesses(),
         ])
           .then(() => {
-            const nextConnections = entityStore.adsBusinessConnections;
             const nextAdvertisers = entityStore.adsAdvertisers;
-            const hasNewConnection = nextConnections.some((connection) =>
-              !baselineConnectionIdsRef.current.has(connection.id)
-            );
             const hasNewAdvertiser = nextAdvertisers.some((advertiser) =>
               !baselineAdvertiserIdsRef.current.has(advertiser.id)
             );
-            const hasReauthorizedConnection = nextConnections.some((connection) => (
-              baselineConnectionStatusRef.current.get(connection.id) !== "AUTHORIZED" &&
-              connection.authStatus === "AUTHORIZED"
-            ));
             const hasReauthorizedAdvertiser = nextAdvertisers.some((advertiser) => (
               baselineAdvertiserStatusRef.current.get(advertiser.id) !== "AUTHORIZED" &&
               advertiser.auth.status === "AUTHORIZED"
             ));
-            if (hasNewConnection || hasNewAdvertiser || hasReauthorizedConnection || hasReauthorizedAdvertiser) {
+            if (hasNewAdvertiser || hasReauthorizedAdvertiser) {
               cleanupOAuthWait();
               showToast(t("adsManagement.oauthSuccess"), "success");
             }
@@ -170,7 +161,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       await advertiser.disconnect();
       await Promise.all([
         entityStore.fetchAdsAdvertisers(),
-        entityStore.fetchAdsStoreAccesses(false),
+        entityStore.fetchAdsStoreAccesses(),
       ]);
       showToast(t("adsManagement.disconnectSuccess"), "success");
     } catch (err) {
@@ -199,16 +190,16 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
       <div className="ads-summary-strip ads-summary-strip-four">
         <div className="ads-summary-item">
-          <span>{t("adsManagement.totalBusinessConnections")}</span>
-          <strong>{businessConnections.length}</strong>
+          <span>{t("adsManagement.totalAdvertisers")}</span>
+          <strong>{advertisers.length}</strong>
         </div>
         <div className="ads-summary-item">
-          <span>{t("adsManagement.authorizedBusinessConnections")}</span>
-          <strong>{authorizedConnections.length}</strong>
+          <span>{t("adsManagement.authorizedAdvertisers")}</span>
+          <strong>{authorizedAdvertisers.length}</strong>
         </div>
         <div className="ads-summary-item">
-          <span>{t("adsManagement.managedShops")}</span>
-          <strong>{managedStoreAccesses.length}</strong>
+          <span>{t("adsManagement.adsReadyShops")}</span>
+          <strong>{coveredShopCount}</strong>
         </div>
         <div className="ads-summary-note">
           <InfoIcon />
@@ -219,16 +210,16 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       <section className="panel-card ads-advertiser-section">
         <div className="ecommerce-section-header">
           <div>
-            <h3>{t("adsManagement.businessTableTitle")}</h3>
-            <p className="ecommerce-section-subtitle">{t("adsManagement.businessTableSubtitle")}</p>
+            <h3>{t("adsManagement.advertiserTableTitle")}</h3>
+            <p className="ecommerce-section-subtitle">{t("adsManagement.advertiserTableSubtitle")}</p>
           </div>
         </div>
 
-        {businessConnections.length === 0 ? (
+        {advertisers.length === 0 ? (
           <div className="empty-cell ads-empty-state">
             <AdsIcon />
-            <strong>{t("adsManagement.emptyBusinessTitle")}</strong>
-            <span>{t("adsManagement.emptyBusinessBody")}</span>
+            <strong>{t("adsManagement.emptyAdvertisersTitle")}</strong>
+            <span>{t("adsManagement.emptyAdvertisersBody")}</span>
             <button className="btn btn-primary" onClick={handleConnectBusiness} disabled={oauthLoading || oauthWaiting}>
               {oauthLoading ? t("common.loading") : t("adsManagement.connectBusiness")}
             </button>
@@ -238,41 +229,49 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
             <table className="shop-table ads-advertiser-table">
               <thead>
                 <tr>
-                  <th>{t("adsManagement.businessColumns.connection")}</th>
-                  <th>{t("adsManagement.businessColumns.status")}</th>
-                  <th>{t("adsManagement.businessColumns.advertisers")}</th>
-                  <th>{t("adsManagement.businessColumns.managedShops")}</th>
-                  <th>{t("adsManagement.businessColumns.tokenExpiry")}</th>
-                  <th>{t("adsManagement.businessColumns.updatedAt")}</th>
+                  <th>{t("adsManagement.columns.name")}</th>
+                  <th>{t("adsManagement.columns.advertiserId")}</th>
+                  <th>{t("adsManagement.columns.status")}</th>
+                  <th>{t("adsManagement.columns.role")}</th>
+                  <th>{t("adsManagement.columns.currency")}</th>
+                  <th>{t("adsManagement.columns.visibleStores")}</th>
+                  <th>{t("adsManagement.columns.tokenExpiry")}</th>
+                  <th>{t("adsManagement.columns.actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {businessConnections.map((connection) => {
-                  const connectionAdvertisers = advertisers.filter((advertiser) =>
-                    advertiser.businessConnectionId === connection.id
-                  );
-                  return (
-                    <tr className="table-hover-row" key={connection.id}>
-                      <td>
-                        <div className="shop-table-name">
-                          {connection.displayName || t("adsManagement.defaultBusinessName")}
-                        </div>
-                        <div className="td-muted td-code">{connection.authGrantId}</div>
-                      </td>
-                      <td>
-                        <span className={statusClass(connection.authStatus)}>
-                          {t(`adsManagement.authStatus.${connection.authStatus}`, {
-                            defaultValue: connection.authStatus,
-                          })}
-                        </span>
-                      </td>
-                      <td>{connectionAdvertisers.length || connection.advertiserCount}</td>
-                      <td>{connection.managedShopCount}</td>
-                      <td className="td-date">{formatDate(connection.accessTokenExpiresAt)}</td>
-                      <td className="td-date">{formatDate(connection.updatedAt)}</td>
-                    </tr>
-                  );
-                })}
+                {advertisers.map((advertiser) => (
+                  <tr className="table-hover-row" key={advertiser.id}>
+                    <td>
+                      <div className="shop-table-name">
+                        {advertiser.advertiserName || advertiser.advertiserId}
+                      </div>
+                      <div className="td-muted">{advertiser.platform}</div>
+                    </td>
+                    <td className="td-code">{advertiser.advertiserId}</td>
+                    <td>
+                      <span className={statusClass(advertiser.auth.status)}>
+                        {t(`adsManagement.authStatus.${advertiser.auth.status}`, {
+                          defaultValue: advertiser.auth.status,
+                        })}
+                      </span>
+                    </td>
+                    <td>{advertiser.advertiserRole || "-"}</td>
+                    <td>{advertiser.currency || "-"}</td>
+                    <td>{storeAccessCountForAdvertiser(advertiser)}</td>
+                    <td className="td-date">{formatDate(advertiser.auth.accessTokenExpiresAt)}</td>
+                    <td>
+                      <div className="shop-table-actions">
+                        <button
+                          className="btn btn-danger btn-small"
+                          onClick={() => setConfirmDisconnectId(advertiser.id)}
+                        >
+                          {t("adsManagement.disconnect")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -285,9 +284,9 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
             <h3>{t("adsManagement.shopCoverageTitle")}</h3>
             <p className="ecommerce-section-subtitle">{t("adsManagement.shopCoverageSubtitle")}</p>
           </div>
-          {unmatchedStoreAccesses.length > 0 ? (
+          {unonboardedStoreAccessCount > 0 ? (
             <span className="status-badge status-neutral">
-              {t("adsManagement.unmatchedStoreCount", { count: unmatchedStoreAccesses.length })}
+              {t("adsManagement.unonboardedStoreCount", { count: unonboardedStoreAccessCount })}
             </span>
           ) : null}
         </div>
@@ -340,74 +339,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="panel-card ads-advertiser-section">
-        <div className="ecommerce-section-header">
-          <div>
-            <h3>{t("adsManagement.advertiserTableTitle")}</h3>
-            <p className="ecommerce-section-subtitle">{t("adsManagement.advertiserTableSubtitle")}</p>
-          </div>
-        </div>
-
-        {advertisers.length === 0 ? (
-          <div className="empty-cell ads-empty-state">
-            <AdsIcon />
-            <strong>{t("adsManagement.emptyAdvertisersTitle")}</strong>
-            <span>{t("adsManagement.emptyAdvertisersBody")}</span>
-          </div>
-        ) : (
-          <div className="shop-table-wrap">
-            <table className="shop-table ads-advertiser-table">
-              <thead>
-                <tr>
-                  <th>{t("adsManagement.columns.name")}</th>
-                  <th>{t("adsManagement.columns.advertiserId")}</th>
-                  <th>{t("adsManagement.columns.status")}</th>
-                  <th>{t("adsManagement.columns.role")}</th>
-                  <th>{t("adsManagement.columns.currency")}</th>
-                  <th>{t("adsManagement.columns.tokenExpiry")}</th>
-                  <th>{t("adsManagement.columns.updatedAt")}</th>
-                  <th>{t("adsManagement.columns.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {advertisers.map((advertiser) => (
-                  <tr className="table-hover-row" key={advertiser.id}>
-                    <td>
-                      <div className="shop-table-name">
-                        {advertiser.advertiserName || advertiser.advertiserId}
-                      </div>
-                      <div className="td-muted">{advertiser.platform}</div>
-                    </td>
-                    <td className="td-code">{advertiser.advertiserId}</td>
-                    <td>
-                      <span className={statusClass(advertiser.auth.status)}>
-                        {t(`adsManagement.authStatus.${advertiser.auth.status}`, {
-                          defaultValue: advertiser.auth.status,
-                        })}
-                      </span>
-                    </td>
-                    <td>{advertiser.advertiserRole || "-"}</td>
-                    <td>{advertiser.currency || "-"}</td>
-                    <td className="td-date">{formatDate(advertiser.auth.accessTokenExpiresAt)}</td>
-                    <td className="td-date">{formatDate(advertiser.updatedAt)}</td>
-                    <td>
-                      <div className="shop-table-actions">
-                        <button
-                          className="btn btn-danger btn-small"
-                          onClick={() => setConfirmDisconnectId(advertiser.id)}
-                        >
-                          {t("adsManagement.disconnect")}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
               </tbody>
             </table>
           </div>

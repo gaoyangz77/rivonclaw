@@ -13,7 +13,6 @@ export const AdsAdvertiserModel = types.model("AdsAdvertiser", {
   id: types.identifier,
   userId: types.string,
   platform: types.string,
-  businessConnectionId: types.optional(types.maybeNull(types.string), null),
   ownerType: types.string,
   advertiserId: types.string,
   advertiserName: types.maybeNull(types.string),

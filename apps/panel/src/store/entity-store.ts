@@ -5,7 +5,6 @@ import {
   SurfaceModel,
   RunProfileModel,
   ShopModel,
-  AdsBusinessConnectionModel,
   AdsAdvertiserModel,
   AdsStoreBindingModel,
   WmsAccountModel,
@@ -103,7 +102,6 @@ const PanelRootStoreModel = RootStoreModel.props({
   surfaces: types.optional(types.array(SurfaceModel), []),
   runProfiles: types.optional(types.array(RunProfileModel), []),
   shops: types.optional(types.array(ShopModel), []),
-  adsBusinessConnections: types.optional(types.array(AdsBusinessConnectionModel), []),
   adsAdvertisers: types.optional(types.array(AdsAdvertiserModel), []),
   adsStoreBindings: types.optional(types.array(AdsStoreBindingModel), []),
   wmsAccounts: types.optional(types.array(WmsAccountModel), []),
@@ -142,7 +140,7 @@ const PanelRootStoreModel = RootStoreModel.props({
           yield Promise.all([
             client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: ADS_STORE_ACCESSES_QUERY, variables: { managedOnly: false }, fetchPolicy: "network-only" }),
+            client().query({ query: ADS_STORE_ACCESSES_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
             client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
@@ -278,10 +276,9 @@ const PanelRootStoreModel = RootStoreModel.props({
     }),
 
     /** Fire ads store access query to populate MST via Desktop proxy. */
-    fetchAdsStoreAccesses: flow(function* (managedOnly = false) {
+    fetchAdsStoreAccesses: flow(function* () {
       yield client().query({
         query: ADS_STORE_ACCESSES_QUERY,
-        variables: { managedOnly },
         fetchPolicy: "network-only",
       });
     }),
@@ -545,7 +542,6 @@ interface PanelEntityOverrides {
   readonly surfaces: Instance<typeof SurfaceModel>[];
   readonly runProfiles: Instance<typeof RunProfileModel>[];
   readonly shops: Instance<typeof ShopModel>[];
-  readonly adsBusinessConnections: Instance<typeof AdsBusinessConnectionModel>[];
   readonly adsAdvertisers: Instance<typeof AdsAdvertiserModel>[];
   readonly adsStoreBindings: Instance<typeof AdsStoreBindingModel>[];
   readonly wmsAccounts: Instance<typeof WmsAccountModel>[];
@@ -577,7 +573,7 @@ interface PanelEntityOverrides {
   createStripeBillingPortalSession(input: { product: string; scopeType: string; scopeId: string }): Promise<string | null>;
   initiateTikTokAdsOAuth(): Promise<{ authUrl: string; state: string }>;
   fetchAdsAdvertisers(): Promise<void>;
-  fetchAdsStoreAccesses(managedOnly?: boolean): Promise<void>;
+  fetchAdsStoreAccesses(): Promise<void>;
 }
 export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
 

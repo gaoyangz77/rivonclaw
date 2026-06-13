@@ -4,7 +4,6 @@ import { SurfaceModel } from "./Surface.js";
 import { RunProfileModel } from "./RunProfile.js";
 import { ShopModel } from "./Shop.js";
 import { AdsAdvertiserModel } from "./AdsAdvertiser.js";
-import { AdsBusinessConnectionModel } from "./AdsBusinessConnection.js";
 import { AdsStoreBindingModel } from "./AdsStoreBinding.js";
 import { BillingOverviewModel, BillingPlanDefinitionModel, PaymentModel } from "./Subscription.js";
 import { ProviderKeyModel } from "./ProviderKey.js";
@@ -84,7 +83,6 @@ export const RootStoreModel = types
     surfaces: types.optional(types.array(SurfaceModel), []),
     runProfiles: types.optional(types.array(RunProfileModel), []),
     shops: types.optional(types.array(ShopModel), []),
-    adsBusinessConnections: types.optional(types.array(AdsBusinessConnectionModel), []),
     adsAdvertisers: types.optional(types.array(AdsAdvertiserModel), []),
     adsStoreBindings: types.optional(types.array(AdsStoreBindingModel), []),
     providerKeys: types.optional(types.array(ProviderKeyModel), []),
@@ -181,9 +179,6 @@ export const RootStoreModel = types
     },
     getAdsAdvertiser(id: string) {
       return self.adsAdvertisers.find((advertiser) => advertiser.id === id);
-    },
-    getAdsBusinessConnection(id: string) {
-      return self.adsBusinessConnections.find((connection) => connection.id === id);
     },
     getAdsStoreBinding(id: string) {
       return self.adsStoreBindings.find((binding) => binding.id === id);

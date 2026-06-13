@@ -259,7 +259,6 @@ const DesktopRootStoreModel = RootStoreModel
     // --- Entity collections: __typename → MST array ---
     const COLLECTIONS: Record<string, any> = {
       Shop: self.shops,
-      AdsBusinessConnection: self.adsBusinessConnections,
       AdsAdvertiser: self.adsAdvertisers,
       AdsStoreBinding: self.adsStoreBindings,
       AdsStoreAccess: self.adsStoreBindings,
@@ -295,7 +294,6 @@ const DesktopRootStoreModel = RootStoreModel
     // --- Key-based fallback for arrays without __typename ---
     const KEY_FALLBACK: Record<string, any> = {
       shops: self.shops,
-      adsBusinessConnections: self.adsBusinessConnections,
       adsAdvertisers: self.adsAdvertisers,
       adsStoreAccesses: self.adsStoreBindings,
       adsStoreBindings: self.adsStoreBindings,
@@ -395,7 +393,6 @@ const DesktopRootStoreModel = RootStoreModel
   removeEntity(typeName: string, id: string) {
     const COLLECTIONS: Record<string, any> = {
       Shop: self.shops,
-      AdsBusinessConnection: self.adsBusinessConnections,
       AdsAdvertiser: self.adsAdvertisers,
       AdsStoreBinding: self.adsStoreBindings,
       AdsStoreAccess: self.adsStoreBindings,
@@ -446,7 +443,6 @@ const DesktopRootStoreModel = RootStoreModel
       applySnapshot(self.surfaces, []);
       applySnapshot(self.runProfiles, []);
       (self as any).clearShopCache("clear_cloud_entities");
-      applySnapshot(self.adsBusinessConnections, []);
       applySnapshot(self.adsAdvertisers, []);
       applySnapshot(self.adsStoreBindings, []);
       applySnapshot(self.platformApps, []);
@@ -466,7 +462,6 @@ const DesktopRootStoreModel = RootStoreModel
       if (!options?.preserveShops) {
         (self as any).clearShopCache("clear_cloud_data_except_user");
       }
-      applySnapshot(self.adsBusinessConnections, []);
       applySnapshot(self.adsAdvertisers, []);
       applySnapshot(self.adsStoreBindings, []);
       applySnapshot(self.platformApps, []);
