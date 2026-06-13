@@ -61,7 +61,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   // Subscribe to OAuth completion events
   backendSubscription.subscribeToOAuthComplete((payload) => {
     if (payload.shops?.length) {
-      rootStore.ingestGraphQLResponse({ shops: payload.shops });
+      rootStore.upsertShopsFromGraphQL(payload.shops, "oauth-complete");
     }
     broadcastEvent("oauth-complete", payload);
   });
