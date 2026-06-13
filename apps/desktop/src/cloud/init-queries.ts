@@ -148,6 +148,79 @@ export const INIT_SHOPS_QUERY = `
   }
 `;
 
+export const INIT_ADS_ADVERTISERS_QUERY = `
+  query {
+    adsBusinessConnections {
+      __typename
+      id
+      userId
+      platform
+      authGrantId
+      authStatus
+      displayName
+      authorizedAt
+      accessTokenExpiresAt
+      refreshTokenExpiresAt
+      advertiserCount
+      managedShopCount
+      lastSyncedAt
+      lastError
+      createdAt
+      updatedAt
+    }
+    adsAdvertisers {
+      __typename
+      id
+      userId
+      platform
+      businessConnectionId
+      ownerType
+      advertiserId
+      advertiserName
+      advertiserRole
+      platformStatus
+      currency
+      timezone
+      createdAt
+      updatedAt
+      auth {
+        status
+        accessTokenExpiresAt
+        refreshTokenExpiresAt
+        authorizedAt
+        lastRefreshedAt
+        lastError
+      }
+    }
+    adsStoreAccesses(managedOnly: false) {
+      __typename
+      id
+      userId
+      platform
+      adsAdvertiserId
+      advertiserId
+      shopId
+      linkedShopId
+      shopPlatformShopId
+      linkedShopName
+      linkedShopAuthStatus
+      linkStatus
+      isManagedByEasyClaw
+      storeId
+      storeName
+      storeAuthorizedBcId
+      businessCenterId
+      storeRole
+      storeStatus
+      isGmvMaxAvailable
+      exclusiveAuthorizedAdvertiserId
+      exclusiveAuthorizationStatus
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 export const INIT_PLATFORM_APPS_QUERY = `
   query {
     platformApps {

@@ -17,6 +17,7 @@ import { AddWmsAccountModal } from "./components/AddWmsAccountModal.js";
 import { WmsInventoryGoodsSyncModal } from "./components/WmsInventoryGoodsSyncModal.js";
 import { InventoryGoodsDrawer } from "./components/InventoryGoodsDrawer.js";
 import { InventoryGoodModal } from "./components/InventoryGoodModal.js";
+import { navigateToAdsManagement } from "./ads-readiness.js";
 
 export const EcommercePage = observer(function EcommercePage() {
   const { t } = useTranslation();
@@ -24,6 +25,8 @@ export const EcommercePage = observer(function EcommercePage() {
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
+  const adsAdvertisers = entityStore.adsAdvertisers;
+  const adsStoreBindings = entityStore.adsStoreBindings;
   const runProfiles = entityStore.allRunProfiles;
   const platformApps = entityStore.platformApps;
   const wmsAccounts = entityStore.wmsAccounts;
@@ -555,6 +558,8 @@ export const EcommercePage = observer(function EcommercePage() {
       {/* Shop Table */}
       <ShopTable
         shops={shops}
+        adsAdvertisers={adsAdvertisers}
+        adsStoreBindings={adsStoreBindings}
         oauthLoading={oauthFlow.oauthLoading}
         oauthWaiting={oauthFlow.oauthWaiting}
         refreshing={refreshing}
@@ -567,6 +572,7 @@ export const EcommercePage = observer(function EcommercePage() {
         onOpenDrawer={openDrawer}
         onReauthorize={handleReauthorize}
         onRequestDelete={setConfirmDeleteShopId}
+        onManageAds={navigateToAdsManagement}
       />
 
       <WmsAccountTable

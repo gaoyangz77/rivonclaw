@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { bootstrapDesktopAuthState } from "../src/app/bootstrap-auth-state.js";
 import {
+  INIT_ADS_ADVERTISERS_QUERY,
   INIT_BILLING_OVERVIEW_QUERY,
   INIT_INVENTORY_GOODS_QUERY,
   INIT_PLATFORM_APPS_QUERY,
@@ -17,6 +18,7 @@ function createStore() {
     currentUser: null as Record<string, unknown> | null,
     shops: [{ id: "stale-shop" }] as Array<Record<string, unknown>>,
     platformApps: [{ id: "stale-app" }] as Array<Record<string, unknown>>,
+    adsAdvertisers: [{ id: "stale-advertiser" }] as Array<Record<string, unknown>>,
     billingOverview: null as Record<string, unknown> | null,
     wmsAccounts: [{ id: "stale-wms" }] as Array<Record<string, unknown>>,
     warehouses: [{ id: "stale-warehouse" }] as Array<Record<string, unknown>>,
@@ -33,6 +35,7 @@ function createStore() {
       state.currentUser = null;
       state.shops = [];
       state.platformApps = [];
+      state.adsAdvertisers = [];
       state.billingOverview = null;
       state.wmsAccounts = [];
       state.warehouses = [];
@@ -47,6 +50,7 @@ function createStore() {
         state.shops = [];
       }
       state.platformApps = [];
+      state.adsAdvertisers = [];
       state.billingOverview = null;
       state.wmsAccounts = [];
       state.warehouses = [];
@@ -62,6 +66,7 @@ function createStore() {
       if (data.me) state.currentUser = data.me as Record<string, unknown>;
       if (data.shops) state.shops = data.shops as Array<Record<string, unknown>>;
       if (data.platformApps) state.platformApps = data.platformApps as Array<Record<string, unknown>>;
+      if (data.adsAdvertisers) state.adsAdvertisers = data.adsAdvertisers as Array<Record<string, unknown>>;
       if (data.billingOverview) state.billingOverview = data.billingOverview as Record<string, unknown>;
       if (data.readWmsAccounts) state.wmsAccounts = data.readWmsAccounts as Array<Record<string, unknown>>;
       if (data.readWarehouses) state.warehouses = data.readWarehouses as Array<Record<string, unknown>>;
@@ -87,6 +92,7 @@ describe("bootstrapDesktopAuthState", () => {
       [INIT_SURFACES_QUERY, { surfaces: [{ id: "surface-1", name: "Surface", userId: "u1", allowedToolIds: [], createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
       [INIT_RUN_PROFILES_QUERY, { runProfiles: [{ id: "profile-1", name: "Profile", userId: "u1", surfaceId: "surface-1", selectedToolIds: [] }] }],
       [INIT_SHOPS_QUERY, { shops: [{ id: "shop-1", platform: "tiktok", platformAppId: "app-1", platformShopId: "p-shop-1", shopName: "Shop 1", authStatus: "ok", region: "US", accessTokenExpiresAt: null, refreshTokenExpiresAt: null, services: null }] }],
+      [INIT_ADS_ADVERTISERS_QUERY, { adsAdvertisers: [{ id: "advertiser-1", platform: "tiktok", platformAppId: "app-1", advertiserId: "tt-advertiser-1", advertiserName: "Advertiser 1", authStatus: "AUTHORIZED", businessCenterId: null, currency: "USD", timezone: "America/Los_Angeles", countryCode: "US", role: "ADMIN", accessTokenExpiresAt: null, refreshTokenExpiresAt: null, metadata: null, createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
       [INIT_PLATFORM_APPS_QUERY, { platformApps: [{ id: "app-1", platform: "tiktok", market: "US", status: "ACTIVE", label: "TikTok US", apiBaseUrl: "https://example.com", authLinkUrl: "https://example.com/auth" }] }],
       [INIT_BILLING_OVERVIEW_QUERY, { billingOverview: { accountLlm: { planId: null, entitlement: { scopeType: "ACCOUNT", scopeId: "u1", product: "LLM_USAGE", allowed: false, code: "PAYMENT_REQUIRED", source: null, validUntil: null, usage: [] } }, shops: [] } }],
       [INIT_WMS_ACCOUNTS_QUERY, { readWmsAccounts: [{ id: "wms-1", label: "WMS 1", provider: "YEJOIN", endpoint: "https://wms.example.com", status: "ACTIVE", userId: "u1", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
@@ -112,12 +118,14 @@ describe("bootstrapDesktopAuthState", () => {
     expect(store.clearCloudDataExceptUser).toHaveBeenCalledTimes(1);
     expect(store.clearCloudDataExceptUser).toHaveBeenCalledWith({ preserveShops: true });
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_SHOPS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_ADS_ADVERTISERS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WMS_ACCOUNTS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);
     expect(store.state.shops).toEqual(queryResults.get(INIT_SHOPS_QUERY)?.shops);
+    expect(store.state.adsAdvertisers).toEqual(queryResults.get(INIT_ADS_ADVERTISERS_QUERY)?.adsAdvertisers);
     expect(store.state.platformApps).toEqual(queryResults.get(INIT_PLATFORM_APPS_QUERY)?.platformApps);
     expect(store.state.billingOverview).toEqual(queryResults.get(INIT_BILLING_OVERVIEW_QUERY)?.billingOverview);
     expect(store.state.wmsAccounts).toEqual(queryResults.get(INIT_WMS_ACCOUNTS_QUERY)?.readWmsAccounts);
@@ -150,10 +158,12 @@ describe("bootstrapDesktopAuthState", () => {
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_PLATFORM_APPS_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_BILLING_OVERVIEW_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_SHOPS_QUERY);
+    expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_ADS_ADVERTISERS_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_WMS_ACCOUNTS_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
     expect(authSession.graphqlFetch).not.toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);
     expect(store.state.shops).toEqual([]);
+    expect(store.state.adsAdvertisers).toEqual([]);
     expect(store.state.wmsAccounts).toEqual([]);
     expect(store.state.warehouses).toEqual([]);
     expect(store.state.inventoryGoods).toEqual([]);

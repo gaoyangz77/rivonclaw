@@ -6,6 +6,12 @@ export { RunProfileModel } from "./RunProfile.js";
 export type { RunProfile } from "./RunProfile.js";
 export { ShopModel, CustomerServiceConfigModel, ShopServiceConfigModel } from "./Shop.js";
 export type { Shop, CustomerServiceConfig, ShopServiceConfig } from "./Shop.js";
+export { AdsAdvertiserModel, AdsAdvertiserAuthModel } from "./AdsAdvertiser.js";
+export type { AdsAdvertiser, AdsAdvertiserAuth } from "./AdsAdvertiser.js";
+export { AdsBusinessConnectionModel } from "./AdsBusinessConnection.js";
+export type { AdsBusinessConnection } from "./AdsBusinessConnection.js";
+export { AdsStoreBindingModel } from "./AdsStoreBinding.js";
+export type { AdsStoreBinding } from "./AdsStoreBinding.js";
 export {
   AccountLlmBillingStatusModel,
   BillingEntitlementStatusModel,
