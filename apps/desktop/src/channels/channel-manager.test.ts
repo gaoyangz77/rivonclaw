@@ -81,7 +81,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         channelId: "telegram",
         accountId: "owner-bot",
         name: "Owner Bot",
-        config: { name: "Owner Bot", botToken: "real-user-token" },
+        config: { name: "Owner Bot", botToken: "real-user-token", streaming: "partial" },
         createdAt: 1,
         updatedAt: 1,
       }];
@@ -166,8 +166,10 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.telegram.defaultAccount).toBe("owner-bot");
       expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].apiRoot).toBe("https://relay.example.com/telegram-debug/devices/device-a");
+      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].streaming).toEqual({ mode: "block" });
       expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].direct["*"].systemPrompt).toContain("Do not set timeoutMs");
       expect(config.channels.telegram.accounts["owner-bot"].botToken).toBe("real-user-token");
+      expect(config.channels.telegram.accounts["owner-bot"].streaming).toEqual({ mode: "block" });
       expect(config.channels.telegram.accounts["owner-bot"].direct).toBeUndefined();
 
       expect(root.channelManager.syncTelegramDebugProxyAccount({
