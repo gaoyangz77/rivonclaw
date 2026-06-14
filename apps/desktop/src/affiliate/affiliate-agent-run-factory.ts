@@ -61,11 +61,12 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "## Task",
       "Decide whether the creator needs a reply now.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
+      renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       renderPredictionCacheInstruction(input),
-      "For every text reply, action.messageIntent must include messageType: TEXT.",
+      "For every text reply, action.messageIntent must include messageType: TEXT and a non-empty text field containing the exact creator-facing message.",
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
       "If a human should decide, use decision NEEDS_STAFF_REVIEW.",
       `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}. The text you write in action.messageIntent.text is the creator-facing message.`,
@@ -97,19 +98,20 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "## Task",
       "Review the sample request and decide whether the seller should approve it, reject it, or ask a human/operator for more context.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
+      renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the merchant instructions depend on dynamic creator or shop facts, such as follower count, GMV, prior performance, sample cost, inventory, or current fulfillment state, call affiliate_get_workspace with the narrowest available filters before deciding.",
       "If merchant instructions are not configured, do not invent follower-count, GMV, or sales thresholds. Use Affiliate Decision Thresholds when configured, otherwise use the Affiliate Prediction section as the primary decision signal plus concrete workspace facts such as block/risk tags and sample/product context.",
       "For sample review with prediction status OK: compare the predicted sales units with the configured minP50SalesUnits. If the predicted units are below the threshold, generally reject the sample unless stronger merchant instructions or workspace facts justify an exception. If the predicted units meet or exceed the threshold, that can support approving the sample.",
       "Write operatorSummary for a busy ecommerce seller, not a statistician. Explain the business meaning in plain language, for example: \"The model expects this creator to sell around 0 units for this product, below the shop's minimum of 2, so rejecting the sample is recommended.\" Do not include raw model details unless the merchant explicitly asks.",
       "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type REVIEW_SAMPLE_APPLICATION.",
-      "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing the sample decision and SEND_MESSAGE.",
+      "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing one REVIEW_SAMPLE_APPLICATION action and one separate SEND_MESSAGE action.",
       renderPredictionCacheInstruction(input),
-      "If you include a creator-facing text message, action.messageIntent must include messageType: TEXT.",
+      "If you include a creator-facing text message, the SEND_MESSAGE action's messageIntent must include messageType: TEXT and a non-empty text field containing the exact creator-facing message.",
       "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
-      `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in action.messageIntent.text.`,
-      "Use action.sampleReviewIntent.sampleApplicationRecordId and platformApplicationId from the projection; do not invent campaignId.",
-      "For sample review actions, do not put productId, creatorId, or campaignId on the action payload unless the tool schema explicitly asks for them; keep sample identifiers inside action.sampleReviewIntent.",
+      `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in the SEND_MESSAGE action's messageIntent.text.`,
+      "Use sampleReviewIntent.sampleApplicationRecordId and sampleReviewIntent.platformApplicationId from the projection; do not invent campaignId.",
+      "For REVIEW_SAMPLE_APPLICATION, do not put sampleApplicationRecordId, platformApplicationId, decision, rejectReason, productId, creatorId, or campaignId at the action top level. Keep sample identifiers and review decision inside action.sampleReviewIntent.",
       "For sample approval, set action.sampleReviewIntent.decision to APPROVE.",
       "For sample rejection, set action.sampleReviewIntent.decision to REJECT. If you set rejectReason, it must be exactly one of NOT_MATCH, OFFLINE, OUT_OF_STOCK, or OTHER; use OTHER for seller-specific rules such as follower-count thresholds, and put free-form rationale only in operatorSummary.",
       "Do not include null fields in affiliate_resolve_work_item input. Omit optional fields entirely when they are not needed.",
@@ -139,10 +141,11 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "The creator appears to be past the configured follow-up point after sample delivery or content-pending state.",
       "Decide whether to send a gentle creator follow-up now.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
+      renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If a follow-up is appropriate, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
-      "For every text follow-up, action.messageIntent must include messageType: TEXT.",
+      "For every text follow-up, action.messageIntent must include messageType: TEXT and a non-empty text field containing the exact creator-facing message.",
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
       "If Platform Conversation ID is empty, this is a proactive follow-up: omit action.messageIntent.conversationId and the backend will create or reuse the TikTok affiliate conversation from creator identity only after approval/execution.",
       `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
@@ -156,6 +159,19 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
 
 function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
+}
+
+function renderResolveWorkItemToolContract(): string {
+  return [
+    "## affiliate_resolve_work_item Tool Contract",
+    "Call this tool exactly once. The only platform action.type values supported by backend are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION.",
+    "Do not use CHANGE_COMMISSION, CHANGE_RATE, DISCOUNT, TAG_CREATOR, BLOCK_CREATOR, SHIP_SAMPLE, or any other action type. If the seller needs an unsupported action, use decision NEEDS_STAFF_REVIEW and explain it in operatorSummary.",
+    "When decision is REQUEST_ACTION, provide either input.action for one action or input.actions for an ordered bundle; do not provide both.",
+    "Each action must populate exactly one intent field matching action.type: SEND_MESSAGE uses messageIntent; REVIEW_SAMPLE_APPLICATION uses sampleReviewIntent; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
+    "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleReviewIntent: { sampleApplicationRecordId, platformApplicationId, decision, rejectReason? } }. Never put sampleApplicationRecordId, platformApplicationId, decision, or rejectReason at the action top level.",
+    "For SEND_MESSAGE, the action shape must be { type: SEND_MESSAGE, predictionCacheIds: [...], messageIntent: { messageType: TEXT, text, conversationId?, creatorId?, productId? } }. The text field is required and must contain the exact creator-facing message. Do not put the intended message only in operatorSummary.",
+    "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
+  ].join("\n");
 }
 
 function renderProposalDeltaSection(input: AffiliateAgentRunFactoryInput): string {
