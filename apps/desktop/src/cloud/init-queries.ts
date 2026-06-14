@@ -140,7 +140,7 @@ export const INIT_SHOPS_QUERY = `
           csDeviceId
           businessPrompt
           decisionThresholds {
-            minP50SalesUnits
+            minExpectedSalesUnits
           }
         }
       }
@@ -180,7 +180,6 @@ export const INIT_ADS_ADVERTISERS_QUERY = `
       platform
       adsAdvertiserId
       advertiserId
-      shopId
       storeId
       storeName
       storeAuthorizedBcId

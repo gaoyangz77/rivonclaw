@@ -193,12 +193,12 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
   });
 
-  it("resolves P50 prediction cache ids before dispatching affiliate work", async () => {
+  it("resolves expected-sales prediction cache ids before dispatching affiliate work", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
-      affiliateP50SalesPredictions: {
-        status: GQL.AffiliateP50SalesPredictionStatus.Ok,
+      affiliateExpectedSalesPredictions: {
+        status: GQL.AffiliateExpectedSalesPredictionStatus.Ok,
         requestId: "prediction-request-001",
-        modelTag: "affiliate-p50-test",
+        modelTag: "affiliate-expected-test",
         modelType: "ridge",
         trainedAt: "2026-05-11T00:00:00.000Z",
         featureVersion: "v1",
@@ -206,7 +206,7 @@ describe("affiliate work item dispatch", () => {
           cacheId: "prediction-cache-001",
           status: GQL.AffiliatePredictionStatus.Ok,
           message: null,
-          p50Units: 3,
+          expectedSalesUnits: 3,
           subject: {
             sampleApplicationRecordId: "sample-record-001",
             platformApplicationId: "platform-sample-001",
@@ -242,11 +242,11 @@ describe("affiliate work item dispatch", () => {
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
     const workItem = createSampleReviewWorkItem({
-      id: "collab-p50-001",
-      collaborationRecordId: "collab-p50-001",
+      id: "collab-expected-001",
+      collaborationRecordId: "collab-expected-001",
       collaboration: {
         ...createSampleReviewWorkItem().collaboration,
-        id: "collab-p50-001",
+        id: "collab-expected-001",
       },
     });
     const session = new AffiliateSession(
@@ -263,7 +263,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationId: "platform-sample-001",
-        collaborationRecordId: "collab-p50-001",
+        collaborationRecordId: "collab-expected-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -272,17 +272,130 @@ describe("affiliate work item dispatch", () => {
     await session.handleWorkItem(workItem);
 
     expect(graphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("affiliateP50SalesPredictions"),
+      expect.stringContaining("affiliateExpectedSalesPredictions"),
       expect.objectContaining({
         input: expect.objectContaining({
           shopId: "shop-001",
-          scenario: GQL.AffiliateP50SalesPredictionScenario.SampleReview,
+          scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
         }),
       }),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("prediction-cache-001");
     expect(agentCall?.[1]?.message).toContain("predictionCacheIds");
+  });
+
+  it("deterministically requests sample review when prediction and threshold are complete", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("affiliateExpectedSalesPredictions")) {
+        return {
+          affiliateExpectedSalesPredictions: {
+            status: GQL.AffiliateExpectedSalesPredictionStatus.Ok,
+            requestId: "prediction-request-reject",
+            modelTag: "affiliate-expected-test",
+            modelType: "ridge",
+            trainedAt: "2026-05-11T00:00:00.000Z",
+            featureVersion: "v1",
+            predictions: [{
+              cacheId: "prediction-cache-reject",
+              status: GQL.AffiliatePredictionStatus.Ok,
+              message: null,
+              expectedSalesUnits: 0,
+              subject: {
+                sampleApplicationRecordId: "sample-record-001",
+                platformApplicationId: "platform-sample-001",
+                creatorId: "creator-001",
+                productId: "product-001",
+              },
+              resolvedContext: {
+                shopId: "shop-001",
+                sampleApplicationRecordId: "sample-record-001",
+                platformApplicationId: "platform-sample-001",
+                creatorId: "creator-001",
+                productId: "product-001",
+                productTitle: "Test Product",
+              },
+              predictionQuality: null,
+              thresholdProbabilities: null,
+              validation: null,
+            }],
+          },
+        };
+      }
+      if (query.includes("ResolveAffiliateWorkItem")) {
+        return {
+          resolveAffiliateWorkItem: {
+            decision: GQL.AffiliateWorkItemResolutionDecision.RequestAction,
+            stale: false,
+            actionMode: GQL.AffiliateActionRequestMode.ProposalCreated,
+            proposal: { id: "proposal-001" },
+            collaborationRecord: {
+              id: "collab-deterministic-001",
+              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+            },
+          },
+        };
+      }
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const workItem = createSampleReviewWorkItem({
+      id: "collab-deterministic-001",
+      collaborationRecordId: "collab-deterministic-001",
+      collaboration: {
+        ...createSampleReviewWorkItem().collaboration,
+        id: "collab-deterministic-001",
+        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      },
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+        decisionThresholds: { minExpectedSalesUnits: 2 },
+        staffLanguage: "Chinese",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-deterministic-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+
+    expect(result.runId).toBeUndefined();
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      {
+        input: expect.objectContaining({
+          shopId: "shop-001",
+          collaborationRecordId: "collab-deterministic-001",
+          handledSignalAt: "2026-05-11T00:01:00.000Z",
+          decision: GQL.AffiliateWorkItemResolutionDecision.RequestAction,
+          operatorSummary: expect.stringContaining("建议拒绝这次样品申请"),
+          action: expect.objectContaining({
+            type: GQL.ActionProposalType.ReviewSampleApplication,
+            predictionCacheIds: ["prediction-cache-reject"],
+            sampleReviewIntent: {
+              sampleApplicationRecordId: "sample-record-001",
+              platformApplicationId: "platform-sample-001",
+              decision: GQL.AffiliateSampleReviewDecision.Reject,
+              rejectReason: GQL.AffiliateSampleRejectReason.Other,
+            },
+          }),
+        }),
+      },
+    );
   });
 
   it("injects shop affiliate decision thresholds into work item prompts", async () => {
@@ -294,7 +407,7 @@ describe("affiliate work item dispatch", () => {
         shopName: "Affiliate Test Shop",
         platform: "tiktok",
         runProfileId: "AFFILIATE_OPERATOR",
-        decisionThresholds: { minP50SalesUnits: 5 },
+        decisionThresholds: { minExpectedSalesUnits: 5 },
       },
       {
         shopId: "shop-001",
@@ -313,7 +426,7 @@ describe("affiliate work item dispatch", () => {
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("## Affiliate Decision Thresholds");
     expect(agentCall?.[1]?.message).toContain("- Source: shop default");
-    expect(agentCall?.[1]?.message).toContain("- minP50SalesUnits: 5");
+    expect(agentCall?.[1]?.message).toContain("- minExpectedSalesUnits: 5");
     expect(agentCall?.[1]?.message).toContain("busy ecommerce seller, not a statistician");
     expect(agentCall?.[1]?.message).toContain("below the shop's minimum");
   });
@@ -351,12 +464,12 @@ describe("affiliate work item dispatch", () => {
 
   it("does not mark a run failed when affiliate_resolve_work_item already handled the work boundary", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
-      if (query.includes("affiliateP50SalesPredictions")) {
+      if (query.includes("affiliateExpectedSalesPredictions")) {
         return {
-          affiliateP50SalesPredictions: {
-            status: GQL.AffiliateP50SalesPredictionStatus.Ok,
+          affiliateExpectedSalesPredictions: {
+            status: GQL.AffiliateExpectedSalesPredictionStatus.Ok,
             requestId: "prediction-request-empty",
-            modelTag: "affiliate-p50-test",
+            modelTag: "affiliate-expected-test",
             modelType: "ridge",
             trainedAt: null,
             featureVersion: "v1",

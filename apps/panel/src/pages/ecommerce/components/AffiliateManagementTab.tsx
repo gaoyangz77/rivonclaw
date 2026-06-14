@@ -15,8 +15,8 @@ interface AffiliateManagementTabProps {
   onRunProfileChange: (profileId: string) => void;
   editBusinessPrompt: string;
   onEditBusinessPrompt: (value: string) => void;
-  editMinP50SalesUnits: string;
-  onEditMinP50SalesUnits: (value: string) => void;
+  editMinExpectedSalesUnits: string;
+  onEditMinExpectedSalesUnits: (value: string) => void;
   savingSettings: boolean;
   onSaveBusinessPrompt: () => void;
   onSaveDecisionThresholds: () => void;
@@ -35,8 +35,8 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   onRunProfileChange,
   editBusinessPrompt,
   onEditBusinessPrompt,
-  editMinP50SalesUnits,
-  onEditMinP50SalesUnits,
+  editMinExpectedSalesUnits,
+  onEditMinExpectedSalesUnits,
   savingSettings,
   onSaveBusinessPrompt,
   onSaveDecisionThresholds,
@@ -135,10 +135,10 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
         <div className="affiliate-threshold-row">
           <div className="affiliate-threshold-copy">
             <label className="form-label-block" htmlFor={`affiliate-threshold-${shop.id}`}>
-              {t("ecommerce.shopDrawer.affiliate.minP50SalesUnits")}
+              {t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnits")}
             </label>
             <div className="shop-info-card-hint">
-              {t("ecommerce.shopDrawer.affiliate.minP50SalesUnitsHint")}
+              {t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnitsHint")}
             </div>
           </div>
           <div className="affiliate-threshold-control">
@@ -146,18 +146,18 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
               id={`affiliate-threshold-${shop.id}`}
               className="input affiliate-threshold-input"
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min={0}
-              step={1}
+              step={0.1}
               placeholder={t("ecommerce.shopDrawer.affiliate.noThreshold")}
-              value={editMinP50SalesUnits}
-              onChange={(e) => onEditMinP50SalesUnits(e.target.value)}
+              value={editMinExpectedSalesUnits}
+              onChange={(e) => onEditMinExpectedSalesUnits(e.target.value)}
             />
             <button
               className="btn btn-primary btn-sm"
               type="button"
               onClick={onSaveDecisionThresholds}
-              disabled={savingSettings || editMinP50SalesUnits === currentMinP50SalesUnits(shop)}
+              disabled={savingSettings || editMinExpectedSalesUnits === currentMinExpectedSalesUnits(shop)}
             >
               {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
             </button>
@@ -192,7 +192,7 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   );
 });
 
-function currentMinP50SalesUnits(shop: Shop): string {
-  const value = shop.services?.affiliateService?.decisionThresholds?.minP50SalesUnits;
+function currentMinExpectedSalesUnits(shop: Shop): string {
+  const value = shop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
   return typeof value === "number" ? String(value) : "";
 }

@@ -63,8 +63,8 @@ interface ShopDrawerProps {
   onAffiliateRunProfileChange: (profileId: string) => void;
   editAffiliateBusinessPrompt: string;
   onEditAffiliateBusinessPrompt: (value: string) => void;
-  editAffiliateMinP50SalesUnits: string;
-  onEditAffiliateMinP50SalesUnits: (value: string) => void;
+  editAffiliateMinExpectedSalesUnits: string;
+  onEditAffiliateMinExpectedSalesUnits: (value: string) => void;
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
   onSaveAffiliateDecisionThresholds: () => void;
@@ -122,8 +122,8 @@ export const ShopDrawer = observer(function ShopDrawer({
   onAffiliateRunProfileChange,
   editAffiliateBusinessPrompt,
   onEditAffiliateBusinessPrompt,
-  editAffiliateMinP50SalesUnits,
-  onEditAffiliateMinP50SalesUnits,
+  editAffiliateMinExpectedSalesUnits,
+  onEditAffiliateMinExpectedSalesUnits,
   savingAffiliateSettings,
   onSaveAffiliateBusinessPrompt,
   onSaveAffiliateDecisionThresholds,
@@ -192,10 +192,10 @@ export const ShopDrawer = observer(function ShopDrawer({
               )}
               {shop.services?.wms?.enabled && (
                 <button
-                  className={`drawer-tab-btn ${activeTab === "warehouseManagement" ? "drawer-tab-btn-active" : ""}`}
-                  onClick={() => onTabChange("warehouseManagement")}
+                  className={`drawer-tab-btn ${activeTab === "warehouseMapping" ? "drawer-tab-btn-active" : ""}`}
+                  onClick={() => onTabChange("warehouseMapping")}
                 >
-                  {t("ecommerce.shopDrawer.tabs.warehouseManagement")}
+                  {t("ecommerce.inventory.shopMappings")}
                 </button>
               )}
               {shop.services?.affiliateService?.enabled && (
@@ -342,6 +342,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                         ? t("common.enabled")
                         : t("common.disabled")}
                     </span>
+                    <span className="shop-info-card-hint">
+                      {t("ecommerce.inventory.enableShopHint")}
+                    </span>
                   </div>
                   <label className="toggle-switch">
                     <input
@@ -437,7 +440,7 @@ export const ShopDrawer = observer(function ShopDrawer({
               />
             )}
 
-            {activeTab === "warehouseManagement" && shop.services?.wms?.enabled && (
+            {activeTab === "warehouseMapping" && shop.services?.wms?.enabled && (
               <InventoryManagementTab shop={shop} />
             )}
 
@@ -451,8 +454,8 @@ export const ShopDrawer = observer(function ShopDrawer({
                 onRunProfileChange={onAffiliateRunProfileChange}
                 editBusinessPrompt={editAffiliateBusinessPrompt}
                 onEditBusinessPrompt={onEditAffiliateBusinessPrompt}
-                editMinP50SalesUnits={editAffiliateMinP50SalesUnits}
-                onEditMinP50SalesUnits={onEditAffiliateMinP50SalesUnits}
+                editMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
+                onEditMinExpectedSalesUnits={onEditAffiliateMinExpectedSalesUnits}
                 savingSettings={savingAffiliateSettings}
                 onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
                 onSaveDecisionThresholds={onSaveAffiliateDecisionThresholds}

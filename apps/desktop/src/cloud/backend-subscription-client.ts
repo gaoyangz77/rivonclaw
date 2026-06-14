@@ -67,11 +67,21 @@ const OAUTH_COMPLETE_SUBSCRIPTION = `
             csDeviceId
             businessPrompt
             decisionThresholds {
-              minP50SalesUnits
+              minExpectedSalesUnits
             }
           }
         }
       }
+    }
+  }
+`;
+
+const ADS_OAUTH_COMPLETE_SUBSCRIPTION = `
+  subscription AdsOAuthComplete {
+    adsOAuthComplete {
+      platform
+      advertiserIds
+      advertiserCount
     }
   }
 `;
@@ -111,7 +121,7 @@ const SHOP_UPDATED_SUBSCRIPTION = `
           csDeviceId
           businessPrompt
           decisionThresholds {
-            minP50SalesUnits
+            minExpectedSalesUnits
           }
         }
       }
@@ -715,6 +725,12 @@ export interface OAuthCompletePayload {
   }>;
 }
 
+export interface AdsOAuthCompletePayload {
+  platform: string;
+  advertiserIds: string[];
+  advertiserCount: number;
+}
+
 /** Subscription config stored as desired state for long-lived operations. */
 interface SubscriptionConfig {
   key: string;
@@ -1282,6 +1298,42 @@ export class BackendSubscriptionClient {
     };
 
     return this.registerSubscription({ key, subscribe, longLived: true });
+  }
+
+  subscribeToAdsOAuthComplete(
+    onComplete: (payload: AdsOAuthCompletePayload) => void,
+  ): () => void {
+    const key = "ads-oauth-complete";
+
+    const subscribe = (): StartedSubscription => {
+      if (!this.client) return { attempt: this.nextAttempt(key), unsubscribe: () => {} };
+      const attempt = this.nextAttempt(key);
+
+      const unsubscribe = this.client.subscribe<{ adsOAuthComplete: AdsOAuthCompletePayload }>(
+        {
+          query: ADS_OAUTH_COMPLETE_SUBSCRIPTION,
+        },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key);
+            this.handleResultErrors(key, attempt, "Ads OAuth subscription next contained GraphQL errors", result.errors);
+            const payload = result.data?.adsOAuthComplete;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "adsOAuthComplete", result as any);
+              return;
+            }
+            onComplete(payload);
+          },
+          error: (err) => {
+            this.handleSubscriptionError(key, attempt, "Ads OAuth subscription error", err);
+          },
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+      return { attempt, unsubscribe };
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 
   /**

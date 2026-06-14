@@ -35,7 +35,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         csDeviceId
         businessPrompt
         decisionThresholds {
-          minP50SalesUnits
+          minExpectedSalesUnits
         }
       }
     }
@@ -135,6 +135,57 @@ export const PRESET_SKILL_MANIFEST_QUERY = gql`
       autoUpdatePolicy
       version
       updatedAt
+    }
+  }
+`;
+
+export const ECOMMERCE_GET_PRODUCT_QUERY = gql`
+  query EcommerceGetProduct($shopId: String!, $productId: String!) {
+    ecommerceGetProduct(shopId: $shopId, productId: $productId) {
+      productId
+      title
+      status
+      description
+      createTime
+      updateTime
+      images {
+        url
+        width
+        height
+      }
+      brand {
+        id
+        name
+      }
+      categoryChains {
+        id
+        localName
+        parentId
+        isLeaf
+      }
+      productTypes
+      skus {
+        id
+        sellerSku
+        price {
+          salePrice
+          currency
+          taxExclusivePrice
+        }
+        listPrice {
+          amount
+          currency
+        }
+        statusInfo {
+          status
+          deactivationSource
+        }
+        inventory {
+          warehouseId
+          quantity
+          backorderQuantity
+        }
+      }
     }
   }
 `;
@@ -396,6 +447,14 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         avatarUrl
       }
       collaborationRecordId
+      collaborationRecord {
+        id
+        productId
+        sampleApplicationRecordId
+        platformCollaborationId
+        platformConversationId
+        processingStatus
+      }
       type
       status
       operatorSummary
@@ -530,6 +589,404 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         lifecycleEventIds
         executedAt
         errorMessage
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_DASHBOARD_QUERY = gql`
+  query AffiliateDashboard($input: AffiliateDashboardInput) {
+    affiliateDashboard(input: $input) {
+      summary {
+        needsAttentionCount
+        pendingApprovalCount
+        manualFollowUpCount
+        inProgressCount
+        historyCount
+      }
+      items {
+        id
+        section
+        kind
+        shopId
+        creatorId
+        creatorProfile {
+          id
+          creatorOpenId
+          creatorImId
+          username
+          nickname
+          avatarUrl
+        }
+        collaborationRecordId
+        collaborationRecord {
+          id
+          creatorId
+          productId
+          sampleApplicationRecordId
+          platformCollaborationId
+          platformConversationId
+          processingStatus
+          processReasons
+          lifecycleStage
+          lastSignalAt
+          workHandledUntil
+          stateUpdatedAt
+        }
+        proposalId
+        proposal {
+          id
+          userId
+          shopId
+          campaignId
+          creatorId
+          collaborationRecordId
+          type
+          status
+          operatorSummary
+          steps {
+            stepId
+            type
+            operatorSummary
+            messageIntent {
+              conversationId
+              creatorId
+              creatorOpenId
+              messageType
+              text
+              productId
+              platformApplicationId
+              platformTargetCollaborationId
+              sampleApplicationRecordId
+              targetCollaborationRecordId: affiliateCollaborationId
+              imageUrl
+              imageWidth
+              imageHeight
+            }
+            sampleReviewIntent {
+              sampleApplicationRecordId
+              platformApplicationId
+              decision
+              rejectReason
+            }
+            sampleShipmentIntent {
+              sampleApplicationRecordId
+              platformApplicationId
+              warehouseId
+              skuId
+              quantity
+            }
+          }
+          createdAt
+          updatedAt
+          expiresAt
+          policySnapshot {
+            action
+            requiresApproval
+            matchedPolicyIds
+            reasons
+          }
+          decision {
+            decidedAt
+            decidedByActorId
+            note
+          }
+          messageIntent {
+            conversationId
+            creatorId
+            creatorOpenId
+            messageType
+            text
+            productId
+            platformApplicationId
+            platformTargetCollaborationId
+            sampleApplicationRecordId
+            targetCollaborationRecordId: affiliateCollaborationId
+            imageUrl
+            imageWidth
+            imageHeight
+          }
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+          }
+          sampleShipmentIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            warehouseId
+            skuId
+            quantity
+          }
+          targetCollaborationIntent {
+            name
+            message
+            endTime
+            hasFreeSample
+            isSampleApprovalExempt
+            creatorIds
+            creatorOpenIds
+            products {
+              productId
+              targetCommissionRateBps
+              shopAdsCommissionRateBps
+            }
+            sellerContactInfo {
+              email
+              phoneNumber
+              whatsapp
+              telegram
+              line
+            }
+          }
+          creatorTagIntent {
+            creatorId
+            tagId
+          }
+          blockCreatorIntent {
+            creatorId
+            reason
+          }
+          campaignProductUpdateIntent {
+            campaignId
+            campaignProductId
+            productId
+            commissionRate
+            maxCommissionRate
+            sampleOfferMode
+            sampleQuota
+            sampleUnitCostAmount
+            sampleUnitCostCurrency
+            promotionPriority
+          }
+          approvalPolicyUpdateIntent {
+            policyId
+            action
+            creatorTagIds
+            campaignIds
+            productIds
+            reason
+            enabled
+          }
+          candidateDecisionIntent {
+            candidateIds
+            status
+            rationale
+          }
+          executionResult {
+            platformObjectId
+            domainObjectId
+            lifecycleEventIds
+            executedAt
+            errorMessage
+          }
+        }
+        sampleApplicationRecordId
+        sampleApplicationRecord {
+          id
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          productId
+          sampleWorkStatus
+          observedContentCount
+          latestObservedContentAt
+          latestObservedContentUrl
+          latestObservedContentFormat
+          latestObservedContentPaidOrderCount
+          latestObservedContentViewCount
+          carrier
+          trackingNumber
+          shippedAt
+          deliveredAt
+          updatedAt
+        }
+        productSummary {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          skus {
+            skuId
+            skuName
+            sellerSku
+            price
+            currency
+          }
+        }
+        lifecycleEventId
+        lifecycleEventType
+        title
+        summary
+        statusLabel
+        occurredAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
+  query AffiliateCollaborationRecordItems($input: ReadAffiliateCollaborationRecordsInput!) {
+    affiliateCollaborationRecordItems(input: $input) {
+      collaborationRecord {
+        id
+        userId
+        shopId
+        creatorId
+        creatorOpenId
+        productId
+        lifecycleStage
+        processingStatus
+        processReasons
+        nextSellerActionAt
+        stateUpdatedAt
+        lastSignalAt
+        workHandledUntil
+        affiliateCollaborationId
+        collaborationType
+        platformCollaborationId
+        platformConversationId
+        creatorImId
+        lastCreatorMessageId
+        lastCreatorMessageAt
+        sampleApplicationRecordId
+        startedAt
+        endedAt
+      }
+      creatorProfile {
+        id
+        creatorOpenId
+        creatorImId
+        username
+        nickname
+        avatarUrl
+        followerCount
+      }
+      productSummary {
+        productId
+        title
+        coverImage
+        status
+        priceMin
+        priceMax
+        skus {
+          skuId
+          skuName
+          sellerSku
+          price
+          currency
+        }
+      }
+      latestProposal {
+        id
+        type
+        status
+        operatorSummary
+        createdAt
+        updatedAt
+      }
+      latestLifecycleEvent {
+        id
+        eventType
+        fromStage
+        toStage
+        displayPayloadJson
+        actorType
+        createdAt
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
+  query AffiliateCollaborationActivity($input: AffiliateCollaborationActivityInput!) {
+    affiliateCollaborationActivity(input: $input) {
+      actionProposals {
+        id
+        type
+        status
+        operatorSummary
+        steps {
+          stepId
+          type
+          operatorSummary
+          messageIntent {
+            conversationId
+            creatorId
+            creatorOpenId
+            messageType
+            text
+            productId
+            platformApplicationId
+            platformTargetCollaborationId
+            sampleApplicationRecordId
+            targetCollaborationRecordId: affiliateCollaborationId
+          }
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+          }
+          sampleShipmentIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            warehouseId
+            skuId
+            quantity
+          }
+        }
+        messageIntent {
+          conversationId
+          creatorId
+          creatorOpenId
+          messageType
+          text
+          productId
+          platformApplicationId
+          platformTargetCollaborationId
+          sampleApplicationRecordId
+          targetCollaborationRecordId: affiliateCollaborationId
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        sampleShipmentIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          warehouseId
+          skuId
+          quantity
+        }
+        createdAt
+        updatedAt
+        decision {
+          decidedAt
+          note
+        }
+        executionResult {
+          platformObjectId
+          domainObjectId
+          executedAt
+          errorMessage
+        }
+      }
+      lifecycleEvents {
+        id
+        eventType
+        fromStage
+        toStage
+        displayPayloadJson
+        actorType
+        actorId
+        createdAt
       }
     }
   }

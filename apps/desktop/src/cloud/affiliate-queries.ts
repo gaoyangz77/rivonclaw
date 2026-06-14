@@ -119,7 +119,7 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         id
         name
         decisionThresholds {
-          minP50SalesUnits
+          minExpectedSalesUnits
         }
       }
     }
@@ -171,9 +171,9 @@ export interface AffiliateActionProposalDeltaQueryResult {
   affiliateActionProposalDelta: GQL.ActionProposal[];
 }
 
-export const AFFILIATE_P50_SALES_PREDICTIONS_QUERY = `
-  query AffiliateP50SalesPredictions($input: AffiliateP50SalesPredictionInput!) {
-    affiliateP50SalesPredictions(input: $input) {
+export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
+  query AffiliateExpectedSalesPredictions($input: AffiliateExpectedSalesPredictionInput!) {
+    affiliateExpectedSalesPredictions(input: $input) {
       status
       requestId
       modelTag
@@ -184,7 +184,9 @@ export const AFFILIATE_P50_SALES_PREDICTIONS_QUERY = `
         cacheId
         status
         message
-        p50Units
+        expectedSalesUnits
+        rawExpectedSalesUnits
+        expectedSalesPercentile
         subject {
           sampleApplicationRecordId
           platformApplicationId
@@ -213,6 +215,7 @@ export const AFFILIATE_P50_SALES_PREDICTIONS_QUERY = `
           featureCompletenessScore
           dataSupportScore
           probabilityMarginScore
+          calibrationBucketSupportScore
           interpretation
         }
         thresholdProbabilities {
@@ -222,13 +225,32 @@ export const AFFILIATE_P50_SALES_PREDICTIONS_QUERY = `
           unitsGe5
           unitsGe10
         }
+        thresholdPercentiles {
+          unitsGe1 { percentile topPercent }
+          unitsGe2 { percentile topPercent }
+          unitsGe3 { percentile topPercent }
+          unitsGe5 { percentile topPercent }
+          unitsGe10 { percentile topPercent }
+        }
+        calibrationBucket {
+          bucketIndex
+          scoreMin
+          scoreMax
+          sampleCount
+          actualAvgUnits
+          actualP25Units
+          actualMedianUnits
+          actualP75Units
+          actualP90Units
+          actualZeroRate
+        }
       }
     }
   }
 `;
 
-export interface AffiliateP50SalesPredictionsQueryResult {
-  affiliateP50SalesPredictions: GQL.AffiliateP50SalesPredictionPayload;
+export interface AffiliateExpectedSalesPredictionsQueryResult {
+  affiliateExpectedSalesPredictions: GQL.AffiliateExpectedSalesPredictionPayload;
 }
 
 export const AFFILIATE_WORK_ITEMS_QUERY = `

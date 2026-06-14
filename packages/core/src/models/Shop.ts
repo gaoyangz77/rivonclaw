@@ -49,7 +49,7 @@ export const WmsSettingsModel = types.model("WmsSettings", {
 });
 
 export const AffiliateDecisionThresholdsConfigModel = types.model("AffiliateDecisionThresholdsConfig", {
-  minP50SalesUnits: types.maybeNull(types.number),
+  minExpectedSalesUnits: types.maybeNull(types.number),
 });
 
 export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig", {
