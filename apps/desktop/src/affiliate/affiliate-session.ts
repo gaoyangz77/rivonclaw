@@ -16,12 +16,12 @@ import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
   AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY,
-  AFFILIATE_P50_SALES_PREDICTIONS_QUERY,
+  AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateActionProposalDeltaQueryResult,
-  type AffiliateP50SalesPredictionsQueryResult,
+  type AffiliateExpectedSalesPredictionsQueryResult,
   type AffiliateConversationMessageDeltaQueryResult,
   type AffiliateWorkItemsQueryResult,
   type AffiliateWorkspaceQueryResult,
@@ -272,13 +272,24 @@ export class AffiliateSession {
       if (generation !== this.dispatchGeneration) return { runId: undefined };
     }
 
+    const predictionContext = await this.resolvePredictionDispatchContext(workItem);
+    const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
+    if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
+      return { runId: undefined };
+    }
+
     const request = buildAffiliateAgentRunRequest({
       workItem,
       platform: this.platform,
       conversationDelta,
       proposalDeltaSection: await this.buildProposalDeltaSection(workItem),
-      ...(await this.resolvePredictionDispatchContext(workItem)),
-      ...(await this.resolveDecisionThresholdDispatchContext(workItem)),
+      ...predictionContext,
+      ...thresholdContext,
+      sampleReviewDecisionSection: renderSampleReviewDefaultDecisionSection(
+        workItem,
+        predictionContext,
+        thresholdContext,
+      ),
       businessPrompt: this.shop.businessPrompt,
       staffLanguage: this.shop.staffLanguage,
     });
@@ -289,6 +300,62 @@ export class AffiliateSession {
       this.pendingRunCompletions.set(result.runId, workItem);
     }
     return result;
+  }
+
+  private async resolveDeterministicSampleReviewIfAvailable(
+    workItem: GQL.AffiliateWorkItem,
+    predictionContext: AffiliatePredictionDispatchContext,
+    thresholdContext: AffiliateDecisionThresholdDispatchContext,
+  ): Promise<boolean> {
+    const defaultDecision = computeSampleReviewDefaultDecision(
+      workItem,
+      predictionContext,
+      thresholdContext,
+      this.shop.staffLanguage,
+    );
+    if (!defaultDecision) return false;
+
+    const sample = workItem.sampleApplicationRecord;
+    if (!sample?.id || !sample.platformApplicationId) return false;
+
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn(`No auth session available, cannot resolve deterministic sample review for ${workItem.id}`);
+      return false;
+    }
+
+    const action: Record<string, unknown> = {
+      type: "REVIEW_SAMPLE_APPLICATION",
+      predictionCacheIds: predictionContext.predictionCacheIds ?? [],
+      sampleReviewIntent: {
+        sampleApplicationRecordId: sample.id,
+        platformApplicationId: sample.platformApplicationId,
+        decision: defaultDecision.decision,
+        ...(defaultDecision.decision === "REJECT" ? { rejectReason: "OTHER" } : {}),
+      },
+    };
+
+    const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
+      RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
+      {
+        input: {
+          shopId: workItem.shopId,
+          collaborationRecordId: workItem.collaborationRecordId,
+          handledSignalAt: workItem.collaboration.lastSignalAt ?? null,
+          decision: "REQUEST_ACTION",
+          operatorSummary: defaultDecision.operatorSummary,
+          action,
+        },
+      },
+    );
+    const payload = result.resolveAffiliateWorkItem;
+    log.info(
+      `Deterministic affiliate sample review resolved: collaboration=${workItem.collaborationRecordId} ` +
+      `decision=${defaultDecision.decision} mode=${payload.actionMode ?? ""} ` +
+      `proposal=${payload.proposal?.id ?? ""} stale=${payload.stale} ` +
+      `status=${payload.collaborationRecord?.processingStatus ?? ""}`,
+    );
+    return true;
   }
 
   onRunCompleted(runId: string, options: { errored?: boolean } = {}): void {
@@ -657,7 +724,7 @@ export class AffiliateSession {
   private async resolvePredictionDispatchContext(
     workItem: GQL.AffiliateWorkItem,
   ): Promise<AffiliatePredictionDispatchContext> {
-    const scenario = selectP50PredictionScenario(workItem);
+    const scenario = selectExpectedSalesPredictionScenario(workItem);
     if (!scenario) {
       return { predictionSection: "## Affiliate Prediction\n(not applicable for this work item)" };
     }
@@ -666,9 +733,15 @@ export class AffiliateSession {
       snapshot => snapshot.status === GQL.AffiliatePredictionStatus.Ok,
     );
     if (existingSnapshot) {
+      const output = existingSnapshot.output ?? {};
       return {
-        predictionSection: renderP50PredictionSnapshotSection(existingSnapshot.scenario, existingSnapshot),
+        predictionSection: renderExpectedSalesPredictionSnapshotSection(existingSnapshot.scenario, existingSnapshot),
         predictionCacheIds: [],
+        primaryPrediction: {
+          status: existingSnapshot.status,
+          expectedSalesUnits: numberFromUnknown(output.expectedSalesUnits),
+          cacheId: null,
+        },
       };
     }
 
@@ -676,7 +749,7 @@ export class AffiliateSession {
     const existing = predictionMemo.get(memoKey);
     if (existing) return existing;
 
-    const promise = this.fetchAndRenderP50Prediction(workItem, scenario)
+    const promise = this.fetchAndRenderExpectedSalesPrediction(workItem, scenario)
       .then((context) => {
         if ((context.predictionCacheIds?.length ?? 0) === 0) {
           predictionMemo.delete(memoKey);
@@ -701,9 +774,9 @@ export class AffiliateSession {
     return promise;
   }
 
-  private async fetchAndRenderP50Prediction(
+  private async fetchAndRenderExpectedSalesPrediction(
     workItem: GQL.AffiliateWorkItem,
-    scenario: GQL.AffiliateP50SalesPredictionScenario,
+    scenario: GQL.AffiliateExpectedSalesPredictionScenario,
   ): Promise<AffiliatePredictionDispatchContext> {
     const authSession = getAuthSession();
     if (!authSession) {
@@ -719,19 +792,20 @@ export class AffiliateSession {
       };
     }
 
-    const input = buildP50PredictionInput(this.affiliateContext.shopId, scenario, workItem);
-    const result = await authSession.graphqlFetch<AffiliateP50SalesPredictionsQueryResult>(
-      AFFILIATE_P50_SALES_PREDICTIONS_QUERY,
+    const input = buildExpectedSalesPredictionInput(this.affiliateContext.shopId, scenario, workItem);
+    const result = await authSession.graphqlFetch<AffiliateExpectedSalesPredictionsQueryResult>(
+      AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY,
       { input },
     );
-    const payload = result.affiliateP50SalesPredictions;
+    const payload = result.affiliateExpectedSalesPredictions;
     const predictions = payload.predictions ?? [];
     const cacheIds = predictions
       .map(prediction => prediction.cacheId)
       .filter((cacheId): cacheId is string => typeof cacheId === "string" && cacheId.length > 0);
     return {
-      predictionSection: renderP50PredictionPayloadSection(scenario, payload),
+      predictionSection: renderExpectedSalesPredictionPayloadSection(scenario, payload),
       predictionCacheIds: cacheIds,
+      primaryPrediction: extractPrimaryPrediction(predictions),
     };
   }
 
@@ -820,6 +894,7 @@ function buildSignalIdempotencyKey(platform: string, signal: AffiliateConversati
 interface AffiliatePredictionDispatchContext {
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
+  primaryPrediction?: AffiliatePrimaryPrediction | null;
 }
 
 interface AffiliateDecisionThresholdDispatchContext {
@@ -827,36 +902,50 @@ interface AffiliateDecisionThresholdDispatchContext {
   decisionThresholdSource?: string | null;
 }
 
+interface AffiliatePrimaryPrediction {
+  status?: string | null;
+  expectedSalesUnits?: number | null;
+  cacheId?: string | null;
+}
+
+interface SampleReviewDefaultDecision {
+  decision: GQL.AffiliateSampleReviewDecision;
+  expectedSalesUnits: number;
+  minExpectedSalesUnits: number;
+  predictionStatus: string;
+  operatorSummary: string;
+}
+
 function hasConfiguredDecisionThreshold(
   thresholds: GQL.AffiliateDecisionThresholds | null | undefined,
 ): thresholds is GQL.AffiliateDecisionThresholds {
-  return typeof thresholds?.minP50SalesUnits === "number";
+  return typeof thresholds?.minExpectedSalesUnits === "number";
 }
 
-function selectP50PredictionScenario(
+function selectExpectedSalesPredictionScenario(
   workItem: GQL.AffiliateWorkItem,
-): GQL.AffiliateP50SalesPredictionScenario | null {
+): GQL.AffiliateExpectedSalesPredictionScenario | null {
   switch (workItem.workKind) {
     case GQL.AffiliateWorkKind.SampleReviewNeeded:
-      return GQL.AffiliateP50SalesPredictionScenario.SampleReview;
+      return GQL.AffiliateExpectedSalesPredictionScenario.SampleReview;
     case GQL.AffiliateWorkKind.CreatorReplyNeeded:
     case GQL.AffiliateWorkKind.ContentFollowUpDue:
-      return GQL.AffiliateP50SalesPredictionScenario.TargetCollaborationPlanning;
+      return GQL.AffiliateExpectedSalesPredictionScenario.TargetCollaborationPlanning;
     default:
       return null;
   }
 }
 
-function buildP50PredictionInput(
+function buildExpectedSalesPredictionInput(
   shopId: string,
-  scenario: GQL.AffiliateP50SalesPredictionScenario,
+  scenario: GQL.AffiliateExpectedSalesPredictionScenario,
   workItem: GQL.AffiliateWorkItem,
-): GQL.AffiliateP50SalesPredictionInput {
+): GQL.AffiliateExpectedSalesPredictionInput {
   const collaboration = workItem.collaboration;
   const sample = workItem.sampleApplicationRecord ?? workItem.context?.primarySampleApplication ?? null;
   const creatorProfile = workItem.context?.creatorProfile ?? null;
   const productId = collaboration.productId ?? sample?.productId ?? workItem.context?.productContext?.productId ?? null;
-  const subject: GQL.AffiliateP50SalesPredictionSubjectInput = {
+  const subject: GQL.AffiliateExpectedSalesPredictionSubjectInput = {
     creatorId: collaboration.creatorId ?? creatorProfile?.id ?? undefined,
     creatorOpenId: collaboration.creatorOpenId ?? creatorProfile?.creatorOpenId ?? undefined,
     productId: productId ?? undefined,
@@ -864,7 +953,7 @@ function buildP50PredictionInput(
     platformCollaborationId: collaboration.platformCollaborationId ?? undefined,
   };
 
-  if (scenario === GQL.AffiliateP50SalesPredictionScenario.SampleReview) {
+  if (scenario === GQL.AffiliateExpectedSalesPredictionScenario.SampleReview) {
     subject.sampleApplicationRecordId = sample?.id ?? collaboration.sampleApplicationRecordId ?? undefined;
     subject.platformApplicationId = sample?.platformApplicationId ?? undefined;
   }
@@ -881,30 +970,149 @@ function buildP50PredictionInput(
   };
 }
 
-function renderP50PredictionSnapshotSection(
-  scenario: GQL.AffiliateP50SalesPredictionScenario,
+function extractPrimaryPrediction(
+  predictions: readonly GQL.AffiliateExpectedSalesSubjectPrediction[],
+): AffiliatePrimaryPrediction | null {
+  const prediction = predictions.find(item => isOkPredictionStatus(item.status)) ?? predictions[0];
+  if (!prediction) return null;
+  return {
+    status: String(prediction.status),
+    expectedSalesUnits: typeof prediction.expectedSalesUnits === "number" && Number.isFinite(prediction.expectedSalesUnits)
+      ? prediction.expectedSalesUnits
+      : null,
+    cacheId: prediction.cacheId ?? null,
+  };
+}
+
+function renderSampleReviewDefaultDecisionSection(
+  workItem: GQL.AffiliateWorkItem,
+  predictionContext: AffiliatePredictionDispatchContext,
+  thresholdContext: AffiliateDecisionThresholdDispatchContext,
+): string | undefined {
+  if (workItem.workKind !== GQL.AffiliateWorkKind.SampleReviewNeeded) return undefined;
+
+  const minExpectedSalesUnits = thresholdContext.decisionThresholds?.minExpectedSalesUnits;
+  const prediction = predictionContext.primaryPrediction;
+  const expectedSalesUnits = prediction?.expectedSalesUnits;
+  const predictionStatus = prediction?.status ?? "";
+  if (typeof minExpectedSalesUnits !== "number") {
+    return [
+      "## Default Sample Review Decision",
+      "- Decision: NOT_COMPUTED",
+      "- Reason: no minExpectedSalesUnits threshold is configured for this shop/campaign.",
+      "- Agent instruction: use merchant instructions, prediction meaning, and workspace facts. If a concrete approve/reject action is still clear, use REQUEST_ACTION.",
+    ].join("\n");
+  }
+  if (!isOkPredictionStatus(predictionStatus) || typeof expectedSalesUnits !== "number") {
+    return [
+      "## Default Sample Review Decision",
+      "- Decision: NOT_COMPUTED",
+      `- Reason: no OK prediction with numeric expectedSalesUnits was available before dispatch. Prediction status: ${predictionStatus || "unknown"}.`,
+      "- Agent instruction: use workspace facts and merchant instructions. Use NEEDS_STAFF_REVIEW only if no concrete approve/reject action can be formed.",
+    ].join("\n");
+  }
+
+  const defaultDecision = computeSampleReviewDefaultDecision(workItem, predictionContext, thresholdContext);
+  if (!defaultDecision) return undefined;
+  const comparison = defaultDecision.decision === GQL.AffiliateSampleReviewDecision.Reject ? "below" : "at or above";
+  return [
+    "## Default Sample Review Decision",
+    `- Decision: ${defaultDecision.decision}`,
+    `- Prediction Status: ${defaultDecision.predictionStatus}`,
+    `- Predicted Sales Units: ${formatMaybeNumber(defaultDecision.expectedSalesUnits)}`,
+    `- Shop Minimum Sales Units: ${formatMaybeNumber(defaultDecision.minExpectedSalesUnits)}`,
+    `- Comparison: predicted sales are ${comparison} the configured threshold.`,
+    `- Plain Seller Reason: ${defaultDecision.operatorSummary}`,
+    "- Agent instruction: unless Backend Work Context lists a true blocker such as blocked creator, explicit merchant override, stock/fulfillment blocker, or conflicting policy, call affiliate_resolve_work_item with decision REQUEST_ACTION and action.type REVIEW_SAMPLE_APPLICATION using this default decision.",
+    "- Approval policy is not a blocker. If approval is required, backend will create an ActionProposal from REQUEST_ACTION.",
+  ].join("\n");
+}
+
+function computeSampleReviewDefaultDecision(
+  workItem: GQL.AffiliateWorkItem,
+  predictionContext: AffiliatePredictionDispatchContext,
+  thresholdContext: AffiliateDecisionThresholdDispatchContext,
+  staffLanguage?: StaffLanguage,
+): SampleReviewDefaultDecision | null {
+  if (workItem.workKind !== GQL.AffiliateWorkKind.SampleReviewNeeded) return null;
+
+  const minExpectedSalesUnits = thresholdContext.decisionThresholds?.minExpectedSalesUnits;
+  const prediction = predictionContext.primaryPrediction;
+  const expectedSalesUnits = prediction?.expectedSalesUnits;
+  const predictionStatus = prediction?.status ?? "";
+  if (
+    typeof minExpectedSalesUnits !== "number"
+    || !isOkPredictionStatus(predictionStatus)
+    || typeof expectedSalesUnits !== "number"
+    || !Number.isFinite(expectedSalesUnits)
+  ) {
+    return null;
+  }
+
+  const decision = expectedSalesUnits < minExpectedSalesUnits
+    ? GQL.AffiliateSampleReviewDecision.Reject
+    : GQL.AffiliateSampleReviewDecision.Approve;
+
+  return {
+    decision,
+    expectedSalesUnits,
+    minExpectedSalesUnits,
+    predictionStatus,
+    operatorSummary: renderSampleReviewDefaultOperatorSummary({
+      decision,
+      expectedSalesUnits,
+      minExpectedSalesUnits,
+      staffLanguage,
+    }),
+  };
+}
+
+function renderSampleReviewDefaultOperatorSummary(params: {
+  decision: GQL.AffiliateSampleReviewDecision;
+  expectedSalesUnits: number;
+  minExpectedSalesUnits: number;
+  staffLanguage?: StaffLanguage;
+}): string {
+  const expectedSales = formatMaybeNumber(params.expectedSalesUnits);
+  const threshold = formatMaybeNumber(params.minExpectedSalesUnits);
+  if (params.staffLanguage === "Chinese") {
+    return params.decision === GQL.AffiliateSampleReviewDecision.Reject
+      ? `模型预估这个达人带这款商品大约只能卖出 ${expectedSales} 件，低于店铺最低要求 ${threshold} 件，建议拒绝这次样品申请。`
+      : `模型预估这个达人带这款商品大约可以卖出 ${expectedSales} 件，达到店铺最低要求 ${threshold} 件，建议通过这次样品申请。`;
+  }
+  return params.decision === GQL.AffiliateSampleReviewDecision.Reject
+    ? `The model expects this creator to sell about ${expectedSales} units for this product, below the shop minimum of ${threshold}, so rejecting this sample request is recommended.`
+    : `The model expects this creator to sell about ${expectedSales} units for this product, meeting the shop minimum of ${threshold}, so approving this sample request is recommended.`;
+}
+
+function isOkPredictionStatus(status: unknown): boolean {
+  return String(status ?? "").toUpperCase() === "OK";
+}
+
+function renderExpectedSalesPredictionSnapshotSection(
+  scenario: GQL.AffiliateExpectedSalesPredictionScenario,
   snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot,
 ): string {
   const output = snapshot.output ?? {};
-  const p50Units = numberFromUnknown(output.p50Units);
+  const expectedSalesUnits = numberFromUnknown(output.expectedSalesUnits);
   return [
     "## Affiliate Prediction",
     `- Scenario: ${scenario}`,
     "- Status: ALREADY_CAPTURED_ON_COLLABORATION",
     `- Captured At: ${snapshot.capturedAt ?? ""}`,
-    `- Predicted Sales Units: ${formatMaybeNumber(p50Units)}`,
-    `- Merchant Meaning: ${renderPredictionPlainMeaning(p50Units)}`,
+    `- Predicted Sales Units: ${formatMaybeNumber(expectedSalesUnits)}`,
+    `- Merchant Meaning: ${renderPredictionPlainMeaning(expectedSalesUnits)}`,
     "- Cache IDs: (none needed; this collaboration already has a persisted prediction snapshot)",
   ].join("\n");
 }
 
-function renderP50PredictionPayloadSection(
-  scenario: GQL.AffiliateP50SalesPredictionScenario,
-  payload: GQL.AffiliateP50SalesPredictionPayload,
+function renderExpectedSalesPredictionPayloadSection(
+  scenario: GQL.AffiliateExpectedSalesPredictionScenario,
+  payload: GQL.AffiliateExpectedSalesPredictionPayload,
 ): string {
   const predictions = payload.predictions ?? [];
   const lines = predictions.length
-    ? predictions.map((prediction, index) => renderP50PredictionLine(index, prediction))
+    ? predictions.map((prediction, index) => renderExpectedSalesPredictionLine(index, prediction))
     : ["(none)"];
   const cacheIds = predictions
     .map(prediction => prediction.cacheId)
@@ -921,11 +1129,25 @@ function renderP50PredictionPayloadSection(
   ].join("\n");
 }
 
-function renderP50PredictionLine(index: number, prediction: GQL.AffiliateP50SalesSubjectPrediction): string {
+function renderExpectedSalesPredictionLine(index: number, prediction: GQL.AffiliateExpectedSalesSubjectPrediction): string {
+  const bucket = prediction.calibrationBucket;
+  const thresholdProbabilities = prediction.thresholdProbabilities;
+  const thresholdPercentiles = prediction.thresholdPercentiles;
   return [
     `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
-    `   predictedSalesUnits=${prediction.p50Units ?? ""}`,
-    `   merchantMeaning=${renderPredictionPlainMeaning(prediction.p50Units)}`,
+    `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)}`,
+    `   rawExpectedSalesUnits=${formatMaybeNumber(prediction.rawExpectedSalesUnits)}`,
+    `   expectedSalesPercentile=${formatPercentile(prediction.expectedSalesPercentile)}`,
+    bucket
+      ? `   calibrationBucket=index:${bucket.bucketIndex ?? ""} sampleCount:${bucket.sampleCount ?? ""} actualAvgUnits:${formatMaybeNumber(bucket.actualAvgUnits)} actualMedianUnits:${formatMaybeNumber(bucket.actualMedianUnits)} zeroRate:${formatMaybeNumber(bucket.actualZeroRate)}`
+      : "   calibrationBucket=(none)",
+    thresholdProbabilities
+      ? `   probabilities=P>=1:${formatProbability(thresholdProbabilities.unitsGe1)} P>=2:${formatProbability(thresholdProbabilities.unitsGe2)} P>=3:${formatProbability(thresholdProbabilities.unitsGe3)} P>=5:${formatProbability(thresholdProbabilities.unitsGe5)} P>=10:${formatProbability(thresholdProbabilities.unitsGe10)}`
+      : "   probabilities=(none)",
+    thresholdPercentiles
+      ? `   probabilityRanks=P>=1 top:${formatTopPercent(thresholdPercentiles.unitsGe1?.topPercent)} P>=3 top:${formatTopPercent(thresholdPercentiles.unitsGe3?.topPercent)} P>=10 top:${formatTopPercent(thresholdPercentiles.unitsGe10?.topPercent)}`
+      : "   probabilityRanks=(none)",
+    `   merchantMeaning=${renderPredictionPlainMeaning(prediction.expectedSalesUnits)}`,
     `   creator=${prediction.resolvedContext?.creatorNickname ?? prediction.resolvedContext?.creatorUsername ?? prediction.resolvedContext?.creatorId ?? prediction.subject.creatorId ?? ""}`,
     `   product=${prediction.resolvedContext?.productTitle ?? prediction.resolvedContext?.productId ?? prediction.subject.productId ?? ""}`,
     `   sample=${prediction.resolvedContext?.sampleApplicationRecordId ?? prediction.subject.sampleApplicationRecordId ?? ""}`,
@@ -938,17 +1160,32 @@ function formatMaybeNumber(value: number | null | undefined): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function renderPredictionPlainMeaning(p50Units: number | null | undefined): string {
-  if (typeof p50Units !== "number" || !Number.isFinite(p50Units)) {
+function formatProbability(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatPercentile(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return `${Math.round(value * 100)}th`;
+}
+
+function formatTopPercent(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return `${Math.round(value * 100)}%`;
+}
+
+function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefined): string {
+  if (typeof expectedSalesUnits !== "number" || !Number.isFinite(expectedSalesUnits)) {
     return "No usable sales estimate is available for this creator/product pair.";
   }
-  if (p50Units <= 0) {
+  if (expectedSalesUnits <= 0) {
     return "The model expects this creator is very likely to sell 0 units for this product.";
   }
-  if (p50Units === 1) {
+  if (expectedSalesUnits === 1) {
     return "The model expects this creator to sell about 1 unit for this product.";
   }
-  return `The model expects this creator to sell about ${formatMaybeNumber(p50Units)} units for this product.`;
+  return `The model expects this creator to sell about ${formatMaybeNumber(expectedSalesUnits)} units for this product.`;
 }
 
 function numberFromUnknown(value: unknown): number | null {

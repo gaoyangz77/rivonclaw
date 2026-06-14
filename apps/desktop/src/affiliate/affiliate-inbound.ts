@@ -540,7 +540,7 @@ export class AffiliateInbound {
       a.shopName === b.shopName &&
       a.runProfileId === b.runProfileId &&
       (a.businessPrompt ?? "") === (b.businessPrompt ?? "") &&
-      (a.decisionThresholds?.minP50SalesUnits ?? null) === (b.decisionThresholds?.minP50SalesUnits ?? null) &&
+      (a.decisionThresholds?.minExpectedSalesUnits ?? null) === (b.decisionThresholds?.minExpectedSalesUnits ?? null) &&
       a.staffLanguage === b.staffLanguage
     );
   }

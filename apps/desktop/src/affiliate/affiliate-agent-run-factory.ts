@@ -7,6 +7,7 @@ export interface AffiliateAgentRunFactoryInput {
   conversationDelta?: string;
   proposalDeltaSection?: string;
   predictionSection?: string;
+  sampleReviewDecisionSection?: string;
   predictionCacheIds?: readonly string[];
   businessPrompt?: string | null;
   decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
@@ -93,7 +94,11 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
       "",
+      renderSampleReviewDecisionSection(input),
+      "",
       renderBusinessPrompt(input.businessPrompt),
+      "",
+      renderSampleReviewActionTemplate(input),
       "",
       "## Task",
       "Review the sample request and decide whether the seller should approve it, reject it, or ask a human/operator for more context.",
@@ -102,7 +107,9 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the merchant instructions depend on dynamic creator or shop facts, such as follower count, GMV, prior performance, sample cost, inventory, or current fulfillment state, call affiliate_get_workspace with the narrowest available filters before deciding.",
       "If merchant instructions are not configured, do not invent follower-count, GMV, or sales thresholds. Use Affiliate Decision Thresholds when configured, otherwise use the Affiliate Prediction section as the primary decision signal plus concrete workspace facts such as block/risk tags and sample/product context.",
-      "For sample review with prediction status OK: compare the predicted sales units with the configured minP50SalesUnits. If the predicted units are below the threshold, generally reject the sample unless stronger merchant instructions or workspace facts justify an exception. If the predicted units meet or exceed the threshold, that can support approving the sample.",
+      "For sample review with prediction status OK and configured minExpectedSalesUnits, make a platform review decision by default: if predicted sales units are below minExpectedSalesUnits, use REQUEST_ACTION with REVIEW_SAMPLE_APPLICATION and decision REJECT; if predicted sales units meet or exceed minExpectedSalesUnits, use REQUEST_ACTION with REVIEW_SAMPLE_APPLICATION and decision APPROVE, unless merchant instructions or workspace risk facts clearly override it.",
+      "If the Default Sample Review Decision section says APPROVE or REJECT, follow that default with REQUEST_ACTION unless a true blocker is explicitly listed in the work context.",
+      "Do not use NEEDS_STAFF_REVIEW only because follower count, GMV, or product metadata is imperfect when a prediction and decision threshold are already present. NEEDS_STAFF_REVIEW is reserved for true blockers: missing sample ids, conflicting merchant instructions, blocked/risky creator facts, inventory/fulfillment uncertainty that changes whether the sample can be sent, or an unsupported seller operation.",
       "Write operatorSummary for a busy ecommerce seller, not a statistician. Explain the business meaning in plain language, for example: \"The model expects this creator to sell around 0 units for this product, below the shop's minimum of 2, so rejecting the sample is recommended.\" Do not include raw model details unless the merchant explicitly asks.",
       "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type REVIEW_SAMPLE_APPLICATION.",
       "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing one REVIEW_SAMPLE_APPLICATION action and one separate SEND_MESSAGE action.",
@@ -161,10 +168,16 @@ function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
 }
 
+function renderSampleReviewDecisionSection(input: AffiliateAgentRunFactoryInput): string {
+  return input.sampleReviewDecisionSection?.trim() || "## Default Sample Review Decision\n(none computed before dispatch)";
+}
+
 function renderResolveWorkItemToolContract(): string {
   return [
     "## affiliate_resolve_work_item Tool Contract",
     "Call this tool exactly once. The only platform action.type values supported by backend are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION.",
+    "Important: REQUEST_ACTION does not mean the action will be sent immediately. Backend approval policy may convert REQUEST_ACTION into an ActionProposal for merchant approval. Therefore, use REQUEST_ACTION whenever you can form a concrete platform action, even if a human must approve it before execution.",
+    "Use NEEDS_STAFF_REVIEW only when you cannot form a concrete platform action at all. Do not use NEEDS_STAFF_REVIEW merely to ask for approval of a concrete action.",
     "Do not use CHANGE_COMMISSION, CHANGE_RATE, DISCOUNT, TAG_CREATOR, BLOCK_CREATOR, SHIP_SAMPLE, or any other action type. If the seller needs an unsupported action, use decision NEEDS_STAFF_REVIEW and explain it in operatorSummary.",
     "When decision is REQUEST_ACTION, provide either input.action for one action or input.actions for an ordered bundle; do not provide both.",
     "Each action must populate exactly one intent field matching action.type: SEND_MESSAGE uses messageIntent; REVIEW_SAMPLE_APPLICATION uses sampleReviewIntent; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
@@ -182,8 +195,8 @@ function renderDecisionThresholds(
   thresholds: GQL.AffiliateDecisionThresholds | null | undefined,
   source: string | null | undefined,
 ): string {
-  const minP50SalesUnits = thresholds?.minP50SalesUnits;
-  if (typeof minP50SalesUnits !== "number") {
+  const minExpectedSalesUnits = thresholds?.minExpectedSalesUnits;
+  if (typeof minExpectedSalesUnits !== "number") {
     return [
       "## Affiliate Decision Thresholds",
       "(none configured)",
@@ -194,10 +207,10 @@ function renderDecisionThresholds(
   return [
     "## Affiliate Decision Thresholds",
     `- Source: ${source ?? "configured threshold"}`,
-    `- minP50SalesUnits: ${minP50SalesUnits}`,
+    `- minExpectedSalesUnits: ${minExpectedSalesUnits}`,
     "Use this as the default investment/continuation threshold when merchant instructions do not provide a more specific rule for the current product, campaign, or creator.",
-    "If the predicted sales units are below minP50SalesUnits, do not approve, invest in, or continue the collaboration by default unless stronger merchant instructions or workspace facts justify an exception.",
-    "If the predicted sales units meet or exceed minP50SalesUnits, that supports proceeding, subject to risk tags, product/sample context, inventory/fulfillment facts, and approval policy.",
+    "If the predicted sales units are below minExpectedSalesUnits, do not approve, invest in, or continue the collaboration by default unless stronger merchant instructions or workspace facts justify an exception.",
+    "If the predicted sales units meet or exceed minExpectedSalesUnits, that supports proceeding, subject to risk tags, product/sample context, inventory/fulfillment facts, and approval policy.",
     "For existing commitments that already require operational follow-up, use the threshold as background context; do not use it as the only reason to ignore an overdue creator follow-up.",
     "This threshold is a decision aid, not creator-facing copy. If you mention it in operatorSummary, explain it plainly as the shop's minimum expected sales, never as a technical model metric.",
   ].join("\n");
@@ -212,6 +225,40 @@ function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput):
     `For any REQUEST_ACTION decision in this work item, include predictionCacheIds: ${JSON.stringify(cacheIds)} on the typed action payload.`,
     "If you use input.actions, include the same predictionCacheIds on each action that creates, updates, approves, rejects, or messages within this collaboration.",
   ].join(" ");
+}
+
+function renderSampleReviewActionTemplate(input: AffiliateAgentRunFactoryInput): string {
+  const sample = input.workItem.sampleApplicationRecord;
+  if (!sample) {
+    return [
+      "## Required Sample Review Action Fields",
+      "No sample application projection was attached. Use NEEDS_STAFF_REVIEW instead of REVIEW_SAMPLE_APPLICATION.",
+    ].join("\n");
+  }
+
+  const predictionCacheIds = input.predictionCacheIds?.filter(Boolean) ?? [];
+  const predictionCacheLine = predictionCacheIds.length > 0
+    ? `  predictionCacheIds: ${JSON.stringify(predictionCacheIds)},`
+    : "  predictionCacheIds: [],";
+
+  return [
+    "## Required Sample Review Action Fields",
+    "If you choose REQUEST_ACTION with REVIEW_SAMPLE_APPLICATION, copy these exact IDs into action.sampleReviewIntent:",
+    `- sampleApplicationRecordId: ${sample.id}`,
+    `- platformApplicationId: ${sample.platformApplicationId}`,
+    "",
+    "Use this shape exactly, changing only decision/rejectReason based on your review:",
+    "{",
+    '  type: "REVIEW_SAMPLE_APPLICATION",',
+    predictionCacheLine,
+    "  sampleReviewIntent: {",
+    `    sampleApplicationRecordId: "${sample.id}",`,
+    `    platformApplicationId: "${sample.platformApplicationId}",`,
+    '    decision: "APPROVE" or "REJECT",',
+    '    rejectReason: "OTHER" only when decision is "REJECT"',
+    "  }",
+    "}",
+  ].join("\n");
 }
 
 export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): string {

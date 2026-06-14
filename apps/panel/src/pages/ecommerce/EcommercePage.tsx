@@ -12,11 +12,6 @@ import { useDeviceBinding } from "./hooks/useDeviceBinding.js";
 import { ShopTable } from "./components/ShopTable.js";
 import { ConnectShopModal } from "./components/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
-import { WmsAccountTable } from "./components/WmsAccountTable.js";
-import { AddWmsAccountModal } from "./components/AddWmsAccountModal.js";
-import { WmsInventoryGoodsSyncModal } from "./components/WmsInventoryGoodsSyncModal.js";
-import { InventoryGoodsDrawer } from "./components/InventoryGoodsDrawer.js";
-import { InventoryGoodModal } from "./components/InventoryGoodModal.js";
 import { navigateToAdsManagement } from "./ads-readiness.js";
 
 export const EcommercePage = observer(function EcommercePage() {
@@ -29,8 +24,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const adsStoreBindings = entityStore.adsStoreBindings;
   const runProfiles = entityStore.allRunProfiles;
   const platformApps = entityStore.platformApps;
-  const wmsAccounts = entityStore.wmsAccounts;
-  const warehouses = entityStore.warehouses;
 
   const { showToast } = useToast();
 
@@ -47,7 +40,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
   const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
-  const [editAffiliateMinP50SalesUnits, setEditAffiliateMinP50SalesUnits] = useState("");
+  const [editAffiliateMinExpectedSalesUnits, setEditAffiliateMinExpectedSalesUnits] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAffiliateSettings, setSavingAffiliateSettings] = useState(false);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
@@ -122,13 +115,13 @@ export const EcommercePage = observer(function EcommercePage() {
   useEffect(() => {
     if (selectedShop) {
       setEditAffiliateBusinessPrompt(selectedShop.services?.affiliateService?.businessPrompt ?? "");
-      const minP50SalesUnits = selectedShop.services?.affiliateService?.decisionThresholds?.minP50SalesUnits;
-      setEditAffiliateMinP50SalesUnits(typeof minP50SalesUnits === "number" ? String(minP50SalesUnits) : "");
+      const minExpectedSalesUnits = selectedShop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
+      setEditAffiliateMinExpectedSalesUnits(typeof minExpectedSalesUnits === "number" ? String(minExpectedSalesUnits) : "");
     }
   }, [
     selectedShop?.id,
     selectedShop?.services?.affiliateService?.businessPrompt,
-    selectedShop?.services?.affiliateService?.decisionThresholds?.minP50SalesUnits,
+    selectedShop?.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits,
   ]);
 
   // ── Handlers ──
@@ -237,7 +230,7 @@ export const EcommercePage = observer(function EcommercePage() {
       });
       if (nextValue) {
         await entityStore.ecommerceInventory.syncShopWarehouses(shopId);
-      } else if (activeTab === "warehouseManagement") {
+      } else if (activeTab === "warehouseMapping") {
         setActiveTab("overview");
       }
     } catch (err) {
@@ -344,15 +337,15 @@ export const EcommercePage = observer(function EcommercePage() {
 
   async function handleSaveAffiliateDecisionThresholds() {
     if (!selectedShopId) return;
-    const trimmed = editAffiliateMinP50SalesUnits.trim();
-    let decisionThresholds: { minP50SalesUnits?: number } = {};
+    const trimmed = editAffiliateMinExpectedSalesUnits.trim();
+    let decisionThresholds: { minExpectedSalesUnits?: number } = {};
     if (trimmed !== "") {
       const parsed = Number(trimmed);
-      if (!Number.isInteger(parsed) || parsed < 0) {
+      if (!Number.isFinite(parsed) || parsed < 0) {
         showToast(t("ecommerce.shopDrawer.affiliate.invalidDecisionThreshold"), "error");
         return;
       }
-      decisionThresholds = { minP50SalesUnits: parsed };
+      decisionThresholds = { minExpectedSalesUnits: parsed };
     }
 
     setSavingAffiliateSettings(true);
@@ -575,12 +568,6 @@ export const EcommercePage = observer(function EcommercePage() {
         onManageAds={navigateToAdsManagement}
       />
 
-      <WmsAccountTable
-        accounts={wmsAccounts}
-        warehouses={warehouses}
-        onAddAccount={() => entityStore.ecommerceInventory.setAddWmsAccountModalOpen(true)}
-      />
-
       {/* Add Shop Modal */}
       <ConnectShopModal
         isOpen={connectModalOpen}
@@ -602,11 +589,6 @@ export const EcommercePage = observer(function EcommercePage() {
           setConnectModalOpen(false);
         }}
       />
-
-      <AddWmsAccountModal />
-      <WmsInventoryGoodsSyncModal />
-      <InventoryGoodsDrawer />
-      <InventoryGoodModal />
 
       {/* Shop Detail Drawer */}
       <ShopDrawer
@@ -658,8 +640,8 @@ export const EcommercePage = observer(function EcommercePage() {
         onAffiliateRunProfileChange={handleAffiliateRunProfileChange}
         editAffiliateBusinessPrompt={editAffiliateBusinessPrompt}
         onEditAffiliateBusinessPrompt={setEditAffiliateBusinessPrompt}
-        editAffiliateMinP50SalesUnits={editAffiliateMinP50SalesUnits}
-        onEditAffiliateMinP50SalesUnits={setEditAffiliateMinP50SalesUnits}
+        editAffiliateMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
+        onEditAffiliateMinExpectedSalesUnits={setEditAffiliateMinExpectedSalesUnits}
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
         onSaveAffiliateDecisionThresholds={handleSaveAffiliateDecisionThresholds}
