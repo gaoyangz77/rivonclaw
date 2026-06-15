@@ -2412,7 +2412,7 @@ export default {
       "intelligenceTrainingScope": "{{window}} · dilatih {{trainedAt}}. Tingkat persetujuan historis {{approvalRate}}; persetujuan historis yang difilter {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Tampilan ini didasarkan pada model statistik dan prediksi machine learning. Ini bukan jaminan bahwa penggunaan model akan menghasilkan pertumbuhan bisnis nyata.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} hari",
-      "intelligenceWindowLatestTraining": "Jendela sampel pelatihan terbaru",
+      "intelligenceWindowLatestTraining": "Jendela observasi hasil yang selesai",
       "intelligenceDistributionTitle": "Perbandingan distribusi penjualan",
       "intelligenceDistributionHeadline": "Model menggeser pilihan ke kelompok penjualan yang lebih tinggi",
       "intelligenceDistributionHint": "{{window}} · hasil historis yang disetujui dibanding kelompok penjualan perkiraan yang dipilih dan ditolak model.",
@@ -2437,7 +2437,8 @@ export default {
       "intelligenceModelQualifiedExpected": "Model di atas ambang · penjualan perkiraan",
       "intelligenceBelowBarExpected": "Di bawah ambang · penjualan perkiraan",
       "evaluationScopes": {
-        "latest_training_rows": "Jendela sampel pelatihan terbaru"
+        "latest_training_rows": "Jendela observasi hasil yang selesai",
+        "outcome_observation_window": "Jendela observasi hasil yang selesai"
       },
       "mlInsightsEmpty": "Evaluasi ML afiliasi belum tersedia. Jalankan pipeline pelatihan setelah riwayat afiliasi siap.",
       "mlScope": "Cakupan",

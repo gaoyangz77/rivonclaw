@@ -2412,7 +2412,7 @@ export default {
       "intelligenceTrainingScope": "{{window}} · entraîné {{trainedAt}}. Taux d'approbation historique {{approvalRate}} ; approbations historiques filtrées {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Cette vue repose sur des modèles statistiques et des prédictions de machine learning. Elle ne garantit pas une croissance réelle de l'activité liée à l'utilisation du modèle.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} jours",
-      "intelligenceWindowLatestTraining": "Fenêtre d'échantillons d'entraînement la plus récente",
+      "intelligenceWindowLatestTraining": "Fenêtre d'observation des résultats terminés",
       "intelligenceDistributionTitle": "Comparaison de distribution des ventes",
       "intelligenceDistributionHeadline": "Le modèle déplace la sélection vers des tranches de ventes plus élevées",
       "intelligenceDistributionHint": "{{window}} · résultats historiques approuvés comparés aux tranches de ventes attendues sélectionnées et rejetées par le modèle.",
@@ -2437,7 +2437,8 @@ export default {
       "intelligenceModelQualifiedExpected": "Modèle au-dessus du seuil · ventes attendues",
       "intelligenceBelowBarExpected": "Sous le seuil · ventes attendues",
       "evaluationScopes": {
-        "latest_training_rows": "Fenêtre d'échantillons d'entraînement la plus récente"
+        "latest_training_rows": "Fenêtre d'observation des résultats terminés",
+        "outcome_observation_window": "Fenêtre d'observation des résultats terminés"
       },
       "mlInsightsEmpty": "Aucune évaluation ML affiliée n'est encore disponible. Lancez le pipeline d'entraînement lorsque l'historique affilié est prêt.",
       "mlScope": "Périmètre",

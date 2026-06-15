@@ -2596,7 +2596,7 @@ export default {
       intelligenceTrainingScope: "{{window}} · trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
       intelligenceLegalDisclaimer: "This view is based on statistical modeling and machine learning predictions. It is not a guarantee that using the model will produce actual business growth.",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} days",
-      intelligenceWindowLatestTraining: "Latest training sample window",
+      intelligenceWindowLatestTraining: "Completed outcome observation window",
       intelligenceDistributionTitle: "Sales distribution comparison",
       intelligenceDistributionHeadline: "The model shifts the selected group toward higher sales buckets",
       intelligenceDistributionHint: "{{window}} · historical approved outcomes versus model-selected and model-rejected expected sales buckets.",
@@ -2621,7 +2621,8 @@ export default {
       intelligenceModelQualifiedExpected: "Model above bar · expected sales",
       intelligenceBelowBarExpected: "Below bar · expected sales",
       evaluationScopes: {
-        latest_training_rows: "Latest training sample window",
+        latest_training_rows: "Completed outcome observation window",
+        outcome_observation_window: "Completed outcome observation window",
       },
       mlInsightsEmpty: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
       mlScope: "Scope",

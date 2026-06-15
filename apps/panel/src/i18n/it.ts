@@ -2412,7 +2412,7 @@ export default {
       "intelligenceTrainingScope": "{{window}} · addestrato {{trainedAt}}. Tasso storico di approvazione {{approvalRate}}; approvazioni storiche filtrate {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Questa vista si basa su modelli statistici e previsioni di machine learning. Non garantisce che l'uso del modello produca una crescita reale del business.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} giorni",
-      "intelligenceWindowLatestTraining": "Finestra campioni di training più recente",
+      "intelligenceWindowLatestTraining": "Finestra di osservazione dei risultati completati",
       "intelligenceDistributionTitle": "Confronto distribuzione vendite",
       "intelligenceDistributionHeadline": "Il modello sposta la selezione verso fasce di vendita più alte",
       "intelligenceDistributionHint": "{{window}} · risultati approvati storici rispetto alle fasce di vendite attese selezionate e rifiutate dal modello.",
@@ -2437,7 +2437,8 @@ export default {
       "intelligenceModelQualifiedExpected": "Modello sopra soglia · vendite attese",
       "intelligenceBelowBarExpected": "Sotto soglia · vendite attese",
       "evaluationScopes": {
-        "latest_training_rows": "Finestra campioni di training più recente"
+        "latest_training_rows": "Finestra di osservazione dei risultati completati",
+        "outcome_observation_window": "Finestra di osservazione dei risultati completati"
       },
       "mlInsightsEmpty": "Nessuna valutazione ML affiliate disponibile. Esegui la pipeline di training quando la cronologia affiliate è pronta.",
       "mlScope": "Ambito",

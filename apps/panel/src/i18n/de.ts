@@ -2412,7 +2412,7 @@ export default {
       "intelligenceTrainingScope": "{{window}} · trainiert {{trainedAt}}. Historische Freigaberate {{approvalRate}}; gefilterte historische Freigaben {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Diese Ansicht basiert auf statistischer Modellierung und Machine-Learning-Prognosen. Sie garantiert kein tatsächliches Geschäftswachstum durch die Nutzung des Modells.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} Tage",
-      "intelligenceWindowLatestTraining": "Aktuelles Trainingsdatenfenster",
+      "intelligenceWindowLatestTraining": "Beobachtungsfenster abgeschlossener Ergebnisse",
       "intelligenceDistributionTitle": "Vergleich der Verkaufsverteilung",
       "intelligenceDistributionHeadline": "Das Modell verschiebt die Auswahl in höhere Verkaufsbereiche",
       "intelligenceDistributionHint": "{{window}} · historische freigegebene Ergebnisse im Vergleich zu erwarteten Verkaufsbereichen der Modellauswahl und Modellablehnung.",
@@ -2437,7 +2437,8 @@ export default {
       "intelligenceModelQualifiedExpected": "Modell oberhalb Schwelle · erwartete Verkäufe",
       "intelligenceBelowBarExpected": "Unter Schwelle · erwartete Verkäufe",
       "evaluationScopes": {
-        "latest_training_rows": "Aktuelles Trainingsdatenfenster"
+        "latest_training_rows": "Beobachtungsfenster abgeschlossener Ergebnisse",
+        "outcome_observation_window": "Beobachtungsfenster abgeschlossener Ergebnisse"
       },
       "mlInsightsEmpty": "Noch keine Affiliate-ML-Auswertung verfügbar. Führen Sie die Trainingspipeline aus, sobald der Affiliate-Verlauf bereit ist.",
       "mlScope": "Bereich",

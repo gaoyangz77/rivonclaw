@@ -1187,11 +1187,11 @@ function formatEvaluationWindow(
 }
 
 function inclusiveDayCount(start: string | Date, end: string | Date): number | null {
-  const startDate = start instanceof Date ? start : new Date(start);
-  const endDate = end instanceof Date ? end : new Date(end);
+  const startDate = parseDateOnlyAsLocalDate(start);
+  const endDate = parseDateOnlyAsLocalDate(end);
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
-  const startUtc = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
-  const endUtc = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+  const startUtc = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const endUtc = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
   return Math.max(1, Math.round((endUtc - startUtc) / 86400000) + 1);
 }
 
@@ -1225,8 +1225,18 @@ function formatDate(value: string | Date | null | undefined): string {
 
 function formatShortDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
-  const date = value instanceof Date ? value : new Date(value);
+  const date = parseDateOnlyAsLocalDate(value);
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
+}
+
+function parseDateOnlyAsLocalDate(value: string | Date): Date {
+  if (value instanceof Date) return value;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  return new Date(value);
 }
 
 function isPendingActionProposalItem(item: DashboardItem): boolean {
