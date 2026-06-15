@@ -1347,6 +1347,12 @@ export interface AffiliateServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
+/** Staff-facing terminal action for manually handling an affiliate collaboration work item. */
+export const AffiliateStaffCollaborationResolutionAction = {
+  MarkHandled: 'MARK_HANDLED'
+} as const;
+
+export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffCollaborationResolutionAction[keyof typeof AffiliateStaffCollaborationResolutionAction];
 /** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
 export const AffiliateWorkBundleKind = {
   ApprovalReviewOnly: 'APPROVAL_REVIEW_ONLY',
@@ -4331,6 +4337,8 @@ export interface Mutation {
   requestClientLogUpload: ClientLogUploadRequestPayload;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
+  /** Resolve staff-facing affiliate collaboration work after a human handled it outside the agent proposal flow. */
+  resolveAffiliateCollaborationStaffAction: ResolveAffiliateCollaborationStaffActionPayload;
   /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the work boundary and update collaboration state. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
@@ -4739,6 +4747,11 @@ export interface MutationRequestClientLogUploadArgs {
 export interface MutationRequestTikTokGmvMaxAuthorizationArgs {
   adsAdvertiserId: Scalars['ID']['input'];
   adsStoreAccessId: Scalars['ID']['input'];
+}
+
+
+export interface MutationResolveAffiliateCollaborationStaffActionArgs {
+  input: ResolveAffiliateCollaborationStaffActionInput;
 }
 
 
@@ -6122,6 +6135,17 @@ export interface RequestAffiliateActionPayload {
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
   mode: AffiliateActionRequestMode;
   proposal?: Maybe<ActionProposal>;
+}
+
+export interface ResolveAffiliateCollaborationStaffActionInput {
+  action: AffiliateStaffCollaborationResolutionAction;
+  collaborationRecordId: Scalars['ID']['input'];
+  note?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+export interface ResolveAffiliateCollaborationStaffActionPayload {
+  collaborationRecord: AffiliateCollaborationRecord;
 }
 
 /** One backend-supported TikTok affiliate platform write action. Populate exactly one intent field matching type: SEND_MESSAGE -> messageIntent, REVIEW_SAMPLE_APPLICATION -> sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */

@@ -461,6 +461,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         productId
         lifecycleStage
         processingStatus
+        requiredAction
         processReasons
         nextSellerActionAt
         stateUpdatedAt
@@ -1086,6 +1087,22 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         lifecycleEventIds
         executedAt
         errorMessage
+      }
+    }
+  }
+`;
+
+export const RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION = gql`
+  mutation ResolveAffiliateCollaborationStaffAction($input: ResolveAffiliateCollaborationStaffActionInput!) {
+    resolveAffiliateCollaborationStaffAction(input: $input) {
+      collaborationRecord {
+        id
+        processingStatus
+        requiredAction
+        processReasons
+        nextSellerActionAt
+        stateUpdatedAt
+        workHandledUntil
       }
     }
   }
