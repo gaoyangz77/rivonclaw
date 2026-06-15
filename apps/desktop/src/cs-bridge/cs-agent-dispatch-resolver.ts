@@ -74,6 +74,7 @@ const END_SESSION_GUIDANCE = [
   "Before ending, verify there is no open escalation, no unresolved follow-up, no pending buyer choice/action, and the latest buyer message explicitly indicates no more help is needed or confirms a completed action that requires no response.",
   "Do not end the session after short acknowledgements, apologies, or backchannels such as 'ok', 'oh mb', 'got it', or 'thanks'; reply or leave the session open so the buyer can finish.",
   "Do not end immediately after offering a choice, cancellation check, replacement/refund step, tracking follow-up, or anything that may invite another buyer response.",
+  "In after-sales service, if recent order context exists, send one separate warm message asking the customer for a positive review before calling ecom_cs_end_session.",
   "Ending the session lets the platform close the support session cleanly and may show the buyer the appropriate review/evaluation flow.",
   "Never call ecom_cs_end_session while an escalation is still open or while the buyer still needs service.",
 ].join(" ");
