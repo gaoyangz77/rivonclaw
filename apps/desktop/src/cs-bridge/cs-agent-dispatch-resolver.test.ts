@@ -9,4 +9,12 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
     expect(prompt).toContain("After dismissing open escalations, call ecom_cs_end_session");
     expect(prompt).toContain("Never call ecom_cs_end_session while an escalation is still open");
   });
+
+  it("requires resolved close-out dispatches to use reviewRequestMessage for recent orders", () => {
+    const prompt = buildCsAgentDispatchSystemPrompt("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP");
+
+    expect(prompt).toContain("reviewRequestMessage");
+    expect(prompt).toContain("the backend sends that message before ending the session");
+    expect(prompt).toContain("If the buyer still needs help");
+  });
 });
