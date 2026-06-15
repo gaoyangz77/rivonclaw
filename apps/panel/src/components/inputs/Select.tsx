@@ -12,6 +12,7 @@ export interface SelectProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
+  ariaLabel?: string;
   disabled?: boolean;
   className?: string;
   /** Show a search input at the top of the dropdown to filter options. */
@@ -20,7 +21,7 @@ export interface SelectProps {
   creatable?: boolean;
 }
 
-export function Select({ value, onChange, options, placeholder, disabled, className, searchable, creatable }: SelectProps) {
+export function Select({ value, onChange, options, placeholder, ariaLabel, disabled, className, searchable, creatable }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -144,6 +145,7 @@ export function Select({ value, onChange, options, placeholder, disabled, classN
         ref={triggerRef}
         type="button"
         className="custom-select-trigger"
+        aria-label={ariaLabel}
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
       >
