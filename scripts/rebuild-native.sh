@@ -37,6 +37,29 @@ PLATFORM="$(node -p "process.platform + '-' + process.arch")"
 echo "==> better-sqlite3 at: $SQLITE_DIR"
 echo "==> Platform: $PLATFORM"
 
+run_logged() {
+  local description="$1"
+  shift
+
+  local log_file
+  log_file="$(mktemp "${TMPDIR:-/tmp}/rebuild-native.XXXXXX.log")"
+
+  if "$@" >"$log_file" 2>&1; then
+    tail -20 "$log_file" || true
+    rm -f "$log_file"
+    return 0
+  fi
+
+  local status=$?
+  echo ""
+  echo "ERROR: $description failed with exit code $status"
+  echo "----- $description full log -----"
+  cat "$log_file"
+  echo "----- end $description full log -----"
+  rm -f "$log_file"
+  exit "$status"
+}
+
 # ---- Quick check: skip if both prebuilds already exist ----
 if [ "$FORCE" = false ]; then
   NODE_ABI=$(node -p "process.versions.modules")
@@ -74,7 +97,7 @@ fi
 echo ""
 echo "==> Building for Node.js..."
 rm -rf "$SQLITE_DIR/build"
-(cd "$SQLITE_DIR" && npx node-gyp rebuild --release 2>&1 | tail -3)
+(cd "$SQLITE_DIR" && run_logged "node-gyp rebuild for Node.js" npx node-gyp rebuild --release)
 
 NODE_ABI=$(node -p "process.versions.modules")
 NODE_BINDING_DIR="$SQLITE_DIR/lib/binding/node-v${NODE_ABI}-${PLATFORM}"
@@ -85,7 +108,7 @@ echo "    Copied to lib/binding/node-v${NODE_ABI}-${PLATFORM}/"
 # ---- 2. Build for Electron ----
 echo ""
 echo "==> Building for Electron..."
-(cd "$DESKTOP_DIR" && npx electron-rebuild -f -o better-sqlite3 2>&1 | tail -3)
+(cd "$DESKTOP_DIR" && run_logged "electron-rebuild for Electron" npx electron-rebuild -f -o better-sqlite3)
 
 # Get Electron's internal Node.js ABI version
 # ELECTRON_RUN_AS_NODE=1 makes Electron run as its internal Node.js
