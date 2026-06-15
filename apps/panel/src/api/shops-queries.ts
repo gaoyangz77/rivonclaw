@@ -880,11 +880,6 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
       latestModelEfficiencySummary {
         userId
         shopId
-        featureVersion
-        modelFamily
-        modelVersionKey
-        humanBaselineModelVersionKey
-        trainingRunId
         trainedAt
         evaluationScope
         rowCount

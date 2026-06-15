@@ -6,6 +6,7 @@ import { Modal } from "../../components/modals/Modal.js";
 import { AdsIcon, CheckIcon, CopyIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToast } from "../../components/Toast.js";
+import { panelEventBus } from "../../lib/event-bus.js";
 import { OAUTH_TIMEOUT_MS } from "./ecommerce-utils.js";
 import { getReadinessBadgeClass, resolveShopAdsReadiness } from "./ads-readiness.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
@@ -40,6 +41,8 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   const baselineAdvertiserIdsRef = useRef<Set<string>>(new Set());
   const baselineAdvertiserStatusRef = useRef<Map<string, string>>(new Map());
+  const oauthCompletionHandledRef = useRef(false);
+  const unsubscribeAdsOAuthRef = useRef<(() => void) | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authorizedAdvertisers = advertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED");
@@ -65,6 +68,10 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    if (unsubscribeAdsOAuthRef.current) {
+      unsubscribeAdsOAuthRef.current();
+      unsubscribeAdsOAuthRef.current = null;
+    }
     setOauthWaiting(false);
     setOauthAuthUrl(null);
     setLinkCopied(false);
@@ -77,6 +84,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   useEffect(() => {
     if (!oauthWaiting) return;
+    if (oauthCompletionHandledRef.current) return;
     const hasNewAdvertiser = advertisers.some((advertiser) =>
       !baselineAdvertiserIdsRef.current.has(advertiser.id)
     );
@@ -85,10 +93,34 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       advertiser.auth.status === "AUTHORIZED"
     ));
     if (hasNewAdvertiser || hasReauthorizedAdvertiser) {
+      oauthCompletionHandledRef.current = true;
       cleanupOAuthWait();
       showToast(t("adsManagement.oauthSuccess"), "success");
     }
   }, [advertisers, oauthWaiting, showToast, t]);
+
+  function startAdsOAuthListener() {
+    if (unsubscribeAdsOAuthRef.current) {
+      unsubscribeAdsOAuthRef.current();
+    }
+    unsubscribeAdsOAuthRef.current = panelEventBus.subscribe("ads-oauth-complete", (raw) => {
+      if (oauthCompletionHandledRef.current) return;
+      const payload = raw as { advertiserCount?: unknown };
+      const advertiserCount =
+        typeof payload.advertiserCount === "number" ? payload.advertiserCount : undefined;
+      if (advertiserCount !== undefined && advertiserCount <= 0) {
+        oauthCompletionHandledRef.current = true;
+        cleanupOAuthWait();
+        showToast(t("adsManagement.oauthFailed"), "error");
+        return;
+      }
+
+      oauthCompletionHandledRef.current = true;
+      cleanupOAuthWait();
+      void handleRefresh();
+      showToast(t("adsManagement.oauthSuccess"), "success");
+    });
+  }
 
   async function handleRefresh() {
     setLoading(true);
@@ -107,6 +139,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   async function handleConnectBusiness() {
     setOauthLoading(true);
+    oauthCompletionHandledRef.current = false;
     baselineAdvertiserIdsRef.current = new Set(advertisers.map((advertiser) => advertiser.id));
     baselineAdvertiserStatusRef.current = new Map(
       advertisers.map((advertiser) => [advertiser.id, advertiser.auth.status]),
@@ -115,9 +148,11 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
     try {
       const { authUrl } = await entityStore.initiateTikTokAdsOAuth();
       setOauthAuthUrl(authUrl);
+      startAdsOAuthListener();
       setOauthWaiting(true);
 
       timeoutRef.current = setTimeout(() => {
+        oauthCompletionHandledRef.current = true;
         cleanupOAuthWait();
         showToast(t("adsManagement.oauthTimeout"), "error");
       }, OAUTH_TIMEOUT_MS);

@@ -949,21 +949,11 @@ export interface AffiliateDashboardSummary {
 export interface AffiliateDecisionThresholds {
   /** Minimum calibrated expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
-  /**
-   * Deprecated compatibility alias for minExpectedSalesUnits. Kept so older desktop clients do not fail GraphQL validation while they are still connected.
-   * @deprecated Use minExpectedSalesUnits.
-   */
-  minP50SalesUnits?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateDecisionThresholdsInput {
   /** Minimum calibrated expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
-  /**
-   * Deprecated compatibility alias for minExpectedSalesUnits. Kept so older desktop clients do not fail GraphQL validation while they are still connected.
-   * @deprecated Use minExpectedSalesUnits.
-   */
-  minP50SalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
 export interface AffiliateExpectedSalesCalibrationBucket {
@@ -1251,28 +1241,23 @@ export interface AffiliateMlInsightsPayload {
 export interface AffiliateMlModelEfficiencySummary {
   createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
   evaluationScope: Scalars['String']['output'];
-  featureVersion?: Maybe<Scalars['String']['output']>;
   humanApprovalRate?: Maybe<Scalars['Float']['output']>;
   humanApprovedActualAvgUnits?: Maybe<Scalars['Float']['output']>;
   humanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
   humanApprovedCount: Scalars['Int']['output'];
   humanApprovedObservedCount: Scalars['Int']['output'];
-  humanBaselineModelVersionKey?: Maybe<Scalars['String']['output']>;
   humanSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
   minExpectedSalesUnitsSameBudget?: Maybe<Scalars['Float']['output']>;
-  modelFamily: Scalars['String']['output'];
   modelRejectedHumanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
   modelRejectedHumanApprovedCount: Scalars['Int']['output'];
   modelSameBudgetCount: Scalars['Int']['output'];
   modelSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
   modelSelectedHumanRejectedCount: Scalars['Int']['output'];
-  modelVersionKey: Scalars['String']['output'];
   modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
   payload?: Maybe<Scalars['JSONObject']['output']>;
   rowCount: Scalars['Int']['output'];
   shopId?: Maybe<Scalars['ID']['output']>;
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  trainingRunId?: Maybe<Scalars['String']['output']>;
   userId: Scalars['ID']['output'];
 }
 

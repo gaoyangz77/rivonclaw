@@ -219,6 +219,13 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
           calibrationBucketSupportScore
           interpretation
         }
+        predictionInterval {
+          lowerExpectedSalesUnits
+          upperExpectedSalesUnits
+          confidenceLevel
+          method
+          interpretation
+        }
         thresholdProbabilities {
           unitsGe1
           unitsGe2

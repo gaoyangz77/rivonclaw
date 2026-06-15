@@ -20,6 +20,7 @@ import { BillingPage } from "./pages/billing/BillingPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import {
+  AffiliateIntelligencePage,
   AffiliateHistoryPage,
   AffiliateManagementPage,
   AffiliateNeedsAttentionPage,
@@ -74,11 +75,12 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
   { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
+  { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true },
   { path: "/commerce/inventory", pageKey: "ecommerce-inventory", component: InventoryManagementPage, icon: <ModuleIcon />, navLabelKey: "nav.inventoryManagement", authRequired: true },
   { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.group.automation" },
   { path: "/automation/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons", navGroupKey: "nav.group.automation" },
-  { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", navGroupKey: "nav.group.connections", keepMounted: true },
+  { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", navGroupKey: "nav.group.connections" },
   { path: "/connections/models", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers", navGroupKey: "nav.group.connections" },
   { path: "/connections/extensions", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras", navGroupKey: "nav.group.connections" },
   { path: "/account/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage", navGroupKey: "nav.group.accountSystem" },

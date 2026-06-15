@@ -295,10 +295,7 @@ export const App = observer(function App() {
         <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
           <ChatComponent onAgentNameChange={setAgentName} />
         </div>
-        {/* Keep ChannelsPage mounted to avoid re-fetching channel status on every visit. */}
-        <div className={currentPath === "/connections/channels" ? "contents-toggle" : "hidden-toggle"}>
-          <ChannelsComponent />
-        </div>
+        {currentPath === "/connections/channels" && <ChannelsComponent />}
         {isAccount && (() => {
           const AccountComponent = currentRoute!.component;
           return <AccountComponent onNavigate={navigate} />;
