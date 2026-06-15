@@ -651,6 +651,7 @@ export interface AffiliateCollaborationRecord {
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
   productId?: Maybe<Scalars['String']['output']>;
+  requiredAction: AffiliateCollaborationRequiredAction;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId: Scalars['ID']['output'];
   startedAt: Scalars['DateTimeISO']['output'];
@@ -708,18 +709,33 @@ export const AffiliateCollaborationRecordProcessReason = {
 } as const;
 
 export type AffiliateCollaborationRecordProcessReason = typeof AffiliateCollaborationRecordProcessReason[keyof typeof AffiliateCollaborationRecordProcessReason];
-/** Backend-materialized state that tells Desktop/agents whether a creator collaboration needs processing. */
+/** Backend-materialized owner/waiting state for a creator collaboration. Concrete work is represented by AffiliateCollaborationRequiredAction. */
 export const AffiliateCollaborationRecordProcessingStatus = {
+  AgentNeeded: 'AGENT_NEEDED',
   Blocked: 'BLOCKED',
   Done: 'DONE',
-  NeedProcess: 'NEED_PROCESS',
+  StaffNeeded: 'STAFF_NEEDED',
   WaitingApproval: 'WAITING_APPROVAL',
   WaitingCreator: 'WAITING_CREATOR',
-  WaitingPlatform: 'WAITING_PLATFORM',
-  WaitingStaff: 'WAITING_STAFF'
+  WaitingPlatform: 'WAITING_PLATFORM'
 } as const;
 
 export type AffiliateCollaborationRecordProcessingStatus = typeof AffiliateCollaborationRecordProcessingStatus[keyof typeof AffiliateCollaborationRecordProcessingStatus];
+/** The next concrete business action required for a creator collaboration. NONE means the processing status is purely waiting or terminal. */
+export const AffiliateCollaborationRequiredAction = {
+  FollowUpContent: 'FOLLOW_UP_CONTENT',
+  None: 'NONE',
+  ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
+  ResolveProductContext: 'RESOLVE_PRODUCT_CONTEXT',
+  RespondToCreator: 'RESPOND_TO_CREATOR',
+  ReviewActionProposal: 'REVIEW_ACTION_PROPOSAL',
+  ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
+  ReviewCollaboration: 'REVIEW_COLLABORATION',
+  ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
+  ShipSample: 'SHIP_SAMPLE'
+} as const;
+
+export type AffiliateCollaborationRequiredAction = typeof AffiliateCollaborationRequiredAction[keyof typeof AffiliateCollaborationRequiredAction];
 /** Normalized platform collaboration status for open and target collaborations. */
 export const AffiliateCollaborationStatus = {
   Active: 'ACTIVE',
@@ -827,6 +843,8 @@ export interface AffiliateConversationSignal {
   processingStatus?: Maybe<AffiliateCollaborationRecordProcessingStatus>;
   /** Product ID when carried by a sample or collaboration event. */
   productId?: Maybe<Scalars['String']['output']>;
+  /** Backend-computed concrete next action after materializing the event. */
+  requiredAction?: Maybe<AffiliateCollaborationRequiredAction>;
   /** Platform sender ID when available. */
   senderId?: Maybe<Scalars['String']['output']>;
   /** Sender role from the platform event, e.g. CREATOR. */
@@ -1318,6 +1336,8 @@ export const AffiliateSampleReviewDecision = {
 export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision[keyof typeof AffiliateSampleReviewDecision];
 /** Affiliate creator-management settings per shop (user-configurable) */
 export interface AffiliateServiceSettings {
+  /** Write-once cutoff for pre-AI affiliate human-baseline training. Set when affiliate service is first enabled with an assigned device. */
+  baselineCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;
   /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
@@ -1385,6 +1405,7 @@ export interface AffiliateWorkItem {
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
   recommendedActionTypes: Array<ActionProposalType>;
+  requiredAction: AffiliateCollaborationRequiredAction;
   sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
   shopId: Scalars['ID']['output'];
   /** True when the item should appear in staff review surfaces even if no agent run should start. */
@@ -5249,7 +5270,7 @@ export interface Query {
   campaignProducts: Array<CampaignProduct>;
   /** Check if a newer version is available (public, no auth required) */
   checkUpdate?: Maybe<UpdatePayload>;
-  /** Read creator collaborations, including backend-materialized NEED_PROCESS work for affiliate agents. */
+  /** Read creator collaborations, including backend-materialized agent/staff work for affiliate agents. */
   collaborationRecords: Array<AffiliateCollaborationRecord>;
   /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
   creatorCandidates: Array<CreatorCandidate>;
@@ -5918,6 +5939,7 @@ export interface ReadAffiliateCollaborationRecordsInput {
   processingStatus?: InputMaybe<AffiliateCollaborationRecordProcessingStatus>;
   processingStatuses?: InputMaybe<Array<AffiliateCollaborationRecordProcessingStatus>>;
   productId?: InputMaybe<Scalars['String']['input']>;
+  requiredAction?: InputMaybe<AffiliateCollaborationRequiredAction>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 

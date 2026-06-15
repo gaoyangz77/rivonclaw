@@ -1,4 +1,4 @@
-import type { GQL } from "@rivonclaw/core";
+import { GQL } from "@rivonclaw/core";
 import type { StaffLanguage } from "../i18n/locale.js";
 
 export interface AffiliateAgentRunFactoryInput {
@@ -27,13 +27,40 @@ export function buildAffiliateAgentRunRequest(
   const { workItem } = input;
   if (!workItem.agentDispatchRecommended) return null;
 
-  switch (workItem.workKind) {
-    case "CREATOR_REPLY_NEEDED":
+  switch (resolveAgentRunKind(workItem)) {
+    case "CREATOR_REPLY":
       return buildCreatorReplyRun(input);
-    case "SAMPLE_REVIEW_NEEDED":
+    case "SAMPLE_REVIEW":
       return buildSampleReviewRun(input);
-    case "CONTENT_FOLLOW_UP_DUE":
+    case "CONTENT_FOLLOW_UP":
       return buildContentFollowUpRun(input);
+    default:
+      return null;
+  }
+}
+
+type AffiliateAgentRunKind = "CREATOR_REPLY" | "SAMPLE_REVIEW" | "CONTENT_FOLLOW_UP";
+
+function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
+  switch (workItem.requiredAction) {
+    case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
+      return "CREATOR_REPLY";
+    case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
+      return "SAMPLE_REVIEW";
+    case GQL.AffiliateCollaborationRequiredAction.FollowUpContent:
+      return "CONTENT_FOLLOW_UP";
+    default:
+      break;
+  }
+
+  // Compatibility for older backend payloads during rolling deploys.
+  switch (workItem.workKind) {
+    case GQL.AffiliateWorkKind.CreatorReplyNeeded:
+      return "CREATOR_REPLY";
+    case GQL.AffiliateWorkKind.SampleReviewNeeded:
+      return "SAMPLE_REVIEW";
+    case GQL.AffiliateWorkKind.ContentFollowUpDue:
+      return "CONTENT_FOLLOW_UP";
     default:
       return null;
   }
@@ -269,6 +296,7 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "## Backend Work Projection",
     `- Work Item ID: ${workItem.id}`,
     `- Work Kind: ${workItem.workKind}`,
+    `- Required Action: ${workItem.requiredAction}`,
     `- Work Bundle Kind: ${workItem.workBundleKind ?? ""}`,
     `- Shop ID: ${workItem.shopId}`,
     `- Platform Shop ID: ${workItem.platformShopId}`,
