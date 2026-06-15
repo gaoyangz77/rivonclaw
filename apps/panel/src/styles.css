@@ -12764,6 +12764,15 @@ html[lang="zh"] .acct-tool-chips {
   gap: 12px;
 }
 
+.affiliate-intelligence-claim-section {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 42%, var(--color-bg));
+}
+
 .affiliate-intelligence-empty,
 .affiliate-intelligence-verdict,
 .affiliate-intelligence-comparison,
@@ -13168,6 +13177,7 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-intelligence-dashboard,
   .affiliate-intelligence-claim-grid,
+  .affiliate-intelligence-claim-section,
   .affiliate-intelligence-explainers,
   .affiliate-intelligence-stat-strip {
     grid-template-columns: 1fr;
