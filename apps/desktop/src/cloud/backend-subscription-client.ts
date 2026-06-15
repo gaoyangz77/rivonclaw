@@ -1255,7 +1255,7 @@ export class BackendSubscriptionClient {
       return { attempt, unsubscribe };
     };
 
-    return this.registerSubscription({ key, subscribe, longLived: true });
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 
   /**

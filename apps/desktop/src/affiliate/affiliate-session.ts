@@ -1015,10 +1015,11 @@ function renderSampleReviewDefaultDecisionSection(
     "## Default Sample Review Decision",
     `- Decision: ${defaultDecision.decision}`,
     `- Prediction Status: ${defaultDecision.predictionStatus}`,
-    `- Predicted Sales Units: ${formatMaybeNumber(defaultDecision.expectedSalesUnits)}`,
-    `- Shop Minimum Sales Units: ${formatMaybeNumber(defaultDecision.minExpectedSalesUnits)}`,
-    `- Comparison: predicted sales are ${comparison} the configured threshold.`,
+    `- Predicted Expected Sales Units: ${formatMaybeNumber(defaultDecision.expectedSalesUnits)}`,
+    `- Shop Minimum Expected Sales Units: ${formatMaybeNumber(defaultDecision.minExpectedSalesUnits)}`,
+    `- Comparison: predicted expected sales are ${comparison} the configured threshold.`,
     `- Plain Seller Reason: ${defaultDecision.operatorSummary}`,
+    "- Prediction caveat: this is a statistical expected-sales estimate, not a guarantee of actual sales.",
     "- Agent instruction: unless Backend Work Context lists a true blocker such as blocked creator, explicit merchant override, stock/fulfillment blocker, or conflicting policy, call affiliate_resolve_work_item with decision REQUEST_ACTION and action.type REVIEW_SAMPLE_APPLICATION using this default decision.",
     "- Approval policy is not a blocker. If approval is required, backend will create an ActionProposal from REQUEST_ACTION.",
   ].join("\n");
@@ -1094,12 +1095,12 @@ function renderSampleReviewDefaultOperatorSummary(params: {
   const threshold = formatMaybeNumber(params.minExpectedSalesUnits);
   if (params.staffLanguage === "Chinese") {
     return params.decision === GQL.AffiliateSampleReviewDecision.Reject
-      ? `模型预估这个达人带这款商品大约只能卖出 ${expectedSales} 件，低于店铺最低要求 ${threshold} 件，建议拒绝这次样品申请。`
-      : `模型预估这个达人带这款商品大约可以卖出 ${expectedSales} 件，达到店铺最低要求 ${threshold} 件，建议通过这次样品申请。`;
+      ? `expected-sales 模型预估这个达人带这款商品的期望销量约为 ${expectedSales} 件，低于店铺最低要求 ${threshold} 件，建议拒绝这次样品申请。`
+      : `expected-sales 模型预估这个达人带这款商品的期望销量约为 ${expectedSales} 件，达到店铺最低要求 ${threshold} 件，建议通过这次样品申请。`;
   }
   return params.decision === GQL.AffiliateSampleReviewDecision.Reject
-    ? `The model expects this creator to sell about ${expectedSales} units for this product, below the shop minimum of ${threshold}, so rejecting this sample request is recommended.`
-    : `The model expects this creator to sell about ${expectedSales} units for this product, meeting the shop minimum of ${threshold}, so approving this sample request is recommended.`;
+    ? `The expected-sales model estimates about ${expectedSales} units for this creator and product, below the shop minimum of ${threshold}, so rejecting this sample request is recommended.`
+    : `The expected-sales model estimates about ${expectedSales} units for this creator and product, meeting the shop minimum of ${threshold}, so approving this sample request is recommended.`;
 }
 
 function isOkPredictionStatus(status: unknown): boolean {
@@ -1117,8 +1118,9 @@ function renderExpectedSalesPredictionSnapshotSection(
     `- Scenario: ${scenario}`,
     "- Status: ALREADY_CAPTURED_ON_COLLABORATION",
     `- Captured At: ${snapshot.capturedAt ?? ""}`,
-    `- Predicted Sales Units: ${formatMaybeNumber(expectedSalesUnits)}`,
+    `- Predicted Expected Sales Units: ${formatMaybeNumber(expectedSalesUnits)}`,
     `- Merchant Meaning: ${renderPredictionPlainMeaning(expectedSalesUnits)}`,
+    "- Caveat: expectedSalesUnits is an expected-value forecast, not a guaranteed result.",
     "- Cache IDs: (none needed; this collaboration already has a persisted prediction snapshot)",
   ].join("\n");
 }
@@ -1150,11 +1152,15 @@ function renderExpectedSalesPredictionLine(index: number, prediction: GQL.Affili
   const bucket = prediction.calibrationBucket;
   const thresholdProbabilities = prediction.thresholdProbabilities;
   const thresholdPercentiles = prediction.thresholdPercentiles;
+  const interval = prediction.predictionInterval;
   return [
     `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
-    `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)}`,
+    `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)} (expected-value forecast)`,
     `   rawExpectedSalesUnits=${formatMaybeNumber(prediction.rawExpectedSalesUnits)}`,
     `   expectedSalesPercentile=${formatPercentile(prediction.expectedSalesPercentile)}`,
+    interval
+      ? `   expectedSalesInterval=${formatMaybeNumber(interval.lowerExpectedSalesUnits)}-${formatMaybeNumber(interval.upperExpectedSalesUnits)} confidence=${formatProbability(interval.confidenceLevel)} method=${interval.method ?? ""}`
+      : "   expectedSalesInterval=(none)",
     bucket
       ? `   calibrationBucket=index:${bucket.bucketIndex ?? ""} sampleCount:${bucket.sampleCount ?? ""} actualAvgUnits:${formatMaybeNumber(bucket.actualAvgUnits)} actualMedianUnits:${formatMaybeNumber(bucket.actualMedianUnits)} zeroRate:${formatMaybeNumber(bucket.actualZeroRate)}`
       : "   calibrationBucket=(none)",
@@ -1197,12 +1203,12 @@ function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefi
     return "No usable sales estimate is available for this creator/product pair.";
   }
   if (expectedSalesUnits <= 0) {
-    return "The model expects this creator is very likely to sell 0 units for this product.";
+    return "The expected-sales model estimates near-zero unit sales for this creator/product pair.";
   }
   if (expectedSalesUnits === 1) {
-    return "The model expects this creator to sell about 1 unit for this product.";
+    return "The expected-sales model estimates about 1 unit for this creator/product pair.";
   }
-  return `The model expects this creator to sell about ${formatMaybeNumber(expectedSalesUnits)} units for this product.`;
+  return `The expected-sales model estimates about ${formatMaybeNumber(expectedSalesUnits)} units for this creator/product pair.`;
 }
 
 function numberFromUnknown(value: unknown): number | null {

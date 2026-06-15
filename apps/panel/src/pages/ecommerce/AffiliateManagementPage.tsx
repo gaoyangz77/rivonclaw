@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { useMutation, useQuery } from "@apollo/client/react";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
-import { CopyIcon } from "../../components/icons.js";
+import { CheckIcon, CopyIcon, InfoIcon, RefreshIcon, ShopIcon, UserIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
@@ -27,11 +27,12 @@ type CollaborationDetailItem = {
 };
 
 const HISTORY_FILTERS = [
+  "NEEDS_ATTENTION",
   "IN_PROGRESS",
   "ALL",
-  GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
+  GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
   GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingStaff,
+  GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
   GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator,
   GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform,
   GQL.AffiliateCollaborationRecordProcessingStatus.Done,
@@ -54,23 +55,171 @@ const PROPOSAL_FILTERS = [
 
 type ProposalFilter = (typeof PROPOSAL_FILTERS)[number];
 
-const ATTENTION_COLLABORATION_FILTERS = [
-  "NEEDS_ATTENTION",
-  "ALL",
-  GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingStaff,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform,
-  GQL.AffiliateCollaborationRecordProcessingStatus.Done,
-  GQL.AffiliateCollaborationRecordProcessingStatus.Blocked,
-] as const;
+type AffiliateInsightScope = {
+  key: string;
+  kind: "user" | "shop";
+  label: string;
+  shopId?: string;
+};
 
-type AttentionCollaborationFilter = (typeof ATTENTION_COLLABORATION_FILTERS)[number];
+type AffiliateInsightRow = AffiliateInsightScope & {
+  summary: GQL.AffiliateMlModelEfficiencySummary | null;
+  failed?: boolean;
+};
+
+type AffiliateInsightPayload = Record<string, unknown>;
+
+type AffiliateSalesHistogramBucket = {
+  key: string;
+  label: string;
+  count: number;
+};
 
 export function AffiliateManagementPage() {
   return <AffiliateNeedsAttentionPage />;
 }
+
+export const AffiliateIntelligencePage = observer(function AffiliateIntelligencePage() {
+  const { t } = useTranslation();
+  const apolloClient = useApolloClient();
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
+  const shops = entityStore.shops;
+  const [selectedScopeKey, setSelectedScopeKey] = useState("user");
+  const [insightRows, setInsightRows] = useState<AffiliateInsightRow[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      entityStore.fetchShops().catch(() => {});
+    }
+  }, [entityStore, user]);
+
+  const insightScopes = useMemo<AffiliateInsightScope[]>(
+    () => [
+      {
+        key: "user",
+        kind: "user",
+        label: t("ecommerce.affiliateWorkspace.intelligenceUserModel"),
+      },
+      ...shops.map((shop) => ({
+        key: `shop:${shop.id}`,
+        kind: "shop" as const,
+        shopId: shop.id,
+        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+      })),
+    ],
+    [shops, t],
+  );
+  useEffect(() => {
+    if (!user) {
+      setInsightRows([]);
+      return;
+    }
+
+    let active = true;
+    setInsightsLoading(true);
+    Promise.all(
+      insightScopes.map(async (scope): Promise<AffiliateInsightRow> => {
+        try {
+          const result = await apolloClient.query<
+            { affiliateMlInsights: GQL.AffiliateMlInsightsPayload },
+            { input?: GQL.AffiliateMlInsightsInput | null }
+          >({
+            query: AFFILIATE_ML_INSIGHTS_QUERY,
+            variables: { input: scope.shopId ? { shopId: scope.shopId } : null },
+            fetchPolicy: "network-only",
+          });
+          return {
+            ...scope,
+            summary: result.data?.affiliateMlInsights.latestModelEfficiencySummary ?? null,
+          };
+        } catch {
+          return { ...scope, summary: null, failed: true };
+        }
+      }),
+    ).then((rows) => {
+      if (!active) return;
+      setInsightRows(rows);
+      setInsightsLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [apolloClient, insightScopes, refreshCount, user]);
+
+  useEffect(() => {
+    if (insightRows.length > 0 && !insightRows.some((row) => row.key === selectedScopeKey)) {
+      setSelectedScopeKey("user");
+    }
+  }, [insightRows, selectedScopeKey]);
+
+  const selectedRow =
+    insightRows.find((row) => row.key === selectedScopeKey)
+    ?? insightRows.find((row) => row.key === "user")
+    ?? insightRows[0]
+    ?? null;
+
+  if (authChecking) {
+    return (
+      <div className="page-enter">
+        <AffiliateLoadingState />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="page-enter">
+        <div className="section-card">
+          <h2>{t("auth.loginRequired")}</h2>
+          <p>{t("auth.loginFromSidebar")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-enter affiliate-workbench affiliate-intelligence-page">
+      <div className="affiliate-intelligence-hero">
+        <div>
+          <p className="affiliate-intelligence-kicker">
+            {t("ecommerce.affiliateWorkspace.intelligenceKicker")}
+          </p>
+          <h1>{t("ecommerce.affiliateWorkspace.mlInsightsTitle")}</h1>
+          <p className="ecommerce-page-subtitle">
+            {t("ecommerce.affiliateWorkspace.mlInsightsHint")}
+          </p>
+        </div>
+        <div className="affiliate-intelligence-controls">
+          <button
+            className="btn btn-secondary affiliate-intelligence-refresh"
+            type="button"
+            onClick={() => setRefreshCount((value) => value + 1)}
+            disabled={insightsLoading}
+          >
+            <RefreshIcon />
+            <span>
+              {insightsLoading
+                ? t("common.loading")
+                : t("ecommerce.affiliateWorkspace.intelligenceRefresh")}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <AffiliateMlInsightsPanel
+        loading={insightsLoading}
+        rows={insightRows}
+        selectedKey={selectedRow?.key ?? selectedScopeKey}
+        onSelect={setSelectedScopeKey}
+      />
+    </div>
+  );
+});
 
 export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAttentionPage() {
   const { t } = useTranslation();
@@ -80,9 +229,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
-  const [activeAttentionTab, setActiveAttentionTab] = useState<"PROPOSALS" | "COLLABORATIONS" | "ML">("PROPOSALS");
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>(GQL.ActionProposalStatus.Pending);
-  const [collaborationFilter, setCollaborationFilter] = useState<AttentionCollaborationFilter>("NEEDS_ATTENTION");
   const [attentionSearch, setAttentionSearch] = useState("");
   const [selectedCollaboration, setSelectedCollaboration] = useState<CollaborationDetailItem | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
@@ -105,23 +252,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     ],
     [shops, t],
   );
+  const proposalFilterOptions = useMemo(
+    () => PROPOSAL_FILTERS.map((filter) => ({
+      value: filter,
+      label: t(`ecommerce.affiliateWorkspace.proposalFilters.${filter}`, {
+        defaultValue: filter,
+      }),
+    })),
+    [t],
+  );
 
   const proposalStatus = useMemo(() => {
     return proposalFilter === "ALL" ? undefined : proposalFilter;
   }, [proposalFilter]);
-
-  const collaborationProcessingStatus = useMemo(() => {
-    if (collaborationFilter === "ALL" || collaborationFilter === "NEEDS_ATTENTION") return undefined;
-    return collaborationFilter;
-  }, [collaborationFilter]);
-
-  const collaborationProcessingStatuses = useMemo(() => {
-    if (collaborationFilter !== "NEEDS_ATTENTION") return undefined;
-    return [
-      GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
-      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingStaff,
-    ];
-  }, [collaborationFilter]);
 
   const {
     data: proposalData,
@@ -139,42 +282,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !user || activeAttentionTab !== "PROPOSALS",
-  });
-
-  const {
-    data: collaborationData,
-    loading: collaborationsLoading,
-    refetch: refetchCollaborations,
-  } = useQuery<
-    { affiliateCollaborationRecordItems: CollaborationListItem[] },
-    { input: GQL.ReadAffiliateCollaborationRecordsInput }
-  >(AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY, {
-    variables: {
-      input: {
-        shopId: selectedShopId || undefined,
-        processingStatus: collaborationProcessingStatus,
-        processingStatuses: collaborationProcessingStatuses,
-        limit: 200,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !user || activeAttentionTab !== "COLLABORATIONS",
-  });
-
-  const {
-    data: mlInsightsData,
-    loading: mlInsightsLoading,
-    refetch: refetchMlInsights,
-  } = useQuery<
-    { affiliateMlInsights: GQL.AffiliateMlInsightsPayload },
-    { input?: GQL.AffiliateMlInsightsInput | null }
-  >(AFFILIATE_ML_INSIGHTS_QUERY, {
-    variables: {
-      input: selectedShopId ? { shopId: selectedShopId } : null,
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !user || activeAttentionTab !== "ML",
+    skip: !user,
   });
 
   const [decideActionProposal, { loading: decidingProposal }] = useMutation<
@@ -184,38 +292,22 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
   useEffect(() => {
     const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
-      if (activeAttentionTab === "PROPOSALS") void refetchProposals();
-      if (activeAttentionTab === "COLLABORATIONS") void refetchCollaborations();
-      if (activeAttentionTab === "ML") void refetchMlInsights();
+      void refetchProposals();
     });
     const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
-      if (activeAttentionTab === "PROPOSALS") void refetchProposals();
-      if (activeAttentionTab === "COLLABORATIONS") void refetchCollaborations();
-      if (activeAttentionTab === "ML") void refetchMlInsights();
+      void refetchProposals();
     });
     return () => {
       unsubscribeProposal();
       unsubscribeWorkItem();
     };
-  }, [activeAttentionTab, refetchCollaborations, refetchMlInsights, refetchProposals]);
+  }, [refetchProposals]);
 
   const proposalItems = proposalData?.actionProposals ?? [];
-  const collaborationItems = collaborationData?.affiliateCollaborationRecordItems ?? [];
   const visibleProposalItems = useMemo(
     () => filterActionProposals(proposalItems, attentionSearch, shopLabel),
     [attentionSearch, proposalItems, shops],
   );
-  const visibleCollaborationItems = useMemo(
-    () => filterCollaborationItems(collaborationItems, attentionSearch, shopLabel),
-    [attentionSearch, collaborationItems, shops],
-  );
-  const mlSummary = mlInsightsData?.affiliateMlInsights.latestModelEfficiencySummary ?? null;
-  const activeLoading =
-    activeAttentionTab === "PROPOSALS"
-      ? proposalsLoading
-      : activeAttentionTab === "COLLABORATIONS"
-        ? collaborationsLoading
-        : mlInsightsLoading;
 
   async function decideProposal(proposal: GQL.ActionProposal, status: GQL.ActionProposalStatus) {
     try {
@@ -240,16 +332,13 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
         "success",
       );
       await refetchProposals();
-      if (activeAttentionTab === "COLLABORATIONS") await refetchCollaborations();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
   }
 
   function refetchActive() {
-    if (activeAttentionTab === "PROPOSALS") return refetchProposals();
-    if (activeAttentionTab === "ML") return refetchMlInsights();
-    return refetchCollaborations();
+    return refetchProposals();
   }
 
   function shopLabel(shopId: string): string {
@@ -296,9 +385,9 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             className="btn btn-secondary"
             type="button"
             onClick={() => void refetchActive()}
-            disabled={activeLoading}
+            disabled={proposalsLoading}
           >
-            {activeLoading
+            {proposalsLoading
               ? t("common.loading")
               : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
           </button>
@@ -309,118 +398,46 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
         <div className="affiliate-workbench-panel-head affiliate-attention-panel-head">
           <div>
             <div className="affiliate-workbench-panel-title">
-              {activeAttentionTab === "PROPOSALS"
-                ? t("ecommerce.affiliateWorkspace.approvalQueueTitle")
-                : activeAttentionTab === "COLLABORATIONS"
-                  ? t("ecommerce.affiliateWorkspace.collaborationWorkQueueTitle")
-                  : t("ecommerce.affiliateWorkspace.mlInsightsTitle", { defaultValue: "Affiliate ML performance" })}
+              {t("ecommerce.affiliateWorkspace.approvalQueueTitle")}
             </div>
             <div className="form-hint">
-              {activeAttentionTab === "PROPOSALS"
-                ? t("ecommerce.affiliateWorkspace.approvalQueueHint")
-                : activeAttentionTab === "COLLABORATIONS"
-                  ? t("ecommerce.affiliateWorkspace.collaborationWorkQueueHint")
-                  : t("ecommerce.affiliateWorkspace.mlInsightsHint", {
-                      defaultValue: "Compare model ranking with historical human sample approval behavior.",
-                    })}
+              {t("ecommerce.affiliateWorkspace.approvalQueueHint")}
             </div>
           </div>
           <div className="affiliate-attention-toolbar">
-            <div className="affiliate-attention-tabs" role="tablist" aria-label={t("ecommerce.affiliateWorkspace.sections.NEEDS_ATTENTION")}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeAttentionTab === "PROPOSALS"}
-                className={`affiliate-attention-tab${activeAttentionTab === "PROPOSALS" ? " affiliate-attention-tab-active" : ""}`}
-                onClick={() => setActiveAttentionTab("PROPOSALS")}
-              >
-                <span>{t("ecommerce.affiliateWorkspace.approvalQueueShortTitle")}</span>
-                <strong>{proposalItems.length}</strong>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeAttentionTab === "COLLABORATIONS"}
-                className={`affiliate-attention-tab${activeAttentionTab === "COLLABORATIONS" ? " affiliate-attention-tab-active" : ""}`}
-                onClick={() => setActiveAttentionTab("COLLABORATIONS")}
-              >
-                <span>{t("ecommerce.affiliateWorkspace.collaborationWorkQueueShortTitle")}</span>
-                <strong>{collaborationItems.length}</strong>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeAttentionTab === "ML"}
-                className={`affiliate-attention-tab${activeAttentionTab === "ML" ? " affiliate-attention-tab-active" : ""}`}
-                onClick={() => setActiveAttentionTab("ML")}
-              >
-                <span>{t("ecommerce.affiliateWorkspace.mlInsightsShortTitle", { defaultValue: "ML" })}</span>
-              </button>
-            </div>
-            <input
-              className="affiliate-attention-search"
-              value={attentionSearch}
-              onChange={(event) => setAttentionSearch(event.target.value)}
-              placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
-              aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
-            />
+            <label className="affiliate-filter-field">
+              <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>
+              <Select
+                value={proposalFilter}
+                onChange={(value) => setProposalFilter(value as ProposalFilter)}
+                options={proposalFilterOptions}
+                className="affiliate-status-select"
+                ariaLabel={t("ecommerce.affiliateWorkspace.statusFilter")}
+              />
+            </label>
+            <label className="affiliate-filter-field affiliate-filter-field-search">
+              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
+              <input
+                className="affiliate-attention-search"
+                value={attentionSearch}
+                onChange={(event) => setAttentionSearch(event.target.value)}
+                placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+                aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+              />
+            </label>
           </div>
         </div>
 
-        <div className="affiliate-entity-filterbar">
-          {activeAttentionTab === "ML" ? null : activeAttentionTab === "PROPOSALS"
-            ? PROPOSAL_FILTERS.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`affiliate-filter-chip${proposalFilter === filter ? " affiliate-filter-chip-active" : ""}`}
-                  onClick={() => setProposalFilter(filter)}
-                >
-                  {t(`ecommerce.affiliateWorkspace.proposalFilters.${filter}`, {
-                    defaultValue: filter,
-                  })}
-                </button>
-              ))
-            : ATTENTION_COLLABORATION_FILTERS.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`affiliate-filter-chip${collaborationFilter === filter ? " affiliate-filter-chip-active" : ""}`}
-                  onClick={() => setCollaborationFilter(filter)}
-                >
-                  {t(`ecommerce.affiliateWorkspace.collaborationFilters.${filter}`, {
-                    defaultValue: filter,
-                  })}
-                </button>
-              ))}
-        </div>
-
         <div className="affiliate-attention-active-list">
-          {activeAttentionTab === "ML" ? (
-            <AffiliateMlInsightsPanel
-              loading={mlInsightsLoading}
-              summary={mlSummary}
-              shopLabel={selectedShopId ? shopLabel(selectedShopId) : t("ecommerce.affiliateWorkspace.allShops")}
-            />
-          ) : activeLoading && (
-            activeAttentionTab === "PROPOSALS"
-              ? visibleProposalItems.length === 0
-              : visibleCollaborationItems.length === 0
-          ) ? (
+          {proposalsLoading && visibleProposalItems.length === 0 ? (
             <AffiliateLoadingState />
-          ) : activeAttentionTab === "PROPOSALS" && visibleProposalItems.length === 0 ? (
+          ) : visibleProposalItems.length === 0 ? (
             <div className="affiliate-proposal-empty">
               {proposalFilter === GQL.ActionProposalStatus.Pending
                 ? t("ecommerce.affiliateWorkspace.emptyApprovals")
                 : t("ecommerce.affiliateWorkspace.emptyProposalEntities")}
             </div>
-          ) : activeAttentionTab === "COLLABORATIONS" && visibleCollaborationItems.length === 0 ? (
-            <div className="affiliate-proposal-empty">
-              {collaborationFilter === "NEEDS_ATTENTION"
-                ? t("ecommerce.affiliateWorkspace.emptyCollaborationWork")
-                : t("ecommerce.affiliateWorkspace.emptyHistory")}
-            </div>
-          ) : activeAttentionTab === "PROPOSALS" ? (
+          ) : (
             <div className="affiliate-workbench-list">
               {visibleProposalItems.map((proposal) => (
                 <ActionProposalCard
@@ -432,18 +449,6 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                   onOpenCreator={(profile) => setSelectedCreator(profile)}
                   onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
                   onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="affiliate-workbench-list">
-              {visibleCollaborationItems.map((item) => (
-                <CollaborationRecordCard
-                  key={item.collaborationRecord.id}
-                  item={item}
-                  shopLabel={shopLabel(item.collaborationRecord.shopId)}
-                  onOpen={() => setSelectedCollaboration(item)}
-                  onOpenCreator={(profile) => setSelectedCreator(profile)}
                 />
               ))}
             </div>
@@ -472,18 +477,28 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
 function AffiliateMlInsightsPanel({
   loading,
-  summary,
-  shopLabel,
+  rows,
+  selectedKey,
+  onSelect,
 }: {
   loading: boolean;
-  summary: GQL.AffiliateMlModelEfficiencySummary | null;
-  shopLabel: string;
+  rows: AffiliateInsightRow[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
 }) {
   const { t } = useTranslation();
-  if (loading && !summary) {
+  const selectedRow =
+    rows.find((row) => row.key === selectedKey)
+    ?? rows.find((row) => row.summary)
+    ?? rows[0]
+    ?? null;
+  const summary = selectedRow?.summary ?? null;
+
+  if (loading && rows.length === 0) {
     return <AffiliateLoadingState />;
   }
-  if (!summary) {
+
+  if (!selectedRow) {
     return (
       <div className="affiliate-proposal-empty">
         {t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
@@ -493,103 +508,614 @@ function AffiliateMlInsightsPanel({
     );
   }
 
-  const liftPercent =
-    summary.modelVsHumanExpectedUnitsLiftRatio == null
-      ? null
-      : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
+  if (!summary) {
+    return (
+      <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
+        <AffiliateInsightScopeRail
+          rows={rows}
+          selectedKey={selectedKey}
+          onSelect={onSelect}
+        />
+        <div className="affiliate-intelligence-empty">
+          <InfoIcon />
+          <strong>{selectedRow.label}</strong>
+          <span>
+            {t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
+              defaultValue: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
+            })}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const payload = parseAffiliateInsightPayload(summary.payload);
+  const sameBudget = payloadObject(payload, "same_sample_budget");
+  const sameSalesBar = payloadObject(payload, "same_sales_bar");
+  const budgetHumanApprovedCount = payloadNumber(sameBudget, "historical_approved_count");
+  const budgetHumanExpectedUnits = payloadNumber(sameBudget, "historical_expected_sales_units");
+  const budgetModelExpectedUnits = payloadNumber(sameBudget, "model_expected_sales_units");
+  const budgetLiftRatio = payloadNumber(sameBudget, "expected_sales_lift_ratio");
+  const budgetModelRejectedHumanApprovedCount = payloadNumber(sameBudget, "model_rejected_human_approved_count");
+  const salesBarThreshold = payloadNumber(sameSalesBar, "min_expected_sales_units_bar");
+  const salesBarHistoricalQualifiedCount = payloadNumber(sameSalesBar, "historical_qualified_approved_count");
+  const salesBarModelQualifiedCount = payloadNumber(sameSalesBar, "model_qualified_count");
+  const salesBarOverlookedCount = payloadNumber(sameSalesBar, "model_qualified_human_rejected_count");
+  const salesBarLiftRatio = payloadNumber(sameSalesBar, "qualified_creator_lift_ratio");
   const sampleSavingsRisk =
-    summary.humanApprovedCount > 0
-      ? summary.modelRejectedHumanApprovedCount / summary.humanApprovedCount
+    budgetHumanApprovedCount && budgetHumanApprovedCount > 0
+      ? (budgetModelRejectedHumanApprovedCount ?? 0) / budgetHumanApprovedCount
       : null;
+  const budgetMaxUnits = Math.max(budgetModelExpectedUnits ?? 0, budgetHumanExpectedUnits ?? 0, 1);
+  const modelBarWidth = `${Math.max(8, Math.round(((budgetModelExpectedUnits ?? 0) / budgetMaxUnits) * 100))}%`;
+  const humanBarWidth = `${Math.max(8, Math.round(((budgetHumanExpectedUnits ?? 0) / budgetMaxUnits) * 100))}%`;
+  const salesBarMaxCount = Math.max(salesBarModelQualifiedCount ?? 0, salesBarHistoricalQualifiedCount ?? 0, 1);
+  const salesBarModelWidth = `${Math.max(8, Math.round(((salesBarModelQualifiedCount ?? 0) / salesBarMaxCount) * 100))}%`;
+  const salesBarHumanWidth = `${Math.max(8, Math.round(((salesBarHistoricalQualifiedCount ?? 0) / salesBarMaxCount) * 100))}%`;
+  const evaluationWindow = formatEvaluationWindow(payload, summary.evaluationScope, t);
+  const precisionLiftPercent = budgetLiftRatio == null ? null : (budgetLiftRatio - 1) * 100;
+  const reachLiftPercent = salesBarLiftRatio == null ? null : (salesBarLiftRatio - 1) * 100;
+  const precisionLiftLabel = precisionLiftPercent == null ? "—" : `+${formatNumber(precisionLiftPercent, 1)}%`;
+  const reachLiftLabel = reachLiftPercent == null ? "—" : `+${formatNumber(reachLiftPercent, 1)}%`;
+  const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
 
   return (
-    <div className="affiliate-ml-insights">
-      <div className="affiliate-ml-strip">
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.mlScope", { defaultValue: "Scope" })}</span>
-          <strong>{shopLabel}</strong>
-          <small>{formatDate(summary.trainedAt)}</small>
-        </div>
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.mlHumanApprovalRate", { defaultValue: "Historical approval rate" })}</span>
-          <strong>{formatPercent(summary.humanApprovalRate)}</strong>
-          <small>{formatInteger(summary.humanApprovedCount)} / {formatInteger(summary.rowCount)}</small>
-        </div>
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.mlSameBudgetLift", { defaultValue: "Same sample budget lift" })}</span>
-          <strong>{liftPercent == null ? "—" : `+${formatNumber(liftPercent, 1)}%`}</strong>
-          <small>{t("ecommerce.affiliateWorkspace.mlEstimatedUnits", { defaultValue: "estimated units" })}</small>
-        </div>
-      </div>
+    <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
+      <AffiliateInsightScopeRail
+        rows={rows}
+        selectedKey={selectedRow.key}
+        onSelect={onSelect}
+      />
 
-      <div className="affiliate-ml-metrics">
-        <AffiliateMlMetric
-          label={t("ecommerce.affiliateWorkspace.mlModelExpected", { defaultValue: "Model-ranked expected units" })}
-          value={formatNumber(summary.modelSameBudgetExpectedUnits, 1)}
-          hint={t("ecommerce.affiliateWorkspace.mlModelExpectedHint", {
-            defaultValue: "Predicted total units if the model selected the same number of samples as historical staff.",
-          })}
-        />
-        <AffiliateMlMetric
-          label={t("ecommerce.affiliateWorkspace.mlHumanExpected", { defaultValue: "Human-selected expected units" })}
-          value={formatNumber(summary.humanSameBudgetExpectedUnits, 1)}
-          hint={t("ecommerce.affiliateWorkspace.mlHumanExpectedHint", {
-            defaultValue: "Predicted total units for the historical staff-approved applications.",
-          })}
-        />
-        <AffiliateMlMetric
-          label={t("ecommerce.affiliateWorkspace.mlDiscoveredCreators", { defaultValue: "Additional high-potential creators" })}
-          value={formatInteger(summary.modelSelectedHumanRejectedCount)}
-          hint={t("ecommerce.affiliateWorkspace.mlDiscoveredCreatorsHint", {
-            defaultValue: "Applications the model would select that historical staff rejected, measured counterfactually.",
-          })}
-        />
-        <AffiliateMlMetric
-          label={t("ecommerce.affiliateWorkspace.mlFilteredApproved", { defaultValue: "Human-approved filtered by model" })}
-          value={formatInteger(summary.modelRejectedHumanApprovedCount)}
-          hint={t("ecommerce.affiliateWorkspace.mlFilteredApprovedHint", {
-            defaultValue: "Historical approvals the model would not prioritize at the same sample count.",
-          })}
-        />
-      </div>
+      <div className="affiliate-intelligence-main">
+        <div className="affiliate-intelligence-claim-grid">
+          <div className="affiliate-intelligence-verdict">
+            <div className="affiliate-intelligence-verdict-icon">
+              <AffiliateSparkIcon />
+            </div>
+            <div>
+              <span>{selectedRow.label}</span>
+              <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
+              <p>
+                {precisionLiftPercent != null && precisionLiftPercent > 0
+                  ? translate(
+                    "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionBody",
+                    {
+                      lift: precisionLiftLabel,
+                      count: formatInteger(budgetHumanApprovedCount),
+                    },
+                  )
+                  : translate(
+                    "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionNeutral",
+                    {
+                      lift: precisionLiftLabel,
+                      count: formatInteger(budgetHumanApprovedCount),
+                    },
+                  )}
+              </p>
+            </div>
+          </div>
 
-      <div className="affiliate-ml-note">
-        <div>
-          <strong>{t("ecommerce.affiliateWorkspace.mlBudgetThreshold", { defaultValue: "Calibrated threshold" })}</strong>
+          <div className="affiliate-intelligence-verdict affiliate-intelligence-verdict-reach">
+            <div className="affiliate-intelligence-verdict-icon">
+              <AffiliateTargetIcon />
+            </div>
+            <div>
+              <span>{selectedRow.label}</span>
+              <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimReachTitle")}</strong>
+              <p>
+                {reachLiftPercent != null && reachLiftPercent > 0
+                  ? translate(
+                    "ecommerce.affiliateWorkspace.intelligenceClaimReachBody",
+                    {
+                      bar: formatNumber(salesBarThreshold, 1),
+                      lift: reachLiftLabel,
+                      creators: formatInteger(salesBarModelQualifiedCount),
+                      overlooked: formatInteger(salesBarOverlookedCount),
+                    },
+                  )
+                  : translate(
+                    "ecommerce.affiliateWorkspace.intelligenceClaimReachNeutral",
+                    {
+                      bar: formatNumber(salesBarThreshold, 1),
+                      lift: reachLiftLabel,
+                      creators: formatInteger(salesBarModelQualifiedCount),
+                      overlooked: formatInteger(salesBarOverlookedCount),
+                    },
+                  )}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="affiliate-intelligence-comparison">
+          <div className="affiliate-intelligence-card-head">
+            <div>
+              <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
+              <strong>{precisionLiftLabel}</strong>
+            </div>
+            <small>
+              {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
+                count: formatInteger(budgetHumanApprovedCount),
+                window: evaluationWindow,
+              })}
+            </small>
+          </div>
+
+          <div className="affiliate-intelligence-race">
+            <AffiliateRaceRow
+              icon={<AffiliateSparkIcon />}
+              label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
+              value={formatNumber(budgetModelExpectedUnits, 1)}
+              width={modelBarWidth}
+              variant="model"
+            />
+            <AffiliateRaceRow
+              icon={<UserIcon />}
+              label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
+              value={formatNumber(budgetHumanExpectedUnits, 1)}
+              width={humanBarWidth}
+              variant="human"
+            />
+          </div>
+        </div>
+
+        <AffiliateBudgetDistributionPanel
+          claim={sameBudget}
+          windowLabel={evaluationWindow}
+        />
+
+        <div className="affiliate-intelligence-comparison affiliate-intelligence-comparison-secondary">
+          <div className="affiliate-intelligence-card-head">
+            <div>
+              <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameSalesBar")}</span>
+              <strong>{reachLiftLabel}</strong>
+            </div>
+            <small>
+              {t("ecommerce.affiliateWorkspace.intelligenceSameSalesBarStory", {
+                bar: formatNumber(salesBarThreshold, 1),
+                window: evaluationWindow,
+              })}
+            </small>
+          </div>
+
+          <div className="affiliate-intelligence-race">
+            <AffiliateRaceRow
+              icon={<AffiliateTargetIcon />}
+              label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
+              value={formatInteger(salesBarModelQualifiedCount)}
+              width={salesBarModelWidth}
+              variant="model"
+            />
+            <AffiliateRaceRow
+              icon={<AffiliateShieldIcon />}
+              label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
+              value={formatInteger(salesBarHistoricalQualifiedCount)}
+              width={salesBarHumanWidth}
+              variant="human"
+            />
+          </div>
+        </div>
+
+        <AffiliateSalesBarDistributionPanel
+          claim={sameSalesBar}
+          windowLabel={evaluationWindow}
+        />
+
+        <div className="affiliate-intelligence-explainers">
+          <AffiliateExplainerTile
+            icon={<AffiliateGaugeIcon />}
+            value={formatNumber(salesBarThreshold, 1)}
+            label={t("ecommerce.affiliateWorkspace.intelligenceApprovalBar")}
+          />
+          <AffiliateExplainerTile
+            icon={<AffiliateTargetIcon />}
+            value={formatPercent(summary.humanApprovalRate)}
+            label={t("ecommerce.affiliateWorkspace.intelligenceHistoricalRate")}
+          />
+          <AffiliateExplainerTile
+            icon={<AffiliateShieldIcon />}
+            value={formatPercent(sampleSavingsRisk)}
+            label={t("ecommerce.affiliateWorkspace.intelligenceFilteredRate")}
+          />
+        </div>
+
+        <div className="affiliate-intelligence-footnote">
+          <span
+            className="affiliate-intelligence-disclaimer"
+            title={t("ecommerce.affiliateWorkspace.intelligenceLegalDisclaimer")}
+          >
+            <InfoIcon />
+          </span>
           <span>
-            {t("ecommerce.affiliateWorkspace.mlBudgetThresholdBody", {
-              defaultValue: "At the historical approval volume, the implied minimum expected sales is {{value}} units.",
-              value: formatNumber(summary.minExpectedSalesUnitsSameBudget, 2),
+            {t("ecommerce.affiliateWorkspace.intelligenceTrainingScope", {
+              approvalRate: formatPercent(summary.humanApprovalRate),
+              filteredRate: formatPercent(sampleSavingsRisk),
+              trainedAt: formatDate(summary.trainedAt),
+              window: evaluationWindow,
             })}
           </span>
-        </div>
-        <div>
-          <strong>{t("ecommerce.affiliateWorkspace.mlFalseNegativeRisk", { defaultValue: "Missed historical winners" })}</strong>
-          <span>
-            {t("ecommerce.affiliateWorkspace.mlFalseNegativeRiskBody", {
-              defaultValue: "{{rate}} of historical approvals would be filtered; those observed approvals sold {{units}} units.",
-              rate: formatPercent(sampleSavingsRisk),
-              units: formatNumber(summary.modelRejectedHumanApprovedActualUnits, 0),
-            })}
-          </span>
-        </div>
-        <div>
-          <strong>{t("ecommerce.affiliateWorkspace.mlModelVersion", { defaultValue: "Model version" })}</strong>
-          <span>{summary.modelVersionKey}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function AffiliateMlMetric({ label, value, hint }: { label: string; value: string; hint: string }) {
+function AffiliateInsightScopeRail({
+  rows,
+  selectedKey,
+  onSelect,
+}: {
+  rows: AffiliateInsightRow[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
+}) {
+  const { t } = useTranslation();
   return (
-    <div className="affiliate-ml-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{hint}</small>
+    <div className="affiliate-intelligence-scope-rail">
+      {rows.map((row) => {
+        const ready = Boolean(row.summary);
+        return (
+          <button
+            key={row.key}
+            type="button"
+            className={`affiliate-intelligence-scope${selectedKey === row.key ? " affiliate-intelligence-scope-active" : ""}${ready ? "" : " affiliate-intelligence-scope-empty"}`}
+            onClick={() => onSelect(row.key)}
+          >
+            <span className="affiliate-intelligence-scope-icon">
+              {row.kind === "user" ? <UserIcon /> : <ShopIcon />}
+            </span>
+            <span className="affiliate-intelligence-scope-copy">
+              <strong>{row.label}</strong>
+              <small>
+                {ready
+                  ? t("ecommerce.affiliateWorkspace.intelligenceModelReady")
+                  : t("ecommerce.affiliateWorkspace.intelligenceNoModel")}
+              </small>
+            </span>
+            {ready ? <CheckIcon /> : <InfoIcon />}
+          </button>
+        );
+      })}
     </div>
   );
+}
+
+function AffiliateRaceRow({
+  icon,
+  label,
+  value,
+  width,
+  variant,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  width: string;
+  variant: "model" | "human";
+}) {
+  return (
+    <div className={`affiliate-intelligence-race-row affiliate-intelligence-race-${variant}`}>
+      <span className="affiliate-intelligence-race-icon">{icon}</span>
+      <span className="affiliate-intelligence-race-label">{label}</span>
+      <div className="affiliate-intelligence-race-track">
+        <div style={{ width }} />
+      </div>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function AffiliateExplainerTile({
+  icon,
+  value,
+  label,
+}: {
+  icon: ReactNode;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="affiliate-intelligence-explainer">
+      <span>{icon}</span>
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </div>
+  );
+}
+
+function AffiliateBudgetDistributionPanel({
+  claim,
+  windowLabel,
+}: {
+  claim: AffiliateInsightPayload;
+  windowLabel: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <AffiliateClaimDistributionPanel
+      title={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsTitle")}
+      headline={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHeadline")}
+      hint={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHint", { window: windowLabel })}
+      stats={[
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications"),
+          value: formatInteger(payloadNumber(claim, "historical_sample_count")),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalExpectedUnits"),
+          value: formatNumber(payloadNumber(claim, "historical_expected_sales_units"), 1),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceModelExpectedUnits"),
+          value: formatNumber(payloadNumber(claim, "model_expected_sales_units"), 1),
+        },
+      ]}
+      series={[
+        {
+          key: "historical",
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApprovedActual"),
+          buckets: payloadHistogram(claim, "historical_approved_actual_units_histogram"),
+        },
+        {
+          key: "selected",
+          label: t("ecommerce.affiliateWorkspace.intelligenceModelSelectedExpected"),
+          buckets: payloadHistogram(claim, "model_selected_expected_units_histogram"),
+        },
+        {
+          key: "rejected",
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApprovedExpected"),
+          buckets: payloadHistogram(claim, "historical_approved_expected_units_histogram"),
+        },
+      ]}
+    />
+  );
+}
+
+function AffiliateSalesBarDistributionPanel({
+  claim,
+  windowLabel,
+}: {
+  claim: AffiliateInsightPayload;
+  windowLabel: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <AffiliateClaimDistributionPanel
+      title={t("ecommerce.affiliateWorkspace.intelligenceReachStatsTitle")}
+      headline={t("ecommerce.affiliateWorkspace.intelligenceReachStatsHeadline")}
+      hint={t("ecommerce.affiliateWorkspace.intelligenceReachStatsHint", {
+        bar: formatNumber(payloadNumber(claim, "min_expected_sales_units_bar"), 1),
+        window: windowLabel,
+      })}
+      stats={[
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators"),
+          value: formatInteger(payloadNumber(claim, "historical_qualified_approved_count")),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators"),
+          value: formatInteger(payloadNumber(claim, "model_qualified_count")),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceOverlookedQualifiedCreators"),
+          value: formatInteger(payloadNumber(claim, "model_qualified_human_rejected_count")),
+        },
+      ]}
+      series={[
+        {
+          key: "historical",
+          label: t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedExpected"),
+          buckets: payloadHistogram(claim, "historical_qualified_expected_units_histogram"),
+        },
+        {
+          key: "selected",
+          label: t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedExpected"),
+          buckets: payloadHistogram(claim, "model_qualified_expected_units_histogram"),
+        },
+        {
+          key: "rejected",
+          label: t("ecommerce.affiliateWorkspace.intelligenceBelowBarExpected"),
+          buckets: payloadHistogram(claim, "model_below_bar_expected_units_histogram"),
+        },
+      ]}
+    />
+  );
+}
+
+function AffiliateClaimDistributionPanel({
+  title,
+  headline,
+  hint,
+  stats,
+  series,
+}: {
+  title: string;
+  headline: string;
+  hint: string;
+  stats: Array<{ label: string; value: string }>;
+  series: Array<{
+    key: string;
+    label: string;
+    buckets: AffiliateSalesHistogramBucket[];
+  }>;
+}) {
+  const { t } = useTranslation();
+  const labels = mergedHistogramLabels(series.map((item) => item.buckets));
+  const maxCount = Math.max(
+    1,
+    ...series.flatMap((item) => item.buckets.map((bucket) => bucket.count)),
+  );
+  const hasData = labels.length > 0 && series.some((item) => item.buckets.some((bucket) => bucket.count > 0));
+
+  return (
+    <div className="affiliate-intelligence-distribution-card">
+      <div className="affiliate-intelligence-distribution-head">
+        <div>
+          <span>{title}</span>
+          <strong>{headline}</strong>
+        </div>
+        <small>{hint}</small>
+      </div>
+
+      <div className="affiliate-intelligence-stat-strip">
+        {stats.map((item) => (
+          <AffiliateTinyStat key={item.label} label={item.label} value={item.value} />
+        ))}
+      </div>
+
+      {hasData ? (
+        <>
+          <div className="affiliate-intelligence-distribution-legend">
+            {series.map((item) => (
+              <span key={item.key} className={`affiliate-distribution-legend-${item.key}`}>
+                <i />
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <div className="affiliate-intelligence-histogram" aria-hidden="true">
+            {labels.map((label) => (
+              <div key={label.key} className="affiliate-intelligence-histogram-bucket">
+                <div className="affiliate-intelligence-histogram-bars">
+                  {series.map((item) => {
+                    const bucket = item.buckets.find((candidate) => candidate.key === label.key);
+                    const height = `${Math.max(4, Math.round(((bucket?.count ?? 0) / maxCount) * 100))}%`;
+                    return (
+                      <span
+                        key={item.key}
+                        className={`affiliate-histogram-bar affiliate-histogram-bar-${item.key}`}
+                        style={{ height }}
+                        title={`${item.label}: ${formatInteger(bucket?.count ?? 0)}`}
+                      />
+                    );
+                  })}
+                </div>
+                <small>{label.label}</small>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="affiliate-intelligence-distribution-empty">
+          {t("ecommerce.affiliateWorkspace.intelligenceDistributionIncomplete")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AffiliateTinyStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="affiliate-intelligence-tiny-stat">
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </div>
+  );
+}
+
+function AffiliateSparkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+      <path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15z" />
+    </svg>
+  );
+}
+
+function AffiliateTargetIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    </svg>
+  );
+}
+
+function AffiliateShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3l7 3v5c0 4.6-2.7 8-7 10-4.3-2-7-5.4-7-10V6l7-3z" />
+      <path d="M8.5 12.2l2.1 2.1 4.9-5" />
+    </svg>
+  );
+}
+
+function AffiliateGaugeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 14a8 8 0 0 1 16 0" />
+      <path d="M12 14l4-5" />
+      <path d="M6 18h12" />
+    </svg>
+  );
+}
+
+function parseAffiliateInsightPayload(payload: unknown): AffiliateInsightPayload {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return {};
+  return payload as AffiliateInsightPayload;
+}
+
+function payloadNumber(payload: AffiliateInsightPayload, key: string): number | null {
+  const value = payload[key];
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function payloadObject(payload: AffiliateInsightPayload, key: string): AffiliateInsightPayload {
+  const value = payload[key];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as AffiliateInsightPayload;
+}
+
+function payloadHistogram(payload: AffiliateInsightPayload, key: string): AffiliateSalesHistogramBucket[] {
+  const value = payload[key];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const source = item as Record<string, unknown>;
+    const bucketKey = typeof source.key === "string" ? source.key : null;
+    const label = typeof source.label === "string" ? source.label : bucketKey;
+    const count = payloadNumber(source, "count");
+    if (!bucketKey || !label || count == null) return [];
+    return [{ key: bucketKey, label, count }];
+  });
+}
+
+function mergedHistogramLabels(bucketLists: AffiliateSalesHistogramBucket[][]): AffiliateSalesHistogramBucket[] {
+  const labels = new Map<string, AffiliateSalesHistogramBucket>();
+  for (const buckets of bucketLists) {
+    for (const bucket of buckets) {
+      if (!labels.has(bucket.key)) {
+        labels.set(bucket.key, { key: bucket.key, label: bucket.label, count: 0 });
+      }
+    }
+  }
+  return Array.from(labels.values());
+}
+
+function formatEvaluationWindow(
+  payload: AffiliateInsightPayload,
+  evaluationScope: string,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const windowPayload = payloadObject(payload, "evaluation_window");
+  const start = typeof windowPayload.start === "string" ? windowPayload.start : null;
+  const end = typeof windowPayload.end === "string" ? windowPayload.end : null;
+  if (start && end) {
+    return t("ecommerce.affiliateWorkspace.intelligenceWindowRange", {
+      start: formatShortDate(start),
+      end: formatShortDate(end),
+    });
+  }
+  return t(`ecommerce.affiliateWorkspace.evaluationScopes.${evaluationScope}`, {
+    defaultValue: t("ecommerce.affiliateWorkspace.intelligenceWindowLatestTraining"),
+  });
 }
 
 function formatInteger(value: number | null | undefined): string {
@@ -618,6 +1144,12 @@ function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}
+
+function formatShortDate(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
 }
 
 function isPendingActionProposalItem(item: DashboardItem): boolean {
@@ -795,7 +1327,8 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
-  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("IN_PROGRESS");
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("NEEDS_ATTENTION");
+  const [historySearch, setHistorySearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<CollaborationListItem | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
 
@@ -817,17 +1350,33 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     ],
     [shops, t],
   );
+  const historyFilterOptions = useMemo(
+    () => HISTORY_FILTERS.map((filter) => ({
+      value: filter,
+      label: t(`ecommerce.affiliateWorkspace.historyFilters.${filter}`, {
+        defaultValue: filter,
+      }),
+    })),
+    [t],
+  );
 
   const processingStatus = useMemo(() => {
-    if (historyFilter === "ALL" || historyFilter === "IN_PROGRESS") return undefined;
+    if (historyFilter === "ALL" || historyFilter === "IN_PROGRESS" || historyFilter === "NEEDS_ATTENTION") return undefined;
     return historyFilter;
   }, [historyFilter]);
   const processingStatuses = useMemo(() => {
+    if (historyFilter === "NEEDS_ATTENTION") {
+      return [
+        GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+        GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+        GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
+      ];
+    }
     if (historyFilter !== "IN_PROGRESS") return undefined;
     return [
-      GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
+      GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
       GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
-      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingStaff,
+      GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
       GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator,
       GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform,
     ];
@@ -865,6 +1414,10 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const items = useMemo(() => {
     return data?.affiliateCollaborationRecordItems ?? [];
   }, [data?.affiliateCollaborationRecordItems]);
+  const visibleItems = useMemo(
+    () => filterCollaborationItems(items, historySearch, shopLabel),
+    [historySearch, items, shops],
+  );
 
   function shopLabel(shopId: string): string {
     const shop = shops.find((candidate) => candidate.id === shopId);
@@ -929,31 +1482,39 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
               {t("ecommerce.affiliateWorkspace.collaborationRecordsHint")}
             </div>
           </div>
-          <div className="affiliate-workbench-filterbar">
-            {HISTORY_FILTERS.map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                className={`affiliate-filter-chip${historyFilter === filter ? " affiliate-filter-chip-active" : ""}`}
-                onClick={() => setHistoryFilter(filter)}
-              >
-                {t(`ecommerce.affiliateWorkspace.historyFilters.${filter}`, {
-                  defaultValue: filter,
-                })}
-              </button>
-            ))}
+          <div className="affiliate-attention-toolbar">
+            <label className="affiliate-filter-field">
+              <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>
+              <Select
+                value={historyFilter}
+                onChange={(value) => setHistoryFilter(value as HistoryFilter)}
+                options={historyFilterOptions}
+                className="affiliate-status-select"
+                ariaLabel={t("ecommerce.affiliateWorkspace.statusFilter")}
+              />
+            </label>
+            <label className="affiliate-filter-field affiliate-filter-field-search">
+              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
+              <input
+                className="affiliate-attention-search"
+                value={historySearch}
+                onChange={(event) => setHistorySearch(event.target.value)}
+                placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+                aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+              />
+            </label>
           </div>
         </div>
 
-        {loading && items.length === 0 ? (
+        {loading && visibleItems.length === 0 ? (
           <AffiliateLoadingState />
-        ) : items.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <div className="affiliate-proposal-empty">
             {t("ecommerce.affiliateWorkspace.emptyHistory")}
           </div>
         ) : (
           <div className="affiliate-collaboration-list">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <CollaborationRecordCard
                 key={item.collaborationRecord.id}
                 item={item}
