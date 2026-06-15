@@ -2411,7 +2411,7 @@ export default {
       "intelligenceFilteredRate": "aprobaciones históricas filtradas",
       "intelligenceTrainingScope": "{{window}} · entrenado {{trainedAt}}. Tasa histórica de aprobación {{approvalRate}}; aprobaciones históricas filtradas {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Esta vista se basa en modelos estadísticos y predicciones de aprendizaje automático. No garantiza que el uso del modelo produzca crecimiento real del negocio.",
-      "intelligenceWindowRange": "{{start}} - {{end}}",
+      "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} días",
       "intelligenceWindowLatestTraining": "Ventana de muestras de entrenamiento más reciente",
       "intelligenceDistributionTitle": "Comparación de distribución de ventas",
       "intelligenceDistributionHeadline": "El modelo desplaza el grupo seleccionado hacia tramos de venta más altos",

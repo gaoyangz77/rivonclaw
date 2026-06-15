@@ -2411,7 +2411,7 @@ export default {
       "intelligenceFilteredRate": "การอนุมัติย้อนหลังที่ถูกกรอง",
       "intelligenceTrainingScope": "{{window}} · ฝึกเมื่อ {{trainedAt}} อัตราอนุมัติย้อนหลัง {{approvalRate}}; การอนุมัติย้อนหลังที่ถูกกรอง {{filteredRate}}",
       "intelligenceLegalDisclaimer": "มุมมองนี้อิงจากแบบจำลองสถิติและการคาดการณ์ของ machine learning ไม่ได้เป็นการรับประกันว่าการใช้โมเดลจะทำให้ธุรกิจเติบโตจริง",
-      "intelligenceWindowRange": "{{start}} - {{end}}",
+      "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} วัน",
       "intelligenceWindowLatestTraining": "ช่วงตัวอย่างฝึกโมเดลล่าสุด",
       "intelligenceDistributionTitle": "เปรียบเทียบการกระจายยอดขาย",
       "intelligenceDistributionHeadline": "โมเดลเลื่อนกลุ่มที่เลือกไปยังช่วงยอดขายที่สูงขึ้น",
