@@ -697,7 +697,6 @@ export const AffiliateCollaborationRecordProcessReason = {
   CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
   CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
   OrderAttributed: 'ORDER_ATTRIBUTED',
-  ProductContextMissing: 'PRODUCT_CONTEXT_MISSING',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
@@ -726,7 +725,6 @@ export const AffiliateCollaborationRequiredAction = {
   FollowUpContent: 'FOLLOW_UP_CONTENT',
   None: 'NONE',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
-  ResolveProductContext: 'RESOLVE_PRODUCT_CONTEXT',
   RespondToCreator: 'RESPOND_TO_CREATOR',
   ReviewActionProposal: 'REVIEW_ACTION_PROPOSAL',
   ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
@@ -1218,11 +1216,11 @@ export const AffiliateLifecycleEventType = {
 export type AffiliateLifecycleEventType = typeof AffiliateLifecycleEventType[keyof typeof AffiliateLifecycleEventType];
 export const AffiliateLifecycleStage = {
   Blocked: 'BLOCKED',
+  Closed: 'CLOSED',
   Contacted: 'CONTACTED',
   ContentPending: 'CONTENT_PENDING',
   Converting: 'CONVERTING',
   Discovered: 'DISCOVERED',
-  Dormant: 'DORMANT',
   Invited: 'INVITED',
   Qualified: 'QUALIFIED',
   Retained: 'RETAINED',
@@ -1425,7 +1423,6 @@ export const AffiliateWorkKind = {
   CreatorReplyNeeded: 'CREATOR_REPLY_NEEDED',
   GeneralReviewNeeded: 'GENERAL_REVIEW_NEEDED',
   OrderAttributedObserved: 'ORDER_ATTRIBUTED_OBSERVED',
-  ProductContextMissing: 'PRODUCT_CONTEXT_MISSING',
   SampleReviewNeeded: 'SAMPLE_REVIEW_NEEDED',
   SampleShipmentNeeded: 'SAMPLE_SHIPMENT_NEEDED',
   StaffReviewNeeded: 'STAFF_REVIEW_NEEDED',
@@ -1445,7 +1442,6 @@ export const AffiliateWorkMissingContextReason = {
   ConversationIdMissing: 'CONVERSATION_ID_MISSING',
   CreatorOpenIdMissing: 'CREATOR_OPEN_ID_MISSING',
   CreatorProfileMissing: 'CREATOR_PROFILE_MISSING',
-  ProductContextMissing: 'PRODUCT_CONTEXT_MISSING',
   SampleApplicationMissing: 'SAMPLE_APPLICATION_MISSING'
 } as const;
 
@@ -4492,6 +4488,7 @@ export interface MutationCsEndCustomerServiceSessionArgs {
 
 export interface MutationCsEndSessionArgs {
   conversationId: Scalars['String']['input'];
+  reviewRequestMessage?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
 }
 

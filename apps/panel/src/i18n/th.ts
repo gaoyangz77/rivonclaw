@@ -2519,7 +2519,7 @@ export default {
         "CONTENT_PENDING": "รอคอนเทนต์",
         "CONVERTING": "กำลังแปลงยอด",
         "RETAINED": "รักษาความสัมพันธ์",
-        "DORMANT": "ไม่เคลื่อนไหว",
+        "CLOSED": "ปิดแล้ว",
         "BLOCKED": "ถูกบล็อก"
       },
       "processReasons": {
