@@ -154,6 +154,130 @@ describe("cloud-graphql handler", () => {
     expect(res._body).toEqual({ data: mockData });
   });
 
+  it("downgrades malformed affiliate resolve work item actions before proxying", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "NEEDS_STAFF_REVIEW",
+        stale: false,
+        actionMode: null,
+        proposal: null,
+        collaborationRecord: null,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          handledSignalAt: "2026-06-14T07:17:07.966Z",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Approve the sample.",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            sampleReviewIntent: {},
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          decision: "NEEDS_STAFF_REVIEW",
+          operatorSummary: expect.stringContaining("Desktop blocked an invalid affiliate action"),
+          action: undefined,
+          actions: undefined,
+        }),
+      }),
+    );
+  });
+
+  it("normalizes flattened affiliate sample review actions before proxying", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Reject the sample.",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            predictionCacheIds: ["pred-1"],
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-app-1",
+            decision: "REJECT",
+            rejectReason: "OTHER",
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          decision: "REQUEST_ACTION",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            predictionCacheIds: ["pred-1"],
+            expiresAt: undefined,
+            sampleReviewIntent: {
+              sampleApplicationRecordId: "sample-1",
+              platformApplicationId: "platform-app-1",
+              decision: "REJECT",
+              rejectReason: "OTHER",
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it("returns 200 with errors on auth-related errors", async () => {
     const ctx = {
       authSession: {

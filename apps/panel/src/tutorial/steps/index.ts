@@ -10,6 +10,7 @@ import { settingsSteps } from "./settings.js"
 import { accountSteps } from "./account.js"
 import { billingSteps } from "./billing.js"
 import { ecommerceSteps } from "./ecommerce.js"
+import { adsManagementSteps } from "./adsManagement.js"
 import { ecommerceCustomerServiceSteps } from "./ecommerceCustomerService.js"
 import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
 
@@ -18,6 +19,7 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/shops": ecommerceSteps,
   "/commerce/customer-service": ecommerceCustomerServiceSteps,
   "/commerce/affiliate": ecommerceAffiliateSteps,
+  "/commerce/ads": adsManagementSteps,
   "/automation/skills": skillsSteps,
   "/automation/crons": cronsSteps,
   "/connections/channels": channelsSteps,

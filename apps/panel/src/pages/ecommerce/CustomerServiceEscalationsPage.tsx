@@ -41,6 +41,11 @@ type OlderMessagesScrollSnapshot = {
   scrollHeight: number;
   scrollTop: number;
 };
+type CustomerServiceWorkspaceMode = "workspace" | "conversations" | "escalations";
+
+interface CustomerServiceEscalationsPageProps {
+  mode?: CustomerServiceWorkspaceMode;
+}
 
 const mediaElementStyle: CSSProperties = {
   display: "block",
@@ -85,11 +90,15 @@ function CustomerServiceRemoteImageMessage({
   );
 }
 
-export const CustomerServiceEscalationsPage = observer(function CustomerServiceWorkspacePage() {
+export const CustomerServiceEscalationsPage = observer(function CustomerServiceWorkspacePage({
+  mode = "workspace",
+}: CustomerServiceEscalationsPageProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const workspace = entityStore.customerServiceWorkspace;
+  const fixedTab = mode === "workspace" ? null : mode;
+  const activeTab = fixedTab ?? workspace.activeTab;
   const [conversationDetailsOpen, setConversationDetailsOpen] = useState(false);
   const [dismissEscalationConfirm, setDismissEscalationConfirm] = useState<DismissEscalationConfirm | null>(null);
   const [endSessionConfirm, setEndSessionConfirm] = useState<EndSessionConfirm | null>(null);
@@ -102,16 +111,22 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const shops = entityStore.shops;
 
   useEffect(() => {
+    if (fixedTab && workspace.activeTab !== fixedTab) {
+      workspace.setActiveTab(fixedTab);
+    }
+  }, [fixedTab, workspace]);
+
+  useEffect(() => {
     if (user) entityStore.fetchShops().catch(() => {});
   }, [entityStore, user]);
 
   useEffect(() => {
-    if (!user || workspace.activeTab !== "conversations") return;
+    if (!user || activeTab !== "conversations") return;
     workspace.fetchConversations();
   }, [
     user,
     workspace,
-    workspace.activeTab,
+    activeTab,
     workspace.conversationShopId,
     workspace.conversationStatusFilter,
     workspace.conversationAiFilter,
@@ -121,12 +136,12 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   ]);
 
   useEffect(() => {
-    if (!user || workspace.activeTab !== "escalations") return;
+    if (!user || activeTab !== "escalations") return;
     workspace.fetchEscalations();
   }, [
     user,
     workspace,
-    workspace.activeTab,
+    activeTab,
     workspace.escalationShopId,
     workspace.escalationStatusFilter,
     workspace.escalationSearch,
@@ -192,18 +207,18 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   useEffect(() => {
     return panelEventBus.subscribe("cs-escalation-event", (raw) => {
       workspace.ingestEscalationEvent(raw);
-      if (workspace.activeTab === "escalations") workspace.fetchEscalations();
+      if (activeTab === "escalations") workspace.fetchEscalations();
     });
-  }, [workspace]);
+  }, [workspace, activeTab]);
 
   useEffect(() => {
     return panelEventBus.subscribe("cs-conversation-changed", (raw) => {
       workspace.ingestConversationChanged(raw);
-      if (workspace.activeTab === "conversations" && workspace.selectedConversationId) {
+      if (activeTab === "conversations" && workspace.selectedConversationId) {
         workspace.fetchConversationMessages(i18n.language);
       }
     });
-  }, [workspace, i18n.language]);
+  }, [workspace, activeTab, i18n.language]);
 
   const shopOptions = useMemo(
     () => [
@@ -227,6 +242,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     try {
       await copyTextToClipboard(value);
       workspace.setCopiedMeta(`${label}:${value}`);
+      showToast(t("common.copied"), "success");
       window.setTimeout(() => {
         if (workspace.copiedMeta === `${label}:${value}`) workspace.setCopiedMeta(null);
       }, 1400);
@@ -459,30 +475,48 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     <div className="page-enter cs-workspace-page">
       <div className="ecommerce-page-header">
         <div>
-          <h1>{t("ecommerce.customerServiceWorkspace.title")}</h1>
-          <p className="ecommerce-page-subtitle">{t("ecommerce.customerServiceWorkspace.subtitle")}</p>
+          <h1>
+            {t(
+              mode === "conversations"
+                ? "ecommerce.customerServiceWorkspace.conversationsPageTitle"
+                : mode === "escalations"
+                  ? "ecommerce.customerServiceWorkspace.escalationsPageTitle"
+                  : "ecommerce.customerServiceWorkspace.title",
+            )}
+          </h1>
+          <p className="ecommerce-page-subtitle">
+            {t(
+              mode === "conversations"
+                ? "ecommerce.customerServiceWorkspace.conversationsPageSubtitle"
+                : mode === "escalations"
+                  ? "ecommerce.customerServiceWorkspace.escalationsPageSubtitle"
+                  : "ecommerce.customerServiceWorkspace.subtitle",
+            )}
+          </p>
         </div>
-        <div className="cs-workspace-tabs" role="tablist">
-          <button
-            className={workspace.activeTab === "conversations" ? "cs-workspace-tab active" : "cs-workspace-tab"}
-            type="button"
-            onClick={() => workspace.setActiveTab("conversations")}
-          >
-            {t("ecommerce.customerServiceWorkspace.conversationsTab")}
-            <span>{workspace.conversationTotal}</span>
-          </button>
-          <button
-            className={workspace.activeTab === "escalations" ? "cs-workspace-tab active" : "cs-workspace-tab"}
-            type="button"
-            onClick={() => workspace.setActiveTab("escalations")}
-          >
-            {t("ecommerce.customerServiceWorkspace.escalationsTab")}
-            <span>{workspace.escalationTotal}</span>
-          </button>
-        </div>
+        {mode === "workspace" ? (
+          <div className="cs-workspace-tabs" role="tablist">
+            <button
+              className={activeTab === "conversations" ? "cs-workspace-tab active" : "cs-workspace-tab"}
+              type="button"
+              onClick={() => workspace.setActiveTab("conversations")}
+            >
+              {t("ecommerce.customerServiceWorkspace.conversationsTab")}
+              <span>{workspace.conversationTotal}</span>
+            </button>
+            <button
+              className={activeTab === "escalations" ? "cs-workspace-tab active" : "cs-workspace-tab"}
+              type="button"
+              onClick={() => workspace.setActiveTab("escalations")}
+            >
+              {t("ecommerce.customerServiceWorkspace.escalationsTab")}
+              <span>{workspace.escalationTotal}</span>
+            </button>
+          </div>
+        ) : null}
       </div>
 
-      {workspace.activeTab === "conversations" ? (
+      {activeTab === "conversations" ? (
         <section className="cs-workspace-panel">
           <div className="cs-workspace-filter-grid cs-conversation-filter-grid">
             <Select value={workspace.conversationShopId} onChange={(value) => workspace.setConversationShopId(value)} options={shopOptions} />
@@ -860,6 +894,14 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     </div>
   );
 });
+
+export function CustomerServiceConversationsPage() {
+  return <CustomerServiceEscalationsPage mode="conversations" />;
+}
+
+export function CustomerServiceEscalationQueuePage() {
+  return <CustomerServiceEscalationsPage mode="escalations" />;
+}
 
 const EscalationsTab = observer(function EscalationsTab({
   shopOptions,

@@ -12,7 +12,7 @@ import { formatError } from "@rivonclaw/core";
 import { panelEventBus } from "../lib/event-bus.js";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
-import { MenuIcon, UserPlusIcon } from "../components/icons.js";
+import { ChevronRightIcon, MenuIcon, UserPlusIcon } from "../components/icons.js";
 import { ROUTES, type RouteEntry } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
@@ -24,6 +24,10 @@ import { getUserInitial } from "../lib/user-manager.js";
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
 const SIDEBAR_DEFAULT = 200;
+const COLLAPSIBLE_NAV_GROUP_KEYS = new Set([
+  "nav.group.automation",
+  "nav.group.connections",
+]);
 
 export const Layout = observer(function Layout({
   children,
@@ -49,6 +53,10 @@ export const Layout = observer(function Layout({
     status: "idle",
   });
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [collapsedNavGroups, setCollapsedNavGroups] = useState<Set<string>>(
+    () => new Set(COLLAPSIBLE_NAV_GROUP_KEYS),
+  );
+  const [collapsedNavParents, setCollapsedNavParents] = useState<Set<string>>(() => new Set());
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   // Sidebar-collapsed and show-agent-name are MST-backed (SSE-synced) —
   // read reactively; the `observer()` wrapper below handles re-renders.
@@ -193,6 +201,61 @@ export const Layout = observer(function Layout({
     !r.navHidden &&
     (!r.navAuthOnly || !!user)
   );
+
+  useEffect(() => {
+    const activeRoute = navRoutes.find((route) => (
+      currentPath === route.path ||
+      (route.navGroupOnly ? currentPath.startsWith(`${route.path}/`) : false)
+    ));
+    const activeGroupKey = activeRoute?.navGroupKey;
+    if (!activeGroupKey || !COLLAPSIBLE_NAV_GROUP_KEYS.has(activeGroupKey)) return;
+    setCollapsedNavGroups((current) => {
+      if (!current.has(activeGroupKey)) return current;
+      const next = new Set(current);
+      next.delete(activeGroupKey);
+      return next;
+    });
+  }, [currentPath, navRoutes]);
+
+  useEffect(() => {
+    const activeParentPath = navRoutes.find((route) => (
+      route.navGroupOnly && (
+        currentPath === route.path ||
+        currentPath.startsWith(`${route.path}/`)
+      )
+    ))?.path;
+    if (!activeParentPath) return;
+    setCollapsedNavParents((current) => {
+      if (!current.has(activeParentPath)) return current;
+      const next = new Set(current);
+      next.delete(activeParentPath);
+      return next;
+    });
+  }, [currentPath, navRoutes]);
+
+  function toggleNavGroup(groupKey: string) {
+    setCollapsedNavGroups((current) => {
+      const next = new Set(current);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  }
+
+  function toggleNavParent(parentPath: string) {
+    setCollapsedNavParents((current) => {
+      const next = new Set(current);
+      if (next.has(parentPath)) {
+        next.delete(parentPath);
+      } else {
+        next.add(parentPath);
+      }
+      return next;
+    });
+  }
 
   function renderNavIcon(route: RouteEntry) {
     if (route.pageKey !== "account") return route.icon;
@@ -356,35 +419,80 @@ export const Layout = observer(function Layout({
           </h2>
           <ul className="nav-list">
             {navRoutes.map((route) => {
-              const active = currentPath === route.path;
+              const isGroupCollapsed = !collapsed && Boolean(
+                route.navGroupKey && collapsedNavGroups.has(route.navGroupKey),
+              );
+              const isParentCollapsed = !collapsed && Boolean(
+                route.parentPath && collapsedNavParents.has(route.parentPath),
+              );
+              if (isParentCollapsed) return null;
+              if (collapsed && route.navGroupOnly) return null;
+              const active = currentPath === route.path || (
+                route.navGroupOnly
+                  ? currentPath.startsWith(`${route.path}/`)
+                  : false
+              );
               const isSubItem = Boolean(route.parentPath);
               const startsGroup = !collapsed && route.navGroupKey && route.navGroupKey !== currentNavGroupKey;
               currentNavGroupKey = route.navGroupKey;
               return (
                 <Fragment key={route.path}>
                   {startsGroup && (
-                    <li className="nav-group-heading">{t(route.navGroupKey!)}</li>
-                  )}
-                  <li>
-                    <button
-                      className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
-                      onClick={() => {
-                        if (route.authRequired && authChecking) return;
-                        if (route.authRequired && !user) {
-                          setPendingAuthPath(route.path);
-                          setAuthModalOpen(true);
-                        } else {
-                          onNavigate(route.path);
-                        }
-                      }}
-                      title={getNavTitle(route)}
-                    >
-                      <span className="nav-icon">{renderNavIcon(route)}</span>
-                      {!collapsed && (
-                        <span className="nav-label">{t(route.navLabelKey!)}</span>
+                    <li>
+                      {route.navGroupKey && COLLAPSIBLE_NAV_GROUP_KEYS.has(route.navGroupKey) ? (
+                        <button
+                          className="nav-group-heading nav-group-toggle"
+                          type="button"
+                          onClick={() => toggleNavGroup(route.navGroupKey!)}
+                          aria-expanded={!collapsedNavGroups.has(route.navGroupKey)}
+                        >
+                          <span>{t(route.navGroupKey!)}</span>
+                          <ChevronRightIcon
+                            className={`nav-group-chevron${collapsedNavGroups.has(route.navGroupKey) ? "" : " nav-group-chevron-open"}`}
+                          />
+                        </button>
+                      ) : (
+                        <div className="nav-group-heading">{t(route.navGroupKey!)}</div>
                       )}
-                    </button>
-                  </li>
+                    </li>
+                  )}
+                  {isGroupCollapsed ? null : <li>
+                    {route.navGroupOnly ? (
+                      collapsed ? null : (
+                        <button
+                          className={`nav-section-toggle${active ? " nav-section-active" : ""}`}
+                          type="button"
+                          onClick={() => toggleNavParent(route.path)}
+                          aria-expanded={!collapsedNavParents.has(route.path)}
+                          title={getNavTitle(route)}
+                        >
+                          <span className="nav-section-label">{t(route.navLabelKey!)}</span>
+                          <ChevronRightIcon
+                            className={`nav-section-chevron${collapsedNavParents.has(route.path) ? "" : " nav-section-chevron-open"}`}
+                          />
+                        </button>
+                      )
+                    ) : (
+                      <button
+                        className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
+                        onClick={() => {
+                          if (route.authRequired && authChecking) return;
+                          if (route.authRequired && !user) {
+                            setPendingAuthPath(route.path);
+                            setAuthModalOpen(true);
+                          } else {
+                            onNavigate(route.path);
+                          }
+                        }}
+                        title={getNavTitle(route)}
+                      >
+                        <span className="nav-icon">{renderNavIcon(route)}</span>
+                        {!collapsed && (
+                          <span className="nav-label">{t(route.navLabelKey!)}</span>
+                        )}
+                      </button>
+                    )}
+                  </li>}
                 </Fragment>
               );
             })}

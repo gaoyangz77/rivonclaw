@@ -4,7 +4,7 @@ import {
   ExtrasIcon, UsageIcon, SkillsIcon,
   CronsIcon, SettingsIcon, BillingIcon, AccountIcon,
   ShopIcon, EcommerceIcon,
-  AdsIcon,
+  AdsIcon, ModuleIcon,
 } from "./components/icons.js";
 import { ChatPage } from "./pages/chat/ChatPage.js";
 import { ProvidersPage } from "./pages/providers/ProvidersPage.js";
@@ -19,9 +19,17 @@ import { AccountPage } from "./pages/account/AccountPage.js";
 import { BillingPage } from "./pages/billing/BillingPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
-import { AffiliateManagementPage } from "./pages/ecommerce/AffiliateManagementPage.js";
-import { CustomerServiceEscalationsPage } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
+import {
+  AffiliateHistoryPage,
+  AffiliateManagementPage,
+  AffiliateNeedsAttentionPage,
+} from "./pages/ecommerce/AffiliateManagementPage.js";
+import {
+  CustomerServiceConversationsPage,
+  CustomerServiceEscalationQueuePage,
+} from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
 import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
+import { InventoryManagementPage } from "./pages/ecommerce/InventoryManagementPage.js";
 
 export interface RouteEntry {
   /** URL path */
@@ -48,6 +56,8 @@ export interface RouteEntry {
   internal?: boolean;
   /** Optional parent route for sidebar subitems */
   parentPath?: string;
+  /** Render in sidebar as a non-clickable parent label for child routes. */
+  navGroupOnly?: boolean;
 }
 
 /**
@@ -57,10 +67,15 @@ export interface RouteEntry {
 export const ROUTES: RouteEntry[] = [
   { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true },
   { path: "/commerce/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
-  { path: "/commerce/shops", pageKey: "ecommerce", component: EcommercePage, icon: <EcommerceIcon />, navLabelKey: "nav.ecommerce", navGroupKey: "nav.group.shopOperations", authRequired: true },
-  { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
-  { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceEscalationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
-  { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", navGroupKey: "nav.group.shopOperations", authRequired: true, parentPath: "/commerce/shops" },
+  { path: "/commerce/shops", pageKey: "ecommerce-shops", component: EcommercePage, icon: <ShopIcon />, navLabelKey: "nav.shopManagement", authRequired: true },
+  { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, navGroupOnly: true },
+  { path: "/commerce/customer-service/conversations", pageKey: "ecommerce-customer-service-conversations", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceConversations", authRequired: true, parentPath: "/commerce/customer-service" },
+  { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service" },
+  { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
+  { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
+  { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
+  { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true },
+  { path: "/commerce/inventory", pageKey: "ecommerce-inventory", component: InventoryManagementPage, icon: <ModuleIcon />, navLabelKey: "nav.inventoryManagement", authRequired: true },
   { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.group.automation" },
   { path: "/automation/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons", navGroupKey: "nav.group.automation" },
   { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", navGroupKey: "nav.group.connections", keepMounted: true },

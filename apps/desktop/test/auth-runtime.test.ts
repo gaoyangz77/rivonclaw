@@ -31,6 +31,7 @@ const {
     disconnect: vi.fn(),
     refreshCsConversationSignals: vi.fn(),
     oauthCompleteHandler: null as null | ((payload: any) => void),
+    adsOAuthCompleteHandler: null as null | ((payload: any) => void),
     clientLogUploadHandler: null as null | ((request: any) => void),
   },
 }));
@@ -60,6 +61,12 @@ vi.mock("../src/auth/session.js", () => ({
     getAccessToken() {
       return authState.token;
     }
+    async graphqlFetch() {
+      return {
+        adsAdvertisers: [{ __typename: "AdsAdvertiser", id: "ads-1" }],
+        adsStoreAccesses: [{ __typename: "AdsStoreAccess", id: "store-access-1" }],
+      };
+    }
   },
 }));
 
@@ -86,6 +93,10 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     }
     subscribeToOAuthComplete(handler: (payload: any) => void) {
       backendState.oauthCompleteHandler = handler;
+      return () => {};
+    }
+    subscribeToAdsOAuthComplete(handler: (payload: any) => void) {
+      backendState.adsOAuthCompleteHandler = handler;
       return () => {};
     }
     subscribeToShopUpdated() {
@@ -132,6 +143,7 @@ describe("setupAuth backend subscriptions", () => {
     authState.listeners.length = 0;
     backendState.connected = false;
     backendState.oauthCompleteHandler = null;
+    backendState.adsOAuthCompleteHandler = null;
     backendState.clientLogUploadHandler = null;
   });
 
@@ -180,6 +192,34 @@ describe("setupAuth backend subscriptions", () => {
     expect(mockBroadcastEvent).toHaveBeenCalledWith(
       "oauth-complete",
       expect.objectContaining({ shopId: "shop-2" }),
+    );
+  });
+
+  it("refreshes Ads entities when TikTok Ads OAuth completes", async () => {
+    await setupAuth({
+      storage: {} as any,
+      secretStore: {} as any,
+      locale: "en",
+      deviceId: "device-1",
+      proxyFetch: vi.fn() as any,
+      broadcastEvent: mockBroadcastEvent as any,
+    });
+
+    backendState.adsOAuthCompleteHandler?.({
+      platform: "TIKTOK_ADS",
+      advertiserIds: ["ads-1"],
+      advertiserCount: 1,
+    });
+
+    await vi.waitFor(() => {
+      expect(mockRootStore.ingestGraphQLResponse).toHaveBeenCalledWith({
+        adsAdvertisers: [{ __typename: "AdsAdvertiser", id: "ads-1" }],
+        adsStoreAccesses: [{ __typename: "AdsStoreAccess", id: "store-access-1" }],
+      });
+    });
+    expect(mockBroadcastEvent).toHaveBeenCalledWith(
+      "ads-oauth-complete",
+      expect.objectContaining({ advertiserIds: ["ads-1"] }),
     );
   });
 

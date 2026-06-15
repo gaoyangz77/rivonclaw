@@ -9,6 +9,7 @@ import type { BroadcastEvent } from "./panel-server.js";
 import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-service-cloud-events.js";
 import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item-actuator.js";
 import { uploadCurrentLog } from "../logs/upload-current-log.js";
+import { INIT_ADS_ADVERTISERS_QUERY } from "../cloud/init-queries.js";
 
 const log = createLogger("auth-runtime");
 
@@ -72,6 +73,17 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     rootStore.ingestGraphQLResponse({ shopUpdated: shopData });
     const shop = rootStore.findShopByObjectOrPlatformId(shopId, null);
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
+  });
+
+  backendSubscription.subscribeToAdsOAuthComplete((payload) => {
+    void cloudClient.graphql<Record<string, unknown>>(INIT_ADS_ADVERTISERS_QUERY)
+      .then((data) => {
+        rootStore.ingestGraphQLResponse(data);
+        broadcastEvent("ads-oauth-complete", payload);
+      })
+      .catch((err) => {
+        log.warn("Failed to refresh Ads entities after OAuth completion:", err);
+      });
   });
 
   backendSubscription.subscribeToClientLogUploadRequests(deviceId, (request) => {

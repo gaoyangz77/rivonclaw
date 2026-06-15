@@ -191,15 +191,6 @@ export const WmsAccountTable = observer(function WmsAccountTable({
         </div>
       )}
 
-      <div className="wms-card-footer-actions">
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={() => inventory.setInventoryGoodsDrawerOpen(true)}
-        >
-          {t("ecommerce.inventory.inventoryGoods")}
-        </button>
-      </div>
-
       <ConfirmDialog
         isOpen={Boolean(deleteAccount)}
         title={t("ecommerce.inventory.deleteWmsAccount")}

@@ -445,6 +445,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         username
         nickname
         avatarUrl
+        followerCount
+        categoryIds
+        createdAt
+        updatedAt
       }
       collaborationRecordId
       collaborationRecord {
@@ -617,6 +621,10 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           username
           nickname
           avatarUrl
+          followerCount
+          categoryIds
+          createdAt
+          updatedAt
         }
         collaborationRecordId
         collaborationRecord {
@@ -865,6 +873,9 @@ export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
         nickname
         avatarUrl
         followerCount
+        categoryIds
+        createdAt
+        updatedAt
       }
       productSummary {
         productId
