@@ -530,8 +530,72 @@ function AffiliateMlInsightsPanel({
   }
 
   const payload = parseAffiliateInsightPayload(summary.payload);
-  const sameBudget = payloadObject(payload, "same_sample_budget");
-  const sameSalesBar = payloadObject(payload, "same_sales_bar");
+  const sameBudgetPayload = payloadObject(payload, "same_sample_budget");
+  const sameBudget = {
+    ...sameBudgetPayload,
+    historical_sample_count: payloadNumber(sameBudgetPayload, "historical_sample_count") ?? summary.rowCount,
+    historical_approved_count:
+      payloadNumber(sameBudgetPayload, "historical_approved_count") ?? summary.humanApprovedCount,
+    historical_approval_rate:
+      payloadNumber(sameBudgetPayload, "historical_approval_rate") ?? summary.humanApprovalRate,
+    historical_expected_sales_units:
+      payloadNumber(sameBudgetPayload, "historical_expected_sales_units")
+      ?? summary.humanSameBudgetExpectedUnits,
+    model_selected_count:
+      payloadNumber(sameBudgetPayload, "model_selected_count") ?? summary.modelSameBudgetCount,
+    model_expected_sales_units:
+      payloadNumber(sameBudgetPayload, "model_expected_sales_units")
+      ?? summary.modelSameBudgetExpectedUnits,
+    expected_sales_lift_ratio:
+      payloadNumber(sameBudgetPayload, "expected_sales_lift_ratio")
+      ?? summary.modelVsHumanExpectedUnitsLiftRatio,
+    model_selected_human_rejected_count:
+      payloadNumber(sameBudgetPayload, "model_selected_human_rejected_count")
+      ?? summary.modelSelectedHumanRejectedCount,
+    model_rejected_human_approved_count:
+      payloadNumber(sameBudgetPayload, "model_rejected_human_approved_count")
+      ?? summary.modelRejectedHumanApprovedCount,
+    historical_approved_actual_units:
+      payloadNumber(sameBudgetPayload, "historical_approved_actual_units")
+      ?? summary.humanApprovedActualUnits,
+    historical_approved_actual_avg_units:
+      payloadNumber(sameBudgetPayload, "historical_approved_actual_avg_units")
+      ?? summary.humanApprovedActualAvgUnits,
+    historical_approved_observed_count:
+      payloadNumber(sameBudgetPayload, "historical_approved_observed_count")
+      ?? summary.humanApprovedObservedCount,
+  };
+  const sameSalesBarPayload = payloadObject(payload, "same_sales_bar");
+  const fallbackHistoricalQualifiedCount =
+    summary.humanApprovedCount - summary.modelRejectedHumanApprovedCount;
+  const fallbackQualifiedLiftRatio =
+    fallbackHistoricalQualifiedCount > 0
+      ? summary.modelSameBudgetCount / fallbackHistoricalQualifiedCount
+      : null;
+  const sameSalesBar = {
+    ...sameSalesBarPayload,
+    min_expected_sales_units_bar:
+      payloadNumber(sameSalesBarPayload, "min_expected_sales_units_bar")
+      ?? summary.minExpectedSalesUnitsSameBudget,
+    historical_sample_count:
+      payloadNumber(sameSalesBarPayload, "historical_sample_count") ?? summary.rowCount,
+    historical_approved_count:
+      payloadNumber(sameSalesBarPayload, "historical_approved_count") ?? summary.humanApprovedCount,
+    historical_qualified_approved_count:
+      payloadNumber(sameSalesBarPayload, "historical_qualified_approved_count")
+      ?? fallbackHistoricalQualifiedCount,
+    historical_approved_below_bar_count:
+      payloadNumber(sameSalesBarPayload, "historical_approved_below_bar_count")
+      ?? summary.modelRejectedHumanApprovedCount,
+    model_qualified_count:
+      payloadNumber(sameSalesBarPayload, "model_qualified_count") ?? summary.modelSameBudgetCount,
+    model_qualified_human_rejected_count:
+      payloadNumber(sameSalesBarPayload, "model_qualified_human_rejected_count")
+      ?? summary.modelSelectedHumanRejectedCount,
+    qualified_creator_lift_ratio:
+      payloadNumber(sameSalesBarPayload, "qualified_creator_lift_ratio")
+      ?? fallbackQualifiedLiftRatio,
+  };
   const budgetHumanApprovedCount = payloadNumber(sameBudget, "historical_approved_count");
   const budgetHumanExpectedUnits = payloadNumber(sameBudget, "historical_expected_sales_units");
   const budgetModelExpectedUnits = payloadNumber(sameBudget, "model_expected_sales_units");
@@ -568,7 +632,7 @@ function AffiliateMlInsightsPanel({
       />
 
       <div className="affiliate-intelligence-main">
-        <div className="affiliate-intelligence-claim-grid">
+        <div className="affiliate-intelligence-claim-section">
           <div className="affiliate-intelligence-verdict">
             <div className="affiliate-intelligence-verdict-icon">
               <AffiliateSparkIcon />
@@ -596,6 +660,45 @@ function AffiliateMlInsightsPanel({
             </div>
           </div>
 
+          <div className="affiliate-intelligence-comparison">
+            <div className="affiliate-intelligence-card-head">
+              <div>
+                <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
+                <strong>{precisionLiftLabel}</strong>
+              </div>
+              <small>
+                {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
+                  count: formatInteger(budgetHumanApprovedCount),
+                  window: evaluationWindow,
+                })}
+              </small>
+            </div>
+
+            <div className="affiliate-intelligence-race">
+              <AffiliateRaceRow
+                icon={<AffiliateSparkIcon />}
+                label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
+                value={formatNumber(budgetModelExpectedUnits, 1)}
+                width={modelBarWidth}
+                variant="model"
+              />
+              <AffiliateRaceRow
+                icon={<UserIcon />}
+                label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
+                value={formatNumber(budgetHumanExpectedUnits, 1)}
+                width={humanBarWidth}
+                variant="human"
+              />
+            </div>
+          </div>
+
+          <AffiliateBudgetDistributionPanel
+            claim={sameBudget}
+            windowLabel={evaluationWindow}
+          />
+        </div>
+
+        <div className="affiliate-intelligence-claim-section">
           <div className="affiliate-intelligence-verdict affiliate-intelligence-verdict-reach">
             <div className="affiliate-intelligence-verdict-icon">
               <AffiliateTargetIcon />
@@ -626,81 +729,44 @@ function AffiliateMlInsightsPanel({
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="affiliate-intelligence-comparison">
-          <div className="affiliate-intelligence-card-head">
-            <div>
-              <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
-              <strong>{precisionLiftLabel}</strong>
+          <div className="affiliate-intelligence-comparison affiliate-intelligence-comparison-secondary">
+            <div className="affiliate-intelligence-card-head">
+              <div>
+                <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameSalesBar")}</span>
+                <strong>{reachLiftLabel}</strong>
+              </div>
+              <small>
+                {t("ecommerce.affiliateWorkspace.intelligenceSameSalesBarStory", {
+                  bar: formatNumber(salesBarThreshold, 1),
+                  window: evaluationWindow,
+                })}
+              </small>
             </div>
-            <small>
-              {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
-                count: formatInteger(budgetHumanApprovedCount),
-                window: evaluationWindow,
-              })}
-            </small>
-          </div>
 
-          <div className="affiliate-intelligence-race">
-            <AffiliateRaceRow
-              icon={<AffiliateSparkIcon />}
-              label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
-              value={formatNumber(budgetModelExpectedUnits, 1)}
-              width={modelBarWidth}
-              variant="model"
-            />
-            <AffiliateRaceRow
-              icon={<UserIcon />}
-              label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
-              value={formatNumber(budgetHumanExpectedUnits, 1)}
-              width={humanBarWidth}
-              variant="human"
-            />
-          </div>
-        </div>
-
-        <AffiliateBudgetDistributionPanel
-          claim={sameBudget}
-          windowLabel={evaluationWindow}
-        />
-
-        <div className="affiliate-intelligence-comparison affiliate-intelligence-comparison-secondary">
-          <div className="affiliate-intelligence-card-head">
-            <div>
-              <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameSalesBar")}</span>
-              <strong>{reachLiftLabel}</strong>
+            <div className="affiliate-intelligence-race">
+              <AffiliateRaceRow
+                icon={<AffiliateTargetIcon />}
+                label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
+                value={formatInteger(salesBarModelQualifiedCount)}
+                width={salesBarModelWidth}
+                variant="model"
+              />
+              <AffiliateRaceRow
+                icon={<AffiliateShieldIcon />}
+                label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
+                value={formatInteger(salesBarHistoricalQualifiedCount)}
+                width={salesBarHumanWidth}
+                variant="human"
+              />
             </div>
-            <small>
-              {t("ecommerce.affiliateWorkspace.intelligenceSameSalesBarStory", {
-                bar: formatNumber(salesBarThreshold, 1),
-                window: evaluationWindow,
-              })}
-            </small>
           </div>
 
-          <div className="affiliate-intelligence-race">
-            <AffiliateRaceRow
-              icon={<AffiliateTargetIcon />}
-              label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
-              value={formatInteger(salesBarModelQualifiedCount)}
-              width={salesBarModelWidth}
-              variant="model"
-            />
-            <AffiliateRaceRow
-              icon={<AffiliateShieldIcon />}
-              label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
-              value={formatInteger(salesBarHistoricalQualifiedCount)}
-              width={salesBarHumanWidth}
-              variant="human"
-            />
-          </div>
+          <AffiliateSalesBarDistributionPanel
+            claim={sameSalesBar}
+            windowLabel={evaluationWindow}
+          />
         </div>
-
-        <AffiliateSalesBarDistributionPanel
-          claim={sameSalesBar}
-          windowLabel={evaluationWindow}
-        />
 
         <div className="affiliate-intelligence-explainers">
           <AffiliateExplainerTile
