@@ -268,6 +268,7 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       workSignal
       collaborationRecordId
       processingStatus
+      requiredAction
       processReasons
       shopId
       platformShopId
@@ -309,6 +310,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         agentDispatchRecommended
         staffReviewRequired
         processingStatus
+        requiredAction
         processReasons
         versionAt
         collaboration {
@@ -323,6 +325,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           creatorImId
           lifecycleStage
           processingStatus
+          requiredAction
           processReasons
           lastCreatorMessageId
           lastCreatorMessageAt

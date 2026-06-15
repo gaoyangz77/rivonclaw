@@ -68,6 +68,7 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         platformConversationId
         lifecycleStage
         processingStatus
+        requiredAction
         processReasons
         lastCreatorMessageId
         lastCreatorMessageAt
@@ -259,11 +260,13 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       id
       collaborationRecordId
       versionAt
+      requiredAction
       collaboration {
         id
         lastSignalAt
         workHandledUntil
         processingStatus
+        requiredAction
         processReasons
       }
     }

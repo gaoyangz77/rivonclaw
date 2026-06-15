@@ -258,7 +258,7 @@ export class AffiliateSession {
     let conversationDelta: string | undefined;
     let generation: number | undefined;
     if (
-      workItem.workKind === "CREATOR_REPLY_NEEDED" &&
+      isCreatorReplyWorkItem(workItem) &&
       workItem.collaboration.platformConversationId &&
       workItem.collaboration.lastCreatorMessageId
     ) {
@@ -925,15 +925,11 @@ function hasConfiguredDecisionThreshold(
 function selectExpectedSalesPredictionScenario(
   workItem: GQL.AffiliateWorkItem,
 ): GQL.AffiliateExpectedSalesPredictionScenario | null {
-  switch (workItem.workKind) {
-    case GQL.AffiliateWorkKind.SampleReviewNeeded:
-      return GQL.AffiliateExpectedSalesPredictionScenario.SampleReview;
-    case GQL.AffiliateWorkKind.CreatorReplyNeeded:
-    case GQL.AffiliateWorkKind.ContentFollowUpDue:
-      return GQL.AffiliateExpectedSalesPredictionScenario.TargetCollaborationPlanning;
-    default:
-      return null;
+  if (isSampleReviewWorkItem(workItem)) return GQL.AffiliateExpectedSalesPredictionScenario.SampleReview;
+  if (isCreatorReplyWorkItem(workItem) || isContentFollowUpWorkItem(workItem)) {
+    return GQL.AffiliateExpectedSalesPredictionScenario.TargetCollaborationPlanning;
   }
+  return null;
 }
 
 function buildExpectedSalesPredictionInput(
@@ -989,7 +985,7 @@ function renderSampleReviewDefaultDecisionSection(
   predictionContext: AffiliatePredictionDispatchContext,
   thresholdContext: AffiliateDecisionThresholdDispatchContext,
 ): string | undefined {
-  if (workItem.workKind !== GQL.AffiliateWorkKind.SampleReviewNeeded) return undefined;
+  if (!isSampleReviewWorkItem(workItem)) return undefined;
 
   const minExpectedSalesUnits = thresholdContext.decisionThresholds?.minExpectedSalesUnits;
   const prediction = predictionContext.primaryPrediction;
@@ -1034,7 +1030,7 @@ function computeSampleReviewDefaultDecision(
   thresholdContext: AffiliateDecisionThresholdDispatchContext,
   staffLanguage?: StaffLanguage,
 ): SampleReviewDefaultDecision | null {
-  if (workItem.workKind !== GQL.AffiliateWorkKind.SampleReviewNeeded) return null;
+  if (!isSampleReviewWorkItem(workItem)) return null;
 
   const minExpectedSalesUnits = thresholdContext.decisionThresholds?.minExpectedSalesUnits;
   const prediction = predictionContext.primaryPrediction;
@@ -1065,6 +1061,27 @@ function computeSampleReviewDefaultDecision(
       staffLanguage,
     }),
   };
+}
+
+function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
+  return (
+    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.RespondToCreator ||
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded
+  );
+}
+
+function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
+  return (
+    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
+    workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded
+  );
+}
+
+function isContentFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
+  return (
+    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpContent ||
+    workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUpDue
+  );
 }
 
 function renderSampleReviewDefaultOperatorSummary(params: {

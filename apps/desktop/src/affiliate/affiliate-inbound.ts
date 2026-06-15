@@ -1,7 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
-  type GQL,
+  GQL,
   type AffiliateNewConversationFrame,
   type AffiliateNewMessageFrame,
   type AffiliateOrderAttributedFrame,
@@ -501,8 +501,9 @@ export class AffiliateInbound {
       collaborationRecordId: workItem.collaborationRecordId,
     };
 
-    switch (workItem.workKind) {
-      case "CREATOR_REPLY_NEEDED":
+    const requiredAction = workItem.requiredAction;
+    switch (requiredAction) {
+      case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
         if (!collaboration.platformConversationId) return null;
         return {
           ...base,
@@ -510,8 +511,41 @@ export class AffiliateInbound {
           triggerId: collaboration.platformConversationId,
           conversationId: collaboration.platformConversationId,
         };
-      case "SAMPLE_REVIEW_NEEDED":
-      case "SAMPLE_SHIPMENT_NEEDED": {
+      case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
+      case GQL.AffiliateCollaborationRequiredAction.ShipSample: {
+        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration.sampleApplicationRecordId;
+        if (!sampleTriggerId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+          triggerId: sampleTriggerId,
+          conversationId: collaboration.platformConversationId ?? undefined,
+          sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
+        };
+      }
+      default:
+        return this.buildLegacyContextFromWorkKind(base, workItem);
+    }
+  }
+
+  private buildLegacyContextFromWorkKind(
+    base: Omit<AffiliateContext, "triggerKind" | "triggerId">,
+    workItem: AffiliateWorkItemPayload,
+  ): AffiliateContext | null {
+    const collaboration = workItem.collaboration;
+    const sample = workItem.sampleApplicationRecord;
+
+    switch (workItem.workKind) {
+      case GQL.AffiliateWorkKind.CreatorReplyNeeded:
+        if (!collaboration.platformConversationId) return null;
+        return {
+          ...base,
+          triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+          triggerId: collaboration.platformConversationId,
+          conversationId: collaboration.platformConversationId,
+        };
+      case GQL.AffiliateWorkKind.SampleReviewNeeded:
+      case GQL.AffiliateWorkKind.SampleShipmentNeeded: {
         const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration.sampleApplicationRecordId;
         if (!sampleTriggerId) return null;
         return {
