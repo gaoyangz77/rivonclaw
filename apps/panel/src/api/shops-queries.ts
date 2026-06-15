@@ -447,17 +447,50 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         avatarUrl
         followerCount
         categoryIds
+        marketplaceSnapshotJson
         createdAt
         updatedAt
       }
       collaborationRecordId
       collaborationRecord {
         id
+        userId
+        shopId
+        creatorId
+        creatorOpenId
         productId
+        lifecycleStage
+        processingStatus
+        processReasons
+        nextSellerActionAt
+        stateUpdatedAt
+        lastSignalAt
+        workHandledUntil
+        affiliateCollaborationId
+        collaborationType
         sampleApplicationRecordId
         platformCollaborationId
         platformConversationId
-        processingStatus
+        creatorImId
+        lastCreatorMessageId
+        lastCreatorMessageAt
+        startedAt
+        endedAt
+      }
+      productSummary {
+        productId
+        title
+        coverImage
+        status
+        priceMin
+        priceMax
+        skus {
+          skuId
+          skuName
+          sellerSku
+          price
+          currency
+        }
       }
       type
       status
@@ -503,6 +536,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         requiresApproval
         matchedPolicyIds
         reasons
+      }
+      decision {
+        decidedAt
+        note
       }
       messageIntent {
         conversationId
@@ -623,6 +660,7 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           avatarUrl
           followerCount
           categoryIds
+          marketplaceSnapshotJson
           createdAt
           updatedAt
         }
@@ -696,7 +734,6 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           }
           decision {
             decidedAt
-            decidedByActorId
             note
           }
           messageIntent {
@@ -837,6 +874,40 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
+  query AffiliateMlInsights($input: AffiliateMlInsightsInput) {
+    affiliateMlInsights(input: $input) {
+      latestModelEfficiencySummary {
+        userId
+        shopId
+        featureVersion
+        modelFamily
+        modelVersionKey
+        humanBaselineModelVersionKey
+        trainingRunId
+        trainedAt
+        evaluationScope
+        rowCount
+        humanApprovedCount
+        humanApprovalRate
+        modelSameBudgetCount
+        minExpectedSalesUnitsSameBudget
+        modelSameBudgetExpectedUnits
+        humanSameBudgetExpectedUnits
+        modelVsHumanExpectedUnitsLiftRatio
+        modelSelectedHumanRejectedCount
+        modelRejectedHumanApprovedCount
+        modelRejectedHumanApprovedActualUnits
+        humanApprovedObservedCount
+        humanApprovedActualUnits
+        humanApprovedActualAvgUnits
+        payload
+        createdAt
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
   query AffiliateCollaborationRecordItems($input: ReadAffiliateCollaborationRecordsInput!) {
     affiliateCollaborationRecordItems(input: $input) {
@@ -874,6 +945,7 @@ export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
         avatarUrl
         followerCount
         categoryIds
+        marketplaceSnapshotJson
         createdAt
         updatedAt
       }
@@ -1011,7 +1083,6 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       updatedAt
       decision {
         decidedAt
-        decidedByActorId
         note
       }
       executionResult {

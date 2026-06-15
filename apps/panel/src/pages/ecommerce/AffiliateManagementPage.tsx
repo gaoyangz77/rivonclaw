@@ -9,14 +9,14 @@ import { CopyIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
+  AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_COLLABORATION_ACTIVITY_QUERY,
   AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY,
-  AFFILIATE_DASHBOARD_QUERY,
+  AFFILIATE_ML_INSIGHTS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
 } from "../../api/shops-queries.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 
-type DashboardSection = GQL.AffiliateDashboardSection;
 type DashboardItem = GQL.AffiliateDashboardItem;
 type CollaborationDetailItem = {
   collaborationRecord: GQL.AffiliateCollaborationRecord;
@@ -41,6 +41,33 @@ const HISTORY_FILTERS = [
 type HistoryFilter = (typeof HISTORY_FILTERS)[number];
 type CollaborationListItem = GQL.AffiliateCollaborationRecordListItem;
 
+const PROPOSAL_FILTERS = [
+  GQL.ActionProposalStatus.Pending,
+  "ALL",
+  GQL.ActionProposalStatus.Approved,
+  GQL.ActionProposalStatus.Executed,
+  GQL.ActionProposalStatus.Rejected,
+  GQL.ActionProposalStatus.Superseded,
+  GQL.ActionProposalStatus.Expired,
+  GQL.ActionProposalStatus.Modified,
+] as const;
+
+type ProposalFilter = (typeof PROPOSAL_FILTERS)[number];
+
+const ATTENTION_COLLABORATION_FILTERS = [
+  "NEEDS_ATTENTION",
+  "ALL",
+  GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
+  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingStaff,
+  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator,
+  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform,
+  GQL.AffiliateCollaborationRecordProcessingStatus.Done,
+  GQL.AffiliateCollaborationRecordProcessingStatus.Blocked,
+] as const;
+
+type AttentionCollaborationFilter = (typeof ATTENTION_COLLABORATION_FILTERS)[number];
+
 export function AffiliateManagementPage() {
   return <AffiliateNeedsAttentionPage />;
 }
@@ -53,7 +80,9 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
-  const [activeAttentionTab, setActiveAttentionTab] = useState<"PROPOSALS" | "COLLABORATIONS">("PROPOSALS");
+  const [activeAttentionTab, setActiveAttentionTab] = useState<"PROPOSALS" | "COLLABORATIONS" | "ML">("PROPOSALS");
+  const [proposalFilter, setProposalFilter] = useState<ProposalFilter>(GQL.ActionProposalStatus.Pending);
+  const [collaborationFilter, setCollaborationFilter] = useState<AttentionCollaborationFilter>("NEEDS_ATTENTION");
   const [attentionSearch, setAttentionSearch] = useState("");
   const [selectedCollaboration, setSelectedCollaboration] = useState<CollaborationDetailItem | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
@@ -77,19 +106,75 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     [shops, t],
   );
 
-  const { data, loading, refetch } = useQuery<
-    { affiliateDashboard: GQL.AffiliateDashboardPayload },
-    { input: GQL.AffiliateDashboardInput }
-  >(AFFILIATE_DASHBOARD_QUERY, {
+  const proposalStatus = useMemo(() => {
+    return proposalFilter === "ALL" ? undefined : proposalFilter;
+  }, [proposalFilter]);
+
+  const collaborationProcessingStatus = useMemo(() => {
+    if (collaborationFilter === "ALL" || collaborationFilter === "NEEDS_ATTENTION") return undefined;
+    return collaborationFilter;
+  }, [collaborationFilter]);
+
+  const collaborationProcessingStatuses = useMemo(() => {
+    if (collaborationFilter !== "NEEDS_ATTENTION") return undefined;
+    return [
+      GQL.AffiliateCollaborationRecordProcessingStatus.NeedProcess,
+      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingStaff,
+    ];
+  }, [collaborationFilter]);
+
+  const {
+    data: proposalData,
+    loading: proposalsLoading,
+    refetch: refetchProposals,
+  } = useQuery<
+    { actionProposals: GQL.ActionProposal[] },
+    { input: GQL.ReadActionProposalsInput }
+  >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
     variables: {
       input: {
         shopId: selectedShopId || undefined,
-        section: GQL.AffiliateDashboardSection.NeedsAttention,
-        limit: 120,
+        status: proposalStatus,
+        limit: 200,
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !user,
+    skip: !user || activeAttentionTab !== "PROPOSALS",
+  });
+
+  const {
+    data: collaborationData,
+    loading: collaborationsLoading,
+    refetch: refetchCollaborations,
+  } = useQuery<
+    { affiliateCollaborationRecordItems: CollaborationListItem[] },
+    { input: GQL.ReadAffiliateCollaborationRecordsInput }
+  >(AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY, {
+    variables: {
+      input: {
+        shopId: selectedShopId || undefined,
+        processingStatus: collaborationProcessingStatus,
+        processingStatuses: collaborationProcessingStatuses,
+        limit: 200,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !user || activeAttentionTab !== "COLLABORATIONS",
+  });
+
+  const {
+    data: mlInsightsData,
+    loading: mlInsightsLoading,
+    refetch: refetchMlInsights,
+  } = useQuery<
+    { affiliateMlInsights: GQL.AffiliateMlInsightsPayload },
+    { input?: GQL.AffiliateMlInsightsInput | null }
+  >(AFFILIATE_ML_INSIGHTS_QUERY, {
+    variables: {
+      input: selectedShopId ? { shopId: selectedShopId } : null,
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !user || activeAttentionTab !== "ML",
   });
 
   const [decideActionProposal, { loading: decidingProposal }] = useMutation<
@@ -99,37 +184,38 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
   useEffect(() => {
     const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
-      void refetch();
+      if (activeAttentionTab === "PROPOSALS") void refetchProposals();
+      if (activeAttentionTab === "COLLABORATIONS") void refetchCollaborations();
+      if (activeAttentionTab === "ML") void refetchMlInsights();
     });
     const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
-      void refetch();
+      if (activeAttentionTab === "PROPOSALS") void refetchProposals();
+      if (activeAttentionTab === "COLLABORATIONS") void refetchCollaborations();
+      if (activeAttentionTab === "ML") void refetchMlInsights();
     });
     return () => {
       unsubscribeProposal();
       unsubscribeWorkItem();
     };
-  }, [refetch]);
+  }, [activeAttentionTab, refetchCollaborations, refetchMlInsights, refetchProposals]);
 
-  const dashboard = data?.affiliateDashboard;
-  const items = dashboard?.items ?? [];
-  const approvalItems = useMemo(
-    () => items.filter((item) => isPendingActionProposalItem(item)),
-    [items],
+  const proposalItems = proposalData?.actionProposals ?? [];
+  const collaborationItems = collaborationData?.affiliateCollaborationRecordItems ?? [];
+  const visibleProposalItems = useMemo(
+    () => filterActionProposals(proposalItems, attentionSearch, shopLabel),
+    [attentionSearch, proposalItems, shops],
   );
-  const collaborationWorkItems = useMemo(
-    () => items.filter((item) => !isPendingActionProposalItem(item)),
-    [items],
+  const visibleCollaborationItems = useMemo(
+    () => filterCollaborationItems(collaborationItems, attentionSearch, shopLabel),
+    [attentionSearch, collaborationItems, shops],
   );
-  const visibleApprovalItems = useMemo(
-    () => filterDashboardItems(approvalItems, attentionSearch, shopLabel),
-    [approvalItems, attentionSearch, shops],
-  );
-  const visibleCollaborationWorkItems = useMemo(
-    () => filterDashboardItems(collaborationWorkItems, attentionSearch, shopLabel),
-    [collaborationWorkItems, attentionSearch, shops],
-  );
-  const activeItems =
-    activeAttentionTab === "PROPOSALS" ? visibleApprovalItems : visibleCollaborationWorkItems;
+  const mlSummary = mlInsightsData?.affiliateMlInsights.latestModelEfficiencySummary ?? null;
+  const activeLoading =
+    activeAttentionTab === "PROPOSALS"
+      ? proposalsLoading
+      : activeAttentionTab === "COLLABORATIONS"
+        ? collaborationsLoading
+        : mlInsightsLoading;
 
   async function decideProposal(proposal: GQL.ActionProposal, status: GQL.ActionProposalStatus) {
     try {
@@ -153,10 +239,17 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess"),
         "success",
       );
-      await refetch();
+      await refetchProposals();
+      if (activeAttentionTab === "COLLABORATIONS") await refetchCollaborations();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
+  }
+
+  function refetchActive() {
+    if (activeAttentionTab === "PROPOSALS") return refetchProposals();
+    if (activeAttentionTab === "ML") return refetchMlInsights();
+    return refetchCollaborations();
   }
 
   function shopLabel(shopId: string): string {
@@ -167,9 +260,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   if (authChecking) {
     return (
       <div className="page-enter">
-        <div className="section-card">
-          <p>{t("common.loading")}</p>
-        </div>
+        <AffiliateLoadingState />
       </div>
     );
   }
@@ -204,10 +295,10 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           <button
             className="btn btn-secondary"
             type="button"
-            onClick={() => void refetch()}
-            disabled={loading}
+            onClick={() => void refetchActive()}
+            disabled={activeLoading}
           >
-            {loading
+            {activeLoading
               ? t("common.loading")
               : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
           </button>
@@ -220,12 +311,18 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             <div className="affiliate-workbench-panel-title">
               {activeAttentionTab === "PROPOSALS"
                 ? t("ecommerce.affiliateWorkspace.approvalQueueTitle")
-                : t("ecommerce.affiliateWorkspace.collaborationWorkQueueTitle")}
+                : activeAttentionTab === "COLLABORATIONS"
+                  ? t("ecommerce.affiliateWorkspace.collaborationWorkQueueTitle")
+                  : t("ecommerce.affiliateWorkspace.mlInsightsTitle", { defaultValue: "Affiliate ML performance" })}
             </div>
             <div className="form-hint">
               {activeAttentionTab === "PROPOSALS"
                 ? t("ecommerce.affiliateWorkspace.approvalQueueHint")
-                : t("ecommerce.affiliateWorkspace.collaborationWorkQueueHint")}
+                : activeAttentionTab === "COLLABORATIONS"
+                  ? t("ecommerce.affiliateWorkspace.collaborationWorkQueueHint")
+                  : t("ecommerce.affiliateWorkspace.mlInsightsHint", {
+                      defaultValue: "Compare model ranking with historical human sample approval behavior.",
+                    })}
             </div>
           </div>
           <div className="affiliate-attention-toolbar">
@@ -238,7 +335,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                 onClick={() => setActiveAttentionTab("PROPOSALS")}
               >
                 <span>{t("ecommerce.affiliateWorkspace.approvalQueueShortTitle")}</span>
-                <strong>{approvalItems.length}</strong>
+                <strong>{proposalItems.length}</strong>
               </button>
               <button
                 type="button"
@@ -248,7 +345,16 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                 onClick={() => setActiveAttentionTab("COLLABORATIONS")}
               >
                 <span>{t("ecommerce.affiliateWorkspace.collaborationWorkQueueShortTitle")}</span>
-                <strong>{collaborationWorkItems.length}</strong>
+                <strong>{collaborationItems.length}</strong>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeAttentionTab === "ML"}
+                className={`affiliate-attention-tab${activeAttentionTab === "ML" ? " affiliate-attention-tab-active" : ""}`}
+                onClick={() => setActiveAttentionTab("ML")}
+              >
+                <span>{t("ecommerce.affiliateWorkspace.mlInsightsShortTitle", { defaultValue: "ML" })}</span>
               </button>
             </div>
             <input
@@ -261,27 +367,83 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           </div>
         </div>
 
+        <div className="affiliate-entity-filterbar">
+          {activeAttentionTab === "ML" ? null : activeAttentionTab === "PROPOSALS"
+            ? PROPOSAL_FILTERS.map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  className={`affiliate-filter-chip${proposalFilter === filter ? " affiliate-filter-chip-active" : ""}`}
+                  onClick={() => setProposalFilter(filter)}
+                >
+                  {t(`ecommerce.affiliateWorkspace.proposalFilters.${filter}`, {
+                    defaultValue: filter,
+                  })}
+                </button>
+              ))
+            : ATTENTION_COLLABORATION_FILTERS.map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  className={`affiliate-filter-chip${collaborationFilter === filter ? " affiliate-filter-chip-active" : ""}`}
+                  onClick={() => setCollaborationFilter(filter)}
+                >
+                  {t(`ecommerce.affiliateWorkspace.collaborationFilters.${filter}`, {
+                    defaultValue: filter,
+                  })}
+                </button>
+              ))}
+        </div>
+
         <div className="affiliate-attention-active-list">
-          {loading && activeItems.length === 0 ? (
-            <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-          ) : activeItems.length === 0 ? (
+          {activeAttentionTab === "ML" ? (
+            <AffiliateMlInsightsPanel
+              loading={mlInsightsLoading}
+              summary={mlSummary}
+              shopLabel={selectedShopId ? shopLabel(selectedShopId) : t("ecommerce.affiliateWorkspace.allShops")}
+            />
+          ) : activeLoading && (
+            activeAttentionTab === "PROPOSALS"
+              ? visibleProposalItems.length === 0
+              : visibleCollaborationItems.length === 0
+          ) ? (
+            <AffiliateLoadingState />
+          ) : activeAttentionTab === "PROPOSALS" && visibleProposalItems.length === 0 ? (
             <div className="affiliate-proposal-empty">
-              {activeAttentionTab === "PROPOSALS"
+              {proposalFilter === GQL.ActionProposalStatus.Pending
                 ? t("ecommerce.affiliateWorkspace.emptyApprovals")
-                : t("ecommerce.affiliateWorkspace.emptyCollaborationWork")}
+                : t("ecommerce.affiliateWorkspace.emptyProposalEntities")}
             </div>
-          ) : (
+          ) : activeAttentionTab === "COLLABORATIONS" && visibleCollaborationItems.length === 0 ? (
+            <div className="affiliate-proposal-empty">
+              {collaborationFilter === "NEEDS_ATTENTION"
+                ? t("ecommerce.affiliateWorkspace.emptyCollaborationWork")
+                : t("ecommerce.affiliateWorkspace.emptyHistory")}
+            </div>
+          ) : activeAttentionTab === "PROPOSALS" ? (
             <div className="affiliate-workbench-list">
-              {activeItems.map((item) => (
-                <DashboardItemCard
-                  key={item.id}
-                  item={item}
-                  shopLabel={shopLabel(item.shopId)}
+              {visibleProposalItems.map((proposal) => (
+                <ActionProposalCard
+                  key={proposal.id}
+                  proposal={proposal}
+                  shopLabel={shopLabel(proposal.shopId)}
                   decidingProposal={decidingProposal}
                   onOpenCollaboration={(detailItem) => setSelectedCollaboration(detailItem)}
                   onOpenCreator={(profile) => setSelectedCreator(profile)}
-                  onApprove={(proposal) => decideProposal(proposal, GQL.ActionProposalStatus.Approved)}
-                  onReject={(proposal) => decideProposal(proposal, GQL.ActionProposalStatus.Rejected)}
+                  onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
+                  onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="affiliate-workbench-list">
+              {visibleCollaborationItems.map((item) => (
+                <CollaborationRecordCard
+                  key={item.collaborationRecord.id}
+                  item={item}
+                  shopLabel={shopLabel(item.collaborationRecord.shopId)}
+                  onOpen={() => setSelectedCollaboration(item)}
+                  onOpenCreator={(profile) => setSelectedCreator(profile)}
                 />
               ))}
             </div>
@@ -307,6 +469,156 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     </div>
   );
 });
+
+function AffiliateMlInsightsPanel({
+  loading,
+  summary,
+  shopLabel,
+}: {
+  loading: boolean;
+  summary: GQL.AffiliateMlModelEfficiencySummary | null;
+  shopLabel: string;
+}) {
+  const { t } = useTranslation();
+  if (loading && !summary) {
+    return <AffiliateLoadingState />;
+  }
+  if (!summary) {
+    return (
+      <div className="affiliate-proposal-empty">
+        {t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
+          defaultValue: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
+        })}
+      </div>
+    );
+  }
+
+  const liftPercent =
+    summary.modelVsHumanExpectedUnitsLiftRatio == null
+      ? null
+      : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
+  const sampleSavingsRisk =
+    summary.humanApprovedCount > 0
+      ? summary.modelRejectedHumanApprovedCount / summary.humanApprovedCount
+      : null;
+
+  return (
+    <div className="affiliate-ml-insights">
+      <div className="affiliate-ml-strip">
+        <div>
+          <span>{t("ecommerce.affiliateWorkspace.mlScope", { defaultValue: "Scope" })}</span>
+          <strong>{shopLabel}</strong>
+          <small>{formatDate(summary.trainedAt)}</small>
+        </div>
+        <div>
+          <span>{t("ecommerce.affiliateWorkspace.mlHumanApprovalRate", { defaultValue: "Historical approval rate" })}</span>
+          <strong>{formatPercent(summary.humanApprovalRate)}</strong>
+          <small>{formatInteger(summary.humanApprovedCount)} / {formatInteger(summary.rowCount)}</small>
+        </div>
+        <div>
+          <span>{t("ecommerce.affiliateWorkspace.mlSameBudgetLift", { defaultValue: "Same sample budget lift" })}</span>
+          <strong>{liftPercent == null ? "—" : `+${formatNumber(liftPercent, 1)}%`}</strong>
+          <small>{t("ecommerce.affiliateWorkspace.mlEstimatedUnits", { defaultValue: "estimated units" })}</small>
+        </div>
+      </div>
+
+      <div className="affiliate-ml-metrics">
+        <AffiliateMlMetric
+          label={t("ecommerce.affiliateWorkspace.mlModelExpected", { defaultValue: "Model-ranked expected units" })}
+          value={formatNumber(summary.modelSameBudgetExpectedUnits, 1)}
+          hint={t("ecommerce.affiliateWorkspace.mlModelExpectedHint", {
+            defaultValue: "Predicted total units if the model selected the same number of samples as historical staff.",
+          })}
+        />
+        <AffiliateMlMetric
+          label={t("ecommerce.affiliateWorkspace.mlHumanExpected", { defaultValue: "Human-selected expected units" })}
+          value={formatNumber(summary.humanSameBudgetExpectedUnits, 1)}
+          hint={t("ecommerce.affiliateWorkspace.mlHumanExpectedHint", {
+            defaultValue: "Predicted total units for the historical staff-approved applications.",
+          })}
+        />
+        <AffiliateMlMetric
+          label={t("ecommerce.affiliateWorkspace.mlDiscoveredCreators", { defaultValue: "Additional high-potential creators" })}
+          value={formatInteger(summary.modelSelectedHumanRejectedCount)}
+          hint={t("ecommerce.affiliateWorkspace.mlDiscoveredCreatorsHint", {
+            defaultValue: "Applications the model would select that historical staff rejected, measured counterfactually.",
+          })}
+        />
+        <AffiliateMlMetric
+          label={t("ecommerce.affiliateWorkspace.mlFilteredApproved", { defaultValue: "Human-approved filtered by model" })}
+          value={formatInteger(summary.modelRejectedHumanApprovedCount)}
+          hint={t("ecommerce.affiliateWorkspace.mlFilteredApprovedHint", {
+            defaultValue: "Historical approvals the model would not prioritize at the same sample count.",
+          })}
+        />
+      </div>
+
+      <div className="affiliate-ml-note">
+        <div>
+          <strong>{t("ecommerce.affiliateWorkspace.mlBudgetThreshold", { defaultValue: "Calibrated threshold" })}</strong>
+          <span>
+            {t("ecommerce.affiliateWorkspace.mlBudgetThresholdBody", {
+              defaultValue: "At the historical approval volume, the implied minimum expected sales is {{value}} units.",
+              value: formatNumber(summary.minExpectedSalesUnitsSameBudget, 2),
+            })}
+          </span>
+        </div>
+        <div>
+          <strong>{t("ecommerce.affiliateWorkspace.mlFalseNegativeRisk", { defaultValue: "Missed historical winners" })}</strong>
+          <span>
+            {t("ecommerce.affiliateWorkspace.mlFalseNegativeRiskBody", {
+              defaultValue: "{{rate}} of historical approvals would be filtered; those observed approvals sold {{units}} units.",
+              rate: formatPercent(sampleSavingsRisk),
+              units: formatNumber(summary.modelRejectedHumanApprovedActualUnits, 0),
+            })}
+          </span>
+        </div>
+        <div>
+          <strong>{t("ecommerce.affiliateWorkspace.mlModelVersion", { defaultValue: "Model version" })}</strong>
+          <span>{summary.modelVersionKey}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AffiliateMlMetric({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="affiliate-ml-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{hint}</small>
+    </div>
+  );
+}
+
+function formatInteger(value: number | null | undefined): string {
+  return value == null ? "—" : new Intl.NumberFormat().format(value);
+}
+
+function formatNumber(value: number | null | undefined, digits = 1): string {
+  return value == null
+    ? "—"
+    : new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits,
+      }).format(value);
+}
+
+function formatPercent(value: number | null | undefined): string {
+  return value == null
+    ? "—"
+    : new Intl.NumberFormat(undefined, {
+        style: "percent",
+        maximumFractionDigits: 1,
+      }).format(value);
+}
+
+function formatDate(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}
 
 function isPendingActionProposalItem(item: DashboardItem): boolean {
   return item.proposal?.status === GQL.ActionProposalStatus.Pending;
@@ -370,6 +682,110 @@ function dashboardItemSearchText(
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .join(" ")
     .toLowerCase();
+}
+
+function filterActionProposals(
+  proposals: GQL.ActionProposal[],
+  search: string,
+  shopLabel: (shopId: string) => string,
+): GQL.ActionProposal[] {
+  const query = search.trim().toLowerCase();
+  if (!query) return proposals;
+  return proposals.filter((proposal) => actionProposalSearchText(proposal, shopLabel).includes(query));
+}
+
+function actionProposalSearchText(
+  proposal: GQL.ActionProposal,
+  shopLabel: (shopId: string) => string,
+): string {
+  const creatorProfile = proposal.creatorProfile;
+  const collaboration = proposal.collaborationRecord;
+  const values = [
+    proposal.id,
+    proposal.shopId,
+    shopLabel(proposal.shopId),
+    proposal.creatorId,
+    proposal.operatorSummary,
+    proposal.type,
+    proposal.status,
+    creatorProfile?.id,
+    creatorProfile?.nickname,
+    creatorProfile?.username,
+    creatorProfile?.creatorOpenId,
+    creatorProfile?.creatorImId,
+    proposal.collaborationRecordId,
+    collaboration?.id,
+    collaboration?.creatorId,
+    collaboration?.creatorOpenId,
+    collaboration?.creatorImId,
+    collaboration?.productId,
+    collaboration?.platformCollaborationId,
+    collaboration?.platformConversationId,
+    proposal.messageIntent?.text,
+    proposal.messageIntent?.productId,
+    proposal.sampleReviewIntent?.platformApplicationId,
+    proposal.sampleReviewIntent?.sampleApplicationRecordId,
+  ];
+  return values
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ")
+    .toLowerCase();
+}
+
+function filterCollaborationItems(
+  items: CollaborationListItem[],
+  search: string,
+  shopLabel: (shopId: string) => string,
+): CollaborationListItem[] {
+  const query = search.trim().toLowerCase();
+  if (!query) return items;
+  return items.filter((item) => collaborationItemSearchText(item, shopLabel).includes(query));
+}
+
+function collaborationItemSearchText(
+  item: CollaborationListItem,
+  shopLabel: (shopId: string) => string,
+): string {
+  const record = item.collaborationRecord;
+  const creatorProfile = item.creatorProfile;
+  const values = [
+    record.id,
+    record.shopId,
+    shopLabel(record.shopId),
+    record.creatorId,
+    record.creatorOpenId,
+    record.creatorImId,
+    record.productId,
+    record.platformCollaborationId,
+    record.platformConversationId,
+    record.processingStatus,
+    record.lifecycleStage,
+    item.productSummary?.productId,
+    item.productSummary?.title,
+    item.productSummary?.status,
+    item.latestProposal?.id,
+    item.latestProposal?.operatorSummary,
+    item.latestLifecycleEvent?.eventType,
+    creatorProfile?.id,
+    creatorProfile?.nickname,
+    creatorProfile?.username,
+    creatorProfile?.creatorOpenId,
+    creatorProfile?.creatorImId,
+  ];
+  return values
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ")
+    .toLowerCase();
+}
+
+function AffiliateLoadingState() {
+  const { t } = useTranslation();
+  return (
+    <div className="affiliate-loading-state" role="status" aria-live="polite">
+      <div className="affiliate-loading-spinner" aria-hidden="true" />
+      <span>{t("ecommerce.affiliateWorkspace.loadingEntities")}</span>
+    </div>
+  );
 }
 
 export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
@@ -458,9 +874,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   if (authChecking) {
     return (
       <div className="page-enter">
-        <div className="section-card">
-          <p>{t("common.loading")}</p>
-        </div>
+        <AffiliateLoadingState />
       </div>
     );
   }
@@ -532,7 +946,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         </div>
 
         {loading && items.length === 0 ? (
-          <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+          <AffiliateLoadingState />
         ) : items.length === 0 ? (
           <div className="affiliate-proposal-empty">
             {t("ecommerce.affiliateWorkspace.emptyHistory")}
@@ -812,6 +1226,143 @@ function renderDashboardItemPrimaryBadge(
   });
 }
 
+function ActionProposalCard({
+  proposal,
+  shopLabel,
+  decidingProposal,
+  onOpenCollaboration,
+  onOpenCreator,
+  onApprove,
+  onReject,
+}: {
+  proposal: GQL.ActionProposal;
+  shopLabel: string;
+  decidingProposal: boolean;
+  onOpenCollaboration: (item: CollaborationDetailItem) => void;
+  onOpenCreator: (profile: GQL.CreatorGlobalProfile) => void;
+  onApprove: (proposal: GQL.ActionProposal) => Promise<void>;
+  onReject: (proposal: GQL.ActionProposal) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const creatorName = proposal.creatorProfile
+    ? creatorPrimaryName(proposal.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
+    : t("ecommerce.affiliateWorkspace.unknownCreator");
+  const creatorHandle = proposal.creatorProfile ? creatorTikTokHandle(proposal.creatorProfile) : null;
+  const creatorPlatformId = proposal.creatorProfile ? creatorPlatformIdentity(proposal.creatorProfile) : null;
+  const recommendationTitle = renderProposalRecommendationTitle(proposal, t);
+  const executionDescription = renderProposalExecutionDescription(proposal, t);
+  const messagePreview = getProposalMessagePreview(proposal);
+  const canDecide = proposal.status === GQL.ActionProposalStatus.Pending;
+  const detailItem = detailItemFromProposal(proposal);
+
+  return (
+    <article
+      className={`affiliate-work-item-card affiliate-work-item-needs_attention${detailItem ? " affiliate-work-item-clickable" : ""}`}
+      role={detailItem ? "button" : undefined}
+      tabIndex={detailItem ? 0 : undefined}
+      onClick={() => {
+        if (detailItem) onOpenCollaboration(detailItem);
+      }}
+      onKeyDown={(event) => {
+        if (!detailItem) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenCollaboration(detailItem);
+        }
+      }}
+    >
+      <div className="affiliate-work-item-head">
+        <div className="affiliate-creator-block">
+          <div className="affiliate-avatar" aria-hidden="true">
+            {creatorName.slice(0, 1).toUpperCase()}
+          </div>
+          <div className="affiliate-creator-text">
+            <CreatorName
+              name={creatorName}
+              onOpen={proposal.creatorProfile ? () => onOpenCreator(proposal.creatorProfile as GQL.CreatorGlobalProfile) : undefined}
+            />
+            <CreatorPlatformId
+              handle={creatorHandle}
+              platformId={creatorPlatformId}
+            />
+            <div className="affiliate-work-item-meta">
+              <span>{shopLabel}</span>
+              <span>{formatProposalTime(proposal.updatedAt)}</span>
+              <DebugIdCopy value={proposal.id} />
+            </div>
+          </div>
+        </div>
+        <div className="affiliate-work-item-badges">
+          <span className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}>
+            {t(`ecommerce.affiliateWorkspace.proposalFilters.${proposal.status}`, {
+              defaultValue: proposal.status,
+            })}
+          </span>
+        </div>
+      </div>
+
+      <div className="affiliate-work-item-body">
+        <section className="affiliate-card-section affiliate-card-section-primary">
+          <div className="affiliate-card-section-label">
+            {t("ecommerce.affiliateWorkspace.labels.aiRecommendation")}
+          </div>
+          <div className="affiliate-card-section-title">{recommendationTitle}</div>
+          {proposal.operatorSummary ? (
+            <div className="affiliate-card-section-copy">{proposal.operatorSummary}</div>
+          ) : null}
+        </section>
+        <ProposalProductSummary
+          proposal={proposal}
+          label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+        />
+        {executionDescription ? (
+          <section className="affiliate-card-section affiliate-card-execution-section">
+            <div className="affiliate-card-section-label">
+              {t("ecommerce.affiliateWorkspace.labels.whatWillHappen")}
+            </div>
+            <div className="affiliate-card-section-copy">{executionDescription}</div>
+            {messagePreview ? (
+              <div className="affiliate-work-item-preview">{messagePreview}</div>
+            ) : null}
+          </section>
+        ) : null}
+        {proposal.policySnapshot?.requiresApproval ? (
+          <div className="affiliate-policy-note">
+            {t("ecommerce.affiliateWorkspace.policyApprovalNote")}
+          </div>
+        ) : null}
+      </div>
+
+      {canDecide ? (
+        <div className="affiliate-work-item-actions">
+          <button
+            className="btn btn-secondary"
+            type="button"
+            disabled={decidingProposal}
+            onClick={(event) => {
+              event.stopPropagation();
+              void onReject(proposal);
+            }}
+          >
+            {t("common.reject", { defaultValue: "Reject" })}
+          </button>
+          <button
+            className="btn btn-primary"
+            type="button"
+            disabled={decidingProposal}
+            onClick={(event) => {
+              event.stopPropagation();
+              void onApprove(proposal);
+            }}
+          >
+            {t("common.approve", { defaultValue: "Approve" })}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function DashboardItemCard({
   item,
   shopLabel,
@@ -981,6 +1532,18 @@ function ProductContextSummary({ item, label }: { item: DashboardItem; label?: s
   return <ProductSummaryCard product={product} productId={productId} shopId={item.shopId} label={label} />;
 }
 
+function ProposalProductSummary({ proposal, label }: { proposal: GQL.ActionProposal; label?: string }) {
+  const productId = proposal.collaborationRecord?.productId ?? getProposalActionProductId(proposal);
+  return (
+    <ProductSummaryCard
+      product={proposal.productSummary ?? null}
+      productId={productId}
+      shopId={proposal.shopId}
+      label={label}
+    />
+  );
+}
+
 function detailItemFromDashboard(item: DashboardItem): CollaborationDetailItem | null {
   if (!item.collaborationRecord) return null;
   return {
@@ -988,6 +1551,17 @@ function detailItemFromDashboard(item: DashboardItem): CollaborationDetailItem |
     creatorProfile: item.creatorProfile ?? null,
     productSummary: item.productSummary ?? null,
     latestProposal: item.proposal ?? null,
+    latestLifecycleEvent: null,
+  };
+}
+
+function detailItemFromProposal(proposal: GQL.ActionProposal): CollaborationDetailItem | null {
+  if (!proposal.collaborationRecord) return null;
+  return {
+    collaborationRecord: proposal.collaborationRecord,
+    creatorProfile: proposal.creatorProfile ?? null,
+    productSummary: proposal.productSummary ?? null,
+    latestProposal: proposal,
     latestLifecycleEvent: null,
   };
 }
@@ -1024,6 +1598,8 @@ function CreatorDetailModal({
   const name = creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"));
   const handle = creatorTikTokHandle(profile);
   const platformId = creatorPlatformIdentity(profile);
+  const marketplace = parseMarketplaceCreatorSnapshot(profile.marketplaceSnapshotJson);
+  const marketplaceMetrics = buildMarketplaceMetricRows(marketplace, t);
   const categorySummary = profile.categoryIds?.length
     ? profile.categoryIds.slice(0, 8).join(", ")
     : null;
@@ -1072,6 +1648,23 @@ function CreatorDetailModal({
 
         <div className="affiliate-creator-detail-section">
           <div className="affiliate-card-section-label">
+            {t("ecommerce.affiliateWorkspace.creatorDetail.marketplacePerformance")}
+          </div>
+          {marketplaceMetrics.length ? (
+            <div className="affiliate-creator-detail-grid affiliate-creator-detail-performance-grid">
+              {marketplaceMetrics.map((metric) => (
+                <CreatorDetailMetric key={metric.label} label={metric.label} value={metric.value} />
+              ))}
+            </div>
+          ) : (
+            <div className="affiliate-creator-detail-copy">
+              {t("ecommerce.affiliateWorkspace.creatorDetail.noMarketplacePerformance")}
+            </div>
+          )}
+        </div>
+
+        <div className="affiliate-creator-detail-section">
+          <div className="affiliate-card-section-label">
             {t("ecommerce.affiliateWorkspace.creatorDetail.identifiers")}
           </div>
           <div className="affiliate-creator-detail-id-list">
@@ -1087,11 +1680,6 @@ function CreatorDetailModal({
                 value={platformId}
               />
             ) : null}
-            <CreatorDetailCopyRow
-              label={t("ecommerce.affiliateWorkspace.creatorDetail.profileRecordId")}
-              value={profile.id}
-              muted
-            />
           </div>
         </div>
 
@@ -1108,6 +1696,163 @@ function CreatorDetailModal({
       </div>
     </div>
   );
+}
+
+type MarketplaceCreatorSnapshot = Record<string, unknown>;
+
+function parseMarketplaceCreatorSnapshot(value: string | null | undefined): MarketplaceCreatorSnapshot | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as MarketplaceCreatorSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildMarketplaceMetricRows(
+  snapshot: MarketplaceCreatorSnapshot | null,
+  t: ReturnType<typeof useTranslation>["t"],
+): Array<{ label: string; value: string }> {
+  if (!snapshot) return [];
+  const rows: Array<{ label: string; value: string | null }> = [
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.totalGmv"),
+      value: readMoneyOrRange(snapshot, "gmv", "gmvRange"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.videoGmv"),
+      value: readMoneyOrRange(snapshot, "videoGmv", "videoGmvRange"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.liveGmv"),
+      value: readMoneyOrRange(snapshot, "liveGmv", "liveGmvRange"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.gpm"),
+      value: readMoneyOrRange(snapshot, "gpm", "gpmRange"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.unitsSold"),
+      value: readCountOrRange(snapshot, "unitsSold", "unitsSoldRange"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.promotedProducts"),
+      value: formatCount(readNumber(snapshot, "promotedProductNum")),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.ecVideos"),
+      value: formatCount(readNumber(snapshot, "ecVideoCount")),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.ecLives"),
+      value: formatCount(readNumber(snapshot, "ecLiveCount")),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.avgVideoViews"),
+      value: formatCount(readNumber(snapshot, "avgEcVideoViewCount") ?? readNumber(snapshot, "avgEcVideoPlayCount")),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.rating"),
+      value: readString(snapshot, "rating"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.pps"),
+      value: readString(snapshot, "pps"),
+    },
+    {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.postRate"),
+      value: formatScaledPercent(readString(snapshot, "postRate")),
+    },
+  ];
+  return rows.filter((row): row is { label: string; value: string } => Boolean(row.value));
+}
+
+function readMoneyOrRange(
+  snapshot: MarketplaceCreatorSnapshot,
+  moneyKey: string,
+  rangeKey: string,
+): string | null {
+  const money = readObject(snapshot, moneyKey);
+  const amount = readString(money, "amount");
+  const currency = readString(money, "currency");
+  if (amount) return formatCreatorMoney(amount, currency);
+
+  const range = readObject(snapshot, rangeKey);
+  const formattedRange = readString(range, "formattedRange") ?? readString(range, "formatted_range");
+  if (formattedRange) return formattedRange;
+  const min = readString(range, "minimumAmount") ?? readString(range, "minimum_amount");
+  const max = readString(range, "maximumAmount") ?? readString(range, "maximum_amount");
+    const rangeCurrency = readString(range, "currency");
+    if (min && max) {
+    const minText = formatCreatorMoney(min, rangeCurrency) ?? min;
+    const maxText = formatCreatorMoney(max, rangeCurrency) ?? max;
+    return `${minText} - ${maxText}`;
+  }
+  return null;
+}
+
+function formatCreatorMoney(amount: string | null | undefined, currency?: string | null): string | null {
+  if (!amount) return null;
+  const numeric = Number(amount);
+  if (!Number.isFinite(numeric) || !currency) return amount;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: Number.isInteger(numeric) ? 0 : 2,
+    }).format(numeric);
+  } catch {
+    return `${currency} ${amount}`;
+  }
+}
+
+function readCountOrRange(
+  snapshot: MarketplaceCreatorSnapshot,
+  countKey: string,
+  rangeKey: string,
+): string | null {
+  const count = readNumber(snapshot, countKey);
+  if (count != null) return formatCount(count);
+  const range = readObject(snapshot, rangeKey);
+  const formattedRange = readString(range, "formattedRange") ?? readString(range, "formatted_range");
+  if (formattedRange) return formattedRange;
+  const min = readNumber(range, "minimumAmount") ?? readNumber(range, "minimum_amount");
+  const max = readNumber(range, "maximumAmount") ?? readNumber(range, "maximum_amount");
+  if (min != null && max != null) return `${formatCount(min)} - ${formatCount(max)}`;
+  return null;
+}
+
+function readObject(value: unknown, key: string): MarketplaceCreatorSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const child = (value as Record<string, unknown>)[key];
+  return child && typeof child === "object" ? (child as MarketplaceCreatorSnapshot) : null;
+}
+
+function readString(value: unknown, key: string): string | null {
+  if (!value || typeof value !== "object") return null;
+  const child = (value as Record<string, unknown>)[key];
+  if (typeof child === "string" && child.trim()) return child.trim();
+  if (typeof child === "number" && Number.isFinite(child)) return String(child);
+  return null;
+}
+
+function readNumber(value: unknown, key: string): number | null {
+  if (!value || typeof value !== "object") return null;
+  const child = (value as Record<string, unknown>)[key];
+  if (typeof child === "number" && Number.isFinite(child)) return child;
+  if (typeof child === "string") {
+    const parsed = Number(child);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function formatScaledPercent(value: string | null): string | null {
+  if (!value) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value;
+  return `${(numeric / 100).toFixed(1)}%`;
 }
 
 function CreatorDetailMetric({ label, value }: { label: string; value?: string | null }) {

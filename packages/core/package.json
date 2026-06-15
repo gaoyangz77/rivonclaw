@@ -8,6 +8,7 @@
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
     },
     "./node": {
@@ -41,6 +42,7 @@
     },
     "./api-contract": {
       "import": "./dist/api-contract.mjs",
+      "default": "./dist/api-contract.mjs",
       "types": "./dist/api-contract.d.mts"
     }
   },
