@@ -79,6 +79,7 @@ export function ProductSummaryCard({
           if (!canOpenDetail) return;
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
+            event.stopPropagation();
             setDetailOpen(true);
           }
         }}
@@ -169,8 +170,18 @@ function ProductDetailModal({
   const shortDescription = description ? truncateProductDescription(description) : null;
   const skuRows = buildSkuRows(product, fallbackProduct);
 
+  function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    onClose();
+  }
+
+  function closeFromButton(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onClose();
+  }
+
   return (
-    <div className="modal-backdrop product-detail-backdrop" role="presentation" onClick={onClose}>
+    <div className="modal-backdrop product-detail-backdrop" role="presentation" onClick={closeFromBackdrop}>
       <div
         className="modal-content product-detail-modal"
         role="dialog"
@@ -182,7 +193,7 @@ function ProductDetailModal({
             <h2>{t("ecommerce.productCard.productDetailTitle")}</h2>
             <p>{t("ecommerce.affiliateWorkspace.productIdShort", { productId: shortenProductId(productId) })}</p>
           </div>
-          <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
+          <button className="modal-close-btn" type="button" onClick={closeFromButton} aria-label={t("common.close")}>
             ×
           </button>
         </div>
@@ -261,8 +272,18 @@ function ProductDetailModal({
 
 function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
   const { t } = useTranslation();
+  function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    onClose();
+  }
+
+  function closeFromButton(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onClose();
+  }
+
   return (
-    <div className="modal-backdrop product-image-preview-backdrop" role="presentation" onClick={onClose}>
+    <div className="modal-backdrop product-image-preview-backdrop" role="presentation" onClick={closeFromBackdrop}>
       <div
         className="product-image-preview"
         role="dialog"
@@ -270,7 +291,7 @@ function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose:
         aria-label={t("ecommerce.productCard.imagePreview")}
         onClick={(event) => event.stopPropagation()}
       >
-        <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
+        <button className="modal-close-btn" type="button" onClick={closeFromButton} aria-label={t("common.close")}>
           ×
         </button>
         <img src={imageUrl} alt="" />

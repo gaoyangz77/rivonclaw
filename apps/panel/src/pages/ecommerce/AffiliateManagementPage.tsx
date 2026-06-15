@@ -14,6 +14,7 @@ import {
   AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY,
   AFFILIATE_ML_INSIGHTS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
+  RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION,
 } from "../../api/shops-queries.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 
@@ -41,6 +42,7 @@ const HISTORY_FILTERS = [
 
 type HistoryFilter = (typeof HISTORY_FILTERS)[number];
 type CollaborationListItem = GQL.AffiliateCollaborationRecordListItem;
+const COLLABORATION_HISTORY_PAGE_SIZE = 24;
 type CollaborationWorkViewModel = {
   badge: string;
   badgeTone: "attention" | "waiting" | "done" | "blocked";
@@ -787,7 +789,7 @@ function AffiliateMlInsightsPanel({
               </div>
             </div>
 
-            <AffiliateSalesBarDistributionPanel
+            <AffiliateSalesBarOpportunityPanel
               claim={sameSalesBar}
               windowLabel={evaluationWindow}
             />
@@ -931,6 +933,10 @@ function AffiliateBudgetDistributionPanel({
       hint={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHint", { window: windowLabel })}
       stats={[
         {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications"),
+          value: formatInteger(payloadNumber(claim, "historical_sample_count")),
+        },
+        {
           label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApproved"),
           value: formatInteger(payloadNumber(claim, "historical_approved_count")),
         },
@@ -961,7 +967,7 @@ function AffiliateBudgetDistributionPanel({
   );
 }
 
-function AffiliateSalesBarDistributionPanel({
+function AffiliateSalesBarOpportunityPanel({
   claim,
   windowLabel,
 }: {
@@ -969,43 +975,178 @@ function AffiliateSalesBarDistributionPanel({
   windowLabel: string;
 }) {
   const { t } = useTranslation();
+  const bar = payloadNumber(claim, "min_expected_sales_units_bar");
+  const historicalSampleCount = payloadNumber(claim, "historical_sample_count");
+  const historicalQualifiedCount = payloadNumber(claim, "historical_qualified_approved_count");
+  const modelQualifiedCount = payloadNumber(claim, "model_qualified_count");
+  const overlookedCount = payloadNumber(claim, "model_qualified_human_rejected_count");
+  const historicalBuckets = payloadHistogram(claim, "historical_qualified_expected_units_histogram");
+  const modelBuckets = payloadHistogram(claim, "model_qualified_expected_units_histogram");
+  const total = Math.max(historicalQualifiedCount ?? 0, modelQualifiedCount ?? 0, 1);
+  const humanWidth = `${Math.max(8, Math.round(((historicalQualifiedCount ?? 0) / total) * 100))}%`;
+  const modelWidth = `${Math.max(8, Math.round(((modelQualifiedCount ?? 0) / total) * 100))}%`;
+  const cumulativeRows = [
+    {
+      key: "bar",
+      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdBar", {
+        bar: formatNumber(bar, 1),
+      }),
+      humanCount: historicalQualifiedCount ?? 0,
+      modelCount: modelQualifiedCount ?? 0,
+    },
+    {
+      key: "3",
+      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "3" }),
+      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 3),
+      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 3),
+    },
+    {
+      key: "5",
+      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "5" }),
+      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 5),
+      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 5),
+    },
+    {
+      key: "10",
+      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "10" }),
+      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 10),
+      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 10),
+    },
+  ];
+
   return (
-    <AffiliateClaimDistributionPanel
-      title={t("ecommerce.affiliateWorkspace.intelligenceReachStatsTitle")}
-      headline={t("ecommerce.affiliateWorkspace.intelligenceReachStatsHeadline")}
-      hint={t("ecommerce.affiliateWorkspace.intelligenceReachStatsHint", {
-        bar: formatNumber(payloadNumber(claim, "min_expected_sales_units_bar"), 1),
-        window: windowLabel,
-      })}
-      stats={[
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators"),
-          value: formatInteger(payloadNumber(claim, "historical_qualified_approved_count")),
-        },
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators"),
-          value: formatInteger(payloadNumber(claim, "model_qualified_count")),
-        },
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceOverlookedQualifiedCreators"),
-          value: formatInteger(payloadNumber(claim, "model_qualified_human_rejected_count")),
-        },
-      ]}
-      series={[
-        {
-          key: "historical",
-          label: t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedExpected"),
-          buckets: payloadHistogram(claim, "historical_qualified_expected_units_histogram"),
-          expectedTotal: payloadNumber(claim, "historical_qualified_approved_count"),
-        },
-        {
-          key: "selected",
-          label: t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedExpected"),
-          buckets: payloadHistogram(claim, "model_qualified_expected_units_histogram"),
-          expectedTotal: payloadNumber(claim, "model_qualified_count"),
-        },
-      ]}
-    />
+    <div className="affiliate-intelligence-distribution-card affiliate-intelligence-reach-card">
+      <div className="affiliate-intelligence-distribution-head">
+        <div>
+          <span>{t("ecommerce.affiliateWorkspace.intelligenceReachStatsTitle")}</span>
+          <strong>{t("ecommerce.affiliateWorkspace.intelligenceReachStatsHeadline")}</strong>
+        </div>
+        <small>
+          {t("ecommerce.affiliateWorkspace.intelligenceReachStatsHint", {
+            bar: formatNumber(bar, 1),
+            window: windowLabel,
+          })}
+        </small>
+      </div>
+
+      <div className="affiliate-intelligence-stat-strip">
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications")}
+          value={formatInteger(historicalSampleCount)}
+        />
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
+          value={formatInteger(historicalQualifiedCount)}
+        />
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
+          value={formatInteger(modelQualifiedCount)}
+        />
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceOverlookedQualifiedCreators")}
+          value={formatInteger(overlookedCount)}
+        />
+      </div>
+
+      <div className="affiliate-intelligence-reach-compare" role="img">
+        <AffiliateReachRow
+          label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
+          value={formatInteger(historicalQualifiedCount)}
+          width={humanWidth}
+          variant="human"
+        />
+        <AffiliateReachRow
+          label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
+          value={formatInteger(modelQualifiedCount)}
+          width={modelWidth}
+          variant="model"
+        />
+      </div>
+
+      <AffiliateReachCumulativeChart rows={cumulativeRows} />
+
+      <div className="affiliate-intelligence-reach-note">
+        <strong>
+          {t("ecommerce.affiliateWorkspace.intelligenceReachOpportunityTitle", {
+            count: overlookedCount ?? 0,
+          })}
+        </strong>
+        <span>{t("ecommerce.affiliateWorkspace.intelligenceReachOpportunityBody")}</span>
+      </div>
+    </div>
+  );
+}
+
+function AffiliateReachCumulativeChart({
+  rows,
+}: {
+  rows: Array<{
+    key: string;
+    label: string;
+    humanCount: number;
+    modelCount: number;
+  }>;
+}) {
+  const { t } = useTranslation();
+  const maxCount = Math.max(1, ...rows.flatMap((row) => [row.humanCount, row.modelCount]));
+
+  return (
+    <div className="affiliate-intelligence-cumulative">
+      <div className="affiliate-intelligence-cumulative-head">
+        <strong>{t("ecommerce.affiliateWorkspace.intelligenceReachCumulativeTitle")}</strong>
+        <span>{t("ecommerce.affiliateWorkspace.intelligenceReachCumulativeHint")}</span>
+      </div>
+      <div className="affiliate-intelligence-cumulative-grid" role="img">
+        {rows.map((row) => {
+          const humanHeight = Math.max(3, Math.round((row.humanCount / maxCount) * 100));
+          const modelHeight = Math.max(3, Math.round((row.modelCount / maxCount) * 100));
+          return (
+            <div key={row.key} className="affiliate-intelligence-cumulative-column">
+              <div className="affiliate-intelligence-cumulative-bars">
+                <span
+                  className="affiliate-intelligence-cumulative-bar affiliate-intelligence-cumulative-bar-human"
+                  style={{ height: `${humanHeight}%` }}
+                  title={`${row.label} · ${formatInteger(row.humanCount)}`}
+                />
+                <span
+                  className="affiliate-intelligence-cumulative-bar affiliate-intelligence-cumulative-bar-model"
+                  style={{ height: `${modelHeight}%` }}
+                  title={`${row.label} · ${formatInteger(row.modelCount)}`}
+                />
+              </div>
+              <strong>{row.label}</strong>
+              <small>
+                {formatInteger(row.humanCount)} / {formatInteger(row.modelCount)}
+              </small>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AffiliateReachRow({
+  label,
+  value,
+  width,
+  variant,
+}: {
+  label: string;
+  value: string;
+  width: string;
+  variant: "human" | "model";
+}) {
+  return (
+    <div className={`affiliate-intelligence-reach-row affiliate-intelligence-reach-row-${variant}`}>
+      <div className="affiliate-intelligence-reach-row-head">
+        <strong>{label}</strong>
+        <span>{value}</span>
+      </div>
+      <div className="affiliate-intelligence-reach-track">
+        <i style={{ width }} />
+      </div>
+    </div>
   );
 }
 
@@ -1137,6 +1278,25 @@ function AffiliateBucketShareChart({
 
 function histogramTotal(buckets: AffiliateSalesHistogramBucket[]): number {
   return buckets.reduce((sum, bucket) => sum + bucket.count, 0);
+}
+
+function cumulativeHistogramCountAtOrAbove(
+  buckets: AffiliateSalesHistogramBucket[],
+  threshold: number,
+): number {
+  return buckets.reduce((sum, bucket) => {
+    const lowerBound = salesBucketLowerBound(bucket.key);
+    if (lowerBound == null || lowerBound < threshold) return sum;
+    return sum + bucket.count;
+  }, 0);
+}
+
+function salesBucketLowerBound(key: string): number | null {
+  const normalized = key.toLowerCase().replace(/\+/g, "_plus");
+  const match = normalized.match(/^(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function salesBucketClass(key: string): string {
@@ -1481,15 +1641,23 @@ function AffiliateLoadingState() {
 
 export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
-  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("IN_PROGRESS");
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("NEEDS_ATTENTION");
   const [historySearch, setHistorySearch] = useState("");
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageInput, setHistoryPageInput] = useState("1");
   const [selectedItem, setSelectedItem] = useState<CollaborationListItem | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
+  const [resolvingCollaborationId, setResolvingCollaborationId] = useState<string | null>(null);
+  const [resolveStaffAction] = useMutation<
+    { resolveAffiliateCollaborationStaffAction: GQL.ResolveAffiliateCollaborationStaffActionPayload },
+    { input: GQL.ResolveAffiliateCollaborationStaffActionInput }
+  >(RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION);
 
   useEffect(() => {
     if (user) {
@@ -1577,6 +1745,62 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     () => filterCollaborationItems(items, historySearch, shopLabel),
     [historySearch, items, shops],
   );
+  const historyPageCount = Math.max(1, Math.ceil(visibleItems.length / COLLABORATION_HISTORY_PAGE_SIZE));
+  const pagedVisibleItems = useMemo(() => {
+    const start = (historyPage - 1) * COLLABORATION_HISTORY_PAGE_SIZE;
+    return visibleItems.slice(start, start + COLLABORATION_HISTORY_PAGE_SIZE);
+  }, [historyPage, visibleItems]);
+  const pageStart = visibleItems.length === 0
+    ? 0
+    : (historyPage - 1) * COLLABORATION_HISTORY_PAGE_SIZE + 1;
+  const pageEnd = Math.min(historyPage * COLLABORATION_HISTORY_PAGE_SIZE, visibleItems.length);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyFilter, historySearch, selectedShopId]);
+
+  useEffect(() => {
+    setHistoryPage((page) => Math.min(page, historyPageCount));
+  }, [historyPageCount]);
+
+  useEffect(() => {
+    setHistoryPageInput(String(historyPage));
+  }, [historyPage]);
+
+  function commitHistoryPageInput(): void {
+    const nextPage = Number.parseInt(historyPageInput, 10);
+    if (!Number.isFinite(nextPage)) {
+      setHistoryPageInput(String(historyPage));
+      return;
+    }
+    const clampedPage = Math.min(historyPageCount, Math.max(1, nextPage));
+    setHistoryPage(clampedPage);
+    setHistoryPageInput(String(clampedPage));
+  }
+
+  async function handleStaffAction(
+    record: GQL.AffiliateCollaborationRecord,
+  ): Promise<void> {
+    setResolvingCollaborationId(record.id);
+    try {
+      await resolveStaffAction({
+        variables: {
+          input: {
+            shopId: record.shopId,
+            collaborationRecordId: record.id,
+            action: GQL.AffiliateStaffCollaborationResolutionAction.MarkHandled,
+            note: t("ecommerce.affiliateWorkspace.staffActionHandledNote"),
+          },
+        },
+      });
+      showToast(t("ecommerce.affiliateWorkspace.staffActionHandled"), "success");
+      await refetch();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
+    } finally {
+      setResolvingCollaborationId(null);
+    }
+  }
 
   function shopLabel(shopId: string): string {
     const shop = shops.find((candidate) => candidate.id === shopId);
@@ -1672,17 +1896,75 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
             {t("ecommerce.affiliateWorkspace.emptyHistory")}
           </div>
         ) : (
-          <div className="affiliate-collaboration-list">
-            {visibleItems.map((item) => (
-              <CollaborationRecordCard
-                key={item.collaborationRecord.id}
-                item={item}
-                shopLabel={shopLabel(item.collaborationRecord.shopId)}
-                onOpen={() => setSelectedItem(item)}
-                onOpenCreator={(profile) => setSelectedCreator(profile)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="affiliate-collaboration-list">
+              {pagedVisibleItems.map((item) => (
+                <CollaborationRecordCard
+                  key={item.collaborationRecord.id}
+                  item={item}
+                  shopLabel={shopLabel(item.collaborationRecord.shopId)}
+                  onOpen={() => setSelectedItem(item)}
+                  onOpenCreator={(profile) => setSelectedCreator(profile)}
+                  resolving={resolvingCollaborationId === item.collaborationRecord.id}
+                  onStaffAction={(record) => void handleStaffAction(record)}
+                />
+              ))}
+            </div>
+            {visibleItems.length > COLLABORATION_HISTORY_PAGE_SIZE ? (
+              <div className="affiliate-collaboration-pagination" aria-label={t("ecommerce.affiliateWorkspace.pagination")}>
+                <span className="affiliate-collaboration-pagination-summary">
+                  {t("ecommerce.affiliateWorkspace.pageSummary", {
+                    start: pageStart,
+                    end: pageEnd,
+                    total: visibleItems.length,
+                    page: historyPage,
+                    pages: historyPageCount,
+                  })}
+                </span>
+                <div className="affiliate-collaboration-pagination-actions">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={historyPage <= 1}
+                    onClick={() => setHistoryPage((page) => Math.max(1, page - 1))}
+                  >
+                    {t("ecommerce.affiliateWorkspace.prevPage")}
+                  </button>
+                  <span className="affiliate-collaboration-page-pill">
+                    {t("ecommerce.affiliateWorkspace.page", {
+                      page: historyPage,
+                      pages: historyPageCount,
+                    })}
+                  </span>
+                  <label className="affiliate-collaboration-page-jump">
+                    <span>{t("ecommerce.affiliateWorkspace.jumpToPage")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={historyPageCount}
+                      value={historyPageInput}
+                      aria-label={t("ecommerce.affiliateWorkspace.jumpPageAria")}
+                      onChange={(event) => setHistoryPageInput(event.target.value)}
+                      onBlur={commitHistoryPageInput}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={historyPage >= historyPageCount}
+                    onClick={() => setHistoryPage((page) => Math.min(historyPageCount, page + 1))}
+                  >
+                    {t("ecommerce.affiliateWorkspace.nextPage")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -1709,11 +1991,17 @@ function CollaborationRecordCard({
   shopLabel,
   onOpen,
   onOpenCreator,
+  resolving,
+  onStaffAction,
 }: {
   item: CollaborationListItem;
   shopLabel: string;
   onOpen: () => void;
   onOpenCreator: (profile: GQL.CreatorGlobalProfile) => void;
+  resolving: boolean;
+  onStaffAction: (
+    record: GQL.AffiliateCollaborationRecord,
+  ) => void;
 }) {
   const { t } = useTranslation();
   const record = item.collaborationRecord;
@@ -1779,6 +2067,22 @@ function CollaborationRecordCard({
           shopId={record.shopId}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
         />
+        {record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded ? (
+          <div className="affiliate-collaboration-staff-actions" onClick={(event) => event.stopPropagation()}>
+            <div className="affiliate-collaboration-staff-actions-buttons">
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={resolving}
+                onClick={() => onStaffAction(record)}
+              >
+                {resolving
+                  ? t("common.loading")
+                  : t("ecommerce.affiliateWorkspace.markStaffHandled")}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </article>
   );
