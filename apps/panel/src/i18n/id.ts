@@ -2519,7 +2519,7 @@ export default {
         "CONTENT_PENDING": "Konten tertunda",
         "CONVERTING": "Menghasilkan konversi",
         "RETAINED": "Dipertahankan",
-        "DORMANT": "Tidak aktif",
+        "CLOSED": "Ditutup",
         "BLOCKED": "Diblokir"
       },
       "processReasons": {
