@@ -50,7 +50,8 @@ run_logged() {
     return 0
   fi
 
-  local status=$?
+  local status
+  status=$?
   echo ""
   echo "ERROR: $description failed with exit code $status"
   echo "----- $description full log -----"
