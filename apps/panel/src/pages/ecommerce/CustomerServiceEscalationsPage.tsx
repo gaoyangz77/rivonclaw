@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
@@ -53,6 +53,23 @@ const mediaElementStyle: CSSProperties = {
   height: "100%",
   objectFit: "contain",
 };
+
+function FilterField({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className ? `cs-filter-field ${className}` : "cs-filter-field"}>
+      <span className="cs-filter-field-label">{label}</span>
+      {children}
+    </div>
+  );
+}
 
 function CustomerServiceRemoteImageMessage({
   alt,
@@ -519,48 +536,67 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       {activeTab === "conversations" ? (
         <section className="cs-workspace-panel">
           <div className="cs-workspace-filter-grid cs-conversation-filter-grid">
-            <Select value={workspace.conversationShopId} onChange={(value) => workspace.setConversationShopId(value)} options={shopOptions} />
-            <Select
-              value={workspace.conversationStatusFilter}
-              onChange={(value) => workspace.setConversationStatusFilter(value as ConversationStatusFilter)}
-              options={[
-                { value: "pending", label: t("ecommerce.customerServiceWorkspace.conversationStatusPending") },
-                { value: "resolved", label: t("ecommerce.customerServiceWorkspace.conversationStatusReplied") },
-                { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
-              ]}
-            />
-            <Select
-              value={workspace.conversationAiFilter}
-              onChange={(value) => workspace.setConversationAiFilter(value as ConversationAiFilter)}
-              options={[
-                { value: "all", label: t("ecommerce.customerServiceWorkspace.aiAll") },
-                { value: "enabled", label: t("ecommerce.customerServiceWorkspace.aiEnabled") },
-                { value: "disabled", label: t("ecommerce.customerServiceWorkspace.aiDisabled") },
-              ]}
-            />
-            <Select
-              value={workspace.conversationEscalationFilter}
-              onChange={(value) => workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)}
-              options={[
-                { value: "all", label: t("ecommerce.customerServiceWorkspace.escalationAll") },
-                { value: "open", label: t("ecommerce.customerServiceWorkspace.escalationOpen") },
-                { value: "none", label: t("ecommerce.customerServiceWorkspace.escalationNone") },
-              ]}
-            />
-            <div className="cs-workspace-search">
-              <input
-                className="input-full"
-                value={workspace.conversationSearchDraft}
-                onChange={(event) => workspace.setConversationSearchDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") workspace.applyConversationSearch();
-                }}
-                placeholder={t("ecommerce.customerServiceWorkspace.conversationSearchPlaceholder")}
+            <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
+                value={workspace.conversationShopId}
+                onChange={(value) => workspace.setConversationShopId(value)}
+                options={shopOptions}
               />
-              <button className="btn btn-secondary" type="button" onClick={() => workspace.applyConversationSearch()}>
-                {t("ecommerce.customerServiceWorkspace.search")}
-              </button>
-            </div>
+            </FilterField>
+            <FilterField label={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}>
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}
+                value={workspace.conversationStatusFilter}
+                onChange={(value) => workspace.setConversationStatusFilter(value as ConversationStatusFilter)}
+                options={[
+                  { value: "pending", label: t("ecommerce.customerServiceWorkspace.conversationStatusPending") },
+                  { value: "resolved", label: t("ecommerce.customerServiceWorkspace.conversationStatusReplied") },
+                  { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
+                ]}
+              />
+            </FilterField>
+            <FilterField label={t("ecommerce.customerServiceWorkspace.filterAiState")}>
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterAiState")}
+                value={workspace.conversationAiFilter}
+                onChange={(value) => workspace.setConversationAiFilter(value as ConversationAiFilter)}
+                options={[
+                  { value: "all", label: t("ecommerce.customerServiceWorkspace.aiAll") },
+                  { value: "enabled", label: t("ecommerce.customerServiceWorkspace.aiEnabled") },
+                  { value: "disabled", label: t("ecommerce.customerServiceWorkspace.aiDisabled") },
+                ]}
+              />
+            </FilterField>
+            <FilterField label={t("ecommerce.customerServiceWorkspace.filterEscalationState")}>
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
+                value={workspace.conversationEscalationFilter}
+                onChange={(value) => workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)}
+                options={[
+                  { value: "all", label: t("ecommerce.customerServiceWorkspace.escalationAll") },
+                  { value: "open", label: t("ecommerce.customerServiceWorkspace.escalationOpen") },
+                  { value: "none", label: t("ecommerce.customerServiceWorkspace.escalationNone") },
+                ]}
+              />
+            </FilterField>
+            <FilterField className="cs-filter-field-search" label={t("ecommerce.customerServiceWorkspace.filterSearch")}>
+              <div className="cs-workspace-search">
+                <input
+                  aria-label={t("ecommerce.customerServiceWorkspace.filterSearch")}
+                  className="input-full"
+                  value={workspace.conversationSearchDraft}
+                  onChange={(event) => workspace.setConversationSearchDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") workspace.applyConversationSearch();
+                  }}
+                  placeholder={t("ecommerce.customerServiceWorkspace.conversationSearchPlaceholder")}
+                />
+                <button className="btn btn-secondary" type="button" onClick={() => workspace.applyConversationSearch()}>
+                  {t("ecommerce.customerServiceWorkspace.search")}
+                </button>
+              </div>
+            </FilterField>
             <button className="btn btn-secondary cs-refresh-button" type="button" onClick={() => workspace.fetchConversations()} disabled={workspace.conversationsLoading}>
               {workspace.conversationsLoading ? t("common.loading") : t("ecommerce.customerServiceWorkspace.refresh")}
             </button>
@@ -930,41 +966,57 @@ const EscalationsTab = observer(function EscalationsTab({
       </div>
 
       <div className="cs-workspace-filter-grid">
-        <Select value={workspace.escalationShopId} onChange={(value) => workspace.setEscalationShopId(value)} options={shopOptions} />
-        <Select
-          value={workspace.escalationStatusFilter}
-          onChange={(value) => workspace.setEscalationStatusFilter(value as EscalationStatusFilter)}
-          options={[
-            { value: "open", label: t("ecommerce.customerServiceWorkspace.statusOpen") },
-            { value: "pending", label: t("ecommerce.customerServiceWorkspace.statusPending") },
-            { value: "inProgress", label: t("ecommerce.customerServiceWorkspace.statusInProgress") },
-            { value: "resolved", label: t("ecommerce.customerServiceWorkspace.statusResolved") },
-            { value: "closed", label: t("ecommerce.customerServiceWorkspace.statusClosed") },
-            { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
-          ]}
-        />
-        <div className="cs-workspace-search">
-          <input
-            className="input-full"
-            value={workspace.escalationSearchDraft}
-            onChange={(event) => workspace.setEscalationSearchDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") workspace.applyEscalationSearch();
-            }}
-            placeholder={t("ecommerce.customerServiceWorkspace.searchPlaceholder")}
+        <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
+          <Select
+            ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
+            value={workspace.escalationShopId}
+            onChange={(value) => workspace.setEscalationShopId(value)}
+            options={shopOptions}
           />
-          <button className="btn btn-secondary" type="button" onClick={() => workspace.applyEscalationSearch()}>
-            {t("ecommerce.customerServiceWorkspace.search")}
-          </button>
-        </div>
-        <Select
-          value={String(workspace.escalationPageSize)}
-          onChange={(value) => workspace.setEscalationPageSize(Number(value))}
-          options={workspace.pageSizeOptions.map((value: number) => ({
-            value: String(value),
-            label: t("ecommerce.customerServiceWorkspace.pageSize", { count: value }),
-          }))}
-        />
+        </FilterField>
+        <FilterField label={t("ecommerce.customerServiceWorkspace.filterStatus")}>
+          <Select
+            ariaLabel={t("ecommerce.customerServiceWorkspace.filterStatus")}
+            value={workspace.escalationStatusFilter}
+            onChange={(value) => workspace.setEscalationStatusFilter(value as EscalationStatusFilter)}
+            options={[
+              { value: "open", label: t("ecommerce.customerServiceWorkspace.statusOpen") },
+              { value: "pending", label: t("ecommerce.customerServiceWorkspace.statusPending") },
+              { value: "inProgress", label: t("ecommerce.customerServiceWorkspace.statusInProgress") },
+              { value: "resolved", label: t("ecommerce.customerServiceWorkspace.statusResolved") },
+              { value: "closed", label: t("ecommerce.customerServiceWorkspace.statusClosed") },
+              { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
+            ]}
+          />
+        </FilterField>
+        <FilterField className="cs-filter-field-search" label={t("ecommerce.customerServiceWorkspace.filterSearch")}>
+          <div className="cs-workspace-search">
+            <input
+              aria-label={t("ecommerce.customerServiceWorkspace.filterSearch")}
+              className="input-full"
+              value={workspace.escalationSearchDraft}
+              onChange={(event) => workspace.setEscalationSearchDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") workspace.applyEscalationSearch();
+              }}
+              placeholder={t("ecommerce.customerServiceWorkspace.searchPlaceholder")}
+            />
+            <button className="btn btn-secondary" type="button" onClick={() => workspace.applyEscalationSearch()}>
+              {t("ecommerce.customerServiceWorkspace.search")}
+            </button>
+          </div>
+        </FilterField>
+        <FilterField label={t("ecommerce.customerServiceWorkspace.filterPageSize")}>
+          <Select
+            ariaLabel={t("ecommerce.customerServiceWorkspace.filterPageSize")}
+            value={String(workspace.escalationPageSize)}
+            onChange={(value) => workspace.setEscalationPageSize(Number(value))}
+            options={workspace.pageSizeOptions.map((value: number) => ({
+              value: String(value),
+              label: t("ecommerce.customerServiceWorkspace.pageSize", { count: value }),
+            }))}
+          />
+        </FilterField>
       </div>
 
       {workspace.escalationSearch && (
