@@ -95,14 +95,17 @@ export async function bootstrapDesktopAuthState(
       );
     }
 
-    const results = await Promise.all(
+    rootStore.ingestGraphQLResponse({ me });
+
+    const results = await Promise.allSettled(
       queries.map((query) => fetchBootstrapQuery(authSession, query)),
     );
 
     rootStore.clearCloudDataExceptUser({ preserveShops: hasEcommerceModule });
-    rootStore.ingestGraphQLResponse({ me });
-    for (const data of results) {
-      rootStore.ingestGraphQLResponse(data);
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        rootStore.ingestGraphQLResponse(result.value);
+      }
     }
 
     rootStore.setAuthBootstrap("ready", null);

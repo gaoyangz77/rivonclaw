@@ -80,6 +80,10 @@ function createStore() {
   return store;
 }
 
+function expectNoUnsupportedAdsStoreAccessFields(query: string) {
+  expect(query).not.toMatch(/adsStoreAccesses\s*\{[^}]*\bshopId\b/s);
+}
+
 describe("bootstrapDesktopAuthState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -107,6 +111,7 @@ describe("bootstrapDesktopAuthState", () => {
         enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
       })),
       graphqlFetch: vi.fn(async (query: string) => {
+        expectNoUnsupportedAdsStoreAccessFields(query);
         const result = queryResults.get(query);
         if (!result) throw new Error(`Unexpected query: ${query}`);
         return result;
@@ -132,6 +137,30 @@ describe("bootstrapDesktopAuthState", () => {
     expect(store.state.warehouses).toEqual(queryResults.get(INIT_WAREHOUSES_QUERY)?.readWarehouses);
     expect(store.state.inventoryGoods).toEqual(queryResults.get(INIT_INVENTORY_GOODS_QUERY)?.readInventoryGoods);
     expect(store.state.authBootstrap).toEqual({ status: "ready", error: null });
+  });
+
+  it("keeps the signed-in user when an account-state module query fails", async () => {
+    const store = createStore();
+    const authSession = {
+      getAccessToken: vi.fn(() => "token"),
+      validate: vi.fn(async () => ({
+        userId: "u1",
+        email: "user@example.com",
+        enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
+      })),
+      graphqlFetch: vi.fn(async (query: string) => {
+        expectNoUnsupportedAdsStoreAccessFields(query);
+        if (query === TOOL_SPECS_SYNC_QUERY) return { toolSpecs: [] };
+        throw new Error("Cannot query field on type");
+      }),
+    };
+
+    await bootstrapDesktopAuthState(authSession, store);
+
+    expect(store.state.currentUser).toMatchObject({ userId: "u1", email: "user@example.com" });
+    expect(store.state.authBootstrap).toEqual({ status: "ready", error: null });
+    expect(store.clearCloudEntities).not.toHaveBeenCalled();
+    expect(store.clearCloudDataExceptUser).toHaveBeenCalledWith({ preserveShops: true });
   });
 
   it("skips ecommerce module queries for signed-in users without the ecommerce module", async () => {

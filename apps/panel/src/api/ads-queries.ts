@@ -32,7 +32,6 @@ export const ADS_STORE_ACCESS_FIELDS_FRAGMENT = gql`
     platform
     adsAdvertiserId
     advertiserId
-    shopId
     storeId
     storeName
     storeAuthorizedBcId

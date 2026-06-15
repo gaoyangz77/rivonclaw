@@ -25,6 +25,7 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
 // Cache it briefly to coalesce concurrent requests into a single backend call.
 const TOOLSPECS_CACHE_TTL_MS = 5_000;
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
+const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
 let toolSpecsCache: { data: unknown; ts: number; inflight?: Promise<unknown> } | null = null;
 
@@ -71,6 +72,125 @@ function runCloudLlmEntitlementSyncInBackground(ctx: ApiContext): void {
   }
 }
 
+function sanitizeCloudGraphqlVariables(
+  opName: string | null,
+  variables: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (opName !== AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME || !variables) return variables;
+
+  const input = asRecord(variables.input);
+  if (!input || input.decision !== "REQUEST_ACTION") return variables;
+
+  const actionLike = input.action != null ? [input.action] : Array.isArray(input.actions) ? input.actions : [];
+  const normalizedActions = actionLike.map(normalizeAffiliateResolveAction);
+  const hasNormalizedAction = normalizedActions.some((action, index) => action !== actionLike[index]);
+  if (actionLike.length > 0 && normalizedActions.every((action) => !isInvalidAffiliateResolveAction(action))) {
+    if (!hasNormalizedAction) return variables;
+    log.info("Normalized affiliate resolve work item action payload before proxying to backend");
+    return {
+      ...variables,
+      input: {
+        ...input,
+        action: input.action != null ? normalizedActions[0] : undefined,
+        actions: Array.isArray(input.actions) ? normalizedActions : undefined,
+      },
+    };
+  }
+
+  if (actionLike.length === 0 || normalizedActions.some(isInvalidAffiliateResolveAction)) {
+    const reason =
+      "Desktop blocked an invalid affiliate action payload before sending it to backend. " +
+      "The agent attempted REQUEST_ACTION but omitted required typed action fields.";
+    log.warn(reason);
+    return {
+      ...variables,
+      input: {
+        ...input,
+        decision: "NEEDS_STAFF_REVIEW",
+        operatorSummary: appendOperatorSummary(input.operatorSummary, reason),
+        action: undefined,
+        actions: undefined,
+        nextSellerActionAt: undefined,
+      },
+    };
+  }
+
+  return variables;
+}
+
+function normalizeAffiliateResolveAction(value: unknown): unknown {
+  const action = asRecord(value);
+  if (!action || action.type !== "REVIEW_SAMPLE_APPLICATION") return value;
+
+  const existingIntent = asRecord(action.sampleReviewIntent);
+  if (existingIntent && !isInvalidAffiliateResolveAction(action)) return value;
+
+  const sampleApplicationRecordId = action.sampleApplicationRecordId;
+  const platformApplicationId = action.platformApplicationId;
+  const decision = action.decision;
+  const rejectReason = action.rejectReason;
+  if (
+    !hasNonEmptyString(sampleApplicationRecordId) ||
+    !hasNonEmptyString(platformApplicationId) ||
+    !["APPROVE", "REJECT"].includes(String(decision ?? ""))
+  ) {
+    return value;
+  }
+
+  const normalized: Record<string, unknown> = {
+    type: action.type,
+    predictionCacheIds: action.predictionCacheIds,
+    expiresAt: action.expiresAt,
+    sampleReviewIntent: {
+      sampleApplicationRecordId,
+      platformApplicationId,
+      decision,
+    },
+  };
+  if (hasNonEmptyString(rejectReason)) {
+    (normalized.sampleReviewIntent as Record<string, unknown>).rejectReason = rejectReason;
+  }
+  return normalized;
+}
+
+function isInvalidAffiliateResolveAction(value: unknown): boolean {
+  const action = asRecord(value);
+  if (!action) return true;
+  switch (action.type) {
+    case "SEND_MESSAGE": {
+      const messageIntent = asRecord(action.messageIntent);
+      return !hasNonEmptyString(messageIntent?.text);
+    }
+    case "REVIEW_SAMPLE_APPLICATION": {
+      const sampleReviewIntent = asRecord(action.sampleReviewIntent);
+      return (
+        !hasNonEmptyString(sampleReviewIntent?.sampleApplicationRecordId) ||
+        !hasNonEmptyString(sampleReviewIntent?.platformApplicationId) ||
+        !["APPROVE", "REJECT"].includes(String(sampleReviewIntent?.decision ?? ""))
+      );
+    }
+    case "CREATE_TARGET_COLLABORATION":
+      return !asRecord(action.targetCollaborationIntent);
+    default:
+      return true;
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function hasNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function appendOperatorSummary(value: unknown, reason: string): string {
+  const existing = typeof value === "string" ? value.trim() : "";
+  return existing ? `${existing}\n\n${reason}` : reason;
+}
+
 export function invalidateToolSpecsCache(): void {
   toolSpecsCache = null;
 }
@@ -94,6 +214,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   }
 
   const opName = extractOperationName(body.query);
+  const variables = sanitizeCloudGraphqlVariables(opName, body.variables);
 
   // ToolSpecs-only dedup: coalesce concurrent requests for this stable query
   if (opName === TOOLSPECS_OP_NAME && toolSpecsCache) {
@@ -122,7 +243,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
 
   // Transparent proxy: always returns 200 with standard GraphQL response.
   try {
-    const fetchPromise = ctx.authSession.graphqlFetch(body.query, body.variables);
+    const fetchPromise = ctx.authSession.graphqlFetch(body.query, variables);
 
     const prevCache = opName === TOOLSPECS_OP_NAME ? toolSpecsCache : null;
     if (opName === TOOLSPECS_OP_NAME) {

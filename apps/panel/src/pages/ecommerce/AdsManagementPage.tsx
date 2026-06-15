@@ -10,8 +10,6 @@ import { OAUTH_TIMEOUT_MS } from "./ecommerce-utils.js";
 import { getReadinessBadgeClass, resolveShopAdsReadiness } from "./ads-readiness.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 
-const ADS_OAUTH_POLL_MS = 2_000;
-
 function formatDate(value?: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -42,7 +40,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   const baselineAdvertiserIdsRef = useRef<Set<string>>(new Set());
   const baselineAdvertiserStatusRef = useRef<Map<string, string>>(new Map());
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authorizedAdvertisers = advertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED");
@@ -64,10 +61,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   }
 
   function cleanupOAuthWait() {
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -81,6 +74,21 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
     void handleRefresh();
     return cleanupOAuthWait;
   }, []);
+
+  useEffect(() => {
+    if (!oauthWaiting) return;
+    const hasNewAdvertiser = advertisers.some((advertiser) =>
+      !baselineAdvertiserIdsRef.current.has(advertiser.id)
+    );
+    const hasReauthorizedAdvertiser = advertisers.some((advertiser) => (
+      baselineAdvertiserStatusRef.current.get(advertiser.id) !== "AUTHORIZED" &&
+      advertiser.auth.status === "AUTHORIZED"
+    ));
+    if (hasNewAdvertiser || hasReauthorizedAdvertiser) {
+      cleanupOAuthWait();
+      showToast(t("adsManagement.oauthSuccess"), "success");
+    }
+  }, [advertisers, oauthWaiting, showToast, t]);
 
   async function handleRefresh() {
     setLoading(true);
@@ -108,28 +116,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       const { authUrl } = await entityStore.initiateTikTokAdsOAuth();
       setOauthAuthUrl(authUrl);
       setOauthWaiting(true);
-
-      pollTimerRef.current = setInterval(() => {
-        Promise.all([
-          entityStore.fetchAdsAdvertisers(),
-          entityStore.fetchAdsStoreAccesses(),
-        ])
-          .then(() => {
-            const nextAdvertisers = entityStore.adsAdvertisers;
-            const hasNewAdvertiser = nextAdvertisers.some((advertiser) =>
-              !baselineAdvertiserIdsRef.current.has(advertiser.id)
-            );
-            const hasReauthorizedAdvertiser = nextAdvertisers.some((advertiser) => (
-              baselineAdvertiserStatusRef.current.get(advertiser.id) !== "AUTHORIZED" &&
-              advertiser.auth.status === "AUTHORIZED"
-            ));
-            if (hasNewAdvertiser || hasReauthorizedAdvertiser) {
-              cleanupOAuthWait();
-              showToast(t("adsManagement.oauthSuccess"), "success");
-            }
-          })
-          .catch(() => {});
-      }, ADS_OAUTH_POLL_MS);
 
       timeoutRef.current = setTimeout(() => {
         cleanupOAuthWait();

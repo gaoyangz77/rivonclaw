@@ -89,12 +89,11 @@ export const EcommerceInventoryModel = types
     wmsInventoryGoodsSyncError: types.maybeNull(types.string),
     wmsInventoryGoodsCoverage: types.maybeNull(types.frozen<Record<string, any>>()),
     wmsInventoryGoodsSyncResult: types.maybeNull(types.frozen<Record<string, any>>()),
-    inventoryGoodsDrawerOpen: types.optional(types.boolean, false),
     inventoryGoodsLoading: types.optional(types.boolean, false),
     inventoryGoodsError: types.maybeNull(types.string),
     inventoryGoodsSearch: types.optional(types.string, ""),
     inventoryGoodsPage: types.optional(types.number, 1),
-    inventoryGoodsPageSize: types.optional(types.number, 100),
+    inventoryGoodsPageSize: types.optional(types.number, 20),
     inventoryGoodsVisibleColumns: types.optional(types.array(types.string), [
       "image",
       "good",
@@ -373,15 +372,6 @@ export const EcommerceInventoryModel = types
         self.wmsInventoryGoodsCoverage = null;
         self.wmsInventoryGoodsSyncResult = null;
         self.wmsInventoryGoodsSyncError = null;
-      },
-      setInventoryGoodsDrawerOpen(open: boolean) {
-        self.inventoryGoodsDrawerOpen = open;
-        self.inventoryGoodsError = null;
-        if (open) {
-          (self as any).fetchInventoryGoods().catch(() => {});
-        } else {
-          self.selectedInventoryGoodIds.clear();
-        }
       },
       setInventoryGoodsSearch(search: string) {
         self.inventoryGoodsSearch = search;

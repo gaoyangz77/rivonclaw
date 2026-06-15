@@ -137,7 +137,7 @@ async function loginAndNavigateToEcommerce(
   await waitForSignedInShell(window);
 
   // Navigate to ecommerce page via sidebar
-  const navBtn = window.locator(".nav-btn", { hasText: /Shops & Authorization|Global E-commerce/ });
+  const navBtn = window.locator(".nav-btn", { hasText: /Shop Management|Shops & Authorization|Global E-commerce/ });
   await navBtn.click({ timeout: 15_000 });
 }
 
@@ -210,13 +210,13 @@ test.describe("Ecommerce Page — New User Defaults", () => {
     await dismissModals(window);
 
     await waitForSignedInShell(window);
-    const navBtn = window.locator(".nav-btn", { hasText: /Shops & Authorization|Global E-commerce/ });
+    const navBtn = window.locator(".nav-btn", { hasText: /Shop Management|Shops & Authorization|Global E-commerce/ });
     await expect(navBtn).toBeVisible({ timeout: 15_000 });
     await navBtn.click();
 
     const header = window.locator(".ecommerce-page-header");
     await expect(header).toBeVisible({ timeout: 15_000 });
-    await expect(header.locator("h1")).toContainText("Global E-commerce Seller");
+    await expect(header.locator("h1")).toContainText("Shop Management");
   });
 });
 
@@ -251,8 +251,8 @@ test.describe("Ecommerce Page — Authenticated", () => {
     // Verify page header
     const header = window.locator(".ecommerce-page-header");
     await expect(header).toBeVisible({ timeout: 15_000 });
-    await expect(header.locator("h1")).toContainText("Global E-commerce Seller");
-    await expect(header.locator(".ecommerce-page-subtitle")).toContainText("Manage your connected shops");
+    await expect(header.locator("h1")).toContainText("Shop Management");
+    await expect(header.locator(".ecommerce-page-subtitle")).toContainText("Manage connected shops");
 
     // Add Shop button
     const addBtn = window.locator(".section-card").filter({ hasText: "Shops" }).locator("button", { hasText: "Add Shop" });

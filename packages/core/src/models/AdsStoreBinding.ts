@@ -6,7 +6,6 @@ export const AdsStoreBindingModel = types.model("AdsStoreBinding", {
   platform: types.string,
   adsAdvertiserId: types.maybeNull(types.string),
   advertiserId: types.string,
-  shopId: types.maybeNull(types.string),
   storeId: types.string,
   storeName: types.maybeNull(types.string),
   storeAuthorizedBcId: types.maybeNull(types.string),
