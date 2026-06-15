@@ -1174,14 +1174,25 @@ function formatEvaluationWindow(
   const start = typeof windowPayload.start === "string" ? windowPayload.start : null;
   const end = typeof windowPayload.end === "string" ? windowPayload.end : null;
   if (start && end) {
+    const dayCount = inclusiveDayCount(start, end);
     return t("ecommerce.affiliateWorkspace.intelligenceWindowRange", {
       start: formatShortDate(start),
       end: formatShortDate(end),
+      days: dayCount == null ? "—" : formatInteger(dayCount),
     });
   }
   return t(`ecommerce.affiliateWorkspace.evaluationScopes.${evaluationScope}`, {
     defaultValue: t("ecommerce.affiliateWorkspace.intelligenceWindowLatestTraining"),
   });
+}
+
+function inclusiveDayCount(start: string | Date, end: string | Date): number | null {
+  const startDate = start instanceof Date ? start : new Date(start);
+  const endDate = end instanceof Date ? end : new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
+  const startUtc = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+  const endUtc = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+  return Math.max(1, Math.round((endUtc - startUtc) / 86400000) + 1);
 }
 
 function formatInteger(value: number | null | undefined): string {

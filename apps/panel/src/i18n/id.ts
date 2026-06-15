@@ -2411,7 +2411,7 @@ export default {
       "intelligenceFilteredRate": "persetujuan historis yang difilter",
       "intelligenceTrainingScope": "{{window}} · dilatih {{trainedAt}}. Tingkat persetujuan historis {{approvalRate}}; persetujuan historis yang difilter {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Tampilan ini didasarkan pada model statistik dan prediksi machine learning. Ini bukan jaminan bahwa penggunaan model akan menghasilkan pertumbuhan bisnis nyata.",
-      "intelligenceWindowRange": "{{start}} - {{end}}",
+      "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} hari",
       "intelligenceWindowLatestTraining": "Jendela sampel pelatihan terbaru",
       "intelligenceDistributionTitle": "Perbandingan distribusi penjualan",
       "intelligenceDistributionHeadline": "Model menggeser pilihan ke kelompok penjualan yang lebih tinggi",

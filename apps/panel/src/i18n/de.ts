@@ -2411,7 +2411,7 @@ export default {
       "intelligenceFilteredRate": "gefilterte historische Freigaben",
       "intelligenceTrainingScope": "{{window}} · trainiert {{trainedAt}}. Historische Freigaberate {{approvalRate}}; gefilterte historische Freigaben {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Diese Ansicht basiert auf statistischer Modellierung und Machine-Learning-Prognosen. Sie garantiert kein tatsächliches Geschäftswachstum durch die Nutzung des Modells.",
-      "intelligenceWindowRange": "{{start}} - {{end}}",
+      "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} Tage",
       "intelligenceWindowLatestTraining": "Aktuelles Trainingsdatenfenster",
       "intelligenceDistributionTitle": "Vergleich der Verkaufsverteilung",
       "intelligenceDistributionHeadline": "Das Modell verschiebt die Auswahl in höhere Verkaufsbereiche",

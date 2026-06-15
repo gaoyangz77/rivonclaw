@@ -2595,7 +2595,7 @@ export default {
       intelligenceFilteredRate: "historical approvals filtered",
       intelligenceTrainingScope: "{{window}} · trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
       intelligenceLegalDisclaimer: "This view is based on statistical modeling and machine learning predictions. It is not a guarantee that using the model will produce actual business growth.",
-      intelligenceWindowRange: "{{start}} - {{end}}",
+      intelligenceWindowRange: "{{start}} - {{end}} · {{days}} days",
       intelligenceWindowLatestTraining: "Latest training sample window",
       intelligenceDistributionTitle: "Sales distribution comparison",
       intelligenceDistributionHeadline: "The model shifts the selected group toward higher sales buckets",

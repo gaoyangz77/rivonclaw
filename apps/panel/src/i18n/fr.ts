@@ -2411,7 +2411,7 @@ export default {
       "intelligenceFilteredRate": "approbations historiques filtrées",
       "intelligenceTrainingScope": "{{window}} · entraîné {{trainedAt}}. Taux d'approbation historique {{approvalRate}} ; approbations historiques filtrées {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Cette vue repose sur des modèles statistiques et des prédictions de machine learning. Elle ne garantit pas une croissance réelle de l'activité liée à l'utilisation du modèle.",
-      "intelligenceWindowRange": "{{start}} - {{end}}",
+      "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} jours",
       "intelligenceWindowLatestTraining": "Fenêtre d'échantillons d'entraînement la plus récente",
       "intelligenceDistributionTitle": "Comparaison de distribution des ventes",
       "intelligenceDistributionHeadline": "Le modèle déplace la sélection vers des tranches de ventes plus élevées",

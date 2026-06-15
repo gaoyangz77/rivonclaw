@@ -2594,7 +2594,7 @@ export default {
       intelligenceFilteredRate: "会被过滤的历史通过样本",
       intelligenceTrainingScope: "{{window}} · 训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
       intelligenceLegalDisclaimer: "本页面基于统计模型和机器学习预测，不代表用户使用该模型后一定会产生真实业务增长。",
-      intelligenceWindowRange: "{{start}} - {{end}}",
+      intelligenceWindowRange: "{{start}} - {{end}} · {{days}} 天",
       intelligenceWindowLatestTraining: "最近训练样本窗口",
       intelligenceDistributionTitle: "销量分布对比",
       intelligenceDistributionHeadline: "模型选择的人群更偏向高销量区间",
