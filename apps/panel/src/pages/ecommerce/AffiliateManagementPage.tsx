@@ -1001,16 +1001,22 @@ function AffiliateSalesBarOpportunityPanel({
       modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 3),
     },
     {
-      key: "5",
-      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "5" }),
-      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 5),
-      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 5),
+      key: "6",
+      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "6" }),
+      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 6),
+      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 6),
     },
     {
       key: "10",
       label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "10" }),
       humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 10),
       modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 10),
+    },
+    {
+      key: "20",
+      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "20" }),
+      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 20),
+      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 20),
     },
   ];
 
