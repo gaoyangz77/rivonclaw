@@ -12627,6 +12627,115 @@ html[lang="zh"] .acct-tool-chips {
   padding: 12px;
 }
 
+.affiliate-ml-insights {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.affiliate-ml-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.affiliate-ml-strip > div,
+.affiliate-ml-metric,
+.affiliate-ml-note {
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-bg);
+}
+
+.affiliate-ml-strip > div {
+  display: grid;
+  gap: 5px;
+  min-height: 92px;
+  padding: 13px;
+}
+
+.affiliate-ml-strip span,
+.affiliate-ml-metric span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.affiliate-ml-strip strong {
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.affiliate-ml-strip small,
+.affiliate-ml-metric small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.affiliate-ml-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.affiliate-ml-metric {
+  display: grid;
+  gap: 6px;
+  min-height: 128px;
+  padding: 13px;
+}
+
+.affiliate-ml-metric strong {
+  color: var(--color-text);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.affiliate-ml-note {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+}
+
+.affiliate-ml-note > div {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.26fr) 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-ml-note > div:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-ml-note strong {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.affiliate-ml-note span {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .affiliate-ml-strip,
+  .affiliate-ml-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-ml-note > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
 .affiliate-attention-panel-head {
   align-items: center;
 }

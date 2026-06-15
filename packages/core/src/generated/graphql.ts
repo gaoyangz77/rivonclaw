@@ -56,6 +56,8 @@ export interface ActionProposal {
   policySnapshot?: Maybe<ActionProposalPolicySnapshot>;
   /** Short-lived affiliate prediction cache ids carried with the frozen proposal until approval execution. */
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
+  /** Best-known related product summary for staff review display. Proposal execution still uses frozen proposal fields. */
+  productSummary?: Maybe<EcomProductSummary>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
   shopId: Scalars['ID']['output'];
@@ -117,13 +119,11 @@ export interface ActionProposalCreatorTagIntent {
 
 export interface ActionProposalDecisionSnapshot {
   decidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  decidedByActorId?: Maybe<Scalars['String']['output']>;
   note?: Maybe<Scalars['String']['output']>;
 }
 
 export interface ActionProposalDecisionSnapshotInput {
   decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  decidedByActorId?: InputMaybe<Scalars['String']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -931,102 +931,36 @@ export interface AffiliateDashboardSummary {
 export interface AffiliateDecisionThresholds {
   /** Minimum calibrated expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Deprecated compatibility alias for minExpectedSalesUnits. Kept so older desktop clients do not fail GraphQL validation while they are still connected.
+   * @deprecated Use minExpectedSalesUnits.
+   */
+  minP50SalesUnits?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateDecisionThresholdsInput {
   /** Minimum calibrated expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
+  /**
+   * Deprecated compatibility alias for minExpectedSalesUnits. Kept so older desktop clients do not fail GraphQL validation while they are still connected.
+   * @deprecated Use minExpectedSalesUnits.
+   */
+  minP50SalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
-export const AffiliateLifecycleActorType = {
-  Agent: 'AGENT',
-  CloudWorker: 'CLOUD_WORKER',
-  Human: 'HUMAN',
-  PlatformWebhook: 'PLATFORM_WEBHOOK',
-  System: 'SYSTEM'
-} as const;
+export interface AffiliateExpectedSalesCalibrationBucket {
+  actualAvgUnits?: Maybe<Scalars['Float']['output']>;
+  actualMedianUnits?: Maybe<Scalars['Float']['output']>;
+  actualP25Units?: Maybe<Scalars['Float']['output']>;
+  actualP75Units?: Maybe<Scalars['Float']['output']>;
+  actualP90Units?: Maybe<Scalars['Float']['output']>;
+  actualZeroRate?: Maybe<Scalars['Float']['output']>;
+  bucketIndex?: Maybe<Scalars['Int']['output']>;
+  sampleCount?: Maybe<Scalars['Int']['output']>;
+  scoreMax?: Maybe<Scalars['Float']['output']>;
+  scoreMin?: Maybe<Scalars['Float']['output']>;
+}
 
-export type AffiliateLifecycleActorType = typeof AffiliateLifecycleActorType[keyof typeof AffiliateLifecycleActorType];
-export const AffiliateLifecycleEntityType = {
-  ActionProposal: 'ACTION_PROPOSAL',
-  AffiliateApprovalPolicy: 'AFFILIATE_APPROVAL_POLICY',
-  AffiliateCampaign: 'AFFILIATE_CAMPAIGN',
-  AffiliateCollaboration: 'AFFILIATE_COLLABORATION',
-  AffiliateCollaborationRecord: 'AFFILIATE_COLLABORATION_RECORD',
-  CampaignProduct: 'CAMPAIGN_PRODUCT',
-  CreatorCandidate: 'CREATOR_CANDIDATE',
-  CreatorGlobalProfile: 'CREATOR_GLOBAL_PROFILE',
-  CreatorSearchRun: 'CREATOR_SEARCH_RUN',
-  CreatorTag: 'CREATOR_TAG',
-  CreatorUserRelation: 'CREATOR_USER_RELATION',
-  OutreachThread: 'OUTREACH_THREAD',
-  SampleApplicationRecord: 'SAMPLE_APPLICATION_RECORD'
-} as const;
-
-export type AffiliateLifecycleEntityType = typeof AffiliateLifecycleEntityType[keyof typeof AffiliateLifecycleEntityType];
-export const AffiliateLifecycleEventType = {
-  ActionExecuted: 'ACTION_EXECUTED',
-  ActionFailed: 'ACTION_FAILED',
-  ActionRequested: 'ACTION_REQUESTED',
-  Archived: 'ARCHIVED',
-  CandidateExcluded: 'CANDIDATE_EXCLUDED',
-  CandidateQualified: 'CANDIDATE_QUALIFIED',
-  ContentDetected: 'CONTENT_DETECTED',
-  Created: 'CREATED',
-  MessageSent: 'MESSAGE_SENT',
-  OrderAttributed: 'ORDER_ATTRIBUTED',
-  ProposalApproved: 'PROPOSAL_APPROVED',
-  ProposalCreated: 'PROPOSAL_CREATED',
-  ProposalExecuted: 'PROPOSAL_EXECUTED',
-  ProposalExpired: 'PROPOSAL_EXPIRED',
-  ProposalModified: 'PROPOSAL_MODIFIED',
-  ProposalRejected: 'PROPOSAL_REJECTED',
-  SampleApproved: 'SAMPLE_APPROVED',
-  SampleDelivered: 'SAMPLE_DELIVERED',
-  SampleDeliveryFailed: 'SAMPLE_DELIVERY_FAILED',
-  SampleRejected: 'SAMPLE_REJECTED',
-  SampleReturned: 'SAMPLE_RETURNED',
-  SampleShipped: 'SAMPLE_SHIPPED',
-  StageChanged: 'STAGE_CHANGED',
-  SyncedFromPlatform: 'SYNCED_FROM_PLATFORM',
-  TagAdded: 'TAG_ADDED',
-  TagRemoved: 'TAG_REMOVED',
-  TargetInviteCreated: 'TARGET_INVITE_CREATED',
-  Updated: 'UPDATED'
-} as const;
-
-export type AffiliateLifecycleEventType = typeof AffiliateLifecycleEventType[keyof typeof AffiliateLifecycleEventType];
-export const AffiliateLifecycleStage = {
-  Blocked: 'BLOCKED',
-  Contacted: 'CONTACTED',
-  ContentPending: 'CONTENT_PENDING',
-  Converting: 'CONVERTING',
-  Discovered: 'DISCOVERED',
-  Dormant: 'DORMANT',
-  Invited: 'INVITED',
-  Qualified: 'QUALIFIED',
-  Retained: 'RETAINED',
-  SamplePending: 'SAMPLE_PENDING'
-} as const;
-
-export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
-export const AffiliateOutboundMessageType = {
-  FreeSampleCard: 'FREE_SAMPLE_CARD',
-  Image: 'IMAGE',
-  ProductCard: 'PRODUCT_CARD',
-  TargetCollaborationCard: 'TARGET_COLLABORATION_CARD',
-  Text: 'TEXT'
-} as const;
-
-export type AffiliateOutboundMessageType = typeof AffiliateOutboundMessageType[keyof typeof AffiliateOutboundMessageType];
-/** How customized affiliate outreach copy should be for this campaign. */
-export const AffiliateOutreachPersonalizationMode = {
-  Deep: 'DEEP',
-  Light: 'LIGHT',
-  Template: 'TEMPLATE'
-} as const;
-
-export type AffiliateOutreachPersonalizationMode = typeof AffiliateOutreachPersonalizationMode[keyof typeof AffiliateOutreachPersonalizationMode];
 export interface AffiliateExpectedSalesModelVersion {
   bentomlTag?: Maybe<Scalars['String']['output']>;
   featureVersion?: Maybe<Scalars['String']['output']>;
@@ -1063,6 +997,7 @@ export interface AffiliateExpectedSalesPredictionInterval {
 
 export interface AffiliateExpectedSalesPredictionPayload {
   featureVersion?: Maybe<Scalars['String']['output']>;
+  humanBaselineModelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
   modelTag?: Maybe<Scalars['String']['output']>;
   modelType?: Maybe<Scalars['String']['output']>;
   modelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
@@ -1141,6 +1076,7 @@ export interface AffiliateExpectedSalesSubjectPrediction {
   calibrationBucket?: Maybe<AffiliateExpectedSalesCalibrationBucket>;
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  humanBaseline?: Maybe<AffiliateHumanBaselinePrediction>;
   message?: Maybe<Scalars['String']['output']>;
   predictionInterval?: Maybe<AffiliateExpectedSalesPredictionInterval>;
   predictionQuality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
@@ -1148,22 +1084,9 @@ export interface AffiliateExpectedSalesSubjectPrediction {
   resolvedContext?: Maybe<AffiliateExpectedSalesResolvedContext>;
   status: AffiliateExpectedSalesSubjectPredictionStatus;
   subject: AffiliateExpectedSalesSubjectRef;
-  thresholdProbabilities?: Maybe<AffiliateExpectedSalesThresholdProbabilities>;
   thresholdPercentiles?: Maybe<AffiliateExpectedSalesThresholdPercentiles>;
+  thresholdProbabilities?: Maybe<AffiliateExpectedSalesThresholdProbabilities>;
   validation?: Maybe<AffiliateExpectedSalesPredictionValidation>;
-}
-
-export interface AffiliateExpectedSalesCalibrationBucket {
-  actualAvgUnits?: Maybe<Scalars['Float']['output']>;
-  actualP25Units?: Maybe<Scalars['Float']['output']>;
-  actualMedianUnits?: Maybe<Scalars['Float']['output']>;
-  actualP75Units?: Maybe<Scalars['Float']['output']>;
-  actualP90Units?: Maybe<Scalars['Float']['output']>;
-  actualZeroRate?: Maybe<Scalars['Float']['output']>;
-  bucketIndex?: Maybe<Scalars['Int']['output']>;
-  sampleCount?: Maybe<Scalars['Int']['output']>;
-  scoreMax?: Maybe<Scalars['Float']['output']>;
-  scoreMin?: Maybe<Scalars['Float']['output']>;
 }
 
 export const AffiliateExpectedSalesSubjectPredictionStatus = {
@@ -1186,14 +1109,6 @@ export interface AffiliateExpectedSalesSubjectRef {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
-export interface AffiliateExpectedSalesThresholdProbabilities {
-  unitsGe1?: Maybe<Scalars['Float']['output']>;
-  unitsGe2?: Maybe<Scalars['Float']['output']>;
-  unitsGe3?: Maybe<Scalars['Float']['output']>;
-  unitsGe5?: Maybe<Scalars['Float']['output']>;
-  unitsGe10?: Maybe<Scalars['Float']['output']>;
-}
-
 export interface AffiliateExpectedSalesThresholdPercentile {
   percentile?: Maybe<Scalars['Float']['output']>;
   topPercent?: Maybe<Scalars['Float']['output']>;
@@ -1207,6 +1122,14 @@ export interface AffiliateExpectedSalesThresholdPercentiles {
   unitsGe10?: Maybe<AffiliateExpectedSalesThresholdPercentile>;
 }
 
+export interface AffiliateExpectedSalesThresholdProbabilities {
+  unitsGe1?: Maybe<Scalars['Float']['output']>;
+  unitsGe2?: Maybe<Scalars['Float']['output']>;
+  unitsGe3?: Maybe<Scalars['Float']['output']>;
+  unitsGe5?: Maybe<Scalars['Float']['output']>;
+  unitsGe10?: Maybe<Scalars['Float']['output']>;
+}
+
 export interface AffiliateExpectedSalesValidationIssue {
   code?: Maybe<Scalars['String']['output']>;
   field?: Maybe<Scalars['String']['output']>;
@@ -1215,6 +1138,143 @@ export interface AffiliateExpectedSalesValidationIssue {
   severity?: Maybe<Scalars['String']['output']>;
 }
 
+export interface AffiliateHumanBaselinePrediction {
+  approvalCutoff?: Maybe<Scalars['Float']['output']>;
+  historicalApprovalRate?: Maybe<Scalars['Float']['output']>;
+  humanApprovalPercentile?: Maybe<Scalars['Float']['output']>;
+  humanApprovalProbability?: Maybe<Scalars['Float']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  quality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
+  status?: Maybe<Scalars['String']['output']>;
+  /** Whether the frozen human-baseline imitation model predicts historical staff would likely approve this subject. */
+  wouldApprove?: Maybe<Scalars['Boolean']['output']>;
+}
+
+export const AffiliateLifecycleActorType = {
+  Agent: 'AGENT',
+  CloudWorker: 'CLOUD_WORKER',
+  Human: 'HUMAN',
+  PlatformWebhook: 'PLATFORM_WEBHOOK',
+  System: 'SYSTEM'
+} as const;
+
+export type AffiliateLifecycleActorType = typeof AffiliateLifecycleActorType[keyof typeof AffiliateLifecycleActorType];
+export const AffiliateLifecycleEntityType = {
+  ActionProposal: 'ACTION_PROPOSAL',
+  AffiliateApprovalPolicy: 'AFFILIATE_APPROVAL_POLICY',
+  AffiliateCampaign: 'AFFILIATE_CAMPAIGN',
+  AffiliateCollaboration: 'AFFILIATE_COLLABORATION',
+  AffiliateCollaborationRecord: 'AFFILIATE_COLLABORATION_RECORD',
+  CampaignProduct: 'CAMPAIGN_PRODUCT',
+  CreatorCandidate: 'CREATOR_CANDIDATE',
+  CreatorGlobalProfile: 'CREATOR_GLOBAL_PROFILE',
+  CreatorSearchRun: 'CREATOR_SEARCH_RUN',
+  CreatorTag: 'CREATOR_TAG',
+  CreatorUserRelation: 'CREATOR_USER_RELATION',
+  OutreachThread: 'OUTREACH_THREAD',
+  SampleApplicationRecord: 'SAMPLE_APPLICATION_RECORD'
+} as const;
+
+export type AffiliateLifecycleEntityType = typeof AffiliateLifecycleEntityType[keyof typeof AffiliateLifecycleEntityType];
+export const AffiliateLifecycleEventType = {
+  ActionExecuted: 'ACTION_EXECUTED',
+  ActionFailed: 'ACTION_FAILED',
+  ActionRequested: 'ACTION_REQUESTED',
+  Archived: 'ARCHIVED',
+  CandidateExcluded: 'CANDIDATE_EXCLUDED',
+  CandidateQualified: 'CANDIDATE_QUALIFIED',
+  ContentDetected: 'CONTENT_DETECTED',
+  Created: 'CREATED',
+  MessageSent: 'MESSAGE_SENT',
+  OrderAttributed: 'ORDER_ATTRIBUTED',
+  ProposalApproved: 'PROPOSAL_APPROVED',
+  ProposalCreated: 'PROPOSAL_CREATED',
+  ProposalExecuted: 'PROPOSAL_EXECUTED',
+  ProposalExpired: 'PROPOSAL_EXPIRED',
+  ProposalModified: 'PROPOSAL_MODIFIED',
+  ProposalRejected: 'PROPOSAL_REJECTED',
+  SampleApproved: 'SAMPLE_APPROVED',
+  SampleDelivered: 'SAMPLE_DELIVERED',
+  SampleDeliveryFailed: 'SAMPLE_DELIVERY_FAILED',
+  SampleRejected: 'SAMPLE_REJECTED',
+  SampleReturned: 'SAMPLE_RETURNED',
+  SampleShipped: 'SAMPLE_SHIPPED',
+  StageChanged: 'STAGE_CHANGED',
+  SyncedFromPlatform: 'SYNCED_FROM_PLATFORM',
+  TagAdded: 'TAG_ADDED',
+  TagRemoved: 'TAG_REMOVED',
+  TargetInviteCreated: 'TARGET_INVITE_CREATED',
+  Updated: 'UPDATED'
+} as const;
+
+export type AffiliateLifecycleEventType = typeof AffiliateLifecycleEventType[keyof typeof AffiliateLifecycleEventType];
+export const AffiliateLifecycleStage = {
+  Blocked: 'BLOCKED',
+  Contacted: 'CONTACTED',
+  ContentPending: 'CONTENT_PENDING',
+  Converting: 'CONVERTING',
+  Discovered: 'DISCOVERED',
+  Dormant: 'DORMANT',
+  Invited: 'INVITED',
+  Qualified: 'QUALIFIED',
+  Retained: 'RETAINED',
+  SamplePending: 'SAMPLE_PENDING'
+} as const;
+
+export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
+export interface AffiliateMlInsightsInput {
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface AffiliateMlInsightsPayload {
+  latestModelEfficiencySummary?: Maybe<AffiliateMlModelEfficiencySummary>;
+}
+
+export interface AffiliateMlModelEfficiencySummary {
+  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  evaluationScope: Scalars['String']['output'];
+  featureVersion?: Maybe<Scalars['String']['output']>;
+  humanApprovalRate?: Maybe<Scalars['Float']['output']>;
+  humanApprovedActualAvgUnits?: Maybe<Scalars['Float']['output']>;
+  humanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
+  humanApprovedCount: Scalars['Int']['output'];
+  humanApprovedObservedCount: Scalars['Int']['output'];
+  humanBaselineModelVersionKey?: Maybe<Scalars['String']['output']>;
+  humanSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
+  minExpectedSalesUnitsSameBudget?: Maybe<Scalars['Float']['output']>;
+  modelFamily: Scalars['String']['output'];
+  modelRejectedHumanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
+  modelRejectedHumanApprovedCount: Scalars['Int']['output'];
+  modelSameBudgetCount: Scalars['Int']['output'];
+  modelSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
+  modelSelectedHumanRejectedCount: Scalars['Int']['output'];
+  modelVersionKey: Scalars['String']['output'];
+  modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
+  payload?: Maybe<Scalars['JSONObject']['output']>;
+  rowCount: Scalars['Int']['output'];
+  shopId?: Maybe<Scalars['ID']['output']>;
+  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  trainingRunId?: Maybe<Scalars['String']['output']>;
+  userId: Scalars['ID']['output'];
+}
+
+export const AffiliateOutboundMessageType = {
+  FreeSampleCard: 'FREE_SAMPLE_CARD',
+  Image: 'IMAGE',
+  ProductCard: 'PRODUCT_CARD',
+  TargetCollaborationCard: 'TARGET_COLLABORATION_CARD',
+  Text: 'TEXT'
+} as const;
+
+export type AffiliateOutboundMessageType = typeof AffiliateOutboundMessageType[keyof typeof AffiliateOutboundMessageType];
+/** How customized affiliate outreach copy should be for this campaign. */
+export const AffiliateOutreachPersonalizationMode = {
+  Deep: 'DEEP',
+  Light: 'LIGHT',
+  Template: 'TEMPLATE'
+} as const;
+
+export type AffiliateOutreachPersonalizationMode = typeof AffiliateOutreachPersonalizationMode[keyof typeof AffiliateOutreachPersonalizationMode];
 export const AffiliatePredictionCaptureMode = {
   PromotedFromCache: 'PROMOTED_FROM_CACHE',
   QueryCache: 'QUERY_CACHE'
@@ -1892,6 +1952,8 @@ export interface CreatorGlobalProfile {
   creatorOpenId?: Maybe<Scalars['String']['output']>;
   followerCount?: Maybe<Scalars['Int']['output']>;
   id: Scalars['ID']['output'];
+  /** Latest TikTok marketplace creator profile snapshot used for staff-facing display. This is read-only context and may omit private metrics if the creator has not authorized sharing. */
+  marketplaceSnapshotJson?: Maybe<Scalars['String']['output']>;
   nickname?: Maybe<Scalars['String']['output']>;
   platform: ShopPlatform;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -5173,6 +5235,8 @@ export interface Query {
   affiliateDashboard: AffiliateDashboardPayload;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
   affiliateExpectedSalesPredictions: AffiliateExpectedSalesPredictionPayload;
+  /** Read latest affiliate ML evaluation summary generated by telemetry training jobs for the current user or one shop. */
+  affiliateMlInsights: AffiliateMlInsightsPayload;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
@@ -5412,6 +5476,11 @@ export interface QueryAffiliateDashboardArgs {
 
 export interface QueryAffiliateExpectedSalesPredictionsArgs {
   input: AffiliateExpectedSalesPredictionInput;
+}
+
+
+export interface QueryAffiliateMlInsightsArgs {
+  input?: InputMaybe<AffiliateMlInsightsInput>;
 }
 
 
