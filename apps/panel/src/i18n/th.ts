@@ -2412,7 +2412,7 @@ export default {
       "intelligenceTrainingScope": "{{window}} · ฝึกเมื่อ {{trainedAt}} อัตราอนุมัติย้อนหลัง {{approvalRate}}; การอนุมัติย้อนหลังที่ถูกกรอง {{filteredRate}}",
       "intelligenceLegalDisclaimer": "มุมมองนี้อิงจากแบบจำลองสถิติและการคาดการณ์ของ machine learning ไม่ได้เป็นการรับประกันว่าการใช้โมเดลจะทำให้ธุรกิจเติบโตจริง",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} วัน",
-      "intelligenceWindowLatestTraining": "ช่วงตัวอย่างฝึกโมเดลล่าสุด",
+      "intelligenceWindowLatestTraining": "ช่วงสังเกตผลลัพธ์ที่เสร็จสมบูรณ์",
       "intelligenceDistributionTitle": "เปรียบเทียบการกระจายยอดขาย",
       "intelligenceDistributionHeadline": "โมเดลเลื่อนกลุ่มที่เลือกไปยังช่วงยอดขายที่สูงขึ้น",
       "intelligenceDistributionHint": "{{window}} · เปรียบเทียบผลจริงของรายการที่เคยอนุมัติกับช่วงยอดขายคาดการณ์ของรายการที่โมเดลเลือกและปฏิเสธ",
@@ -2437,7 +2437,8 @@ export default {
       "intelligenceModelQualifiedExpected": "โมเดลสูงกว่าเกณฑ์ · ยอดขายคาดการณ์",
       "intelligenceBelowBarExpected": "ต่ำกว่าเกณฑ์ · ยอดขายคาดการณ์",
       "evaluationScopes": {
-        "latest_training_rows": "ช่วงตัวอย่างฝึกโมเดลล่าสุด"
+        "latest_training_rows": "ช่วงสังเกตผลลัพธ์ที่เสร็จสมบูรณ์",
+        "outcome_observation_window": "ช่วงสังเกตผลลัพธ์ที่เสร็จสมบูรณ์"
       },
       "mlInsightsEmpty": "ยังไม่มีผลประเมิน Affiliate ML ให้รัน pipeline ฝึกโมเดลหลังจากข้อมูลประวัติ affiliate พร้อมแล้ว",
       "mlScope": "ขอบเขต",

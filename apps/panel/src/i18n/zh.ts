@@ -2595,7 +2595,7 @@ export default {
       intelligenceTrainingScope: "{{window}} · 训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
       intelligenceLegalDisclaimer: "本页面基于统计模型和机器学习预测，不代表用户使用该模型后一定会产生真实业务增长。",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} 天",
-      intelligenceWindowLatestTraining: "最近训练样本窗口",
+      intelligenceWindowLatestTraining: "已结束合作结果观察窗口",
       intelligenceDistributionTitle: "销量分布对比",
       intelligenceDistributionHeadline: "模型选择的人群更偏向高销量区间",
       intelligenceDistributionHint: "{{window}} · 对比历史人工通过后的实际销量，以及模型选择/拒绝人群的预期销量区间。",
@@ -2620,7 +2620,8 @@ export default {
       intelligenceModelQualifiedExpected: "模型高于门槛 · 预期销量",
       intelligenceBelowBarExpected: "低于门槛 · 预期销量",
       evaluationScopes: {
-        latest_training_rows: "最近训练样本窗口",
+        latest_training_rows: "已结束合作结果观察窗口",
+        outcome_observation_window: "已结束合作结果观察窗口",
       },
       mlInsightsEmpty: "暂无 Affiliate ML 评估结果。请在 affiliate history ready 后运行训练 pipeline。",
       mlScope: "范围",

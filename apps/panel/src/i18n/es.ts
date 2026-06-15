@@ -2412,7 +2412,7 @@ export default {
       "intelligenceTrainingScope": "{{window}} · entrenado {{trainedAt}}. Tasa histórica de aprobación {{approvalRate}}; aprobaciones históricas filtradas {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Esta vista se basa en modelos estadísticos y predicciones de aprendizaje automático. No garantiza que el uso del modelo produzca crecimiento real del negocio.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} días",
-      "intelligenceWindowLatestTraining": "Ventana de muestras de entrenamiento más reciente",
+      "intelligenceWindowLatestTraining": "Ventana de observación de resultados completados",
       "intelligenceDistributionTitle": "Comparación de distribución de ventas",
       "intelligenceDistributionHeadline": "El modelo desplaza el grupo seleccionado hacia tramos de venta más altos",
       "intelligenceDistributionHint": "{{window}} · resultados aprobados históricos frente a tramos de ventas esperadas seleccionados y rechazados por el modelo.",
@@ -2437,7 +2437,8 @@ export default {
       "intelligenceModelQualifiedExpected": "Modelo sobre barra · ventas esperadas",
       "intelligenceBelowBarExpected": "Debajo de barra · ventas esperadas",
       "evaluationScopes": {
-        "latest_training_rows": "Ventana de muestras de entrenamiento más reciente"
+        "latest_training_rows": "Ventana de observación de resultados completados",
+        "outcome_observation_window": "Ventana de observación de resultados completados"
       },
       "mlInsightsEmpty": "Aún no hay evaluación de ML de afiliados. Ejecute la canalización de entrenamiento cuando el historial de afiliados esté listo.",
       "mlScope": "Alcance",
