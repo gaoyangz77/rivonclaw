@@ -10451,6 +10451,92 @@ html[lang="zh"] .acct-tool-chips {
   flex-shrink: 0;
 }
 
+.shop-unpaid-reachout-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 18px 22px;
+  overflow: visible;
+}
+
+.shop-unpaid-reachout-toggle-pane {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  padding-right: 22px;
+}
+
+.shop-unpaid-reachout-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shop-unpaid-reachout-copy .form-hint {
+  margin-top: 0;
+}
+
+.shop-unpaid-reachout-toggle-pane > .toggle-switch {
+  margin-top: 2px;
+}
+
+.shop-unpaid-reachout-delay {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 22px;
+  border-left: 1px solid var(--color-border-light);
+}
+
+.shop-unpaid-reachout-delay .form-label-block {
+  margin-bottom: 0;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.shop-unpaid-reachout-delay-control {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shop-unpaid-reachout-delay-input {
+  width: min(260px, 100%);
+}
+
+.shop-unpaid-reachout-delay-hint {
+  padding: 0;
+  border-top: 0;
+}
+
+@media (max-width: 760px) {
+  .shop-unpaid-reachout-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .shop-unpaid-reachout-toggle-pane {
+    padding-right: 0;
+  }
+
+  .shop-unpaid-reachout-delay {
+    padding-top: 16px;
+    padding-left: 0;
+    border-top: 1px solid var(--color-border-light);
+    border-left: 0;
+  }
+
+  .shop-unpaid-reachout-delay-input {
+    width: 100%;
+  }
+}
+
 /* Business Prompt Section */
 
 .shop-prompt-section {

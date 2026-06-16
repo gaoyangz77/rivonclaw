@@ -43,9 +43,9 @@ interface ShopDrawerProps {
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutDelayHours: string;
   savingUnpaidReachout: boolean;
-  onDraftUnpaidReachoutEnabledChange: (value: boolean) => void;
+  onToggleUnpaidReachoutEnabled: (value: boolean) => void;
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
-  onSaveUnpaidReachout: () => void;
+  onCommitUnpaidReachoutDelayHours: () => void;
   savingEscalation: boolean;
   draftEscalationChannel: string;
   draftEscalationRecipient: string;
@@ -104,9 +104,9 @@ export const ShopDrawer = observer(function ShopDrawer({
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutDelayHours,
   savingUnpaidReachout,
-  onDraftUnpaidReachoutEnabledChange,
+  onToggleUnpaidReachoutEnabled,
   onDraftUnpaidReachoutDelayHoursChange,
-  onSaveUnpaidReachout,
+  onCommitUnpaidReachoutDelayHours,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -427,9 +427,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                 draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
                 draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
                 savingUnpaidReachout={savingUnpaidReachout}
-                onDraftUnpaidReachoutEnabledChange={onDraftUnpaidReachoutEnabledChange}
+                onToggleUnpaidReachoutEnabled={onToggleUnpaidReachoutEnabled}
                 onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
-                onSaveUnpaidReachout={onSaveUnpaidReachout}
+                onCommitUnpaidReachoutDelayHours={onCommitUnpaidReachoutDelayHours}
                 savingEscalation={savingEscalation}
                 draftEscalationChannel={draftEscalationChannel}
                 draftEscalationRecipient={draftEscalationRecipient}

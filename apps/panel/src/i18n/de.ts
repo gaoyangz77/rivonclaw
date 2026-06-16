@@ -2884,7 +2884,13 @@ export default {
         "csModelDefault": "Standard (globales Modell)",
         "csModelUnavailable": "Das ausgewählte Modell ist nicht mehr verfügbar",
         "bridgeDisconnected": "CS-Brücke getrennt – Kundennachrichten werden nicht empfangen.",
-        "bridgeReconnecting": "CS-Brücke wird erneut verbunden (Versuch {{attempt}})…"
+        "bridgeReconnecting": "CS-Brücke wird erneut verbunden (Versuch {{attempt}})…",
+        "unpaidReachout": "Kontaktaufnahme bei unbezahlten Bestellungen",
+        "unpaidReachoutEnabled": "Kunden mit unbezahlten Bestellungen kontaktieren",
+        "unpaidReachoutHint": "Wenn aktiviert, sendet der gebundene Desktop-CS-Agent nach der konfigurierten Verzögerung eine proaktive Erinnerung.",
+        "unpaidReachoutDelay": "Verzögerung in Stunden",
+        "unpaidReachoutDelayHint": "Verwenden Sie eine ganze Zahl von 1 bis 47. TikTok erlaubt proaktive Kontaktaufnahme nur innerhalb von 48 Stunden.",
+        "unpaidReachoutInvalidDelay": "Die Verzögerung muss eine ganze Zahl von 1 bis 47 sein."
       },
       "affiliate": {
         "serviceStatus": "Servicestatus",

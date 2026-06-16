@@ -2884,7 +2884,13 @@ export default {
         "csModelDefault": "Predefinito (modello globale)",
         "csModelUnavailable": "Il modello selezionato non è più disponibile",
         "bridgeDisconnected": "CS bridge disconnesso: i messaggi dei clienti non verranno ricevuti.",
-        "bridgeReconnecting": "Riconnessione del bridge CS (tentativo {{attempt}})…"
+        "bridgeReconnecting": "Riconnessione del bridge CS (tentativo {{attempt}})…",
+        "unpaidReachout": "Contatto per ordini non pagati",
+        "unpaidReachoutEnabled": "Contatta gli ordini non pagati",
+        "unpaidReachoutHint": "Quando attivo, l'agente CS desktop associato invia un promemoria proattivo dopo il ritardo configurato.",
+        "unpaidReachoutDelay": "Ritardo in ore",
+        "unpaidReachoutDelayHint": "Usa un numero intero da 1 a 47. Il contatto proattivo TikTok è limitato a 48 ore.",
+        "unpaidReachoutInvalidDelay": "Il ritardo deve essere un numero intero da 1 a 47."
       },
       "affiliate": {
         "serviceStatus": "Stato del servizio",

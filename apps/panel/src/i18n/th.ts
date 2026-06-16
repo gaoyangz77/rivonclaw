@@ -2884,7 +2884,13 @@ export default {
         "csModelDefault": "ค่าเริ่มต้น (รุ่นสากล)",
         "csModelUnavailable": "ไม่มีรุ่นที่เลือกอีกต่อไป",
         "bridgeDisconnected": "CS Bridge ถูกตัดการเชื่อมต่อ — จะไม่ได้รับข้อความจากลูกค้า",
-        "bridgeReconnecting": "กำลังเชื่อมต่อ CS Bridge ใหม่ (ลอง {{attempt}})..."
+        "bridgeReconnecting": "กำลังเชื่อมต่อ CS Bridge ใหม่ (ลอง {{attempt}})...",
+        "unpaidReachout": "ติดต่อลูกค้าสำหรับคำสั่งซื้อที่ยังไม่ชำระเงิน",
+        "unpaidReachoutEnabled": "ติดต่อคำสั่งซื้อที่ยังไม่ชำระเงิน",
+        "unpaidReachoutHint": "เมื่อเปิดใช้งาน Agent CS บนเดสก์ท็อปที่ผูกไว้จะส่งการแจ้งเตือนเชิงรุกหนึ่งครั้งหลังจากเวลาหน่วงที่ตั้งไว้",
+        "unpaidReachoutDelay": "เวลาหน่วงเป็นชั่วโมง",
+        "unpaidReachoutDelayHint": "ใช้จำนวนเต็มตั้งแต่ 1 ถึง 47 การติดต่อเชิงรุกของ TikTok จำกัดไว้ภายใน 48 ชั่วโมง",
+        "unpaidReachoutInvalidDelay": "เวลาหน่วงต้องเป็นจำนวนเต็มตั้งแต่ 1 ถึง 47"
       },
       "affiliate": {
         "serviceStatus": "สถานะการบริการ",
