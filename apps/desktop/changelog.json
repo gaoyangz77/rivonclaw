@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.35",
+    "date": "2026-06-16",
+    "en": [
+      "Add clearer affiliate model recommendation guidance for seller decision support",
+      "Fix unpaid reachout settings and clarify unpaid reachout dispatch context",
+      "Polish customer-service close-out rating prompts and affiliate work republish locale handling"
+    ],
+    "zh": [
+      "增加更清晰的达人模型推荐引导，辅助卖家决策",
+      "修复未付款触达设置，并明确未付款触达派发上下文",
+      "打磨客服结束会话评分提示，并修复达人 work 重新发布的多语言处理"
+    ]
+  },
+  {
     "version": "1.8.34",
     "date": "2026-06-15",
     "en": [
