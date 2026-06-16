@@ -687,12 +687,20 @@ function AffiliateMlInsightsPanel({
                 <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
                 <p>{precisionClaimBody}</p>
               </div>
-              <small>
-                {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
-                  count: formatInteger(budgetHumanApprovedCount),
-                  window: evaluationWindow,
-                })}
-              </small>
+              <div className="affiliate-intelligence-card-aside">
+                {precisionLiftPercent != null ? (
+                  <div className={`affiliate-intelligence-lift-badge${precisionLiftPercent < 0 ? " affiliate-intelligence-lift-badge-negative" : ""}`}>
+                    <strong>{precisionLiftLabel}</strong>
+                    <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
+                  </div>
+                ) : null}
+                <small>
+                  {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
+                    count: formatInteger(budgetHumanApprovedCount),
+                    window: evaluationWindow,
+                  })}
+                </small>
+              </div>
             </div>
 
             <div className="affiliate-intelligence-race">

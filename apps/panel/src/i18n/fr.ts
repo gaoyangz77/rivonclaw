@@ -2615,7 +2615,7 @@ export default {
         "title": "Base de décision",
         "aiDecision": "Recommandation IA",
         "humanBaseline": "Tendance historique de l'équipe",
-        "expectedSales": "Ventes prévues",
+        "expectedSales": "Ventes prévues calibrées",
         "expectedSalesValue": "Environ {{units}} unités",
         "unknown": "Indisponible",
         "humanWouldApprove": "Approuverait généralement",

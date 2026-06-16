@@ -2615,7 +2615,7 @@ export default {
         "title": "เหตุผลประกอบการตัดสินใจ",
         "aiDecision": "คำแนะนำจาก AI",
         "humanBaseline": "แนวโน้มจากพนักงานในอดีต",
-        "expectedSales": "ยอดขายที่คาดการณ์",
+        "expectedSales": "ยอดขายคาดการณ์ที่ปรับเทียบแล้ว",
         "expectedSalesValue": "ประมาณ {{units}} ชิ้น",
         "unknown": "ไม่มีข้อมูล",
         "humanWouldApprove": "มักจะอนุมัติ",

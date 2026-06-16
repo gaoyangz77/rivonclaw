@@ -2615,7 +2615,7 @@ export default {
         "title": "Entscheidungsgrundlage",
         "aiDecision": "KI-Empfehlung",
         "humanBaseline": "Historische Teamtendenz",
-        "expectedSales": "Prognostizierte Verkäufe",
+        "expectedSales": "Kalibrierte prognostizierte Verkäufe",
         "expectedSalesValue": "Etwa {{units}} Einheiten",
         "unknown": "Nicht verfügbar",
         "humanWouldApprove": "Würde meist genehmigen",
