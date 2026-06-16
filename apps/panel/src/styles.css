@@ -12878,6 +12878,10 @@ html[lang="zh"] .acct-tool-chips {
   gap: var(--affiliate-intelligence-gap);
 }
 
+.affiliate-intelligence-claim-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .affiliate-intelligence-claim-section {
   display: grid;
   gap: var(--affiliate-intelligence-gap);
@@ -12931,11 +12935,19 @@ html[lang="zh"] .acct-tool-chips {
     transform var(--transition-fast);
 }
 
+.affiliate-intelligence-claim-grid-single .affiliate-intelligence-tab-card {
+  cursor: default;
+}
+
 .affiliate-intelligence-tab-card:hover,
 .affiliate-intelligence-tab-card-active {
   border-color: color-mix(in srgb, var(--color-primary) 46%, var(--color-border-light));
   box-shadow: 0 14px 32px color-mix(in srgb, var(--color-primary) 9%, transparent);
   transform: translateY(-1px);
+}
+
+.affiliate-intelligence-claim-grid-single .affiliate-intelligence-tab-card:hover {
+  transform: none;
 }
 
 .affiliate-intelligence-tab-card-active::after {
@@ -13019,17 +13031,29 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-intelligence-card-head {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.affiliate-intelligence-card-title {
+  min-width: 0;
 }
 
 .affiliate-intelligence-card-head strong {
   display: block;
   margin-top: 2px;
   color: var(--color-text);
-  font-size: 28px;
-  line-height: 1;
+  font-size: 22px;
+  line-height: 1.16;
+}
+
+.affiliate-intelligence-card-title p {
+  max-width: 760px;
+  margin: 7px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .affiliate-intelligence-card-head small {
