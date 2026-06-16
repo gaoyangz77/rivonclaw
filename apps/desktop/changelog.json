@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.34",
+    "date": "2026-06-15",
+    "en": [
+      "Add affiliate ML insights and refine expected-sales intelligence across desktop and panel flows",
+      "Improve affiliate proposal context, supporting metrics, lifecycle types, and required-action dispatch",
+      "Polish customer-service controls, billing actions, auth bootstrap, and Windows native rebuild CI diagnostics"
+    ],
+    "zh": [
+      "新增达人合作 ML 洞察，并优化桌面端和面板里的预期销量智能分析流程",
+      "改进达人合作提案上下文、支撑指标、生命周期类型和必需动作派发",
+      "打磨客服控制、计费操作、认证启动流程，并增强 Windows 原生重建 CI 诊断"
+    ]
+  },
+  {
     "version": "1.8.33",
     "date": "2026-06-05",
     "en": [
