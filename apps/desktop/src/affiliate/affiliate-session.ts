@@ -1098,12 +1098,40 @@ function renderSampleReviewDefaultOperatorSummary(params: {
 }): string {
   const expectedSales = formatMaybeNumber(params.expectedSalesUnits);
   const threshold = formatMaybeNumber(params.minExpectedSalesUnits);
-  if (params.staffLanguage === "Chinese") {
-    return params.decision === GQL.AffiliateSampleReviewDecision.Reject
-      ? `expected-sales 模型预估这个达人带这款商品的期望销量约为 ${expectedSales} 件，低于店铺最低要求 ${threshold} 件，建议拒绝这次样品申请。`
-      : `expected-sales 模型预估这个达人带这款商品的期望销量约为 ${expectedSales} 件，达到店铺最低要求 ${threshold} 件，建议通过这次样品申请。`;
+  const isReject = params.decision === GQL.AffiliateSampleReviewDecision.Reject;
+  switch (params.staffLanguage) {
+    case "Chinese":
+      return isReject
+        ? `预估销量模型认为这个达人带这款商品大约能卖 ${expectedSales} 件，低于店铺最低要求 ${threshold} 件，建议拒绝这次样品申请。`
+        : `预估销量模型认为这个达人带这款商品大约能卖 ${expectedSales} 件，达到店铺最低要求 ${threshold} 件，建议通过这次样品申请。`;
+    case "German":
+      return isReject
+        ? `Das Verkaufsmodell schätzt für diesen Creator und dieses Produkt etwa ${expectedSales} Verkäufe, weniger als das Shop-Minimum von ${threshold}. Daher wird empfohlen, diese Musteranfrage abzulehnen.`
+        : `Das Verkaufsmodell schätzt für diesen Creator und dieses Produkt etwa ${expectedSales} Verkäufe und erreicht damit das Shop-Minimum von ${threshold}. Daher wird empfohlen, diese Musteranfrage zu genehmigen.`;
+    case "Spanish":
+      return isReject
+        ? `El modelo estima que este creador vendería aproximadamente ${expectedSales} unidades de este producto, por debajo del mínimo de la tienda de ${threshold}; se recomienda rechazar esta solicitud de muestra.`
+        : `El modelo estima que este creador vendería aproximadamente ${expectedSales} unidades de este producto, alcanzando el mínimo de la tienda de ${threshold}; se recomienda aprobar esta solicitud de muestra.`;
+    case "French":
+      return isReject
+        ? `Le modèle estime que ce créateur vendrait environ ${expectedSales} unités de ce produit, sous le minimum boutique de ${threshold}; il est recommandé de refuser cette demande d'échantillon.`
+        : `Le modèle estime que ce créateur vendrait environ ${expectedSales} unités de ce produit, ce qui atteint le minimum boutique de ${threshold}; il est recommandé d'approuver cette demande d'échantillon.`;
+    case "Indonesian":
+      return isReject
+        ? `Model memperkirakan kreator ini akan menjual sekitar ${expectedSales} unit untuk produk ini, di bawah minimum toko ${threshold}, jadi permintaan sampel ini disarankan untuk ditolak.`
+        : `Model memperkirakan kreator ini akan menjual sekitar ${expectedSales} unit untuk produk ini, memenuhi minimum toko ${threshold}, jadi permintaan sampel ini disarankan untuk disetujui.`;
+    case "Italian":
+      return isReject
+        ? `Il modello stima che questo creator venderà circa ${expectedSales} unità di questo prodotto, sotto il minimo del negozio di ${threshold}; si consiglia di rifiutare questa richiesta di campione.`
+        : `Il modello stima che questo creator venderà circa ${expectedSales} unità di questo prodotto, raggiungendo il minimo del negozio di ${threshold}; si consiglia di approvare questa richiesta di campione.`;
+    case "Thai":
+      return isReject
+        ? `โมเดลคาดว่าครีเอเตอร์รายนี้จะขายสินค้านี้ได้ประมาณ ${expectedSales} ชิ้น ต่ำกว่าเกณฑ์ขั้นต่ำของร้านที่ ${threshold} ชิ้น จึงแนะนำให้ปฏิเสธคำขอตัวอย่างนี้`
+        : `โมเดลคาดว่าครีเอเตอร์รายนี้จะขายสินค้านี้ได้ประมาณ ${expectedSales} ชิ้น ถึงเกณฑ์ขั้นต่ำของร้านที่ ${threshold} ชิ้น จึงแนะนำให้อนุมัติคำขอตัวอย่างนี้`;
+    default:
+      break;
   }
-  return params.decision === GQL.AffiliateSampleReviewDecision.Reject
+  return isReject
     ? `The expected-sales model estimates about ${expectedSales} units for this creator and product, below the shop minimum of ${threshold}, so rejecting this sample request is recommended.`
     : `The expected-sales model estimates about ${expectedSales} units for this creator and product, meeting the shop minimum of ${threshold}, so approving this sample request is recommended.`;
 }

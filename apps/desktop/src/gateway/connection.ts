@@ -39,6 +39,10 @@ export function stopCsBridge(): void {
   }
 }
 
+export function updateCsBridgeLocale(locale?: string): void {
+  _csBridge?.updateLocale(locale);
+}
+
 export function tryStartCsBridge(gatewayId: string, locale?: string): void {
   const authSession = getAuthSession();
   if (!authSession) return;

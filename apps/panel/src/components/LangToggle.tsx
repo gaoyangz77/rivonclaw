@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../api/index.js";
+import { updateSettings } from "../api/settings.js";
 import { LANGUAGE_OPTIONS, normalizeLanguageCode } from "../i18n/languages.js";
 import { GlobeIcon } from "./icons.js";
 
@@ -38,6 +39,7 @@ export function LangToggle({ popupDirection = "up" }: { popupDirection?: "up" | 
               className={`lang-menu-option${activeLanguage === language.code ? " lang-menu-option-active" : ""}`}
               onClick={() => {
                 i18n.changeLanguage(language.code);
+                updateSettings({ locale: language.code }).catch(() => {});
                 setMenuOpen(false);
                 trackEvent("ui.language_changed", { language: language.code });
               }}
