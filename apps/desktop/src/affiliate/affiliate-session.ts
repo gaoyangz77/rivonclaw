@@ -734,13 +734,18 @@ export class AffiliateSession {
     );
     if (existingSnapshot) {
       const output = existingSnapshot.output ?? {};
+      const sourceCacheId =
+        typeof existingSnapshot.sourceCacheId === "string" &&
+        existingSnapshot.sourceCacheId.length > 0
+          ? existingSnapshot.sourceCacheId
+          : null;
       return {
         predictionSection: renderExpectedSalesPredictionSnapshotSection(existingSnapshot.scenario, existingSnapshot),
-        predictionCacheIds: [],
+        predictionCacheIds: sourceCacheId ? [sourceCacheId] : [],
         primaryPrediction: {
           status: existingSnapshot.status,
           expectedSalesUnits: numberFromUnknown(output.expectedSalesUnits),
-          cacheId: null,
+          cacheId: sourceCacheId,
         },
       };
     }
@@ -1149,21 +1154,20 @@ function renderExpectedSalesPredictionPayloadSection(
 }
 
 function renderExpectedSalesPredictionLine(index: number, prediction: GQL.AffiliateExpectedSalesSubjectPrediction): string {
-  const bucket = prediction.calibrationBucket;
+  const bucket = prediction.predictionBucket;
   const thresholdProbabilities = prediction.thresholdProbabilities;
   const thresholdPercentiles = prediction.thresholdPercentiles;
   const interval = prediction.predictionInterval;
   return [
     `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
     `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)} (expected-value forecast)`,
-    `   rawExpectedSalesUnits=${formatMaybeNumber(prediction.rawExpectedSalesUnits)}`,
     `   expectedSalesPercentile=${formatPercentile(prediction.expectedSalesPercentile)}`,
     interval
       ? `   expectedSalesInterval=${formatMaybeNumber(interval.lowerExpectedSalesUnits)}-${formatMaybeNumber(interval.upperExpectedSalesUnits)} confidence=${formatProbability(interval.confidenceLevel)} method=${interval.method ?? ""}`
       : "   expectedSalesInterval=(none)",
     bucket
-      ? `   calibrationBucket=index:${bucket.bucketIndex ?? ""} sampleCount:${bucket.sampleCount ?? ""} actualAvgUnits:${formatMaybeNumber(bucket.actualAvgUnits)} actualMedianUnits:${formatMaybeNumber(bucket.actualMedianUnits)} zeroRate:${formatMaybeNumber(bucket.actualZeroRate)}`
-      : "   calibrationBucket=(none)",
+      ? `   predictionBucket=index:${bucket.bucketIndex ?? ""} sampleCount:${bucket.sampleCount ?? ""} actualAvgUnits:${formatMaybeNumber(bucket.actualAvgUnits)} actualMedianUnits:${formatMaybeNumber(bucket.actualMedianUnits)} zeroRate:${formatMaybeNumber(bucket.actualZeroRate)}`
+      : "   predictionBucket=(none)",
     thresholdProbabilities
       ? `   probabilities=P>=1:${formatProbability(thresholdProbabilities.unitsGe1)} P>=2:${formatProbability(thresholdProbabilities.unitsGe2)} P>=3:${formatProbability(thresholdProbabilities.unitsGe3)} P>=5:${formatProbability(thresholdProbabilities.unitsGe5)} P>=10:${formatProbability(thresholdProbabilities.unitsGe10)}`
       : "   probabilities=(none)",

@@ -2611,6 +2611,26 @@ export default {
         "SEND_MESSAGE": "Das System sendet die folgende Nachricht an den Creator.",
         "CREATE_TARGET_COLLABORATION": "Das System erstellt eine Zielkooperations-Einladung für diesen Creator."
       },
+      "predictionComparison": {
+        "title": "Entscheidungsgrundlage",
+        "aiDecision": "KI-Empfehlung",
+        "humanBaseline": "Historische Teamtendenz",
+        "expectedSales": "Prognostizierte Verkäufe",
+        "expectedSalesValue": "Etwa {{units}} Einheiten",
+        "unknown": "Nicht verfügbar",
+        "humanWouldApprove": "Würde meist genehmigen",
+        "humanWouldReject": "Würde meist ablehnen",
+        "humanInsufficient": "Zu wenig Historie",
+        "humanApprovalProbability": "Historische Genehmigungstendenz {{probability}}",
+        "sameDecision": "Stimmt überein",
+        "differentDecision": "Weicht ab",
+        "sameDecisionHint": "Die Modellempfehlung stimmt mit dem historischen Teamverhalten überein.",
+        "differentDecisionHint": "Die Modellempfehlung weicht vom historischen Teamverhalten ab; prüfen Sie den Kontext sorgfältig.",
+        "modelDecisions": {
+          "APPROVE": "Muster genehmigen",
+          "REJECT": "Muster ablehnen"
+        }
+      },
       "collaborationWorkTitles": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "Creator wartet auf Antwort",
         "SAMPLE_REVIEW": "Probenantrag prüfen",
@@ -2878,6 +2898,11 @@ export default {
         "runProfileLabel": "Profil ausführen",
         "runProfileHint": "Wählen Sie ein RunProfile aus, um zu steuern, welche Affiliate-Tools der Agent verwenden kann.",
         "runProfileNone": "Kein RunProfile ausgewählt",
+        "modelUsageScope": "Modell verwenden",
+        "modelUsageScopeLabel": "Prognosemodell",
+        "modelUsageScopeHint": "Wählen Sie, ob dieser Shop das Konto-Modell oder das eigene Shop-Modell für Expected-Sales-Prognosen verwendet.",
+        "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeShopLevel": "Shop level",
         "decisionThresholds": "Entscheidungsschwellen",
         "minExpectedSalesUnits": "Mindestverkaufseinheiten expected sales",
         "minExpectedSalesUnitsHint": "Wenn es für eine Zusammenarbeit keinen spezifischeren Kampagnenschwellenwert gibt, verwendet der Agent diesen als Standardreferenz für die Fortsetzung/Beispielüberprüfung. Lassen Sie das Feld leer, wenn es keinen standardmäßigen numerischen Schwellenwert gibt.",

@@ -12401,6 +12401,90 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 11px;
 }
 
+.affiliate-prediction-comparison {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border-light));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-bg));
+}
+
+.affiliate-prediction-comparison-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.affiliate-prediction-comparison-head em {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.affiliate-prediction-match {
+  background: color-mix(in srgb, var(--color-success, #22c55e) 12%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success, #22c55e) 72%, var(--color-text));
+}
+
+.affiliate-prediction-mismatch {
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 14%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-warning, #f59e0b) 76%, var(--color-text));
+}
+
+.affiliate-prediction-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.affiliate-prediction-metric {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 7px;
+  background: var(--color-bg);
+}
+
+.affiliate-prediction-metric span,
+.affiliate-prediction-metric small {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-prediction-metric strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-prediction-comparison p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .affiliate-product-context {
   display: flex;
   flex-wrap: wrap;

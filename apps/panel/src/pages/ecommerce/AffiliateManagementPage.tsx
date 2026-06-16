@@ -51,6 +51,18 @@ type CollaborationWorkViewModel = {
   ownerLabel: string;
 };
 
+type AffiliatePredictionSnapshotOutput = {
+  expectedSalesUnits?: number | null;
+  expectedSalesPercentile?: number | null;
+  humanBaseline?: {
+    wouldApprove?: boolean | null;
+    humanApprovalProbability?: number | null;
+    historicalApprovalRate?: number | null;
+    status?: string | null;
+    message?: string | null;
+  } | null;
+};
+
 const PROPOSAL_FILTERS = [
   GQL.ActionProposalStatus.Pending,
   "ALL",
@@ -1997,6 +2009,7 @@ function ActionProposalCard({
   const recommendationTitle = renderProposalRecommendationTitle(proposal, t);
   const executionDescription = renderProposalExecutionDescription(proposal, t);
   const messagePreview = getProposalMessagePreview(proposal);
+  const predictionSnapshot = findProposalPredictionSnapshot(proposal);
   const canDecide = proposal.status === GQL.ActionProposalStatus.Pending;
   const detailItem = detailItemFromProposal(proposal);
 
@@ -2056,6 +2069,10 @@ function ActionProposalCard({
             <div className="affiliate-card-section-copy">{proposal.operatorSummary}</div>
           ) : null}
         </section>
+        <ProposalPredictionComparison
+          proposal={proposal}
+          snapshot={predictionSnapshot}
+        />
         <ProposalProductSummary
           proposal={proposal}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
@@ -2105,6 +2122,86 @@ function ActionProposalCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function ProposalPredictionComparison({
+  proposal,
+  snapshot,
+}: {
+  proposal: GQL.ActionProposal;
+  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot | null;
+}) {
+  const { t } = useTranslation();
+  const output = readPredictionSnapshotOutput(snapshot);
+  if (!output) return null;
+  const humanBaseline = output?.humanBaseline ?? null;
+  const modelDecision = getProposalSampleReviewDecision(proposal);
+  const expectedSalesUnits = output?.expectedSalesUnits ?? null;
+  const hasHumanBaseline = typeof humanBaseline?.wouldApprove === "boolean";
+  const hasPrediction = typeof expectedSalesUnits === "number" || hasHumanBaseline || modelDecision;
+  if (!hasPrediction) return null;
+
+  const modelDecisionLabel = modelDecision
+    ? t(`ecommerce.affiliateWorkspace.predictionComparison.modelDecisions.${modelDecision}`, {
+        defaultValue: modelDecision,
+      })
+    : t("ecommerce.affiliateWorkspace.predictionComparison.unknown");
+  const humanDecisionLabel = hasHumanBaseline
+    ? humanBaseline?.wouldApprove
+      ? t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldApprove")
+      : t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldReject")
+    : t("ecommerce.affiliateWorkspace.predictionComparison.humanInsufficient");
+  const decisionsMatch = modelDecision && hasHumanBaseline
+    ? (modelDecision === GQL.AffiliateSampleReviewDecision.Approve) === Boolean(humanBaseline?.wouldApprove)
+    : null;
+  const probability = typeof humanBaseline?.humanApprovalProbability === "number"
+    ? formatPercent(humanBaseline.humanApprovalProbability)
+    : null;
+
+  return (
+    <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
+      <div className="affiliate-prediction-comparison-head">
+        <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
+        {decisionsMatch != null ? (
+          <em className={decisionsMatch ? "affiliate-prediction-match" : "affiliate-prediction-mismatch"}>
+            {decisionsMatch
+              ? t("ecommerce.affiliateWorkspace.predictionComparison.sameDecision")
+              : t("ecommerce.affiliateWorkspace.predictionComparison.differentDecision")}
+          </em>
+        ) : null}
+      </div>
+      <div className="affiliate-prediction-comparison-grid">
+        <div className="affiliate-prediction-metric">
+          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.aiDecision")}</span>
+          <strong>{modelDecisionLabel}</strong>
+        </div>
+        <div className="affiliate-prediction-metric">
+          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.humanBaseline")}</span>
+          <strong>{humanDecisionLabel}</strong>
+          {probability ? (
+            <small>
+              {t("ecommerce.affiliateWorkspace.predictionComparison.humanApprovalProbability", { probability })}
+            </small>
+          ) : null}
+        </div>
+        <div className="affiliate-prediction-metric">
+          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}</span>
+          <strong>
+            {typeof expectedSalesUnits === "number"
+              ? t("ecommerce.affiliateWorkspace.predictionComparison.expectedSalesValue", {
+                  units: formatCompactNumber(expectedSalesUnits),
+                })
+              : t("ecommerce.affiliateWorkspace.predictionComparison.unknown")}
+          </strong>
+        </div>
+      </div>
+      {decisionsMatch === false ? (
+        <p>{t("ecommerce.affiliateWorkspace.predictionComparison.differentDecisionHint")}</p>
+      ) : decisionsMatch === true ? (
+        <p>{t("ecommerce.affiliateWorkspace.predictionComparison.sameDecisionHint")}</p>
+      ) : null}
+    </section>
   );
 }
 
@@ -2758,6 +2855,59 @@ function getProposalActionProductId(proposal: GQL.ActionProposal | null): string
   return null;
 }
 
+function findProposalPredictionSnapshot(
+  proposal: GQL.ActionProposal,
+): GQL.AffiliateCollaborationRecordPredictionSnapshot | null {
+  const snapshots = proposal.collaborationRecord?.predictionSnapshots ?? [];
+  if (!snapshots.length) return null;
+  const cacheIds = new Set<string>();
+  for (const cacheId of proposal.predictionCacheIds ?? []) {
+    if (cacheId) cacheIds.add(cacheId);
+  }
+  for (const step of proposal.steps ?? []) {
+    for (const cacheId of step.predictionCacheIds ?? []) {
+      if (cacheId) cacheIds.add(cacheId);
+    }
+  }
+  const matching = cacheIds.size
+    ? snapshots.filter((snapshot) => snapshot.sourceCacheId && cacheIds.has(snapshot.sourceCacheId))
+    : [];
+  const candidates = matching.length
+    ? matching
+    : snapshots.filter((snapshot) => snapshot.scenario === GQL.AffiliateExpectedSalesPredictionScenario.SampleReview);
+  return sortPredictionSnapshotsByCaptureTime(candidates.length ? candidates : snapshots)[0] ?? null;
+}
+
+function sortPredictionSnapshotsByCaptureTime(
+  snapshots: GQL.AffiliateCollaborationRecordPredictionSnapshot[],
+): GQL.AffiliateCollaborationRecordPredictionSnapshot[] {
+  return [...snapshots].sort((a, b) => {
+    const aTime = new Date(a.capturedAt ?? a.predictedAt).getTime();
+    const bTime = new Date(b.capturedAt ?? b.predictedAt).getTime();
+    return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+  });
+}
+
+function readPredictionSnapshotOutput(
+  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot | null,
+): AffiliatePredictionSnapshotOutput | null {
+  if (!snapshot || snapshot.status !== GQL.AffiliatePredictionStatus.Ok) return null;
+  const output = snapshot.output as AffiliatePredictionSnapshotOutput | null | undefined;
+  return output ?? null;
+}
+
+function getProposalSampleReviewDecision(
+  proposal: GQL.ActionProposal,
+): GQL.AffiliateSampleReviewDecision | null {
+  const directDecision = proposal.sampleReviewIntent?.decision ?? null;
+  if (directDecision) return directDecision;
+  for (const step of proposal.steps ?? []) {
+    const stepDecision = step.sampleReviewIntent?.decision ?? null;
+    if (stepDecision) return stepDecision;
+  }
+  return null;
+}
+
 function formatProposalTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -2769,6 +2919,12 @@ function formatCount(value?: number | null): string | null {
   return new Intl.NumberFormat(undefined, {
     notation: value >= 10000 ? "compact" : "standard",
     maximumFractionDigits: value >= 10000 ? 1 : 0,
+  }).format(value);
+}
+
+function formatCompactNumber(value: number): string {
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: Math.abs(value) < 10 ? 1 : 0,
   }).format(value);
 }
 

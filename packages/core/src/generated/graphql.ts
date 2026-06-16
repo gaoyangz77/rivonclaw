@@ -945,16 +945,16 @@ export interface AffiliateDashboardSummary {
 
 /** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
 export interface AffiliateDecisionThresholds {
-  /** Minimum calibrated expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
+  /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateDecisionThresholdsInput {
-  /** Minimum calibrated expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
+  /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
-export interface AffiliateExpectedSalesCalibrationBucket {
+export interface AffiliateExpectedSalesPredictionBucket {
   actualAvgUnits?: Maybe<Scalars['Float']['output']>;
   actualMedianUnits?: Maybe<Scalars['Float']['output']>;
   actualP25Units?: Maybe<Scalars['Float']['output']>;
@@ -1014,7 +1014,7 @@ export interface AffiliateExpectedSalesPredictionPayload {
 }
 
 export interface AffiliateExpectedSalesPredictionQuality {
-  calibrationBucketSupportScore?: Maybe<Scalars['Float']['output']>;
+  predictionBucketSupportScore?: Maybe<Scalars['Float']['output']>;
   dataSupportScore?: Maybe<Scalars['Float']['output']>;
   featureCompletenessScore?: Maybe<Scalars['Float']['output']>;
   interpretation?: Maybe<Scalars['String']['output']>;
@@ -1079,14 +1079,13 @@ export interface AffiliateExpectedSalesResolvedContext {
 export interface AffiliateExpectedSalesSubjectPrediction {
   /** Short-lived backend cache id for promoting this exact prediction into a persisted affiliate decision snapshot. */
   cacheId?: Maybe<Scalars['ID']['output']>;
-  calibrationBucket?: Maybe<AffiliateExpectedSalesCalibrationBucket>;
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   humanBaseline?: Maybe<AffiliateHumanBaselinePrediction>;
   message?: Maybe<Scalars['String']['output']>;
   predictionInterval?: Maybe<AffiliateExpectedSalesPredictionInterval>;
+  predictionBucket?: Maybe<AffiliateExpectedSalesPredictionBucket>;
   predictionQuality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
-  rawExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   resolvedContext?: Maybe<AffiliateExpectedSalesResolvedContext>;
   status: AffiliateExpectedSalesSubjectPredictionStatus;
   subject: AffiliateExpectedSalesSubjectRef;
@@ -1228,13 +1227,13 @@ export const AffiliateLifecycleStage = {
 } as const;
 
 export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
+export interface AffiliateMlInsightSummariesInput {
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
 export interface AffiliateMlInsightsInput {
   modelScope?: InputMaybe<AffiliateMlInsightsModelScope>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
-}
-
-export interface AffiliateMlInsightSummariesInput {
-  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 export const AffiliateMlInsightsModelScope = {
@@ -1261,9 +1260,9 @@ export interface AffiliateMlModelEfficiencySummary {
   modelRejectedHumanApprovedCount: Scalars['Int']['output'];
   modelSameBudgetCount: Scalars['Int']['output'];
   modelSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
+  modelScope?: Maybe<Scalars['String']['output']>;
   modelSelectedHumanRejectedCount: Scalars['Int']['output'];
   modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
-  modelScope?: Maybe<Scalars['String']['output']>;
   payload?: Maybe<Scalars['JSONObject']['output']>;
   rowCount: Scalars['Int']['output'];
   shopId?: Maybe<Scalars['ID']['output']>;
@@ -1272,6 +1271,13 @@ export interface AffiliateMlModelEfficiencySummary {
   userId: Scalars['ID']['output'];
 }
 
+/** Which tenant-scoped affiliate expected-sales model this shop should use. */
+export const AffiliateModelUsageScope = {
+  ShopLevel: 'SHOP_LEVEL',
+  UserLevel: 'USER_LEVEL'
+} as const;
+
+export type AffiliateModelUsageScope = typeof AffiliateModelUsageScope[keyof typeof AffiliateModelUsageScope];
 export const AffiliateOutboundMessageType = {
   FreeSampleCard: 'FREE_SAMPLE_CARD',
   Image: 'IMAGE',
@@ -1342,6 +1348,8 @@ export interface AffiliateServiceSettings {
   decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
   /** Whether affiliate creator-management inbound automation is enabled for this shop. */
   enabled: Scalars['Boolean']['output'];
+  /** Prediction model scope used for affiliate expected-sales inference. Defaults to the account-level model. */
+  modelUsageScope: AffiliateModelUsageScope;
   /** RunProfile ID for affiliate creator-management agent sessions. */
   runProfileId?: Maybe<Scalars['String']['output']>;
 }
@@ -1356,6 +1364,8 @@ export interface AffiliateServiceSettingsInput {
   decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
   /** Affiliate service enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Prediction model scope for affiliate expected-sales inference. Omit or pass null to keep. */
+  modelUsageScope?: InputMaybe<AffiliateModelUsageScope>;
   /** RunProfile ID for affiliate sessions. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
@@ -5264,10 +5274,10 @@ export interface Query {
   affiliateDashboard: AffiliateDashboardPayload;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
   affiliateExpectedSalesPredictions: AffiliateExpectedSalesPredictionPayload;
-  /** Read latest affiliate ML evaluation summary generated by telemetry training jobs for the current user or one shop. */
-  affiliateMlInsights: AffiliateMlInsightsPayload;
   /** Read latest affiliate ML evaluation summaries in bulk for the current user and owned shops. */
   affiliateMlInsightSummaries: Array<AffiliateMlModelEfficiencySummary>;
+  /** Read latest affiliate ML evaluation summary generated by telemetry training jobs for the current user or one shop. */
+  affiliateMlInsights: AffiliateMlInsightsPayload;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
@@ -5510,12 +5520,13 @@ export interface QueryAffiliateExpectedSalesPredictionsArgs {
 }
 
 
-export interface QueryAffiliateMlInsightsArgs {
-  input?: InputMaybe<AffiliateMlInsightsInput>;
-}
-
 export interface QueryAffiliateMlInsightSummariesArgs {
   input?: InputMaybe<AffiliateMlInsightSummariesInput>;
+}
+
+
+export interface QueryAffiliateMlInsightsArgs {
+  input?: InputMaybe<AffiliateMlInsightsInput>;
 }
 
 

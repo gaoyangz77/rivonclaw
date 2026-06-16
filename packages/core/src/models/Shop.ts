@@ -57,6 +57,7 @@ export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig",
   csDeviceId: types.maybeNull(types.string),
   runProfileId: types.maybeNull(types.string),
   businessPrompt: types.maybeNull(types.string),
+  modelUsageScope: types.optional(types.enumeration(["USER_LEVEL", "SHOP_LEVEL"]), "USER_LEVEL"),
   decisionThresholds: types.maybeNull(AffiliateDecisionThresholdsConfigModel),
 });
 
