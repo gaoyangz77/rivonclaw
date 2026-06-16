@@ -1000,7 +1000,7 @@ describe("CS RunProfile setup", () => {
     );
   });
 
-  it("refreshes the session RunProfile binding before dispatch when an existing session lost it", async () => {
+  it("refreshes gateway CS context and RunProfile binding before dispatch when an existing session lost it", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -1012,7 +1012,12 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
+      sessionKey: "agent:main:cs:tiktok:conv-789",
+      csContext: expect.objectContaining({
+        conversationId: "conv-789",
+      }),
+    });
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",

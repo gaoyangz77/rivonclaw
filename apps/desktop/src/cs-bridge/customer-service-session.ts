@@ -1646,6 +1646,14 @@ export class CustomerServiceSession {
   private async setup(): Promise<void> {
     const runProfileId = this.getRequiredRunProfileId();
 
+    const setupStartedAt = Date.now();
+    const registerStartedAt = Date.now();
+    await openClawConnector.request("cs_register_session", {
+      sessionKey: this.scopeKey,
+      csContext: this.csContext,
+    });
+    const registerMs = Date.now() - registerStartedAt;
+
     if (this.gatewaySetupReady) {
       const modelStartedAt = Date.now();
       await this.applyCurrentSessionModel();
@@ -1656,19 +1664,12 @@ export class CustomerServiceSession {
         );
       }
       log.info(
-        `Gateway model binding refreshed: conv=${this.csContext.conversationId} ` +
-        `scope=${this.scopeKey} modelMs=${Date.now() - modelStartedAt}`,
+        `Gateway setup refreshed: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
+        `registerMs=${registerMs} modelMs=${Date.now() - modelStartedAt} ` +
+        `scope=${this.scopeKey}`,
       );
       return;
     }
-
-    const setupStartedAt = Date.now();
-    const registerStartedAt = Date.now();
-    await openClawConnector.request("cs_register_session", {
-      sessionKey: this.scopeKey,
-      csContext: this.csContext,
-    });
-    const registerMs = Date.now() - registerStartedAt;
 
     const runProfileStartedAt = Date.now();
     this.ensureSessionRunProfile(runProfileId);
