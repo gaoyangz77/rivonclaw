@@ -1229,9 +1229,16 @@ export const AffiliateLifecycleStage = {
 
 export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
 export interface AffiliateMlInsightsInput {
+  modelScope?: InputMaybe<AffiliateMlInsightsModelScope>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
+export const AffiliateMlInsightsModelScope = {
+  Shop: 'SHOP',
+  User: 'USER'
+} as const;
+
+export type AffiliateMlInsightsModelScope = typeof AffiliateMlInsightsModelScope[keyof typeof AffiliateMlInsightsModelScope];
 export interface AffiliateMlInsightsPayload {
   latestModelEfficiencySummary?: Maybe<AffiliateMlModelEfficiencySummary>;
 }
