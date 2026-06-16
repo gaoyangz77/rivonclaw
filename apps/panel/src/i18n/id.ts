@@ -2168,7 +2168,8 @@ export default {
       "Default": "Bawaan",
       "ECOMMERCE_SELLER": "Penjual E-niaga",
       "CUSTOMER_SERVICE": "Layanan Pelanggan AI",
-      "SHOP_OPERATIONS": "Operasional Toko"
+      "SHOP_OPERATIONS": "Operasional Toko",
+      "AFFILIATE_OPERATOR": "Operasional Afiliasi"
     }
   },
   "runProfileSelector": {
@@ -2404,6 +2405,12 @@ export default {
       "intelligenceStoreModel": "Model toko",
       "intelligenceStoreModelHint": "Hanya memakai riwayat affiliate toko ini.",
       "intelligenceRecommendedModel": "Direkomendasikan",
+      "intelligenceConfidenceHigh": "Keyakinan tinggi",
+      "intelligenceConfidenceHighHint": "Lift ini relatif stabil di jendela uji holdout saat ini dan dapat dipakai sebagai referensi utama.",
+      "intelligenceConfidenceLow": "Keyakinan rendah",
+      "intelligenceConfidenceLowHint": "Lift ini memiliki ketidakpastian lebih tinggi. Perlakukan sebagai sinyal arah dan bandingkan dengan model akun serta penilaian tim.",
+      "intelligenceConfidenceMedium": "Keyakinan sedang",
+      "intelligenceConfidenceMediumHint": "Arah lift lebih jelas, tetapi stabilitasnya belum mencapai keyakinan tinggi.",
       "intelligenceBusinessVerdict": "Pilihan model lebih efisien",
       "intelligenceBusinessVerdictLift": "Dengan anggaran sampel yang sama, model memeringkat kreator yang diperkirakan menjual {{lift}} lebih banyak daripada pilihan staf historis.",
       "intelligenceBusinessVerdictNeutral": "Cakupan ini belum menunjukkan peningkatan yang jelas dibanding pilihan staf historis.",
@@ -2909,6 +2916,25 @@ export default {
         "modelUsageScopeHint": "Pilih apakah toko ini memakai model tingkat akun atau model tingkat toko sendiri untuk prediksi expected sales.",
         "modelUsageScopeUserLevel": "User level",
         "modelUsageScopeShopLevel": "Shop level",
+        "modelRecommendationTitle": "Direkomendasikan: {{scope}}",
+        "modelRecommendationSelected": "Saat ini memakai model yang direkomendasikan",
+        "modelRecommendationSwitch": "Disarankan beralih",
+        "modelRecommendationPending": "Rekomendasi model belum tersedia",
+        "modelRecommendationLoading": "Membaca data performa model toko ini.",
+        "modelRecommendationUnavailable": "Segarkan intelligence untuk menampilkan rekomendasi di sini.",
+        "modelRecommendationIncomplete": "Data performa model belum lengkap, jadi model akun tetap menjadi default.",
+        "modelRecommendationNoData": "Belum ada data",
+        "modelRecommendationReasons": {
+          "account_more_stable": "Model akun memakai riwayat kreator lintas toko dan saat ini menjadi default yang lebih stabil untuk toko ini.",
+          "shop_clear_advantage": "Model toko menunjukkan keunggulan yang lebih jelas untuk toko ini pada jendela uji holdout, dengan keyakinan tidak rendah.",
+          "only_account": "Saat ini hanya model akun yang memiliki evaluasi tersedia.",
+          "only_shop": "Saat ini hanya model toko yang memiliki evaluasi tersedia."
+        },
+        "modelConfidence": {
+          "high": "Keyakinan tinggi",
+          "medium": "Keyakinan sedang",
+          "low": "Keyakinan rendah"
+        },
         "decisionThresholds": "Ambang Batas Keputusan",
         "minExpectedSalesUnits": "Minimal unit penjualan expected sales",
         "minExpectedSalesUnitsHint": "Ketika kolaborasi tidak memiliki ambang batas kampanye yang lebih spesifik, agen menggunakan ini sebagai referensi proses/peninjauan sampel default. Biarkan kosong jika tidak ada ambang batas numerik default.",

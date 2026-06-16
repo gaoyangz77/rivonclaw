@@ -2168,7 +2168,8 @@ export default {
       "Default": "ค่าเริ่มต้น",
       "ECOMMERCE_SELLER": "ผู้ขายอีคอมเมิร์ซ",
       "CUSTOMER_SERVICE": "บริการลูกค้าเอไอ",
-      "SHOP_OPERATIONS": "การดำเนินงานร้านค้า"
+      "SHOP_OPERATIONS": "การดำเนินงานร้านค้า",
+      "AFFILIATE_OPERATOR": "การดำเนินงาน Affiliate"
     }
   },
   "runProfileSelector": {
@@ -2404,6 +2405,12 @@ export default {
       "intelligenceStoreModel": "โมเดลร้าน",
       "intelligenceStoreModelHint": "ใช้เฉพาะประวัติ affiliate ของร้านนี้",
       "intelligenceRecommendedModel": "แนะนำ",
+      "intelligenceConfidenceHigh": "ความเชื่อมั่นสูง",
+      "intelligenceConfidenceHighHint": "ค่า lift นี้ค่อนข้างเสถียรในช่วงทดสอบ holdout ปัจจุบัน และใช้เป็นข้อมูลอ้างอิงหลักได้",
+      "intelligenceConfidenceLow": "ความเชื่อมั่นต่ำ",
+      "intelligenceConfidenceLowHint": "ค่า lift นี้มีความไม่แน่นอนสูงกว่า ควรใช้เป็นสัญญาณทิศทางและเทียบกับโมเดลบัญชีรวมถึงดุลยพินิจของทีม",
+      "intelligenceConfidenceMedium": "ความเชื่อมั่นปานกลาง",
+      "intelligenceConfidenceMediumHint": "ทิศทางของ lift ชัดเจนขึ้น แต่ความเสถียรยังไม่ถึงระดับความเชื่อมั่นสูง",
       "intelligenceBusinessVerdict": "การเลือกด้วยโมเดลมีประสิทธิภาพกว่า",
       "intelligenceBusinessVerdictLift": "ด้วยงบตัวอย่างเท่ากัน โมเดลจัดอันดับครีเอเตอร์ที่คาดว่าจะขายได้มากกว่าการเลือกของทีมเดิม {{lift}}",
       "intelligenceBusinessVerdictNeutral": "ขอบเขตนี้ยังไม่เห็นการยกระดับที่ชัดเจนเมื่อเทียบกับการเลือกของทีมเดิม",
@@ -2909,6 +2916,25 @@ export default {
         "modelUsageScopeHint": "เลือกให้ร้านนี้ใช้โมเดลระดับบัญชี หรือโมเดลระดับร้านค้าของตัวเองสำหรับการคาดการณ์ expected sales",
         "modelUsageScopeUserLevel": "User level",
         "modelUsageScopeShopLevel": "Shop level",
+        "modelRecommendationTitle": "แนะนำ: {{scope}}",
+        "modelRecommendationSelected": "กำลังใช้โมเดลที่แนะนำอยู่",
+        "modelRecommendationSwitch": "แนะนำให้เปลี่ยน",
+        "modelRecommendationPending": "ยังไม่มีคำแนะนำโมเดล",
+        "modelRecommendationLoading": "กำลังอ่านข้อมูลประสิทธิภาพโมเดลของร้านนี้",
+        "modelRecommendationUnavailable": "รีเฟรช intelligence เพื่อแสดงคำแนะนำที่นี่",
+        "modelRecommendationIncomplete": "ข้อมูลประสิทธิภาพโมเดลยังไม่ครบ จึงใช้โมเดลระดับบัญชีเป็นค่าเริ่มต้น",
+        "modelRecommendationNoData": "ยังไม่มีข้อมูล",
+        "modelRecommendationReasons": {
+          "account_more_stable": "โมเดลระดับบัญชีใช้ประวัติครีเอเตอร์ข้ามร้าน และตอนนี้เป็นค่าเริ่มต้นที่เสถียรกว่าสำหรับร้านนี้",
+          "shop_clear_advantage": "โมเดลระดับร้านแสดงข้อได้เปรียบชัดเจนกว่าสำหรับร้านนี้ในช่วงทดสอบ holdout และความเชื่อมั่นไม่ต่ำ",
+          "only_account": "ตอนนี้มีผลประเมินเฉพาะโมเดลระดับบัญชี",
+          "only_shop": "ตอนนี้มีผลประเมินเฉพาะโมเดลระดับร้าน"
+        },
+        "modelConfidence": {
+          "high": "ความเชื่อมั่นสูง",
+          "medium": "ความเชื่อมั่นปานกลาง",
+          "low": "ความเชื่อมั่นต่ำ"
+        },
         "decisionThresholds": "เกณฑ์การตัดสินใจ",
         "minExpectedSalesUnits": "หน่วยการขายขั้นต่ำ expected sales",
         "minExpectedSalesUnitsHint": "เมื่อการทำงานร่วมกันไม่มีเกณฑ์แคมเปญที่เฉพาะเจาะจงอีกต่อไป ตัวแทนจะใช้สิ่งนี้เป็นค่าเริ่มต้นในการดำเนินการ/ตรวจสอบตัวอย่าง เว้นว่างไว้หากไม่มีเกณฑ์ตัวเลขเริ่มต้น",

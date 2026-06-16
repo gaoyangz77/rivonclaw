@@ -274,7 +274,11 @@ export class AffiliateSession {
 
     const predictionContext = await this.resolvePredictionDispatchContext(workItem);
     const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
-    if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
+    if (isSampleReviewWorkItem(workItem)) {
+      if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
+        return { runId: undefined };
+      }
+      await this.resolveSampleReviewNeedsStaffReview(workItem, predictionContext, thresholdContext);
       return { runId: undefined };
     }
 
@@ -285,11 +289,6 @@ export class AffiliateSession {
       proposalDeltaSection: await this.buildProposalDeltaSection(workItem),
       ...predictionContext,
       ...thresholdContext,
-      sampleReviewDecisionSection: renderSampleReviewDefaultDecisionSection(
-        workItem,
-        predictionContext,
-        thresholdContext,
-      ),
       businessPrompt: this.shop.businessPrompt,
       staffLanguage: this.shop.staffLanguage,
     });
@@ -356,6 +355,45 @@ export class AffiliateSession {
       `status=${payload.collaborationRecord?.processingStatus ?? ""}`,
     );
     return true;
+  }
+
+  private async resolveSampleReviewNeedsStaffReview(
+    workItem: GQL.AffiliateWorkItem,
+    predictionContext: AffiliatePredictionDispatchContext,
+    thresholdContext: AffiliateDecisionThresholdDispatchContext,
+  ): Promise<void> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn(`No auth session available, cannot mark sample review for staff handling: ${workItem.id}`);
+      return;
+    }
+
+    try {
+      const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
+        RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
+        {
+          input: {
+            shopId: workItem.shopId,
+            collaborationRecordId: workItem.collaborationRecordId,
+            handledSignalAt: workItem.collaboration.lastSignalAt ?? null,
+            decision: "NEEDS_STAFF_REVIEW",
+            operatorSummary: renderSampleReviewNeedsStaffReviewSummary({
+              workItem,
+              predictionContext,
+              thresholdContext,
+              staffLanguage: this.shop.staffLanguage,
+            }),
+          },
+        },
+      );
+      const payload = result.resolveAffiliateWorkItem;
+      log.info(
+        `Deterministic affiliate sample review deferred to staff: collaboration=${workItem.collaborationRecordId} ` +
+        `stale=${payload.stale} status=${payload.collaborationRecord?.processingStatus ?? ""}`,
+      );
+    } catch (err) {
+      log.error(`Failed to mark sample review work item for staff handling ${workItem.id}:`, err);
+    }
   }
 
   onRunCompleted(runId: string, options: { errored?: boolean } = {}): void {
@@ -985,51 +1023,6 @@ function extractPrimaryPrediction(
   };
 }
 
-function renderSampleReviewDefaultDecisionSection(
-  workItem: GQL.AffiliateWorkItem,
-  predictionContext: AffiliatePredictionDispatchContext,
-  thresholdContext: AffiliateDecisionThresholdDispatchContext,
-): string | undefined {
-  if (!isSampleReviewWorkItem(workItem)) return undefined;
-
-  const minExpectedSalesUnits = thresholdContext.decisionThresholds?.minExpectedSalesUnits;
-  const prediction = predictionContext.primaryPrediction;
-  const expectedSalesUnits = prediction?.expectedSalesUnits;
-  const predictionStatus = prediction?.status ?? "";
-  if (typeof minExpectedSalesUnits !== "number") {
-    return [
-      "## Default Sample Review Decision",
-      "- Decision: NOT_COMPUTED",
-      "- Reason: no minExpectedSalesUnits threshold is configured for this shop/campaign.",
-      "- Agent instruction: use merchant instructions, prediction meaning, and workspace facts. If a concrete approve/reject action is still clear, use REQUEST_ACTION.",
-    ].join("\n");
-  }
-  if (!isOkPredictionStatus(predictionStatus) || typeof expectedSalesUnits !== "number") {
-    return [
-      "## Default Sample Review Decision",
-      "- Decision: NOT_COMPUTED",
-      `- Reason: no OK prediction with numeric expectedSalesUnits was available before dispatch. Prediction status: ${predictionStatus || "unknown"}.`,
-      "- Agent instruction: use workspace facts and merchant instructions. Use NEEDS_STAFF_REVIEW only if no concrete approve/reject action can be formed.",
-    ].join("\n");
-  }
-
-  const defaultDecision = computeSampleReviewDefaultDecision(workItem, predictionContext, thresholdContext);
-  if (!defaultDecision) return undefined;
-  const comparison = defaultDecision.decision === GQL.AffiliateSampleReviewDecision.Reject ? "below" : "at or above";
-  return [
-    "## Default Sample Review Decision",
-    `- Decision: ${defaultDecision.decision}`,
-    `- Prediction Status: ${defaultDecision.predictionStatus}`,
-    `- Predicted Expected Sales Units: ${formatMaybeNumber(defaultDecision.expectedSalesUnits)}`,
-    `- Shop Minimum Expected Sales Units: ${formatMaybeNumber(defaultDecision.minExpectedSalesUnits)}`,
-    `- Comparison: predicted expected sales are ${comparison} the configured threshold.`,
-    `- Plain Seller Reason: ${defaultDecision.operatorSummary}`,
-    "- Prediction caveat: this is a calibrated statistical expected-sales estimate, not a guarantee of actual sales.",
-    "- Agent instruction: unless Backend Work Context lists a true blocker such as blocked creator, explicit merchant override, stock/fulfillment blocker, or conflicting policy, call affiliate_resolve_work_item with decision REQUEST_ACTION and action.type REVIEW_SAMPLE_APPLICATION using this default decision.",
-    "- Approval policy is not a blocker. If approval is required, backend will create an ActionProposal from REQUEST_ACTION.",
-  ].join("\n");
-}
-
 function computeSampleReviewDefaultDecision(
   workItem: GQL.AffiliateWorkItem,
   predictionContext: AffiliatePredictionDispatchContext,
@@ -1134,6 +1127,99 @@ function renderSampleReviewDefaultOperatorSummary(params: {
   return isReject
     ? `The expected-sales model estimates about ${expectedSales} units for this creator and product, below the shop minimum of ${threshold}, so rejecting this sample request is recommended.`
     : `The expected-sales model estimates about ${expectedSales} units for this creator and product, meeting the shop minimum of ${threshold}, so approving this sample request is recommended.`;
+}
+
+function renderSampleReviewNeedsStaffReviewSummary(params: {
+  workItem: GQL.AffiliateWorkItem;
+  predictionContext: AffiliatePredictionDispatchContext;
+  thresholdContext: AffiliateDecisionThresholdDispatchContext;
+  staffLanguage?: StaffLanguage;
+}): string {
+  const reasons: SampleReviewStaffReason[] = [];
+  const sample = params.workItem.sampleApplicationRecord;
+  const prediction = params.predictionContext.primaryPrediction;
+  if (!sample?.id || !sample.platformApplicationId) reasons.push("MISSING_SAMPLE_IDENTIFIERS");
+  if (!hasConfiguredDecisionThreshold(params.thresholdContext.decisionThresholds)) reasons.push("MISSING_DECISION_THRESHOLD");
+  if (!prediction || !isOkPredictionStatus(prediction.status ?? "") || typeof prediction.expectedSalesUnits !== "number") {
+    reasons.push("MISSING_USABLE_PREDICTION");
+  }
+  if (reasons.length === 0) reasons.push("NO_SAFE_AUTOMATIC_DECISION");
+
+  const reasonText = reasons.map(reason => renderSampleReviewStaffReason(reason, params.staffLanguage)).join("; ");
+  switch (params.staffLanguage) {
+    case "Chinese":
+      return `样品申请没有自动生成通过/拒绝建议：${reasonText}。请人工查看后处理。`;
+    case "German":
+      return `Für diese Musteranfrage wurde keine automatische Genehmigungs-/Ablehnungsentscheidung erstellt: ${reasonText}. Bitte manuell prüfen.`;
+    case "Spanish":
+      return `No se generó una decisión automática de aprobar/rechazar para esta solicitud de muestra: ${reasonText}. Revísala manualmente.`;
+    case "French":
+      return `Aucune décision automatique d'approbation/refus n'a été générée pour cette demande d'échantillon : ${reasonText}. Veuillez la vérifier manuellement.`;
+    case "Indonesian":
+      return `Keputusan otomatis untuk menyetujui/menolak permintaan sampel ini tidak dibuat: ${reasonText}. Harap tinjau secara manual.`;
+    case "Italian":
+      return `Non è stata generata una decisione automatica di approvazione/rifiuto per questa richiesta di campione: ${reasonText}. Controllala manualmente.`;
+    case "Thai":
+      return `ไม่ได้สร้างคำแนะนำอัตโนมัติให้อนุมัติ/ปฏิเสธคำขอตัวอย่างนี้: ${reasonText} โปรดตรวจสอบด้วยตนเอง`;
+    default:
+      return `No automatic approve/reject decision was created for this sample request: ${reasonText}. Please review it manually.`;
+  }
+}
+
+type SampleReviewStaffReason =
+  | "MISSING_SAMPLE_IDENTIFIERS"
+  | "MISSING_DECISION_THRESHOLD"
+  | "MISSING_USABLE_PREDICTION"
+  | "NO_SAFE_AUTOMATIC_DECISION";
+
+function renderSampleReviewStaffReason(reason: SampleReviewStaffReason, staffLanguage?: StaffLanguage): string {
+  const labels: Record<SampleReviewStaffReason, Record<StaffLanguage | "default", string>> = {
+    MISSING_SAMPLE_IDENTIFIERS: {
+      Chinese: "缺少样品申请标识",
+      German: "Musteranfrage-IDs fehlen",
+      Spanish: "faltan identificadores de la solicitud de muestra",
+      French: "identifiants de demande d'échantillon manquants",
+      Indonesian: "identitas permintaan sampel tidak lengkap",
+      Italian: "mancano gli identificativi della richiesta di campione",
+      Thai: "ไม่มีรหัสคำขอตัวอย่างครบถ้วน",
+      English: "missing sample application identifiers",
+      default: "missing sample application identifiers",
+    },
+    MISSING_DECISION_THRESHOLD: {
+      Chinese: "店铺没有配置决策阈值",
+      German: "kein Shop-Entscheidungsschwellenwert konfiguriert",
+      Spanish: "no hay un umbral de decisión configurado para la tienda",
+      French: "aucun seuil de décision boutique n'est configuré",
+      Indonesian: "ambang keputusan toko belum dikonfigurasi",
+      Italian: "nessuna soglia decisionale del negozio configurata",
+      Thai: "ยังไม่ได้ตั้งค่าเกณฑ์ตัดสินใจของร้าน",
+      English: "no shop decision threshold is configured",
+      default: "no shop decision threshold is configured",
+    },
+    MISSING_USABLE_PREDICTION: {
+      Chinese: "没有可用的预估销量结果",
+      German: "keine nutzbare Verkaufsprognose verfügbar",
+      Spanish: "no hay una predicción de ventas utilizable",
+      French: "aucune prédiction de ventes utilisable n'est disponible",
+      Indonesian: "prediksi penjualan yang dapat digunakan tidak tersedia",
+      Italian: "nessuna previsione di vendita utilizzabile disponibile",
+      Thai: "ไม่มีผลคาดการณ์ยอดขายที่ใช้ได้",
+      English: "no usable expected-sales prediction is available",
+      default: "no usable expected-sales prediction is available",
+    },
+    NO_SAFE_AUTOMATIC_DECISION: {
+      Chinese: "系统无法形成安全的自动判断",
+      German: "keine sichere automatische Entscheidung möglich",
+      Spanish: "no se pudo formar una decisión automática segura",
+      French: "aucune décision automatique sûre n'a pu être formée",
+      Indonesian: "sistem tidak dapat membuat keputusan otomatis yang aman",
+      Italian: "non è stato possibile formare una decisione automatica sicura",
+      Thai: "ระบบไม่สามารถตัดสินใจอัตโนมัติได้อย่างปลอดภัย",
+      English: "deterministic sample review could not form a safe decision",
+      default: "deterministic sample review could not form a safe decision",
+    },
+  };
+  return labels[reason][staffLanguage ?? "default"] ?? labels[reason].default;
 }
 
 function isOkPredictionStatus(status: unknown): boolean {

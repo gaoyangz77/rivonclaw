@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import type { Shop } from "@rivonclaw/core/models";
@@ -5,6 +6,7 @@ import { Select } from "../../../components/inputs/Select.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
+const SHOP_MODEL_RECOMMENDATION_LIFT_RATIO = 1.25;
 
 interface AffiliateManagementTabProps {
   shop: Shop;
@@ -54,6 +56,15 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const allTools = entityStore.availableTools;
   const assignedDeviceId = shop.services?.affiliateService?.csDeviceId ?? null;
   const handledByThisDevice = Boolean(myDeviceId && assignedDeviceId === myDeviceId);
+  const affiliateInsightSubjectKey = `shop:${shop.id}`;
+  const accountModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "user");
+  const shopModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "shop");
+  const accountModelEvaluation = affiliateModelEvaluation(accountModelInsight?.summary);
+  const shopModelEvaluation = affiliateModelEvaluation(shopModelInsight?.summary);
+  const modelRecommendation = useMemo(
+    () => buildAffiliateModelRecommendation(accountModelEvaluation, shopModelEvaluation),
+    [accountModelEvaluation, shopModelEvaluation],
+  );
   const modelUsageOptions = [
     {
       value: "USER_LEVEL",
@@ -71,6 +82,24 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     const nameLabel = t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   }
+
+  useEffect(() => {
+    if (
+      !accountModelInsight
+      && !shopModelInsight
+      && !entityStore.affiliateMlInsightsLoading
+      && !entityStore.affiliateMlInsightsError
+    ) {
+      entityStore.fetchAffiliateMlInsights({ shopIds: [shop.id] }).catch(() => {});
+    }
+  }, [
+    accountModelInsight,
+    shopModelInsight,
+    entityStore,
+    entityStore.affiliateMlInsightsError,
+    entityStore.affiliateMlInsightsLoading,
+    shop.id,
+  ]);
 
   return (
     <div className="shop-detail-section">
@@ -165,6 +194,13 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
             />
           </div>
         </div>
+        <AffiliateModelRecommendationPanel
+          accountModel={accountModelEvaluation}
+          loading={entityStore.affiliateMlInsightsLoading}
+          recommendation={modelRecommendation}
+          selectedScope={editModelUsageScope}
+          shopModel={shopModelEvaluation}
+        />
       </div>
 
       <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.decisionThresholds")}</div>
@@ -227,3 +263,186 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     </div>
   );
 });
+
+type AffiliateModelConfidence = "high" | "medium" | "low";
+
+type AffiliateModelEvaluation = {
+  confidence: AffiliateModelConfidence | null;
+  liftRatio: number | null;
+};
+
+type AffiliateModelRecommendation = {
+  reason: "account_more_stable" | "shop_clear_advantage" | "only_account" | "only_shop";
+  scope: "USER_LEVEL" | "SHOP_LEVEL";
+};
+
+function AffiliateModelRecommendationPanel({
+  accountModel,
+  loading,
+  recommendation,
+  selectedScope,
+  shopModel,
+}: {
+  accountModel: AffiliateModelEvaluation | null;
+  loading: boolean;
+  recommendation: AffiliateModelRecommendation | null;
+  selectedScope: "USER_LEVEL" | "SHOP_LEVEL";
+  shopModel: AffiliateModelEvaluation | null;
+}) {
+  const { t } = useTranslation();
+  const hasAnyModel = Boolean(accountModel || shopModel);
+  if (!hasAnyModel) {
+    return (
+      <div className="affiliate-model-recommendation affiliate-model-recommendation-muted">
+        <strong>{t("ecommerce.shopDrawer.affiliate.modelRecommendationPending")}</strong>
+        <span>
+          {loading
+            ? t("ecommerce.shopDrawer.affiliate.modelRecommendationLoading")
+            : t("ecommerce.shopDrawer.affiliate.modelRecommendationUnavailable")}
+        </span>
+      </div>
+    );
+  }
+
+  if (!recommendation) {
+    return (
+      <div className="affiliate-model-recommendation affiliate-model-recommendation-muted">
+        <strong>{t("ecommerce.shopDrawer.affiliate.modelRecommendationPending")}</strong>
+        <span>{t("ecommerce.shopDrawer.affiliate.modelRecommendationIncomplete")}</span>
+      </div>
+    );
+  }
+
+  const recommendedLabel = recommendation.scope === "SHOP_LEVEL"
+    ? t("ecommerce.shopDrawer.affiliate.modelUsageScopeShopLevel")
+    : t("ecommerce.shopDrawer.affiliate.modelUsageScopeUserLevel");
+  const selectedMatchesRecommendation = selectedScope === recommendation.scope;
+
+  return (
+    <div className={`affiliate-model-recommendation${selectedMatchesRecommendation ? "" : " affiliate-model-recommendation-actionable"}`}>
+      <div className="affiliate-model-recommendation-head">
+        <strong>
+          {t("ecommerce.shopDrawer.affiliate.modelRecommendationTitle", {
+            scope: recommendedLabel,
+          })}
+        </strong>
+        <span>
+          {selectedMatchesRecommendation
+            ? t("ecommerce.shopDrawer.affiliate.modelRecommendationSelected")
+            : t("ecommerce.shopDrawer.affiliate.modelRecommendationSwitch")}
+        </span>
+      </div>
+      <p>{t(`ecommerce.shopDrawer.affiliate.modelRecommendationReasons.${recommendation.reason}`)}</p>
+      <div className="affiliate-model-recommendation-metrics">
+        <AffiliateModelRecommendationMetric
+          evaluation={accountModel}
+          label={t("ecommerce.shopDrawer.affiliate.modelUsageScopeUserLevel")}
+        />
+        <AffiliateModelRecommendationMetric
+          evaluation={shopModel}
+          label={t("ecommerce.shopDrawer.affiliate.modelUsageScopeShopLevel")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AffiliateModelRecommendationMetric({
+  evaluation,
+  label,
+}: {
+  evaluation: AffiliateModelEvaluation | null;
+  label: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="affiliate-model-recommendation-metric">
+      <span>{label}</span>
+      <strong>{formatModelLift(evaluation?.liftRatio ?? null)}</strong>
+      <small>
+        {evaluation?.confidence
+          ? t(`ecommerce.shopDrawer.affiliate.modelConfidence.${evaluation.confidence}`)
+          : t("ecommerce.shopDrawer.affiliate.modelRecommendationNoData")}
+      </small>
+    </div>
+  );
+}
+
+function buildAffiliateModelRecommendation(
+  accountModel: AffiliateModelEvaluation | null,
+  shopModel: AffiliateModelEvaluation | null,
+): AffiliateModelRecommendation | null {
+  if (accountModel && !shopModel) return { scope: "USER_LEVEL", reason: "only_account" };
+  if (!accountModel && shopModel) return { scope: "SHOP_LEVEL", reason: "only_shop" };
+  if (!accountModel || !shopModel) return null;
+
+  const accountConfidenceRank = confidenceRank(accountModel.confidence);
+  const shopConfidenceRank = confidenceRank(shopModel.confidence);
+  if (accountConfidenceRank > shopConfidenceRank) {
+    return { scope: "USER_LEVEL", reason: "account_more_stable" };
+  }
+
+  const accountLift = accountModel.liftRatio ?? 0;
+  const shopLift = shopModel.liftRatio ?? 0;
+  const shopHasClearAdvantage =
+    shopConfidenceRank >= accountConfidenceRank
+    && shopConfidenceRank > confidenceRank("low")
+    && shopLift > 0
+    && shopLift >= Math.max(accountLift, 0.01) * SHOP_MODEL_RECOMMENDATION_LIFT_RATIO;
+
+  if (shopHasClearAdvantage) {
+    return { scope: "SHOP_LEVEL", reason: "shop_clear_advantage" };
+  }
+  return { scope: "USER_LEVEL", reason: "account_more_stable" };
+}
+
+function affiliateModelEvaluation(summary: unknown): AffiliateModelEvaluation | null {
+  if (!summary || typeof summary !== "object") return null;
+  const source = summary as Record<string, unknown>;
+  const liftRatio = numberFromUnknown(source.modelVsHumanExpectedUnitsLiftRatio);
+  const payload = objectFromUnknown(source.payload);
+  const confidence = normalizeConfidence(
+    stringFromUnknown(objectFromUnknown(payload?.same_sample_budget_confidence)?.level),
+  );
+  if (liftRatio == null && confidence == null) return null;
+  return { confidence, liftRatio };
+}
+
+function confidenceRank(confidence: AffiliateModelConfidence | null): number {
+  if (confidence === "high") return 3;
+  if (confidence === "medium") return 2;
+  if (confidence === "low") return 1;
+  return 0;
+}
+
+function normalizeConfidence(value: string | null): AffiliateModelConfidence | null {
+  const normalized = value?.toLowerCase();
+  return normalized === "high" || normalized === "medium" || normalized === "low" ? normalized : null;
+}
+
+function formatModelLift(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const liftPercent = (value - 1) * 100;
+  if (Math.abs(liftPercent) < 0.05) return "0.0%";
+  return `${liftPercent > 0 ? "+" : ""}${new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(liftPercent)}%`;
+}
+
+function objectFromUnknown(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function numberFromUnknown(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function stringFromUnknown(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
