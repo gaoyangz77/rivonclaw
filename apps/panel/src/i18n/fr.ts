@@ -2611,6 +2611,26 @@ export default {
         "SEND_MESSAGE": "Le système enverra le message ci-dessous au créateur.",
         "CREATE_TARGET_COLLABORATION": "Le système créera une invitation de collaboration ciblée pour ce créateur."
       },
+      "predictionComparison": {
+        "title": "Base de décision",
+        "aiDecision": "Recommandation IA",
+        "humanBaseline": "Tendance historique de l'équipe",
+        "expectedSales": "Ventes prévues",
+        "expectedSalesValue": "Environ {{units}} unités",
+        "unknown": "Indisponible",
+        "humanWouldApprove": "Approuverait généralement",
+        "humanWouldReject": "Refuserait généralement",
+        "humanInsufficient": "Historique insuffisant",
+        "humanApprovalProbability": "Tendance historique d'approbation {{probability}}",
+        "sameDecision": "Aligné",
+        "differentDecision": "Différent",
+        "sameDecisionHint": "La recommandation du modèle est alignée avec le comportement historique de l'équipe.",
+        "differentDecisionHint": "La recommandation du modèle diffère du comportement historique de l'équipe ; vérifiez le contexte avec attention.",
+        "modelDecisions": {
+          "APPROVE": "Approuver l'échantillon",
+          "REJECT": "Refuser l'échantillon"
+        }
+      },
       "collaborationWorkTitles": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "Le créateur attend une réponse",
         "SAMPLE_REVIEW": "Examiner la demande d'échantillon",
@@ -2878,6 +2898,11 @@ export default {
         "runProfileLabel": "Exécuter le profil",
         "runProfileHint": "Sélectionnez un RunProfile pour contrôler les outils d'affiliation que l'agent peut utiliser.",
         "runProfileNone": "Aucun profil d'exécution sélectionné",
+        "modelUsageScope": "Modèle utilisé",
+        "modelUsageScopeLabel": "Modèle de prédiction",
+        "modelUsageScopeHint": "Choisissez si cette boutique utilise le modèle du compte ou son propre modèle boutique pour les prévisions de ventes attendues.",
+        "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeShopLevel": "Shop level",
         "decisionThresholds": "Seuils de décision",
         "minExpectedSalesUnits": "Unités de vente minimales expected sales",
         "minExpectedSalesUnitsHint": "Lorsqu'une collaboration n'a pas de seuil de campagne plus spécifique, l'agent l'utilise comme référence de procédure/d'examen d'échantillon par défaut. Laissez vide s’il n’y a pas de seuil numérique par défaut.",

@@ -2611,6 +2611,26 @@ export default {
         "SEND_MESSAGE": "Sistem akan mengirim pesan di bawah ini ke kreator.",
         "CREATE_TARGET_COLLABORATION": "Sistem akan membuat undangan kolaborasi target untuk kreator ini."
       },
+      "predictionComparison": {
+        "title": "Dasar keputusan",
+        "aiDecision": "Rekomendasi AI",
+        "humanBaseline": "Kecenderungan historis staf",
+        "expectedSales": "Prediksi penjualan",
+        "expectedSalesValue": "Sekitar {{units}} unit",
+        "unknown": "Tidak tersedia",
+        "humanWouldApprove": "Biasanya disetujui",
+        "humanWouldReject": "Biasanya ditolak",
+        "humanInsufficient": "Riwayat belum cukup",
+        "humanApprovalProbability": "Kecenderungan persetujuan historis {{probability}}",
+        "sameDecision": "Selaras",
+        "differentDecision": "Berbeda",
+        "sameDecisionHint": "Rekomendasi model selaras dengan perilaku historis staf.",
+        "differentDecisionHint": "Rekomendasi model berbeda dari perilaku historis staf; periksa konteks dengan cermat.",
+        "modelDecisions": {
+          "APPROVE": "Setujui sampel",
+          "REJECT": "Tolak sampel"
+        }
+      },
       "collaborationWorkTitles": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "Kreator menunggu balasan",
         "SAMPLE_REVIEW": "Tinjau permintaan sampel",
@@ -2878,6 +2898,11 @@ export default {
         "runProfileLabel": "Jalankan Profil",
         "runProfileHint": "Pilih RunProfile untuk mengontrol alat afiliasi mana yang dapat digunakan agen.",
         "runProfileNone": "Tidak ada RunProfile yang dipilih",
+        "modelUsageScope": "Gunakan model",
+        "modelUsageScopeLabel": "Model prediksi",
+        "modelUsageScopeHint": "Pilih apakah toko ini memakai model tingkat akun atau model tingkat toko sendiri untuk prediksi expected sales.",
+        "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeShopLevel": "Shop level",
         "decisionThresholds": "Ambang Batas Keputusan",
         "minExpectedSalesUnits": "Minimal unit penjualan expected sales",
         "minExpectedSalesUnitsHint": "Ketika kolaborasi tidak memiliki ambang batas kampanye yang lebih spesifik, agen menggunakan ini sebagai referensi proses/peninjauan sampel default. Biarkan kosong jika tidak ada ambang batas numerik default.",

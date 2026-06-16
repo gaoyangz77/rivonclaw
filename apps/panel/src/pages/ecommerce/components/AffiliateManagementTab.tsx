@@ -17,9 +17,11 @@ interface AffiliateManagementTabProps {
   onEditBusinessPrompt: (value: string) => void;
   editMinExpectedSalesUnits: string;
   onEditMinExpectedSalesUnits: (value: string) => void;
+  onCommitMinExpectedSalesUnits: () => void;
+  editModelUsageScope: "USER_LEVEL" | "SHOP_LEVEL";
+  onEditModelUsageScope: (value: "USER_LEVEL" | "SHOP_LEVEL") => void;
   savingSettings: boolean;
   onSaveBusinessPrompt: () => void;
-  onSaveDecisionThresholds: () => void;
   myDeviceId: string | null;
   togglingBindShopId: string | null;
   onBindDevice: (shopId: string) => void;
@@ -37,9 +39,11 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   onEditBusinessPrompt,
   editMinExpectedSalesUnits,
   onEditMinExpectedSalesUnits,
+  onCommitMinExpectedSalesUnits,
+  editModelUsageScope,
+  onEditModelUsageScope,
   savingSettings,
   onSaveBusinessPrompt,
-  onSaveDecisionThresholds,
   myDeviceId,
   togglingBindShopId,
   onBindDevice,
@@ -50,6 +54,16 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const allTools = entityStore.availableTools;
   const assignedDeviceId = shop.services?.affiliateService?.csDeviceId ?? null;
   const handledByThisDevice = Boolean(myDeviceId && assignedDeviceId === myDeviceId);
+  const modelUsageOptions = [
+    {
+      value: "USER_LEVEL",
+      label: t("ecommerce.shopDrawer.affiliate.modelUsageScopeUserLevel"),
+    },
+    {
+      value: "SHOP_LEVEL",
+      label: t("ecommerce.shopDrawer.affiliate.modelUsageScopeShopLevel"),
+    },
+  ];
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((candidate) => candidate.id === toolId);
@@ -130,6 +144,29 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
         )}
       </div>
 
+      <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.modelUsageScope")}</div>
+      <div className="shop-info-card">
+        <div className="affiliate-threshold-row">
+          <div className="affiliate-threshold-copy">
+            <label className="form-label-block">
+              {t("ecommerce.shopDrawer.affiliate.modelUsageScopeLabel")}
+            </label>
+            <div className="shop-info-card-hint">
+              {t("ecommerce.shopDrawer.affiliate.modelUsageScopeHint")}
+            </div>
+          </div>
+          <div className="affiliate-threshold-control">
+            <Select
+              value={editModelUsageScope}
+              onChange={(value) => onEditModelUsageScope(value === "SHOP_LEVEL" ? "SHOP_LEVEL" : "USER_LEVEL")}
+              options={modelUsageOptions}
+              className="input-full"
+              disabled={savingSettings}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.decisionThresholds")}</div>
       <div className="shop-info-card">
         <div className="affiliate-threshold-row">
@@ -152,15 +189,14 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
               placeholder={t("ecommerce.shopDrawer.affiliate.noThreshold")}
               value={editMinExpectedSalesUnits}
               onChange={(e) => onEditMinExpectedSalesUnits(e.target.value)}
+              onBlur={onCommitMinExpectedSalesUnits}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
+              disabled={savingSettings}
             />
-            <button
-              className="btn btn-primary btn-sm"
-              type="button"
-              onClick={onSaveDecisionThresholds}
-              disabled={savingSettings || editMinExpectedSalesUnits === currentMinExpectedSalesUnits(shop)}
-            >
-              {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
-            </button>
           </div>
         </div>
       </div>
@@ -191,8 +227,3 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     </div>
   );
 });
-
-function currentMinExpectedSalesUnits(shop: Shop): string {
-  const value = shop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
-  return typeof value === "number" ? String(value) : "";
-}

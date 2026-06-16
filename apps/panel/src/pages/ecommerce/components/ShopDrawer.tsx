@@ -65,9 +65,11 @@ interface ShopDrawerProps {
   onEditAffiliateBusinessPrompt: (value: string) => void;
   editAffiliateMinExpectedSalesUnits: string;
   onEditAffiliateMinExpectedSalesUnits: (value: string) => void;
+  onCommitAffiliateMinExpectedSalesUnits: () => void;
+  editAffiliateModelUsageScope: "USER_LEVEL" | "SHOP_LEVEL";
+  onEditAffiliateModelUsageScope: (value: "USER_LEVEL" | "SHOP_LEVEL") => void;
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
-  onSaveAffiliateDecisionThresholds: () => void;
   togglingAffiliateBindShopId: string | null;
   onBindAffiliateDevice: (shopId: string) => void;
   onUnbindAffiliateDevice: (shopId: string) => void;
@@ -124,9 +126,11 @@ export const ShopDrawer = observer(function ShopDrawer({
   onEditAffiliateBusinessPrompt,
   editAffiliateMinExpectedSalesUnits,
   onEditAffiliateMinExpectedSalesUnits,
+  onCommitAffiliateMinExpectedSalesUnits,
+  editAffiliateModelUsageScope,
+  onEditAffiliateModelUsageScope,
   savingAffiliateSettings,
   onSaveAffiliateBusinessPrompt,
-  onSaveAffiliateDecisionThresholds,
   togglingAffiliateBindShopId,
   onBindAffiliateDevice,
   onUnbindAffiliateDevice,
@@ -456,9 +460,11 @@ export const ShopDrawer = observer(function ShopDrawer({
                 onEditBusinessPrompt={onEditAffiliateBusinessPrompt}
                 editMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
                 onEditMinExpectedSalesUnits={onEditAffiliateMinExpectedSalesUnits}
+                onCommitMinExpectedSalesUnits={onCommitAffiliateMinExpectedSalesUnits}
+                editModelUsageScope={editAffiliateModelUsageScope}
+                onEditModelUsageScope={onEditAffiliateModelUsageScope}
                 savingSettings={savingAffiliateSettings}
                 onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
-                onSaveDecisionThresholds={onSaveAffiliateDecisionThresholds}
                 myDeviceId={myDeviceId}
                 togglingBindShopId={togglingAffiliateBindShopId}
                 onBindDevice={onBindAffiliateDevice}

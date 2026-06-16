@@ -41,6 +41,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [editAffiliateMinExpectedSalesUnits, setEditAffiliateMinExpectedSalesUnits] = useState("");
+  const [editAffiliateModelUsageScope, setEditAffiliateModelUsageScope] = useState<"USER_LEVEL" | "SHOP_LEVEL">("USER_LEVEL");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAffiliateSettings, setSavingAffiliateSettings] = useState(false);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
@@ -117,11 +118,15 @@ export const EcommercePage = observer(function EcommercePage() {
       setEditAffiliateBusinessPrompt(selectedShop.services?.affiliateService?.businessPrompt ?? "");
       const minExpectedSalesUnits = selectedShop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
       setEditAffiliateMinExpectedSalesUnits(typeof minExpectedSalesUnits === "number" ? String(minExpectedSalesUnits) : "");
+      setEditAffiliateModelUsageScope(
+        selectedShop.services?.affiliateService?.modelUsageScope === "SHOP_LEVEL" ? "SHOP_LEVEL" : "USER_LEVEL",
+      );
     }
   }, [
     selectedShop?.id,
     selectedShop?.services?.affiliateService?.businessPrompt,
     selectedShop?.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits,
+    selectedShop?.services?.affiliateService?.modelUsageScope,
   ]);
 
   // ── Handlers ──
@@ -335,9 +340,17 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  async function handleSaveAffiliateDecisionThresholds() {
-    if (!selectedShopId) return;
-    const trimmed = editAffiliateMinExpectedSalesUnits.trim();
+  async function handleSaveAffiliateDecisionThresholds(value = editAffiliateMinExpectedSalesUnits, shopId = selectedShopId) {
+    if (!shopId) return;
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return;
+    const currentMinExpectedSalesUnits =
+      shop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
+    const currentValue =
+      typeof currentMinExpectedSalesUnits === "number" ? String(currentMinExpectedSalesUnits) : "";
+    if (value.trim() === currentValue) return;
+
+    const trimmed = value.trim();
     let decisionThresholds: { minExpectedSalesUnits?: number } = {};
     if (trimmed !== "") {
       const parsed = Number(trimmed);
@@ -351,12 +364,33 @@ export const EcommercePage = observer(function EcommercePage() {
     setSavingAffiliateSettings(true);
     setUpgradePrompt(false);
     try {
+      await shop.update({
+        services: {
+          affiliateService: {
+            decisionThresholds,
+          },
+        },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingAffiliateSettings(false);
+    }
+  }
+
+  async function handleAffiliateModelUsageScopeChange(value: "USER_LEVEL" | "SHOP_LEVEL") {
+    if (!selectedShopId) return;
+    setEditAffiliateModelUsageScope(value);
+    if (value === (selectedShop?.services?.affiliateService?.modelUsageScope ?? "USER_LEVEL")) return;
+    setSavingAffiliateSettings(true);
+    setUpgradePrompt(false);
+    try {
       const shop = shops.find((s) => s.id === selectedShopId);
       if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
       await shop.update({
         services: {
           affiliateService: {
-            decisionThresholds,
+            modelUsageScope: value,
           },
         },
       });
@@ -642,9 +676,11 @@ export const EcommercePage = observer(function EcommercePage() {
         onEditAffiliateBusinessPrompt={setEditAffiliateBusinessPrompt}
         editAffiliateMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
         onEditAffiliateMinExpectedSalesUnits={setEditAffiliateMinExpectedSalesUnits}
+        onCommitAffiliateMinExpectedSalesUnits={() => handleSaveAffiliateDecisionThresholds()}
+        editAffiliateModelUsageScope={editAffiliateModelUsageScope}
+        onEditAffiliateModelUsageScope={handleAffiliateModelUsageScopeChange}
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
-        onSaveAffiliateDecisionThresholds={handleSaveAffiliateDecisionThresholds}
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}

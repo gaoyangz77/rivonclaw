@@ -2611,6 +2611,26 @@ export default {
         "SEND_MESSAGE": "ระบบจะส่งข้อความด้านล่างนี้ให้ครีเอเตอร์",
         "CREATE_TARGET_COLLABORATION": "ระบบจะสร้างคำเชิญร่วมงานแบบเจาะจงสำหรับครีเอเตอร์รายนี้"
       },
+      "predictionComparison": {
+        "title": "เหตุผลประกอบการตัดสินใจ",
+        "aiDecision": "คำแนะนำจาก AI",
+        "humanBaseline": "แนวโน้มจากพนักงานในอดีต",
+        "expectedSales": "ยอดขายที่คาดการณ์",
+        "expectedSalesValue": "ประมาณ {{units}} ชิ้น",
+        "unknown": "ไม่มีข้อมูล",
+        "humanWouldApprove": "มักจะอนุมัติ",
+        "humanWouldReject": "มักจะปฏิเสธ",
+        "humanInsufficient": "ประวัติยังไม่พอ",
+        "humanApprovalProbability": "แนวโน้มอนุมัติในอดีต {{probability}}",
+        "sameDecision": "สอดคล้องกัน",
+        "differentDecision": "แตกต่างกัน",
+        "sameDecisionHint": "คำแนะนำของโมเดลสอดคล้องกับพฤติกรรมของพนักงานในอดีต",
+        "differentDecisionHint": "คำแนะนำของโมเดลแตกต่างจากพฤติกรรมของพนักงานในอดีต โปรดตรวจสอบบริบทอย่างรอบคอบ",
+        "modelDecisions": {
+          "APPROVE": "อนุมัติตัวอย่าง",
+          "REJECT": "ปฏิเสธตัวอย่าง"
+        }
+      },
       "collaborationWorkTitles": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "ครีเอเตอร์กำลังรอการตอบกลับ",
         "SAMPLE_REVIEW": "ตรวจสอบคำขอตัวอย่าง",
@@ -2878,6 +2898,11 @@ export default {
         "runProfileLabel": "เรียกใช้โปรไฟล์",
         "runProfileHint": "เลือก RunProfile เพื่อควบคุมเครื่องมือพันธมิตรที่ตัวแทนสามารถใช้ได้",
         "runProfileNone": "ไม่ได้เลือก RunProfile",
+        "modelUsageScope": "ใช้โมเดล",
+        "modelUsageScopeLabel": "โมเดลคาดการณ์",
+        "modelUsageScopeHint": "เลือกให้ร้านนี้ใช้โมเดลระดับบัญชี หรือโมเดลระดับร้านค้าของตัวเองสำหรับการคาดการณ์ expected sales",
+        "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeShopLevel": "Shop level",
         "decisionThresholds": "เกณฑ์การตัดสินใจ",
         "minExpectedSalesUnits": "หน่วยการขายขั้นต่ำ expected sales",
         "minExpectedSalesUnitsHint": "เมื่อการทำงานร่วมกันไม่มีเกณฑ์แคมเปญที่เฉพาะเจาะจงอีกต่อไป ตัวแทนจะใช้สิ่งนี้เป็นค่าเริ่มต้นในการดำเนินการ/ตรวจสอบตัวอย่าง เว้นว่างไว้หากไม่มีเกณฑ์ตัวเลขเริ่มต้น",

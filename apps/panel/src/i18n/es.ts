@@ -2611,6 +2611,26 @@ export default {
         "SEND_MESSAGE": "El sistema enviará el siguiente mensaje al creador.",
         "CREATE_TARGET_COLLABORATION": "El sistema creará una invitación de colaboración dirigida para este creador."
       },
+      "predictionComparison": {
+        "title": "Criterios de decisión",
+        "aiDecision": "Recomendación de IA",
+        "humanBaseline": "Tendencia histórica del equipo",
+        "expectedSales": "Ventas previstas",
+        "expectedSalesValue": "Aprox. {{units}} unidades",
+        "unknown": "No disponible",
+        "humanWouldApprove": "Normalmente aprobaría",
+        "humanWouldReject": "Normalmente rechazaría",
+        "humanInsufficient": "Historial insuficiente",
+        "humanApprovalProbability": "Tendencia histórica de aprobación {{probability}}",
+        "sameDecision": "Coincide",
+        "differentDecision": "Difiere",
+        "sameDecisionHint": "La recomendación del modelo coincide con el comportamiento histórico del equipo.",
+        "differentDecisionHint": "La recomendación del modelo difiere del comportamiento histórico del equipo; revisa el contexto con cuidado.",
+        "modelDecisions": {
+          "APPROVE": "Aprobar muestra",
+          "REJECT": "Rechazar muestra"
+        }
+      },
       "collaborationWorkTitles": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "El creador espera una respuesta",
         "SAMPLE_REVIEW": "Revisar la solicitud de muestra",
@@ -2878,6 +2898,11 @@ export default {
         "runProfileLabel": "Ejecutar perfil",
         "runProfileHint": "Seleccione un RunProfile para controlar qué herramientas de afiliados puede usar el agente.",
         "runProfileNone": "No se ha seleccionado ningún perfil de ejecución",
+        "modelUsageScope": "Usar modelo",
+        "modelUsageScopeLabel": "Modelo de predicción",
+        "modelUsageScopeHint": "Elige si esta tienda usa el modelo a nivel de cuenta o su propio modelo de tienda para predecir ventas esperadas.",
+        "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeShopLevel": "Shop level",
         "decisionThresholds": "Umbrales de decisión",
         "minExpectedSalesUnits": "Unidades de venta mínimas expected sales",
         "minExpectedSalesUnitsHint": "Cuando una colaboración no tiene un umbral de campaña más específico, el agente lo utiliza como referencia predeterminada de proceder/revisión de muestra. Déjelo vacío si no hay un umbral numérico predeterminado.",

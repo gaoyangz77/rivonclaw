@@ -33,6 +33,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         enabled
         runProfileId
         csDeviceId
+        modelUsageScope
         businessPrompt
         decisionThresholds {
           minExpectedSalesUnits
@@ -477,6 +478,18 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         lastCreatorMessageAt
         startedAt
         endedAt
+        predictionSnapshots {
+          sourceCacheId
+          predictionType
+          captureMode
+          scenario
+          status
+          output
+          model
+          message
+          predictedAt
+          capturedAt
+        }
       }
       productSummary {
         productId
@@ -496,10 +509,12 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       type
       status
       operatorSummary
+      predictionCacheIds
       steps {
         stepId
         type
         operatorSummary
+        predictionCacheIds
         messageIntent {
           conversationId
           creatorId

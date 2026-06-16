@@ -287,6 +287,93 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("predictionCacheIds");
   });
 
+  it("reuses collaboration prediction snapshot cache ids for deterministic sample review", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("ResolveAffiliateWorkItem")) {
+        return {
+          resolveAffiliateWorkItem: {
+            decision: GQL.AffiliateWorkItemResolutionDecision.RequestAction,
+            stale: false,
+            actionMode: GQL.AffiliateActionRequestMode.ProposalCreated,
+            proposal: { id: "proposal-from-snapshot" },
+            collaborationRecord: {
+              id: "collab-with-snapshot",
+              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+            },
+          },
+        };
+      }
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const workItem = createSampleReviewWorkItem({
+      id: "collab-with-snapshot",
+      collaborationRecordId: "collab-with-snapshot",
+      collaboration: {
+        ...createSampleReviewWorkItem().collaboration,
+        id: "collab-with-snapshot",
+        lastSignalAt: "2026-05-11T00:01:00.000Z",
+        predictionSnapshots: [{
+          sourceCacheId: "prediction-cache-from-snapshot",
+          predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
+          captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
+          scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
+          subject: {
+            sampleApplicationRecordId: "sample-record-001",
+            platformApplicationId: "platform-sample-001",
+            creatorId: "creator-001",
+            productId: "product-001",
+          },
+          status: GQL.AffiliatePredictionStatus.Ok,
+          output: { expectedSalesUnits: 0 },
+          model: {},
+          diagnostics: {},
+          predictedAt: "2026-05-11T00:00:00.000Z",
+          capturedAt: "2026-05-11T00:00:01.000Z",
+          resolvedContext: null,
+          message: null,
+        }],
+      },
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+        decisionThresholds: { minExpectedSalesUnits: 2 },
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-with-snapshot",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    await session.handleWorkItem(workItem);
+
+    expect(graphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("affiliateExpectedSalesPredictions"),
+      expect.anything(),
+    );
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      {
+        input: expect.objectContaining({
+          action: expect.objectContaining({
+            predictionCacheIds: ["prediction-cache-from-snapshot"],
+          }),
+        }),
+      },
+    );
+  });
+
   it("deterministically requests sample review when prediction and threshold are complete", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       if (query.includes("affiliateExpectedSalesPredictions")) {

@@ -186,7 +186,6 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
         status
         message
         expectedSalesUnits
-        rawExpectedSalesUnits
         expectedSalesPercentile
         subject {
           sampleApplicationRecordId
@@ -216,7 +215,7 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
           featureCompletenessScore
           dataSupportScore
           probabilityMarginScore
-          calibrationBucketSupportScore
+          predictionBucketSupportScore
           interpretation
         }
         predictionInterval {
@@ -240,7 +239,7 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
           unitsGe5 { percentile topPercent }
           unitsGe10 { percentile topPercent }
         }
-        calibrationBucket {
+        predictionBucket {
           bucketIndex
           scoreMin
           scoreMax
