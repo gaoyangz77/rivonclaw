@@ -2884,7 +2884,13 @@ export default {
         "csModelDefault": "Bawaan (model global)",
         "csModelUnavailable": "Model yang dipilih tidak lagi tersedia",
         "bridgeDisconnected": "Jembatan CS terputus — pesan pelanggan tidak akan diterima.",
-        "bridgeReconnecting": "Menghubungkan kembali jembatan CS (coba {{attempt}})…"
+        "bridgeReconnecting": "Menghubungkan kembali jembatan CS (coba {{attempt}})…",
+        "unpaidReachout": "Jangkau pesanan belum dibayar",
+        "unpaidReachoutEnabled": "Hubungi pesanan belum dibayar",
+        "unpaidReachoutHint": "Jika diaktifkan, agen CS desktop yang terhubung akan mengirim satu pengingat proaktif setelah jeda yang dikonfigurasi.",
+        "unpaidReachoutDelay": "Jeda dalam jam",
+        "unpaidReachoutDelayHint": "Gunakan bilangan bulat dari 1 hingga 47. Jangkauan proaktif TikTok dibatasi hingga 48 jam.",
+        "unpaidReachoutInvalidDelay": "Jeda jam harus berupa bilangan bulat dari 1 hingga 47."
       },
       "affiliate": {
         "serviceStatus": "Status Layanan",

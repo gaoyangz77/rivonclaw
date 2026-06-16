@@ -3213,6 +3213,12 @@ export default {
         csModelUnavailable: "Selected model is no longer available",
         bridgeDisconnected: "CS bridge disconnected — customer messages will not be received.",
         bridgeReconnecting: "CS bridge reconnecting (attempt {{attempt}})…",
+        unpaidReachout: "Unpaid order reachout",
+        unpaidReachoutEnabled: "Reach out to unpaid orders",
+        unpaidReachoutHint: "When enabled, the bound desktop CS agent sends one proactive reminder after the configured delay.",
+        unpaidReachoutDelay: "Delay hours",
+        unpaidReachoutDelayHint: "Use a whole number from 1 to 47. TikTok proactive reachout is limited to 48 hours.",
+        unpaidReachoutInvalidDelay: "Delay hours must be a whole number from 1 to 47.",
       },
       affiliate: {
         serviceStatus: "Service Status",

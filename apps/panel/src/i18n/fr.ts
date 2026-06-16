@@ -2884,7 +2884,13 @@ export default {
         "csModelDefault": "Par défaut (modèle global)",
         "csModelUnavailable": "Le modèle sélectionné n'est plus disponible",
         "bridgeDisconnected": "Pont CS déconnecté: les messages client ne seront pas reçus.",
-        "bridgeReconnecting": "Reconnexion du pont CS (tentative {{attempt}})…"
+        "bridgeReconnecting": "Reconnexion du pont CS (tentative {{attempt}})…",
+        "unpaidReachout": "Relance des commandes impayées",
+        "unpaidReachoutEnabled": "Contacter les commandes impayées",
+        "unpaidReachoutHint": "Lorsque cette option est activée, l'agent CS de bureau associé envoie un rappel proactif après le délai configuré.",
+        "unpaidReachoutDelay": "Délai en heures",
+        "unpaidReachoutDelayHint": "Utilisez un nombre entier de 1 à 47. La relance proactive TikTok est limitée à 48 heures.",
+        "unpaidReachoutInvalidDelay": "Le délai doit être un nombre entier de 1 à 47."
       },
       "affiliate": {
         "serviceStatus": "Statut du service",

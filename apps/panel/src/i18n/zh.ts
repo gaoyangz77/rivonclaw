@@ -3212,6 +3212,12 @@ export default {
         csModelUnavailable: "所选模型已不可用",
         bridgeDisconnected: "客服桥已断开连接 — 将无法接收客户消息。",
         bridgeReconnecting: "客服桥正在重新连接（第 {{attempt}} 次尝试）…",
+        unpaidReachout: "未付款订单主动触达",
+        unpaidReachoutEnabled: "主动联系未付款订单客户",
+        unpaidReachoutHint: "开启后，绑定的桌面客服 Agent 会在设定延迟后发送一次主动提醒。",
+        unpaidReachoutDelay: "延迟小时数",
+        unpaidReachoutDelayHint: "请输入 1 到 47 之间的整数。TikTok 主动触达限制为 48 小时内。",
+        unpaidReachoutInvalidDelay: "延迟小时数必须是 1 到 47 之间的整数。",
       },
       affiliate: {
         serviceStatus: "服务状态",
