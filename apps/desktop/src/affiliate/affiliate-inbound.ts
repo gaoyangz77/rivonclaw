@@ -26,9 +26,8 @@ const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
   1,
   Number.parseInt(process.env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS ?? "4", 10) || 4,
 );
-const MAX_QUEUED_AFFILIATE_WORK_ITEMS = Math.max(
-  1,
-  Number.parseInt(process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS ?? "100", 10) || 100,
+const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
+  process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS,
 );
 
 export interface AffiliateShopSource {
@@ -42,7 +41,7 @@ export interface AffiliateShopSource {
 }
 
 export class AffiliateInbound {
-  constructor(private readonly locale?: string) {}
+  constructor(private locale?: string) {}
 
   /** Affiliate shop context keyed by platformShopId from relay frames. */
   private shopContexts = new Map<string, AffiliateShopContext>();
@@ -61,6 +60,17 @@ export class AffiliateInbound {
 
   /** Work item semantic key -> last dispatched backend state version. */
   private dispatchedWorkItemVersions = new Map<string, string>();
+
+  updateLocale(locale: string | undefined): void {
+    if (this.locale === locale) return;
+    this.locale = locale;
+    for (const [platformShopId, ctx] of this.shopContexts) {
+      this.shopContexts.set(platformShopId, {
+        ...ctx,
+        staffLanguage: normalizeStaffLanguage(locale),
+      });
+    }
+  }
 
   syncFromShops(shops: Iterable<AffiliateShopSource>): Set<string> {
     const activeShopIds = new Set<string>();
@@ -245,7 +255,10 @@ export class AffiliateInbound {
 
     if (queued) {
       this.pendingWorkItems.delete(versionKey);
-    } else if (this.pendingWorkItems.size >= MAX_QUEUED_AFFILIATE_WORK_ITEMS) {
+    } else if (
+      MAX_QUEUED_AFFILIATE_WORK_ITEMS != null &&
+      this.pendingWorkItems.size >= MAX_QUEUED_AFFILIATE_WORK_ITEMS
+    ) {
       const oldestKey = this.pendingWorkItems.keys().next().value as string | undefined;
       if (oldestKey) {
         const oldest = this.pendingWorkItems.get(oldestKey);
@@ -578,6 +591,12 @@ export class AffiliateInbound {
       a.staffLanguage === b.staffLanguage
     );
   }
+}
+
+function parseOptionalPositiveInteger(value: string | undefined): number | undefined {
+  if (value == null || value.trim() === "") return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {

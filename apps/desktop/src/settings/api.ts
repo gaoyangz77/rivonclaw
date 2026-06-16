@@ -8,6 +8,7 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import { sendJson, parseBody } from "../infra/api/route-utils.js";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
+import { updateCsBridgeLocale } from "../gateway/connection.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("settings-routes");
@@ -106,6 +107,7 @@ const updateSettings: EndpointHandler = async (req, res, _url, _params, ctx: Api
   if (legacyKeyChanged) onProviderChange?.();
   if (sttChanged) onSttChange?.();
   if (browserChanged) onBrowserChange?.();
+  if (typeof body.locale === "string") updateCsBridgeLocale(body.locale);
 };
 
 // ── POST /api/settings/validate-key ──

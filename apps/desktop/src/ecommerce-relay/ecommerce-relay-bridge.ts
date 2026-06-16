@@ -113,6 +113,11 @@ export class EcommerceRelayBridge {
     log.info("Ecommerce signal bridge stopped");
   }
 
+  updateLocale(locale: string | undefined): void {
+    this.affiliateInbound.updateLocale(locale);
+    this.syncFromCache();
+  }
+
   /**
    * Register or update shop context from the entity cache.
    */

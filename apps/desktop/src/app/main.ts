@@ -1684,7 +1684,7 @@ app.whenReady().then(async () => {
           {
             name: "cs-bridge",
             requiresCloudTools: true,
-            run: () => tryStartCsBridge(deviceId ?? "unknown", locale),
+            run: () => tryStartCsBridge(deviceId ?? "unknown", storage.settings.get("locale") ?? locale),
           },
         ],
       });
