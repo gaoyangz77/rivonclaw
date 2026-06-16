@@ -12700,13 +12700,13 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-intelligence-scope {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 16px;
+  grid-template-columns: 26px minmax(0, 1fr) 14px;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 clamp(190px, 19vw, 260px);
+  gap: 7px;
+  flex: 0 0 clamp(150px, 15vw, 210px);
   width: auto;
   min-width: 0;
-  padding: 9px;
+  padding: 8px;
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
   background: var(--color-bg);
@@ -12721,7 +12721,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-intelligence-scope:first-child {
-  flex-basis: clamp(230px, 22vw, 310px);
+  flex-basis: clamp(180px, 18vw, 240px);
   background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
 }
 
@@ -12739,8 +12739,8 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-intelligence-scope-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-primary) 9%, var(--color-bg));
   color: var(--color-primary);
@@ -12771,6 +12771,105 @@ html[lang="zh"] .acct-tool-chips {
   display: grid;
   gap: var(--affiliate-intelligence-gap);
   min-width: 0;
+}
+
+.affiliate-intelligence-model-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  padding: 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 86%, var(--color-bg-subtle));
+}
+
+.affiliate-intelligence-model-source-label {
+  display: flex;
+  align-items: center;
+  padding-inline: 8px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.affiliate-intelligence-model-source-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.affiliate-intelligence-model-source-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
+  min-height: 68px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.affiliate-intelligence-model-source-option:hover,
+.affiliate-intelligence-model-source-option-active {
+  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border-light));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-primary) 8%, transparent);
+  transform: translateY(-1px);
+}
+
+.affiliate-intelligence-model-source-option:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.affiliate-intelligence-model-source-option strong,
+.affiliate-intelligence-model-source-option span,
+.affiliate-intelligence-model-source-option small {
+  min-width: 0;
+}
+
+.affiliate-intelligence-model-source-option strong {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-intelligence-model-source-option span {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.affiliate-intelligence-model-source-option small {
+  grid-column: 1 / -1;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.affiliate-intelligence-model-source-option em {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 14%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success) 72%, var(--color-text));
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .affiliate-intelligence-claim-grid {
@@ -13516,10 +13615,15 @@ html[lang="zh"] .acct-tool-chips {
   }
 
   .affiliate-intelligence-dashboard,
+  .affiliate-intelligence-model-source,
   .affiliate-intelligence-claim-grid,
   .affiliate-intelligence-claim-section,
   .affiliate-intelligence-explainers,
   .affiliate-intelligence-stat-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-intelligence-model-source-options {
     grid-template-columns: 1fr;
   }
 

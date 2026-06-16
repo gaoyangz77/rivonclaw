@@ -65,14 +65,22 @@ const PROPOSAL_FILTERS = [
 
 type ProposalFilter = (typeof PROPOSAL_FILTERS)[number];
 
-type AffiliateInsightScope = {
+type AffiliateInsightSubject = {
   key: string;
   kind: "user" | "shop";
   label: string;
   shopId?: string;
 };
 
-type AffiliateInsightRow = AffiliateInsightScope & {
+type AffiliateInsightModelScope = "user" | "shop";
+
+type AffiliateInsightRow = {
+  key: string;
+  subjectKey: string;
+  kind: "user" | "shop";
+  label: string;
+  shopId?: string;
+  modelScope: AffiliateInsightModelScope;
   summary: GQL.AffiliateMlModelEfficiencySummary | null;
   failed?: boolean;
 };
@@ -109,7 +117,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
     }
   }, [entityStore, user]);
 
-  const insightScopes = useMemo<AffiliateInsightScope[]>(
+  const insightSubjects = useMemo<AffiliateInsightSubject[]>(
     () => [
       {
         key: "user",
@@ -125,6 +133,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
     ],
     [shops, t],
   );
+
   useEffect(() => {
     if (!user) {
       setInsightRows([]);
@@ -133,23 +142,56 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
 
     let active = true;
     setInsightsLoading(true);
+    const insightRequests = insightSubjects.flatMap((subject) => {
+      if (subject.kind === "user") {
+        return [{ subject, modelScope: "user" as AffiliateInsightModelScope }];
+      }
+      return [
+        { subject, modelScope: "user" as AffiliateInsightModelScope },
+        { subject, modelScope: "shop" as AffiliateInsightModelScope },
+      ];
+    });
     Promise.all(
-      insightScopes.map(async (scope): Promise<AffiliateInsightRow> => {
+      insightRequests.map(async ({ subject, modelScope }): Promise<AffiliateInsightRow> => {
         try {
           const result = await apolloClient.query<
             { affiliateMlInsights: GQL.AffiliateMlInsightsPayload },
             { input?: GQL.AffiliateMlInsightsInput | null }
           >({
             query: AFFILIATE_ML_INSIGHTS_QUERY,
-            variables: { input: scope.shopId ? { shopId: scope.shopId } : null },
+            variables: {
+              input: subject.shopId
+                ? {
+                  shopId: subject.shopId,
+                  modelScope:
+                    modelScope === "user"
+                      ? GQL.AffiliateMlInsightsModelScope.User
+                      : GQL.AffiliateMlInsightsModelScope.Shop,
+                }
+                : null,
+            },
             fetchPolicy: "network-only",
           });
           return {
-            ...scope,
+            key: `${subject.key}:${modelScope}`,
+            subjectKey: subject.key,
+            kind: subject.kind,
+            label: subject.label,
+            shopId: subject.shopId,
+            modelScope,
             summary: result.data?.affiliateMlInsights.latestModelEfficiencySummary ?? null,
           };
         } catch {
-          return { ...scope, summary: null, failed: true };
+          return {
+            key: `${subject.key}:${modelScope}`,
+            subjectKey: subject.key,
+            kind: subject.kind,
+            label: subject.label,
+            shopId: subject.shopId,
+            modelScope,
+            summary: null,
+            failed: true,
+          };
         }
       }),
     ).then((rows) => {
@@ -161,19 +203,13 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
     return () => {
       active = false;
     };
-  }, [apolloClient, insightScopes, refreshCount, user]);
+  }, [apolloClient, insightSubjects, refreshCount, user]);
 
   useEffect(() => {
-    if (insightRows.length > 0 && !insightRows.some((row) => row.key === selectedScopeKey)) {
+    if (insightSubjects.length > 0 && !insightSubjects.some((subject) => subject.key === selectedScopeKey)) {
       setSelectedScopeKey("user");
     }
-  }, [insightRows, selectedScopeKey]);
-
-  const selectedRow =
-    insightRows.find((row) => row.key === selectedScopeKey)
-    ?? insightRows.find((row) => row.key === "user")
-    ?? insightRows[0]
-    ?? null;
+  }, [insightSubjects, selectedScopeKey]);
 
   if (authChecking) {
     return (
@@ -225,8 +261,9 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
 
       <AffiliateMlInsightsPanel
         loading={insightsLoading}
+        subjects={insightSubjects}
         rows={insightRows}
-        selectedKey={selectedRow?.key ?? selectedScopeKey}
+        selectedKey={selectedScopeKey}
         onSelect={setSelectedScopeKey}
       />
     </div>
@@ -489,29 +526,62 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
 function AffiliateMlInsightsPanel({
   loading,
+  subjects,
   rows,
   selectedKey,
   onSelect,
 }: {
   loading: boolean;
+  subjects: AffiliateInsightSubject[];
   rows: AffiliateInsightRow[];
   selectedKey: string;
   onSelect: (key: string) => void;
 }) {
   const { t } = useTranslation();
   const [activeView, setActiveView] = useState<AffiliateIntelligenceView>("same_budget");
+  const [activeModelScope, setActiveModelScope] = useState<AffiliateInsightModelScope>("user");
+  const selectedSubject =
+    subjects.find((subject) => subject.key === selectedKey)
+    ?? subjects.find((subject) => rows.some((row) => row.subjectKey === subject.key && row.summary))
+    ?? subjects[0]
+    ?? null;
+  const selectedRows = selectedSubject
+    ? rows.filter((row) => row.subjectKey === selectedSubject.key)
+    : [];
+  const accountModelRow = selectedRows.find((row) => row.modelScope === "user") ?? null;
+  const storeModelRow = selectedRows.find((row) => row.modelScope === "shop") ?? null;
+  const availableModelScope =
+    activeModelScope === "shop" && storeModelRow?.summary
+      ? "shop"
+      : accountModelRow?.summary
+        ? "user"
+        : storeModelRow?.summary
+          ? "shop"
+          : activeModelScope;
   const selectedRow =
-    rows.find((row) => row.key === selectedKey)
+    (availableModelScope === "shop" ? storeModelRow : accountModelRow)
+    ?? selectedRows.find((row) => row.summary)
+    ?? selectedRows[0]
     ?? rows.find((row) => row.summary)
     ?? rows[0]
     ?? null;
   const summary = selectedRow?.summary ?? null;
+  const selectedModelLabel =
+    selectedRow?.modelScope === "shop"
+      ? t("ecommerce.affiliateWorkspace.intelligenceStoreModel")
+      : t("ecommerce.affiliateWorkspace.intelligenceAccountModel");
+
+  useEffect(() => {
+    if (selectedSubject?.kind === "user") {
+      setActiveModelScope("user");
+    }
+  }, [selectedSubject?.kind, selectedSubject?.key]);
 
   if (loading && rows.length === 0) {
     return <AffiliateLoadingState />;
   }
 
-  if (!selectedRow) {
+  if (!selectedSubject) {
     return (
       <div className="affiliate-proposal-empty">
         {t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
@@ -522,20 +592,32 @@ function AffiliateMlInsightsPanel({
   }
 
   if (!summary) {
+    const modelLoadFailed = selectedRows.some((row) => row.failed);
     return (
       <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
         <AffiliateInsightScopeRail
+          subjects={subjects}
           rows={rows}
           selectedKey={selectedKey}
           onSelect={onSelect}
         />
+        {selectedSubject.kind === "shop" ? (
+          <AffiliateModelSourceSwitch
+            accountRow={accountModelRow}
+            activeModelScope={availableModelScope}
+            storeRow={storeModelRow}
+            onChange={setActiveModelScope}
+          />
+        ) : null}
         <div className="affiliate-intelligence-empty">
           <InfoIcon />
-          <strong>{selectedRow.label}</strong>
+          <strong>{selectedSubject.label}</strong>
           <span>
-            {t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
-              defaultValue: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
-            })}
+            {modelLoadFailed
+              ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailableHint")
+              : t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
+                defaultValue: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
+              })}
           </span>
         </div>
       </div>
@@ -632,19 +714,28 @@ function AffiliateMlInsightsPanel({
   const evaluationWindow = formatEvaluationWindow(payload, summary.evaluationScope, t);
   const precisionLiftPercent = budgetLiftRatio == null ? null : (budgetLiftRatio - 1) * 100;
   const reachLiftPercent = salesBarLiftRatio == null ? null : (salesBarLiftRatio - 1) * 100;
-  const precisionLiftLabel = precisionLiftPercent == null ? "—" : `+${formatNumber(precisionLiftPercent, 1)}%`;
-  const reachLiftLabel = reachLiftPercent == null ? "—" : `+${formatNumber(reachLiftPercent, 1)}%`;
+  const precisionLiftLabel = formatSignedPercent(precisionLiftPercent);
+  const reachLiftLabel = formatSignedPercent(reachLiftPercent);
   const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
 
   return (
     <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
       <AffiliateInsightScopeRail
+        subjects={subjects}
         rows={rows}
-        selectedKey={selectedRow.key}
+        selectedKey={selectedSubject.key}
         onSelect={onSelect}
       />
 
       <div className="affiliate-intelligence-main">
+        {selectedSubject.kind === "shop" ? (
+          <AffiliateModelSourceSwitch
+            accountRow={accountModelRow}
+            activeModelScope={availableModelScope}
+            storeRow={storeModelRow}
+            onChange={setActiveModelScope}
+          />
+        ) : null}
         <div className="affiliate-intelligence-claim-grid" role="tablist">
           <button
             type="button"
@@ -657,7 +748,7 @@ function AffiliateMlInsightsPanel({
               <AffiliateSparkIcon />
             </div>
             <div>
-              <span>{selectedRow.label}</span>
+              <span>{selectedSubject.kind === "shop" ? `${selectedSubject.label} · ${selectedModelLabel}` : selectedSubject.label}</span>
               <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
               <p>
                 {precisionLiftPercent != null && precisionLiftPercent > 0
@@ -689,7 +780,7 @@ function AffiliateMlInsightsPanel({
               <AffiliateTargetIcon />
             </div>
             <div>
-              <span>{selectedRow.label}</span>
+              <span>{selectedSubject.kind === "shop" ? `${selectedSubject.label} · ${selectedModelLabel}` : selectedSubject.label}</span>
               <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimReachTitle")}</strong>
               <p>
                 {reachLiftPercent != null && reachLiftPercent > 0
@@ -836,10 +927,12 @@ function AffiliateMlInsightsPanel({
 }
 
 function AffiliateInsightScopeRail({
+  subjects,
   rows,
   selectedKey,
   onSelect,
 }: {
+  subjects: AffiliateInsightSubject[];
   rows: AffiliateInsightRow[];
   selectedKey: string;
   onSelect: (key: string) => void;
@@ -847,30 +940,117 @@ function AffiliateInsightScopeRail({
   const { t } = useTranslation();
   return (
     <div className="affiliate-intelligence-scope-rail">
-      {rows.map((row) => {
-        const ready = Boolean(row.summary);
+      {subjects.map((subject) => {
+        const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
+        const readyCount = subjectRows.filter((row) => row.summary).length;
+        const failed = readyCount === 0 && subjectRows.some((row) => row.failed);
+        const ready = readyCount > 0;
+        const status = ready
+          ? subject.kind === "shop" && readyCount > 1
+            ? t("ecommerce.affiliateWorkspace.intelligenceModelsReady", { count: readyCount })
+            : t("ecommerce.affiliateWorkspace.intelligenceModelReady")
+          : failed
+            ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
+            : t("ecommerce.affiliateWorkspace.intelligenceNoModel");
         return (
           <button
-            key={row.key}
+            key={subject.key}
             type="button"
-            className={`affiliate-intelligence-scope${selectedKey === row.key ? " affiliate-intelligence-scope-active" : ""}${ready ? "" : " affiliate-intelligence-scope-empty"}`}
-            onClick={() => onSelect(row.key)}
+            className={`affiliate-intelligence-scope${selectedKey === subject.key ? " affiliate-intelligence-scope-active" : ""}${ready ? "" : " affiliate-intelligence-scope-empty"}`}
+            onClick={() => onSelect(subject.key)}
           >
             <span className="affiliate-intelligence-scope-icon">
-              {row.kind === "user" ? <UserIcon /> : <ShopIcon />}
+              {subject.kind === "user" ? <UserIcon /> : <ShopIcon />}
             </span>
             <span className="affiliate-intelligence-scope-copy">
-              <strong>{row.label}</strong>
-              <small>
-                {ready
-                  ? t("ecommerce.affiliateWorkspace.intelligenceModelReady")
-                  : t("ecommerce.affiliateWorkspace.intelligenceNoModel")}
-              </small>
+              <strong>{subject.label}</strong>
+              <small>{status}</small>
             </span>
             {ready ? <CheckIcon /> : <InfoIcon />}
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function AffiliateModelSourceSwitch({
+  accountRow,
+  activeModelScope,
+  storeRow,
+  onChange,
+}: {
+  accountRow: AffiliateInsightRow | null;
+  activeModelScope: AffiliateInsightModelScope;
+  storeRow: AffiliateInsightRow | null;
+  onChange: (scope: AffiliateInsightModelScope) => void;
+}) {
+  const { t } = useTranslation();
+  const rows = [
+    {
+      key: "user" as AffiliateInsightModelScope,
+      label: t("ecommerce.affiliateWorkspace.intelligenceAccountModel"),
+      description: t("ecommerce.affiliateWorkspace.intelligenceAccountModelHint"),
+      row: accountRow,
+    },
+    {
+      key: "shop" as AffiliateInsightModelScope,
+      label: t("ecommerce.affiliateWorkspace.intelligenceStoreModel"),
+      description: t("ecommerce.affiliateWorkspace.intelligenceStoreModelHint"),
+      row: storeRow,
+    },
+  ];
+  const rankedRows = rows
+    .map((item) => ({
+      key: item.key,
+      lift: item.row?.summary?.modelVsHumanExpectedUnitsLiftRatio ?? null,
+    }))
+    .filter((item): item is { key: AffiliateInsightModelScope; lift: number } => (
+      typeof item.lift === "number" && Number.isFinite(item.lift)
+    ));
+  const recommendedScope =
+    rankedRows.length > 0
+      ? rankedRows.reduce((best, item) => (item.lift > best.lift ? item : best)).key
+      : null;
+
+  return (
+    <div className="affiliate-intelligence-model-source" role="tablist">
+      <span className="affiliate-intelligence-model-source-label">
+        {t("ecommerce.affiliateWorkspace.intelligenceModelSourceSelector")}
+      </span>
+      <div className="affiliate-intelligence-model-source-options">
+        {rows.map((item) => {
+          const summary = item.row?.summary ?? null;
+          const lift = summary?.modelVsHumanExpectedUnitsLiftRatio == null
+            ? null
+            : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
+          const active = activeModelScope === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`affiliate-intelligence-model-source-option${active ? " affiliate-intelligence-model-source-option-active" : ""}`}
+              disabled={!summary}
+              onClick={() => onChange(item.key)}
+            >
+              <strong>{item.label}</strong>
+              <span>
+                {summary
+                  ? formatSignedPercent(lift)
+                  : item.row?.failed
+                    ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
+                    : t("ecommerce.affiliateWorkspace.intelligenceNoModel")}
+              </span>
+              <small>{item.description}</small>
+              {recommendedScope === item.key ? (
+                <em>{t("ecommerce.affiliateWorkspace.intelligenceRecommendedModel")}</em>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1453,6 +1633,12 @@ function formatPercent(value: number | null | undefined): string {
         style: "percent",
         maximumFractionDigits: 1,
       }).format(value);
+}
+
+function formatSignedPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (Object.is(value, -0) || Math.abs(value) < 0.05) return "0.0%";
+  return `${value > 0 ? "+" : ""}${formatNumber(value, 1)}%`;
 }
 
 function formatDate(value: string | Date | null | undefined): string {
