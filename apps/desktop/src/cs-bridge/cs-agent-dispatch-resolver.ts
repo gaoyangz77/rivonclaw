@@ -192,12 +192,7 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
       ].join(" ");
     case "UNPAID_ORDER_FOLLOW_UP":
       return [
-        "This is a backend/Airflow-driven proactive reachout for a TikTok Shop unpaid order.",
-        "The backend has already selected the order as unpaid and eligible; do not spend tokens rechecking unpaid status or eligibility.",
-        "Use the target language specified in the operator instruction.",
-        "Send at most one concise, natural seller-initiated reminder that can help the buyer continue checkout or ask a relevant question.",
-        "Do not imply the buyer contacted support first, do not claim a discount or urgency unless current product/promotion context supports it, and do not create an escalation unless you find a real customer-service issue.",
-        "You may use customer-service order, product, or promotion tools when useful for personalization.",
+        "This dispatch was initiated by backend/Airflow for a TikTok Shop unpaid-order customer-service flow.",
       ].join(" ");
   }
 }
