@@ -2615,7 +2615,7 @@ export default {
         "title": "Dasar keputusan",
         "aiDecision": "Rekomendasi AI",
         "humanBaseline": "Kecenderungan historis staf",
-        "expectedSales": "Prediksi penjualan",
+        "expectedSales": "Prediksi penjualan terkalibrasi",
         "expectedSalesValue": "Sekitar {{units}} unit",
         "unknown": "Tidak tersedia",
         "humanWouldApprove": "Biasanya disetujui",

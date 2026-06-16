@@ -2889,7 +2889,7 @@ export default {
         title: "判断依据",
         aiDecision: "AI 建议",
         humanBaseline: "历史人工倾向",
-        expectedSales: "预测销量",
+        expectedSales: "校准后预测销量",
         expectedSalesValue: "约 {{units}} 件",
         unknown: "暂无数据",
         humanWouldApprove: "通常会同意",

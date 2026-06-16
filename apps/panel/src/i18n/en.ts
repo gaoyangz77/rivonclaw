@@ -2890,7 +2890,7 @@ export default {
         title: "Decision evidence",
         aiDecision: "AI recommendation",
         humanBaseline: "Historical staff baseline",
-        expectedSales: "Predicted sales",
+        expectedSales: "Calibrated predicted sales",
         expectedSalesValue: "About {{units}} units",
         unknown: "Unavailable",
         humanWouldApprove: "Usually approve",

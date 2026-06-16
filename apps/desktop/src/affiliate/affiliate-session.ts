@@ -1024,7 +1024,7 @@ function renderSampleReviewDefaultDecisionSection(
     `- Shop Minimum Expected Sales Units: ${formatMaybeNumber(defaultDecision.minExpectedSalesUnits)}`,
     `- Comparison: predicted expected sales are ${comparison} the configured threshold.`,
     `- Plain Seller Reason: ${defaultDecision.operatorSummary}`,
-    "- Prediction caveat: this is a statistical expected-sales estimate, not a guarantee of actual sales.",
+    "- Prediction caveat: this is a calibrated statistical expected-sales estimate, not a guarantee of actual sales.",
     "- Agent instruction: unless Backend Work Context lists a true blocker such as blocked creator, explicit merchant override, stock/fulfillment blocker, or conflicting policy, call affiliate_resolve_work_item with decision REQUEST_ACTION and action.type REVIEW_SAMPLE_APPLICATION using this default decision.",
     "- Approval policy is not a blocker. If approval is required, backend will create an ActionProposal from REQUEST_ACTION.",
   ].join("\n");
@@ -1125,7 +1125,7 @@ function renderExpectedSalesPredictionSnapshotSection(
     `- Captured At: ${snapshot.capturedAt ?? ""}`,
     `- Predicted Expected Sales Units: ${formatMaybeNumber(expectedSalesUnits)}`,
     `- Merchant Meaning: ${renderPredictionPlainMeaning(expectedSalesUnits)}`,
-    "- Caveat: expectedSalesUnits is an expected-value forecast, not a guaranteed result.",
+    "- Caveat: expectedSalesUnits is a calibrated expected-value forecast, not a guaranteed result.",
     "- Cache IDs: (none needed; this collaboration already has a persisted prediction snapshot)",
   ].join("\n");
 }
@@ -1160,7 +1160,7 @@ function renderExpectedSalesPredictionLine(index: number, prediction: GQL.Affili
   const interval = prediction.predictionInterval;
   return [
     `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
-    `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)} (expected-value forecast)`,
+    `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)} (calibrated expected-value forecast)`,
     `   expectedSalesPercentile=${formatPercentile(prediction.expectedSalesPercentile)}`,
     interval
       ? `   expectedSalesInterval=${formatMaybeNumber(interval.lowerExpectedSalesUnits)}-${formatMaybeNumber(interval.upperExpectedSalesUnits)} confidence=${formatProbability(interval.confidenceLevel)} method=${interval.method ?? ""}`
@@ -1207,12 +1207,12 @@ function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefi
     return "No usable sales estimate is available for this creator/product pair.";
   }
   if (expectedSalesUnits <= 0) {
-    return "The expected-sales model estimates near-zero unit sales for this creator/product pair.";
+    return "The expected-sales model estimates near-zero unit sales for this creator/product pair, after adjusting to the shop/account's historical outcome scale.";
   }
   if (expectedSalesUnits === 1) {
-    return "The expected-sales model estimates about 1 unit for this creator/product pair.";
+    return "The expected-sales model estimates about 1 unit for this creator/product pair, after adjusting to the shop/account's historical outcome scale.";
   }
-  return `The expected-sales model estimates about ${formatMaybeNumber(expectedSalesUnits)} units for this creator/product pair.`;
+  return `The expected-sales model estimates about ${formatMaybeNumber(expectedSalesUnits)} units for this creator/product pair, after adjusting to the shop/account's historical outcome scale.`;
 }
 
 function numberFromUnknown(value: unknown): number | null {

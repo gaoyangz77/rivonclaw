@@ -13140,6 +13140,45 @@ html[lang="zh"] .acct-tool-chips {
   line-height: 1.45;
 }
 
+.affiliate-intelligence-card-aside {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.affiliate-intelligence-lift-badge {
+  display: inline-grid;
+  justify-items: end;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface));
+  color: var(--color-success);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-success) 24%, transparent);
+}
+
+.affiliate-intelligence-lift-badge strong {
+  margin: 0;
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.affiliate-intelligence-lift-badge span {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.affiliate-intelligence-lift-badge-negative {
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+  color: var(--color-danger);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 20%, transparent);
+}
+
 .affiliate-intelligence-card-head small {
   max-width: 360px;
   color: var(--color-text-secondary);
@@ -13755,6 +13794,11 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-intelligence-distribution-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .affiliate-intelligence-card-aside {
+    justify-items: start;
+    min-width: 0;
   }
 
   .affiliate-intelligence-card-head small,
