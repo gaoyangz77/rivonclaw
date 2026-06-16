@@ -24,6 +24,7 @@ import { CustomerServiceWorkspaceModel } from "./models/CustomerServiceWorkspace
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
+  AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY,
   SHOPS_QUERY,
   SHOP_QUERY,
   PLATFORM_APPS_QUERY,
@@ -87,6 +88,26 @@ function stripTypename<T>(value: T): T {
   return value;
 }
 
+type AffiliateMlInsightModelScope = "user" | "shop";
+
+const AffiliateMlInsightRowModel = types.model("AffiliateMlInsightRow", {
+  key: types.identifier,
+  subjectKey: types.string,
+  kind: types.enumeration(["user", "shop"]),
+  shopId: types.maybe(types.string),
+  modelScope: types.enumeration(["user", "shop"]),
+  summary: types.maybeNull(types.frozen()),
+  failed: types.optional(types.boolean, false),
+});
+
+function affiliateMlInsightSubjectKey(shopId?: string | null): string {
+  return shopId ? `shop:${shopId}` : "user";
+}
+
+function normalizeAffiliateMlModelScope(value: unknown, fallback: AffiliateMlInsightModelScope): AffiliateMlInsightModelScope {
+  return String(value ?? fallback).toLowerCase() === "shop" ? "shop" : "user";
+}
+
 /**
  * Panel-specific extension of RootStoreModel with CRUD mutation actions,
  * auth/session management, module enrollment, and entity sync.
@@ -121,7 +142,18 @@ const PanelRootStoreModel = RootStoreModel.props({
   paymentInFlight: types.optional(types.boolean, false),
   checkoutError: types.maybeNull(types.string),
   checkoutNotice: types.maybeNull(types.string),
-}).actions((self) => {
+  affiliateMlInsightRows: types.optional(types.array(AffiliateMlInsightRowModel), []),
+  affiliateMlInsightsLoading: types.optional(types.boolean, false),
+  affiliateMlInsightsError: types.maybeNull(types.string),
+  affiliateMlInsightsLoadedAt: types.maybeNull(types.number),
+}).views((self) => ({
+  affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope) {
+    return self.affiliateMlInsightRows.find((row) => row.subjectKey === subjectKey && row.modelScope === modelScope) ?? null;
+  },
+  affiliateMlInsightRowsForSubject(subjectKey: string) {
+    return self.affiliateMlInsightRows.filter((row) => row.subjectKey === subjectKey);
+  },
+})).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
   return {
@@ -138,7 +170,6 @@ const PanelRootStoreModel = RootStoreModel.props({
             client().query({ query: READ_PAYMENTS_QUERY, fetchPolicy: "network-only" }),
           ]).catch(() => {});
           yield Promise.all([
-            client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: ADS_STORE_ACCESSES_QUERY, fetchPolicy: "network-only" }),
             client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
@@ -146,6 +177,7 @@ const PanelRootStoreModel = RootStoreModel.props({
             client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
             client().query({ query: READ_INVENTORY_GOODS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
           ]).catch(() => {});
+          yield (self as any).fetchShops().catch(() => {});
           yield syncOfficialPresetSkills("safe").catch(() => {});
           return;
         }
@@ -182,6 +214,10 @@ const PanelRootStoreModel = RootStoreModel.props({
       // Called when auth-expired event fires (401 from API)
       // Desktop will have already cleared the user via SSE, but clear locally for safety
       (self as any).currentUser = null;
+      self.affiliateMlInsightRows.clear();
+      self.affiliateMlInsightsLoading = false;
+      self.affiliateMlInsightsError = null;
+      self.affiliateMlInsightsLoadedAt = null;
     },
 
     // ── Provider key mutations (REST to Desktop) ──
@@ -267,7 +303,59 @@ const PanelRootStoreModel = RootStoreModel.props({
 
     /** Fire shops query to populate MST via Desktop proxy. */
     fetchShops: flow(function* () {
-      yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+      const result = yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+      const shopIds = ((result.data?.shops ?? []) as Array<{ id?: string | null }>)
+        .map((shop) => shop.id)
+        .filter((shopId): shopId is string => Boolean(shopId));
+      yield (self as any).fetchAffiliateMlInsights({ shopIds }).catch(() => {});
+    }),
+
+    fetchAffiliateMlInsights: flow(function* (input?: { shopIds?: string[] }) {
+      if (!(self as any).currentUser) {
+        self.affiliateMlInsightRows.clear();
+        self.affiliateMlInsightsError = null;
+        self.affiliateMlInsightsLoadedAt = null;
+        return;
+      }
+
+      const shopIds = Array.from(
+        new Set(
+          (input?.shopIds ?? self.shops.map((shop) => shop.id))
+            .map((shopId) => shopId.trim())
+            .filter(Boolean),
+        ),
+      );
+      self.affiliateMlInsightsLoading = true;
+      self.affiliateMlInsightsError = null;
+      try {
+        const result = yield client().query({
+          query: AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY,
+          variables: { input: { shopIds } },
+          fetchPolicy: "network-only",
+        });
+        const summaries = (result.data?.affiliateMlInsightSummaries ?? []) as Array<Record<string, unknown>>;
+        const rows = summaries.map((summary) => {
+          const shopId = typeof summary.shopId === "string" && summary.shopId ? summary.shopId : undefined;
+          const modelScope = normalizeAffiliateMlModelScope(summary.modelScope, shopId ? "shop" : "user");
+          const subjectKey = affiliateMlInsightSubjectKey(shopId);
+          return {
+            key: `${subjectKey}:${modelScope}`,
+            subjectKey,
+            kind: shopId ? "shop" : "user",
+            shopId,
+            modelScope,
+            summary: stripTypename(summary),
+            failed: false,
+          };
+        });
+        self.affiliateMlInsightRows.replace(rows);
+        self.affiliateMlInsightsLoadedAt = Date.now();
+      } catch (err) {
+        self.affiliateMlInsightsError = err instanceof Error ? err.message : String(err);
+        throw err;
+      } finally {
+        self.affiliateMlInsightsLoading = false;
+      }
     }),
 
     /** Fire ads advertisers query to populate MST via Desktop proxy. */
@@ -560,6 +648,13 @@ interface PanelEntityOverrides {
   readonly paymentInFlight: boolean;
   readonly checkoutError: string | null;
   readonly checkoutNotice: string | null;
+  readonly affiliateMlInsightRows: Instance<typeof AffiliateMlInsightRowModel>[];
+  readonly affiliateMlInsightsLoading: boolean;
+  readonly affiliateMlInsightsError: string | null;
+  readonly affiliateMlInsightsLoadedAt: number | null;
+  affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope): Instance<typeof AffiliateMlInsightRowModel> | null;
+  affiliateMlInsightRowsForSubject(subjectKey: string): Instance<typeof AffiliateMlInsightRowModel>[];
+  fetchAffiliateMlInsights(input?: { shopIds?: string[] }): Promise<void>;
   startBillingSubscription(input: {
     planId: string;
     scopeType: string;

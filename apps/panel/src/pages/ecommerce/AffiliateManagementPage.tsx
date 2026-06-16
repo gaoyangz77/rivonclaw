@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
@@ -12,7 +12,6 @@ import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_COLLABORATION_ACTIVITY_QUERY,
   AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY,
-  AFFILIATE_ML_INSIGHTS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION,
 } from "../../api/shops-queries.js";
@@ -93,23 +92,17 @@ type AffiliateSalesHistogramBucket = {
   count: number;
 };
 
-type AffiliateIntelligenceView = "same_budget" | "same_sales_bar";
-
 export function AffiliateManagementPage() {
   return <AffiliateNeedsAttentionPage />;
 }
 
 export const AffiliateIntelligencePage = observer(function AffiliateIntelligencePage() {
   const { t } = useTranslation();
-  const apolloClient = useApolloClient();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedScopeKey, setSelectedScopeKey] = useState("user");
-  const [insightRows, setInsightRows] = useState<AffiliateInsightRow[]>([]);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [refreshCount, setRefreshCount] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -135,75 +128,38 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
   );
 
   useEffect(() => {
-    if (!user) {
-      setInsightRows([]);
-      return;
+    if (user) {
+      entityStore.fetchAffiliateMlInsights().catch(() => {});
     }
+  }, [entityStore, shops.length, user]);
 
-    let active = true;
-    setInsightsLoading(true);
-    const insightRequests = insightSubjects.flatMap((subject) => {
-      if (subject.kind === "user") {
-        return [{ subject, modelScope: "user" as AffiliateInsightModelScope }];
+  const insightRows = useMemo<AffiliateInsightRow[]>(() => {
+    const rows: AffiliateInsightRow[] = [];
+    const hasError = Boolean(entityStore.affiliateMlInsightsError);
+    for (const subject of insightSubjects) {
+      const scopes: AffiliateInsightModelScope[] = subject.kind === "user" ? ["user"] : ["user", "shop"];
+      for (const modelScope of scopes) {
+        const cached = entityStore.affiliateMlInsightRow(subject.key, modelScope);
+        rows.push({
+          key: `${subject.key}:${modelScope}`,
+          subjectKey: subject.key,
+          kind: subject.kind,
+          label: subject.label,
+          shopId: subject.shopId,
+          modelScope,
+          summary: (cached?.summary ?? null) as GQL.AffiliateMlModelEfficiencySummary | null,
+          failed: hasError && !cached,
+        });
       }
-      return [
-        { subject, modelScope: "user" as AffiliateInsightModelScope },
-        { subject, modelScope: "shop" as AffiliateInsightModelScope },
-      ];
-    });
-    Promise.all(
-      insightRequests.map(async ({ subject, modelScope }): Promise<AffiliateInsightRow> => {
-        try {
-          const result = await apolloClient.query<
-            { affiliateMlInsights: GQL.AffiliateMlInsightsPayload },
-            { input?: GQL.AffiliateMlInsightsInput | null }
-          >({
-            query: AFFILIATE_ML_INSIGHTS_QUERY,
-            variables: {
-              input: subject.shopId
-                ? {
-                  shopId: subject.shopId,
-                  modelScope:
-                    modelScope === "user"
-                      ? GQL.AffiliateMlInsightsModelScope.User
-                      : GQL.AffiliateMlInsightsModelScope.Shop,
-                }
-                : null,
-            },
-            fetchPolicy: "network-only",
-          });
-          return {
-            key: `${subject.key}:${modelScope}`,
-            subjectKey: subject.key,
-            kind: subject.kind,
-            label: subject.label,
-            shopId: subject.shopId,
-            modelScope,
-            summary: result.data?.affiliateMlInsights.latestModelEfficiencySummary ?? null,
-          };
-        } catch {
-          return {
-            key: `${subject.key}:${modelScope}`,
-            subjectKey: subject.key,
-            kind: subject.kind,
-            label: subject.label,
-            shopId: subject.shopId,
-            modelScope,
-            summary: null,
-            failed: true,
-          };
-        }
-      }),
-    ).then((rows) => {
-      if (!active) return;
-      setInsightRows(rows);
-      setInsightsLoading(false);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [apolloClient, insightSubjects, refreshCount, user]);
+    }
+    return rows;
+  }, [
+    entityStore,
+    entityStore.affiliateMlInsightRows.length,
+    entityStore.affiliateMlInsightsError,
+    entityStore.affiliateMlInsightsLoadedAt,
+    insightSubjects,
+  ]);
 
   useEffect(() => {
     if (insightSubjects.length > 0 && !insightSubjects.some((subject) => subject.key === selectedScopeKey)) {
@@ -246,12 +202,12 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
           <button
             className="btn btn-secondary affiliate-intelligence-refresh"
             type="button"
-            onClick={() => setRefreshCount((value) => value + 1)}
-            disabled={insightsLoading}
+            onClick={() => entityStore.fetchAffiliateMlInsights().catch(() => {})}
+            disabled={entityStore.affiliateMlInsightsLoading}
           >
             <RefreshIcon />
             <span>
-              {insightsLoading
+              {entityStore.affiliateMlInsightsLoading
                 ? t("common.loading")
                 : t("ecommerce.affiliateWorkspace.intelligenceRefresh")}
             </span>
@@ -260,7 +216,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
       </div>
 
       <AffiliateMlInsightsPanel
-        loading={insightsLoading}
+        loading={entityStore.affiliateMlInsightsLoading}
         subjects={insightSubjects}
         rows={insightRows}
         selectedKey={selectedScopeKey}
@@ -538,7 +494,6 @@ function AffiliateMlInsightsPanel({
   onSelect: (key: string) => void;
 }) {
   const { t } = useTranslation();
-  const [activeView, setActiveView] = useState<AffiliateIntelligenceView>("same_budget");
   const [activeModelScope, setActiveModelScope] = useState<AffiliateInsightModelScope>("user");
   const selectedSubject =
     subjects.find((subject) => subject.key === selectedKey)
@@ -660,47 +615,11 @@ function AffiliateMlInsightsPanel({
       payloadNumber(sameBudgetPayload, "historical_approved_observed_count")
       ?? summary.humanApprovedObservedCount,
   };
-  const sameSalesBarPayload = payloadObject(payload, "same_sales_bar");
-  const fallbackHistoricalQualifiedCount =
-    summary.humanApprovedCount - summary.modelRejectedHumanApprovedCount;
-  const fallbackQualifiedLiftRatio =
-    fallbackHistoricalQualifiedCount > 0
-      ? summary.modelSameBudgetCount / fallbackHistoricalQualifiedCount
-      : null;
-  const sameSalesBar = {
-    ...sameSalesBarPayload,
-    min_expected_sales_units_bar:
-      payloadNumber(sameSalesBarPayload, "min_expected_sales_units_bar")
-      ?? summary.minExpectedSalesUnitsSameBudget,
-    historical_sample_count:
-      payloadNumber(sameSalesBarPayload, "historical_sample_count") ?? summary.rowCount,
-    historical_approved_count:
-      payloadNumber(sameSalesBarPayload, "historical_approved_count") ?? summary.humanApprovedCount,
-    historical_qualified_approved_count:
-      payloadNumber(sameSalesBarPayload, "historical_qualified_approved_count")
-      ?? fallbackHistoricalQualifiedCount,
-    historical_approved_below_bar_count:
-      payloadNumber(sameSalesBarPayload, "historical_approved_below_bar_count")
-      ?? summary.modelRejectedHumanApprovedCount,
-    model_qualified_count:
-      payloadNumber(sameSalesBarPayload, "model_qualified_count") ?? summary.modelSameBudgetCount,
-    model_qualified_human_rejected_count:
-      payloadNumber(sameSalesBarPayload, "model_qualified_human_rejected_count")
-      ?? summary.modelSelectedHumanRejectedCount,
-    qualified_creator_lift_ratio:
-      payloadNumber(sameSalesBarPayload, "qualified_creator_lift_ratio")
-      ?? fallbackQualifiedLiftRatio,
-  };
   const budgetHumanApprovedCount = payloadNumber(sameBudget, "historical_approved_count");
   const budgetHumanExpectedUnits = payloadNumber(sameBudget, "historical_expected_sales_units");
   const budgetModelExpectedUnits = payloadNumber(sameBudget, "model_expected_sales_units");
   const budgetLiftRatio = payloadNumber(sameBudget, "expected_sales_lift_ratio");
   const budgetModelRejectedHumanApprovedCount = payloadNumber(sameBudget, "model_rejected_human_approved_count");
-  const salesBarThreshold = payloadNumber(sameSalesBar, "min_expected_sales_units_bar");
-  const salesBarHistoricalQualifiedCount = payloadNumber(sameSalesBar, "historical_qualified_approved_count");
-  const salesBarModelQualifiedCount = payloadNumber(sameSalesBar, "model_qualified_count");
-  const salesBarOverlookedCount = payloadNumber(sameSalesBar, "model_qualified_human_rejected_count");
-  const salesBarLiftRatio = payloadNumber(sameSalesBar, "qualified_creator_lift_ratio");
   const sampleSavingsRisk =
     budgetHumanApprovedCount && budgetHumanApprovedCount > 0
       ? (budgetModelRejectedHumanApprovedCount ?? 0) / budgetHumanApprovedCount
@@ -708,15 +627,26 @@ function AffiliateMlInsightsPanel({
   const budgetMaxUnits = Math.max(budgetModelExpectedUnits ?? 0, budgetHumanExpectedUnits ?? 0, 1);
   const modelBarWidth = `${Math.max(8, Math.round(((budgetModelExpectedUnits ?? 0) / budgetMaxUnits) * 100))}%`;
   const humanBarWidth = `${Math.max(8, Math.round(((budgetHumanExpectedUnits ?? 0) / budgetMaxUnits) * 100))}%`;
-  const salesBarMaxCount = Math.max(salesBarModelQualifiedCount ?? 0, salesBarHistoricalQualifiedCount ?? 0, 1);
-  const salesBarModelWidth = `${Math.max(8, Math.round(((salesBarModelQualifiedCount ?? 0) / salesBarMaxCount) * 100))}%`;
-  const salesBarHumanWidth = `${Math.max(8, Math.round(((salesBarHistoricalQualifiedCount ?? 0) / salesBarMaxCount) * 100))}%`;
   const evaluationWindow = formatEvaluationWindow(payload, summary.evaluationScope, t);
   const precisionLiftPercent = budgetLiftRatio == null ? null : (budgetLiftRatio - 1) * 100;
-  const reachLiftPercent = salesBarLiftRatio == null ? null : (salesBarLiftRatio - 1) * 100;
   const precisionLiftLabel = formatSignedPercent(precisionLiftPercent);
-  const reachLiftLabel = formatSignedPercent(reachLiftPercent);
   const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
+  const precisionClaimBody =
+    precisionLiftPercent != null && precisionLiftPercent > 0
+      ? translate(
+        "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionBody",
+        {
+          lift: precisionLiftLabel,
+          count: formatInteger(budgetHumanApprovedCount),
+        },
+      )
+      : translate(
+        "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionNeutral",
+        {
+          lift: precisionLiftLabel,
+          count: formatInteger(budgetHumanApprovedCount),
+        },
+      );
 
   return (
     <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
@@ -736,174 +666,46 @@ function AffiliateMlInsightsPanel({
             onChange={setActiveModelScope}
           />
         ) : null}
-        <div className="affiliate-intelligence-claim-grid" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeView === "same_budget"}
-            className={`affiliate-intelligence-verdict affiliate-intelligence-tab-card${activeView === "same_budget" ? " affiliate-intelligence-tab-card-active" : ""}`}
-            onClick={() => setActiveView("same_budget")}
-          >
-            <div className="affiliate-intelligence-verdict-icon">
-              <AffiliateSparkIcon />
+
+        <div className="affiliate-intelligence-claim-section">
+          <div className="affiliate-intelligence-comparison">
+            <div className="affiliate-intelligence-card-head">
+              <div className="affiliate-intelligence-card-title">
+                <span>{selectedSubject.kind === "shop" ? `${selectedSubject.label} · ${selectedModelLabel}` : selectedSubject.label}</span>
+                <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
+                <p>{precisionClaimBody}</p>
+              </div>
+              <small>
+                {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
+                  count: formatInteger(budgetHumanApprovedCount),
+                  window: evaluationWindow,
+                })}
+              </small>
             </div>
-            <div>
-              <span>{selectedSubject.kind === "shop" ? `${selectedSubject.label} · ${selectedModelLabel}` : selectedSubject.label}</span>
-              <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
-              <p>
-                {precisionLiftPercent != null && precisionLiftPercent > 0
-                  ? translate(
-                    "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionBody",
-                    {
-                      lift: precisionLiftLabel,
-                      count: formatInteger(budgetHumanApprovedCount),
-                    },
-                  )
-                  : translate(
-                    "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionNeutral",
-                    {
-                      lift: precisionLiftLabel,
-                      count: formatInteger(budgetHumanApprovedCount),
-                    },
-                )}
-              </p>
+
+            <div className="affiliate-intelligence-race">
+              <AffiliateRaceRow
+                icon={<AffiliateSparkIcon />}
+                label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
+                value={formatNumber(budgetModelExpectedUnits, 1)}
+                width={modelBarWidth}
+                variant="model"
+              />
+              <AffiliateRaceRow
+                icon={<UserIcon />}
+                label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
+                value={formatNumber(budgetHumanExpectedUnits, 1)}
+                width={humanBarWidth}
+                variant="human"
+              />
             </div>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeView === "same_sales_bar"}
-            className={`affiliate-intelligence-verdict affiliate-intelligence-verdict-reach affiliate-intelligence-tab-card${activeView === "same_sales_bar" ? " affiliate-intelligence-tab-card-active" : ""}`}
-            onClick={() => setActiveView("same_sales_bar")}
-          >
-            <div className="affiliate-intelligence-verdict-icon">
-              <AffiliateTargetIcon />
-            </div>
-            <div>
-              <span>{selectedSubject.kind === "shop" ? `${selectedSubject.label} · ${selectedModelLabel}` : selectedSubject.label}</span>
-              <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimReachTitle")}</strong>
-              <p>
-                {reachLiftPercent != null && reachLiftPercent > 0
-                  ? translate(
-                    "ecommerce.affiliateWorkspace.intelligenceClaimReachBody",
-                    {
-                      bar: formatNumber(salesBarThreshold, 1),
-                      lift: reachLiftLabel,
-                      creators: formatInteger(salesBarModelQualifiedCount),
-                      overlooked: formatInteger(salesBarOverlookedCount),
-                    },
-                  )
-                  : translate(
-                    "ecommerce.affiliateWorkspace.intelligenceClaimReachNeutral",
-                    {
-                      bar: formatNumber(salesBarThreshold, 1),
-                      lift: reachLiftLabel,
-                      creators: formatInteger(salesBarModelQualifiedCount),
-                      overlooked: formatInteger(salesBarOverlookedCount),
-                    },
-                )}
-              </p>
-            </div>
-          </button>
+          </div>
+
+          <AffiliateBudgetDistributionPanel
+            claim={sameBudget}
+            windowLabel={evaluationWindow}
+          />
         </div>
-
-        {activeView === "same_budget" ? (
-          <div className="affiliate-intelligence-claim-section">
-            <div className="affiliate-intelligence-comparison">
-              <div className="affiliate-intelligence-card-head">
-                <div>
-                  <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
-                  <strong>{precisionLiftLabel}</strong>
-                </div>
-                <small>
-                  {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
-                    count: formatInteger(budgetHumanApprovedCount),
-                    window: evaluationWindow,
-                  })}
-                </small>
-              </div>
-
-              <div className="affiliate-intelligence-race">
-                <AffiliateRaceRow
-                  icon={<AffiliateSparkIcon />}
-                  label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
-                  value={formatNumber(budgetModelExpectedUnits, 1)}
-                  width={modelBarWidth}
-                  variant="model"
-                />
-                <AffiliateRaceRow
-                  icon={<UserIcon />}
-                  label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
-                  value={formatNumber(budgetHumanExpectedUnits, 1)}
-                  width={humanBarWidth}
-                  variant="human"
-                />
-              </div>
-            </div>
-
-            <AffiliateBudgetDistributionPanel
-              claim={sameBudget}
-              windowLabel={evaluationWindow}
-            />
-          </div>
-        ) : (
-          <div className="affiliate-intelligence-claim-section">
-            <div className="affiliate-intelligence-comparison affiliate-intelligence-comparison-secondary">
-              <div className="affiliate-intelligence-card-head">
-                <div>
-                  <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameSalesBar")}</span>
-                  <strong>{reachLiftLabel}</strong>
-                </div>
-                <small>
-                  {t("ecommerce.affiliateWorkspace.intelligenceSameSalesBarStory", {
-                    bar: formatNumber(salesBarThreshold, 1),
-                    window: evaluationWindow,
-                  })}
-                </small>
-              </div>
-
-              <div className="affiliate-intelligence-race">
-                <AffiliateRaceRow
-                  icon={<AffiliateTargetIcon />}
-                  label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
-                  value={formatInteger(salesBarModelQualifiedCount)}
-                  width={salesBarModelWidth}
-                  variant="model"
-                />
-                <AffiliateRaceRow
-                  icon={<AffiliateShieldIcon />}
-                  label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
-                  value={formatInteger(salesBarHistoricalQualifiedCount)}
-                  width={salesBarHumanWidth}
-                  variant="human"
-                />
-              </div>
-            </div>
-
-            <AffiliateSalesBarOpportunityPanel
-              claim={sameSalesBar}
-              windowLabel={evaluationWindow}
-            />
-
-            <div className="affiliate-intelligence-explainers">
-              <AffiliateExplainerTile
-                icon={<AffiliateGaugeIcon />}
-                value={formatNumber(salesBarThreshold, 1)}
-                label={t("ecommerce.affiliateWorkspace.intelligenceApprovalBar")}
-              />
-              <AffiliateExplainerTile
-                icon={<AffiliateTargetIcon />}
-                value={formatPercent(summary.humanApprovalRate)}
-                label={t("ecommerce.affiliateWorkspace.intelligenceHistoricalRate")}
-              />
-              <AffiliateExplainerTile
-                icon={<AffiliateShieldIcon />}
-                value={formatPercent(sampleSavingsRisk)}
-                label={t("ecommerce.affiliateWorkspace.intelligenceFilteredRate")}
-              />
-            </div>
-          </div>
-        )}
 
         <div className="affiliate-intelligence-footnote">
           <span
@@ -1080,24 +882,6 @@ function AffiliateRaceRow({
   );
 }
 
-function AffiliateExplainerTile({
-  icon,
-  value,
-  label,
-}: {
-  icon: ReactNode;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div className="affiliate-intelligence-explainer">
-      <span>{icon}</span>
-      <strong>{value}</strong>
-      <small>{label}</small>
-    </div>
-  );
-}
-
 function AffiliateBudgetDistributionPanel({
   claim,
   windowLabel,
@@ -1144,195 +928,6 @@ function AffiliateBudgetDistributionPanel({
         },
       ]}
     />
-  );
-}
-
-function AffiliateSalesBarOpportunityPanel({
-  claim,
-  windowLabel,
-}: {
-  claim: AffiliateInsightPayload;
-  windowLabel: string;
-}) {
-  const { t } = useTranslation();
-  const bar = payloadNumber(claim, "min_expected_sales_units_bar");
-  const historicalSampleCount = payloadNumber(claim, "historical_sample_count");
-  const historicalQualifiedCount = payloadNumber(claim, "historical_qualified_approved_count");
-  const modelQualifiedCount = payloadNumber(claim, "model_qualified_count");
-  const overlookedCount = payloadNumber(claim, "model_qualified_human_rejected_count");
-  const historicalBuckets = payloadHistogram(claim, "historical_qualified_expected_units_histogram");
-  const modelBuckets = payloadHistogram(claim, "model_qualified_expected_units_histogram");
-  const total = Math.max(historicalQualifiedCount ?? 0, modelQualifiedCount ?? 0, 1);
-  const humanWidth = `${Math.max(8, Math.round(((historicalQualifiedCount ?? 0) / total) * 100))}%`;
-  const modelWidth = `${Math.max(8, Math.round(((modelQualifiedCount ?? 0) / total) * 100))}%`;
-  const cumulativeRows = [
-    {
-      key: "bar",
-      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdBar", {
-        bar: formatNumber(bar, 1),
-      }),
-      humanCount: historicalQualifiedCount ?? 0,
-      modelCount: modelQualifiedCount ?? 0,
-    },
-    {
-      key: "3",
-      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "3" }),
-      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 3),
-      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 3),
-    },
-    {
-      key: "6",
-      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "6" }),
-      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 6),
-      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 6),
-    },
-    {
-      key: "10",
-      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "10" }),
-      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 10),
-      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 10),
-    },
-    {
-      key: "20",
-      label: t("ecommerce.affiliateWorkspace.intelligenceReachThresholdUnits", { units: "20" }),
-      humanCount: cumulativeHistogramCountAtOrAbove(historicalBuckets, 20),
-      modelCount: cumulativeHistogramCountAtOrAbove(modelBuckets, 20),
-    },
-  ];
-
-  return (
-    <div className="affiliate-intelligence-distribution-card affiliate-intelligence-reach-card">
-      <div className="affiliate-intelligence-distribution-head">
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.intelligenceReachStatsTitle")}</span>
-          <strong>{t("ecommerce.affiliateWorkspace.intelligenceReachStatsHeadline")}</strong>
-        </div>
-        <small>
-          {t("ecommerce.affiliateWorkspace.intelligenceReachStatsHint", {
-            bar: formatNumber(bar, 1),
-            window: windowLabel,
-          })}
-        </small>
-      </div>
-
-      <div className="affiliate-intelligence-stat-strip">
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications")}
-          value={formatInteger(historicalSampleCount)}
-        />
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
-          value={formatInteger(historicalQualifiedCount)}
-        />
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
-          value={formatInteger(modelQualifiedCount)}
-        />
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceOverlookedQualifiedCreators")}
-          value={formatInteger(overlookedCount)}
-        />
-      </div>
-
-      <div className="affiliate-intelligence-reach-compare" role="img">
-        <AffiliateReachRow
-          label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
-          value={formatInteger(historicalQualifiedCount)}
-          width={humanWidth}
-          variant="human"
-        />
-        <AffiliateReachRow
-          label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
-          value={formatInteger(modelQualifiedCount)}
-          width={modelWidth}
-          variant="model"
-        />
-      </div>
-
-      <AffiliateReachCumulativeChart rows={cumulativeRows} />
-
-      <div className="affiliate-intelligence-reach-note">
-        <strong>
-          {t("ecommerce.affiliateWorkspace.intelligenceReachOpportunityTitle", {
-            count: overlookedCount ?? 0,
-          })}
-        </strong>
-        <span>{t("ecommerce.affiliateWorkspace.intelligenceReachOpportunityBody")}</span>
-      </div>
-    </div>
-  );
-}
-
-function AffiliateReachCumulativeChart({
-  rows,
-}: {
-  rows: Array<{
-    key: string;
-    label: string;
-    humanCount: number;
-    modelCount: number;
-  }>;
-}) {
-  const { t } = useTranslation();
-  const maxCount = Math.max(1, ...rows.flatMap((row) => [row.humanCount, row.modelCount]));
-
-  return (
-    <div className="affiliate-intelligence-cumulative">
-      <div className="affiliate-intelligence-cumulative-head">
-        <strong>{t("ecommerce.affiliateWorkspace.intelligenceReachCumulativeTitle")}</strong>
-        <span>{t("ecommerce.affiliateWorkspace.intelligenceReachCumulativeHint")}</span>
-      </div>
-      <div className="affiliate-intelligence-cumulative-grid" role="img">
-        {rows.map((row) => {
-          const humanHeight = Math.max(3, Math.round((row.humanCount / maxCount) * 100));
-          const modelHeight = Math.max(3, Math.round((row.modelCount / maxCount) * 100));
-          return (
-            <div key={row.key} className="affiliate-intelligence-cumulative-column">
-              <div className="affiliate-intelligence-cumulative-bars">
-                <span
-                  className="affiliate-intelligence-cumulative-bar affiliate-intelligence-cumulative-bar-human"
-                  style={{ height: `${humanHeight}%` }}
-                  title={`${row.label} · ${formatInteger(row.humanCount)}`}
-                />
-                <span
-                  className="affiliate-intelligence-cumulative-bar affiliate-intelligence-cumulative-bar-model"
-                  style={{ height: `${modelHeight}%` }}
-                  title={`${row.label} · ${formatInteger(row.modelCount)}`}
-                />
-              </div>
-              <strong>{row.label}</strong>
-              <small>
-                {formatInteger(row.humanCount)} / {formatInteger(row.modelCount)}
-              </small>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AffiliateReachRow({
-  label,
-  value,
-  width,
-  variant,
-}: {
-  label: string;
-  value: string;
-  width: string;
-  variant: "human" | "model";
-}) {
-  return (
-    <div className={`affiliate-intelligence-reach-row affiliate-intelligence-reach-row-${variant}`}>
-      <div className="affiliate-intelligence-reach-row-head">
-        <strong>{label}</strong>
-        <span>{value}</span>
-      </div>
-      <div className="affiliate-intelligence-reach-track">
-        <i style={{ width }} />
-      </div>
-    </div>
   );
 }
 
@@ -1466,25 +1061,6 @@ function histogramTotal(buckets: AffiliateSalesHistogramBucket[]): number {
   return buckets.reduce((sum, bucket) => sum + bucket.count, 0);
 }
 
-function cumulativeHistogramCountAtOrAbove(
-  buckets: AffiliateSalesHistogramBucket[],
-  threshold: number,
-): number {
-  return buckets.reduce((sum, bucket) => {
-    const lowerBound = salesBucketLowerBound(bucket.key);
-    if (lowerBound == null || lowerBound < threshold) return sum;
-    return sum + bucket.count;
-  }, 0);
-}
-
-function salesBucketLowerBound(key: string): number | null {
-  const normalized = key.toLowerCase().replace(/\+/g, "_plus");
-  const match = normalized.match(/^(\d+(?:\.\d+)?)/);
-  if (!match) return null;
-  const parsed = Number(match[1]);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 function salesBucketClass(key: string): string {
   return key.replace(/\+/g, "_plus").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unknown";
 }
@@ -1503,35 +1079,6 @@ function AffiliateSparkIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
       <path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15z" />
-    </svg>
-  );
-}
-
-function AffiliateTargetIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-    </svg>
-  );
-}
-
-function AffiliateShieldIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3l7 3v5c0 4.6-2.7 8-7 10-4.3-2-7-5.4-7-10V6l7-3z" />
-      <path d="M8.5 12.2l2.1 2.1 4.9-5" />
-    </svg>
-  );
-}
-
-function AffiliateGaugeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 14a8 8 0 0 1 16 0" />
-      <path d="M12 14l4-5" />
-      <path d="M6 18h12" />
     </svg>
   );
 }

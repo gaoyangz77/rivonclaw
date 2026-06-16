@@ -881,6 +881,8 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
       latestModelEfficiencySummary {
         userId
         shopId
+        modelScope
+        tenantId
         trainedAt
         evaluationScope
         rowCount
@@ -900,6 +902,35 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
         payload
         createdAt
       }
+    }
+  }
+`;
+
+export const AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY = gql`
+  query AffiliateMlInsightSummaries($input: AffiliateMlInsightSummariesInput) {
+    affiliateMlInsightSummaries(input: $input) {
+      userId
+      shopId
+      modelScope
+      tenantId
+      trainedAt
+      evaluationScope
+      rowCount
+      humanApprovedCount
+      humanApprovalRate
+      modelSameBudgetCount
+      minExpectedSalesUnitsSameBudget
+      modelSameBudgetExpectedUnits
+      humanSameBudgetExpectedUnits
+      modelVsHumanExpectedUnitsLiftRatio
+      modelSelectedHumanRejectedCount
+      modelRejectedHumanApprovedCount
+      modelRejectedHumanApprovedActualUnits
+      humanApprovedObservedCount
+      humanApprovedActualUnits
+      humanApprovedActualAvgUnits
+      payload
+      createdAt
     }
   }
 `;
