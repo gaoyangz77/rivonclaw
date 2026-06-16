@@ -74,8 +74,9 @@ const END_SESSION_GUIDANCE = [
   "Before ending, verify there is no open escalation, no unresolved follow-up, no pending buyer choice/action, and the latest buyer message explicitly indicates no more help is needed or confirms a completed action that requires no response.",
   "Do not end the session after short acknowledgements, apologies, or backchannels such as 'ok', 'oh mb', 'got it', or 'thanks'; reply or leave the session open so the buyer can finish.",
   "Do not end immediately after offering a choice, cancellation check, replacement/refund step, tracking follow-up, or anything that may invite another buyer response.",
-  "In after-sales service, if recent order context exists, provide reviewRequestMessage when calling ecom_cs_end_session; the backend sends that warm review request before ending the session.",
-  "Ending the session lets the platform close the support session cleanly and may show the buyer the appropriate review/evaluation flow.",
+  "When the buyer seems satisfied or their request has been fully handled, provide reviewRequestMessage when calling ecom_cs_end_session; write it in the customer's language and ask for a positive customer-service rating/evaluation, not a product or order review.",
+  "Do not ask for a customer-service rating if the buyer's request is unresolved or the customer may be frustrated.",
+  "If provided, the backend sends reviewRequestMessage before ending the session, then the platform closes the support session cleanly.",
   "Never call ecom_cs_end_session while an escalation is still open or while the buyer still needs service.",
 ].join(" ");
 
@@ -183,10 +184,10 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
     case "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP":
       return [
         "This resolved customer-service conversation needs a close-out decision.",
-        "Inspect the latest conversation and order context before taking action.",
-        "If the issue is fully handled and recent order context exists, call ecom_cs_end_session with reviewRequestMessage in the customer's language; the backend sends that message before ending the session.",
+        "Inspect the latest conversation context before taking action.",
+        "If the issue is fully handled and the buyer seems satisfied, call ecom_cs_end_session with reviewRequestMessage in the customer's language asking for a positive customer-service rating/evaluation.",
         "If the buyer still needs help, reply appropriately and keep the session open.",
-        "If asking for a review would be inappropriate, keep the session open unless the platform context clearly supports ending without a review request.",
+        "If the request is unresolved or asking for a customer-service rating may frustrate the customer, keep the session open and handle the case instead of ending it.",
         END_SESSION_GUIDANCE,
       ].join(" ");
     case "UNPAID_ORDER_FOLLOW_UP":

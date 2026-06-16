@@ -10,11 +10,13 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
     expect(prompt).toContain("Never call ecom_cs_end_session while an escalation is still open");
   });
 
-  it("requires resolved close-out dispatches to use reviewRequestMessage for recent orders", () => {
+  it("guides resolved close-out dispatches to request service ratings only when appropriate", () => {
     const prompt = buildCsAgentDispatchSystemPrompt("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP");
 
     expect(prompt).toContain("reviewRequestMessage");
-    expect(prompt).toContain("the backend sends that message before ending the session");
+    expect(prompt).toContain("customer-service rating/evaluation");
+    expect(prompt).toContain("not a product or order review");
+    expect(prompt).toContain("may frustrate the customer");
     expect(prompt).toContain("If the buyer still needs help");
   });
 });
