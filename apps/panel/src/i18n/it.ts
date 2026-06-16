@@ -2168,7 +2168,8 @@ export default {
       "Default": "Predefinito",
       "ECOMMERCE_SELLER": "Venditore di e-commerce",
       "CUSTOMER_SERVICE": "Servizio clienti AI",
-      "SHOP_OPERATIONS": "Operazioni di negozio"
+      "SHOP_OPERATIONS": "Operazioni di negozio",
+      "AFFILIATE_OPERATOR": "Operazioni affiliate"
     }
   },
   "runProfileSelector": {
@@ -2404,6 +2405,12 @@ export default {
       "intelligenceStoreModel": "Modello negozio",
       "intelligenceStoreModelHint": "Usa solo la cronologia affiliate di questo negozio.",
       "intelligenceRecommendedModel": "Consigliato",
+      "intelligenceConfidenceHigh": "Alta confidenza",
+      "intelligenceConfidenceHighHint": "Questo incremento è relativamente stabile nella finestra holdout attuale e può essere usato come riferimento principale.",
+      "intelligenceConfidenceLow": "Bassa confidenza",
+      "intelligenceConfidenceLowHint": "Questo incremento ha maggiore incertezza. Trattalo come indicazione direzionale e confrontalo con il modello account e il giudizio del team.",
+      "intelligenceConfidenceMedium": "Confidenza media",
+      "intelligenceConfidenceMediumHint": "La direzione dell'incremento è più chiara, ma la stabilità non ha ancora raggiunto alta confidenza.",
       "intelligenceBusinessVerdict": "La selezione del modello è più efficiente",
       "intelligenceBusinessVerdictLift": "Con lo stesso budget campioni, il modello classifica creator che dovrebbero vendere {{lift}} in più rispetto alla selezione storica dello staff.",
       "intelligenceBusinessVerdictNeutral": "Questo ambito non mostra ancora un miglioramento chiaro rispetto alla selezione storica dello staff.",
@@ -2909,6 +2916,25 @@ export default {
         "modelUsageScopeHint": "Scegli se questo negozio usa il modello a livello account o il proprio modello negozio per le previsioni di vendite attese.",
         "modelUsageScopeUserLevel": "User level",
         "modelUsageScopeShopLevel": "Shop level",
+        "modelRecommendationTitle": "Consigliato: {{scope}}",
+        "modelRecommendationSelected": "Il modello consigliato è attualmente in uso",
+        "modelRecommendationSwitch": "Cambio consigliato",
+        "modelRecommendationPending": "Consiglio modello non disponibile",
+        "modelRecommendationLoading": "Lettura dei dati di performance del modello di questo negozio.",
+        "modelRecommendationUnavailable": "Aggiorna l'intelligence per mostrare qui il consiglio.",
+        "modelRecommendationIncomplete": "I dati di performance del modello sono incompleti, quindi il modello account resta il default.",
+        "modelRecommendationNoData": "Ancora nessun dato",
+        "modelRecommendationReasons": {
+          "account_more_stable": "Il modello account usa la cronologia creator cross-shop ed è attualmente il default più stabile per questo negozio.",
+          "shop_clear_advantage": "Il modello negozio mostra un vantaggio più chiaro per questo negozio nella finestra di test holdout, con confidenza non bassa.",
+          "only_account": "Al momento solo il modello account ha una valutazione disponibile.",
+          "only_shop": "Al momento solo il modello negozio ha una valutazione disponibile."
+        },
+        "modelConfidence": {
+          "high": "Alta confidenza",
+          "medium": "Confidenza media",
+          "low": "Bassa confidenza"
+        },
         "decisionThresholds": "Soglie decisionali",
         "minExpectedSalesUnits": "Unità di vendita minime expected sales",
         "minExpectedSalesUnitsHint": "Quando una collaborazione non ha una soglia di campagna più specifica, l'agente la utilizza come riferimento predefinito per la procedura/revisione del campione. Lasciare vuoto per nessuna soglia numerica predefinita.",

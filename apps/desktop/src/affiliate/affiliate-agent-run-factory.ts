@@ -7,7 +7,6 @@ export interface AffiliateAgentRunFactoryInput {
   conversationDelta?: string;
   proposalDeltaSection?: string;
   predictionSection?: string;
-  sampleReviewDecisionSection?: string;
   predictionCacheIds?: readonly string[];
   businessPrompt?: string | null;
   decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
@@ -30,8 +29,6 @@ export function buildAffiliateAgentRunRequest(
   switch (resolveAgentRunKind(workItem)) {
     case "CREATOR_REPLY":
       return buildCreatorReplyRun(input);
-    case "SAMPLE_REVIEW":
-      return buildSampleReviewRun(input);
     case "CONTENT_FOLLOW_UP":
       return buildContentFollowUpRun(input);
     default:
@@ -39,14 +36,12 @@ export function buildAffiliateAgentRunRequest(
   }
 }
 
-type AffiliateAgentRunKind = "CREATOR_REPLY" | "SAMPLE_REVIEW" | "CONTENT_FOLLOW_UP";
+type AffiliateAgentRunKind = "CREATOR_REPLY" | "CONTENT_FOLLOW_UP";
 
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
   switch (workItem.requiredAction) {
     case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
       return "CREATOR_REPLY";
-    case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
-      return "SAMPLE_REVIEW";
     case GQL.AffiliateCollaborationRequiredAction.FollowUpContent:
       return "CONTENT_FOLLOW_UP";
     default:
@@ -57,8 +52,6 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
   switch (workItem.workKind) {
     case GQL.AffiliateWorkKind.CreatorReplyNeeded:
       return "CREATOR_REPLY";
-    case GQL.AffiliateWorkKind.SampleReviewNeeded:
-      return "SAMPLE_REVIEW";
     case GQL.AffiliateWorkKind.ContentFollowUpDue:
       return "CONTENT_FOLLOW_UP";
     default:
@@ -106,56 +99,6 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
   };
 }
 
-function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
-  const { workItem, platform } = input;
-  const sample = workItem.sampleApplicationRecord;
-  return {
-    message: [
-      "[Affiliate Work Item: Sample Review Needed]",
-      "",
-      renderWorkItemProjection(workItem),
-      "",
-      renderProposalDeltaSection(input),
-      "",
-      renderPredictionSection(input),
-      "",
-      renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
-      "",
-      renderSampleReviewDecisionSection(input),
-      "",
-      renderBusinessPrompt(input.businessPrompt),
-      "",
-      renderSampleReviewActionTemplate(input),
-      "",
-      "## Task",
-      "Review the sample request and decide whether the seller should approve it, reject it, or ask a human/operator for more context.",
-      "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
-      renderResolveWorkItemToolContract(),
-      `Set handledSignalAt to ${workItem.collaboration.lastSignalAt ?? "null"} so backend can ack this exact work boundary.`,
-      "If the merchant instructions depend on dynamic creator or shop facts, such as follower count, GMV, prior performance, sample cost, inventory, or current fulfillment state, call affiliate_get_workspace with the narrowest available filters before deciding.",
-      "If merchant instructions are not configured, do not invent follower-count, GMV, or sales thresholds. Use Affiliate Decision Thresholds when configured, otherwise use the Affiliate Prediction section as the primary decision signal plus concrete workspace facts such as block/risk tags and sample/product context.",
-      "Affiliate Prediction uses calibrated expected sales units. expectedSalesUnits is a statistical expected-value forecast for this creator/product/sample context, adjusted to the shop/account's historical outcome scale; it is not a guarantee of actual sales.",
-      "For sample review with prediction status OK and configured minExpectedSalesUnits, make a platform review decision by default: if expectedSalesUnits is below minExpectedSalesUnits, use REQUEST_ACTION with REVIEW_SAMPLE_APPLICATION and decision REJECT; if expectedSalesUnits meets or exceeds minExpectedSalesUnits, use REQUEST_ACTION with REVIEW_SAMPLE_APPLICATION and decision APPROVE, unless merchant instructions or workspace risk facts clearly override it.",
-      "If the Default Sample Review Decision section says APPROVE or REJECT, follow that default with REQUEST_ACTION unless a true blocker is explicitly listed in the work context.",
-      "Do not use NEEDS_STAFF_REVIEW only because follower count, GMV, or product metadata is imperfect when a prediction and decision threshold are already present. NEEDS_STAFF_REVIEW is reserved for true blockers: missing sample ids, conflicting merchant instructions, blocked/risky creator facts, inventory/fulfillment uncertainty that changes whether the sample can be sent, or an unsupported seller operation.",
-      "Write operatorSummary for a busy ecommerce seller, not a statistician. Explain the business meaning in plain language, for example: \"The expected-sales model estimates around 0 units for this creator and product, below the shop's minimum of 2, so rejecting the sample is recommended.\" Do not include raw model internals, calibration details, or training parameters unless the merchant explicitly asks.",
-      "If the approval/rejection decision is clear, use decision REQUEST_ACTION with action.type REVIEW_SAMPLE_APPLICATION.",
-      "If a creator-facing message should be sent together with the sample decision, use input.actions as an ordered action list containing one REVIEW_SAMPLE_APPLICATION action and one separate SEND_MESSAGE action.",
-      renderPredictionCacheInstruction(input),
-      "If you include a creator-facing text message, the SEND_MESSAGE action's messageIntent must include messageType: TEXT and a non-empty text field containing the exact creator-facing message.",
-      "If business context is insufficient, use decision NEEDS_STAFF_REVIEW instead of ending with plain text.",
-      `Use operatorSummary for staff-facing reasoning in ${input.staffLanguage ?? "English"}. If you need to send text to the creator, put creator-facing copy only in the SEND_MESSAGE action's messageIntent.text.`,
-      "Use sampleReviewIntent.sampleApplicationRecordId and sampleReviewIntent.platformApplicationId from the projection; do not invent campaignId.",
-      "For REVIEW_SAMPLE_APPLICATION, do not put sampleApplicationRecordId, platformApplicationId, decision, rejectReason, productId, creatorId, or campaignId at the action top level. Keep sample identifiers and review decision inside action.sampleReviewIntent.",
-      "For sample approval, set action.sampleReviewIntent.decision to APPROVE.",
-      "For sample rejection, set action.sampleReviewIntent.decision to REJECT. If you set rejectReason, it must be exactly one of NOT_MATCH, OFFLINE, OUT_OF_STOCK, or OTHER; use OTHER for seller-specific rules such as follower-count thresholds, and put free-form rationale only in operatorSummary.",
-      "Do not include null fields in affiliate_resolve_work_item input. Omit optional fields entirely when they are not needed.",
-      "Do not write merchant/operator summaries as final assistant text. If approval policy requires review, the backend will create an ActionProposal. Stop there and reply exactly NO_REPLY.",
-    ].join("\n"),
-    idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${sample?.id ?? "sample"}:${workItem.versionAt}`,
-  };
-}
-
 function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
   const { workItem, platform } = input;
   return {
@@ -194,10 +137,6 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
 
 function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
-}
-
-function renderSampleReviewDecisionSection(input: AffiliateAgentRunFactoryInput): string {
-  return input.sampleReviewDecisionSection?.trim() || "## Default Sample Review Decision\n(none computed before dispatch)";
 }
 
 function renderResolveWorkItemToolContract(): string {
@@ -253,40 +192,6 @@ function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput):
     `For any REQUEST_ACTION decision in this work item, include predictionCacheIds: ${JSON.stringify(cacheIds)} on the typed action payload.`,
     "If you use input.actions, include the same predictionCacheIds on each action that creates, updates, approves, rejects, or messages within this collaboration.",
   ].join(" ");
-}
-
-function renderSampleReviewActionTemplate(input: AffiliateAgentRunFactoryInput): string {
-  const sample = input.workItem.sampleApplicationRecord;
-  if (!sample) {
-    return [
-      "## Required Sample Review Action Fields",
-      "No sample application projection was attached. Use NEEDS_STAFF_REVIEW instead of REVIEW_SAMPLE_APPLICATION.",
-    ].join("\n");
-  }
-
-  const predictionCacheIds = input.predictionCacheIds?.filter(Boolean) ?? [];
-  const predictionCacheLine = predictionCacheIds.length > 0
-    ? `  predictionCacheIds: ${JSON.stringify(predictionCacheIds)},`
-    : "  predictionCacheIds: [],";
-
-  return [
-    "## Required Sample Review Action Fields",
-    "If you choose REQUEST_ACTION with REVIEW_SAMPLE_APPLICATION, copy these exact IDs into action.sampleReviewIntent:",
-    `- sampleApplicationRecordId: ${sample.id}`,
-    `- platformApplicationId: ${sample.platformApplicationId}`,
-    "",
-    "Use this shape exactly, changing only decision/rejectReason based on your review:",
-    "{",
-    '  type: "REVIEW_SAMPLE_APPLICATION",',
-    predictionCacheLine,
-    "  sampleReviewIntent: {",
-    `    sampleApplicationRecordId: "${sample.id}",`,
-    `    platformApplicationId: "${sample.platformApplicationId}",`,
-    '    decision: "APPROVE" or "REJECT",',
-    '    rejectReason: "OTHER" only when decision is "REJECT"',
-    "  }",
-    "}",
-  ].join("\n");
 }
 
 export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): string {

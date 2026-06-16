@@ -2168,7 +2168,8 @@ export default {
       "Default": "Par défaut",
       "ECOMMERCE_SELLER": "Vendeur de commerce électronique",
       "CUSTOMER_SERVICE": "Service client IA",
-      "SHOP_OPERATIONS": "Opérations de magasin"
+      "SHOP_OPERATIONS": "Opérations de magasin",
+      "AFFILIATE_OPERATOR": "Opérations affiliées"
     }
   },
   "runProfileSelector": {
@@ -2404,6 +2405,12 @@ export default {
       "intelligenceStoreModel": "Modèle boutique",
       "intelligenceStoreModelHint": "Utilise uniquement l'historique affilié de cette boutique.",
       "intelligenceRecommendedModel": "Recommandé",
+      "intelligenceConfidenceHigh": "Confiance élevée",
+      "intelligenceConfidenceHighHint": "Ce gain est relativement stable dans la fenêtre de test holdout actuelle et peut servir de référence principale.",
+      "intelligenceConfidenceLow": "Confiance faible",
+      "intelligenceConfidenceLowHint": "Ce gain présente une incertitude plus élevée. Utilisez-le comme signal directionnel et comparez-le au modèle du compte et au jugement de l'équipe.",
+      "intelligenceConfidenceMedium": "Confiance moyenne",
+      "intelligenceConfidenceMediumHint": "La direction du gain est plus claire, mais sa stabilité n'atteint pas encore une confiance élevée.",
       "intelligenceBusinessVerdict": "La sélection du modèle est plus efficace",
       "intelligenceBusinessVerdictLift": "Avec le même budget d'échantillons, le modèle classe des créateurs censés vendre {{lift}} de plus que la sélection historique de l'équipe.",
       "intelligenceBusinessVerdictNeutral": "Ce périmètre ne montre pas encore d'amélioration claire par rapport à la sélection historique de l'équipe.",
@@ -2909,6 +2916,25 @@ export default {
         "modelUsageScopeHint": "Choisissez si cette boutique utilise le modèle du compte ou son propre modèle boutique pour les prévisions de ventes attendues.",
         "modelUsageScopeUserLevel": "User level",
         "modelUsageScopeShopLevel": "Shop level",
+        "modelRecommendationTitle": "Recommandé : {{scope}}",
+        "modelRecommendationSelected": "Le modèle recommandé est actuellement utilisé",
+        "modelRecommendationSwitch": "Changement recommandé",
+        "modelRecommendationPending": "Recommandation de modèle indisponible",
+        "modelRecommendationLoading": "Lecture des données de performance du modèle de cette boutique.",
+        "modelRecommendationUnavailable": "Actualisez Intelligence pour afficher la recommandation ici.",
+        "modelRecommendationIncomplete": "Les données de performance du modèle sont incomplètes ; le modèle du compte reste donc le choix par défaut.",
+        "modelRecommendationNoData": "Pas encore de données",
+        "modelRecommendationReasons": {
+          "account_more_stable": "Le modèle du compte utilise l'historique créateur multi-boutiques et constitue actuellement le choix par défaut le plus stable pour cette boutique.",
+          "shop_clear_advantage": "Le modèle boutique montre un avantage plus clair pour cette boutique dans la fenêtre de test holdout, avec une confiance non faible.",
+          "only_account": "Seul le modèle du compte dispose actuellement d'une évaluation.",
+          "only_shop": "Seul le modèle boutique dispose actuellement d'une évaluation."
+        },
+        "modelConfidence": {
+          "high": "Confiance élevée",
+          "medium": "Confiance moyenne",
+          "low": "Confiance faible"
+        },
         "decisionThresholds": "Seuils de décision",
         "minExpectedSalesUnits": "Unités de vente minimales expected sales",
         "minExpectedSalesUnitsHint": "Lorsqu'une collaboration n'a pas de seuil de campagne plus spécifique, l'agent l'utilise comme référence de procédure/d'examen d'échantillon par défaut. Laissez vide s’il n’y a pas de seuil numérique par défaut.",

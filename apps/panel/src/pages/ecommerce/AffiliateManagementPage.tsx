@@ -593,6 +593,8 @@ function AffiliateMlInsightsPanel({
 
   const payload = parseAffiliateInsightPayload(summary.payload);
   const sameBudgetPayload = payloadObject(payload, "same_sample_budget");
+  const sameBudgetConfidence = payloadObject(payload, "same_sample_budget_confidence");
+  const sameBudgetConfidenceLevel = affiliateConfidenceLevel(sameBudgetConfidence);
   const sameBudget = {
     ...sameBudgetPayload,
     historical_sample_count: payloadNumber(sameBudgetPayload, "historical_sample_count") ?? summary.rowCount,
@@ -719,6 +721,10 @@ function AffiliateMlInsightsPanel({
                 variant="human"
               />
             </div>
+
+            {sameBudgetConfidenceLevel === "low" || sameBudgetConfidenceLevel === "medium" ? (
+              <AffiliateConfidenceNotice level={sameBudgetConfidenceLevel} />
+            ) : null}
           </div>
 
           <AffiliateBudgetDistributionPanel
@@ -822,17 +828,20 @@ function AffiliateModelSourceSwitch({
       row: storeRow,
     },
   ];
-  const rankedRows = rows
-    .map((item) => ({
+  const rankedRows = rows.flatMap((item) => {
+    const lift = item.row?.summary?.modelVsHumanExpectedUnitsLiftRatio ?? null;
+    if (typeof lift !== "number" || !Number.isFinite(lift)) return [];
+    return [{
       key: item.key,
-      lift: item.row?.summary?.modelVsHumanExpectedUnitsLiftRatio ?? null,
-    }))
-    .filter((item): item is { key: AffiliateInsightModelScope; lift: number } => (
-      typeof item.lift === "number" && Number.isFinite(item.lift)
-    ));
+      lift,
+      confidenceLevel: item.row?.summary ? affiliateSummaryConfidenceLevel(item.row.summary) : null,
+    }];
+  });
+  const recommendationCandidates = rankedRows.filter((item) => item.confidenceLevel !== "low");
+  const candidates = recommendationCandidates.length > 0 ? recommendationCandidates : rankedRows;
   const recommendedScope =
-    rankedRows.length > 0
-      ? rankedRows.reduce((best, item) => (item.lift > best.lift ? item : best)).key
+    candidates.length > 0
+      ? candidates.reduce((best, item) => (item.lift > best.lift ? item : best)).key
       : null;
 
   return (
@@ -846,6 +855,7 @@ function AffiliateModelSourceSwitch({
           const lift = summary?.modelVsHumanExpectedUnitsLiftRatio == null
             ? null
             : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
+          const confidenceLevel = summary ? affiliateSummaryConfidenceLevel(summary) : null;
           const active = activeModelScope === item.key;
           return (
             <button
@@ -866,12 +876,34 @@ function AffiliateModelSourceSwitch({
                     : t("ecommerce.affiliateWorkspace.intelligenceNoModel")}
               </span>
               <small>{item.description}</small>
+              {confidenceLevel ? (
+                <b
+                  className={`affiliate-intelligence-confidence-chip affiliate-intelligence-confidence-chip-${confidenceLevel}`}
+                  title={t(`ecommerce.affiliateWorkspace.intelligenceConfidence${confidenceLevel === "low" ? "Low" : confidenceLevel === "medium" ? "Medium" : "High"}Hint`)}
+                >
+                  {t(`ecommerce.affiliateWorkspace.intelligenceConfidence${confidenceLevel === "low" ? "Low" : confidenceLevel === "medium" ? "Medium" : "High"}`)}
+                </b>
+              ) : null}
               {recommendedScope === item.key ? (
                 <em>{t("ecommerce.affiliateWorkspace.intelligenceRecommendedModel")}</em>
               ) : null}
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function AffiliateConfidenceNotice({ level }: { level: "low" | "medium" }) {
+  const { t } = useTranslation();
+  const suffix = level === "low" ? "Low" : "Medium";
+  return (
+    <div className={`affiliate-intelligence-confidence-note affiliate-intelligence-confidence-note-${level}`}>
+      <InfoIcon />
+      <div>
+        <strong>{t(`ecommerce.affiliateWorkspace.intelligenceConfidence${suffix}`)}</strong>
+        <span>{t(`ecommerce.affiliateWorkspace.intelligenceConfidence${suffix}Hint`)}</span>
       </div>
     </div>
   );
@@ -1118,10 +1150,25 @@ function payloadNumber(payload: AffiliateInsightPayload, key: string): number | 
   return null;
 }
 
+function payloadString(payload: AffiliateInsightPayload, key: string): string | null {
+  const value = payload[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function payloadObject(payload: AffiliateInsightPayload, key: string): AffiliateInsightPayload {
   const value = payload[key];
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as AffiliateInsightPayload;
+}
+
+function affiliateConfidenceLevel(payload: AffiliateInsightPayload): "low" | "medium" | "high" | null {
+  const level = payloadString(payload, "level")?.toLowerCase();
+  return level === "low" || level === "medium" || level === "high" ? level : null;
+}
+
+function affiliateSummaryConfidenceLevel(summary: GQL.AffiliateMlModelEfficiencySummary): "low" | "medium" | "high" | null {
+  const payload = parseAffiliateInsightPayload(summary.payload);
+  return affiliateConfidenceLevel(payloadObject(payload, "same_sample_budget_confidence"));
 }
 
 function payloadHistogram(payload: AffiliateInsightPayload, key: string): AffiliateSalesHistogramBucket[] {

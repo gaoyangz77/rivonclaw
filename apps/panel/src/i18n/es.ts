@@ -2168,7 +2168,8 @@ export default {
       "Default": "Predeterminado",
       "ECOMMERCE_SELLER": "Vendedor de comercio electrónico",
       "CUSTOMER_SERVICE": "Servicio al cliente de IA",
-      "SHOP_OPERATIONS": "Operaciones de tienda"
+      "SHOP_OPERATIONS": "Operaciones de tienda",
+      "AFFILIATE_OPERATOR": "Operaciones de afiliados"
     }
   },
   "runProfileSelector": {
@@ -2404,6 +2405,12 @@ export default {
       "intelligenceStoreModel": "Modelo de tienda",
       "intelligenceStoreModelHint": "Usa solo el historial affiliate de esta tienda.",
       "intelligenceRecommendedModel": "Recomendado",
+      "intelligenceConfidenceHigh": "Confianza alta",
+      "intelligenceConfidenceHighHint": "Esta mejora es relativamente estable en la ventana holdout actual y puede usarse como referencia principal.",
+      "intelligenceConfidenceLow": "Confianza baja",
+      "intelligenceConfidenceLowHint": "Esta mejora tiene mayor incertidumbre. Trátala como direccional y compárala con el modelo de cuenta y el criterio del equipo.",
+      "intelligenceConfidenceMedium": "Confianza media",
+      "intelligenceConfidenceMediumHint": "La dirección de la mejora es más clara, pero su estabilidad aún no alcanza confianza alta.",
       "intelligenceBusinessVerdict": "La selección del modelo es más eficiente",
       "intelligenceBusinessVerdictLift": "Con el mismo presupuesto de muestras, el modelo prioriza creadores que se espera vendan {{lift}} más que la selección histórica del equipo.",
       "intelligenceBusinessVerdictNeutral": "Este alcance aún no muestra una mejora clara frente a la selección histórica del equipo.",
@@ -2909,6 +2916,25 @@ export default {
         "modelUsageScopeHint": "Elige si esta tienda usa el modelo a nivel de cuenta o su propio modelo de tienda para predecir ventas esperadas.",
         "modelUsageScopeUserLevel": "User level",
         "modelUsageScopeShopLevel": "Shop level",
+        "modelRecommendationTitle": "Recomendado: {{scope}}",
+        "modelRecommendationSelected": "Actualmente usa el modelo recomendado",
+        "modelRecommendationSwitch": "Se recomienda cambiar",
+        "modelRecommendationPending": "Recomendación de modelo no disponible",
+        "modelRecommendationLoading": "Leyendo los datos de rendimiento del modelo de esta tienda.",
+        "modelRecommendationUnavailable": "Actualiza la inteligencia para mostrar aquí la recomendación.",
+        "modelRecommendationIncomplete": "Los datos de rendimiento del modelo están incompletos, por lo que el modelo de cuenta sigue siendo el predeterminado.",
+        "modelRecommendationNoData": "Sin datos aún",
+        "modelRecommendationReasons": {
+          "account_more_stable": "El modelo de cuenta usa historial de creadores entre tiendas y actualmente es el predeterminado más estable para esta tienda.",
+          "shop_clear_advantage": "El modelo de tienda muestra una ventaja más clara para esta tienda en la ventana de prueba holdout, con confianza no baja.",
+          "only_account": "Solo el modelo de cuenta tiene una evaluación disponible ahora.",
+          "only_shop": "Solo el modelo de tienda tiene una evaluación disponible ahora."
+        },
+        "modelConfidence": {
+          "high": "Confianza alta",
+          "medium": "Confianza media",
+          "low": "Confianza baja"
+        },
         "decisionThresholds": "Umbrales de decisión",
         "minExpectedSalesUnits": "Unidades de venta mínimas expected sales",
         "minExpectedSalesUnitsHint": "Cuando una colaboración no tiene un umbral de campaña más específico, el agente lo utiliza como referencia predeterminada de proceder/revisión de muestra. Déjelo vacío si no hay un umbral numérico predeterminado.",

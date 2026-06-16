@@ -2168,7 +2168,8 @@ export default {
       "Default": "Standard",
       "ECOMMERCE_SELLER": "E-Commerce-Verkäufer",
       "CUSTOMER_SERVICE": "KI-Kundenservice",
-      "SHOP_OPERATIONS": "Shop-Betrieb"
+      "SHOP_OPERATIONS": "Shop-Betrieb",
+      "AFFILIATE_OPERATOR": "Affiliate-Betrieb"
     }
   },
   "runProfileSelector": {
@@ -2404,6 +2405,12 @@ export default {
       "intelligenceStoreModel": "Shop-Modell",
       "intelligenceStoreModelHint": "Nutzt nur die Affiliate-Historie dieses Shops.",
       "intelligenceRecommendedModel": "Empfohlen",
+      "intelligenceConfidenceHigh": "Hohe Sicherheit",
+      "intelligenceConfidenceHighHint": "Dieser Lift ist im aktuellen Holdout-Testfenster relativ stabil und kann als Hauptreferenz genutzt werden.",
+      "intelligenceConfidenceLow": "Niedrige Sicherheit",
+      "intelligenceConfidenceLowHint": "Dieser Lift hat höhere Unsicherheit. Nutzen Sie ihn als Richtungssignal und vergleichen Sie ihn mit Konto-Modell und Teamurteil.",
+      "intelligenceConfidenceMedium": "Mittlere Sicherheit",
+      "intelligenceConfidenceMediumHint": "Die Lift-Richtung ist klarer, erreicht aber noch keine hohe Sicherheit.",
       "intelligenceBusinessVerdict": "Modellauswahl ist effizienter",
       "intelligenceBusinessVerdictLift": "Bei gleichem Sample-Budget stuft das Modell Creator ein, die voraussichtlich {{lift}} mehr verkaufen als historische Mitarbeiterauswahl.",
       "intelligenceBusinessVerdictNeutral": "Dieser Bereich zeigt noch keinen klaren Vorteil gegenüber historischer Mitarbeiterauswahl.",
@@ -2909,6 +2916,25 @@ export default {
         "modelUsageScopeHint": "Wählen Sie, ob dieser Shop das Konto-Modell oder das eigene Shop-Modell für Expected-Sales-Prognosen verwendet.",
         "modelUsageScopeUserLevel": "User level",
         "modelUsageScopeShopLevel": "Shop level",
+        "modelRecommendationTitle": "Empfohlen: {{scope}}",
+        "modelRecommendationSelected": "Aktuell wird das empfohlene Modell verwendet",
+        "modelRecommendationSwitch": "Wechsel empfohlen",
+        "modelRecommendationPending": "Modellempfehlung nicht verfügbar",
+        "modelRecommendationLoading": "Lese die Modellleistung dieses Shops.",
+        "modelRecommendationUnavailable": "Aktualisieren Sie Intelligence, um hier eine Empfehlung zu sehen.",
+        "modelRecommendationIncomplete": "Die Modellleistungsdaten sind unvollständig, daher bleibt das Konto-Modell der Standard.",
+        "modelRecommendationNoData": "Noch keine Daten",
+        "modelRecommendationReasons": {
+          "account_more_stable": "Das Konto-Modell nutzt Creator-Historie über Shops hinweg und ist derzeit der stabilere Standard für diesen Shop.",
+          "shop_clear_advantage": "Das Shop-Modell zeigt in der Holdout-Testfenster-Auswertung einen klareren Vorteil für diesen Shop und hat keine niedrige Sicherheit.",
+          "only_account": "Derzeit hat nur das Konto-Modell eine verfügbare Auswertung.",
+          "only_shop": "Derzeit hat nur das Shop-Modell eine verfügbare Auswertung."
+        },
+        "modelConfidence": {
+          "high": "Hohe Sicherheit",
+          "medium": "Mittlere Sicherheit",
+          "low": "Niedrige Sicherheit"
+        },
         "decisionThresholds": "Entscheidungsschwellen",
         "minExpectedSalesUnits": "Mindestverkaufseinheiten expected sales",
         "minExpectedSalesUnitsHint": "Wenn es für eine Zusammenarbeit keinen spezifischeren Kampagnenschwellenwert gibt, verwendet der Agent diesen als Standardreferenz für die Fortsetzung/Beispielüberprüfung. Lassen Sie das Feld leer, wenn es keinen standardmäßigen numerischen Schwellenwert gibt.",
