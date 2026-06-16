@@ -954,6 +954,18 @@ export interface AffiliateDecisionThresholdsInput {
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
+export interface AffiliateExpectedSalesModelVersion {
+  bentomlTag?: Maybe<Scalars['String']['output']>;
+  featureVersion?: Maybe<Scalars['String']['output']>;
+  modelFamily?: Maybe<Scalars['String']['output']>;
+  modelVersionKey?: Maybe<Scalars['String']['output']>;
+  tenantModelName?: Maybe<Scalars['String']['output']>;
+  tenantScope?: Maybe<Scalars['String']['output']>;
+  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  trainingIndex?: Maybe<Scalars['Int']['output']>;
+  trainingRunId?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateExpectedSalesPredictionBucket {
   actualAvgUnits?: Maybe<Scalars['Float']['output']>;
   actualMedianUnits?: Maybe<Scalars['Float']['output']>;
@@ -965,18 +977,6 @@ export interface AffiliateExpectedSalesPredictionBucket {
   sampleCount?: Maybe<Scalars['Int']['output']>;
   scoreMax?: Maybe<Scalars['Float']['output']>;
   scoreMin?: Maybe<Scalars['Float']['output']>;
-}
-
-export interface AffiliateExpectedSalesModelVersion {
-  bentomlTag?: Maybe<Scalars['String']['output']>;
-  featureVersion?: Maybe<Scalars['String']['output']>;
-  modelFamily?: Maybe<Scalars['String']['output']>;
-  modelVersionKey?: Maybe<Scalars['String']['output']>;
-  tenantModelName?: Maybe<Scalars['String']['output']>;
-  tenantScope?: Maybe<Scalars['String']['output']>;
-  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  trainingIndex?: Maybe<Scalars['Int']['output']>;
-  trainingRunId?: Maybe<Scalars['String']['output']>;
 }
 
 export interface AffiliateExpectedSalesPredictionContextInput {
@@ -1014,11 +1014,11 @@ export interface AffiliateExpectedSalesPredictionPayload {
 }
 
 export interface AffiliateExpectedSalesPredictionQuality {
-  predictionBucketSupportScore?: Maybe<Scalars['Float']['output']>;
   dataSupportScore?: Maybe<Scalars['Float']['output']>;
   featureCompletenessScore?: Maybe<Scalars['Float']['output']>;
   interpretation?: Maybe<Scalars['String']['output']>;
   level?: Maybe<Scalars['String']['output']>;
+  predictionBucketSupportScore?: Maybe<Scalars['Float']['output']>;
   probabilityMarginScore?: Maybe<Scalars['Float']['output']>;
   score?: Maybe<Scalars['Float']['output']>;
 }
@@ -1083,8 +1083,8 @@ export interface AffiliateExpectedSalesSubjectPrediction {
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   humanBaseline?: Maybe<AffiliateHumanBaselinePrediction>;
   message?: Maybe<Scalars['String']['output']>;
-  predictionInterval?: Maybe<AffiliateExpectedSalesPredictionInterval>;
   predictionBucket?: Maybe<AffiliateExpectedSalesPredictionBucket>;
+  predictionInterval?: Maybe<AffiliateExpectedSalesPredictionInterval>;
   predictionQuality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
   resolvedContext?: Maybe<AffiliateExpectedSalesResolvedContext>;
   status: AffiliateExpectedSalesSubjectPredictionStatus;
@@ -6178,13 +6178,17 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
   collaborationRecord: AffiliateCollaborationRecord;
 }
 
-/** One backend-supported TikTok affiliate platform write action. Populate exactly one intent field matching type: SEND_MESSAGE -> messageIntent, REVIEW_SAMPLE_APPLICATION -> sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
+/** One backend-supported TikTok affiliate platform write action. Populate exactly one intent field matching type: SEND_MESSAGE -> messageIntent or the typed messageText shortcut, REVIEW_SAMPLE_APPLICATION -> sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  /** Required only when type is SEND_MESSAGE. For TEXT messages, text is required and must contain the exact creator-facing message. Do not populate this for REVIEW_SAMPLE_APPLICATION. */
+  /** Required only when type is SEND_MESSAGE unless messageText is provided. For TEXT messages, text must contain the exact creator-facing message. Do not populate this for REVIEW_SAMPLE_APPLICATION. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
+  /** Agent-facing shortcut for SEND_MESSAGE actions. Put the exact creator-facing text here. Backend normalizes this into messageIntent.text before validation and execution. */
+  messageText?: InputMaybe<Scalars['String']['input']>;
+  /** Optional SEND_MESSAGE shortcut companion. Defaults to TEXT when messageText or messageIntent.text is present. */
+  messageType?: InputMaybe<AffiliateOutboundMessageType>;
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION. sampleApplicationRecordId, platformApplicationId, decision, and rejectReason belong inside this object, never at the action top level. */

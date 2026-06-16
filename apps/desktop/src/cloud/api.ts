@@ -76,7 +76,9 @@ function sanitizeCloudGraphqlVariables(
   opName: string | null,
   variables: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
-  if (opName !== AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME || !variables) return variables;
+  if (!variables || (opName !== AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME && !looksLikeAffiliateResolveWorkItemVariables(variables))) {
+    return variables;
+  }
 
   const input = asRecord(variables.input);
   if (!input || input.decision !== "REQUEST_ACTION") return variables;
@@ -100,30 +102,55 @@ function sanitizeCloudGraphqlVariables(
   if (actionLike.length === 0 || normalizedActions.some(isInvalidAffiliateResolveAction)) {
     const reason =
       "Desktop blocked an invalid affiliate action payload before sending it to backend. " +
-      "The agent attempted REQUEST_ACTION but omitted required typed action fields.";
-    log.warn(reason);
-    return {
-      ...variables,
-      input: {
-        ...input,
-        decision: "NEEDS_STAFF_REVIEW",
-        operatorSummary: appendOperatorSummary(input.operatorSummary, reason),
-        action: undefined,
-        actions: undefined,
-        nextSellerActionAt: undefined,
-      },
-    };
+      "The agent attempted REQUEST_ACTION but omitted required typed action fields. " +
+      "This is a tool payload schema error, not a business reason for NEEDS_STAFF_REVIEW. " +
+      "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
+      "For SEND_MESSAGE use action.messageText with the exact creator-facing message; never send messageIntent: {}.";
+    throw new Error(`${reason} ${describeAffiliateResolveActionShape(actionLike)}`);
   }
 
   return variables;
 }
 
+function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, unknown>): boolean {
+  const input = asRecord(variables.input);
+  if (!input) return false;
+  return (
+    typeof input.decision === "string" &&
+    (hasNonEmptyString(input.collaborationRecordId) ||
+      hasNonEmptyString(input.shopId) ||
+      input.action != null ||
+      Array.isArray(input.actions))
+  );
+}
+
 function normalizeAffiliateResolveAction(value: unknown): unknown {
   const action = asRecord(value);
-  if (!action || action.type !== "REVIEW_SAMPLE_APPLICATION") return value;
+  if (!action) return value;
+  const actionType = normalizeAffiliateActionType(action.type);
+  if (!actionType) return value;
 
+  switch (actionType) {
+    case "SEND_MESSAGE":
+      return normalizeAffiliateSendMessageAction({ ...action, type: actionType });
+    case "REVIEW_SAMPLE_APPLICATION":
+      return normalizeAffiliateSampleReviewAction({ ...action, type: actionType });
+    case "CREATE_TARGET_COLLABORATION":
+      return normalizeAffiliateTargetCollaborationAction({ ...action, type: actionType });
+    default:
+      return value;
+  }
+}
+
+function normalizeAffiliateActionType(value: unknown): string | null {
+  return typeof value === "string" ? value.trim().toUpperCase() : null;
+}
+
+function normalizeAffiliateSampleReviewAction(action: Record<string, unknown>): unknown {
   const existingIntent = asRecord(action.sampleReviewIntent);
-  if (existingIntent && !isInvalidAffiliateResolveAction(action)) return value;
+  if (existingIntent && !isInvalidAffiliateResolveAction(action)) {
+    return pickAffiliateActionFields(action, "sampleReviewIntent", existingIntent);
+  }
 
   const sampleApplicationRecordId = action.sampleApplicationRecordId;
   const platformApplicationId = action.platformApplicationId;
@@ -134,23 +161,72 @@ function normalizeAffiliateResolveAction(value: unknown): unknown {
     !hasNonEmptyString(platformApplicationId) ||
     !["APPROVE", "REJECT"].includes(String(decision ?? ""))
   ) {
-    return value;
+    return action;
   }
 
-  const normalized: Record<string, unknown> = {
+  const sampleReviewIntent: Record<string, unknown> = {
+    sampleApplicationRecordId,
+    platformApplicationId,
+    decision,
+  };
+  if (hasNonEmptyString(rejectReason)) {
+    sampleReviewIntent.rejectReason = rejectReason;
+  }
+  return pickAffiliateActionFields(action, "sampleReviewIntent", sampleReviewIntent);
+}
+
+function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): unknown {
+  const existingIntent = asRecord(action.messageIntent);
+  if (existingIntent) {
+    const messageIntent: Record<string, unknown> = { ...existingIntent };
+    if (!hasNonEmptyString(messageIntent.text)) {
+      const text = firstNonEmptyString(
+        messageIntent.text,
+        messageIntent.messageText,
+        messageIntent.content,
+        messageIntent.body,
+        action.text,
+        action.messageText,
+        action.content,
+        action.body,
+      );
+      if (text) messageIntent.text = text;
+    }
+    if (!hasNonEmptyString(messageIntent.messageType)) {
+      messageIntent.messageType = action.messageType ?? "TEXT";
+    }
+    return pickAffiliateActionFields(action, "messageIntent", messageIntent);
+  }
+
+  const text = firstNonEmptyString(action.text, action.messageText, action.content, action.body);
+  if (!text) return action;
+  const messageIntent: Record<string, unknown> = {
+    messageType: action.messageType ?? "TEXT",
+    text,
+  };
+  for (const field of ["conversationId", "creatorId", "creatorOpenId", "productId"]) {
+    if (hasNonEmptyString(action[field])) messageIntent[field] = action[field];
+  }
+  return pickAffiliateActionFields(action, "messageIntent", messageIntent);
+}
+
+function normalizeAffiliateTargetCollaborationAction(action: Record<string, unknown>): unknown {
+  const existingIntent = asRecord(action.targetCollaborationIntent);
+  if (!existingIntent) return action;
+  return pickAffiliateActionFields(action, "targetCollaborationIntent", existingIntent);
+}
+
+function pickAffiliateActionFields(
+  action: Record<string, unknown>,
+  intentField: "messageIntent" | "sampleReviewIntent" | "targetCollaborationIntent",
+  intentValue: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
     type: action.type,
     predictionCacheIds: action.predictionCacheIds,
     expiresAt: action.expiresAt,
-    sampleReviewIntent: {
-      sampleApplicationRecordId,
-      platformApplicationId,
-      decision,
-    },
+    [intentField]: intentValue,
   };
-  if (hasNonEmptyString(rejectReason)) {
-    (normalized.sampleReviewIntent as Record<string, unknown>).rejectReason = rejectReason;
-  }
-  return normalized;
 }
 
 function isInvalidAffiliateResolveAction(value: unknown): boolean {
@@ -186,9 +262,29 @@ function hasNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function appendOperatorSummary(value: unknown, reason: string): string {
-  const existing = typeof value === "string" ? value.trim() : "";
-  return existing ? `${existing}\n\n${reason}` : reason;
+function firstNonEmptyString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (hasNonEmptyString(value)) return value;
+  }
+  return null;
+}
+
+function describeAffiliateResolveActionShape(actions: unknown[]): string {
+  const shapes = actions.map((value) => {
+    const action = asRecord(value);
+    if (!action) return { action: typeof value };
+    const messageIntent = asRecord(action.messageIntent);
+    const sampleReviewIntent = asRecord(action.sampleReviewIntent);
+    const targetCollaborationIntent = asRecord(action.targetCollaborationIntent);
+    return {
+      type: action.type,
+      fields: Object.keys(action).sort(),
+      messageIntentFields: messageIntent ? Object.keys(messageIntent).sort() : [],
+      sampleReviewIntentFields: sampleReviewIntent ? Object.keys(sampleReviewIntent).sort() : [],
+      targetCollaborationIntentFields: targetCollaborationIntent ? Object.keys(targetCollaborationIntent).sort() : [],
+    };
+  });
+  return `actionShape=${JSON.stringify(shapes)}`;
 }
 
 export function invalidateToolSpecsCache(): void {
@@ -214,7 +310,15 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   }
 
   const opName = extractOperationName(body.query);
-  const variables = sanitizeCloudGraphqlVariables(opName, body.variables);
+  let variables: Record<string, unknown> | undefined;
+  try {
+    variables = sanitizeCloudGraphqlVariables(opName, body.variables);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Cloud GraphQL request failed";
+    log.warn(`Cloud GraphQL proxy rejected request (op=${opName ?? "unknown"}): ${message}`);
+    sendJson(res, 200, { errors: [{ message }] });
+    return;
+  }
 
   // ToolSpecs-only dedup: coalesce concurrent requests for this stable query
   if (opName === TOOLSPECS_OP_NAME && toolSpecsCache) {
