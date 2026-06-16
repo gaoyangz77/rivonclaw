@@ -407,8 +407,8 @@ export interface WriteGatewayConfigOptions {
   gatewayPort?: number;
   /** Auth token for the gateway. Auto-generated if not provided in ensureGatewayConfig. */
   gatewayToken?: string;
-  /** Default model configuration (provider + model ID). */
-  defaultModel?: { provider: string; modelId: string };
+  /** Default model configuration (provider + model ID). Use null to clear a stale default. */
+  defaultModel?: { provider: string; modelId: string } | null;
   /** Plugin configuration object for OpenClaw. */
   plugins?: {
     allow?: string[];
@@ -714,14 +714,17 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingDefaults.model === "object" && existingDefaults.model !== null
         ? (existingDefaults.model as Record<string, unknown>)
         : {};
+    const nextModel = { ...existingModel };
+    if (options.defaultModel === null) {
+      delete nextModel.primary;
+    } else {
+      nextModel.primary = `${resolveGatewayProvider(options.defaultModel.provider as LLMProvider)}/${options.defaultModel.modelId}`;
+    }
     config.agents = {
       ...existingAgents,
       defaults: {
         ...existingDefaults,
-        model: {
-          ...existingModel,
-          primary: `${resolveGatewayProvider(options.defaultModel.provider as LLMProvider)}/${options.defaultModel.modelId}`,
-        },
+        model: nextModel,
       },
     };
   }

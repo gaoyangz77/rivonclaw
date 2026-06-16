@@ -319,8 +319,23 @@ beforeEach(() => {
     graphqlFetch: mockGraphqlFetch,
   });
   // Initialize LLMProviderManager env so applyModelForSession can call sessions.patch
+  const activeProviderKey = {
+    id: "key-default",
+    provider: "rivonclaw-pro",
+    label: "RivonClaw AI",
+    model: "gpt-5.5",
+    isDefault: true,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  };
   rootStore.llmManager.setEnv({
-    storage: { providerKeys: { getAll: () => [], getActive: () => null, getById: () => null } } as any,
+    storage: {
+      providerKeys: {
+        getAll: () => [activeProviderKey],
+        getActive: () => activeProviderKey,
+        getById: (id: string) => (id === activeProviderKey.id ? activeProviderKey : null),
+      },
+    } as any,
     secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
     getRpcClient: () => mockEnsureRpcReady() as any,
     toMstSnapshot: async () => ({} as any),
@@ -2158,7 +2173,7 @@ describe("multi-provider model override", () => {
     }, 120000);
   });
 
-  it("two-field override: falls back to null when provider/model not in catalog", async () => {
+  it("two-field override: falls back to active default when provider/model not in catalog", async () => {
     const bridge = createBridge();
     await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "nonexistent-model" });
     bridge.setShopContext(defaultShop);
@@ -2167,21 +2182,20 @@ describe("multi-provider model override", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
-      model: null,
+      model: "rivonclaw-pro/gpt-5.5",
     }, 120000);
   });
 
-  it("no override: neither provider nor model set, sessions.patch called with null (global default)", async () => {
+  it("no override: neither provider nor model set, sessions.patch called with active default", async () => {
     const bridge = createBridge();
     await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    // With no override, applyModelForSession falls through to global default (model: null)
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
-      model: null,
+      model: "rivonclaw-pro/gpt-5.5",
     }, 120000);
   });
 
@@ -2199,17 +2213,16 @@ describe("multi-provider model override", () => {
     }, 120000);
   });
 
-  it("provider set without model: sessions.patch called with null (treated as no override)", async () => {
+  it("provider set without model: sessions.patch called with active default (treated as no override)", async () => {
     const bridge = createBridge();
     await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: null });
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    // LLM manager requires both provider AND model for scope override; falls through to global default
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
-      model: null,
+      model: "rivonclaw-pro/gpt-5.5",
     }, 120000);
   });
 
@@ -2257,7 +2270,7 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
-      model: null,
+      model: "rivonclaw-pro/gpt-5.5",
     }, 120000);
   });
 });

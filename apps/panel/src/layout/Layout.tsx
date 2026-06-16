@@ -280,6 +280,8 @@ export const Layout = observer(function Layout({
   const showBanner = !!updateInfo;
   const ds = downloadStatus;
   let currentNavGroupKey: string | undefined;
+  const hasActiveLlmProvider = entityStore.providerKeys.some((key) => key.isDefault);
+  const showLlmUnavailableBanner = Boolean(user) && !authChecking && !hasActiveLlmProvider;
 
   // CS bridge warning: show when shops need CS on this device but bridge isn't connected.
   // Derived from entity store + device identity — mirrors CS bridge's syncFromCache() filter.
@@ -361,6 +363,14 @@ export const Layout = observer(function Layout({
               </>
             )}
           </span>
+        </div>
+      )}
+      {showLlmUnavailableBanner && (
+        <div className="warning-banner customer-service-routing-banner" role="alert">
+          <span className="customer-service-routing-banner-title">
+            {t("ecommerce.llmUnavailableTitle")}
+          </span>
+          <span>{t("ecommerce.llmUnavailableBody")}</span>
         </div>
       )}
       {showCsBridgeBanner && (

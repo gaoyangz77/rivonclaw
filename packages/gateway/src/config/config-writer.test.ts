@@ -614,6 +614,25 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
     });
+
+    it("clears agents.defaults.model.primary when defaultModel is null", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: { defaults: { model: { primary: "deepseek/deepseek-chat", fallbacks: ["openai/gpt-4o"] } } },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        defaultModel: null,
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.model.primary).toBeUndefined();
+      expect(config.agents.defaults.model.fallbacks).toEqual(["openai/gpt-4o"]);
+    });
   });
 
   describe("writeGatewayConfig - blockStreaming", () => {
