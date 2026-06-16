@@ -19,6 +19,38 @@ afterEach(() => {
 });
 
 describe("LLMProviderManager", () => {
+  it("fails fast instead of patching to OpenClaw global default when no active provider key exists", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+
+    initLLMProviderManagerEnv({
+      storage: {
+        providerKeys: {
+          getActive: () => null,
+          getById: () => undefined,
+          getAll: () => [],
+        },
+      } as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig: async () => {},
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await expect(rootStore.llmManager.applyModelForSession("agent:main:cs:tiktok:conv-no-key"))
+      .rejects
+      .toThrow("No active LLM provider is configured");
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.objectContaining({ model: null }));
+  });
+
   it("updates gateway default and resets default-following sessions when the active key model changes", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();

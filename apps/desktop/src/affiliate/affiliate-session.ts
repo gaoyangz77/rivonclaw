@@ -340,7 +340,7 @@ export class AffiliateSession {
         input: {
           shopId: workItem.shopId,
           collaborationRecordId: workItem.collaborationRecordId,
-          handledSignalAt: workItem.collaboration.lastSignalAt ?? null,
+          handledSignalAt: workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? null,
           decision: "REQUEST_ACTION",
           operatorSummary: defaultDecision.operatorSummary,
           action,
@@ -375,7 +375,7 @@ export class AffiliateSession {
           input: {
             shopId: workItem.shopId,
             collaborationRecordId: workItem.collaborationRecordId,
-            handledSignalAt: workItem.collaboration.lastSignalAt ?? null,
+            handledSignalAt: workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? null,
             decision: "NEEDS_STAFF_REVIEW",
             operatorSummary: renderSampleReviewNeedsStaffReviewSummary({
               workItem,
@@ -516,7 +516,7 @@ export class AffiliateSession {
           input: {
             shopId: workItem.shopId,
             collaborationRecordId: workItem.collaborationRecordId,
-            handledSignalAt: workItem.collaboration.lastSignalAt ?? null,
+            handledSignalAt: workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? null,
             decision: "FAILED_OR_INCOMPLETE",
             operatorSummary: `Agent run ${runId} completed without a structured affiliate_resolve_work_item decision.`,
           },
@@ -534,7 +534,7 @@ export class AffiliateSession {
   }
 
   private async isWorkItemAlreadyHandled(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
-    const boundary = parseOptionalDate(workItem.collaboration.lastSignalAt ?? workItem.versionAt);
+    const boundary = parseOptionalDate(workItem.versionAt ?? workItem.collaboration.lastSignalAt);
     if (!boundary) return false;
 
     const authSession = getAuthSession();

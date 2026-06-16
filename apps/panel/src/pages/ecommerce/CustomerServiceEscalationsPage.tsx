@@ -126,6 +126,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
+  const hasActiveLlmProvider = entityStore.providerKeys.some((key) => key.isDefault);
 
   useEffect(() => {
     if (fixedTab && workspace.activeTab !== fixedTab) {
@@ -692,7 +693,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                           className="btn btn-secondary btn-sm cs-summary-button"
                           type="button"
                           onClick={() => void summarizeConversation()}
-                          disabled={workspace.conversationSummaryGenerating || workspace.conversationMessagesLoading}
+                          disabled={!hasActiveLlmProvider || workspace.conversationSummaryGenerating || workspace.conversationMessagesLoading}
+                          title={!hasActiveLlmProvider ? t("ecommerce.customerServiceWorkspace.llmUnavailableTooltip") : undefined}
                         >
                           {workspace.conversationSummaryGenerating
                             ? t("common.loading")
@@ -775,7 +777,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                               className="btn btn-primary btn-sm cs-run-ai-button"
                               type="button"
                               onClick={() => void startConversation(selectedConversation)}
-                              disabled={workspace.isConversationStarting(selectedConversation.conversationId)}
+                              disabled={!hasActiveLlmProvider || workspace.isConversationStarting(selectedConversation.conversationId)}
+                              title={!hasActiveLlmProvider ? t("ecommerce.customerServiceWorkspace.llmUnavailableTooltip") : undefined}
                             >
                               {workspace.isConversationStarting(selectedConversation.conversationId)
                                 ? t("common.loading")

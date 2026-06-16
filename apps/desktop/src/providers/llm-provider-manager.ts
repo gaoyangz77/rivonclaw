@@ -46,6 +46,8 @@ export interface LLMProviderManagerEnv {
 const CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const CLOUD_KEY_LABEL = "RivonClaw AI";
 const CLOUD_DEFAULT_MODEL_ID = "gpt-5.5";
+const NO_ACTIVE_LLM_PROVIDER_ERROR =
+  "No active LLM provider is configured. Renew RivonClaw AI or add and activate an API key in Models.";
 
 interface CloudModel {
   id: string;
@@ -278,9 +280,8 @@ export const LLMProviderManagerModel = types
     ): Promise<SessionModelOverride | null> {
       const active = getActiveDefaultModel();
       if (!active) {
-        await patchSession(sessionKey, null, options);
         markDefaultFollowing(sessionKey);
-        return null;
+        throw new Error(NO_ACTIVE_LLM_PROVIDER_ERROR);
       }
       await patchSession(sessionKey, active.modelRef, options);
       const applied = { provider: active.provider, model: active.model };

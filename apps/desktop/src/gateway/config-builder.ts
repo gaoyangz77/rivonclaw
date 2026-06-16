@@ -186,14 +186,14 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
 
   async function buildFullGatewayConfig(gatewayPort: number, overrides?: { toolAllowlist?: string[] }): Promise<Parameters<typeof writeGatewayConfig>[0]> {
     const activeKey = storage.providerKeys.getActive();
-    const curProvider = activeKey?.provider as LLMProvider | undefined;
     const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
-    const curModelId = activeKey?.model;
-    const curModel = resolveModelConfig({
-      region: curRegion,
-      userProvider: curProvider,
-      userModelId: curModelId,
-    });
+    const curModel = activeKey
+      ? resolveModelConfig({
+        region: curRegion,
+        userProvider: activeKey.provider as LLMProvider,
+        userModelId: activeKey.model,
+      })
+      : null;
 
     const curSttEnabled = storage.settings.get("stt.enabled") === "true";
     const curSttProvider = (storage.settings.get("stt.provider") || "groq") as "groq" | "volcengine";
@@ -284,7 +284,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       // RPC handshake and chat.history responses.
       discovery: { mdns: { mode: "off" as const } },
       skipBootstrap: false,
-      defaultModel: resolveGeminiOAuthModel(curModel.provider, curModel.modelId),
+      defaultModel: curModel ? resolveGeminiOAuthModel(curModel.provider, curModel.modelId) : null,
       stt: {
         enabled: curSttEnabled,
         provider: curSttProvider,
