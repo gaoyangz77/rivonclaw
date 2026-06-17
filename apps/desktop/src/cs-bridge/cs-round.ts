@@ -21,10 +21,23 @@ export class CSRound {
   constructor(
     readonly roundId: string,
     readonly undeliveredCountAtStart: number,
+    readonly buyerMessageId?: string,
+    readonly buyerMessageIndex?: string,
   ) {
     this.placeholderRunId = `pending:${roundId}`;
     this.activeRunId = this.placeholderRunId;
     this.trackedRunIds.add(this.placeholderRunId);
+  }
+
+  getActiveRunId(): string | null {
+    return this.activeRunId;
+  }
+
+  isSameBuyerMessage(messageId: string, messageIndex?: string): boolean {
+    if (!this.buyerMessageId) return false;
+    if (this.buyerMessageId !== messageId) return false;
+    if (this.buyerMessageIndex && messageIndex && this.buyerMessageIndex !== messageIndex) return false;
+    return true;
   }
 
   hasActiveRun(): boolean {
