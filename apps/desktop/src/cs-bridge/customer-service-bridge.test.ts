@@ -3099,7 +3099,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     }));
   });
 
-  it("cloud catch-up snapshots: Airflow retry-pending duplicate batch can redispatch with a fresh retry key", async () => {
+  it("cloud catch-up snapshots: Airflow retry-pending duplicate batch keeps active runs for the same buyer message", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     mockRpcRequest.mockImplementation((method: string, params?: any) => {
@@ -3154,15 +3154,13 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     });
 
     const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
-    expect(agentCalls).toHaveLength(4);
+    expect(agentCalls).toHaveLength(2);
     expect(agentCalls.map((c: any[]) => c[1].idempotencyKey)).toEqual([
       "cs-retry:conv-airflow-a:msg-airflow-a:1780275600000",
       "cs-retry:conv-airflow-b:msg-airflow-b:1780275600000",
-      "cs-retry:conv-airflow-a:msg-airflow-a:1780279200000",
-      "cs-retry:conv-airflow-b:msg-airflow-b:1780279200000",
     ]);
     const abortCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "chat.abort");
-    expect(abortCalls).toHaveLength(2);
+    expect(abortCalls).toHaveLength(0);
   });
 
   it("cloud catch-up snapshots: Airflow retry after no forwarded text uses a fresh run key", async () => {

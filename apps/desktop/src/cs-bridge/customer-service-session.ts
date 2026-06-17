@@ -289,8 +289,8 @@ export class CustomerServiceSession {
 
   // -- Round lifecycle --------------------------------------------------------
 
-  private createBuyerRound(roundId: string): CSRound {
-    return new CSRound(roundId, this.undeliveredCount);
+  private createBuyerRound(roundId: string, messageIndex?: string): CSRound {
+    return new CSRound(roundId, this.undeliveredCount, roundId, messageIndex);
   }
 
   private ensureActiveRound(roundId: string): CSRound {
@@ -1189,6 +1189,30 @@ export class CustomerServiceSession {
     // Cloud conversation snapshots are now the primary CS dispatch path. Keep
     // their rapid-message semantics identical to webhook frames: claim a local
     // placeholder before any await so the next buyer message can abort this run.
+    const currentMessageIndex = options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
+    if (
+      this.activeRound?.hasActiveRun()
+      && this.activeRound.isSameBuyerMessage(options.currentMessageId, currentMessageIndex)
+    ) {
+      const activeRunId = this.activeRound.getActiveRunId();
+      log.info(
+        `Duplicate CS snapshot for active/pending message ${options.currentMessageId}; keeping run ${activeRunId ?? "none"}`,
+      );
+      this.emitDispatchTelemetry({
+        source: options.source ?? "cloud",
+        signalType: options.signalType,
+        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "duplicate_active_snapshot",
+        messageId: options.currentMessageId,
+        messageIndex: currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
+        runId: activeRunId ?? undefined,
+      });
+      return { runId: activeRunId ?? undefined };
+    }
+
     const previousRunId = this.activeRound?.abortActiveRun();
     if (previousRunId) {
       log.info(`Newer CS snapshot superseded active/pending run ${previousRunId}; aborting prior dispatch`);
@@ -1201,14 +1225,14 @@ export class CustomerServiceSession {
         outcome: "aborted",
         reason: "superseded_by_new_snapshot",
         messageId: options.currentMessageId,
-        messageIndex: options.currentMessageIndex,
+        messageIndex: currentMessageIndex,
         messageType: options.messageType,
         senderRole: options.senderRole,
         runId: previousRunId,
       });
     }
 
-    const round = this.createBuyerRound(options.currentMessageId);
+    const round = this.createBuyerRound(options.currentMessageId, currentMessageIndex);
     this.activeRound = round;
     const placeholder = round.placeholderRunId;
 
@@ -1222,7 +1246,7 @@ export class CustomerServiceSession {
           outcome: "skipped",
           reason: "backend_session_failed",
           messageId: options.currentMessageId,
-          messageIndex: options.currentMessageIndex,
+          messageIndex: currentMessageIndex,
           messageType: options.messageType,
           senderRole: options.senderRole,
         });
@@ -1237,7 +1261,7 @@ export class CustomerServiceSession {
           outcome: "skipped",
           reason: "superseded_before_delta",
           messageId: options.currentMessageId,
-          messageIndex: options.currentMessageIndex,
+          messageIndex: currentMessageIndex,
           messageType: options.messageType,
           senderRole: options.senderRole,
         });
@@ -1255,7 +1279,7 @@ export class CustomerServiceSession {
             outcome: "skipped",
             reason: "superseded_after_delta",
             messageId: options.currentMessageId,
-            messageIndex: options.currentMessageIndex,
+            messageIndex: currentMessageIndex,
             messageType: options.messageType,
             senderRole: options.senderRole,
           });
@@ -1274,7 +1298,7 @@ export class CustomerServiceSession {
           outcome: "skipped",
           reason: "superseded_before_dispatch",
           messageId: options.currentMessageId,
-          messageIndex: options.currentMessageIndex,
+          messageIndex: currentMessageIndex,
           messageType: options.messageType,
           senderRole: options.senderRole,
         });
@@ -1290,7 +1314,7 @@ export class CustomerServiceSession {
         dispatchSource: options.source ?? "cloud",
         signalType: options.signalType,
         currentMessageId: options.currentMessageId,
-        currentMessageIndex: options.currentMessageIndex,
+        currentMessageIndex,
         messageType: options.messageType,
         senderRole: options.senderRole,
         advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
@@ -1321,7 +1345,7 @@ export class CustomerServiceSession {
         outcome: "failed",
         reason: "exception",
         messageId: options.currentMessageId,
-        messageIndex: options.currentMessageIndex,
+        messageIndex: currentMessageIndex,
         messageType: options.messageType,
         senderRole: options.senderRole,
         errorMessage: err,
