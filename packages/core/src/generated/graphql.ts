@@ -694,13 +694,13 @@ export interface AffiliateCollaborationRecordPredictionSnapshot {
 export const AffiliateCollaborationRecordProcessReason = {
   AgentRunFailed: 'AGENT_RUN_FAILED',
   ContentPublished: 'CONTENT_PUBLISHED',
+  CreatorActionFollowUpDue: 'CREATOR_ACTION_FOLLOW_UP_DUE',
   CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
   CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
   OrderAttributed: 'ORDER_ATTRIBUTED',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
-  SampleShippedContentFollowUpDue: 'SAMPLE_SHIPPED_CONTENT_FOLLOW_UP_DUE',
   StaffReviewRequested: 'STAFF_REVIEW_REQUESTED',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
   UserLevelBlocked: 'USER_LEVEL_BLOCKED',
@@ -722,7 +722,7 @@ export const AffiliateCollaborationRecordProcessingStatus = {
 export type AffiliateCollaborationRecordProcessingStatus = typeof AffiliateCollaborationRecordProcessingStatus[keyof typeof AffiliateCollaborationRecordProcessingStatus];
 /** The next concrete business action required for a creator collaboration. NONE means the processing status is purely waiting or terminal. */
 export const AffiliateCollaborationRequiredAction = {
-  FollowUpContent: 'FOLLOW_UP_CONTENT',
+  FollowUpCreator: 'FOLLOW_UP_CREATOR',
   None: 'NONE',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
   RespondToCreator: 'RESPOND_TO_CREATOR',
@@ -1379,7 +1379,7 @@ export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffC
 /** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
 export const AffiliateWorkBundleKind = {
   ApprovalReviewOnly: 'APPROVAL_REVIEW_ONLY',
-  ContentFollowUp: 'CONTENT_FOLLOW_UP',
+  CreatorFollowUp: 'CREATOR_FOLLOW_UP',
   CreatorReplyOnly: 'CREATOR_REPLY_ONLY',
   CreatorReplyWithSampleReview: 'CREATOR_REPLY_WITH_SAMPLE_REVIEW',
   GeneralReview: 'GENERAL_REVIEW',
@@ -1446,8 +1446,8 @@ export type AffiliateWorkItemResolutionDecision = typeof AffiliateWorkItemResolu
 /** Backend-derived affiliate work item kind consumed by desktop agent-run factories and review UI. */
 export const AffiliateWorkKind = {
   ApprovalWaiting: 'APPROVAL_WAITING',
-  ContentFollowUpDue: 'CONTENT_FOLLOW_UP_DUE',
   ContentPublishedObserved: 'CONTENT_PUBLISHED_OBSERVED',
+  CreatorFollowUpDue: 'CREATOR_FOLLOW_UP_DUE',
   CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
   CreatorReplyNeeded: 'CREATOR_REPLY_NEEDED',
   GeneralReviewNeeded: 'GENERAL_REVIEW_NEEDED',
@@ -2819,6 +2819,230 @@ export const EcomApproveReturnDecision = {
 } as const;
 
 export type EcomApproveReturnDecision = typeof EcomApproveReturnDecision[keyof typeof EcomApproveReturnDecision];
+/** Warehouse-backed ecommerce BI dataset identifiers. */
+export const EcomBiDatasetId = {
+  AdsGmvCampaignSummaryDaily: 'ADS_GMV_CAMPAIGN_SUMMARY_DAILY',
+  OrderLineDetail: 'ORDER_LINE_DETAIL',
+  OrderSalesDaily: 'ORDER_SALES_DAILY'
+} as const;
+
+export type EcomBiDatasetId = typeof EcomBiDatasetId[keyof typeof EcomBiDatasetId];
+/** BI dataset metadata. */
+export interface EcomBiDatasetMetadata {
+  defaultDimensions: Array<EcomBiDimension>;
+  defaultMetrics: Array<EcomBiMetric>;
+  description: Scalars['String']['output'];
+  dimensions: Array<EcomBiDimensionMetadata>;
+  grain: Scalars['String']['output'];
+  id: EcomBiDatasetId;
+  label: Scalars['String']['output'];
+  metrics: Array<EcomBiMetricMetadata>;
+}
+
+/** Allowed BI dimensions. Dataset metadata declares which are valid per dataset. */
+export const EcomBiDimension = {
+  AdvertiserId: 'ADVERTISER_ID',
+  AdvertiserName: 'ADVERTISER_NAME',
+  BuyerMessage: 'BUYER_MESSAGE',
+  BuyerUsername: 'BUYER_USERNAME',
+  CampaignId: 'CAMPAIGN_ID',
+  CampaignName: 'CAMPAIGN_NAME',
+  CancellationReturnType: 'CANCELLATION_RETURN_TYPE',
+  CancelledTime: 'CANCELLED_TIME',
+  CancelBy: 'CANCEL_BY',
+  CancelReason: 'CANCEL_REASON',
+  City: 'CITY',
+  Country: 'COUNTRY',
+  CreatedTime: 'CREATED_TIME',
+  Currency: 'CURRENCY',
+  Date: 'DATE',
+  DeliveredTime: 'DELIVERED_TIME',
+  DeliveryOption: 'DELIVERY_OPTION',
+  DeliveryType: 'DELIVERY_TYPE',
+  District: 'DISTRICT',
+  Email: 'EMAIL',
+  FulfillmentType: 'FULFILLMENT_TYPE',
+  HouseNameOrNumber: 'HOUSE_NAME_OR_NUMBER',
+  NormalOrPreorder: 'NORMAL_OR_PREORDER',
+  OrderAmount: 'ORDER_AMOUNT',
+  OrderId: 'ORDER_ID',
+  OrderRefundAmount: 'ORDER_REFUND_AMOUNT',
+  OrderStatus: 'ORDER_STATUS',
+  OrderSubstatus: 'ORDER_SUBSTATUS',
+  OriginalShippingFee: 'ORIGINAL_SHIPPING_FEE',
+  PackageId: 'PACKAGE_ID',
+  PaidTime: 'PAID_TIME',
+  PaymentMethod: 'PAYMENT_METHOD',
+  PhoneNumber: 'PHONE_NUMBER',
+  ProductCategory: 'PRODUCT_CATEGORY',
+  ProductId: 'PRODUCT_ID',
+  ProductName: 'PRODUCT_NAME',
+  ProductTaxAmount: 'PRODUCT_TAX_AMOUNT',
+  ProductTaxRate: 'PRODUCT_TAX_RATE',
+  Quantity: 'QUANTITY',
+  Recipient: 'RECIPIENT',
+  RoiProtection: 'ROI_PROTECTION',
+  RtsTime: 'RTS_TIME',
+  SellerNote: 'SELLER_NOTE',
+  SellerSku: 'SELLER_SKU',
+  ShippedTime: 'SHIPPED_TIME',
+  ShippingFeeAfterDiscount: 'SHIPPING_FEE_AFTER_DISCOUNT',
+  ShippingFeePlatformDiscount: 'SHIPPING_FEE_PLATFORM_DISCOUNT',
+  ShippingFeeSellerDiscount: 'SHIPPING_FEE_SELLER_DISCOUNT',
+  ShippingProviderName: 'SHIPPING_PROVIDER_NAME',
+  ShippingTaxAmount: 'SHIPPING_TAX_AMOUNT',
+  ShippingTaxRate: 'SHIPPING_TAX_RATE',
+  ShopId: 'SHOP_ID',
+  ShopName: 'SHOP_NAME',
+  SkuId: 'SKU_ID',
+  SkuName: 'SKU_NAME',
+  SkuPlatformDiscount: 'SKU_PLATFORM_DISCOUNT',
+  SkuReturnQuantity: 'SKU_RETURN_QUANTITY',
+  SkuSellerDiscount: 'SKU_SELLER_DISCOUNT',
+  SkuSubtotalAfterDiscount: 'SKU_SUBTOTAL_AFTER_DISCOUNT',
+  SkuSubtotalBeforeDiscount: 'SKU_SUBTOTAL_BEFORE_DISCOUNT',
+  SkuUnitOriginalPrice: 'SKU_UNIT_ORIGINAL_PRICE',
+  State: 'STATE',
+  StoreId: 'STORE_ID',
+  StoreName: 'STORE_NAME',
+  StreetName: 'STREET_NAME',
+  Taxes: 'TAXES',
+  TrackingId: 'TRACKING_ID',
+  Variation: 'VARIATION',
+  WarehouseName: 'WAREHOUSE_NAME',
+  WeightKg: 'WEIGHT_KG',
+  Zipcode: 'ZIPCODE'
+} as const;
+
+export type EcomBiDimension = typeof EcomBiDimension[keyof typeof EcomBiDimension];
+/** BI dimension metadata. */
+export interface EcomBiDimensionMetadata {
+  description: Scalars['String']['output'];
+  filterOperators: Array<EcomBiFilterOperator>;
+  id: EcomBiDimension;
+  label: Scalars['String']['output'];
+  valueType: EcomBiValueType;
+}
+
+/** Whether a BI output column is a dimension or metric. */
+export const EcomBiFieldRole = {
+  Dimension: 'DIMENSION',
+  Metric: 'METRIC'
+} as const;
+
+export type EcomBiFieldRole = typeof EcomBiFieldRole[keyof typeof EcomBiFieldRole];
+/** A BI dimension filter. */
+export interface EcomBiFilterInput {
+  /** Filterable dimension. */
+  dimension: EcomBiDimension;
+  /** Filter operator. */
+  operator: EcomBiFilterOperator;
+  /** Filter values. Empty lists are invalid. */
+  values: Array<Scalars['String']['input']>;
+}
+
+/** Allowed BI filter operators. */
+export const EcomBiFilterOperator = {
+  In: 'IN',
+  NotIn: 'NOT_IN'
+} as const;
+
+export type EcomBiFilterOperator = typeof EcomBiFilterOperator[keyof typeof EcomBiFilterOperator];
+/** Allowed BI metrics. Dataset metadata declares which are valid per dataset. */
+export const EcomBiMetric = {
+  CancelledGmv: 'CANCELLED_GMV',
+  CancelledOrderCount: 'CANCELLED_ORDER_COUNT',
+  CancelledUnits: 'CANCELLED_UNITS',
+  CompletedGmv: 'COMPLETED_GMV',
+  CompletedOrderCount: 'COMPLETED_ORDER_COUNT',
+  CompletedUnits: 'COMPLETED_UNITS',
+  CostAmount: 'COST_AMOUNT',
+  CostPerOrderAmount: 'COST_PER_ORDER_AMOUNT',
+  CurrentBudgetAmount: 'CURRENT_BUDGET_AMOUNT',
+  EffectiveGmv: 'EFFECTIVE_GMV',
+  EffectiveOrderCount: 'EFFECTIVE_ORDER_COUNT',
+  EffectiveUnits: 'EFFECTIVE_UNITS',
+  GrossGmv: 'GROSS_GMV',
+  GrossOrderCount: 'GROSS_ORDER_COUNT',
+  GrossRevenueAmount: 'GROSS_REVENUE_AMOUNT',
+  GrossUnits: 'GROSS_UNITS',
+  NetCostAmount: 'NET_COST_AMOUNT',
+  Orders: 'ORDERS',
+  RoasBid: 'ROAS_BID',
+  Roi: 'ROI'
+} as const;
+
+export type EcomBiMetric = typeof EcomBiMetric[keyof typeof EcomBiMetric];
+/** BI metric metadata. */
+export interface EcomBiMetricMetadata {
+  description: Scalars['String']['output'];
+  id: EcomBiMetric;
+  label: Scalars['String']['output'];
+  note?: Maybe<Scalars['String']['output']>;
+  valueType: EcomBiValueType;
+}
+
+/** BI query sort field. */
+export interface EcomBiOrderByInput {
+  /** Sort by a selected dimension. Use exactly one of dimension or metric. */
+  dimension?: InputMaybe<EcomBiDimension>;
+  /** Sort direction. Defaults to ASC. */
+  direction?: InputMaybe<EcomSortOrder>;
+  /** Sort by a selected metric. Use exactly one of dimension or metric. */
+  metric?: InputMaybe<EcomBiMetric>;
+}
+
+/** Warehouse-backed BI query. Dates are inclusive/exclusive YYYY-MM-DD report dates. */
+export interface EcomBiQueryInput {
+  /** Dataset to query. */
+  datasetId: EcomBiDatasetId;
+  /** Dimensions to group by. Defaults are declared by dataset metadata. */
+  dimensions?: InputMaybe<Array<EcomBiDimension>>;
+  /** End date exclusive in YYYY-MM-DD format. */
+  endDateLt: Scalars['String']['input'];
+  /** Optional filters over dataset-supported dimensions. */
+  filters?: InputMaybe<Array<EcomBiFilterInput>>;
+  /** Maximum rows to return. Defaults to 500; use 0 for the backend maximum. */
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Metrics to return. Defaults are declared by dataset metadata. */
+  metrics?: InputMaybe<Array<EcomBiMetric>>;
+  /** Optional sort order. Fields must be selected in dimensions or metrics. */
+  orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
+  /** Onboarded shop Mongo IDs. BI queries only expose rows linked to these authorized shops. */
+  shopIds: Array<Scalars['ID']['input']>;
+  /** Start date inclusive in YYYY-MM-DD format. */
+  startDateGe: Scalars['String']['input'];
+}
+
+/** BI query result. */
+export interface EcomBiQueryResult {
+  columns: Array<EcomBiResultColumn>;
+  datasetId: EcomBiDatasetId;
+  rows: Array<Scalars['JSONObject']['output']>;
+  totalCount: Scalars['Int']['output'];
+}
+
+/** BI query output column. */
+export interface EcomBiResultColumn {
+  dimension?: Maybe<EcomBiDimension>;
+  key: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  metric?: Maybe<EcomBiMetric>;
+  role: EcomBiFieldRole;
+  valueType: EcomBiValueType;
+}
+
+/** Logical value type for BI fields. */
+export const EcomBiValueType = {
+  Date: 'DATE',
+  Datetime: 'DATETIME',
+  Decimal: 'DECIMAL',
+  Integer: 'INTEGER',
+  Money: 'MONEY',
+  String: 'STRING'
+} as const;
+
+export type EcomBiValueType = typeof EcomBiValueType[keyof typeof EcomBiValueType];
 /** Cancellation status filter for searching cancellations */
 export const EcomCancelStatusFilter = {
   All: 'ALL',
@@ -2912,73 +3136,6 @@ export const EcomMessageType = {
 } as const;
 
 export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageType];
-/** Read a report-shaped ecommerce dataset. endDateLt is exclusive; dates are shop-local report dates. */
-export interface EcomOperationReportInput {
-  /** Optional campaign IDs. */
-  campaignIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Optional creator usernames. */
-  creatorUsernames?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** End date exclusive in YYYY-MM-DD format. */
-  endDateLt: Scalars['String']['input'];
-  /** Maximum rows to return. Defaults to 500; use 0 for the backend maximum. */
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  /** Optional order IDs. */
-  orderIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Optional product IDs. */
-  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Operation report type to read. */
-  reportType: EcomOperationReportType;
-  /** Shop Mongo IDs (the id field from ecommerce_list_shops). */
-  shopIds: Array<Scalars['ID']['input']>;
-  /** Optional SKU IDs. */
-  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  /** Optional sort field. Defaults to DATE_KEY. */
-  sortBy?: InputMaybe<EcomOperationReportSortField>;
-  /** Optional sort order. Defaults to ASC. */
-  sortOrder?: InputMaybe<EcomSortOrder>;
-  /** Start date inclusive in YYYY-MM-DD format. */
-  startDateGe: Scalars['String']['input'];
-}
-
-/** Report-shaped ecommerce operation rows. */
-export interface EcomOperationReportResult {
-  /** Column order for spreadsheet-style rendering. */
-  columns: Array<Scalars['String']['output']>;
-  /** Short caveat for partially populated report families. */
-  note?: Maybe<Scalars['String']['output']>;
-  /** Report type returned. */
-  reportType: EcomOperationReportType;
-  /** Report rows keyed by column name. */
-  rows: Array<Scalars['JSONObject']['output']>;
-  /** Number of rows returned. */
-  totalCount: Scalars['Int']['output'];
-}
-
-/** Sort field for operation report rows. */
-export const EcomOperationReportSortField = {
-  CampaignId: 'CAMPAIGN_ID',
-  Cost: 'COST',
-  DateKey: 'DATE_KEY',
-  GrossRevenue: 'GROSS_REVENUE',
-  OrderId: 'ORDER_ID',
-  ProductId: 'PRODUCT_ID',
-  Roi: 'ROI',
-  SkuId: 'SKU_ID'
-} as const;
-
-export type EcomOperationReportSortField = typeof EcomOperationReportSortField[keyof typeof EcomOperationReportSortField];
-/** Report-shaped ecommerce operation datasets served by one compact tool. */
-export const EcomOperationReportType = {
-  AdCampaignTotal: 'AD_CAMPAIGN_TOTAL',
-  AdCreativeDetail: 'AD_CREATIVE_DETAIL',
-  AffiliateOrder: 'AFFILIATE_ORDER',
-  ShopOrderSku: 'SHOP_ORDER_SKU',
-  ShopPerformanceOverview: 'SHOP_PERFORMANCE_OVERVIEW',
-  ShopProductPerformance: 'SHOP_PRODUCT_PERFORMANCE',
-  ShopVideoPerformance: 'SHOP_VIDEO_PERFORMANCE'
-} as const;
-
-export type EcomOperationReportType = typeof EcomOperationReportType[keyof typeof EcomOperationReportType];
 /** Order */
 export interface EcomOrder {
   /** Platform buyer user ID */
@@ -4519,6 +4676,7 @@ export interface MutationCsEndCustomerServiceSessionArgs {
 
 export interface MutationCsEndSessionArgs {
   conversationId: Scalars['String']['input'];
+  followUpMessage?: InputMaybe<Scalars['String']['input']>;
   reviewRequestMessage?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
 }
@@ -5308,6 +5466,8 @@ export interface Query {
   csOpenEscalationsPage: CsOpenEscalationPage;
   /** List unhandled CS escalation side-effect events for the authenticated user's desktop actuator */
   csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
+  /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
+  ecommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
@@ -5324,8 +5484,6 @@ export interface Query {
   ecommerceGetCustomerServiceInbox: CustomerServiceConversationInboxPage;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
-  /** Read report-shaped ecommerce operation rows from fct_*_report tables. This is the preferred compact backend for spreadsheet-generating skills. */
-  ecommerceGetOperationReport: EcomOperationReportResult;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
   ecommerceGetOrder?: Maybe<EcomOrder>;
   /** Get order-derived sales statistics from fct_order_shop_daily, fct_order_product_daily, or fct_order_sku_daily. */
@@ -5346,6 +5504,8 @@ export interface Query {
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
+  /** Query warehouse-backed ecommerce BI data. This is a backend service API and is not registered as an agent tool. */
+  ecommerceQueryBiData: EcomBiQueryResult;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
@@ -5658,11 +5818,6 @@ export interface QueryEcommerceGetFulfillmentTrackingArgs {
 }
 
 
-export interface QueryEcommerceGetOperationReportArgs {
-  input: EcomOperationReportInput;
-}
-
-
 export interface QueryEcommerceGetOrderArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
@@ -5730,6 +5885,11 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
   productIds?: InputMaybe<Array<Scalars['String']['input']>>;
   shopId: Scalars['String']['input'];
   startDateGe: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceQueryBiDataArgs {
+  input: EcomBiQueryInput;
 }
 
 
