@@ -1687,6 +1687,7 @@ export default {
         ECOM_ORDER: "电商订单",
         ECOM_FULFILLMENT: "电商履约",
         ECOM_PRODUCT: "电商商品",
+        ECOM_BI: "电商 BI",
         ECOM_RETURN_REFUND: "电商售后",
         ECOMMERCE_SHOP_MGMT: "电商店铺管理",
         AFFILIATE_READ: "达人管理",
@@ -1733,6 +1734,8 @@ export default {
         ECOM_GET_INVENTORY_ANALYSIS: "获取库存分析",
         ECOM_GET_SHOP_SKU_PERFORMANCE_LIST: "获取店铺 SKU 绩效列表",
         ECOM_GET_OPERATION_REPORT: "获取运营报表",
+        ECOM_GET_BI_CATALOG: "获取 BI 目录",
+        ECOM_GET_BI_DATA: "获取 BI 数据",
         ECOM_UPDATE_INVENTORY: "更新库存",
         // 电商运营 — 会话操作
         ECOM_MARK_CONVERSATION_READ: "标记已读",
