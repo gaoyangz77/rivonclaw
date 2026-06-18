@@ -14,6 +14,7 @@ export class CSRound {
   private abortedRunIds = new Set<string>();
   private turnTextBuffer = new Map<string, string>();
   private forwardedRunIds = new Set<string>();
+  private terminalToolRunIds = new Set<string>();
   private sensitiveRecoveryAttempts = 0;
   private sensitiveRecoveryRunIds = new Set<string>();
   private disposeWhenIdle = false;
@@ -122,18 +123,29 @@ export class CSRound {
     this.forwardedRunIds.add(runId);
   }
 
-  completeRun(runId: string): { wasAborted: boolean; hadForwardedText: boolean; shouldDispose: boolean } {
+  markTerminalToolStarted(runId: string): void {
+    this.terminalToolRunIds.add(runId);
+  }
+
+  completeRun(runId: string): {
+    wasAborted: boolean;
+    hadForwardedText: boolean;
+    hadTerminalToolAction: boolean;
+    shouldDispose: boolean;
+  } {
     const wasAborted = this.abortedRunIds.has(runId);
     if (wasAborted) {
       this.abortedRunIds.delete(runId);
     }
     const hadForwardedText = this.forwardedRunIds.has(runId);
+    const hadTerminalToolAction = this.terminalToolRunIds.has(runId);
     this.forwardedRunIds.delete(runId);
+    this.terminalToolRunIds.delete(runId);
     this.turnTextBuffer.delete(runId);
     if (this.activeRunId === runId) {
       this.activeRunId = null;
     }
-    return { wasAborted, hadForwardedText, shouldDispose: this.shouldDispose() };
+    return { wasAborted, hadForwardedText, hadTerminalToolAction, shouldDispose: this.shouldDispose() };
   }
 
   onDeliverySucceeded(): { shouldDispose: boolean } {

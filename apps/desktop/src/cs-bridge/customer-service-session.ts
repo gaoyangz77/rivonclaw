@@ -598,10 +598,14 @@ export class CustomerServiceSession {
    * Clears run/round tracking for that run and reports whether any text had
    * already entered the buyer-delivery path.
    */
-  onRunCompleted(runId: string): { wasAborted: boolean; hadForwardedText: boolean } {
+  onRunCompleted(runId: string): {
+    wasAborted: boolean;
+    hadForwardedText: boolean;
+    hadTerminalToolAction: boolean;
+  } {
     const round = this.roundsByRunId.get(runId);
     if (!round) {
-      return { wasAborted: false, hadForwardedText: false };
+      return { wasAborted: false, hadForwardedText: false, hadTerminalToolAction: false };
     }
 
     const result = round.completeRun(runId);
@@ -1545,6 +1549,10 @@ export class CustomerServiceSession {
 
   markRunDeliveryStarted(runId: string): void {
     this.roundsByRunId.get(runId)?.markDeliveryStarted(runId);
+  }
+
+  markRunTerminalToolStarted(runId: string): void {
+    this.roundsByRunId.get(runId)?.markTerminalToolStarted(runId);
   }
 
   getDebugRoundCount(): number {

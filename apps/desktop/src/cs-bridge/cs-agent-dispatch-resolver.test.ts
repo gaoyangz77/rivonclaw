@@ -18,5 +18,6 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
     expect(prompt).toContain("not a product or order review");
     expect(prompt).toContain("may frustrate the customer");
     expect(prompt).toContain("If the buyer still needs help");
+    expect(prompt).toContain("Do not finish silently");
   });
 });
