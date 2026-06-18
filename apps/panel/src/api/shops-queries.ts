@@ -950,6 +950,68 @@ export const AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_APPROVAL_POLICIES_QUERY = gql`
+  query AffiliateApprovalPolicies($input: ReadAffiliateApprovalPoliciesInput!) {
+    affiliateApprovalPolicies(input: $input) {
+      id
+      userId
+      shopId
+      action
+      creatorTagIds
+      campaignIds
+      productIds
+      reason
+      enabled
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
+  query AffiliatePolicyContext($campaignsInput: ReadAffiliateCampaignsInput!, $shopId: String!) {
+    affiliateCampaigns(input: $campaignsInput) {
+      id
+      shopId
+      name
+      status
+      updatedAt
+    }
+    creatorTags(shopId: $shopId) {
+      id
+      shopId
+      name
+      type
+      sensitive
+      updatedAt
+    }
+  }
+`;
+
+export const WRITE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
+  mutation WriteAffiliateApprovalPolicy($input: WriteAffiliateApprovalPolicyInput!) {
+    writeAffiliateApprovalPolicy(input: $input) {
+      id
+      userId
+      shopId
+      action
+      creatorTagIds
+      campaignIds
+      productIds
+      reason
+      enabled
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
+  mutation DeleteAffiliateApprovalPolicy($id: String!) {
+    deleteAffiliateApprovalPolicy(id: $id)
+  }
+`;
+
 export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
   query AffiliateCollaborationRecordItems($input: ReadAffiliateCollaborationRecordsInput!) {
     affiliateCollaborationRecordItems(input: $input) {

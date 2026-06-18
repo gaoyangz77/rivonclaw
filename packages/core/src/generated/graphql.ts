@@ -4418,6 +4418,8 @@ export interface Mutation {
   csStartSession: CsConversationSignal;
   /** Record an approval/rejection/modification decision. APPROVED executes the frozen action intent through the backend proposal service. */
   decideActionProposal: ActionProposal;
+  /** Delete an affiliate approval interception policy. */
+  deleteAffiliateApprovalPolicy: Scalars['Boolean']['output'];
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
   /** Disconnect a shop (soft delete) */
@@ -4705,6 +4707,11 @@ export interface MutationCsStartSessionArgs {
 
 export interface MutationDecideActionProposalArgs {
   input: DecideActionProposalInput;
+}
+
+
+export interface MutationDeleteAffiliateApprovalPolicyArgs {
+  id: Scalars['String']['input'];
 }
 
 

@@ -115,6 +115,11 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         reason
         action
         enabled
+        creatorTagIds
+        campaignIds
+        productIds
+        createdAt
+        updatedAt
       }
       campaigns {
         id

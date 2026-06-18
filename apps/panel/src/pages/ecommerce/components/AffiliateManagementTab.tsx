@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { AffiliateApprovalPolicyPanel } from "./AffiliateApprovalPolicyPanel.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SHOP_MODEL_RECOMMENDATION_LIFT_RATIO = 1.25;
@@ -103,163 +104,178 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
 
   return (
     <div className="shop-detail-section">
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.serviceStatus")}</div>
+      <section id="shop-workspace-affiliateManagement-service" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.serviceStatus")}</div>
 
-      <div className="shop-toggle-card">
-        <div className="shop-toggle-card-left">
-          <span className="shop-toggle-card-label">
-            {t("ecommerce.shopDrawer.affiliate.bindDevice")}
-          </span>
-          <span className="form-hint">{t("ecommerce.shopDrawer.affiliate.bindDeviceHint")}</span>
-          {assignedDeviceId && !handledByThisDevice && (
-            <span className="badge badge-warning shop-badge-inline">
-              {t("ecommerce.shopDrawer.affiliate.otherDevice")}
+        <div className="shop-toggle-card">
+          <div className="shop-toggle-card-left">
+            <span className="shop-toggle-card-label">
+              {t("ecommerce.shopDrawer.affiliate.bindDevice")}
             </span>
-          )}
-          {handledByThisDevice && (
-            <span className="badge badge-success shop-badge-inline">
-              {t("ecommerce.shopDrawer.affiliate.thisDevice")}
-            </span>
-          )}
-        </div>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={handledByThisDevice}
-            onChange={() => {
-              if (handledByThisDevice) {
-                onUnbindDevice(shop.id);
-              } else {
-                onBindDevice(shop.id);
-              }
-            }}
-            disabled={togglingBindShopId === shop.id || !myDeviceId}
-          />
-          <span
-            className={`toggle-track ${handledByThisDevice ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
-          >
-            <span className={`toggle-thumb ${handledByThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
-          </span>
-        </label>
-      </div>
-
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.runProfile")}</div>
-      <div className="shop-info-card">
-        <div className="shop-runprofile-row">
-          <label className="form-label-block">{t("ecommerce.shopDrawer.affiliate.runProfileLabel")}</label>
-          <Select
-            value={selectedRunProfileId}
-            onChange={onRunProfileChange}
-            options={runProfileOptions}
-            placeholder={t("ecommerce.shopDrawer.affiliate.runProfileNone")}
-            disabled={savingRunProfile}
-            className="input-full"
-          />
-        </div>
-        {selectedRunProfile ? (
-          <div className="shop-runprofile-tools">
-            <div className="form-label-block">{t("ecommerce.shopDrawer.affiliate.availableTools")}</div>
-            <ul className="shop-tool-list">
-              {selectedRunProfile.selectedToolIds.map((toolId) => (
-                <li key={toolId} className="shop-tool-list-item">{toolDisplayName(toolId)}</li>
-              ))}
-            </ul>
-            <div className="shop-tool-count">
-              {t("ecommerce.shopDrawer.affiliate.toolCount", { count: selectedRunProfile.selectedToolIds.length })}
-            </div>
+            <span className="form-hint">{t("ecommerce.shopDrawer.affiliate.bindDeviceHint")}</span>
+            {assignedDeviceId && !handledByThisDevice && (
+              <span className="badge badge-warning shop-badge-inline">
+                {t("ecommerce.shopDrawer.affiliate.otherDevice")}
+              </span>
+            )}
+            {handledByThisDevice && (
+              <span className="badge badge-success shop-badge-inline">
+                {t("ecommerce.shopDrawer.affiliate.thisDevice")}
+              </span>
+            )}
           </div>
-        ) : (
-          <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.affiliate.runProfileHint")}</div>
-        )}
-      </div>
-
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.modelUsageScope")}</div>
-      <div className="shop-info-card">
-        <div className="affiliate-threshold-row">
-          <div className="affiliate-threshold-copy">
-            <label className="form-label-block">
-              {t("ecommerce.shopDrawer.affiliate.modelUsageScopeLabel")}
-            </label>
-            <div className="shop-info-card-hint">
-              {t("ecommerce.shopDrawer.affiliate.modelUsageScopeHint")}
-            </div>
-          </div>
-          <div className="affiliate-threshold-control">
-            <Select
-              value={editModelUsageScope}
-              onChange={(value) => onEditModelUsageScope(value === "SHOP_LEVEL" ? "SHOP_LEVEL" : "USER_LEVEL")}
-              options={modelUsageOptions}
-              className="input-full"
-              disabled={savingSettings}
-            />
-          </div>
-        </div>
-        <AffiliateModelRecommendationPanel
-          accountModel={accountModelEvaluation}
-          loading={entityStore.affiliateMlInsightsLoading}
-          recommendation={modelRecommendation}
-          selectedScope={editModelUsageScope}
-          shopModel={shopModelEvaluation}
-        />
-      </div>
-
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.decisionThresholds")}</div>
-      <div className="shop-info-card">
-        <div className="affiliate-threshold-row">
-          <div className="affiliate-threshold-copy">
-            <label className="form-label-block" htmlFor={`affiliate-threshold-${shop.id}`}>
-              {t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnits")}
-            </label>
-            <div className="shop-info-card-hint">
-              {t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnitsHint")}
-            </div>
-          </div>
-          <div className="affiliate-threshold-control">
+          <label className="toggle-switch">
             <input
-              id={`affiliate-threshold-${shop.id}`}
-              className="input affiliate-threshold-input"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step={0.1}
-              placeholder={t("ecommerce.shopDrawer.affiliate.noThreshold")}
-              value={editMinExpectedSalesUnits}
-              onChange={(e) => onEditMinExpectedSalesUnits(e.target.value)}
-              onBlur={onCommitMinExpectedSalesUnits}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.currentTarget.blur();
+              type="checkbox"
+              checked={handledByThisDevice}
+              onChange={() => {
+                if (handledByThisDevice) {
+                  onUnbindDevice(shop.id);
+                } else {
+                  onBindDevice(shop.id);
                 }
               }}
-              disabled={savingSettings}
+              disabled={togglingBindShopId === shop.id || !myDeviceId}
+            />
+            <span
+              className={`toggle-track ${handledByThisDevice ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
+            >
+              <span className={`toggle-thumb ${handledByThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section id="shop-workspace-affiliateManagement-run-profile" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.runProfile")}</div>
+        <div className="shop-info-card">
+          <div className="shop-runprofile-row">
+            <label className="form-label-block">{t("ecommerce.shopDrawer.affiliate.runProfileLabel")}</label>
+            <Select
+              value={selectedRunProfileId}
+              onChange={onRunProfileChange}
+              options={runProfileOptions}
+              placeholder={t("ecommerce.shopDrawer.affiliate.runProfileNone")}
+              disabled={savingRunProfile}
+              className="input-full"
             />
           </div>
+          {selectedRunProfile ? (
+            <div className="shop-runprofile-tools">
+              <div className="form-label-block">{t("ecommerce.shopDrawer.affiliate.availableTools")}</div>
+              <ul className="shop-tool-list">
+                {selectedRunProfile.selectedToolIds.map((toolId) => (
+                  <li key={toolId} className="shop-tool-list-item">{toolDisplayName(toolId)}</li>
+                ))}
+              </ul>
+              <div className="shop-tool-count">
+                {t("ecommerce.shopDrawer.affiliate.toolCount", { count: selectedRunProfile.selectedToolIds.length })}
+              </div>
+            </div>
+          ) : (
+            <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.affiliate.runProfileHint")}</div>
+          )}
         </div>
-      </div>
+      </section>
 
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.businessPrompt")}</div>
-      <div className="form-hint">{t("ecommerce.shopDrawer.affiliate.businessPromptHint")}</div>
-      <div className="shop-prompt-wrapper">
-        <textarea
-          className="input-full textarea-resize-vertical shop-prompt-textarea"
-          value={editBusinessPrompt}
-          onChange={(e) => onEditBusinessPrompt(e.target.value)}
-          rows={10}
-          maxLength={AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH}
-        />
-        <span className="shop-prompt-charcount">
-          {editBusinessPrompt.length} / {AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH}
-        </span>
-      </div>
-      <div className="modal-actions">
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={onSaveBusinessPrompt}
-          disabled={savingSettings || editBusinessPrompt === (shop.services?.affiliateService?.businessPrompt ?? "")}
-        >
-          {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
-        </button>
-      </div>
+      <section id="shop-workspace-affiliateManagement-model" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.modelUsageScope")}</div>
+        <div className="shop-info-card">
+          <div className="affiliate-threshold-row">
+            <div className="affiliate-threshold-copy">
+              <label className="form-label-block">
+                {t("ecommerce.shopDrawer.affiliate.modelUsageScopeLabel")}
+              </label>
+              <div className="shop-info-card-hint">
+                {t("ecommerce.shopDrawer.affiliate.modelUsageScopeHint")}
+              </div>
+            </div>
+            <div className="affiliate-threshold-control">
+              <Select
+                value={editModelUsageScope}
+                onChange={(value) => onEditModelUsageScope(value === "SHOP_LEVEL" ? "SHOP_LEVEL" : "USER_LEVEL")}
+                options={modelUsageOptions}
+                className="input-full"
+                disabled={savingSettings}
+              />
+            </div>
+          </div>
+          <AffiliateModelRecommendationPanel
+            accountModel={accountModelEvaluation}
+            loading={entityStore.affiliateMlInsightsLoading}
+            recommendation={modelRecommendation}
+            selectedScope={editModelUsageScope}
+            shopModel={shopModelEvaluation}
+          />
+        </div>
+      </section>
+
+      <section id="shop-workspace-affiliateManagement-thresholds" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.decisionThresholds")}</div>
+        <div className="shop-info-card">
+          <div className="affiliate-threshold-row">
+            <div className="affiliate-threshold-copy">
+              <label className="form-label-block" htmlFor={`affiliate-threshold-${shop.id}`}>
+                {t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnits")}
+              </label>
+              <div className="shop-info-card-hint">
+                {t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnitsHint")}
+              </div>
+            </div>
+            <div className="affiliate-threshold-control">
+              <input
+                id={`affiliate-threshold-${shop.id}`}
+                className="input affiliate-threshold-input"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={0.1}
+                placeholder={t("ecommerce.shopDrawer.affiliate.noThreshold")}
+                value={editMinExpectedSalesUnits}
+                onChange={(e) => onEditMinExpectedSalesUnits(e.target.value)}
+                onBlur={onCommitMinExpectedSalesUnits}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
+                }}
+                disabled={savingSettings}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="shop-workspace-affiliateManagement-policies" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.affiliateWorkspace.policies.title")}</div>
+        <AffiliateApprovalPolicyPanel shop={shop} />
+      </section>
+
+      <section id="shop-workspace-affiliateManagement-prompt" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.businessPrompt")}</div>
+        <div className="form-hint">{t("ecommerce.shopDrawer.affiliate.businessPromptHint")}</div>
+        <div className="shop-prompt-wrapper">
+          <textarea
+            className="input-full textarea-resize-vertical shop-prompt-textarea"
+            value={editBusinessPrompt}
+            onChange={(e) => onEditBusinessPrompt(e.target.value)}
+            rows={10}
+            maxLength={AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH}
+          />
+          <span className="shop-prompt-charcount">
+            {editBusinessPrompt.length} / {AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH}
+          </span>
+        </div>
+        <div className="modal-actions">
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onSaveBusinessPrompt}
+            disabled={savingSettings || editBusinessPrompt === (shop.services?.affiliateService?.businessPrompt ?? "")}
+          >
+            {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
+          </button>
+        </div>
+      </section>
     </div>
   );
 });
