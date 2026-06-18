@@ -3306,8 +3306,8 @@ export default {
         unpaidReachoutDelayHint: "Use a whole number from 1 to 47. TikTok proactive reachout is limited to 48 hours.",
         unpaidReachoutInvalidDelay: "Delay hours must be a whole number from 1 to 47.",
         unpaidReachoutTemplate: "Reminder template",
-        unpaidReachoutTemplatePlaceholder: "Leave empty to use the localized default message.",
-        unpaidReachoutTemplateHint: "Optional. Supports {{order_id}}, {{product_count}}, and {{shop_name}}.",
+        unpaidReachoutTemplatePlaceholder: "Write the reminder message shown to unpaid buyers.",
+        unpaidReachoutTemplateHint: "Supports {{order_id}}, {{product_count}}, and {{shop_name}}. Empty means no reminder is sent.",
       },
       affiliate: {
         serviceStatus: "Service Status",
