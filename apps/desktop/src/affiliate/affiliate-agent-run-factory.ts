@@ -29,21 +29,21 @@ export function buildAffiliateAgentRunRequest(
   switch (resolveAgentRunKind(workItem)) {
     case "CREATOR_REPLY":
       return buildCreatorReplyRun(input);
-    case "CONTENT_FOLLOW_UP":
-      return buildContentFollowUpRun(input);
+    case "CREATOR_FOLLOW_UP":
+      return buildCreatorFollowUpRun(input);
     default:
       return null;
   }
 }
 
-type AffiliateAgentRunKind = "CREATOR_REPLY" | "CONTENT_FOLLOW_UP";
+type AffiliateAgentRunKind = "CREATOR_REPLY" | "CREATOR_FOLLOW_UP";
 
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
   switch (workItem.requiredAction) {
     case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
       return "CREATOR_REPLY";
-    case GQL.AffiliateCollaborationRequiredAction.FollowUpContent:
-      return "CONTENT_FOLLOW_UP";
+    case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
+      return "CREATOR_FOLLOW_UP";
     default:
       break;
   }
@@ -52,8 +52,8 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
   switch (workItem.workKind) {
     case GQL.AffiliateWorkKind.CreatorReplyNeeded:
       return "CREATOR_REPLY";
-    case GQL.AffiliateWorkKind.ContentFollowUpDue:
-      return "CONTENT_FOLLOW_UP";
+    case GQL.AffiliateWorkKind.CreatorFollowUpDue:
+      return "CREATOR_FOLLOW_UP";
     default:
       return null;
   }
@@ -100,11 +100,11 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
   };
 }
 
-function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
+function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
   const { workItem, platform } = input;
   return {
     message: [
-      "[Affiliate Work Item: Content Follow-Up Due]",
+      "[Affiliate Work Item: Creator Follow-Up Due]",
       "",
       renderWorkItemProjection(workItem),
       "",
@@ -117,7 +117,7 @@ function buildContentFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       renderBusinessPrompt(input.businessPrompt),
       "",
       "## Task",
-      "The creator appears to be past the configured follow-up point after sample delivery or content-pending state.",
+      "The creator appears to be past a configured creator-side follow-up point. This may be after a target invitation, sample delivery, content-pending state, or another creator-turn workflow.",
       "Decide whether to send a gentle creator follow-up now.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       renderResolveWorkItemToolContract(),

@@ -12819,10 +12819,11 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-workbench-panel {
-  border: 1px solid var(--color-border-light);
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 82%, var(--color-text-muted));
   border-radius: 8px;
-  background: var(--color-bg);
+  background: color-mix(in srgb, var(--color-bg-alt) 74%, var(--color-bg));
   overflow: hidden;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-text) 5%, transparent);
 }
 
 .affiliate-workbench-panel-head {
@@ -12885,9 +12886,15 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-workbench-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
-  gap: 12px;
-  align-items: start;
-  padding: 12px;
+  gap: 18px;
+  align-items: stretch;
+  padding: 18px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg)) 0%,
+      color-mix(in srgb, var(--color-bg-alt) 48%, var(--color-bg)) 100%
+    );
 }
 
 .affiliate-intelligence-page {
@@ -14288,43 +14295,83 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-collaboration-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 132px;
-  padding: 14px;
-  border: 1px solid var(--color-border-light);
+  height: 100%;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 48%, var(--color-text-muted));
   border-radius: 8px;
   background: var(--color-bg);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-bg) 86%, white) inset,
+    0 10px 26px color-mix(in srgb, var(--color-text) 5%, transparent);
+  overflow: hidden;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.affiliate-collaboration-card::before {
+  content: "";
+  position: absolute;
+  inset: 12px auto 12px 0;
+  width: 4px;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--color-primary) 28%, var(--color-border-light));
+  opacity: 0.78;
+  pointer-events: none;
 }
 
 .affiliate-collaboration-card:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border-light));
+  border-color: color-mix(in srgb, var(--color-primary) 58%, var(--color-border-light));
   background: color-mix(in srgb, var(--color-primary) 3%, var(--color-bg));
-  box-shadow: var(--shadow-sm);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-bg) 86%, white) inset,
+    0 16px 34px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  transform: translateY(-1px);
 }
 
 .affiliate-collaboration-card-body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
+  padding: 0 14px 14px;
 }
 
 .affiliate-work-item-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--color-border-light);
+  height: 100%;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 48%, var(--color-text-muted));
   border-radius: 8px;
   background: var(--color-bg);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-bg) 86%, white) inset,
+    0 10px 26px color-mix(in srgb, var(--color-text) 5%, transparent);
+  overflow: hidden;
+}
+
+.affiliate-work-item-card::before {
+  content: "";
+  position: absolute;
+  inset: 12px auto 12px 0;
+  width: 4px;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 58%, var(--color-border-light));
+  opacity: 0.84;
+  pointer-events: none;
 }
 
 .affiliate-work-item-clickable {
@@ -14332,13 +14379,17 @@ html[lang="zh"] .acct-tool-chips {
   transition:
     border-color var(--transition-fast),
     background var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .affiliate-work-item-clickable:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border-light));
+  border-color: color-mix(in srgb, var(--color-primary) 58%, var(--color-border-light));
   background: color-mix(in srgb, var(--color-primary) 3%, var(--color-bg));
-  box-shadow: var(--shadow-sm);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-bg) 86%, white) inset,
+    0 16px 34px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  transform: translateY(-1px);
 }
 
 .affiliate-work-item-head {
@@ -14346,6 +14397,24 @@ html[lang="zh"] .acct-tool-chips {
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
+  min-height: 74px;
+  margin: 0;
+  padding: 14px 14px 12px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg-alt) 42%, var(--color-bg)) 0%,
+      var(--color-bg) 100%
+    );
+}
+
+.affiliate-work-item-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 14px;
 }
 
 .affiliate-creator-block {
@@ -14555,9 +14624,9 @@ html[lang="zh"] .acct-tool-chips {
   gap: 14px;
   position: relative;
   padding: 12px;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 78%, var(--color-text-muted));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg));
+  background: color-mix(in srgb, var(--color-bg-alt) 54%, var(--color-bg));
 }
 
 .affiliate-product-summary-clickable {
@@ -14995,9 +15064,9 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-work-item-preview {
   margin-top: 8px;
   padding: 10px 12px;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 78%, var(--color-text-muted));
   border-radius: 6px;
-  background: var(--color-bg-alt);
+  background: color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg));
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.5;
@@ -15101,9 +15170,9 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-card-execution-section {
   padding: 10px 12px;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 78%, var(--color-text-muted));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg));
+  background: color-mix(in srgb, var(--color-bg-alt) 62%, var(--color-bg));
 }
 
 .affiliate-card-execution-section .affiliate-work-item-preview {
@@ -15141,6 +15210,8 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  margin-top: auto;
+  padding: 0 14px 14px;
 }
 
 .affiliate-collaboration-modal {

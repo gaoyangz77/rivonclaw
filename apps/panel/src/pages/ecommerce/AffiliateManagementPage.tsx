@@ -3128,14 +3128,14 @@ function buildCollaborationWorkView(
         title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.SAMPLE_AWAITING_SHIPMENT"),
         description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.SHIP_SAMPLE"),
       };
-    case GQL.AffiliateCollaborationRequiredAction.FollowUpContent:
+    case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
       return {
         badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.agent"),
         badgeTone: "attention",
         stage,
         ownerLabel: t("ecommerce.affiliateWorkspace.labels.nextStep"),
-        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.SAMPLE_SHIPPED_CONTENT_FOLLOW_UP_DUE"),
-        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.FOLLOW_UP_CONTENT"),
+        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.CREATOR_ACTION_FOLLOW_UP_DUE"),
+        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.FOLLOW_UP_CREATOR"),
       };
     case GQL.AffiliateCollaborationRequiredAction.ReviewAgentFailure:
       return {
@@ -3223,7 +3223,7 @@ function renderCollaborationWorkTitle({
     GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
     GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
     GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment,
-    GQL.AffiliateCollaborationRecordProcessReason.SampleShippedContentFollowUpDue,
+    GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue,
     GQL.AffiliateCollaborationRecordProcessReason.CreatorIdentityUnresolved,
     GQL.AffiliateCollaborationRecordProcessReason.AgentRunFailed,
     GQL.AffiliateCollaborationRecordProcessReason.StaffReviewRequested,
