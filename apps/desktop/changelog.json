@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.37",
+    "date": "2026-06-18",
+    "en": [
+      "Keep customer-service close-out instructions backend-owned and route close-out dispatches through the end-session tool",
+      "Improve affiliate product-fit workflows and sample/product context resolution",
+      "Add BI tool internationalization labels for clearer desktop tool presentation"
+    ],
+    "zh": [
+      "将客服结束会话指令保持在后端统一管理，并通过结束会话工具派发 close-out",
+      "优化达人商品匹配流程，以及样品和商品上下文解析",
+      "补充 BI 工具多语言标签，让桌面端工具展示更清晰"
+    ]
+  },
+  {
     "version": "1.8.36",
     "date": "2026-06-18",
     "en": [
