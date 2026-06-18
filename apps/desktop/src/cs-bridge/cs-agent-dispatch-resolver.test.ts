@@ -14,11 +14,12 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
     const prompt = buildCsAgentDispatchSystemPrompt("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP");
 
     expect(prompt).toContain("approaching platform timeout");
-    expect(prompt).toContain("Your task is to call ecom_cs_end_session");
-    expect(prompt).toContain("Do not send a normal buyer-facing reply instead of calling the tool");
+    expect(prompt).toContain("backend-directed close-out dispatch");
+    expect(prompt).toContain("Use the operator instruction as the task authority");
     expect(prompt).toContain("Follow the operator instruction");
     expect(prompt).toContain("Use the current tool specs as the source of truth");
-    expect(prompt).toContain("Pass a concise followUpMessage");
+    expect(prompt).toContain("Use the provided dispatch context and local session context");
+    expect(prompt).not.toContain("Your task is to call ecom_cs_end_session");
     expect(prompt).not.toContain("Default to ecom_cs_end_session");
   });
 });

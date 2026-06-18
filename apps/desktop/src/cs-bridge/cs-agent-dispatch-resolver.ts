@@ -179,11 +179,9 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
       ].join(" ");
     case "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP":
       return [
-        "This dispatch is for a resolved customer-service conversation approaching platform timeout.",
-        "Your task is to call ecom_cs_end_session in this run.",
-        "Do not send a normal buyer-facing reply instead of calling the tool.",
-        "Pass a concise followUpMessage; include reviewRequestMessage only when it is appropriate, otherwise omit it.",
-        "Do not call conversation-history tools unless required tool inputs are missing or contradictory.",
+        "This is a backend-directed close-out dispatch for a resolved customer-service conversation approaching platform timeout.",
+        "Use the operator instruction as the task authority.",
+        "Use the provided dispatch context and local session context; fetch more context only when the operator instruction cannot be executed from available context.",
         END_SESSION_GUIDANCE,
       ].join(" ");
     case "UNPAID_ORDER_FOLLOW_UP":
