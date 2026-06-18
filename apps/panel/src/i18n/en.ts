@@ -1687,6 +1687,7 @@ export default {
         ECOM_ORDER: "E-com Orders",
         ECOM_FULFILLMENT: "E-com Fulfillment",
         ECOM_PRODUCT: "E-com Products",
+        ECOM_BI: "E-com BI",
         ECOM_RETURN_REFUND: "E-com Returns",
         ECOMMERCE_SHOP_MGMT: "E-com Shop Mgmt",
         AFFILIATE_READ: "Affiliate Management",
@@ -1733,6 +1734,8 @@ export default {
         ECOM_GET_INVENTORY_ANALYSIS: "Get Inventory Analysis",
         ECOM_GET_SHOP_SKU_PERFORMANCE_LIST: "Get Shop SKU Performance List",
         ECOM_GET_OPERATION_REPORT: "Get Operation Report",
+        ECOM_GET_BI_CATALOG: "Get BI Catalog",
+        ECOM_GET_BI_DATA: "Get BI Data",
         ECOM_UPDATE_INVENTORY: "Update Inventory",
         // E-commerce Ops — Conversations (Write)
         ECOM_MARK_CONVERSATION_READ: "Mark Read",
