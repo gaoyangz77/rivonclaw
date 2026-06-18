@@ -2977,7 +2977,14 @@ export default {
         "unpaidReachoutHint": "Jika diaktifkan, agen CS desktop yang terhubung akan mengirim satu pengingat proaktif setelah jeda yang dikonfigurasi.",
         "unpaidReachoutDelay": "Jeda dalam jam",
         "unpaidReachoutDelayHint": "Gunakan bilangan bulat dari 1 hingga 47. Jangkauan proaktif TikTok dibatasi hingga 48 jam.",
-        "unpaidReachoutInvalidDelay": "Jeda jam harus berupa bilangan bulat dari 1 hingga 47."
+        "unpaidReachoutInvalidDelay": "Jeda jam harus berupa bilangan bulat dari 1 hingga 47.",
+        "unpaidReachoutTemplate": "Template pengingat",
+        "unpaidReachoutTemplatePlaceholder": "Tulis pesan pengingat yang ditampilkan kepada pembeli dengan pesanan belum dibayar.",
+        "unpaidReachoutTemplateHint": "Mendukung {{order_id}}, {{product_count}}, dan {{shop_name}}. Kosong berarti tidak ada pengingat yang dikirim.",
+        "unpaidReachoutTemplateTokens": "Sisipkan placeholder",
+        "unpaidReachoutTemplateTokenOrderId": "ID pesanan",
+        "unpaidReachoutTemplateTokenProductCount": "Jumlah produk",
+        "unpaidReachoutTemplateTokenShopName": "Nama toko"
       },
       "affiliate": {
         "serviceStatus": "Status Layanan",

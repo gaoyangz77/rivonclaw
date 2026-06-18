@@ -2977,7 +2977,14 @@ export default {
         "unpaidReachoutHint": "Quando attivo, l'agente CS desktop associato invia un promemoria proattivo dopo il ritardo configurato.",
         "unpaidReachoutDelay": "Ritardo in ore",
         "unpaidReachoutDelayHint": "Usa un numero intero da 1 a 47. Il contatto proattivo TikTok è limitato a 48 ore.",
-        "unpaidReachoutInvalidDelay": "Il ritardo deve essere un numero intero da 1 a 47."
+        "unpaidReachoutInvalidDelay": "Il ritardo deve essere un numero intero da 1 a 47.",
+        "unpaidReachoutTemplate": "Template promemoria",
+        "unpaidReachoutTemplatePlaceholder": "Scrivi il messaggio di promemoria mostrato agli acquirenti con ordini non pagati.",
+        "unpaidReachoutTemplateHint": "Supporta {{order_id}}, {{product_count}} e {{shop_name}}. Se vuoto, non viene inviato alcun promemoria.",
+        "unpaidReachoutTemplateTokens": "Inserisci variabile",
+        "unpaidReachoutTemplateTokenOrderId": "ID ordine",
+        "unpaidReachoutTemplateTokenProductCount": "Numero prodotti",
+        "unpaidReachoutTemplateTokenShopName": "Nome negozio"
       },
       "affiliate": {
         "serviceStatus": "Stato del servizio",
