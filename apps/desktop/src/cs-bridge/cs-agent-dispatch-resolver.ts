@@ -38,7 +38,7 @@ const CONVERSATION_DISPATCH_PLANS: Record<string, {
   SESSION_EXPIRING_CUSTOMER_FOLLOW_UP: {
     signalType: "UNREAD_DETECTED",
     dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
-    useMessageDelta: true,
+    useMessageDelta: false,
   },
   UNPAID_ORDER_FOLLOW_UP: {
     signalType: "UNPAID_ORDER_FOLLOW_UP",
@@ -72,7 +72,7 @@ const SIGNAL_DISPATCH_PLANS: Record<string, {
 const END_SESSION_GUIDANCE = [
   "Follow the operator instruction for this dispatch.",
   "Use the current tool specs as the source of truth for tool behavior and parameters.",
-  "Inspect the latest customer-service context before taking action.",
+  "Use the provided dispatch context and local session context before taking action.",
   "Do not invent platform state; use tools when needed.",
 ].join(" ");
 
@@ -180,6 +180,10 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
     case "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP":
       return [
         "This dispatch is for a resolved customer-service conversation approaching platform timeout.",
+        "Your task is to call ecom_cs_end_session in this run.",
+        "Do not send a normal buyer-facing reply instead of calling the tool.",
+        "Pass a concise followUpMessage; include reviewRequestMessage only when it is appropriate, otherwise omit it.",
+        "Do not call conversation-history tools unless required tool inputs are missing or contradictory.",
         END_SESSION_GUIDANCE,
       ].join(" ");
     case "UNPAID_ORDER_FOLLOW_UP":
