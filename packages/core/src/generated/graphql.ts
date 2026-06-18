@@ -880,6 +880,28 @@ export const AffiliateConversationSignalType = {
 } as const;
 
 export type AffiliateConversationSignalType = typeof AffiliateConversationSignalType[keyof typeof AffiliateConversationSignalType];
+export interface AffiliateCreatorProductFitInput {
+  /** Backend CreatorGlobalProfile id. Prefer this when the current affiliate work context already resolved it. */
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  /** TikTok creator_open_id. Use this when a message/card provides the platform creator id but no backend creator id. */
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  /** TikTok Shop product id to evaluate as a candidate collaboration product. This does not bind the product to any collaboration record. */
+  productId: Scalars['String']['input'];
+  /** Prediction scenario. Defaults to TARGET_COLLABORATION_PLANNING for creator-product fit checks from affiliate chat. */
+  scenario?: InputMaybe<AffiliateExpectedSalesPredictionScenario>;
+  shopId: Scalars['ID']['input'];
+}
+
+/** Agent-facing creator-product fit result for affiliate chat/card decisions. It reuses the expected-sales prediction model and does not mutate collaboration product context. */
+export interface AffiliateCreatorProductFitPayload {
+  decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
+  /** Plain-language merchant interpretation for agent reasoning. This is explanatory only; the agent still decides how to respond. */
+  merchantInterpretation?: Maybe<Scalars['String']['output']>;
+  prediction?: Maybe<AffiliateExpectedSalesSubjectPrediction>;
+  predictionPayload: AffiliateExpectedSalesPredictionPayload;
+  productSummary?: Maybe<EcomProductSummary>;
+}
+
 export interface AffiliateDashboardInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   section?: InputMaybe<AffiliateDashboardSection>;
@@ -2821,9 +2843,9 @@ export const EcomApproveReturnDecision = {
 export type EcomApproveReturnDecision = typeof EcomApproveReturnDecision[keyof typeof EcomApproveReturnDecision];
 /** Warehouse-backed ecommerce BI dataset identifiers. */
 export const EcomBiDatasetId = {
-  AdsGmvCampaignSummaryDaily: 'ADS_GMV_CAMPAIGN_SUMMARY_DAILY',
-  OrderLineDetail: 'ORDER_LINE_DETAIL',
-  OrderSalesDaily: 'ORDER_SALES_DAILY'
+  AdsGmvCampaignDaily: 'ADS_GMV_CAMPAIGN_DAILY',
+  AdsGmvCreativeDaily: 'ADS_GMV_CREATIVE_DAILY',
+  AdsGmvProductDaily: 'ADS_GMV_PRODUCT_DAILY'
 } as const;
 
 export type EcomBiDatasetId = typeof EcomBiDatasetId[keyof typeof EcomBiDatasetId];
@@ -2837,81 +2859,28 @@ export interface EcomBiDatasetMetadata {
   id: EcomBiDatasetId;
   label: Scalars['String']['output'];
   metrics: Array<EcomBiMetricMetadata>;
+  supportedGranularities: Array<EcomBiGranularity>;
 }
 
 /** Allowed BI dimensions. Dataset metadata declares which are valid per dataset. */
 export const EcomBiDimension = {
   AdvertiserId: 'ADVERTISER_ID',
   AdvertiserName: 'ADVERTISER_NAME',
-  BuyerMessage: 'BUYER_MESSAGE',
-  BuyerUsername: 'BUYER_USERNAME',
   CampaignId: 'CAMPAIGN_ID',
   CampaignName: 'CAMPAIGN_NAME',
-  CancellationReturnType: 'CANCELLATION_RETURN_TYPE',
-  CancelledTime: 'CANCELLED_TIME',
-  CancelBy: 'CANCEL_BY',
-  CancelReason: 'CANCEL_REASON',
-  City: 'CITY',
-  Country: 'COUNTRY',
-  CreatedTime: 'CREATED_TIME',
+  CreativeDeliveryStatus: 'CREATIVE_DELIVERY_STATUS',
+  CreativeTitle: 'CREATIVE_TITLE',
   Currency: 'CURRENCY',
   Date: 'DATE',
-  DeliveredTime: 'DELIVERED_TIME',
-  DeliveryOption: 'DELIVERY_OPTION',
-  DeliveryType: 'DELIVERY_TYPE',
-  District: 'DISTRICT',
-  Email: 'EMAIL',
-  FulfillmentType: 'FULFILLMENT_TYPE',
-  HouseNameOrNumber: 'HOUSE_NAME_OR_NUMBER',
-  NormalOrPreorder: 'NORMAL_OR_PREORDER',
-  OrderAmount: 'ORDER_AMOUNT',
-  OrderId: 'ORDER_ID',
-  OrderRefundAmount: 'ORDER_REFUND_AMOUNT',
-  OrderStatus: 'ORDER_STATUS',
-  OrderSubstatus: 'ORDER_SUBSTATUS',
-  OriginalShippingFee: 'ORIGINAL_SHIPPING_FEE',
-  PackageId: 'PACKAGE_ID',
-  PaidTime: 'PAID_TIME',
-  PaymentMethod: 'PAYMENT_METHOD',
-  PhoneNumber: 'PHONE_NUMBER',
-  ProductCategory: 'PRODUCT_CATEGORY',
   ProductId: 'PRODUCT_ID',
   ProductName: 'PRODUCT_NAME',
-  ProductTaxAmount: 'PRODUCT_TAX_AMOUNT',
-  ProductTaxRate: 'PRODUCT_TAX_RATE',
-  Quantity: 'QUANTITY',
-  Recipient: 'RECIPIENT',
-  RoiProtection: 'ROI_PROTECTION',
-  RtsTime: 'RTS_TIME',
-  SellerNote: 'SELLER_NOTE',
-  SellerSku: 'SELLER_SKU',
-  ShippedTime: 'SHIPPED_TIME',
-  ShippingFeeAfterDiscount: 'SHIPPING_FEE_AFTER_DISCOUNT',
-  ShippingFeePlatformDiscount: 'SHIPPING_FEE_PLATFORM_DISCOUNT',
-  ShippingFeeSellerDiscount: 'SHIPPING_FEE_SELLER_DISCOUNT',
-  ShippingProviderName: 'SHIPPING_PROVIDER_NAME',
-  ShippingTaxAmount: 'SHIPPING_TAX_AMOUNT',
-  ShippingTaxRate: 'SHIPPING_TAX_RATE',
+  ProductStatus: 'PRODUCT_STATUS',
   ShopId: 'SHOP_ID',
   ShopName: 'SHOP_NAME',
-  SkuId: 'SKU_ID',
-  SkuName: 'SKU_NAME',
-  SkuPlatformDiscount: 'SKU_PLATFORM_DISCOUNT',
-  SkuReturnQuantity: 'SKU_RETURN_QUANTITY',
-  SkuSellerDiscount: 'SKU_SELLER_DISCOUNT',
-  SkuSubtotalAfterDiscount: 'SKU_SUBTOTAL_AFTER_DISCOUNT',
-  SkuSubtotalBeforeDiscount: 'SKU_SUBTOTAL_BEFORE_DISCOUNT',
-  SkuUnitOriginalPrice: 'SKU_UNIT_ORIGINAL_PRICE',
-  State: 'STATE',
+  SourceCreativeId: 'SOURCE_CREATIVE_ID',
+  SourceCreativeIdType: 'SOURCE_CREATIVE_ID_TYPE',
   StoreId: 'STORE_ID',
-  StoreName: 'STORE_NAME',
-  StreetName: 'STREET_NAME',
-  Taxes: 'TAXES',
-  TrackingId: 'TRACKING_ID',
-  Variation: 'VARIATION',
-  WarehouseName: 'WAREHOUSE_NAME',
-  WeightKg: 'WEIGHT_KG',
-  Zipcode: 'ZIPCODE'
+  StoreName: 'STORE_NAME'
 } as const;
 
 export type EcomBiDimension = typeof EcomBiDimension[keyof typeof EcomBiDimension];
@@ -2948,26 +2917,28 @@ export const EcomBiFilterOperator = {
 } as const;
 
 export type EcomBiFilterOperator = typeof EcomBiFilterOperator[keyof typeof EcomBiFilterOperator];
+/** Supported BI date granularities. The first Ads GMV Max catalogs are daily. */
+export const EcomBiGranularity = {
+  Daily: 'DAILY'
+} as const;
+
+export type EcomBiGranularity = typeof EcomBiGranularity[keyof typeof EcomBiGranularity];
 /** Allowed BI metrics. Dataset metadata declares which are valid per dataset. */
 export const EcomBiMetric = {
-  CancelledGmv: 'CANCELLED_GMV',
-  CancelledOrderCount: 'CANCELLED_ORDER_COUNT',
-  CancelledUnits: 'CANCELLED_UNITS',
-  CompletedGmv: 'COMPLETED_GMV',
-  CompletedOrderCount: 'COMPLETED_ORDER_COUNT',
-  CompletedUnits: 'COMPLETED_UNITS',
+  AdVideoViewRate_2S: 'AD_VIDEO_VIEW_RATE_2S',
+  AdVideoViewRate_6S: 'AD_VIDEO_VIEW_RATE_6S',
+  AdVideoViewRate_25P: 'AD_VIDEO_VIEW_RATE_25P',
+  AdVideoViewRate_50P: 'AD_VIDEO_VIEW_RATE_50P',
+  AdVideoViewRate_75P: 'AD_VIDEO_VIEW_RATE_75P',
+  AdVideoViewRate_100P: 'AD_VIDEO_VIEW_RATE_100P',
   CostAmount: 'COST_AMOUNT',
   CostPerOrderAmount: 'COST_PER_ORDER_AMOUNT',
-  CurrentBudgetAmount: 'CURRENT_BUDGET_AMOUNT',
-  EffectiveGmv: 'EFFECTIVE_GMV',
-  EffectiveOrderCount: 'EFFECTIVE_ORDER_COUNT',
-  EffectiveUnits: 'EFFECTIVE_UNITS',
-  GrossGmv: 'GROSS_GMV',
-  GrossOrderCount: 'GROSS_ORDER_COUNT',
   GrossRevenueAmount: 'GROSS_REVENUE_AMOUNT',
-  GrossUnits: 'GROSS_UNITS',
   NetCostAmount: 'NET_COST_AMOUNT',
   Orders: 'ORDERS',
+  ProductClicks: 'PRODUCT_CLICKS',
+  ProductClickRate: 'PRODUCT_CLICK_RATE',
+  ProductImpressions: 'PRODUCT_IMPRESSIONS',
   RoasBid: 'ROAS_BID',
   Roi: 'ROI'
 } as const;
@@ -3002,13 +2973,15 @@ export interface EcomBiQueryInput {
   endDateLt: Scalars['String']['input'];
   /** Optional filters over dataset-supported dimensions. */
   filters?: InputMaybe<Array<EcomBiFilterInput>>;
+  /** Date granularity. The current Ads GMV Max datasets support DAILY only. */
+  granularity?: InputMaybe<EcomBiGranularity>;
   /** Maximum rows to return. Defaults to 500; use 0 for the backend maximum. */
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Metrics to return. Defaults are declared by dataset metadata. */
   metrics?: InputMaybe<Array<EcomBiMetric>>;
   /** Optional sort order. Fields must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
-  /** Onboarded shop Mongo IDs. BI queries only expose rows linked to these authorized shops. */
+  /** Onboarded shop Mongo IDs. BI queries only expose Ads rows whose store binding matches these authorized shops. */
   shopIds: Array<Scalars['ID']['input']>;
   /** Start date inclusive in YYYY-MM-DD format. */
   startDateGe: Scalars['String']['input'];
@@ -3018,6 +2991,7 @@ export interface EcomBiQueryInput {
 export interface EcomBiQueryResult {
   columns: Array<EcomBiResultColumn>;
   datasetId: EcomBiDatasetId;
+  granularity: EcomBiGranularity;
   rows: Array<Scalars['JSONObject']['output']>;
   totalCount: Scalars['Int']['output'];
 }
@@ -3035,7 +3009,6 @@ export interface EcomBiResultColumn {
 /** Logical value type for BI fields. */
 export const EcomBiValueType = {
   Date: 'DATE',
-  Datetime: 'DATETIME',
   Decimal: 'DECIMAL',
   Integer: 'INTEGER',
   Money: 'MONEY',
@@ -5436,6 +5409,8 @@ export interface Query {
   affiliateMlInsightSummaries: Array<AffiliateMlModelEfficiencySummary>;
   /** Read latest affiliate ML evaluation summary generated by telemetry training jobs for the current user or one shop. */
   affiliateMlInsights: AffiliateMlInsightsPayload;
+  /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
+  affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
@@ -5466,8 +5441,6 @@ export interface Query {
   csOpenEscalationsPage: CsOpenEscalationPage;
   /** List unhandled CS escalation side-effect events for the authenticated user's desktop actuator */
   csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
-  /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
-  ecommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
@@ -5504,8 +5477,6 @@ export interface Query {
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
-  /** Query warehouse-backed ecommerce BI data. This is a backend service API and is not registered as an agent tool. */
-  ecommerceQueryBiData: EcomBiQueryResult;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
@@ -5516,6 +5487,10 @@ export interface Query {
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
+  /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
+  getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
+  /** Query typed warehouse-backed ecommerce BI data. */
+  getEcommerceBiData: EcomBiQueryResult;
   /** List recent image assets for the authenticated user */
   imageAssets: Array<ImageAsset>;
   /** Get current authenticated user profile */
@@ -5687,6 +5662,11 @@ export interface QueryAffiliateMlInsightSummariesArgs {
 
 export interface QueryAffiliateMlInsightsArgs {
   input?: InputMaybe<AffiliateMlInsightsInput>;
+}
+
+
+export interface QueryAffiliatePredictCreatorProductFitArgs {
+  input: AffiliateCreatorProductFitInput;
 }
 
 
@@ -5888,11 +5868,6 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
 }
 
 
-export interface QueryEcommerceQueryBiDataArgs {
-  input: EcomBiQueryInput;
-}
-
-
 export interface QueryEcommerceSearchCsSessionsArgs {
   beginTimeGe: Scalars['Float']['input'];
   beginTimeLt: Scalars['Float']['input'];
@@ -5948,6 +5923,11 @@ export interface QueryEcommerceSearchReturnsArgs {
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
+}
+
+
+export interface QueryGetEcommerceBiDataArgs {
+  input: EcomBiQueryInput;
 }
 
 
@@ -6847,6 +6827,7 @@ export const ToolCategory = {
   AffiliateRead: 'AFFILIATE_READ',
   AffiliateSearch: 'AFFILIATE_SEARCH',
   EcommerceShopMgmt: 'ECOMMERCE_SHOP_MGMT',
+  EcomBi: 'ECOM_BI',
   EcomCs: 'ECOM_CS',
   EcomCsManagement: 'ECOM_CS_MANAGEMENT',
   EcomFulfillment: 'ECOM_FULFILLMENT',
@@ -6867,6 +6848,7 @@ export interface ToolContextBinding {
 export const ToolId = {
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
+  AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
   CsDismissConversationEscalations: 'CS_DISMISS_CONVERSATION_ESCALATIONS',
   CsEscalate: 'CS_ESCALATE',
@@ -6899,6 +6881,8 @@ export const ToolId = {
   EcomCsSendCard: 'ECOM_CS_SEND_CARD',
   EcomCsSendMedia: 'ECOM_CS_SEND_MEDIA',
   EcomGetAftersaleEligibility: 'ECOM_GET_AFTERSALE_ELIGIBILITY',
+  EcomGetBiCatalog: 'ECOM_GET_BI_CATALOG',
+  EcomGetBiData: 'ECOM_GET_BI_DATA',
   EcomGetConversations: 'ECOM_GET_CONVERSATIONS',
   EcomGetConversationMessages: 'ECOM_GET_CONVERSATION_MESSAGES',
   EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
