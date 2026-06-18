@@ -10,9 +10,9 @@ import { billingEnumLabel, usagePercentLabel } from "../../../components/billing
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const UNPAID_ORDER_TEMPLATE_PLACEHOLDERS = [
-  "{{order_id}}",
-  "{{product_count}}",
-  "{{shop_name}}",
+  { token: "{{order_id}}", labelKey: "unpaidReachoutTemplateTokenOrderId" },
+  { token: "{{product_count}}", labelKey: "unpaidReachoutTemplateTokenProductCount" },
+  { token: "{{shop_name}}", labelKey: "unpaidReachoutTemplateTokenShopName" },
 ] as const;
 
 interface AiCustomerServiceTabProps {
@@ -37,13 +37,11 @@ interface AiCustomerServiceTabProps {
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutDelayHours: string;
   editUnpaidOrderReminderTemplate: string;
-  savingUnpaidReachout: boolean;
-  savingUnpaidOrderTemplate: boolean;
+  savingUnpaidReachoutSettings: boolean;
   onToggleUnpaidReachoutEnabled: (value: boolean) => void;
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
-  onCommitUnpaidReachoutDelayHours: () => void;
   onEditUnpaidOrderReminderTemplate: (value: string) => void;
-  onSaveUnpaidOrderReminderTemplate: () => void;
+  onSaveUnpaidReachoutSettings: () => void;
   // Escalation
   savingEscalation: boolean;
   draftEscalationChannel: string;
@@ -77,13 +75,11 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutDelayHours,
   editUnpaidOrderReminderTemplate,
-  savingUnpaidReachout,
-  savingUnpaidOrderTemplate,
+  savingUnpaidReachoutSettings,
   onToggleUnpaidReachoutEnabled,
   onDraftUnpaidReachoutDelayHoursChange,
-  onCommitUnpaidReachoutDelayHours,
   onEditUnpaidOrderReminderTemplate,
-  onSaveUnpaidOrderReminderTemplate,
+  onSaveUnpaidReachoutSettings,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -101,6 +97,19 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+  const savedUnpaidReachoutEnabled = shop.services?.customerService?.unpaidOrderReachoutEnabled ?? false;
+  const savedUnpaidReachoutDelayHours = shop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24;
+  const savedUnpaidOrderReminderTemplate = shop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "";
+  const draftDelayTrimmed = draftUnpaidReachoutDelayHours.trim();
+  const draftDelayNumber = Number(draftDelayTrimmed);
+  const draftDelayValid =
+    Number.isInteger(draftDelayNumber) &&
+    draftDelayNumber >= 1 &&
+    draftDelayNumber <= 47;
+  const unpaidReachoutDirty =
+    draftUnpaidReachoutEnabled !== savedUnpaidReachoutEnabled ||
+    draftDelayTrimmed !== String(savedUnpaidReachoutDelayHours) ||
+    editUnpaidOrderReminderTemplate !== savedUnpaidOrderReminderTemplate;
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
     const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category }) : "";
@@ -247,9 +256,9 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                 type="checkbox"
                 checked={draftUnpaidReachoutEnabled}
                 onChange={(e) => onToggleUnpaidReachoutEnabled(e.target.checked)}
-                disabled={savingUnpaidReachout}
+                disabled={savingUnpaidReachoutSettings}
               />
-              <span className={`toggle-track ${draftUnpaidReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingUnpaidReachout ? "toggle-track-disabled" : ""}`}>
+              <span className={`toggle-track ${draftUnpaidReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingUnpaidReachoutSettings ? "toggle-track-disabled" : ""}`}>
                 <span className={`toggle-thumb ${draftUnpaidReachoutEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
               </span>
             </label>
@@ -275,8 +284,8 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                 step={1}
                 value={draftUnpaidReachoutDelayHours}
                 onChange={(e) => onDraftUnpaidReachoutDelayHoursChange(e.target.value)}
-                onBlur={onCommitUnpaidReachoutDelayHours}
-                disabled={savingUnpaidReachout}
+                disabled={savingUnpaidReachoutSettings}
+                aria-invalid={draftDelayTrimmed.length > 0 && !draftDelayValid}
               />
               <div className="shop-info-card-hint shop-unpaid-reachout-delay-hint">
                 {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelayHint")}
@@ -293,7 +302,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               value={editUnpaidOrderReminderTemplate}
               onChange={(e) => onEditUnpaidOrderReminderTemplate(e.target.value)}
               rows={3}
-              disabled={savingUnpaidOrderTemplate}
+              disabled={savingUnpaidReachoutSettings}
               placeholder={t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplatePlaceholder")}
             />
             <div className="shop-info-card-hint">
@@ -305,29 +314,38 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </span>
               {UNPAID_ORDER_TEMPLATE_PLACEHOLDERS.map((placeholder) => (
                 <button
-                  key={placeholder}
+                  key={placeholder.token}
                   type="button"
                   className="shop-unpaid-reachout-placeholder-chip"
-                  onClick={() => insertUnpaidOrderTemplatePlaceholder(placeholder)}
-                  disabled={savingUnpaidOrderTemplate}
-                  title={placeholder}
+                  onClick={() => insertUnpaidOrderTemplatePlaceholder(placeholder.token)}
+                  disabled={savingUnpaidReachoutSettings}
+                  title={placeholder.token}
                 >
-                  {placeholder}
+                  <span className="shop-unpaid-reachout-placeholder-chip-label">
+                    {t(`ecommerce.shopDrawer.aiCS.${placeholder.labelKey}`)}
+                  </span>
+                  <span className="shop-unpaid-reachout-placeholder-chip-token">
+                    {placeholder.token}
+                  </span>
                 </button>
               ))}
             </div>
-            <div className="form-actions-row">
+            <div className="shop-unpaid-reachout-actions">
+              {unpaidReachoutDirty && (
+                <span className="shop-unpaid-reachout-dirty">
+                  {t("ecommerce.shopDrawer.aiCS.unpaidReachoutUnsaved")}
+                </span>
+              )}
               <button
                 type="button"
-                className="btn-secondary"
-                onClick={onSaveUnpaidOrderReminderTemplate}
+                className="btn btn-primary btn-sm"
+                onClick={onSaveUnpaidReachoutSettings}
                 disabled={
-                  savingUnpaidOrderTemplate ||
-                  editUnpaidOrderReminderTemplate ===
-                    (shop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "")
+                  savingUnpaidReachoutSettings ||
+                  !unpaidReachoutDirty
                 }
               >
-                {savingUnpaidOrderTemplate ? t("common.saving") : t("common.save")}
+                {savingUnpaidReachoutSettings ? t("common.saving") : t("common.save")}
               </button>
             </div>
           </div>

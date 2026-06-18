@@ -3010,7 +3010,15 @@ export default {
         "unpaidReachoutHint": "Lorsque cette option est activée, l'agent CS de bureau associé envoie un rappel proactif après le délai configuré.",
         "unpaidReachoutDelay": "Délai en heures",
         "unpaidReachoutDelayHint": "Utilisez un nombre entier de 1 à 47. La relance proactive TikTok est limitée à 48 heures.",
-        "unpaidReachoutInvalidDelay": "Le délai doit être un nombre entier de 1 à 47."
+        "unpaidReachoutInvalidDelay": "Le délai doit être un nombre entier de 1 à 47.",
+        "unpaidReachoutTemplate": "Modèle de rappel",
+        "unpaidReachoutTemplatePlaceholder": "Rédigez le rappel affiché aux acheteurs impayés.",
+        "unpaidReachoutTemplateHint": "Prend en charge {{order_id}}, {{product_count}} et {{shop_name}}. Vide signifie qu'aucun rappel n'est envoyé.",
+        "unpaidReachoutTemplateTokens": "Insérer une variable",
+        "unpaidReachoutTemplateTokenOrderId": "ID de commande",
+        "unpaidReachoutTemplateTokenProductCount": "Nombre d'articles",
+        "unpaidReachoutTemplateTokenShopName": "Nom de la boutique",
+        "unpaidReachoutUnsaved": "Modifications non enregistrées"
       },
       "affiliate": {
         "serviceStatus": "Statut du service",

@@ -10636,10 +10636,10 @@ html[lang="zh"] .acct-tool-chips {
 
 .shop-unpaid-reachout-card {
   display: grid;
-  grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 0.56fr);
   align-items: stretch;
-  gap: 0;
-  padding: 18px 22px;
+  gap: 18px 22px;
+  padding: 18px;
   overflow: visible;
 }
 
@@ -10648,7 +10648,10 @@ html[lang="zh"] .acct-tool-chips {
   align-items: flex-start;
   gap: 14px;
   min-width: 0;
-  padding-right: 22px;
+  padding: 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
 }
 
 .shop-unpaid-reachout-copy {
@@ -10672,8 +10675,10 @@ html[lang="zh"] .acct-tool-chips {
   min-width: 0;
   flex-direction: column;
   gap: 10px;
-  padding-left: 22px;
-  border-left: 1px solid var(--color-border-light);
+  padding: 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
 }
 
 .shop-unpaid-reachout-delay .form-label-block {
@@ -10703,7 +10708,7 @@ html[lang="zh"] .acct-tool-chips {
   grid-column: 1 / -1;
   min-width: 0;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding-top: 18px;
   border-top: 1px solid var(--color-border-light);
 }
@@ -10723,7 +10728,7 @@ html[lang="zh"] .acct-tool-chips {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 10px;
 }
 
 .shop-unpaid-reachout-placeholder-label {
@@ -10733,16 +10738,19 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .shop-unpaid-reachout-placeholder-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: 8px;
   background: var(--color-bg);
   color: var(--color-text);
   cursor: pointer;
-  font-family: var(--font-mono, monospace);
+  font: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
-  padding: 7px 10px;
+  padding: 8px 10px;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -10760,6 +10768,33 @@ html[lang="zh"] .acct-tool-chips {
   opacity: 0.5;
 }
 
+.shop-unpaid-reachout-placeholder-chip-label {
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.shop-unpaid-reachout-placeholder-chip-token {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.shop-unpaid-reachout-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.shop-unpaid-reachout-dirty {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 @media (max-width: 760px) {
   .shop-unpaid-reachout-card {
     grid-template-columns: 1fr;
@@ -10767,14 +10802,11 @@ html[lang="zh"] .acct-tool-chips {
   }
 
   .shop-unpaid-reachout-toggle-pane {
-    padding-right: 0;
+    padding: 14px;
   }
 
   .shop-unpaid-reachout-delay {
-    padding-top: 16px;
-    padding-left: 0;
-    border-top: 1px solid var(--color-border-light);
-    border-left: 0;
+    padding: 14px;
   }
 
   .shop-unpaid-reachout-delay-input {

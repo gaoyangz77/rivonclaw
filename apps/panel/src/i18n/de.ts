@@ -3010,7 +3010,15 @@ export default {
         "unpaidReachoutHint": "Wenn aktiviert, sendet der gebundene Desktop-CS-Agent nach der konfigurierten Verzögerung eine proaktive Erinnerung.",
         "unpaidReachoutDelay": "Verzögerung in Stunden",
         "unpaidReachoutDelayHint": "Verwenden Sie eine ganze Zahl von 1 bis 47. TikTok erlaubt proaktive Kontaktaufnahme nur innerhalb von 48 Stunden.",
-        "unpaidReachoutInvalidDelay": "Die Verzögerung muss eine ganze Zahl von 1 bis 47 sein."
+        "unpaidReachoutInvalidDelay": "Die Verzögerung muss eine ganze Zahl von 1 bis 47 sein.",
+        "unpaidReachoutTemplate": "Erinnerungsvorlage",
+        "unpaidReachoutTemplatePlaceholder": "Schreiben Sie die Erinnerung, die unbezahlten Käufern angezeigt wird.",
+        "unpaidReachoutTemplateHint": "Unterstützt {{order_id}}, {{product_count}} und {{shop_name}}. Leer bedeutet: keine Erinnerung senden.",
+        "unpaidReachoutTemplateTokens": "Variable einfügen",
+        "unpaidReachoutTemplateTokenOrderId": "Bestellnummer",
+        "unpaidReachoutTemplateTokenProductCount": "Artikelanzahl",
+        "unpaidReachoutTemplateTokenShopName": "Shopname",
+        "unpaidReachoutUnsaved": "Nicht gespeicherte Änderungen"
       },
       "affiliate": {
         "serviceStatus": "Servicestatus",

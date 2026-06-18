@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { observer } from "mobx-react-lite";
@@ -12,12 +12,6 @@ import { useDeviceBinding } from "./hooks/useDeviceBinding.js";
 import { ShopTable } from "./components/ShopTable.js";
 import { ConnectShopModal } from "./components/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
-
-type UnpaidReachoutTarget = {
-  shopId: string;
-  enabled: boolean;
-  delayHours: number;
-};
 
 export const EcommercePage = observer(function EcommercePage() {
   const { t } = useTranslation();
@@ -43,9 +37,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
   const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
   const [editUnpaidOrderReminderTemplate, setEditUnpaidOrderReminderTemplate] = useState("");
-  const [pendingUnpaidReachoutPatch, setPendingUnpaidReachoutPatch] = useState<UnpaidReachoutTarget | null>(null);
-  const unpaidReachoutDesiredRef = useRef<UnpaidReachoutTarget | null>(null);
-  const unpaidReachoutSavePromiseRef = useRef<Promise<void> | null>(null);
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [editAffiliateMinExpectedSalesUnits, setEditAffiliateMinExpectedSalesUnits] = useState("");
   const [editAffiliateModelUsageScope, setEditAffiliateModelUsageScope] = useState<"USER_LEVEL" | "SHOP_LEVEL">("USER_LEVEL");
@@ -57,8 +48,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [savingRunProfile, setSavingRunProfile] = useState(false);
   const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
-  const [savingUnpaidReachout, setSavingUnpaidReachout] = useState(false);
-  const [savingUnpaidOrderTemplate, setSavingUnpaidOrderTemplate] = useState(false);
+  const [savingUnpaidReachoutSettings, setSavingUnpaidReachoutSettings] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
   const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(null);
   const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(null);
@@ -103,10 +93,16 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }, []);
 
-  // Sync business prompt from shop data (re-runs when shop changes or after mutations refresh the shop)
+  // Sync editable CS drafts from shop data (re-runs when shop changes or after mutations refresh the shop)
   useEffect(() => {
     if (selectedShop) {
       setEditBusinessPrompt(selectedShop.services?.customerService?.businessPrompt ?? "");
+      setDraftUnpaidReachoutEnabled(
+        selectedShop.services?.customerService?.unpaidOrderReachoutEnabled ?? false,
+      );
+      setDraftUnpaidReachoutDelayHours(
+        String(selectedShop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24),
+      );
       setEditUnpaidOrderReminderTemplate(
         selectedShop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "",
       );
@@ -114,43 +110,9 @@ export const EcommercePage = observer(function EcommercePage() {
   }, [
     selectedShop?.id,
     selectedShop?.services?.customerService?.businessPrompt,
-    selectedShop?.services?.customerService?.unpaidOrderReminderMessageTemplate,
-  ]);
-
-  useEffect(() => {
-    if (!selectedShop) return;
-
-    const serverEnabled = selectedShop.services?.customerService?.unpaidOrderReachoutEnabled ?? false;
-    const serverDelay = selectedShop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24;
-    const pending =
-      pendingUnpaidReachoutPatch?.shopId === selectedShop.id
-        ? pendingUnpaidReachoutPatch
-        : null;
-
-    const nextEnabled = pending?.enabled ?? serverEnabled;
-    const nextDelay = pending?.delayHours ?? serverDelay;
-    setDraftUnpaidReachoutEnabled(nextEnabled);
-    setDraftUnpaidReachoutDelayHours(String(nextDelay));
-
-    if (!pending) return;
-
-    const enabledSettled = pending.enabled == null || pending.enabled === serverEnabled;
-    const delaySettled = pending.delayHours == null || pending.delayHours === serverDelay;
-    if (enabledSettled && delaySettled) {
-      setPendingUnpaidReachoutPatch(null);
-      if (
-        unpaidReachoutDesiredRef.current?.shopId === pending.shopId &&
-        unpaidReachoutDesiredRef.current.enabled === pending.enabled &&
-        unpaidReachoutDesiredRef.current.delayHours === pending.delayHours
-      ) {
-        unpaidReachoutDesiredRef.current = null;
-      }
-    }
-  }, [
-    selectedShop?.id,
     selectedShop?.services?.customerService?.unpaidOrderReachoutEnabled,
     selectedShop?.services?.customerService?.unpaidOrderReachoutDelayHours,
-    pendingUnpaidReachoutPatch,
+    selectedShop?.services?.customerService?.unpaidOrderReminderMessageTemplate,
   ]);
 
   useEffect(() => {
@@ -329,74 +291,16 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  function getCurrentUnpaidReachoutDelayHours(): number {
-    const parsedDelay = Number(draftUnpaidReachoutDelayHours);
-    if (Number.isInteger(parsedDelay) && parsedDelay >= 1 && parsedDelay <= 47) {
-      return parsedDelay;
-    }
-    return selectedShop?.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24;
-  }
-
-  function enqueueUnpaidReachoutSave(target: UnpaidReachoutTarget) {
-    unpaidReachoutDesiredRef.current = target;
-    setPendingUnpaidReachoutPatch(target);
-    if (!unpaidReachoutSavePromiseRef.current) {
-      unpaidReachoutSavePromiseRef.current = flushUnpaidReachoutSave();
-    }
-  }
-
-  async function flushUnpaidReachoutSave() {
-    setSavingUnpaidReachout(true);
-    setUpgradePrompt(false);
-    try {
-      for (;;) {
-        const target = unpaidReachoutDesiredRef.current;
-        if (!target) break;
-
-        const shop = shops.find((s) => s.id === target.shopId);
-        if (!shop) throw new Error(`Shop ${target.shopId} not found`);
-
-        await shop.update({
-          services: {
-            customerService: {
-              unpaidOrderReachoutEnabled: target.enabled,
-              unpaidOrderReachoutDelayHours: target.delayHours,
-            },
-          },
-        });
-
-        const latest = unpaidReachoutDesiredRef.current;
-        if (
-          latest?.shopId === target.shopId &&
-          latest.enabled === target.enabled &&
-          latest.delayHours === target.delayHours
-        ) {
-          break;
-        }
-      }
-    } catch (err) {
-      const failedTarget = unpaidReachoutDesiredRef.current;
-      unpaidReachoutDesiredRef.current = null;
-      setPendingUnpaidReachoutPatch(null);
-      if (failedTarget?.shopId === selectedShopId) {
-        const shop = shops.find((s) => s.id === failedTarget.shopId);
-        setDraftUnpaidReachoutEnabled(
-          shop?.services?.customerService?.unpaidOrderReachoutEnabled ?? false,
-        );
-        setDraftUnpaidReachoutDelayHours(
-          String(shop?.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24),
-        );
-      }
-      handleError(err, "ecommerce.updateFailed");
-    } finally {
-      setSavingUnpaidReachout(false);
-      unpaidReachoutSavePromiseRef.current = null;
-    }
-  }
-
-  async function handleSaveUnpaidOrderReminderTemplate() {
+  async function handleSaveUnpaidReachoutSettings() {
     if (!selectedShopId) return;
-    setSavingUnpaidOrderTemplate(true);
+    const trimmedDelay = draftUnpaidReachoutDelayHours.trim();
+    const parsedDelay = Number(trimmedDelay);
+    if (!Number.isInteger(parsedDelay) || parsedDelay < 1 || parsedDelay > 47) {
+      showToast(t("ecommerce.shopDrawer.aiCS.unpaidReachoutInvalidDelay"), "error");
+      return;
+    }
+
+    setSavingUnpaidReachoutSettings(true);
     setUpgradePrompt(false);
     try {
       const shop = shops.find((s) => s.id === selectedShopId);
@@ -404,56 +308,18 @@ export const EcommercePage = observer(function EcommercePage() {
       await shop.update({
         services: {
           customerService: {
+            unpaidOrderReachoutEnabled: draftUnpaidReachoutEnabled,
+            unpaidOrderReachoutDelayHours: parsedDelay,
             unpaidOrderReminderMessageTemplate: editUnpaidOrderReminderTemplate,
           },
         },
       });
+      setDraftUnpaidReachoutDelayHours(String(parsedDelay));
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
-      setSavingUnpaidOrderTemplate(false);
+      setSavingUnpaidReachoutSettings(false);
     }
-  }
-
-  function handleToggleUnpaidReachoutEnabled(nextValue: boolean) {
-    if (!selectedShopId) return;
-    const target = {
-      shopId: selectedShopId,
-      enabled: nextValue,
-      delayHours:
-        unpaidReachoutDesiredRef.current?.shopId === selectedShopId
-          ? unpaidReachoutDesiredRef.current.delayHours
-          : getCurrentUnpaidReachoutDelayHours(),
-    };
-    setDraftUnpaidReachoutEnabled(nextValue);
-    enqueueUnpaidReachoutSave(target);
-  }
-
-  function handleCommitUnpaidReachoutDelayHours() {
-    if (!selectedShopId) return;
-    const currentDelay = selectedShop?.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24;
-    const trimmed = draftUnpaidReachoutDelayHours.trim();
-    const parsedDelay = Number(draftUnpaidReachoutDelayHours);
-    if (!Number.isInteger(parsedDelay) || parsedDelay < 1 || parsedDelay > 47) {
-      showToast(t("ecommerce.shopDrawer.aiCS.unpaidReachoutInvalidDelay"), "error");
-      setDraftUnpaidReachoutDelayHours(String(currentDelay));
-      return;
-    }
-    if (trimmed === String(currentDelay) && pendingUnpaidReachoutPatch?.shopId !== selectedShopId) {
-      setDraftUnpaidReachoutDelayHours(String(currentDelay));
-      return;
-    }
-
-    const target = {
-      shopId: selectedShopId,
-      enabled:
-        unpaidReachoutDesiredRef.current?.shopId === selectedShopId
-          ? unpaidReachoutDesiredRef.current.enabled
-          : draftUnpaidReachoutEnabled,
-      delayHours: parsedDelay,
-    };
-    setDraftUnpaidReachoutDelayHours(String(parsedDelay));
-    enqueueUnpaidReachoutSave(target);
   }
 
   async function handleSaveAffiliateBusinessPrompt() {
@@ -784,13 +650,11 @@ export const EcommercePage = observer(function EcommercePage() {
         draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
         draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
         editUnpaidOrderReminderTemplate={editUnpaidOrderReminderTemplate}
-        savingUnpaidReachout={savingUnpaidReachout}
-        savingUnpaidOrderTemplate={savingUnpaidOrderTemplate}
-        onToggleUnpaidReachoutEnabled={handleToggleUnpaidReachoutEnabled}
+        savingUnpaidReachoutSettings={savingUnpaidReachoutSettings}
+        onToggleUnpaidReachoutEnabled={setDraftUnpaidReachoutEnabled}
         onDraftUnpaidReachoutDelayHoursChange={setDraftUnpaidReachoutDelayHours}
-        onCommitUnpaidReachoutDelayHours={handleCommitUnpaidReachoutDelayHours}
         onEditUnpaidOrderReminderTemplate={setEditUnpaidOrderReminderTemplate}
-        onSaveUnpaidOrderReminderTemplate={handleSaveUnpaidOrderReminderTemplate}
+        onSaveUnpaidReachoutSettings={handleSaveUnpaidReachoutSettings}
         savingEscalation={escalation.savingEscalation}
         draftEscalationChannel={escalation.draftEscalationChannel}
         draftEscalationRecipient={escalation.draftEscalationRecipient}
