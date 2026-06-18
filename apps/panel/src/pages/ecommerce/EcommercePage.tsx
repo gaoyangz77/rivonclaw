@@ -12,7 +12,6 @@ import { useDeviceBinding } from "./hooks/useDeviceBinding.js";
 import { ShopTable } from "./components/ShopTable.js";
 import { ConnectShopModal } from "./components/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
-import { navigateToAdsManagement } from "./ads-readiness.js";
 
 type UnpaidReachoutTarget = {
   shopId: string;
@@ -26,8 +25,6 @@ export const EcommercePage = observer(function EcommercePage() {
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
-  const adsAdvertisers = entityStore.adsAdvertisers;
-  const adsStoreBindings = entityStore.adsStoreBindings;
   const runProfiles = entityStore.allRunProfiles;
   const platformApps = entityStore.platformApps;
 
@@ -694,8 +691,6 @@ export const EcommercePage = observer(function EcommercePage() {
       {/* Shop Table */}
       <ShopTable
         shops={shops}
-        adsAdvertisers={adsAdvertisers}
-        adsStoreBindings={adsStoreBindings}
         oauthLoading={oauthFlow.oauthLoading}
         oauthWaiting={oauthFlow.oauthWaiting}
         refreshing={refreshing}
@@ -708,7 +703,6 @@ export const EcommercePage = observer(function EcommercePage() {
         onOpenDrawer={openDrawer}
         onReauthorize={handleReauthorize}
         onRequestDelete={setConfirmDeleteShopId}
-        onManageAds={navigateToAdsManagement}
       />
 
       {/* Add Shop Modal */}

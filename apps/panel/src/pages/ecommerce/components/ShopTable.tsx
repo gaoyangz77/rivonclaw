@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AdsAdvertiser, AdsStoreBinding, Shop } from "@rivonclaw/core/models";
+import type { Shop } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
-import { getReadinessBadgeClass, resolveShopAdsReadiness } from "../ads-readiness.js";
 import { BalanceBadge } from "./BalanceBadge.js";
 
 interface ShopTableProps {
   shops: Shop[];
-  adsAdvertisers: AdsAdvertiser[];
-  adsStoreBindings: AdsStoreBinding[];
   oauthLoading: boolean;
   oauthWaiting: boolean;
   refreshing: boolean;
@@ -20,13 +17,10 @@ interface ShopTableProps {
   onOpenDrawer: (shopId: string) => void;
   onReauthorize: (shopId: string) => void;
   onRequestDelete: (shopId: string) => void;
-  onManageAds: () => void;
 }
 
 export function ShopTable({
   shops,
-  adsAdvertisers,
-  adsStoreBindings,
   oauthLoading,
   oauthWaiting,
   refreshing,
@@ -36,7 +30,6 @@ export function ShopTable({
   onOpenDrawer,
   onReauthorize,
   onRequestDelete,
-  onManageAds,
 }: ShopTableProps) {
   const { t } = useTranslation();
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
@@ -104,15 +97,12 @@ export function ShopTable({
                 <th>{t("ecommerce.table.headers.platform")}</th>
                 <th>{t("ecommerce.table.headers.region")}</th>
                 <th>{t("ecommerce.table.headers.authStatus")}</th>
-                <th>{t("ecommerce.table.headers.adsStatus")}</th>
                 <th>{t("ecommerce.table.headers.csBalance")}</th>
                 <th className="text-right">{t("ecommerce.table.headers.actions")}</th>
               </tr>
             </thead>
             <tbody>
-              {shops.map((shop) => {
-                const adsReadiness = resolveShopAdsReadiness(shop, adsAdvertisers, adsStoreBindings);
-                return (
+              {shops.map((shop) => (
                   <tr key={shop.id}>
                     <td>
                       <span className="shop-table-name">{shop.shopName}</span>
@@ -149,17 +139,6 @@ export function ShopTable({
                       </span>
                     </td>
                     <td>
-                      <button
-                        className="ads-status-link"
-                        onClick={onManageAds}
-                        title={t(`ecommerce.shopAdsStatus.hint_${adsReadiness.status}`)}
-                      >
-                        <span className={getReadinessBadgeClass(adsReadiness.status)}>
-                          {t(`ecommerce.shopAdsStatus.${adsReadiness.status}`)}
-                        </span>
-                      </button>
-                    </td>
-                    <td>
                       <BalanceBadge shop={shop} />
                     </td>
                     <td className="text-right">
@@ -188,8 +167,7 @@ export function ShopTable({
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>

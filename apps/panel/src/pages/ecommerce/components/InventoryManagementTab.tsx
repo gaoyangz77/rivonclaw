@@ -79,7 +79,7 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
   }));
 
   return (
-    <div className="shop-detail-section inventory-management-tab">
+    <div id="shop-workspace-warehouseMapping-warehouses" className="shop-detail-section inventory-management-tab shop-workspace-section">
       <div className="inventory-tab-toolbar">
         <div>
           <div className="drawer-section-label">{t("ecommerce.inventory.shopWarehouses")}</div>

@@ -95,186 +95,192 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
 
   return (
     <div className="shop-detail-section">
-      {/* Service Status */}
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.serviceStatus")}</div>
-      <CustomerServiceBillingCta shopId={shop.id} shopName={shop.alias || shop.shopName} entitlement={entitlement} />
+      <section id="shop-workspace-aiCustomerService-service" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.serviceStatus")}</div>
+        <CustomerServiceBillingCta shopId={shop.id} shopName={shop.alias || shop.shopName} entitlement={entitlement} />
+      </section>
 
-      {/* Device CS Binding Toggle */}
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csBindDevice")}</div>
-      <div className="shop-toggle-card">
-        <div className="shop-toggle-card-left">
-          <span className="shop-toggle-card-label">
-            {t("ecommerce.shopDrawer.aiCS.csBindDevice")}
-          </span>
-          <span className="form-hint">{t("ecommerce.shopDrawer.aiCS.csBindDeviceHint")}</span>
-          {shop.services?.customerService?.csDeviceId && !shop.handlesCustomerServiceOnDevice(myDeviceId) && (
-            <span className="badge badge-warning shop-badge-inline">
-              {t("ecommerce.shopDrawer.aiCS.csOtherDevice")}
+      <section id="shop-workspace-aiCustomerService-device" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csBindDevice")}</div>
+        <div className="shop-toggle-card">
+          <div className="shop-toggle-card-left">
+            <span className="shop-toggle-card-label">
+              {t("ecommerce.shopDrawer.aiCS.csBindDevice")}
             </span>
-          )}
-          {shop.handlesCustomerServiceOnDevice(myDeviceId) && (
-            <span className="badge badge-success shop-badge-inline">
-              {t("ecommerce.shopDrawer.aiCS.csThisDevice")}
-            </span>
-          )}
-        </div>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={shop.handlesCustomerServiceOnDevice(myDeviceId)}
-            onChange={() => {
-              if (shop.handlesCustomerServiceOnDevice(myDeviceId)) {
-                onUnbindDevice(shop.id);
-              } else {
-                onBindDevice(shop.id);
-              }
-            }}
-            disabled={togglingBindShopId === shop.id || !myDeviceId}
-          />
-          <span
-            className={`toggle-track ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
-          >
-            <span
-              className={`toggle-thumb ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-            />
-          </span>
-        </label>
-      </div>
-
-      {/* RunProfile Selector */}
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.runProfile")}</div>
-      <div className="shop-info-card">
-        <div className="shop-runprofile-row">
-          <label className="form-label-block">{t("ecommerce.shopDrawer.aiCS.runProfileLabel")}</label>
-          <Select
-            value={selectedRunProfileId}
-            onChange={onRunProfileChange}
-            options={runProfileOptions}
-            placeholder={t("ecommerce.shopDrawer.aiCS.runProfileNone")}
-            disabled={savingRunProfile}
-            className="input-full"
-          />
-        </div>
-        {selectedRunProfile ? (
-          <div className="shop-runprofile-tools">
-            <div className="form-label-block">{t("ecommerce.shopDrawer.aiCS.availableTools")}</div>
-            <ul className="shop-tool-list">
-              {selectedRunProfile.selectedToolIds.map((toolId) => (
-                <li key={toolId} className="shop-tool-list-item">{toolDisplayName(toolId)}</li>
-              ))}
-            </ul>
-            <div className="shop-tool-count">
-              {t("ecommerce.shopDrawer.aiCS.toolCount", { count: selectedRunProfile.selectedToolIds.length })}
-            </div>
+            <span className="form-hint">{t("ecommerce.shopDrawer.aiCS.csBindDeviceHint")}</span>
+            {shop.services?.customerService?.csDeviceId && !shop.handlesCustomerServiceOnDevice(myDeviceId) && (
+              <span className="badge badge-warning shop-badge-inline">
+                {t("ecommerce.shopDrawer.aiCS.csOtherDevice")}
+              </span>
+            )}
+            {shop.handlesCustomerServiceOnDevice(myDeviceId) && (
+              <span className="badge badge-success shop-badge-inline">
+                {t("ecommerce.shopDrawer.aiCS.csThisDevice")}
+              </span>
+            )}
           </div>
-        ) : (
-          <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.runProfileHint")}</div>
-        )}
-      </div>
-
-      {/* CS Model Override */}
-      <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</div>
-      <div className="shop-info-card">
-        <div className="shop-runprofile-row">
-          <label className="form-label-block">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</label>
-          <KeyModelSelector
-            keys={entityStore.providerKeys.map((k) => ({
-              id: k.id,
-              provider: k.provider,
-              label: k.label,
-              model: k.model,
-              isDefault: k.isDefault,
-            }))}
-            catalog={entityStore.llmManager.catalog}
-            selectedProvider={selectedCSProvider}
-            selectedModel={selectedCSModel}
-            onChange={onCSModelChange}
-            disabled={savingModel}
-            variant="form"
-            allowDefault
-          />
-        </div>
-        <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.csModelOverrideHint")}</div>
-      </div>
-
-      <div className="drawer-section-label">
-        {t("ecommerce.shopDrawer.aiCS.unpaidReachout")}
-      </div>
-      <div className="shop-info-card shop-unpaid-reachout-card">
-        <div className="shop-unpaid-reachout-toggle-pane">
           <label className="toggle-switch">
             <input
               type="checkbox"
-              checked={draftUnpaidReachoutEnabled}
-              onChange={(e) => onToggleUnpaidReachoutEnabled(e.target.checked)}
-              disabled={savingUnpaidReachout}
+              checked={shop.handlesCustomerServiceOnDevice(myDeviceId)}
+              onChange={() => {
+                if (shop.handlesCustomerServiceOnDevice(myDeviceId)) {
+                  onUnbindDevice(shop.id);
+                } else {
+                  onBindDevice(shop.id);
+                }
+              }}
+              disabled={togglingBindShopId === shop.id || !myDeviceId}
             />
-            <span className={`toggle-track ${draftUnpaidReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingUnpaidReachout ? "toggle-track-disabled" : ""}`}>
-              <span className={`toggle-thumb ${draftUnpaidReachoutEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
+            <span
+              className={`toggle-track ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
+            >
+              <span
+                className={`toggle-thumb ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+              />
             </span>
           </label>
-          <div className="shop-unpaid-reachout-copy">
-            <span className="shop-toggle-card-label">
-              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled")}
-            </span>
-            <span className="form-hint">
-              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutHint")}
-            </span>
-          </div>
         </div>
-        <div className="shop-unpaid-reachout-delay">
-          <label className="form-label-block">
-            {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelay")}
-          </label>
-          <div className="shop-unpaid-reachout-delay-control">
-            <input
-              className="input-full shop-unpaid-reachout-delay-input"
-              type="number"
-              min={1}
-              max={47}
-              step={1}
-              value={draftUnpaidReachoutDelayHours}
-              onChange={(e) => onDraftUnpaidReachoutDelayHoursChange(e.target.value)}
-              onBlur={onCommitUnpaidReachoutDelayHours}
-              disabled={savingUnpaidReachout}
+      </section>
+
+      <section id="shop-workspace-aiCustomerService-run-profile" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.runProfile")}</div>
+        <div className="shop-info-card">
+          <div className="shop-runprofile-row">
+            <label className="form-label-block">{t("ecommerce.shopDrawer.aiCS.runProfileLabel")}</label>
+            <Select
+              value={selectedRunProfileId}
+              onChange={onRunProfileChange}
+              options={runProfileOptions}
+              placeholder={t("ecommerce.shopDrawer.aiCS.runProfileNone")}
+              disabled={savingRunProfile}
+              className="input-full"
             />
-            <div className="shop-info-card-hint shop-unpaid-reachout-delay-hint">
-              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelayHint")}
+          </div>
+          {selectedRunProfile ? (
+            <div className="shop-runprofile-tools">
+              <div className="form-label-block">{t("ecommerce.shopDrawer.aiCS.availableTools")}</div>
+              <ul className="shop-tool-list">
+                {selectedRunProfile.selectedToolIds.map((toolId) => (
+                  <li key={toolId} className="shop-tool-list-item">{toolDisplayName(toolId)}</li>
+                ))}
+              </ul>
+              <div className="shop-tool-count">
+                {t("ecommerce.shopDrawer.aiCS.toolCount", { count: selectedRunProfile.selectedToolIds.length })}
+              </div>
+            </div>
+          ) : (
+            <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.runProfileHint")}</div>
+          )}
+        </div>
+      </section>
+
+      <section id="shop-workspace-aiCustomerService-model" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</div>
+        <div className="shop-info-card">
+          <div className="shop-runprofile-row">
+            <label className="form-label-block">{t("ecommerce.shopDrawer.aiCS.csModelOverride")}</label>
+            <KeyModelSelector
+              keys={entityStore.providerKeys.map((k) => ({
+                id: k.id,
+                provider: k.provider,
+                label: k.label,
+                model: k.model,
+                isDefault: k.isDefault,
+              }))}
+              catalog={entityStore.llmManager.catalog}
+              selectedProvider={selectedCSProvider}
+              selectedModel={selectedCSModel}
+              onChange={onCSModelChange}
+              disabled={savingModel}
+              variant="form"
+              allowDefault
+            />
+          </div>
+          <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.csModelOverrideHint")}</div>
+        </div>
+      </section>
+
+      <section id="shop-workspace-aiCustomerService-unpaid-reachout" className="shop-workspace-section">
+        <div className="drawer-section-label">
+          {t("ecommerce.shopDrawer.aiCS.unpaidReachout")}
+        </div>
+        <div className="shop-info-card shop-unpaid-reachout-card">
+          <div className="shop-unpaid-reachout-toggle-pane">
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={draftUnpaidReachoutEnabled}
+                onChange={(e) => onToggleUnpaidReachoutEnabled(e.target.checked)}
+                disabled={savingUnpaidReachout}
+              />
+              <span className={`toggle-track ${draftUnpaidReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingUnpaidReachout ? "toggle-track-disabled" : ""}`}>
+                <span className={`toggle-thumb ${draftUnpaidReachoutEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
+              </span>
+            </label>
+            <div className="shop-unpaid-reachout-copy">
+              <span className="shop-toggle-card-label">
+                {t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled")}
+              </span>
+              <span className="form-hint">
+                {t("ecommerce.shopDrawer.aiCS.unpaidReachoutHint")}
+              </span>
+            </div>
+          </div>
+          <div className="shop-unpaid-reachout-delay">
+            <label className="form-label-block">
+              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelay")}
+            </label>
+            <div className="shop-unpaid-reachout-delay-control">
+              <input
+                className="input-full shop-unpaid-reachout-delay-input"
+                type="number"
+                min={1}
+                max={47}
+                step={1}
+                value={draftUnpaidReachoutDelayHours}
+                onChange={(e) => onDraftUnpaidReachoutDelayHoursChange(e.target.value)}
+                onBlur={onCommitUnpaidReachoutDelayHours}
+                disabled={savingUnpaidReachout}
+              />
+              <div className="shop-info-card-hint shop-unpaid-reachout-delay-hint">
+                {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelayHint")}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Escalation Routing (side-by-side channel -> recipient selector) */}
-      <div className="drawer-section-label">{t("tiktokShops.detail.escalationRouting")}</div>
-      <div className="shop-info-card">
-        <div className="escalation-cascade-row">
-          <div className="escalation-cascade-col">
-            <label className="form-label-block">{t("tiktokShops.detail.escalationChannel")}</label>
-            <Select
-              value={draftEscalationChannel}
-              onChange={onDraftEscalationChannelChange}
-              options={escalationChannelSelectOptions}
-              disabled={savingEscalation}
-              className="input-full"
-            />
+      <section id="shop-workspace-aiCustomerService-escalation" className="shop-workspace-section">
+        <div className="drawer-section-label">{t("tiktokShops.detail.escalationRouting")}</div>
+        <div className="shop-info-card">
+          <div className="escalation-cascade-row">
+            <div className="escalation-cascade-col">
+              <label className="form-label-block">{t("tiktokShops.detail.escalationChannel")}</label>
+              <Select
+                value={draftEscalationChannel}
+                onChange={onDraftEscalationChannelChange}
+                options={escalationChannelSelectOptions}
+                disabled={savingEscalation}
+                className="input-full"
+              />
+            </div>
+            <div className={`escalation-cascade-col${!draftEscalationChannel ? " escalation-cascade-col-disabled" : ""}`}>
+              <label className="form-label-block">{t("tiktokShops.detail.escalationRecipient")}</label>
+              <Select
+                value={draftEscalationRecipient}
+                onChange={onEscalationRecipientChange}
+                options={escalationRecipientOptions}
+                disabled={savingEscalation || !draftEscalationChannel}
+                className="input-full"
+              />
+            </div>
           </div>
-          <div className={`escalation-cascade-col${!draftEscalationChannel ? " escalation-cascade-col-disabled" : ""}`}>
-            <label className="form-label-block">{t("tiktokShops.detail.escalationRecipient")}</label>
-            <Select
-              value={draftEscalationRecipient}
-              onChange={onEscalationRecipientChange}
-              options={escalationRecipientOptions}
-              disabled={savingEscalation || !draftEscalationChannel}
-              className="input-full"
-            />
-          </div>
+          <div className="shop-info-card-hint">{t("tiktokShops.detail.escalationChannelHint")}</div>
         </div>
-        <div className="shop-info-card-hint">{t("tiktokShops.detail.escalationChannelHint")}</div>
-      </div>
+      </section>
 
-      {/* Business Prompt */}
-      <div className="shop-prompt-section">
+      <section id="shop-workspace-aiCustomerService-prompt" className="shop-workspace-section shop-prompt-section">
         <label className="drawer-section-label">
           {t("ecommerce.shopDrawer.aiCS.businessPrompt")}
         </label>
@@ -300,10 +306,10 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
             {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
           </button>
         </div>
-      </div>
+      </section>
 
       {entitlement?.usage.length ? (
-        <>
+        <section id="shop-workspace-aiCustomerService-credits" className="shop-workspace-section">
           <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.credits")}</div>
           <div className="shop-info-card">
             {entitlement.usage.map((usage) => (
@@ -315,7 +321,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </div>
             ))}
           </div>
-        </>
+        </section>
       ) : null}
     </div>
   );

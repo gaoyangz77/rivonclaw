@@ -1,4 +1,5 @@
 import { observer } from "mobx-react-lite";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
@@ -11,6 +12,8 @@ import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { DrawerTab } from "../ecommerce-types.js";
+
+const workspaceSectionId = (tab: DrawerTab, section: string) => `shop-workspace-${tab}-${section}`;
 
 interface ShopDrawerProps {
   shop: Shop | null;
@@ -143,6 +146,69 @@ export const ShopDrawer = observer(function ShopDrawer({
   const adsReadiness = shop
     ? resolveShopAdsReadiness(shop, entityStore.adsAdvertisers, entityStore.adsStoreBindings)
     : null;
+  const workspaceSections = useMemo(() => {
+    if (!shop) {
+      return [];
+    }
+
+    if (activeTab === "overview") {
+      return [
+        { id: workspaceSectionId(activeTab, "shop-info"), label: t("ecommerce.shopDrawer.overview.shopInfo") },
+        { id: workspaceSectionId(activeTab, "ads"), label: t("ecommerce.shopDrawer.overview.adsReadiness") },
+        { id: workspaceSectionId(activeTab, "tokens"), label: t("ecommerce.shopDrawer.overview.tokenExpiry") },
+        { id: workspaceSectionId(activeTab, "services"), label: t("ecommerce.shopDrawer.overview.services") },
+      ];
+    }
+
+    if (activeTab === "aiCustomerService" && shop.services?.customerService?.enabled) {
+      return [
+        { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.aiCS.serviceStatus") },
+        { id: workspaceSectionId(activeTab, "device"), label: t("ecommerce.shopDrawer.aiCS.csBindDevice") },
+        { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.aiCS.runProfile") },
+        { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.aiCS.csModelOverride") },
+        { id: workspaceSectionId(activeTab, "unpaid-reachout"), label: t("ecommerce.shopDrawer.aiCS.unpaidReachout") },
+        { id: workspaceSectionId(activeTab, "escalation"), label: t("tiktokShops.detail.escalationRouting") },
+        { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.aiCS.businessPrompt") },
+        { id: workspaceSectionId(activeTab, "credits"), label: t("ecommerce.shopDrawer.aiCS.credits") },
+      ];
+    }
+
+    if (activeTab === "warehouseMapping" && shop.services?.wms?.enabled) {
+      return [
+        { id: workspaceSectionId(activeTab, "warehouses"), label: t("ecommerce.inventory.shopWarehouses") },
+      ];
+    }
+
+    if (activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled) {
+      return [
+        { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.affiliate.serviceStatus") },
+        { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.affiliate.runProfile") },
+        { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.affiliate.modelUsageScope") },
+        { id: workspaceSectionId(activeTab, "thresholds"), label: t("ecommerce.shopDrawer.affiliate.decisionThresholds") },
+        { id: workspaceSectionId(activeTab, "policies"), label: t("ecommerce.affiliateWorkspace.policies.title") },
+        { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.affiliate.businessPrompt") },
+      ];
+    }
+
+    return [];
+  }, [
+    activeTab,
+    shop,
+    shop?.services?.affiliateService?.enabled,
+    shop?.services?.customerService?.enabled,
+    shop?.services?.wms?.enabled,
+    t,
+  ]);
+  const [activeWorkspaceSection, setActiveWorkspaceSection] = useState("");
+
+  useEffect(() => {
+    setActiveWorkspaceSection(workspaceSections[0]?.id ?? "");
+  }, [workspaceSections]);
+
+  const handleWorkspaceSectionClick = (sectionId: string) => {
+    setActiveWorkspaceSection(sectionId);
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <>
@@ -165,21 +231,8 @@ export const ShopDrawer = observer(function ShopDrawer({
               )}
             </div>
           </div>
-          <button className="drawer-close-btn" onClick={onClose}>
-            <CloseIcon size={18} />
-          </button>
-        </div>
-
-        {shop && (
-          <div className="drawer-body">
-            {upgradePrompt && (
-              <div className="info-box info-box-blue">
-                {t("ecommerce.upgradeRequired")}
-              </div>
-            )}
-
-            {/* Tab Bar */}
-            <div className="drawer-tab-bar">
+          {shop && (
+            <div className="drawer-tab-bar drawer-tab-bar-header">
               <button
                 className={`drawer-tab-btn ${activeTab === "overview" ? "drawer-tab-btn-active" : ""}`}
                 onClick={() => onTabChange("overview")}
@@ -211,266 +264,308 @@ export const ShopDrawer = observer(function ShopDrawer({
                 </button>
               )}
             </div>
+          )}
+          <button className="drawer-close-btn" onClick={onClose}>
+            <CloseIcon size={18} />
+          </button>
+        </div>
 
-            {/* Tab: Overview */}
-            {activeTab === "overview" && (
-              <div className="shop-detail-section">
-                <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.shopInfo")}</div>
-                <div className="shop-info-card">
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("ecommerce.table.headers.name")}</span>
-                    <span className="shop-info-value">{shop.shopName}</span>
-                  </div>
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("ecommerce.table.headers.region")}</span>
-                    <span className="shop-info-value">{formatShopRegionLabel(shop.region, t)}</span>
-                  </div>
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("ecommerce.table.headers.platform")}</span>
-                    <span className="shop-info-value">{shop.platform === "TIKTOK_SHOP" ? "TikTok Shop" : shop.platform}</span>
-                  </div>
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("ecommerce.table.headers.authStatus")}</span>
-                    <span className={getAuthStatusBadgeClass(shop.authStatus)}>
-                      {t(`tiktokShops.authStatus_${shop.authStatus}`)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.adsReadiness")}</div>
-                <div className="shop-info-card">
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("ecommerce.table.headers.adsStatus")}</span>
-                    <span className="shop-info-value">
-                      {adsReadiness && (
-                        <span className={getReadinessBadgeClass(adsReadiness.status)}>
-                          {t(`ecommerce.shopAdsStatus.${adsReadiness.status}`)}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("adsManagement.shopColumns.advertiser")}</span>
-                    <span className="shop-info-value td-code">
-                      {adsReadiness?.binding?.advertiserId ?? "-"}
-                    </span>
-                  </div>
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("adsManagement.shopColumns.gmvMax")}</span>
-                    <span className="shop-info-value">
-                      {adsReadiness?.binding?.isGmvMaxAvailable == null
-                        ? "-"
-                        : adsReadiness.binding.isGmvMaxAvailable ? t("common.yes") : t("common.no")}
-                    </span>
-                  </div>
-                  <div className="shop-info-card-hint">
-                    {adsReadiness && t(`ecommerce.shopAdsStatus.hint_${adsReadiness.status}`)}
-                  </div>
-                  <div className="shop-info-card-actions">
-                    <button className="btn btn-secondary btn-sm" onClick={navigateToAdsManagement}>
-                      {t("ecommerce.table.manageAds")}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Token Info */}
-                <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.tokenExpiry")}</div>
-                <div className="shop-info-card">
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("tiktokShops.detail.accessTokenExpiry")}</span>
-                    <span className={`shop-info-value${shop.accessTokenExpiresAt && new Date(shop.accessTokenExpiresAt).getTime() < Date.now() ? " shop-info-value-danger" : ""}`}>
-                      {shop.accessTokenExpiresAt
-                        ? new Date(shop.accessTokenExpiresAt).toLocaleString()
-                        : "\u2014"}
-                    </span>
-                  </div>
-                  <div className="shop-info-row">
-                    <span className="shop-info-label">{t("tiktokShops.detail.refreshTokenExpiry")}</span>
-                    <span className={`shop-info-value${shop.refreshTokenExpiresAt && new Date(shop.refreshTokenExpiresAt).getTime() < Date.now() ? " shop-info-value-danger" : ""}`}>
-                      {shop.refreshTokenExpiresAt
-                        ? new Date(shop.refreshTokenExpiresAt).toLocaleString()
-                        : "\u2014"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Service Toggle */}
-                <div className="shop-toggle-card">
-                  <div className="shop-toggle-card-left">
-                    <span className="shop-toggle-card-label">
-                      {t("ecommerce.shopDrawer.overview.csToggle")}
-                    </span>
-                    <span className={shop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"}>
-                      {shop.services?.customerService?.enabled
-                        ? t("common.enabled")
-                        : t("common.disabled")}
-                    </span>
-                    {!customerServiceEntitlement?.allowed && (
-                      <CustomerServiceBillingCta
-                        shopId={shop.id}
-                        shopName={shop.alias || shop.shopName}
-                        entitlement={customerServiceEntitlement}
-                        variant="inline"
-                      />
-                    )}
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={shop.services?.customerService?.enabled}
-                      onChange={() =>
-                        onToggleCustomerService(
-                          shop.id,
-                          shop.services?.customerService?.enabled ?? false,
-                        )
-                      }
-                      disabled={togglingServiceId === shop.id}
-                    />
-                    <span
-                      className={`toggle-track ${shop.services?.customerService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-                    >
-                      <span
-                        className={`toggle-thumb ${shop.services?.customerService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                      />
-                    </span>
-                  </label>
-                </div>
-
-                <div className="shop-toggle-card">
-                  <div className="shop-toggle-card-left">
-                    <span className="shop-toggle-card-label">
-                      {t("ecommerce.shopDrawer.overview.inventoryToggle")}
-                    </span>
-                    <span className={shop.services?.wms?.enabled ? "badge badge-active" : "badge badge-muted"}>
-                      {shop.services?.wms?.enabled
-                        ? t("common.enabled")
-                        : t("common.disabled")}
-                    </span>
-                    <span className="shop-info-card-hint">
-                      {t("ecommerce.inventory.enableShopHint")}
-                    </span>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={shop.services?.wms?.enabled ?? false}
-                      onChange={() =>
-                        onToggleInventoryManagement(
-                          shop.id,
-                          shop.services?.wms?.enabled ?? false,
-                        )
-                      }
-                      disabled={togglingInventoryServiceId === shop.id}
-                    />
-                    <span
-                      className={`toggle-track ${shop.services?.wms?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingInventoryServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-                    >
-                      <span
-                        className={`toggle-thumb ${shop.services?.wms?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                      />
-                    </span>
-                  </label>
-                </div>
-
-                <div className="shop-toggle-card">
-                  <div className="shop-toggle-card-left">
-                    <span className="shop-toggle-card-label">
-                      {t("ecommerce.shopDrawer.overview.affiliateToggle")}
-                    </span>
-                    <span className={shop.services?.affiliateService?.enabled ? "badge badge-active" : "badge badge-muted"}>
-                      {shop.services?.affiliateService?.enabled
-                        ? t("common.enabled")
-                        : t("common.disabled")}
-                    </span>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={shop.services?.affiliateService?.enabled ?? false}
-                      onChange={() =>
-                        onToggleAffiliateService(
-                          shop.id,
-                          shop.services?.affiliateService?.enabled ?? false,
-                        )
-                      }
-                      disabled={togglingAffiliateServiceId === shop.id}
-                    />
-                    <span
-                      className={`toggle-track ${shop.services?.affiliateService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingAffiliateServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-                    >
-                      <span
-                        className={`toggle-thumb ${shop.services?.affiliateService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                      />
-                    </span>
-                  </label>
-                </div>
+        {shop && (
+          <div className="drawer-body">
+            {upgradePrompt && (
+              <div className="info-box info-box-blue">
+                {t("ecommerce.upgradeRequired")}
               </div>
             )}
+            <div className="shop-workspace-shell">
+              <aside className="shop-workspace-side-menu" aria-label={t("ecommerce.shopDrawer.tabs.overview")}>
+                {workspaceSections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={`shop-workspace-side-menu-item${activeWorkspaceSection === section.id ? " shop-workspace-side-menu-item-active" : ""}`}
+                    onClick={() => handleWorkspaceSectionClick(section.id)}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </aside>
 
-            {/* Tab: AI Customer Service */}
-            {activeTab === "aiCustomerService" && shop.services?.customerService?.enabled && (
-              <AiCustomerServiceTab
-                shop={shop}
-                editBusinessPrompt={editBusinessPrompt}
-                onEditBusinessPrompt={onEditBusinessPrompt}
-                savingSettings={savingSettings}
-                onSaveBusinessPrompt={onSaveBusinessPrompt}
-                selectedRunProfileId={selectedRunProfileId}
-                runProfileOptions={runProfileOptions}
-                selectedRunProfile={selectedRunProfile}
-                savingRunProfile={savingRunProfile}
-                onRunProfileChange={onRunProfileChange}
-                selectedCSProvider={selectedCSProvider}
-                selectedCSModel={selectedCSModel}
-                savingModel={savingModel}
-                onCSModelChange={onCSModelChange}
-                draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
-                draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
-                savingUnpaidReachout={savingUnpaidReachout}
-                onToggleUnpaidReachoutEnabled={onToggleUnpaidReachoutEnabled}
-                onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
-                onCommitUnpaidReachoutDelayHours={onCommitUnpaidReachoutDelayHours}
-                savingEscalation={savingEscalation}
-                draftEscalationChannel={draftEscalationChannel}
-                draftEscalationRecipient={draftEscalationRecipient}
-                escalationChannelSelectOptions={escalationChannelSelectOptions}
-                escalationRecipientOptions={escalationRecipientOptions}
-                onDraftEscalationChannelChange={onDraftEscalationChannelChange}
-                onEscalationRecipientChange={onEscalationRecipientChange}
-                myDeviceId={myDeviceId}
-                togglingBindShopId={togglingBindShopId}
-                onBindDevice={onBindDevice}
-                onUnbindDevice={onUnbindDevice}
-              />
-            )}
+              <div className="shop-workspace-main">
+                {/* Tab: Overview */}
+                {activeTab === "overview" && (
+                  <div className="shop-detail-section">
+                    <section id={workspaceSectionId("overview", "shop-info")} className="shop-workspace-section">
+                      <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.shopInfo")}</div>
+                      <div className="shop-info-card">
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("ecommerce.table.headers.name")}</span>
+                          <span className="shop-info-value">{shop.shopName}</span>
+                        </div>
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("ecommerce.table.headers.region")}</span>
+                          <span className="shop-info-value">{formatShopRegionLabel(shop.region, t)}</span>
+                        </div>
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("ecommerce.table.headers.platform")}</span>
+                          <span className="shop-info-value">{shop.platform === "TIKTOK_SHOP" ? "TikTok Shop" : shop.platform}</span>
+                        </div>
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("ecommerce.table.headers.authStatus")}</span>
+                          <span className={getAuthStatusBadgeClass(shop.authStatus)}>
+                            {t(`tiktokShops.authStatus_${shop.authStatus}`)}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
 
-            {activeTab === "warehouseMapping" && shop.services?.wms?.enabled && (
-              <InventoryManagementTab shop={shop} />
-            )}
+                    <section id={workspaceSectionId("overview", "ads")} className="shop-workspace-section">
+                      <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.adsReadiness")}</div>
+                      <div className="shop-info-card">
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("ecommerce.table.headers.adsStatus")}</span>
+                          <span className="shop-info-value">
+                            {adsReadiness && (
+                              <span className={getReadinessBadgeClass(adsReadiness.status)}>
+                                {t(`ecommerce.shopAdsStatus.${adsReadiness.status}`)}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("adsManagement.shopColumns.advertiser")}</span>
+                          <span className="shop-info-value td-code">
+                            {adsReadiness?.binding?.advertiserId ?? "-"}
+                          </span>
+                        </div>
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("adsManagement.shopColumns.gmvMax")}</span>
+                          <span className="shop-info-value">
+                            {adsReadiness?.binding?.isGmvMaxAvailable == null
+                              ? "-"
+                              : adsReadiness.binding.isGmvMaxAvailable ? t("common.yes") : t("common.no")}
+                          </span>
+                        </div>
+                        <div className="shop-info-card-hint">
+                          {adsReadiness && t(`ecommerce.shopAdsStatus.hint_${adsReadiness.status}`)}
+                        </div>
+                        <div className="shop-info-card-actions">
+                          <button className="btn btn-secondary btn-sm" onClick={navigateToAdsManagement}>
+                            {t("ecommerce.table.manageAds")}
+                          </button>
+                        </div>
+                      </div>
+                    </section>
 
-            {activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled && (
-              <AffiliateManagementTab
-                shop={shop}
-                selectedRunProfileId={selectedAffiliateRunProfileId}
-                runProfileOptions={runProfileOptions}
-                selectedRunProfile={selectedAffiliateRunProfile}
-                savingRunProfile={savingAffiliateRunProfile}
-                onRunProfileChange={onAffiliateRunProfileChange}
-                editBusinessPrompt={editAffiliateBusinessPrompt}
-                onEditBusinessPrompt={onEditAffiliateBusinessPrompt}
-                editMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
-                onEditMinExpectedSalesUnits={onEditAffiliateMinExpectedSalesUnits}
-                onCommitMinExpectedSalesUnits={onCommitAffiliateMinExpectedSalesUnits}
-                editModelUsageScope={editAffiliateModelUsageScope}
-                onEditModelUsageScope={onEditAffiliateModelUsageScope}
-                savingSettings={savingAffiliateSettings}
-                onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
-                myDeviceId={myDeviceId}
-                togglingBindShopId={togglingAffiliateBindShopId}
-                onBindDevice={onBindAffiliateDevice}
-                onUnbindDevice={onUnbindAffiliateDevice}
-              />
-            )}
+                    <section id={workspaceSectionId("overview", "tokens")} className="shop-workspace-section">
+                      <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.tokenExpiry")}</div>
+                      <div className="shop-info-card">
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("tiktokShops.detail.accessTokenExpiry")}</span>
+                          <span className={`shop-info-value${shop.accessTokenExpiresAt && new Date(shop.accessTokenExpiresAt).getTime() < Date.now() ? " shop-info-value-danger" : ""}`}>
+                            {shop.accessTokenExpiresAt
+                              ? new Date(shop.accessTokenExpiresAt).toLocaleString()
+                              : "\u2014"}
+                          </span>
+                        </div>
+                        <div className="shop-info-row">
+                          <span className="shop-info-label">{t("tiktokShops.detail.refreshTokenExpiry")}</span>
+                          <span className={`shop-info-value${shop.refreshTokenExpiresAt && new Date(shop.refreshTokenExpiresAt).getTime() < Date.now() ? " shop-info-value-danger" : ""}`}>
+                            {shop.refreshTokenExpiresAt
+                              ? new Date(shop.refreshTokenExpiresAt).toLocaleString()
+                              : "\u2014"}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section id={workspaceSectionId("overview", "services")} className="shop-workspace-section">
+                      <div className="drawer-section-label">{t("ecommerce.shopDrawer.overview.services")}</div>
+                      <div className="shop-toggle-card">
+                        <div className="shop-toggle-card-left">
+                          <span className="shop-toggle-card-label">
+                            {t("ecommerce.shopDrawer.overview.csToggle")}
+                          </span>
+                          <span className={shop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                            {shop.services?.customerService?.enabled
+                              ? t("common.enabled")
+                              : t("common.disabled")}
+                          </span>
+                          <span className="shop-info-card-hint">
+                            {t("ecommerce.shopDrawer.overview.csToggleHint")}
+                          </span>
+                          {!customerServiceEntitlement?.allowed && (
+                            <CustomerServiceBillingCta
+                              shopId={shop.id}
+                              shopName={shop.alias || shop.shopName}
+                              entitlement={customerServiceEntitlement}
+                              variant="inline"
+                            />
+                          )}
+                        </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={shop.services?.customerService?.enabled}
+                            onChange={() =>
+                              onToggleCustomerService(
+                                shop.id,
+                                shop.services?.customerService?.enabled ?? false,
+                              )
+                            }
+                            disabled={togglingServiceId === shop.id}
+                          />
+                          <span
+                            className={`toggle-track ${shop.services?.customerService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === shop.id ? "toggle-track-disabled" : ""}`}
+                          >
+                            <span
+                              className={`toggle-thumb ${shop.services?.customerService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                            />
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="shop-toggle-card">
+                        <div className="shop-toggle-card-left">
+                          <span className="shop-toggle-card-label">
+                            {t("ecommerce.shopDrawer.overview.inventoryToggle")}
+                          </span>
+                          <span className={shop.services?.wms?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                            {shop.services?.wms?.enabled
+                              ? t("common.enabled")
+                              : t("common.disabled")}
+                          </span>
+                          <span className="shop-info-card-hint">
+                            {t("ecommerce.inventory.enableShopHint")}
+                          </span>
+                        </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={shop.services?.wms?.enabled ?? false}
+                            onChange={() =>
+                              onToggleInventoryManagement(
+                                shop.id,
+                                shop.services?.wms?.enabled ?? false,
+                              )
+                            }
+                            disabled={togglingInventoryServiceId === shop.id}
+                          />
+                          <span
+                            className={`toggle-track ${shop.services?.wms?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingInventoryServiceId === shop.id ? "toggle-track-disabled" : ""}`}
+                          >
+                            <span
+                              className={`toggle-thumb ${shop.services?.wms?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                            />
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="shop-toggle-card">
+                        <div className="shop-toggle-card-left">
+                          <span className="shop-toggle-card-label">
+                            {t("ecommerce.shopDrawer.overview.affiliateToggle")}
+                          </span>
+                          <span className={shop.services?.affiliateService?.enabled ? "badge badge-active" : "badge badge-muted"}>
+                            {shop.services?.affiliateService?.enabled
+                              ? t("common.enabled")
+                              : t("common.disabled")}
+                          </span>
+                          <span className="shop-info-card-hint">
+                            {t("ecommerce.shopDrawer.overview.affiliateToggleHint")}
+                          </span>
+                        </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={shop.services?.affiliateService?.enabled ?? false}
+                            onChange={() =>
+                              onToggleAffiliateService(
+                                shop.id,
+                                shop.services?.affiliateService?.enabled ?? false,
+                              )
+                            }
+                            disabled={togglingAffiliateServiceId === shop.id}
+                          />
+                          <span
+                            className={`toggle-track ${shop.services?.affiliateService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingAffiliateServiceId === shop.id ? "toggle-track-disabled" : ""}`}
+                          >
+                            <span
+                              className={`toggle-thumb ${shop.services?.affiliateService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                            />
+                          </span>
+                        </label>
+                      </div>
+                    </section>
+                  </div>
+                )}
+
+                {/* Tab: AI Customer Service */}
+                {activeTab === "aiCustomerService" && shop.services?.customerService?.enabled && (
+                  <AiCustomerServiceTab
+                    shop={shop}
+                    editBusinessPrompt={editBusinessPrompt}
+                    onEditBusinessPrompt={onEditBusinessPrompt}
+                    savingSettings={savingSettings}
+                    onSaveBusinessPrompt={onSaveBusinessPrompt}
+                    selectedRunProfileId={selectedRunProfileId}
+                    runProfileOptions={runProfileOptions}
+                    selectedRunProfile={selectedRunProfile}
+                    savingRunProfile={savingRunProfile}
+                    onRunProfileChange={onRunProfileChange}
+                    selectedCSProvider={selectedCSProvider}
+                    selectedCSModel={selectedCSModel}
+                    savingModel={savingModel}
+                    onCSModelChange={onCSModelChange}
+                    draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
+                    draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
+                    savingUnpaidReachout={savingUnpaidReachout}
+                    onToggleUnpaidReachoutEnabled={onToggleUnpaidReachoutEnabled}
+                    onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
+                    onCommitUnpaidReachoutDelayHours={onCommitUnpaidReachoutDelayHours}
+                    savingEscalation={savingEscalation}
+                    draftEscalationChannel={draftEscalationChannel}
+                    draftEscalationRecipient={draftEscalationRecipient}
+                    escalationChannelSelectOptions={escalationChannelSelectOptions}
+                    escalationRecipientOptions={escalationRecipientOptions}
+                    onDraftEscalationChannelChange={onDraftEscalationChannelChange}
+                    onEscalationRecipientChange={onEscalationRecipientChange}
+                    myDeviceId={myDeviceId}
+                    togglingBindShopId={togglingBindShopId}
+                    onBindDevice={onBindDevice}
+                    onUnbindDevice={onUnbindDevice}
+                  />
+                )}
+
+                {activeTab === "warehouseMapping" && shop.services?.wms?.enabled && (
+                  <InventoryManagementTab shop={shop} />
+                )}
+
+                {activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled && (
+                  <AffiliateManagementTab
+                    shop={shop}
+                    selectedRunProfileId={selectedAffiliateRunProfileId}
+                    runProfileOptions={runProfileOptions}
+                    selectedRunProfile={selectedAffiliateRunProfile}
+                    savingRunProfile={savingAffiliateRunProfile}
+                    onRunProfileChange={onAffiliateRunProfileChange}
+                    editBusinessPrompt={editAffiliateBusinessPrompt}
+                    onEditBusinessPrompt={onEditAffiliateBusinessPrompt}
+                    editMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
+                    onEditMinExpectedSalesUnits={onEditAffiliateMinExpectedSalesUnits}
+                    onCommitMinExpectedSalesUnits={onCommitAffiliateMinExpectedSalesUnits}
+                    editModelUsageScope={editAffiliateModelUsageScope}
+                    onEditModelUsageScope={onEditAffiliateModelUsageScope}
+                    savingSettings={savingAffiliateSettings}
+                    onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
+                    myDeviceId={myDeviceId}
+                    togglingBindShopId={togglingAffiliateBindShopId}
+                    onBindDevice={onBindAffiliateDevice}
+                    onUnbindDevice={onUnbindAffiliateDevice}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

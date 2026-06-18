@@ -13,13 +13,20 @@ import { ecommerceSteps } from "./ecommerce.js"
 import { adsManagementSteps } from "./adsManagement.js"
 import { ecommerceCustomerServiceSteps } from "./ecommerceCustomerService.js"
 import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
+import { inventoryManagementSteps } from "./inventoryManagement.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
   "/commerce/shops": ecommerceSteps,
   "/commerce/customer-service": ecommerceCustomerServiceSteps,
+  "/commerce/customer-service/conversations": ecommerceCustomerServiceSteps,
+  "/commerce/customer-service/escalations": ecommerceCustomerServiceSteps,
   "/commerce/affiliate": ecommerceAffiliateSteps,
+  "/commerce/affiliate/attention": ecommerceAffiliateSteps,
+  "/commerce/affiliate/history": ecommerceAffiliateSteps,
+  "/commerce/affiliate/intelligence": ecommerceAffiliateSteps,
   "/commerce/ads": adsManagementSteps,
+  "/commerce/inventory": inventoryManagementSteps,
   "/automation/skills": skillsSteps,
   "/automation/crons": cronsSteps,
   "/connections/channels": channelsSteps,
