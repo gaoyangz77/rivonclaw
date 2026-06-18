@@ -1189,7 +1189,7 @@ describe("agent dispatch", () => {
     expect(message).toContain("ecom_cs_get_conversation_messages");
     expect(message).toContain("Follow the operator instruction");
     expect(message).toContain("Use the current tool specs as the source of truth");
-    expect(message).toContain("Inspect the latest customer-service context");
+    expect(message).toContain("Use the provided dispatch context and local session context");
     expect(message).toContain("[Internal: Operator Instruction]");
     expect(message).toContain("This refund request looks unreasonable.");
   });
