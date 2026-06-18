@@ -166,7 +166,13 @@ describe("affiliate work item dispatch", () => {
     mockRpcRequest.mockResolvedValue({ runId: "run-affiliate-001" });
     initLLMProviderManagerEnv({
       storage: {
-        providerKeys: { getActive: () => null },
+        providerKeys: {
+          getActive: () => ({
+            provider: "openai",
+            model: "gpt-5-test",
+            authType: "custom",
+          }),
+        },
       } as any,
       secretStore: {} as any,
       getRpcClient: () => ({ request: (...args: unknown[]) => mockRpcRequest(...args) } as any),
@@ -454,6 +460,8 @@ describe("affiliate work item dispatch", () => {
     const workItem = createSampleReviewWorkItem({
       id: "collab-deterministic-001",
       collaborationRecordId: "collab-deterministic-001",
+      agentDispatchRecommended: false,
+      staffReviewRequired: true,
       collaboration: {
         ...createSampleReviewWorkItem().collaboration,
         id: "collab-deterministic-001",

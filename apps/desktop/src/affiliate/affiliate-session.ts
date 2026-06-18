@@ -250,6 +250,16 @@ export class AffiliateSession {
   }
 
   async handleWorkItem(workItem: GQL.AffiliateWorkItem): Promise<AffiliateDispatchResult> {
+    if (isSampleReviewWorkItem(workItem)) {
+      const predictionContext = await this.resolvePredictionDispatchContext(workItem);
+      const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
+      if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
+        return { runId: undefined };
+      }
+      await this.resolveSampleReviewNeedsStaffReview(workItem, predictionContext, thresholdContext);
+      return { runId: undefined };
+    }
+
     if (!workItem.agentDispatchRecommended) {
       log.info(`Affiliate work item ${workItem.id} does not recommend agent dispatch; skipping`);
       return { runId: undefined };
@@ -274,14 +284,6 @@ export class AffiliateSession {
 
     const predictionContext = await this.resolvePredictionDispatchContext(workItem);
     const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
-    if (isSampleReviewWorkItem(workItem)) {
-      if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
-        return { runId: undefined };
-      }
-      await this.resolveSampleReviewNeedsStaffReview(workItem, predictionContext, thresholdContext);
-      return { runId: undefined };
-    }
-
     const request = buildAffiliateAgentRunRequest({
       workItem,
       platform: this.platform,
