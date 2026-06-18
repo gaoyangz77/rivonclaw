@@ -20,6 +20,7 @@ import { BillingPage } from "./pages/billing/BillingPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import {
+  AffiliateCreatorsPage,
   AffiliateIntelligencePage,
   AffiliateHistoryPage,
   AffiliateManagementPage,
@@ -74,6 +75,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
   { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
+  { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true },

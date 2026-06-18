@@ -121,6 +121,30 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         createdAt
         updatedAt
       }
+      creatorRelations {
+        id
+        creatorId
+        blocked
+        blockedShopIds
+        shopStates {
+          shopId
+          lifecycleStage
+          tagIds
+          lastContactedAt
+          lastInvitedAt
+          lastQualifiedAt
+        }
+        updatedAt
+      }
+      creatorTags {
+        id
+        shopId
+        name
+        type
+        systemKey
+        sensitive
+        updatedAt
+      }
       campaigns {
         id
         name

@@ -10,18 +10,9 @@ import { billingEnumLabel, usagePercentLabel } from "../../../components/billing
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const UNPAID_ORDER_TEMPLATE_PLACEHOLDERS = [
-  {
-    token: "{{order_id}}",
-    labelKey: "ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateTokenOrderId",
-  },
-  {
-    token: "{{product_count}}",
-    labelKey: "ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateTokenProductCount",
-  },
-  {
-    token: "{{shop_name}}",
-    labelKey: "ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateTokenShopName",
-  },
+  "{{order_id}}",
+  "{{product_count}}",
+  "{{shop_name}}",
 ] as const;
 
 interface AiCustomerServiceTabProps {
@@ -314,14 +305,14 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </span>
               {UNPAID_ORDER_TEMPLATE_PLACEHOLDERS.map((placeholder) => (
                 <button
-                  key={placeholder.token}
+                  key={placeholder}
                   type="button"
                   className="shop-unpaid-reachout-placeholder-chip"
-                  onClick={() => insertUnpaidOrderTemplatePlaceholder(placeholder.token)}
+                  onClick={() => insertUnpaidOrderTemplatePlaceholder(placeholder)}
                   disabled={savingUnpaidOrderTemplate}
-                  title={placeholder.token}
+                  title={placeholder}
                 >
-                  {t(placeholder.labelKey)}
+                  {placeholder}
                 </button>
               ))}
             </div>

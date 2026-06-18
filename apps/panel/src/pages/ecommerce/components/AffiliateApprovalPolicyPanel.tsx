@@ -14,6 +14,7 @@ import {
   DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION,
   WRITE_AFFILIATE_APPROVAL_POLICY_MUTATION,
 } from "../../../api/shops-queries.js";
+import { creatorTagLabel } from "../affiliate-tag-labels.js";
 
 type AffiliateApprovalPolicy = GQL.AffiliateApprovalPolicy;
 type AffiliatePolicyAction = GQL.ActionProposalType;
@@ -91,8 +92,8 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
   const creatorTags = contextData?.creatorTags ?? [];
   const campaigns = contextData?.affiliateCampaigns ?? [];
   const creatorTagOptions = useMemo(
-    () => creatorTags.map((tag) => ({ id: tag.id, label: tag.name })),
-    [creatorTags],
+    () => creatorTags.map((tag) => ({ id: tag.id, label: creatorTagLabel(t, tag) })),
+    [creatorTags, t],
   );
   const campaignOptions = useMemo(
     () => campaigns.map((campaign) => ({ id: campaign.id, label: campaign.name })),
@@ -692,7 +693,7 @@ function buildPolicyConditionSummary(
   const pieces: string[] = [];
   if (policy.creatorTagIds.length > 0) {
     pieces.push(t("ecommerce.affiliateWorkspace.policies.creatorTagSummary", {
-      value: summarizeKnownNames(policy.creatorTagIds, creatorTags.map((tag) => ({ id: tag.id, label: tag.name })), t),
+      value: summarizeKnownNames(policy.creatorTagIds, creatorTags.map((tag) => ({ id: tag.id, label: creatorTagLabel(t, tag) })), t),
     }));
   }
   if (policy.campaignIds.length > 0) {
