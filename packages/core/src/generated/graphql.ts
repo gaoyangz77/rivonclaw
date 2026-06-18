@@ -6744,7 +6744,6 @@ export const ToolId = {
   EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetInventoryAnalysis: 'ECOM_GET_INVENTORY_ANALYSIS',
-  EcomGetOperationReport: 'ECOM_GET_OPERATION_REPORT',
   EcomGetOrder: 'ECOM_GET_ORDER',
   EcomGetOrderSalesStats: 'ECOM_GET_ORDER_SALES_STATS',
   EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',

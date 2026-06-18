@@ -185,7 +185,8 @@ export class AffiliateInbound {
   }
 
   async handleWorkItem(workItem: AffiliateWorkItemPayload): Promise<boolean> {
-    if (!workItem.agentDispatchRecommended) {
+    const handledWithoutAgent = isHandledWithoutAgentDispatch(workItem);
+    if (!workItem.agentDispatchRecommended && !handledWithoutAgent) {
       log.info(`Ignoring affiliate work item without agent dispatch recommendation: id=${workItem.id} kind=${workItem.workKind}`);
       return true;
     }
@@ -200,7 +201,7 @@ export class AffiliateInbound {
     }
 
     const activeOrPendingRuns = this.runIndex.size + this.pendingDispatchCount;
-    if (activeOrPendingRuns >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
+    if (workItem.agentDispatchRecommended && activeOrPendingRuns >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
       this.enqueueWorkItem(workItem, versionKey, version);
       return true;
     }
@@ -231,7 +232,9 @@ export class AffiliateInbound {
       const result = await session.handleWorkItem(workItem);
       if (result.runId) {
         this.runIndex.set(result.runId, session.scopeKey);
-        if (version) this.dispatchedWorkItemVersions.set(versionKey, version);
+      }
+      if (version && (result.runId || isHandledWithoutAgentDispatch(workItem))) {
+        this.dispatchedWorkItemVersions.set(versionKey, version);
       }
       return true;
     } catch (err) {
@@ -597,6 +600,13 @@ function parseOptionalPositiveInteger(value: string | undefined): number | undef
   if (value == null || value.trim() === "") return undefined;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function isHandledWithoutAgentDispatch(workItem: AffiliateWorkItemPayload): boolean {
+  return (
+    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
+    workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded
+  );
 }
 
 function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
