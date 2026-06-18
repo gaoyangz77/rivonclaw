@@ -1181,10 +1181,9 @@ describe("agent dispatch", () => {
     const message = agentCall?.[1].message as string;
     expect(message).toContain("[Internal: System]");
     expect(message).toContain("ecom_cs_get_conversation_messages");
-    expect(message).toContain("ecom_cs_end_session");
-    expect(message).toContain("no open escalation");
-    expect(message).toContain("followUpMessage");
-    expect(message).toContain("ends the session later only if the customer does not reply");
+    expect(message).toContain("Follow the operator instruction");
+    expect(message).toContain("Use the current tool specs as the source of truth");
+    expect(message).toContain("Inspect the latest customer-service context");
     expect(message).toContain("[Internal: Operator Instruction]");
     expect(message).toContain("This refund request looks unreasonable.");
   });
