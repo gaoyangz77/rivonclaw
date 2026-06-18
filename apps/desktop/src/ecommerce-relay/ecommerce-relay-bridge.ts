@@ -228,7 +228,7 @@ export class EcommerceRelayBridge {
       const wasAborted = completion?.wasAborted ?? false;
       if (wasAborted) {
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
-      } else if (!completion?.hadForwardedText) {
+      } else if (!completion?.hadForwardedText && !completion?.hadTerminalToolAction) {
         log.warn(`Agent run ${payload.runId} ended with ${payload.state} and no text was forwarded`);
         session?.emitError(CS_ERROR_STAGE.RUN_ERROR, {
           reason: payload.state === "error" ? "no_text" : "final_no_text",
@@ -281,6 +281,9 @@ export class EcommerceRelayBridge {
     }
 
     if (stream === "tool" && data.phase === "start") {
+      if (this.isTerminalCsTool(data.toolName)) {
+        this.sessions.get(pending.conversationId)?.markRunTerminalToolStarted(runId);
+      }
       this.flushTurnText(runId, pending.conversationId);
       return;
     }
@@ -293,6 +296,12 @@ export class EcommerceRelayBridge {
         this.sessions.get(pending.conversationId)?.clearTurnText(runId);
       }
     }
+  }
+
+  private isTerminalCsTool(toolName: unknown): boolean {
+    if (typeof toolName !== "string") return false;
+    const normalized = toolName.trim().split(".").pop();
+    return normalized === "ecom_cs_end_session";
   }
 
   /** Known runtime error/timeout patterns that should not be forwarded as-is. */

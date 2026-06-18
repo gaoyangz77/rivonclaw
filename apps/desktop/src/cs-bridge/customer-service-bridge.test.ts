@@ -2248,7 +2248,9 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-2" }));
 
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.objectContaining({
+      sessionKey: "agent:main:cs:tiktok:conv-789",
+    }));
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "openai/gpt-4o",
@@ -2272,7 +2274,9 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-2" }));
 
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.objectContaining({
+      sessionKey: "agent:main:cs:tiktok:conv-789",
+    }));
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "rivonclaw-pro/gpt-5.5",
@@ -3470,6 +3474,23 @@ describe("per-turn message forwarding", () => {
     expect(texts).toHaveLength(2);
     expect(texts[0]).toBe("Let me check.");
     expect(texts[1]).toBe("Here is the answer.");
+  });
+
+  it("terminal CS tool without text is not reported as a no-text run error", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-1");
+
+    agentEvent(bridge, "run-1", "tool", { phase: "start", toolName: "ecom_cs_end_session" });
+    chatFinal(bridge, "run-1");
+
+    expect(mockEmitCsError).not.toHaveBeenCalledWith(
+      "run_error",
+      expect.objectContaining({
+        reason: "final_no_text",
+        runId: "run-1",
+      }),
+    );
   });
 
   it("three segments: text between two tool calls, plus final segment", async () => {

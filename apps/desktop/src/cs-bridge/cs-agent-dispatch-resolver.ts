@@ -185,6 +185,7 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
       return [
         "This resolved customer-service conversation needs a close-out decision.",
         "Inspect the latest conversation context before taking action.",
+        "Do not finish silently: either call ecom_cs_end_session when close-out is appropriate, or send a helpful buyer-facing reply and keep the session open.",
         "If the issue is fully handled and the buyer seems satisfied, call ecom_cs_end_session with reviewRequestMessage in the customer's language asking for a positive customer-service rating/evaluation.",
         "If the buyer still needs help, reply appropriately and keep the session open.",
         "If the request is unresolved or asking for a customer-service rating may frustrate the customer, keep the session open and handle the case instead of ending it.",
