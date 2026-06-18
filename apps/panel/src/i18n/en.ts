@@ -1794,6 +1794,7 @@ export default {
         AFFILIATE_RESOLVE_WORK_ITEM: "Resolve Affiliate Work",
         AFFILIATE_DECIDE_PROPOSAL: "Decide Affiliate Proposal",
         AFFILIATE_REQUEST_ACTION: "Request Affiliate Action",
+        AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT: "Predict Creator Product Fit",
         // System tools — Files
         read: "Read File",
         write: "Write File",

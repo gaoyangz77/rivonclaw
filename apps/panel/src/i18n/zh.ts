@@ -1794,6 +1794,7 @@ export default {
         AFFILIATE_RESOLVE_WORK_ITEM: "处理达人任务",
         AFFILIATE_DECIDE_PROPOSAL: "审批达人提案",
         AFFILIATE_REQUEST_ACTION: "请求达人操作",
+        AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT: "预测达人商品匹配度",
         // 系统工具 — 文件
         read: "读取文件",
         write: "写入文件",

@@ -1723,6 +1723,7 @@ export default {
         "AFFILIATE_RESOLVE_WORK_ITEM": "Selesaikan Pekerjaan Afiliasi",
         "AFFILIATE_DECIDE_PROPOSAL": "Putuskan Proposal Afiliasi",
         "AFFILIATE_REQUEST_ACTION": "Minta Tindakan Afiliasi",
+        "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "Prediksi Kesesuaian Kreator-Produk",
         "read": "Baca Berkas",
         "write": "Tulis Berkas",
         "edit": "Sunting Berkas",
