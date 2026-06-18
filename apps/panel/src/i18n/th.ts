@@ -2977,7 +2977,14 @@ export default {
         "unpaidReachoutHint": "เมื่อเปิดใช้งาน Agent CS บนเดสก์ท็อปที่ผูกไว้จะส่งการแจ้งเตือนเชิงรุกหนึ่งครั้งหลังจากเวลาหน่วงที่ตั้งไว้",
         "unpaidReachoutDelay": "เวลาหน่วงเป็นชั่วโมง",
         "unpaidReachoutDelayHint": "ใช้จำนวนเต็มตั้งแต่ 1 ถึง 47 การติดต่อเชิงรุกของ TikTok จำกัดไว้ภายใน 48 ชั่วโมง",
-        "unpaidReachoutInvalidDelay": "เวลาหน่วงต้องเป็นจำนวนเต็มตั้งแต่ 1 ถึง 47"
+        "unpaidReachoutInvalidDelay": "เวลาหน่วงต้องเป็นจำนวนเต็มตั้งแต่ 1 ถึง 47",
+        "unpaidReachoutTemplate": "เทมเพลตข้อความเตือน",
+        "unpaidReachoutTemplatePlaceholder": "เขียนข้อความเตือนที่จะแสดงให้ผู้ซื้อที่ยังไม่ได้ชำระเงิน",
+        "unpaidReachoutTemplateHint": "รองรับ {{order_id}}, {{product_count}} และ {{shop_name}} หากเว้นว่างไว้จะไม่ส่งข้อความเตือน",
+        "unpaidReachoutTemplateTokens": "แทรกตัวแปร",
+        "unpaidReachoutTemplateTokenOrderId": "รหัสคำสั่งซื้อ",
+        "unpaidReachoutTemplateTokenProductCount": "จำนวนสินค้า",
+        "unpaidReachoutTemplateTokenShopName": "ชื่อร้าน"
       },
       "affiliate": {
         "serviceStatus": "สถานะการบริการ",

@@ -1567,6 +1567,8 @@ export interface AgentCsSettingsInput {
   unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Template for unpaid-order reminders. Omit or pass null to keep, empty string to clear. Placeholders: {{order_id}}, {{product_count}}, {{shop_name}}. */
+  unpaidOrderReminderMessageTemplate?: InputMaybe<Scalars['String']['input']>;
 }
 
 export const AnnouncementActionRole = {
@@ -2749,6 +2751,8 @@ export interface CustomerServiceSettings {
   unpaidOrderReachoutDelayHours?: Maybe<Scalars['Int']['output']>;
   /** Whether CS should proactively reach out for eligible unpaid orders. */
   unpaidOrderReachoutEnabled: Scalars['Boolean']['output'];
+  /** Template for deterministic unpaid-order customer-service reminders. Supported placeholders: {{order_id}}, {{product_count}}, {{shop_name}}. */
+  unpaidOrderReminderMessageTemplate?: Maybe<Scalars['String']['output']>;
 }
 
 /** Full CS settings including device-level fields (Panel/backend use) */
@@ -2773,6 +2777,8 @@ export interface CustomerServiceSettingsInput {
   unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Template for unpaid-order reminders. Omit or pass null to keep, empty string to clear. Placeholders: {{order_id}}, {{product_count}}, {{shop_name}}. */
+  unpaidOrderReminderMessageTemplate?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface DecideActionProposalInput {
