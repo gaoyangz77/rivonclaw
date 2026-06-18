@@ -38,7 +38,7 @@ const CONVERSATION_DISPATCH_PLANS: Record<string, {
   SESSION_EXPIRING_CUSTOMER_FOLLOW_UP: {
     signalType: "UNREAD_DETECTED",
     dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
-    useMessageDelta: false,
+    useMessageDelta: true,
   },
   UNPAID_ORDER_FOLLOW_UP: {
     signalType: "UNPAID_ORDER_FOLLOW_UP",

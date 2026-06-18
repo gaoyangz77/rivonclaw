@@ -63,6 +63,14 @@ const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 const CS_GATEWAY_SETUP_RPC_TIMEOUT_MS = 120_000;
 const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 120_000;
+const DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS = 10_000;
+
+function resolveBuyerMessageQuietWindowMs(): number {
+  const raw = process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS;
+  if (raw === undefined) return DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS;
+}
 
 function buildConversationDeltaAnchor(
   anchor: Partial<GQL.ConversationMessageDeltaAnchorInput> | null | undefined,
@@ -171,6 +179,28 @@ interface CatchUpDispatchOptions {
   useMessageDelta?: boolean;
 }
 
+type PendingBuyerDispatchBase = {
+  messageId: string;
+  messageIndex?: string;
+  round: CSRound;
+  placeholder: string;
+  promise: Promise<DispatchResult>;
+  resolve: (result: DispatchResult) => void;
+  reject: (error: unknown) => void;
+};
+
+type PendingBuyerFrameDispatch = PendingBuyerDispatchBase & {
+  kind: "frame";
+  frame: CSNewMessageFrame;
+};
+
+type PendingBuyerCatchUpDispatch = PendingBuyerDispatchBase & {
+  kind: "catchUp";
+  options: CatchUpDispatchOptions & { currentMessageId: string };
+};
+
+type PendingBuyerDispatch = PendingBuyerFrameDispatch | PendingBuyerCatchUpDispatch;
+
 export interface EscalationResult {
   decision: string;
   instructions: string;
@@ -211,6 +241,12 @@ export class CustomerServiceSession {
 
   /** Number of runs aborted since the last successful delivery to the buyer. */
   private undeliveredCount = 0;
+
+  /** Latest buyer-message dispatch waiting for the quiet window to close. */
+  private pendingBuyerDispatch: PendingBuyerDispatch | null = null;
+
+  /** Timer for coalescing rapid buyer-message dispatches. */
+  private pendingBuyerDispatchTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Cached gateway session id for reading this conversation's JSONL usage summary. */
   private gatewaySessionId: string | null = null;
@@ -400,6 +436,245 @@ export class CustomerServiceSession {
     return lines.join("\n");
   }
 
+  private isSamePendingBuyerDispatch(messageId: string, messageIndex?: string): boolean {
+    const pending = this.pendingBuyerDispatch;
+    if (!pending) return false;
+    if (pending.messageId !== messageId) return false;
+    if (pending.messageIndex && messageIndex && pending.messageIndex !== messageIndex) return false;
+    return true;
+  }
+
+  private clearPendingBuyerDispatchTimer(): void {
+    if (!this.pendingBuyerDispatchTimer) return;
+    clearTimeout(this.pendingBuyerDispatchTimer);
+    this.pendingBuyerDispatchTimer = null;
+  }
+
+  private settlePendingBuyerDispatchAsCoalesced(next: {
+    source: string;
+    signalType?: string;
+    dispatchReason: CsAgentDispatchReason;
+    messageId: string;
+    messageIndex?: string;
+    messageType?: string;
+    senderRole?: string;
+  }): void {
+    const pending = this.pendingBuyerDispatch;
+    if (!pending) return;
+    this.clearPendingBuyerDispatchTimer();
+    pending.resolve({ runId: undefined });
+    if (this.activeRound === pending.round) {
+      pending.round.clearPlaceholderIfCurrent(pending.placeholder);
+    }
+    pending.round.destroy();
+    this.emitDispatchTelemetry({
+      source: next.source,
+      signalType: next.signalType,
+      dispatchReason: next.dispatchReason,
+      outcome: "skipped",
+      reason: "coalesced_by_new_buyer_message",
+      messageId: pending.messageId,
+      messageIndex: pending.messageIndex,
+      messageType: pending.kind === "frame" ? pending.frame.messageType : pending.options.messageType,
+      senderRole: pending.kind === "frame" ? pending.frame.senderRole : pending.options.senderRole,
+    });
+  }
+
+  private abortActiveRoundForPendingBuyerDispatch(params: {
+    source: string;
+    signalType?: string;
+    dispatchReason: CsAgentDispatchReason;
+    reason: string;
+    messageId: string;
+    messageIndex?: string;
+    messageType?: string;
+    senderRole?: string;
+  }): void {
+    const previousRunId = this.activeRound?.abortActiveRun();
+    if (!previousRunId) return;
+    log.info(`Buyer message ${params.messageId} superseded active/pending run ${previousRunId}; aborting prior dispatch`);
+    this.fireAbort();
+    this.undeliveredCount++;
+    this.emitDispatchTelemetry({
+      source: params.source,
+      signalType: params.signalType,
+      dispatchReason: params.dispatchReason,
+      outcome: "aborted",
+      reason: params.reason,
+      messageId: params.messageId,
+      messageIndex: params.messageIndex,
+      messageType: params.messageType,
+      senderRole: params.senderRole,
+      runId: previousRunId,
+    });
+  }
+
+  private makePendingBuyerDispatch(
+    input: Omit<PendingBuyerFrameDispatch, keyof PendingBuyerDispatchBase>
+      | Omit<PendingBuyerCatchUpDispatch, keyof PendingBuyerDispatchBase>,
+    messageId: string,
+    messageIndex?: string,
+  ): PendingBuyerDispatch {
+    const round = this.createBuyerRound(messageId, messageIndex);
+    const placeholder = round.placeholderRunId;
+    let resolve!: (result: DispatchResult) => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<DispatchResult>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return {
+      ...input,
+      messageId,
+      messageIndex,
+      round,
+      placeholder,
+      promise,
+      resolve,
+      reject,
+    } as PendingBuyerDispatch;
+  }
+
+  private enqueueBuyerFrameDispatch(frame: CSNewMessageFrame): Promise<DispatchResult> {
+    if (this.isSamePendingBuyerDispatch(frame.messageId)) {
+      return this.pendingBuyerDispatch?.promise ?? Promise.resolve({ runId: undefined });
+    }
+    if (
+      !this.pendingBuyerDispatch
+      && this.activeRound?.hasActiveRun()
+      && this.activeRound.isSameBuyerMessage(frame.messageId)
+    ) {
+      const activeRunId = this.activeRound.getActiveRunId();
+      this.emitDispatchTelemetry({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "duplicate_active_message",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+        senderRole: frame.senderRole,
+        runId: activeRunId ?? undefined,
+      });
+      return Promise.resolve({ runId: activeRunId ?? undefined });
+    }
+
+    if (this.pendingBuyerDispatch) {
+      this.settlePendingBuyerDispatchAsCoalesced({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+        senderRole: frame.senderRole,
+      });
+    } else {
+      this.abortActiveRoundForPendingBuyerDispatch({
+        source: "relay",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        reason: "superseded_by_new_message",
+        messageId: frame.messageId,
+        messageType: frame.messageType,
+        senderRole: frame.senderRole,
+      });
+    }
+
+    const pending = this.makePendingBuyerDispatch({ kind: "frame", frame }, frame.messageId);
+    this.schedulePendingBuyerDispatch(pending);
+    return pending.promise;
+  }
+
+  private enqueueBuyerCatchUpDispatch(
+    options: CatchUpDispatchOptions & { currentMessageId: string },
+  ): Promise<DispatchResult> {
+    const currentMessageIndex = options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
+    if (this.isSamePendingBuyerDispatch(options.currentMessageId, currentMessageIndex)) {
+      return this.pendingBuyerDispatch?.promise ?? Promise.resolve({ runId: undefined });
+    }
+    if (
+      !this.pendingBuyerDispatch
+      && this.activeRound?.hasActiveRun()
+      && this.activeRound.isSameBuyerMessage(options.currentMessageId, currentMessageIndex)
+    ) {
+      const activeRunId = this.activeRound.getActiveRunId();
+      log.info(
+        `Duplicate CS snapshot for active/pending message ${options.currentMessageId}; keeping run ${activeRunId ?? "none"}`,
+      );
+      this.emitDispatchTelemetry({
+        source: options.source ?? "cloud",
+        signalType: options.signalType,
+        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+        outcome: "skipped",
+        reason: "duplicate_active_snapshot",
+        messageId: options.currentMessageId,
+        messageIndex: currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
+        runId: activeRunId ?? undefined,
+      });
+      return Promise.resolve({ runId: activeRunId ?? undefined });
+    }
+
+    if (this.pendingBuyerDispatch) {
+      this.settlePendingBuyerDispatchAsCoalesced({
+        source: options.source ?? "cloud",
+        signalType: options.signalType,
+        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+        messageId: options.currentMessageId,
+        messageIndex: currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
+      });
+    } else {
+      this.abortActiveRoundForPendingBuyerDispatch({
+        source: options.source ?? "cloud",
+        signalType: options.signalType,
+        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+        reason: "superseded_by_new_snapshot",
+        messageId: options.currentMessageId,
+        messageIndex: currentMessageIndex,
+        messageType: options.messageType,
+        senderRole: options.senderRole,
+      });
+    }
+
+    const pending = this.makePendingBuyerDispatch(
+      { kind: "catchUp", options },
+      options.currentMessageId,
+      currentMessageIndex,
+    );
+    this.schedulePendingBuyerDispatch(pending);
+    return pending.promise;
+  }
+
+  private schedulePendingBuyerDispatch(pending: PendingBuyerDispatch): void {
+    this.pendingBuyerDispatch = pending;
+    this.activeRound = pending.round;
+
+    const quietWindowMs = resolveBuyerMessageQuietWindowMs();
+    if (quietWindowMs <= 0) {
+      void this.flushPendingBuyerDispatch(pending);
+      return;
+    }
+
+    this.pendingBuyerDispatchTimer = setTimeout(() => {
+      void this.flushPendingBuyerDispatch(pending);
+    }, quietWindowMs);
+  }
+
+  private async flushPendingBuyerDispatch(pending: PendingBuyerDispatch): Promise<void> {
+    if (this.pendingBuyerDispatch !== pending) return;
+    this.clearPendingBuyerDispatchTimer();
+    this.pendingBuyerDispatch = null;
+
+    try {
+      const result = pending.kind === "frame"
+        ? await this.dispatchBuyerMessageNow(pending.frame, pending.round, pending.placeholder)
+        : await this.dispatchBuyerCatchUpNow(pending.options, pending.round, pending.placeholder);
+      pending.resolve(result);
+    } catch (err) {
+      pending.reject(err);
+    }
+  }
+
   // -- Session lifecycle ----------------------------------------------------
 
   /**
@@ -473,28 +748,15 @@ export class CustomerServiceSession {
    * and can abort.
    */
   async handleBuyerMessage(frame: CSNewMessageFrame): Promise<DispatchResult> {
-    // ── SYNC section (no await — cannot be interleaved) ──
-    const previousRunId = this.activeRound?.abortActiveRun();
-    if (previousRunId) {
-      log.info(`New message during active/pending run ${previousRunId}, aborting`);
-      this.fireAbort();
-      this.undeliveredCount++;
-      this.emitDispatchTelemetry({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        outcome: "aborted",
-        reason: "superseded_by_new_message",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-        runId: previousRunId,
-      });
-    }
+    return this.enqueueBuyerFrameDispatch(frame);
+  }
 
-    const round = this.createBuyerRound(frame.messageId);
-    this.activeRound = round;
-    const placeholder = round.placeholderRunId;
+  private async dispatchBuyerMessageNow(
+    frame: CSNewMessageFrame,
+    round: CSRound,
+    placeholder: string,
+  ): Promise<DispatchResult> {
     const content = this.parseMessageContent(frame);
-    // ── END SYNC section ──
 
     if (!await this.ensureBackendSession({ forceRefresh: true })) {
       if (this.activeRound === round) round.clearPlaceholderIfCurrent();
@@ -1107,7 +1369,7 @@ export class CustomerServiceSession {
   /** Dispatch an agent run to catch up on a missed conversation. Ensures backend session first. */
   async dispatchCatchUp(options?: CatchUpDispatchOptions): Promise<DispatchResult> {
     if (this.shouldUseBuyerRoundForCatchUp(options)) {
-      return this.dispatchBuyerCatchUp(options);
+      return this.enqueueBuyerCatchUpDispatch(options);
     }
 
     if (!await this.ensureBackendSession()) {
@@ -1187,58 +1449,12 @@ export class CustomerServiceSession {
     return Number.isFinite(ms) ? String(ms) : time.replace(/[^A-Za-z0-9_.:-]/g, "_");
   }
 
-  private async dispatchBuyerCatchUp(
+  private async dispatchBuyerCatchUpNow(
     options: CatchUpDispatchOptions & { currentMessageId: string },
+    round: CSRound,
+    placeholder: string,
   ): Promise<DispatchResult> {
-    // Cloud conversation snapshots are now the primary CS dispatch path. Keep
-    // their rapid-message semantics identical to webhook frames: claim a local
-    // placeholder before any await so the next buyer message can abort this run.
     const currentMessageIndex = options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
-    if (
-      this.activeRound?.hasActiveRun()
-      && this.activeRound.isSameBuyerMessage(options.currentMessageId, currentMessageIndex)
-    ) {
-      const activeRunId = this.activeRound.getActiveRunId();
-      log.info(
-        `Duplicate CS snapshot for active/pending message ${options.currentMessageId}; keeping run ${activeRunId ?? "none"}`,
-      );
-      this.emitDispatchTelemetry({
-        source: options.source ?? "cloud",
-        signalType: options.signalType,
-        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "duplicate_active_snapshot",
-        messageId: options.currentMessageId,
-        messageIndex: currentMessageIndex,
-        messageType: options.messageType,
-        senderRole: options.senderRole,
-        runId: activeRunId ?? undefined,
-      });
-      return { runId: activeRunId ?? undefined };
-    }
-
-    const previousRunId = this.activeRound?.abortActiveRun();
-    if (previousRunId) {
-      log.info(`Newer CS snapshot superseded active/pending run ${previousRunId}; aborting prior dispatch`);
-      this.fireAbort();
-      this.undeliveredCount++;
-      this.emitDispatchTelemetry({
-        source: options.source ?? "cloud",
-        signalType: options.signalType,
-        dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
-        outcome: "aborted",
-        reason: "superseded_by_new_snapshot",
-        messageId: options.currentMessageId,
-        messageIndex: currentMessageIndex,
-        messageType: options.messageType,
-        senderRole: options.senderRole,
-        runId: previousRunId,
-      });
-    }
-
-    const round = this.createBuyerRound(options.currentMessageId, currentMessageIndex);
-    this.activeRound = round;
-    const placeholder = round.placeholderRunId;
 
     try {
       if (!await this.ensureBackendSession({ forceRefresh: true })) {
@@ -1675,6 +1891,14 @@ export class CustomerServiceSession {
     });
   }
 
+  private async applyCustomerServiceSessionPreferences(): Promise<void> {
+    await openClawConnector.request("sessions.patch", {
+      key: this.scopeKey,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
+    }, CS_GATEWAY_SETUP_RPC_TIMEOUT_MS);
+  }
+
   private async setup(): Promise<void> {
     const runProfileId = this.getRequiredRunProfileId();
 
@@ -1689,6 +1913,7 @@ export class CustomerServiceSession {
     if (this.gatewaySetupReady) {
       const modelStartedAt = Date.now();
       await this.applyCurrentSessionModel();
+      await this.applyCustomerServiceSessionPreferences();
       if (this.ensureSessionRunProfile(runProfileId)) {
         log.info(
           `Gateway runProfile binding refreshed: conv=${this.csContext.conversationId} ` +
@@ -1709,6 +1934,7 @@ export class CustomerServiceSession {
 
     const modelStartedAt = Date.now();
     await this.applyCurrentSessionModel();
+    await this.applyCustomerServiceSessionPreferences();
     const modelMs = Date.now() - modelStartedAt;
 
     this.gatewaySetupReady = true;
