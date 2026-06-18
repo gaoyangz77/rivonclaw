@@ -70,12 +70,10 @@ const SIGNAL_DISPATCH_PLANS: Record<string, {
 };
 
 const END_SESSION_GUIDANCE = [
-  "Use ecom_cs_end_session for close-out when the current customer-service issue appears handled and no open escalation remains.",
-  "Prefer the conservative delayed flow: provide followUpMessage to ask whether the customer needs anything else, plus reviewRequestMessage for the later customer-service rating request.",
-  "When followUpMessage is provided, the backend sends it now and ends the session later only if the customer does not reply.",
-  "Omit followUpMessage only when the customer has explicitly confirmed no more help is needed and the session can end immediately.",
-  "Write followUpMessage and reviewRequestMessage in the customer's language; ask for a customer-service rating/evaluation, not a product or order review.",
-  "Never call ecom_cs_end_session while an escalation is still open or while the buyer still needs service.",
+  "Follow the operator instruction for this dispatch.",
+  "Use the current tool specs as the source of truth for tool behavior and parameters.",
+  "Inspect the latest customer-service context before taking action.",
+  "Do not invent platform state; use tools when needed.",
 ].join(" ");
 
 export function resolveCsConversationDispatch(
@@ -181,11 +179,7 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
       ].join(" ");
     case "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP":
       return [
-        "This resolved customer-service conversation is approaching platform timeout and needs a close-out decision.",
-        "Inspect the latest conversation context before taking action.",
-        "Default to ecom_cs_end_session with both followUpMessage and reviewRequestMessage when the previous exchange appears handled or only needs a final courtesy check.",
-        "Do not send a separate buyer-facing close-out message yourself; put it in followUpMessage so the backend can cancel the final end if the customer replies.",
-        "Only send a normal buyer-facing reply instead when the customer clearly still needs substantive help before any close-out can begin.",
+        "This dispatch is for a resolved customer-service conversation approaching platform timeout.",
         END_SESSION_GUIDANCE,
       ].join(" ");
     case "UNPAID_ORDER_FOLLOW_UP":

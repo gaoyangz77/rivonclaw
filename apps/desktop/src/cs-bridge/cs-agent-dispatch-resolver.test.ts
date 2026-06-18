@@ -7,17 +7,17 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
 
     expect(prompt).toContain("call cs_dismiss_conversation_escalations");
     expect(prompt).toContain("After dismissing open escalations, call ecom_cs_end_session");
-    expect(prompt).toContain("Never call ecom_cs_end_session while an escalation is still open");
+    expect(prompt).toContain("Use the current tool specs as the source of truth");
   });
 
-  it("guides resolved close-out dispatches to request service ratings only when appropriate", () => {
+  it("keeps resolved close-out dispatch prompts thin and delegates policy to operator instruction", () => {
     const prompt = buildCsAgentDispatchSystemPrompt("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP");
 
-    expect(prompt).toContain("followUpMessage");
-    expect(prompt).toContain("reviewRequestMessage");
-    expect(prompt).toContain("customer-service rating/evaluation");
-    expect(prompt).toContain("not a product or order review");
-    expect(prompt).toContain("Default to ecom_cs_end_session");
-    expect(prompt).toContain("cancel the final end if the customer replies");
+    expect(prompt).toContain("approaching platform timeout");
+    expect(prompt).toContain("Follow the operator instruction");
+    expect(prompt).toContain("Use the current tool specs as the source of truth");
+    expect(prompt).toContain("Inspect the latest customer-service context");
+    expect(prompt).not.toContain("Default to ecom_cs_end_session");
+    expect(prompt).not.toContain("reviewRequestMessage");
   });
 });
