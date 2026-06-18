@@ -1723,6 +1723,7 @@ export default {
         "AFFILIATE_RESOLVE_WORK_ITEM": "Résoudre le travail d'affiliation",
         "AFFILIATE_DECIDE_PROPOSAL": "Décider de la proposition d'affiliation",
         "AFFILIATE_REQUEST_ACTION": "Demander une action d'affiliation",
+        "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "Prédire l'adéquation créateur-produit",
         "read": "Lire le fichier",
         "write": "Écrire un fichier",
         "edit": "Modifier le fichier",

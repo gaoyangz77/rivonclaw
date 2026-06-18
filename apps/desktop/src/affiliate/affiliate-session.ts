@@ -133,6 +133,8 @@ export class AffiliateSession {
       "- Desktop resolves a small affiliate workspace snapshot before dispatch when possible. Use it as the initial fact set.",
       "- Call affiliate_get_workspace when a decision depends on dynamic facts not present in the injected snapshot, such as creator follower count, creator relation/tags, sample status, product context, approval policies, campaign setup, or pending proposals.",
       "- If you need a variable fact to apply a merchant rule or make a decision, for example follower count, GMV, prior performance, sample cost, inventory, or fulfillment state, fetch the narrow current workspace with affiliate_get_workspace before deciding.",
+      "- Use affiliate_predict_creator_product_fit when a creator message or card mentions a candidate product and you need creator/product fit evidence before deciding whether to proceed, decline, create a target collaboration, or reply. The tool returns product summary, decision thresholds, and model prediction without confirming or binding the product to the collaboration.",
+      "- A product card in conversation is candidate evidence only. Do not treat it as the confirmed collaboration product unless Backend Work Context already has a product context, sample application, or target collaboration for that product.",
       "- Treat creator messages as continuation work: understand the request, check relevant campaign/collaboration/sample state, then resolve the work item through affiliate_resolve_work_item.",
       "- Treat sample application events as triage work: inspect creator value, product/sample policy, stock/fulfillment facts exposed by tools, then resolve the work item through affiliate_resolve_work_item.",
       "- Treat collaboration events as lifecycle work: reconcile local state, decide whether follow-up is needed, and avoid duplicate outreach.",
@@ -600,6 +602,7 @@ export class AffiliateSession {
       ].join("\n");
     });
     const semanticHints = deriveAffiliateMessageSemanticHints(timelineItems, params.creatorImUserId);
+    const cardHints = deriveAffiliateMessageCardHints(timelineItems, params.creatorImUserId);
 
     return [
       "[Affiliate Creator Conversation Work Package]",
@@ -621,6 +624,7 @@ export class AffiliateSession {
       ...(timeline.length ? timeline : ["(No platform messages returned in this delta.)"]),
       "",
       ...(semanticHints.length ? ["## Derived Message Hints", ...semanticHints, ""] : []),
+      ...(cardHints.length ? ["## Candidate Card Hints", ...cardHints, ""] : []),
       "## Task",
       "Handle the latest creator-side message in the ordered platform timeline.",
       "If the delta is incomplete or includes seller-side/human messages that change the commitment context, be conservative and use affiliate_resolve_work_item with REQUEST_ACTION to draft a proposal, or NEEDS_STAFF_REVIEW when no safe action can be proposed.",
@@ -1502,6 +1506,190 @@ function deriveAffiliateMessageSemanticHints(
     "- Treat the latest creator message as a likely ad authorization code, not as unreadable text. Do not ask the creator to resend only because it is not natural language.",
     "- If there is no dedicated ad-code validation or ads handoff tool available, propose acknowledging receipt and routing it to the marketing/ads workflow.",
   ];
+}
+
+function deriveAffiliateMessageCardHints(
+  messages: GQL.EcomAffiliateMessage[],
+  creatorImUserId?: string,
+): string[] {
+  const hints: string[] = [];
+  const seen = new Set<string>();
+
+  for (const message of messages) {
+    if (resolveAffiliateMessageSide(message, creatorImUserId) !== "CREATOR") continue;
+
+    const ids = extractAffiliateMessageReferenceIds(message.content ?? "");
+    if (
+      ids.productIds.length === 0
+      && ids.sampleApplicationIds.length === 0
+      && ids.collaborationIds.length === 0
+    ) {
+      continue;
+    }
+
+    const parts: string[] = [];
+    if (ids.productIds.length > 0) {
+      parts.push(`candidate productId(s): ${ids.productIds.join(", ")}`);
+    }
+    if (ids.sampleApplicationIds.length > 0) {
+      parts.push(`sample/application id(s): ${ids.sampleApplicationIds.join(", ")}`);
+    }
+    if (ids.collaborationIds.length > 0) {
+      parts.push(`target/platform collaboration id(s): ${ids.collaborationIds.join(", ")}`);
+    }
+
+    const key = `${message.messageId ?? ""}:${parts.join("|")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    hints.push(`- Message ${message.messageId ?? "(unknown)"} contains ${parts.join("; ")}.`);
+  }
+
+  if (hints.length === 0) return [];
+
+  return [
+    ...hints,
+    "- Treat these IDs as candidate evidence extracted from creator-side message cards, not as confirmed collaboration product context.",
+    "- If a candidate productId is relevant to the decision, call affiliate_predict_creator_product_fit with shopId, creatorId or creatorOpenId, and productId before recommending cooperation, target collaboration creation, or a creator-facing reply about whether to proceed.",
+    "- If a sample/application id is relevant, use affiliate_get_workspace with the sample/application identity to verify the current sample state before replying about approval, rejection, or shipment.",
+    "- If multiple candidate products appear and Backend Work Context has not confirmed one, compare the relevant candidates or ask the creator a clarifying question instead of silently choosing one.",
+  ];
+}
+
+function extractAffiliateMessageReferenceIds(content: string): {
+  productIds: string[];
+  sampleApplicationIds: string[];
+  collaborationIds: string[];
+} {
+  const result = {
+    productIds: new Set<string>(),
+    sampleApplicationIds: new Set<string>(),
+    collaborationIds: new Set<string>(),
+  };
+
+  const parsed = parseMaybeJson(content);
+  if (parsed != null) {
+    collectAffiliateReferenceIds(parsed, result);
+  }
+
+  collectAffiliateReferenceIdsFromText(content, result);
+
+  return {
+    productIds: [...result.productIds],
+    sampleApplicationIds: [...result.sampleApplicationIds],
+    collaborationIds: [...result.collaborationIds],
+  };
+}
+
+function parseMaybeJson(content: string): unknown | null {
+  const trimmed = content.trim();
+  if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return null;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function collectAffiliateReferenceIds(
+  value: unknown,
+  result: {
+    productIds: Set<string>;
+    sampleApplicationIds: Set<string>;
+    collaborationIds: Set<string>;
+  },
+  parentKey = "",
+  depth = 0,
+): void {
+  if (depth > 8 || value == null) return;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectAffiliateReferenceIds(item, result, parentKey, depth + 1);
+    }
+    return;
+  }
+  if (typeof value !== "object") {
+    if (typeof value === "string") {
+      addAffiliateReferenceId(parentKey, value, result);
+    }
+    return;
+  }
+
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    const normalizedKey = normalizeReferenceKey(key);
+    if (typeof nested === "string" || typeof nested === "number") {
+      addAffiliateReferenceId(normalizedKey, String(nested), result);
+    }
+    collectAffiliateReferenceIds(nested, result, normalizedKey, depth + 1);
+  }
+}
+
+function collectAffiliateReferenceIdsFromText(
+  content: string,
+  result: {
+    productIds: Set<string>;
+    sampleApplicationIds: Set<string>;
+    collaborationIds: Set<string>;
+  },
+): void {
+  const patterns: Array<[RegExp, keyof typeof result]> = [
+    [/\b(?:product_id|productId|platform_product_id|platformProductId)["'\s:=]+([0-9]{8,24})\b/gi, "productIds"],
+    [/\b(?:apply_id|applyId|application_id|applicationId|sample_application_id|sampleApplicationId|platform_application_id|platformApplicationId)["'\s:=]+([0-9]{8,24})\b/gi, "sampleApplicationIds"],
+    [/\b(?:target_collaboration_id|targetCollaborationId|collaboration_id|collaborationId|platform_collaboration_id|platformCollaborationId)["'\s:=]+([0-9]{8,24})\b/gi, "collaborationIds"],
+  ];
+
+  for (const [pattern, bucket] of patterns) {
+    for (const match of content.matchAll(pattern)) {
+      addNumericPlatformId(result[bucket], match[1]);
+    }
+  }
+}
+
+function addAffiliateReferenceId(
+  normalizedKey: string,
+  rawValue: string,
+  result: {
+    productIds: Set<string>;
+    sampleApplicationIds: Set<string>;
+    collaborationIds: Set<string>;
+  },
+): void {
+  const value = rawValue.trim();
+  if (!/^[0-9]{8,24}$/.test(value)) return;
+
+  if (isProductReferenceKey(normalizedKey)) {
+    addNumericPlatformId(result.productIds, value);
+    return;
+  }
+  if (isSampleApplicationReferenceKey(normalizedKey)) {
+    addNumericPlatformId(result.sampleApplicationIds, value);
+    return;
+  }
+  if (isCollaborationReferenceKey(normalizedKey)) {
+    addNumericPlatformId(result.collaborationIds, value);
+  }
+}
+
+function addNumericPlatformId(target: Set<string>, value: string | undefined): void {
+  if (!value || !/^[0-9]{8,24}$/.test(value)) return;
+  target.add(value);
+}
+
+function normalizeReferenceKey(key: string): string {
+  return key.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function isProductReferenceKey(key: string): boolean {
+  return key.includes("productid") || key === "product";
+}
+
+function isSampleApplicationReferenceKey(key: string): boolean {
+  return (key.includes("applicationid") && !key.includes("collaboration"))
+    || key.includes("sampleapplicationid")
+    || key === "applyid";
+}
+
+function isCollaborationReferenceKey(key: string): boolean {
+  return key.includes("collaborationid") || key.includes("targetcollaborationid");
 }
 
 function mentionsAdAuthorizationCode(text: string): boolean {
