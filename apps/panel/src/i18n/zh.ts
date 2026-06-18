@@ -3304,6 +3304,9 @@ export default {
         unpaidReachoutDelay: "延迟小时数",
         unpaidReachoutDelayHint: "请输入 1 到 47 之间的整数。TikTok 主动触达限制为 48 小时内。",
         unpaidReachoutInvalidDelay: "延迟小时数必须是 1 到 47 之间的整数。",
+        unpaidReachoutTemplate: "提醒消息模板",
+        unpaidReachoutTemplatePlaceholder: "留空则使用按买家语言生成的默认消息。",
+        unpaidReachoutTemplateHint: "可选。支持 {{order_id}}、{{product_count}} 和 {{shop_name}}。",
       },
       affiliate: {
         serviceStatus: "服务状态",

@@ -30,10 +30,14 @@ interface AiCustomerServiceTabProps {
   // Unpaid-order reachout
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutDelayHours: string;
+  editUnpaidOrderReminderTemplate: string;
   savingUnpaidReachout: boolean;
+  savingUnpaidOrderTemplate: boolean;
   onToggleUnpaidReachoutEnabled: (value: boolean) => void;
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
   onCommitUnpaidReachoutDelayHours: () => void;
+  onEditUnpaidOrderReminderTemplate: (value: string) => void;
+  onSaveUnpaidOrderReminderTemplate: () => void;
   // Escalation
   savingEscalation: boolean;
   draftEscalationChannel: string;
@@ -66,10 +70,14 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   onCSModelChange,
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutDelayHours,
+  editUnpaidOrderReminderTemplate,
   savingUnpaidReachout,
+  savingUnpaidOrderTemplate,
   onToggleUnpaidReachoutEnabled,
   onDraftUnpaidReachoutDelayHoursChange,
   onCommitUnpaidReachoutDelayHours,
+  onEditUnpaidOrderReminderTemplate,
+  onSaveUnpaidOrderReminderTemplate,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -246,6 +254,36 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               <div className="shop-info-card-hint shop-unpaid-reachout-delay-hint">
                 {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelayHint")}
               </div>
+            </div>
+          </div>
+          <div className="shop-unpaid-reachout-template">
+            <label className="form-label-block">
+              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplate")}
+            </label>
+            <textarea
+              className="textarea-field shop-unpaid-reachout-template-input"
+              value={editUnpaidOrderReminderTemplate}
+              onChange={(e) => onEditUnpaidOrderReminderTemplate(e.target.value)}
+              rows={3}
+              disabled={savingUnpaidOrderTemplate}
+              placeholder={t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplatePlaceholder")}
+            />
+            <div className="shop-info-card-hint">
+              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateHint")}
+            </div>
+            <div className="form-actions-row">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onSaveUnpaidOrderReminderTemplate}
+                disabled={
+                  savingUnpaidOrderTemplate ||
+                  editUnpaidOrderReminderTemplate ===
+                    (shop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "")
+                }
+              >
+                {savingUnpaidOrderTemplate ? t("common.saving") : t("common.save")}
+              </button>
             </div>
           </div>
         </div>

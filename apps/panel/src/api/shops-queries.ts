@@ -17,6 +17,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         enabled
         unpaidOrderReachoutEnabled
         unpaidOrderReachoutDelayHours
+        unpaidOrderReminderMessageTemplate
         businessPrompt
         runProfileId
         csDeviceId

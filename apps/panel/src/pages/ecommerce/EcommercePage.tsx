@@ -42,6 +42,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
   const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
   const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
+  const [editUnpaidOrderReminderTemplate, setEditUnpaidOrderReminderTemplate] = useState("");
   const [pendingUnpaidReachoutPatch, setPendingUnpaidReachoutPatch] = useState<UnpaidReachoutTarget | null>(null);
   const unpaidReachoutDesiredRef = useRef<UnpaidReachoutTarget | null>(null);
   const unpaidReachoutSavePromiseRef = useRef<Promise<void> | null>(null);
@@ -57,6 +58,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
   const [savingUnpaidReachout, setSavingUnpaidReachout] = useState(false);
+  const [savingUnpaidOrderTemplate, setSavingUnpaidOrderTemplate] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
   const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(null);
   const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(null);
@@ -105,10 +107,14 @@ export const EcommercePage = observer(function EcommercePage() {
   useEffect(() => {
     if (selectedShop) {
       setEditBusinessPrompt(selectedShop.services?.customerService?.businessPrompt ?? "");
+      setEditUnpaidOrderReminderTemplate(
+        selectedShop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "",
+      );
     }
   }, [
     selectedShop?.id,
     selectedShop?.services?.customerService?.businessPrompt,
+    selectedShop?.services?.customerService?.unpaidOrderReminderMessageTemplate,
   ]);
 
   useEffect(() => {
@@ -385,6 +391,27 @@ export const EcommercePage = observer(function EcommercePage() {
     } finally {
       setSavingUnpaidReachout(false);
       unpaidReachoutSavePromiseRef.current = null;
+    }
+  }
+
+  async function handleSaveUnpaidOrderReminderTemplate() {
+    if (!selectedShopId) return;
+    setSavingUnpaidOrderTemplate(true);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
+        services: {
+          customerService: {
+            unpaidOrderReminderMessageTemplate: editUnpaidOrderReminderTemplate,
+          },
+        },
+      });
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingUnpaidOrderTemplate(false);
     }
   }
 
@@ -756,10 +783,14 @@ export const EcommercePage = observer(function EcommercePage() {
         onCSModelChange={handleCSModelChange}
         draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
         draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
+        editUnpaidOrderReminderTemplate={editUnpaidOrderReminderTemplate}
         savingUnpaidReachout={savingUnpaidReachout}
+        savingUnpaidOrderTemplate={savingUnpaidOrderTemplate}
         onToggleUnpaidReachoutEnabled={handleToggleUnpaidReachoutEnabled}
         onDraftUnpaidReachoutDelayHoursChange={setDraftUnpaidReachoutDelayHours}
         onCommitUnpaidReachoutDelayHours={handleCommitUnpaidReachoutDelayHours}
+        onEditUnpaidOrderReminderTemplate={setEditUnpaidOrderReminderTemplate}
+        onSaveUnpaidOrderReminderTemplate={handleSaveUnpaidOrderReminderTemplate}
         savingEscalation={escalation.savingEscalation}
         draftEscalationChannel={escalation.draftEscalationChannel}
         draftEscalationRecipient={escalation.draftEscalationRecipient}
