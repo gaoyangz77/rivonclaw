@@ -2197,11 +2197,11 @@ function ProposalPredictionComparison({
   const hasPrediction = typeof expectedSalesUnits === "number" || hasHumanBaseline || modelDecision;
   if (!hasPrediction) return null;
 
-  const modelDecisionLabel = modelDecision
+  const predictionJudgmentLabel = modelDecision
     ? t(`ecommerce.affiliateWorkspace.predictionComparison.modelDecisions.${modelDecision}`, {
         defaultValue: modelDecision,
       })
-    : t("ecommerce.affiliateWorkspace.predictionComparison.unknown");
+    : getPredictionSalesJudgmentLabel(expectedSalesUnits, t);
   const humanDecisionLabel = hasHumanBaseline
     ? humanBaseline?.wouldApprove
       ? t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldApprove")
@@ -2228,8 +2228,8 @@ function ProposalPredictionComparison({
       </div>
       <div className="affiliate-prediction-comparison-grid">
         <div className="affiliate-prediction-metric">
-          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.aiDecision")}</span>
-          <strong>{modelDecisionLabel}</strong>
+          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.predictionJudgment")}</span>
+          <strong>{predictionJudgmentLabel}</strong>
         </div>
         <div className="affiliate-prediction-metric">
           <span>{t("ecommerce.affiliateWorkspace.predictionComparison.humanBaseline")}</span>
@@ -2961,6 +2961,22 @@ function getProposalSampleReviewDecision(
     if (stepDecision) return stepDecision;
   }
   return null;
+}
+
+function getPredictionSalesJudgmentLabel(
+  expectedSalesUnits: number | null,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  if (typeof expectedSalesUnits !== "number") {
+    return t("ecommerce.affiliateWorkspace.predictionComparison.forecastAvailable");
+  }
+  if (expectedSalesUnits < 1) {
+    return t("ecommerce.affiliateWorkspace.predictionComparison.lowExpectedSales");
+  }
+  if (expectedSalesUnits < 3) {
+    return t("ecommerce.affiliateWorkspace.predictionComparison.modestExpectedSales");
+  }
+  return t("ecommerce.affiliateWorkspace.predictionComparison.strongExpectedSales");
 }
 
 function formatProposalTime(value: string): string {
