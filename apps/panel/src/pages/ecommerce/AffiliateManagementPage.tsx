@@ -2191,25 +2191,17 @@ function ProposalPredictionComparison({
   const output = readPredictionSnapshotOutput(snapshot);
   if (!output) return null;
   const humanBaseline = output?.humanBaseline ?? null;
-  const modelDecision = getProposalSampleReviewDecision(proposal);
   const expectedSalesUnits = output?.expectedSalesUnits ?? null;
   const hasHumanBaseline = typeof humanBaseline?.wouldApprove === "boolean";
-  const hasPrediction = typeof expectedSalesUnits === "number" || hasHumanBaseline || modelDecision;
+  const hasPrediction = typeof expectedSalesUnits === "number" || hasHumanBaseline;
   if (!hasPrediction) return null;
 
-  const predictionJudgmentLabel = modelDecision
-    ? t(`ecommerce.affiliateWorkspace.predictionComparison.modelDecisions.${modelDecision}`, {
-        defaultValue: modelDecision,
-      })
-    : getPredictionSalesJudgmentLabel(expectedSalesUnits, t);
+  const predictionJudgmentLabel = getPredictionSalesJudgmentLabel(expectedSalesUnits, t);
   const humanDecisionLabel = hasHumanBaseline
     ? humanBaseline?.wouldApprove
       ? t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldApprove")
       : t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldReject")
     : t("ecommerce.affiliateWorkspace.predictionComparison.humanInsufficient");
-  const decisionsMatch = modelDecision && hasHumanBaseline
-    ? (modelDecision === GQL.AffiliateSampleReviewDecision.Approve) === Boolean(humanBaseline?.wouldApprove)
-    : null;
   const probability = typeof humanBaseline?.humanApprovalProbability === "number"
     ? formatPercent(humanBaseline.humanApprovalProbability)
     : null;
@@ -2218,13 +2210,6 @@ function ProposalPredictionComparison({
     <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
       <div className="affiliate-prediction-comparison-head">
         <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
-        {decisionsMatch != null ? (
-          <em className={decisionsMatch ? "affiliate-prediction-match" : "affiliate-prediction-mismatch"}>
-            {decisionsMatch
-              ? t("ecommerce.affiliateWorkspace.predictionComparison.sameDecision")
-              : t("ecommerce.affiliateWorkspace.predictionComparison.differentDecision")}
-          </em>
-        ) : null}
       </div>
       <div className="affiliate-prediction-comparison-grid">
         <div className="affiliate-prediction-metric">
@@ -2251,11 +2236,6 @@ function ProposalPredictionComparison({
           </strong>
         </div>
       </div>
-      {decisionsMatch === false ? (
-        <p>{t("ecommerce.affiliateWorkspace.predictionComparison.differentDecisionHint")}</p>
-      ) : decisionsMatch === true ? (
-        <p>{t("ecommerce.affiliateWorkspace.predictionComparison.sameDecisionHint")}</p>
-      ) : null}
     </section>
   );
 }
@@ -2949,18 +2929,6 @@ function readPredictionSnapshotOutput(
   if (!snapshot || snapshot.status !== GQL.AffiliatePredictionStatus.Ok) return null;
   const output = snapshot.output as AffiliatePredictionSnapshotOutput | null | undefined;
   return output ?? null;
-}
-
-function getProposalSampleReviewDecision(
-  proposal: GQL.ActionProposal,
-): GQL.AffiliateSampleReviewDecision | null {
-  const directDecision = proposal.sampleReviewIntent?.decision ?? null;
-  if (directDecision) return directDecision;
-  for (const step of proposal.steps ?? []) {
-    const stepDecision = step.sampleReviewIntent?.decision ?? null;
-    if (stepDecision) return stepDecision;
-  }
-  return null;
 }
 
 function getPredictionSalesJudgmentLabel(
