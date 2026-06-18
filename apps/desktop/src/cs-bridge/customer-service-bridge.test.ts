@@ -247,6 +247,7 @@ function setChannelManagerTestEnv(stateDir: string): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "0";
   applySnapshot(rootStore.toolCapability.sessionProfiles, {});
   setSessionRunProfileCalls.length = 0;
   mockRpcRequest.mockResolvedValue({ ok: true });
@@ -631,8 +632,13 @@ describe("shop context management", () => {
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
-    // session registration + sessions.patch (model) + agent dispatch = 3 RPC calls
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    // session registration + sessions.patch (model) + sessions.patch (CS preferences) + agent dispatch
+    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:cs:tiktok:conv-789",
+      thinkingLevel: "off",
+      reasoningLevel: "off",
+    }, 120000);
   });
 });
 
@@ -1390,7 +1396,7 @@ describe("agent dispatch", () => {
     // Should not throw
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
@@ -1444,8 +1450,8 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     // Bridge no longer validates profile existence — it stores the ID.
-    // cs_register_session + sessions.patch (model) + agent dispatch = 3 RPC calls.
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    // cs_register_session + sessions.patch (model) + sessions.patch (CS preferences) + agent dispatch.
+    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
@@ -3099,6 +3105,63 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       runId: "run-B",
       source: "backend_subscription",
     }));
+  });
+
+  it("cloud catch-up snapshots: coalesces buyer messages during the quiet window", async () => {
+    vi.useFakeTimers();
+    process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "10000";
+    try {
+      const bridge = createBridge();
+      bridge.setShopContext(defaultShop);
+      mockRpcRequest.mockImplementation((method: string, params?: any) => {
+        if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
+        if (method === "cs_register_session") return Promise.resolve(true);
+        if (method === "sessions.patch") return Promise.resolve(true);
+        return Promise.resolve({ ok: true });
+      });
+
+      const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+        conversationId: "conv-cloud-quiet",
+        buyerUserId: "buyer-001",
+      });
+
+      const promiseA = session.dispatchCatchUp({
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        currentMessageId: "msg-quiet-a",
+        currentMessageCursor: { messageId: "msg-quiet-a", messageIndex: "1", createTime: 100 },
+        latestMessagePreview: "First buyer message",
+        useMessageDelta: false,
+      });
+
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent")).toHaveLength(0);
+
+      const promiseB = session.dispatchCatchUp({
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        currentMessageId: "msg-quiet-b",
+        currentMessageCursor: { messageId: "msg-quiet-b", messageIndex: "2", createTime: 101 },
+        latestMessagePreview: "Latest buyer message",
+        source: "backend_subscription",
+        useMessageDelta: false,
+      });
+
+      await expect(promiseA).resolves.toEqual({ runId: undefined });
+      await vi.advanceTimersByTimeAsync(9_999);
+      expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent")).toHaveLength(0);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(promiseB).resolves.toEqual({ runId: "cs-start:conv-cloud-quiet:msg-quiet-b" });
+
+      const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
+      expect(agentCalls).toHaveLength(1);
+      expect(agentCalls[0][1]).toEqual(expect.objectContaining({
+        idempotencyKey: "cs-start:conv-cloud-quiet:msg-quiet-b",
+      }));
+      expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "chat.abort")).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+      process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "0";
+    }
   });
 
   it("cloud catch-up snapshots: Airflow retry-pending duplicate batch keeps active runs for the same buyer message", async () => {

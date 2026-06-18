@@ -158,6 +158,17 @@ describe("handleCsConversationChanged", () => {
     }));
   });
 
+  it("uses conversation delta for session-expiring customer follow-ups", async () => {
+    await handleCsConversationChanged("device-1", makeConversation("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"));
+
+    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+      type: "UNREAD_DETECTED",
+      dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
+      useMessageDelta: true,
+      conversationId: "conv-1",
+    }));
+  });
+
   it("ignores unknown dispatch hints instead of defaulting to an agent run", async () => {
     await handleCsConversationChanged("device-1", makeConversation("FUTURE_REASON"));
 
