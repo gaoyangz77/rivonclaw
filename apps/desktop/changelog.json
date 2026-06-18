@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.36",
+    "date": "2026-06-18",
+    "en": [
+      "Harden customer-service session refresh, delayed close-out dispatch, duplicate snapshot aborts, and error handling",
+      "Refine affiliate desktop work-item flows with clearer boundaries, acknowledgement handling, and send-message resilience",
+      "Reduce customer-service dispatch token churn and refresh generated GraphQL types"
+    ],
+    "zh": [
+      "加固客服会话刷新、延迟结束派发、重复快照中止和错误处理",
+      "优化达人桌面 work item 流程，明确边界、确认处理，并提升发消息稳定性",
+      "降低客服派发 token 消耗，并刷新生成的 GraphQL 类型"
+    ]
+  },
+  {
     "version": "1.8.35",
     "date": "2026-06-16",
     "en": [
