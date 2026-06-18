@@ -52,7 +52,7 @@ export class AffiliateInbound {
   /** Agent run id -> affiliate session key, used only for run lifecycle cleanup. */
   private runIndex = new Map<string, string>();
 
-  /** Dispatches that have reserved capacity but have not returned a run id yet. */
+  /** Work item handlers that have reserved capacity but have not returned a run id yet. */
   private pendingDispatchCount = 0;
 
   /** Work items waiting for local agent capacity. Keyed by semantic work item key. */
@@ -200,8 +200,8 @@ export class AffiliateInbound {
       return true;
     }
 
-    const activeOrPendingRuns = this.runIndex.size + this.pendingDispatchCount;
-    if (workItem.agentDispatchRecommended && activeOrPendingRuns >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
+    const activeOrPendingWork = this.runIndex.size + this.pendingDispatchCount;
+    if (activeOrPendingWork >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
       this.enqueueWorkItem(workItem, versionKey, version);
       return true;
     }
@@ -275,7 +275,7 @@ export class AffiliateInbound {
 
     this.pendingWorkItems.set(versionKey, workItem);
     log.info(
-      `Queued affiliate work item until agent capacity is available: ` +
+      `Queued affiliate work item until local affiliate capacity is available: ` +
       `active=${this.runIndex.size} pending=${this.pendingDispatchCount} queued=${this.pendingWorkItems.size} ` +
       `limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} id=${workItem.id} kind=${workItem.workKind}`,
     );
