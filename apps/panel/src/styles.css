@@ -10698,6 +10698,27 @@ html[lang="zh"] .acct-tool-chips {
   border-top: 0;
 }
 
+.shop-unpaid-reachout-template {
+  display: flex;
+  grid-column: 1 / -1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.shop-unpaid-reachout-template .form-label-block {
+  margin-bottom: 0;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.shop-unpaid-reachout-template-input {
+  min-height: 92px;
+  resize: vertical;
+}
+
 @media (max-width: 760px) {
   .shop-unpaid-reachout-card {
     grid-template-columns: 1fr;

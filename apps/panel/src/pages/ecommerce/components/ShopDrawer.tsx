@@ -45,10 +45,14 @@ interface ShopDrawerProps {
   onCSModelChange: (provider: string, model: string) => void;
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutDelayHours: string;
+  editUnpaidOrderReminderTemplate: string;
   savingUnpaidReachout: boolean;
+  savingUnpaidOrderTemplate: boolean;
   onToggleUnpaidReachoutEnabled: (value: boolean) => void;
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
   onCommitUnpaidReachoutDelayHours: () => void;
+  onEditUnpaidOrderReminderTemplate: (value: string) => void;
+  onSaveUnpaidOrderReminderTemplate: () => void;
   savingEscalation: boolean;
   draftEscalationChannel: string;
   draftEscalationRecipient: string;
@@ -106,10 +110,14 @@ export const ShopDrawer = observer(function ShopDrawer({
   onCSModelChange,
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutDelayHours,
+  editUnpaidOrderReminderTemplate,
   savingUnpaidReachout,
+  savingUnpaidOrderTemplate,
   onToggleUnpaidReachoutEnabled,
   onDraftUnpaidReachoutDelayHoursChange,
   onCommitUnpaidReachoutDelayHours,
+  onEditUnpaidOrderReminderTemplate,
+  onSaveUnpaidOrderReminderTemplate,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -519,10 +527,14 @@ export const ShopDrawer = observer(function ShopDrawer({
                     onCSModelChange={onCSModelChange}
                     draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
                     draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
+                    editUnpaidOrderReminderTemplate={editUnpaidOrderReminderTemplate}
                     savingUnpaidReachout={savingUnpaidReachout}
+                    savingUnpaidOrderTemplate={savingUnpaidOrderTemplate}
                     onToggleUnpaidReachoutEnabled={onToggleUnpaidReachoutEnabled}
                     onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
                     onCommitUnpaidReachoutDelayHours={onCommitUnpaidReachoutDelayHours}
+                    onEditUnpaidOrderReminderTemplate={onEditUnpaidOrderReminderTemplate}
+                    onSaveUnpaidOrderReminderTemplate={onSaveUnpaidOrderReminderTemplate}
                     savingEscalation={savingEscalation}
                     draftEscalationChannel={draftEscalationChannel}
                     draftEscalationRecipient={draftEscalationRecipient}
