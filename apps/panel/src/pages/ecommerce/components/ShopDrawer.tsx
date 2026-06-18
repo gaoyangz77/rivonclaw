@@ -46,13 +46,11 @@ interface ShopDrawerProps {
   draftUnpaidReachoutEnabled: boolean;
   draftUnpaidReachoutDelayHours: string;
   editUnpaidOrderReminderTemplate: string;
-  savingUnpaidReachout: boolean;
-  savingUnpaidOrderTemplate: boolean;
+  savingUnpaidReachoutSettings: boolean;
   onToggleUnpaidReachoutEnabled: (value: boolean) => void;
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
-  onCommitUnpaidReachoutDelayHours: () => void;
   onEditUnpaidOrderReminderTemplate: (value: string) => void;
-  onSaveUnpaidOrderReminderTemplate: () => void;
+  onSaveUnpaidReachoutSettings: () => void;
   savingEscalation: boolean;
   draftEscalationChannel: string;
   draftEscalationRecipient: string;
@@ -111,13 +109,11 @@ export const ShopDrawer = observer(function ShopDrawer({
   draftUnpaidReachoutEnabled,
   draftUnpaidReachoutDelayHours,
   editUnpaidOrderReminderTemplate,
-  savingUnpaidReachout,
-  savingUnpaidOrderTemplate,
+  savingUnpaidReachoutSettings,
   onToggleUnpaidReachoutEnabled,
   onDraftUnpaidReachoutDelayHoursChange,
-  onCommitUnpaidReachoutDelayHours,
   onEditUnpaidOrderReminderTemplate,
-  onSaveUnpaidOrderReminderTemplate,
+  onSaveUnpaidReachoutSettings,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -528,13 +524,11 @@ export const ShopDrawer = observer(function ShopDrawer({
                     draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
                     draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
                     editUnpaidOrderReminderTemplate={editUnpaidOrderReminderTemplate}
-                    savingUnpaidReachout={savingUnpaidReachout}
-                    savingUnpaidOrderTemplate={savingUnpaidOrderTemplate}
+                    savingUnpaidReachoutSettings={savingUnpaidReachoutSettings}
                     onToggleUnpaidReachoutEnabled={onToggleUnpaidReachoutEnabled}
                     onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
-                    onCommitUnpaidReachoutDelayHours={onCommitUnpaidReachoutDelayHours}
                     onEditUnpaidOrderReminderTemplate={onEditUnpaidOrderReminderTemplate}
-                    onSaveUnpaidOrderReminderTemplate={onSaveUnpaidOrderReminderTemplate}
+                    onSaveUnpaidReachoutSettings={onSaveUnpaidReachoutSettings}
                     savingEscalation={savingEscalation}
                     draftEscalationChannel={draftEscalationChannel}
                     draftEscalationRecipient={draftEscalationRecipient}

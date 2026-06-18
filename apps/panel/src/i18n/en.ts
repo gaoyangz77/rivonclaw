@@ -3342,6 +3342,10 @@ export default {
         unpaidReachoutTemplatePlaceholder: "Write the reminder message shown to unpaid buyers.",
         unpaidReachoutTemplateHint: "Supports {{order_id}}, {{product_count}}, and {{shop_name}}. Empty means no reminder is sent.",
         unpaidReachoutTemplateTokens: "Insert placeholder",
+        unpaidReachoutTemplateTokenOrderId: "Order ID",
+        unpaidReachoutTemplateTokenProductCount: "Item count",
+        unpaidReachoutTemplateTokenShopName: "Shop name",
+        unpaidReachoutUnsaved: "Unsaved changes",
       },
       affiliate: {
         serviceStatus: "Service Status",

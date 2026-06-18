@@ -3341,6 +3341,10 @@ export default {
         unpaidReachoutTemplatePlaceholder: "填写将发送给未付款买家的提醒消息。",
         unpaidReachoutTemplateHint: "支持 {{order_id}}、{{product_count}} 和 {{shop_name}}。留空则不发送提醒。",
         unpaidReachoutTemplateTokens: "插入变量",
+        unpaidReachoutTemplateTokenOrderId: "订单号",
+        unpaidReachoutTemplateTokenProductCount: "商品数",
+        unpaidReachoutTemplateTokenShopName: "店铺名",
+        unpaidReachoutUnsaved: "有未保存修改",
       },
       affiliate: {
         serviceStatus: "服务状态",

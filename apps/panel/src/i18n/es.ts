@@ -3010,7 +3010,15 @@ export default {
         "unpaidReachoutHint": "Cuando está activado, el agente CS de escritorio vinculado envía un recordatorio proactivo después del retraso configurado.",
         "unpaidReachoutDelay": "Horas de retraso",
         "unpaidReachoutDelayHint": "Use un número entero de 1 a 47. El contacto proactivo de TikTok está limitado a 48 horas.",
-        "unpaidReachoutInvalidDelay": "Las horas de retraso deben ser un número entero de 1 a 47."
+        "unpaidReachoutInvalidDelay": "Las horas de retraso deben ser un número entero de 1 a 47.",
+        "unpaidReachoutTemplate": "Plantilla de recordatorio",
+        "unpaidReachoutTemplatePlaceholder": "Escribe el recordatorio que se mostrará a compradores sin pagar.",
+        "unpaidReachoutTemplateHint": "Admite {{order_id}}, {{product_count}} y {{shop_name}}. Si está vacío, no se enviará recordatorio.",
+        "unpaidReachoutTemplateTokens": "Insertar variable",
+        "unpaidReachoutTemplateTokenOrderId": "ID del pedido",
+        "unpaidReachoutTemplateTokenProductCount": "Cantidad de artículos",
+        "unpaidReachoutTemplateTokenShopName": "Nombre de la tienda",
+        "unpaidReachoutUnsaved": "Cambios sin guardar"
       },
       "affiliate": {
         "serviceStatus": "Estado del servicio",
