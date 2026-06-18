@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.38",
+    "date": "2026-06-18",
+    "en": [
+      "Add affiliate creator management and approval policy management UI",
+      "Add deterministic unpaid order reminder settings with template placeholders and localized placeholder chips",
+      "Refine affiliate prediction judgment labels, unpaid reachout settings UI, and shop workspace modal sizing"
+    ],
+    "zh": [
+      "新增达人管理和达人审批策略管理界面",
+      "新增确定性的未付款订单提醒设置，支持模板占位符和本地化占位符标签",
+      "优化达人预测判断标签、未付款触达设置界面和店铺工作区弹窗尺寸"
+    ]
+  },
+  {
     "version": "1.8.37",
     "date": "2026-06-18",
     "en": [
