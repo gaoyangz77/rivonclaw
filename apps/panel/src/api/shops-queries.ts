@@ -983,7 +983,181 @@ export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
       shopId
       name
       type
+      systemKey
       sensitive
+      updatedAt
+    }
+  }
+`;
+
+export const AFFILIATE_CREATORS_QUERY = gql`
+  query AffiliateCreators($input: ReadAffiliateCreatorsInput!) {
+    affiliateCreators(input: $input) {
+      creatorId
+      tagIds
+      tags {
+        id
+        shopId
+        name
+        type
+        systemKey
+        sensitive
+        updatedAt
+      }
+      needsAttention
+      activeCollaborationCount
+      lastInteractionAt
+      shopState {
+        shopId
+        lifecycleStage
+        tagIds
+        lastContactedAt
+        lastInvitedAt
+        lastQualifiedAt
+      }
+      creatorRelation {
+        id
+        creatorId
+        blocked
+        blockedShopIds
+        shopStates {
+          shopId
+          lifecycleStage
+          tagIds
+          lastContactedAt
+          lastInvitedAt
+          lastQualifiedAt
+        }
+        updatedAt
+      }
+      creatorProfile {
+        id
+        platform
+        creatorOpenId
+        creatorImId
+        username
+        nickname
+        avatarUrl
+        followerCount
+        categoryIds
+        marketplaceSnapshotJson
+        updatedAt
+      }
+      latestCollaborationRecord {
+        id
+        userId
+        shopId
+        creatorId
+        creatorOpenId
+        productId
+        lifecycleStage
+        processingStatus
+        requiredAction
+        processReasons
+        nextSellerActionAt
+        stateUpdatedAt
+        lastSignalAt
+        workHandledUntil
+        platformConversationId
+        creatorImId
+        lastCreatorMessageId
+        lastCreatorMessageAt
+        affiliateCollaborationId
+        collaborationType
+        platformCollaborationId
+        sampleApplicationRecordId
+        startedAt
+        endedAt
+        updatedAt
+      }
+      latestPendingProposal {
+        id
+        type
+        status
+        operatorSummary
+        updatedAt
+        policySnapshot {
+          requiresApproval
+          matchedPolicyIds
+          reasons
+          action
+        }
+        messageIntent {
+          text
+          messageType
+          productId
+          conversationId
+          creatorId
+          sampleApplicationRecordId
+          platformApplicationId
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        targetCollaborationIntent {
+          name
+          message
+          creatorIds
+          creatorOpenIds
+          products {
+            productId
+            targetCommissionRateBps
+            shopAdsCommissionRateBps
+          }
+        }
+      }
+      latestSampleApplicationRecord {
+        id
+        platformApplicationId
+        creatorId
+        productId
+        sampleWorkStatus
+        observedContentCount
+        latestObservedContentAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const APPLY_CREATOR_TAG_MUTATION = gql`
+  mutation ApplyCreatorTag($input: ApplyCreatorTagInput!) {
+    applyCreatorTag(input: $input) {
+      id
+      creatorId
+      blocked
+      blockedShopIds
+      shopStates {
+        shopId
+        lifecycleStage
+        tagIds
+        lastContactedAt
+        lastInvitedAt
+        lastQualifiedAt
+      }
+      updatedAt
+    }
+  }
+`;
+
+export const REMOVE_CREATOR_TAG_MUTATION = gql`
+  mutation RemoveCreatorTag($input: ApplyCreatorTagInput!) {
+    removeCreatorTag(input: $input) {
+      id
+      creatorId
+      blocked
+      blockedShopIds
+      shopStates {
+        shopId
+        lifecycleStage
+        tagIds
+        lastContactedAt
+        lastInvitedAt
+        lastQualifiedAt
+      }
       updatedAt
     }
   }

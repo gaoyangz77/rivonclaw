@@ -12,9 +12,14 @@ import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_COLLABORATION_ACTIVITY_QUERY,
   AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY,
+  AFFILIATE_CREATORS_QUERY,
+  AFFILIATE_POLICY_CONTEXT_QUERY,
+  APPLY_CREATOR_TAG_MUTATION,
   DECIDE_ACTION_PROPOSAL_MUTATION,
+  REMOVE_CREATOR_TAG_MUTATION,
   RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION,
 } from "../../api/shops-queries.js";
+import { creatorTagLabel } from "./affiliate-tag-labels.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 
 type DashboardItem = GQL.AffiliateDashboardItem;
@@ -42,6 +47,10 @@ const HISTORY_FILTERS = [
 type HistoryFilter = (typeof HISTORY_FILTERS)[number];
 type CollaborationListItem = GQL.AffiliateCollaborationRecordListItem;
 const COLLABORATION_HISTORY_PAGE_SIZE = 24;
+const AFFILIATE_CREATORS_LIMIT = 200;
+const AFFILIATE_CREATORS_PAGE_SIZE = 24;
+const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
+type AffiliateCreatorManagementItem = GQL.AffiliateCreatorManagementItem;
 type CollaborationWorkViewModel = {
   badge: string;
   badgeTone: "attention" | "waiting" | "done" | "blocked";
@@ -1435,6 +1444,44 @@ function collaborationItemSearchText(
     .toLowerCase();
 }
 
+function filterCreatorItems(items: AffiliateCreatorManagementItem[], search: string): AffiliateCreatorManagementItem[] {
+  const query = search.trim().toLowerCase();
+  if (!query) return items;
+  return items.filter((item) => creatorManagementSearchText(item).includes(query));
+}
+
+function creatorManagementSearchText(item: AffiliateCreatorManagementItem): string {
+  const profile = item.creatorProfile;
+  const record = item.latestCollaborationRecord;
+  const proposal = item.latestPendingProposal;
+  const sample = item.latestSampleApplicationRecord;
+  const values = [
+    item.creatorId,
+    profile?.id,
+    profile?.nickname,
+    profile?.username,
+    profile?.creatorOpenId,
+    profile?.creatorImId,
+    record?.id,
+    record?.creatorOpenId,
+    record?.creatorImId,
+    record?.productId,
+    record?.platformCollaborationId,
+    record?.platformConversationId,
+    proposal?.id,
+    proposal?.operatorSummary,
+    proposal?.messageIntent?.text,
+    sample?.id,
+    sample?.platformApplicationId,
+    sample?.productId,
+    ...item.tags.map((tag) => tag.name),
+  ];
+  return values
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ")
+    .toLowerCase();
+}
+
 function AffiliateLoadingState() {
   const { t } = useTranslation();
   return (
@@ -1442,6 +1489,492 @@ function AffiliateLoadingState() {
       <div className="affiliate-loading-spinner" aria-hidden="true" />
       <span>{t("ecommerce.affiliateWorkspace.loadingEntities")}</span>
     </div>
+  );
+}
+
+export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
+  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
+  const affiliateShops = entityStore.shops.filter((shop) => shop.services?.affiliateService?.enabled);
+  const [selectedShopId, setSelectedShopId] = useState("");
+  const [selectedTagId, setSelectedTagId] = useState(ALL_CREATOR_TAGS_FILTER);
+  const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
+  const [creatorSearch, setCreatorSearch] = useState("");
+  const [creatorPage, setCreatorPage] = useState(1);
+  const [creatorPageInput, setCreatorPageInput] = useState("1");
+  const [selectedCollaboration, setSelectedCollaboration] = useState<CollaborationDetailItem | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
+  const [updatingTagKey, setUpdatingTagKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      entityStore.fetchShops().catch(() => {});
+    }
+  }, [entityStore, user]);
+
+  useEffect(() => {
+    if (!selectedShopId && affiliateShops.length) {
+      setSelectedShopId(affiliateShops[0].id);
+    }
+  }, [affiliateShops, selectedShopId]);
+
+  const shopOptions = useMemo(
+    () => affiliateShops.map((shop) => ({
+      value: shop.id,
+      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+    })),
+    [affiliateShops],
+  );
+  function shopLabel(shopId: string): string {
+    const shop = affiliateShops.find((candidate) => candidate.id === shopId);
+    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+  }
+
+  const { data: policyContextData } = useQuery<
+    { creatorTags: GQL.CreatorTag[] },
+    { campaignsInput: GQL.ReadAffiliateCampaignsInput; shopId: string }
+  >(AFFILIATE_POLICY_CONTEXT_QUERY, {
+    variables: {
+      campaignsInput: { shopId: selectedShopId, limit: 1 },
+      shopId: selectedShopId,
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !user || !selectedShopId,
+  });
+
+  const tagOptions = useMemo(() => {
+    const tags = policyContextData?.creatorTags ?? [];
+    return [
+      { value: ALL_CREATOR_TAGS_FILTER, label: t("ecommerce.affiliateWorkspace.allCreatorTagsFilter") },
+      ...tags.map((tag) => ({ value: tag.id, label: creatorTagLabel(t, tag) })),
+    ];
+  }, [policyContextData?.creatorTags, t]);
+
+  useEffect(() => {
+    const available = new Set(tagOptions.map((option) => option.value));
+    if (!available.has(selectedTagId)) {
+      setSelectedTagId(ALL_CREATOR_TAGS_FILTER);
+    }
+  }, [selectedTagId, tagOptions]);
+
+  const { data, loading, refetch } = useQuery<
+    { affiliateCreators: AffiliateCreatorManagementItem[] },
+    { input: GQL.ReadAffiliateCreatorsInput }
+  >(AFFILIATE_CREATORS_QUERY, {
+    variables: {
+      input: {
+        shopId: selectedShopId,
+        tagIds: selectedTagId === ALL_CREATOR_TAGS_FILTER ? undefined : [selectedTagId],
+        needsAttentionOnly,
+        limit: AFFILIATE_CREATORS_LIMIT,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !user || !selectedShopId,
+  });
+
+  const [applyCreatorTag] = useMutation<
+    { applyCreatorTag: GQL.CreatorUserRelation },
+    { input: GQL.ApplyCreatorTagInput }
+  >(APPLY_CREATOR_TAG_MUTATION);
+  const [removeCreatorTag] = useMutation<
+    { removeCreatorTag: GQL.CreatorUserRelation },
+    { input: GQL.ApplyCreatorTagInput }
+  >(REMOVE_CREATOR_TAG_MUTATION);
+
+  useEffect(() => {
+    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
+      void refetch();
+    });
+    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
+      void refetch();
+    });
+    return () => {
+      unsubscribeProposal();
+      unsubscribeWorkItem();
+    };
+  }, [refetch]);
+
+  const creatorItems = data?.affiliateCreators ?? [];
+  const visibleCreatorItems = useMemo(
+    () => filterCreatorItems(creatorItems, creatorSearch),
+    [creatorItems, creatorSearch],
+  );
+  const allTags = policyContextData?.creatorTags ?? [];
+  const creatorPageCount = Math.max(1, Math.ceil(visibleCreatorItems.length / AFFILIATE_CREATORS_PAGE_SIZE));
+  const pagedVisibleCreatorItems = useMemo(() => {
+    const start = (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE;
+    return visibleCreatorItems.slice(start, start + AFFILIATE_CREATORS_PAGE_SIZE);
+  }, [creatorPage, visibleCreatorItems]);
+  const creatorPageStart = visibleCreatorItems.length === 0
+    ? 0
+    : (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE + 1;
+  const creatorPageEnd = Math.min(creatorPage * AFFILIATE_CREATORS_PAGE_SIZE, visibleCreatorItems.length);
+
+  useEffect(() => {
+    setCreatorPage(1);
+  }, [creatorSearch, needsAttentionOnly, selectedShopId, selectedTagId]);
+
+  useEffect(() => {
+    setCreatorPage((page) => Math.min(page, creatorPageCount));
+  }, [creatorPageCount]);
+
+  useEffect(() => {
+    setCreatorPageInput(String(creatorPage));
+  }, [creatorPage]);
+
+  function commitCreatorPageInput(): void {
+    const nextPage = Number.parseInt(creatorPageInput, 10);
+    if (!Number.isFinite(nextPage)) {
+      setCreatorPageInput(String(creatorPage));
+      return;
+    }
+    const clampedPage = Math.min(creatorPageCount, Math.max(1, nextPage));
+    setCreatorPage(clampedPage);
+    setCreatorPageInput(String(clampedPage));
+  }
+
+  async function updateCreatorTag(creatorId: string, tagId: string, mode: "apply" | "remove"): Promise<void> {
+    const key = `${mode}:${creatorId}:${tagId}`;
+    setUpdatingTagKey(key);
+    try {
+      const variables = { input: { shopId: selectedShopId, creatorId, tagId } };
+      if (mode === "apply") {
+        await applyCreatorTag({ variables });
+      } else {
+        await removeCreatorTag({ variables });
+      }
+      showToast(t("ecommerce.affiliateWorkspace.creatorTagApplySuccess"), "success");
+      await refetch();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t("ecommerce.affiliateWorkspace.creatorTagUpdateFailed"), "error");
+    } finally {
+      setUpdatingTagKey(null);
+    }
+  }
+
+  if (authChecking) {
+    return (
+      <div className="page-enter">
+        <AffiliateLoadingState />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="page-enter">
+        <div className="section-card">
+          <h2>{t("auth.loginRequired")}</h2>
+          <p>{t("auth.loginFromSidebar")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-enter affiliate-workbench">
+      <div className="ecommerce-page-header affiliate-workbench-header">
+        <div>
+          <h1>{t("ecommerce.affiliateWorkspace.creatorsTitle")}</h1>
+          <p className="ecommerce-page-subtitle">
+            {t("ecommerce.affiliateWorkspace.creatorsSubtitle")}
+          </p>
+        </div>
+        <div className="affiliate-workbench-controls">
+          <Select
+            value={selectedShopId}
+            onChange={setSelectedShopId}
+            options={shopOptions}
+            className="affiliate-workspace-shop-select"
+            disabled={shopOptions.length === 0}
+          />
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => void refetch()}
+            disabled={loading || !selectedShopId}
+          >
+            {loading
+              ? t("common.loading")
+              : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
+          </button>
+        </div>
+      </div>
+
+      <div className="affiliate-workbench-panel">
+        <div className="affiliate-workbench-panel-head affiliate-creators-panel-head">
+          <div>
+            <div className="affiliate-workbench-panel-title">
+              {t("ecommerce.affiliateWorkspace.creatorsPanelTitle")}
+            </div>
+            <div className="form-hint">
+              {t("ecommerce.affiliateWorkspace.creatorsPanelHint")}
+            </div>
+          </div>
+          <div className="affiliate-attention-toolbar">
+            <label className="affiliate-filter-field">
+              <span>{t("ecommerce.affiliateWorkspace.creatorTagFilter")}</span>
+              <Select
+                value={selectedTagId}
+                onChange={setSelectedTagId}
+                options={tagOptions}
+                className="affiliate-status-select"
+                ariaLabel={t("ecommerce.affiliateWorkspace.creatorTagFilter")}
+              />
+            </label>
+            <label className="affiliate-filter-field affiliate-filter-field-search">
+              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
+              <input
+                className="affiliate-attention-search"
+                value={creatorSearch}
+                onChange={(event) => setCreatorSearch(event.target.value)}
+                placeholder={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+                aria-label={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+              />
+            </label>
+            <label className="affiliate-creators-toggle">
+              <input
+                type="checkbox"
+                checked={needsAttentionOnly}
+                onChange={(event) => setNeedsAttentionOnly(event.target.checked)}
+              />
+              <span>{t("ecommerce.affiliateWorkspace.creatorAttentionOnly")}</span>
+            </label>
+          </div>
+        </div>
+
+        {loading && visibleCreatorItems.length === 0 ? (
+          <AffiliateLoadingState />
+        ) : visibleCreatorItems.length === 0 ? (
+          <div className="affiliate-proposal-empty">
+            {t("ecommerce.affiliateWorkspace.emptyCreators")}
+          </div>
+        ) : (
+          <div className="affiliate-creator-roster">
+            {pagedVisibleCreatorItems.map((item) => (
+              <AffiliateCreatorRosterRow
+                key={item.creatorId}
+                item={item}
+                allTags={allTags}
+                updatingTagKey={updatingTagKey}
+                onOpenCollaboration={(detailItem) => setSelectedCollaboration(detailItem)}
+                onOpenCreator={(profile) => setSelectedCreator(profile)}
+                onUpdateTag={(creatorId, tagId, mode) => void updateCreatorTag(creatorId, tagId, mode)}
+              />
+            ))}
+            {visibleCreatorItems.length > AFFILIATE_CREATORS_PAGE_SIZE ? (
+              <div className="affiliate-collaboration-pagination affiliate-creator-pagination" aria-label={t("ecommerce.affiliateWorkspace.pagination")}>
+                <span className="affiliate-collaboration-pagination-summary">
+                  {t("ecommerce.affiliateWorkspace.pageSummary", {
+                    start: creatorPageStart,
+                    end: creatorPageEnd,
+                    total: visibleCreatorItems.length,
+                    page: creatorPage,
+                    pages: creatorPageCount,
+                  })}
+                </span>
+                <div className="affiliate-collaboration-pagination-actions">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={creatorPage <= 1}
+                    onClick={() => setCreatorPage((page) => Math.max(1, page - 1))}
+                  >
+                    {t("ecommerce.affiliateWorkspace.prevPage")}
+                  </button>
+                  <span className="affiliate-collaboration-page-pill">
+                    {t("ecommerce.affiliateWorkspace.page", {
+                      page: creatorPage,
+                      pages: creatorPageCount,
+                    })}
+                  </span>
+                  <label className="affiliate-collaboration-page-jump">
+                    <span>{t("ecommerce.affiliateWorkspace.jumpToPage")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={creatorPageCount}
+                      value={creatorPageInput}
+                      aria-label={t("ecommerce.affiliateWorkspace.jumpPageAria")}
+                      onChange={(event) => setCreatorPageInput(event.target.value)}
+                      onBlur={commitCreatorPageInput}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={creatorPage >= creatorPageCount}
+                    onClick={() => setCreatorPage((page) => Math.min(creatorPageCount, page + 1))}
+                  >
+                    {t("ecommerce.affiliateWorkspace.nextPage")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {selectedCollaboration ? (
+        <CollaborationActivityModal
+          item={selectedCollaboration}
+          shopLabel={shopLabel(selectedCollaboration.collaborationRecord.shopId)}
+          onOpenCreator={(profile) => setSelectedCreator(profile)}
+          onClose={() => setSelectedCollaboration(null)}
+        />
+      ) : null}
+      {selectedCreator ? (
+        <CreatorDetailModal profile={selectedCreator} onClose={() => setSelectedCreator(null)} />
+      ) : null}
+    </div>
+  );
+});
+
+function AffiliateCreatorRosterRow({
+  item,
+  allTags,
+  updatingTagKey,
+  onOpenCollaboration,
+  onOpenCreator,
+  onUpdateTag,
+}: {
+  item: AffiliateCreatorManagementItem;
+  allTags: GQL.CreatorTag[];
+  updatingTagKey: string | null;
+  onOpenCollaboration: (item: CollaborationDetailItem) => void;
+  onOpenCreator: (profile: GQL.CreatorGlobalProfile) => void;
+  onUpdateTag: (creatorId: string, tagId: string, mode: "apply" | "remove") => void;
+}) {
+  const { t } = useTranslation();
+  const profile = item.creatorProfile;
+  const name = profile
+    ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
+    : item.creatorId;
+  const handle = profile ? creatorTikTokHandle(profile) : null;
+  const platformId = profile ? creatorPlatformIdentity(profile) : item.latestCollaborationRecord?.creatorOpenId ?? null;
+  const missingTags = allTags.filter((tag) => !item.tagIds.includes(tag.id));
+  const latestRecord = item.latestCollaborationRecord;
+  const latestStatus = latestRecord?.processingStatus
+    ? t(`ecommerce.affiliateWorkspace.collaborationFilters.${latestRecord.processingStatus}`, {
+      defaultValue: latestRecord.processingStatus,
+    })
+    : t("ecommerce.affiliateWorkspace.creatorStable");
+  const lifecycleStage = item.shopState?.lifecycleStage ?? latestRecord?.lifecycleStage ?? null;
+  const lifecycleLabel = lifecycleStage
+    ? t(`ecommerce.affiliateWorkspace.lifecycleStages.${lifecycleStage}`, { defaultValue: lifecycleStage })
+    : t("ecommerce.affiliateWorkspace.creatorUnknownStage");
+  const followerCount = profile ? formatCount(profile.followerCount) : null;
+  const collaborationDetail = latestRecord
+    ? {
+      collaborationRecord: latestRecord,
+      creatorProfile: profile ?? null,
+      productSummary: null,
+      latestProposal: item.latestPendingProposal ?? null,
+      latestLifecycleEvent: null,
+    }
+    : null;
+
+  return (
+    <article className="affiliate-creator-row">
+      <div className="affiliate-creator-row-main">
+        {profile?.avatarUrl ? (
+          <img className="affiliate-creator-avatar" src={profile.avatarUrl} alt="" />
+        ) : (
+          <div className="affiliate-creator-avatar affiliate-creator-avatar-empty" aria-hidden="true">
+            {name.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <div className="affiliate-creator-row-copy">
+          <div className="affiliate-creator-row-title">
+            <CreatorName name={name} onOpen={profile ? () => onOpenCreator(profile) : undefined} />
+            <span className={`affiliate-creator-state ${item.needsAttention ? "affiliate-creator-state-attention" : ""}`}>
+              {item.needsAttention
+                ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
+                : t("ecommerce.affiliateWorkspace.creatorStable")}
+            </span>
+          </div>
+          <div className="affiliate-creator-row-meta">
+            <CreatorPlatformId handle={handle} platformId={platformId} />
+            {followerCount ? <span>{followerCount}</span> : null}
+            <span>{t("ecommerce.affiliateWorkspace.creatorActiveCollaborations", { count: item.activeCollaborationCount })}</span>
+          </div>
+          <div className="affiliate-creator-tag-list">
+            {item.tags.length ? item.tags.map((tag) => {
+              const updateKey = `remove:${item.creatorId}:${tag.id}`;
+              return (
+                <span className="affiliate-creator-tag" key={tag.id}>
+                  <span>{creatorTagLabel(t, tag)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateTag(item.creatorId, tag.id, "remove")}
+                    disabled={updatingTagKey === updateKey}
+                    aria-label={t("ecommerce.affiliateWorkspace.creatorTagRemove")}
+                    title={t("ecommerce.affiliateWorkspace.creatorTagRemove")}
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            }) : (
+              <span className="affiliate-creator-tag-empty">
+                {t("ecommerce.affiliateWorkspace.creatorTagsEmpty")}
+              </span>
+            )}
+            <Select
+              value=""
+              onChange={(tagId) => onUpdateTag(item.creatorId, tagId, "apply")}
+              options={missingTags.map((tag) => ({ value: tag.id, label: creatorTagLabel(t, tag) }))}
+              placeholder={t("ecommerce.affiliateWorkspace.creatorTagAdd")}
+              ariaLabel={t("ecommerce.affiliateWorkspace.creatorTagAdd")}
+              disabled={missingTags.length === 0 || updatingTagKey?.startsWith(`apply:${item.creatorId}:`)}
+              className="affiliate-creator-tag-select"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="affiliate-creator-work-summary">
+        <button
+          className="affiliate-creator-work-summary-item affiliate-creator-work-summary-button"
+          type="button"
+          onClick={() => {
+            if (collaborationDetail) onOpenCollaboration(collaborationDetail);
+          }}
+          disabled={!collaborationDetail}
+        >
+          <span>{t("ecommerce.affiliateWorkspace.creatorLatestWork")}</span>
+          <strong>{latestStatus}</strong>
+          {latestRecord?.productId ? <small>{t("ecommerce.affiliateWorkspace.productIdShort", { productId: latestRecord.productId })}</small> : null}
+        </button>
+        <div className="affiliate-creator-work-summary-item">
+          <span>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</span>
+          <strong>{lifecycleLabel}</strong>
+          {item.lastInteractionAt ? (
+            <small>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}: {formatProposalTime(item.lastInteractionAt)}</small>
+          ) : null}
+        </div>
+        <div className="affiliate-creator-work-summary-item">
+          <span>{t("ecommerce.affiliateWorkspace.creatorPendingProposal")}</span>
+          <strong>{item.latestPendingProposal?.operatorSummary ?? "—"}</strong>
+        </div>
+        <div className="affiliate-creator-work-summary-item">
+          <span>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</span>
+          <strong>{item.latestSampleApplicationRecord?.sampleWorkStatus ?? "—"}</strong>
+          {item.latestSampleApplicationRecord?.observedContentCount ? (
+            <small>{formatCount(item.latestSampleApplicationRecord.observedContentCount)}</small>
+          ) : null}
+        </div>
+      </div>
+    </article>
   );
 }
 

@@ -87,6 +87,9 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If the conversation work package includes Candidate Card Hints, treat them as candidate evidence only. Do not treat a product card as confirmed product context unless Backend Work Context already confirms that product through sample, target collaboration, or product context.",
       "When a candidate productId is available and the decision depends on whether this creator/product is worth pursuing, call affiliate_predict_creator_product_fit before REQUEST_ACTION. Use its product summary, prediction, and decision thresholds as decision evidence.",
       "When a candidate sample/application id is available and the creator is asking about application approval, rejection, shipment, or sample status, call affiliate_get_workspace with the sample/application identity before replying.",
+      "If a sample application is already terminal (for example cancelled, expired, rejected, or fulfilled), do not propose a REVIEW_SAMPLE_APPLICATION action for it. You may still reply to the creator, but the reply must reflect the business decision and current evidence. Do not invite the creator to resubmit the same sample request unless the merchant context clearly supports continuing with that creator/product.",
+      "When the terminal sample state is seller/system rejection or cancellation, avoid passive wording such as \"the request is no longer active\" as the main explanation. Tell the creator plainly and politely that after review we are not moving forward with this sample/collaboration at this time, then add any appropriate future-facing note.",
+      "When prediction or merchant thresholds indicate the creator/product is below the shop's bar, a creator-facing reply should politely decline or leave the door open for better future fit; it should not ask the creator to submit the same application again.",
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       renderPredictionCacheInstruction(input),
@@ -269,14 +272,23 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
   const context = workItem.context;
   if (!context) return ["(none)"];
   const creator = context.creatorProfile;
+  const relation = context.creatorRelation;
   const product = context.productContext;
   const relatedSamples = context.relatedSampleApplications ?? [];
   const missingContext = context.missingContext ?? [];
+  const shopStates = relation?.shopStates ?? [];
   return [
     `- Recommended Actions: ${(workItem.recommendedActionTypes ?? context.recommendedActionTypes ?? []).join(", ") || "(none)"}`,
     creator
       ? `- Creator: ${creator.nickname ?? creator.username ?? creator.creatorOpenId ?? creator.creatorImId ?? creator.id} (id=${creator.id}, openId=${creator.creatorOpenId ?? ""}, imId=${creator.creatorImId ?? ""})`
       : "- Creator: (unresolved)",
+    relation
+      ? `- Creator Relation: blocked=${relation.blocked} blockedShopIds=${relation.blockedShopIds.join(", ") || "(none)"}`
+      : "- Creator Relation: (none)",
+    `- Creator Relation Shop Tags: ${shopStates.length ? "" : "(none)"}`,
+    ...shopStates.map((state) =>
+      `  - shopId=${state.shopId} lifecycleStage=${state.lifecycleStage} tagIds=${state.tagIds.join(", ") || "(none)"}`,
+    ),
     product
       ? `- Product Context: ${product.productId}${product.title ? ` / ${product.title}` : ""} source=${product.source ?? ""}`
       : "- Product Context: (unresolved)",

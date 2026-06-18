@@ -880,6 +880,22 @@ export const AffiliateConversationSignalType = {
 } as const;
 
 export type AffiliateConversationSignalType = typeof AffiliateConversationSignalType[keyof typeof AffiliateConversationSignalType];
+/** Shop-scoped creator management row for creators with materialized affiliate collaboration records. */
+export interface AffiliateCreatorManagementItem {
+  activeCollaborationCount: Scalars['Int']['output'];
+  creatorId: Scalars['ID']['output'];
+  creatorProfile?: Maybe<CreatorGlobalProfile>;
+  creatorRelation?: Maybe<CreatorUserRelation>;
+  lastInteractionAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  latestCollaborationRecord?: Maybe<AffiliateCollaborationRecord>;
+  latestPendingProposal?: Maybe<ActionProposal>;
+  latestSampleApplicationRecord?: Maybe<SampleApplicationRecord>;
+  needsAttention: Scalars['Boolean']['output'];
+  shopState?: Maybe<CreatorRelationShopState>;
+  tagIds: Array<Scalars['ID']['output']>;
+  tags: Array<CreatorTag>;
+}
+
 export interface AffiliateCreatorProductFitInput {
   /** Backend CreatorGlobalProfile id. Prefer this when the current affiliate work context already resolved it. */
   creatorId?: InputMaybe<Scalars['ID']['input']>;
@@ -5414,6 +5430,8 @@ export interface Query {
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Get a bounded affiliate creator conversation delta from a local OpenClaw-session anchor through the current inbound message. */
   affiliateConversationMessageDelta: EcomAffiliateMessageDelta;
+  /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
+  affiliateCreators: Array<AffiliateCreatorManagementItem>;
   /** Read the staff-facing affiliate workbench. This combines current work items, proposals across statuses, and direct lifecycle events. */
   affiliateDashboard: AffiliateDashboardPayload;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
@@ -5655,6 +5673,11 @@ export interface QueryAffiliateConversationMessageDeltaArgs {
   currentMessageId: Scalars['String']['input'];
   maxPages?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryAffiliateCreatorsArgs {
+  input: ReadAffiliateCreatorsInput;
 }
 
 
@@ -6130,6 +6153,15 @@ export interface ReadAffiliateCollaborationsInput {
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCollaborationStatus>;
   type?: InputMaybe<AffiliateCollaborationType>;
+}
+
+export interface ReadAffiliateCreatorsInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  needsAttentionOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
+  tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 export interface ReadAffiliateWorkItemsInput {

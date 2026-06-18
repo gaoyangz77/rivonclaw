@@ -1386,6 +1386,8 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
   const collaborations = workspace.collaborationRecords ?? [];
   const proposals = workspace.actionProposals ?? [];
   const policies = workspace.approvalPolicies ?? [];
+  const creatorRelations = workspace.creatorRelations ?? [];
+  const creatorTags = workspace.creatorTags ?? [];
 
   const sampleLines = samples.length
     ? samples.map((sample, index) => [
@@ -1436,8 +1438,31 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
 
   const policyLines = policies.length
     ? policies.map((policy, index) =>
-      `${index + 1}. ${policy.reason ?? policy.id} action=${policy.action} enabled=${policy.enabled}`,
+      [
+        `${index + 1}. ${policy.reason ?? policy.id} action=${policy.action} enabled=${policy.enabled}`,
+        `   creatorTagIds: ${(policy.creatorTagIds ?? []).join(", ") || "(any)"}`,
+        `   campaignIds: ${(policy.campaignIds ?? []).join(", ") || "(any)"}`,
+        `   productIds: ${(policy.productIds ?? []).join(", ") || "(any)"}`,
+      ].join("\n"),
     )
+    : ["(none)"];
+
+  const creatorTagLines = creatorTags.length
+    ? creatorTags.map((tag, index) =>
+      `${index + 1}. tagId: ${tag.id} name=${tag.name} type=${tag.type} systemKey=${tag.systemKey ?? ""} sensitive=${tag.sensitive}`,
+    )
+    : ["(none)"];
+
+  const relationLines = creatorRelations.length
+    ? creatorRelations.map((relation, index) => [
+      `${index + 1}. creatorId: ${relation.creatorId}`,
+      `   blocked: ${relation.blocked}`,
+      `   blockedShopIds: ${(relation.blockedShopIds ?? []).join(", ") || "(none)"}`,
+      `   shopStates: ${(relation.shopStates ?? []).length}`,
+      ...(relation.shopStates ?? []).map((state) =>
+        `     - shopId=${state.shopId} lifecycleStage=${state.lifecycleStage} tagIds=${state.tagIds.join(", ") || "(none)"}`,
+      ),
+    ].join("\n"))
     : ["(none)"];
 
   return [
@@ -1453,6 +1478,12 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
     "",
     "## Pending / Recent Action Proposals",
     ...proposalLines,
+    "",
+    "## Creator Tags",
+    ...creatorTagLines,
+    "",
+    "## Creator Relations",
+    ...relationLines,
     "",
     "## Active Approval Policies",
     ...policyLines,
