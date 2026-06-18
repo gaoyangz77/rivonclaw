@@ -13,11 +13,11 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
   it("guides resolved close-out dispatches to request service ratings only when appropriate", () => {
     const prompt = buildCsAgentDispatchSystemPrompt("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP");
 
+    expect(prompt).toContain("followUpMessage");
     expect(prompt).toContain("reviewRequestMessage");
     expect(prompt).toContain("customer-service rating/evaluation");
     expect(prompt).toContain("not a product or order review");
-    expect(prompt).toContain("may frustrate the customer");
-    expect(prompt).toContain("If the buyer still needs help");
-    expect(prompt).toContain("Do not finish silently");
+    expect(prompt).toContain("Default to ecom_cs_end_session");
+    expect(prompt).toContain("cancel the final end if the customer replies");
   });
 });

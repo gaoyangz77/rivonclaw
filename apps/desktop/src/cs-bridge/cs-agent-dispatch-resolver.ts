@@ -70,13 +70,11 @@ const SIGNAL_DISPATCH_PLANS: Record<string, {
 };
 
 const END_SESSION_GUIDANCE = [
-  "Use ecom_cs_end_session only as a deliberate close-out action after the buyer's issue is clearly complete.",
-  "Before ending, verify there is no open escalation, no unresolved follow-up, no pending buyer choice/action, and the latest buyer message explicitly indicates no more help is needed or confirms a completed action that requires no response.",
-  "Do not end the session after short acknowledgements, apologies, or backchannels such as 'ok', 'oh mb', 'got it', or 'thanks'; reply or leave the session open so the buyer can finish.",
-  "Do not end immediately after offering a choice, cancellation check, replacement/refund step, tracking follow-up, or anything that may invite another buyer response.",
-  "When the buyer seems satisfied or their request has been fully handled, provide reviewRequestMessage when calling ecom_cs_end_session; write it in the customer's language and ask for a positive customer-service rating/evaluation, not a product or order review.",
-  "Do not ask for a customer-service rating if the buyer's request is unresolved or the customer may be frustrated.",
-  "If provided, the backend sends reviewRequestMessage before ending the session, then the platform closes the support session cleanly.",
+  "Use ecom_cs_end_session for close-out when the current customer-service issue appears handled and no open escalation remains.",
+  "Prefer the conservative delayed flow: provide followUpMessage to ask whether the customer needs anything else, plus reviewRequestMessage for the later customer-service rating request.",
+  "When followUpMessage is provided, the backend sends it now and ends the session later only if the customer does not reply.",
+  "Omit followUpMessage only when the customer has explicitly confirmed no more help is needed and the session can end immediately.",
+  "Write followUpMessage and reviewRequestMessage in the customer's language; ask for a customer-service rating/evaluation, not a product or order review.",
   "Never call ecom_cs_end_session while an escalation is still open or while the buyer still needs service.",
 ].join(" ");
 
@@ -183,12 +181,11 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
       ].join(" ");
     case "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP":
       return [
-        "This resolved customer-service conversation needs a close-out decision.",
+        "This resolved customer-service conversation is approaching platform timeout and needs a close-out decision.",
         "Inspect the latest conversation context before taking action.",
-        "Do not finish silently: either call ecom_cs_end_session when close-out is appropriate, or send a helpful buyer-facing reply and keep the session open.",
-        "If the issue is fully handled and the buyer seems satisfied, call ecom_cs_end_session with reviewRequestMessage in the customer's language asking for a positive customer-service rating/evaluation.",
-        "If the buyer still needs help, reply appropriately and keep the session open.",
-        "If the request is unresolved or asking for a customer-service rating may frustrate the customer, keep the session open and handle the case instead of ending it.",
+        "Default to ecom_cs_end_session with both followUpMessage and reviewRequestMessage when the previous exchange appears handled or only needs a final courtesy check.",
+        "Do not send a separate buyer-facing close-out message yourself; put it in followUpMessage so the backend can cancel the final end if the customer replies.",
+        "Only send a normal buyer-facing reply instead when the customer clearly still needs substantive help before any close-out can begin.",
         END_SESSION_GUIDANCE,
       ].join(" ");
     case "UNPAID_ORDER_FOLLOW_UP":
