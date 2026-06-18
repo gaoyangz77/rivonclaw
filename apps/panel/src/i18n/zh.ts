@@ -3307,6 +3307,7 @@ export default {
         unpaidReachoutTemplate: "提醒消息模板",
         unpaidReachoutTemplatePlaceholder: "填写将发送给未付款买家的提醒消息。",
         unpaidReachoutTemplateHint: "支持 {{order_id}}、{{product_count}} 和 {{shop_name}}。留空则不发送提醒。",
+        unpaidReachoutTemplateTokens: "插入变量",
       },
       affiliate: {
         serviceStatus: "服务状态",

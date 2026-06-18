@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import type { Shop } from "@rivonclaw/core/models";
@@ -8,6 +9,11 @@ import { CustomerServiceBillingCta } from "../../../components/billing/CustomerS
 import { billingEnumLabel, usagePercentLabel } from "../../../components/billing/billing-labels.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
+const UNPAID_ORDER_TEMPLATE_PLACEHOLDERS = [
+  "{{order_id}}",
+  "{{product_count}}",
+  "{{shop_name}}",
+] as const;
 
 interface AiCustomerServiceTabProps {
   shop: Shop;
@@ -91,6 +97,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   onUnbindDevice,
 }: AiCustomerServiceTabProps) {
   const { t } = useTranslation();
+  const unpaidTemplateTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
@@ -99,6 +106,26 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
     const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category }) : "";
     const nameLabel = t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
+  }
+
+  function insertUnpaidOrderTemplatePlaceholder(placeholder: string) {
+    const textarea = unpaidTemplateTextareaRef.current;
+    const currentValue = editUnpaidOrderReminderTemplate;
+    const selectionStart = textarea?.selectionStart ?? currentValue.length;
+    const selectionEnd = textarea?.selectionEnd ?? selectionStart;
+    const nextValue =
+      currentValue.slice(0, selectionStart) +
+      placeholder +
+      currentValue.slice(selectionEnd);
+    const nextCursor = selectionStart + placeholder.length;
+
+    onEditUnpaidOrderReminderTemplate(nextValue);
+    window.requestAnimationFrame(() => {
+      const node = unpaidTemplateTextareaRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(nextCursor, nextCursor);
+    });
   }
 
   return (
@@ -261,6 +288,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplate")}
             </label>
             <textarea
+              ref={unpaidTemplateTextareaRef}
               className="textarea-field shop-unpaid-reachout-template-input"
               value={editUnpaidOrderReminderTemplate}
               onChange={(e) => onEditUnpaidOrderReminderTemplate(e.target.value)}
@@ -270,6 +298,23 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
             />
             <div className="shop-info-card-hint">
               {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateHint")}
+            </div>
+            <div className="shop-unpaid-reachout-placeholder-row">
+              <span className="shop-unpaid-reachout-placeholder-label">
+                {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateTokens")}
+              </span>
+              {UNPAID_ORDER_TEMPLATE_PLACEHOLDERS.map((placeholder) => (
+                <button
+                  key={placeholder}
+                  type="button"
+                  className="shop-unpaid-reachout-placeholder-chip"
+                  onClick={() => insertUnpaidOrderTemplatePlaceholder(placeholder)}
+                  disabled={savingUnpaidOrderTemplate}
+                  title={placeholder}
+                >
+                  {placeholder}
+                </button>
+              ))}
             </div>
             <div className="form-actions-row">
               <button
