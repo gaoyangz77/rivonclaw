@@ -49,6 +49,9 @@ const OAUTH_COMPLETE_SUBSCRIPTION = `
         services {
           customerService {
             enabled
+            unpaidOrderReachoutEnabled
+            unpaidOrderReachoutDelayHours
+            unpaidOrderReminderMessageTemplate
             businessPrompt
             runProfileId
             csDeviceId
@@ -103,6 +106,9 @@ const SHOP_UPDATED_SUBSCRIPTION = `
       services {
         customerService {
           enabled
+          unpaidOrderReachoutEnabled
+          unpaidOrderReachoutDelayHours
+          unpaidOrderReminderMessageTemplate
           businessPrompt
           runProfileId
           csDeviceId
