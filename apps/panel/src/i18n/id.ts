@@ -2381,11 +2381,23 @@ export default {
       "openCreatorDetail": "Buka detail kreator",
       "openCollaborationDetailHint": "Buka detail untuk melihat percakapan, sampel, dan riwayat tindakan.",
       "operationHistory": "Riwayat tindakan",
+      "detailTabs": {
+        "conversation": "Percakapan",
+        "samples": "Sampel",
+        "history": "Riwayat"
+      },
       "conversation": {
         "recentMessages": "Percakapan terbaru",
         "noConversation": "Belum ada percakapan platform yang terhubung ke kolaborasi ini.",
         "noMessages": "Belum ada pesan percakapan yang tersedia.",
         "loadOlder": "Muat pesan lama",
+        "replyLabel": "Balas kreator",
+        "replyPlaceholder": "Ketik pesan untuk dikirim ke kreator...",
+        "replyActorHint": "Pesan ini dikirim sebagai staf dan disimpan ke riwayat kolaborasi.",
+        "sendReply": "Kirim balasan",
+        "replySent": "Balasan terkirim",
+        "replyFailed": "Gagal mengirim balasan",
+        "replyUnavailable": "Percakapan atau identitas kreator diperlukan sebelum membalas.",
         "cardOnlyMessage": "Pesan ini hanya berisi kartu.",
         "productCard": "Kartu produk: {{product}}",
         "sampleApplicationCard": "Kartu permintaan sampel: {{applicationId}}",
@@ -2433,6 +2445,15 @@ export default {
         "staffDecision": "Catatan staf: {{note}}",
         "executedAt": "Dieksekusi pada {{time}}",
         "executionFailed": "Eksekusi gagal: {{error}}"
+      },
+      "lifecycleEvents": {
+        "PROPOSAL_CREATED": "Proposal dibuat",
+        "MESSAGE_SENT": "Pesan terkirim",
+        "SAMPLE_APPROVED": "Permintaan sampel disetujui",
+        "SAMPLE_REJECTED": "Permintaan sampel ditolak",
+        "TARGET_COLLABORATION_CREATED": "Kolaborasi target dibuat",
+        "STAFF_MARKED_HANDLED": "Ditandai ditangani oleh staf",
+        "WORK_RESOLVED": "Pekerjaan selesai"
       },
       "historyTitle": "Kolaborasi Afiliasi",
       "historySubtitle": "Tinjau semua kolaborasi kreator dan riwayat aktivitasnya.",

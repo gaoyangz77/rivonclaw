@@ -2381,11 +2381,23 @@ export default {
       "openCreatorDetail": "Ouvrir les détails du créateur",
       "openCollaborationDetailHint": "Ouvrez les détails pour voir la conversation, l'échantillon et l'historique des actions.",
       "operationHistory": "Historique des actions",
+      "detailTabs": {
+        "conversation": "Conversation",
+        "samples": "Échantillons",
+        "history": "Historique"
+      },
       "conversation": {
         "recentMessages": "Conversation récente",
         "noConversation": "Aucune conversation plateforme n'est encore liée à cette collaboration.",
         "noMessages": "Aucun message de conversation disponible pour le moment.",
         "loadOlder": "Charger les messages précédents",
+        "replyLabel": "Répondre au créateur",
+        "replyPlaceholder": "Saisissez le message à envoyer au créateur...",
+        "replyActorHint": "Ce message sera envoyé en tant que membre de l'équipe et enregistré dans l'historique.",
+        "sendReply": "Envoyer la réponse",
+        "replySent": "Réponse envoyée",
+        "replyFailed": "Échec de l'envoi de la réponse",
+        "replyUnavailable": "Une conversation ou une identité créateur est nécessaire pour répondre.",
         "cardOnlyMessage": "Ce message ne contient qu'une carte.",
         "productCard": "Carte produit : {{product}}",
         "sampleApplicationCard": "Carte de demande d'échantillon : {{applicationId}}",
@@ -2433,6 +2445,15 @@ export default {
         "staffDecision": "Note de l'équipe : {{note}}",
         "executedAt": "Exécuté à {{time}}",
         "executionFailed": "Échec de l'exécution : {{error}}"
+      },
+      "lifecycleEvents": {
+        "PROPOSAL_CREATED": "Proposition créée",
+        "MESSAGE_SENT": "Message envoyé",
+        "SAMPLE_APPROVED": "Demande d'échantillon approuvée",
+        "SAMPLE_REJECTED": "Demande d'échantillon refusée",
+        "TARGET_COLLABORATION_CREATED": "Collaboration ciblée créée",
+        "STAFF_MARKED_HANDLED": "Marqué comme traité par l'équipe",
+        "WORK_RESOLVED": "Travail résolu"
       },
       "historyTitle": "Collaborations affiliées",
       "historySubtitle": "Consultez toutes les collaborations créateurs et leur historique.",
