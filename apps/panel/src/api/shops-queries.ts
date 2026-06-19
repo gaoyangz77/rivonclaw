@@ -557,6 +557,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       decision {
         decidedAt
         note
+        actorType
+        actorId
       }
       messageIntent {
         conversationId
@@ -752,6 +754,8 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           decision {
             decidedAt
             note
+            actorType
+            actorId
           }
           messageIntent {
             conversationId
@@ -1332,6 +1336,8 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
         decision {
           decidedAt
           note
+          actorType
+          actorId
         }
         executionResult {
           platformObjectId
@@ -1363,6 +1369,8 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       decision {
         decidedAt
         note
+        actorType
+        actorId
       }
       executionResult {
         platformObjectId
