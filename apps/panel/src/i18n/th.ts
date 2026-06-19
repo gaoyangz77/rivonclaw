@@ -2380,6 +2380,20 @@ export default {
       "debugIdCopied": "คัดลอก ID ดีบักแล้ว",
       "openCreatorDetail": "เปิดรายละเอียดครีเอเตอร์",
       "operationHistory": "ประวัติการดำเนินการ",
+      "conversation": {
+        "recentMessages": "บทสนทนาล่าสุด",
+        "noMessages": "ยังไม่มีข้อความสนทนา",
+        "loadOlder": "โหลดข้อความเก่ากว่า",
+        "cardOnlyMessage": "ข้อความนี้มีเฉพาะการ์ด",
+        "productCard": "การ์ดสินค้า: {{product}}",
+        "sampleApplicationCard": "การ์ดคำขอตัวอย่าง: {{applicationId}}",
+        "targetCollaborationCard": "การ์ดความร่วมมือ: {{collaborationId}}",
+        "directions": {
+          "CREATOR": "ครีเอเตอร์",
+          "SELLER": "ผู้ขาย",
+          "SYSTEM": "ระบบ"
+        }
+      },
       "creatorDetail": {
         "followers": "ผู้ติดตาม",
         "platform": "แพลตฟอร์ม",

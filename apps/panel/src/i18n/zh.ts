@@ -2754,6 +2754,20 @@ export default {
       debugIdCopied: "已复制调试 ID",
       openCreatorDetail: "查看达人资料",
       operationHistory: "操作历史",
+      conversation: {
+        recentMessages: "最近对话",
+        noMessages: "暂未读取到对话消息。",
+        loadOlder: "加载更早消息",
+        cardOnlyMessage: "这条消息只包含卡片。",
+        productCard: "商品卡片：{{product}}",
+        sampleApplicationCard: "样品申请卡片：{{applicationId}}",
+        targetCollaborationCard: "合作卡片：{{collaborationId}}",
+        directions: {
+          CREATOR: "达人",
+          SELLER: "卖家",
+          SYSTEM: "系统",
+        },
+      },
       creatorDetail: {
         followers: "粉丝数",
         platform: "平台",

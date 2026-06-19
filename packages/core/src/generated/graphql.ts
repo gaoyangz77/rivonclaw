@@ -767,6 +767,67 @@ export const AffiliateConversationMessageDirection = {
 } as const;
 
 export type AffiliateConversationMessageDirection = typeof AffiliateConversationMessageDirection[keyof typeof AffiliateConversationMessageDirection];
+/** Affiliate conversation message loaded on demand from the commerce platform. Message bodies are not persisted by RivonClaw. */
+export interface AffiliateConversationMessageItem {
+  conversationId?: Maybe<Scalars['String']['output']>;
+  conversationIndex?: Maybe<Scalars['String']['output']>;
+  createTime?: Maybe<Scalars['Int']['output']>;
+  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  direction?: Maybe<AffiliateConversationMessageDirection>;
+  messageId?: Maybe<Scalars['String']['output']>;
+  messageType?: Maybe<Scalars['String']['output']>;
+  productRefs: Array<AffiliateConversationProductReference>;
+  rawContent?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRefs: Array<AffiliateConversationSampleApplicationReference>;
+  senderId?: Maybe<Scalars['String']['output']>;
+  targetCollaborationRefs: Array<AffiliateConversationTargetCollaborationReference>;
+  text?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateConversationMessagesInput {
+  conversationId: Scalars['String']['input'];
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+/** Affiliate conversation messages fetched on demand from the platform. */
+export interface AffiliateConversationMessagesPage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<AffiliateConversationMessageItem>;
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+}
+
+/** Product card reference parsed from an affiliate conversation message. */
+export interface AffiliateConversationProductReference {
+  productId: Scalars['String']['output'];
+  productSummary?: Maybe<EcomProductSummary>;
+}
+
+/** Backend-materialized affiliate creator conversation metadata. Message bodies are not stored here. */
+export interface AffiliateConversationRecord {
+  conversationId: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  id: Scalars['ID']['output'];
+  lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastMessageId?: Maybe<Scalars['String']['output']>;
+  lastMessageIndex?: Maybe<Scalars['String']['output']>;
+  lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  platform: ShopPlatform;
+  shopId: Scalars['ID']['output'];
+  unreadCount?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Sample application card reference parsed from an affiliate conversation message. */
+export interface AffiliateConversationSampleApplicationReference {
+  platformApplicationId: Scalars['String']['output'];
+  sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
+}
+
 /** Ephemeral affiliate work signal pushed to desktop after backend materializes a reducer event. */
 export interface AffiliateConversationSignal {
   /** AffiliateCollaboration ID when this signal can be tied to a platform collaboration. */
@@ -884,6 +945,12 @@ export const AffiliateConversationSignalType = {
 } as const;
 
 export type AffiliateConversationSignalType = typeof AffiliateConversationSignalType[keyof typeof AffiliateConversationSignalType];
+/** Target collaboration card reference parsed from an affiliate conversation message. */
+export interface AffiliateConversationTargetCollaborationReference {
+  affiliateCollaboration?: Maybe<AffiliateCollaboration>;
+  platformTargetCollaborationId: Scalars['String']['output'];
+}
+
 /** Shop-scoped creator management row for creators with materialized affiliate collaboration records. */
 export interface AffiliateCreatorManagementItem {
   activeCollaborationCount: Scalars['Int']['output'];
@@ -989,11 +1056,21 @@ export interface AffiliateDashboardSummary {
 export interface AffiliateDecisionThresholds {
   /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Deprecated alias kept for already-running desktop clients that still query the previous threshold field name.
+   * @deprecated Use minExpectedSalesUnits.
+   */
+  minP50SalesUnits?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateDecisionThresholdsInput {
   /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
+  /**
+   * Deprecated alias kept for already-running desktop clients that still query the previous threshold field name.
+   * @deprecated Use minExpectedSalesUnits.
+   */
+  minP50SalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
 export interface AffiliateExpectedSalesModelVersion {
@@ -1251,7 +1328,8 @@ export const AffiliateLifecycleEventType = {
   TagAdded: 'TAG_ADDED',
   TagRemoved: 'TAG_REMOVED',
   TargetInviteCreated: 'TARGET_INVITE_CREATED',
-  Updated: 'UPDATED'
+  Updated: 'UPDATED',
+  WorkItemResolved: 'WORK_ITEM_RESOLVED'
 } as const;
 
 export type AffiliateLifecycleEventType = typeof AffiliateLifecycleEventType[keyof typeof AffiliateLifecycleEventType];
@@ -5434,6 +5512,10 @@ export interface Query {
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Get a bounded affiliate creator conversation delta from a local OpenClaw-session anchor through the current inbound message. */
   affiliateConversationMessageDelta: EcomAffiliateMessageDelta;
+  /** Read affiliate creator conversation messages on demand from the platform. RivonClaw stores conversation metadata but does not persist message bodies. */
+  affiliateConversationMessages: AffiliateConversationMessagesPage;
+  /** Read affiliate creator conversation metadata from MongoDB. Message bodies are not stored here; use affiliateConversationMessages for platform message pages. */
+  affiliateConversationRecords: Array<AffiliateConversationRecord>;
   /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
   affiliateCreators: Array<AffiliateCreatorManagementItem>;
   /** Read the staff-facing affiliate workbench. This combines current work items, proposals across statuses, and direct lifecycle events. */
@@ -5677,6 +5759,16 @@ export interface QueryAffiliateConversationMessageDeltaArgs {
   currentMessageId: Scalars['String']['input'];
   maxPages?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryAffiliateConversationMessagesArgs {
+  input: AffiliateConversationMessagesInput;
+}
+
+
+export interface QueryAffiliateConversationRecordsArgs {
+  input: ReadAffiliateConversationRecordsInput;
 }
 
 
@@ -6157,6 +6249,14 @@ export interface ReadAffiliateCollaborationsInput {
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCollaborationStatus>;
   type?: InputMaybe<AffiliateCollaborationType>;
+}
+
+export interface ReadAffiliateConversationRecordsInput {
+  conversationId?: InputMaybe<Scalars['String']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 export interface ReadAffiliateCreatorsInput {

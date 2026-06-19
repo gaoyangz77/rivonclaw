@@ -365,6 +365,18 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     const isExtension = req.headers["x-request-source"] === "extension";
     if (!isExtension) {
       rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
+      if (opName === "AffiliateConversationMessages") {
+        const input = variables?.input as { shopId?: string; conversationId?: string; pageToken?: string | null } | undefined;
+        const page = (data as Record<string, unknown>)?.affiliateConversationMessages;
+        if (input?.shopId && input.conversationId && page && typeof page === "object") {
+          rootStore.affiliateWorkspace.ingestAffiliateConversationMessages(
+            input.shopId,
+            input.conversationId,
+            page as any,
+            input.pageToken ? "append" : "replace",
+          );
+        }
+      }
     }
 
     // Delete mutations return booleans, which ingestGraphQLResponse skips.

@@ -1360,6 +1360,110 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_CONVERSATION_RECORDS_QUERY = gql`
+  query AffiliateConversationRecords($input: ReadAffiliateConversationRecordsInput!) {
+    affiliateConversationRecords(input: $input) {
+      id
+      userId
+      shopId
+      platform
+      conversationId
+      creatorId
+      unreadCount
+      lastMessageAt
+      lastMessageId
+      lastMessageIndex
+      lastInboundAt
+      lastOutboundAt
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const AFFILIATE_CONVERSATION_MESSAGES_QUERY = gql`
+  query AffiliateConversationMessages($input: AffiliateConversationMessagesInput!) {
+    affiliateConversationMessages(input: $input) {
+      hasMore
+      nextPageToken
+      items {
+        conversationId
+        conversationIndex
+        messageId
+        messageType
+        direction
+        senderId
+        createTime
+        createdAt
+        text
+        rawContent
+        productRefs {
+          productId
+          productSummary {
+            productId
+            title
+            coverImage
+            status
+            priceMin
+            priceMax
+            skus {
+              skuId
+              skuName
+              sellerSku
+              price
+              currency
+            }
+          }
+        }
+        sampleApplicationRefs {
+          platformApplicationId
+          sampleApplicationRecord {
+            id
+            userId
+            shopId
+            creatorId
+            creatorOpenId
+            productId
+            affiliateCollaborationId
+            collaborationType
+            platformApplicationId
+            platformCollaborationId
+            platformOpenCollaborationId
+            platformTargetCollaborationId
+            sampleWorkStatus
+            trackingNumber
+            carrier
+            shippedAt
+            deliveredAt
+            observedContentCount
+            latestObservedContentAt
+            latestObservedContentId
+            latestObservedContentFormat
+            latestObservedContentUrl
+            latestObservedContentViewCount
+            latestObservedContentPaidOrderCount
+            updatedAt
+          }
+        }
+        targetCollaborationRefs {
+          platformTargetCollaborationId
+          affiliateCollaboration {
+            id
+            platformCollaborationId
+            type
+            productIds
+            creatorIds
+            creatorOpenIds
+            status
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
   mutation DecideActionProposal($input: DecideActionProposalInput!) {
     decideActionProposal(input: $input) {

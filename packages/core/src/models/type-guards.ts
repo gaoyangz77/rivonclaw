@@ -17,6 +17,7 @@ import type { BillingOverviewModel, BillingPlanDefinitionModel, PaymentModel } f
 import type { PlatformAppModel } from "./PlatformApp.js";
 import type { InventoryGoodModel } from "./InventoryGood.js";
 import type { ShopWarehouseModel, WarehouseModel, WmsAccountModel } from "./Warehouse.js";
+import type { AffiliateWorkspaceModel } from "./Affiliate.js";
 
 /**
  * Ensures every required key in `MST` also exists in `GQL`.
@@ -71,3 +72,7 @@ const _warehouseGuard: _AssertWarehouseCompat = true;
 // ── ShopWarehouse ───────────────────────────────────────────────────
 type _AssertShopWarehouseCompat = AssertSubset<GQL.ShopWarehouse, SnapshotIn<typeof ShopWarehouseModel>>;
 const _shopWarehouseGuard: _AssertShopWarehouseCompat = true;
+
+// AffiliateWorkspace is a client-side normalized store composed from many GQL
+// objects, so it intentionally has no single backend type drift guard here.
+void (undefined as unknown as SnapshotIn<typeof AffiliateWorkspaceModel> | undefined);

@@ -16209,6 +16209,87 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 12px;
 }
 
+.affiliate-conversation-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(360px, calc(100vh - 360px));
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-bg-alt);
+}
+
+.affiliate-conversation-message-row {
+  width: min(88%, 640px);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.affiliate-conversation-message-creator {
+  align-self: flex-start;
+}
+
+.affiliate-conversation-message-seller {
+  align-self: flex-end;
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+}
+
+.affiliate-conversation-message-system {
+  align-self: center;
+  background: color-mix(in srgb, var(--color-bg-alt) 70%, var(--color-bg));
+}
+
+.affiliate-conversation-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.affiliate-conversation-message-text {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.affiliate-conversation-message-empty {
+  color: var(--color-text-muted);
+}
+
+.affiliate-conversation-message-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.affiliate-conversation-message-refs span {
+  max-width: 100%;
+  padding: 3px 7px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-conversation-load-more {
+  align-self: center;
+}
+
 .affiliate-creator-detail-backdrop {
   align-items: center;
   padding: 24px;

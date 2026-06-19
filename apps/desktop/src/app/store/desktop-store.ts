@@ -334,6 +334,13 @@ const DesktopRootStoreModel = RootStoreModel
       InventoryGood: self.inventoryGoods,
       BillingPlanDefinition: self.billingPlanDefinitions,
       Payment: self.payments,
+      ActionProposal: self.affiliateWorkspace.actionProposals,
+      AffiliateCollaborationRecord: self.affiliateWorkspace.collaborationRecords,
+      CreatorGlobalProfile: self.affiliateWorkspace.creatorProfiles,
+      AffiliateConversationRecord: self.affiliateWorkspace.conversationRecords,
+      SampleApplicationRecord: self.affiliateWorkspace.sampleApplicationRecords,
+      LifecycleEvent: self.affiliateWorkspace.lifecycleEvents,
+      EcomProductSummary: self.affiliateWorkspace.productSummaries,
     };
 
     // --- Nullable singletons: __typename → getter/setter ---
@@ -378,6 +385,18 @@ const DesktopRootStoreModel = RootStoreModel
 
       // 1. Array → full replace (query result)
       if (Array.isArray(raw)) {
+        if (key === "actionProposals") {
+          self.affiliateWorkspace.replaceAffiliateActionProposals(sanitizeForMst(raw) as any);
+          continue;
+        }
+        if (key === "affiliateCollaborationRecordItems") {
+          self.affiliateWorkspace.ingestAffiliateCollaborationRecordItems(sanitizeForMst(raw) as any);
+          continue;
+        }
+        if (key === "affiliateConversationRecords") {
+          self.affiliateWorkspace.replaceAffiliateConversationRecords(sanitizeForMst(raw) as any);
+          continue;
+        }
         const typeName = (raw[0] as any)?.__typename;
         const target = (typeName && COLLECTIONS[typeName]) || KEY_FALLBACK[key];
         if (target) {
@@ -397,11 +416,35 @@ const DesktopRootStoreModel = RootStoreModel
       const typeName = obj.__typename as string | undefined;
       const sanitized = sanitizeForMst(obj);
 
+      if (key === "decideActionProposal" || key === "affiliateResolveWorkItem") {
+        self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
+      }
+
+      if (key === "affiliateCollaborationActivity") {
+        self.affiliateWorkspace.ingestAffiliateCollaborationActivity(sanitized as any);
+        continue;
+      }
+
       // 3. Collection entity → upsert by identifier
       if (typeName && COLLECTIONS[typeName]) {
         const target = COLLECTIONS[typeName];
         const id = (sanitized as any).id;
         if (id) {
+          if (typeName === "ActionProposal") {
+            self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
+          } else if (typeName === "AffiliateCollaborationRecord") {
+            self.affiliateWorkspace.upsertAffiliateCollaborationRecord(sanitized as any);
+          } else if (typeName === "CreatorGlobalProfile") {
+            self.affiliateWorkspace.upsertAffiliateCreatorProfile(sanitized as any);
+          } else if (typeName === "AffiliateConversationRecord") {
+            self.affiliateWorkspace.upsertAffiliateConversationRecord(sanitized as any);
+          } else if (typeName === "SampleApplicationRecord") {
+            self.affiliateWorkspace.upsertAffiliateSampleApplicationRecord(sanitized as any);
+          } else if (typeName === "LifecycleEvent") {
+            self.affiliateWorkspace.upsertAffiliateLifecycleEvent(sanitized as any);
+          } else if (typeName === "EcomProductSummary") {
+            self.affiliateWorkspace.upsertAffiliateProductSummary(sanitized as any);
+          }
           if (target === self.shops) {
             (self as any).upsertShopFromGraphQL(obj, `graphql:${key || typeName}`);
           } else {
@@ -512,6 +555,7 @@ const DesktopRootStoreModel = RootStoreModel
       applySnapshot(self.warehouses, []);
       applySnapshot(self.shopWarehouses, []);
       applySnapshot(self.inventoryGoods, []);
+      (self as any).affiliateWorkspace.clearAffiliateWorkspace();
       applySnapshot(self.billingPlanDefinitions, []);
       applySnapshot(self.payments, []);
       self.billingOverview = null;
@@ -531,6 +575,7 @@ const DesktopRootStoreModel = RootStoreModel
       applySnapshot(self.warehouses, []);
       applySnapshot(self.shopWarehouses, []);
       applySnapshot(self.inventoryGoods, []);
+      (self as any).affiliateWorkspace.clearAffiliateWorkspace();
       applySnapshot(self.billingPlanDefinitions, []);
       applySnapshot(self.payments, []);
       self.billingOverview = null;
