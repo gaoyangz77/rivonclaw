@@ -20,6 +20,7 @@ import {
   DECIDE_ACTION_PROPOSAL_MUTATION,
   REMOVE_CREATOR_TAG_MUTATION,
   RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION,
+  SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION,
 } from "../../api/shops-queries.js";
 import { creatorTagLabel } from "./affiliate-tag-labels.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
@@ -2488,9 +2489,12 @@ function CollaborationActivityModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const entityStore = useEntityStore();
   const record = item.collaborationRecord;
   const [conversationPageToken, setConversationPageToken] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"conversation" | "samples" | "history">("conversation");
+  const [replyText, setReplyText] = useState("");
   const creatorName = item.creatorProfile
     ? creatorPrimaryName(item.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : t("ecommerce.affiliateWorkspace.unknownCreator");
@@ -2499,14 +2503,14 @@ function CollaborationActivityModal({
     setConversationPageToken(null);
   }, [record.id, record.platformConversationId]);
 
-  const { loading } = useQuery<
+  const { loading, refetch: refetchActivity } = useQuery<
     { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
     { input: GQL.AffiliateCollaborationActivityInput }
   >(AFFILIATE_COLLABORATION_ACTIVITY_QUERY, {
     variables: { input: { collaborationRecordId: record.id, limit: 80 } },
     fetchPolicy: "cache-and-network",
   });
-  const { loading: conversationLoading } = useQuery<
+  const { loading: conversationLoading, refetch: refetchConversationMessages } = useQuery<
     { affiliateConversationMessages: GQL.AffiliateConversationMessagesPage },
     { input: GQL.AffiliateConversationMessagesInput }
   >(AFFILIATE_CONVERSATION_MESSAGES_QUERY, {
@@ -2521,6 +2525,10 @@ function CollaborationActivityModal({
     fetchPolicy: "cache-and-network",
     skip: !record.platformConversationId,
   });
+  const [sendConversationMessage, { loading: sendingMessage }] = useMutation<
+    { sendAffiliateConversationMessage: GQL.SendAffiliateConversationMessagePayload },
+    { input: GQL.SendAffiliateConversationMessageInput }
+  >(SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION);
   const projection = entityStore.affiliateWorkspace.collaborationProjection(record.id);
   const proposals = (projection?.actionProposals ?? []).map((proposal) =>
     hydrateAffiliateProposalProjection({
@@ -2558,7 +2566,9 @@ function CollaborationActivityModal({
         id: `event:${event.id}`,
         time: event.createdAt,
         kind: t("ecommerce.affiliateWorkspace.itemKinds.PLATFORM_EVENT"),
-        title: event.eventType,
+        title: t(`ecommerce.affiliateWorkspace.lifecycleEvents.${event.eventType}`, {
+          defaultValue: event.eventType,
+        }),
         detail: event.displayPayloadJson ?? "",
       })),
     ].sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime()),
@@ -2569,6 +2579,61 @@ function CollaborationActivityModal({
     if (!conversationPage?.nextPageToken || !record.platformConversationId) return;
     setConversationPageToken(conversationPage.nextPageToken);
   }
+
+  async function sendHumanReply(): Promise<void> {
+    const text = replyText.trim();
+    if (!text) return;
+    if (!record.platformConversationId && !record.creatorOpenId && !record.creatorId) {
+      showToast(t("ecommerce.affiliateWorkspace.conversation.replyUnavailable"), "error");
+      return;
+    }
+    try {
+      await sendConversationMessage({
+        variables: {
+          input: {
+            shopId: record.shopId,
+            collaborationRecordId: record.id,
+            conversationId: record.platformConversationId ?? undefined,
+            creatorId: record.creatorId ?? undefined,
+            creatorOpenId: record.creatorOpenId ?? undefined,
+            text,
+          },
+        },
+      });
+      setReplyText("");
+      showToast(t("ecommerce.affiliateWorkspace.conversation.replySent"), "success");
+      const refreshes: Promise<unknown>[] = [refetchActivity()];
+      if (record.platformConversationId) {
+        refreshes.push(refetchConversationMessages());
+      }
+      await Promise.allSettled(refreshes);
+    } catch (err) {
+      showToast(
+        err instanceof Error
+          ? err.message
+          : t("ecommerce.affiliateWorkspace.conversation.replyFailed"),
+        "error",
+      );
+    }
+  }
+
+  const tabItems = [
+    {
+      id: "conversation" as const,
+      label: t("ecommerce.affiliateWorkspace.detailTabs.conversation"),
+      count: conversationMessages.length,
+    },
+    {
+      id: "samples" as const,
+      label: t("ecommerce.affiliateWorkspace.detailTabs.samples"),
+      count: sampleApplications.length,
+    },
+    {
+      id: "history" as const,
+      label: t("ecommerce.affiliateWorkspace.detailTabs.history"),
+      count: timeline.length,
+    },
+  ];
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -2596,117 +2661,165 @@ function CollaborationActivityModal({
             ×
           </button>
         </div>
-        <div className="affiliate-collaboration-modal-summary">
-          <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${record.processingStatus}`)}</span>
-          <span>{t(`ecommerce.affiliateWorkspace.lifecycleStages.${record.lifecycleStage}`, {
-            defaultValue: record.lifecycleStage,
-          })}</span>
-          <span>{item.productSummary?.title || record.productId || t("ecommerce.affiliateWorkspace.productContextMissing")}</span>
-        </div>
-        <ProductSummaryCard
-          product={item.productSummary}
-          productId={record.productId}
-          shopId={record.shopId}
-          label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
-        />
-
-        <div className="affiliate-collaboration-modal-section-title">
-          {t("ecommerce.affiliateWorkspace.conversation.recentMessages")}
-        </div>
-        <div className="affiliate-conversation-preview">
-          {!record.platformConversationId ? (
-            <div className="affiliate-proposal-empty">
-              {t("ecommerce.affiliateWorkspace.conversation.noConversation")}
+        <div className="affiliate-collaboration-modal-body">
+          <aside className="affiliate-collaboration-context-pane">
+            <div className="affiliate-collaboration-modal-summary">
+              <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${record.processingStatus}`)}</span>
+              <span>{t(`ecommerce.affiliateWorkspace.lifecycleStages.${record.lifecycleStage}`, {
+                defaultValue: record.lifecycleStage,
+              })}</span>
             </div>
-          ) : conversationLoading && conversationMessages.length === 0 ? (
-            <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-          ) : conversationMessages.length === 0 ? (
-            <div className="affiliate-proposal-empty">
-              {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+            <ProductSummaryCard
+              product={item.productSummary}
+              productId={record.productId}
+              shopId={record.shopId}
+              label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+            />
+          </aside>
+          <section className="affiliate-collaboration-work-pane">
+            <div className="affiliate-collaboration-detail-tabs" role="tablist">
+              {tabItems.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`affiliate-collaboration-detail-tab${activeTab === tab.id ? " active" : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <span>{tab.label}</span>
+                  <strong>{tab.count}</strong>
+                </button>
+              ))}
             </div>
-          ) : (
-            conversationMessages.map((message) => (
-              <AffiliateConversationMessageRow
-                key={message.messageId ?? message.conversationIndex ?? `${message.createdAt}-${message.senderId}`}
-                message={message}
-              />
-            ))
-          )}
-          {canLoadOlderConversation ? (
-            <button
-              className="btn btn-secondary affiliate-conversation-load-more"
-              type="button"
-              disabled={conversationLoading}
-              onClick={loadOlderConversationMessages}
-            >
-              {conversationLoading
-                ? t("common.loading")
-                : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
-            </button>
-          ) : null}
-        </div>
-
-        <div className="affiliate-collaboration-modal-section-title">
-          {t("ecommerce.affiliateWorkspace.sampleApplication.title")}
-        </div>
-        <div className="affiliate-collaboration-sample-panel">
-          {sampleApplications.length > 0 ? (
-            sampleApplications.map((sampleApplication) => (
-              <div className="affiliate-collaboration-sample-row" key={sampleApplication.id}>
-                <div>
-                  <span>{t("ecommerce.affiliateWorkspace.sampleApplication.status")}</span>
-                  <strong>{sampleApplication.sampleWorkStatus}</strong>
-                </div>
-                <div>
-                  <span>{t("ecommerce.affiliateWorkspace.sampleApplication.applicationId")}</span>
-                  <strong>{sampleApplication.platformApplicationId}</strong>
-                </div>
-                <div>
-                  <span>{t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}</span>
-                  <strong>{sampleApplication.observedContentCount ?? 0}</strong>
-                </div>
-                {sampleApplication.trackingNumber ? (
-                  <div>
-                    <span>{t("ecommerce.affiliateWorkspace.sampleApplication.tracking")}</span>
-                    <strong>{sampleApplication.trackingNumber}</strong>
+            <div className="affiliate-collaboration-tab-panel">
+              {activeTab === "conversation" ? (
+                <div className="affiliate-conversation-tab">
+                  <div className="affiliate-conversation-preview">
+                    {!record.platformConversationId ? (
+                      <div className="affiliate-proposal-empty">
+                        {t("ecommerce.affiliateWorkspace.conversation.noConversation")}
+                      </div>
+                    ) : conversationLoading && conversationMessages.length === 0 ? (
+                      <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+                    ) : conversationMessages.length === 0 ? (
+                      <div className="affiliate-proposal-empty">
+                        {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+                      </div>
+                    ) : (
+                      conversationMessages.map((message) => (
+                        <AffiliateConversationMessageRow
+                          key={message.messageId ?? message.conversationIndex ?? `${message.createdAt}-${message.senderId}`}
+                          message={message}
+                        />
+                      ))
+                    )}
+                    {canLoadOlderConversation ? (
+                      <button
+                        className="btn btn-secondary affiliate-conversation-load-more"
+                        type="button"
+                        disabled={conversationLoading}
+                        onClick={loadOlderConversationMessages}
+                      >
+                        {conversationLoading
+                          ? t("common.loading")
+                          : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
+                      </button>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            ))
-          ) : (
-            <div className="affiliate-proposal-empty">
-              {t("ecommerce.affiliateWorkspace.sampleApplication.none")}
-            </div>
-          )}
-        </div>
-
-        <div className="affiliate-collaboration-modal-section-title">
-          {t("ecommerce.affiliateWorkspace.operationHistory")}
-        </div>
-        <div className="affiliate-collaboration-timeline">
-          {loading && timeline.length === 0 ? (
-            <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-          ) : timeline.length === 0 ? (
-            <div className="affiliate-proposal-empty">
-              {t("ecommerce.affiliateWorkspace.noActivityYet")}
-            </div>
-          ) : (
-            timeline.map((entry) => (
-              <div className="affiliate-timeline-row" key={entry.id}>
-                <div className="affiliate-timeline-dot" aria-hidden="true" />
-                <div>
-                  <div className="affiliate-timeline-meta">
-                    <span>{entry.kind}</span>
-                    <span>{formatProposalTime(entry.time)}</span>
-                  </div>
-                  <div className="affiliate-work-item-title">{entry.title}</div>
-                  {entry.detail ? (
-                    <div className="affiliate-work-item-preview">{entry.detail}</div>
-                  ) : null}
+                  <form
+                    className="affiliate-conversation-reply"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void sendHumanReply();
+                    }}
+                  >
+                    <label htmlFor={`affiliate-reply-${record.id}`}>
+                      {t("ecommerce.affiliateWorkspace.conversation.replyLabel")}
+                    </label>
+                    <textarea
+                      id={`affiliate-reply-${record.id}`}
+                      value={replyText}
+                      rows={3}
+                      placeholder={t("ecommerce.affiliateWorkspace.conversation.replyPlaceholder")}
+                      onChange={(event) => setReplyText(event.target.value)}
+                    />
+                    <div className="affiliate-conversation-reply-actions">
+                      <span>{t("ecommerce.affiliateWorkspace.conversation.replyActorHint")}</span>
+                      <button
+                        className="btn btn-primary"
+                        type="submit"
+                        disabled={sendingMessage || !replyText.trim()}
+                      >
+                        {sendingMessage
+                          ? t("common.loading")
+                          : t("ecommerce.affiliateWorkspace.conversation.sendReply")}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              </div>
-            ))
-          )}
+              ) : null}
+              {activeTab === "samples" ? (
+                <div className="affiliate-collaboration-sample-panel">
+                  {sampleApplications.length > 0 ? (
+                    sampleApplications.map((sampleApplication) => (
+                      <div className="affiliate-collaboration-sample-row" key={sampleApplication.id}>
+                        <div>
+                          <span>{t("ecommerce.affiliateWorkspace.sampleApplication.status")}</span>
+                          <strong>{sampleApplication.sampleWorkStatus}</strong>
+                        </div>
+                        <div>
+                          <span>{t("ecommerce.affiliateWorkspace.sampleApplication.applicationId")}</span>
+                          <strong>{sampleApplication.platformApplicationId}</strong>
+                        </div>
+                        <div>
+                          <span>{t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}</span>
+                          <strong>{sampleApplication.observedContentCount ?? 0}</strong>
+                        </div>
+                        {sampleApplication.trackingNumber ? (
+                          <div>
+                            <span>{t("ecommerce.affiliateWorkspace.sampleApplication.tracking")}</span>
+                            <strong>{sampleApplication.trackingNumber}</strong>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="affiliate-proposal-empty">
+                      {t("ecommerce.affiliateWorkspace.sampleApplication.none")}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+              {activeTab === "history" ? (
+                <div className="affiliate-collaboration-timeline">
+                  {loading && timeline.length === 0 ? (
+                    <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+                  ) : timeline.length === 0 ? (
+                    <div className="affiliate-proposal-empty">
+                      {t("ecommerce.affiliateWorkspace.noActivityYet")}
+                    </div>
+                  ) : (
+                    timeline.map((entry) => (
+                      <div className="affiliate-timeline-row" key={entry.id}>
+                        <div className="affiliate-timeline-dot" aria-hidden="true" />
+                        <div>
+                          <div className="affiliate-timeline-meta">
+                            <span>{entry.kind}</span>
+                            <span>{formatProposalTime(entry.time)}</span>
+                          </div>
+                          <div className="affiliate-work-item-title">{entry.title}</div>
+                          {entry.detail ? (
+                            <div className="affiliate-work-item-preview">{entry.detail}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
       </div>
     </div>

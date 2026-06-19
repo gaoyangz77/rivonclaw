@@ -2381,11 +2381,23 @@ export default {
       "openCreatorDetail": "Abrir detalles del creador",
       "openCollaborationDetailHint": "Abre el detalle para ver conversación, muestra e historial de acciones.",
       "operationHistory": "Historial de acciones",
+      "detailTabs": {
+        "conversation": "Conversación",
+        "samples": "Muestras",
+        "history": "Historial"
+      },
       "conversation": {
         "recentMessages": "Conversación reciente",
         "noConversation": "Esta colaboración aún no tiene una conversación de plataforma vinculada.",
         "noMessages": "Aún no hay mensajes de conversación disponibles.",
         "loadOlder": "Cargar mensajes anteriores",
+        "replyLabel": "Responder al creador",
+        "replyPlaceholder": "Escribe el mensaje para enviar al creador...",
+        "replyActorHint": "Este mensaje se enviará como personal y quedará en el historial de la colaboración.",
+        "sendReply": "Enviar respuesta",
+        "replySent": "Respuesta enviada",
+        "replyFailed": "No se pudo enviar la respuesta",
+        "replyUnavailable": "Se requiere una conversación o identidad del creador para responder.",
         "cardOnlyMessage": "Este mensaje solo contiene una tarjeta.",
         "productCard": "Tarjeta de producto: {{product}}",
         "sampleApplicationCard": "Tarjeta de solicitud de muestra: {{applicationId}}",
@@ -2433,6 +2445,15 @@ export default {
         "staffDecision": "Nota del equipo: {{note}}",
         "executedAt": "Ejecutado a las {{time}}",
         "executionFailed": "Error de ejecución: {{error}}"
+      },
+      "lifecycleEvents": {
+        "PROPOSAL_CREATED": "Propuesta creada",
+        "MESSAGE_SENT": "Mensaje enviado",
+        "SAMPLE_APPROVED": "Solicitud de muestra aprobada",
+        "SAMPLE_REJECTED": "Solicitud de muestra rechazada",
+        "TARGET_COLLABORATION_CREATED": "Colaboración dirigida creada",
+        "STAFF_MARKED_HANDLED": "Marcado como gestionado por el equipo",
+        "WORK_RESOLVED": "Trabajo resuelto"
       },
       "historyTitle": "Colaboraciones de afiliados",
       "historySubtitle": "Revise todas las colaboraciones de creadores y su historial.",

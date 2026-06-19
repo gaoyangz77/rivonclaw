@@ -2381,11 +2381,23 @@ export default {
       "openCreatorDetail": "Apri dettagli creator",
       "openCollaborationDetailHint": "Apri il dettaglio per vedere conversazione, campione e cronologia operazioni.",
       "operationHistory": "Cronologia operazioni",
+      "detailTabs": {
+        "conversation": "Conversazione",
+        "samples": "Campioni",
+        "history": "Cronologia"
+      },
       "conversation": {
         "recentMessages": "Conversazione recente",
         "noConversation": "Nessuna conversazione della piattaforma è ancora collegata a questa collaborazione.",
         "noMessages": "Nessun messaggio di conversazione disponibile.",
         "loadOlder": "Carica messaggi precedenti",
+        "replyLabel": "Rispondi al creator",
+        "replyPlaceholder": "Scrivi il messaggio da inviare al creator...",
+        "replyActorHint": "Questo messaggio sarà inviato come staff e salvato nella cronologia della collaborazione.",
+        "sendReply": "Invia risposta",
+        "replySent": "Risposta inviata",
+        "replyFailed": "Invio della risposta non riuscito",
+        "replyUnavailable": "Serve una conversazione o un'identità creator per rispondere.",
         "cardOnlyMessage": "Questo messaggio contiene solo una scheda.",
         "productCard": "Scheda prodotto: {{product}}",
         "sampleApplicationCard": "Scheda richiesta campione: {{applicationId}}",
@@ -2433,6 +2445,15 @@ export default {
         "staffDecision": "Nota staff: {{note}}",
         "executedAt": "Eseguito alle {{time}}",
         "executionFailed": "Esecuzione non riuscita: {{error}}"
+      },
+      "lifecycleEvents": {
+        "PROPOSAL_CREATED": "Proposta creata",
+        "MESSAGE_SENT": "Messaggio inviato",
+        "SAMPLE_APPROVED": "Richiesta campione approvata",
+        "SAMPLE_REJECTED": "Richiesta campione rifiutata",
+        "TARGET_COLLABORATION_CREATED": "Collaborazione target creata",
+        "STAFF_MARKED_HANDLED": "Contrassegnato come gestito dallo staff",
+        "WORK_RESOLVED": "Lavoro risolto"
       },
       "historyTitle": "Collaborazioni affiliate",
       "historySubtitle": "Rivedi tutte le collaborazioni creator e la cronologia.",

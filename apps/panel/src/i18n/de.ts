@@ -2381,11 +2381,23 @@ export default {
       "openCreatorDetail": "Creator-Details öffnen",
       "openCollaborationDetailHint": "Öffnen Sie die Detailansicht für Unterhaltung, Muster und Aktionsverlauf.",
       "operationHistory": "Aktionsverlauf",
+      "detailTabs": {
+        "conversation": "Unterhaltung",
+        "samples": "Muster",
+        "history": "Verlauf"
+      },
       "conversation": {
         "recentMessages": "Aktuelle Unterhaltung",
         "noConversation": "Mit dieser Kooperation ist noch keine Plattform-Unterhaltung verknüpft.",
         "noMessages": "Noch keine Unterhaltungsnachrichten verfügbar.",
         "loadOlder": "Ältere Nachrichten laden",
+        "replyLabel": "Creator antworten",
+        "replyPlaceholder": "Nachricht an den Creator eingeben...",
+        "replyActorHint": "Diese Nachricht wird als Mitarbeiter gesendet und im Kooperationsverlauf gespeichert.",
+        "sendReply": "Antwort senden",
+        "replySent": "Antwort gesendet",
+        "replyFailed": "Antwort konnte nicht gesendet werden",
+        "replyUnavailable": "Zum Antworten ist eine Unterhaltung oder Creator-Identität erforderlich.",
         "cardOnlyMessage": "Diese Nachricht enthält nur eine Karte.",
         "productCard": "Produktkarte: {{product}}",
         "sampleApplicationCard": "Musteranfrage-Karte: {{applicationId}}",
@@ -2433,6 +2445,15 @@ export default {
         "staffDecision": "Mitarbeiterhinweis: {{note}}",
         "executedAt": "Ausgeführt um {{time}}",
         "executionFailed": "Ausführung fehlgeschlagen: {{error}}"
+      },
+      "lifecycleEvents": {
+        "PROPOSAL_CREATED": "Vorschlag erstellt",
+        "MESSAGE_SENT": "Nachricht gesendet",
+        "SAMPLE_APPROVED": "Musteranfrage genehmigt",
+        "SAMPLE_REJECTED": "Musteranfrage abgelehnt",
+        "TARGET_COLLABORATION_CREATED": "Gezielte Kooperation erstellt",
+        "STAFF_MARKED_HANDLED": "Von Mitarbeiter als erledigt markiert",
+        "WORK_RESOLVED": "Arbeit erledigt"
       },
       "historyTitle": "Affiliate-Kooperationen",
       "historySubtitle": "Prüfen Sie alle Creator-Kooperationen und deren Aktivitätsverlauf.",

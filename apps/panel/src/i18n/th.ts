@@ -2381,11 +2381,23 @@ export default {
       "openCreatorDetail": "เปิดรายละเอียดครีเอเตอร์",
       "openCollaborationDetailHint": "เปิดรายละเอียดเพื่อดูบทสนทนา ตัวอย่าง และประวัติการดำเนินการ",
       "operationHistory": "ประวัติการดำเนินการ",
+      "detailTabs": {
+        "conversation": "บทสนทนา",
+        "samples": "ตัวอย่าง",
+        "history": "ประวัติ"
+      },
       "conversation": {
         "recentMessages": "บทสนทนาล่าสุด",
         "noConversation": "ยังไม่มีบทสนทนาแพลตฟอร์มที่เชื่อมกับความร่วมมือนี้",
         "noMessages": "ยังไม่มีข้อความสนทนา",
         "loadOlder": "โหลดข้อความเก่ากว่า",
+        "replyLabel": "ตอบกลับครีเอเตอร์",
+        "replyPlaceholder": "พิมพ์ข้อความที่จะส่งถึงครีเอเตอร์...",
+        "replyActorHint": "ข้อความนี้จะถูกส่งในฐานะพนักงานและบันทึกในประวัติความร่วมมือ",
+        "sendReply": "ส่งคำตอบ",
+        "replySent": "ส่งคำตอบแล้ว",
+        "replyFailed": "ส่งคำตอบไม่สำเร็จ",
+        "replyUnavailable": "ต้องมีบทสนทนาหรือตัวตนครีเอเตอร์ก่อนตอบกลับ",
         "cardOnlyMessage": "ข้อความนี้มีเฉพาะการ์ด",
         "productCard": "การ์ดสินค้า: {{product}}",
         "sampleApplicationCard": "การ์ดคำขอตัวอย่าง: {{applicationId}}",
@@ -2433,6 +2445,15 @@ export default {
         "staffDecision": "บันทึกจากพนักงาน: {{note}}",
         "executedAt": "ดำเนินการเมื่อ {{time}}",
         "executionFailed": "ดำเนินการล้มเหลว: {{error}}"
+      },
+      "lifecycleEvents": {
+        "PROPOSAL_CREATED": "สร้างข้อเสนอแล้ว",
+        "MESSAGE_SENT": "ส่งข้อความแล้ว",
+        "SAMPLE_APPROVED": "อนุมัติคำขอตัวอย่างแล้ว",
+        "SAMPLE_REJECTED": "ปฏิเสธคำขอตัวอย่างแล้ว",
+        "TARGET_COLLABORATION_CREATED": "สร้างความร่วมมือแบบกำหนดเป้าหมายแล้ว",
+        "STAFF_MARKED_HANDLED": "พนักงานทำเครื่องหมายว่าจัดการแล้ว",
+        "WORK_RESOLVED": "งานได้รับการจัดการแล้ว"
       },
       "historyTitle": "ความร่วมมือพันธมิตร",
       "historySubtitle": "ดูความร่วมมือของครีเอเตอร์ทั้งหมดและประวัติกิจกรรม",

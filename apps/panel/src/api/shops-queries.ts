@@ -1601,3 +1601,27 @@ export const RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION = gql`
     }
   }
 `;
+
+export const SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION = gql`
+  mutation SendAffiliateConversationMessage($input: SendAffiliateConversationMessageInput!) {
+    sendAffiliateConversationMessage(input: $input) {
+      executionResult {
+        platformObjectId
+        domainObjectId
+        lifecycleEventIds
+        executedAt
+        errorMessage
+      }
+      collaborationRecord {
+        id
+        processingStatus
+        requiredAction
+        processReasons
+        stateUpdatedAt
+        workHandledUntil
+        platformConversationId
+        updatedAt
+      }
+    }
+  }
+`;

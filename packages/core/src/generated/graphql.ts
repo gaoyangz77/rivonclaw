@@ -4603,6 +4603,8 @@ export interface Mutation {
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
+  /** Send a human-authored affiliate conversation reply directly to TikTok Shop and record it as a HUMAN lifecycle action. */
+  sendAffiliateConversationMessage: SendAffiliateConversationMessagePayload;
   /** Admin-only: enable or disable an agent invite code for a user by email. */
   setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
@@ -5023,6 +5025,11 @@ export interface MutationResolveAffiliateCollaborationStaffActionArgs {
 
 export interface MutationResolveAffiliateWorkItemArgs {
   input: ResolveAffiliateWorkItemInput;
+}
+
+
+export interface MutationSendAffiliateConversationMessageArgs {
+  input: SendAffiliateConversationMessageInput;
 }
 
 
@@ -6587,6 +6594,20 @@ export const SampleWorkStatus = {
 } as const;
 
 export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkStatus];
+export interface SendAffiliateConversationMessageInput {
+  collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  conversationId?: InputMaybe<Scalars['String']['input']>;
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+  text: Scalars['String']['input'];
+}
+
+export interface SendAffiliateConversationMessagePayload {
+  collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
+  executionResult: ActionProposalExecutionResultSnapshot;
+}
+
 /** Business service type identifiers */
 export const ServiceId = {
   AffiliateManagement: 'AFFILIATE_MANAGEMENT',
