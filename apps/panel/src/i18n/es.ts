@@ -3296,8 +3296,8 @@ export default {
     "upgradeRequired": "Esta función requiere una suscripción. Actualice su plan.",
     "llmUnavailableTitle": "AI model unavailable",
     "llmUnavailableBody": "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
-    "customerServiceRoutingUnavailableTitle": "El servicio de atención al cliente de IA no está disponible en este dispositivo",
-    "customerServiceRoutingUnavailableBody": "Las siguientes tiendas utilizan este dispositivo para atención al cliente, pero su canal de destinatarios de derivación no está disponible. Seleccione un canal existente o complete la activación del token de mensaje WeChat.",
+    "customerServiceRoutingUnavailableTitle": "La escalada del servicio de atención al cliente de IA no está disponible en este dispositivo",
+    "customerServiceRoutingUnavailableBody": "Las siguientes tiendas utilizan este dispositivo para atención al cliente, pero su canal de destinatarios de escalada no está disponible. El servicio básico de atención al cliente de IA no se ve afectado. Seleccione un canal de escalada existente o complete la activación del token de mensaje WeChat.",
     "customerServiceRoutingIssue_invalid_channel": "El canal ya no existe",
     "customerServiceRoutingIssue_missing_context_token": "A WeChat le falta el token de contexto necesario para los mensajes salientes proactivos",
     "shopUpdatedToast": "Se ha actualizado la tienda \"{{shopName}}\"."

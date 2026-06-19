@@ -3296,8 +3296,8 @@ export default {
     "upgradeRequired": "Für diese Funktion ist ein Abonnement erforderlich. Bitte aktualisieren Sie Ihren Plan.",
     "llmUnavailableTitle": "AI model unavailable",
     "llmUnavailableBody": "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
-    "customerServiceRoutingUnavailableTitle": "Der AI-Kundendienst ist auf diesem Gerät nicht verfügbar",
-    "customerServiceRoutingUnavailableBody": "Die folgenden Shops nutzen dieses Gerät für den Kundenservice, ihr Eskalationsempfängerkanal ist jedoch nicht verfügbar. Wählen Sie einen vorhandenen Kanal aus oder schließen Sie die Aktivierung des WeChat-Nachrichtentokens ab.",
+    "customerServiceRoutingUnavailableTitle": "Die Eskalation des AI-Kundendienstes ist auf diesem Gerät nicht verfügbar",
+    "customerServiceRoutingUnavailableBody": "Die folgenden Shops nutzen dieses Gerät für den Kundenservice, ihr Eskalationsempfängerkanal ist jedoch nicht verfügbar. Der grundlegende AI-Kundendienst ist nicht betroffen. Wählen Sie einen vorhandenen Eskalationskanal aus oder schließen Sie die Aktivierung des WeChat-Nachrichtentokens ab.",
     "customerServiceRoutingIssue_invalid_channel": "Kanal existiert nicht mehr",
     "customerServiceRoutingIssue_missing_context_token": "WeChat fehlt das Kontext-Token, das für proaktive ausgehende Nachrichten erforderlich ist",
     "shopUpdatedToast": "Shop „{{shopName}}“ wurde aktualisiert."

@@ -3296,8 +3296,8 @@ export default {
     "upgradeRequired": "Fitur ini memerlukan langganan. Harap tingkatkan paket Anda.",
     "llmUnavailableTitle": "AI model unavailable",
     "llmUnavailableBody": "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
-    "customerServiceRoutingUnavailableTitle": "Layanan pelanggan AI tidak tersedia di perangkat ini",
-    "customerServiceRoutingUnavailableBody": "Toko-toko berikut menggunakan perangkat ini untuk layanan pelanggan, namun saluran penerima eskalasinya tidak tersedia. Pilih saluran yang ada, atau selesaikan aktivasi token pesan WeChat.",
+    "customerServiceRoutingUnavailableTitle": "Eskalasi layanan pelanggan AI tidak tersedia di perangkat ini",
+    "customerServiceRoutingUnavailableBody": "Toko-toko berikut menggunakan perangkat ini untuk layanan pelanggan, namun saluran penerima eskalasinya tidak tersedia. Layanan pelanggan AI dasar tidak terpengaruh. Pilih saluran eskalasi yang ada, atau selesaikan aktivasi token pesan WeChat.",
     "customerServiceRoutingIssue_invalid_channel": "Saluran sudah tidak ada lagi",
     "customerServiceRoutingIssue_missing_context_token": "WeChat tidak memiliki token konteks yang diperlukan untuk pesan keluar proaktif",
     "shopUpdatedToast": "Toko \"{{shopName}}\" telah diperbarui."
