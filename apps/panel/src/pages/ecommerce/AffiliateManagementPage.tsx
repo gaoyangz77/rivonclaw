@@ -29,6 +29,7 @@ type CollaborationDetailItem = {
   collaborationRecord: GQL.AffiliateCollaborationRecord;
   creatorProfile?: GQL.CreatorGlobalProfile | null;
   productSummary?: GQL.EcomProductSummary | null;
+  sampleApplications?: GQL.SampleApplicationRecord[] | null;
   latestProposal?: GQL.ActionProposal | null;
   latestLifecycleEvent?: GQL.LifecycleEvent | null;
 };
@@ -98,18 +99,20 @@ function hydrateAffiliateCollaborationProjection(projection: {
   collaborationRecord: unknown;
   creatorProfile?: unknown | null;
   productSummary?: unknown | null;
+  sampleApplications?: unknown[];
   actionProposals?: unknown[];
   lifecycleEvents?: unknown[];
-}): CollaborationListItem {
+}): CollaborationDetailItem {
   const actionProposals = (projection.actionProposals ?? []).map((proposal) => affiliateSnapshot(proposal));
   const lifecycleEvents = (projection.lifecycleEvents ?? []).map((event) => affiliateSnapshot(event));
   return {
     collaborationRecord: affiliateSnapshot(projection.collaborationRecord),
     creatorProfile: affiliateSnapshot(projection.creatorProfile),
     productSummary: affiliateSnapshot(projection.productSummary),
+    sampleApplications: (projection.sampleApplications ?? []).map((sample) => affiliateSnapshot(sample)),
     latestProposal: actionProposals[0] ?? null,
     latestLifecycleEvent: lifecycleEvents[0] ?? null,
-  } as CollaborationListItem;
+  } as CollaborationDetailItem;
 }
 
 const PROPOSAL_FILTERS = [
@@ -2464,6 +2467,10 @@ function CollaborationRecordCard({
             </div>
           </div>
         ) : null}
+        <div className="affiliate-collaboration-card-footer">
+          <span>{t("ecommerce.affiliateWorkspace.openCollaborationDetailHint")}</span>
+          <span className="affiliate-collaboration-card-footer-action">{t("viewDetails")}</span>
+        </div>
       </div>
     </article>
   );
@@ -2507,7 +2514,7 @@ function CollaborationActivityModal({
       input: {
         shopId: record.shopId,
         conversationId: record.platformConversationId ?? "",
-        pageSize: 30,
+        pageSize: 20,
         pageToken: conversationPageToken,
       },
     },
@@ -2526,6 +2533,9 @@ function CollaborationActivityModal({
   const lifecycleEvents = (projection?.lifecycleEvents ?? []).map((event) =>
     affiliateSnapshot(event) as GQL.LifecycleEvent,
   );
+  const sampleApplications = ((projection?.sampleApplications ?? item.sampleApplications ?? []) as unknown[])
+    .map((sample) => affiliateSnapshot(sample) as GQL.SampleApplicationRecord)
+    .filter((sample) => Boolean(sample?.id));
   const conversationPage = entityStore.affiliateWorkspace.getConversationMessagePage(
     record.shopId,
     record.platformConversationId,
@@ -2599,41 +2609,77 @@ function CollaborationActivityModal({
           shopId={record.shopId}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
         />
-        {record.platformConversationId ? (
-          <>
-            <div className="affiliate-collaboration-modal-section-title">
-              {t("ecommerce.affiliateWorkspace.conversation.recentMessages")}
+
+        <div className="affiliate-collaboration-modal-section-title">
+          {t("ecommerce.affiliateWorkspace.conversation.recentMessages")}
+        </div>
+        <div className="affiliate-conversation-preview">
+          {!record.platformConversationId ? (
+            <div className="affiliate-proposal-empty">
+              {t("ecommerce.affiliateWorkspace.conversation.noConversation")}
             </div>
-            <div className="affiliate-conversation-preview">
-              {conversationLoading && conversationMessages.length === 0 ? (
-                <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-              ) : conversationMessages.length === 0 ? (
-                <div className="affiliate-proposal-empty">
-                  {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+          ) : conversationLoading && conversationMessages.length === 0 ? (
+            <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+          ) : conversationMessages.length === 0 ? (
+            <div className="affiliate-proposal-empty">
+              {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+            </div>
+          ) : (
+            conversationMessages.map((message) => (
+              <AffiliateConversationMessageRow
+                key={message.messageId ?? message.conversationIndex ?? `${message.createdAt}-${message.senderId}`}
+                message={message}
+              />
+            ))
+          )}
+          {canLoadOlderConversation ? (
+            <button
+              className="btn btn-secondary affiliate-conversation-load-more"
+              type="button"
+              disabled={conversationLoading}
+              onClick={loadOlderConversationMessages}
+            >
+              {conversationLoading
+                ? t("common.loading")
+                : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
+            </button>
+          ) : null}
+        </div>
+
+        <div className="affiliate-collaboration-modal-section-title">
+          {t("ecommerce.affiliateWorkspace.sampleApplication.title")}
+        </div>
+        <div className="affiliate-collaboration-sample-panel">
+          {sampleApplications.length > 0 ? (
+            sampleApplications.map((sampleApplication) => (
+              <div className="affiliate-collaboration-sample-row" key={sampleApplication.id}>
+                <div>
+                  <span>{t("ecommerce.affiliateWorkspace.sampleApplication.status")}</span>
+                  <strong>{sampleApplication.sampleWorkStatus}</strong>
                 </div>
-              ) : (
-                conversationMessages.map((message) => (
-                  <AffiliateConversationMessageRow
-                    key={message.messageId ?? message.conversationIndex ?? `${message.createdAt}-${message.senderId}`}
-                    message={message}
-                  />
-                ))
-              )}
-              {canLoadOlderConversation ? (
-                <button
-                  className="btn btn-secondary affiliate-conversation-load-more"
-                  type="button"
-                  disabled={conversationLoading}
-                  onClick={loadOlderConversationMessages}
-                >
-                  {conversationLoading
-                    ? t("common.loading")
-                    : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
-                </button>
-              ) : null}
+                <div>
+                  <span>{t("ecommerce.affiliateWorkspace.sampleApplication.applicationId")}</span>
+                  <strong>{sampleApplication.platformApplicationId}</strong>
+                </div>
+                <div>
+                  <span>{t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}</span>
+                  <strong>{sampleApplication.observedContentCount ?? 0}</strong>
+                </div>
+                {sampleApplication.trackingNumber ? (
+                  <div>
+                    <span>{t("ecommerce.affiliateWorkspace.sampleApplication.tracking")}</span>
+                    <strong>{sampleApplication.trackingNumber}</strong>
+                  </div>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <div className="affiliate-proposal-empty">
+              {t("ecommerce.affiliateWorkspace.sampleApplication.none")}
             </div>
-          </>
-        ) : null}
+          )}
+        </div>
+
         <div className="affiliate-collaboration-modal-section-title">
           {t("ecommerce.affiliateWorkspace.operationHistory")}
         </div>

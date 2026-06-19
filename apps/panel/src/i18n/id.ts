@@ -2379,9 +2379,11 @@ export default {
       "copyDebugId": "Salin ID debug",
       "debugIdCopied": "ID debug disalin",
       "openCreatorDetail": "Buka detail kreator",
+      "openCollaborationDetailHint": "Buka detail untuk melihat percakapan, sampel, dan riwayat tindakan.",
       "operationHistory": "Riwayat tindakan",
       "conversation": {
         "recentMessages": "Percakapan terbaru",
+        "noConversation": "Belum ada percakapan platform yang terhubung ke kolaborasi ini.",
         "noMessages": "Belum ada pesan percakapan yang tersedia.",
         "loadOlder": "Muat pesan lama",
         "cardOnlyMessage": "Pesan ini hanya berisi kartu.",
@@ -2393,6 +2395,14 @@ export default {
           "SELLER": "Penjual",
           "SYSTEM": "Sistem"
         }
+      },
+      "sampleApplication": {
+        "title": "Permintaan sampel",
+        "status": "Status",
+        "applicationId": "ID permintaan",
+        "contentCount": "Konten diamati",
+        "tracking": "Nomor pelacakan",
+        "none": "Belum ada permintaan sampel tertaut untuk kolaborasi ini."
       },
       "creatorDetail": {
         "followers": "Pengikut",

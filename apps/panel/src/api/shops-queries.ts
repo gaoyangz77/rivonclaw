@@ -491,6 +491,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           predictedAt
           capturedAt
         }
+        createdAt
+        updatedAt
       }
       productSummary {
         productId
@@ -1203,6 +1205,7 @@ export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
         productId
         lifecycleStage
         processingStatus
+        requiredAction
         processReasons
         nextSellerActionAt
         stateUpdatedAt
@@ -1218,6 +1221,8 @@ export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
         sampleApplicationRecordId
         startedAt
         endedAt
+        createdAt
+        updatedAt
       }
       creatorProfile {
         id
@@ -1273,13 +1278,22 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
     affiliateCollaborationActivity(input: $input) {
       actionProposals {
         id
+        userId
+        shopId
+        campaignId
+        creatorId
+        collaborationRecordId
+        collaborationRecordLastSignalAt
+        collaborationRecordStateUpdatedAt
         type
         status
         operatorSummary
+        predictionCacheIds
         steps {
           stepId
           type
           operatorSummary
+          predictionCacheIds
           messageIntent {
             conversationId
             creatorId
@@ -1305,6 +1319,33 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
             skuId
             quantity
           }
+          targetCollaborationIntent {
+            name
+            message
+            endTime
+            hasFreeSample
+            isSampleApprovalExempt
+            creatorIds
+            creatorOpenIds
+            products {
+              productId
+              targetCommissionRateBps
+              shopAdsCommissionRateBps
+            }
+            sellerContactInfo {
+              email
+              phoneNumber
+              whatsapp
+              telegram
+              line
+            }
+          }
+        }
+        policySnapshot {
+          action
+          requiresApproval
+          matchedPolicyIds
+          reasons
         }
         messageIntent {
           conversationId
@@ -1331,8 +1372,30 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
           skuId
           quantity
         }
+        targetCollaborationIntent {
+          name
+          message
+          endTime
+          hasFreeSample
+          isSampleApprovalExempt
+          creatorIds
+          creatorOpenIds
+          products {
+            productId
+            targetCommissionRateBps
+            shopAdsCommissionRateBps
+          }
+          sellerContactInfo {
+            email
+            phoneNumber
+            whatsapp
+            telegram
+            line
+          }
+        }
         createdAt
         updatedAt
+        expiresAt
         decision {
           decidedAt
           note
@@ -1348,13 +1411,49 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
       }
       lifecycleEvents {
         id
+        userId
+        shopId
+        entityType
+        entityId
         eventType
         fromStage
         toStage
         displayPayloadJson
         actorType
         actorId
+        collaborationRecordId
+        proposalId
+        creatorId
+        productId
+        campaignId
         createdAt
+      }
+      sampleApplicationRecords {
+        id
+        userId
+        shopId
+        creatorId
+        creatorOpenId
+        productId
+        affiliateCollaborationId
+        collaborationType
+        platformApplicationId
+        platformCollaborationId
+        platformOpenCollaborationId
+        platformTargetCollaborationId
+        sampleWorkStatus
+        trackingNumber
+        carrier
+        shippedAt
+        deliveredAt
+        observedContentCount
+        latestObservedContentAt
+        latestObservedContentId
+        latestObservedContentFormat
+        latestObservedContentUrl
+        latestObservedContentViewCount
+        latestObservedContentPaidOrderCount
+        updatedAt
       }
     }
   }

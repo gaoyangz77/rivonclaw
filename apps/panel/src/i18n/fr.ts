@@ -2379,9 +2379,11 @@ export default {
       "copyDebugId": "Copier l'ID de débogage",
       "debugIdCopied": "ID de débogage copié",
       "openCreatorDetail": "Ouvrir les détails du créateur",
+      "openCollaborationDetailHint": "Ouvrez les détails pour voir la conversation, l'échantillon et l'historique des actions.",
       "operationHistory": "Historique des actions",
       "conversation": {
         "recentMessages": "Conversation récente",
+        "noConversation": "Aucune conversation plateforme n'est encore liée à cette collaboration.",
         "noMessages": "Aucun message de conversation disponible pour le moment.",
         "loadOlder": "Charger les messages précédents",
         "cardOnlyMessage": "Ce message ne contient qu'une carte.",
@@ -2393,6 +2395,14 @@ export default {
           "SELLER": "Vendeur",
           "SYSTEM": "Système"
         }
+      },
+      "sampleApplication": {
+        "title": "Demande d'échantillon",
+        "status": "Statut",
+        "applicationId": "ID de demande",
+        "contentCount": "Contenu observé",
+        "tracking": "Numéro de suivi",
+        "none": "Aucune demande d'échantillon liée n'est encore disponible pour cette collaboration."
       },
       "creatorDetail": {
         "followers": "Abonnés",

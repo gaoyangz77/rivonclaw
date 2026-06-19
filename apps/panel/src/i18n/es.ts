@@ -2379,9 +2379,11 @@ export default {
       "copyDebugId": "Copiar ID de depuración",
       "debugIdCopied": "ID de depuración copiado",
       "openCreatorDetail": "Abrir detalles del creador",
+      "openCollaborationDetailHint": "Abre el detalle para ver conversación, muestra e historial de acciones.",
       "operationHistory": "Historial de acciones",
       "conversation": {
         "recentMessages": "Conversación reciente",
+        "noConversation": "Esta colaboración aún no tiene una conversación de plataforma vinculada.",
         "noMessages": "Aún no hay mensajes de conversación disponibles.",
         "loadOlder": "Cargar mensajes anteriores",
         "cardOnlyMessage": "Este mensaje solo contiene una tarjeta.",
@@ -2393,6 +2395,14 @@ export default {
           "SELLER": "Vendedor",
           "SYSTEM": "Sistema"
         }
+      },
+      "sampleApplication": {
+        "title": "Solicitud de muestra",
+        "status": "Estado",
+        "applicationId": "ID de solicitud",
+        "contentCount": "Contenido observado",
+        "tracking": "Número de seguimiento",
+        "none": "Aún no hay una solicitud de muestra vinculada para esta colaboración."
       },
       "creatorDetail": {
         "followers": "Seguidores",

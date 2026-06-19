@@ -2753,9 +2753,11 @@ export default {
       copyDebugId: "复制调试 ID",
       debugIdCopied: "已复制调试 ID",
       openCreatorDetail: "查看达人资料",
+      openCollaborationDetailHint: "打开详情查看对话、样品和操作历史。",
       operationHistory: "操作历史",
       conversation: {
         recentMessages: "最近对话",
+        noConversation: "这条合作暂未关联平台对话。",
         noMessages: "暂未读取到对话消息。",
         loadOlder: "加载更早消息",
         cardOnlyMessage: "这条消息只包含卡片。",
@@ -2767,6 +2769,14 @@ export default {
           SELLER: "卖家",
           SYSTEM: "系统",
         },
+      },
+      sampleApplication: {
+        title: "样品申请",
+        status: "状态",
+        applicationId: "申请 ID",
+        contentCount: "已观察内容",
+        tracking: "物流单号",
+        none: "这条合作暂未关联样品申请。",
       },
       creatorDetail: {
         followers: "粉丝数",
