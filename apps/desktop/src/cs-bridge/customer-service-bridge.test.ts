@@ -636,6 +636,7 @@ describe("shop context management", () => {
     expect(mockRpcRequest).toHaveBeenCalledTimes(4);
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
+      contextTokens: 100_000,
       thinkingLevel: "off",
       reasoningLevel: "off",
     }, 120000);

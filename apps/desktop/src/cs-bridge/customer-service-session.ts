@@ -63,6 +63,7 @@ const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 const CS_GATEWAY_SETUP_RPC_TIMEOUT_MS = 120_000;
 const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 120_000;
+const CS_AGENT_CONTEXT_TOKENS = 100_000;
 const DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS = 10_000;
 
 function resolveBuyerMessageQuietWindowMs(): number {
@@ -1894,6 +1895,7 @@ export class CustomerServiceSession {
   private async applyCustomerServiceSessionPreferences(): Promise<void> {
     await openClawConnector.request("sessions.patch", {
       key: this.scopeKey,
+      contextTokens: CS_AGENT_CONTEXT_TOKENS,
       thinkingLevel: "off",
       reasoningLevel: "off",
     }, CS_GATEWAY_SETUP_RPC_TIMEOUT_MS);
