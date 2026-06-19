@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.39",
+    "date": "2026-06-19",
+    "en": [
+      "Limit customer-service session context tokens and refresh the OpenClaw session-context patch coverage",
+      "Update affiliate proposal decision fields across desktop, panel, subscriptions, and generated GraphQL types"
+    ],
+    "zh": [
+      "限制客服会话上下文 token，并刷新 OpenClaw 会话上下文补丁覆盖",
+      "更新达人提案决策字段，覆盖桌面端、面板、订阅和生成的 GraphQL 类型"
+    ]
+  },
+  {
     "version": "1.8.38",
     "date": "2026-06-18",
     "en": [
