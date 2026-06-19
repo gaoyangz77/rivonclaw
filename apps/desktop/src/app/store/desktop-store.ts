@@ -53,6 +53,54 @@ function sanitizeForMst<T>(obj: T): T {
   return obj;
 }
 
+function hasOwnObjectKey(value: unknown, key: string): boolean {
+  return !!value && typeof value === "object" && Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function preserveMissingShopServiceFields(
+  rawShop: unknown,
+  sanitizedShop: Record<string, any>,
+  existingSnapshot: Record<string, any> | null | undefined,
+): Record<string, any> {
+  const existingServices = existingSnapshot?.services;
+  if (!existingServices || !hasOwnObjectKey(rawShop, "services")) return sanitizedShop;
+
+  const rawServices = (rawShop as Record<string, unknown>).services;
+  if (!rawServices || typeof rawServices !== "object") return sanitizedShop;
+
+  const nextServices =
+    sanitizedShop.services && typeof sanitizedShop.services === "object"
+      ? { ...sanitizedShop.services }
+      : {};
+
+  for (const serviceKey of ["customerService", "wms", "affiliateService"]) {
+    const existingService = existingServices[serviceKey];
+    if (!existingService) continue;
+
+    if (!hasOwnObjectKey(rawServices, serviceKey)) {
+      nextServices[serviceKey] = existingService;
+      continue;
+    }
+
+    const rawService = (rawServices as Record<string, unknown>)[serviceKey];
+    if (!rawService || typeof rawService !== "object") continue;
+
+    const nextService =
+      nextServices[serviceKey] && typeof nextServices[serviceKey] === "object"
+        ? { ...nextServices[serviceKey] }
+        : {};
+    for (const fieldKey of Object.keys(existingService)) {
+      if (!hasOwnObjectKey(rawService, fieldKey)) {
+        nextService[fieldKey] = existingService[fieldKey];
+      }
+    }
+    nextServices[serviceKey] = nextService;
+  }
+
+  sanitizedShop.services = nextServices;
+  return sanitizedShop;
+}
+
 // ---------------------------------------------------------------------------
 // Desktop store environment — late-initialized infrastructure dependencies.
 // The LLMProviderManager uses its own setEnv(), so the top-level env is now
@@ -173,7 +221,14 @@ const DesktopRootStoreModel = RootStoreModel
       if (!id) return;
       const idx = self.shops.findIndex((item: any) => item.id === id);
       if (idx >= 0) {
-        applySnapshot(self.shops[idx], sanitized);
+        applySnapshot(
+          self.shops[idx],
+          preserveMissingShopServiceFields(
+            rawShop,
+            sanitized,
+            getSnapshot(self.shops[idx]) as Record<string, any>,
+          ),
+        );
       } else {
         self.shops.push(sanitized);
       }
@@ -192,7 +247,14 @@ const DesktopRootStoreModel = RootStoreModel
         if (!id) continue;
         const idx = self.shops.findIndex((item: any) => item.id === id);
         if (idx >= 0) {
-          applySnapshot(self.shops[idx], sanitized);
+          applySnapshot(
+            self.shops[idx],
+            preserveMissingShopServiceFields(
+              rawShop,
+              sanitized,
+              getSnapshot(self.shops[idx]) as Record<string, any>,
+            ),
+          );
         } else {
           self.shops.push(sanitized);
         }
