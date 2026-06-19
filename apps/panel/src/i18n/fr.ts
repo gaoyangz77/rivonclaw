@@ -2380,6 +2380,20 @@ export default {
       "debugIdCopied": "ID de débogage copié",
       "openCreatorDetail": "Ouvrir les détails du créateur",
       "operationHistory": "Historique des actions",
+      "conversation": {
+        "recentMessages": "Conversation récente",
+        "noMessages": "Aucun message de conversation disponible pour le moment.",
+        "loadOlder": "Charger les messages précédents",
+        "cardOnlyMessage": "Ce message ne contient qu'une carte.",
+        "productCard": "Carte produit : {{product}}",
+        "sampleApplicationCard": "Carte de demande d'échantillon : {{applicationId}}",
+        "targetCollaborationCard": "Carte de collaboration : {{collaborationId}}",
+        "directions": {
+          "CREATOR": "Créateur",
+          "SELLER": "Vendeur",
+          "SYSTEM": "Système"
+        }
+      },
       "creatorDetail": {
         "followers": "Abonnés",
         "platform": "Plateforme",

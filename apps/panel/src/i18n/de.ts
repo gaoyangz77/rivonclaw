@@ -2380,6 +2380,20 @@ export default {
       "debugIdCopied": "Debug-ID kopiert",
       "openCreatorDetail": "Creator-Details öffnen",
       "operationHistory": "Aktionsverlauf",
+      "conversation": {
+        "recentMessages": "Aktuelle Unterhaltung",
+        "noMessages": "Noch keine Unterhaltungsnachrichten verfügbar.",
+        "loadOlder": "Ältere Nachrichten laden",
+        "cardOnlyMessage": "Diese Nachricht enthält nur eine Karte.",
+        "productCard": "Produktkarte: {{product}}",
+        "sampleApplicationCard": "Musteranfrage-Karte: {{applicationId}}",
+        "targetCollaborationCard": "Kooperationskarte: {{collaborationId}}",
+        "directions": {
+          "CREATOR": "Creator",
+          "SELLER": "Verkäufer",
+          "SYSTEM": "System"
+        }
+      },
       "creatorDetail": {
         "followers": "Follower",
         "platform": "Plattform",

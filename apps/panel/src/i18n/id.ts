@@ -2380,6 +2380,20 @@ export default {
       "debugIdCopied": "ID debug disalin",
       "openCreatorDetail": "Buka detail kreator",
       "operationHistory": "Riwayat tindakan",
+      "conversation": {
+        "recentMessages": "Percakapan terbaru",
+        "noMessages": "Belum ada pesan percakapan yang tersedia.",
+        "loadOlder": "Muat pesan lama",
+        "cardOnlyMessage": "Pesan ini hanya berisi kartu.",
+        "productCard": "Kartu produk: {{product}}",
+        "sampleApplicationCard": "Kartu permintaan sampel: {{applicationId}}",
+        "targetCollaborationCard": "Kartu kolaborasi: {{collaborationId}}",
+        "directions": {
+          "CREATOR": "Kreator",
+          "SELLER": "Penjual",
+          "SYSTEM": "Sistem"
+        }
+      },
       "creatorDetail": {
         "followers": "Pengikut",
         "platform": "Platform",

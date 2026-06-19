@@ -1,4 +1,4 @@
-import { applySnapshot, applyPatch, flow, getEnv, types, type Instance, type IJsonPatch } from "mobx-state-tree";
+import { applySnapshot, applyPatch, flow, getEnv, types, type IAnyModelType, type Instance, type IJsonPatch, type IStateTreeNode } from "mobx-state-tree";
 import { RootStoreModel } from "@rivonclaw/core/models";
 import {
   UserModel,
@@ -118,7 +118,7 @@ function normalizeAffiliateMlModelScope(value: unknown, fallback: AffiliateMlIns
  * Entity-level actions (update, delete) live on per-model files in ./models/.
  * RootStore retains session-level actions and create operations (where no instance exists yet).
  */
-const PanelRootStoreModel = RootStoreModel.props({
+const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   currentUser: types.maybeNull(UserModel),
   surfaces: types.optional(types.array(SurfaceModel), []),
   runProfiles: types.optional(types.array(RunProfileModel), []),
@@ -643,6 +643,7 @@ interface PanelEntityOverrides {
   readonly llmManager: Instance<typeof LLMProviderModel>;
   readonly mobileManager: Instance<typeof MobileManagerModel>;
   readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
+  readonly customerServiceWorkspace: Instance<typeof CustomerServiceWorkspaceModel>;
   readonly activeCheckout: Instance<typeof PaymentModel> | null;
   readonly checkoutScopeId: string | null;
   readonly paymentInFlight: boolean;
@@ -670,7 +671,42 @@ interface PanelEntityOverrides {
   fetchAdsAdvertisers(): Promise<void>;
   fetchAdsStoreAccesses(): Promise<void>;
 }
-export type PanelRootStore = Omit<Instance<typeof PanelRootStoreModel>, keyof PanelEntityOverrides> & PanelEntityOverrides;
+
+interface PanelRootActions {
+  initSession(): Promise<void>;
+  login(input: { email: string; password: string; captchaToken?: string; captchaAnswer?: string }): Promise<void>;
+  register(input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null }): Promise<void>;
+  logout(): Promise<void>;
+  clearAuth(): void;
+  fetchShops(): Promise<void>;
+  fetchPlatformApps(): Promise<void>;
+  refreshToolSpecs(): Promise<void>;
+  createProviderKey(input: any): Promise<any>;
+  startOAuthFlow(input: any): Promise<any>;
+  pollOAuthStatus(input: any): Promise<any>;
+  completeManualOAuth(...args: any[]): Promise<any>;
+  saveOAuthFlow(...args: any[]): Promise<any>;
+  initiateTikTokOAuth(input?: any): Promise<any>;
+  initiateTikTokAdsOAuth(input?: unknown): Promise<{ authUrl: string; state: string }>;
+  generateMobilePairingCode(input?: any): Promise<any>;
+  waitForPairing(input: any): Promise<any>;
+  registerMobilePairing(input: any): Promise<any>;
+  getInstallUrl(input?: any): Promise<any>;
+  refreshBilling(): Promise<void>;
+  refreshPlanDefinitions(): Promise<void>;
+  readPayments(): Promise<void>;
+  refreshPayment(...args: any[]): Promise<any>;
+  setCheckoutError(message: string | null, scopeId?: string | null): void;
+  clearActiveCheckout(): void;
+  createRunProfile(input: unknown): Promise<unknown>;
+  createSurface(input: unknown): Promise<unknown>;
+}
+
+export type PanelRootStore =
+  Omit<Instance<typeof RootStoreModel>, keyof PanelEntityOverrides> &
+  PanelEntityOverrides &
+  PanelRootActions &
+  IStateTreeNode;
 
 // Use a lazy getter so apolloClient is resolved at call time, not import time.
 // getClient() throws if called before createApolloClient(), so we must defer.

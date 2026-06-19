@@ -2380,6 +2380,20 @@ export default {
       "debugIdCopied": "ID de depuración copiado",
       "openCreatorDetail": "Abrir detalles del creador",
       "operationHistory": "Historial de acciones",
+      "conversation": {
+        "recentMessages": "Conversación reciente",
+        "noMessages": "Aún no hay mensajes de conversación disponibles.",
+        "loadOlder": "Cargar mensajes anteriores",
+        "cardOnlyMessage": "Este mensaje solo contiene una tarjeta.",
+        "productCard": "Tarjeta de producto: {{product}}",
+        "sampleApplicationCard": "Tarjeta de solicitud de muestra: {{applicationId}}",
+        "targetCollaborationCard": "Tarjeta de colaboración: {{collaborationId}}",
+        "directions": {
+          "CREATOR": "Creador",
+          "SELLER": "Vendedor",
+          "SYSTEM": "Sistema"
+        }
+      },
       "creatorDetail": {
         "followers": "Seguidores",
         "platform": "Plataforma",

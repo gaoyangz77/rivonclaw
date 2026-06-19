@@ -2380,6 +2380,20 @@ export default {
       "debugIdCopied": "ID debug copiato",
       "openCreatorDetail": "Apri dettagli creator",
       "operationHistory": "Cronologia operazioni",
+      "conversation": {
+        "recentMessages": "Conversazione recente",
+        "noMessages": "Nessun messaggio di conversazione disponibile.",
+        "loadOlder": "Carica messaggi precedenti",
+        "cardOnlyMessage": "Questo messaggio contiene solo una scheda.",
+        "productCard": "Scheda prodotto: {{product}}",
+        "sampleApplicationCard": "Scheda richiesta campione: {{applicationId}}",
+        "targetCollaborationCard": "Scheda collaborazione: {{collaborationId}}",
+        "directions": {
+          "CREATOR": "Creator",
+          "SELLER": "Venditore",
+          "SYSTEM": "Sistema"
+        }
+      },
       "creatorDetail": {
         "followers": "Follower",
         "platform": "Piattaforma",

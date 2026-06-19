@@ -14,6 +14,7 @@ import { UserModel } from "./User.js";
 import { PlatformAppModel } from "./PlatformApp.js";
 import { WmsAccountModel, WarehouseModel, ShopWarehouseModel } from "./Warehouse.js";
 import { InventoryGoodModel } from "./InventoryGood.js";
+import { AffiliateWorkspaceModel } from "./Affiliate.js";
 import {
   SystemRunProfile,
   SystemSurface,
@@ -100,6 +101,7 @@ export const RootStoreModel = types
     warehouses: types.optional(types.array(WarehouseModel), []),
     shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),
     inventoryGoods: types.optional(types.array(InventoryGoodModel), []),
+    affiliateWorkspace: types.optional(AffiliateWorkspaceModel, {}),
   })
   .views((self) => ({
     get authenticated() {

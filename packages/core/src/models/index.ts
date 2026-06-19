@@ -46,6 +46,8 @@ export { WarehouseAddressModel, WmsAccountModel, WarehouseModel, ShopWarehouseMo
 export type { WarehouseAddress, WmsAccount, Warehouse, ShopWarehouse } from "./Warehouse.js";
 export { InventoryGoodModel } from "./InventoryGood.js";
 export type { InventoryGood } from "./InventoryGood.js";
+export { AffiliateWorkspaceModel } from "./Affiliate.js";
+export type { AffiliateWorkspace } from "./Affiliate.js";
 export { RootStoreModel } from "./RootStore.js";
 export type { RootStore } from "./RootStore.js";
 export { RuntimeStatusStoreModel, CsBridgeStatusModel, AppSettingsModel } from "./RuntimeStatus.js";

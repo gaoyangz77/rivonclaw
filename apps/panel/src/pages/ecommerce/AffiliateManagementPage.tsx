@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
+import { getSnapshot } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
 import { CheckIcon, CopyIcon, InfoIcon, RefreshIcon, ShopIcon, UserIcon } from "../../components/icons.js";
@@ -12,6 +13,7 @@ import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_COLLABORATION_ACTIVITY_QUERY,
   AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY,
+  AFFILIATE_CONVERSATION_MESSAGES_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_POLICY_CONTEXT_QUERY,
   APPLY_CREATOR_TAG_MUTATION,
@@ -71,6 +73,44 @@ type AffiliatePredictionSnapshotOutput = {
     message?: string | null;
   } | null;
 };
+
+function affiliateSnapshot<T>(value: T | null | undefined): any {
+  if (!value) return null;
+  return getSnapshot(value as any);
+}
+
+function hydrateAffiliateProposalProjection(projection: {
+  proposal: unknown;
+  collaborationRecord?: unknown | null;
+  creatorProfile?: unknown | null;
+  productSummary?: unknown | null;
+}): GQL.ActionProposal {
+  const proposal = affiliateSnapshot(projection.proposal);
+  return {
+    ...proposal,
+    collaborationRecord: affiliateSnapshot(projection.collaborationRecord),
+    creatorProfile: affiliateSnapshot(projection.creatorProfile),
+    productSummary: affiliateSnapshot(projection.productSummary),
+  } as GQL.ActionProposal;
+}
+
+function hydrateAffiliateCollaborationProjection(projection: {
+  collaborationRecord: unknown;
+  creatorProfile?: unknown | null;
+  productSummary?: unknown | null;
+  actionProposals?: unknown[];
+  lifecycleEvents?: unknown[];
+}): CollaborationListItem {
+  const actionProposals = (projection.actionProposals ?? []).map((proposal) => affiliateSnapshot(proposal));
+  const lifecycleEvents = (projection.lifecycleEvents ?? []).map((event) => affiliateSnapshot(event));
+  return {
+    collaborationRecord: affiliateSnapshot(projection.collaborationRecord),
+    creatorProfile: affiliateSnapshot(projection.creatorProfile),
+    productSummary: affiliateSnapshot(projection.productSummary),
+    latestProposal: actionProposals[0] ?? null,
+    latestLifecycleEvent: lifecycleEvents[0] ?? null,
+  } as CollaborationListItem;
+}
 
 const PROPOSAL_FILTERS = [
   GQL.ActionProposalStatus.Pending,
@@ -293,7 +333,6 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   }, [proposalFilter]);
 
   const {
-    data: proposalData,
     loading: proposalsLoading,
     refetch: refetchProposals,
   } = useQuery<
@@ -329,11 +368,13 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     };
   }, [refetchProposals]);
 
-  const proposalItems = proposalData?.actionProposals ?? [];
-  const visibleProposalItems = useMemo(
-    () => filterActionProposals(proposalItems, attentionSearch, shopLabel),
-    [attentionSearch, proposalItems, shops],
-  );
+  const visibleProposalItems = entityStore.affiliateWorkspace
+    .actionProposalPage({
+      shopId: selectedShopId || undefined,
+      status: proposalStatus,
+      search: attentionSearch,
+    })
+    .map(hydrateAffiliateProposalProjection);
 
   async function decideProposal(proposal: GQL.ActionProposal, status: GQL.ActionProposalStatus) {
     try {
@@ -2048,7 +2089,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     ];
   }, [historyFilter]);
 
-  const { data, loading, refetch } = useQuery<
+  const { loading, refetch } = useQuery<
     { affiliateCollaborationRecordItems: CollaborationListItem[] },
     { input: GQL.ReadAffiliateCollaborationRecordsInput }
   >(AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY, {
@@ -2077,13 +2118,14 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     };
   }, [refetch]);
 
-  const items = useMemo(() => {
-    return data?.affiliateCollaborationRecordItems ?? [];
-  }, [data?.affiliateCollaborationRecordItems]);
-  const visibleItems = useMemo(
-    () => filterCollaborationItems(items, historySearch, shopLabel),
-    [historySearch, items, shops],
-  );
+  const visibleItems = entityStore.affiliateWorkspace
+    .collaborationRecordPage({
+      shopId: selectedShopId || undefined,
+      processingStatus,
+      processingStatuses,
+      search: historySearch,
+    })
+    .map(hydrateAffiliateCollaborationProjection);
   const historyPageCount = Math.max(1, Math.ceil(visibleItems.length / COLLABORATION_HISTORY_PAGE_SIZE));
   const pagedVisibleItems = useMemo(() => {
     const start = (historyPage - 1) * COLLABORATION_HISTORY_PAGE_SIZE;
@@ -2439,19 +2481,57 @@ function CollaborationActivityModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
   const record = item.collaborationRecord;
+  const [conversationPageToken, setConversationPageToken] = useState<string | null>(null);
   const creatorName = item.creatorProfile
     ? creatorPrimaryName(item.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : t("ecommerce.affiliateWorkspace.unknownCreator");
-  const { data, loading } = useQuery<
+
+  useEffect(() => {
+    setConversationPageToken(null);
+  }, [record.id, record.platformConversationId]);
+
+  const { loading } = useQuery<
     { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
     { input: GQL.AffiliateCollaborationActivityInput }
   >(AFFILIATE_COLLABORATION_ACTIVITY_QUERY, {
     variables: { input: { collaborationRecordId: record.id, limit: 80 } },
     fetchPolicy: "cache-and-network",
   });
-  const proposals = data?.affiliateCollaborationActivity.actionProposals ?? [];
-  const lifecycleEvents = data?.affiliateCollaborationActivity.lifecycleEvents ?? [];
+  const { loading: conversationLoading } = useQuery<
+    { affiliateConversationMessages: GQL.AffiliateConversationMessagesPage },
+    { input: GQL.AffiliateConversationMessagesInput }
+  >(AFFILIATE_CONVERSATION_MESSAGES_QUERY, {
+    variables: {
+      input: {
+        shopId: record.shopId,
+        conversationId: record.platformConversationId ?? "",
+        pageSize: 30,
+        pageToken: conversationPageToken,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !record.platformConversationId,
+  });
+  const projection = entityStore.affiliateWorkspace.collaborationProjection(record.id);
+  const proposals = (projection?.actionProposals ?? []).map((proposal) =>
+    hydrateAffiliateProposalProjection({
+      proposal,
+      collaborationRecord: projection?.collaborationRecord,
+      creatorProfile: projection?.creatorProfile,
+      productSummary: projection?.productSummary,
+    }),
+  );
+  const lifecycleEvents = (projection?.lifecycleEvents ?? []).map((event) =>
+    affiliateSnapshot(event) as GQL.LifecycleEvent,
+  );
+  const conversationPage = entityStore.affiliateWorkspace.getConversationMessagePage(
+    record.shopId,
+    record.platformConversationId,
+  );
+  const conversationMessages = (conversationPage?.items ?? []) as unknown as GQL.AffiliateConversationMessageItem[];
+  const canLoadOlderConversation = Boolean(conversationPage?.hasMore && conversationPage.nextPageToken);
 
   const timeline = useMemo(
     () => [
@@ -2474,6 +2554,11 @@ function CollaborationActivityModal({
     ].sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime()),
     [lifecycleEvents, proposals, t],
   );
+
+  function loadOlderConversationMessages(): void {
+    if (!conversationPage?.nextPageToken || !record.platformConversationId) return;
+    setConversationPageToken(conversationPage.nextPageToken);
+  }
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -2514,6 +2599,41 @@ function CollaborationActivityModal({
           shopId={record.shopId}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
         />
+        {record.platformConversationId ? (
+          <>
+            <div className="affiliate-collaboration-modal-section-title">
+              {t("ecommerce.affiliateWorkspace.conversation.recentMessages")}
+            </div>
+            <div className="affiliate-conversation-preview">
+              {conversationLoading && conversationMessages.length === 0 ? (
+                <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+              ) : conversationMessages.length === 0 ? (
+                <div className="affiliate-proposal-empty">
+                  {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+                </div>
+              ) : (
+                conversationMessages.map((message) => (
+                  <AffiliateConversationMessageRow
+                    key={message.messageId ?? message.conversationIndex ?? `${message.createdAt}-${message.senderId}`}
+                    message={message}
+                  />
+                ))
+              )}
+              {canLoadOlderConversation ? (
+                <button
+                  className="btn btn-secondary affiliate-conversation-load-more"
+                  type="button"
+                  disabled={conversationLoading}
+                  onClick={loadOlderConversationMessages}
+                >
+                  {conversationLoading
+                    ? t("common.loading")
+                    : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : null}
         <div className="affiliate-collaboration-modal-section-title">
           {t("ecommerce.affiliateWorkspace.operationHistory")}
         </div>
@@ -2543,6 +2663,67 @@ function CollaborationActivityModal({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AffiliateConversationMessageRow({
+  message,
+}: {
+  message: GQL.AffiliateConversationMessageItem;
+}) {
+  const { t } = useTranslation();
+  const direction = message.direction ?? GQL.AffiliateConversationMessageDirection.System;
+  const text = message.text?.trim() || message.rawContent?.trim() || "";
+  const time = message.createdAt
+    ?? (message.createTime ? new Date(message.createTime * 1000).toISOString() : null);
+  const productRefs = message.productRefs ?? [];
+  const sampleRefs = message.sampleApplicationRefs ?? [];
+  const targetRefs = message.targetCollaborationRefs ?? [];
+  const directionKey = String(direction).toLowerCase();
+
+  return (
+    <div className={`affiliate-conversation-message-row affiliate-conversation-message-${directionKey}`}>
+      <div className="affiliate-conversation-message-meta">
+        <span>
+          {t(`ecommerce.affiliateWorkspace.conversation.directions.${direction}`, {
+            defaultValue: direction,
+          })}
+        </span>
+        {time ? <span>{formatProposalTime(time)}</span> : null}
+      </div>
+      {text ? (
+        <div className="affiliate-conversation-message-text">{text}</div>
+      ) : (
+        <div className="affiliate-conversation-message-text affiliate-conversation-message-empty">
+          {t("ecommerce.affiliateWorkspace.conversation.cardOnlyMessage")}
+        </div>
+      )}
+      {productRefs.length || sampleRefs.length || targetRefs.length ? (
+        <div className="affiliate-conversation-message-refs">
+          {productRefs.map((ref) => (
+            <span key={`product:${ref.productId}`}>
+              {t("ecommerce.affiliateWorkspace.conversation.productCard", {
+                product: ref.productSummary?.title || ref.productId,
+              })}
+            </span>
+          ))}
+          {sampleRefs.map((ref) => (
+            <span key={`sample:${ref.platformApplicationId}`}>
+              {t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCard", {
+                applicationId: ref.platformApplicationId,
+              })}
+            </span>
+          ))}
+          {targetRefs.map((ref) => (
+            <span key={`target:${ref.platformTargetCollaborationId}`}>
+              {t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCard", {
+                collaborationId: ref.platformTargetCollaborationId,
+              })}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

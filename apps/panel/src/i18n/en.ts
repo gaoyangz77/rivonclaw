@@ -2755,6 +2755,20 @@ export default {
       debugIdCopied: "Debug ID copied",
       openCreatorDetail: "Open creator details",
       operationHistory: "Operation history",
+      conversation: {
+        recentMessages: "Recent conversation",
+        noMessages: "No conversation messages are available yet.",
+        loadOlder: "Load older messages",
+        cardOnlyMessage: "This message only contains a card.",
+        productCard: "Product card: {{product}}",
+        sampleApplicationCard: "Sample request card: {{applicationId}}",
+        targetCollaborationCard: "Collaboration card: {{collaborationId}}",
+        directions: {
+          CREATOR: "Creator",
+          SELLER: "Seller",
+          SYSTEM: "System",
+        },
+      },
       creatorDetail: {
         followers: "Followers",
         platform: "Platform",
