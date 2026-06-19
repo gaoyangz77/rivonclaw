@@ -3296,8 +3296,8 @@ export default {
     "upgradeRequired": "Cette fonctionnalité nécessite un abonnement. Veuillez mettre à niveau votre forfait.",
     "llmUnavailableTitle": "AI model unavailable",
     "llmUnavailableBody": "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
-    "customerServiceRoutingUnavailableTitle": "Le service client IA n'est pas disponible sur cet appareil",
-    "customerServiceRoutingUnavailableBody": "Les magasins suivants utilisent cet appareil pour le service client, mais leur canal de réception des escalades n'est pas disponible. Sélectionnez un canal existant ou terminez l'activation du jeton de message WeChat.",
+    "customerServiceRoutingUnavailableTitle": "L'escalade du service client IA n'est pas disponible sur cet appareil",
+    "customerServiceRoutingUnavailableBody": "Les magasins suivants utilisent cet appareil pour le service client, mais leur canal de réception des escalades n'est pas disponible. Le service client IA de base n'est pas affecté. Sélectionnez un canal d'escalade existant ou terminez l'activation du jeton de message WeChat.",
     "customerServiceRoutingIssue_invalid_channel": "La chaîne n'existe plus",
     "customerServiceRoutingIssue_missing_context_token": "Il manque à WeChat le jeton de contexte requis pour les messages sortants proactifs",
     "shopUpdatedToast": "La boutique \"{{shopName}}\" a été mise à jour."

@@ -3296,8 +3296,8 @@ export default {
     "upgradeRequired": "คุณลักษณะนี้ต้องมีการสมัครสมาชิก กรุณาอัพเกรดแผนของคุณ",
     "llmUnavailableTitle": "AI model unavailable",
     "llmUnavailableBody": "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
-    "customerServiceRoutingUnavailableTitle": "ฝ่ายบริการลูกค้า AI ไม่พร้อมใช้งานบนอุปกรณ์นี้",
-    "customerServiceRoutingUnavailableBody": "ร้านค้าต่อไปนี้ใช้อุปกรณ์นี้เพื่อการบริการลูกค้า แต่ช่องทางผู้รับการยกระดับไม่พร้อมใช้งาน เลือกช่องทางที่มีอยู่ หรือเปิดใช้งานโทเค็นข้อความ WeChat ให้เสร็จสมบูรณ์",
+    "customerServiceRoutingUnavailableTitle": "การยกระดับฝ่ายบริการลูกค้า AI ไม่พร้อมใช้งานบนอุปกรณ์นี้",
+    "customerServiceRoutingUnavailableBody": "ร้านค้าต่อไปนี้ใช้อุปกรณ์นี้เพื่อการบริการลูกค้า แต่ช่องทางผู้รับการยกระดับไม่พร้อมใช้งาน ฝ่ายบริการลูกค้า AI พื้นฐานไม่ได้รับผลกระทบ เลือกช่องทางยกระดับที่มีอยู่ หรือเปิดใช้งานโทเค็นข้อความ WeChat ให้เสร็จสมบูรณ์",
     "customerServiceRoutingIssue_invalid_channel": "ไม่มีช่องนี้แล้ว",
     "customerServiceRoutingIssue_missing_context_token": "WeChat ไม่มีโทเค็นบริบทที่จำเป็นสำหรับข้อความขาออกเชิงรุก",
     "shopUpdatedToast": "ร้านค้า \"{{shopName}}\" ได้รับการอัพเดตแล้ว"
