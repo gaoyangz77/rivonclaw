@@ -118,11 +118,15 @@ export interface ActionProposalCreatorTagIntent {
 }
 
 export interface ActionProposalDecisionSnapshot {
+  actorId?: Maybe<Scalars['String']['output']>;
+  actorType?: Maybe<AffiliateLifecycleActorType>;
   decidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   note?: Maybe<Scalars['String']['output']>;
 }
 
 export interface ActionProposalDecisionSnapshotInput {
+  actorId?: InputMaybe<Scalars['String']['input']>;
+  actorType?: InputMaybe<AffiliateLifecycleActorType>;
   decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
 }

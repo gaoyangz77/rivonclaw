@@ -172,6 +172,8 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
       decision {
         note
         decidedAt
+        actorType
+        actorId
       }
       steps {
         stepId

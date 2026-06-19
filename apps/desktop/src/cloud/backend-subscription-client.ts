@@ -429,6 +429,8 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             decision {
               note
               decidedAt
+              actorType
+              actorId
             }
             updatedAt
           }
@@ -534,6 +536,12 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           requiresApproval
           matchedPolicyIds
           reasons
+        }
+        decision {
+          note
+          decidedAt
+          actorType
+          actorId
         }
         sampleReviewIntent {
           sampleApplicationRecordId
