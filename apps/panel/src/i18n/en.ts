@@ -2754,9 +2754,11 @@ export default {
       copyDebugId: "Copy debug ID",
       debugIdCopied: "Debug ID copied",
       openCreatorDetail: "Open creator details",
+      openCollaborationDetailHint: "Open the detail view for conversation, sample, and operation history.",
       operationHistory: "Operation history",
       conversation: {
         recentMessages: "Recent conversation",
+        noConversation: "No platform conversation is linked to this collaboration yet.",
         noMessages: "No conversation messages are available yet.",
         loadOlder: "Load older messages",
         cardOnlyMessage: "This message only contains a card.",
@@ -2768,6 +2770,14 @@ export default {
           SELLER: "Seller",
           SYSTEM: "System",
         },
+      },
+      sampleApplication: {
+        title: "Sample request",
+        status: "Status",
+        applicationId: "Application ID",
+        contentCount: "Content observed",
+        tracking: "Tracking number",
+        none: "No linked sample request is available for this collaboration yet.",
       },
       creatorDetail: {
         followers: "Followers",

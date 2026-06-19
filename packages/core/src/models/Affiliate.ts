@@ -28,7 +28,7 @@ function messageIdentity(message: Record<string, any>): string {
 
 export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile", {
   id: types.identifier,
-  platform: types.string,
+  platform: types.optional(types.string, "TIKTOK_SHOP"),
   creatorOpenId: types.maybeNull(types.string),
   creatorImId: types.maybeNull(types.string),
   username: types.maybeNull(types.string),
@@ -38,8 +38,8 @@ export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile
   categoryIds: types.optional(types.array(types.string), []),
   marketplaceSnapshotJson: types.maybeNull(types.string),
   aggregatedSignalsSnapshotJson: types.maybeNull(types.string),
-  createdAt: types.string,
-  updatedAt: types.string,
+  createdAt: types.optional(types.string, nowIso),
+  updatedAt: types.optional(types.string, nowIso),
 });
 
 export const AffiliateProductSkuSummaryModel = types.model("AffiliateProductSkuSummary", {
@@ -231,6 +231,25 @@ export const AffiliateWorkspaceModel = types
       if (!id) return null;
       return self.sampleApplicationRecords.find((record) => record.id === id) ?? null;
     },
+    sampleApplicationsForCollaboration(collaborationRecord: {
+      sampleApplicationRecordId?: string | null;
+      affiliateCollaborationId?: string | null;
+    }) {
+      const ids = new Set(
+        [collaborationRecord.sampleApplicationRecordId].filter(
+          (id): id is string => Boolean(id),
+        ),
+      );
+      return self.sampleApplicationRecords
+        .filter((record) => (
+          ids.has(record.id) ||
+          (
+            Boolean(collaborationRecord.affiliateCollaborationId) &&
+            record.affiliateCollaborationId === collaborationRecord.affiliateCollaborationId
+          )
+        ))
+        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+    },
     getConversationRecordByPlatformId(shopId: string | null | undefined, conversationId: string | null | undefined) {
       if (!shopId || !conversationId) return null;
       return self.conversationRecords.find((record) => (
@@ -270,7 +289,8 @@ export const AffiliateWorkspaceModel = types
       if (!collaborationRecord) return null;
       const creatorProfile = self.getCreatorProfile(collaborationRecord.creatorId);
       const productSummary = self.getProductSummary(collaborationRecord.productId);
-      const sampleApplication = self.getSampleApplicationRecord(collaborationRecord.sampleApplicationRecordId);
+      const sampleApplications = self.sampleApplicationsForCollaboration(collaborationRecord);
+      const sampleApplication = sampleApplications[0] ?? null;
       const conversationRecord = self.getConversationRecordByPlatformId(
         collaborationRecord.shopId,
         collaborationRecord.platformConversationId,
@@ -280,6 +300,7 @@ export const AffiliateWorkspaceModel = types
         creatorProfile,
         productSummary,
         sampleApplication,
+        sampleApplications,
         conversationRecord,
         actionProposals: self.proposalsForCollaboration(collaborationRecordId),
         lifecycleEvents: self.lifecycleEventsForCollaboration(collaborationRecordId),
@@ -355,7 +376,15 @@ export const AffiliateWorkspaceModel = types
 
     function upsertProduct(product: GQL.EcomProductSummary | null | undefined): void {
       if (!product?.productId) return;
-      upsertById(self.productSummaries as any, product as any);
+      const idx = self.productSummaries.findIndex((existing) => existing.productId === product.productId);
+      if (idx >= 0) {
+        applySnapshot(self.productSummaries[idx] as any, {
+          ...(getSnapshot(self.productSummaries[idx] as any) as Record<string, any>),
+          ...(product as Record<string, any>),
+        });
+      } else {
+        self.productSummaries.push(product as any);
+      }
     }
 
     function upsertCreator(profile: GQL.CreatorGlobalProfile | null | undefined): void {
@@ -423,19 +452,20 @@ export const AffiliateWorkspaceModel = types
         for (const item of items) {
           upsertCreator(item.creatorProfile);
           upsertProduct(item.productSummary);
-          upsertProposal(item.latestProposal);
-          upsertLifecycleEvent(item.latestLifecycleEvent);
           upsertCollaborationRecord(item.collaborationRecord);
         }
       },
       ingestAffiliateCollaborationActivity(activity: {
         actionProposals?: GQL.ActionProposal[];
         lifecycleEvents?: GQL.LifecycleEvent[];
+        sampleApplicationRecords?: GQL.SampleApplicationRecord[];
         sampleApplications?: GQL.SampleApplicationRecord[];
       } | null | undefined) {
         for (const proposal of activity?.actionProposals ?? []) upsertProposal(proposal);
         for (const event of activity?.lifecycleEvents ?? []) upsertLifecycleEvent(event);
-        for (const sample of activity?.sampleApplications ?? []) upsertSampleApplication(sample);
+        for (const sample of activity?.sampleApplicationRecords ?? activity?.sampleApplications ?? []) {
+          upsertSampleApplication(sample);
+        }
       },
       ingestAffiliateConversationMessages(
         shopId: string,

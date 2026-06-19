@@ -2379,9 +2379,11 @@ export default {
       "copyDebugId": "คัดลอก ID ดีบัก",
       "debugIdCopied": "คัดลอก ID ดีบักแล้ว",
       "openCreatorDetail": "เปิดรายละเอียดครีเอเตอร์",
+      "openCollaborationDetailHint": "เปิดรายละเอียดเพื่อดูบทสนทนา ตัวอย่าง และประวัติการดำเนินการ",
       "operationHistory": "ประวัติการดำเนินการ",
       "conversation": {
         "recentMessages": "บทสนทนาล่าสุด",
+        "noConversation": "ยังไม่มีบทสนทนาแพลตฟอร์มที่เชื่อมกับความร่วมมือนี้",
         "noMessages": "ยังไม่มีข้อความสนทนา",
         "loadOlder": "โหลดข้อความเก่ากว่า",
         "cardOnlyMessage": "ข้อความนี้มีเฉพาะการ์ด",
@@ -2393,6 +2395,14 @@ export default {
           "SELLER": "ผู้ขาย",
           "SYSTEM": "ระบบ"
         }
+      },
+      "sampleApplication": {
+        "title": "คำขอตัวอย่าง",
+        "status": "สถานะ",
+        "applicationId": "ID คำขอ",
+        "contentCount": "คอนเทนต์ที่พบ",
+        "tracking": "หมายเลขติดตาม",
+        "none": "ยังไม่มีคำขอตัวอย่างที่เชื่อมกับความร่วมมือนี้"
       },
       "creatorDetail": {
         "followers": "ผู้ติดตาม",

@@ -2379,9 +2379,11 @@ export default {
       "copyDebugId": "Copia ID debug",
       "debugIdCopied": "ID debug copiato",
       "openCreatorDetail": "Apri dettagli creator",
+      "openCollaborationDetailHint": "Apri il dettaglio per vedere conversazione, campione e cronologia operazioni.",
       "operationHistory": "Cronologia operazioni",
       "conversation": {
         "recentMessages": "Conversazione recente",
+        "noConversation": "Nessuna conversazione della piattaforma è ancora collegata a questa collaborazione.",
         "noMessages": "Nessun messaggio di conversazione disponibile.",
         "loadOlder": "Carica messaggi precedenti",
         "cardOnlyMessage": "Questo messaggio contiene solo una scheda.",
@@ -2393,6 +2395,14 @@ export default {
           "SELLER": "Venditore",
           "SYSTEM": "Sistema"
         }
+      },
+      "sampleApplication": {
+        "title": "Richiesta campione",
+        "status": "Stato",
+        "applicationId": "ID richiesta",
+        "contentCount": "Contenuti osservati",
+        "tracking": "Numero tracking",
+        "none": "Nessuna richiesta campione collegata è ancora disponibile per questa collaborazione."
       },
       "creatorDetail": {
         "followers": "Follower",

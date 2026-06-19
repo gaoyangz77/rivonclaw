@@ -2379,9 +2379,11 @@ export default {
       "copyDebugId": "Debug-ID kopieren",
       "debugIdCopied": "Debug-ID kopiert",
       "openCreatorDetail": "Creator-Details öffnen",
+      "openCollaborationDetailHint": "Öffnen Sie die Detailansicht für Unterhaltung, Muster und Aktionsverlauf.",
       "operationHistory": "Aktionsverlauf",
       "conversation": {
         "recentMessages": "Aktuelle Unterhaltung",
+        "noConversation": "Mit dieser Kooperation ist noch keine Plattform-Unterhaltung verknüpft.",
         "noMessages": "Noch keine Unterhaltungsnachrichten verfügbar.",
         "loadOlder": "Ältere Nachrichten laden",
         "cardOnlyMessage": "Diese Nachricht enthält nur eine Karte.",
@@ -2393,6 +2395,14 @@ export default {
           "SELLER": "Verkäufer",
           "SYSTEM": "System"
         }
+      },
+      "sampleApplication": {
+        "title": "Musteranfrage",
+        "status": "Status",
+        "applicationId": "Anfrage-ID",
+        "contentCount": "Beobachtete Inhalte",
+        "tracking": "Sendungsnummer",
+        "none": "Für diese Kooperation ist noch keine verknüpfte Musteranfrage verfügbar."
       },
       "creatorDetail": {
         "followers": "Follower",

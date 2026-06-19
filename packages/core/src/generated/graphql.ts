@@ -632,6 +632,7 @@ export interface AffiliateCollaborationActivityInput {
 export interface AffiliateCollaborationActivityPayload {
   actionProposals: Array<ActionProposal>;
   lifecycleEvents: Array<LifecycleEvent>;
+  sampleApplicationRecords: Array<SampleApplicationRecord>;
 }
 
 /** One creator-product collaboration attempt. If a creator promotes the same product twice, create two collaborations. */
