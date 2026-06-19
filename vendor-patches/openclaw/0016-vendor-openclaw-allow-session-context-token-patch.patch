@@ -1,0 +1,98 @@
+From e6636f54285947c69c3483ee9cea905007671308 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Thu, 18 Jun 2026 23:53:22 -0700
+Subject: [PATCH] vendor(openclaw): allow session context token patch
+
+Why:
+- RivonClaw Customer Service sessions need a lower effective context cap than coding/default agents to reduce per-dispatch prompt cost.
+- OpenClaw already stores and consumes per-session contextTokens, but sessions.patch does not expose that field through the gateway protocol.
+
+Removal:
+- Drop when upstream OpenClaw supports updating per-session contextTokens through sessions.patch or another stable gateway session settings API.
+
+Tests:
+- apps/desktop/src/cs-bridge/customer-service-bridge.test.ts
+- apps/desktop/src/cs-bridge/vendor-session-context-tokens.sentinel.test.ts
+- vendor/openclaw/src/gateway/sessions-patch.test.ts
+---
+ src/gateway/protocol/schema/sessions.ts |  1 +
+ src/gateway/sessions-patch.test.ts      | 27 +++++++++++++++++++++++++
+ src/gateway/sessions-patch.ts           | 12 +++++++++++
+ 3 files changed, 40 insertions(+)
+
+diff --git a/src/gateway/protocol/schema/sessions.ts b/src/gateway/protocol/schema/sessions.ts
+index 83c31ad375..899dda5783 100644
+--- a/src/gateway/protocol/schema/sessions.ts
++++ b/src/gateway/protocol/schema/sessions.ts
+@@ -178,6 +178,7 @@ export const SessionsPatchParamsSchema = Type.Object(
+     execAsk: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+     execNode: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+     model: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
++    contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),
+     spawnedBy: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+     spawnedWorkspaceDir: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+     spawnDepth: Type.Optional(Type.Union([Type.Integer({ minimum: 0 }), Type.Null()])),
+diff --git a/src/gateway/sessions-patch.test.ts b/src/gateway/sessions-patch.test.ts
+index 47719c5ef3..a3387fca8d 100644
+--- a/src/gateway/sessions-patch.test.ts
++++ b/src/gateway/sessions-patch.test.ts
+@@ -133,6 +133,33 @@ describe("gateway sessions patch", () => {
+     expect(entry.thinkingLevel).toBeUndefined();
+   });
+ 
++  test("persists contextTokens override", async () => {
++    const entry = expectPatchOk(
++      await runPatch({
++        patch: { key: MAIN_SESSION_KEY, contextTokens: 100_000 },
++      }),
++    );
++    expect(entry.contextTokens).toBe(100_000);
++  });
++
++  test("clears contextTokens override", async () => {
++    const store: Record<string, SessionEntry> = {
++      [MAIN_SESSION_KEY]: {
++        sessionId: "session-1",
++        updatedAt: Date.now(),
++        contextTokens: 100_000,
++      },
++    };
++
++    const entry = expectPatchOk(
++      await runPatch({
++        store,
++        patch: { key: MAIN_SESSION_KEY, contextTokens: null },
++      }),
++    );
++    expect(entry.contextTokens).toBeUndefined();
++  });
++
+   test("persists reasoningLevel=off (does not clear)", async () => {
+     const entry = expectPatchOk(
+       await runPatch({
+diff --git a/src/gateway/sessions-patch.ts b/src/gateway/sessions-patch.ts
+index d4373272bd..59d7681c55 100644
+--- a/src/gateway/sessions-patch.ts
++++ b/src/gateway/sessions-patch.ts
+@@ -453,6 +453,18 @@ export async function applySessionsPatchToStore(params: {
+     }
+   }
+ 
++  if ("contextTokens" in patch) {
++    const raw = patch.contextTokens;
++    if (raw === null) {
++      delete next.contextTokens;
++    } else if (raw !== undefined) {
++      if (!Number.isInteger(raw) || raw <= 0) {
++        return invalid("invalid contextTokens (use an integer > 0)");
++      }
++      next.contextTokens = raw;
++    }
++  }
++
+   if (next.thinkingLevel) {
+     const effectiveProvider = next.providerOverride ?? resolvedDefault.provider;
+     const effectiveModel = next.modelOverride ?? resolvedDefault.model;
+-- 
+2.50.1 (Apple Git-155)
+

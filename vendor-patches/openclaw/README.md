@@ -355,6 +355,27 @@ resolver failures surface as explicit RivonClaw media-cache errors.
 **Removal:** Drop when upstream OpenClaw exposes a host-provided remote-media
 URL resolver hook that RivonClaw can configure without patching source.
 
+### 0016 — Allow session context token patch
+
+**File:** `0016-vendor-openclaw-allow-session-context-token-patch.patch`
+
+**Why:** RivonClaw Customer Service sessions need a lower effective context cap
+than coding/default agents to reduce per-dispatch prompt cost. OpenClaw already
+stores and consumes per-session `contextTokens`, but `sessions.patch` does not
+expose that field through the gateway protocol.
+
+**Change:** Add `contextTokens` to the `sessions.patch` schema and persist or
+clear it in the patch handler.
+
+**Tests:**
+- `vendor/openclaw/src/gateway/sessions-patch.test.ts`
+- `apps/desktop/src/cs-bridge/customer-service-bridge.test.ts`
+- `apps/desktop/src/cs-bridge/vendor-session-context-tokens.sentinel.test.ts`
+
+**Removal:** Drop when upstream OpenClaw supports updating per-session
+`contextTokens` through `sessions.patch` or another stable gateway session
+settings API.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
