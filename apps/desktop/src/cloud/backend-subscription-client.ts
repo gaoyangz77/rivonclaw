@@ -28,7 +28,7 @@ const UPDATE_SUBSCRIPTION = `
   }
 `;
 
-const OAUTH_COMPLETE_SUBSCRIPTION = `
+export const OAUTH_COMPLETE_SUBSCRIPTION = `
   subscription OAuthComplete {
     oauthComplete {
       shopId
@@ -68,6 +68,7 @@ const OAUTH_COMPLETE_SUBSCRIPTION = `
             enabled
             runProfileId
             csDeviceId
+            modelUsageScope
             businessPrompt
             decisionThresholds {
               minExpectedSalesUnits
@@ -89,7 +90,7 @@ const ADS_OAUTH_COMPLETE_SUBSCRIPTION = `
   }
 `;
 
-const SHOP_UPDATED_SUBSCRIPTION = `
+export const SHOP_UPDATED_SUBSCRIPTION = `
   subscription ShopUpdated {
     shopUpdated {
       __typename
@@ -125,6 +126,7 @@ const SHOP_UPDATED_SUBSCRIPTION = `
           enabled
           runProfileId
           csDeviceId
+          modelUsageScope
           businessPrompt
           decisionThresholds {
             minExpectedSalesUnits
