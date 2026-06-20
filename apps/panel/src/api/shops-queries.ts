@@ -6,6 +6,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
     platform
     platformAppId
     platformShopId
+    collectionKey
     shopName
     alias
     authStatus

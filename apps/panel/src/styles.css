@@ -7372,11 +7372,41 @@ tbody td {
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
 }
 
+.billing-shop-collection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.billing-shop-collection-header {
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg) 93%);
+  border-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-border-light));
+}
+
+.billing-shop-collection-child {
+  margin-left: 14px;
+}
+
 .billing-shop-name {
   font-size: 15px;
   font-weight: 700;
   color: var(--color-text);
   overflow-wrap: anywhere;
+}
+
+.billing-shop-count,
+.shop-collection-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg) 90%);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .billing-shop-services {
@@ -8477,6 +8507,24 @@ html[lang="zh"] .acct-tool-chips {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.shop-collection-row {
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg) 93%);
+}
+
+.shop-collection-row td {
+  border-top: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border-light));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 12%, var(--color-border-light));
+  font-weight: 600;
+}
+
+.shop-collection-child-row td:first-child {
+  padding-left: 28px;
+}
+
+.shop-collection-child-row .shop-table-name {
+  max-width: 22ch;
 }
 
 .shop-alias-input {

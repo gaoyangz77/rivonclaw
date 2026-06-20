@@ -73,6 +73,7 @@ export const ShopModel = types.model("Shop", {
   platform: types.string,
   platformAppId: types.optional(types.string, ""),
   platformShopId: types.string,
+  collectionKey: types.optional(types.string, ""),
   shopName: types.string,
   alias: types.optional(types.maybeNull(types.string), null),
   authStatus: types.optional(types.string, ""),

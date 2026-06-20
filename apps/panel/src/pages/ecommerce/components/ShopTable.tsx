@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
+import {
+  groupShopsByCollection,
+  shopCollectionDisplayName,
+  shopCollectionRegions,
+} from "../../../lib/shop-collections.js";
 
 interface ShopTableProps {
   shops: Shop[];
@@ -34,6 +39,7 @@ export function ShopTable({
   const { t } = useTranslation();
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
   const [savingAliasShopId, setSavingAliasShopId] = useState<string | null>(null);
+  const shopGroups = useMemo(() => groupShopsByCollection(shops), [shops]);
 
   useEffect(() => {
     setDraftAliases((prev) => {
@@ -102,72 +108,105 @@ export function ShopTable({
               </tr>
             </thead>
             <tbody>
-              {shops.map((shop) => (
-                  <tr key={shop.id}>
-                    <td>
-                      <span className="shop-table-name">{shop.shopName}</span>
-                    </td>
-                    <td className="shop-table-col-alias">
-                      <input
-                        className="shop-alias-input"
-                        value={draftAliases[shop.id] ?? (shop.alias ?? "")}
-                        placeholder={t("ecommerce.table.aliasPlaceholder")}
-                        disabled={savingAliasShopId === shop.id}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setDraftAliases((prev) => ({ ...prev, [shop.id]: value }));
-                        }}
-                        onBlur={() => {
-                          commitAlias(shop).catch(() => {});
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            e.currentTarget.blur();
-                          } else if (e.key === "Escape") {
-                            setDraftAliases((prev) => ({ ...prev, [shop.id]: shop.alias ?? "" }));
-                            e.currentTarget.blur();
-                          }
-                        }}
-                      />
-                    </td>
-                    <td>{shop.platform === "TIKTOK_SHOP" ? "TikTok" : shop.platform}</td>
-                    <td>{formatShopRegionLabel(shop.region, t)}</td>
-                    <td>
-                      <span className={getAuthStatusBadgeClass(shop.authStatus)}>
-                        {t(`tiktokShops.authStatus_${shop.authStatus}`)}
-                      </span>
-                    </td>
-                    <td>
-                      <BalanceBadge shop={shop} />
-                    </td>
-                    <td className="text-right">
-                      <div className="td-actions shop-table-actions">
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => onOpenDrawer(shop.id)}
+              {shopGroups.map((group) => {
+                const isCollection = group.shops.length > 1;
+                const headerShop =
+                  group.shops.find((shop) => shop.services?.customerService?.enabled) ??
+                  group.shops[0];
+                return (
+                  <Fragment key={group.key}>
+                    {isCollection && (
+                      <tr className="shop-collection-row">
+                        <td>
+                          <span className="shop-table-name">
+                            {shopCollectionDisplayName(group.shops)}
+                          </span>
+                          <span className="shop-collection-count">{group.shops.length}</span>
+                        </td>
+                        <td className="shop-table-col-alias">-</td>
+                        <td>{headerShop.platform === "TIKTOK_SHOP" ? "TikTok" : headerShop.platform}</td>
+                        <td>
+                          {shopCollectionRegions(group.shops)
+                            .map((region) => formatShopRegionLabel(region, t))
+                            .join(", ")}
+                        </td>
+                        <td><span className="badge badge-muted">{group.shops.length}</span></td>
+                        <td><BalanceBadge shop={headerShop} /></td>
+                        <td />
+                      </tr>
+                    )}
+                    {group.shops.map((shop) => (
+                        <tr
+                          key={shop.id}
+                          className={isCollection ? "shop-collection-child-row" : undefined}
                         >
-                          {t("ecommerce.view")}
-                        </button>
-                        {shop.authStatus === "TOKEN_EXPIRED" && (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => onReauthorize(shop.id)}
-                            disabled={oauthLoading || oauthWaiting}
-                          >
-                            {t("ecommerce.reauthorize")}
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => onRequestDelete(shop.id)}
-                        >
-                          {t("ecommerce.disconnect")}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-              ))}
+                          <td>
+                            <span className="shop-table-name">{shop.shopName}</span>
+                          </td>
+                          <td className="shop-table-col-alias">
+                            <input
+                              className="shop-alias-input"
+                              value={draftAliases[shop.id] ?? (shop.alias ?? "")}
+                              placeholder={t("ecommerce.table.aliasPlaceholder")}
+                              disabled={savingAliasShopId === shop.id}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setDraftAliases((prev) => ({ ...prev, [shop.id]: value }));
+                              }}
+                              onBlur={() => {
+                                commitAlias(shop).catch(() => {});
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  e.currentTarget.blur();
+                                } else if (e.key === "Escape") {
+                                  setDraftAliases((prev) => ({ ...prev, [shop.id]: shop.alias ?? "" }));
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
+                          </td>
+                          <td>{shop.platform === "TIKTOK_SHOP" ? "TikTok" : shop.platform}</td>
+                          <td>{formatShopRegionLabel(shop.region, t)}</td>
+                          <td>
+                            <span className={getAuthStatusBadgeClass(shop.authStatus)}>
+                              {t(`tiktokShops.authStatus_${shop.authStatus}`)}
+                            </span>
+                          </td>
+                          <td>
+                            <BalanceBadge shop={shop} />
+                          </td>
+                          <td className="text-right">
+                            <div className="td-actions shop-table-actions">
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => onOpenDrawer(shop.id)}
+                              >
+                                {t("ecommerce.view")}
+                              </button>
+                              {shop.authStatus === "TOKEN_EXPIRED" && (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => onReauthorize(shop.id)}
+                                  disabled={oauthLoading || oauthWaiting}
+                                >
+                                  {t("ecommerce.reauthorize")}
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => onRequestDelete(shop.id)}
+                              >
+                                {t("ecommerce.disconnect")}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                    ))}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
