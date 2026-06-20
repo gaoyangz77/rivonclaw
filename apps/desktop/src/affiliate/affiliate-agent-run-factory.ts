@@ -39,6 +39,23 @@ export function buildAffiliateAgentRunRequest(
 type AffiliateAgentRunKind = "CREATOR_REPLY" | "CREATOR_FOLLOW_UP";
 
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
+  if (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyOnly ||
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded ||
+    workItem.recommendedActionTypes?.includes(GQL.ActionProposalType.SendMessage) ||
+    workItem.context?.recommendedActionTypes?.includes(GQL.ActionProposalType.SendMessage)
+  ) {
+    return "CREATOR_REPLY";
+  }
+
+  if (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorFollowUp ||
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue
+  ) {
+    return "CREATOR_FOLLOW_UP";
+  }
+
   switch (workItem.requiredAction) {
     case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
       return "CREATOR_REPLY";
@@ -48,15 +65,7 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
       break;
   }
 
-  // Compatibility for older backend payloads during rolling deploys.
-  switch (workItem.workKind) {
-    case GQL.AffiliateWorkKind.CreatorReplyNeeded:
-      return "CREATOR_REPLY";
-    case GQL.AffiliateWorkKind.CreatorFollowUpDue:
-      return "CREATOR_FOLLOW_UP";
-    default:
-      return null;
-  }
+  return null;
 }
 
 function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
@@ -67,6 +76,8 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "[Affiliate Work Item: Creator Reply Needed]",
       "",
       renderWorkItemProjection(workItem),
+      "",
+      renderRequiredActionBundleInstruction(workItem),
       "",
       renderResolveActionPayloadTemplates(input),
       "",
@@ -151,6 +162,40 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
 
 function renderPredictionSection(input: AffiliateAgentRunFactoryInput): string {
   return input.predictionSection?.trim() || "## Affiliate Prediction\n(none resolved before dispatch)";
+}
+
+function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem): string {
+  const recommendedActions = recommendedActionTypesForWorkItem(workItem);
+  if (recommendedActions.length === 0) {
+    return [
+      "## Required Action Bundle",
+      "(none recommended by backend)",
+    ].join("\n");
+  }
+
+  const lines = [
+    "## Required Action Bundle",
+    `Backend recommends handling these platform action types together: ${recommendedActions.join(", ")}.`,
+    "If you choose REQUEST_ACTION, your input.actions array must include every recommended action type that is still applicable after checking current workspace facts.",
+    "Do not submit a partial action bundle just because one action is easier to fill.",
+    "Never submit an action with an empty typed intent object such as sampleReviewIntent: {} or messageIntent: {}.",
+  ];
+
+  if (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
+    (
+      recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) &&
+      recommendedActions.includes(GQL.ActionProposalType.SendMessage)
+    )
+  ) {
+    lines.push(
+      "This is a combined sample-review + creator-reply work item. A normal REQUEST_ACTION should include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE in one input.actions array so staff approves or rejects the complete business response together.",
+      "Only omit SEND_MESSAGE if, after reading the conversation, you decide no creator-facing reply is appropriate; explain that omission in operatorSummary.",
+      "Only omit REVIEW_SAMPLE_APPLICATION if the sample application is already terminal or cannot be identified after using affiliate_get_workspace; explain that omission in operatorSummary.",
+    );
+  }
+
+  return lines.join("\n");
 }
 
 function renderResolveWorkItemToolContract(): string {
