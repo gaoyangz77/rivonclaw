@@ -84,7 +84,9 @@ function sanitizeCloudGraphqlVariables(
   if (!input || input.decision !== "REQUEST_ACTION") return variables;
 
   const actionLike = input.action != null ? [input.action] : Array.isArray(input.actions) ? input.actions : [];
-  const normalizedActions = actionLike.map(normalizeAffiliateResolveAction);
+  const context = buildAffiliateResolveActionContext(input);
+  context.inferredSampleReviewDecision = inferSampleReviewDecisionFromResolveInput(input, actionLike) ?? undefined;
+  const normalizedActions = actionLike.map((action) => normalizeAffiliateResolveAction(action, context));
   const hasNormalizedAction = normalizedActions.some((action, index) => action !== actionLike[index]);
   if (actionLike.length > 0 && normalizedActions.every((action) => !isInvalidAffiliateResolveAction(action))) {
     if (!hasNormalizedAction) return variables;
@@ -105,8 +107,9 @@ function sanitizeCloudGraphqlVariables(
       "The agent attempted REQUEST_ACTION but omitted required typed action fields. " +
       "This is a tool payload schema error, not a business reason for NEEDS_STAFF_REVIEW. " +
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
-      "For SEND_MESSAGE use action.messageText with the exact creator-facing message; never send messageIntent: {}.";
-    throw new Error(`${reason} ${describeAffiliateResolveActionShape(actionLike)}`);
+      "For SEND_MESSAGE use action.messageText with the exact creator-facing message; never send messageIntent: {}. " +
+      "For REVIEW_SAMPLE_APPLICATION use action.sampleReviewIntent with sampleApplicationRecordId, platformApplicationId, decision, and optional rejectReason.";
+    throw new Error(`${reason} ${describeAffiliateResolveActionShape(actionLike)} ${describeAffiliateResolveActionRepairHint(context)}`);
   }
 
   return variables;
@@ -124,7 +127,47 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
   );
 }
 
-function normalizeAffiliateResolveAction(value: unknown): unknown {
+interface AffiliateResolveActionContext {
+  collaborationRecordId?: string;
+  sampleApplicationRecordId?: string;
+  platformApplicationId?: string;
+  predictionCacheIds?: string[];
+  inferredSampleReviewDecision?: "APPROVE" | "REJECT";
+}
+
+function buildAffiliateResolveActionContext(input: Record<string, unknown>): AffiliateResolveActionContext {
+  const collaborationRecordId = firstNonEmptyString(input.collaborationRecordId);
+  const context: AffiliateResolveActionContext = {
+    collaborationRecordId: collaborationRecordId ?? undefined,
+    predictionCacheIds: Array.isArray(input.predictionCacheIds)
+      ? input.predictionCacheIds.filter(hasNonEmptyString)
+      : undefined,
+  };
+
+  const collaboration = collaborationRecordId
+    ? rootStore.affiliateWorkspace.getCollaborationRecord(collaborationRecordId)
+    : null;
+  if (!collaboration) return context;
+
+  const directSample = rootStore.affiliateWorkspace.getSampleApplicationRecord(
+    collaboration.sampleApplicationRecordId,
+  );
+  const linkedSample = directSample
+    ?? rootStore.affiliateWorkspace.sampleApplicationsForCollaboration(collaboration)[0]
+    ?? null;
+
+  if (linkedSample?.id) context.sampleApplicationRecordId = linkedSample.id;
+  if (linkedSample?.platformApplicationId) {
+    context.platformApplicationId = linkedSample.platformApplicationId;
+  }
+
+  return context;
+}
+
+function normalizeAffiliateResolveAction(
+  value: unknown,
+  context?: AffiliateResolveActionContext,
+): unknown {
   const action = asRecord(value);
   if (!action) return value;
   const actionType = normalizeAffiliateActionType(action.type);
@@ -134,7 +177,7 @@ function normalizeAffiliateResolveAction(value: unknown): unknown {
     case "SEND_MESSAGE":
       return normalizeAffiliateSendMessageAction({ ...action, type: actionType });
     case "REVIEW_SAMPLE_APPLICATION":
-      return normalizeAffiliateSampleReviewAction({ ...action, type: actionType });
+      return normalizeAffiliateSampleReviewAction({ ...action, type: actionType }, context);
     case "CREATE_TARGET_COLLABORATION":
       return normalizeAffiliateTargetCollaborationAction({ ...action, type: actionType });
     default:
@@ -146,20 +189,44 @@ function normalizeAffiliateActionType(value: unknown): string | null {
   return typeof value === "string" ? value.trim().toUpperCase() : null;
 }
 
-function normalizeAffiliateSampleReviewAction(action: Record<string, unknown>): unknown {
+function normalizeAffiliateSampleReviewAction(
+  action: Record<string, unknown>,
+  context?: AffiliateResolveActionContext,
+): unknown {
   const existingIntent = asRecord(action.sampleReviewIntent);
   if (existingIntent && !isInvalidAffiliateResolveAction(action)) {
     return pickAffiliateActionFields(action, "sampleReviewIntent", existingIntent);
   }
 
-  const sampleApplicationRecordId = action.sampleApplicationRecordId;
-  const platformApplicationId = action.platformApplicationId;
-  const decision = action.decision;
-  const rejectReason = action.rejectReason;
+  const sampleApplicationRecordId = firstNonEmptyString(
+    existingIntent?.sampleApplicationRecordId,
+    action.sampleApplicationRecordId,
+    context?.sampleApplicationRecordId,
+  );
+  const platformApplicationId = firstNonEmptyString(
+    existingIntent?.platformApplicationId,
+    action.platformApplicationId,
+    context?.platformApplicationId,
+  );
+  const decision = normalizeSampleReviewDecision(
+    existingIntent?.decision ??
+    existingIntent?.reviewDecision ??
+    existingIntent?.sampleDecision ??
+    action.decision ??
+    action.reviewDecision ??
+    action.sampleDecision ??
+    context?.inferredSampleReviewDecision,
+  );
+  const rejectReason = firstNonEmptyString(
+    existingIntent?.rejectReason,
+    action.rejectReason,
+    action.reason,
+    action.reject_reason,
+  );
   if (
-    !hasNonEmptyString(sampleApplicationRecordId) ||
-    !hasNonEmptyString(platformApplicationId) ||
-    !["APPROVE", "REJECT"].includes(String(decision ?? ""))
+    !sampleApplicationRecordId ||
+    !platformApplicationId ||
+    !decision
   ) {
     return action;
   }
@@ -171,8 +238,89 @@ function normalizeAffiliateSampleReviewAction(action: Record<string, unknown>): 
   };
   if (hasNonEmptyString(rejectReason)) {
     sampleReviewIntent.rejectReason = rejectReason;
+  } else if (decision === "REJECT") {
+    sampleReviewIntent.rejectReason = "OTHER";
   }
   return pickAffiliateActionFields(action, "sampleReviewIntent", sampleReviewIntent);
+}
+
+function normalizeSampleReviewDecision(value: unknown): "APPROVE" | "REJECT" | null {
+  if (!hasNonEmptyString(value)) return null;
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "APPROVE" || normalized === "APPROVED" || normalized === "ACCEPT") {
+    return "APPROVE";
+  }
+  if (normalized === "REJECT" || normalized === "REJECTED" || normalized === "DECLINE" || normalized === "DENY" || normalized === "DENIED") {
+    return "REJECT";
+  }
+  return null;
+}
+
+function inferSampleReviewDecisionFromResolveInput(
+  input: Record<string, unknown>,
+  actions: unknown[],
+): "APPROVE" | "REJECT" | null {
+  const textParts: string[] = [];
+  appendTextCandidate(textParts, input.operatorSummary);
+  appendTextCandidate(textParts, input.summary);
+  appendTextCandidate(textParts, input.reason);
+
+  for (const value of actions) {
+    const action = asRecord(value);
+    if (!action) continue;
+    appendTextCandidate(textParts, action.messageText);
+    appendTextCandidate(textParts, action.text);
+    appendTextCandidate(textParts, action.content);
+    appendTextCandidate(textParts, action.body);
+
+    const messageIntent = asRecord(action.messageIntent);
+    appendTextCandidate(textParts, messageIntent?.text);
+    appendTextCandidate(textParts, messageIntent?.messageText);
+    appendTextCandidate(textParts, messageIntent?.content);
+    appendTextCandidate(textParts, messageIntent?.body);
+  }
+
+  const text = textParts.join("\n").toLowerCase();
+  if (!text.trim()) return null;
+
+  const rejectPatterns = [
+    /\breject(?:ing|ed)?\b/,
+    /\bdeclin(?:e|ing|ed)\b/,
+    /\bdeny(?:ing|ied)?\b/,
+    /\bnot moving forward\b/,
+    /\bwon'?t move forward\b/,
+    /\bdo not approve\b/,
+    /\bdon'?t approve\b/,
+    /\bcannot approve\b/,
+    /\bcan'?t approve\b/,
+    /\bnot approving\b/,
+    /拒绝/,
+    /不通过/,
+    /不批准/,
+    /不建议(?:通过|批准|同意)/,
+    /暂不(?:通过|批准|同意|合作)/,
+  ];
+  const approvePatterns = [
+    /\bapprov(?:e|ing|ed)\b/,
+    /\baccept(?:ing|ed)?\b/,
+    /\bmove forward\b/,
+    /\bsend (?:the )?sample\b/,
+    /\bship (?:the )?sample\b/,
+    /通过/,
+    /批准/,
+    /同意/,
+    /寄样/,
+  ];
+
+  const hasReject = rejectPatterns.some((pattern) => pattern.test(text));
+  const hasApprove = approvePatterns.some((pattern) => pattern.test(text));
+  if (hasReject && !hasApprove) return "REJECT";
+  if (hasApprove && !hasReject) return "APPROVE";
+  return null;
+}
+
+function appendTextCandidate(parts: string[], value: unknown): void {
+  if (hasNonEmptyString(value)) parts.push(value);
 }
 
 function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): unknown {
@@ -279,12 +427,83 @@ function describeAffiliateResolveActionShape(actions: unknown[]): string {
     return {
       type: action.type,
       fields: Object.keys(action).sort(),
+      scalarPreview: scalarPreview(action, [
+        "decision",
+        "reviewDecision",
+        "sampleDecision",
+        "rejectReason",
+        "reason",
+        "messageText",
+        "text",
+        "content",
+        "body",
+      ]),
       messageIntentFields: messageIntent ? Object.keys(messageIntent).sort() : [],
+      messageIntentPreview: messageIntent ? scalarPreview(messageIntent, [
+        "text",
+        "messageText",
+        "content",
+        "body",
+        "messageType",
+      ]) : undefined,
       sampleReviewIntentFields: sampleReviewIntent ? Object.keys(sampleReviewIntent).sort() : [],
+      sampleReviewIntentPreview: sampleReviewIntent ? scalarPreview(sampleReviewIntent, [
+        "sampleApplicationRecordId",
+        "platformApplicationId",
+        "decision",
+        "reviewDecision",
+        "sampleDecision",
+        "rejectReason",
+        "reason",
+      ]) : undefined,
       targetCollaborationIntentFields: targetCollaborationIntent ? Object.keys(targetCollaborationIntent).sort() : [],
     };
   });
   return `actionShape=${JSON.stringify(shapes)}`;
+}
+
+function scalarPreview(record: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  const preview: Record<string, unknown> = {};
+  for (const key of keys) {
+    if (!(key in record)) continue;
+    const value = record[key];
+    if (typeof value === "string") {
+      preview[key] = value.length > 120 ? `${value.slice(0, 117)}...` : value;
+    } else if (typeof value === "number" || typeof value === "boolean" || value == null) {
+      preview[key] = value;
+    } else if (Array.isArray(value)) {
+      preview[key] = `[array:${value.length}]`;
+    } else if (typeof value === "object") {
+      preview[key] = "{object}";
+    }
+  }
+  return preview;
+}
+
+function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActionContext): string {
+  const hints: string[] = [];
+  if (context.sampleApplicationRecordId && context.platformApplicationId) {
+    hints.push(
+      `reviewSampleTemplate=${JSON.stringify({
+        type: "REVIEW_SAMPLE_APPLICATION",
+        predictionCacheIds: context.predictionCacheIds?.length ? context.predictionCacheIds : undefined,
+        sampleReviewIntent: {
+          sampleApplicationRecordId: context.sampleApplicationRecordId,
+          platformApplicationId: context.platformApplicationId,
+          decision: "APPROVE_OR_REJECT",
+          rejectReason: "required when decision is REJECT",
+        },
+      })}`,
+    );
+  }
+  hints.push(
+    `sendMessageTemplate=${JSON.stringify({
+      type: "SEND_MESSAGE",
+      predictionCacheIds: context.predictionCacheIds?.length ? context.predictionCacheIds : undefined,
+      messageText: "exact creator-facing message",
+    })}`,
+  );
+  return hints.join(" ");
 }
 
 export function invalidateToolSpecsCache(): void {

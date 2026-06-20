@@ -707,4 +707,26 @@ describe("affiliate work item dispatch", () => {
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
     expect(request).toBeNull();
   });
+
+  it("renders combined sample review and reply templates for bundled creator reply work", () => {
+    const workItem = createCreatorReplyWorkItem({
+      workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview,
+      processReasons: [
+        GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
+        GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
+      ],
+      recommendedActionTypes: [
+        GQL.ActionProposalType.ReviewSampleApplication,
+      ],
+      sampleApplicationRecord: createSampleReviewWorkItem().sampleApplicationRecord,
+    });
+
+    const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+    expect(request?.message).toContain("CREATOR_REPLY_WITH_SAMPLE_REVIEW");
+    expect(request?.message).toContain("Combined bundle example");
+    expect(request?.message).toContain("\"type\": \"REVIEW_SAMPLE_APPLICATION\"");
+    expect(request?.message).toContain("\"type\": \"SEND_MESSAGE\"");
+    expect(request?.message).toContain("must handle the sample review and the creator reply in the same REQUEST_ACTION");
+  });
 });

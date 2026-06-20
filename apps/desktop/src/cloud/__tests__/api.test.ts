@@ -269,6 +269,152 @@ describe("cloud-graphql handler", () => {
     );
   });
 
+  it("normalizes common sample review aliases and defaults reject reason", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Decline the sample.",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-app-1",
+            sampleDecision: "DENIED",
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          decision: "REQUEST_ACTION",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            predictionCacheIds: undefined,
+            expiresAt: undefined,
+            sampleReviewIntent: {
+              sampleApplicationRecordId: "sample-1",
+              platformApplicationId: "platform-app-1",
+              decision: "REJECT",
+              rejectReason: "OTHER",
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it("repairs bundled sample review decision from explicit sibling action text", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Review the sample and send a reply.",
+          actions: [
+            {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              sampleReviewIntent: {
+                sampleApplicationRecordId: "sample-1",
+                platformApplicationId: "platform-app-1",
+              },
+            },
+            {
+              type: "SEND_MESSAGE",
+              messageText: "Thanks for your interest. After reviewing the request, we are not moving forward with this sample.",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          decision: "REQUEST_ACTION",
+          actions: [
+            {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              predictionCacheIds: undefined,
+              expiresAt: undefined,
+              sampleReviewIntent: {
+                sampleApplicationRecordId: "sample-1",
+                platformApplicationId: "platform-app-1",
+                decision: "REJECT",
+                rejectReason: "OTHER",
+              },
+            },
+            {
+              type: "SEND_MESSAGE",
+              predictionCacheIds: undefined,
+              expiresAt: undefined,
+              messageIntent: {
+                messageType: "TEXT",
+                text: "Thanks for your interest. After reviewing the request, we are not moving forward with this sample.",
+              },
+            },
+          ],
+        }),
+      }),
+    );
+  });
+
   it("normalizes affiliate send message actions to the matching typed intent only", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
