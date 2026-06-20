@@ -1,23 +1,13 @@
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  fetchUpdateInfo,
-  startUpdateDownload,
-  cancelUpdateDownload,
-  fetchUpdateDownloadStatus,
-  triggerUpdateInstall,
-} from "../api/index.js";
-import { formatError } from "@rivonclaw/core";
-import { panelEventBus } from "../lib/event-bus.js";
-import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { BottomActions } from "../components/BottomActions.js";
+import { GlobalBannerStack } from "../components/banners/GlobalBannerStack.js";
 import { ChevronRightIcon, MenuIcon, UserPlusIcon } from "../components/icons.js";
 import { ROUTES, type RouteEntry } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
-import { useToast } from "../components/Toast.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 import { getUserInitial } from "../lib/user-manager.js";
 
@@ -43,15 +33,10 @@ export const Layout = observer(function Layout({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const runtimeStatus = useRuntimeStatus();
-  const { showToast } = useToast();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAuthPath, setPendingAuthPath] = useState<string | null>(null);
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [downloadStatus, setDownloadStatus] = useState<UpdateDownloadStatus>({
-    status: "idle",
-  });
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const [collapsedNavGroups, setCollapsedNavGroups] = useState<Set<string>>(
     () => new Set(COLLAPSIBLE_NAV_GROUP_KEYS),
@@ -63,105 +48,6 @@ export const Layout = observer(function Layout({
   const collapsed = runtimeStatus.appSettings.sidebarCollapsed;
   const showAgentName = runtimeStatus.appSettings.showAgentName;
   const isDragging = useRef(false);
-
-  // Check for updates after 5s + retry once at 20s to handle startup race.
-  // Also re-check when the window becomes visible (e.g. tray click triggers
-  // showMainWindow + performUpdateDownload — without this the panel stays
-  // unaware and shows no banner/progress).
-  // Additionally, listen for SSE "update-available" events pushed from the
-  // server subscription so the banner appears immediately without polling.
-  useEffect(() => {
-    function check() {
-      fetchUpdateInfo()
-        .then((info) => {
-          if (info.currentVersion) setCurrentVersion(info.currentVersion);
-          if (info.updateAvailable) setUpdateInfo(info);
-        })
-        .catch(() => { });
-    }
-    function onVisibilityChange() {
-      if (document.visibilityState === "visible") check();
-    }
-    const firstTimer = setTimeout(check, 5_000);
-    const retryTimer = setTimeout(check, 20_000);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    const unsubscribeUpdate = panelEventBus.subscribe("update-available", (raw) => {
-      const data = raw as UpdateInfo & { currentVersion?: string };
-      if (data.currentVersion) setCurrentVersion(data.currentVersion);
-      if (data.updateAvailable) {
-        setUpdateInfo(data);
-      } else {
-        setUpdateInfo(null);
-      }
-    });
-
-    const unsubscribeShop = panelEventBus.subscribe("shop-updated", (raw) => {
-      const { shopName } = raw as { shopId: string; shopName: string };
-      showToast(t("ecommerce.shopUpdatedToast", { shopName }), "success");
-    });
-
-    return () => {
-      clearTimeout(firstTimer);
-      clearTimeout(retryTimer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      unsubscribeUpdate();
-      unsubscribeShop();
-    };
-  }, [showToast, t]);
-
-  // Poll download status: fast (500ms) when actively downloading, slow (3s) when banner is visible.
-  // Also fetch immediately when the window becomes visible so progress appears instantly
-  // after a tray-triggered download.
-  useEffect(() => {
-    if (!updateInfo) return;
-    function poll() {
-      fetchUpdateDownloadStatus()
-        .then((s) => {
-          setDownloadStatus(s);
-        })
-        .catch(() => { });
-    }
-    function onVisibilityChange() {
-      if (document.visibilityState === "visible") poll();
-    }
-    const active =
-      downloadStatus.status === "downloading" ||
-      downloadStatus.status === "verifying" ||
-      downloadStatus.status === "installing";
-    const interval = active ? 500 : 3000;
-    const id = setInterval(poll, interval);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [downloadStatus.status, updateInfo]);
-
-  function handleDownload() {
-    setDownloadStatus({ status: "downloading", percent: 0 });
-    startUpdateDownload().catch((err) => {
-      setDownloadStatus({
-        status: "error",
-        message: formatError(err),
-      });
-    });
-  }
-
-  function handleCancel() {
-    cancelUpdateDownload().catch(() => { });
-    setDownloadStatus({ status: "idle" });
-  }
-
-  function handleInstall() {
-    setDownloadStatus({ status: "installing" });
-    triggerUpdateInstall().catch((err) => {
-      setDownloadStatus({
-        status: "error",
-        message: formatError(err),
-      });
-    });
-  }
 
   function handleToggleCollapse() {
     // MST action -> Desktop -> SQLite -> SSE patch back; observer re-renders.
@@ -277,125 +163,14 @@ export const Layout = observer(function Layout({
     return collapsed ? t(route.navLabelKey!) : undefined;
   }
 
-  const showBanner = !!updateInfo;
-  const ds = downloadStatus;
   let currentNavGroupKey: string | undefined;
-  const hasActiveLlmProvider = entityStore.providerKeys.some((key) => key.isDefault);
-  const showLlmUnavailableBanner = Boolean(user) && !authChecking && !hasActiveLlmProvider;
-
-  // CS bridge warning: show when shops need CS on this device but bridge isn't connected.
-  // Derived from entity store + device identity — mirrors CS bridge's syncFromCache() filter.
-  const csBridgeState = runtimeStatus.csBridge.state;
-  const showCsBridgeBanner =
-    csBridgeState !== "connected" &&
-    runtimeStatus.deviceId !== "" &&
-    entityStore.shops.some((s) => {
-      const cs = s.services?.customerService;
-      return s.handlesCustomerServiceOnDevice(runtimeStatus.deviceId) && cs?.assembledPrompt;
-    });
-  const customerServiceRoutingProblems = entityStore.shops
-    .map((shop) => {
-      const issue = shop.getCustomerServiceRoutingIssue({
-        currentDeviceId: runtimeStatus.deviceId || null,
-        channelAccounts: entityStore.channelAccounts,
-      });
-      if (!issue) return null;
-      return {
-        shopId: shop.id,
-        shopName: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-        issue,
-      };
-    })
-    .filter((item): item is { shopId: string; shopName: string; issue: "invalid_channel" | "missing_context_token" } => item !== null);
 
   return (
     <div className="layout-root">
-      {showBanner && (
-        <div className="update-banner">
-          <span className="update-banner-content">
-            {ds.status === "idle" && (
-              <>
-                {t("update.bannerText", { version: updateInfo.latestVersion })}
-                <button
-                  className="update-banner-action"
-                  onClick={handleDownload}
-                >
-                  {t("update.download")}
-                </button>
-              </>
-            )}
-            {ds.status === "downloading" && (
-              <>
-                {t("update.downloading", { percent: ds.percent ?? 0 })}
-                <span className="update-progress-bar">
-                  <span
-                    className="update-progress-fill"
-                    style={{ width: `${ds.percent ?? 0}%` }}
-                  />
-                </span>
-                <button className="update-banner-action" onClick={handleCancel}>
-                  {t("update.cancel")}
-                </button>
-              </>
-            )}
-            {ds.status === "verifying" && t("update.verifying")}
-            {ds.status === "ready" && (
-              <>
-                {t("update.ready")}{" "}
-                <button
-                  className="update-banner-action update-banner-action-primary"
-                  onClick={handleInstall}
-                >
-                  {t("update.installRestart")}
-                </button>
-              </>
-            )}
-            {ds.status === "installing" && t("update.installing")}
-            {ds.status === "error" && (
-              <>
-                {t("update.error", { message: ds.message ?? "" })}{" "}
-                <button
-                  className="update-banner-action"
-                  onClick={handleDownload}
-                >
-                  {t("update.retry")}
-                </button>
-              </>
-            )}
-          </span>
-        </div>
-      )}
-      {showLlmUnavailableBanner && (
-        <div className="warning-banner customer-service-routing-banner" role="alert">
-          <span className="customer-service-routing-banner-title">
-            {t("ecommerce.llmUnavailableTitle")}
-          </span>
-          <span>{t("ecommerce.llmUnavailableBody")}</span>
-        </div>
-      )}
-      {showCsBridgeBanner && (
-        <div className="warning-banner">
-          {csBridgeState === "reconnecting" && <span className="spinner" />}
-          {csBridgeState === "reconnecting"
-            ? t("ecommerce.shopDrawer.aiCS.bridgeReconnecting", { attempt: runtimeStatus.csBridge.reconnectAttempt })
-            : t("ecommerce.shopDrawer.aiCS.bridgeDisconnected")}
-        </div>
-      )}
-      {customerServiceRoutingProblems.length > 0 && (
-        <div className="warning-banner customer-service-routing-banner" role="alert">
-          <span className="customer-service-routing-banner-title">
-            {t("ecommerce.customerServiceRoutingUnavailableTitle")}
-          </span>
-          <span className="customer-service-routing-banner-items">
-            {customerServiceRoutingProblems.map((problem) => (
-              <span className="customer-service-routing-banner-item" key={problem.shopId}>
-                <strong>{problem.shopName}</strong>
-                <span>{t(`ecommerce.customerServiceRoutingIssue_${problem.issue}`)}</span>
-              </span>
-            ))}
-          </span>
-        </div>
-      )}
+      <GlobalBannerStack
+        onNavigate={onNavigate}
+        onCurrentVersionChange={setCurrentVersion}
+      />
       <div className="layout-body">
         <nav
           className={`sidebar${collapsed ? " sidebar-collapsed" : ""}`}
