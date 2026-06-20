@@ -2307,7 +2307,17 @@ export default {
       "updatedAt": "Mis à jour",
       "description": "Description",
       "noDescription": "Aucune description produit disponible.",
-      "skus": "SKU"
+      "skus": "SKU",
+      "statusLabels": {
+        "ACTIVATE": "Actif",
+        "ALL": "Tous",
+        "DELETED": "Supprimé",
+        "DRAFT": "Brouillon",
+        "FAILED": "Échec",
+        "FREEZE": "Gelé",
+        "PENDING": "En attente d'examen",
+        "PLATFORM_DEACTIVATED": "Désactivé par la plateforme"
+      }
     },
     "affiliateWorkspace": {
       "title": "Gestion des affiliations",
@@ -2402,6 +2412,13 @@ export default {
         "productCard": "Carte produit : {{product}}",
         "sampleApplicationCard": "Carte de demande d'échantillon : {{applicationId}}",
         "targetCollaborationCard": "Carte de collaboration : {{collaborationId}}",
+        "productCardLabel": "Carte produit",
+        "sampleApplicationCardLabel": "Carte de demande d'échantillon",
+        "sampleApplicationCardTitle": "Demande d'échantillon",
+        "targetCollaborationCardLabel": "Invitation de collaboration",
+        "targetCollaborationCardTitle": "Invitation de collaboration",
+        "collaborationId": "ID de collaboration",
+        "productCount": "{{count}} produit(s)",
         "directions": {
           "CREATOR": "Créateur",
           "SELLER": "Vendeur",
@@ -2410,10 +2427,29 @@ export default {
       },
       "sampleApplication": {
         "title": "Demande d'échantillon",
+        "detailTitle": "Détails de la demande d'échantillon",
+        "openDetail": "Ouvrir les détails de la demande d'échantillon",
+        "showDetails": "Voir les détails",
+        "hideDetails": "Masquer les détails",
         "status": "Statut",
         "applicationId": "ID de demande",
+        "productId": "ID produit",
+        "collaborationId": "ID de collaboration",
+        "openCollaborationId": "ID de collaboration ouverte",
+        "targetCollaborationId": "ID de collaboration ciblée",
         "contentCount": "Contenu observé",
+        "contentProgress": "Contenus publiés",
+        "contentProgressValue": "{{count}} élément(s)",
+        "shippingProgress": "Expédition de l'échantillon",
+        "noTrackingYet": "Aucun suivi pour le moment",
+        "latestContent": "ID du dernier contenu",
+        "latestContentAt": "Heure du dernier contenu",
+        "latestContentViews": "Vues du dernier contenu",
         "tracking": "Numéro de suivi",
+        "carrier": "Transporteur",
+        "shippedAt": "Expédié le",
+        "deliveredAt": "Livré le",
+        "updatedAt": "Mis à jour le",
         "none": "Aucune demande d'échantillon liée n'est encore disponible pour cette collaboration."
       },
       "creatorDetail": {
@@ -2444,7 +2480,11 @@ export default {
       "activity": {
         "staffDecision": "Note de l'équipe : {{note}}",
         "executedAt": "Exécuté à {{time}}",
-        "executionFailed": "Échec de l'exécution : {{error}}"
+        "executionFailed": "Échec de l'exécution : {{error}}",
+        "proposalActionType": "Type d'action : {{actionType}}",
+        "proposalStepCount": "{{count}} étape(s) d'exécution",
+        "stageTransition": "Étape modifiée : {{from}} → {{to}}",
+        "eventRecorded": "Événement enregistré."
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Proposition créée",
@@ -2518,6 +2558,11 @@ export default {
       "intelligenceApprovalBar": "seuil de vente implicite",
       "intelligenceHistoricalRate": "taux d'approbation historique",
       "intelligenceFilteredRate": "approbations historiques filtrées",
+      "intelligenceImpliedThresholdTitle": "Seuil historique implicite",
+      "intelligenceImpliedThresholdHint": "Le seuil de ventes attendues qui conserverait à peu près le taux d'approbation historique de {{approvalRate}}.",
+      "intelligenceConfiguredThresholdTitle": "Réglage actuel de la boutique",
+      "intelligenceConfiguredThresholdHint": "Le minimum de ventes attendues utilisé par l'agent lorsqu'aucun seuil de campagne n'est défini.",
+      "intelligenceConfiguredThresholdUnset": "Non défini",
       "intelligenceTrainingScope": "{{window}} · entraîné {{trainedAt}}. Taux d'approbation historique {{approvalRate}} ; approbations historiques filtrées {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Cette vue repose sur des modèles statistiques et des prédictions de machine learning. Elle ne garantit pas une croissance réelle de l'activité liée à l'utilisation du modèle.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} jours",
@@ -2578,6 +2623,7 @@ export default {
       "collaborationWorkQueueHint": "Collaborations nécessitant une décision manuelle.",
       "searchPlaceholder": "Rechercher par créateur, produit, boutique ou ID",
       "statusFilter": "Filtre de statut",
+      "typeFilter": "Filtre de type",
       "searchFilter": "Recherche",
       "itemCount": "{{count}} éléments",
       "collaborationRecords": "Collaborations",
@@ -2596,6 +2642,9 @@ export default {
         "SUPERSEDED": "Remplacées",
         "EXPIRED": "Expirées",
         "MODIFIED": "Modifiées"
+      },
+      "proposalTypeFilters": {
+        "ALL": "Tous les types"
       },
       "collaborationFilters": {
         "NEEDS_ATTENTION": "À traiter",
@@ -2814,6 +2863,17 @@ export default {
         "CANCELLED": "La demande d'échantillon a été annulée.",
         "EXPIRED": "La demande d'échantillon a expiré.",
         "DEFAULT": "Le statut de la demande d'échantillon a été mis à jour sur la plateforme."
+      },
+      "sampleWorkStatusLabels": {
+        "REQUEST_PENDING_REVIEW": "En attente d'examen",
+        "APPROVED_AWAITING_SHIPMENT": "À expédier",
+        "SHIPPED_IN_TRANSIT": "En transit",
+        "DELIVERED_AWAITING_CONTENT": "En attente de contenu",
+        "CONTENT_OBSERVED_REVIEWING": "Contenu à vérifier",
+        "FULFILLED": "Terminé",
+        "FULFILLMENT_FAILED": "Échec d'exécution",
+        "CANCELLED": "Annulé",
+        "EXPIRED": "Expiré"
       },
       "sampleSituationPreview": "{{statusDescription}} {{contentCount}} contenu(s) observé(s).",
       "policyApprovalNote": "Les paramètres de sécurité exigent une confirmation du personnel avant d'exécuter cette action sur la plateforme."

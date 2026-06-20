@@ -306,11 +306,12 @@ export const AffiliateWorkspaceModel = types
         lifecycleEvents: self.lifecycleEventsForCollaboration(collaborationRecordId),
       };
     },
-    actionProposalPage(input?: { shopId?: string; status?: string; search?: string }) {
+    actionProposalPage(input?: { shopId?: string; status?: string; type?: string; search?: string }) {
       const search = normalizedText(input?.search);
       return self.actionProposals
         .filter((proposal) => !input?.shopId || proposal.shopId === input.shopId)
         .filter((proposal) => !input?.status || proposal.status === input.status)
+        .filter((proposal) => !input?.type || proposal.type === input.type)
         .map((proposal) => (self as any).proposalProjection(proposal.id))
         .filter((projection): projection is NonNullable<typeof projection> => !!projection)
         .filter((projection) => includesSearch(search, [

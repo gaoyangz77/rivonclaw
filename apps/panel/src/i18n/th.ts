@@ -2307,7 +2307,17 @@ export default {
       "updatedAt": "อัปเดต",
       "description": "คำอธิบาย",
       "noDescription": "ไม่มีคำอธิบายสินค้า",
-      "skus": "SKU"
+      "skus": "SKU",
+      "statusLabels": {
+        "ACTIVATE": "เปิดขาย",
+        "ALL": "ทั้งหมด",
+        "DELETED": "ลบแล้ว",
+        "DRAFT": "ฉบับร่าง",
+        "FAILED": "ล้มเหลว",
+        "FREEZE": "ถูกระงับ",
+        "PENDING": "รอตรวจสอบ",
+        "PLATFORM_DEACTIVATED": "แพลตฟอร์มปิดใช้งาน"
+      }
     },
     "affiliateWorkspace": {
       "title": "การจัดการพันธมิตร",
@@ -2402,6 +2412,13 @@ export default {
         "productCard": "การ์ดสินค้า: {{product}}",
         "sampleApplicationCard": "การ์ดคำขอตัวอย่าง: {{applicationId}}",
         "targetCollaborationCard": "การ์ดความร่วมมือ: {{collaborationId}}",
+        "productCardLabel": "การ์ดสินค้า",
+        "sampleApplicationCardLabel": "การ์ดคำขอตัวอย่าง",
+        "sampleApplicationCardTitle": "คำขอตัวอย่าง",
+        "targetCollaborationCardLabel": "คำเชิญร่วมงาน",
+        "targetCollaborationCardTitle": "คำเชิญร่วมงาน",
+        "collaborationId": "ID ความร่วมมือ",
+        "productCount": "สินค้า {{count}} รายการ",
         "directions": {
           "CREATOR": "ครีเอเตอร์",
           "SELLER": "ผู้ขาย",
@@ -2410,10 +2427,29 @@ export default {
       },
       "sampleApplication": {
         "title": "คำขอตัวอย่าง",
+        "detailTitle": "รายละเอียดคำขอตัวอย่าง",
+        "openDetail": "เปิดรายละเอียดคำขอตัวอย่าง",
+        "showDetails": "ดูรายละเอียด",
+        "hideDetails": "ซ่อนรายละเอียด",
         "status": "สถานะ",
         "applicationId": "ID คำขอ",
+        "productId": "ID สินค้า",
+        "collaborationId": "ID ความร่วมมือ",
+        "openCollaborationId": "ID ความร่วมมือแบบเปิด",
+        "targetCollaborationId": "ID ความร่วมมือแบบเจาะจง",
         "contentCount": "คอนเทนต์ที่พบ",
+        "contentProgress": "คอนเทนต์ที่โพสต์",
+        "contentProgressValue": "{{count}} รายการ",
+        "shippingProgress": "การจัดส่งตัวอย่าง",
+        "noTrackingYet": "ยังไม่มีเลขติดตาม",
+        "latestContent": "ID คอนเทนต์ล่าสุด",
+        "latestContentAt": "เวลาคอนเทนต์ล่าสุด",
+        "latestContentViews": "ยอดดูคอนเทนต์ล่าสุด",
         "tracking": "หมายเลขติดตาม",
+        "carrier": "ผู้ขนส่ง",
+        "shippedAt": "เวลาจัดส่ง",
+        "deliveredAt": "เวลาส่งถึง",
+        "updatedAt": "อัปเดตเมื่อ",
         "none": "ยังไม่มีคำขอตัวอย่างที่เชื่อมกับความร่วมมือนี้"
       },
       "creatorDetail": {
@@ -2444,7 +2480,11 @@ export default {
       "activity": {
         "staffDecision": "บันทึกจากพนักงาน: {{note}}",
         "executedAt": "ดำเนินการเมื่อ {{time}}",
-        "executionFailed": "ดำเนินการล้มเหลว: {{error}}"
+        "executionFailed": "ดำเนินการล้มเหลว: {{error}}",
+        "proposalActionType": "ประเภทการดำเนินการ: {{actionType}}",
+        "proposalStepCount": "{{count}} ขั้นตอนดำเนินการ",
+        "stageTransition": "เปลี่ยนขั้นตอน: {{from}} → {{to}}",
+        "eventRecorded": "บันทึกเหตุการณ์แล้ว"
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "สร้างข้อเสนอแล้ว",
@@ -2518,6 +2558,11 @@ export default {
       "intelligenceApprovalBar": "เกณฑ์ยอดขายโดยนัย",
       "intelligenceHistoricalRate": "อัตราอนุมัติย้อนหลัง",
       "intelligenceFilteredRate": "การอนุมัติย้อนหลังที่ถูกกรอง",
+      "intelligenceImpliedThresholdTitle": "เกณฑ์โดยนัยจากประวัติ",
+      "intelligenceImpliedThresholdHint": "เกณฑ์ยอดขายคาดการณ์ที่จะคงอัตราอนุมัติย้อนหลังประมาณ {{approvalRate}}",
+      "intelligenceConfiguredThresholdTitle": "การตั้งค่าร้านปัจจุบัน",
+      "intelligenceConfiguredThresholdHint": "ยอดขายคาดการณ์ขั้นต่ำเริ่มต้นที่ Agent ใช้เมื่อไม่มีเกณฑ์แคมเปญ",
+      "intelligenceConfiguredThresholdUnset": "ยังไม่ได้ตั้งค่า",
       "intelligenceTrainingScope": "{{window}} · ฝึกเมื่อ {{trainedAt}} อัตราอนุมัติย้อนหลัง {{approvalRate}}; การอนุมัติย้อนหลังที่ถูกกรอง {{filteredRate}}",
       "intelligenceLegalDisclaimer": "มุมมองนี้อิงจากแบบจำลองสถิติและการคาดการณ์ของ machine learning ไม่ได้เป็นการรับประกันว่าการใช้โมเดลจะทำให้ธุรกิจเติบโตจริง",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} วัน",
@@ -2578,6 +2623,7 @@ export default {
       "collaborationWorkQueueHint": "ความร่วมมือที่ต้องการการตัดสินใจจากพนักงาน",
       "searchPlaceholder": "ค้นหาครีเอเตอร์ สินค้า ร้านค้า หรือ ID",
       "statusFilter": "ตัวกรองสถานะ",
+      "typeFilter": "ตัวกรองประเภท",
       "searchFilter": "ค้นหา",
       "itemCount": "{{count}} รายการ",
       "collaborationRecords": "ความร่วมมือ",
@@ -2596,6 +2642,9 @@ export default {
         "SUPERSEDED": "ถูกแทนที่",
         "EXPIRED": "หมดอายุ",
         "MODIFIED": "แก้ไขแล้ว"
+      },
+      "proposalTypeFilters": {
+        "ALL": "ทุกประเภท"
       },
       "collaborationFilters": {
         "NEEDS_ATTENTION": "ต้องจัดการ",
@@ -2814,6 +2863,17 @@ export default {
         "CANCELLED": "คำขอตัวอย่างถูกยกเลิก",
         "EXPIRED": "คำขอตัวอย่างหมดอายุ",
         "DEFAULT": "สถานะคำขอตัวอย่างบนแพลตฟอร์มมีการอัปเดต"
+      },
+      "sampleWorkStatusLabels": {
+        "REQUEST_PENDING_REVIEW": "รอตรวจสอบ",
+        "APPROVED_AWAITING_SHIPMENT": "รอจัดส่ง",
+        "SHIPPED_IN_TRANSIT": "กำลังขนส่ง",
+        "DELIVERED_AWAITING_CONTENT": "รอคอนเทนต์",
+        "CONTENT_OBSERVED_REVIEWING": "ตรวจคอนเทนต์",
+        "FULFILLED": "เสร็จสมบูรณ์",
+        "FULFILLMENT_FAILED": "ดำเนินการล้มเหลว",
+        "CANCELLED": "ยกเลิกแล้ว",
+        "EXPIRED": "หมดอายุ"
       },
       "sampleSituationPreview": "{{statusDescription}} ตรวจพบคอนเทนต์ {{contentCount}} รายการ",
       "policyApprovalNote": "การตั้งค่าความปลอดภัยต้องให้พนักงานยืนยันก่อนจึงจะดำเนินการนี้บนแพลตฟอร์ม"

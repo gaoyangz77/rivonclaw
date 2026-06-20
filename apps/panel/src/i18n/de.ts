@@ -2307,7 +2307,17 @@ export default {
       "updatedAt": "Aktualisiert",
       "description": "Beschreibung",
       "noDescription": "Keine Produktbeschreibung verfügbar.",
-      "skus": "SKUs"
+      "skus": "SKUs",
+      "statusLabels": {
+        "ACTIVATE": "Aktiv",
+        "ALL": "Alle",
+        "DELETED": "Gelöscht",
+        "DRAFT": "Entwurf",
+        "FAILED": "Fehlgeschlagen",
+        "FREEZE": "Eingefroren",
+        "PENDING": "In Prüfung",
+        "PLATFORM_DEACTIVATED": "Von Plattform deaktiviert"
+      }
     },
     "affiliateWorkspace": {
       "title": "Affiliate-Management",
@@ -2402,6 +2412,13 @@ export default {
         "productCard": "Produktkarte: {{product}}",
         "sampleApplicationCard": "Musteranfrage-Karte: {{applicationId}}",
         "targetCollaborationCard": "Kooperationskarte: {{collaborationId}}",
+        "productCardLabel": "Produktkarte",
+        "sampleApplicationCardLabel": "Musteranfrage-Karte",
+        "sampleApplicationCardTitle": "Musteranfrage",
+        "targetCollaborationCardLabel": "Kooperationseinladung",
+        "targetCollaborationCardTitle": "Kooperationseinladung",
+        "collaborationId": "Kooperations-ID",
+        "productCount": "{{count}} Produkt(e)",
         "directions": {
           "CREATOR": "Creator",
           "SELLER": "Verkäufer",
@@ -2410,10 +2427,29 @@ export default {
       },
       "sampleApplication": {
         "title": "Musteranfrage",
+        "detailTitle": "Details zur Musteranfrage",
+        "openDetail": "Details zur Musteranfrage öffnen",
+        "showDetails": "Details anzeigen",
+        "hideDetails": "Details ausblenden",
         "status": "Status",
         "applicationId": "Anfrage-ID",
+        "productId": "Produkt-ID",
+        "collaborationId": "Kooperations-ID",
+        "openCollaborationId": "Offene Kooperations-ID",
+        "targetCollaborationId": "Zielkooperations-ID",
         "contentCount": "Beobachtete Inhalte",
+        "contentProgress": "Veröffentlichte Inhalte",
+        "contentProgressValue": "{{count}} Element(e)",
+        "shippingProgress": "Musterversand",
+        "noTrackingYet": "Noch keine Sendungsverfolgung",
+        "latestContent": "Neueste Inhalts-ID",
+        "latestContentAt": "Zeit des neuesten Inhalts",
+        "latestContentViews": "Aufrufe des neuesten Inhalts",
         "tracking": "Sendungsnummer",
+        "carrier": "Versanddienst",
+        "shippedAt": "Versendet am",
+        "deliveredAt": "Zugestellt am",
+        "updatedAt": "Aktualisiert am",
         "none": "Für diese Kooperation ist noch keine verknüpfte Musteranfrage verfügbar."
       },
       "creatorDetail": {
@@ -2444,7 +2480,11 @@ export default {
       "activity": {
         "staffDecision": "Mitarbeiterhinweis: {{note}}",
         "executedAt": "Ausgeführt um {{time}}",
-        "executionFailed": "Ausführung fehlgeschlagen: {{error}}"
+        "executionFailed": "Ausführung fehlgeschlagen: {{error}}",
+        "proposalActionType": "Aktionstyp: {{actionType}}",
+        "proposalStepCount": "{{count}} Ausführungsschritt(e)",
+        "stageTransition": "Phase geändert: {{from}} → {{to}}",
+        "eventRecorded": "Ereignis aufgezeichnet."
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Vorschlag erstellt",
@@ -2518,6 +2558,11 @@ export default {
       "intelligenceApprovalBar": "implizite Verkaufsschwelle",
       "intelligenceHistoricalRate": "historische Freigaberate",
       "intelligenceFilteredRate": "gefilterte historische Freigaben",
+      "intelligenceImpliedThresholdTitle": "Historisch implizite Schwelle",
+      "intelligenceImpliedThresholdHint": "Die Expected-Sales-Schwelle, die ungefähr die historische Freigaberate von {{approvalRate}} beibehalten würde.",
+      "intelligenceConfiguredThresholdTitle": "Aktuelle Shop-Einstellung",
+      "intelligenceConfiguredThresholdHint": "Der Standard-Mindestwert für erwartete Verkäufe, den der Agent nutzt, wenn keine Kampagnenschwelle gesetzt ist.",
+      "intelligenceConfiguredThresholdUnset": "Nicht gesetzt",
       "intelligenceTrainingScope": "{{window}} · trainiert {{trainedAt}}. Historische Freigaberate {{approvalRate}}; gefilterte historische Freigaben {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Diese Ansicht basiert auf statistischer Modellierung und Machine-Learning-Prognosen. Sie garantiert kein tatsächliches Geschäftswachstum durch die Nutzung des Modells.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} Tage",
@@ -2578,6 +2623,7 @@ export default {
       "collaborationWorkQueueHint": "Kooperationen, die eine manuelle Entscheidung benötigen.",
       "searchPlaceholder": "Nach Creator, Produkt, Shop oder ID suchen",
       "statusFilter": "Statusfilter",
+      "typeFilter": "Typfilter",
       "searchFilter": "Suche",
       "itemCount": "{{count}} Einträge",
       "collaborationRecords": "Kooperationen",
@@ -2596,6 +2642,9 @@ export default {
         "SUPERSEDED": "Ersetzt",
         "EXPIRED": "Abgelaufen",
         "MODIFIED": "Geändert"
+      },
+      "proposalTypeFilters": {
+        "ALL": "Alle Typen"
       },
       "collaborationFilters": {
         "NEEDS_ATTENTION": "Zu bearbeiten",
@@ -2814,6 +2863,17 @@ export default {
         "CANCELLED": "Der Probenantrag wurde storniert.",
         "EXPIRED": "Der Probenantrag ist abgelaufen.",
         "DEFAULT": "Der Plattformstatus des Probenantrags wurde aktualisiert."
+      },
+      "sampleWorkStatusLabels": {
+        "REQUEST_PENDING_REVIEW": "In Prüfung",
+        "APPROVED_AWAITING_SHIPMENT": "Versand ausstehend",
+        "SHIPPED_IN_TRANSIT": "Unterwegs",
+        "DELIVERED_AWAITING_CONTENT": "Content ausstehend",
+        "CONTENT_OBSERVED_REVIEWING": "Content prüfen",
+        "FULFILLED": "Erfüllt",
+        "FULFILLMENT_FAILED": "Erfüllung fehlgeschlagen",
+        "CANCELLED": "Storniert",
+        "EXPIRED": "Abgelaufen"
       },
       "sampleSituationPreview": "{{statusDescription}} {{contentCount}} Content-Element(e) wurden erkannt.",
       "policyApprovalNote": "Sicherheitseinstellungen erfordern eine Mitarbeiterbestätigung, bevor diese Plattformaktion ausgeführt wird."

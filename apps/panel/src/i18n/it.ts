@@ -2307,7 +2307,17 @@ export default {
       "updatedAt": "Aggiornato",
       "description": "Descrizione",
       "noDescription": "Nessuna descrizione prodotto disponibile.",
-      "skus": "SKU"
+      "skus": "SKU",
+      "statusLabels": {
+        "ACTIVATE": "Attivo",
+        "ALL": "Tutti",
+        "DELETED": "Eliminato",
+        "DRAFT": "Bozza",
+        "FAILED": "Non riuscito",
+        "FREEZE": "Bloccato",
+        "PENDING": "In revisione",
+        "PLATFORM_DEACTIVATED": "Disattivato dalla piattaforma"
+      }
     },
     "affiliateWorkspace": {
       "title": "Gestione degli affiliati",
@@ -2402,6 +2412,13 @@ export default {
         "productCard": "Scheda prodotto: {{product}}",
         "sampleApplicationCard": "Scheda richiesta campione: {{applicationId}}",
         "targetCollaborationCard": "Scheda collaborazione: {{collaborationId}}",
+        "productCardLabel": "Scheda prodotto",
+        "sampleApplicationCardLabel": "Scheda richiesta campione",
+        "sampleApplicationCardTitle": "Richiesta campione",
+        "targetCollaborationCardLabel": "Invito collaborazione",
+        "targetCollaborationCardTitle": "Invito collaborazione",
+        "collaborationId": "ID collaborazione",
+        "productCount": "{{count}} prodotto/i",
         "directions": {
           "CREATOR": "Creator",
           "SELLER": "Venditore",
@@ -2410,10 +2427,29 @@ export default {
       },
       "sampleApplication": {
         "title": "Richiesta campione",
+        "detailTitle": "Dettagli richiesta campione",
+        "openDetail": "Apri dettagli richiesta campione",
+        "showDetails": "Vedi dettagli",
+        "hideDetails": "Nascondi dettagli",
         "status": "Stato",
         "applicationId": "ID richiesta",
+        "productId": "ID prodotto",
+        "collaborationId": "ID collaborazione",
+        "openCollaborationId": "ID collaborazione aperta",
+        "targetCollaborationId": "ID collaborazione target",
         "contentCount": "Contenuti osservati",
+        "contentProgress": "Contenuti pubblicati",
+        "contentProgressValue": "{{count}} elemento/i",
+        "shippingProgress": "Spedizione campione",
+        "noTrackingYet": "Nessun tracking",
+        "latestContent": "ID ultimo contenuto",
+        "latestContentAt": "Ora ultimo contenuto",
+        "latestContentViews": "Visualizzazioni ultimo contenuto",
         "tracking": "Numero tracking",
+        "carrier": "Corriere",
+        "shippedAt": "Spedito il",
+        "deliveredAt": "Consegnato il",
+        "updatedAt": "Aggiornato il",
         "none": "Nessuna richiesta campione collegata è ancora disponibile per questa collaborazione."
       },
       "creatorDetail": {
@@ -2444,7 +2480,11 @@ export default {
       "activity": {
         "staffDecision": "Nota staff: {{note}}",
         "executedAt": "Eseguito alle {{time}}",
-        "executionFailed": "Esecuzione non riuscita: {{error}}"
+        "executionFailed": "Esecuzione non riuscita: {{error}}",
+        "proposalActionType": "Tipo azione: {{actionType}}",
+        "proposalStepCount": "{{count}} passaggio/i di esecuzione",
+        "stageTransition": "Fase modificata: {{from}} → {{to}}",
+        "eventRecorded": "Evento registrato."
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Proposta creata",
@@ -2518,6 +2558,11 @@ export default {
       "intelligenceApprovalBar": "soglia vendite implicita",
       "intelligenceHistoricalRate": "tasso storico di approvazione",
       "intelligenceFilteredRate": "approvazioni storiche filtrate",
+      "intelligenceImpliedThresholdTitle": "Soglia storica implicita",
+      "intelligenceImpliedThresholdHint": "La soglia di vendite attese che manterrebbe circa il tasso storico di approvazione di {{approvalRate}}.",
+      "intelligenceConfiguredThresholdTitle": "Impostazione attuale del negozio",
+      "intelligenceConfiguredThresholdHint": "Le vendite attese minime predefinite usate dall'agent quando non è impostata una soglia campagna.",
+      "intelligenceConfiguredThresholdUnset": "Non impostata",
       "intelligenceTrainingScope": "{{window}} · addestrato {{trainedAt}}. Tasso storico di approvazione {{approvalRate}}; approvazioni storiche filtrate {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Questa vista si basa su modelli statistici e previsioni di machine learning. Non garantisce che l'uso del modello produca una crescita reale del business.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} giorni",
@@ -2578,6 +2623,7 @@ export default {
       "collaborationWorkQueueHint": "Collaborazioni che richiedono una decisione manuale.",
       "searchPlaceholder": "Cerca creator, prodotto, negozio o ID",
       "statusFilter": "Filtro stato",
+      "typeFilter": "Filtro tipo",
       "searchFilter": "Cerca",
       "itemCount": "{{count}} elementi",
       "collaborationRecords": "Collaborazioni",
@@ -2596,6 +2642,9 @@ export default {
         "SUPERSEDED": "Superate",
         "EXPIRED": "Scadute",
         "MODIFIED": "Modificate"
+      },
+      "proposalTypeFilters": {
+        "ALL": "Tutti i tipi"
       },
       "collaborationFilters": {
         "NEEDS_ATTENTION": "Da gestire",
@@ -2814,6 +2863,17 @@ export default {
         "CANCELLED": "La richiesta campione è stata annullata.",
         "EXPIRED": "La richiesta campione è scaduta.",
         "DEFAULT": "Lo stato della richiesta campione è stato aggiornato sulla piattaforma."
+      },
+      "sampleWorkStatusLabels": {
+        "REQUEST_PENDING_REVIEW": "In revisione",
+        "APPROVED_AWAITING_SHIPMENT": "In attesa di spedizione",
+        "SHIPPED_IN_TRANSIT": "In transito",
+        "DELIVERED_AWAITING_CONTENT": "In attesa di contenuti",
+        "CONTENT_OBSERVED_REVIEWING": "Contenuto in revisione",
+        "FULFILLED": "Completato",
+        "FULFILLMENT_FAILED": "Adempimento fallito",
+        "CANCELLED": "Annullato",
+        "EXPIRED": "Scaduto"
       },
       "sampleSituationPreview": "{{statusDescription}} Sono stati osservati {{contentCount}} contenuti.",
       "policyApprovalNote": "Le impostazioni di sicurezza richiedono conferma dello staff prima di eseguire questa azione sulla piattaforma."
