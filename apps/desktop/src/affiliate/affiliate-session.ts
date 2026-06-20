@@ -252,7 +252,7 @@ export class AffiliateSession {
   }
 
   async handleWorkItem(workItem: GQL.AffiliateWorkItem): Promise<AffiliateDispatchResult> {
-    if (isSampleReviewWorkItem(workItem)) {
+    if (isDeterministicSampleReviewWorkItem(workItem)) {
       const predictionContext = await this.resolvePredictionDispatchContext(workItem);
       const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
       if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
@@ -974,10 +974,10 @@ function hasConfiguredDecisionThreshold(
 function selectExpectedSalesPredictionScenario(
   workItem: GQL.AffiliateWorkItem,
 ): GQL.AffiliateExpectedSalesPredictionScenario | null {
-  if (isSampleReviewWorkItem(workItem)) return GQL.AffiliateExpectedSalesPredictionScenario.SampleReview;
   if (isCreatorReplyWorkItem(workItem) || isCreatorFollowUpWorkItem(workItem)) {
     return GQL.AffiliateExpectedSalesPredictionScenario.TargetCollaborationPlanning;
   }
+  if (isSampleReviewWorkItem(workItem)) return GQL.AffiliateExpectedSalesPredictionScenario.SampleReview;
   return null;
 }
 
@@ -1079,6 +1079,19 @@ function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
     workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded
+  );
+}
+
+function isDeterministicSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
+  const recommendedActions = new Set([
+    ...(workItem.recommendedActionTypes ?? []),
+    ...(workItem.context?.recommendedActionTypes ?? []),
+  ]);
+  return (
+    isSampleReviewWorkItem(workItem) &&
+    !isCreatorReplyWorkItem(workItem) &&
+    workItem.workBundleKind !== GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview &&
+    !recommendedActions.has(GQL.ActionProposalType.SendMessage)
   );
 }
 
