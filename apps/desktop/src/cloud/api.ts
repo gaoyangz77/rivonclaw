@@ -109,7 +109,9 @@ function sanitizeCloudGraphqlVariables(
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
       "For SEND_MESSAGE use action.messageText with the exact creator-facing message; never send messageIntent: {}. " +
       "For REVIEW_SAMPLE_APPLICATION use action.sampleReviewIntent with sampleApplicationRecordId, platformApplicationId, decision, and optional rejectReason.";
-    throw new Error(`${reason} ${describeAffiliateResolveActionShape(actionLike)} ${describeAffiliateResolveActionRepairHint(context)}`);
+    throw new Error(
+      `${reason} raw=${describeAffiliateResolveActionShape(actionLike)} normalized=${describeAffiliateResolveActionShape(normalizedActions)} ${describeAffiliateResolveActionRepairHint(context)}`,
+    );
   }
 
   return variables;
@@ -208,13 +210,13 @@ function normalizeAffiliateSampleReviewAction(
     action.platformApplicationId,
     context?.platformApplicationId,
   );
-  const decision = normalizeSampleReviewDecision(
+  const decision = firstNormalizedSampleReviewDecision(
     existingIntent?.decision ??
-    existingIntent?.reviewDecision ??
-    existingIntent?.sampleDecision ??
-    action.decision ??
-    action.reviewDecision ??
-    action.sampleDecision ??
+      existingIntent?.reviewDecision ??
+      existingIntent?.sampleDecision,
+    action.decision,
+    action.reviewDecision,
+    action.sampleDecision,
     context?.inferredSampleReviewDecision,
   );
   const rejectReason = firstNonEmptyString(
@@ -256,6 +258,16 @@ function normalizeSampleReviewDecision(value: unknown): "APPROVE" | "REJECT" | n
   return null;
 }
 
+function firstNormalizedSampleReviewDecision(
+  ...values: unknown[]
+): "APPROVE" | "REJECT" | null {
+  for (const value of values) {
+    const normalized = normalizeSampleReviewDecision(value);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
 function inferSampleReviewDecisionFromResolveInput(
   input: Record<string, unknown>,
   actions: unknown[],
@@ -283,10 +295,7 @@ function inferSampleReviewDecisionFromResolveInput(
   const text = textParts.join("\n").toLowerCase();
   if (!text.trim()) return null;
 
-  const rejectPatterns = [
-    /\breject(?:ing|ed)?\b/,
-    /\bdeclin(?:e|ing|ed)\b/,
-    /\bdeny(?:ing|ied)?\b/,
+  const strongRejectPatterns = [
     /\bnot moving forward\b/,
     /\bwon'?t move forward\b/,
     /\bdo not approve\b/,
@@ -294,11 +303,22 @@ function inferSampleReviewDecisionFromResolveInput(
     /\bcannot approve\b/,
     /\bcan'?t approve\b/,
     /\bnot approving\b/,
+    /\bnot setting up\b/,
+    /\bnot proceed(?:ing)?\b/,
+    /\bnot a good fit\b/,
     /拒绝/,
     /不通过/,
     /不批准/,
     /不建议(?:通过|批准|同意)/,
     /暂不(?:通过|批准|同意|合作)/,
+  ];
+  if (strongRejectPatterns.some((pattern) => pattern.test(text))) return "REJECT";
+
+  const rejectPatterns = [
+    /\breject(?:ing|ed)?\b/,
+    /\bdeclin(?:e|ing|ed)\b/,
+    /\bdeny(?:ing|ied)?\b/,
+    ...strongRejectPatterns,
   ];
   const approvePatterns = [
     /\bapprov(?:e|ing|ed)\b/,

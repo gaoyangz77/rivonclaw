@@ -483,6 +483,142 @@ describe("cloud-graphql handler", () => {
     );
   });
 
+  it("repairs placeholder sample review decisions from sibling message text", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Review the sample and send a reply.",
+          actions: [
+            {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              sampleReviewIntent: {
+                sampleApplicationRecordId: "sample-1",
+                platformApplicationId: "platform-app-1",
+                decision: "APPROVE_OR_REJECT",
+              },
+            },
+            {
+              type: "SEND_MESSAGE",
+              messageText: "Thank you for applying. After review, we are not moving forward with this sample collaboration.",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          actions: expect.arrayContaining([
+            expect.objectContaining({
+              type: "REVIEW_SAMPLE_APPLICATION",
+              sampleReviewIntent: expect.objectContaining({
+                decision: "REJECT",
+                rejectReason: "OTHER",
+              }),
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("prefers explicit rejection language over approve-or-reject template wording", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Approve or reject the sample request and send a reply.",
+          actions: [
+            {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              sampleReviewIntent: {},
+              sampleApplicationRecordId: "sample-1",
+              platformApplicationId: "platform-app-1",
+            },
+            {
+              type: "SEND_MESSAGE",
+              messageText: "Thank you for applying. After review, we're not moving forward with this sample collaboration.",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          actions: expect.arrayContaining([
+            expect.objectContaining({
+              type: "REVIEW_SAMPLE_APPLICATION",
+              sampleReviewIntent: expect.objectContaining({
+                decision: "REJECT",
+                rejectReason: "OTHER",
+              }),
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
   it("normalizes affiliate send message actions to the matching typed intent only", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
