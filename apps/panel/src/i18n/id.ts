@@ -2307,7 +2307,17 @@ export default {
       "updatedAt": "Diperbarui",
       "description": "Deskripsi",
       "noDescription": "Tidak ada deskripsi produk.",
-      "skus": "SKU"
+      "skus": "SKU",
+      "statusLabels": {
+        "ACTIVATE": "Aktif",
+        "ALL": "Semua",
+        "DELETED": "Dihapus",
+        "DRAFT": "Draf",
+        "FAILED": "Gagal",
+        "FREEZE": "Dibekukan",
+        "PENDING": "Menunggu tinjauan",
+        "PLATFORM_DEACTIVATED": "Dinonaktifkan platform"
+      }
     },
     "affiliateWorkspace": {
       "title": "Manajemen Afiliasi",
@@ -2402,6 +2412,13 @@ export default {
         "productCard": "Kartu produk: {{product}}",
         "sampleApplicationCard": "Kartu permintaan sampel: {{applicationId}}",
         "targetCollaborationCard": "Kartu kolaborasi: {{collaborationId}}",
+        "productCardLabel": "Kartu produk",
+        "sampleApplicationCardLabel": "Kartu permintaan sampel",
+        "sampleApplicationCardTitle": "Permintaan sampel",
+        "targetCollaborationCardLabel": "Undangan kolaborasi",
+        "targetCollaborationCardTitle": "Undangan kolaborasi",
+        "collaborationId": "ID kolaborasi",
+        "productCount": "{{count}} produk",
         "directions": {
           "CREATOR": "Kreator",
           "SELLER": "Penjual",
@@ -2410,10 +2427,29 @@ export default {
       },
       "sampleApplication": {
         "title": "Permintaan sampel",
+        "detailTitle": "Detail permintaan sampel",
+        "openDetail": "Buka detail permintaan sampel",
+        "showDetails": "Lihat detail",
+        "hideDetails": "Sembunyikan detail",
         "status": "Status",
         "applicationId": "ID permintaan",
+        "productId": "ID produk",
+        "collaborationId": "ID kolaborasi",
+        "openCollaborationId": "ID kolaborasi terbuka",
+        "targetCollaborationId": "ID kolaborasi target",
         "contentCount": "Konten diamati",
+        "contentProgress": "Konten diposting",
+        "contentProgressValue": "{{count}} item",
+        "shippingProgress": "Pengiriman sampel",
+        "noTrackingYet": "Belum ada pelacakan",
+        "latestContent": "ID konten terbaru",
+        "latestContentAt": "Waktu konten terbaru",
+        "latestContentViews": "Tayangan konten terbaru",
         "tracking": "Nomor pelacakan",
+        "carrier": "Kurir",
+        "shippedAt": "Dikirim pada",
+        "deliveredAt": "Diterima pada",
+        "updatedAt": "Diperbarui pada",
         "none": "Belum ada permintaan sampel tertaut untuk kolaborasi ini."
       },
       "creatorDetail": {
@@ -2444,7 +2480,11 @@ export default {
       "activity": {
         "staffDecision": "Catatan staf: {{note}}",
         "executedAt": "Dieksekusi pada {{time}}",
-        "executionFailed": "Eksekusi gagal: {{error}}"
+        "executionFailed": "Eksekusi gagal: {{error}}",
+        "proposalActionType": "Jenis aksi: {{actionType}}",
+        "proposalStepCount": "{{count}} langkah eksekusi",
+        "stageTransition": "Tahap berubah: {{from}} → {{to}}",
+        "eventRecorded": "Event dicatat."
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Proposal dibuat",
@@ -2518,6 +2558,11 @@ export default {
       "intelligenceApprovalBar": "ambang penjualan implisit",
       "intelligenceHistoricalRate": "tingkat persetujuan historis",
       "intelligenceFilteredRate": "persetujuan historis yang difilter",
+      "intelligenceImpliedThresholdTitle": "Ambang historis tersirat",
+      "intelligenceImpliedThresholdHint": "Ambang expected sales yang kira-kira mempertahankan tingkat persetujuan historis {{approvalRate}}.",
+      "intelligenceConfiguredThresholdTitle": "Pengaturan toko saat ini",
+      "intelligenceConfiguredThresholdHint": "Minimum expected sales default yang dipakai agent saat tidak ada ambang kampanye.",
+      "intelligenceConfiguredThresholdUnset": "Belum diatur",
       "intelligenceTrainingScope": "{{window}} · dilatih {{trainedAt}}. Tingkat persetujuan historis {{approvalRate}}; persetujuan historis yang difilter {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Tampilan ini didasarkan pada model statistik dan prediksi machine learning. Ini bukan jaminan bahwa penggunaan model akan menghasilkan pertumbuhan bisnis nyata.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} hari",
@@ -2578,6 +2623,7 @@ export default {
       "collaborationWorkQueueHint": "Kolaborasi yang membutuhkan keputusan manual.",
       "searchPlaceholder": "Cari kreator, produk, toko, atau ID",
       "statusFilter": "Filter status",
+      "typeFilter": "Filter tipe",
       "searchFilter": "Cari",
       "itemCount": "{{count}} item",
       "collaborationRecords": "Kolaborasi",
@@ -2596,6 +2642,9 @@ export default {
         "SUPERSEDED": "Digantikan",
         "EXPIRED": "Kedaluwarsa",
         "MODIFIED": "Diubah"
+      },
+      "proposalTypeFilters": {
+        "ALL": "Semua tipe"
       },
       "collaborationFilters": {
         "NEEDS_ATTENTION": "Perlu ditangani",
@@ -2814,6 +2863,17 @@ export default {
         "CANCELLED": "Permintaan sampel dibatalkan.",
         "EXPIRED": "Permintaan sampel kedaluwarsa.",
         "DEFAULT": "Status permintaan sampel diperbarui di platform."
+      },
+      "sampleWorkStatusLabels": {
+        "REQUEST_PENDING_REVIEW": "Menunggu tinjauan",
+        "APPROVED_AWAITING_SHIPMENT": "Menunggu pengiriman",
+        "SHIPPED_IN_TRANSIT": "Dalam pengiriman",
+        "DELIVERED_AWAITING_CONTENT": "Menunggu konten",
+        "CONTENT_OBSERVED_REVIEWING": "Konten ditinjau",
+        "FULFILLED": "Selesai",
+        "FULFILLMENT_FAILED": "Pemenuhan gagal",
+        "CANCELLED": "Dibatalkan",
+        "EXPIRED": "Kedaluwarsa"
       },
       "sampleSituationPreview": "{{statusDescription}} {{contentCount}} konten teramati.",
       "policyApprovalNote": "Pengaturan keamanan memerlukan konfirmasi staf sebelum tindakan platform ini dijalankan."

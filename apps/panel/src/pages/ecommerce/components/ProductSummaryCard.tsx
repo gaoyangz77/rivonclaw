@@ -1,8 +1,10 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { useLazyQuery } from "@apollo/client/react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ECOMMERCE_GET_PRODUCT_QUERY } from "../../../api/shops-queries.js";
+import { RemoteMediaImage } from "../../../components/images/RemoteMediaImage.js";
 
 type ProductDetailQuery = {
   ecommerceGetProduct: GQL.EcomProduct;
@@ -67,6 +69,19 @@ export function ProductSummaryCard({
     );
   }
 
+  const detailModal = detailOpen && shopId ? (
+    <ProductDetailModal
+      shopId={shopId}
+      productId={productId}
+      fallbackProduct={product}
+      onClose={() => setDetailOpen(false)}
+      onPreviewImage={setPreviewImage}
+    />
+  ) : null;
+  const imagePreview = previewImage ? (
+    <ProductImagePreview imageUrl={previewImage} onClose={() => setPreviewImage(null)} />
+  ) : null;
+
   return (
     <>
       <article
@@ -93,7 +108,12 @@ export function ProductSummaryCard({
             title={t("ecommerce.productCard.enlargeProductImage")}
             aria-label={t("ecommerce.productCard.enlargeProductImage")}
           >
-            <img className="affiliate-product-thumb" src={product.coverImage} alt="" loading="lazy" />
+            <RemoteMediaImage
+              alt=""
+              className="affiliate-product-thumb"
+              loading="lazy"
+              sourceUrl={product.coverImage}
+            />
           </button>
         ) : (
           <div className="affiliate-product-thumb affiliate-product-thumb-empty" aria-hidden="true" />
@@ -110,22 +130,12 @@ export function ProductSummaryCard({
                 {t("ecommerce.affiliateWorkspace.productIdShort", { productId: shortenProductId(productId) })}
               </span>
             )}
-            {status ? <span className="affiliate-product-status">{formatProductStatus(status)}</span> : null}
+            {status ? <span className="affiliate-product-status">{formatProductStatus(status, t)}</span> : null}
           </div>
         </div>
       </article>
-      {detailOpen && shopId ? (
-        <ProductDetailModal
-          shopId={shopId}
-          productId={productId}
-          fallbackProduct={product}
-          onClose={() => setDetailOpen(false)}
-          onPreviewImage={setPreviewImage}
-        />
-      ) : null}
-      {previewImage ? (
-        <ProductImagePreview imageUrl={previewImage} onClose={() => setPreviewImage(null)} />
-      ) : null}
+      {renderProductOverlay(detailModal)}
+      {renderProductOverlay(imagePreview)}
     </>
   );
 }
@@ -168,24 +178,34 @@ function ProductDetailModal({
   const status = product?.status || fallbackProduct?.status || null;
   const description = normalizeProductDescription(product?.description);
   const shortDescription = description ? truncateProductDescription(description) : null;
-  const skuRows = buildSkuRows(product, fallbackProduct);
+  const skuRows = buildSkuRows(product, fallbackProduct, t);
 
   function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
+    event.preventDefault();
     event.stopPropagation();
     onClose();
   }
 
   function closeFromButton(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
     event.stopPropagation();
     onClose();
   }
 
   return (
-    <div className="modal-backdrop product-detail-backdrop" role="presentation" onClick={closeFromBackdrop}>
+    <div
+      className="modal-backdrop product-detail-backdrop"
+      role="presentation"
+      onClick={closeFromBackdrop}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <div
         className="modal-content product-detail-modal"
         role="dialog"
         aria-modal="true"
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-header product-detail-header">
@@ -212,7 +232,7 @@ function ProductDetailModal({
                     className="product-detail-primary-image"
                     onClick={() => onPreviewImage(primaryImage)}
                   >
-                    <img src={primaryImage} alt="" />
+                    <RemoteMediaImage alt="" loading="lazy" sourceUrl={primaryImage} />
                   </button>
                 ) : (
                   <div className="product-detail-primary-image product-detail-primary-image-empty" />
@@ -226,7 +246,7 @@ function ProductDetailModal({
                         className={image === primaryImage ? "product-detail-image-selected" : undefined}
                         onClick={() => setSelectedImageUrl(image)}
                       >
-                        <img src={image} alt="" />
+                        <RemoteMediaImage alt="" loading="lazy" sourceUrl={image} />
                       </button>
                     ))}
                   </div>
@@ -239,7 +259,7 @@ function ProductDetailModal({
                 </div>
                 <div className="product-detail-callouts">
                   <ProductMetric label={t("ecommerce.productCard.price")} value={price} tone="price" />
-                  <ProductMetric label={t("ecommerce.productCard.status")} value={status ? formatProductStatus(status) : null} />
+                  <ProductMetric label={t("ecommerce.productCard.status")} value={status ? formatProductStatus(status, t) : null} />
                 </div>
                 <div className="product-detail-description">
                   <div className="product-detail-section-label">{t("ecommerce.productCard.description")}</div>
@@ -273,31 +293,47 @@ function ProductDetailModal({
 function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
   const { t } = useTranslation();
   function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
+    event.preventDefault();
     event.stopPropagation();
     onClose();
   }
 
   function closeFromButton(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
     event.stopPropagation();
     onClose();
   }
 
   return (
-    <div className="modal-backdrop product-image-preview-backdrop" role="presentation" onClick={closeFromBackdrop}>
+    <div
+      className="modal-backdrop product-image-preview-backdrop"
+      role="presentation"
+      onClick={closeFromBackdrop}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <div
         className="product-image-preview"
         role="dialog"
         aria-modal="true"
         aria-label={t("ecommerce.productCard.imagePreview")}
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <button className="modal-close-btn" type="button" onClick={closeFromButton} aria-label={t("common.close")}>
           ×
         </button>
-        <img src={imageUrl} alt="" />
+        <RemoteMediaImage alt="" loading="eager" sourceUrl={imageUrl} />
       </div>
     </div>
   );
+}
+
+function renderProductOverlay(node: ReactNode): ReactNode {
+  if (!node) return null;
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
 }
 
 function ProductMetric({
@@ -372,8 +408,10 @@ function formatMoney(amount: string | null | undefined, currency?: GQL.EcomProdu
   }
 }
 
-function formatProductStatus(value: string): string {
-  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+function formatProductStatus(value: string, t: ReturnType<typeof useTranslation>["t"]): string {
+  return t(`ecommerce.productCard.statusLabels.${value}`, {
+    defaultValue: value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase()),
+  });
 }
 
 function uniqueProductImages(values: Array<string | null | undefined>): string[] {
@@ -390,12 +428,13 @@ function uniqueProductImages(values: Array<string | null | undefined>): string[]
 function buildSkuRows(
   product: GQL.EcomProduct | null | undefined,
   fallbackProduct: GQL.EcomProductSummary | null | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
 ): ProductSkuRow[] {
   if (product?.skus?.length) {
     return product.skus.slice(0, 12).map((sku) => ({
       key: sku.id,
       name: sku.sellerSku || sku.id,
-      status: sku.statusInfo?.status ? formatProductStatus(sku.statusInfo.status) : null,
+      status: sku.statusInfo?.status ? formatProductStatus(sku.statusInfo.status, t) : null,
       price: formatMoney(sku.price?.salePrice, sku.price?.currency),
     }));
   }

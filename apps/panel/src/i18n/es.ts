@@ -2307,7 +2307,17 @@ export default {
       "updatedAt": "Actualizado",
       "description": "Descripción",
       "noDescription": "No hay descripción del producto disponible.",
-      "skus": "SKU"
+      "skus": "SKU",
+      "statusLabels": {
+        "ACTIVATE": "Activo",
+        "ALL": "Todos",
+        "DELETED": "Eliminado",
+        "DRAFT": "Borrador",
+        "FAILED": "Fallido",
+        "FREEZE": "Congelado",
+        "PENDING": "Pendiente de revisión",
+        "PLATFORM_DEACTIVATED": "Desactivado por la plataforma"
+      }
     },
     "affiliateWorkspace": {
       "title": "Gestión de afiliados",
@@ -2402,6 +2412,13 @@ export default {
         "productCard": "Tarjeta de producto: {{product}}",
         "sampleApplicationCard": "Tarjeta de solicitud de muestra: {{applicationId}}",
         "targetCollaborationCard": "Tarjeta de colaboración: {{collaborationId}}",
+        "productCardLabel": "Tarjeta de producto",
+        "sampleApplicationCardLabel": "Tarjeta de solicitud de muestra",
+        "sampleApplicationCardTitle": "Solicitud de muestra",
+        "targetCollaborationCardLabel": "Invitación de colaboración",
+        "targetCollaborationCardTitle": "Invitación de colaboración",
+        "collaborationId": "ID de colaboración",
+        "productCount": "{{count}} producto(s)",
         "directions": {
           "CREATOR": "Creador",
           "SELLER": "Vendedor",
@@ -2410,10 +2427,29 @@ export default {
       },
       "sampleApplication": {
         "title": "Solicitud de muestra",
+        "detailTitle": "Detalles de la solicitud de muestra",
+        "openDetail": "Abrir detalles de la solicitud de muestra",
+        "showDetails": "Ver detalles",
+        "hideDetails": "Ocultar detalles",
         "status": "Estado",
         "applicationId": "ID de solicitud",
+        "productId": "ID de producto",
+        "collaborationId": "ID de colaboración",
+        "openCollaborationId": "ID de colaboración abierta",
+        "targetCollaborationId": "ID de colaboración dirigida",
         "contentCount": "Contenido observado",
+        "contentProgress": "Contenido publicado",
+        "contentProgressValue": "{{count}} elemento(s)",
+        "shippingProgress": "Envío de muestra",
+        "noTrackingYet": "Sin seguimiento aún",
+        "latestContent": "ID del contenido más reciente",
+        "latestContentAt": "Hora del contenido más reciente",
+        "latestContentViews": "Vistas del contenido más reciente",
         "tracking": "Número de seguimiento",
+        "carrier": "Transportista",
+        "shippedAt": "Enviado el",
+        "deliveredAt": "Entregado el",
+        "updatedAt": "Actualizado el",
         "none": "Aún no hay una solicitud de muestra vinculada para esta colaboración."
       },
       "creatorDetail": {
@@ -2444,7 +2480,11 @@ export default {
       "activity": {
         "staffDecision": "Nota del equipo: {{note}}",
         "executedAt": "Ejecutado a las {{time}}",
-        "executionFailed": "Error de ejecución: {{error}}"
+        "executionFailed": "Error de ejecución: {{error}}",
+        "proposalActionType": "Tipo de acción: {{actionType}}",
+        "proposalStepCount": "{{count}} paso(s) de ejecución",
+        "stageTransition": "Etapa cambiada: {{from}} → {{to}}",
+        "eventRecorded": "Evento registrado."
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Propuesta creada",
@@ -2518,6 +2558,11 @@ export default {
       "intelligenceApprovalBar": "umbral de ventas implícito",
       "intelligenceHistoricalRate": "tasa histórica de aprobación",
       "intelligenceFilteredRate": "aprobaciones históricas filtradas",
+      "intelligenceImpliedThresholdTitle": "Umbral histórico implícito",
+      "intelligenceImpliedThresholdHint": "El umbral de ventas esperadas que mantendría aproximadamente la tasa histórica de aprobación de {{approvalRate}}.",
+      "intelligenceConfiguredThresholdTitle": "Configuración actual de la tienda",
+      "intelligenceConfiguredThresholdHint": "Las ventas esperadas mínimas predeterminadas que usa el agente cuando no hay un umbral de campaña.",
+      "intelligenceConfiguredThresholdUnset": "Sin configurar",
       "intelligenceTrainingScope": "{{window}} · entrenado {{trainedAt}}. Tasa histórica de aprobación {{approvalRate}}; aprobaciones históricas filtradas {{filteredRate}}.",
       "intelligenceLegalDisclaimer": "Esta vista se basa en modelos estadísticos y predicciones de aprendizaje automático. No garantiza que el uso del modelo produzca crecimiento real del negocio.",
       "intelligenceWindowRange": "{{start}} - {{end}} · {{days}} días",
@@ -2578,6 +2623,7 @@ export default {
       "collaborationWorkQueueHint": "Colaboraciones que necesitan una decisión manual.",
       "searchPlaceholder": "Buscar por creador, producto, tienda o ID",
       "statusFilter": "Filtro de estado",
+      "typeFilter": "Filtro de tipo",
       "searchFilter": "Buscar",
       "itemCount": "{{count}} elementos",
       "collaborationRecords": "Colaboraciones",
@@ -2596,6 +2642,9 @@ export default {
         "SUPERSEDED": "Sustituidas",
         "EXPIRED": "Vencidas",
         "MODIFIED": "Modificadas"
+      },
+      "proposalTypeFilters": {
+        "ALL": "Todos los tipos"
       },
       "collaborationFilters": {
         "NEEDS_ATTENTION": "Requiere atención",
@@ -2814,6 +2863,17 @@ export default {
         "CANCELLED": "La solicitud de muestra fue cancelada.",
         "EXPIRED": "La solicitud de muestra expiró.",
         "DEFAULT": "El estado de la solicitud de muestra se actualizó en la plataforma."
+      },
+      "sampleWorkStatusLabels": {
+        "REQUEST_PENDING_REVIEW": "Pendiente de revisión",
+        "APPROVED_AWAITING_SHIPMENT": "Pendiente de envío",
+        "SHIPPED_IN_TRANSIT": "En tránsito",
+        "DELIVERED_AWAITING_CONTENT": "Esperando contenido",
+        "CONTENT_OBSERVED_REVIEWING": "Contenido en revisión",
+        "FULFILLED": "Completado",
+        "FULFILLMENT_FAILED": "Cumplimiento fallido",
+        "CANCELLED": "Cancelado",
+        "EXPIRED": "Expirado"
       },
       "sampleSituationPreview": "{{statusDescription}} Se observaron {{contentCount}} contenido(s).",
       "policyApprovalNote": "La configuración de seguridad requiere confirmación del personal antes de ejecutar esta acción en la plataforma."
