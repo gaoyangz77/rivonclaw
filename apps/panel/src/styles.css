@@ -2800,6 +2800,57 @@ tbody td {
   border-top-color: var(--color-warning, #b45309);
 }
 
+.quota-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid transparent;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.quota-banner-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-bottom-color: rgba(245, 158, 11, 0.2);
+  color: var(--color-warning, #b45309);
+}
+
+.quota-banner-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-bottom-color: rgba(239, 68, 68, 0.22);
+  color: var(--color-danger, #dc2626);
+}
+
+.quota-banner-title {
+  font-weight: 700;
+}
+
+.quota-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quota-banner-action {
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 8px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.72);
+  color: currentColor;
+}
+
+.quota-banner-action:hover {
+  text-decoration: underline;
+  transform: none;
+}
+
 .customer-service-routing-banner {
   align-items: center;
   justify-content: center;
@@ -4970,6 +5021,22 @@ tbody td {
   background-color: rgba(255, 176, 32, 0.1);
   border-bottom-color: rgba(255, 176, 32, 0.2);
   color: var(--color-warning, #ffb020);
+}
+
+[data-theme="dark"] .quota-banner-warning {
+  background-color: rgba(255, 176, 32, 0.1);
+  border-bottom-color: rgba(255, 176, 32, 0.2);
+  color: var(--color-warning, #ffb020);
+}
+
+[data-theme="dark"] .quota-banner-error {
+  background-color: rgba(248, 113, 113, 0.12);
+  border-bottom-color: rgba(248, 113, 113, 0.24);
+  color: var(--color-danger, #f87171);
+}
+
+[data-theme="dark"] .quota-banner-action {
+  background: rgba(0, 0, 0, 0.26);
 }
 
 [data-theme="dark"] .update-banner-action-primary {
