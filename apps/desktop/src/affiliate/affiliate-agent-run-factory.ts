@@ -179,6 +179,7 @@ function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem):
     "If you choose REQUEST_ACTION, your input.actions array must include every recommended action type that is still applicable after checking current workspace facts.",
     "Do not submit a partial action bundle just because one action is easier to fill.",
     "Never submit an action with an empty typed intent object such as sampleReviewIntent: {} or messageIntent: {}.",
+    "When a concrete REVIEW_SAMPLE_APPLICATION template is provided below, copy its sampleReviewIntent object exactly and only change decision/rejectReason when your judgment requires it.",
   ];
 
   if (
@@ -302,6 +303,7 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
     "## Valid REQUEST_ACTION Payload Templates",
     "If you choose REQUEST_ACTION, copy these shapes exactly and replace only the decision/reason/message values that require judgment.",
     "Never submit an action with only a type. If you cannot fill the typed payload, use NEEDS_STAFF_REVIEW instead of REQUEST_ACTION.",
+    "Never replace a concrete sampleReviewIntent template with null or {}. The backend expects sampleApplicationRecordId and platformApplicationId to stay inside sampleReviewIntent.",
     "When more than one action is relevant, use input.actions as an ordered array and include every concrete action in the same tool call.",
     ...templates,
     recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) &&
