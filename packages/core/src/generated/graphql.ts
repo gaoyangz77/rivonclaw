@@ -1892,7 +1892,7 @@ export const CampaignProductSampleOfferMode = {
 export type CampaignProductSampleOfferMode = typeof CampaignProductSampleOfferMode[keyof typeof CampaignProductSampleOfferMode];
 export interface CancelBillingSubscriptionInput {
   product: BillableProduct;
-  /** User ID for account-scoped subscriptions, shop ID for shop-scoped subscriptions. */
+  /** Target scope ID. Use the user ID for account-scoped subscriptions, the shop ID for e-commerce requests, or an existing seller scope ID for seller-scoped subscriptions. */
   scopeId: Scalars['String']['input'];
   scopeType: BillingScopeType;
 }
@@ -2004,9 +2004,9 @@ export interface CreateRunProfileInput {
 export interface CreateStripeBillingPortalSessionInput {
   /** Product whose active Stripe subscription should be managed in Stripe Customer Portal. */
   product: BillableProduct;
-  /** Target scope ID. Use the current user ID for ACCOUNT-scoped subscriptions, or the shop ID for SHOP-scoped subscriptions. */
+  /** Target scope ID. Use the current user ID for ACCOUNT-scoped subscriptions, the shop ID for e-commerce requests, or an existing seller scope ID for seller-scoped subscriptions. */
   scopeId: Scalars['String']['input'];
-  /** Billing scope to manage. Use ACCOUNT for LLM subscriptions and SHOP for shop-scoped service subscriptions. */
+  /** Billing scope to manage. Use ACCOUNT for LLM subscriptions. E-commerce callers may pass SHOP + shop ID; seller-scoped services are canonicalized to SELLER when applicable. */
   scopeType: BillingScopeType;
 }
 
@@ -6603,6 +6603,7 @@ export interface SendAffiliateConversationMessagePayload {
 export const ServiceId = {
   AffiliateManagement: 'AFFILIATE_MANAGEMENT',
   CustomerService: 'CUSTOMER_SERVICE',
+  EcommerceAnalytics: 'ECOMMERCE_ANALYTICS',
   InventoryManagement: 'INVENTORY_MANAGEMENT',
   OrderManagement: 'ORDER_MANAGEMENT'
 } as const;
@@ -6825,9 +6826,9 @@ export interface StartBillingSubscriptionInput {
   planId: BillingPlanId;
   /** Payment rail to use. STRIPE creates or resumes an auto-renewing USD subscription; LAKALA creates a CNY prepaid QR payment. */
   provider: PaymentProviderName;
-  /** Target scope ID. Use the current user ID for ACCOUNT-scoped plans, or the shop ID for SHOP-scoped plans. */
+  /** Target scope ID. Use the current user ID for ACCOUNT-scoped plans, the shop ID for SHOP-scoped e-commerce requests, or an existing seller scope ID for seller-scoped management calls. */
   scopeId: Scalars['String']['input'];
-  /** Billing scope for the selected plan. LLM usage plans are ACCOUNT-scoped; ecommerce service plans are SHOP-scoped. */
+  /** Billing scope for the selected plan. LLM plans are ACCOUNT-scoped. E-commerce clients may pass SHOP + shop ID; the backend canonicalizes seller-scoped services such as customer service and affiliate to SELLER when applicable. */
   scopeType: BillingScopeType;
   /** Legacy client-supplied Stripe success redirect URL. The backend now uses the canonical RivonClaw payment status page for STRIPE checkouts; ignored when an existing Stripe subscription is only resumed. */
   successUrl?: InputMaybe<Scalars['String']['input']>;
