@@ -303,7 +303,6 @@ function inferSampleReviewDecisionFromResolveInput(
   const approvePatterns = [
     /\bapprov(?:e|ing|ed)\b/,
     /\baccept(?:ing|ed)?\b/,
-    /\bmove forward\b/,
     /\bsend (?:the )?sample\b/,
     /\bship (?:the )?sample\b/,
     /通过/,
