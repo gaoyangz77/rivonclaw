@@ -1057,21 +1057,11 @@ export interface AffiliateDashboardSummary {
 export interface AffiliateDecisionThresholds {
   /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
-  /**
-   * Deprecated alias kept for already-running desktop clients that still query the previous threshold field name.
-   * @deprecated Use minExpectedSalesUnits.
-   */
-  minP50SalesUnits?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateDecisionThresholdsInput {
   /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
-  /**
-   * Deprecated alias kept for already-running desktop clients that still query the previous threshold field name.
-   * @deprecated Use minExpectedSalesUnits.
-   */
-  minP50SalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
 export interface AffiliateExpectedSalesModelVersion {
