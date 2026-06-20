@@ -8,7 +8,7 @@ i18n.use(initReactI18next).init({
   resources: LANGUAGE_RESOURCES,
   lng,
   supportedLngs: SUPPORTED_LANGUAGE_CODES,
-  fallbackLng: "en",
+  fallbackLng: false,
   load: "languageOnly",
   interpolation: { escapeValue: false },
 });

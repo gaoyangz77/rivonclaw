@@ -34,6 +34,18 @@ When adding a new page:
 2. Add a RouteEntry in `routes.tsx`
 3. Done -- nav, routing, analytics, and auth are automatic.
 
+## I18n Policy
+
+Panel supports every language listed in `i18n/languages.ts`. Any new
+user-visible string must be added to every supported locale in the same change:
+`en`, `zh`, `de`, `es`, `fr`, `id`, `it`, and `th`.
+
+Do not rely on English fallback for missing translations. The panel i18next
+config disables language fallback, and `i18n/languages.test.ts` enforces exact
+translation-key parity for new work by rejecting any increase in the tracked
+legacy missing-key baseline. When backfilling historical gaps, reduce that
+baseline in the same change; the target baseline is zero for every locale.
+
 ## Dead Code Deletion Policy
 
 Before deleting any file, verify: zero import sites across the codebase, no
