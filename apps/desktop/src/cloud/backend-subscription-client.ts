@@ -323,11 +323,14 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         versionAt
         collaboration {
           id
+          userId
+          shopId
           creatorId
           creatorOpenId
           productId
           sampleApplicationRecordId
           affiliateCollaborationId
+          collaborationType
           platformCollaborationId
           platformConversationId
           creatorImId
@@ -337,9 +340,13 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           processReasons
           lastCreatorMessageId
           lastCreatorMessageAt
+          stateUpdatedAt
           lastSignalAt
           workHandledUntil
           nextSellerActionAt
+          startedAt
+          endedAt
+          createdAt
           updatedAt
           predictionSnapshots {
             sourceCacheId
@@ -355,10 +362,20 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         }
         sampleApplicationRecord {
           id
+          userId
+          shopId
           platformApplicationId
           creatorId
+          creatorOpenId
           productId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          platformOpenCollaborationId
+          platformTargetCollaborationId
           sampleWorkStatus
+          trackingNumber
+          carrier
           observedContentCount
           latestObservedContentAt
           latestObservedContentId
@@ -410,21 +427,51 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           }
           primarySampleApplication {
             id
+            userId
+            shopId
             platformApplicationId
             creatorId
+            creatorOpenId
             productId
+            affiliateCollaborationId
+            collaborationType
+            platformCollaborationId
+            platformOpenCollaborationId
+            platformTargetCollaborationId
             sampleWorkStatus
+            trackingNumber
+            carrier
             observedContentCount
+            shippedAt
+            deliveredAt
+            latestObservedContentId
             updatedAt
           }
           relatedSampleApplications {
             id
+            userId
+            shopId
             platformApplicationId
             creatorId
+            creatorOpenId
             productId
+            affiliateCollaborationId
+            collaborationType
+            platformCollaborationId
+            platformOpenCollaborationId
+            platformTargetCollaborationId
             sampleWorkStatus
+            trackingNumber
+            carrier
             observedContentCount
             latestObservedContentAt
+            latestObservedContentId
+            latestObservedContentUrl
+            latestObservedContentFormat
+            latestObservedContentPaidOrderCount
+            latestObservedContentViewCount
+            shippedAt
+            deliveredAt
             updatedAt
           }
           pendingProposals {

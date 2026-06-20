@@ -33,6 +33,8 @@ export async function handleAffiliateWorkItemChanged(
     return;
   }
 
+  ingestAffiliateWorkItemEntities(workItem);
+
   const bridge = getCsBridge();
   if (!bridge) {
     log.warn(`Affiliate work item arrived before ecommerce bridge was ready: shop=${workItem.platformShopId}`);
@@ -40,4 +42,76 @@ export async function handleAffiliateWorkItemChanged(
   }
 
   await bridge.handleAffiliateWorkItemChanged(workItem);
+}
+
+function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): void {
+  const workspace = rootStore.affiliateWorkspace;
+  if (isCompleteCollaborationRecord(workItem.collaboration)) {
+    workspace.upsertAffiliateCollaborationRecord(workItem.collaboration as any);
+  } else if (workItem.collaboration?.id) {
+    log.warn(`Skipping incomplete affiliate collaboration snapshot from work item: id=${workItem.collaboration.id}`);
+  }
+
+  if (isCompleteSampleApplicationRecord(workItem.sampleApplicationRecord)) {
+    workspace.upsertAffiliateSampleApplicationRecord(workItem.sampleApplicationRecord as any);
+  } else if (workItem.sampleApplicationRecord?.id) {
+    log.warn(`Skipping incomplete affiliate sample snapshot from work item: id=${workItem.sampleApplicationRecord.id}`);
+  }
+
+  workspace.upsertAffiliateCreatorProfile(workItem.context?.creatorProfile as any);
+
+  const primarySample = workItem.context?.primarySampleApplication;
+  if (isCompleteSampleApplicationRecord(primarySample)) {
+    workspace.upsertAffiliateSampleApplicationRecord(primarySample as any);
+  } else if (primarySample?.id) {
+    log.warn(`Skipping incomplete primary affiliate sample snapshot from work item: id=${primarySample.id}`);
+  }
+
+  for (const sample of workItem.context?.relatedSampleApplications ?? []) {
+    if (isCompleteSampleApplicationRecord(sample)) {
+      workspace.upsertAffiliateSampleApplicationRecord(sample as any);
+    } else if (sample?.id) {
+      log.warn(`Skipping incomplete related affiliate sample snapshot from work item: id=${sample.id}`);
+    }
+  }
+
+  const productSummary = (workItem.context?.productContext as any)?.productSummary;
+  if (productSummary) {
+    workspace.upsertAffiliateProductSummary(productSummary);
+  }
+}
+
+function hasString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function isCompleteCollaborationRecord(record: AffiliateWorkItemPayload["collaboration"]): boolean {
+  return Boolean(
+    record
+    && hasString(record.id)
+    && hasString((record as any).userId)
+    && hasString((record as any).shopId)
+    && hasString(record.creatorId)
+    && hasString(record.lifecycleStage)
+    && hasString(record.processingStatus)
+    && hasString(record.requiredAction)
+    && hasString((record as any).stateUpdatedAt)
+    && hasString((record as any).startedAt)
+    && hasString((record as any).createdAt)
+    && hasString(record.updatedAt),
+  );
+}
+
+function isCompleteSampleApplicationRecord(
+  record: AffiliateWorkItemPayload["sampleApplicationRecord"],
+): boolean {
+  return Boolean(
+    record
+    && hasString(record.id)
+    && hasString(record.userId)
+    && hasString(record.shopId)
+    && hasString(record.platformApplicationId)
+    && hasString(record.sampleWorkStatus)
+    && hasString(record.updatedAt),
+  );
 }

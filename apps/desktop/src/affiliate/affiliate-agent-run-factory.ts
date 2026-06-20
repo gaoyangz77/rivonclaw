@@ -68,6 +68,8 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderWorkItemProjection(workItem),
       "",
+      renderResolveActionPayloadTemplates(input),
+      "",
       renderProposalDeltaSection(input),
       "",
       renderPredictionSection(input),
@@ -92,6 +94,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "When prediction or merchant thresholds indicate the creator/product is below the shop's bar, a creator-facing reply should politely decline or leave the door open for better future fit; it should not ask the creator to submit the same application again.",
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
+      "If Work Bundle Kind is CREATOR_REPLY_WITH_SAMPLE_REVIEW, you must handle the sample review and the creator reply in the same REQUEST_ACTION input.actions bundle. Include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE unless the sample is already terminal or no creator-facing reply is appropriate.",
       renderPredictionCacheInstruction(input),
       "For every text reply, set action.messageText to the exact creator-facing message. Backend will normalize it into a typed SEND_MESSAGE intent.",
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
@@ -113,6 +116,8 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "[Affiliate Work Item: Creator Follow-Up Due]",
       "",
       renderWorkItemProjection(workItem),
+      "",
+      renderResolveActionPayloadTemplates(input),
       "",
       renderProposalDeltaSection(input),
       "",
@@ -158,6 +163,7 @@ function renderResolveWorkItemToolContract(): string {
     "Do not use CHANGE_COMMISSION, CHANGE_RATE, DISCOUNT, TAG_CREATOR, BLOCK_CREATOR, SHIP_SAMPLE, or any other action type. If the seller needs an unsupported action, use decision NEEDS_STAFF_REVIEW and explain it in operatorSummary.",
     "When decision is REQUEST_ACTION, provide either input.action for one action or input.actions for an ordered bundle; do not provide both.",
     "Each action must populate exactly one intent field matching action.type: SEND_MESSAGE uses the typed messageText shortcut; REVIEW_SAMPLE_APPLICATION uses sampleReviewIntent; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
+    "An action that only contains { type: ... } is always invalid. Do not call REQUEST_ACTION until every selected action has the required typed payload.",
     "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleReviewIntent: { sampleApplicationRecordId, platformApplicationId, decision, rejectReason? } }. Never put sampleApplicationRecordId, platformApplicationId, decision, or rejectReason at the action top level.",
     "For SEND_MESSAGE, the action shape must be exactly like this minimal payload: { type: SEND_MESSAGE, predictionCacheIds: [...], messageText: \"exact creator-facing message\" }. Add conversationId, creatorId, or productId at the action top level only when known. Never send messageIntent: {}.",
     "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
@@ -202,6 +208,120 @@ function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput):
     `For any REQUEST_ACTION decision in this work item, include predictionCacheIds: ${JSON.stringify(cacheIds)} on the typed action payload.`,
     "If you use input.actions, include the same predictionCacheIds on each action that creates, updates, approves, rejects, or messages within this collaboration.",
   ].join(" ");
+}
+
+function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInput): string {
+  const { workItem } = input;
+  const recommendedActions = recommendedActionTypesForWorkItem(workItem);
+  const sample = workItem.sampleApplicationRecord;
+  const cacheIds = input.predictionCacheIds?.filter(Boolean) ?? [];
+  const baseActionFields = cacheIds.length ? { predictionCacheIds: cacheIds } : {};
+  const templates: string[] = [];
+
+  if (recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) && sample) {
+    templates.push([
+      "REVIEW_SAMPLE_APPLICATION action template:",
+      JSON.stringify({
+        type: "REVIEW_SAMPLE_APPLICATION",
+        ...baseActionFields,
+        sampleReviewIntent: {
+          sampleApplicationRecordId: sample.id,
+          platformApplicationId: sample.platformApplicationId,
+          decision: "REJECT",
+          rejectReason: "plain merchant-facing reason for rejection",
+        },
+      }, null, 2),
+      "Use decision APPROVE only when the workspace facts and merchant instructions support approving this sample request.",
+    ].join("\n"));
+  }
+
+  if (recommendedActions.includes(GQL.ActionProposalType.SendMessage)) {
+    templates.push([
+      "SEND_MESSAGE action template:",
+      JSON.stringify({
+        type: "SEND_MESSAGE",
+        ...baseActionFields,
+        messageText: "exact creator-facing message to send",
+      }, null, 2),
+    ].join("\n"));
+  }
+
+  if (templates.length === 0) {
+    return [
+      "## Valid REQUEST_ACTION Payload Templates",
+      "(none: no typed platform action is currently recommended by backend)",
+    ].join("\n");
+  }
+
+  return [
+    "## Valid REQUEST_ACTION Payload Templates",
+    "If you choose REQUEST_ACTION, copy these shapes exactly and replace only the decision/reason/message values that require judgment.",
+    "Never submit an action with only a type. If you cannot fill the typed payload, use NEEDS_STAFF_REVIEW instead of REQUEST_ACTION.",
+    "When more than one action is relevant, use input.actions as an ordered array and include every concrete action in the same tool call.",
+    ...templates,
+    recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) &&
+      recommendedActions.includes(GQL.ActionProposalType.SendMessage)
+      ? [
+        "Combined bundle example:",
+        JSON.stringify({
+          decision: "REQUEST_ACTION",
+          handledSignalAt: workItem.versionAt,
+          actions: [
+            sample ? {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              ...baseActionFields,
+              sampleReviewIntent: {
+                sampleApplicationRecordId: sample.id,
+                platformApplicationId: sample.platformApplicationId,
+                decision: "REJECT",
+                rejectReason: "plain merchant-facing reason for rejection",
+              },
+            } : {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              ...baseActionFields,
+              sampleReviewIntent: {
+                sampleApplicationRecordId: "sampleApplicationRecordId from Backend Work Projection",
+                platformApplicationId: "platformApplicationId from Backend Work Projection",
+                decision: "REJECT",
+                rejectReason: "plain merchant-facing reason for rejection",
+              },
+            },
+            {
+              type: "SEND_MESSAGE",
+              ...baseActionFields,
+              messageText: "exact creator-facing message to send",
+            },
+          ],
+          operatorSummary: "staff-facing rationale in the requested staff language",
+        }, null, 2),
+      ].join("\n")
+      : "",
+  ].filter(Boolean).join("\n\n");
+}
+
+function recommendedActionTypesForWorkItem(workItem: GQL.AffiliateWorkItem): GQL.ActionProposalType[] {
+  const actionTypes = new Set<GQL.ActionProposalType>(
+    workItem.recommendedActionTypes ?? workItem.context?.recommendedActionTypes ?? [],
+  );
+  if (requiresCreatorReplyAction(workItem)) {
+    actionTypes.add(GQL.ActionProposalType.SendMessage);
+  }
+  if (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
+    workItem.processReasons?.includes(GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview)
+  ) {
+    actionTypes.add(GQL.ActionProposalType.ReviewSampleApplication);
+  }
+  return [...actionTypes];
+}
+
+function requiresCreatorReplyAction(workItem: GQL.AffiliateWorkItem): boolean {
+  return (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyOnly ||
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
+    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.RespondToCreator ||
+    workItem.processReasons?.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply) === true
+  );
 }
 
 export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): string {
