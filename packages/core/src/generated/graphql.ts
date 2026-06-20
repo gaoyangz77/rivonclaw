@@ -1788,6 +1788,7 @@ export const BillingRenewalMode = {
 export type BillingRenewalMode = typeof BillingRenewalMode[keyof typeof BillingRenewalMode];
 export const BillingScopeType = {
   Account: 'ACCOUNT',
+  Seller: 'SELLER',
   Shop: 'SHOP'
 } as const;
 
@@ -6622,6 +6623,8 @@ export interface Shop {
   accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   alias?: Maybe<Scalars['String']['output']>;
   authStatus: ShopAuthStatus;
+  /** Non-sensitive grouping key shared by shops that belong to the same platform seller. */
+  collectionKey: Scalars['String']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
   grantedScopes: Array<Scalars['String']['output']>;
   id: Scalars['ID']['output'];

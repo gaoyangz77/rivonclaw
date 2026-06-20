@@ -9,7 +9,6 @@ import type {
   BillingPlanDefinition,
   Payment,
   Shop,
-  ShopBillingStatus,
 } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
@@ -28,6 +27,14 @@ import {
   type CheckoutProvider,
   usagePercentLabel,
 } from "./billing-labels.js";
+import {
+  shopCollectionDisplayName,
+} from "../../lib/shop-collections.js";
+import {
+  buildShopServiceBillingGroups,
+  type ShopServiceBillingGroup,
+  type ShopServiceBillingRow,
+} from "../../lib/shop-billing-groups.js";
 
 interface AccountBillingSectionProps {
   billingOverview: BillingOverview | null;
@@ -36,11 +43,6 @@ interface AccountBillingSectionProps {
 }
 
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
-
-interface ShopServiceBillingRow {
-  shop: Shop;
-  billing: ShopBillingStatus | null;
-}
 
 function shopDisplayName(shop: { alias?: string | null; shopName?: string | null; platformShopId?: string | null; id?: string | null } | null | undefined, fallback: string): string {
   return shop?.alias || shop?.shopName || shop?.platformShopId || shop?.id || fallback;
@@ -56,6 +58,16 @@ function enabledShopServiceKeys(shop: { services?: {
   if (shop?.services?.wms?.enabled) keys.push("inventory");
   if (shop?.services?.affiliateService?.enabled) keys.push("affiliate");
   return keys;
+}
+
+function enabledRowServiceKeys(row: ShopServiceBillingRow): ShopServiceKey[] {
+  return enabledShopServiceKeys(row.shop);
+}
+
+function rowDisplayName(row: ShopServiceBillingRow & { shops?: Shop[] }): string {
+  return row.shops && row.shops.length > 1
+    ? shopCollectionDisplayName(row.shops)
+    : shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName);
 }
 
 function serviceProduct(key: ShopServiceKey): string {
@@ -484,7 +496,7 @@ function ShopServiceDetailModal({
   onManagePaymentMethod,
   onCancelSubscription,
 }: {
-  row: ShopServiceBillingRow;
+  row: ShopServiceBillingRow & { shops?: Shop[] };
   serviceKey: ShopServiceKey | null;
   onClose: () => void;
   onExtendPrepaid?: (serviceKey: ShopServiceKey, entitlement: BillingEntitlementStatus) => void;
@@ -509,7 +521,7 @@ function ShopServiceDetailModal({
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
   const title = serviceKey
-    ? `${shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName)} · ${t(`billing.services.${serviceKey}`)}`
+    ? `${rowDisplayName(row)} · ${t(`billing.services.${serviceKey}`)}`
     : t("billing.shopServices");
 
   async function handleManagePaymentMethod() {
@@ -608,9 +620,13 @@ function ShopServiceDetailModal({
 function ShopServiceRow({
   row,
   planDefinitions,
+  serviceKeys: serviceKeysProp,
+  className,
 }: {
-  row: ShopServiceBillingRow;
+  row: ShopServiceBillingRow & { shops?: Shop[] };
   planDefinitions: readonly BillingPlanDefinition[];
+  serviceKeys?: readonly ShopServiceKey[];
+  className?: string;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -620,7 +636,7 @@ function ShopServiceRow({
   const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<readonly CheckoutProvider[] | undefined>(undefined);
   const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<CheckoutProvider | undefined>(undefined);
   const [checkoutIsRenewal, setCheckoutIsRenewal] = useState(false);
-  const serviceKeys = enabledShopServiceKeys(row.shop);
+  const serviceKeys = serviceKeysProp ?? enabledRowServiceKeys(row);
 
   async function confirmCancelService() {
     if (!cancelTarget) return;
@@ -677,8 +693,13 @@ function ShopServiceRow({
 
   return (
     <>
-      <div className="billing-shop-row">
-        <div className="billing-shop-name">{shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName)}</div>
+      <div className={`billing-shop-row${className ? ` ${className}` : ""}`}>
+        <div className="billing-shop-name">
+          {rowDisplayName(row)}
+          {row.shops && row.shops.length > 1 && (
+            <span className="billing-shop-count">{row.shops.length}</span>
+          )}
+        </div>
         <div className="billing-shop-services">
           {serviceKeys.length ? serviceKeys.map((key) => {
             const entitlement = row.billing?.[key] ?? null;
@@ -775,26 +796,30 @@ function ShopServiceRow({
 }
 
 const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlow({
-  rows,
+  groups,
   planDefinitions,
 }: {
-  rows: readonly ShopServiceBillingRow[];
+  groups: readonly ShopServiceBillingGroup[];
   planDefinitions: readonly BillingPlanDefinition[];
 }) {
   const { t } = useTranslation();
   const servicePlans = planDefinitions.filter((plan) => plan.product === GQL.BillableProduct.EcomCustomerService);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
-  const candidateShops = rows
-    .filter(({ billing, shop }) => (
-      shop.services?.customerService?.enabled
+  const candidateShops = groups
+    .map((group) => group.customerServiceRow)
+    .filter((row): row is NonNullable<ShopServiceBillingGroup["customerServiceRow"]> => (
+      !!row
+      && !!row.shop.services?.customerService?.enabled
       && (
-        !billing?.customerService.allowed
-        || shouldShowRenewalReminder(billing.customerService)
+        !row.billing?.customerService.allowed
+        || shouldShowRenewalReminder(row.billing.customerService)
       )
     ))
-    .map(({ billing, shop }) => ({
+    .map(({ billing, shop, shops }) => ({
       shopId: shop.id,
-      shopName: shopDisplayName(shop, billing?.shopName ?? shop.shopName),
+      shopName: shops.length > 1
+        ? shopCollectionDisplayName(shops)
+        : shopDisplayName(shop, billing?.shopName ?? shop.shopName),
     }));
 
   return (
@@ -902,11 +927,10 @@ export const AccountBillingSection = observer(function AccountBillingSection({
     accountLlm?.planId,
     accountLlm?.entitlement.product,
   );
-  const billingShopById = new Map((billingOverview?.shops ?? []).map((shop) => [shop.shopId, shop]));
-  const visibleShopBillingRows: ShopServiceBillingRow[] = entityStore.shops.map((shop) => ({
-    shop,
-    billing: billingShopById.get(shop.id) ?? null,
-  }));
+  const shopBillingGroups = buildShopServiceBillingGroups(
+    entityStore.shops,
+    billingOverview?.shops ?? [],
+  );
 
   return (
     <div className="section-card account-billing-section">
@@ -929,18 +953,37 @@ export const AccountBillingSection = observer(function AccountBillingSection({
       <div className="billing-subsection">
         <h4>{t("billing.shopServices")}</h4>
         <ShopServiceSubscriptionFlow
-          rows={visibleShopBillingRows}
+          groups={shopBillingGroups}
           planDefinitions={planDefinitions}
         />
         <div className="billing-shop-list">
-          {visibleShopBillingRows.length
-            ? visibleShopBillingRows.map((row) => (
-                <ShopServiceRow
-                  key={row.shop.id}
-                  row={row}
-                  planDefinitions={planDefinitions}
-                />
-              ))
+          {shopBillingGroups.length
+            ? shopBillingGroups.map((group) => {
+                const isCollection = group.shops.length > 1;
+                return (
+                  <div key={group.key} className="billing-shop-collection">
+                    {isCollection && group.customerServiceRow && (
+                      <ShopServiceRow
+                        row={group.customerServiceRow}
+                        planDefinitions={planDefinitions}
+                        serviceKeys={group.customerServiceRow.shop.services?.customerService?.enabled ? ["customerService"] : []}
+                        className="billing-shop-collection-header"
+                      />
+                    )}
+                    {group.rows.map((row) => (
+                      <ShopServiceRow
+                        key={row.shop.id}
+                        row={row}
+                        planDefinitions={planDefinitions}
+                        serviceKeys={isCollection
+                          ? enabledShopServiceKeys(row.shop).filter((key) => key !== "customerService")
+                          : undefined}
+                        className={isCollection ? "billing-shop-collection-child" : undefined}
+                      />
+                    ))}
+                  </div>
+                );
+              })
             : <div className="billing-empty">{t("billing.noShopBilling")}</div>}
         </div>
       </div>
