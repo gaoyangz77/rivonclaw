@@ -2545,7 +2545,7 @@ export default {
       "intelligenceBusinessVerdictNeutral": "Questo ambito non mostra ancora un miglioramento chiaro rispetto alla selezione storica dello staff.",
       "intelligenceClaimPrecisionTitle": "Scelte migliori con lo stesso budget campioni",
       "intelligenceClaimPrecisionBody": "Nella recente finestra di test holdout, inviando gli stessi {{count}} campioni, i creator scelti dal modello sono previsti vendere {{lift}} in più rispetto alle scelte storiche dello staff.",
-      "intelligenceClaimPrecisionNeutral": "Con lo stesso budget campioni, questa esecuzione non mostra ancora un chiaro aumento di precisione.",
+      "intelligenceClaimPrecisionNeutral": "Con gli stessi {{count}} campioni, questa esecuzione non mostra ancora un chiaro aumento di precisione.",
       "intelligenceClaimReachTitle": "Più creator da valutare alla stessa soglia vendite",
       "intelligenceClaimReachBody": "Alla soglia di {{bar}} vendite previste, il modello segnala {{creators}} creator da valutare, inclusi {{overlooked}} non approvati dallo staff storico.",
       "intelligenceClaimReachNeutral": "Alla stessa soglia di vendite previste, questa esecuzione non mostra ancora una copertura creator più ampia.",

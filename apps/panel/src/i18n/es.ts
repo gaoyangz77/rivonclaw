@@ -2545,7 +2545,7 @@ export default {
       "intelligenceBusinessVerdictNeutral": "Este alcance aún no muestra una mejora clara frente a la selección histórica del equipo.",
       "intelligenceClaimPrecisionTitle": "Mejores elecciones con el mismo presupuesto de muestras",
       "intelligenceClaimPrecisionBody": "En la ventana reciente de prueba holdout, si envías las mismas {{count}} muestras, los creadores elegidos por el modelo se predice que venderán {{lift}} más que las elecciones históricas del equipo.",
-      "intelligenceClaimPrecisionNeutral": "Con el mismo presupuesto de muestras, esta ejecución aún no muestra una mejora clara de precisión.",
+      "intelligenceClaimPrecisionNeutral": "Con las mismas {{count}} muestras, esta ejecución aún no muestra una mejora clara de precisión.",
       "intelligenceClaimReachTitle": "Más creadores para revisar con la misma barra de ventas",
       "intelligenceClaimReachBody": "Con la barra de {{bar}} ventas predichas, el modelo marca {{creators}} creadores para revisar, incluidos {{overlooked}} que el equipo histórico no aprobó.",
       "intelligenceClaimReachNeutral": "Con la misma barra de ventas predichas, esta ejecución aún no muestra mayor cobertura de creadores.",

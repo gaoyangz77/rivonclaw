@@ -2545,7 +2545,7 @@ export default {
       "intelligenceBusinessVerdictNeutral": "Dieser Bereich zeigt noch keinen klaren Vorteil gegenüber historischer Mitarbeiterauswahl.",
       "intelligenceClaimPrecisionTitle": "Bessere Auswahl bei gleichem Sample-Budget",
       "intelligenceClaimPrecisionBody": "Im aktuellen Holdout-Testfenster würden die vom Modell gewählten Creator bei denselben {{count}} Samples voraussichtlich {{lift}} mehr verkaufen als die historische Mitarbeiterauswahl.",
-      "intelligenceClaimPrecisionNeutral": "Bei gleichem Sample-Budget zeigt dieser Modelllauf noch keinen klaren Präzisionsgewinn.",
+      "intelligenceClaimPrecisionNeutral": "Bei denselben {{count}} Samples zeigt dieser Modelllauf noch keinen klaren Präzisionsgewinn.",
       "intelligenceClaimReachTitle": "Mehr Creator zur Prüfung bei gleicher Verkaufsschwelle",
       "intelligenceClaimReachBody": "Bei der Schwelle von {{bar}} vorhergesagten Verkäufen markiert das Modell {{creators}} prüfenswerte Creator, darunter {{overlooked}}, die historisch nicht freigegeben wurden.",
       "intelligenceClaimReachNeutral": "Bei derselben vorhergesagten Verkaufsschwelle zeigt dieser Modelllauf noch keine größere Creator-Abdeckung.",

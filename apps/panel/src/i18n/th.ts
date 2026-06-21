@@ -2545,7 +2545,7 @@ export default {
       "intelligenceBusinessVerdictNeutral": "ขอบเขตนี้ยังไม่เห็นการยกระดับที่ชัดเจนเมื่อเทียบกับการเลือกของทีมเดิม",
       "intelligenceClaimPrecisionTitle": "เลือกได้ดีกว่าเมื่อใช้งบตัวอย่างเท่ากัน",
       "intelligenceClaimPrecisionBody": "ในช่วงทดสอบ holdout ล่าสุด หากส่งตัวอย่างเท่ากัน {{count}} ชิ้น ครีเอเตอร์ที่โมเดลเลือกคาดว่าจะขายได้มากกว่าการเลือกของทีมเดิม {{lift}}",
-      "intelligenceClaimPrecisionNeutral": "ด้วยงบตัวอย่างเท่ากัน การรันนี้ยังไม่เห็นความแม่นยำที่เพิ่มขึ้นชัดเจน",
+      "intelligenceClaimPrecisionNeutral": "ด้วยตัวอย่างจำนวน {{count}} เท่ากัน การรันนี้ยังไม่เห็นความแม่นยำที่เพิ่มขึ้นชัดเจน",
       "intelligenceClaimReachTitle": "มีครีเอเตอร์ให้พิจารณามากขึ้นที่เกณฑ์ยอดขายเดียวกัน",
       "intelligenceClaimReachBody": "ที่เกณฑ์ยอดขายคาดการณ์ {{bar}} ชิ้น โมเดลทำเครื่องหมายครีเอเตอร์ที่ควรพิจารณา {{creators}} ราย รวมถึง {{overlooked}} รายที่ทีมเดิมไม่ได้อนุมัติ",
       "intelligenceClaimReachNeutral": "ที่เกณฑ์ยอดขายคาดการณ์เดียวกัน การรันนี้ยังไม่เห็นการครอบคลุมครีเอเตอร์ที่กว้างขึ้น",

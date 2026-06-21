@@ -2545,7 +2545,7 @@ export default {
       "intelligenceBusinessVerdictNeutral": "Cakupan ini belum menunjukkan peningkatan yang jelas dibanding pilihan staf historis.",
       "intelligenceClaimPrecisionTitle": "Pilihan lebih baik dengan anggaran sampel yang sama",
       "intelligenceClaimPrecisionBody": "Dalam jendela uji holdout terbaru, jika mengirim {{count}} sampel yang sama, kreator pilihan model diprediksi menjual {{lift}} lebih banyak daripada pilihan staf historis.",
-      "intelligenceClaimPrecisionNeutral": "Dengan anggaran sampel yang sama, run ini belum menunjukkan peningkatan presisi yang jelas.",
+      "intelligenceClaimPrecisionNeutral": "Dengan {{count}} sampel yang sama, run ini belum menunjukkan peningkatan presisi yang jelas.",
       "intelligenceClaimReachTitle": "Lebih banyak kreator untuk ditinjau pada batas penjualan yang sama",
       "intelligenceClaimReachBody": "Pada batas {{bar}} penjualan prediksi, model menandai {{creators}} kreator untuk ditinjau, termasuk {{overlooked}} kreator yang tidak disetujui staf historis.",
       "intelligenceClaimReachNeutral": "Pada batas penjualan prediksi yang sama, run model ini belum menunjukkan cakupan kreator yang lebih luas.",
