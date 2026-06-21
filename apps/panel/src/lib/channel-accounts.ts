@@ -23,6 +23,7 @@ export interface MstChannelAccountLike {
 const RUNTIME_FIELDS = [
   "configured",
   "healthy",
+  "healthState",
   "enabled",
   "running",
   "linked",

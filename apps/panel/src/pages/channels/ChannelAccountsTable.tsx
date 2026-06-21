@@ -601,8 +601,15 @@ export function ChannelAccountsTable({
                 const isExpanded = expandedAccounts.has(compositeKey);
                 const canExpand = true;
                 const canEdit = channelId !== "mobile";
-                const needsWeixinActivation =
-                  channelId === "openclaw-weixin" && account.contextTokenReady === false;
+                const needsWeixinActivation = channelId === "openclaw-weixin" && (
+                  account.contextTokenReady === false
+                  || account.healthy === false
+                  || account.healthState === "send-unavailable"
+                  || account.healthState === "reauth-required"
+                );
+                const weixinActivationTooltip = account.lastError
+                  ? `${t("channels.wechatContextTokenNotReadyTooltip")}\n${account.lastError}`
+                  : t("channels.wechatContextTokenNotReadyTooltip");
                 return (
                   <Fragment key={rowKey}>
                     <tr
@@ -621,7 +628,7 @@ export function ChannelAccountsTable({
                       <td className="font-medium">
                         <span className="channel-label-with-status">
                           {needsWeixinActivation && (
-                            <WechatActivationWarning tooltip={t("channels.wechatContextTokenNotReadyTooltip")} />
+                            <WechatActivationWarning tooltip={weixinActivationTooltip} />
                           )}
                           <span>{channelLabel}</span>
                         </span>

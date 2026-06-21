@@ -21,6 +21,7 @@ let lastSessionKey = "";
 let latestQrStartSeq = 0;
 let weixinDirectFetchShimInstalled = false;
 let weixinLogDirEnsured = false;
+const weixinStatusSinks = new Map<string, (next: Record<string, unknown>) => void>();
 
 const weixinSendContext = new AsyncLocalStorage<{
   accountId?: string | null;
@@ -287,6 +288,23 @@ function runWithWeixinSendContext<T>(
   return weixinSendContext.run(ctx, fn);
 }
 
+async function runWithWeixinOutboundHealth<T>(
+  ctx: { accountId?: string | null; to?: string | null },
+  fn: () => Promise<T>,
+): Promise<T> {
+  return runWithWeixinSendContext(ctx, async () => {
+    try {
+      return await fn();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isWeixinSendBusinessFailure(message)) {
+        markWeixinSendUnavailable(ctx, message);
+      }
+      throw err;
+    }
+  });
+}
+
 function installWeixinFetchShim(): void {
   if (weixinDirectFetchShimInstalled) return;
   weixinDirectFetchShimInstalled = true;
@@ -315,6 +333,21 @@ function isSessionExpiredMessage(message: string): boolean {
   return message.includes("session expired") && message.includes("errcode -14");
 }
 
+function isWeixinSendBusinessFailure(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes("wechat sendmessage business failure")
+    || normalized.includes("sendmessage result status=200 ret=-2")
+    || normalized.includes("ret=-2")
+    || normalized.includes("errcode=-14")
+    || normalized.includes("context token expired");
+}
+
+function updateWeixinRuntimeStatus(accountId: string, next: Record<string, unknown>): void {
+  const sink = weixinStatusSinks.get(accountId);
+  if (!sink) return;
+  sink({ accountId, ...next });
+}
+
 function markWeixinSessionExpired(ctx: unknown, message: string): void {
   const c = ctx as {
     account?: { accountId?: string };
@@ -326,8 +359,25 @@ function markWeixinSessionExpired(ctx: unknown, message: string): void {
   c.setStatus({
     accountId,
     running: false,
+    connected: false,
+    healthy: false,
+    healthState: "reauth-required",
     lastError: message,
-    lastEventAt: Date.now(),
+    lastHealthCheckAt: Date.now(),
+  });
+}
+
+function markWeixinSendUnavailable(ctx: unknown, message: string): void {
+  const c = ctx as { accountId?: string | null };
+  const accountId = c.accountId?.trim();
+  if (!accountId) return;
+  updateWeixinRuntimeStatus(accountId, {
+    running: false,
+    connected: false,
+    healthy: false,
+    healthState: "send-unavailable",
+    lastError: message,
+    lastHealthCheckAt: Date.now(),
   });
 }
 
@@ -470,12 +520,18 @@ const plugin = {
         if (origStartAccount) {
           gw.startAccount = async (ctx: unknown) => {
             const c = ctx as {
+              account?: { accountId?: string };
               runtime?: {
                 error?: (message: string) => void;
                 [key: string]: unknown;
               };
+              setStatus?: (next: Record<string, unknown>) => void;
               [key: string]: unknown;
             };
+            const accountId = c.account?.accountId;
+            if (accountId && typeof c.setStatus === "function") {
+              weixinStatusSinks.set(accountId, c.setStatus.bind(c));
+            }
             const originalRuntime = c.runtime;
             c.runtime = {
               ...originalRuntime,
@@ -571,11 +627,11 @@ const plugin = {
       } | undefined;
       if (outbound?.sendText) {
         const origSendText = outbound.sendText;
-        outbound.sendText = (ctx) => runWithWeixinSendContext(ctx, () => origSendText(ctx));
+        outbound.sendText = (ctx) => runWithWeixinOutboundHealth(ctx, () => origSendText(ctx));
       }
       if (outbound?.sendMedia) {
         const origSendMedia = outbound.sendMedia;
-        outbound.sendMedia = (ctx) => runWithWeixinSendContext(ctx, () => origSendMedia(ctx));
+        outbound.sendMedia = (ctx) => runWithWeixinOutboundHealth(ctx, () => origSendMedia(ctx));
       }
 
       return origRegisterChannel(opts);
