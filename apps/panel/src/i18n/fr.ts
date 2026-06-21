@@ -2545,7 +2545,7 @@ export default {
       "intelligenceBusinessVerdictNeutral": "Ce périmètre ne montre pas encore d'amélioration claire par rapport à la sélection historique de l'équipe.",
       "intelligenceClaimPrecisionTitle": "De meilleurs choix avec le même budget d'échantillons",
       "intelligenceClaimPrecisionBody": "Dans la fenêtre récente de test holdout, si vous envoyez les mêmes {{count}} échantillons, les créateurs choisis par le modèle sont prédits vendre {{lift}} de plus que la sélection historique de l'équipe.",
-      "intelligenceClaimPrecisionNeutral": "À budget d'échantillons égal, cette exécution ne montre pas encore de gain de précision clair.",
+      "intelligenceClaimPrecisionNeutral": "Avec les mêmes {{count}} échantillons, cette exécution ne montre pas encore de gain de précision clair.",
       "intelligenceClaimReachTitle": "Plus de créateurs à examiner au même seuil de ventes",
       "intelligenceClaimReachBody": "Au seuil de {{bar}} ventes prédites, le modèle signale {{creators}} créateurs à examiner, dont {{overlooked}} non approuvés historiquement.",
       "intelligenceClaimReachNeutral": "Au même seuil de ventes prédites, cette exécution ne montre pas encore une couverture de créateurs plus large.",

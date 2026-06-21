@@ -12,36 +12,57 @@ function flattenKeys(value: unknown, prefix = ""): string[] {
     .sort();
 }
 
+function flattenValues(value: unknown, prefix = ""): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return prefix ? { [prefix]: String(value) } : {};
+  }
+
+  return Object.assign(
+    {},
+    ...Object.entries(value).map(([key, child]) => flattenValues(child, prefix ? `${prefix}.${key}` : key)),
+  );
+}
+
+function interpolationVariables(value: string): string[] {
+  return [...value.matchAll(/{{\s*[\w.]+\s*}}/g)]
+    .map((match) => match[0].replace(/\s+/g, ""))
+    .sort();
+}
+
 describe("panel i18n resources", () => {
   it("disables English fallback for supported locales", () => {
     expect(i18n.options.fallbackLng).toBe(false);
   });
 
-  it("does not introduce translation-key gaps beyond the tracked legacy baseline", () => {
+  it("keeps every supported locale at complete key parity", () => {
     const [baseLanguage, ...otherLanguages] = LANGUAGE_OPTIONS;
     expect(baseLanguage, "base language").toBeDefined();
 
     const baseKeys = flattenKeys(baseLanguage.resource);
-    const legacyMissingBaseline: Record<string, number> = {
-      zh: 0,
-      de: 216,
-      es: 216,
-      fr: 216,
-      id: 216,
-      it: 216,
-      th: 216,
-    };
 
     for (const language of otherLanguages) {
       const languageKeys = flattenKeys(language.resource);
       const missing = baseKeys.filter((key) => !languageKeys.includes(key));
       const extra = languageKeys.filter((key) => !baseKeys.includes(key));
 
-      expect(
-        missing,
-        `${language.code} missing keys must not grow; backfill legacy keys to reduce this baseline`,
-      ).toHaveLength(legacyMissingBaseline[language.code] ?? 0);
+      expect(missing, `${language.code} missing keys`).toEqual([]);
       expect(extra, `${language.code} extra keys`).toEqual([]);
+    }
+  });
+
+  it("keeps interpolation variables aligned across all supported locales", () => {
+    const [baseLanguage, ...otherLanguages] = LANGUAGE_OPTIONS;
+    expect(baseLanguage, "base language").toBeDefined();
+
+    const baseValues = flattenValues(baseLanguage.resource);
+    for (const language of otherLanguages) {
+      const languageValues = flattenValues(language.resource);
+      for (const [key, baseValue] of Object.entries(baseValues)) {
+        expect(
+          interpolationVariables(languageValues[key] ?? ""),
+          `${language.code} ${key} interpolation variables`,
+        ).toEqual(interpolationVariables(baseValue));
+      }
     }
   });
 });

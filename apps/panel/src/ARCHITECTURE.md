@@ -42,9 +42,7 @@ user-visible string must be added to every supported locale in the same change:
 
 Do not rely on English fallback for missing translations. The panel i18next
 config disables language fallback, and `i18n/languages.test.ts` enforces exact
-translation-key parity for new work by rejecting any increase in the tracked
-legacy missing-key baseline. When backfilling historical gaps, reduce that
-baseline in the same change; the target baseline is zero for every locale.
+translation-key parity across all supported locales.
 
 ## Dead Code Deletion Policy
 
