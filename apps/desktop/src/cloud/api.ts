@@ -107,7 +107,7 @@ function sanitizeCloudGraphqlVariables(
       "This is a tool payload schema error, not a business reason for NEEDS_STAFF_REVIEW. " +
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
       "For SEND_MESSAGE use action.messageText with the exact creator-facing message; never send messageIntent: {}. " +
-      "For REVIEW_SAMPLE_APPLICATION use action.sampleReviewIntent with sampleApplicationRecordId, platformApplicationId, decision, and optional rejectReason.";
+      "For REVIEW_SAMPLE_APPLICATION use action.sampleApplicationRecordId, action.platformApplicationId, action.sampleReviewDecision, and optional action.rejectReason.";
     throw new Error(
       `${reason} raw=${describeAffiliateResolveActionShape(actionLike)} normalized=${describeAffiliateResolveActionShape(normalizedActions)} ${describeAffiliateResolveActionRepairHint(context)}`,
     );
@@ -213,6 +213,7 @@ function normalizeAffiliateSampleReviewAction(
       existingIntent?.reviewDecision ??
       existingIntent?.sampleDecision,
     action.decision,
+    action.sampleReviewDecision,
     action.reviewDecision,
     action.sampleDecision,
   );
@@ -429,12 +430,10 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
       `reviewSampleTemplate=${JSON.stringify({
         type: "REVIEW_SAMPLE_APPLICATION",
         predictionCacheIds: context.predictionCacheIds?.length ? context.predictionCacheIds : undefined,
-        sampleReviewIntent: {
-          sampleApplicationRecordId: context.sampleApplicationRecordId,
-          platformApplicationId: context.platformApplicationId,
-          decision: "APPROVE_OR_REJECT",
-          rejectReason: "required when decision is REJECT",
-        },
+        sampleApplicationRecordId: context.sampleApplicationRecordId,
+        platformApplicationId: context.platformApplicationId,
+        sampleReviewDecision: "APPROVE_OR_REJECT",
+        rejectReason: "required when sampleReviewDecision is REJECT",
       })}`,
     );
   }
