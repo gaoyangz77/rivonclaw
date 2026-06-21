@@ -333,7 +333,7 @@ describe("cloud-graphql handler", () => {
     );
   });
 
-  it("repairs bundled sample review decision from explicit sibling action text", async () => {
+  it("blocks bundled sample review actions when decision is missing", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -383,39 +383,19 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      mutation,
-      expect.objectContaining({
-        input: expect.objectContaining({
-          decision: "REQUEST_ACTION",
-          actions: [
-            {
-              type: "REVIEW_SAMPLE_APPLICATION",
-              predictionCacheIds: undefined,
-              expiresAt: undefined,
-              sampleReviewIntent: {
-                sampleApplicationRecordId: "sample-1",
-                platformApplicationId: "platform-app-1",
-                decision: "REJECT",
-                rejectReason: "OTHER",
-              },
-            },
-            {
-              type: "SEND_MESSAGE",
-              predictionCacheIds: undefined,
-              expiresAt: undefined,
-              messageIntent: {
-                messageType: "TEXT",
-                text: "Thanks for your interest. After reviewing the request, we are not moving forward with this sample.",
-              },
-            },
-          ],
-        }),
-      }),
-    );
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [
+        {
+          message: expect.stringContaining(
+            "Desktop blocked an invalid affiliate action payload before sending it to backend",
+          ),
+        },
+      ],
+    });
   });
 
-  it("infers rejection from not moving forward without treating move forward as approval", async () => {
+  it("does not infer sample review decisions from creator-facing message text", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -465,25 +445,19 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      mutation,
-      expect.objectContaining({
-        input: expect.objectContaining({
-          actions: expect.arrayContaining([
-            expect.objectContaining({
-              type: "REVIEW_SAMPLE_APPLICATION",
-              sampleReviewIntent: expect.objectContaining({
-                decision: "REJECT",
-                rejectReason: "OTHER",
-              }),
-            }),
-          ]),
-        }),
-      }),
-    );
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [
+        {
+          message: expect.stringContaining(
+            "Desktop blocked an invalid affiliate action payload before sending it to backend",
+          ),
+        },
+      ],
+    });
   });
 
-  it("repairs placeholder sample review decisions from sibling message text", async () => {
+  it("blocks placeholder sample review decisions instead of guessing from sibling message text", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -534,25 +508,19 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      mutation,
-      expect.objectContaining({
-        input: expect.objectContaining({
-          actions: expect.arrayContaining([
-            expect.objectContaining({
-              type: "REVIEW_SAMPLE_APPLICATION",
-              sampleReviewIntent: expect.objectContaining({
-                decision: "REJECT",
-                rejectReason: "OTHER",
-              }),
-            }),
-          ]),
-        }),
-      }),
-    );
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [
+        {
+          message: expect.stringContaining(
+            "Desktop blocked an invalid affiliate action payload before sending it to backend",
+          ),
+        },
+      ],
+    });
   });
 
-  it("prefers explicit rejection language over approve-or-reject template wording", async () => {
+  it("blocks empty sample review intents even when sibling message implies rejection", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -601,22 +569,16 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      mutation,
-      expect.objectContaining({
-        input: expect.objectContaining({
-          actions: expect.arrayContaining([
-            expect.objectContaining({
-              type: "REVIEW_SAMPLE_APPLICATION",
-              sampleReviewIntent: expect.objectContaining({
-                decision: "REJECT",
-                rejectReason: "OTHER",
-              }),
-            }),
-          ]),
-        }),
-      }),
-    );
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [
+        {
+          message: expect.stringContaining(
+            "Desktop blocked an invalid affiliate action payload before sending it to backend",
+          ),
+        },
+      ],
+    });
   });
 
   it("normalizes affiliate send message actions to the matching typed intent only", async () => {

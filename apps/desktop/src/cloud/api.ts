@@ -85,7 +85,6 @@ function sanitizeCloudGraphqlVariables(
 
   const actionLike = input.action != null ? [input.action] : Array.isArray(input.actions) ? input.actions : [];
   const context = buildAffiliateResolveActionContext(input);
-  context.inferredSampleReviewDecision = inferSampleReviewDecisionFromResolveInput(input, actionLike) ?? undefined;
   const normalizedActions = actionLike.map((action) => normalizeAffiliateResolveAction(action, context));
   const hasNormalizedAction = normalizedActions.some((action, index) => action !== actionLike[index]);
   if (actionLike.length > 0 && normalizedActions.every((action) => !isInvalidAffiliateResolveAction(action))) {
@@ -134,7 +133,6 @@ interface AffiliateResolveActionContext {
   sampleApplicationRecordId?: string;
   platformApplicationId?: string;
   predictionCacheIds?: string[];
-  inferredSampleReviewDecision?: "APPROVE" | "REJECT";
 }
 
 function buildAffiliateResolveActionContext(input: Record<string, unknown>): AffiliateResolveActionContext {
@@ -217,7 +215,6 @@ function normalizeAffiliateSampleReviewAction(
     action.decision,
     action.reviewDecision,
     action.sampleDecision,
-    context?.inferredSampleReviewDecision,
   );
   const rejectReason = firstNonEmptyString(
     existingIntent?.rejectReason,
@@ -266,80 +263,6 @@ function firstNormalizedSampleReviewDecision(
     if (normalized) return normalized;
   }
   return null;
-}
-
-function inferSampleReviewDecisionFromResolveInput(
-  input: Record<string, unknown>,
-  actions: unknown[],
-): "APPROVE" | "REJECT" | null {
-  const textParts: string[] = [];
-  appendTextCandidate(textParts, input.operatorSummary);
-  appendTextCandidate(textParts, input.summary);
-  appendTextCandidate(textParts, input.reason);
-
-  for (const value of actions) {
-    const action = asRecord(value);
-    if (!action) continue;
-    appendTextCandidate(textParts, action.messageText);
-    appendTextCandidate(textParts, action.text);
-    appendTextCandidate(textParts, action.content);
-    appendTextCandidate(textParts, action.body);
-
-    const messageIntent = asRecord(action.messageIntent);
-    appendTextCandidate(textParts, messageIntent?.text);
-    appendTextCandidate(textParts, messageIntent?.messageText);
-    appendTextCandidate(textParts, messageIntent?.content);
-    appendTextCandidate(textParts, messageIntent?.body);
-  }
-
-  const text = textParts.join("\n").toLowerCase();
-  if (!text.trim()) return null;
-
-  const strongRejectPatterns = [
-    /\bnot moving forward\b/,
-    /\bwon'?t move forward\b/,
-    /\bdo not approve\b/,
-    /\bdon'?t approve\b/,
-    /\bcannot approve\b/,
-    /\bcan'?t approve\b/,
-    /\bnot approving\b/,
-    /\bnot setting up\b/,
-    /\bnot proceed(?:ing)?\b/,
-    /\bnot a good fit\b/,
-    /拒绝/,
-    /不通过/,
-    /不批准/,
-    /不建议(?:通过|批准|同意)/,
-    /暂不(?:通过|批准|同意|合作)/,
-  ];
-  if (strongRejectPatterns.some((pattern) => pattern.test(text))) return "REJECT";
-
-  const rejectPatterns = [
-    /\breject(?:ing|ed)?\b/,
-    /\bdeclin(?:e|ing|ed)\b/,
-    /\bdeny(?:ing|ied)?\b/,
-    ...strongRejectPatterns,
-  ];
-  const approvePatterns = [
-    /\bapprov(?:e|ing|ed)\b/,
-    /\baccept(?:ing|ed)?\b/,
-    /\bsend (?:the )?sample\b/,
-    /\bship (?:the )?sample\b/,
-    /通过/,
-    /批准/,
-    /同意/,
-    /寄样/,
-  ];
-
-  const hasReject = rejectPatterns.some((pattern) => pattern.test(text));
-  const hasApprove = approvePatterns.some((pattern) => pattern.test(text));
-  if (hasReject && !hasApprove) return "REJECT";
-  if (hasApprove && !hasReject) return "APPROVE";
-  return null;
-}
-
-function appendTextCandidate(parts: string[], value: unknown): void {
-  if (hasNonEmptyString(value)) parts.push(value);
 }
 
 function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): unknown {
