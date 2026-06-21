@@ -705,4 +705,86 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       rmSync(stateDir, { recursive: true, force: true });
     }
   });
+
+  it("marks WeChat runtime unhealthy when gateway reports sendmessage business failure", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-health-"));
+    try {
+      const accountId = "acct123-im-bot";
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({
+        channels: {
+          [WEIXIN_CHANNEL_ID]: {
+            accounts: {
+              [accountId]: { dmPolicy: "pairing" },
+            },
+          },
+        },
+      }), "utf-8");
+
+      const accounts = [{
+        channelId: WEIXIN_CHANNEL_ID,
+        accountId,
+        name: "客服微信",
+        config: { name: "客服微信" },
+        createdAt: 1,
+        updatedAt: 1,
+      }];
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: () => accounts[0],
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      const rpcClient = {
+        request: vi.fn(async () => ({
+          ts: 1700000000000,
+          channelOrder: [WEIXIN_CHANNEL_ID],
+          channelLabels: { [WEIXIN_CHANNEL_ID]: "WeChat" },
+          channels: {},
+          channelAccounts: {
+            [WEIXIN_CHANNEL_ID]: [{
+              accountId,
+              configured: true,
+              running: true,
+              connected: true,
+              lastError: "WeChat sendmessage business failure: sendmessage result status=200 ret=-2 errcode= errmsg= clientId=client accountId=acct123-im-bot to=manager@im.wechat",
+            }],
+          },
+          channelDefaultAccountId: { [WEIXIN_CHANNEL_ID]: accountId },
+        })),
+      };
+
+      const snapshot = await root.channelManager.getChannelStatus(rpcClient as any, false, 2000, 5000);
+      const [account] = snapshot.channelAccounts[WEIXIN_CHANNEL_ID]!;
+      expect(account).toMatchObject({
+        accountId,
+        configured: true,
+        running: false,
+        connected: false,
+        healthy: false,
+        healthState: "reauth-required",
+        dmPolicy: "pairing",
+      });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
 });

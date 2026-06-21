@@ -245,6 +245,31 @@ function normalizeTelegramDebugApiRoot(apiRoot: string): string {
   return apiRoot.trim().replace(/\/+$/, "");
 }
 
+function isWeixinBusinessHealthError(lastError: unknown): boolean {
+  if (typeof lastError !== "string") return false;
+  const normalized = lastError.toLowerCase();
+  return normalized.includes("wechat sendmessage business failure")
+    || normalized.includes("sendmessage result status=200 ret=-2")
+    || normalized.includes("ret=-2")
+    || normalized.includes("errcode=-14")
+    || normalized.includes("errcode -14")
+    || normalized.includes("context token expired")
+    || normalized.includes("session expired");
+}
+
+function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
+  const accounts = snapshot.channelAccounts[WEIXIN_CHANNEL_ID];
+  if (!accounts) return;
+
+  for (const account of accounts) {
+    if (!isWeixinBusinessHealthError(account.lastError)) continue;
+    account.running = false;
+    account.connected = false;
+    account.healthy = false;
+    account.healthState = account.healthState ?? "reauth-required";
+  }
+}
+
 function buildTelegramDebugAccountConfig(proxyToken: string, apiRoot: string, deviceId: string): Record<string, unknown> {
   const deviceApiRoot = `${normalizeTelegramDebugApiRoot(apiRoot)}/telegram-debug/devices/${encodeURIComponent(deviceId)}`;
   return {
@@ -1104,6 +1129,8 @@ export const ChannelManagerModel = types
         } catch {
           // Non-critical enrichment
         }
+
+        normalizeWeixinBusinessHealth(snapshot);
 
         return snapshot;
       }),

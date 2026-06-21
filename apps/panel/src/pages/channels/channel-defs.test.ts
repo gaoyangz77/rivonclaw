@@ -209,6 +209,36 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(result[0]!.account.contextTokenReady).toBe(true);
   });
 
+  it("preserves WeChat unhealthy runtime status so the account is not shown as normally running", () => {
+    const result = buildAccountsList(
+      [mst({
+        channelId: "openclaw-weixin",
+        accountId: "wx-1",
+        name: "Support WeChat",
+        status: { hasContextToken: true },
+      })],
+      snapshot({
+        "openclaw-weixin": [{
+          accountId: "wx-1",
+          configured: true,
+          running: false,
+          connected: false,
+          healthy: false,
+          healthState: "send-unavailable",
+          lastError: "WeChat sendmessage business failure: sendmessage result status=200 ret=-2",
+        }],
+      }),
+      t,
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.account.running).toBe(false);
+    expect(result[0]!.account.healthy).toBe(false);
+    expect(result[0]!.account.healthState).toBe("send-unavailable");
+    expect(result[0]!.account.lastError).toContain("ret=-2");
+    expect(result[0]!.account.contextTokenReady).toBe(true);
+  });
+
   it("respects enabled=false from MST config when snapshot is missing", () => {
     const result = buildAccountsList(
       [mst({ config: { enabled: false } })],
