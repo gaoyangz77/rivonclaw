@@ -179,7 +179,7 @@ function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem):
     "If you choose REQUEST_ACTION, your input.actions array must include every recommended action type that is still applicable after checking current workspace facts.",
     "Do not submit a partial action bundle just because one action is easier to fill.",
     "Never submit an action with an empty typed intent object such as sampleReviewIntent: {} or messageIntent: {}.",
-    "When a concrete REVIEW_SAMPLE_APPLICATION template is provided below, copy its sampleReviewIntent object exactly and only change decision/rejectReason when your judgment requires it.",
+    "When a concrete REVIEW_SAMPLE_APPLICATION template is provided below, copy sampleApplicationRecordId and platformApplicationId exactly and only change sampleReviewDecision/rejectReason when your judgment requires it.",
   ];
 
   if (
@@ -208,9 +208,9 @@ function renderResolveWorkItemToolContract(): string {
     "Do not use NEEDS_STAFF_REVIEW to recover from a tool schema error. If the backend/proxy says an action payload is invalid, retry REQUEST_ACTION with the corrected typed intent.",
     "Do not use CHANGE_COMMISSION, CHANGE_RATE, DISCOUNT, TAG_CREATOR, BLOCK_CREATOR, SHIP_SAMPLE, or any other action type. If the seller needs an unsupported action, use decision NEEDS_STAFF_REVIEW and explain it in operatorSummary.",
     "When decision is REQUEST_ACTION, provide either input.action for one action or input.actions for an ordered bundle; do not provide both.",
-    "Each action must populate exactly one intent field matching action.type: SEND_MESSAGE uses the typed messageText shortcut; REVIEW_SAMPLE_APPLICATION uses sampleReviewIntent; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
+    "Each action must populate the required fields matching action.type: SEND_MESSAGE uses the typed messageText shortcut; REVIEW_SAMPLE_APPLICATION uses the flat sample review shortcut fields; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
     "An action that only contains { type: ... } is always invalid. Do not call REQUEST_ACTION until every selected action has the required typed payload.",
-    "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleReviewIntent: { sampleApplicationRecordId, platformApplicationId, decision, rejectReason? } }. Never put sampleApplicationRecordId, platformApplicationId, decision, or rejectReason at the action top level.",
+    "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleApplicationRecordId, platformApplicationId, sampleReviewDecision, rejectReason? }. Use sampleReviewDecision APPROVE or REJECT. Never send sampleReviewIntent: {}.",
     "For SEND_MESSAGE, the action shape must be exactly like this minimal payload: { type: SEND_MESSAGE, predictionCacheIds: [...], messageText: \"exact creator-facing message\" }. Add conversationId, creatorId, or productId at the action top level only when known. Never send messageIntent: {}.",
     "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
   ].join("\n");
@@ -270,14 +270,12 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
       JSON.stringify({
         type: "REVIEW_SAMPLE_APPLICATION",
         ...baseActionFields,
-        sampleReviewIntent: {
-          sampleApplicationRecordId: sample.id,
-          platformApplicationId: sample.platformApplicationId,
-          decision: "REJECT",
-          rejectReason: "plain merchant-facing reason for rejection",
-        },
+        sampleApplicationRecordId: sample.id,
+        platformApplicationId: sample.platformApplicationId,
+        sampleReviewDecision: "REJECT",
+        rejectReason: "OTHER",
       }, null, 2),
-      "Use decision APPROVE only when the workspace facts and merchant instructions support approving this sample request.",
+      "Use sampleReviewDecision APPROVE only when the workspace facts and merchant instructions support approving this sample request.",
     ].join("\n"));
   }
 
@@ -303,7 +301,7 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
     "## Valid REQUEST_ACTION Payload Templates",
     "If you choose REQUEST_ACTION, copy these shapes exactly and replace only the decision/reason/message values that require judgment.",
     "Never submit an action with only a type. If you cannot fill the typed payload, use NEEDS_STAFF_REVIEW instead of REQUEST_ACTION.",
-    "Never replace a concrete sampleReviewIntent template with null or {}. The backend expects sampleApplicationRecordId and platformApplicationId to stay inside sampleReviewIntent.",
+    "Never replace concrete sample review fields with null or {}. The backend expects sampleApplicationRecordId, platformApplicationId, and sampleReviewDecision to stay on the REVIEW_SAMPLE_APPLICATION action.",
     "When more than one action is relevant, use input.actions as an ordered array and include every concrete action in the same tool call.",
     ...templates,
     recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) &&
@@ -317,21 +315,17 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
             sample ? {
               type: "REVIEW_SAMPLE_APPLICATION",
               ...baseActionFields,
-              sampleReviewIntent: {
-                sampleApplicationRecordId: sample.id,
-                platformApplicationId: sample.platformApplicationId,
-                decision: "REJECT",
-                rejectReason: "plain merchant-facing reason for rejection",
-              },
+              sampleApplicationRecordId: sample.id,
+              platformApplicationId: sample.platformApplicationId,
+              sampleReviewDecision: "REJECT",
+              rejectReason: "OTHER",
             } : {
               type: "REVIEW_SAMPLE_APPLICATION",
               ...baseActionFields,
-              sampleReviewIntent: {
-                sampleApplicationRecordId: "sampleApplicationRecordId from Backend Work Projection",
-                platformApplicationId: "platformApplicationId from Backend Work Projection",
-                decision: "REJECT",
-                rejectReason: "plain merchant-facing reason for rejection",
-              },
+              sampleApplicationRecordId: "sampleApplicationRecordId from Backend Work Projection",
+              platformApplicationId: "platformApplicationId from Backend Work Projection",
+              sampleReviewDecision: "REJECT",
+              rejectReason: "OTHER",
             },
             {
               type: "SEND_MESSAGE",
