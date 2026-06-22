@@ -40,6 +40,13 @@ type AffiliateAgentRunKind = "CREATOR_REPLY" | "CREATOR_FOLLOW_UP";
 
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
   if (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorFollowUp ||
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue
+  ) {
+    return "CREATOR_FOLLOW_UP";
+  }
+
+  if (
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyOnly ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded ||
@@ -47,13 +54,6 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
     workItem.context?.recommendedActionTypes?.includes(GQL.ActionProposalType.SendMessage)
   ) {
     return "CREATOR_REPLY";
-  }
-
-  if (
-    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorFollowUp ||
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue
-  ) {
-    return "CREATOR_FOLLOW_UP";
   }
 
   switch (workItem.requiredAction) {
@@ -369,7 +369,11 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
   const collaboration = workItem.collaboration;
   const sample = workItem.sampleApplicationRecord;
   const proposal = workItem.latestPendingProposal;
+  const actionableDelta = renderActionableDelta(workItem);
   return [
+    "## Backend Actionable Delta",
+    ...actionableDelta,
+    "",
     "## Backend Work Projection",
     `- Work Item ID: ${workItem.id}`,
     `- Work Kind: ${workItem.workKind}`,
@@ -427,6 +431,65 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
       `- Collaboration ID: ${proposal.collaborationRecordId ?? ""}`,
     ] : ["(none)"]),
   ].join("\n");
+}
+
+function renderActionableDelta(workItem: GQL.AffiliateWorkItem): string[] {
+  const sources = inferActionableDeltaSources(workItem);
+  const boundary = workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? "";
+  const nextSellerActionAt = workItem.collaboration.nextSellerActionAt ?? "";
+  const lines = [
+    `- Sources: ${sources.join(", ") || "STATE"}`,
+    `- Boundary At: ${boundary}`,
+    `- Work Handled Until: ${workItem.collaboration.workHandledUntil ?? ""}`,
+    `- Last Signal At: ${workItem.collaboration.lastSignalAt ?? ""}`,
+    `- Next Seller Action At: ${nextSellerActionAt}`,
+  ];
+  if (sources.includes("TEMPORAL")) {
+    lines.push(
+      "- Temporal Interpretation: no new platform/creator signal is required; the configured creator-side waiting point is due, so decide whether a follow-up message should be proposed now.",
+    );
+  }
+  if (sources.includes("SIGNAL")) {
+    lines.push(
+      "- Signal Interpretation: upstream platform or creator observations changed the actionable collaboration state since the handled boundary.",
+    );
+  }
+  if (sources.includes("STATE")) {
+    lines.push(
+      "- State Interpretation: backend state such as pending approval or staff review makes this collaboration actionable.",
+    );
+  }
+  return lines;
+}
+
+function inferActionableDeltaSources(workItem: GQL.AffiliateWorkItem): Array<"SIGNAL" | "TEMPORAL" | "STATE"> {
+  const sources = new Set<"SIGNAL" | "TEMPORAL" | "STATE">();
+  const reasons = workItem.processReasons ?? [];
+  if (
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue ||
+    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
+    reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue)
+  ) {
+    sources.add("TEMPORAL");
+  }
+  if (
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded ||
+    workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded ||
+    workItem.workKind === GQL.AffiliateWorkKind.SampleShipmentNeeded ||
+    reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply) ||
+    reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview) ||
+    reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment)
+  ) {
+    sources.add("SIGNAL");
+  }
+  if (
+    workItem.workKind === GQL.AffiliateWorkKind.ApprovalWaiting ||
+    workItem.staffReviewRequired ||
+    workItem.latestPendingProposal != null
+  ) {
+    sources.add("STATE");
+  }
+  return [...sources];
 }
 
 function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
