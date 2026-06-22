@@ -10613,6 +10613,15 @@ html[lang="zh"] .acct-tool-chips {
   font-weight: 650;
 }
 
+.cs-billing-status-badges {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
 .cs-billing-access-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

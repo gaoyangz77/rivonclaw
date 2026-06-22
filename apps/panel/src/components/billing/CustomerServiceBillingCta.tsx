@@ -71,6 +71,8 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
   const canManagePaymentMethod = canCancelSubscription;
   const canExtendPrepaid = !!subscription
     && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid;
+  const isEndingAtPeriodEnd = !!subscription
+    && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
 
   useEffect(() => {
     entityStore.refreshPlanDefinitions().catch(() => {});
@@ -111,7 +113,12 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
         <div className="cs-billing-access-card cs-billing-access-active">
           <div className="cs-billing-access-head">
             <span>{t("billing.customerService")}</span>
-            <span className="badge badge-active">{t("billing.active")}</span>
+            <div className="cs-billing-status-badges">
+              <span className="badge badge-active">{t("billing.active")}</span>
+              {isEndingAtPeriodEnd && (
+                <span className="badge badge-warning">{t("billing.cancelAtPeriodEnd")}</span>
+              )}
+            </div>
           </div>
           <div className="cs-billing-access-meta">
             <div className="cs-billing-metric">
@@ -128,9 +135,6 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
                   <span>{t("billing.startsAt")}</span>
                   <strong>{formatDateTime(subscription.currentPeriodStart)}</strong>
                 </div>
-                {(subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
-                  <span className="billing-warning-text">{t("billing.cancelAtPeriodEnd")}</span>
-                )}
               </>
             )}
             <div className="cs-billing-metric">
