@@ -223,6 +223,7 @@ export const ActionProposalStatus = {
   Modified: 'MODIFIED',
   Pending: 'PENDING',
   Rejected: 'REJECTED',
+  RevisionRequested: 'REVISION_REQUESTED',
   Superseded: 'SUPERSEDED'
 } as const;
 
@@ -1308,6 +1309,7 @@ export const AffiliateLifecycleEventType = {
   ProposalExpired: 'PROPOSAL_EXPIRED',
   ProposalModified: 'PROPOSAL_MODIFIED',
   ProposalRejected: 'PROPOSAL_REJECTED',
+  ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
   SampleApproved: 'SAMPLE_APPROVED',
   SampleDelivered: 'SAMPLE_DELIVERED',
   SampleDeliveryFailed: 'SAMPLE_DELIVERY_FAILED',
