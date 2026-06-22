@@ -7,7 +7,7 @@ export const CustomerServiceConfigModel = types
     unpaidOrderReachoutEnabled: types.optional(types.boolean, false),
     unpaidOrderReachoutDelayHours: types.maybeNull(types.number),
     unpaidOrderReminderMessageTemplate: types.maybeNull(types.string),
-    businessPrompt: types.optional(types.string, ""),
+    businessPrompt: types.optional(types.maybeNull(types.string), null),
     csDeviceId: types.maybeNull(types.string),
     csProviderOverride: types.maybeNull(types.string),
     csModelOverride: types.maybeNull(types.string),

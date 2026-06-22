@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { observer } from "mobx-react-lite";
@@ -58,8 +58,8 @@ export const EcommercePage = observer(function EcommercePage() {
 
   // Hooks
   const oauthFlow = useOAuthFlow();
-  const escalation = useEscalation(selectedShop, shops, setUpgradePrompt);
-  const deviceBinding = useDeviceBinding(shops);
+  const escalation = useEscalation(selectedShopId, setUpgradePrompt);
+  const deviceBinding = useDeviceBinding();
 
   // ── Error handler ──
   function handleError(err: unknown, fallbackKey: string) {
@@ -81,6 +81,7 @@ export const EcommercePage = observer(function EcommercePage() {
   // Fetch platform apps on mount (shops arrive via MST/SSE)
   useEffect(() => {
     if (user) {
+      void entityStore.fetchShops().catch(() => {});
       handleFetchPlatformApps();
     }
   }, [user]);
@@ -150,7 +151,10 @@ export const EcommercePage = observer(function EcommercePage() {
     setUpgradePrompt(false);
     oauthFlow.initiateOAuth(
       platformAppId,
-      () => setConnectModalOpen(false),
+      async () => {
+        await entityStore.fetchShops();
+        setConnectModalOpen(false);
+      },
       (err) => handleError(err, "ecommerce.oauthFailed"),
     ).catch(() => {}); // Error already handled by onError callback
   }
@@ -166,7 +170,10 @@ export const EcommercePage = observer(function EcommercePage() {
     try {
       await oauthFlow.initiateOAuth(
         appId,
-        () => setConnectModalOpen(false),
+        async () => {
+          await entityStore.fetchShops();
+          setConnectModalOpen(false);
+        },
         (err) => handleError(err, "ecommerce.oauthFailed"),
       );
       // Open modal after OAuth URL is set (initiateOAuth sets oauthWaiting on success)
@@ -183,7 +190,7 @@ export const EcommercePage = observer(function EcommercePage() {
       const shop = shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
       await shop.delete();
-      // MST store auto-updates via SSE patch
+      await entityStore.fetchShops();
       if (selectedShopId === shopId) {
         closeDrawer();
       }
@@ -532,13 +539,10 @@ export const EcommercePage = observer(function EcommercePage() {
   const selectedAffiliateRunProfileId = selectedShop?.services?.affiliateService?.runProfileId ?? "AFFILIATE_OPERATOR";
   const selectedAffiliateRunProfile = runProfiles.find((p) => p.id === selectedAffiliateRunProfileId) ?? null;
 
-  const runProfileOptions = useMemo(
-    () => runProfiles.map((p) => ({
-      value: p.id,
-      label: !p.userId ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string) : p.name,
-    })),
-    [runProfiles],
-  );
+  const runProfileOptions = runProfiles.map((p) => ({
+    value: p.id,
+    label: !p.userId ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string) : p.name,
+  }));
 
   const selectedCSProvider = selectedShop?.services?.customerService?.csProviderOverride ?? "";
   const selectedCSModel = selectedShop?.services?.customerService?.csModelOverride ?? "";
@@ -622,7 +626,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
       {/* Shop Detail Drawer */}
       <ShopDrawer
-        shop={selectedShop}
+        shopId={selectedShopId}
         isOpen={drawerOpen}
         onClose={closeDrawer}
         activeTab={activeTab}

@@ -15,7 +15,7 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
 
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<RunProfile | null>(null);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [profileName, setProfileName] = useState("");
   const [profileToolIds, setProfileToolIds] = useState<Set<string>>(new Set());
   const [profileSurfaceId, setProfileSurfaceId] = useState("");
@@ -24,7 +24,7 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
   const [selectedPresetId, setSelectedPresetId] = useState("");
 
   function openCreateProfile() {
-    setEditingProfile(null);
+    setEditingProfileId(null);
     setProfileName("");
     setProfileToolIds(new Set());
     setProfileSurfaceId(surfaces[0]?.id ?? "");
@@ -32,7 +32,7 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
   }
 
   function openEditProfile(p: RunProfile) {
-    setEditingProfile(p);
+    setEditingProfileId(p.id);
     setProfileName(p.name);
     setProfileToolIds(new Set(p.selectedToolIds));
     setProfileSurfaceId(p.surfaceId ?? "");
@@ -41,7 +41,7 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
 
   function closeProfileModal() {
     setProfileModalOpen(false);
-    setEditingProfile(null);
+    setEditingProfileId(null);
   }
 
   function openPresetModal() {
@@ -58,7 +58,7 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
     if (!source) return;
     setPresetModalOpen(false);
     setSelectedPresetId("");
-    setEditingProfile(null);
+    setEditingProfileId(null);
     setProfileName(`${source.name} ${t("surfaces.copySuffix")}`);
     setProfileSurfaceId(source.surfaceId);
     setProfileToolIds(new Set(source.selectedToolIds));
@@ -70,9 +70,9 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
     setSavingProfile(true);
     setProfileError(null);
     try {
-      if (editingProfile) {
-        const profile = entityStore.runProfiles.find((p) => p.id === editingProfile.id);
-        if (!profile) throw new Error(`RunProfile ${editingProfile.id} not found`);
+      if (editingProfileId) {
+        const profile = entityStore.runProfiles.find((p) => p.id === editingProfileId);
+        if (!profile) throw new Error(`RunProfile ${editingProfileId} not found`);
         await profile.update({
           name: profileName.trim(),
           selectedToolIds: Array.from(profileToolIds),
@@ -110,7 +110,7 @@ export function useRunProfileForm({ onDefaultProfileCleared }: UseRunProfileForm
   return {
     profileError,
     profileModalOpen,
-    editingProfile,
+    editingProfileId,
     profileName,
     setProfileName,
     profileToolIds,

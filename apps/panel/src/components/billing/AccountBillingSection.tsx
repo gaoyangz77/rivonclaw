@@ -5,7 +5,6 @@ import { GQL } from "@rivonclaw/core";
 import type {
   AccountLlmBillingStatus,
   BillingEntitlementStatus,
-  BillingOverview,
   BillingPlanDefinition,
   Payment,
   Shop,
@@ -37,15 +36,25 @@ import {
   type ShopServiceBillingRow,
 } from "../../lib/shop-billing-groups.js";
 
-interface AccountBillingSectionProps {
-  billingOverview: BillingOverview | null;
-  planDefinitions: readonly BillingPlanDefinition[];
-  payments: readonly Payment[];
-}
-
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
 const SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["customerService", "inventory", "affiliate"];
 const STANDALONE_SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["inventory", "affiliate"];
+
+interface BillingCancelTarget {
+  product: string;
+  scopeType: string;
+  scopeId: string;
+  currentPeriodEnd: string | null;
+}
+
+function billingCancelTarget(entitlement: BillingEntitlementStatus): BillingCancelTarget {
+  return {
+    product: entitlement.product,
+    scopeType: entitlement.scopeType,
+    scopeId: entitlement.scopeId,
+    currentPeriodEnd: entitlement.subscription?.currentPeriodEnd ?? null,
+  };
+}
 
 function shopDisplayName(shop: { alias?: string | null; shopName?: string | null; platformShopId?: string | null; id?: string | null } | null | undefined, fallback: string): string {
   return shop?.alias || shop?.shopName || shop?.platformShopId || shop?.id || fallback;
@@ -621,7 +630,7 @@ function ShopServiceRow({
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
-  const [cancelTarget, setCancelTarget] = useState<BillingEntitlementStatus | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<BillingCancelTarget | null>(null);
   const [detailServiceKey, setDetailServiceKey] = useState<ShopServiceKey | null>(null);
   const [checkoutServiceKey, setCheckoutServiceKey] = useState<ShopServiceKey | null>(null);
   const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<readonly CheckoutProvider[] | undefined>(undefined);
@@ -754,7 +763,7 @@ function ShopServiceRow({
         onClose={() => setDetailServiceKey(null)}
         onExtendPrepaid={(key) => openPrepaidExtension(key)}
         onManagePaymentMethod={manageServicePaymentMethod}
-        onCancelSubscription={(target) => setCancelTarget(target)}
+        onCancelSubscription={(target) => setCancelTarget(billingCancelTarget(target))}
       />
       <ShopServiceCheckoutModal
         isOpen={checkoutServiceKey !== null}
@@ -774,7 +783,7 @@ function ShopServiceRow({
         isOpen={cancelTarget !== null}
         title={t("billing.cancelSubscriptionTitle")}
         message={t("billing.cancelSubscriptionMessage", {
-          date: formatDateTime(cancelTarget?.subscription?.currentPeriodEnd),
+          date: formatDateTime(cancelTarget?.currentPeriodEnd),
         })}
         confirmLabel={t("billing.cancelSubscriptionConfirm")}
         cancelLabel={t("common.cancel")}
@@ -969,13 +978,12 @@ function PaymentRecords({
   );
 }
 
-export const AccountBillingSection = observer(function AccountBillingSection({
-  billingOverview,
-  planDefinitions,
-  payments,
-}: AccountBillingSectionProps) {
+export const AccountBillingSection = observer(function AccountBillingSection() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
+  const billingOverview = entityStore.billingOverview;
+  const planDefinitions = entityStore.billingPlanDefinitions;
+  const payments = entityStore.payments;
   const accountLlm = billingOverview?.accountLlm ?? null;
   const accountPlan = findPlanDefinition(
     planDefinitions,

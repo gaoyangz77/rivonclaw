@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import type { Payment } from "@rivonclaw/core/models";
 import { Modal } from "../modals/Modal.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { billingEnumLabel } from "./billing-labels.js";
 
 interface PaymentPendingModalProps {
-  payment: Payment | null;
+  paymentId: string | null;
   onClose: () => void;
   onSuccessComplete?: () => void;
 }
@@ -21,11 +20,11 @@ function paymentBadgeClass(status: string): string {
 }
 
 export const PaymentPendingModal = observer(function PaymentPendingModal({
-  payment,
+  paymentId,
   onClose,
   onSuccessComplete,
 }: PaymentPendingModalProps) {
-const { t } = useTranslation();
+  const { t } = useTranslation();
   const entityStore = useEntityStore();
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
@@ -36,12 +35,18 @@ const { t } = useTranslation();
   const autoCloseTimerRef = useRef<number | null>(null);
   const autoCloseIntervalRef = useRef<number | null>(null);
 
-  const qrSource = useMemo(() => payment?.qrCode ?? null, [payment?.qrCode]);
-  const paymentId = payment?.id ?? null;
-  const isLakala = payment?.provider === "LAKALA";
-  const isStripe = payment?.provider === "STRIPE";
-  const succeeded = payment?.status === "SUCCEEDED";
-  const pollable = payment?.status === "PENDING" || payment?.status === "REQUIRES_PAYMENT";
+  const payment = paymentId && entityStore.activeCheckout?.id === paymentId
+    ? entityStore.activeCheckout
+    : null;
+  const qrSource = payment?.qrCode ?? null;
+  const billingScopeId = payment?.billingScopeId ?? null;
+  const provider = payment?.provider ?? null;
+  const status = payment?.status ?? null;
+  const subject = payment?.subject ?? "";
+  const isLakala = provider === "LAKALA";
+  const isStripe = provider === "STRIPE";
+  const succeeded = status === "SUCCEEDED";
+  const pollable = status === "PENDING" || status === "REQUIRES_PAYMENT";
   const checkoutError = entityStore.checkoutError;
 
   useEffect(() => {
@@ -68,7 +73,7 @@ const { t } = useTranslation();
   useEffect(() => {
     let cancelled = false;
     setQrDataUrl(null);
-    if (!payment || !isLakala || !qrSource) return;
+    if (!isLakala || !qrSource) return;
     QRCode.toDataURL(qrSource, { width: 260, margin: 1 })
       .then((dataUrl) => {
         if (!cancelled) setQrDataUrl(dataUrl);
@@ -79,7 +84,7 @@ const { t } = useTranslation();
     return () => {
       cancelled = true;
     };
-  }, [isLakala, payment, qrSource]);
+  }, [isLakala, qrSource]);
 
   const closeModal = useCallback(() => {
     if (autoCloseTimerRef.current !== null) {
@@ -135,7 +140,7 @@ const { t } = useTranslation();
       const startedAt = pollStartedAtRef.current ?? Date.now();
       if (Date.now() - startedAt > 5 * 60 * 1000) {
         window.clearInterval(timer);
-        entityStore.setCheckoutError(t("billing.errors.pollingExpired"), payment?.billingScopeId ?? null);
+        entityStore.setCheckoutError(t("billing.errors.pollingExpired"), billingScopeId);
         return;
       }
       entityStore.refreshPayment(paymentId)
@@ -148,7 +153,7 @@ const { t } = useTranslation();
         .catch(() => {});
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [entityStore, finalizeSuccess, isLakala, isStripe, payment?.billingScopeId, paymentId, pollable, succeeded, t]);
+  }, [billingScopeId, entityStore, finalizeSuccess, isLakala, isStripe, paymentId, pollable, succeeded, t]);
 
   return (
     <Modal
@@ -160,10 +165,10 @@ const { t } = useTranslation();
       {payment && (
         <div className="payment-pending-body">
           <div className="payment-pending-summary">
-            <span className={paymentBadgeClass(payment.status)}>
-              {billingEnumLabel(t, "paymentStatus", payment.status)}
+            <span className={paymentBadgeClass(status ?? "")}>
+              {billingEnumLabel(t, "paymentStatus", status)}
             </span>
-            <span>{payment.subject}</span>
+            <span>{subject}</span>
           </div>
 
           {isStripe && (

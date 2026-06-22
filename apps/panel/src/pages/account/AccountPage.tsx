@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { getUserInitial } from "../../lib/user-manager.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToolDisplayLabel } from "../../lib/tool-display.js";
@@ -38,8 +37,6 @@ export const AccountPage = observer(function AccountPage({
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
 
   const toolDisplayLabel = useToolDisplayLabel();
-
-  const billingOverview = entityStore.billingOverview;
 
   // Refresh billing (subscription + LLM quota) on mount and whenever the
   // window becomes visible again. Quota changes as the user consumes LLM
@@ -132,8 +129,6 @@ export const AccountPage = observer(function AccountPage({
     );
   }
 
-  const initial = getUserInitial(user);
-
   const surfaceNameById: Record<string, string> = {};
   for (const s of surfaces) {
     surfaceNameById[s.id] = resolveSystemName(s.name, !s.userId);
@@ -143,10 +138,6 @@ export const AccountPage = observer(function AccountPage({
     <div className="account-page page-enter">
       {/* ── Profile & Subscription ── */}
       <AccountProfileCard
-        user={user}
-        initial={initial}
-        billingOverview={billingOverview}
-        planDefinitions={entityStore.billingPlanDefinitions}
         onLogout={handleLogout}
       />
 
@@ -206,7 +197,7 @@ export const AccountPage = observer(function AccountPage({
       {/* ── Surface Modal ── */}
       <SurfaceFormModal
         isOpen={surfaceForm.surfaceModalOpen}
-        editingSurface={surfaceForm.editingSurface}
+        editingSurfaceId={surfaceForm.editingSurfaceId}
         surfaceName={surfaceForm.surfaceName}
         surfaceDescription={surfaceForm.surfaceDescription}
         surfaceToolIds={surfaceForm.surfaceToolIds}
@@ -279,7 +270,7 @@ export const AccountPage = observer(function AccountPage({
       {/* ── RunProfile Modal ── */}
       <RunProfileFormModal
         isOpen={profileForm.profileModalOpen}
-        editingProfile={profileForm.editingProfile}
+        editingProfileId={profileForm.editingProfileId}
         profileName={profileForm.profileName}
         profileToolIds={profileForm.profileToolIds}
         profileSurfaceId={profileForm.profileSurfaceId}

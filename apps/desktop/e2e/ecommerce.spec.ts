@@ -137,7 +137,7 @@ async function loginAndNavigateToEcommerce(
   await waitForSignedInShell(window);
 
   // Navigate to ecommerce page via sidebar
-  const navBtn = window.locator(".nav-btn", { hasText: /Shop Management|Shops & Authorization|Global E-commerce/ });
+  const navBtn = window.locator(".nav-btn", { hasText: /^Shops$/ });
   await navBtn.click({ timeout: 15_000 });
 }
 
@@ -210,7 +210,7 @@ test.describe("Ecommerce Page — New User Defaults", () => {
     await dismissModals(window);
 
     await waitForSignedInShell(window);
-    const navBtn = window.locator(".nav-btn", { hasText: /Shop Management|Shops & Authorization|Global E-commerce/ });
+    const navBtn = window.locator(".nav-btn", { hasText: /^Shops$/ });
     await expect(navBtn).toBeVisible({ timeout: 15_000 });
     await navBtn.click();
 

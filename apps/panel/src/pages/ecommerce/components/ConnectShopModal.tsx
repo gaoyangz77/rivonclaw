@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../../../components/modals/Modal.js";
 import { Select } from "../../../components/inputs/Select.js";
@@ -36,63 +36,58 @@ export function ConnectShopModal({
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const prevOpenRef = useRef(false);
 
-  const availableMarkets = useMemo(
-    () => [...new Set(platformApps.map((app) => app.market))],
-    [platformApps],
-  );
+  const availableMarkets = [...new Set(platformApps.map((app) => app.market))];
+  const availableMarketsSignature = availableMarkets.join("\u0001");
 
   // Auto-select the preferred market when the modal opens.
   useEffect(() => {
     if (isOpen && !prevOpenRef.current) {
-      const preferredMarket = availableMarkets.includes("US")
+      const markets = availableMarketsSignature ? availableMarketsSignature.split("\u0001") : [];
+      const preferredMarket = markets.includes("US")
         ? "US"
-        : (availableMarkets[0] ?? "");
+        : (markets[0] ?? "");
       setSelectedMarket(preferredMarket);
       setSelectedPlatform("");
     }
     prevOpenRef.current = isOpen;
-  }, [availableMarkets, isOpen]);
+  }, [availableMarketsSignature, isOpen]);
 
-  const matchingAppsForMarket = useMemo(() => {
-    if (!selectedMarket) return [];
-    return platformApps.filter((app) => app.market === selectedMarket);
-  }, [platformApps, selectedMarket]);
+  const matchingAppsForMarket = selectedMarket
+    ? platformApps.filter((app) => app.market === selectedMarket)
+    : [];
 
-  const availablePlatforms = useMemo(
-    () => [...new Set(matchingAppsForMarket.map((app) => app.platform))],
-    [matchingAppsForMarket],
-  );
+  const availablePlatforms = [...new Set(matchingAppsForMarket.map((app) => app.platform))];
+  const availablePlatformsSignature = availablePlatforms.join("\u0001");
 
   // Keep platform selection in sync with the currently selected market.
   useEffect(() => {
+    const platforms = availablePlatformsSignature ? availablePlatformsSignature.split("\u0001") : [];
     if (!selectedMarket) {
       if (selectedPlatform) setSelectedPlatform("");
       return;
     }
-    if (availablePlatforms.length === 0) {
+    if (platforms.length === 0) {
       if (selectedPlatform) setSelectedPlatform("");
       return;
     }
-    if (!selectedPlatform || !availablePlatforms.includes(selectedPlatform)) {
-      setSelectedPlatform(availablePlatforms[0]);
+    if (!selectedPlatform || !platforms.includes(selectedPlatform)) {
+      setSelectedPlatform(platforms[0]);
     }
-  }, [availablePlatforms, selectedMarket, selectedPlatform]);
+  }, [availablePlatformsSignature, selectedMarket, selectedPlatform]);
 
-  const matchedApps = useMemo(() => {
-    if (!selectedMarket || !selectedPlatform) return [];
-    return platformApps.filter(
-      (app) => app.market === selectedMarket && app.platform === selectedPlatform,
-    );
-  }, [platformApps, selectedMarket, selectedPlatform]);
+  const matchedApps = selectedMarket && selectedPlatform
+    ? platformApps.filter((app) => app.market === selectedMarket && app.platform === selectedPlatform)
+    : [];
 
   const selectedPlatformAppId = matchedApps.length === 1 ? matchedApps[0].id : "";
 
-  const matchError = useMemo(() => {
-    if (!selectedMarket || !selectedPlatform) return null;
-    if (matchedApps.length === 0) return t("ecommerce.addShopModal.noMatch");
-    if (matchedApps.length > 1) return t("ecommerce.addShopModal.multipleMatch");
-    return null;
-  }, [selectedMarket, selectedPlatform, matchedApps, t]);
+  const matchError = !selectedMarket || !selectedPlatform
+    ? null
+    : matchedApps.length === 0
+      ? t("ecommerce.addShopModal.noMatch")
+      : matchedApps.length > 1
+        ? t("ecommerce.addShopModal.multipleMatch")
+        : null;
 
   return (
     <Modal

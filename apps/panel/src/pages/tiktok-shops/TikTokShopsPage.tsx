@@ -36,7 +36,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
   } = useTikTokOAuthFlow({ setUpgradePrompt });
 
   const {
-    selectedShop,
+    selectedShopId,
     activeTab,
     setActiveTab,
     editBusinessPrompt,
@@ -120,7 +120,7 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
       />
 
       <TikTokShopDetailModal
-        shop={selectedShop}
+        shopId={selectedShopId}
         onClose={closeDetailModal}
         upgradePrompt={upgradePrompt}
         activeTab={activeTab}
