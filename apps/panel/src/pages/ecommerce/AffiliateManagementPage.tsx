@@ -123,6 +123,7 @@ const PROPOSAL_FILTERS = [
   GQL.ActionProposalStatus.Approved,
   GQL.ActionProposalStatus.Executed,
   GQL.ActionProposalStatus.Rejected,
+  GQL.ActionProposalStatus.RevisionRequested,
   GQL.ActionProposalStatus.Superseded,
   GQL.ActionProposalStatus.Expired,
   GQL.ActionProposalStatus.Modified,
@@ -399,8 +400,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     .map(hydrateAffiliateProposalProjection)
     .filter((proposal) => !proposalType || proposal.type === proposalType);
 
-  async function decideProposal(proposal: GQL.ActionProposal, status: GQL.ActionProposalStatus) {
+  async function decideProposal(
+    proposal: GQL.ActionProposal,
+    status: GQL.ActionProposalStatus,
+    note?: string,
+  ) {
     try {
+      const decisionNote = note?.trim() || (
+        status === GQL.ActionProposalStatus.Approved
+          ? t("ecommerce.shopDrawer.affiliate.proposalApprovedNote")
+          : status === GQL.ActionProposalStatus.RevisionRequested
+            ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestedNote")
+            : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote")
+      );
       await decideActionProposal({
         variables: {
           input: {
@@ -408,9 +420,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             status,
             decision: {
               decidedAt: new Date().toISOString(),
-              note: status === GQL.ActionProposalStatus.Approved
-                ? t("ecommerce.shopDrawer.affiliate.proposalApprovedNote")
-                : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote"),
+              note: decisionNote,
             },
           },
         },
@@ -418,6 +428,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       showToast(
         status === GQL.ActionProposalStatus.Approved
           ? t("ecommerce.shopDrawer.affiliate.proposalApproveSuccess")
+          : status === GQL.ActionProposalStatus.RevisionRequested
+            ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestSuccess")
           : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess"),
         "success",
       );
@@ -549,6 +561,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                   onOpenCreator={(profile) => setSelectedCreator(profile)}
                   onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
                   onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
+                  onRequestRevision={(item, revisionNote) =>
+                    decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)}
                 />
               ))}
             </div>
@@ -3183,6 +3197,9 @@ function dashboardKindForProposalStatus(status: GQL.ActionProposalStatus): GQL.A
   if (status === GQL.ActionProposalStatus.Rejected) {
     return GQL.AffiliateDashboardItemKind.ActionRejected;
   }
+  if (status === GQL.ActionProposalStatus.RevisionRequested) {
+    return GQL.AffiliateDashboardItemKind.ManualFollowUp;
+  }
   return GQL.AffiliateDashboardItemKind.ActionExecuted;
 }
 
@@ -3209,6 +3226,7 @@ function ActionProposalCard({
   onOpenCreator,
   onApprove,
   onReject,
+  onRequestRevision,
 }: {
   proposal: GQL.ActionProposal;
   shopLabel: string;
@@ -3218,9 +3236,12 @@ function ActionProposalCard({
   onOpenCreator?: (profile: GQL.CreatorGlobalProfile) => void;
   onApprove?: (proposal: GQL.ActionProposal) => Promise<void>;
   onReject?: (proposal: GQL.ActionProposal) => Promise<void>;
+  onRequestRevision?: (proposal: GQL.ActionProposal, note: string) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const [compactOpen, setCompactOpen] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
+  const [revisionNote, setRevisionNote] = useState("");
   const creatorName = proposal.creatorProfile
     ? creatorPrimaryName(proposal.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : t("ecommerce.affiliateWorkspace.unknownCreator");
@@ -3236,6 +3257,8 @@ function ActionProposalCard({
     !isCompact &&
     proposal.status === GQL.ActionProposalStatus.Pending &&
     Boolean(onApprove && onReject);
+  const canRequestRevision = canDecide && Boolean(onRequestRevision);
+  const trimmedRevisionNote = revisionNote.trim();
   const detailItem = detailItemFromProposal(proposal);
   const canOpenCollaboration = !isCompact && Boolean(detailItem && onOpenCollaboration);
 
@@ -3356,30 +3379,101 @@ function ActionProposalCard({
       ) : null}
 
       {canDecide ? (
-        <div className="affiliate-work-item-actions">
-          <button
-            className="btn btn-secondary"
-            type="button"
-            disabled={decidingProposal}
-            onClick={(event) => {
-              event.stopPropagation();
-              void onReject?.(proposal);
-            }}
-          >
-            {t("common.reject", { defaultValue: "Reject" })}
-          </button>
-          <button
-            className="btn btn-primary"
-            type="button"
-            disabled={decidingProposal}
-            onClick={(event) => {
-              event.stopPropagation();
-              void onApprove?.(proposal);
-            }}
-          >
-            {t("common.approve", { defaultValue: "Approve" })}
-          </button>
-        </div>
+        <>
+          {revisionOpen ? (
+            <div
+              className="affiliate-proposal-revision-box"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <label className="affiliate-proposal-revision-label" htmlFor={`proposal-revision-${proposal.id}`}>
+                {t("ecommerce.shopDrawer.affiliate.proposalRevisionNoteLabel")}
+              </label>
+              <textarea
+                id={`proposal-revision-${proposal.id}`}
+                className="affiliate-proposal-revision-textarea"
+                value={revisionNote}
+                rows={3}
+                maxLength={1200}
+                placeholder={t("ecommerce.shopDrawer.affiliate.proposalRevisionNotePlaceholder")}
+                disabled={decidingProposal}
+                onChange={(event) => setRevisionNote(event.target.value)}
+              />
+              <div className="affiliate-proposal-revision-foot">
+                <span>
+                  {t("ecommerce.shopDrawer.affiliate.proposalRevisionNoteHint")}
+                </span>
+                <span>{trimmedRevisionNote.length}/1200</span>
+              </div>
+            </div>
+          ) : null}
+          <div className="affiliate-work-item-actions">
+            {revisionOpen ? (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                disabled={decidingProposal}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setRevisionOpen(false);
+                  setRevisionNote("");
+                }}
+              >
+                {t("common.cancel", { defaultValue: "Cancel" })}
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  disabled={decidingProposal}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void onReject?.(proposal);
+                  }}
+                >
+                  {t("common.reject", { defaultValue: "Reject" })}
+                </button>
+                {canRequestRevision ? (
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={decidingProposal}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setRevisionOpen(true);
+                    }}
+                  >
+                    {t("ecommerce.shopDrawer.affiliate.requestProposalRevision")}
+                  </button>
+                ) : null}
+              </>
+            )}
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={decidingProposal || (revisionOpen && !trimmedRevisionNote)}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (revisionOpen) {
+                  if (!trimmedRevisionNote) return;
+                  const revisionPromise = onRequestRevision?.(proposal, trimmedRevisionNote);
+                  if (revisionPromise) {
+                    void revisionPromise.then(() => {
+                      setRevisionOpen(false);
+                      setRevisionNote("");
+                    });
+                  }
+                  return;
+                }
+                void onApprove?.(proposal);
+              }}
+            >
+              {revisionOpen
+                ? t("ecommerce.shopDrawer.affiliate.sendProposalRevisionRequest")
+                : t("common.approve", { defaultValue: "Approve" })}
+            </button>
+          </div>
+        </>
       ) : null}
     </article>
   );
@@ -4387,6 +4481,8 @@ function buildCollaborationWorkView(
     defaultValue: record.lifecycleStage,
   });
   const proposalRejected = latestProposal?.status === GQL.ActionProposalStatus.Rejected;
+  const proposalRevisionRequested =
+    latestProposal?.status === GQL.ActionProposalStatus.RevisionRequested;
   const proposalPending = latestProposal?.status === GQL.ActionProposalStatus.Pending;
 
   if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.Blocked) {
@@ -4419,6 +4515,17 @@ function buildCollaborationWorkView(
       ownerLabel: t("ecommerce.affiliateWorkspace.labels.needsYourAction"),
       title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.PROPOSAL_REJECTED"),
       description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.PROPOSAL_REJECTED"),
+    };
+  }
+
+  if (proposalRevisionRequested) {
+    return {
+      badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.agent"),
+      badgeTone: "waiting",
+      stage,
+      ownerLabel: t("ecommerce.affiliateWorkspace.labels.currentSituation"),
+      title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.PROPOSAL_REVISION_REQUESTED"),
+      description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.PROPOSAL_REVISION_REQUESTED"),
     };
   }
 

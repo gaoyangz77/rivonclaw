@@ -125,7 +125,7 @@ export class AffiliateSession {
       "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
       "- Background affiliate runs must not speak in webchat. Put staff-facing detail in operatorSummary, then make the final assistant response exactly NO_REPLY.",
       `- Write every operatorSummary and staff-facing explanation in ${this.shop.staffLanguage ?? "English"}.`,
-      "- If the merchant explicitly approves or rejects a pending proposal in the current conversation, use affiliate_decide_proposal.",
+      "- If the merchant explicitly approves, rejects, or asks to revise a pending proposal in the current conversation, use affiliate_decide_proposal. For revision requests, set status REVISION_REQUESTED and put the merchant's requested changes in decision.note.",
       "- Do not rely on memory for creator history or policy. Ask tools for state when needed.",
       "- Never put a platform sample application ID into campaignId. For sample events, use platformApplicationId or sampleApplicationRecordId.",
       "",
