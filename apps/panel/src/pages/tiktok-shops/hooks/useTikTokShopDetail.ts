@@ -41,7 +41,7 @@ export function useTikTokShopDetail({
       const shop = shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
       await shop.delete();
-      // MST store auto-updates via SSE patch
+      await entityStore.fetchShops();
       if (selectedShopId === shopId) {
         setSelectedShopId(null);
       }
@@ -98,7 +98,6 @@ export function useTikTokShopDetail({
 
   return {
     selectedShopId,
-    selectedShop,
     activeTab,
     setActiveTab,
     editBusinessPrompt,

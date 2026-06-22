@@ -35,6 +35,7 @@ export function createPanelEventBus(
 ): PanelEventBus {
   const handlers = new Map<string, Set<Handler>>();
   const attachedEvents = new Set<string>();
+  const latestSnapshotPayloads = new Map<string, unknown>();
   let eventSource: EventSource | null = null;
 
   function ensureConnected(): EventSource {
@@ -59,8 +60,6 @@ export function createPanelEventBus(
 
   function attachListener(sse: EventSource, event: string): void {
     sse.addEventListener(event, (e: MessageEvent) => {
-      const set = handlers.get(event);
-      if (!set || set.size === 0) return;
       let payload: unknown;
       try {
         payload = JSON.parse(e.data);
@@ -68,6 +67,11 @@ export function createPanelEventBus(
         console.warn(`[panel-event-bus] malformed data for event "${event}":`, err);
         return;
       }
+      if (event.endsWith("-snapshot")) {
+        latestSnapshotPayloads.set(event, payload);
+      }
+      const set = handlers.get(event);
+      if (!set || set.size === 0) return;
       // Copy to array to guard against handlers that unsubscribe during dispatch.
       for (const handler of Array.from(set)) {
         handler(payload);
@@ -77,8 +81,6 @@ export function createPanelEventBus(
 
   return {
     subscribe(event, handler) {
-      const sse = ensureConnected();
-
       let set = handlers.get(event);
       if (!set) {
         set = new Set();
@@ -86,9 +88,19 @@ export function createPanelEventBus(
       }
       set.add(handler);
 
-      if (!attachedEvents.has(event)) {
+      const wasAttached = attachedEvents.has(event);
+      if (!wasAttached) {
         attachedEvents.add(event);
+      }
+
+      const hadSource = eventSource !== null;
+      const sse = ensureConnected();
+      if (!wasAttached && hadSource) {
         attachListener(sse, event);
+      }
+
+      if (latestSnapshotPayloads.has(event)) {
+        handler(latestSnapshotPayloads.get(event));
       }
 
       return () => {
@@ -108,6 +120,7 @@ export function createPanelEventBus(
       }
       handlers.clear();
       attachedEvents.clear();
+      latestSnapshotPayloads.clear();
     },
   };
 }

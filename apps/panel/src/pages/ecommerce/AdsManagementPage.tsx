@@ -46,12 +46,10 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authorizedAdvertisers = advertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED");
-  const shopCoverageRows = useMemo(() => (
-    shops.map((shop) => ({
-      shop,
-      readiness: resolveShopAdsReadiness(shop, advertisers, storeAccesses),
-    }))
-  ), [shops, advertisers, storeAccesses]);
+  const shopCoverageRows = shops.map((shop) => ({
+    shop,
+    readiness: resolveShopAdsReadiness(shop, advertisers, storeAccesses),
+  }));
   const coveredShopCount = shopCoverageRows.filter((row) => row.readiness.status === "connected").length;
   const onboardedStoreIds = new Set(shops.map((shop) => shop.platformShopId).filter(Boolean));
   const unonboardedStoreAccessCount = storeAccesses.filter((access) => !onboardedStoreIds.has(access.storeId)).length;

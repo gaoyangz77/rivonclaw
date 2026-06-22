@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BillingOverview, BillingPlanDefinition } from "@rivonclaw/core/models";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
@@ -10,29 +9,24 @@ import {
   usagePercentLabel,
 } from "../../../components/billing/billing-labels.js";
 import { CheckIcon, CopyIcon, InfoIcon } from "../../../components/icons.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { getUserInitial } from "../../../lib/user-manager.js";
 
 interface AccountProfileCardProps {
-  user: {
-    name: string | null;
-    email: string;
-    createdAt: string;
-    agent?: { active?: boolean; inviteCode?: string | null } | null;
-  };
-  initial: string;
-  billingOverview: BillingOverview | null;
-  planDefinitions: readonly BillingPlanDefinition[];
   onLogout: () => void;
 }
 
 export function AccountProfileCard({
-  user,
-  initial,
-  billingOverview,
-  planDefinitions,
   onLogout,
 }: AccountProfileCardProps) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const user = entityStore.currentUser;
   const [inviteCopied, setInviteCopied] = useState(false);
+  if (!user) return null;
+  const initial = getUserInitial(user);
+  const billingOverview = entityStore.billingOverview;
+  const planDefinitions = entityStore.billingPlanDefinitions;
   const accountLlm = billingOverview?.accountLlm ?? null;
   const llmUsages = sortUsageWindows(accountLlm?.entitlement.usage ?? []);
   const validUntil = accountLlm?.entitlement.validUntil ?? null;

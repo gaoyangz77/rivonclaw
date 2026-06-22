@@ -56,7 +56,7 @@ export const ShopModel = ShopModelBase.views((self) => ({
           unpaidOrderReachoutEnabled?: boolean;
           unpaidOrderReachoutDelayHours?: number | null;
           unpaidOrderReminderMessageTemplate?: string | null;
-          businessPrompt?: string;
+          businessPrompt?: string | null;
           runProfileId?: string;
           csDeviceId?: string | null;
           csProviderOverride?: string | null;
@@ -95,11 +95,14 @@ export const ShopModel = ShopModelBase.views((self) => ({
     }),
 
     delete: flow(function* () {
-      yield client().mutate({
+      const result = yield client().mutate({
         mutation: DELETE_SHOP_MUTATION,
         variables: { id: self.id },
       });
-      // Desktop proxy removes entity from Desktop MST → SSE patch → Panel auto-updates
+      if (result.data?.deleteShop !== true) {
+        throw new Error("Shop disconnect was not accepted by the server.");
+      }
+      // Desktop proxy removes the entity; callers refresh the authoritative shop list.
     }),
   };
 });

@@ -301,9 +301,10 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       return result.data!.initiateTikTokAdsOAuth as { authUrl: string; state: string };
     }),
 
-    /** Fire shops query to populate MST via Desktop proxy. */
+    /** Fetch the authoritative shop list and replace the Panel cache. */
     fetchShops: flow(function* () {
       const result = yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+      applySnapshot(self.shops, stripTypename(result.data?.shops ?? []) as any);
       const shopIds = ((result.data?.shops ?? []) as Array<{ id?: string | null }>)
         .map((shop) => shop.id)
         .filter((shopId): shopId is string => Boolean(shopId));

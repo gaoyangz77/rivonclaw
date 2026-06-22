@@ -116,6 +116,38 @@ describe("createPanelEventBus", () => {
     expect(drop).not.toHaveBeenCalled();
   });
 
+  it("replays the latest snapshot to subscribers that attach after the frame arrived", () => {
+    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const first = vi.fn();
+    const unsubscribe = bus.subscribe("entity-snapshot", first);
+    unsubscribe();
+
+    const source = FakeEventSource.instances[0]!;
+    source.emit("entity-snapshot", { currentUser: { userId: "u1" } });
+
+    const second = vi.fn();
+    bus.subscribe("entity-snapshot", second);
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledWith({ currentUser: { userId: "u1" } });
+  });
+
+  it("does not replay non-snapshot events to late subscribers", () => {
+    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    const first = vi.fn();
+    const unsubscribe = bus.subscribe("oauth-complete", first);
+    unsubscribe();
+
+    const source = FakeEventSource.instances[0]!;
+    source.emit("oauth-complete", { shopId: "s1" });
+
+    const second = vi.fn();
+    bus.subscribe("oauth-complete", second);
+
+    expect(second).not.toHaveBeenCalled();
+  });
+
   it("swallows malformed JSON without throwing", () => {
     const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
     const handler = vi.fn();

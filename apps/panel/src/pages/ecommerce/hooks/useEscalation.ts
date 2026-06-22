@@ -1,23 +1,21 @@
-import { useState, useEffect, useMemo } from "react";
-import type { Instance } from "mobx-state-tree";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { fetchChannelStatus, fetchAllowlist, type AllowlistResult, type ChannelsStatusSnapshot } from "../../../api/channels.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { buildAccountsList } from "../../../lib/channel-accounts.js";
 import { hasUpgradeRequired } from "../ecommerce-utils.js";
-import { ShopModel } from "../../../store/models/index.js";
-
-type Shop = Instance<typeof ShopModel>;
 
 export function useEscalation(
-  selectedShop: Shop | null,
-  shops: Shop[],
+  selectedShopId: string | null,
   setUpgradePrompt: (v: boolean) => void,
 ) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
+  const selectedShop = selectedShopId
+    ? entityStore.shops.find((shop) => shop.id === selectedShopId) ?? null
+    : null;
 
   const [channelSnapshot, setChannelSnapshot] = useState<ChannelsStatusSnapshot | null>(null);
   const [savingEscalation, setSavingEscalation] = useState(false);
@@ -67,7 +65,7 @@ export function useEscalation(
       setSavingEscalation(true);
       setUpgradePrompt(false);
       try {
-        const shop = shops.find((s) => s.id === shopId);
+        const shop = entityStore.shops.find((s) => s.id === shopId);
         if (!shop) throw new Error(`Shop ${shopId} not found`);
         await shop.update({
           services: {
@@ -95,7 +93,7 @@ export function useEscalation(
     setSavingEscalation(true);
     setUpgradePrompt(false);
     try {
-      const shop = shops.find((s) => s.id === shopId);
+      const shop = entityStore.shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
       await shop.update({
         services: {
@@ -134,9 +132,9 @@ export function useEscalation(
         if (firstRecipient) {
           setDraftEscalationRecipient(firstRecipient);
           // Only save if channel or recipient changed from what's already persisted
-          const shopId = selectedShop?.id;
+          const shopId = selectedShopId;
           if (shopId) {
-            const shop = shops.find((s) => s.id === shopId);
+            const shop = entityStore.shops.find((s) => s.id === shopId);
             const cs = shop?.services?.customerService;
             if (shop && (cs?.escalationChannelId !== draftEscalationChannel || cs?.escalationRecipientId !== firstRecipient)) {
               setSavingEscalation(true);
@@ -159,7 +157,7 @@ export function useEscalation(
       });
 
     return () => { cancelled = true; };
-  }, [draftEscalationChannel]);
+  }, [draftEscalationChannel, selectedShopId]);
 
   // Channel accounts in MST are the source of truth for account existence/name.
   // The gateway snapshot is only a runtime overlay. This mirrors ChannelsPage,
@@ -175,41 +173,33 @@ export function useEscalation(
   const escalationChannelOptions = availableEscalationAccounts.map(({ value, label }) => ({ value, label }));
 
   // Prepend "None" option for escalation channel selector
-  const escalationChannelSelectOptions = useMemo(() => {
-    const opts: Array<{ value: string; label: string }> = [
-      { value: "", label: t("common.none") },
-      ...escalationChannelOptions,
-    ];
-    // If current draft value is set but not in the options (channel was removed), keep it visible.
-    if (draftEscalationChannel && !opts.some((o) => o.value === draftEscalationChannel)) {
-      opts.push({
-        value: draftEscalationChannel,
-        label: `${draftEscalationChannel} (${t("crons.channelDisconnected")})`,
-      });
-    }
-    return opts;
-  }, [escalationChannelOptions, draftEscalationChannel, t]);
+  const escalationChannelSelectOptions: Array<{ value: string; label: string }> = [
+    { value: "", label: t("common.none") },
+    ...escalationChannelOptions,
+  ];
+  // If current draft value is set but not in the options (channel was removed), keep it visible.
+  if (draftEscalationChannel && !escalationChannelSelectOptions.some((o) => o.value === draftEscalationChannel)) {
+    escalationChannelSelectOptions.push({
+      value: draftEscalationChannel,
+      label: `${draftEscalationChannel} (${t("crons.channelDisconnected")})`,
+    });
+  }
 
   // Build recipient options from the Desktop allowlist API (no empty option — first is auto-selected)
-  const escalationRecipientOptions = useMemo(() => {
-    const opts: Array<{ value: string; label: string }> = [];
-    if (!recipientData) return opts;
-
+  const escalationRecipientOptions: Array<{ value: string; label: string }> = [];
+  if (recipientData) {
     for (const recipientId of recipientData.allowlist) {
       const label = recipientData.labels[recipientId];
-      opts.push({
+      escalationRecipientOptions.push({
         value: recipientId,
         label: label ? `${label} (${recipientId})` : recipientId,
       });
     }
-
-    // If current draft value is set but not in the list, keep it visible
-    if (draftEscalationRecipient && !opts.some((o) => o.value === draftEscalationRecipient)) {
-      opts.push({ value: draftEscalationRecipient, label: draftEscalationRecipient });
-    }
-
-    return opts;
-  }, [recipientData, draftEscalationRecipient]);
+  }
+  // If current draft value is set but not in the list, keep it visible
+  if (draftEscalationRecipient && !escalationRecipientOptions.some((o) => o.value === draftEscalationRecipient)) {
+    escalationRecipientOptions.push({ value: draftEscalationRecipient, label: draftEscalationRecipient });
+  }
 
   return {
     savingEscalation,

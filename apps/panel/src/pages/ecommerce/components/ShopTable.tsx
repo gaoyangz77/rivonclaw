@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
@@ -39,7 +39,8 @@ export function ShopTable({
   const { t } = useTranslation();
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
   const [savingAliasShopId, setSavingAliasShopId] = useState<string | null>(null);
-  const shopGroups = useMemo(() => groupShopsByCollection(shops), [shops]);
+  const shopGroups = groupShopsByCollection(shops);
+  const shopAliasSignature = shops.map((shop) => `${shop.id}:${shop.alias ?? ""}`).join("\u0001");
 
   useEffect(() => {
     setDraftAliases((prev) => {
@@ -49,22 +50,21 @@ export function ShopTable({
       }
       return next;
     });
-  }, [shops]);
+  }, [shopAliasSignature]);
 
-  async function commitAlias(shop: Shop) {
-    const currentAlias = shop.alias ?? "";
-    const nextAlias = (draftAliases[shop.id] ?? currentAlias).trim();
+  async function commitAlias(shopId: string, currentAlias: string) {
+    const nextAlias = (draftAliases[shopId] ?? currentAlias).trim();
     if (nextAlias === currentAlias) {
-      setDraftAliases((prev) => ({ ...prev, [shop.id]: currentAlias }));
+      setDraftAliases((prev) => ({ ...prev, [shopId]: currentAlias }));
       return;
     }
 
-    setSavingAliasShopId(shop.id);
+    setSavingAliasShopId(shopId);
     try {
-      await onUpdateAlias(shop.id, nextAlias);
-      setDraftAliases((prev) => ({ ...prev, [shop.id]: nextAlias }));
+      await onUpdateAlias(shopId, nextAlias);
+      setDraftAliases((prev) => ({ ...prev, [shopId]: nextAlias }));
     } finally {
-      setSavingAliasShopId((current) => (current === shop.id ? null : current));
+      setSavingAliasShopId((current) => (current === shopId ? null : current));
     }
   }
 
@@ -135,9 +135,12 @@ export function ShopTable({
                         <td />
                       </tr>
                     )}
-                    {group.shops.map((shop) => (
+                    {group.shops.map((shop) => {
+                      const shopId = shop.id;
+                      const currentAlias = shop.alias ?? "";
+                      return (
                         <tr
-                          key={shop.id}
+                          key={shopId}
                           className={isCollection ? "shop-collection-child-row" : undefined}
                         >
                           <td>
@@ -146,22 +149,22 @@ export function ShopTable({
                           <td className="shop-table-col-alias">
                             <input
                               className="shop-alias-input"
-                              value={draftAliases[shop.id] ?? (shop.alias ?? "")}
+                              value={draftAliases[shopId] ?? currentAlias}
                               placeholder={t("ecommerce.table.aliasPlaceholder")}
-                              disabled={savingAliasShopId === shop.id}
+                              disabled={savingAliasShopId === shopId}
                               onChange={(e) => {
                                 const value = e.target.value;
-                                setDraftAliases((prev) => ({ ...prev, [shop.id]: value }));
+                                setDraftAliases((prev) => ({ ...prev, [shopId]: value }));
                               }}
                               onBlur={() => {
-                                commitAlias(shop).catch(() => {});
+                                commitAlias(shopId, currentAlias).catch(() => {});
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.preventDefault();
                                   e.currentTarget.blur();
                                 } else if (e.key === "Escape") {
-                                  setDraftAliases((prev) => ({ ...prev, [shop.id]: shop.alias ?? "" }));
+                                  setDraftAliases((prev) => ({ ...prev, [shopId]: currentAlias }));
                                   e.currentTarget.blur();
                                 }
                               }}
@@ -181,14 +184,14 @@ export function ShopTable({
                             <div className="td-actions shop-table-actions">
                               <button
                                 className="btn btn-secondary btn-sm"
-                                onClick={() => onOpenDrawer(shop.id)}
+                                onClick={() => onOpenDrawer(shopId)}
                               >
                                 {t("ecommerce.view")}
                               </button>
                               {shop.authStatus === "TOKEN_EXPIRED" && (
                                 <button
                                   className="btn btn-primary btn-sm"
-                                  onClick={() => onReauthorize(shop.id)}
+                                  onClick={() => onReauthorize(shopId)}
                                   disabled={oauthLoading || oauthWaiting}
                                 >
                                   {t("ecommerce.reauthorize")}
@@ -196,14 +199,15 @@ export function ShopTable({
                               )}
                               <button
                                 className="btn btn-danger btn-sm"
-                                onClick={() => onRequestDelete(shop.id)}
+                                onClick={() => onRequestDelete(shopId)}
                               >
                                 {t("ecommerce.disconnect")}
                               </button>
                             </div>
                           </td>
                         </tr>
-                    ))}
+                      );
+                    })}
                   </Fragment>
                 );
               })}

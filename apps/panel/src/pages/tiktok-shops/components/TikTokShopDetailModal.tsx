@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "../../../components/modals/Modal.js";
-import type { Shop } from "@rivonclaw/core/models";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { ModalTab } from "../tiktok-shops-types.js";
 import { TikTokShopOverviewTab } from "./TikTokShopOverviewTab.js";
 import { TikTokShopBillingTab } from "./TikTokShopBillingTab.js";
 import { TikTokShopSessionsTab } from "./TikTokShopSessionsTab.js";
 
 interface TikTokShopDetailModalProps {
-  shop: Shop | null;
+  shopId: string | null;
   onClose: () => void;
   upgradePrompt: boolean;
   activeTab: ModalTab;
@@ -22,7 +22,7 @@ interface TikTokShopDetailModalProps {
 }
 
 export function TikTokShopDetailModal({
-  shop,
+  shopId,
   onClose,
   upgradePrompt,
   activeTab,
@@ -35,6 +35,10 @@ export function TikTokShopDetailModal({
   onSaveBusinessPrompt,
 }: TikTokShopDetailModalProps) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const shop = shopId
+    ? entityStore.shops.find((item) => item.id === shopId) ?? null
+    : null;
 
   return (
     <Modal

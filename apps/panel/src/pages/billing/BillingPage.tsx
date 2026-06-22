@@ -48,11 +48,7 @@ export const BillingPage = observer(function BillingPage() {
 
   return (
     <div className="billing-page page-enter">
-      <AccountBillingSection
-        billingOverview={entityStore.billingOverview}
-        planDefinitions={entityStore.billingPlanDefinitions}
-        payments={entityStore.payments}
-      />
+      <AccountBillingSection />
     </div>
   );
 });

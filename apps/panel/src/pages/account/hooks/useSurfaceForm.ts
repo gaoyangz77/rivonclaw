@@ -11,7 +11,7 @@ export function useSurfaceForm() {
 
   const [surfaceError, setSurfaceError] = useState<string | null>(null);
   const [surfaceModalOpen, setSurfaceModalOpen] = useState(false);
-  const [editingSurface, setEditingSurface] = useState<Surface | null>(null);
+  const [editingSurfaceId, setEditingSurfaceId] = useState<string | null>(null);
   const [surfaceName, setSurfaceName] = useState("");
   const [surfaceDescription, setSurfaceDescription] = useState("");
   const [surfaceToolIds, setSurfaceToolIds] = useState<Set<string>>(new Set());
@@ -20,7 +20,7 @@ export function useSurfaceForm() {
   const [selectedPresetId, setSelectedPresetId] = useState("");
 
   function openCreateSurface() {
-    setEditingSurface(null);
+    setEditingSurfaceId(null);
     setSurfaceName("");
     setSurfaceDescription("");
     setSurfaceToolIds(new Set());
@@ -28,7 +28,7 @@ export function useSurfaceForm() {
   }
 
   function openEditSurface(s: Surface) {
-    setEditingSurface(s);
+    setEditingSurfaceId(s.id);
     setSurfaceName(s.name);
     setSurfaceDescription("");
     setSurfaceToolIds(new Set(s.allowedToolIds));
@@ -37,7 +37,7 @@ export function useSurfaceForm() {
 
   function closeSurfaceModal() {
     setSurfaceModalOpen(false);
-    setEditingSurface(null);
+    setEditingSurfaceId(null);
   }
 
   async function handleSaveSurface() {
@@ -45,9 +45,9 @@ export function useSurfaceForm() {
     setSavingSurface(true);
     setSurfaceError(null);
     try {
-      if (editingSurface) {
-        const surface = entityStore.surfaces.find((s) => s.id === editingSurface.id);
-        if (!surface) throw new Error(`Surface ${editingSurface.id} not found`);
+      if (editingSurfaceId) {
+        const surface = entityStore.surfaces.find((s) => s.id === editingSurfaceId);
+        if (!surface) throw new Error(`Surface ${editingSurfaceId} not found`);
         await surface.update({
           name: surfaceName.trim(),
           description: surfaceDescription.trim() || undefined,
@@ -73,7 +73,7 @@ export function useSurfaceForm() {
     if (!source) return;
     setPresetModalOpen(false);
     setSelectedPresetId("");
-    setEditingSurface(null);
+    setEditingSurfaceId(null);
     setSurfaceName(`${source.name} ${t("surfaces.copySuffix")}`);
     setSurfaceDescription("");
     // System Default Surface -> pre-select all available tools
@@ -108,7 +108,7 @@ export function useSurfaceForm() {
   return {
     surfaceError,
     surfaceModalOpen,
-    editingSurface,
+    editingSurfaceId,
     surfaceName,
     setSurfaceName,
     surfaceDescription,

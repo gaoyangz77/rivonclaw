@@ -238,18 +238,15 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     });
   }, [workspace, activeTab, i18n.language]);
 
-  const shopOptions = useMemo(
-    () => [
-      { value: "", label: t("ecommerce.customerServiceWorkspace.allShops") },
-      ...shops
-        .filter((shop) => shop.services?.customerService?.enabled)
-        .map((shop) => ({
-          value: shop.id,
-          label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-        })),
-    ],
-    [shops, t],
-  );
+  const shopOptions = [
+    { value: "", label: t("ecommerce.customerServiceWorkspace.allShops") },
+    ...shops
+      .filter((shop) => shop.services?.customerService?.enabled)
+      .map((shop) => ({
+        value: shop.id,
+        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+      })),
+  ];
 
   function shopLabel(shopId: string): string {
     const shop = shops.find((candidate) => candidate.id === shopId);

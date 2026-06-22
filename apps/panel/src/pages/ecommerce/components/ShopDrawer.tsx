@@ -1,7 +1,6 @@
 import { observer } from "mobx-react-lite";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Shop } from "@rivonclaw/core/models";
 import { CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
@@ -16,7 +15,7 @@ import type { DrawerTab } from "../ecommerce-types.js";
 const workspaceSectionId = (tab: DrawerTab, section: string) => `shop-workspace-${tab}-${section}`;
 
 interface ShopDrawerProps {
-  shop: Shop | null;
+  shopId: string | null;
   isOpen: boolean;
   onClose: () => void;
   activeTab: DrawerTab;
@@ -81,7 +80,7 @@ interface ShopDrawerProps {
 }
 
 export const ShopDrawer = observer(function ShopDrawer({
-  shop,
+  shopId,
   isOpen,
   onClose,
   activeTab,
@@ -144,70 +143,55 @@ export const ShopDrawer = observer(function ShopDrawer({
 }: ShopDrawerProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
+  const shop = shopId
+    ? entityStore.shops.find((item) => item.id === shopId) ?? null
+    : null;
   const customerServiceEntitlement = shop
     ? entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null
     : null;
   const adsReadiness = shop
     ? resolveShopAdsReadiness(shop, entityStore.adsAdvertisers, entityStore.adsStoreBindings)
     : null;
-  const workspaceSections = useMemo(() => {
-    if (!shop) {
-      return [];
-    }
-
-    if (activeTab === "overview") {
-      return [
-        { id: workspaceSectionId(activeTab, "shop-info"), label: t("ecommerce.shopDrawer.overview.shopInfo") },
-        { id: workspaceSectionId(activeTab, "ads"), label: t("ecommerce.shopDrawer.overview.adsReadiness") },
-        { id: workspaceSectionId(activeTab, "tokens"), label: t("ecommerce.shopDrawer.overview.tokenExpiry") },
-        { id: workspaceSectionId(activeTab, "services"), label: t("ecommerce.shopDrawer.overview.services") },
-      ];
-    }
-
-    if (activeTab === "aiCustomerService" && shop.services?.customerService?.enabled) {
-      return [
-        { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.aiCS.serviceStatus") },
-        { id: workspaceSectionId(activeTab, "device"), label: t("ecommerce.shopDrawer.aiCS.csBindDevice") },
-        { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.aiCS.runProfile") },
-        { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.aiCS.csModelOverride") },
-        { id: workspaceSectionId(activeTab, "unpaid-reachout"), label: t("ecommerce.shopDrawer.aiCS.unpaidReachout") },
-        { id: workspaceSectionId(activeTab, "escalation"), label: t("tiktokShops.detail.escalationRouting") },
-        { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.aiCS.businessPrompt") },
-        { id: workspaceSectionId(activeTab, "credits"), label: t("ecommerce.shopDrawer.aiCS.credits") },
-      ];
-    }
-
-    if (activeTab === "warehouseMapping" && shop.services?.wms?.enabled) {
-      return [
-        { id: workspaceSectionId(activeTab, "warehouses"), label: t("ecommerce.inventory.shopWarehouses") },
-      ];
-    }
-
-    if (activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled) {
-      return [
-        { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.affiliate.serviceStatus") },
-        { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.affiliate.runProfile") },
-        { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.affiliate.modelUsageScope") },
-        { id: workspaceSectionId(activeTab, "thresholds"), label: t("ecommerce.shopDrawer.affiliate.decisionThresholds") },
-        { id: workspaceSectionId(activeTab, "policies"), label: t("ecommerce.affiliateWorkspace.policies.title") },
-        { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.affiliate.businessPrompt") },
-      ];
-    }
-
-    return [];
-  }, [
-    activeTab,
-    shop,
-    shop?.services?.affiliateService?.enabled,
-    shop?.services?.customerService?.enabled,
-    shop?.services?.wms?.enabled,
-    t,
-  ]);
+  const workspaceSections = !shop
+    ? []
+    : activeTab === "overview"
+      ? [
+          { id: workspaceSectionId(activeTab, "shop-info"), label: t("ecommerce.shopDrawer.overview.shopInfo") },
+          { id: workspaceSectionId(activeTab, "ads"), label: t("ecommerce.shopDrawer.overview.adsReadiness") },
+          { id: workspaceSectionId(activeTab, "tokens"), label: t("ecommerce.shopDrawer.overview.tokenExpiry") },
+          { id: workspaceSectionId(activeTab, "services"), label: t("ecommerce.shopDrawer.overview.services") },
+        ]
+      : activeTab === "aiCustomerService" && shop.services?.customerService?.enabled
+        ? [
+            { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.aiCS.serviceStatus") },
+            { id: workspaceSectionId(activeTab, "device"), label: t("ecommerce.shopDrawer.aiCS.csBindDevice") },
+            { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.aiCS.runProfile") },
+            { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.aiCS.csModelOverride") },
+            { id: workspaceSectionId(activeTab, "unpaid-reachout"), label: t("ecommerce.shopDrawer.aiCS.unpaidReachout") },
+            { id: workspaceSectionId(activeTab, "escalation"), label: t("tiktokShops.detail.escalationRouting") },
+            { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.aiCS.businessPrompt") },
+            { id: workspaceSectionId(activeTab, "credits"), label: t("ecommerce.shopDrawer.aiCS.credits") },
+          ]
+        : activeTab === "warehouseMapping" && shop.services?.wms?.enabled
+          ? [
+              { id: workspaceSectionId(activeTab, "warehouses"), label: t("ecommerce.inventory.shopWarehouses") },
+            ]
+          : activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled
+            ? [
+                { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.affiliate.serviceStatus") },
+                { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.affiliate.runProfile") },
+                { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.affiliate.modelUsageScope") },
+                { id: workspaceSectionId(activeTab, "thresholds"), label: t("ecommerce.shopDrawer.affiliate.decisionThresholds") },
+                { id: workspaceSectionId(activeTab, "policies"), label: t("ecommerce.affiliateWorkspace.policies.title") },
+                { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.affiliate.businessPrompt") },
+              ]
+            : [];
+  const firstWorkspaceSectionId = workspaceSections[0]?.id ?? "";
   const [activeWorkspaceSection, setActiveWorkspaceSection] = useState("");
 
   useEffect(() => {
-    setActiveWorkspaceSection(workspaceSections[0]?.id ?? "");
-  }, [workspaceSections]);
+    setActiveWorkspaceSection(firstWorkspaceSectionId);
+  }, [firstWorkspaceSectionId]);
 
   const handleWorkspaceSectionClick = (sectionId: string) => {
     setActiveWorkspaceSection(sectionId);

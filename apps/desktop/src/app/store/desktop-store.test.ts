@@ -114,4 +114,21 @@ describe("DesktopRootStore shop ingestion", () => {
       "Order {{order_id}} has {{product_count}} item(s).",
     );
   });
+
+  it("accepts nullable customer-service business prompt from GraphQL", () => {
+    rootStore.replaceShopsFromGraphQL([
+      {
+        ...customerServiceShop("shop-1", "Shop 1"),
+        services: {
+          ...customerServiceShop("shop-1", "Shop 1").services,
+          customerService: {
+            ...customerServiceShop("shop-1", "Shop 1").services.customerService,
+            businessPrompt: null,
+          },
+        },
+      },
+    ], "graphql:shops");
+
+    expect(rootStore.getShop("shop-1")?.services?.customerService?.businessPrompt).toBeNull();
+  });
 });

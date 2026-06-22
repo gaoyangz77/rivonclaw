@@ -119,8 +119,8 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
     entityStore.checkoutScopeId === targetScopeId
     || (isAccountScope && entityStore.activeCheckout?.billingScopeType === targetScopeType)
   );
-  const activeCheckout = targetCheckoutActive
-    ? entityStore.activeCheckout
+  const activeCheckoutId = targetCheckoutActive
+    ? entityStore.activeCheckout?.id ?? null
     : null;
   const checkoutError = targetCheckoutActive || (!!targetScopeId && entityStore.checkoutScopeId === targetScopeId)
     ? entityStore.checkoutError
@@ -257,7 +257,7 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
         </div>
       </Modal>
       <PaymentPendingModal
-        payment={activeCheckout}
+        paymentId={activeCheckoutId}
         onClose={() => entityStore.clearActiveCheckout()}
         onSuccessComplete={onClose}
       />

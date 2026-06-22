@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
-import type { Instance } from "mobx-state-tree";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { fetchJson } from "../../../api/client.js";
-import { ShopModel } from "../../../store/models/index.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
-type Shop = Instance<typeof ShopModel>;
-
-export function useDeviceBinding(shops: Shop[]) {
+export function useDeviceBinding() {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const entityStore = useEntityStore();
 
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
   const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
@@ -24,7 +22,7 @@ export function useDeviceBinding(shops: Shop[]) {
 
   async function handleBindDevice(shopId: string) {
     if (!myDeviceId) return;
-    const shop = shops.find((s) => s.id === shopId);
+    const shop = entityStore.shops.find((s) => s.id === shopId);
     if (!shop) return;
     const existingDeviceId = shop.services?.customerService?.csDeviceId;
     if (existingDeviceId && existingDeviceId !== myDeviceId) {
@@ -48,7 +46,7 @@ export function useDeviceBinding(shops: Shop[]) {
     const shopId = bindConflictShopId;
     setBindConflictShopId(null);
     if (!shopId || !myDeviceId) return;
-    const shop = shops.find((s) => s.id === shopId);
+    const shop = entityStore.shops.find((s) => s.id === shopId);
     if (!shop) return;
     setTogglingBindShopId(shopId);
     try {
@@ -63,7 +61,7 @@ export function useDeviceBinding(shops: Shop[]) {
   }
 
   async function handleUnbindDevice(shopId: string) {
-    const shop = shops.find((s) => s.id === shopId);
+    const shop = entityStore.shops.find((s) => s.id === shopId);
     if (!shop) return;
     setTogglingBindShopId(shopId);
     try {

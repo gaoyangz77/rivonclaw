@@ -40,7 +40,7 @@ export function useOAuthFlow() {
     };
   }, []);
 
-  function startOAuthSSEListener(onOAuthComplete: () => void) {
+  function startOAuthSSEListener(onOAuthComplete: () => void | Promise<void>) {
     unsubscribeOAuthRef.current = panelEventBus.subscribe("oauth-complete", (raw) => {
       const data = raw as { shops?: unknown[] };
       if (!Array.isArray(data.shops) || data.shops.length === 0) {
@@ -49,8 +49,13 @@ export function useOAuthFlow() {
         return;
       }
       cleanupOAuthWait();
-      onOAuthComplete();
-      showToast(t("ecommerce.oauthSuccess"), "success");
+      void Promise.resolve(onOAuthComplete())
+        .then(() => {
+          showToast(t("ecommerce.oauthSuccess"), "success");
+        })
+        .catch((err: unknown) => {
+          showToast(err instanceof Error ? err.message : t("ecommerce.oauthFailed"), "error");
+        });
     });
 
     oauthTimeoutRef.current = setTimeout(() => {
@@ -61,7 +66,7 @@ export function useOAuthFlow() {
 
   async function initiateOAuth(
     platformAppId: string,
-    onOAuthComplete: () => void,
+    onOAuthComplete: () => void | Promise<void>,
     onError: (err: unknown) => void,
   ) {
     setOauthLoading(true);

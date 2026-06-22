@@ -2,11 +2,11 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "../../../components/modals/Modal.js";
 import { ToolMultiSelect } from "../../../components/inputs/ToolMultiSelect.js";
 import { Select } from "../../../components/inputs/Select.js";
-import type { Surface, RunProfile } from "../account-types.js";
+import type { Surface } from "../account-types.js";
 
 interface RunProfileFormModalProps {
   isOpen: boolean;
-  editingProfile: RunProfile | null;
+  editingProfileId: string | null;
   profileName: string;
   profileToolIds: Set<string>;
   profileSurfaceId: string;
@@ -22,7 +22,7 @@ interface RunProfileFormModalProps {
 
 export function RunProfileFormModal({
   isOpen,
-  editingProfile,
+  editingProfileId,
   profileName,
   profileToolIds,
   profileSurfaceId,
@@ -41,10 +41,10 @@ export function RunProfileFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingProfile ? t("surfaces.editRunProfile") : t("surfaces.createRunProfile")}
+      title={editingProfileId ? t("surfaces.editRunProfile") : t("surfaces.createRunProfile")}
     >
       <div className="modal-form-col">
-        {!editingProfile && (
+        {!editingProfileId && (
           <div>
             <label className="form-label-block">
               {t("surfaces.surfacesTitle")}

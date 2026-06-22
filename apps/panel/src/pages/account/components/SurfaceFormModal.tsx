@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "../../../components/modals/Modal.js";
 import { ToolMultiSelect } from "../../../components/inputs/ToolMultiSelect.js";
-import type { Surface, RunProfile } from "../account-types.js";
+import type { RunProfile } from "../account-types.js";
 
 interface SurfaceFormModalProps {
   isOpen: boolean;
-  editingSurface: Surface | null;
+  editingSurfaceId: string | null;
   surfaceName: string;
   surfaceDescription: string;
   surfaceToolIds: Set<string>;
@@ -20,7 +20,7 @@ interface SurfaceFormModalProps {
 
 export function SurfaceFormModal({
   isOpen,
-  editingSurface,
+  editingSurfaceId,
   surfaceName,
   surfaceDescription,
   surfaceToolIds,
@@ -38,7 +38,7 @@ export function SurfaceFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingSurface ? t("surfaces.editSurface") : t("surfaces.createSurface")}
+      title={editingSurfaceId ? t("surfaces.editSurface") : t("surfaces.createSurface")}
     >
       <div className="modal-form-col">
         <div>
@@ -73,9 +73,9 @@ export function SurfaceFormModal({
           <ToolMultiSelect selected={surfaceToolIds} onChange={onToolIdsChange} />
         </div>
 
-        {editingSurface && (() => {
+        {editingSurfaceId && (() => {
           const currentAllowed = surfaceToolIds;
-          const childProfiles = profiles.filter((p) => p.surfaceId === editingSurface.id);
+          const childProfiles = profiles.filter((p) => p.surfaceId === editingSurfaceId);
           const affectedProfiles = childProfiles.filter((p) =>
             p.selectedToolIds.some((tid) => currentAllowed.size > 0 && !currentAllowed.has(tid)),
           );
