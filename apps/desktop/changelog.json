@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.40",
+    "date": "2026-06-21",
+    "en": [
+      "Stabilize affiliate management workspaces, bundled work items, proposal updates, and actionable temporal deltas",
+      "Add global cloud quota banners, backfill panel i18n keys, and improve billing/shop grouping surfaces",
+      "Harden WeChat channel unhealthy-state handling, customer-service escalation warnings, and unpaid reachout shop settings"
+    ],
+    "zh": [
+      "稳定达人管理工作区、组合 work item、提案更新和可操作时间线变化展示",
+      "新增全局云端额度横幅，补齐面板多语言键，并优化计费和店铺分组界面",
+      "加固微信渠道异常状态处理、客服升级提醒和未付款触达店铺设置"
+    ]
+  },
+  {
     "version": "1.8.39",
     "date": "2026-06-19",
     "en": [
