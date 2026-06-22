@@ -56,6 +56,7 @@ export default {
     "customerService": "Kundenservice",
     "customerServiceConversations": "Konversationen",
     "customerServiceEscalations": "Eskalationen",
+    "customerServicePerformance": "Leistung",
     "affiliateManagement": "Affiliate-Management",
     "affiliateIntelligence": "Affiliate Intelligence",
     "affiliateNeedsAttention": "Aktionsvorschläge",
@@ -2324,6 +2325,73 @@ export default {
         "FREEZE": "Eingefroren",
         "PENDING": "In Prüfung",
         "PLATFORM_DEACTIVATED": "Von Plattform deaktiviert"
+      }
+    },
+    "customerServicePerformance": {
+      "title": "Kundenservice-Leistung",
+      "subtitle": "Verfolgen Sie Antwortgeschwindigkeit, Eskalationsdruck, Zufriedenheit und Arbeitsvolumen im Kundenservice.",
+      "allShops": "Alle Shops",
+      "shopFilter": "Shop",
+      "timeRange": "Zeitraum",
+      "loadFailed": "Leistungsdaten konnten nicht geladen werden",
+      "noData": "Keine Leistungsdaten für diesen Zeitraum.",
+      "downloadCsv": "CSV herunterladen",
+      "dailyTable": "Tägliche Leistung",
+      "scopeSummary": "{{start}} bis {{end}} über {{shops}} Shop(s). Alle Tage in diesem Zeitraum werden angezeigt.",
+      "ranges": {
+        "7d": "7 Tage",
+        "30d": "30 Tage",
+        "90d": "90 Tage"
+      },
+      "metrics": {
+        "active": "Aktive Gespräche",
+        "sessionFlow": "Beendete Sitzungen",
+        "newSessions": "{{value}} neue Sitzungen",
+        "endedSessions": "Beendete Sitzungen",
+        "endedMessages": "{{count}} Nachrichten beim Abschluss",
+        "newConversations": "{{count}} neu",
+        "escalations": "Eskalationen",
+        "resolved": "{{value}} gelöst",
+        "resolvedWithRate": "{{value}} gelöst · Quote {{rate}}",
+        "satisfaction": "Zufriedenheit",
+        "ratedSessions": "{{value}} bewertete Sitzungen",
+        "firstResponse": "Erste Antwort P50",
+        "firstResponseSamples": "{{value}} gemessene Gespräche",
+        "p90": "P90 {{value}}"
+      },
+      "charts": {
+        "volume": "Neue vs. beendete Sitzungen",
+        "escalation": "Eskalationsbearbeitung",
+        "escalationTooltip": "Eskalationen sind Gespräche, die der Agent nicht allein abschließen kann und die Mitarbeiter übernehmen müssen. Dieses Diagramm ist ein wichtiges Signal für den Abschluss manueller Betreuung: Gelöste Fälle zeigen, ob Mitarbeiter schnell genug reagieren und mit Eskalationen Schritt halten.",
+        "satisfaction": "Kundenzufriedenheit",
+        "firstResponse": "Geschwindigkeit der ersten Antwort"
+      },
+      "series": {
+        "active": "Aktive Gespräche",
+        "messages": "Nachrichten",
+        "endedSessions": "Beendete Sitzungen",
+        "endedMessages": "Abschlussnachrichten",
+        "newSessions": "Neue Sitzungen",
+        "escalated": "Eskaliert",
+        "resolved": "Gelöst",
+        "satisfaction": "Zufriedenheit",
+        "satisfaction7dWeighted": "7-Tage gew. Ø",
+        "firstResponseP50": "P50",
+        "firstResponseP90": "P90"
+      },
+      "table": {
+        "date": "Datum",
+        "active": "Aktiv",
+        "newSessions": "Neu",
+        "endedSessions": "Beendet",
+        "endedMessages": "Abschluss-Nachr.",
+        "escalated": "Eskaliert",
+        "resolved": "Gelöst",
+        "resolveRate": "Gelöst %",
+        "satisfaction": "Zufriedenheit",
+        "satisfaction7dWeighted": "7-Tage Ø",
+        "firstResponse": "P50-Antwort",
+        "errors": "Fehler/Gespräch"
       }
     },
     "affiliateWorkspace": {

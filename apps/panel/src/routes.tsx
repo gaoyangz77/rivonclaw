@@ -30,6 +30,7 @@ import {
   CustomerServiceConversationsPage,
   CustomerServiceEscalationQueuePage,
 } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
+import { CustomerServicePerformancePage } from "./pages/ecommerce/CustomerServicePerformancePage.js";
 import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
 import { InventoryManagementPage } from "./pages/ecommerce/InventoryManagementPage.js";
 
@@ -73,6 +74,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, navGroupOnly: true },
   { path: "/commerce/customer-service/conversations", pageKey: "ecommerce-customer-service-conversations", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceConversations", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service" },
+  { path: "/commerce/customer-service/performance", pageKey: "ecommerce-customer-service-performance", component: CustomerServicePerformancePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServicePerformance", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
   { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
