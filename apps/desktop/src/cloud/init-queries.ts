@@ -113,6 +113,7 @@ export const INIT_SHOPS_QUERY = `
       platform
       platformAppId
       platformShopId
+      collectionKey
       shopName
       alias
       authStatus

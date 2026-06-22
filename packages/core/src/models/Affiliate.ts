@@ -404,6 +404,19 @@ export const AffiliateWorkspaceModel = types
 
     function upsertProposal(proposal: GQL.ActionProposal | null | undefined): void {
       if (!proposal?.id) return;
+      const existing = self.actionProposals.find((item) => item.id === proposal.id);
+      if (
+        existing == null &&
+        (!proposal.userId ||
+          !proposal.shopId ||
+          !proposal.type ||
+          !proposal.status ||
+          !proposal.operatorSummary ||
+          !proposal.createdAt ||
+          !proposal.updatedAt)
+      ) {
+        return;
+      }
       upsertCreator(proposal.creatorProfile);
       upsertCollaborationRecord(proposal.collaborationRecord);
       upsertProduct(proposal.productSummary);

@@ -68,6 +68,24 @@ describe("AffiliateWorkspaceModel", () => {
     expect(projection?.productSummary?.title).toBe("Product");
   });
 
+  it("ignores partial proposal updates when the proposal is not already present", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+
+    expect(() => {
+      workspace.upsertAffiliateActionProposal({
+        id: "proposal-unknown",
+        status: "EXECUTED",
+        updatedAt: "2026-06-19T00:01:00.000Z",
+        executionResult: {
+          platformObjectId: "platform-1",
+          executedAt: "2026-06-19T00:01:00.000Z",
+        },
+      } as any);
+    }).not.toThrow();
+
+    expect(workspace.getActionProposal("proposal-unknown")).toBeNull();
+  });
+
   it("stores conversation message pages by conversation and appends without duplicates", () => {
     const workspace = AffiliateWorkspaceModel.create({});
 
