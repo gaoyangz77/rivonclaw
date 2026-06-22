@@ -708,6 +708,33 @@ describe("affiliate work item dispatch", () => {
     expect(request).toBeNull();
   });
 
+  it("renders creator follow-up work as a temporal actionable delta", () => {
+    const workItem = createCreatorReplyWorkItem({
+      workKind: GQL.AffiliateWorkKind.CreatorFollowUpDue,
+      workBundleKind: GQL.AffiliateWorkBundleKind.CreatorFollowUp,
+      requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
+      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
+      versionAt: "2026-05-13T00:01:00.000Z",
+      collaboration: {
+        ...createCreatorReplyWorkItem().collaboration,
+        requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
+        processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
+        lastSignalAt: "2026-05-11T00:01:00.000Z",
+        workHandledUntil: "2026-05-11T00:01:00.000Z",
+        nextSellerActionAt: "2026-05-13T00:01:00.000Z",
+      } as GQL.AffiliateCollaborationRecord,
+      recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
+    });
+
+    const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+    expect(request?.message).toContain("[Affiliate Work Item: Creator Follow-Up Due]");
+    expect(request?.message).toContain("## Backend Actionable Delta");
+    expect(request?.message).toContain("Sources: TEMPORAL");
+    expect(request?.message).toContain("Temporal Interpretation");
+    expect(request?.message).toContain("Set handledSignalAt to 2026-05-13T00:01:00.000Z");
+  });
+
   it("renders combined sample review and reply templates for bundled creator reply work", () => {
     const workItem = createCreatorReplyWorkItem({
       workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview,
