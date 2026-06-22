@@ -41,6 +41,7 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
         platform
         platformAppId
         platformShopId
+        collectionKey
         alias
         authStatus
         region
@@ -98,6 +99,7 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
       platform
       platformAppId
       platformShopId
+      collectionKey
       shopName
       alias
       authStatus

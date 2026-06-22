@@ -1568,13 +1568,146 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
   mutation DecideActionProposal($input: DecideActionProposalInput!) {
     decideActionProposal(input: $input) {
       id
+      userId
+      shopId
+      campaignId
+      creatorId
+      collaborationRecordId
+      type
       status
+      operatorSummary
+      predictionCacheIds
+      steps {
+        stepId
+        type
+        operatorSummary
+        predictionCacheIds
+        messageIntent {
+          conversationId
+          creatorId
+          creatorOpenId
+          messageType
+          text
+          productId
+          platformApplicationId
+          platformTargetCollaborationId
+          sampleApplicationRecordId
+          targetCollaborationRecordId: affiliateCollaborationId
+          imageUrl
+          imageWidth
+          imageHeight
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        sampleShipmentIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          warehouseId
+          skuId
+          quantity
+        }
+      }
+      createdAt
       updatedAt
+      expiresAt
+      policySnapshot {
+        action
+        requiresApproval
+        matchedPolicyIds
+        reasons
+      }
       decision {
         decidedAt
         note
         actorType
         actorId
+      }
+      messageIntent {
+        conversationId
+        creatorId
+        creatorOpenId
+        messageType
+        text
+        productId
+        platformApplicationId
+        platformTargetCollaborationId
+        sampleApplicationRecordId
+        targetCollaborationRecordId: affiliateCollaborationId
+        imageUrl
+        imageWidth
+        imageHeight
+      }
+      sampleReviewIntent {
+        sampleApplicationRecordId
+        platformApplicationId
+        decision
+        rejectReason
+      }
+      sampleShipmentIntent {
+        sampleApplicationRecordId
+        platformApplicationId
+        warehouseId
+        skuId
+        quantity
+      }
+      targetCollaborationIntent {
+        name
+        message
+        endTime
+        hasFreeSample
+        isSampleApprovalExempt
+        creatorIds
+        creatorOpenIds
+        products {
+          productId
+          targetCommissionRateBps
+          shopAdsCommissionRateBps
+        }
+        sellerContactInfo {
+          email
+          phoneNumber
+          whatsapp
+          telegram
+          line
+        }
+      }
+      creatorTagIntent {
+        creatorId
+        tagId
+      }
+      blockCreatorIntent {
+        creatorId
+        reason
+      }
+      campaignProductUpdateIntent {
+        campaignId
+        campaignProductId
+        productId
+        commissionRate
+        maxCommissionRate
+        sampleOfferMode
+        sampleQuota
+        sampleUnitCostAmount
+        sampleUnitCostCurrency
+        promotionPriority
+      }
+      approvalPolicyUpdateIntent {
+        policyId
+        action
+        creatorTagIds
+        campaignIds
+        productIds
+        reason
+        enabled
+      }
+      candidateDecisionIntent {
+        candidateIds
+        status
+        rationale
       }
       executionResult {
         platformObjectId
