@@ -7442,22 +7442,48 @@ tbody td {
 .billing-shop-collection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .billing-shop-collection-header {
   background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg) 93%);
   border-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-border-light));
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.08);
+}
+
+.billing-shop-collection-children {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-left: 30px;
+  padding: 4px 0 2px 18px;
+  border-left: 2px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border-light));
 }
 
 .billing-shop-collection-child {
-  margin-left: 14px;
+  border-color: color-mix(in srgb, var(--color-border-light) 84%, var(--color-primary) 16%);
+  background: color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg) 32%);
+  box-shadow: none;
+}
+
+.billing-shop-collection-child .billing-shop-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--color-text-muted);
 }
 
 .billing-shop-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 700;
   color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.billing-shop-name-text {
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
@@ -7474,6 +7500,37 @@ tbody td {
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 700;
+}
+
+.billing-shop-collection-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border-light));
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-bg) 78%, var(--color-primary) 22%);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.billing-shop-collection-toggle:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-bg) 66%, var(--color-primary) 34%);
+}
+
+.billing-shop-collection-toggle svg {
+  transition: transform var(--transition-fast);
+}
+
+.billing-shop-collection-toggle-open svg {
+  transform: rotate(90deg);
 }
 
 .billing-shop-services {
@@ -8577,7 +8634,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .shop-collection-row {
-  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg) 93%);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg) 92%);
 }
 
 .shop-collection-row td {
@@ -8586,12 +8643,42 @@ html[lang="zh"] .acct-tool-chips {
   font-weight: 600;
 }
 
+.shop-collection-row td:first-child {
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 64%, var(--color-border-light));
+}
+
+.shop-collection-child-row td {
+  background: color-mix(in srgb, var(--color-bg-alt) 52%, var(--color-bg) 48%);
+}
+
 .shop-collection-child-row td:first-child {
-  padding-left: 28px;
+  position: relative;
+  padding-left: 52px;
+}
+
+.shop-collection-child-row td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 28px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-border-light));
+}
+
+.shop-collection-child-row td:first-child::after {
+  content: "";
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  width: 14px;
+  height: 2px;
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-border-light));
 }
 
 .shop-collection-child-row .shop-table-name {
   max-width: 22ch;
+  font-weight: 650;
 }
 
 .shop-alias-input {

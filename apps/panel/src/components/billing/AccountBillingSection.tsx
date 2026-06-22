@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { GQL } from "@rivonclaw/core";
@@ -11,6 +11,7 @@ import type {
   Shop,
 } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { ChevronRightIcon } from "../icons.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
 import { ConfirmDialog } from "../modals/ConfirmDialog.js";
 import { Modal } from "../modals/Modal.js";
@@ -43,25 +44,11 @@ interface AccountBillingSectionProps {
 }
 
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
+const SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["customerService", "inventory", "affiliate"];
+const STANDALONE_SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["inventory", "affiliate"];
 
 function shopDisplayName(shop: { alias?: string | null; shopName?: string | null; platformShopId?: string | null; id?: string | null } | null | undefined, fallback: string): string {
   return shop?.alias || shop?.shopName || shop?.platformShopId || shop?.id || fallback;
-}
-
-function enabledShopServiceKeys(shop: { services?: {
-  customerService?: { enabled?: boolean } | null;
-  wms?: { enabled?: boolean | null } | null;
-  affiliateService?: { enabled?: boolean } | null;
-} | null } | null | undefined): ShopServiceKey[] {
-  const keys: ShopServiceKey[] = [];
-  if (shop?.services?.customerService?.enabled) keys.push("customerService");
-  if (shop?.services?.wms?.enabled) keys.push("inventory");
-  if (shop?.services?.affiliateService?.enabled) keys.push("affiliate");
-  return keys;
-}
-
-function enabledRowServiceKeys(row: ShopServiceBillingRow): ShopServiceKey[] {
-  return enabledShopServiceKeys(row.shop);
 }
 
 function rowDisplayName(row: ShopServiceBillingRow & { shops?: Shop[] }): string {
@@ -622,11 +609,15 @@ function ShopServiceRow({
   planDefinitions,
   serviceKeys: serviceKeysProp,
   className,
+  nameAccessory,
+  emptyServicesMessageKey = "billing.noEnabledShopServices",
 }: {
   row: ShopServiceBillingRow & { shops?: Shop[] };
   planDefinitions: readonly BillingPlanDefinition[];
   serviceKeys?: readonly ShopServiceKey[];
   className?: string;
+  nameAccessory?: ReactNode;
+  emptyServicesMessageKey?: string;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -636,7 +627,7 @@ function ShopServiceRow({
   const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<readonly CheckoutProvider[] | undefined>(undefined);
   const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<CheckoutProvider | undefined>(undefined);
   const [checkoutIsRenewal, setCheckoutIsRenewal] = useState(false);
-  const serviceKeys = serviceKeysProp ?? enabledRowServiceKeys(row);
+  const serviceKeys = serviceKeysProp ?? SHOP_SERVICE_KEYS;
 
   async function confirmCancelService() {
     if (!cancelTarget) return;
@@ -695,10 +686,11 @@ function ShopServiceRow({
     <>
       <div className={`billing-shop-row${className ? ` ${className}` : ""}`}>
         <div className="billing-shop-name">
-          {rowDisplayName(row)}
+          <span className="billing-shop-name-text">{rowDisplayName(row)}</span>
           {row.shops && row.shops.length > 1 && (
             <span className="billing-shop-count">{row.shops.length}</span>
           )}
+          {nameAccessory}
         </div>
         <div className="billing-shop-services">
           {serviceKeys.length ? serviceKeys.map((key) => {
@@ -752,7 +744,7 @@ function ShopServiceRow({
               </div>
             );
           }) : (
-            <span className="billing-muted">{t("billing.noEnabledShopServices")}</span>
+            <span className="billing-muted">{t(emptyServicesMessageKey)}</span>
           )}
         </div>
       </div>
@@ -795,6 +787,70 @@ function ShopServiceRow({
   );
 }
 
+function BillingShopServiceGroup({
+  group,
+  planDefinitions,
+}: {
+  group: ShopServiceBillingGroup;
+  planDefinitions: readonly BillingPlanDefinition[];
+}) {
+  const { t } = useTranslation();
+  const [childrenVisible, setChildrenVisible] = useState(false);
+  const isCollection = group.shops.length > 1;
+
+  if (!isCollection) {
+    return (
+      <div className="billing-shop-collection">
+        {group.rows.map((row) => (
+          <ShopServiceRow
+            key={row.shop.id}
+            row={row}
+            planDefinitions={planDefinitions}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`billing-shop-collection${childrenVisible ? " billing-shop-collection-open" : ""}`}>
+      {group.customerServiceRow && (
+        <ShopServiceRow
+          row={group.customerServiceRow}
+          planDefinitions={planDefinitions}
+          serviceKeys={["customerService"]}
+          className="billing-shop-collection-header"
+          nameAccessory={(
+            <button
+              type="button"
+              className={`billing-shop-collection-toggle${childrenVisible ? " billing-shop-collection-toggle-open" : ""}`}
+              onClick={() => setChildrenVisible((value) => !value)}
+              aria-expanded={childrenVisible}
+              title={childrenVisible ? t("common.collapseMessage") : t("common.expandMessage")}
+            >
+              <ChevronRightIcon />
+            </button>
+          )}
+        />
+      )}
+      {childrenVisible && (
+        <div className="billing-shop-collection-children">
+          {group.rows.map((row) => (
+            <ShopServiceRow
+              key={row.shop.id}
+              row={row}
+              planDefinitions={planDefinitions}
+              serviceKeys={STANDALONE_SHOP_SERVICE_KEYS}
+              className="billing-shop-collection-child"
+              emptyServicesMessageKey="billing.noStandaloneShopServices"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlow({
   groups,
   planDefinitions,
@@ -809,7 +865,6 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
     .map((group) => group.customerServiceRow)
     .filter((row): row is NonNullable<ShopServiceBillingGroup["customerServiceRow"]> => (
       !!row
-      && !!row.shop.services?.customerService?.enabled
       && (
         !row.billing?.customerService.allowed
         || shouldShowRenewalReminder(row.billing.customerService)
@@ -958,32 +1013,13 @@ export const AccountBillingSection = observer(function AccountBillingSection({
         />
         <div className="billing-shop-list">
           {shopBillingGroups.length
-            ? shopBillingGroups.map((group) => {
-                const isCollection = group.shops.length > 1;
-                return (
-                  <div key={group.key} className="billing-shop-collection">
-                    {isCollection && group.customerServiceRow && (
-                      <ShopServiceRow
-                        row={group.customerServiceRow}
-                        planDefinitions={planDefinitions}
-                        serviceKeys={group.customerServiceRow.shop.services?.customerService?.enabled ? ["customerService"] : []}
-                        className="billing-shop-collection-header"
-                      />
-                    )}
-                    {group.rows.map((row) => (
-                      <ShopServiceRow
-                        key={row.shop.id}
-                        row={row}
-                        planDefinitions={planDefinitions}
-                        serviceKeys={isCollection
-                          ? enabledShopServiceKeys(row.shop).filter((key) => key !== "customerService")
-                          : undefined}
-                        className={isCollection ? "billing-shop-collection-child" : undefined}
-                      />
-                    ))}
-                  </div>
-                );
-              })
+            ? shopBillingGroups.map((group) => (
+                <BillingShopServiceGroup
+                  key={group.key}
+                  group={group}
+                  planDefinitions={planDefinitions}
+                />
+              ))
             : <div className="billing-empty">{t("billing.noShopBilling")}</div>}
         </div>
       </div>

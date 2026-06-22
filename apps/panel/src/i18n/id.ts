@@ -1495,6 +1495,7 @@ export default {
     "selectShopPlaceholder": "Pilih toko",
     "noShopsNeedService": "Semua toko yang diaktifkan sudah memiliki layanan ini.",
     "noEnabledShopServices": "Tidak diperlukan layanan.",
+    "noStandaloneShopServices": "Tidak ada layanan situs mandiri.",
     "planNames": {
       "RIVONCLAW_AI_PLUS": "RivonClaw AI Ditambah",
       "RIVONCLAW_AI_PRO": "RivonClaw AI Pro",

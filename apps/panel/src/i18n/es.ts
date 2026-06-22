@@ -1495,6 +1495,7 @@ export default {
     "selectShopPlaceholder": "Selecciona una tienda",
     "noShopsNeedService": "Todos los comercios habilitados ya cuentan con este servicio.",
     "noEnabledShopServices": "No se necesita servicio.",
+    "noStandaloneShopServices": "Sin servicios de sitio independientes.",
     "planNames": {
       "RIVONCLAW_AI_PLUS": "RivonClaw IA Plus",
       "RIVONCLAW_AI_PRO": "RivonClaw AI Pro",

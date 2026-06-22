@@ -1495,6 +1495,7 @@ export default {
     "selectShopPlaceholder": "เลือกร้านค้า",
     "noShopsNeedService": "ร้านค้าที่เปิดใช้งานทั้งหมดมีบริการนี้อยู่แล้ว",
     "noEnabledShopServices": "ไม่จำเป็นต้องใช้บริการ",
+    "noStandaloneShopServices": "ไม่มีบริการไซต์แยกต่างหาก",
     "planNames": {
       "RIVONCLAW_AI_PLUS": "RivonClaw AI พลัส",
       "RIVONCLAW_AI_PRO": "RivonClaw AI Pro",
