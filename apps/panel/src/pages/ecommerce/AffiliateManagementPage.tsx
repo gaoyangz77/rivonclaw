@@ -185,22 +185,19 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
     }
   }, [entityStore, user]);
 
-  const insightSubjects = useMemo<AffiliateInsightSubject[]>(
-    () => [
-      {
-        key: "user",
-        kind: "user",
-        label: t("ecommerce.affiliateWorkspace.intelligenceUserModel"),
-      },
-      ...shops.map((shop) => ({
-        key: `shop:${shop.id}`,
-        kind: "shop" as const,
-        shopId: shop.id,
-        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-      })),
-    ],
-    [shops, t],
-  );
+  const insightSubjects: AffiliateInsightSubject[] = [
+    {
+      key: "user",
+      kind: "user",
+      label: t("ecommerce.affiliateWorkspace.intelligenceUserModel"),
+    },
+    ...shops.map((shop) => ({
+      key: `shop:${shop.id}`,
+      kind: "shop" as const,
+      shopId: shop.id,
+      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+    })),
+  ];
 
   useEffect(() => {
     if (user) {
@@ -321,18 +318,15 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     }
   }, [entityStore, user]);
 
-  const shopOptions = useMemo(
-    () => [
-      { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-      ...shops
-        .filter((shop) => shop.services?.affiliateService?.enabled)
-        .map((shop) => ({
-          value: shop.id,
-          label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-        })),
-    ],
-    [shops, t],
-  );
+  const shopOptions = [
+    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
+    ...shops
+      .filter((shop) => shop.services?.affiliateService?.enabled)
+      .map((shop) => ({
+        value: shop.id,
+        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+      })),
+  ];
   const proposalFilterOptions = useMemo(
     () => PROPOSAL_FILTERS.map((filter) => ({
       value: filter,
@@ -1634,6 +1628,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter((shop) => shop.services?.affiliateService?.enabled);
+  const affiliateShopIds = affiliateShops.map((shop) => shop.id).join("\u0001");
   const [selectedShopId, setSelectedShopId] = useState("");
   const [selectedTagId, setSelectedTagId] = useState(ALL_CREATOR_TAGS_FILTER);
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
@@ -1654,15 +1649,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     if (!selectedShopId && affiliateShops.length) {
       setSelectedShopId(affiliateShops[0].id);
     }
-  }, [affiliateShops, selectedShopId]);
+  }, [affiliateShopIds, selectedShopId]);
 
-  const shopOptions = useMemo(
-    () => affiliateShops.map((shop) => ({
-      value: shop.id,
-      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-    })),
-    [affiliateShops],
-  );
+  const shopOptions = affiliateShops.map((shop) => ({
+    value: shop.id,
+    label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+  }));
   function shopLabel(shopId: string): string {
     const shop = affiliateShops.find((candidate) => candidate.id === shopId);
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
@@ -2139,18 +2131,15 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     }
   }, [entityStore, user]);
 
-  const shopOptions = useMemo(
-    () => [
-      { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-      ...shops
-        .filter((shop) => shop.services?.affiliateService?.enabled)
-        .map((shop) => ({
-          value: shop.id,
-          label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-        })),
-    ],
-    [shops, t],
-  );
+  const shopOptions = [
+    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
+    ...shops
+      .filter((shop) => shop.services?.affiliateService?.enabled)
+      .map((shop) => ({
+        value: shop.id,
+        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+      })),
+  ];
   const historyFilterOptions = useMemo(
     () => HISTORY_FILTERS.map((filter) => ({
       value: filter,
