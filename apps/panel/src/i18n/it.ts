@@ -56,6 +56,7 @@ export default {
     "customerService": "Servizio clienti",
     "customerServiceConversations": "Conversazioni",
     "customerServiceEscalations": "Escalation",
+    "customerServicePerformance": "Prestazioni",
     "affiliateManagement": "Gestione degli affiliati",
     "affiliateIntelligence": "Intelligence affiliate",
     "affiliateNeedsAttention": "Proposte di azione",
@@ -2324,6 +2325,73 @@ export default {
         "FREEZE": "Bloccato",
         "PENDING": "In revisione",
         "PLATFORM_DEACTIVATED": "Disattivato dalla piattaforma"
+      }
+    },
+    "customerServicePerformance": {
+      "title": "Prestazioni del servizio clienti",
+      "subtitle": "Monitora velocità di risposta, pressione delle escalation, soddisfazione e carico del servizio clienti.",
+      "allShops": "Tutti i negozi",
+      "shopFilter": "Negozio",
+      "timeRange": "Intervallo",
+      "loadFailed": "Impossibile caricare i dati sulle prestazioni",
+      "noData": "Nessun dato sulle prestazioni per questo intervallo.",
+      "downloadCsv": "Scarica CSV",
+      "dailyTable": "Prestazioni giornaliere",
+      "scopeSummary": "Da {{start}} a {{end}} su {{shops}} negozio/i. Sono mostrati tutti i giorni del periodo.",
+      "ranges": {
+        "7d": "7 giorni",
+        "30d": "30 giorni",
+        "90d": "90 giorni"
+      },
+      "metrics": {
+        "active": "Conversazioni attive",
+        "sessionFlow": "Sessioni concluse",
+        "newSessions": "{{value}} nuove sessioni",
+        "endedSessions": "Sessioni concluse",
+        "endedMessages": "{{count}} messaggi alla chiusura",
+        "newConversations": "{{count}} nuove",
+        "escalations": "Escalation",
+        "resolved": "{{value}} risolte",
+        "resolvedWithRate": "{{value}} risolte · tasso {{rate}}",
+        "satisfaction": "Soddisfazione",
+        "ratedSessions": "{{value}} sessioni valutate",
+        "firstResponse": "Prima risposta P50",
+        "firstResponseSamples": "{{value}} conversazioni misurate",
+        "p90": "P90 {{value}}"
+      },
+      "charts": {
+        "volume": "Nuove sessioni vs sessioni concluse",
+        "escalation": "Gestione escalation",
+        "escalationTooltip": "Le escalation sono conversazioni che l'agente non può chiudere da solo e che devono essere gestite dal personale. Questo grafico è un segnale chiave di completamento del servizio manuale: i casi risolti mostrano se il team risponde abbastanza velocemente e riesce a stare al passo.",
+        "satisfaction": "Soddisfazione clienti",
+        "firstResponse": "Velocità della prima risposta"
+      },
+      "series": {
+        "active": "Conversazioni attive",
+        "messages": "Messaggi",
+        "endedSessions": "Sessioni concluse",
+        "endedMessages": "Messaggi di chiusura",
+        "newSessions": "Nuove sessioni",
+        "escalated": "Escalate",
+        "resolved": "Risolte",
+        "satisfaction": "Soddisfazione",
+        "satisfaction7dWeighted": "Media pond. 7 g",
+        "firstResponseP50": "P50",
+        "firstResponseP90": "P90"
+      },
+      "table": {
+        "date": "Data",
+        "active": "Attive",
+        "newSessions": "Nuove",
+        "endedSessions": "Concluse",
+        "endedMessages": "Msg chiusura",
+        "escalated": "Escalate",
+        "resolved": "Risolte",
+        "resolveRate": "Risolte %",
+        "satisfaction": "Soddisfazione",
+        "satisfaction7dWeighted": "Media 7 g",
+        "firstResponse": "Risposta P50",
+        "errors": "Errori/conv."
       }
     },
     "affiliateWorkspace": {

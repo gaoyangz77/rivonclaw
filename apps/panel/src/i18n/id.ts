@@ -56,6 +56,7 @@ export default {
     "customerService": "Layanan Pelanggan",
     "customerServiceConversations": "Percakapan",
     "customerServiceEscalations": "Eskalasi",
+    "customerServicePerformance": "Performa",
     "affiliateManagement": "Manajemen Afiliasi",
     "affiliateIntelligence": "Intelijen Afiliasi",
     "affiliateNeedsAttention": "Proposal tindakan",
@@ -2324,6 +2325,73 @@ export default {
         "FREEZE": "Dibekukan",
         "PENDING": "Menunggu tinjauan",
         "PLATFORM_DEACTIVATED": "Dinonaktifkan platform"
+      }
+    },
+    "customerServicePerformance": {
+      "title": "Performa Layanan Pelanggan",
+      "subtitle": "Pantau kecepatan respons, tekanan eskalasi, kepuasan, dan beban kerja layanan pelanggan.",
+      "allShops": "Semua toko",
+      "shopFilter": "Toko",
+      "timeRange": "Rentang waktu",
+      "loadFailed": "Gagal memuat data performa",
+      "noData": "Tidak ada data performa untuk rentang ini.",
+      "downloadCsv": "Unduh CSV",
+      "dailyTable": "Performa harian",
+      "scopeSummary": "{{start}} hingga {{end}} di {{shops}} toko. Menampilkan semua hari dalam rentang ini.",
+      "ranges": {
+        "7d": "7 hari",
+        "30d": "30 hari",
+        "90d": "90 hari"
+      },
+      "metrics": {
+        "active": "Percakapan aktif",
+        "sessionFlow": "Sesi selesai",
+        "newSessions": "{{value}} sesi baru",
+        "endedSessions": "Sesi selesai",
+        "endedMessages": "{{count}} pesan saat ditutup",
+        "newConversations": "{{count}} baru",
+        "escalations": "Eskalasi",
+        "resolved": "{{value}} selesai",
+        "resolvedWithRate": "{{value}} selesai · rasio {{rate}}",
+        "satisfaction": "Kepuasan",
+        "ratedSessions": "{{value}} sesi dinilai",
+        "firstResponse": "Respons pertama P50",
+        "firstResponseSamples": "{{value}} percakapan terukur",
+        "p90": "P90 {{value}}"
+      },
+      "charts": {
+        "volume": "Sesi baru vs sesi selesai",
+        "escalation": "Penanganan eskalasi",
+        "escalationTooltip": "Eskalasi adalah percakapan yang tidak dapat diselesaikan agen sendiri dan harus ditangani staf. Grafik ini adalah sinyal penting penyelesaian layanan manual: jumlah selesai menunjukkan apakah tim merespons cukup cepat dan mampu mengikuti tekanan eskalasi.",
+        "satisfaction": "Kepuasan pelanggan",
+        "firstResponse": "Kecepatan respons pertama"
+      },
+      "series": {
+        "active": "Percakapan aktif",
+        "messages": "Pesan",
+        "endedSessions": "Sesi selesai",
+        "endedMessages": "Pesan penutupan",
+        "newSessions": "Sesi baru",
+        "escalated": "Dieskalasi",
+        "resolved": "Selesai",
+        "satisfaction": "Kepuasan",
+        "satisfaction7dWeighted": "Rata2 tertimbang 7h",
+        "firstResponseP50": "P50",
+        "firstResponseP90": "P90"
+      },
+      "table": {
+        "date": "Tanggal",
+        "active": "Aktif",
+        "newSessions": "Baru",
+        "endedSessions": "Selesai",
+        "endedMessages": "Pesan tutup",
+        "escalated": "Dieskalasi",
+        "resolved": "Selesai",
+        "resolveRate": "Selesai %",
+        "satisfaction": "Kepuasan",
+        "satisfaction7dWeighted": "Rata2 7h",
+        "firstResponse": "Respons P50",
+        "errors": "Error/perc."
       }
     },
     "affiliateWorkspace": {

@@ -56,6 +56,7 @@ export default {
     "customerService": "Service client",
     "customerServiceConversations": "Conversations",
     "customerServiceEscalations": "Escalades",
+    "customerServicePerformance": "Performance",
     "affiliateManagement": "Gestion des affiliations",
     "affiliateIntelligence": "Intelligence affiliée",
     "affiliateNeedsAttention": "Propositions d'action",
@@ -2324,6 +2325,73 @@ export default {
         "FREEZE": "Gelé",
         "PENDING": "En attente d'examen",
         "PLATFORM_DEACTIVATED": "Désactivé par la plateforme"
+      }
+    },
+    "customerServicePerformance": {
+      "title": "Performance du service client",
+      "subtitle": "Suivez la vitesse de réponse, la pression des escalades, la satisfaction et la charge du service client.",
+      "allShops": "Toutes les boutiques",
+      "shopFilter": "Boutique",
+      "timeRange": "Période",
+      "loadFailed": "Échec du chargement des données de performance",
+      "noData": "Aucune donnée de performance pour cette période.",
+      "downloadCsv": "Télécharger CSV",
+      "dailyTable": "Performance quotidienne",
+      "scopeSummary": "{{start}} à {{end}} sur {{shops}} boutique(s). Tous les jours de cette période sont affichés.",
+      "ranges": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours"
+      },
+      "metrics": {
+        "active": "Conversations actives",
+        "sessionFlow": "Sessions terminées",
+        "newSessions": "{{value}} nouvelles sessions",
+        "endedSessions": "Sessions terminées",
+        "endedMessages": "{{count}} messages à la clôture",
+        "newConversations": "{{count}} nouvelles",
+        "escalations": "Escalades",
+        "resolved": "{{value}} résolues",
+        "resolvedWithRate": "{{value}} résolues · taux {{rate}}",
+        "satisfaction": "Satisfaction",
+        "ratedSessions": "{{value}} sessions notées",
+        "firstResponse": "Première réponse P50",
+        "firstResponseSamples": "{{value}} conversations mesurées",
+        "p90": "P90 {{value}}"
+      },
+      "charts": {
+        "volume": "Nouvelles sessions vs sessions terminées",
+        "escalation": "Traitement des escalades",
+        "escalationTooltip": "Les escalades sont des conversations que l'agent ne peut pas terminer seul et qui doivent être prises en charge par l'équipe. Ce graphique est un signal clé de finalisation du service manuel : les cas résolus montrent si l'équipe répond assez vite et suit le rythme des escalades.",
+        "satisfaction": "Satisfaction client",
+        "firstResponse": "Vitesse de première réponse"
+      },
+      "series": {
+        "active": "Conversations actives",
+        "messages": "Messages",
+        "endedSessions": "Sessions terminées",
+        "endedMessages": "Messages de clôture",
+        "newSessions": "Nouvelles sessions",
+        "escalated": "Escaladées",
+        "resolved": "Résolues",
+        "satisfaction": "Satisfaction",
+        "satisfaction7dWeighted": "Moy. pondérée 7 j",
+        "firstResponseP50": "P50",
+        "firstResponseP90": "P90"
+      },
+      "table": {
+        "date": "Date",
+        "active": "Actives",
+        "newSessions": "Nouvelles",
+        "endedSessions": "Terminées",
+        "endedMessages": "Msgs clôture",
+        "escalated": "Escaladées",
+        "resolved": "Résolues",
+        "resolveRate": "Taux rés.",
+        "satisfaction": "Satisfaction",
+        "satisfaction7dWeighted": "Moy. 7 j",
+        "firstResponse": "Réponse P50",
+        "errors": "Erreurs/conv."
       }
     },
     "affiliateWorkspace": {

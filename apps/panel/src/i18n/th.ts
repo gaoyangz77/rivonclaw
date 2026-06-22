@@ -56,6 +56,7 @@ export default {
     "customerService": "บริการลูกค้า",
     "customerServiceConversations": "บทสนทนา",
     "customerServiceEscalations": "การยกระดับ",
+    "customerServicePerformance": "ประสิทธิภาพ",
     "affiliateManagement": "การจัดการพันธมิตร",
     "affiliateIntelligence": "Affiliate Intelligence",
     "affiliateNeedsAttention": "ข้อเสนอการดำเนินการ",
@@ -2324,6 +2325,73 @@ export default {
         "FREEZE": "ถูกระงับ",
         "PENDING": "รอตรวจสอบ",
         "PLATFORM_DEACTIVATED": "แพลตฟอร์มปิดใช้งาน"
+      }
+    },
+    "customerServicePerformance": {
+      "title": "ประสิทธิภาพบริการลูกค้า",
+      "subtitle": "ติดตามความเร็วในการตอบกลับ แรงกดดันจากการยกระดับ ความพึงพอใจ และปริมาณงานบริการลูกค้า",
+      "allShops": "ร้านค้าทั้งหมด",
+      "shopFilter": "ร้านค้า",
+      "timeRange": "ช่วงเวลา",
+      "loadFailed": "โหลดข้อมูลประสิทธิภาพไม่สำเร็จ",
+      "noData": "ไม่มีข้อมูลประสิทธิภาพในช่วงเวลานี้",
+      "downloadCsv": "ดาวน์โหลด CSV",
+      "dailyTable": "ประสิทธิภาพรายวัน",
+      "scopeSummary": "{{start}} ถึง {{end}} ครอบคลุม {{shops}} ร้าน แสดงทุกวันในช่วงเวลานี้",
+      "ranges": {
+        "7d": "7 วัน",
+        "30d": "30 วัน",
+        "90d": "90 วัน"
+      },
+      "metrics": {
+        "active": "บทสนทนาที่ใช้งานอยู่",
+        "sessionFlow": "เซสชันที่สิ้นสุด",
+        "newSessions": "เซสชันใหม่ {{value}} รายการ",
+        "endedSessions": "เซสชันที่สิ้นสุด",
+        "endedMessages": "{{count}} ข้อความเมื่อปิดงาน",
+        "newConversations": "ใหม่ {{count}} รายการ",
+        "escalations": "การยกระดับ",
+        "resolved": "แก้ไขแล้ว {{value}} รายการ",
+        "resolvedWithRate": "แก้ไขแล้ว {{value}} รายการ · อัตรา {{rate}}",
+        "satisfaction": "ความพึงพอใจ",
+        "ratedSessions": "เซสชันที่ให้คะแนน {{value}} รายการ",
+        "firstResponse": "การตอบกลับแรก P50",
+        "firstResponseSamples": "บทสนทนาที่วัดแล้ว {{value}} รายการ",
+        "p90": "P90 {{value}}"
+      },
+      "charts": {
+        "volume": "เซสชันใหม่เทียบกับเซสชันที่สิ้นสุด",
+        "escalation": "การจัดการการยกระดับ",
+        "escalationTooltip": "การยกระดับคือบทสนทนาที่ Agent ไม่สามารถปิดงานได้เองและต้องให้เจ้าหน้าที่ดูแล กราฟนี้เป็นสัญญาณสำคัญของการปิดงานบริการโดยคน: จำนวนที่แก้ไขแล้วช่วยบอกว่าทีมตอบสนองได้เร็วพอและรับมือกับเคสที่ยกระดับได้ทันหรือไม่",
+        "satisfaction": "ความพึงพอใจของลูกค้า",
+        "firstResponse": "ความเร็วในการตอบกลับแรก"
+      },
+      "series": {
+        "active": "บทสนทนาที่ใช้งานอยู่",
+        "messages": "ข้อความ",
+        "endedSessions": "เซสชันที่สิ้นสุด",
+        "endedMessages": "ข้อความปิดงาน",
+        "newSessions": "เซสชันใหม่",
+        "escalated": "ยกระดับแล้ว",
+        "resolved": "แก้ไขแล้ว",
+        "satisfaction": "ความพึงพอใจ",
+        "satisfaction7dWeighted": "เฉลี่ยถ่วงน้ำหนัก 7 วัน",
+        "firstResponseP50": "P50",
+        "firstResponseP90": "P90"
+      },
+      "table": {
+        "date": "วันที่",
+        "active": "ใช้งานอยู่",
+        "newSessions": "ใหม่",
+        "endedSessions": "สิ้นสุด",
+        "endedMessages": "ข้อความปิดงาน",
+        "escalated": "ยกระดับแล้ว",
+        "resolved": "แก้ไขแล้ว",
+        "resolveRate": "อัตราแก้ไข",
+        "satisfaction": "ความพึงพอใจ",
+        "satisfaction7dWeighted": "เฉลี่ย 7 วัน",
+        "firstResponse": "ตอบกลับ P50",
+        "errors": "ข้อผิดพลาด/บทสนทนา"
       }
     },
     "affiliateWorkspace": {

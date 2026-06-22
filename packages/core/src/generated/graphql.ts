@@ -179,14 +179,14 @@ export interface ActionProposalPolicySnapshot {
 }
 
 export interface ActionProposalSampleReviewIntent {
-  decision?: Maybe<AffiliateSampleReviewDecision>;
+  decision: AffiliateSampleReviewDecision;
   platformApplicationId: Scalars['String']['output'];
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
   sampleApplicationRecordId: Scalars['ID']['output'];
 }
 
 export interface ActionProposalSampleReviewIntentInput {
-  decision?: InputMaybe<AffiliateSampleReviewDecision>;
+  decision: AffiliateSampleReviewDecision;
   platformApplicationId: Scalars['String']['input'];
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
   sampleApplicationRecordId: Scalars['ID']['input'];
@@ -1715,6 +1715,7 @@ export const BillableProduct = {
   EcomAffiliate: 'ECOM_AFFILIATE',
   EcomCustomerService: 'ECOM_CUSTOMER_SERVICE',
   EcomInventory: 'ECOM_INVENTORY',
+  EcomOnboardingTrialWindow: 'ECOM_ONBOARDING_TRIAL_WINDOW',
   LlmUsage: 'LLM_USAGE'
 } as const;
 
@@ -1756,6 +1757,7 @@ export interface BillingPlanDefinition {
 
 export const BillingPlanId = {
   EcomCustomerServiceUnlimitedMonthly: 'ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY',
+  EcomOnboardingTrialWindow: 'ECOM_ONBOARDING_TRIAL_WINDOW',
   RivonclawAiMax: 'RIVONCLAW_AI_MAX',
   RivonclawAiPlus: 'RIVONCLAW_AI_PLUS',
   RivonclawAiPro: 'RIVONCLAW_AI_PRO'
@@ -2765,28 +2767,161 @@ export interface CustomerServicePendingConversationsResult {
   partial?: Maybe<Scalars['Boolean']['output']>;
 }
 
-/** Customer service performance metrics */
-export interface CustomerServicePerformance {
-  /** Average first-response time in minutes across chat support sessions in the window, as a string (e.g. '3.4'). */
-  avgFirstResponseTimeMins?: Maybe<Scalars['String']['output']>;
-  /** Conversion rate as a percentage string (e.g. '66.67') */
-  conversionRate?: Maybe<Scalars['String']['output']>;
-  /** CS-guided GMV as a decimal string (e.g. '36500') */
-  csGuidedGmv?: Maybe<Scalars['String']['output']>;
-  /** Currency code for GMV (e.g. 'USD') */
-  currency?: Maybe<Scalars['String']['output']>;
-  /** Shop-local date for this CS performance row (YYYY-MM-DD) */
-  dateKey?: Maybe<Scalars['String']['output']>;
-  /** Exclusive end of the reported window (YYYY-MM-DD), injected from request params */
-  endDate?: Maybe<Scalars['String']['output']>;
-  /** Percentage of chat support sessions in the window whose first response happened within 24 hours, as a percentage string (e.g. '93.4'). Sessions started during vacation mode are excluded. Automated replies (FAQ cards) count as a response. */
-  firstResponseRatePercent?: Maybe<Scalars['String']['output']>;
-  /** Customer satisfaction as a percentage string (e.g. '95.2') */
-  satisfactionPercentage?: Maybe<Scalars['String']['output']>;
-  /** Start of the reported window (YYYY-MM-DD), injected from request params */
-  startDate?: Maybe<Scalars['String']['output']>;
-  /** Number of support sessions in the window */
+/** One shop-local date of CS performance metrics */
+export interface CustomerServicePerformanceDailyRow {
+  /** Conversations with buyer inbound activity */
+  activeConversations?: Maybe<Scalars['Int']['output']>;
+  /** Average first-response time in seconds */
+  avgFirstResponseSecs?: Maybe<Scalars['Float']['output']>;
+  /** Report date (YYYY-MM-DD) */
+  dateKey: Scalars['String']['output'];
+  /** Aborted or superseded dispatches */
+  dispatchAborted?: Maybe<Scalars['Int']['output']>;
+  /** Accepted dispatches */
+  dispatchAccepted?: Maybe<Scalars['Int']['output']>;
+  /** Dispatch attempts */
+  dispatchAttempts?: Maybe<Scalars['Int']['output']>;
+  /** Failed dispatches */
+  dispatchFailed?: Maybe<Scalars['Int']['output']>;
+  /** Failed dispatches / dispatch attempts */
+  dispatchFailureRate?: Maybe<Scalars['Float']['output']>;
+  /** Skipped dispatches */
+  dispatchSkipped?: Maybe<Scalars['Int']['output']>;
+  /** Exclusive end of the date window (YYYY-MM-DD) */
+  endDate: Scalars['String']['output'];
+  /** Messages present when successful end-session operations completed */
+  endedMessageCount?: Maybe<Scalars['Int']['output']>;
+  /** Customer-service error events */
+  errorCount?: Maybe<Scalars['Int']['output']>;
+  /** Error events / active conversations */
+  errorsPerConversation?: Maybe<Scalars['Float']['output']>;
+  /** Active conversations that escalated */
+  escalateConversations?: Maybe<Scalars['Int']['output']>;
+  /** Escalated active conversations / active conversations */
+  escalationRatio?: Maybe<Scalars['Float']['output']>;
+  /** Resolved escalations / escalated conversations */
+  escalationResolveRate?: Maybe<Scalars['Float']['output']>;
+  /** Escalations resolved by human operators */
+  escalationResolved?: Maybe<Scalars['Int']['output']>;
+  /** Number of conversations with a first-response measurement */
+  firstResponseCount?: Maybe<Scalars['Int']['output']>;
+  /** Nearest-rank P50 first-response time in seconds */
+  firstResponseP50Secs?: Maybe<Scalars['Float']['output']>;
+  /** Nearest-rank P90 first-response time in seconds */
+  firstResponseP90Secs?: Maybe<Scalars['Float']['output']>;
+  /** Inbound buyer messages */
+  inboundMessages?: Maybe<Scalars['Int']['output']>;
+  /** Input tokens used by CS runs */
+  inputTokens?: Maybe<Scalars['Int']['output']>;
+  /** Conversations first seen in the period */
+  newConversations?: Maybe<Scalars['Int']['output']>;
+  /** Terminal platform support sessions grouped by begin_time date */
+  newSessionCount?: Maybe<Scalars['Int']['output']>;
+  /** Outbound seller or AI messages */
+  outboundMessages?: Maybe<Scalars['Int']['output']>;
+  /** Output tokens used by CS runs */
+  outputTokens?: Maybe<Scalars['Int']['output']>;
+  /** Support sessions with satisfaction ratings */
+  ratedSessions?: Maybe<Scalars['Int']['output']>;
+  /** Conversations reopened after prior inactivity */
+  reopenedConversations?: Maybe<Scalars['Int']['output']>;
+  /** Satisfied rated sessions / rated sessions */
+  satisfactionRate?: Maybe<Scalars['Float']['output']>;
+  /** Rated sessions considered satisfied */
+  satisfiedSessions?: Maybe<Scalars['Int']['output']>;
+  /** Start of the date window (YYYY-MM-DD) */
+  startDate: Scalars['String']['output'];
+  /** Terminal support sessions in the platform session fact */
   supportSessionCount?: Maybe<Scalars['Int']['output']>;
+  /** Input + output tokens / active conversations */
+  tokensPerConversation?: Maybe<Scalars['Float']['output']>;
+  /** Input + output tokens used by CS runs */
+  totalTokens?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Calculated CS performance metrics for a report scope */
+export interface CustomerServicePerformanceMetrics {
+  /** Conversations with buyer inbound activity */
+  activeConversations?: Maybe<Scalars['Int']['output']>;
+  /** Average first-response time in seconds */
+  avgFirstResponseSecs?: Maybe<Scalars['Float']['output']>;
+  /** Aborted or superseded dispatches */
+  dispatchAborted?: Maybe<Scalars['Int']['output']>;
+  /** Accepted dispatches */
+  dispatchAccepted?: Maybe<Scalars['Int']['output']>;
+  /** Dispatch attempts */
+  dispatchAttempts?: Maybe<Scalars['Int']['output']>;
+  /** Failed dispatches */
+  dispatchFailed?: Maybe<Scalars['Int']['output']>;
+  /** Failed dispatches / dispatch attempts */
+  dispatchFailureRate?: Maybe<Scalars['Float']['output']>;
+  /** Skipped dispatches */
+  dispatchSkipped?: Maybe<Scalars['Int']['output']>;
+  /** Messages present when successful end-session operations completed */
+  endedMessageCount?: Maybe<Scalars['Int']['output']>;
+  /** Customer-service error events */
+  errorCount?: Maybe<Scalars['Int']['output']>;
+  /** Error events / active conversations */
+  errorsPerConversation?: Maybe<Scalars['Float']['output']>;
+  /** Active conversations that escalated */
+  escalateConversations?: Maybe<Scalars['Int']['output']>;
+  /** Escalated active conversations / active conversations */
+  escalationRatio?: Maybe<Scalars['Float']['output']>;
+  /** Resolved escalations / escalated conversations */
+  escalationResolveRate?: Maybe<Scalars['Float']['output']>;
+  /** Escalations resolved by human operators */
+  escalationResolved?: Maybe<Scalars['Int']['output']>;
+  /** Number of conversations with a first-response measurement */
+  firstResponseCount?: Maybe<Scalars['Int']['output']>;
+  /** Nearest-rank P50 first-response time in seconds */
+  firstResponseP50Secs?: Maybe<Scalars['Float']['output']>;
+  /** Nearest-rank P90 first-response time in seconds */
+  firstResponseP90Secs?: Maybe<Scalars['Float']['output']>;
+  /** Inbound buyer messages */
+  inboundMessages?: Maybe<Scalars['Int']['output']>;
+  /** Input tokens used by CS runs */
+  inputTokens?: Maybe<Scalars['Int']['output']>;
+  /** Conversations first seen in the period */
+  newConversations?: Maybe<Scalars['Int']['output']>;
+  /** Terminal platform support sessions grouped by begin_time date */
+  newSessionCount?: Maybe<Scalars['Int']['output']>;
+  /** Outbound seller or AI messages */
+  outboundMessages?: Maybe<Scalars['Int']['output']>;
+  /** Output tokens used by CS runs */
+  outputTokens?: Maybe<Scalars['Int']['output']>;
+  /** Support sessions with satisfaction ratings */
+  ratedSessions?: Maybe<Scalars['Int']['output']>;
+  /** Conversations reopened after prior inactivity */
+  reopenedConversations?: Maybe<Scalars['Int']['output']>;
+  /** Satisfied rated sessions / rated sessions */
+  satisfactionRate?: Maybe<Scalars['Float']['output']>;
+  /** Rated sessions considered satisfied */
+  satisfiedSessions?: Maybe<Scalars['Int']['output']>;
+  /** Terminal support sessions in the platform session fact */
+  supportSessionCount?: Maybe<Scalars['Int']['output']>;
+  /** Input + output tokens / active conversations */
+  tokensPerConversation?: Maybe<Scalars['Float']['output']>;
+  /** Input + output tokens used by CS runs */
+  totalTokens?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Comprehensive customer-service performance report */
+export interface CustomerServicePerformanceReport {
+  byDate: Array<CustomerServicePerformanceDailyRow>;
+  scope: CustomerServicePerformanceScope;
+  summary: CustomerServicePerformanceMetrics;
+}
+
+/** Scope and date range used for a CS performance report */
+export interface CustomerServicePerformanceScope {
+  /** End date exclusive (YYYY-MM-DD) */
+  endDate: Scalars['String']['output'];
+  /** Number of shops included in the report */
+  shopCount?: Maybe<Scalars['Int']['output']>;
+  /** Shop ID when the report is scoped to one shop */
+  shopId?: Maybe<Scalars['String']['output']>;
+  /** Start date inclusive (YYYY-MM-DD) */
+  startDate: Scalars['String']['output'];
 }
 
 /** Send message result */
@@ -4470,6 +4605,8 @@ export interface Mutation {
   applyCreatorTag: CreatorUserRelation;
   /** Assign a manual subscription for testing or operator-driven activation. */
   assignManualBillingSubscription: BillingSubscription;
+  /** Admin-only: assign or adjust the account-level onboarding trial window. This marker does not directly grant entitlements; newly onboarded shops receive shop/seller trials with the remaining window. */
+  assignOnboardingTrialWindow: BillingSubscription;
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   /** Complete TikTok Ads OAuth from the public callback using the one-time auth_code and CSRF state. */
@@ -4680,6 +4817,12 @@ export interface MutationAssignManualBillingSubscriptionArgs {
   planId: BillingPlanId;
   scopeId: Scalars['String']['input'];
   scopeType: BillingScopeType;
+}
+
+
+export interface MutationAssignOnboardingTrialWindowArgs {
+  ownerUserId: Scalars['String']['input'];
+  validUntil: Scalars['DateTimeISO']['input'];
 }
 
 
@@ -5559,8 +5702,8 @@ export interface Query {
   csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
-  /** Get customer service performance metrics from the warehouse as one row per shop-local date. */
-  ecommerceGetCSPerformance: Array<CustomerServicePerformance>;
+  /** Get comprehensive customer service performance metrics from the warehouse. */
+  ecommerceGetCSPerformance: CustomerServicePerformanceReport;
   /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get a bounded customer-service conversation delta from a local OpenClaw-session anchor through the current inbound message. */
@@ -5875,7 +6018,7 @@ export interface QueryEcommerceGetAftersaleEligibilityArgs {
 
 export interface QueryEcommerceGetCsPerformanceArgs {
   endTime?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['String']['input'];
+  shopId?: InputMaybe<Scalars['String']['input']>;
   startTime?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -6466,7 +6609,7 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
   collaborationRecord: AffiliateCollaborationRecord;
 }
 
-/** One backend-supported TikTok affiliate platform write action. Populate exactly one intent field matching type: SEND_MESSAGE -> messageIntent or the typed messageText shortcut, REVIEW_SAMPLE_APPLICATION -> sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
+/** One backend-supported TikTok affiliate platform write action. Populate required fields matching type: SEND_MESSAGE -> messageIntent or the typed messageText shortcut, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
@@ -6477,9 +6620,17 @@ export interface ResolveAffiliateWorkItemActionInput {
   messageText?: InputMaybe<Scalars['String']['input']>;
   /** Optional SEND_MESSAGE shortcut companion. Defaults to TEXT when messageText or messageIntent.text is present. */
   messageType?: InputMaybe<AffiliateOutboundMessageType>;
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with sampleApplicationRecordId and sampleReviewDecision when sampleReviewIntent is omitted. */
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Required only when type is REVIEW_SAMPLE_APPLICATION. sampleApplicationRecordId, platformApplicationId, decision, and rejectReason belong inside this object, never at the action top level. */
+  /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
+  rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with platformApplicationId and sampleReviewDecision when sampleReviewIntent is omitted. */
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
+  sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
+  /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   /** Required only when type is CREATE_TARGET_COLLABORATION. Do not populate this for SEND_MESSAGE or REVIEW_SAMPLE_APPLICATION. */
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
