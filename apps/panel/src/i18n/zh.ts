@@ -1550,6 +1550,7 @@ export default {
     selectShopPlaceholder: "请选择店铺",
     noShopsNeedService: "所有已启用的店铺都已开通此服务。",
     noEnabledShopServices: "暂无需要订阅的店铺服务。",
+    noStandaloneShopServices: "无独立站点服务。",
     planNames: {
       RIVONCLAW_AI_PLUS: "RivonClaw AI Plus",
       RIVONCLAW_AI_PRO: "RivonClaw AI Pro",

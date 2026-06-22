@@ -112,4 +112,34 @@ describe("shop billing groups", () => {
     expect(groups[0].rows[1].billing?.inventory.allowed).toBe(false);
     expect(groups[0].rows[1].billing?.affiliate.allowed).toBe(true);
   });
+
+  it("builds billing rows without depending on shop service enabled flags", () => {
+    const groups = buildShopServiceBillingGroups(
+      [
+        shop({ id: "shop-a", collectionKey: "seller:shared" }),
+        shop({ id: "shop-b", collectionKey: "seller:shared" }),
+      ],
+      [
+        billing({
+          shopId: "shop-a",
+          csAllowed: false,
+          inventoryAllowed: false,
+          affiliateAllowed: false,
+        }),
+        billing({
+          shopId: "shop-b",
+          csAllowed: true,
+          inventoryAllowed: true,
+          affiliateAllowed: true,
+        }),
+      ],
+    );
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].customerServiceRow?.shop.id).toBe("shop-a");
+    expect(groups[0].rows).toHaveLength(2);
+    expect(groups[0].rows[1].billing?.customerService.allowed).toBe(true);
+    expect(groups[0].rows[1].billing?.inventory.allowed).toBe(true);
+    expect(groups[0].rows[1].billing?.affiliate.allowed).toBe(true);
+  });
 });

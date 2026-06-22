@@ -30,12 +30,12 @@ describe("shop collection grouping", () => {
 
   it("builds compact display metadata for grouped shops", () => {
     const shops = [
-      { id: "shop-a", alias: "Seller Alias", shopName: "A", region: "US" },
-      { id: "shop-b", shopName: "B", region: "GB" },
-      { id: "shop-c", shopName: "C", region: "US" },
+      { id: "shop-a", alias: "Ireland", shopName: "Windboss BenessereIE", region: "IE" },
+      { id: "shop-b", alias: "France", shopName: "Windboss BenessereFR", region: "FR" },
+      { id: "shop-c", alias: "Italy", shopName: "Windboss Benessere", region: "IT" },
     ];
 
-    expect(shopCollectionDisplayName(shops)).toBe("Seller Alias + 2");
-    expect(shopCollectionRegions(shops)).toEqual(["US", "GB"]);
+    expect(shopCollectionDisplayName(shops)).toBe("Windboss Benessere + 2");
+    expect(shopCollectionRegions(shops)).toEqual(["IE", "FR", "IT"]);
   });
 });

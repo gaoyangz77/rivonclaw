@@ -24,10 +24,7 @@ export function buildShopServiceBillingGroups(
       shop,
       billing: billingByShopId.get(shop.id) ?? null,
     }));
-    const customerServiceRow =
-      rows.find((row) => row.shop.services?.customerService?.enabled) ??
-      rows[0] ??
-      null;
+    const customerServiceRow = rows[0] ?? null;
 
     return {
       key: group.key,

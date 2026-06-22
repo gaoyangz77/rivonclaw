@@ -28,10 +28,14 @@ export function groupShopsByCollection<TShop extends ShopCollectionLike>(
 }
 
 export function shopCollectionDisplayName(shops: readonly ShopCollectionLike[]): string {
-  const first = shops[0];
-  if (!first) return "";
-  const firstName = first.alias || first.shopName || first.id;
-  return shops.length === 1 ? firstName : `${firstName} + ${shops.length - 1}`;
+  const shopNames = shops
+    .map((shop) => shop.shopName?.trim())
+    .filter((name): name is string => !!name)
+    .sort((a, b) => a.length - b.length || a.localeCompare(b, undefined, { numeric: true }));
+  const displayName = shopNames[0];
+  const fallback = shops[0]?.alias || shops[0]?.id || "";
+  const collectionName = displayName || fallback;
+  return shops.length === 1 ? collectionName : `${collectionName} + ${shops.length - 1}`;
 }
 
 export function shopCollectionRegions(shops: readonly ShopCollectionLike[]): string[] {
