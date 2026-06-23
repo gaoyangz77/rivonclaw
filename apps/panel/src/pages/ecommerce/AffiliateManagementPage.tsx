@@ -1465,6 +1465,7 @@ function dashboardItemSearchText(
     creatorProfile?.creatorImId,
     item.proposalId,
     proposal?.id,
+    proposal?.threadId,
     proposal?.operatorSummary,
     item.collaborationRecordId,
     collaboration?.id,
@@ -1514,6 +1515,7 @@ function actionProposalSearchText(
     proposal.shopId,
     shopLabel(proposal.shopId),
     proposal.creatorId,
+    proposal.threadId,
     proposal.operatorSummary,
     proposal.type,
     proposal.status,
@@ -3304,6 +3306,9 @@ function ActionProposalCard({
             <div className="affiliate-work-item-meta">
               <span>{shopLabel}</span>
               <span>{formatProposalTime(proposal.updatedAt)}</span>
+              {proposal.threadId ? (
+                <span>Thread {shortenMiddle(proposal.threadId, 6, 4)}</span>
+              ) : null}
               <DebugIdCopy value={proposal.id} />
             </div>
           </div>

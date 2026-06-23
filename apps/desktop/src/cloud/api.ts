@@ -123,7 +123,8 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
   if (!input) return false;
   return (
     typeof input.decision === "string" &&
-    (hasNonEmptyString(input.collaborationRecordId) ||
+    (hasNonEmptyString(input.threadId) ||
+      hasNonEmptyString(input.collaborationRecordId) ||
       hasNonEmptyString(input.shopId) ||
       input.action != null ||
       Array.isArray(input.actions))

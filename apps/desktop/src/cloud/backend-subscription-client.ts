@@ -276,6 +276,7 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       type
       source
       workSignal
+      threadId
       collaborationRecordId
       processingStatus
       requiredAction
@@ -313,6 +314,8 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         id
         shopId
         platformShopId
+        subjectType
+        threadId
         collaborationRecordId
         workKind
         workBundleKind
@@ -323,6 +326,36 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         requiredAction
         processReasons
         versionAt
+        thread {
+          id
+          userId
+          shopId
+          platform
+          creatorId
+          creatorOpenId
+          creatorImId
+          platformConversationId
+          lastMessageId
+          lastMessageIndex
+          lastMessageAt
+          lastInboundAt
+          lastOutboundAt
+          unreadCount
+          processingStatus
+          requiredAction
+          processReasons
+          lastSignalAt
+          workHandledUntil
+          nextSellerActionAt
+          stateUpdatedAt
+          activeCollaborationRecordIds
+          focusCollaborationRecordId
+          ambiguousCollaborationRecordIds
+          startedAt
+          archivedAt
+          createdAt
+          updatedAt
+        }
         collaboration {
           id
           userId
@@ -421,6 +454,47 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             productIds
             status
           }
+          activeCollaborations {
+            id
+            creatorId
+            creatorOpenId
+            productId
+            sampleApplicationRecordId
+            affiliateCollaborationId
+            collaborationType
+            platformCollaborationId
+            platformConversationId
+            lifecycleStage
+            processingStatus
+            requiredAction
+            processReasons
+            lastSignalAt
+            workHandledUntil
+            updatedAt
+          }
+          focusCollaboration {
+            id
+            creatorId
+            productId
+            platformConversationId
+            lifecycleStage
+            processingStatus
+            updatedAt
+          }
+          ambiguousCollaborationCandidates {
+            id
+            creatorId
+            creatorOpenId
+            productId
+            sampleApplicationRecordId
+            affiliateCollaborationId
+            collaborationType
+            platformCollaborationId
+            platformConversationId
+            lifecycleStage
+            processingStatus
+            updatedAt
+          }
           productContext {
             productId
             title
@@ -482,6 +556,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             status
             operatorSummary
             creatorId
+            threadId
             collaborationRecordId
             decision {
               note
@@ -509,6 +584,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             operatorSummary
           }
           creatorId
+          threadId
           collaborationRecordId
           sampleReviewIntent {
             sampleApplicationRecordId

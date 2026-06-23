@@ -271,15 +271,15 @@ export class AffiliateSession {
     let generation: number | undefined;
     if (
       isCreatorReplyWorkItem(workItem) &&
-      workItem.collaboration.platformConversationId &&
-      workItem.collaboration.lastCreatorMessageId
+      workItemConversationId(workItem) &&
+      workItemCurrentMessageId(workItem)
     ) {
       generation = this.beginConversationTakeover();
       conversationDelta = await this.buildCreatorConversationWorkPackage({
-        conversationId: workItem.collaboration.platformConversationId,
-        currentMessageId: workItem.collaboration.lastCreatorMessageId,
-        creatorImUserId: workItem.collaboration.creatorImId ?? undefined,
-        eventTime: workItem.collaboration.lastCreatorMessageAt ?? undefined,
+        conversationId: workItemConversationId(workItem)!,
+        currentMessageId: workItemCurrentMessageId(workItem)!,
+        creatorImUserId: workItem.collaboration?.creatorImId ?? workItemThread(workItem)?.creatorImId ?? undefined,
+        eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItemThread(workItem)?.lastMessageAt ?? undefined,
       });
       if (generation !== this.dispatchGeneration) return { runId: undefined };
     }
@@ -343,8 +343,10 @@ export class AffiliateSession {
       {
         input: {
           shopId: workItem.shopId,
-          collaborationRecordId: workItem.collaborationRecordId,
-          handledSignalAt: workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? null,
+          threadId: workItem.threadId,
+          collaborationRecordId: workItem.collaborationRecordId ?? undefined,
+          handledSignalAt:
+            workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
           decision: "REQUEST_ACTION",
           operatorSummary: defaultDecision.operatorSummary,
           action,
@@ -378,8 +380,10 @@ export class AffiliateSession {
         {
           input: {
             shopId: workItem.shopId,
-            collaborationRecordId: workItem.collaborationRecordId,
-            handledSignalAt: workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? null,
+            threadId: workItem.threadId,
+            collaborationRecordId: workItem.collaborationRecordId ?? undefined,
+            handledSignalAt:
+              workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
             decision: "NEEDS_STAFF_REVIEW",
             operatorSummary: renderSampleReviewNeedsStaffReviewSummary({
               workItem,
@@ -410,7 +414,7 @@ export class AffiliateSession {
     if (options.errored) {
       log.warn(
         `Affiliate agent run ended with gateway error; leaving work item unacked for retry: ` +
-        `runId=${runId} collaboration=${workItem.collaborationRecordId}`,
+        `runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
       );
       return;
     }
@@ -512,7 +516,7 @@ export class AffiliateSession {
       if (await this.isWorkItemAlreadyHandled(workItem)) {
         log.info(
           `Affiliate work item already resolved by agent tool call; skipping fallback completion: ` +
-          `runId=${runId} collaboration=${workItem.collaborationRecordId}`,
+          `runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
         );
         return;
       }
@@ -522,8 +526,10 @@ export class AffiliateSession {
         {
           input: {
             shopId: workItem.shopId,
-            collaborationRecordId: workItem.collaborationRecordId,
-            handledSignalAt: workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? null,
+            threadId: workItem.threadId,
+            collaborationRecordId: workItem.collaborationRecordId ?? undefined,
+            handledSignalAt:
+              workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
             decision: "FAILED_OR_INCOMPLETE",
             operatorSummary: `Agent run ${runId} completed without a structured affiliate_resolve_work_item decision.`,
           },
@@ -532,7 +538,7 @@ export class AffiliateSession {
       const payload = result.resolveAffiliateWorkItem;
       log.info(
         `Affiliate work item completion callback: runId=${runId} ` +
-        `collaboration=${workItem.collaborationRecordId} decision=${payload.decision} ` +
+        `subject=${workItemSubjectLabel(workItem)} decision=${payload.decision} ` +
         `stale=${payload.stale} status=${payload.collaborationRecord?.processingStatus ?? ""}`,
       );
     } catch (err) {
@@ -541,7 +547,9 @@ export class AffiliateSession {
   }
 
   private async isWorkItemAlreadyHandled(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
-    const boundary = parseOptionalDate(workItem.versionAt ?? workItem.collaboration.lastSignalAt);
+    const boundary = parseOptionalDate(
+      workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt,
+    );
     if (!boundary) return false;
 
     const authSession = getAuthSession();
@@ -552,13 +560,16 @@ export class AffiliateSession {
       {
         input: {
           shopId: this.affiliateContext.shopId,
-          collaborationRecordId: workItem.collaborationRecordId,
+          threadId: workItem.threadId,
+          collaborationRecordId: workItem.collaborationRecordId ?? undefined,
           limit: 1,
         },
       },
     );
     const currentWorkItem = result.affiliateWorkItems[0];
-    const handledUntil = parseOptionalDate(currentWorkItem?.collaboration?.workHandledUntil);
+    const handledUntil = parseOptionalDate(
+      currentWorkItem?.collaboration?.workHandledUntil ?? currentWorkItem?.thread?.workHandledUntil,
+    );
     return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
   }
 
@@ -671,11 +682,11 @@ export class AffiliateSession {
     }
 
     try {
-      const since = workItem.collaboration.workHandledUntil ?? null;
+      const since = workItem.collaboration?.workHandledUntil ?? workItemThread(workItem)?.workHandledUntil ?? null;
       if (since == null) {
         return [
           "## Proposal Events Since Last Work Boundary",
-          "(none: this collaboration has no handled work boundary yet)",
+          "(none: this work item has no handled work boundary yet)",
         ].join("\n");
       }
       const result = await authSession.graphqlFetch<AffiliateActionProposalDeltaQueryResult>(
@@ -683,7 +694,8 @@ export class AffiliateSession {
         {
           input: {
             shopId: workItem.shopId,
-            collaborationRecordId: workItem.collaborationRecordId,
+            threadId: workItem.threadId,
+            collaborationRecordId: workItem.collaborationRecordId ?? undefined,
             since,
             limit: 8,
           },
@@ -691,7 +703,7 @@ export class AffiliateSession {
       );
       return renderProposalDelta(result.affiliateActionProposalDelta ?? [], since);
     } catch (err) {
-      log.warn(`Failed to fetch affiliate proposal delta for ${workItem.collaborationRecordId}: ${String(err)}`);
+      log.warn(`Failed to fetch affiliate proposal delta for ${workItemSubjectLabel(workItem)}: ${String(err)}`);
       return "## Proposal Events Since Last Work Boundary\n(unavailable: backend query failed)";
     }
   }
@@ -776,7 +788,7 @@ export class AffiliateSession {
       return { predictionSection: "## Affiliate Prediction\n(not applicable for this work item)" };
     }
 
-    const existingSnapshot = workItem.collaboration.predictionSnapshots?.find(
+    const existingSnapshot = workItem.collaboration?.predictionSnapshots?.find(
       snapshot => snapshot.status === GQL.AffiliatePredictionStatus.Ok,
     );
     if (existingSnapshot) {
@@ -797,7 +809,7 @@ export class AffiliateSession {
       };
     }
 
-    const memoKey = workItem.collaborationRecordId;
+    const memoKey = workItem.collaborationRecordId ?? workItem.threadId;
     const existing = predictionMemo.get(memoKey);
     if (existing) return existing;
 
@@ -989,20 +1001,20 @@ function buildExpectedSalesPredictionInput(
   scenario: GQL.AffiliateExpectedSalesPredictionScenario,
   workItem: GQL.AffiliateWorkItem,
 ): GQL.AffiliateExpectedSalesPredictionInput {
-  const collaboration = workItem.collaboration;
+  const collaboration = workItem.collaboration ?? null;
   const sample = workItem.sampleApplicationRecord ?? workItem.context?.primarySampleApplication ?? null;
   const creatorProfile = workItem.context?.creatorProfile ?? null;
-  const productId = collaboration.productId ?? sample?.productId ?? workItem.context?.productContext?.productId ?? null;
+  const productId = collaboration?.productId ?? sample?.productId ?? workItem.context?.productContext?.productId ?? null;
   const subject: GQL.AffiliateExpectedSalesPredictionSubjectInput = {
-    creatorId: collaboration.creatorId ?? creatorProfile?.id ?? undefined,
-    creatorOpenId: collaboration.creatorOpenId ?? creatorProfile?.creatorOpenId ?? undefined,
+    creatorId: collaboration?.creatorId ?? creatorProfile?.id ?? workItemThread(workItem)?.creatorId ?? undefined,
+    creatorOpenId: collaboration?.creatorOpenId ?? creatorProfile?.creatorOpenId ?? workItemThread(workItem)?.creatorOpenId ?? undefined,
     productId: productId ?? undefined,
-    affiliateCollaborationId: collaboration.affiliateCollaborationId ?? undefined,
-    platformCollaborationId: collaboration.platformCollaborationId ?? undefined,
+    affiliateCollaborationId: collaboration?.affiliateCollaborationId ?? undefined,
+    platformCollaborationId: collaboration?.platformCollaborationId ?? undefined,
   };
 
   if (scenario === GQL.AffiliateExpectedSalesPredictionScenario.SampleReview) {
-    subject.sampleApplicationRecordId = sample?.id ?? collaboration.sampleApplicationRecordId ?? undefined;
+    subject.sampleApplicationRecordId = sample?.id ?? collaboration?.sampleApplicationRecordId ?? undefined;
     subject.platformApplicationId = sample?.platformApplicationId ?? undefined;
   }
 
@@ -1010,8 +1022,8 @@ function buildExpectedSalesPredictionInput(
     shopId,
     scenario,
     context: {
-      affiliateCollaborationId: collaboration.affiliateCollaborationId ?? undefined,
-      platformCollaborationId: collaboration.platformCollaborationId ?? undefined,
+      affiliateCollaborationId: collaboration?.affiliateCollaborationId ?? undefined,
+      platformCollaborationId: collaboration?.platformCollaborationId ?? undefined,
       productId: productId ?? undefined,
     },
     subjects: [subject],
@@ -1076,6 +1088,51 @@ function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.RespondToCreator ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded
   );
+}
+
+function workItemConversationId(workItem: GQL.AffiliateWorkItem): string | null {
+  return workItem.collaboration?.platformConversationId ?? workItemThread(workItem)?.platformConversationId ?? null;
+}
+
+function workItemCurrentMessageId(workItem: GQL.AffiliateWorkItem): string | null {
+  return workItem.collaboration?.lastCreatorMessageId ?? workItemThread(workItem)?.lastMessageId ?? null;
+}
+
+function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {
+  return workItem.collaborationRecordId
+    ? `collaboration=${workItem.collaborationRecordId} thread=${workItem.threadId}`
+    : `thread=${workItem.threadId}`;
+}
+
+function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateCreatorThread | null {
+  if (workItem.thread) return workItem.thread;
+  const collaboration = workItem.collaboration;
+  if (!collaboration) return null;
+  return {
+    id: workItem.threadId ?? workItem.collaborationRecordId ?? workItem.id,
+    userId: collaboration.userId,
+    shopId: collaboration.shopId,
+    platform: GQL.ShopPlatform.TiktokShop,
+    creatorId: collaboration.creatorId,
+    creatorOpenId: collaboration.creatorOpenId ?? null,
+    creatorImId: collaboration.creatorImId ?? null,
+    platformConversationId: collaboration.platformConversationId ?? null,
+    lastMessageId: collaboration.lastCreatorMessageId ?? null,
+    lastMessageAt: collaboration.lastCreatorMessageAt ?? null,
+    lastSignalAt: collaboration.lastSignalAt ?? null,
+    workHandledUntil: collaboration.workHandledUntil ?? null,
+    nextSellerActionAt: collaboration.nextSellerActionAt ?? null,
+    processingStatus: collaboration.processingStatus,
+    requiredAction: collaboration.requiredAction,
+    processReasons: collaboration.processReasons,
+    activeCollaborationRecordIds: workItem.collaborationRecordId ? [workItem.collaborationRecordId] : [],
+    ambiguousCollaborationRecordIds: [],
+    focusCollaborationRecordId: workItem.collaborationRecordId ?? null,
+    startedAt: collaboration.startedAt,
+    stateUpdatedAt: collaboration.stateUpdatedAt,
+    createdAt: collaboration.createdAt,
+    updatedAt: collaboration.updatedAt,
+  };
 }
 
 function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
