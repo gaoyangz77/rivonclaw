@@ -289,32 +289,6 @@ export const LLMProviderManagerModel = types
       return applied;
     }
 
-    /**
-     * Reset sessions that are "following default" (no explicit volatile override)
-     * and had activity during this app process. Historical gateway/chat session
-     * stores may contain hundreds of dormant channel sessions, so the switch path
-     * must stay bounded to the sessions this desktop process actually observed.
-     * Best-effort: failures are logged but do not propagate.
-     */
-    async function resetDefaultFollowingSessions(): Promise<void> {
-      const sessionKeys = new Set(self.activeSessions);
-      const toReset = [...sessionKeys].filter((key) => {
-        if (self.sessionOverrides.has(key)) return false;
-        const fact = self.sessionModelFacts.get(key);
-        return !fact || fact.mode === "default";
-      });
-      if (toReset.length === 0) return;
-
-      await Promise.allSettled(
-        toReset.map((key) =>
-          patchSessionToActiveDefault(key).catch((err: unknown) => {
-            log.warn(`Failed to apply active default to session ${key}:`, err);
-          }),
-        ),
-      );
-      log.info(`Applied new global default to ${toReset.length} default-following session(s)`);
-    }
-
     /** Check if a provider/model combo is available in the cached catalog. */
     function isModelAvailable(provider: string, model: string): boolean {
       if (self.catalogModelIds.size === 0) return true; // no catalog yet, allow
@@ -493,7 +467,7 @@ export const LLMProviderManagerModel = types
 
       /**
        * Switch the default model on an existing key (global default).
-       * Also resets active sessions that are following the default.
+       * Existing sessions apply it lazily before their next dispatch.
        */
       switchModel: flow(function* (keyId: string, newModel: string) {
         const { storage, secretStore, toMstSnapshot } = getEnvDeps();
@@ -508,11 +482,10 @@ export const LLMProviderManagerModel = types
           self.root.upsertProviderKey(mstEntry);
         }
 
-        // Update OpenClaw config default.
+        // Update OpenClaw config default. Existing sessions apply it lazily
+        // before their next dispatch via applyModelForSession.
         if (entry.isDefault) {
           writeDefaultModel(entry.provider, newModel, entry.authType);
-          // Reset sessions following default so they pick up the new model
-          yield resetDefaultFollowingSessions();
         }
 
         return updated;
@@ -520,7 +493,7 @@ export const LLMProviderManagerModel = types
 
       /**
        * Activate (set as default) an existing provider key.
-       * Also resets active sessions that are following the default.
+       * Existing sessions apply it lazily before their next dispatch.
        */
       activateProvider: flow(function* (keyId: string) {
         const { storage, secretStore, syncActiveKey, allKeysToMstSnapshots } = getEnvDeps();
@@ -553,8 +526,6 @@ export const LLMProviderManagerModel = types
 
         // Update OpenClaw config default.
         writeDefaultModel(entry.provider, entry.model, entry.authType);
-        // Reset sessions following default so they pick up the new provider/model
-        yield resetDefaultFollowingSessions();
 
         return { entry, oldActive };
       }),
@@ -704,12 +675,10 @@ export const LLMProviderManagerModel = types
           yield syncAuthAndProxy();
         }
 
-        // If the active key's model changed, update the gateway default and
-        // reset sessions that are following the default so they stop using the
-        // previously resolved concrete model.
+        // If the active key's model changed, update the gateway default.
+        // Existing sessions apply it lazily before their next dispatch.
         if (existing.isDefault && modelChanging && fields.model) {
           writeDefaultModel(existing.provider, fields.model, existing.authType);
-          yield resetDefaultFollowingSessions();
         }
 
         // If active key and proxy changed: patch sessions + update config
@@ -768,7 +737,6 @@ export const LLMProviderManagerModel = types
         yield syncAuthAndProxy();
         if (promotedKey) {
           writeDefaultModel(promotedKey.provider, promotedKey.model, promotedKey.authType);
-          yield resetDefaultFollowingSessions();
         }
 
         return { existing, promotedKey };
@@ -836,9 +804,6 @@ export const LLMProviderManagerModel = types
           self.root.loadProviderKeys(mstKeys);
 
           yield syncAuthProxyAndConfig();
-          if (wasDefault) {
-            yield resetDefaultFollowingSessions();
-          }
 
           log.info(`Removed cloud provider key (${reason})`);
         }
@@ -1021,7 +986,6 @@ export const LLMProviderManagerModel = types
         yield syncAuthProxyAndConfig();
         if (shouldActivate) {
           writeDefaultModel(entry.provider, entry.model, entry.authType);
-          yield resetDefaultFollowingSessions();
         }
 
         log.info(`Created cloud provider key (activated: ${shouldActivate})`);

@@ -423,12 +423,14 @@ export class AffiliateSession {
     const runProfileId = this.shop.runProfileId ?? DEFAULT_AFFILIATE_RUN_PROFILE_ID;
     rootStore.toolCapability.setSessionRunProfile(this.scopeKey, runProfileId);
 
+    this.gatewaySetupReady = true;
+  }
+
+  private async applyCurrentSessionModel(): Promise<void> {
     await rootStore.llmManager.applyModelForSession(this.scopeKey, {
       type: ScopeType.AFFILIATE_SESSION,
       shopId: this.shop.objectId,
     });
-
-    this.gatewaySetupReady = true;
   }
 
   private async dispatch(params: {
@@ -438,6 +440,7 @@ export class AffiliateSession {
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     await this.setup();
+    await this.applyCurrentSessionModel();
     this.logDispatchPromptContext(params);
     const response = await requestAgent<AffiliateDispatchResult>({
       sessionKey: this.scopeKey,
