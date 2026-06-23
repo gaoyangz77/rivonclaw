@@ -463,6 +463,8 @@ export default {
     "statusYes": "Ya",
     "statusNo": "Tidak",
     "statusUnknown": "Tidak diketahui",
+    "statusWeChatActivationRequired": "Message to activate",
+    "statusWeChatReauthRequired": "Scan again",
     "statusConfigured": "Dikonfigurasi",
     "statusRunning": "Berlari",
     "statusConnected": "Terhubung",

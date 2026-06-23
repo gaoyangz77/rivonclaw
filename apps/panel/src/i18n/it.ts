@@ -463,6 +463,8 @@ export default {
     "statusYes": "Sì",
     "statusNo": "No",
     "statusUnknown": "Sconosciuto",
+    "statusWeChatActivationRequired": "Message to activate",
+    "statusWeChatReauthRequired": "Scan again",
     "statusConfigured": "Configurato",
     "statusRunning": "Correre",
     "statusConnected": "Connesso",

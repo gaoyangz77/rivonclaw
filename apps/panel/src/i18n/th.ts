@@ -463,6 +463,8 @@ export default {
     "statusYes": "ใช่",
     "statusNo": "ไม่",
     "statusUnknown": "ไม่ทราบ",
+    "statusWeChatActivationRequired": "Message to activate",
+    "statusWeChatReauthRequired": "Scan again",
     "statusConfigured": "กำหนดค่าแล้ว",
     "statusRunning": "วิ่ง",
     "statusConnected": "เชื่อมต่อแล้ว",
