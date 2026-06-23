@@ -70,7 +70,8 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
 
 function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
   const { workItem, platform } = input;
-  const currentMessageId = workItem.collaboration.lastCreatorMessageId ?? workItem.collaborationRecordId;
+  const currentMessageId =
+    workItem.collaboration?.lastCreatorMessageId ?? workItemThread(workItem).lastMessageId ?? workItem.threadId;
   return {
     message: [
       "[Affiliate Work Item: Creator Reply Needed]",
@@ -104,6 +105,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "When the terminal sample state is seller/system rejection or cancellation, avoid passive wording such as \"the request is no longer active\" as the main explanation. Tell the creator plainly and politely that after review we are not moving forward with this sample/collaboration at this time, then add any appropriate future-facing note.",
       "When prediction or merchant thresholds indicate the creator/product is below the shop's bar, a creator-facing reply should politely decline or leave the door open for better future fit; it should not ask the creator to submit the same application again.",
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
+      "If the work item is thread-level or marks collaboration context ambiguous, do not attach sample-review or collaboration-specific action fields unless Backend Work Context resolves a focus collaboration/sample. Prefer a clarifying SEND_MESSAGE or NEEDS_STAFF_REVIEW.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       "If Work Bundle Kind is CREATOR_REPLY_WITH_SAMPLE_REVIEW, you must handle the sample review and the creator reply in the same REQUEST_ACTION input.actions bundle. Include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE unless the sample is already terminal or no creator-facing reply is appropriate.",
       renderPredictionCacheInstruction(input),
@@ -365,8 +367,39 @@ function requiresCreatorReplyAction(workItem: GQL.AffiliateWorkItem): boolean {
   );
 }
 
+function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateCreatorThread {
+  if (workItem.thread) return workItem.thread;
+  const collaboration = workItem.collaboration;
+  return {
+    id: workItem.threadId ?? workItem.collaborationRecordId ?? workItem.id,
+    userId: collaboration?.userId ?? "",
+    shopId: collaboration?.shopId ?? workItem.shopId,
+    platform: GQL.ShopPlatform.TiktokShop,
+    creatorId: collaboration?.creatorId ?? null,
+    creatorOpenId: collaboration?.creatorOpenId ?? null,
+    creatorImId: collaboration?.creatorImId ?? null,
+    platformConversationId: collaboration?.platformConversationId ?? null,
+    lastMessageId: collaboration?.lastCreatorMessageId ?? null,
+    lastMessageAt: collaboration?.lastCreatorMessageAt ?? null,
+    lastSignalAt: collaboration?.lastSignalAt ?? null,
+    workHandledUntil: collaboration?.workHandledUntil ?? null,
+    nextSellerActionAt: collaboration?.nextSellerActionAt ?? null,
+    processingStatus: collaboration?.processingStatus ?? workItem.processingStatus,
+    requiredAction: collaboration?.requiredAction ?? workItem.requiredAction,
+    processReasons: collaboration?.processReasons ?? workItem.processReasons ?? [],
+    activeCollaborationRecordIds: workItem.collaborationRecordId ? [workItem.collaborationRecordId] : [],
+    ambiguousCollaborationRecordIds: [],
+    focusCollaborationRecordId: workItem.collaborationRecordId ?? null,
+    startedAt: collaboration?.startedAt ?? workItem.versionAt,
+    stateUpdatedAt: collaboration?.stateUpdatedAt ?? workItem.versionAt,
+    createdAt: collaboration?.createdAt ?? workItem.versionAt,
+    updatedAt: collaboration?.updatedAt ?? workItem.versionAt,
+  };
+}
+
 export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): string {
   const collaboration = workItem.collaboration;
+  const thread = workItemThread(workItem);
   const sample = workItem.sampleApplicationRecord;
   const proposal = workItem.latestPendingProposal;
   const actionableDelta = renderActionableDelta(workItem);
@@ -376,30 +409,50 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "",
     "## Backend Work Projection",
     `- Work Item ID: ${workItem.id}`,
+    `- Subject Type: ${workItem.subjectType}`,
+    `- Thread ID: ${workItem.threadId}`,
     `- Work Kind: ${workItem.workKind}`,
     `- Required Action: ${workItem.requiredAction}`,
     `- Work Bundle Kind: ${workItem.workBundleKind ?? ""}`,
     `- Shop ID: ${workItem.shopId}`,
     `- Platform Shop ID: ${workItem.platformShopId}`,
-    `- Collaboration ID: ${workItem.collaborationRecordId}`,
+    `- Collaboration ID: ${workItem.collaborationRecordId ?? ""}`,
     `- Processing Status: ${workItem.processingStatus}`,
     `- Process Reasons: ${(workItem.processReasons ?? []).join(", ") || "(none)"}`,
     `- Agent Dispatch Recommended: ${workItem.agentDispatchRecommended}`,
     `- Staff Review Required: ${workItem.staffReviewRequired}`,
     `- Version At: ${workItem.versionAt}`,
     "",
-    "## Collaboration",
-    `- Creator ID: ${collaboration.creatorId}`,
-    `- Creator IM User ID: ${collaboration.creatorImId ?? ""}`,
-    `- Product ID: ${collaboration.productId ?? ""}`,
-    `- Sample Application Record ID: ${collaboration.sampleApplicationRecordId ?? ""}`,
-    `- Platform Conversation ID: ${collaboration.platformConversationId ?? ""}`,
-    `- Lifecycle Stage: ${collaboration.lifecycleStage}`,
-    `- Last Creator Message ID: ${collaboration.lastCreatorMessageId ?? ""}`,
-    `- Last Creator Message At: ${collaboration.lastCreatorMessageAt ?? ""}`,
-    `- Last Signal At: ${collaboration.lastSignalAt ?? ""}`,
-    `- Work Handled Until: ${collaboration.workHandledUntil ?? ""}`,
-    `- Next Seller Action At: ${collaboration.nextSellerActionAt ?? ""}`,
+    "## Creator Thread",
+    `- Creator ID: ${thread.creatorId ?? ""}`,
+    `- Creator Open ID: ${thread.creatorOpenId ?? ""}`,
+    `- Creator IM User ID: ${thread.creatorImId ?? ""}`,
+    `- Platform Conversation ID: ${thread.platformConversationId ?? ""}`,
+    `- Last Message ID: ${thread.lastMessageId ?? ""}`,
+    `- Last Message At: ${thread.lastMessageAt ?? ""}`,
+    `- Last Inbound At: ${thread.lastInboundAt ?? ""}`,
+    `- Last Outbound At: ${thread.lastOutboundAt ?? ""}`,
+    `- Last Signal At: ${thread.lastSignalAt ?? ""}`,
+    `- Work Handled Until: ${thread.workHandledUntil ?? ""}`,
+    `- Next Seller Action At: ${thread.nextSellerActionAt ?? ""}`,
+    `- Active Collaboration IDs: ${(thread.activeCollaborationRecordIds ?? []).join(", ") || "(none)"}`,
+    `- Focus Collaboration ID: ${thread.focusCollaborationRecordId ?? ""}`,
+    `- Ambiguous Collaboration IDs: ${(thread.ambiguousCollaborationRecordIds ?? []).join(", ") || "(none)"}`,
+    "",
+    "## Focus Collaboration",
+    ...(collaboration ? [
+      `- Creator ID: ${collaboration.creatorId}`,
+      `- Creator IM User ID: ${collaboration.creatorImId ?? ""}`,
+      `- Product ID: ${collaboration.productId ?? ""}`,
+      `- Sample Application Record ID: ${collaboration.sampleApplicationRecordId ?? ""}`,
+      `- Platform Conversation ID: ${collaboration.platformConversationId ?? ""}`,
+      `- Lifecycle Stage: ${collaboration.lifecycleStage}`,
+      `- Last Creator Message ID: ${collaboration.lastCreatorMessageId ?? ""}`,
+      `- Last Creator Message At: ${collaboration.lastCreatorMessageAt ?? ""}`,
+      `- Last Signal At: ${collaboration.lastSignalAt ?? ""}`,
+      `- Work Handled Until: ${collaboration.workHandledUntil ?? ""}`,
+      `- Next Seller Action At: ${collaboration.nextSellerActionAt ?? ""}`,
+    ] : ["(none: this is a creator-thread work item without a resolved collaboration)"]),
     "",
     "## Sample Application",
     ...(sample ? [
@@ -428,6 +481,7 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
       `- Status: ${proposal.status}`,
       `- Operator Summary: ${proposal.operatorSummary}`,
       `- Creator ID: ${proposal.creatorId ?? ""}`,
+      `- Thread ID: ${proposal.threadId ?? ""}`,
       `- Collaboration ID: ${proposal.collaborationRecordId ?? ""}`,
     ] : ["(none)"]),
   ].join("\n");
@@ -435,13 +489,14 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
 
 function renderActionableDelta(workItem: GQL.AffiliateWorkItem): string[] {
   const sources = inferActionableDeltaSources(workItem);
-  const boundary = workItem.versionAt ?? workItem.collaboration.lastSignalAt ?? "";
-  const nextSellerActionAt = workItem.collaboration.nextSellerActionAt ?? "";
+  const thread = workItemThread(workItem);
+  const boundary = workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? thread.lastSignalAt ?? "";
+  const nextSellerActionAt = workItem.collaboration?.nextSellerActionAt ?? thread.nextSellerActionAt ?? "";
   const lines = [
     `- Sources: ${sources.join(", ") || "STATE"}`,
     `- Boundary At: ${boundary}`,
-    `- Work Handled Until: ${workItem.collaboration.workHandledUntil ?? ""}`,
-    `- Last Signal At: ${workItem.collaboration.lastSignalAt ?? ""}`,
+    `- Work Handled Until: ${workItem.collaboration?.workHandledUntil ?? thread.workHandledUntil ?? ""}`,
+    `- Last Signal At: ${workItem.collaboration?.lastSignalAt ?? thread.lastSignalAt ?? ""}`,
     `- Next Seller Action At: ${nextSellerActionAt}`,
   ];
   if (sources.includes("TEMPORAL")) {
@@ -499,6 +554,8 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
   const relation = context.creatorRelation;
   const product = context.productContext;
   const relatedSamples = context.relatedSampleApplications ?? [];
+  const activeCollaborations = context.activeCollaborations ?? [];
+  const ambiguousCandidates = context.ambiguousCollaborationCandidates ?? [];
   const missingContext = context.missingContext ?? [];
   const shopStates = relation?.shopStates ?? [];
   return [
@@ -519,6 +576,22 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
     context.affiliateCollaboration
       ? `- Affiliate Collaboration Offer: ${context.affiliateCollaboration.type} ${context.affiliateCollaboration.platformCollaborationId} status=${context.affiliateCollaboration.status}`
       : "- Affiliate Collaboration Offer: (none)",
+    context.focusCollaboration
+      ? `- Focus Collaboration Candidate: ${context.focusCollaboration.id} product=${context.focusCollaboration.productId ?? ""} lifecycle=${context.focusCollaboration.lifecycleStage}`
+      : "- Focus Collaboration Candidate: (none)",
+    `- Active Collaborations: ${activeCollaborations.length}`,
+    ...activeCollaborations.map((collaboration, index) =>
+      `  ${index + 1}. collaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
+    ),
+    `- Ambiguous Collaboration Candidates: ${ambiguousCandidates.length ? "" : "(none)"}`,
+    ...ambiguousCandidates.map((collaboration, index) =>
+      `  ${index + 1}. collaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
+    ),
+    ...(ambiguousCandidates.length
+      ? [
+          "- Ambiguity Instruction: do not assume the creator's message belongs to one collaboration unless the platform conversation delta or workspace facts clearly identify it. Ask a concise clarification question or request staff review when confidence is low.",
+        ]
+      : []),
     `- Related Sample Applications: ${relatedSamples.length}`,
     ...relatedSamples.map((sample, index) =>
       `  ${index + 1}. ${sample.id} platform=${sample.platformApplicationId} status=${sample.sampleWorkStatus} product=${sample.productId ?? ""} contentCount=${sample.observedContentCount}`,

@@ -65,6 +65,9 @@ export interface ActionProposal {
   /** Frozen ordered action steps. Current single-action proposals contain exactly one step. */
   steps: Array<ActionProposalStep>;
   targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
+  /** Primary creator relationship thread for this proposal. */
+  thread?: Maybe<AffiliateCreatorThread>;
+  threadId?: Maybe<Scalars['ID']['output']>;
   type: ActionProposalType;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
@@ -533,10 +536,11 @@ export interface AffiliateActionProposalChanged {
 }
 
 export interface AffiliateActionProposalDeltaInput {
-  collaborationRecordId: Scalars['ID']['input'];
+  collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
   since?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  threadId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 /** Result mode for an affiliate action request after backend policy evaluation. */
@@ -662,6 +666,7 @@ export interface AffiliateCollaborationRecord {
   shopId: Scalars['ID']['output'];
   startedAt: Scalars['DateTimeISO']['output'];
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
+  threadId?: Maybe<Scalars['ID']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   workHandledUntil?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -836,6 +841,8 @@ export interface AffiliateConversationSignal {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   /** AffiliateCollaborationRecord ID produced or updated by the reducer. */
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  /** AffiliateCreatorThread ID produced or updated by the reducer. */
+  threadId?: Maybe<Scalars['ID']['output']>;
   /** Open or target collaboration type when known. */
   collaborationType?: Maybe<AffiliateCollaborationType>;
   /** Observed content comment count when available. */
@@ -1503,11 +1510,54 @@ export const AffiliateWorkBundleKind = {
 } as const;
 
 export type AffiliateWorkBundleKind = typeof AffiliateWorkBundleKind[keyof typeof AffiliateWorkBundleKind];
+/** Primary subject for an affiliate work item. */
+export const AffiliateWorkItemSubjectType = {
+  Collaboration: 'COLLABORATION',
+  CreatorThread: 'CREATOR_THREAD'
+} as const;
+
+export type AffiliateWorkItemSubjectType = typeof AffiliateWorkItemSubjectType[keyof typeof AffiliateWorkItemSubjectType];
+
+/** Long-lived seller/creator affiliate communication thread. Collaborations are structured business units under this relationship thread. */
+export interface AffiliateCreatorThread {
+  activeCollaborationRecordIds: Array<Scalars['ID']['output']>;
+  ambiguousCollaborationRecordIds: Array<Scalars['ID']['output']>;
+  archivedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorImId?: Maybe<Scalars['String']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  focusCollaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  id: Scalars['ID']['output'];
+  lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastMessageId?: Maybe<Scalars['String']['output']>;
+  lastMessageIndex?: Maybe<Scalars['String']['output']>;
+  lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastSignalAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  platform: ShopPlatform;
+  platformConversationId?: Maybe<Scalars['String']['output']>;
+  processReasons: Array<AffiliateCollaborationRecordProcessReason>;
+  processingStatus: AffiliateCollaborationRecordProcessingStatus;
+  requiredAction: AffiliateCollaborationRequiredAction;
+  shopId: Scalars['ID']['output'];
+  startedAt: Scalars['DateTimeISO']['output'];
+  stateUpdatedAt: Scalars['DateTimeISO']['output'];
+  unreadCount?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+  workHandledUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
 /** Record-centered context resolved by backend before Desktop dispatches an affiliate agent. */
 export interface AffiliateWorkContext {
+  activeCollaborations: Array<AffiliateCollaborationRecord>;
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
+  ambiguousCollaborationCandidates: Array<AffiliateCollaborationRecord>;
   creatorProfile?: Maybe<CreatorGlobalProfile>;
   creatorRelation?: Maybe<CreatorUserRelation>;
+  focusCollaboration?: Maybe<AffiliateCollaborationRecord>;
   missingContext: Array<AffiliateWorkMissingContext>;
   pendingProposals: Array<ActionProposal>;
   primarySampleApplication?: Maybe<SampleApplicationRecord>;
@@ -1520,8 +1570,8 @@ export interface AffiliateWorkContext {
 export interface AffiliateWorkItem {
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
-  collaboration: AffiliateCollaborationRecord;
-  collaborationRecordId: Scalars['ID']['output'];
+  collaboration?: Maybe<AffiliateCollaborationRecord>;
+  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   context: AffiliateWorkContext;
   /** Stable work-item ID. Currently the AffiliateCollaborationRecord ID. */
   id: Scalars['ID']['output'];
@@ -1535,6 +1585,9 @@ export interface AffiliateWorkItem {
   shopId: Scalars['ID']['output'];
   /** True when the item should appear in staff review surfaces even if no agent run should start. */
   staffReviewRequired: Scalars['Boolean']['output'];
+  subjectType: AffiliateWorkItemSubjectType;
+  thread: AffiliateCreatorThread;
+  threadId: Scalars['ID']['output'];
   /** Projection version timestamp. Desktop can use this for idempotent upsert. */
   versionAt: Scalars['DateTimeISO']['output'];
   workBundleKind: AffiliateWorkBundleKind;
@@ -6413,6 +6466,7 @@ export interface ReadActionProposalsInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<ActionProposalStatus>;
+  threadId?: InputMaybe<Scalars['ID']['input']>;
   type?: InputMaybe<ActionProposalType>;
 }
 
@@ -6479,6 +6533,7 @@ export interface ReadAffiliateWorkItemsInput {
   processingStatus?: InputMaybe<AffiliateCollaborationRecordProcessingStatus>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
   staffReviewRequired?: InputMaybe<Scalars['Boolean']['input']>;
+  threadId?: InputMaybe<Scalars['ID']['input']>;
   workKind?: InputMaybe<AffiliateWorkKind>;
 }
 
@@ -6651,6 +6706,7 @@ export interface RequestAffiliateActionInput {
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   shopId: Scalars['ID']['input'];
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
+  threadId?: InputMaybe<Scalars['ID']['input']>;
   type: ActionProposalType;
 }
 
@@ -6704,7 +6760,7 @@ export interface ResolveAffiliateWorkItemInput {
   action?: InputMaybe<ResolveAffiliateWorkItemActionInput>;
   /** Ordered action list for bundled affiliate work. If provided, backend evaluates/executes the whole list together. */
   actions?: InputMaybe<Array<ResolveAffiliateWorkItemActionInput>>;
-  collaborationRecordId: Scalars['ID']['input'];
+  collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   decision: AffiliateWorkItemResolutionDecision;
   /** The collaboration.lastSignalAt value that this work-item decision handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
@@ -6712,6 +6768,7 @@ export interface ResolveAffiliateWorkItemInput {
   nextSellerActionAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   operatorSummary: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
+  threadId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ResolveAffiliateWorkItemMessageIntentInput {

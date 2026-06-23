@@ -511,31 +511,31 @@ export class AffiliateInbound {
     const base = {
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
-      creatorImUserId: collaboration.creatorImId ?? undefined,
-      creatorId: collaboration.creatorId,
-      productId: collaboration.productId ?? sample?.productId ?? undefined,
-      collaborationRecordId: workItem.collaborationRecordId,
+      creatorImUserId: collaboration?.creatorImId ?? workItem.thread.creatorImId ?? undefined,
+      creatorId: collaboration?.creatorId ?? workItem.thread.creatorId ?? undefined,
+      productId: collaboration?.productId ?? sample?.productId ?? undefined,
+      collaborationRecordId: workItem.collaborationRecordId ?? undefined,
     };
 
     const requiredAction = workItem.requiredAction;
     switch (requiredAction) {
       case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
-        if (!collaboration.platformConversationId) return null;
+        if (!(collaboration?.platformConversationId ?? workItem.thread.platformConversationId)) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-          triggerId: collaboration.platformConversationId,
-          conversationId: collaboration.platformConversationId,
+          triggerId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId!,
+          conversationId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId!,
         };
       case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
       case GQL.AffiliateCollaborationRequiredAction.ShipSample: {
-        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration.sampleApplicationRecordId;
+        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration?.sampleApplicationRecordId;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          conversationId: collaboration.platformConversationId ?? undefined,
+          conversationId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId ?? undefined,
           sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
         };
       }
@@ -553,22 +553,22 @@ export class AffiliateInbound {
 
     switch (workItem.workKind) {
       case GQL.AffiliateWorkKind.CreatorReplyNeeded:
-        if (!collaboration.platformConversationId) return null;
+        if (!(collaboration?.platformConversationId ?? workItem.thread.platformConversationId)) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-          triggerId: collaboration.platformConversationId,
-          conversationId: collaboration.platformConversationId,
+          triggerId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId!,
+          conversationId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId!,
         };
       case GQL.AffiliateWorkKind.SampleReviewNeeded:
       case GQL.AffiliateWorkKind.SampleShipmentNeeded: {
-        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration.sampleApplicationRecordId;
+        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration?.sampleApplicationRecordId;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          conversationId: collaboration.platformConversationId ?? undefined,
+          conversationId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId ?? undefined,
           sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
         };
       }
@@ -576,8 +576,8 @@ export class AffiliateInbound {
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
-          triggerId: workItem.collaborationRecordId,
-          conversationId: collaboration.platformConversationId ?? undefined,
+          triggerId: workItem.collaborationRecordId ?? workItem.threadId,
+          conversationId: collaboration?.platformConversationId ?? workItem.thread.platformConversationId ?? undefined,
         };
     }
   }

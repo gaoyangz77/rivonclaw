@@ -36,6 +36,7 @@ import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store
 function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = {}): GQL.AffiliateWorkItem {
   const collaboration = {
     id: "collab-001",
+    threadId: "thread-001",
     userId: "user-001",
     shopId: "shop-001",
     creatorId: "creator-001",
@@ -63,6 +64,37 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     predictionSnapshots: [],
   } as unknown as GQL.AffiliateCollaborationRecord;
 
+  const thread: GQL.AffiliateCreatorThread = {
+    id: "thread-001",
+    userId: "user-001",
+    shopId: "shop-001",
+    platform: GQL.ShopPlatform.TiktokShop,
+    creatorId: "creator-001",
+    creatorOpenId: null,
+    creatorImId: "creator-im-001",
+    platformConversationId: "conversation-001",
+    lastMessageId: null,
+    lastMessageIndex: null,
+    lastMessageAt: null,
+    lastInboundAt: null,
+    lastOutboundAt: null,
+    unreadCount: null,
+    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+    requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
+    processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+    lastSignalAt: null,
+    workHandledUntil: null,
+    nextSellerActionAt: null,
+    activeCollaborationRecordIds: ["collab-001"],
+    focusCollaborationRecordId: "collab-001",
+    ambiguousCollaborationRecordIds: [],
+    startedAt: "2026-05-11T00:00:00.000Z",
+    archivedAt: null,
+    createdAt: "2026-05-11T00:00:00.000Z",
+    updatedAt: "2026-05-11T00:01:00.000Z",
+    stateUpdatedAt: "2026-05-11T00:01:00.000Z",
+  };
+
   const sampleApplicationRecord: GQL.SampleApplicationRecord = {
     id: "sample-record-001",
     userId: "user-001",
@@ -89,6 +121,9 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     id: "collab-001",
     shopId: "shop-001",
     platformShopId: "platform-shop-001",
+    subjectType: GQL.AffiliateWorkItemSubjectType.Collaboration,
+    threadId: thread.id,
+    thread,
     collaborationRecordId: "collab-001",
     workKind: GQL.AffiliateWorkKind.SampleReviewNeeded,
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
@@ -105,9 +140,12 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     sampleApplicationRecord,
     latestPendingProposal: null,
     context: {
+      activeCollaborations: [collaboration],
       affiliateCollaboration: null,
+      ambiguousCollaborationCandidates: [],
       creatorProfile: null,
       creatorRelation: null,
+      focusCollaboration: collaboration,
       missingContext: [],
       pendingProposals: [],
       primarySampleApplication: sampleApplicationRecord,
@@ -124,7 +162,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
 function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = {}): GQL.AffiliateWorkItem {
   const base = createSampleReviewWorkItem();
   const collaboration: GQL.AffiliateCollaborationRecord = {
-    ...base.collaboration,
+    ...(base.collaboration as GQL.AffiliateCollaborationRecord),
     sampleApplicationRecordId: null,
     platformConversationId: "conversation-001",
     lifecycleStage: "CONVERSATION",
@@ -149,6 +187,8 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     sampleApplicationRecord: null,
     context: {
       ...base.context,
+      activeCollaborations: [collaboration],
+      focusCollaboration: collaboration,
       primarySampleApplication: null,
       relatedSampleApplications: [],
       recommendedActionTypes: [
@@ -276,7 +316,7 @@ describe("affiliate work item dispatch", () => {
       id: "collab-expected-001",
       collaborationRecordId: "collab-expected-001",
       collaboration: {
-        ...createCreatorReplyWorkItem().collaboration,
+        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
         id: "collab-expected-001",
       },
     });
@@ -339,7 +379,7 @@ describe("affiliate work item dispatch", () => {
       id: "collab-with-snapshot",
       collaborationRecordId: "collab-with-snapshot",
       collaboration: {
-        ...createSampleReviewWorkItem().collaboration,
+        ...(createSampleReviewWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
         id: "collab-with-snapshot",
         lastSignalAt: "2026-05-11T00:01:00.000Z",
         predictionSnapshots: [{
@@ -463,7 +503,7 @@ describe("affiliate work item dispatch", () => {
       agentDispatchRecommended: false,
       staffReviewRequired: true,
       collaboration: {
-        ...createSampleReviewWorkItem().collaboration,
+        ...(createSampleReviewWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
         id: "collab-deterministic-001",
         lastSignalAt: "2026-05-11T00:01:00.000Z",
       },
@@ -656,7 +696,7 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
     const workItem = createCreatorReplyWorkItem({
       collaboration: {
-        ...createCreatorReplyWorkItem().collaboration,
+        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
         lastSignalAt: "2026-05-11T00:01:00.000Z",
       },
     });
@@ -716,7 +756,7 @@ describe("affiliate work item dispatch", () => {
       processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
       versionAt: "2026-05-13T00:01:00.000Z",
       collaboration: {
-        ...createCreatorReplyWorkItem().collaboration,
+        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
         requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
         processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
         lastSignalAt: "2026-05-11T00:01:00.000Z",
