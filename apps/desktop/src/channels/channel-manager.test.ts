@@ -793,8 +793,6 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         connected: false,
         healthy: false,
         healthState: "send-unavailable",
-        outboundHealthy: false,
-        lastOutboundError: expect.stringContaining("ret=-2"),
         dmPolicy: "pairing",
       });
       expect(snapshot.channelAccounts[WEIXIN_CHANNEL_ID]![1]).toMatchObject({
