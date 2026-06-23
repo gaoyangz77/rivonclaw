@@ -725,6 +725,17 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           creatorId
           shopThreadId
           collaborationRecordId
+          sourceWorkBoundary {
+            subjectType
+            shopThreadId
+            collaborationRecordId
+            workKind
+            workBundleKind
+            versionAt
+            triggerKind
+            triggerId
+            recommendedActionTypes
+          }
           type
           status
           operatorSummary
@@ -1301,6 +1312,17 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
         creatorId
         shopThreadId
         collaborationRecordId
+        sourceWorkBoundary {
+          subjectType
+          shopThreadId
+          collaborationRecordId
+          workKind
+          workBundleKind
+          versionAt
+          triggerKind
+          triggerId
+          recommendedActionTypes
+        }
         collaborationRecordLastSignalAt
         collaborationRecordStateUpdatedAt
         type
@@ -1591,6 +1613,17 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       creatorId
       shopThreadId
       collaborationRecordId
+      sourceWorkBoundary {
+        subjectType
+        shopThreadId
+        collaborationRecordId
+        workKind
+        workBundleKind
+        versionAt
+        triggerKind
+        triggerId
+        recommendedActionTypes
+      }
       type
       status
       operatorSummary

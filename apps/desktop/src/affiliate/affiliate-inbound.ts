@@ -552,7 +552,7 @@ export class AffiliateInbound {
     const sample = workItem.sampleApplicationRecord;
 
     switch (workItem.workKind) {
-      case GQL.AffiliateWorkKind.CreatorReplyNeeded:
+      case GQL.AffiliateWorkKind.InboundMessageTriage:
         if (!(collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId)) return null;
         return {
           ...base,
@@ -560,8 +560,8 @@ export class AffiliateInbound {
           triggerId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId!,
           conversationId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId!,
         };
-      case GQL.AffiliateWorkKind.SampleReviewNeeded:
-      case GQL.AffiliateWorkKind.SampleShipmentNeeded: {
+      case GQL.AffiliateWorkKind.SampleApplicationDecision:
+      case GQL.AffiliateWorkKind.SampleShipment: {
         const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration?.sampleApplicationRecordId;
         if (!sampleTriggerId) return null;
         return {
@@ -605,7 +605,7 @@ function parseOptionalPositiveInteger(value: string | undefined): number | undef
 function isHandledWithoutAgentDispatch(workItem: AffiliateWorkItemPayload): boolean {
   return (
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
-    workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded
+    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision
   );
 }
 

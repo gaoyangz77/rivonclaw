@@ -41,7 +41,7 @@ type AffiliateAgentRunKind = "CREATOR_REPLY" | "CREATOR_FOLLOW_UP";
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
   if (
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorFollowUp ||
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp
   ) {
     return "CREATOR_FOLLOW_UP";
   }
@@ -49,7 +49,7 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
   if (
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyOnly ||
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded ||
+    workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage ||
     workItem.recommendedActionTypes?.includes(GQL.ActionProposalType.SendMessage) ||
     workItem.context?.recommendedActionTypes?.includes(GQL.ActionProposalType.SendMessage)
   ) {
@@ -521,16 +521,16 @@ function inferActionableDeltaSources(workItem: GQL.AffiliateWorkItem): Array<"SI
   const sources = new Set<"SIGNAL" | "TEMPORAL" | "STATE">();
   const reasons = workItem.processReasons ?? [];
   if (
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue ||
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp ||
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue)
   ) {
     sources.add("TEMPORAL");
   }
   if (
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded ||
-    workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded ||
-    workItem.workKind === GQL.AffiliateWorkKind.SampleShipmentNeeded ||
+    workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage ||
+    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision ||
+    workItem.workKind === GQL.AffiliateWorkKind.SampleShipment ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply) ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview) ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment)
@@ -538,7 +538,7 @@ function inferActionableDeltaSources(workItem: GQL.AffiliateWorkItem): Array<"SI
     sources.add("SIGNAL");
   }
   if (
-    workItem.workKind === GQL.AffiliateWorkKind.ApprovalWaiting ||
+    workItem.workKind === GQL.AffiliateWorkKind.ApprovalReview ||
     workItem.staffReviewRequired ||
     workItem.latestPendingProposal != null
   ) {

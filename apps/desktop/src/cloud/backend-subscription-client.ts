@@ -555,12 +555,23 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             type
             status
             operatorSummary
-            creatorId
+          creatorId
+          shopThreadId
+          collaborationRecordId
+          sourceWorkBoundary {
+            subjectType
             shopThreadId
             collaborationRecordId
-            decision {
-              note
-              decidedAt
+            workKind
+            workBundleKind
+            versionAt
+            triggerKind
+            triggerId
+            recommendedActionTypes
+          }
+          decision {
+            note
+            decidedAt
               actorType
               actorId
             }
@@ -586,6 +597,17 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           creatorId
           shopThreadId
           collaborationRecordId
+          sourceWorkBoundary {
+            subjectType
+            shopThreadId
+            collaborationRecordId
+            workKind
+            workBundleKind
+            versionAt
+            triggerKind
+            triggerId
+            recommendedActionTypes
+          }
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
@@ -661,6 +683,18 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           avatarUrl
         }
         collaborationRecordId
+        shopThreadId
+        sourceWorkBoundary {
+          subjectType
+          shopThreadId
+          collaborationRecordId
+          workKind
+          workBundleKind
+          versionAt
+          triggerKind
+          triggerId
+          recommendedActionTypes
+        }
         createdAt
         updatedAt
         expiresAt

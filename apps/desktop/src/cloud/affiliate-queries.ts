@@ -87,7 +87,19 @@ export const AFFILIATE_WORKSPACE_QUERY = `
           operatorSummary
         }
         creatorId
+        shopThreadId
         collaborationRecordId
+        sourceWorkBoundary {
+          subjectType
+          shopThreadId
+          collaborationRecordId
+          workKind
+          workBundleKind
+          versionAt
+          triggerKind
+          triggerId
+          recommendedActionTypes
+        }
         sampleReviewIntent {
           sampleApplicationRecordId
           platformApplicationId
@@ -170,6 +182,17 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
       creatorId
       shopThreadId
       collaborationRecordId
+      sourceWorkBoundary {
+        subjectType
+        shopThreadId
+        collaborationRecordId
+        workKind
+        workBundleKind
+        versionAt
+        triggerKind
+        triggerId
+        recommendedActionTypes
+      }
       decision {
         note
         decidedAt

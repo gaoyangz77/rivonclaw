@@ -1086,7 +1086,7 @@ function computeSampleReviewDefaultDecision(
 function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.RespondToCreator ||
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorReplyNeeded
+    workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
   );
 }
 
@@ -1138,7 +1138,7 @@ function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateShopCreat
 function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
-    workItem.workKind === GQL.AffiliateWorkKind.SampleReviewNeeded
+    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision
   );
 }
 
@@ -1158,7 +1158,7 @@ function isDeterministicSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): b
 function isCreatorFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUpDue
+    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp
   );
 }
 

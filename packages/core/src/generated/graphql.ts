@@ -64,6 +64,7 @@ export interface ActionProposal {
   /** Shop-scoped creator thread for this proposal. */
   shopThread?: Maybe<AffiliateShopCreatorThread>;
   shopThreadId?: Maybe<Scalars['ID']['output']>;
+  sourceWorkBoundary?: Maybe<ActionProposalSourceWorkBoundary>;
   status: ActionProposalStatus;
   /** Frozen ordered action steps. Current single-action proposals contain exactly one step. */
   steps: Array<ActionProposalStep>;
@@ -217,6 +218,18 @@ export interface ActionProposalSellerContactInfoIntentInput {
   phoneNumber?: InputMaybe<Scalars['String']['input']>;
   telegram?: InputMaybe<Scalars['String']['input']>;
   whatsapp?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ActionProposalSourceWorkBoundary {
+  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  recommendedActionTypes: Array<ActionProposalType>;
+  shopThreadId: Scalars['ID']['output'];
+  subjectType: AffiliateWorkItemSubjectType;
+  triggerId?: Maybe<Scalars['String']['output']>;
+  triggerKind?: Maybe<Scalars['String']['output']>;
+  versionAt: Scalars['DateTimeISO']['output'];
+  workBundleKind: AffiliateWorkBundleKind;
+  workKind: AffiliateWorkKind;
 }
 
 export const ActionProposalStatus = {
@@ -707,7 +720,7 @@ export const AffiliateCollaborationRecordProcessReason = {
   CollaborationContextAmbiguous: 'COLLABORATION_CONTEXT_AMBIGUOUS',
   ContentPublished: 'CONTENT_PUBLISHED',
   CreatorActionFollowUpDue: 'CREATOR_ACTION_FOLLOW_UP_DUE',
-  CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
+  IdentityResolution: 'IDENTITY_RESOLUTION',
   CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
   OrderAttributed: 'ORDER_ATTRIBUTED',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
@@ -722,13 +735,11 @@ export const AffiliateCollaborationRecordProcessReason = {
 export type AffiliateCollaborationRecordProcessReason = typeof AffiliateCollaborationRecordProcessReason[keyof typeof AffiliateCollaborationRecordProcessReason];
 /** Backend-materialized owner/waiting state for a creator collaboration. Concrete work is represented by AffiliateCollaborationRequiredAction. */
 export const AffiliateCollaborationRecordProcessingStatus = {
-  AgentNeeded: 'AGENT_NEEDED',
+  AgentRequired: 'AGENT_REQUIRED',
   Blocked: 'BLOCKED',
-  Done: 'DONE',
-  StaffNeeded: 'STAFF_NEEDED',
-  WaitingApproval: 'WAITING_APPROVAL',
-  WaitingCreator: 'WAITING_CREATOR',
-  WaitingPlatform: 'WAITING_PLATFORM'
+  Idle: 'IDLE',
+  StaffRequired: 'STAFF_REQUIRED',
+  WaitingExternal: 'WAITING_EXTERNAL'
 } as const;
 
 export type AffiliateCollaborationRecordProcessingStatus = typeof AffiliateCollaborationRecordProcessingStatus[keyof typeof AffiliateCollaborationRecordProcessingStatus];
@@ -946,7 +957,7 @@ export const AffiliateConversationSignalType = {
   AffiliateConversationMessageObserved: 'AFFILIATE_CONVERSATION_MESSAGE_OBSERVED',
   AffiliateSampleApplicationObserved: 'AFFILIATE_SAMPLE_APPLICATION_OBSERVED',
   AffiliateSampleFulfillmentObserved: 'AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED',
-  AffiliateTargetCollaborationObserved: 'AFFILIATE_TARGET_COLLABORATION_OBSERVED',
+  AffiliateObservationReview: 'AFFILIATE_TARGET_COLLABORATION_OBSERVED',
   AffiliateTimerDue: 'AFFILIATE_TIMER_DUE',
   CreatorMessageReceived: 'CREATOR_MESSAGE_RECEIVED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
@@ -1655,17 +1666,14 @@ export const AffiliateWorkItemSubjectType = {
 export type AffiliateWorkItemSubjectType = typeof AffiliateWorkItemSubjectType[keyof typeof AffiliateWorkItemSubjectType];
 /** Backend-derived affiliate work item kind consumed by desktop agent-run factories and review UI. */
 export const AffiliateWorkKind = {
-  ApprovalWaiting: 'APPROVAL_WAITING',
-  ContentPublishedObserved: 'CONTENT_PUBLISHED_OBSERVED',
-  CreatorFollowUpDue: 'CREATOR_FOLLOW_UP_DUE',
-  CreatorIdentityUnresolved: 'CREATOR_IDENTITY_UNRESOLVED',
-  CreatorReplyNeeded: 'CREATOR_REPLY_NEEDED',
-  GeneralReviewNeeded: 'GENERAL_REVIEW_NEEDED',
-  OrderAttributedObserved: 'ORDER_ATTRIBUTED_OBSERVED',
-  SampleReviewNeeded: 'SAMPLE_REVIEW_NEEDED',
-  SampleShipmentNeeded: 'SAMPLE_SHIPMENT_NEEDED',
-  StaffReviewNeeded: 'STAFF_REVIEW_NEEDED',
-  TargetCollaborationObserved: 'TARGET_COLLABORATION_OBSERVED'
+  ApprovalReview: 'APPROVAL_REVIEW',
+  CreatorFollowUp: 'CREATOR_FOLLOW_UP',
+  IdentityResolution: 'IDENTITY_RESOLUTION',
+  InboundMessageTriage: 'INBOUND_MESSAGE_TRIAGE',
+  ManualReview: 'MANUAL_REVIEW',
+  ObservationReview: 'OBSERVATION_REVIEW',
+  SampleApplicationDecision: 'SAMPLE_APPLICATION_DECISION',
+  SampleShipment: 'SAMPLE_SHIPMENT'
 } as const;
 
 export type AffiliateWorkKind = typeof AffiliateWorkKind[keyof typeof AffiliateWorkKind];

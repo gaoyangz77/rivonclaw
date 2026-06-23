@@ -158,6 +158,7 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   policySnapshot: types.maybeNull(types.frozen<Record<string, any>>()),
   decision: types.maybeNull(types.frozen<Record<string, any>>()),
   executionResult: types.maybeNull(types.frozen<Record<string, any>>()),
+  sourceWorkBoundary: types.maybeNull(types.frozen<Record<string, any>>()),
   messageIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   sampleReviewIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   sampleShipmentIntent: types.maybeNull(types.frozen<Record<string, any>>()),
