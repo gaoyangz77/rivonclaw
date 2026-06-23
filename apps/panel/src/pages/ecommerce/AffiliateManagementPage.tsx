@@ -4289,8 +4289,10 @@ function CopyInlineValue({
 function creatorPrimaryName(profile: GQL.AffiliateCreatorIdentity, fallback: string): string {
   const nickname = profile.nickname?.trim();
   const username = normalizeTikTokUsername(profile.username);
+  const platformIdentity = creatorPlatformIdentity(profile);
   if (nickname) return nickname;
   if (username) return `@${username}`;
+  if (platformIdentity) return shortenMiddle(platformIdentity, 8, 4);
   return fallback;
 }
 
