@@ -88,6 +88,7 @@ export const ECOMMERCE_GET_CS_REALTIME_PERFORMANCE_QUERY = gql`
         pendingOver5m
         pendingOver15m
         pendingOver30m
+        firstResponseP50Secs
         agentRoundCount
         endedSessionCount
       }

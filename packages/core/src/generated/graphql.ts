@@ -2936,6 +2936,8 @@ export interface CustomerServiceRealtimePerformancePoint {
   endedSessionCount: Scalars['Int']['output'];
   /** Active conversations with open escalations */
   escalatedConversations: Scalars['Int']['output'];
+  /** Nearest-rank P50 first-response time in seconds for the realtime window */
+  firstResponseP50Secs?: Maybe<Scalars['Float']['output']>;
   /** Average pending age in seconds for AI-enabled pending conversations */
   pendingAgeSecs?: Maybe<Scalars['Float']['output']>;
   /** AI-enabled conversations pending seller response */

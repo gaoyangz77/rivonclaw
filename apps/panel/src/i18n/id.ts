@@ -2379,16 +2379,17 @@ export default {
       },
       "realtimeCharts": {
         "state": "Aktif / tertunda / dieskalasi",
-        "pendingAge": "Usia pending",
-        "slaBuckets": "Bucket SLA pending",
-        "sessionFlow": "Partisipasi agent dan sesi selesai",
-        "sessionFlowTooltip": "Partisipasi agent menghitung ronde agent layanan pelanggan yang diterima. Sesi selesai menghitung panggilan tool end-session realtime yang sukses."
+        "firstResponse": "Kecepatan respons pertama",
+        "pendingAge": "Kecepatan respons pertama",
+        "slaBuckets": "Pembeli menunggu",
+        "sessionFlow": "Ronde penanganan AI dan sesi selesai",
+        "sessionFlowTooltip": "Ronde penanganan AI menghitung run AI layanan pelanggan yang diterima. Sesi selesai menghitung panggilan tool end-session realtime yang sukses."
       },
       "series": {
         "active": "Percakapan aktif",
-        "agentRounds": "Ronde agent",
+        "agentRounds": "Ronde penanganan AI",
         "pending": "Tertunda",
-        "pendingAge": "Rata-rata usia pending",
+        "pendingAge": "Respons pertama P50",
         "pendingOver5m": ">5 mnt",
         "pendingOver15m": ">15 mnt",
         "pendingOver30m": ">30 mnt",

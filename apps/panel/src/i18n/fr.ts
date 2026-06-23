@@ -2379,16 +2379,17 @@ export default {
       },
       "realtimeCharts": {
         "state": "Actives / en attente / escaladées",
-        "pendingAge": "Âge des attentes",
-        "slaBuckets": "Buckets SLA en attente",
-        "sessionFlow": "Participation de l'agent et sessions terminées",
-        "sessionFlowTooltip": "La participation de l'agent compte les tours acceptés de l'agent de service client. Les sessions terminées comptent les appels realtime réussis à l'outil de clôture."
+        "firstResponse": "Vitesse de première réponse",
+        "pendingAge": "Vitesse de première réponse",
+        "slaBuckets": "Acheteurs en attente",
+        "sessionFlow": "Tours de traitement IA et sessions terminées",
+        "sessionFlowTooltip": "Les tours de traitement IA comptent les exécutions acceptées de l'IA de service client. Les sessions terminées comptent les appels realtime réussis à l'outil de clôture."
       },
       "series": {
         "active": "Conversations actives",
-        "agentRounds": "Tours de l'agent",
+        "agentRounds": "Tours de traitement IA",
         "pending": "En attente",
-        "pendingAge": "Âge moyen en attente",
+        "pendingAge": "Première réponse P50",
         "pendingOver5m": ">5 min",
         "pendingOver15m": ">15 min",
         "pendingOver30m": ">30 min",

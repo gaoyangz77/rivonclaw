@@ -2379,16 +2379,17 @@ export default {
       },
       "realtimeCharts": {
         "state": "Activas / pendientes / escaladas",
-        "pendingAge": "Antigüedad pendiente",
-        "slaBuckets": "Buckets SLA pendientes",
-        "sessionFlow": "Participación del agente y sesiones finalizadas",
-        "sessionFlowTooltip": "La participación del agente cuenta rondas aceptadas del agente de servicio al cliente. Las sesiones finalizadas cuentan llamadas realtime correctas a la herramienta de cierre de sesión."
+        "firstResponse": "Velocidad de primera respuesta",
+        "pendingAge": "Velocidad de primera respuesta",
+        "slaBuckets": "Compradores en espera",
+        "sessionFlow": "Rondas de gestión de IA y sesiones finalizadas",
+        "sessionFlowTooltip": "Las rondas de gestión de IA cuentan ejecuciones aceptadas de IA de atención al cliente. Las sesiones finalizadas cuentan llamadas realtime correctas a la herramienta de cierre de sesión."
       },
       "series": {
         "active": "Conversaciones activas",
-        "agentRounds": "Rondas del agente",
+        "agentRounds": "Rondas de gestión de IA",
         "pending": "Pendientes",
-        "pendingAge": "Antigüedad media",
+        "pendingAge": "Primera respuesta P50",
         "pendingOver5m": ">5 min",
         "pendingOver15m": ">15 min",
         "pendingOver30m": ">30 min",
