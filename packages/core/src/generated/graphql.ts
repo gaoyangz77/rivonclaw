@@ -737,7 +737,6 @@ export type AffiliateCollaborationRecordProcessReason = typeof AffiliateCollabor
 /** Backend-materialized owner/waiting state for a creator collaboration. Concrete work is represented by AffiliateCollaborationRequiredAction. */
 export const AffiliateCollaborationRecordProcessingStatus = {
   AgentRequired: 'AGENT_REQUIRED',
-  Blocked: 'BLOCKED',
   Idle: 'IDLE',
   StaffRequired: 'STAFF_REQUIRED',
   WaitingExternal: 'WAITING_EXTERNAL'
