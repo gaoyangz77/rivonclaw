@@ -273,6 +273,14 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     })).toBe(true);
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
+      contextTokenReady: false,
+    })).toBe("activation-required");
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: null,
+      contextTokenReady: true,
+    })).toBe(true);
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: true,
       healthy: true,
       healthState: "healthy",
     })).toBe(true);
@@ -283,7 +291,11 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
       healthState: "send-unavailable",
-    })).toBe(false);
+    })).toBe("activation-required");
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: true,
+      healthState: "reauth-required",
+    })).toBe("reauth-required");
     expect(resolveDisplayedRunningStatus("telegram", {
       running: true,
     })).toBe(true);

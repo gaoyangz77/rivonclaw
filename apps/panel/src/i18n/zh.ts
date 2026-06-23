@@ -475,6 +475,8 @@ export default {
     statusYes: "是",
     statusNo: "否",
     statusUnknown: "未知",
+    statusWeChatActivationRequired: "需发消息激活",
+    statusWeChatReauthRequired: "需重新扫码",
     statusConfigured: "已配置",
     statusRunning: "运行中",
     statusConnected: "已连接",
