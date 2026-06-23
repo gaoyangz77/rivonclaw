@@ -4850,6 +4850,15 @@ function renderLifecycleEventDetail(
     }
     return lines.join("\n") || t("ecommerce.affiliateWorkspace.activity.eventRecorded");
   }
+  if (event.eventType === GQL.AffiliateLifecycleEventType.ProposalRevisionRequested && payload) {
+    const lines: string[] = [];
+    if (typeof payload.note === "string" && payload.note.trim()) {
+      lines.push(t("ecommerce.affiliateWorkspace.activity.staffDecision", {
+        note: payload.note.trim(),
+      }));
+    }
+    return lines.join("\n") || t("ecommerce.affiliateWorkspace.activity.eventRecorded");
+  }
   if (event.fromStage || event.toStage) {
     return t("ecommerce.affiliateWorkspace.activity.stageTransition", {
       from: event.fromStage

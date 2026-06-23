@@ -2974,6 +2974,7 @@ export default {
       },
       lifecycleEvents: {
         PROPOSAL_CREATED: "创建提案",
+        PROPOSAL_REVISION_REQUESTED: "已请求重写提案",
         MESSAGE_SENT: "发送消息",
         SAMPLE_APPROVED: "同意样品申请",
         SAMPLE_REJECTED: "拒绝样品申请",

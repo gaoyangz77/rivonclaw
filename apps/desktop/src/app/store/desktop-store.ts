@@ -383,10 +383,10 @@ const DesktopRootStoreModel = RootStoreModel
     for (const [key, raw] of Object.entries(rawData)) {
       if (raw === undefined || raw === null) continue;
 
-      // 1. Array → full replace (query result)
+      // 1. Array → collection hydration (query result)
       if (Array.isArray(raw)) {
         if (key === "actionProposals") {
-          self.affiliateWorkspace.replaceAffiliateActionProposals(sanitizeForMst(raw) as any);
+          self.affiliateWorkspace.ingestAffiliateActionProposals(sanitizeForMst(raw) as any);
           continue;
         }
         if (key === "affiliateCollaborationRecordItems") {
