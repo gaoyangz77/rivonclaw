@@ -2379,16 +2379,17 @@ export default {
       },
       "realtimeCharts": {
         "state": "Aktiv / ausstehend / eskaliert",
-        "pendingAge": "Wartezeit ausstehender Fälle",
-        "slaBuckets": "SLA-Buckets für ausstehende Fälle",
-        "sessionFlow": "Agent-Beteiligung und beendete Sitzungen",
-        "sessionFlowTooltip": "Agent-Beteiligung zählt akzeptierte Kundenservice-Agentenrunden. Beendete Sitzungen zählen erfolgreiche Echtzeit-End-Session-Toolaufrufe."
+        "firstResponse": "Geschwindigkeit der ersten Antwort",
+        "pendingAge": "Geschwindigkeit der ersten Antwort",
+        "slaBuckets": "Wartende Käufer",
+        "sessionFlow": "KI-Bearbeitungsrunden und beendete Sitzungen",
+        "sessionFlowTooltip": "KI-Bearbeitungsrunden zählen akzeptierte Kundenservice-KI-Läufe. Beendete Sitzungen zählen erfolgreiche Echtzeit-End-Session-Toolaufrufe."
       },
       "series": {
         "active": "Aktive Gespräche",
-        "agentRounds": "Agentenrunden",
+        "agentRounds": "KI-Bearbeitungsrunden",
         "pending": "Ausstehend",
-        "pendingAge": "Durchschn. Wartezeit",
+        "pendingAge": "Erste Antwort P50",
         "pendingOver5m": ">5 Min.",
         "pendingOver15m": ">15 Min.",
         "pendingOver30m": ">30 Min.",

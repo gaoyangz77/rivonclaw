@@ -465,7 +465,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           </ChartPanel>
 
           <ChartPanel
-            title={t("ecommerce.customerServicePerformance.realtimeCharts.pendingAge")}
+            title={t("ecommerce.customerServicePerformance.realtimeCharts.firstResponse")}
             loading={loading}
             empty={!realtimeRows.length}
             loadingLabel={t("common.loading")}
@@ -478,7 +478,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <YAxis tickFormatter={(value) => formatSeconds(Number(value))} tickLine={false} width={44} />
                 <Tooltip formatter={(value) => formatSeconds(Number(value))} />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
-                <Line type="monotone" dataKey="pendingAgeSecs" name={t("ecommerce.customerServicePerformance.series.pendingAge")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="firstResponseP50Secs" name={t("ecommerce.customerServicePerformance.series.firstResponseP50")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
