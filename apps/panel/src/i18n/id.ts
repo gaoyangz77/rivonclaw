@@ -2338,10 +2338,21 @@ export default {
       "downloadCsv": "Unduh CSV",
       "dailyTable": "Performa harian",
       "scopeSummary": "{{start}} hingga {{end}} di {{shops}} toko. Menampilkan semua hari dalam rentang ini.",
+      "tabs": {
+        "label": "Tampilan performa",
+        "history": "Riwayat",
+        "realtime": "Realtime"
+      },
       "ranges": {
         "7d": "7 hari",
         "30d": "30 hari",
         "90d": "90 hari"
+      },
+      "realtimeRanges": {
+        "1h": "1 jam",
+        "6h": "6 jam",
+        "12h": "12 jam",
+        "24h": "24 jam"
       },
       "metrics": {
         "active": "Percakapan aktif",
@@ -2366,8 +2377,21 @@ export default {
         "satisfaction": "Kepuasan pelanggan",
         "firstResponse": "Kecepatan respons pertama"
       },
+      "realtimeCharts": {
+        "state": "Aktif / tertunda / dieskalasi",
+        "pendingAge": "Usia pending",
+        "slaBuckets": "Bucket SLA pending",
+        "sessionFlow": "Partisipasi agent dan sesi selesai",
+        "sessionFlowTooltip": "Partisipasi agent menghitung ronde agent layanan pelanggan yang diterima. Sesi selesai menghitung panggilan tool end-session realtime yang sukses."
+      },
       "series": {
         "active": "Percakapan aktif",
+        "agentRounds": "Ronde agent",
+        "pending": "Tertunda",
+        "pendingAge": "Rata-rata usia pending",
+        "pendingOver5m": ">5 mnt",
+        "pendingOver15m": ">15 mnt",
+        "pendingOver30m": ">30 mnt",
         "messages": "Pesan",
         "endedSessions": "Sesi selesai",
         "endedMessages": "Pesan penutupan",
@@ -2716,7 +2740,8 @@ export default {
         "REJECTED": "Ditolak",
         "SUPERSEDED": "Digantikan",
         "EXPIRED": "Kedaluwarsa",
-        "MODIFIED": "Diubah"
+        "MODIFIED": "Diubah",
+        "REVISION_REQUESTED": "Revisi diminta"
       },
       "proposalTypeFilters": {
         "ALL": "Semua tipe"
@@ -2925,7 +2950,11 @@ export default {
         "CREATOR_IDENTITY_UNRESOLVED": "Konfirmasi identitas kreator",
         "STAFF_REVIEW_REQUESTED": "Tentukan langkah berikutnya",
         "AGENT_RUN_FAILED": "Tinjau alasan eksekusi AI gagal",
+        "PROPOSAL_REVISION_REQUESTED": "Revisi proposal diminta",
         "DEFAULT": "Tinjau kolaborasi ini"
+      },
+      "collaborationWorkDescriptions": {
+        "PROPOSAL_REVISION_REQUESTED": "Staf meminta rekomendasi yang direvisi. Catatan revisi akan disertakan dalam eksekusi agen berikutnya."
       },
       "sampleWorkStatusDescriptions": {
         "REQUEST_PENDING_REVIEW": "Kreator telah mengirim permintaan sampel dan menunggu keputusan Anda.",
@@ -3253,8 +3282,15 @@ export default {
         "policyReasons": "Kebijakan",
         "proposalApproveSuccess": "Proposal disetujui dan dilaksanakan.",
         "proposalRejectSuccess": "Usulan ditolak.",
+        "proposalRevisionRequestSuccess": "Revisi diminta. Agen akan memakai catatan Anda.",
         "proposalApprovedNote": "Disetujui dari tabel tinjauan Manajemen Afiliasi.",
         "proposalRejectedNote": "Ditolak dari tabel tinjauan Manajemen Afiliasi.",
+        "proposalRevisionRequestedNote": "Revisi diminta dari tabel tinjauan Manajemen Afiliasi.",
+        "requestProposalRevision": "Minta revisi",
+        "sendProposalRevisionRequest": "Kirim permintaan revisi",
+        "proposalRevisionNoteLabel": "Catatan revisi",
+        "proposalRevisionNotePlaceholder": "Beri tahu agen apa yang harus diubah, misalnya: setujui sampel tetapi gunakan balasan yang lebih singkat.",
+        "proposalRevisionNoteHint": "Catatan ini dikirim kembali ke agen afiliasi untuk proposal berikutnya.",
         "messageIntentFallback": "pesan {{type}}",
         "sampleReviewPreview": "Contoh aplikasi {{decision}} {{applicationId}}",
         "sampleReviewDecisions": {
@@ -3289,6 +3325,7 @@ export default {
           "MODIFIED": "Dimodifikasi",
           "PENDING": "Tertunda",
           "REJECTED": "Ditolak",
+          "REVISION_REQUESTED": "Revisi diminta",
           "SUPERSEDED": "Digantikan"
         }
       }

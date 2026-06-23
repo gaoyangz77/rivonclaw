@@ -11439,6 +11439,42 @@ html[lang="zh"] .acct-tool-chips {
   gap: 18px;
 }
 
+.cs-performance-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg));
+}
+
+.cs-performance-tab {
+  min-width: 112px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.cs-performance-tab:hover {
+  color: var(--color-text);
+}
+
+.cs-performance-tab.active {
+  border-color: color-mix(in srgb, var(--cs-performance-ink) 24%, var(--color-border-light));
+  background: var(--color-bg);
+  color: var(--cs-performance-ink);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 6%);
+}
+
 .cs-performance-toolbar {
   display: flex;
   align-items: end;
@@ -11697,6 +11733,16 @@ html[lang="zh"] .acct-tool-chips {
 
   .cs-performance-toolbar {
     justify-content: flex-start;
+  }
+
+  .cs-performance-tabs {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .cs-performance-tab {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .cs-performance-kpis,

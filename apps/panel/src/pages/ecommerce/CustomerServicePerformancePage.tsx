@@ -13,16 +13,25 @@ import {
   YAxis,
 } from "recharts";
 import type { GQL } from "@rivonclaw/core";
-import { ECOMMERCE_GET_CS_PERFORMANCE_QUERY } from "../../api/cs-performance-queries.js";
+import {
+  ECOMMERCE_GET_CS_PERFORMANCE_QUERY,
+  ECOMMERCE_GET_CS_REALTIME_PERFORMANCE_QUERY,
+} from "../../api/cs-performance-queries.js";
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 
+type PerformanceTab = "history" | "realtime";
 type TimeRange = "7d" | "30d" | "90d";
+type RealtimeRange = "1" | "6" | "12" | "24";
 
 type ChartRow = GQL.CustomerServicePerformanceDailyRow & {
   dateLabel: string;
   satisfaction7dWeighted: number | null;
+};
+
+type RealtimeChartRow = GQL.CustomerServiceRealtimePerformancePoint & {
+  timeLabel: string;
 };
 
 const RANGE_DAYS: Record<TimeRange, number> = {
@@ -59,6 +68,12 @@ function formatSeconds(value: number | null | undefined): string {
   return `${(value / 60).toFixed(value >= 600 ? 0 : 1)}m`;
 }
 
+function formatRealtimeLabel(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(11, 16);
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
 function formatDecimal(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "--";
   return value.toFixed(value >= 10 ? 0 : 2);
@@ -79,8 +94,10 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
+  const [activeTab, setActiveTab] = useState<PerformanceTab>("history");
   const [shopId, setShopId] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [realtimeRange, setRealtimeRange] = useState<RealtimeRange>("6");
 
   useEffect(() => {
     if (user) entityStore.fetchShops().catch(() => {});
@@ -91,7 +108,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     endTime: todayIsoDate(),
   }), [timeRange]);
 
-  const { data, loading, error, refetch } = useQuery<{
+  const historyQuery = useQuery<{
     ecommerceGetCSPerformance: GQL.CustomerServicePerformanceReport;
   }>(ECOMMERCE_GET_CS_PERFORMANCE_QUERY, {
     variables: {
@@ -99,11 +116,26 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       startTime: range.startTime,
       endTime: range.endTime,
     },
-    skip: !user,
+    skip: !user || activeTab !== "history",
     fetchPolicy: "cache-and-network",
   });
 
-  const report = data?.ecommerceGetCSPerformance ?? null;
+  const realtimeQuery = useQuery<{
+    ecommerceGetCSRealtimePerformance: GQL.CustomerServiceRealtimePerformanceReport;
+  }>(ECOMMERCE_GET_CS_REALTIME_PERFORMANCE_QUERY, {
+    variables: {
+      shopId: shopId || null,
+      hours: Number(realtimeRange),
+    },
+    skip: !user || activeTab !== "realtime",
+    fetchPolicy: "cache-and-network",
+    pollInterval: activeTab === "realtime" ? 60_000 : 0,
+  });
+
+  const loading = activeTab === "realtime" ? realtimeQuery.loading : historyQuery.loading;
+  const error = activeTab === "realtime" ? realtimeQuery.error : historyQuery.error;
+  const report = historyQuery.data?.ecommerceGetCSPerformance ?? null;
+  const realtimeReport = realtimeQuery.data?.ecommerceGetCSRealtimePerformance ?? null;
   const summary = report?.summary;
   const chartRows: ChartRow[] = useMemo(() => {
     const rows = (report?.byDate ?? []).map((row) => ({
@@ -122,6 +154,13 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     });
   }, [report]);
 
+  const realtimeRows: RealtimeChartRow[] = useMemo(() => (
+    (realtimeReport?.points ?? []).map((point) => ({
+      ...point,
+      timeLabel: formatRealtimeLabel(point.sampledAt),
+    }))
+  ), [realtimeReport]);
+
   const tableRows = useMemo(() => [...chartRows].reverse(), [chartRows]);
 
   const shopOptions = useMemo(() => [
@@ -138,6 +177,13 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     { value: "7d", label: t("ecommerce.customerServicePerformance.ranges.7d") },
     { value: "30d", label: t("ecommerce.customerServicePerformance.ranges.30d") },
     { value: "90d", label: t("ecommerce.customerServicePerformance.ranges.90d") },
+  ]), [t]);
+
+  const realtimeRangeOptions = useMemo(() => ([
+    { value: "1", label: t("ecommerce.customerServicePerformance.realtimeRanges.1h") },
+    { value: "6", label: t("ecommerce.customerServicePerformance.realtimeRanges.6h") },
+    { value: "12", label: t("ecommerce.customerServicePerformance.realtimeRanges.12h") },
+    { value: "24", label: t("ecommerce.customerServicePerformance.realtimeRanges.24h") },
   ]), [t]);
 
   const downloadCsv = () => {
@@ -205,6 +251,27 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         </div>
       </div>
 
+      <div className="cs-performance-tabs" role="tablist" aria-label={t("ecommerce.customerServicePerformance.tabs.label")}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "history"}
+          className={`cs-performance-tab ${activeTab === "history" ? "active" : ""}`}
+          onClick={() => setActiveTab("history")}
+        >
+          {t("ecommerce.customerServicePerformance.tabs.history")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "realtime"}
+          className={`cs-performance-tab ${activeTab === "realtime" ? "active" : ""}`}
+          onClick={() => setActiveTab("realtime")}
+        >
+          {t("ecommerce.customerServicePerformance.tabs.realtime")}
+        </button>
+      </div>
+
       <div className="section-card cs-performance-toolbar">
         <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServicePerformance.shopFilter")}</span>
@@ -216,16 +283,33 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             searchable
           />
         </label>
-        <label className="cs-performance-filter">
-          <span>{t("ecommerce.customerServicePerformance.timeRange")}</span>
-          <Select
-            ariaLabel={t("ecommerce.customerServicePerformance.timeRange")}
-            options={rangeOptions}
-            value={timeRange}
-            onChange={(value) => setTimeRange(value as TimeRange)}
-          />
-        </label>
-        <button className="icon-button" type="button" onClick={() => refetch()} title={t("common.refresh")}>
+        {activeTab === "history" ? (
+          <label className="cs-performance-filter">
+            <span>{t("ecommerce.customerServicePerformance.timeRange")}</span>
+            <Select
+              ariaLabel={t("ecommerce.customerServicePerformance.timeRange")}
+              options={rangeOptions}
+              value={timeRange}
+              onChange={(value) => setTimeRange(value as TimeRange)}
+            />
+          </label>
+        ) : (
+          <label className="cs-performance-filter">
+            <span>{t("ecommerce.customerServicePerformance.timeRange")}</span>
+            <Select
+              ariaLabel={t("ecommerce.customerServicePerformance.timeRange")}
+              options={realtimeRangeOptions}
+              value={realtimeRange}
+              onChange={(value) => setRealtimeRange(value as RealtimeRange)}
+            />
+          </label>
+        )}
+        <button
+          className="icon-button"
+          type="button"
+          onClick={() => (activeTab === "realtime" ? realtimeQuery.refetch() : historyQuery.refetch())}
+          title={t("common.refresh")}
+        >
           <RefreshIcon aria-hidden="true" />
         </button>
       </div>
@@ -237,125 +321,214 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         </div>
       )}
 
-      <div className="cs-performance-kpis">
-        <MetricTile
-          label={t("ecommerce.customerServicePerformance.metrics.sessionFlow")}
-          value={formatCount(summary?.supportSessionCount)}
-          detail={t("ecommerce.customerServicePerformance.metrics.newSessions", {
-            value: formatCount(summary?.newSessionCount),
-            defaultValue: "{{value}} new sessions",
-          })}
-        />
-        <MetricTile
-          label={t("ecommerce.customerServicePerformance.metrics.escalations")}
-          value={formatCount(summary?.escalateConversations)}
-          detail={t("ecommerce.customerServicePerformance.metrics.resolvedWithRate", {
-            value: formatCount(summary?.escalationResolved),
-            rate: formatRate(summary?.escalationResolveRate),
-            defaultValue: "{{value}} resolved · {{rate}} resolve rate",
-          })}
-        />
-        <MetricTile
-          label={t("ecommerce.customerServicePerformance.metrics.satisfaction")}
-          value={formatRate(summary?.satisfactionRate)}
-          detail={t("ecommerce.customerServicePerformance.metrics.ratedSessions", {
-            value: formatCount(summary?.ratedSessions),
-            defaultValue: "{{value}} rated sessions",
-          })}
-        />
-        <MetricTile
-          label={t("ecommerce.customerServicePerformance.metrics.firstResponse")}
-          value={formatSeconds(summary?.firstResponseP50Secs)}
-          detail={t("ecommerce.customerServicePerformance.metrics.firstResponseSamples", {
-            value: formatCount(summary?.firstResponseCount),
-            defaultValue: "{{value}} measured conversations",
-          })}
-        />
-      </div>
+      {activeTab === "history" ? (
+        <>
+          <div className="cs-performance-kpis">
+            <MetricTile
+              label={t("ecommerce.customerServicePerformance.metrics.sessionFlow")}
+              value={formatCount(summary?.supportSessionCount)}
+              detail={t("ecommerce.customerServicePerformance.metrics.newSessions", {
+                value: formatCount(summary?.newSessionCount),
+                defaultValue: "{{value}} new sessions",
+              })}
+            />
+            <MetricTile
+              label={t("ecommerce.customerServicePerformance.metrics.escalations")}
+              value={formatCount(summary?.escalateConversations)}
+              detail={t("ecommerce.customerServicePerformance.metrics.resolvedWithRate", {
+                value: formatCount(summary?.escalationResolved),
+                rate: formatRate(summary?.escalationResolveRate),
+                defaultValue: "{{value}} resolved · {{rate}} resolve rate",
+              })}
+            />
+            <MetricTile
+              label={t("ecommerce.customerServicePerformance.metrics.satisfaction")}
+              value={formatRate(summary?.satisfactionRate)}
+              detail={t("ecommerce.customerServicePerformance.metrics.ratedSessions", {
+                value: formatCount(summary?.ratedSessions),
+                defaultValue: "{{value}} rated sessions",
+              })}
+            />
+            <MetricTile
+              label={t("ecommerce.customerServicePerformance.metrics.firstResponse")}
+              value={formatSeconds(summary?.firstResponseP50Secs)}
+              detail={t("ecommerce.customerServicePerformance.metrics.firstResponseSamples", {
+                value: formatCount(summary?.firstResponseCount),
+                defaultValue: "{{value}} measured conversations",
+              })}
+            />
+          </div>
 
-      <div className="cs-performance-chart-grid">
-        <ChartPanel
-          title={t("ecommerce.customerServicePerformance.charts.volume")}
-          loading={loading}
-          empty={!chartRows.length}
-          loadingLabel={t("common.loading")}
-          emptyLabel={t("ecommerce.customerServicePerformance.noData")}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={chartRows}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="dateLabel" tickLine={false} />
-              <YAxis tickLine={false} width={44} />
-              <Tooltip formatter={(value) => formatCount(Number(value))} />
-              <Legend verticalAlign="bottom" height={36} iconType="line" />
-              <Line type="monotone" dataKey="newSessionCount" name={t("ecommerce.customerServicePerformance.series.newSessions")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
-              <Line type="monotone" dataKey="supportSessionCount" name={t("ecommerce.customerServicePerformance.series.endedSessions")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartPanel>
+          <div className="cs-performance-chart-grid">
+            <ChartPanel
+              title={t("ecommerce.customerServicePerformance.charts.volume")}
+              loading={loading}
+              empty={!chartRows.length}
+              loadingLabel={t("common.loading")}
+              emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={chartRows}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="dateLabel" tickLine={false} />
+                  <YAxis tickLine={false} width={44} />
+                  <Tooltip formatter={(value) => formatCount(Number(value))} />
+                  <Legend verticalAlign="bottom" height={36} iconType="line" />
+                  <Line type="monotone" dataKey="newSessionCount" name={t("ecommerce.customerServicePerformance.series.newSessions")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="supportSessionCount" name={t("ecommerce.customerServicePerformance.series.endedSessions")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartPanel>
 
-        <ChartPanel
-          title={t("ecommerce.customerServicePerformance.charts.escalation")}
-          tooltip={t("ecommerce.customerServicePerformance.charts.escalationTooltip")}
-          loading={loading}
-          empty={!chartRows.length}
-          loadingLabel={t("common.loading")}
-          emptyLabel={t("ecommerce.customerServicePerformance.noData")}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={chartRows}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="dateLabel" tickLine={false} />
-              <YAxis tickLine={false} width={44} />
-              <Tooltip formatter={(value) => formatCount(Number(value))} />
-              <Legend verticalAlign="bottom" height={36} iconType="line" />
-              <Line type="monotone" dataKey="escalateConversations" name={t("ecommerce.customerServicePerformance.series.escalated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
-              <Line type="monotone" dataKey="escalationResolved" name={t("ecommerce.customerServicePerformance.series.resolved")} stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartPanel>
+            <ChartPanel
+              title={t("ecommerce.customerServicePerformance.charts.escalation")}
+              tooltip={t("ecommerce.customerServicePerformance.charts.escalationTooltip")}
+              loading={loading}
+              empty={!chartRows.length}
+              loadingLabel={t("common.loading")}
+              emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={chartRows}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="dateLabel" tickLine={false} />
+                  <YAxis tickLine={false} width={44} />
+                  <Tooltip formatter={(value) => formatCount(Number(value))} />
+                  <Legend verticalAlign="bottom" height={36} iconType="line" />
+                  <Line type="monotone" dataKey="escalateConversations" name={t("ecommerce.customerServicePerformance.series.escalated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="escalationResolved" name={t("ecommerce.customerServicePerformance.series.resolved")} stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartPanel>
 
-        <ChartPanel
-          title={t("ecommerce.customerServicePerformance.charts.satisfaction")}
-          loading={loading}
-          empty={!chartRows.length}
-          loadingLabel={t("common.loading")}
-          emptyLabel={t("ecommerce.customerServicePerformance.noData")}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={chartRows}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="dateLabel" tickLine={false} />
-              <YAxis tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tickLine={false} width={44} />
-              <Tooltip formatter={(value) => formatRate(Number(value))} />
-              <Legend verticalAlign="bottom" height={36} iconType="line" />
-              <Line type="monotone" dataKey="satisfactionRate" name={t("ecommerce.customerServicePerformance.series.satisfaction")} stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} connectNulls />
-              <Line type="monotone" dataKey="satisfaction7dWeighted" name={t("ecommerce.customerServicePerformance.series.satisfaction7dWeighted")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartPanel>
+            <ChartPanel
+              title={t("ecommerce.customerServicePerformance.charts.satisfaction")}
+              loading={loading}
+              empty={!chartRows.length}
+              loadingLabel={t("common.loading")}
+              emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={chartRows}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="dateLabel" tickLine={false} />
+                  <YAxis tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tickLine={false} width={44} />
+                  <Tooltip formatter={(value) => formatRate(Number(value))} />
+                  <Legend verticalAlign="bottom" height={36} iconType="line" />
+                  <Line type="monotone" dataKey="satisfactionRate" name={t("ecommerce.customerServicePerformance.series.satisfaction")} stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="satisfaction7dWeighted" name={t("ecommerce.customerServicePerformance.series.satisfaction7dWeighted")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartPanel>
 
-        <ChartPanel
-          title={t("ecommerce.customerServicePerformance.charts.firstResponse")}
-          loading={loading}
-          empty={!chartRows.length}
-          loadingLabel={t("common.loading")}
-          emptyLabel={t("ecommerce.customerServicePerformance.noData")}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={chartRows}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="dateLabel" tickLine={false} />
-              <YAxis tickFormatter={(value) => formatSeconds(Number(value))} tickLine={false} width={44} />
-              <Tooltip formatter={(value) => formatSeconds(Number(value))} />
-              <Legend verticalAlign="bottom" height={36} iconType="line" />
-              <Line type="monotone" dataKey="firstResponseP50Secs" name={t("ecommerce.customerServicePerformance.series.firstResponseP50")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartPanel>
-      </div>
+            <ChartPanel
+              title={t("ecommerce.customerServicePerformance.charts.firstResponse")}
+              loading={loading}
+              empty={!chartRows.length}
+              loadingLabel={t("common.loading")}
+              emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={chartRows}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="dateLabel" tickLine={false} />
+                  <YAxis tickFormatter={(value) => formatSeconds(Number(value))} tickLine={false} width={44} />
+                  <Tooltip formatter={(value) => formatSeconds(Number(value))} />
+                  <Legend verticalAlign="bottom" height={36} iconType="line" />
+                  <Line type="monotone" dataKey="firstResponseP50Secs" name={t("ecommerce.customerServicePerformance.series.firstResponseP50")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartPanel>
+          </div>
+        </>
+      ) : (
+        <div className="cs-performance-chart-grid">
+          <ChartPanel
+            title={t("ecommerce.customerServicePerformance.realtimeCharts.state")}
+            loading={loading}
+            empty={!realtimeRows.length}
+            loadingLabel={t("common.loading")}
+            emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={realtimeRows}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="timeLabel" tickLine={false} />
+                <YAxis tickLine={false} width={44} />
+                <Tooltip formatter={(value) => formatCount(Number(value))} />
+                <Legend verticalAlign="bottom" height={36} iconType="line" />
+                <Line type="monotone" dataKey="activeConversations" name={t("ecommerce.customerServicePerformance.series.active")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="pendingConversations" name={t("ecommerce.customerServicePerformance.series.pending")} stroke="var(--cs-performance-warn)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="escalatedConversations" name={t("ecommerce.customerServicePerformance.series.escalated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
 
-      <div className="section-card cs-performance-table-card">
+          <ChartPanel
+            title={t("ecommerce.customerServicePerformance.realtimeCharts.pendingAge")}
+            loading={loading}
+            empty={!realtimeRows.length}
+            loadingLabel={t("common.loading")}
+            emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={realtimeRows}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="timeLabel" tickLine={false} />
+                <YAxis tickFormatter={(value) => formatSeconds(Number(value))} tickLine={false} width={44} />
+                <Tooltip formatter={(value) => formatSeconds(Number(value))} />
+                <Legend verticalAlign="bottom" height={36} iconType="line" />
+                <Line type="monotone" dataKey="pendingAgeSecs" name={t("ecommerce.customerServicePerformance.series.pendingAge")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+
+          <ChartPanel
+            title={t("ecommerce.customerServicePerformance.realtimeCharts.slaBuckets")}
+            loading={loading}
+            empty={!realtimeRows.length}
+            loadingLabel={t("common.loading")}
+            emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={realtimeRows}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="timeLabel" tickLine={false} />
+                <YAxis tickLine={false} width={44} />
+                <Tooltip formatter={(value) => formatCount(Number(value))} />
+                <Legend verticalAlign="bottom" height={36} iconType="line" />
+                <Line type="monotone" dataKey="pendingOver5m" name={t("ecommerce.customerServicePerformance.series.pendingOver5m")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="pendingOver15m" name={t("ecommerce.customerServicePerformance.series.pendingOver15m")} stroke="var(--cs-performance-warn)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="pendingOver30m" name={t("ecommerce.customerServicePerformance.series.pendingOver30m")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+
+          <ChartPanel
+            title={t("ecommerce.customerServicePerformance.realtimeCharts.sessionFlow")}
+            tooltip={t("ecommerce.customerServicePerformance.realtimeCharts.sessionFlowTooltip")}
+            loading={loading}
+            empty={!realtimeRows.length}
+            loadingLabel={t("common.loading")}
+            emptyLabel={t("ecommerce.customerServicePerformance.noData")}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={realtimeRows}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="timeLabel" tickLine={false} />
+                <YAxis tickLine={false} width={44} />
+                <Tooltip formatter={(value) => formatCount(Number(value))} />
+                <Legend verticalAlign="bottom" height={36} iconType="line" />
+                <Line type="monotone" dataKey="agentRoundCount" name={t("ecommerce.customerServicePerformance.series.agentRounds")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="endedSessionCount" name={t("ecommerce.customerServicePerformance.series.endedSessions")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div className="section-card cs-performance-table-card">
         <div className="ecommerce-section-header cs-performance-table-header">
           <div>
             <h3>{t("ecommerce.customerServicePerformance.dailyTable")}</h3>
@@ -417,6 +590,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 });

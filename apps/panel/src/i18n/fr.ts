@@ -2338,10 +2338,21 @@ export default {
       "downloadCsv": "Télécharger CSV",
       "dailyTable": "Performance quotidienne",
       "scopeSummary": "{{start}} à {{end}} sur {{shops}} boutique(s). Tous les jours de cette période sont affichés.",
+      "tabs": {
+        "label": "Vue de performance",
+        "history": "Historique",
+        "realtime": "Temps réel"
+      },
       "ranges": {
         "7d": "7 jours",
         "30d": "30 jours",
         "90d": "90 jours"
+      },
+      "realtimeRanges": {
+        "1h": "1 heure",
+        "6h": "6 heures",
+        "12h": "12 heures",
+        "24h": "24 heures"
       },
       "metrics": {
         "active": "Conversations actives",
@@ -2366,8 +2377,21 @@ export default {
         "satisfaction": "Satisfaction client",
         "firstResponse": "Vitesse de première réponse"
       },
+      "realtimeCharts": {
+        "state": "Actives / en attente / escaladées",
+        "pendingAge": "Âge des attentes",
+        "slaBuckets": "Buckets SLA en attente",
+        "sessionFlow": "Participation de l'agent et sessions terminées",
+        "sessionFlowTooltip": "La participation de l'agent compte les tours acceptés de l'agent de service client. Les sessions terminées comptent les appels realtime réussis à l'outil de clôture."
+      },
       "series": {
         "active": "Conversations actives",
+        "agentRounds": "Tours de l'agent",
+        "pending": "En attente",
+        "pendingAge": "Âge moyen en attente",
+        "pendingOver5m": ">5 min",
+        "pendingOver15m": ">15 min",
+        "pendingOver30m": ">30 min",
         "messages": "Messages",
         "endedSessions": "Sessions terminées",
         "endedMessages": "Messages de clôture",
@@ -2716,7 +2740,8 @@ export default {
         "REJECTED": "Rejetées",
         "SUPERSEDED": "Remplacées",
         "EXPIRED": "Expirées",
-        "MODIFIED": "Modifiées"
+        "MODIFIED": "Modifiées",
+        "REVISION_REQUESTED": "Révision demandée"
       },
       "proposalTypeFilters": {
         "ALL": "Tous les types"
@@ -2925,7 +2950,11 @@ export default {
         "CREATOR_IDENTITY_UNRESOLVED": "Confirmer l'identité du créateur",
         "STAFF_REVIEW_REQUESTED": "Décider de la prochaine étape",
         "AGENT_RUN_FAILED": "Examiner l'échec de l'exécution IA",
+        "PROPOSAL_REVISION_REQUESTED": "Révision de proposition demandée",
         "DEFAULT": "Examiner cette collaboration"
+      },
+      "collaborationWorkDescriptions": {
+        "PROPOSAL_REVISION_REQUESTED": "L'équipe a demandé une recommandation révisée. La note de révision sera incluse dans la prochaine exécution de l'agent."
       },
       "sampleWorkStatusDescriptions": {
         "REQUEST_PENDING_REVIEW": "Le créateur a soumis une demande d'échantillon et attend votre décision.",
@@ -3253,8 +3282,15 @@ export default {
         "policyReasons": "Politique",
         "proposalApproveSuccess": "Proposition approuvée et exécutée.",
         "proposalRejectSuccess": "Proposition rejetée.",
+        "proposalRevisionRequestSuccess": "Révision demandée. L'agent utilisera vos notes.",
         "proposalApprovedNote": "Approuvé par le tableau d'examen de la gestion des affiliés.",
         "proposalRejectedNote": "Rejeté du tableau d'examen de la gestion des affiliés.",
+        "proposalRevisionRequestedNote": "Révision demandée depuis le tableau d'examen de la gestion des affiliés.",
+        "requestProposalRevision": "Demander une révision",
+        "sendProposalRevisionRequest": "Envoyer la demande de révision",
+        "proposalRevisionNoteLabel": "Notes de révision",
+        "proposalRevisionNotePlaceholder": "Indiquez à l'agent quoi changer, par exemple : approuver l'échantillon mais utiliser une réponse plus courte.",
+        "proposalRevisionNoteHint": "Ces notes seront renvoyées à l'agent affilié pour la prochaine proposition.",
         "messageIntentFallback": "Message {{type}}",
         "sampleReviewPreview": "Exemple d'application {{decision}} {{applicationId}}",
         "sampleReviewDecisions": {
@@ -3289,6 +3325,7 @@ export default {
           "MODIFIED": "Modifié",
           "PENDING": "En attente",
           "REJECTED": "Rejeté",
+          "REVISION_REQUESTED": "Révision demandée",
           "SUPERSEDED": "Remplacé"
         }
       }

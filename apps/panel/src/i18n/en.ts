@@ -2584,10 +2584,21 @@ export default {
       downloadCsv: "Download CSV",
       dailyTable: "Daily performance",
       scopeSummary: "{{start}} to {{end}} across {{shops}} shop(s). Showing all days in this range.",
+      tabs: {
+        label: "Performance view",
+        history: "History",
+        realtime: "Realtime",
+      },
       ranges: {
         "7d": "7 days",
         "30d": "30 days",
         "90d": "90 days",
+      },
+      realtimeRanges: {
+        "1h": "1 hour",
+        "6h": "6 hours",
+        "12h": "12 hours",
+        "24h": "24 hours",
       },
       metrics: {
         active: "Active conversations",
@@ -2612,8 +2623,21 @@ export default {
         satisfaction: "Customer satisfaction",
         firstResponse: "First response speed",
       },
+      realtimeCharts: {
+        state: "Active / pending / escalated",
+        pendingAge: "Pending age",
+        slaBuckets: "Pending SLA buckets",
+        sessionFlow: "Agent participation and ended sessions",
+        sessionFlowTooltip: "Agent participation counts accepted customer-service agent rounds. Ended sessions count successful realtime end-session tool calls.",
+      },
       series: {
         active: "Active conversations",
+        agentRounds: "Agent rounds",
+        pending: "Pending",
+        pendingAge: "Average pending age",
+        pendingOver5m: ">5m",
+        pendingOver15m: ">15m",
+        pendingOver30m: ">30m",
         messages: "Messages",
         endedSessions: "Ended sessions",
         endedMessages: "Closeout messages",

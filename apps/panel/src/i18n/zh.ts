@@ -2583,10 +2583,21 @@ export default {
       downloadCsv: "下载 CSV",
       dailyTable: "每日绩效",
       scopeSummary: "{{start}} 至 {{end}}，覆盖 {{shops}} 个店铺。表格显示该时间范围内全部日期。",
+      tabs: {
+        label: "绩效视图",
+        history: "历史数据",
+        realtime: "实时数据",
+      },
       ranges: {
         "7d": "7 天",
         "30d": "30 天",
         "90d": "90 天",
+      },
+      realtimeRanges: {
+        "1h": "1 小时",
+        "6h": "6 小时",
+        "12h": "12 小时",
+        "24h": "24 小时",
       },
       metrics: {
         active: "活跃会话",
@@ -2611,8 +2622,21 @@ export default {
         satisfaction: "客户满意度",
         firstResponse: "首次响应速度",
       },
+      realtimeCharts: {
+        state: "活跃 / 待处理 / 已升级",
+        pendingAge: "待处理时长",
+        slaBuckets: "待处理 SLA 分桶",
+        sessionFlow: "Agent 参与量与结束会话",
+        sessionFlowTooltip: "Agent 参与量统计客服 Agent 被接受并实际运行的轮次；结束会话统计实时成功执行的 end-session 工具调用。",
+      },
       series: {
         active: "活跃会话",
+        agentRounds: "Agent 运行轮次",
+        pending: "待处理",
+        pendingAge: "平均待处理时长",
+        pendingOver5m: ">5 分钟",
+        pendingOver15m: ">15 分钟",
+        pendingOver30m: ">30 分钟",
         messages: "消息量",
         endedSessions: "结束会话",
         endedMessages: "结束消息",
