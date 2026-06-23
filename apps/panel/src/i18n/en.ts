@@ -2975,6 +2975,7 @@ export default {
       },
       lifecycleEvents: {
         PROPOSAL_CREATED: "Proposal created",
+        PROPOSAL_REVISION_REQUESTED: "Proposal revision requested",
         MESSAGE_SENT: "Message sent",
         SAMPLE_APPROVED: "Sample request approved",
         SAMPLE_REJECTED: "Sample request rejected",

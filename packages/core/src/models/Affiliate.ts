@@ -440,6 +440,9 @@ export const AffiliateWorkspaceModel = types
 
     return {
       upsertAffiliateActionProposal: upsertProposal,
+      ingestAffiliateActionProposals(proposals: GQL.ActionProposal[]) {
+        for (const proposal of proposals) upsertProposal(proposal);
+      },
       replaceAffiliateActionProposals(proposals: GQL.ActionProposal[]) {
         self.actionProposals.clear();
         for (const proposal of proposals) upsertProposal(proposal);
