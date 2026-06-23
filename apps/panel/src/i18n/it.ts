@@ -2338,10 +2338,21 @@ export default {
       "downloadCsv": "Scarica CSV",
       "dailyTable": "Prestazioni giornaliere",
       "scopeSummary": "Da {{start}} a {{end}} su {{shops}} negozio/i. Sono mostrati tutti i giorni del periodo.",
+      "tabs": {
+        "label": "Vista prestazioni",
+        "history": "Storico",
+        "realtime": "Tempo reale"
+      },
       "ranges": {
         "7d": "7 giorni",
         "30d": "30 giorni",
         "90d": "90 giorni"
+      },
+      "realtimeRanges": {
+        "1h": "1 ora",
+        "6h": "6 ore",
+        "12h": "12 ore",
+        "24h": "24 ore"
       },
       "metrics": {
         "active": "Conversazioni attive",
@@ -2366,8 +2377,21 @@ export default {
         "satisfaction": "Soddisfazione clienti",
         "firstResponse": "Velocità della prima risposta"
       },
+      "realtimeCharts": {
+        "state": "Attive / in attesa / escalate",
+        "pendingAge": "Età in attesa",
+        "slaBuckets": "Bucket SLA in attesa",
+        "sessionFlow": "Partecipazione agente e sessioni concluse",
+        "sessionFlowTooltip": "La partecipazione agente conta i round accettati dell'agente del servizio clienti. Le sessioni concluse contano le chiamate realtime riuscite allo strumento di chiusura sessione."
+      },
       "series": {
         "active": "Conversazioni attive",
+        "agentRounds": "Round agente",
+        "pending": "In attesa",
+        "pendingAge": "Età media in attesa",
+        "pendingOver5m": ">5 min",
+        "pendingOver15m": ">15 min",
+        "pendingOver30m": ">30 min",
         "messages": "Messaggi",
         "endedSessions": "Sessioni concluse",
         "endedMessages": "Messaggi di chiusura",
@@ -2716,7 +2740,8 @@ export default {
         "REJECTED": "Rifiutate",
         "SUPERSEDED": "Superate",
         "EXPIRED": "Scadute",
-        "MODIFIED": "Modificate"
+        "MODIFIED": "Modificate",
+        "REVISION_REQUESTED": "Revisione richiesta"
       },
       "proposalTypeFilters": {
         "ALL": "Tutti i tipi"
@@ -2925,7 +2950,11 @@ export default {
         "CREATOR_IDENTITY_UNRESOLVED": "Conferma l'identità del creator",
         "STAFF_REVIEW_REQUESTED": "Decidi il prossimo passo",
         "AGENT_RUN_FAILED": "Controlla perché l'esecuzione IA è fallita",
+        "PROPOSAL_REVISION_REQUESTED": "Revisione proposta richiesta",
         "DEFAULT": "Rivedi questa collaborazione"
+      },
+      "collaborationWorkDescriptions": {
+        "PROPOSAL_REVISION_REQUESTED": "Lo staff ha richiesto una raccomandazione rivista. La nota di revisione sarà inclusa nella prossima esecuzione dell'agente."
       },
       "sampleWorkStatusDescriptions": {
         "REQUEST_PENDING_REVIEW": "Il creator ha inviato una richiesta campione e attende la tua decisione.",
@@ -3253,8 +3282,15 @@ export default {
         "policyReasons": "Politica",
         "proposalApproveSuccess": "Proposta approvata ed eseguita.",
         "proposalRejectSuccess": "Proposta respinta.",
+        "proposalRevisionRequestSuccess": "Revisione richiesta. L'agente userà le tue note.",
         "proposalApprovedNote": "Approvato dalla tabella di revisione della gestione degli affiliati.",
         "proposalRejectedNote": "Rifiutato dalla tabella di revisione della gestione degli affiliati.",
+        "proposalRevisionRequestedNote": "Revisione richiesta dalla tabella di revisione di Gestione affiliati.",
+        "requestProposalRevision": "Richiedi revisione",
+        "sendProposalRevisionRequest": "Invia richiesta di revisione",
+        "proposalRevisionNoteLabel": "Note di revisione",
+        "proposalRevisionNotePlaceholder": "Indica all'agente cosa cambiare, ad esempio: approvare il campione ma usare una risposta più breve.",
+        "proposalRevisionNoteHint": "Queste note vengono inviate all'agente affiliato per la prossima proposta.",
         "messageIntentFallback": "Messaggio {{type}}",
         "sampleReviewPreview": "{{decision}} applicazione di esempio {{applicationId}}",
         "sampleReviewDecisions": {
@@ -3289,6 +3325,7 @@ export default {
           "MODIFIED": "Modificato",
           "PENDING": "In sospeso",
           "REJECTED": "Rifiutato",
+          "REVISION_REQUESTED": "Revisione richiesta",
           "SUPERSEDED": "Sostituito"
         }
       }

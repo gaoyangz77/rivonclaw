@@ -2338,10 +2338,21 @@ export default {
       "downloadCsv": "CSV herunterladen",
       "dailyTable": "Tägliche Leistung",
       "scopeSummary": "{{start}} bis {{end}} über {{shops}} Shop(s). Alle Tage in diesem Zeitraum werden angezeigt.",
+      "tabs": {
+        "label": "Leistungsansicht",
+        "history": "Historie",
+        "realtime": "Echtzeit"
+      },
       "ranges": {
         "7d": "7 Tage",
         "30d": "30 Tage",
         "90d": "90 Tage"
+      },
+      "realtimeRanges": {
+        "1h": "1 Stunde",
+        "6h": "6 Stunden",
+        "12h": "12 Stunden",
+        "24h": "24 Stunden"
       },
       "metrics": {
         "active": "Aktive Gespräche",
@@ -2366,8 +2377,21 @@ export default {
         "satisfaction": "Kundenzufriedenheit",
         "firstResponse": "Geschwindigkeit der ersten Antwort"
       },
+      "realtimeCharts": {
+        "state": "Aktiv / ausstehend / eskaliert",
+        "pendingAge": "Wartezeit ausstehender Fälle",
+        "slaBuckets": "SLA-Buckets für ausstehende Fälle",
+        "sessionFlow": "Agent-Beteiligung und beendete Sitzungen",
+        "sessionFlowTooltip": "Agent-Beteiligung zählt akzeptierte Kundenservice-Agentenrunden. Beendete Sitzungen zählen erfolgreiche Echtzeit-End-Session-Toolaufrufe."
+      },
       "series": {
         "active": "Aktive Gespräche",
+        "agentRounds": "Agentenrunden",
+        "pending": "Ausstehend",
+        "pendingAge": "Durchschn. Wartezeit",
+        "pendingOver5m": ">5 Min.",
+        "pendingOver15m": ">15 Min.",
+        "pendingOver30m": ">30 Min.",
         "messages": "Nachrichten",
         "endedSessions": "Beendete Sitzungen",
         "endedMessages": "Abschlussnachrichten",
@@ -2716,7 +2740,8 @@ export default {
         "REJECTED": "Abgelehnt",
         "SUPERSEDED": "Ersetzt",
         "EXPIRED": "Abgelaufen",
-        "MODIFIED": "Geändert"
+        "MODIFIED": "Geändert",
+        "REVISION_REQUESTED": "Überarbeitung angefordert"
       },
       "proposalTypeFilters": {
         "ALL": "Alle Typen"
@@ -2925,7 +2950,11 @@ export default {
         "CREATOR_IDENTITY_UNRESOLVED": "Creator-Identität bestätigen",
         "STAFF_REVIEW_REQUESTED": "Nächsten Schritt entscheiden",
         "AGENT_RUN_FAILED": "Fehler des KI-Laufs prüfen",
+        "PROPOSAL_REVISION_REQUESTED": "Vorschlagsüberarbeitung angefordert",
         "DEFAULT": "Diese Kooperation prüfen"
+      },
+      "collaborationWorkDescriptions": {
+        "PROPOSAL_REVISION_REQUESTED": "Mitarbeiter haben eine überarbeitete Empfehlung angefordert. Die Notiz zur Überarbeitung wird im nächsten Agentenlauf berücksichtigt."
       },
       "sampleWorkStatusDescriptions": {
         "REQUEST_PENDING_REVIEW": "Der Creator hat einen Probenantrag gestellt und wartet auf Ihre Entscheidung.",
@@ -3253,8 +3282,15 @@ export default {
         "policyReasons": "Politik",
         "proposalApproveSuccess": "Vorschlag genehmigt und ausgeführt.",
         "proposalRejectSuccess": "Vorschlag abgelehnt.",
+        "proposalRevisionRequestSuccess": "Überarbeitung angefordert. Der Agent verwendet Ihre Notizen.",
         "proposalApprovedNote": "Genehmigt von der Affiliate-Management-Bewertungstabelle.",
         "proposalRejectedNote": "Von der Affiliate-Management-Bewertungstabelle abgelehnt.",
+        "proposalRevisionRequestedNote": "Überarbeitung aus der Affiliate-Management-Prüftabelle angefordert.",
+        "requestProposalRevision": "Überarbeitung anfordern",
+        "sendProposalRevisionRequest": "Überarbeitungsanfrage senden",
+        "proposalRevisionNoteLabel": "Überarbeitungsnotizen",
+        "proposalRevisionNotePlaceholder": "Sagen Sie dem Agenten, was geändert werden soll, z. B. die Probe genehmigen, aber eine kürzere Antwort verwenden.",
+        "proposalRevisionNoteHint": "Diese Notizen werden für den nächsten Vorschlag an den Affiliate-Agenten zurückgesendet.",
         "messageIntentFallback": "{{type}}-Nachricht",
         "sampleReviewPreview": "{{decision}} Beispielanwendung {{applicationId}}",
         "sampleReviewDecisions": {
@@ -3289,6 +3325,7 @@ export default {
           "MODIFIED": "Geändert",
           "PENDING": "Ausstehend",
           "REJECTED": "Abgelehnt",
+          "REVISION_REQUESTED": "Überarbeitung angefordert",
           "SUPERSEDED": "Abgelöst"
         }
       }

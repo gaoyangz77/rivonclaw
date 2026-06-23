@@ -2926,6 +2926,52 @@ export interface CustomerServicePerformanceScope {
   startDate: Scalars['String']['output'];
 }
 
+/** One 5-minute bucket of realtime customer-service performance metrics */
+export interface CustomerServiceRealtimePerformancePoint {
+  /** Active customer-service conversations */
+  activeConversations: Scalars['Int']['output'];
+  /** Accepted customer-service agent rounds in this 5-minute bucket */
+  agentRoundCount: Scalars['Int']['output'];
+  /** Successful CS end-session tool calls in this 5-minute bucket */
+  endedSessionCount: Scalars['Int']['output'];
+  /** Active conversations with open escalations */
+  escalatedConversations: Scalars['Int']['output'];
+  /** Average pending age in seconds for AI-enabled pending conversations */
+  pendingAgeSecs?: Maybe<Scalars['Float']['output']>;
+  /** AI-enabled conversations pending seller response */
+  pendingConversations: Scalars['Int']['output'];
+  /** AI-enabled pending conversations older than 5 minutes */
+  pendingOver5m: Scalars['Int']['output'];
+  /** AI-enabled pending conversations older than 15 minutes */
+  pendingOver15m: Scalars['Int']['output'];
+  /** AI-enabled pending conversations older than 30 minutes */
+  pendingOver30m: Scalars['Int']['output'];
+  /** UTC sampled timestamp for this realtime bucket */
+  sampledAt: Scalars['String']['output'];
+}
+
+/** Near-real-time customer-service performance report */
+export interface CustomerServiceRealtimePerformanceReport {
+  points: Array<CustomerServiceRealtimePerformancePoint>;
+  scope: CustomerServiceRealtimePerformanceScope;
+}
+
+/** Scope and time window used for a realtime CS performance report */
+export interface CustomerServiceRealtimePerformanceScope {
+  /** Realtime bucket size in minutes */
+  bucketMinutes: Scalars['Int']['output'];
+  /** UTC end timestamp of the realtime window */
+  endTime: Scalars['String']['output'];
+  /** Requested trailing realtime window in hours */
+  hours: Scalars['Int']['output'];
+  /** Number of shops included in the report */
+  shopCount?: Maybe<Scalars['Int']['output']>;
+  /** Shop ID when the report is scoped to one shop */
+  shopId?: Maybe<Scalars['String']['output']>;
+  /** UTC start timestamp of the realtime window */
+  startTime: Scalars['String']['output'];
+}
+
 /** Send message result */
 export interface CustomerServiceSendMessageResult {
   /** Platform message ID of the sent message, if returned */
@@ -5706,6 +5752,8 @@ export interface Query {
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   /** Get comprehensive customer service performance metrics from the warehouse. */
   ecommerceGetCSPerformance: CustomerServicePerformanceReport;
+  /** Get near-real-time customer service performance metrics from the warehouse. */
+  ecommerceGetCSRealtimePerformance: CustomerServiceRealtimePerformanceReport;
   /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get a bounded customer-service conversation delta from a local OpenClaw-session anchor through the current inbound message. */
@@ -6022,6 +6070,12 @@ export interface QueryEcommerceGetCsPerformanceArgs {
   endTime?: InputMaybe<Scalars['String']['input']>;
   shopId?: InputMaybe<Scalars['String']['input']>;
   startTime?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryEcommerceGetCsRealtimePerformanceArgs {
+  hours?: InputMaybe<Scalars['Int']['input']>;
+  shopId?: InputMaybe<Scalars['String']['input']>;
 }
 
 

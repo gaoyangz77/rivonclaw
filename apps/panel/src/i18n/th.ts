@@ -2338,10 +2338,21 @@ export default {
       "downloadCsv": "ดาวน์โหลด CSV",
       "dailyTable": "ประสิทธิภาพรายวัน",
       "scopeSummary": "{{start}} ถึง {{end}} ครอบคลุม {{shops}} ร้าน แสดงทุกวันในช่วงเวลานี้",
+      "tabs": {
+        "label": "มุมมองประสิทธิภาพ",
+        "history": "ข้อมูลย้อนหลัง",
+        "realtime": "ข้อมูลเรียลไทม์"
+      },
       "ranges": {
         "7d": "7 วัน",
         "30d": "30 วัน",
         "90d": "90 วัน"
+      },
+      "realtimeRanges": {
+        "1h": "1 ชั่วโมง",
+        "6h": "6 ชั่วโมง",
+        "12h": "12 ชั่วโมง",
+        "24h": "24 ชั่วโมง"
       },
       "metrics": {
         "active": "บทสนทนาที่ใช้งานอยู่",
@@ -2366,8 +2377,21 @@ export default {
         "satisfaction": "ความพึงพอใจของลูกค้า",
         "firstResponse": "ความเร็วในการตอบกลับแรก"
       },
+      "realtimeCharts": {
+        "state": "ใช้งานอยู่ / รอดำเนินการ / ยกระดับ",
+        "pendingAge": "ระยะเวลารอดำเนินการ",
+        "slaBuckets": "กลุ่ม SLA ที่รอดำเนินการ",
+        "sessionFlow": "การมีส่วนร่วมของ Agent และเซสชันที่สิ้นสุด",
+        "sessionFlowTooltip": "การมีส่วนร่วมของ Agent นับรอบที่ Agent บริการลูกค้าได้รับการยอมรับและทำงานจริง ส่วนเซสชันที่สิ้นสุดนับการเรียกเครื่องมือ end-session แบบเรียลไทม์ที่สำเร็จ"
+      },
       "series": {
         "active": "บทสนทนาที่ใช้งานอยู่",
+        "agentRounds": "รอบการทำงานของ Agent",
+        "pending": "รอดำเนินการ",
+        "pendingAge": "ระยะเวลารอเฉลี่ย",
+        "pendingOver5m": ">5 นาที",
+        "pendingOver15m": ">15 นาที",
+        "pendingOver30m": ">30 นาที",
         "messages": "ข้อความ",
         "endedSessions": "เซสชันที่สิ้นสุด",
         "endedMessages": "ข้อความปิดงาน",
@@ -2716,7 +2740,8 @@ export default {
         "REJECTED": "ปฏิเสธแล้ว",
         "SUPERSEDED": "ถูกแทนที่",
         "EXPIRED": "หมดอายุ",
-        "MODIFIED": "แก้ไขแล้ว"
+        "MODIFIED": "แก้ไขแล้ว",
+        "REVISION_REQUESTED": "ขอแก้ไขแล้ว"
       },
       "proposalTypeFilters": {
         "ALL": "ทุกประเภท"
@@ -2925,7 +2950,11 @@ export default {
         "CREATOR_IDENTITY_UNRESOLVED": "ยืนยันตัวตนครีเอเตอร์",
         "STAFF_REVIEW_REQUESTED": "ตัดสินใจขั้นตอนถัดไป",
         "AGENT_RUN_FAILED": "ตรวจสอบสาเหตุที่ AI ทำงานล้มเหลว",
+        "PROPOSAL_REVISION_REQUESTED": "ขอแก้ไขข้อเสนอแล้ว",
         "DEFAULT": "ตรวจสอบการร่วมงานนี้"
+      },
+      "collaborationWorkDescriptions": {
+        "PROPOSAL_REVISION_REQUESTED": "เจ้าหน้าที่ขอคำแนะนำฉบับแก้ไข หมายเหตุการแก้ไขจะถูกรวมในการทำงานครั้งถัดไปของ Agent"
       },
       "sampleWorkStatusDescriptions": {
         "REQUEST_PENDING_REVIEW": "ครีเอเตอร์ส่งคำขอตัวอย่างแล้วและกำลังรอการตัดสินใจของคุณ",
@@ -3253,8 +3282,15 @@ export default {
         "policyReasons": "นโยบาย",
         "proposalApproveSuccess": "ข้อเสนอได้รับการอนุมัติและดำเนินการแล้ว",
         "proposalRejectSuccess": "ข้อเสนอถูกปฏิเสธ",
+        "proposalRevisionRequestSuccess": "ขอแก้ไขแล้ว Agent จะใช้หมายเหตุของคุณ",
         "proposalApprovedNote": "ได้รับการอนุมัติจากตารางการตรวจสอบ Affiliate Management",
         "proposalRejectedNote": "ถูกปฏิเสธจากตารางตรวจสอบการจัดการพันธมิตร",
+        "proposalRevisionRequestedNote": "ขอแก้ไขจากตารางตรวจสอบการจัดการพันธมิตร",
+        "requestProposalRevision": "ขอแก้ไข",
+        "sendProposalRevisionRequest": "ส่งคำขอแก้ไข",
+        "proposalRevisionNoteLabel": "หมายเหตุการแก้ไข",
+        "proposalRevisionNotePlaceholder": "บอก Agent ว่าต้องแก้อะไร เช่น อนุมัติตัวอย่างแต่ใช้คำตอบที่สั้นลง",
+        "proposalRevisionNoteHint": "หมายเหตุเหล่านี้จะส่งกลับไปยัง Affiliate Agent สำหรับข้อเสนอถัดไป",
         "messageIntentFallback": "ข้อความ {{type}}",
         "sampleReviewPreview": "แอปพลิเคชันตัวอย่าง {{decision}} {{applicationId}}",
         "sampleReviewDecisions": {
@@ -3289,6 +3325,7 @@ export default {
           "MODIFIED": "ดัดแปลง",
           "PENDING": "รอดำเนินการ",
           "REJECTED": "ถูกปฏิเสธ",
+          "REVISION_REQUESTED": "ขอแก้ไขแล้ว",
           "SUPERSEDED": "เข้ามาแทนที่"
         }
       }

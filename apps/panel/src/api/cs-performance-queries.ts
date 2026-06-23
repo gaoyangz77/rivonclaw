@@ -67,3 +67,30 @@ export const ECOMMERCE_GET_CS_PERFORMANCE_QUERY = gql`
     }
   }
 `;
+
+export const ECOMMERCE_GET_CS_REALTIME_PERFORMANCE_QUERY = gql`
+  query EcommerceGetCSRealtimePerformance($shopId: String, $hours: Int) {
+    ecommerceGetCSRealtimePerformance(shopId: $shopId, hours: $hours) {
+      scope {
+        shopId
+        shopCount
+        hours
+        bucketMinutes
+        startTime
+        endTime
+      }
+      points {
+        sampledAt
+        activeConversations
+        pendingConversations
+        escalatedConversations
+        pendingAgeSecs
+        pendingOver5m
+        pendingOver15m
+        pendingOver30m
+        agentRoundCount
+        endedSessionCount
+      }
+    }
+  }
+`;
