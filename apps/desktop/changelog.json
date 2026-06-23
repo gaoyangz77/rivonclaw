@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.43",
+    "date": "2026-06-23",
+    "en": [
+      "Show WeChat activation and runtime status more clearly in customer-service channel views",
+      "Support affiliate creator thread work items and align affiliate UI with shop creator threads",
+      "Show creator identity fallbacks in affiliate proposals"
+    ],
+    "zh": [
+      "在客服渠道视图中更清晰展示微信激活和运行状态",
+      "支持达人 creator thread work item，并让达人界面与店铺 creator thread 对齐",
+      "在达人提案中展示创作者身份兜底信息"
+    ]
+  },
+  {
     "version": "1.8.42",
     "date": "2026-06-23",
     "en": [
