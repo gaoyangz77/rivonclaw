@@ -4685,6 +4685,7 @@ function renderCollaborationWorkTitle({
     GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
     GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
     GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment,
+    GQL.AffiliateCollaborationRecordProcessReason.SampleContentFollowUpDue,
     GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue,
     GQL.AffiliateCollaborationRecordProcessReason.IdentityResolution,
     GQL.AffiliateCollaborationRecordProcessReason.AgentRunFailed,

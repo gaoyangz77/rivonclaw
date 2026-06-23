@@ -725,6 +725,7 @@ export const AffiliateCollaborationRecordProcessReason = {
   OrderAttributed: 'ORDER_ATTRIBUTED',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
+  SampleContentFollowUpDue: 'SAMPLE_CONTENT_FOLLOW_UP_DUE',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
   StaffReviewRequested: 'STAFF_REVIEW_REQUESTED',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
@@ -1587,6 +1588,7 @@ export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffC
 /** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
 export const AffiliateWorkBundleKind = {
   ApprovalReviewOnly: 'APPROVAL_REVIEW_ONLY',
+  ContentFollowUp: 'CONTENT_FOLLOW_UP',
   CreatorFollowUp: 'CREATOR_FOLLOW_UP',
   CreatorReplyOnly: 'CREATOR_REPLY_ONLY',
   CreatorReplyWithSampleReview: 'CREATOR_REPLY_WITH_SAMPLE_REVIEW',
@@ -1667,6 +1669,7 @@ export type AffiliateWorkItemSubjectType = typeof AffiliateWorkItemSubjectType[k
 /** Backend-derived affiliate work item kind consumed by desktop agent-run factories and review UI. */
 export const AffiliateWorkKind = {
   ApprovalReview: 'APPROVAL_REVIEW',
+  ContentFollowUp: 'CONTENT_FOLLOW_UP',
   CreatorFollowUp: 'CREATOR_FOLLOW_UP',
   IdentityResolution: 'IDENTITY_RESOLUTION',
   InboundMessageTriage: 'INBOUND_MESSAGE_TRIAGE',

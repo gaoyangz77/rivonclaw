@@ -29,6 +29,7 @@ export function buildAffiliateAgentRunRequest(
   switch (resolveAgentRunKind(workItem)) {
     case "CREATOR_REPLY":
       return buildCreatorReplyRun(input);
+    case "CONTENT_FOLLOW_UP":
     case "CREATOR_FOLLOW_UP":
       return buildCreatorFollowUpRun(input);
     default:
@@ -36,9 +37,16 @@ export function buildAffiliateAgentRunRequest(
   }
 }
 
-type AffiliateAgentRunKind = "CREATOR_REPLY" | "CREATOR_FOLLOW_UP";
+type AffiliateAgentRunKind = "CREATOR_REPLY" | "CONTENT_FOLLOW_UP" | "CREATOR_FOLLOW_UP";
 
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
+  if (
+    workItem.workBundleKind === GQL.AffiliateWorkBundleKind.ContentFollowUp ||
+    workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUp
+  ) {
+    return "CONTENT_FOLLOW_UP";
+  }
+
   if (
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorFollowUp ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp
@@ -521,8 +529,10 @@ function inferActionableDeltaSources(workItem: GQL.AffiliateWorkItem): Array<"SI
   const sources = new Set<"SIGNAL" | "TEMPORAL" | "STATE">();
   const reasons = workItem.processReasons ?? [];
   if (
+    workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUp ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp ||
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
+    reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.SampleContentFollowUpDue) ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue)
   ) {
     sources.add("TEMPORAL");
