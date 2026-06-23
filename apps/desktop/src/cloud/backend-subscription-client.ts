@@ -276,7 +276,7 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       type
       source
       workSignal
-      threadId
+      shopThreadId
       collaborationRecordId
       processingStatus
       requiredAction
@@ -315,7 +315,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         shopId
         platformShopId
         subjectType
-        threadId
+        shopThreadId
         collaborationRecordId
         workKind
         workBundleKind
@@ -326,7 +326,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         requiredAction
         processReasons
         versionAt
-        thread {
+        shopThread {
           id
           userId
           shopId
@@ -556,7 +556,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             status
             operatorSummary
             creatorId
-            threadId
+            shopThreadId
             collaborationRecordId
             decision {
               note
@@ -584,7 +584,7 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             operatorSummary
           }
           creatorId
-          threadId
+          shopThreadId
           collaborationRecordId
           sampleReviewIntent {
             sampleApplicationRecordId

@@ -71,7 +71,7 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
 function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
   const { workItem, platform } = input;
   const currentMessageId =
-    workItem.collaboration?.lastCreatorMessageId ?? workItemThread(workItem).lastMessageId ?? workItem.threadId;
+    workItem.collaboration?.lastCreatorMessageId ?? workItemThread(workItem).lastMessageId ?? workItem.shopThreadId;
   return {
     message: [
       "[Affiliate Work Item: Creator Reply Needed]",
@@ -367,11 +367,11 @@ function requiresCreatorReplyAction(workItem: GQL.AffiliateWorkItem): boolean {
   );
 }
 
-function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateCreatorThread {
-  if (workItem.thread) return workItem.thread;
+function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateShopCreatorThread {
+  if (workItem.shopThread) return workItem.shopThread;
   const collaboration = workItem.collaboration;
   return {
-    id: workItem.threadId ?? workItem.collaborationRecordId ?? workItem.id,
+    id: workItem.shopThreadId ?? workItem.collaborationRecordId ?? workItem.id,
     userId: collaboration?.userId ?? "",
     shopId: collaboration?.shopId ?? workItem.shopId,
     platform: GQL.ShopPlatform.TiktokShop,
@@ -410,7 +410,7 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "## Backend Work Projection",
     `- Work Item ID: ${workItem.id}`,
     `- Subject Type: ${workItem.subjectType}`,
-    `- Thread ID: ${workItem.threadId}`,
+    `- Thread ID: ${workItem.shopThreadId}`,
     `- Work Kind: ${workItem.workKind}`,
     `- Required Action: ${workItem.requiredAction}`,
     `- Work Bundle Kind: ${workItem.workBundleKind ?? ""}`,
@@ -481,7 +481,7 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
       `- Status: ${proposal.status}`,
       `- Operator Summary: ${proposal.operatorSummary}`,
       `- Creator ID: ${proposal.creatorId ?? ""}`,
-      `- Thread ID: ${proposal.threadId ?? ""}`,
+      `- Thread ID: ${proposal.shopThreadId ?? ""}`,
       `- Collaboration ID: ${proposal.collaborationRecordId ?? ""}`,
     ] : ["(none)"]),
   ].join("\n");

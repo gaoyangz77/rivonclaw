@@ -388,7 +388,7 @@ export const AffiliateWorkspaceModel = types
       }
     }
 
-    function upsertCreator(profile: GQL.CreatorGlobalProfile | null | undefined): void {
+    function upsertCreator(profile: GQL.AffiliateCreatorIdentity | null | undefined): void {
       if (!profile?.id) return;
       upsertById(self.creatorProfiles as any, profile as any);
     }
@@ -450,7 +450,7 @@ export const AffiliateWorkspaceModel = types
         for (const record of records) upsertCollaborationRecord(record);
       },
       upsertAffiliateCreatorProfile: upsertCreator,
-      replaceAffiliateCreatorProfiles(profiles: GQL.CreatorGlobalProfile[]) {
+      replaceAffiliateCreatorProfiles(profiles: GQL.AffiliateCreatorIdentity[]) {
         self.creatorProfiles.clear();
         for (const profile of profiles) upsertCreator(profile);
       },

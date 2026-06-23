@@ -168,7 +168,7 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
       status
       operatorSummary
       creatorId
-      threadId
+      shopThreadId
       collaborationRecordId
       decision {
         note
@@ -297,11 +297,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
     affiliateWorkItems(input: $input) {
       id
       subjectType
-      threadId
+      shopThreadId
       collaborationRecordId
       versionAt
       requiredAction
-      thread {
+      shopThread {
         id
         lastSignalAt
         workHandledUntil
@@ -322,7 +322,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
 `;
 
 export interface AffiliateWorkItemsQueryResult {
-  affiliateWorkItems: Array<Pick<GQL.AffiliateWorkItem, "id" | "threadId" | "collaborationRecordId" | "versionAt" | "thread" | "collaboration">>;
+  affiliateWorkItems: Array<Pick<GQL.AffiliateWorkItem, "id" | "shopThreadId" | "collaborationRecordId" | "versionAt" | "shopThread" | "collaboration">>;
 }
 
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
