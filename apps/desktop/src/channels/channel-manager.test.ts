@@ -728,6 +728,13 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         config: { name: "客服微信" },
         createdAt: 1,
         updatedAt: 1,
+      }, {
+        channelId: WEIXIN_CHANNEL_ID,
+        accountId: "other-im-bot",
+        name: "另一个微信",
+        config: { name: "另一个微信" },
+        createdAt: 1,
+        updatedAt: 1,
       }];
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
@@ -766,6 +773,11 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
               running: true,
               connected: true,
               lastError: "WeChat sendmessage business failure: sendmessage result status=200 ret=-2 errcode= errmsg= clientId=client accountId=acct123-im-bot to=manager@im.wechat",
+            }, {
+              accountId: "other-im-bot",
+              configured: true,
+              running: true,
+              connected: true,
             }],
           },
           channelDefaultAccountId: { [WEIXIN_CHANNEL_ID]: accountId },
@@ -780,8 +792,16 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         running: false,
         connected: false,
         healthy: false,
-        healthState: "reauth-required",
+        healthState: "send-unavailable",
+        outboundHealthy: false,
+        lastOutboundError: expect.stringContaining("ret=-2"),
         dmPolicy: "pairing",
+      });
+      expect(snapshot.channelAccounts[WEIXIN_CHANNEL_ID]![1]).toMatchObject({
+        accountId: "other-im-bot",
+        configured: true,
+        running: true,
+        connected: true,
       });
     } finally {
       rmSync(stateDir, { recursive: true, force: true });

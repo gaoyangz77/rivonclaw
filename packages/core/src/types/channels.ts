@@ -17,6 +17,7 @@ export type ChannelAccountSnapshot = {
   configured?: boolean | null;
   healthy?: boolean | null;
   healthState?: string | null;
+  outboundHealthy?: boolean | null;
   linked?: boolean | null;
   running?: boolean | null;
   connected?: boolean | null;
@@ -28,6 +29,9 @@ export type ChannelAccountSnapshot = {
   lastInboundAt?: number | null;
   lastOutboundAt?: number | null;
   lastHealthCheckAt?: number | null;
+  lastOutboundHealthAt?: number | null;
+  lastOutboundError?: string | null;
+  lastOutboundRecipientId?: string | null;
   lastProbeAt?: number | null;
   mode?: string | null;
   dmPolicy?: string | null;

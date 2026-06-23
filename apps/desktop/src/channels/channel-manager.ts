@@ -257,6 +257,20 @@ function isWeixinBusinessHealthError(lastError: unknown): boolean {
     || normalized.includes("session expired");
 }
 
+function resolveWeixinBusinessHealthState(lastError: unknown): "reauth-required" | "send-unavailable" {
+  if (typeof lastError !== "string") return "send-unavailable";
+  const normalized = lastError.toLowerCase();
+  if (
+    normalized.includes("session expired")
+    || normalized.includes("errcode=-14")
+    || normalized.includes("errcode -14")
+    || normalized.includes("context token expired")
+  ) {
+    return "reauth-required";
+  }
+  return "send-unavailable";
+}
+
 function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
   const accounts = snapshot.channelAccounts[WEIXIN_CHANNEL_ID];
   if (!accounts) return;
@@ -266,7 +280,10 @@ function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
     account.running = false;
     account.connected = false;
     account.healthy = false;
-    account.healthState = account.healthState ?? "reauth-required";
+    account.healthState = account.healthState ?? resolveWeixinBusinessHealthState(account.lastError);
+    account.outboundHealthy = false;
+    account.lastOutboundError = account.lastError ?? null;
+    account.lastOutboundHealthAt = account.lastHealthCheckAt ?? Date.now();
   }
 }
 

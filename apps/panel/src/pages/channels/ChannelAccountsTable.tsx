@@ -6,7 +6,7 @@ import { ChevronRightIcon } from "../../components/icons.js";
 import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
-import { StatusBadge, type AccountEntry } from "./channel-defs.jsx";
+import { StatusBadge, resolveDisplayedRunningStatus, type AccountEntry } from "./channel-defs.jsx";
 
 /** Show last 3 chars of an ID with a copy-to-clipboard button. */
 function TruncatedId({ value, t }: { value: string; t: (key: string) => string }) {
@@ -604,12 +604,17 @@ export function ChannelAccountsTable({
                 const needsWeixinActivation = channelId === "openclaw-weixin" && (
                   account.contextTokenReady === false
                   || account.healthy === false
+                  || account.outboundHealthy === false
+                  || (account.running === true && account.healthy !== true && account.outboundHealthy !== true)
                   || account.healthState === "send-unavailable"
                   || account.healthState === "reauth-required"
                 );
-                const weixinActivationTooltip = account.lastError
-                  ? `${t("channels.wechatContextTokenNotReadyTooltip")}\n${account.lastError}`
-                  : t("channels.wechatContextTokenNotReadyTooltip");
+                const weixinActivationTooltip = account.lastOutboundError || account.lastError
+                  ? `${t("channels.wechatContextTokenNotReadyTooltip")}\n${account.lastOutboundError ?? account.lastError}`
+                  : t("channels.wechatOutboundUnknownTooltip", {
+                    defaultValue: "WeChat is running, but outbound send health is unknown.",
+                  });
+                const displayedRunning = resolveDisplayedRunningStatus(channelId, account);
                 return (
                   <Fragment key={rowKey}>
                     <tr
@@ -635,7 +640,7 @@ export function ChannelAccountsTable({
                       </td>
                       <td>{account.name || "\u2014"}</td>
                       <td><StatusBadge status={account.configured} t={t} /></td>
-                      <td><StatusBadge status={account.running} t={t} /></td>
+                      <td><StatusBadge status={displayedRunning} t={t} /></td>
                       <td>{account.dmPolicy ? t(`channels.dmPolicyLabel_${account.dmPolicy}`, { defaultValue: account.dmPolicy }) : "\u2014"}</td>
                       <td>
                         <div className="td-actions">
