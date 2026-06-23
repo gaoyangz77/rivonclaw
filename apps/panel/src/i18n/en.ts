@@ -2625,6 +2625,8 @@ export default {
       },
       realtimeCharts: {
         state: "Active / pending / escalated",
+        escalationActivity: "Escalation handling",
+        escalationActivityTooltip: "Shows durable escalation activity in realtime: new escalations that need staff help, and escalations staff resolved.",
         firstResponse: "First response speed",
         pendingAge: "First response speed",
         slaBuckets: "Waiting buyers",
@@ -2644,6 +2646,8 @@ export default {
         endedMessages: "Closeout messages",
         newSessions: "New sessions",
         escalated: "Escalated",
+        escalationCreated: "New escalations",
+        escalationResolved: "Resolved escalations",
         resolved: "Resolved",
         satisfaction: "Satisfaction",
         satisfaction7dWeighted: "7d weighted avg",

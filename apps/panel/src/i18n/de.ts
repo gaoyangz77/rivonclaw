@@ -2379,6 +2379,8 @@ export default {
       },
       "realtimeCharts": {
         "state": "Aktiv / ausstehend / eskaliert",
+        "escalationActivity": "Eskalationsbearbeitung",
+        "escalationActivityTooltip": "Zeigt dauerhafte Eskalationsaktivität in Echtzeit: neue Eskalationen, die Mitarbeiterhilfe brauchen, und von Mitarbeitern gelöste Eskalationen.",
         "firstResponse": "Geschwindigkeit der ersten Antwort",
         "pendingAge": "Geschwindigkeit der ersten Antwort",
         "slaBuckets": "Wartende Käufer",
@@ -2398,6 +2400,8 @@ export default {
         "endedMessages": "Abschlussnachrichten",
         "newSessions": "Neue Sitzungen",
         "escalated": "Eskaliert",
+        "escalationCreated": "Neue Eskalationen",
+        "escalationResolved": "Gelöste Eskalationen",
         "resolved": "Gelöst",
         "satisfaction": "Zufriedenheit",
         "satisfaction7dWeighted": "7-Tage gew. Ø",

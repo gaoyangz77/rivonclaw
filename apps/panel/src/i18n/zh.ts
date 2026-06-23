@@ -2624,6 +2624,8 @@ export default {
       },
       realtimeCharts: {
         state: "活跃 / 待处理 / 已升级",
+        escalationActivity: "人工升级处理",
+        escalationActivityTooltip: "实时展示需要人工介入的新增升级，以及已经被人工处理完成的升级。用来判断人工接待是否跟得上升级压力。",
         firstResponse: "首次响应速度",
         pendingAge: "首次响应速度",
         slaBuckets: "等待中买家",
@@ -2643,6 +2645,8 @@ export default {
         endedMessages: "结束消息",
         newSessions: "新增会话",
         escalated: "已升级",
+        escalationCreated: "新增升级",
+        escalationResolved: "已处理升级",
         resolved: "已处理",
         satisfaction: "满意度",
         satisfaction7dWeighted: "7 天加权平均",

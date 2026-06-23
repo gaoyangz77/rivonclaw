@@ -2936,6 +2936,10 @@ export interface CustomerServiceRealtimePerformancePoint {
   endedSessionCount: Scalars['Int']['output'];
   /** Active conversations with open escalations */
   escalatedConversations: Scalars['Int']['output'];
+  /** Durable escalations created in this 5-minute bucket */
+  escalationCreatedCount: Scalars['Int']['output'];
+  /** Durable escalations resolved in this 5-minute bucket */
+  escalationResolvedCount: Scalars['Int']['output'];
   /** Nearest-rank P50 first-response time in seconds for the realtime window */
   firstResponseP50Secs?: Maybe<Scalars['Float']['output']>;
   /** Average pending age in seconds for AI-enabled pending conversations */

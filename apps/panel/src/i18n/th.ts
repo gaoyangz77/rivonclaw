@@ -2379,6 +2379,8 @@ export default {
       },
       "realtimeCharts": {
         "state": "ใช้งานอยู่ / รอดำเนินการ / ยกระดับ",
+        "escalationActivity": "การจัดการการยกระดับ",
+        "escalationActivityTooltip": "แสดงกิจกรรมการยกระดับแบบเรียลไทม์: เคสยกระดับใหม่ที่ต้องให้เจ้าหน้าที่ช่วย และเคสยกระดับที่เจ้าหน้าที่แก้ไขแล้ว",
         "firstResponse": "ความเร็วในการตอบกลับแรก",
         "pendingAge": "ความเร็วในการตอบกลับแรก",
         "slaBuckets": "ผู้ซื้อที่รออยู่",
@@ -2398,6 +2400,8 @@ export default {
         "endedMessages": "ข้อความปิดงาน",
         "newSessions": "เซสชันใหม่",
         "escalated": "ยกระดับแล้ว",
+        "escalationCreated": "การยกระดับใหม่",
+        "escalationResolved": "การยกระดับที่แก้ไขแล้ว",
         "resolved": "แก้ไขแล้ว",
         "satisfaction": "ความพึงพอใจ",
         "satisfaction7dWeighted": "เฉลี่ยถ่วงน้ำหนัก 7 วัน",

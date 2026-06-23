@@ -94,7 +94,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
-  const [activeTab, setActiveTab] = useState<PerformanceTab>("history");
+  const [activeTab, setActiveTab] = useState<PerformanceTab>("realtime");
   const [shopId, setShopId] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [realtimeRange, setRealtimeRange] = useState<RealtimeRange>("6");
@@ -255,20 +255,20 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         <button
           type="button"
           role="tab"
-          aria-selected={activeTab === "history"}
-          className={`cs-performance-tab ${activeTab === "history" ? "active" : ""}`}
-          onClick={() => setActiveTab("history")}
-        >
-          {t("ecommerce.customerServicePerformance.tabs.history")}
-        </button>
-        <button
-          type="button"
-          role="tab"
           aria-selected={activeTab === "realtime"}
           className={`cs-performance-tab ${activeTab === "realtime" ? "active" : ""}`}
           onClick={() => setActiveTab("realtime")}
         >
           {t("ecommerce.customerServicePerformance.tabs.realtime")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "history"}
+          className={`cs-performance-tab ${activeTab === "history" ? "active" : ""}`}
+          onClick={() => setActiveTab("history")}
+        >
+          {t("ecommerce.customerServicePerformance.tabs.history")}
         </button>
       </div>
 
@@ -465,7 +465,8 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           </ChartPanel>
 
           <ChartPanel
-            title={t("ecommerce.customerServicePerformance.realtimeCharts.firstResponse")}
+            title={t("ecommerce.customerServicePerformance.realtimeCharts.escalationActivity")}
+            tooltip={t("ecommerce.customerServicePerformance.realtimeCharts.escalationActivityTooltip")}
             loading={loading}
             empty={!realtimeRows.length}
             loadingLabel={t("common.loading")}
@@ -475,10 +476,11 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
               <LineChart data={realtimeRows}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="timeLabel" tickLine={false} />
-                <YAxis tickFormatter={(value) => formatSeconds(Number(value))} tickLine={false} width={44} />
-                <Tooltip formatter={(value) => formatSeconds(Number(value))} />
+                <YAxis tickLine={false} width={44} />
+                <Tooltip formatter={(value) => formatCount(Number(value))} />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
-                <Line type="monotone" dataKey="firstResponseP50Secs" name={t("ecommerce.customerServicePerformance.series.firstResponseP50")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="escalationCreatedCount" name={t("ecommerce.customerServicePerformance.series.escalationCreated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line type="monotone" dataKey="escalationResolvedCount" name={t("ecommerce.customerServicePerformance.series.escalationResolved")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
