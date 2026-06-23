@@ -7,7 +7,7 @@ export {
   type MstChannelAccountLike,
 } from "../../lib/channel-accounts.js";
 
-type DisplayStatus = boolean | null | undefined | "activation-required" | "reauth-required";
+type DisplayStatus = boolean | null | undefined | "activation-required" | "reauth-required" | "send-unavailable";
 
 export function StatusBadge({ status, t }: { status: DisplayStatus; t: (key: string) => string }) {
   const variant = status === true
@@ -23,7 +23,9 @@ export function StatusBadge({ status, t }: { status: DisplayStatus; t: (key: str
         ? t("channels.statusWeChatActivationRequired")
         : status === "reauth-required"
           ? t("channels.statusWeChatReauthRequired")
-          : t("channels.statusUnknown");
+          : status === "send-unavailable"
+            ? t("channels.statusWeChatSendUnavailable")
+            : t("channels.statusUnknown");
 
   return (
     <span className={`badge ${variant}`}>
@@ -42,10 +44,10 @@ export function resolveDisplayedRunningStatus(
   if (account.healthState === "reauth-required") {
     return "reauth-required";
   }
-  if (
-    account.healthState === "send-unavailable" ||
-    account.contextTokenReady === false
-  ) {
+  if (account.healthState === "send-unavailable") {
+    return "send-unavailable";
+  }
+  if (account.contextTokenReady === false) {
     return "activation-required";
   }
   if (

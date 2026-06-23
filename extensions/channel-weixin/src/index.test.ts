@@ -198,10 +198,66 @@ describe("channel-weixin QR session bridge", () => {
 
     expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({
       accountId: "acct-1",
-      running: false,
-      connected: false,
       healthy: false,
       healthState: "send-unavailable",
+      lastError: expect.stringContaining("ret=-2"),
+      lastHealthCheckAt: expect.any(Number),
+    }));
+    const statusUpdate = setStatus.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(statusUpdate.running).toBeUndefined();
+    expect(statusUpdate.connected).toBeUndefined();
+    expect(statusUpdate.recipientId).toBe("manager@im.wechat");
+  });
+
+  it("marks the active Weixin account when an inbound reply sendmessage failure is reported through runtime.error", async () => {
+    vi.resetModules();
+
+    vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
+      default: {
+        register(api: { registerChannel: (opts: unknown) => void }) {
+          api.registerChannel({
+            plugin: {
+              id: "openclaw-weixin",
+              gateway: {
+                startAccount: async (ctx: { runtime?: { error?: (message: string) => void } }) => {
+                  ctx.runtime?.error?.(
+                    "weixin reply final: Error: WeChat sendmessage business failure: sendmessage result status=200 ret=-2 errcode= errmsg= clientId=openclaw-weixin:client accountId= to=manager@im.wechat",
+                  );
+                },
+              },
+            },
+          });
+        },
+      },
+    }));
+
+    const { default: plugin } = await import("./index.js");
+    let registered!: {
+      plugin: {
+        gateway?: {
+          startAccount?: (ctx: unknown) => Promise<unknown>;
+        };
+      };
+    };
+
+    plugin.register({
+      registerChannel(opts: unknown) {
+        registered = opts as typeof registered;
+      },
+    } as Parameters<typeof plugin.register>[0]);
+
+    const setStatus = vi.fn();
+    await registered.plugin.gateway?.startAccount?.({
+      account: { accountId: "acct-1" },
+      runtime: { error: vi.fn() },
+      setStatus,
+    });
+
+    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: "acct-1",
+      healthy: false,
+      healthState: "send-unavailable",
+      recipientId: "manager@im.wechat",
       lastError: expect.stringContaining("ret=-2"),
       lastHealthCheckAt: expect.any(Number),
     }));

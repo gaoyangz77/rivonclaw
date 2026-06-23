@@ -608,7 +608,12 @@ export function ChannelAccountsTable({
                   || account.healthState === "reauth-required"
                 );
                 const weixinContextTooltip = t("channels.wechatContextTokenNotReadyTooltip");
-                const weixinActivationTooltip = account.contextTokenReady === false
+                const weixinSendUnavailableTooltip = t("channels.wechatSendUnavailableTooltip");
+                const weixinActivationTooltip = account.healthState === "send-unavailable"
+                  ? account.lastError
+                    ? `${weixinSendUnavailableTooltip}\n${account.lastError}`
+                    : weixinSendUnavailableTooltip
+                  : account.contextTokenReady === false
                   ? account.lastError
                     ? `${weixinContextTooltip}\n${account.lastError}`
                     : weixinContextTooltip

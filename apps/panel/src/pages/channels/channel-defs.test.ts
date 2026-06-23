@@ -291,7 +291,7 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
       healthState: "send-unavailable",
-    })).toBe("activation-required");
+    })).toBe("send-unavailable");
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
       healthState: "reauth-required",

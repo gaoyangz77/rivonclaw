@@ -477,6 +477,7 @@ export default {
     statusUnknown: "未知",
     statusWeChatActivationRequired: "需发消息激活",
     statusWeChatReauthRequired: "需重新扫码",
+    statusWeChatSendUnavailable: "发送异常",
     statusConfigured: "已配置",
     statusRunning: "运行中",
     statusConnected: "已连接",
@@ -508,6 +509,7 @@ export default {
     colActions: "操作",
     noAccountsConfigured: "此通道暂无账号",
     wechatContextTokenNotReadyTooltip: "微信已连接，但还没有可用于主动发送消息的上下文凭证。请先用这个微信号主动给 bot 发一条消息完成确认。",
+    wechatSendUnavailableTooltip: "最近一次微信发送失败。建议重新扫码添加，或先用这个微信号给 bot 主动发一条消息重新激活。",
     // Channel labels
     channelTelegram: "Telegram",
     channelWhatsApp: "WhatsApp",
