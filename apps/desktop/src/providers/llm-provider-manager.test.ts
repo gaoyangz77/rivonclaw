@@ -51,7 +51,7 @@ describe("LLMProviderManager", () => {
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.objectContaining({ model: null }));
   });
 
-  it("updates gateway default and resets default-following sessions when the active key model changes", async () => {
+  it("updates gateway default without eagerly resetting default-following sessions when the active key model changes", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
     const restartGateway = vi.fn();
@@ -113,22 +113,23 @@ describe("LLMProviderManager", () => {
 
     expect(entry.model).toBe("gpt-5.4");
     expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "chat-session-1",
-      model: "rivonclaw-pro/gpt-5.4",
-    });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rootStore.llmManager.getSessionModel("chat-session-1")).toBeNull();
     expect(rootStore.llmManager.getSessionModelFact("chat-session-1")).toMatchObject({
       mode: "default",
       provider: null,
       model: null,
-      appliedProvider: "rivonclaw-pro",
-      appliedModel: "gpt-5.4",
+    });
+
+    await rootStore.llmManager.applyModelForSession("chat-session-1");
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "chat-session-1",
+      model: "rivonclaw-pro/gpt-5.4",
     });
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
-  it("resets only sessions active in this app process on default provider activation", async () => {
+  it("updates gateway default without eagerly resetting sessions on default provider activation", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
     const restartGateway = vi.fn();
@@ -204,17 +205,18 @@ describe("LLMProviderManager", () => {
     await rootStore.llmManager.activateProvider("key-pro");
 
     expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "telegram-session-default",
-      model: "rivonclaw-pro/gpt-5.4",
-    });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rootStore.llmManager.getSessionModel("telegram-session-default")).toBeNull();
     expect(rootStore.llmManager.getSessionModelFact("telegram-session-default")).toMatchObject({
       mode: "default",
       provider: null,
       model: null,
-      appliedProvider: "rivonclaw-pro",
-      appliedModel: "gpt-5.4",
+    });
+
+    await rootStore.llmManager.applyModelForSession("telegram-session-default");
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "telegram-session-default",
+      model: "rivonclaw-pro/gpt-5.4",
     });
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.list", expect.anything());
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
@@ -228,7 +230,7 @@ describe("LLMProviderManager", () => {
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
-  it("resets active channel sessions when a new cloud provider becomes the default", async () => {
+  it("creates a default cloud provider without eagerly resetting active channel sessions", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
     const writeFullGatewayConfig = vi.fn();
@@ -306,16 +308,17 @@ describe("LLMProviderManager", () => {
     });
     expect(writeFullGatewayConfig).toHaveBeenCalled();
     expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.5");
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:telegram:default:direct:42",
-      model: "rivonclaw-pro/gpt-5.5",
-    });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rootStore.llmManager.getSessionModelFact("agent:main:telegram:default:direct:42")).toMatchObject({
       mode: "default",
       provider: null,
       model: null,
-      appliedProvider: "rivonclaw-pro",
-      appliedModel: "gpt-5.5",
+    });
+
+    await rootStore.llmManager.applyModelForSession("agent:main:telegram:default:direct:42");
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "agent:main:telegram:default:direct:42",
+      model: "rivonclaw-pro/gpt-5.5",
     });
     expect(restartGateway).not.toHaveBeenCalled();
   });
