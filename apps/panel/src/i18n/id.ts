@@ -2379,6 +2379,8 @@ export default {
       },
       "realtimeCharts": {
         "state": "Aktif / tertunda / dieskalasi",
+        "escalationActivity": "Penanganan eskalasi",
+        "escalationActivityTooltip": "Menampilkan aktivitas eskalasi durable secara realtime: eskalasi baru yang membutuhkan staf, dan eskalasi yang diselesaikan staf.",
         "firstResponse": "Kecepatan respons pertama",
         "pendingAge": "Kecepatan respons pertama",
         "slaBuckets": "Pembeli menunggu",
@@ -2398,6 +2400,8 @@ export default {
         "endedMessages": "Pesan penutupan",
         "newSessions": "Sesi baru",
         "escalated": "Dieskalasi",
+        "escalationCreated": "Eskalasi baru",
+        "escalationResolved": "Eskalasi selesai",
         "resolved": "Selesai",
         "satisfaction": "Kepuasan",
         "satisfaction7dWeighted": "Rata2 tertimbang 7h",

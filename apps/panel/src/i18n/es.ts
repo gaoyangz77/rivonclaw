@@ -2379,6 +2379,8 @@ export default {
       },
       "realtimeCharts": {
         "state": "Activas / pendientes / escaladas",
+        "escalationActivity": "Gestión de escalaciones",
+        "escalationActivityTooltip": "Muestra actividad durable de escalación en tiempo real: escalaciones nuevas que requieren apoyo del equipo y escalaciones resueltas por el equipo.",
         "firstResponse": "Velocidad de primera respuesta",
         "pendingAge": "Velocidad de primera respuesta",
         "slaBuckets": "Compradores en espera",
@@ -2398,6 +2400,8 @@ export default {
         "endedMessages": "Mensajes de cierre",
         "newSessions": "Sesiones nuevas",
         "escalated": "Escaladas",
+        "escalationCreated": "Escalaciones nuevas",
+        "escalationResolved": "Escalaciones resueltas",
         "resolved": "Resueltas",
         "satisfaction": "Satisfacción",
         "satisfaction7dWeighted": "Prom. pond. 7 d",
