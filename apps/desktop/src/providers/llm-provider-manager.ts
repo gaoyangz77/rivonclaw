@@ -878,6 +878,8 @@ export const LLMProviderManagerModel = types
         if (existing) {
           const currentBaseUrl = `${getApiBaseUrl("en")}/llm/v1`;
           const storedKey: string | null = yield secretStore.get(`provider-key-${existing.id}`);
+          const previousCustomModelsJson = existing.customModelsJson ?? null;
+          const previousInputModalities = JSON.stringify(existing.inputModalities ?? []);
           let currentKey: string;
           try {
             currentKey = yield provisionCloudApiKey();
@@ -886,8 +888,10 @@ export const LLMProviderManagerModel = types
             yield* removeExistingCloudProvider("cloud LLM entitlement unavailable");
             return;
           }
+          let keyChanged = false;
           if (storedKey !== currentKey) {
             yield secretStore.set(`provider-key-${existing.id}`, currentKey);
+            keyChanged = true;
             if (existing.isDefault) {
               yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
             }
@@ -907,6 +911,7 @@ export const LLMProviderManagerModel = types
           }
 
           // Always refresh model list (capabilities may have changed on the backend)
+          let modelsChanged = false;
           try {
             const effectiveBaseUrl = baseUrlChanged ? currentBaseUrl : existing.baseUrl!;
             let cloudModels: CloudModel[];
@@ -920,6 +925,7 @@ export const LLMProviderManagerModel = types
               if (provisionedKey !== currentKey) {
                 currentKey = provisionedKey;
                 yield secretStore.set(`provider-key-${existing.id}`, currentKey);
+                keyChanged = true;
                 if (existing.isDefault) {
                   yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
                 }
@@ -928,10 +934,15 @@ export const LLMProviderManagerModel = types
               log.info("Rotated cloud provider key after authentication failure");
             }
             if (cloudModels.length > 0) {
-              storage.providerKeys.update(existing.id, {
-                customModelsJson: JSON.stringify(cloudModels),
-                inputModalities: ["text", "image"],
-              });
+              const nextCustomModelsJson = JSON.stringify(cloudModels);
+              const nextInputModalities = JSON.stringify(["text", "image"]);
+              if (previousCustomModelsJson !== nextCustomModelsJson || previousInputModalities !== nextInputModalities) {
+                storage.providerKeys.update(existing.id, {
+                  customModelsJson: nextCustomModelsJson,
+                  inputModalities: ["text", "image"],
+                });
+                modelsChanged = true;
+              }
             }
           } catch {
             // Model refresh failed — keep existing list
@@ -942,14 +953,19 @@ export const LLMProviderManagerModel = types
           const mstEntry: MstProviderKeySnapshot = yield toMstSnapshot(freshEntry, secretStore);
           self.root.upsertProviderKey(mstEntry);
 
-          // Sync auth profiles + config (model capabilities may have changed)
-          yield syncAuthProxyAndConfig();
-          if (freshEntry.isDefault) {
-            writeDefaultModel(freshEntry.provider, freshEntry.model, freshEntry.authType);
-            yield resetDefaultFollowingSessions();
+          // Sync auth profiles + config only when the local cloud provider
+          // material actually changed. Billing overview polling can call this
+          // path frequently; it must not rewrite config or patch all sessions
+          // unless the underlying provider data changed.
+          if (keyChanged || baseUrlChanged || labelChanged || modelsChanged) {
+            yield syncAuthProxyAndConfig();
           }
 
-          log.info("Synced cloud provider (key/baseUrl/models refreshed)");
+          log.info(
+            keyChanged || baseUrlChanged || labelChanged || modelsChanged
+              ? "Synced cloud provider (key/baseUrl/models refreshed)"
+              : "Cloud provider already up to date",
+          );
           return;
         }
 

@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../../app/api-context.js";
+import { rootStore } from "../../app/store/desktop-store.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
+import { toMstSnapshot } from "../../providers/provider-key-utils.js";
 import { __resetCloudGraphqlProxyForTests, registerCloudHandlers } from "../api.js";
 
 // ---------------------------------------------------------------------------
@@ -13,6 +15,7 @@ let registry: RouteRegistry;
 
 beforeEach(() => {
   __resetCloudGraphqlProxyForTests();
+  rootStore.loadProviderKeys([]);
   registry = new RouteRegistry();
   registerCloudHandlers(registry);
 });
@@ -954,6 +957,63 @@ describe("cloud-graphql handler", () => {
 
     expect(res._body).toEqual({ data });
     expect(onCloudLlmEntitlementAvailable).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not sync cloud LLM provider on billing polling when local cloud key already exists", async () => {
+    const onCloudLlmEntitlementAvailable = vi.fn().mockResolvedValue(undefined);
+    await rootStore.loadProviderKeys([
+      await toMstSnapshot(
+        {
+          id: "cloud-rivonclaw-pro",
+          provider: "rivonclaw-pro",
+          label: "RivonClaw AI",
+          model: "gpt-5.5",
+          isDefault: true,
+          authType: "custom",
+          baseUrl: "https://api.rivonclaw.com/llm/v1",
+          customProtocol: "openai",
+          customModelsJson: JSON.stringify([{ id: "gpt-5.5" }]),
+          source: "cloud",
+          createdAt: "",
+          updatedAt: "",
+        },
+        { get: async () => null } as any,
+      ),
+    ]);
+    const data = {
+      billingOverview: {
+        accountLlm: {
+          planId: "RIVONCLAW_AI_PRO",
+          entitlement: {
+            scopeType: "ACCOUNT",
+            scopeId: "user-1",
+            product: "RIVONCLAW_AI",
+            allowed: true,
+            code: "ALLOWED",
+            source: "SUBSCRIPTION",
+            subscription: null,
+            validUntil: null,
+            usage: [],
+          },
+        },
+        shops: [],
+      },
+    };
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch: vi.fn().mockResolvedValue(data),
+      },
+      onCloudLlmEntitlementAvailable,
+    } as unknown as ApiContext;
+
+    const { res } = await dispatch("POST", pathname, ctx, {
+      query: "query BillingOverview { billingOverview { accountLlm { entitlement { allowed } } } }",
+    });
+    await Promise.resolve();
+
+    expect(res._body).toEqual({ data });
+    expect(onCloudLlmEntitlementAvailable).not.toHaveBeenCalled();
   });
 
   it("does not sync cloud LLM provider for signed-out billing overview responses", async () => {
