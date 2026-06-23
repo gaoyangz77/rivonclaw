@@ -1158,6 +1158,7 @@ function isDeterministicSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): b
 function isCreatorFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
+    workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUp ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp
   );
 }
