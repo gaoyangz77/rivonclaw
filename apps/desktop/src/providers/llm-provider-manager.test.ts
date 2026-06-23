@@ -435,7 +435,100 @@ describe("LLMProviderManager", () => {
     expect(entry.customModelsJson).toBe(JSON.stringify([{ id: "gpt-5.4", input_modalities: ["text", "image"] }]));
     expect(entry.inputModalities).toEqual(["text", "image"]);
     expect(writeFullGatewayConfig).toHaveBeenCalled();
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.1");
+    expect(writeDefaultModelToConfig).not.toHaveBeenCalled();
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+    expect(restartGateway).not.toHaveBeenCalled();
+  });
+
+  it("does not reset sessions when cloud provider sync finds no material changes", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+    const writeDefaultModelToConfig = vi.fn();
+    const writeFullGatewayConfig = vi.fn();
+    const restartGateway = vi.fn();
+
+    let entry: ProviderKeyEntry = {
+      id: "cloud-rivonclaw-pro",
+      provider: "rivonclaw-pro",
+      label: "RivonClaw AI",
+      model: "gpt-5.5",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://api.rivonclaw.com/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "gpt-5.5", input_modalities: ["text", "image"] }]),
+      inputModalities: ["text", "image"],
+      source: "cloud",
+      createdAt: "",
+      updatedAt: "",
+    };
+    const storage = {
+      providerKeys: {
+        getActive: () => entry,
+        getById: (id: string) => (id === entry.id ? entry : undefined),
+        getAll: () => [entry],
+        update: (id: string, fields: Partial<ProviderKeyEntry>) => {
+          if (id !== entry.id) return undefined;
+          entry = { ...entry, ...fields, updatedAt: "updated" };
+          return entry;
+        },
+      },
+      settings: {
+        set: vi.fn(),
+        get: vi.fn(),
+      },
+      chatSessions: {
+        list: () => [],
+      },
+    };
+    await mockSecretStore.set(`provider-key-${entry.id}`, "rcllm_test_existing_cloud_token");
+    rootStore.loadProviderKeys([await toMstSnapshot(entry, mockSecretStore as any)]);
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig,
+      writeFullGatewayConfig,
+      restartGateway,
+      graphqlFetch: vi.fn().mockResolvedValue({
+        provisionLlmApiKey: {
+          id: "llm-key-1",
+          key: "rcllm_test_existing_cloud_token",
+          keyPrefix: "rcllm_test_exi",
+          status: "ACTIVE",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          lastUsedAt: null,
+        },
+      }),
+      proxyFetch: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: [{ id: "gpt-5.5", input_modalities: ["text", "image"] }] }),
+      }) as any,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    rootStore.llmManager.trackSessionActivity("agent:main:cs:tiktok:no-material-change");
+    await rootStore.llmManager.syncCloud({
+      userId: "u1",
+      email: "test@example.com",
+      name: "Test",
+      createdAt: "2026-01-01T00:00:00Z",
+      enrolledModules: [],
+      entitlementKeys: [],
+      defaultRunProfileId: null,
+    });
+
+    expect(writeFullGatewayConfig).not.toHaveBeenCalled();
+    expect(writeDefaultModelToConfig).not.toHaveBeenCalled();
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(restartGateway).not.toHaveBeenCalled();
   });
 

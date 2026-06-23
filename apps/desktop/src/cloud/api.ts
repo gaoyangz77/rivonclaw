@@ -63,6 +63,8 @@ function hasAllowedAccountLlmEntitlement(data: unknown): boolean {
 
 function runCloudLlmEntitlementSyncInBackground(ctx: ApiContext): void {
   if (!ctx.authSession?.getAccessToken() || !ctx.onCloudLlmEntitlementAvailable) return;
+  const hasLocalCloudProvider = rootStore.providerKeys.some((key: { provider?: string }) => key.provider === "rivonclaw-pro");
+  if (hasLocalCloudProvider) return;
   try {
     void Promise.resolve(ctx.onCloudLlmEntitlementAvailable()).catch((err: unknown) => {
       log.warn("Background cloud LLM provider sync after billing refresh failed", err);
