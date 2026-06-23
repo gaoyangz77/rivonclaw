@@ -1,0 +1,143 @@
+From 55171aff96b667035f43f4a6cbcf628c73f2170f Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 22 Jun 2026 21:07:55 -0700
+Subject: [PATCH] vendor(openclaw): surface account health fields in channel
+ status
+
+Why:
+- RivonClaw Channels needs WeChat account health and outbound send status from plugin runtime so sendmessage ret=-2 or session-expired states are visible to users instead of being masked by process running=true.
+
+Removal:
+- Drop once upstream OpenClaw projects healthy/lastHealthCheckAt/outbound health fields through channels.status snapshots.
+
+Tests:
+- extensions/channel-weixin/src/index.test.ts
+- apps/desktop/src/channels/channel-manager.test.ts
+- apps/panel/src/pages/channels/channel-defs.test.ts
+---
+ src/channels/account-snapshot-fields.ts | 28 +++++++++++++++++++++++++
+ src/channels/plugins/types.core.ts      |  6 ++++++
+ src/gateway/protocol/schema/channels.ts |  8 ++++++-
+ 3 files changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/src/channels/account-snapshot-fields.ts b/src/channels/account-snapshot-fields.ts
+index 98e0ec402c..6db9f60ae4 100644
+--- a/src/channels/account-snapshot-fields.ts
++++ b/src/channels/account-snapshot-fields.ts
+@@ -55,6 +55,16 @@ function readCredentialStatus(record: Record<string, unknown>, key: CredentialSt
+     : undefined;
+ }
+ 
++function readNullableString(
++  record: Record<string, unknown>,
++  key: string,
++): string | null | undefined {
++  if (record[key] === null) {
++    return null;
++  }
++  return normalizeOptionalString(record[key]);
++}
++
+ export function resolveConfiguredFromCredentialStatuses(account: unknown): boolean | undefined {
+   const record = isRecord(account) ? account : null;
+   if (!record) {
+@@ -174,6 +184,9 @@ export function projectSafeChannelAccountSnapshotFields(
+   const name = normalizeOptionalString(record.name);
+   const statusState = normalizeOptionalString(record.statusState);
+   const healthState = normalizeOptionalString(record.healthState);
++  const lastError = readNullableString(record, "lastError");
++  const lastOutboundError = readNullableString(record, "lastOutboundError");
++  const lastOutboundRecipientId = readNullableString(record, "lastOutboundRecipientId");
+   const mode = normalizeOptionalString(record.mode);
+   const dmPolicy = normalizeOptionalString(record.dmPolicy);
+   const baseUrl = normalizeOptionalString(record.baseUrl);
+@@ -191,6 +204,12 @@ export function projectSafeChannelAccountSnapshotFields(
+     ...(readBoolean(record, "connected") !== undefined
+       ? { connected: readBoolean(record, "connected") }
+       : {}),
++    ...(readBoolean(record, "healthy") !== undefined
++      ? { healthy: readBoolean(record, "healthy") }
++      : {}),
++    ...(readBoolean(record, "outboundHealthy") !== undefined
++      ? { outboundHealthy: readBoolean(record, "outboundHealthy") }
++      : {}),
+     ...(readBoolean(record, "restartPending") !== undefined
+       ? { restartPending: readBoolean(record, "restartPending") }
+       : {}),
+@@ -206,6 +225,12 @@ export function projectSafeChannelAccountSnapshotFields(
+     ...(readNullableNumber(record, "lastOutboundAt") !== undefined
+       ? { lastOutboundAt: readNullableNumber(record, "lastOutboundAt") }
+       : {}),
++    ...(readNullableNumber(record, "lastHealthCheckAt") !== undefined
++      ? { lastHealthCheckAt: readNullableNumber(record, "lastHealthCheckAt") }
++      : {}),
++    ...(readNullableNumber(record, "lastOutboundHealthAt") !== undefined
++      ? { lastOutboundHealthAt: readNullableNumber(record, "lastOutboundHealthAt") }
++      : {}),
+     ...(readNullableNumber(record, "lastMessageAt") !== undefined
+       ? { lastMessageAt: readNullableNumber(record, "lastMessageAt") }
+       : {}),
+@@ -215,8 +240,11 @@ export function projectSafeChannelAccountSnapshotFields(
+     ...(readNumber(record, "lastTransportActivityAt") !== undefined
+       ? { lastTransportActivityAt: readNumber(record, "lastTransportActivityAt") }
+       : {}),
++    ...(lastError !== undefined ? { lastError } : {}),
+     ...(statusState ? { statusState } : {}),
+     ...(healthState ? { healthState } : {}),
++    ...(lastOutboundError !== undefined ? { lastOutboundError } : {}),
++    ...(lastOutboundRecipientId !== undefined ? { lastOutboundRecipientId } : {}),
+     ...(readBoolean(record, "busy") !== undefined ? { busy: readBoolean(record, "busy") } : {}),
+     ...(readNumber(record, "activeRuns") !== undefined
+       ? { activeRuns: readNumber(record, "activeRuns") }
+diff --git a/src/channels/plugins/types.core.ts b/src/channels/plugins/types.core.ts
+index daecd345f9..9b00e95f1e 100644
+--- a/src/channels/plugins/types.core.ts
++++ b/src/channels/plugins/types.core.ts
+@@ -190,6 +190,7 @@ export type ChannelAccountSnapshot = {
+   name?: string;
+   enabled?: boolean;
+   configured?: boolean;
++  healthy?: boolean;
+   statusState?: string;
+   linked?: boolean;
+   running?: boolean;
+@@ -211,6 +212,11 @@ export type ChannelAccountSnapshot = {
+   lastTransportActivityAt?: number | null;
+   lastError?: string | null;
+   healthState?: string;
++  outboundHealthy?: boolean | null;
++  lastHealthCheckAt?: number | null;
++  lastOutboundHealthAt?: number | null;
++  lastOutboundError?: string | null;
++  lastOutboundRecipientId?: string | null;
+   lastStartAt?: number | null;
+   lastStopAt?: number | null;
+   lastInboundAt?: number | null;
+diff --git a/src/gateway/protocol/schema/channels.ts b/src/gateway/protocol/schema/channels.ts
+index 87d95f609c..dde9e722e5 100644
+--- a/src/gateway/protocol/schema/channels.ts
++++ b/src/gateway/protocol/schema/channels.ts
+@@ -243,13 +243,19 @@ export const ChannelAccountSnapshotSchema = Type.Object(
+     name: Type.Optional(Type.String()),
+     enabled: Type.Optional(Type.Boolean()),
+     configured: Type.Optional(Type.Boolean()),
++    healthy: Type.Optional(Type.Boolean()),
++    outboundHealthy: Type.Optional(Type.Boolean()),
+     linked: Type.Optional(Type.Boolean()),
+     running: Type.Optional(Type.Boolean()),
+     connected: Type.Optional(Type.Boolean()),
+     reconnectAttempts: Type.Optional(Type.Integer({ minimum: 0 })),
+     lastConnectedAt: Type.Optional(Type.Integer({ minimum: 0 })),
+-    lastError: Type.Optional(Type.String()),
++    lastError: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+     healthState: Type.Optional(Type.String()),
++    lastHealthCheckAt: Type.Optional(Type.Union([Type.Integer({ minimum: 0 }), Type.Null()])),
++    lastOutboundHealthAt: Type.Optional(Type.Union([Type.Integer({ minimum: 0 }), Type.Null()])),
++    lastOutboundError: Type.Optional(Type.Union([Type.String(), Type.Null()])),
++    lastOutboundRecipientId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+     lastStartAt: Type.Optional(Type.Integer({ minimum: 0 })),
+     lastStopAt: Type.Optional(Type.Integer({ minimum: 0 })),
+     lastInboundAt: Type.Optional(Type.Integer({ minimum: 0 })),
+-- 
+2.50.1 (Apple Git-155)
+

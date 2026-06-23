@@ -202,7 +202,139 @@ describe("channel-weixin QR session bridge", () => {
       connected: false,
       healthy: false,
       healthState: "send-unavailable",
+      outboundHealthy: false,
       lastError: expect.stringContaining("ret=-2"),
+      lastHealthCheckAt: expect.any(Number),
+      lastOutboundError: expect.stringContaining("ret=-2"),
+      lastOutboundHealthAt: expect.any(Number),
+      lastOutboundRecipientId: "manager@im.wechat",
+    }));
+  });
+
+  it("does not block later Weixin sends after marking health unavailable", async () => {
+    vi.resetModules();
+
+    const mockFetch = vi.fn(async () =>
+      new Response(JSON.stringify({ ret: -2, errmsg: "" }), { status: 200 })
+    );
+    globalThis.fetch = mockFetch as typeof fetch;
+
+    vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
+      default: {
+        register(api: { registerChannel: (opts: unknown) => void }) {
+          api.registerChannel({
+            plugin: {
+              id: "openclaw-weixin",
+              outbound: {
+                sendText: async (ctx: { accountId?: string; to: string }) => {
+                  await fetch("https://mock.weixin.test/ilink/bot/sendmessage", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      msg: {
+                        to_user_id: ctx.to,
+                        client_id: `client-${mockFetch.mock.calls.length}`,
+                      },
+                    }),
+                  });
+                  return { channel: "openclaw-weixin" };
+                },
+              },
+              gateway: {
+                startAccount: vi.fn(async () => undefined),
+              },
+            },
+          });
+        },
+      },
+    }));
+
+    const { default: plugin } = await import("./index.js");
+    let registered!: {
+      plugin: {
+        outbound?: {
+          sendText?: (ctx: { accountId?: string; to: string; text: string }) => Promise<unknown>;
+        };
+        gateway?: {
+          startAccount?: (ctx: unknown) => Promise<unknown>;
+        };
+      };
+    };
+
+    plugin.register({
+      registerChannel(opts: unknown) {
+        registered = opts as typeof registered;
+      },
+    } as Parameters<typeof plugin.register>[0]);
+
+    const setStatus = vi.fn();
+    await registered.plugin.gateway?.startAccount?.({
+      account: { accountId: "acct-1" },
+      runtime: { error: vi.fn() },
+      setStatus,
+    });
+
+    for (let idx = 0; idx < 2; idx += 1) {
+      await expect(registered.plugin.outbound?.sendText?.({
+        accountId: "acct-1",
+        to: "manager@im.wechat",
+        text: "CS Escalation",
+      })).rejects.toThrow(/ret=-2/);
+    }
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(setStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it("marks the Weixin account reauth-required when getUpdates reports session expired", async () => {
+    vi.resetModules();
+
+    vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
+      default: {
+        register(api: { registerChannel: (opts: unknown) => void }) {
+          api.registerChannel({
+            plugin: {
+              id: "openclaw-weixin",
+              gateway: {
+                startAccount: async (ctx: { runtime?: { error?: (message: string) => void } }) => {
+                  ctx.runtime?.error?.("weixin getUpdates: session expired (errcode -14)");
+                },
+              },
+            },
+          });
+        },
+      },
+    }));
+
+    const { default: plugin } = await import("./index.js");
+    let registered!: {
+      plugin: {
+        gateway?: {
+          startAccount?: (ctx: unknown) => Promise<unknown>;
+        };
+      };
+    };
+
+    plugin.register({
+      registerChannel(opts: unknown) {
+        registered = opts as typeof registered;
+      },
+    } as Parameters<typeof plugin.register>[0]);
+
+    const setStatus = vi.fn();
+    await registered.plugin.gateway?.startAccount?.({
+      account: { accountId: "acct-1" },
+      runtime: { error: vi.fn() },
+      setStatus,
+    });
+
+    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: "acct-1",
+      running: false,
+      connected: false,
+      healthy: false,
+      healthState: "reauth-required",
+      outboundHealthy: null,
+      lastError: expect.stringContaining("session expired"),
       lastHealthCheckAt: expect.any(Number),
     }));
   });

@@ -22,6 +22,12 @@ let latestQrStartSeq = 0;
 let weixinDirectFetchShimInstalled = false;
 let weixinLogDirEnsured = false;
 const weixinStatusSinks = new Map<string, (next: Record<string, unknown>) => void>();
+const weixinAccountHealthBlocks = new Map<string, {
+  healthState: "reauth-required" | "send-unavailable";
+  message: string;
+  at: number;
+  to?: string | null;
+}>();
 
 const weixinSendContext = new AsyncLocalStorage<{
   accountId?: string | null;
@@ -294,7 +300,9 @@ async function runWithWeixinOutboundHealth<T>(
 ): Promise<T> {
   return runWithWeixinSendContext(ctx, async () => {
     try {
-      return await fn();
+      const result = await fn();
+      markWeixinSendAvailable(ctx);
+      return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (isWeixinSendBusinessFailure(message)) {
@@ -348,6 +356,52 @@ function updateWeixinRuntimeStatus(accountId: string, next: Record<string, unkno
   sink({ accountId, ...next });
 }
 
+function buildWeixinHealthBlockStatus(block: {
+  healthState: "reauth-required" | "send-unavailable";
+  message: string;
+  at: number;
+  to?: string | null;
+}): Record<string, unknown> {
+  return {
+    running: false,
+    connected: false,
+    healthy: false,
+    healthState: block.healthState,
+    outboundHealthy: block.healthState === "send-unavailable" ? false : null,
+    lastError: block.message,
+    lastHealthCheckAt: block.at,
+    lastOutboundError: block.healthState === "send-unavailable" ? block.message : null,
+    lastOutboundHealthAt: block.at,
+    lastOutboundRecipientId: block.to ?? null,
+  };
+}
+
+function recordWeixinAccountHealthBlock(accountId: string, block: {
+  healthState: "reauth-required" | "send-unavailable";
+  message: string;
+  at?: number;
+  to?: string | null;
+}): void {
+  const next = {
+    healthState: block.healthState,
+    message: block.message,
+    at: block.at ?? Date.now(),
+    to: block.to ?? null,
+  };
+  weixinAccountHealthBlocks.set(accountId, next);
+  updateWeixinRuntimeStatus(accountId, buildWeixinHealthBlockStatus(next));
+}
+
+function clearWeixinAccountHealthBlock(accountId: string): void {
+  weixinAccountHealthBlocks.delete(accountId);
+}
+
+function reapplyWeixinAccountHealthBlock(accountId: string): void {
+  const block = weixinAccountHealthBlocks.get(accountId);
+  if (!block) return;
+  updateWeixinRuntimeStatus(accountId, buildWeixinHealthBlockStatus(block));
+}
+
 function markWeixinSessionExpired(ctx: unknown, message: string): void {
   const c = ctx as {
     account?: { accountId?: string };
@@ -356,28 +410,38 @@ function markWeixinSessionExpired(ctx: unknown, message: string): void {
   const accountId = c.account?.accountId;
   if (!accountId || typeof c.setStatus !== "function") return;
 
-  c.setStatus({
-    accountId,
-    running: false,
-    connected: false,
-    healthy: false,
+  recordWeixinAccountHealthBlock(accountId, {
     healthState: "reauth-required",
-    lastError: message,
-    lastHealthCheckAt: Date.now(),
+    message,
   });
 }
 
 function markWeixinSendUnavailable(ctx: unknown, message: string): void {
-  const c = ctx as { accountId?: string | null };
+  const c = ctx as { accountId?: string | null; to?: string | null };
   const accountId = c.accountId?.trim();
   if (!accountId) return;
-  updateWeixinRuntimeStatus(accountId, {
-    running: false,
-    connected: false,
-    healthy: false,
+  recordWeixinAccountHealthBlock(accountId, {
     healthState: "send-unavailable",
-    lastError: message,
+    message,
+    to: c.to?.trim() || null,
+  });
+}
+
+function markWeixinSendAvailable(ctx: unknown): void {
+  const c = ctx as { accountId?: string | null; to?: string | null };
+  const accountId = c.accountId?.trim();
+  if (!accountId) return;
+  clearWeixinAccountHealthBlock(accountId);
+  updateWeixinRuntimeStatus(accountId, {
+    running: true,
+    healthy: true,
+    healthState: "healthy",
+    outboundHealthy: true,
+    lastError: null,
     lastHealthCheckAt: Date.now(),
+    lastOutboundError: null,
+    lastOutboundHealthAt: Date.now(),
+    lastOutboundRecipientId: c.to?.trim() || null,
   });
 }
 
@@ -531,6 +595,7 @@ const plugin = {
             const accountId = c.account?.accountId;
             if (accountId && typeof c.setStatus === "function") {
               weixinStatusSinks.set(accountId, c.setStatus.bind(c));
+              reapplyWeixinAccountHealthBlock(accountId);
             }
             const originalRuntime = c.runtime;
             c.runtime = {
@@ -572,7 +637,24 @@ const plugin = {
             if (!p.sessionKey && lastSessionKey) {
               p.sessionKey = lastSessionKey;
             }
-            return origWait(p);
+            const result = await origWait(p) as { connected?: boolean; accountId?: string };
+            if (result.connected) {
+              const accountId = result.accountId ?? (typeof p.accountId === "string" ? p.accountId : undefined);
+              if (accountId) {
+                clearWeixinAccountHealthBlock(accountId);
+                updateWeixinRuntimeStatus(accountId, {
+                  healthy: true,
+                  healthState: "healthy",
+                  lastError: null,
+                  lastHealthCheckAt: Date.now(),
+                  outboundHealthy: null,
+                  lastOutboundError: null,
+                  lastOutboundHealthAt: null,
+                  lastOutboundRecipientId: null,
+                });
+              }
+            }
+            return result;
           };
         }
 

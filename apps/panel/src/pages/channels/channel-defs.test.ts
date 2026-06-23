@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import type { ChannelsStatusSnapshot, ChannelAccountSnapshot } from "../../api/index.js";
-import { buildAccountsList, type MstChannelAccountLike } from "./channel-defs.jsx";
+import {
+  buildAccountsList,
+  resolveDisplayedRunningStatus,
+  type MstChannelAccountLike,
+} from "./channel-defs.jsx";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -237,6 +241,50 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(result[0]!.account.healthState).toBe("send-unavailable");
     expect(result[0]!.account.lastError).toContain("ret=-2");
     expect(result[0]!.account.contextTokenReady).toBe(true);
+  });
+
+  it("does not copy one WeChat account runtime status to sibling accounts", () => {
+    const result = buildAccountsList(
+      [
+        mst({ channelId: "openclaw-weixin", accountId: "wx-1", name: "Support WeChat" }),
+        mst({ channelId: "openclaw-weixin", accountId: "wx-2", name: "Owner WeChat" }),
+      ],
+      snapshot({
+        "openclaw-weixin": [{
+          accountId: "wx-1",
+          configured: true,
+          running: true,
+          outboundHealthy: true,
+        }],
+      }),
+      t,
+    );
+
+    expect(result[0]!.account.running).toBe(true);
+    expect(result[0]!.account.outboundHealthy).toBe(true);
+    expect(result[1]!.account.running).toBeNull();
+    expect(result[1]!.account.outboundHealthy).toBeUndefined();
+  });
+
+  it("shows WeChat process-running outbound-unknown status as unknown instead of healthy", () => {
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: true,
+      outboundHealthy: undefined,
+    })).toBeNull();
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: true,
+      healthy: true,
+      healthState: "healthy",
+      outboundHealthy: undefined,
+    })).toBe(true);
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: true,
+      outboundHealthy: false,
+    })).toBe(false);
+    expect(resolveDisplayedRunningStatus("telegram", {
+      running: true,
+      outboundHealthy: undefined,
+    })).toBe(true);
   });
 
   it("respects enabled=false from MST config when snapshot is missing", () => {
