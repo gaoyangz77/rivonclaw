@@ -40,12 +40,10 @@ const HISTORY_FILTERS = [
   "NEEDS_ATTENTION",
   "IN_PROGRESS",
   "ALL",
-  GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
-  GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform,
-  GQL.AffiliateCollaborationRecordProcessingStatus.Done,
+  GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
+  GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
+  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal,
+  GQL.AffiliateCollaborationRecordProcessingStatus.Idle,
   GQL.AffiliateCollaborationRecordProcessingStatus.Blocked,
 ] as const;
 
@@ -2182,18 +2180,15 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const processingStatuses = useMemo(() => {
     if (historyFilter === "NEEDS_ATTENTION") {
       return [
-        GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
-        GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
-        GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
+        GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
+        GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
       ];
     }
     if (historyFilter !== "IN_PROGRESS") return undefined;
     return [
-      GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
-      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
-      GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
-      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator,
-      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform,
+      GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
+      GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
+      GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal,
     ];
   }, [historyFilter]);
 
@@ -2556,7 +2551,7 @@ function CollaborationRecordCard({
           shopId={record.shopId}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
         />
-        {record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded ? (
+        {record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired ? (
           <div className="affiliate-collaboration-staff-actions" onClick={(event) => event.stopPropagation()}>
             <div className="affiliate-collaboration-staff-actions-buttons">
               <button
@@ -2790,7 +2785,9 @@ function CollaborationActivityModal({
         <div className="affiliate-collaboration-modal-body">
           <aside className="affiliate-collaboration-context-pane">
             <div className="affiliate-collaboration-modal-summary">
-              <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${record.processingStatus}`)}</span>
+              <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${record.processingStatus}`, {
+                defaultValue: record.processingStatus,
+              })}</span>
               <span>{t(`ecommerce.affiliateWorkspace.lifecycleStages.${record.lifecycleStage}`, {
                 defaultValue: record.lifecycleStage,
               })}</span>
@@ -4522,7 +4519,7 @@ function buildCollaborationWorkView(
     };
   }
 
-  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.Done) {
+  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.Idle) {
     return {
       badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.done"),
       badgeTone: "done",
@@ -4557,7 +4554,7 @@ function buildCollaborationWorkView(
 
   if (
     proposalPending ||
-    record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval ||
+    record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired ||
     record.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewActionProposal
   ) {
     return {
@@ -4639,25 +4636,20 @@ function buildCollaborationWorkView(
       break;
   }
 
-  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingCreator) {
+  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal) {
     return {
-      badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingCreator"),
+      badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingExternal", {
+        defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingCreator"),
+      }),
       badgeTone: "waiting",
       stage,
       ownerLabel: t("ecommerce.affiliateWorkspace.labels.currentSituation"),
-      title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.WAITING_CREATOR"),
-      description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_CREATOR"),
-    };
-  }
-
-  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingPlatform) {
-    return {
-      badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingPlatform"),
-      badgeTone: "waiting",
-      stage,
-      ownerLabel: t("ecommerce.affiliateWorkspace.labels.currentSituation"),
-      title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.WAITING_PLATFORM"),
-      description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_PLATFORM"),
+      title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.WAITING_EXTERNAL", {
+        defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.WAITING_CREATOR"),
+      }),
+      description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_EXTERNAL", {
+        defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_CREATOR"),
+      }),
     };
   }
 
@@ -4694,7 +4686,7 @@ function renderCollaborationWorkTitle({
     GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
     GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment,
     GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue,
-    GQL.AffiliateCollaborationRecordProcessReason.CreatorIdentityUnresolved,
+    GQL.AffiliateCollaborationRecordProcessReason.IdentityResolution,
     GQL.AffiliateCollaborationRecordProcessReason.AgentRunFailed,
     GQL.AffiliateCollaborationRecordProcessReason.StaffReviewRequested,
   ];

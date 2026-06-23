@@ -45,7 +45,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     sampleApplicationRecordId: "sample-record-001",
     platformConversationId: "conversation-001",
     lifecycleStage: "SAMPLE_PENDING",
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
     lastCreatorMessageId: null,
@@ -79,7 +79,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     lastInboundAt: null,
     lastOutboundAt: null,
     unreadCount: null,
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
     lastSignalAt: null,
@@ -125,11 +125,11 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     shopThreadId: shopThread.id,
     shopThread,
     collaborationRecordId: "collab-001",
-    workKind: GQL.AffiliateWorkKind.SampleReviewNeeded,
+    workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
     agentDispatchRecommended: true,
     staffReviewRequired: false,
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
     recommendedActionTypes: [
@@ -166,7 +166,7 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     sampleApplicationRecordId: null,
     platformConversationId: "conversation-001",
     lifecycleStage: "CONVERSATION",
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateCollaborationRequiredAction.RespondToCreator,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
     lastCreatorMessageId: null,
@@ -175,9 +175,9 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
 
   return {
     ...base,
-    workKind: GQL.AffiliateWorkKind.CreatorReplyNeeded,
+    workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
     workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyOnly,
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentNeeded,
+    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateCollaborationRequiredAction.RespondToCreator,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
     recommendedActionTypes: [
@@ -367,7 +367,7 @@ describe("affiliate work item dispatch", () => {
             proposal: { id: "proposal-from-snapshot" },
             collaborationRecord: {
               id: "collab-with-snapshot",
-              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
             },
           },
         };
@@ -489,7 +489,7 @@ describe("affiliate work item dispatch", () => {
             proposal: { id: "proposal-001" },
             collaborationRecord: {
               id: "collab-deterministic-001",
-              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
             },
           },
         };
@@ -582,7 +582,7 @@ describe("affiliate work item dispatch", () => {
             proposal: null,
             collaborationRecord: {
               id: "collab-001",
-              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffNeeded,
+              processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
             },
           },
         };
@@ -740,8 +740,8 @@ describe("affiliate work item dispatch", () => {
   it("does not dispatch work items that are projection-only", async () => {
     const workItem = createSampleReviewWorkItem({
       agentDispatchRecommended: false,
-      workKind: GQL.AffiliateWorkKind.ApprovalWaiting,
-      processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.WaitingApproval,
+      workKind: GQL.AffiliateWorkKind.ApprovalReview,
+      processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
     });
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
@@ -750,7 +750,7 @@ describe("affiliate work item dispatch", () => {
 
   it("renders creator follow-up work as a temporal actionable delta", () => {
     const workItem = createCreatorReplyWorkItem({
-      workKind: GQL.AffiliateWorkKind.CreatorFollowUpDue,
+      workKind: GQL.AffiliateWorkKind.CreatorFollowUp,
       workBundleKind: GQL.AffiliateWorkBundleKind.CreatorFollowUp,
       requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
       processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
