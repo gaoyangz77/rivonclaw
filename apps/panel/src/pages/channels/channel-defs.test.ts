@@ -267,15 +267,19 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     expect(result[1]!.account.healthState).toBeUndefined();
   });
 
-  it("shows WeChat process-running outbound-unknown status as unknown instead of healthy", () => {
+  it("shows WeChat process runtime separately from explicit send health failures", () => {
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
-    })).toBeNull();
+    })).toBe(true);
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
       healthy: true,
       healthState: "healthy",
     })).toBe(true);
+    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
+      running: true,
+      connected: false,
+    })).toBe(false);
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
       healthState: "send-unavailable",

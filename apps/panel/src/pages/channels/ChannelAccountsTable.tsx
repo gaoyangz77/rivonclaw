@@ -604,15 +604,19 @@ export function ChannelAccountsTable({
                 const needsWeixinActivation = channelId === "openclaw-weixin" && (
                   account.contextTokenReady === false
                   || account.healthy === false
-                  || (account.running === true && account.healthy !== true && account.healthState !== "healthy")
                   || account.healthState === "send-unavailable"
                   || account.healthState === "reauth-required"
                 );
-                const weixinActivationTooltip = account.lastError
-                  ? `${t("channels.wechatContextTokenNotReadyTooltip")}\n${account.lastError}`
-                  : t("channels.wechatOutboundUnknownTooltip", {
-                    defaultValue: "WeChat is running, but outbound send health is unknown.",
-                  });
+                const weixinContextTooltip = t("channels.wechatContextTokenNotReadyTooltip");
+                const weixinActivationTooltip = account.contextTokenReady === false
+                  ? account.lastError
+                    ? `${weixinContextTooltip}\n${account.lastError}`
+                    : weixinContextTooltip
+                  : account.lastError
+                    ? `${weixinContextTooltip}\n${account.lastError}`
+                    : t("channels.wechatOutboundUnknownTooltip", {
+                      defaultValue: "WeChat is running, but outbound send health is unknown.",
+                    });
                 const displayedRunning = resolveDisplayedRunningStatus(channelId, account);
                 return (
                   <Fragment key={rowKey}>
