@@ -281,9 +281,6 @@ function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
     account.connected = false;
     account.healthy = false;
     account.healthState = account.healthState ?? resolveWeixinBusinessHealthState(account.lastError);
-    account.outboundHealthy = false;
-    account.lastOutboundError = account.lastError ?? null;
-    account.lastOutboundHealthAt = account.lastHealthCheckAt ?? Date.now();
   }
 }
 

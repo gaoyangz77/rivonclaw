@@ -367,12 +367,8 @@ function buildWeixinHealthBlockStatus(block: {
     connected: false,
     healthy: false,
     healthState: block.healthState,
-    outboundHealthy: block.healthState === "send-unavailable" ? false : null,
     lastError: block.message,
     lastHealthCheckAt: block.at,
-    lastOutboundError: block.healthState === "send-unavailable" ? block.message : null,
-    lastOutboundHealthAt: block.at,
-    lastOutboundRecipientId: block.to ?? null,
   };
 }
 
@@ -436,12 +432,8 @@ function markWeixinSendAvailable(ctx: unknown): void {
     running: true,
     healthy: true,
     healthState: "healthy",
-    outboundHealthy: true,
     lastError: null,
     lastHealthCheckAt: Date.now(),
-    lastOutboundError: null,
-    lastOutboundHealthAt: Date.now(),
-    lastOutboundRecipientId: c.to?.trim() || null,
   });
 }
 
@@ -647,10 +639,6 @@ const plugin = {
                   healthState: "healthy",
                   lastError: null,
                   lastHealthCheckAt: Date.now(),
-                  outboundHealthy: null,
-                  lastOutboundError: null,
-                  lastOutboundHealthAt: null,
-                  lastOutboundRecipientId: null,
                 });
               }
             }

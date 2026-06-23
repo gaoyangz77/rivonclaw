@@ -254,36 +254,34 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
           accountId: "wx-1",
           configured: true,
           running: true,
-          outboundHealthy: true,
+          healthy: true,
+          healthState: "healthy",
         }],
       }),
       t,
     );
 
     expect(result[0]!.account.running).toBe(true);
-    expect(result[0]!.account.outboundHealthy).toBe(true);
+    expect(result[0]!.account.healthState).toBe("healthy");
     expect(result[1]!.account.running).toBeNull();
-    expect(result[1]!.account.outboundHealthy).toBeUndefined();
+    expect(result[1]!.account.healthState).toBeUndefined();
   });
 
   it("shows WeChat process-running outbound-unknown status as unknown instead of healthy", () => {
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
-      outboundHealthy: undefined,
     })).toBeNull();
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
       healthy: true,
       healthState: "healthy",
-      outboundHealthy: undefined,
     })).toBe(true);
     expect(resolveDisplayedRunningStatus("openclaw-weixin", {
       running: true,
-      outboundHealthy: false,
+      healthState: "send-unavailable",
     })).toBe(false);
     expect(resolveDisplayedRunningStatus("telegram", {
       running: true,
-      outboundHealthy: undefined,
     })).toBe(true);
   });
 

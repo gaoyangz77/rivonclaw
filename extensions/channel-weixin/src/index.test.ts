@@ -202,12 +202,8 @@ describe("channel-weixin QR session bridge", () => {
       connected: false,
       healthy: false,
       healthState: "send-unavailable",
-      outboundHealthy: false,
       lastError: expect.stringContaining("ret=-2"),
       lastHealthCheckAt: expect.any(Number),
-      lastOutboundError: expect.stringContaining("ret=-2"),
-      lastOutboundHealthAt: expect.any(Number),
-      lastOutboundRecipientId: "manager@im.wechat",
     }));
   });
 
@@ -333,7 +329,6 @@ describe("channel-weixin QR session bridge", () => {
       connected: false,
       healthy: false,
       healthState: "reauth-required",
-      outboundHealthy: null,
       lastError: expect.stringContaining("session expired"),
       lastHealthCheckAt: expect.any(Number),
     }));

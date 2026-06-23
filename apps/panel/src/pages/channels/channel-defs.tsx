@@ -20,7 +20,7 @@ export function StatusBadge({ status, t }: { status: boolean | null | undefined;
 
 export function resolveDisplayedRunningStatus(
   channelId: string,
-  account: Pick<ChannelAccountSnapshot, "running" | "healthy" | "healthState" | "outboundHealthy">,
+  account: Pick<ChannelAccountSnapshot, "running" | "healthy" | "healthState">,
 ): boolean | null | undefined {
   if (channelId !== "openclaw-weixin") {
     return account.running;
@@ -28,7 +28,6 @@ export function resolveDisplayedRunningStatus(
   if (
     account.running === false ||
     account.healthy === false ||
-    account.outboundHealthy === false ||
     account.healthState === "send-unavailable" ||
     account.healthState === "reauth-required"
   ) {
@@ -37,7 +36,7 @@ export function resolveDisplayedRunningStatus(
   if (account.running === true && account.healthy === true && account.healthState === "healthy") {
     return true;
   }
-  if (account.running === true && account.outboundHealthy !== true) {
+  if (account.running === true) {
     return null;
   }
   return account.running;
