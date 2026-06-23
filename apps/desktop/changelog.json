@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.41",
+    "date": "2026-06-22",
+    "en": [
+      "Add the customer-service performance dashboard with localized panel copy and navigation",
+      "Support affiliate proposal revision requests and refine affiliate session handling",
+      "Fix cloud LLM billing sync session resets and polish customer-service billing status layout"
+    ],
+    "zh": [
+      "新增客服绩效看板，并补齐面板多语言文案和导航",
+      "支持达人提案修改请求，并优化达人会话处理",
+      "修复云端 LLM 计费同步的会话重置问题，并打磨客服计费状态布局"
+    ]
+  },
+  {
     "version": "1.8.40",
     "date": "2026-06-21",
     "en": [
