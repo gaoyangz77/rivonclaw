@@ -336,7 +336,7 @@ const DesktopRootStoreModel = RootStoreModel
       Payment: self.payments,
       ActionProposal: self.affiliateWorkspace.actionProposals,
       AffiliateCollaborationRecord: self.affiliateWorkspace.collaborationRecords,
-      CreatorGlobalProfile: self.affiliateWorkspace.creatorProfiles,
+      AffiliateCreatorIdentity: self.affiliateWorkspace.creatorProfiles,
       AffiliateConversationRecord: self.affiliateWorkspace.conversationRecords,
       SampleApplicationRecord: self.affiliateWorkspace.sampleApplicationRecords,
       LifecycleEvent: self.affiliateWorkspace.lifecycleEvents,
@@ -434,7 +434,7 @@ const DesktopRootStoreModel = RootStoreModel
             self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
           } else if (typeName === "AffiliateCollaborationRecord") {
             self.affiliateWorkspace.upsertAffiliateCollaborationRecord(sanitized as any);
-          } else if (typeName === "CreatorGlobalProfile") {
+          } else if (typeName === "AffiliateCreatorIdentity") {
             self.affiliateWorkspace.upsertAffiliateCreatorProfile(sanitized as any);
           } else if (typeName === "AffiliateConversationRecord") {
             self.affiliateWorkspace.upsertAffiliateConversationRecord(sanitized as any);

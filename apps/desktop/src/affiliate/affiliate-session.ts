@@ -343,7 +343,7 @@ export class AffiliateSession {
       {
         input: {
           shopId: workItem.shopId,
-          threadId: workItem.threadId,
+          shopThreadId: workItem.shopThreadId,
           collaborationRecordId: workItem.collaborationRecordId ?? undefined,
           handledSignalAt:
             workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
@@ -380,7 +380,7 @@ export class AffiliateSession {
         {
           input: {
             shopId: workItem.shopId,
-            threadId: workItem.threadId,
+            shopThreadId: workItem.shopThreadId,
             collaborationRecordId: workItem.collaborationRecordId ?? undefined,
             handledSignalAt:
               workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
@@ -526,7 +526,7 @@ export class AffiliateSession {
         {
           input: {
             shopId: workItem.shopId,
-            threadId: workItem.threadId,
+            shopThreadId: workItem.shopThreadId,
             collaborationRecordId: workItem.collaborationRecordId ?? undefined,
             handledSignalAt:
               workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
@@ -560,7 +560,7 @@ export class AffiliateSession {
       {
         input: {
           shopId: this.affiliateContext.shopId,
-          threadId: workItem.threadId,
+          shopThreadId: workItem.shopThreadId,
           collaborationRecordId: workItem.collaborationRecordId ?? undefined,
           limit: 1,
         },
@@ -568,7 +568,7 @@ export class AffiliateSession {
     );
     const currentWorkItem = result.affiliateWorkItems[0];
     const handledUntil = parseOptionalDate(
-      currentWorkItem?.collaboration?.workHandledUntil ?? currentWorkItem?.thread?.workHandledUntil,
+      currentWorkItem?.collaboration?.workHandledUntil ?? currentWorkItem?.shopThread?.workHandledUntil,
     );
     return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
   }
@@ -694,7 +694,7 @@ export class AffiliateSession {
         {
           input: {
             shopId: workItem.shopId,
-            threadId: workItem.threadId,
+            shopThreadId: workItem.shopThreadId,
             collaborationRecordId: workItem.collaborationRecordId ?? undefined,
             since,
             limit: 8,
@@ -809,7 +809,7 @@ export class AffiliateSession {
       };
     }
 
-    const memoKey = workItem.collaborationRecordId ?? workItem.threadId;
+    const memoKey = workItem.collaborationRecordId ?? workItem.shopThreadId;
     const existing = predictionMemo.get(memoKey);
     if (existing) return existing;
 
@@ -1100,16 +1100,16 @@ function workItemCurrentMessageId(workItem: GQL.AffiliateWorkItem): string | nul
 
 function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {
   return workItem.collaborationRecordId
-    ? `collaboration=${workItem.collaborationRecordId} thread=${workItem.threadId}`
-    : `thread=${workItem.threadId}`;
+    ? `collaboration=${workItem.collaborationRecordId} thread=${workItem.shopThreadId}`
+    : `thread=${workItem.shopThreadId}`;
 }
 
-function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateCreatorThread | null {
-  if (workItem.thread) return workItem.thread;
+function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateShopCreatorThread | null {
+  if (workItem.shopThread) return workItem.shopThread;
   const collaboration = workItem.collaboration;
   if (!collaboration) return null;
   return {
-    id: workItem.threadId ?? workItem.collaborationRecordId ?? workItem.id,
+    id: workItem.shopThreadId ?? workItem.collaborationRecordId ?? workItem.id,
     userId: collaboration.userId,
     shopId: collaboration.shopId,
     platform: GQL.ShopPlatform.TiktokShop,

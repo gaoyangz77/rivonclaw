@@ -441,8 +441,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       shopId
       campaignId
       creatorId
-      threadId
-      thread {
+      shopThreadId
+      shopThread {
         id
         creatorId
         creatorOpenId
@@ -723,7 +723,7 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           shopId
           campaignId
           creatorId
-          threadId
+          shopThreadId
           collaborationRecordId
           type
           status
@@ -1299,7 +1299,7 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
         shopId
         campaignId
         creatorId
-        threadId
+        shopThreadId
         collaborationRecordId
         collaborationRecordLastSignalAt
         collaborationRecordStateUpdatedAt
@@ -1589,7 +1589,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       shopId
       campaignId
       creatorId
-      threadId
+      shopThreadId
       collaborationRecordId
       type
       status

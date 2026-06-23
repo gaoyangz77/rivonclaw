@@ -29,7 +29,7 @@ import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 type DashboardItem = GQL.AffiliateDashboardItem;
 type CollaborationDetailItem = {
   collaborationRecord: GQL.AffiliateCollaborationRecord;
-  creatorProfile?: GQL.CreatorGlobalProfile | null;
+  creatorProfile?: GQL.AffiliateCreatorIdentity | null;
   productSummary?: GQL.EcomProductSummary | null;
   sampleApplications?: GQL.SampleApplicationRecord[] | null;
   latestProposal?: GQL.ActionProposal | null;
@@ -311,7 +311,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
   const [selectedCollaboration, setSelectedCollaboration] = useState<CollaborationDetailItem | null>(null);
-  const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<GQL.AffiliateCreatorIdentity | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -1465,7 +1465,7 @@ function dashboardItemSearchText(
     creatorProfile?.creatorImId,
     item.proposalId,
     proposal?.id,
-    proposal?.threadId,
+    proposal?.shopThreadId,
     proposal?.operatorSummary,
     item.collaborationRecordId,
     collaboration?.id,
@@ -1515,7 +1515,7 @@ function actionProposalSearchText(
     proposal.shopId,
     shopLabel(proposal.shopId),
     proposal.creatorId,
-    proposal.threadId,
+    proposal.shopThreadId,
     proposal.operatorSummary,
     proposal.type,
     proposal.status,
@@ -1652,7 +1652,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const [creatorPage, setCreatorPage] = useState(1);
   const [creatorPageInput, setCreatorPageInput] = useState("1");
   const [selectedCollaboration, setSelectedCollaboration] = useState<CollaborationDetailItem | null>(null);
-  const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<GQL.AffiliateCreatorIdentity | null>(null);
   const [updatingTagKey, setUpdatingTagKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1720,11 +1720,11 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   });
 
   const [applyCreatorTag] = useMutation<
-    { applyCreatorTag: GQL.CreatorUserRelation },
+    { applyCreatorTag: GQL.AffiliateCreatorRelationship },
     { input: GQL.ApplyCreatorTagInput }
   >(APPLY_CREATOR_TAG_MUTATION);
   const [removeCreatorTag] = useMutation<
-    { removeCreatorTag: GQL.CreatorUserRelation },
+    { removeCreatorTag: GQL.AffiliateCreatorRelationship },
     { input: GQL.ApplyCreatorTagInput }
   >(REMOVE_CREATOR_TAG_MUTATION);
 
@@ -1994,7 +1994,7 @@ function AffiliateCreatorRosterRow({
   allTags: GQL.CreatorTag[];
   updatingTagKey: string | null;
   onOpenCollaboration: (item: CollaborationDetailItem) => void;
-  onOpenCreator: (profile: GQL.CreatorGlobalProfile) => void;
+  onOpenCreator: (profile: GQL.AffiliateCreatorIdentity) => void;
   onUpdateTag: (creatorId: string, tagId: string, mode: "apply" | "remove") => void;
 }) {
   const { t } = useTranslation();
@@ -2134,7 +2134,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageInput, setHistoryPageInput] = useState("1");
   const [selectedItem, setSelectedItem] = useState<CollaborationListItem | null>(null);
-  const [selectedCreator, setSelectedCreator] = useState<GQL.CreatorGlobalProfile | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<GQL.AffiliateCreatorIdentity | null>(null);
   const [resolvingCollaborationId, setResolvingCollaborationId] = useState<string | null>(null);
   const [resolveStaffAction] = useMutation<
     { resolveAffiliateCollaborationStaffAction: GQL.ResolveAffiliateCollaborationStaffActionPayload },
@@ -2477,7 +2477,7 @@ function CollaborationRecordCard({
   item: CollaborationListItem;
   shopLabel: string;
   onOpen: () => void;
-  onOpenCreator: (profile: GQL.CreatorGlobalProfile) => void;
+  onOpenCreator: (profile: GQL.AffiliateCreatorIdentity) => void;
   resolving: boolean;
   onStaffAction: (
     record: GQL.AffiliateCollaborationRecord,
@@ -2513,7 +2513,7 @@ function CollaborationRecordCard({
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}
-              onOpen={item.creatorProfile ? () => onOpenCreator(item.creatorProfile as GQL.CreatorGlobalProfile) : undefined}
+              onOpen={item.creatorProfile ? () => onOpenCreator(item.creatorProfile as GQL.AffiliateCreatorIdentity) : undefined}
             />
             <CreatorPlatformId
               handle={creatorHandle}
@@ -2580,7 +2580,7 @@ function CollaborationActivityModal({
 }: {
   item: CollaborationDetailItem;
   shopLabel: string;
-  onOpenCreator?: (profile: GQL.CreatorGlobalProfile) => void;
+  onOpenCreator?: (profile: GQL.AffiliateCreatorIdentity) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -3235,7 +3235,7 @@ function ActionProposalCard({
   decidingProposal?: boolean;
   variant?: "full" | "compact";
   onOpenCollaboration?: (item: CollaborationDetailItem) => void;
-  onOpenCreator?: (profile: GQL.CreatorGlobalProfile) => void;
+  onOpenCreator?: (profile: GQL.AffiliateCreatorIdentity) => void;
   onApprove?: (proposal: GQL.ActionProposal) => Promise<void>;
   onReject?: (proposal: GQL.ActionProposal) => Promise<void>;
   onRequestRevision?: (proposal: GQL.ActionProposal, note: string) => Promise<void>;
@@ -3295,7 +3295,7 @@ function ActionProposalCard({
               name={creatorName}
               onOpen={
                 proposal.creatorProfile && onOpenCreator
-                  ? () => onOpenCreator(proposal.creatorProfile as GQL.CreatorGlobalProfile)
+                  ? () => onOpenCreator(proposal.creatorProfile as GQL.AffiliateCreatorIdentity)
                   : undefined
               }
             />
@@ -3306,8 +3306,8 @@ function ActionProposalCard({
             <div className="affiliate-work-item-meta">
               <span>{shopLabel}</span>
               <span>{formatProposalTime(proposal.updatedAt)}</span>
-              {proposal.threadId ? (
-                <span>Thread {shortenMiddle(proposal.threadId, 6, 4)}</span>
+              {proposal.shopThreadId ? (
+                <span>Thread {shortenMiddle(proposal.shopThreadId, 6, 4)}</span>
               ) : null}
               <DebugIdCopy value={proposal.id} />
             </div>
@@ -3557,7 +3557,7 @@ function DashboardItemCard({
   shopLabel: string;
   decidingProposal: boolean;
   onOpenCollaboration: (item: CollaborationDetailItem) => void;
-  onOpenCreator: (profile: GQL.CreatorGlobalProfile) => void;
+  onOpenCreator: (profile: GQL.AffiliateCreatorIdentity) => void;
   onApprove: (proposal: GQL.ActionProposal) => Promise<void>;
   onReject: (proposal: GQL.ActionProposal) => Promise<void>;
 }) {
@@ -3613,7 +3613,7 @@ function DashboardItemCard({
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}
-              onOpen={item.creatorProfile ? () => onOpenCreator(item.creatorProfile as GQL.CreatorGlobalProfile) : undefined}
+              onOpen={item.creatorProfile ? () => onOpenCreator(item.creatorProfile as GQL.AffiliateCreatorIdentity) : undefined}
             />
             <CreatorPlatformId
               handle={creatorHandle}
@@ -3905,7 +3905,7 @@ function CreatorDetailModal({
   profile,
   onClose,
 }: {
-  profile: GQL.CreatorGlobalProfile;
+  profile: GQL.AffiliateCreatorIdentity;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -4286,7 +4286,7 @@ function CopyInlineValue({
   );
 }
 
-function creatorPrimaryName(profile: GQL.CreatorGlobalProfile, fallback: string): string {
+function creatorPrimaryName(profile: GQL.AffiliateCreatorIdentity, fallback: string): string {
   const nickname = profile.nickname?.trim();
   const username = normalizeTikTokUsername(profile.username);
   if (nickname) return nickname;
@@ -4294,7 +4294,7 @@ function creatorPrimaryName(profile: GQL.CreatorGlobalProfile, fallback: string)
   return fallback;
 }
 
-function creatorTikTokHandle(profile: GQL.CreatorGlobalProfile): string | null {
+function creatorTikTokHandle(profile: GQL.AffiliateCreatorIdentity): string | null {
   const username = normalizeTikTokUsername(profile.username);
   if (!username) return null;
   const nickname = profile.nickname?.trim();
@@ -4302,7 +4302,7 @@ function creatorTikTokHandle(profile: GQL.CreatorGlobalProfile): string | null {
   return `@${username}`;
 }
 
-function creatorPlatformIdentity(profile: GQL.CreatorGlobalProfile): string | null {
+function creatorPlatformIdentity(profile: GQL.AffiliateCreatorIdentity): string | null {
   return profile.creatorOpenId || profile.creatorImId || null;
 }
 

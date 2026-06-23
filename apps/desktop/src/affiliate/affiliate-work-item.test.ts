@@ -36,7 +36,7 @@ import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store
 function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = {}): GQL.AffiliateWorkItem {
   const collaboration = {
     id: "collab-001",
-    threadId: "thread-001",
+    shopThreadId: "thread-001",
     userId: "user-001",
     shopId: "shop-001",
     creatorId: "creator-001",
@@ -64,7 +64,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     predictionSnapshots: [],
   } as unknown as GQL.AffiliateCollaborationRecord;
 
-  const thread: GQL.AffiliateCreatorThread = {
+  const shopThread: GQL.AffiliateShopCreatorThread = {
     id: "thread-001",
     userId: "user-001",
     shopId: "shop-001",
@@ -122,8 +122,8 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     shopId: "shop-001",
     platformShopId: "platform-shop-001",
     subjectType: GQL.AffiliateWorkItemSubjectType.Collaboration,
-    threadId: thread.id,
-    thread,
+    shopThreadId: shopThread.id,
+    shopThread,
     collaborationRecordId: "collab-001",
     workKind: GQL.AffiliateWorkKind.SampleReviewNeeded,
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
