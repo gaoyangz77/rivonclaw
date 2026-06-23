@@ -277,10 +277,12 @@ function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
 
   for (const account of accounts) {
     if (!isWeixinBusinessHealthError(account.lastError)) continue;
-    account.running = false;
-    account.connected = false;
     account.healthy = false;
     account.healthState = account.healthState ?? resolveWeixinBusinessHealthState(account.lastError);
+    if (account.healthState === "reauth-required") {
+      account.running = false;
+      account.connected = false;
+    }
   }
 }
 

@@ -789,8 +789,8 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(account).toMatchObject({
         accountId,
         configured: true,
-        running: false,
-        connected: false,
+        running: true,
+        connected: true,
         healthy: false,
         healthState: "send-unavailable",
         dmPolicy: "pairing",
@@ -801,6 +801,52 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         running: true,
         connected: true,
       });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("defaults every WeChat recipient discovered from inbound traffic to owner", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-owner-"));
+    try {
+      const ensureExists = vi.fn(() => true);
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: () => [],
+            get: () => undefined,
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists,
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath: join(stateDir, "openclaw.json"),
+        stateDir,
+      });
+
+      root.channelManager.recordRecipientSeen({
+        channelId: WEIXIN_CHANNEL_ID,
+        accountId: "acct-1",
+        recipientId: "first@im.wechat",
+      });
+      root.channelManager.recordRecipientSeen({
+        channelId: WEIXIN_CHANNEL_ID,
+        accountId: "acct-2",
+        recipientId: "second@im.wechat",
+      });
+
+      expect(ensureExists).toHaveBeenNthCalledWith(1, WEIXIN_CHANNEL_ID, "first@im.wechat", true);
+      expect(ensureExists).toHaveBeenNthCalledWith(2, WEIXIN_CHANNEL_ID, "second@im.wechat", true);
     } finally {
       rmSync(stateDir, { recursive: true, force: true });
     }

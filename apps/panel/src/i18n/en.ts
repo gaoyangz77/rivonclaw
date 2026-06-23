@@ -477,6 +477,7 @@ export default {
     statusUnknown: "Unknown",
     statusWeChatActivationRequired: "Message to activate",
     statusWeChatReauthRequired: "Scan again",
+    statusWeChatSendUnavailable: "Send issue",
     statusConfigured: "Configured",
     statusRunning: "Running",
     statusConnected: "Connected",
@@ -508,6 +509,7 @@ export default {
     colActions: "Actions",
     noAccountsConfigured: "No accounts configured for this channel",
     wechatContextTokenNotReadyTooltip: "WeChat is connected, but it does not yet have the context token required for proactive outbound messages. Send one message from this WeChat account to the bot to confirm activation.",
+    wechatSendUnavailableTooltip: "The latest WeChat send failed. Scan again or send one message from this WeChat account to the bot to reactivate it.",
     // Channel labels
     channelTelegram: "Telegram",
     channelWhatsApp: "WhatsApp",

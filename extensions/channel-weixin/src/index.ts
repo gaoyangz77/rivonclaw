@@ -362,14 +362,20 @@ function buildWeixinHealthBlockStatus(block: {
   at: number;
   to?: string | null;
 }): Record<string, unknown> {
-  return {
-    running: false,
-    connected: false,
+  const status: Record<string, unknown> = {
     healthy: false,
     healthState: block.healthState,
     lastError: block.message,
     lastHealthCheckAt: block.at,
   };
+  if (block.to) {
+    status.recipientId = block.to;
+  }
+  if (block.healthState === "reauth-required") {
+    status.running = false;
+    status.connected = false;
+  }
+  return status;
 }
 
 function recordWeixinAccountHealthBlock(accountId: string, block: {
@@ -421,6 +427,11 @@ function markWeixinSendUnavailable(ctx: unknown, message: string): void {
     message,
     to: c.to?.trim() || null,
   });
+}
+
+function extractWeixinSendFailureRecipient(message: string): string | null {
+  const match = message.match(/\bto=([^\s]+@im\.wechat)\b/i);
+  return match?.[1] ?? null;
 }
 
 function markWeixinSendAvailable(ctx: unknown): void {
@@ -596,6 +607,11 @@ const plugin = {
                 originalRuntime?.error?.(message);
                 if (isSessionExpiredMessage(message)) {
                   markWeixinSessionExpired(ctx, message);
+                } else if (isWeixinSendBusinessFailure(message) && accountId) {
+                  markWeixinSendUnavailable({
+                    accountId,
+                    to: extractWeixinSendFailureRecipient(message),
+                  }, message);
                 }
               },
             };
