@@ -44,7 +44,6 @@ const HISTORY_FILTERS = [
   GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
   GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal,
   GQL.AffiliateCollaborationRecordProcessingStatus.Idle,
-  GQL.AffiliateCollaborationRecordProcessingStatus.Blocked,
 ] as const;
 
 type HistoryFilter = (typeof HISTORY_FILTERS)[number];
@@ -4508,7 +4507,7 @@ function buildCollaborationWorkView(
     latestProposal?.status === GQL.ActionProposalStatus.RevisionRequested;
   const proposalPending = latestProposal?.status === GQL.ActionProposalStatus.Pending;
 
-  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.Blocked) {
+  if (record.lifecycleStage === GQL.AffiliateLifecycleStage.Blocked) {
     return {
       badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.blocked"),
       badgeTone: "blocked",
