@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
-import { getSnapshot } from "mobx-state-tree";
+import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
 import { CheckIcon, CopyIcon, InfoIcon, RefreshIcon, ShopIcon, UserIcon } from "../../components/icons.js";
@@ -79,7 +79,16 @@ type AffiliatePredictionSnapshotOutput = {
 
 function affiliateSnapshot<T>(value: T | null | undefined): any {
   if (!value) return null;
-  return getSnapshot(value as any);
+  return isStateTreeNode(value as any) ? getSnapshot(value as any) : value;
+}
+
+function mergeById<T extends { id?: string | null }>(items: T[]): T[] {
+  const merged = new Map<string, T>();
+  for (const item of items) {
+    if (!item?.id) continue;
+    merged.set(item.id, item);
+  }
+  return [...merged.values()];
 }
 
 function hydrateAffiliateProposalProjection(projection: {
@@ -2598,7 +2607,7 @@ function CollaborationActivityModal({
     setConversationPageToken(null);
   }, [record.id, record.platformConversationId]);
 
-  const { loading, refetch: refetchActivity } = useQuery<
+  const { data: activityData, loading, refetch: refetchActivity } = useQuery<
     { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
     { input: GQL.AffiliateCollaborationActivityInput }
   >(AFFILIATE_COLLABORATION_ACTIVITY_QUERY, {
@@ -2625,18 +2634,28 @@ function CollaborationActivityModal({
     { input: GQL.SendAffiliateConversationMessageInput }
   >(SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION);
   const projection = entityStore.affiliateWorkspace.collaborationProjection(record.id);
-  const proposals = (projection?.actionProposals ?? []).map((proposal) =>
+  const activity = activityData?.affiliateCollaborationActivity;
+  const proposals = mergeById([
+    ...(projection?.actionProposals ?? []),
+    ...(activity?.actionProposals ?? []),
+  ].map((proposal) =>
     hydrateAffiliateProposalProjection({
       proposal,
-      collaborationRecord: projection?.collaborationRecord,
-      creatorProfile: projection?.creatorProfile,
-      productSummary: projection?.productSummary,
+      collaborationRecord: projection?.collaborationRecord ?? record,
+      creatorProfile: projection?.creatorProfile ?? item.creatorProfile,
+      productSummary: projection?.productSummary ?? item.productSummary,
     }),
-  );
-  const lifecycleEvents = (projection?.lifecycleEvents ?? []).map((event) =>
+  ));
+  const lifecycleEvents = mergeById([
+    ...(projection?.lifecycleEvents ?? []),
+    ...(activity?.lifecycleEvents ?? []),
+  ].map((event) =>
     affiliateSnapshot(event) as GQL.LifecycleEvent,
-  );
-  const sampleApplications = ((projection?.sampleApplications ?? item.sampleApplications ?? []) as unknown[])
+  ));
+  const sampleApplications = (mergeById([
+    ...((projection?.sampleApplications ?? item.sampleApplications ?? []) as unknown[]),
+    ...((activity?.sampleApplicationRecords ?? []) as unknown[]),
+  ].map((sample) => affiliateSnapshot(sample) as GQL.SampleApplicationRecord)) as GQL.SampleApplicationRecord[])
     .map((sample) => affiliateSnapshot(sample) as GQL.SampleApplicationRecord)
     .filter((sample) => Boolean(sample?.id));
   const conversationPage = entityStore.affiliateWorkspace.getConversationMessagePage(
