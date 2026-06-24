@@ -58,6 +58,8 @@ export function AddChannelAccountModal({
           // OpenClaw stores some tags fields (e.g. "groups") as Record<string, {}>.
           // Convert object keys back to a string array for the TagInput.
           initialData[field.id] = Object.keys(raw as Record<string, unknown>);
+        } else if (field.type === "select" && typeof raw === "boolean") {
+          initialData[field.id] = String(raw);
         } else {
           initialData[field.id] = raw;
         }
