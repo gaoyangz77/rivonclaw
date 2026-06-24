@@ -566,7 +566,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
           channelId: "feishu",
           accountId: "acct_official",
           name: "Feishu Official Bot",
-          config: { allowFrom: ["ou_official"], groupAllowFrom: ["ou_official"] },
+          config: { allowFrom: ["*", "ou_official"], groupAllowFrom: ["ou_official"] },
           createdAt: 1,
           updatedAt: 1,
         },
@@ -737,6 +737,13 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       const allowFromFile = JSON.parse(readFileSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"), "utf-8"));
       expect(allowFromFile.allowFrom).toEqual(["ou_creator"]);
+
+      const recipients = root.channelAccounts.find((account) => account.channelId === "feishu" && account.accountId === "default")
+        ?.recipients as { allowlist: string[]; labels: Record<string, string>; owners: Record<string, boolean> };
+      expect(recipients.allowlist).toEqual(["ou_creator"]);
+      expect(recipients.allowlist).not.toContain("*");
+      expect(recipients.labels).toEqual({ ou_creator: "Creator" });
+      expect(recipients.owners).toEqual({ ou_creator: true });
     } finally {
       globalThis.fetch = previousFetch;
       if (previousStateDir === undefined) {

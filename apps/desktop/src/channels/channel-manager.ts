@@ -284,6 +284,10 @@ function collectConfigAllowFrom(config?: Record<string, unknown>): string[] {
   return [...entries];
 }
 
+function isRecipientWildcard(entry: string): boolean {
+  return entry.trim() === "*";
+}
+
 function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
   let next = config;
   if (channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId")) {
@@ -1101,10 +1105,12 @@ export const ChannelManagerModel = types
           entries.add(id);
         }
       }
+      entries.delete("*");
 
       const labels: Record<string, string> = {};
       const owners: Record<string, boolean> = {};
       for (const id of entries) {
+        if (isRecipientWildcard(id)) continue;
         const data = meta[id];
         if (!data) continue;
         if (data.label) labels[id] = data.label;
@@ -1530,12 +1536,13 @@ export const ChannelManagerModel = types
         for (const [id, data] of Object.entries(meta)) {
           if (data.label) labels[id] = data.label;
           owners[id] = data.isOwner;
-          if (!isWeixinScoped) {
+          if (!isWeixinScoped && !isRecipientWildcard(id)) {
             // Surface recipients persisted via the recipient-seen path even when
             // they have no allowFrom file entry.
             entries.add(id);
           }
         }
+        entries.delete("*");
 
         return { allowlist: [...entries], labels, owners };
       }),
