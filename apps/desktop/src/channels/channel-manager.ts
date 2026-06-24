@@ -1,7 +1,9 @@
 import { types, flow, getRoot, type Instance } from "mobx-state-tree";
-import { basename, join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { basename, dirname, join } from "node:path";
 import { promises as fs } from "node:fs";
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import type { Storage } from "@rivonclaw/storage";
 import type { ChannelAccount } from "@rivonclaw/storage";
 import { readExistingConfig } from "@rivonclaw/gateway";
@@ -43,6 +45,11 @@ import {
 const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
+const FEISHU_CHANNEL_ID = "feishu";
+const FEISHU_OFFICIAL_PLUGIN_ID = "openclaw-lark";
+const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
+const FEISHU_AUTH_BASE_URL = "https://accounts.feishu.cn";
+const LARK_AUTH_BASE_URL = "https://accounts.larksuite.com";
 const WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS = [100, 300, 700, 1_500, 3_000];
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME = "RivonClaw Support";
 const RIVONCLAW_TELEGRAM_DEBUG_MEDIA_PROMPT = [
@@ -52,6 +59,28 @@ const RIVONCLAW_TELEGRAM_DEBUG_MEDIA_PROMPT = [
   'If you emit a MEDIA directive in a final reply, quote local paths that contain spaces, for example MEDIA:"C:\\\\path with spaces\\\\image.png".',
 ].join("\n");
 export { RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID };
+
+type FeishuSetupSession = {
+  sessionKey: string;
+  deviceCode: string;
+  verificationUrl: string;
+  expiresAt: number;
+  intervalMs: number;
+  baseUrl: string;
+  domain: "feishu" | "lark";
+  domainSwitched: boolean;
+};
+
+type FeishuPollResponse = {
+  client_id?: string;
+  client_secret?: string;
+  error?: string;
+  error_description?: string;
+  user_info?: {
+    open_id?: string;
+    tenant_brand?: string;
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Environment interface -- late-initialized infrastructure dependencies.
@@ -137,6 +166,21 @@ function ensureChannelPluginConfig(config: Record<string, unknown>, channelId: s
     ? (entries[channelId] as Record<string, unknown>)
     : {};
   entries[channelId] = { ...existing, enabled };
+}
+
+function ensureLegacyFeishuPluginConfig(config: Record<string, unknown>): void {
+  ensureChannelPluginConfig(config, FEISHU_CHANNEL_ID, true);
+  const plugins = ensureRecord(config, "plugins");
+  const entries = ensureRecord(plugins, "entries");
+  const existingOfficial = entries[FEISHU_OFFICIAL_PLUGIN_ID] !== null &&
+    typeof entries[FEISHU_OFFICIAL_PLUGIN_ID] === "object" &&
+    !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
+    ? (entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>)
+    : {};
+  entries[FEISHU_OFFICIAL_PLUGIN_ID] = { ...existingOfficial, enabled: false };
+  const allow = ensureArrayRecord(plugins, "allow");
+  removeString(allow, FEISHU_OFFICIAL_PLUGIN_ID);
+  addUniqueString(allow, FEISHU_CHANNEL_ID);
 }
 
 function ensureWildcardBinding(config: Record<string, unknown>, channelId: string): void {
@@ -225,11 +269,33 @@ function readAccountAllowFromListSync(channelId: string, accountId?: string): st
   return readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, accountId));
 }
 
+function collectConfigAllowFrom(config?: Record<string, unknown>): string[] {
+  if (!config) return [];
+  const entries = new Set<string>();
+  for (const key of ["allowFrom", "groupAllowFrom"]) {
+    const value = config[key];
+    if (!Array.isArray(value)) continue;
+    for (const entry of value) {
+      if (typeof entry === "string" && entry.trim()) {
+        entries.add(entry.trim());
+      }
+    }
+  }
+  return [...entries];
+}
+
 function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
   let next = config;
   if (channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId")) {
     const { userId: _providerOwnedUserId, ...rest } = config;
     next = rest;
+  }
+  if (channelId === FEISHU_CHANNEL_ID && next.dmPolicy === "open") {
+    const allowFrom = Array.isArray(next.allowFrom) ? next.allowFrom.map(String) : [];
+    next = {
+      ...next,
+      allowFrom: allowFrom.includes("*") ? allowFrom : ["*", ...allowFrom],
+    };
   }
   if (channelId === TELEGRAM_CHANNEL_ID) {
     return { ...next, streaming: { mode: "block" } };
@@ -312,11 +378,129 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function ensureArrayRecord(parent: Record<string, unknown>, key: string): unknown[] {
+  const value = parent[key];
+  if (Array.isArray(value)) return value;
+  const next: unknown[] = [];
+  parent[key] = next;
+  return next;
+}
+
+function resolveFeishuOfficialPluginRoot(): string | undefined {
+  const require = createRequire(import.meta.url);
+  const searchPaths = require.resolve.paths("@larksuite/openclaw-lark") ?? [];
+  for (const base of searchPaths) {
+    const candidate = join(base, "@larksuite", "openclaw-lark", "openclaw.plugin.json");
+    if (existsSync(candidate)) {
+      return dirname(candidate);
+    }
+  }
+  return undefined;
+}
+
+function addUniqueString(values: unknown[], value: string): void {
+  if (!values.some((entry) => entry === value)) {
+    values.push(value);
+  }
+}
+
+function removeString(values: unknown[], value: string): void {
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (values[i] === value) values.splice(i, 1);
+  }
+}
+
+function hasFeishuOfficialDefaultAccount(accounts: Record<string, Record<string, unknown>>): boolean {
+  const account = accounts[FEISHU_OFFICIAL_ACCOUNT_ID];
+  return !!account && typeof account.appId === "string" && typeof account.appSecret === "string";
+}
+
+function readFeishuOfficialToolIds(pluginRoot: string): string[] {
+  try {
+    const manifestPath = join(pluginRoot, "openclaw.plugin.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as {
+      contracts?: { tools?: unknown };
+    };
+    return Array.isArray(manifest.contracts?.tools)
+      ? manifest.contracts.tools.filter((tool): tool is string => typeof tool === "string" && tool.trim().length > 0)
+      : [];
+  } catch (err) {
+    log.warn("failed to read Feishu official plugin manifest tools:", err);
+    return [];
+  }
+}
+
+function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void {
+  const plugins = ensureRecord(config, "plugins");
+  const entries = ensureRecord(plugins, "entries");
+  entries.feishu = {
+    ...(entries.feishu && typeof entries.feishu === "object" && !Array.isArray(entries.feishu)
+      ? entries.feishu as Record<string, unknown>
+      : {}),
+    enabled: false,
+  };
+  entries[FEISHU_OFFICIAL_PLUGIN_ID] = {
+    ...(entries[FEISHU_OFFICIAL_PLUGIN_ID] && typeof entries[FEISHU_OFFICIAL_PLUGIN_ID] === "object" && !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
+      ? entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>
+      : {}),
+    enabled: true,
+  };
+
+  const allow = ensureArrayRecord(plugins, "allow");
+  removeString(allow, "feishu");
+  addUniqueString(allow, FEISHU_OFFICIAL_PLUGIN_ID);
+
+  const pluginRoot = resolveFeishuOfficialPluginRoot();
+  if (!pluginRoot) {
+    log.warn("Feishu official plugin package is not available in desktop node_modules");
+    return;
+  }
+
+  const load = ensureRecord(plugins, "load");
+  const paths = ensureArrayRecord(load, "paths");
+  addUniqueString(paths, pluginRoot);
+
+  const tools = ensureRecord(config, "tools");
+  const alsoAllow = ensureArrayRecord(tools, "alsoAllow");
+  for (const toolId of readFeishuOfficialToolIds(pluginRoot)) {
+    addUniqueString(alsoAllow, toolId);
+  }
+}
+
+function mirrorFeishuDefaultAccountToChannelRoot(
+  channel: Record<string, unknown>,
+  accounts: Record<string, Record<string, unknown>>,
+): void {
+  const defaultAccount = accounts[FEISHU_OFFICIAL_ACCOUNT_ID];
+  if (!defaultAccount) return;
+
+  for (const key of [
+    "enabled",
+    "appId",
+    "appSecret",
+    "domain",
+    "connectionMode",
+    "requireMention",
+    "dmPolicy",
+    "allowFrom",
+    "groupPolicy",
+    "groupAllowFrom",
+    "groups",
+  ]) {
+    if (defaultAccount[key] !== undefined) {
+      channel[key] = defaultAccount[key];
+    }
+  }
+}
+
 function isRivonClawTelegramDebugAccount(channelId: string, accountId?: string): boolean {
   return channelId === TELEGRAM_CHANNEL_ID && accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID;
 }
 
 function shouldIncludeChannelWideRecipientMeta(channelId: string, accountId?: string): boolean {
+  if (channelId === FEISHU_CHANNEL_ID && accountId) {
+    return false;
+  }
   // Telegram supports multiple named bot accounts. SQLite recipient metadata is
   // keyed by channelId for labels/owner flags, so blindly merging every
   // channel-wide row into every named account leaks recipients between user bots
@@ -402,6 +586,7 @@ export const ChannelManagerModel = types
     // derived account.status.hasContextToken bit through the root snapshot.
     _weixinContextTokens: new Map<string, Map<string, string>>(),
     _weixinContextTokenSyncTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+    _feishuSetupSessions: new Map<string, FeishuSetupSession>(),
   }))
   .views((self) => ({
     get root(): any {
@@ -428,11 +613,27 @@ export const ChannelManagerModel = types
 
       // Channel accounts from root store
       const channelIds = new Set<string>();
+      let hasOfficialFeishuDefault = false;
       for (const a of self.root.channelAccounts as any[]) {
         channelIds.add(a.channelId);
+        if (
+          a.channelId === FEISHU_CHANNEL_ID &&
+          a.accountId === FEISHU_OFFICIAL_ACCOUNT_ID &&
+          a.config &&
+          typeof a.config === "object" &&
+          typeof a.config.appId === "string" &&
+          typeof a.config.appSecret === "string"
+        ) {
+          hasOfficialFeishuDefault = true;
+        }
       }
       for (const channelId of channelIds) {
-        entries[channelId] = { enabled: true };
+        if (channelId === FEISHU_CHANNEL_ID && hasOfficialFeishuDefault) {
+          entries.feishu = { enabled: false };
+          entries[FEISHU_OFFICIAL_PLUGIN_ID] = { enabled: true };
+        } else {
+          entries[channelId] = { enabled: true };
+        }
       }
 
       // Mobile channel uses a separate pairing system (mobile_pairings table)
@@ -588,13 +789,24 @@ export const ChannelManagerModel = types
           ...(channelId === WEIXIN_CHANNEL_ID ? { managed: true } : {}),
           accounts,
         };
+        if (channelId === FEISHU_CHANNEL_ID) {
+          mirrorFeishuDefaultAccountToChannelRoot(nextChannel, accounts);
+        }
         applyTelegramDefaultAccount(channelId, nextChannel, accounts);
         channels[channelId] = nextChannel;
       } else {
         delete channels[channelId];
       }
       config.channels = channels;
-      ensureChannelPluginConfig(config, channelId, Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID);
+      if (channelId === FEISHU_CHANNEL_ID && Object.keys(accounts).length > 0) {
+        if (hasFeishuOfficialDefaultAccount(accounts)) {
+          ensureFeishuOfficialPluginConfig(config);
+        } else {
+          ensureLegacyFeishuPluginConfig(config);
+        }
+      } else {
+        ensureChannelPluginConfig(config, channelId, Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID);
+      }
       if (Object.keys(accounts).some((accountId) => accountId.trim().toLowerCase() !== "default")) {
         ensureWildcardBinding(config, channelId);
       }
@@ -695,6 +907,60 @@ export const ChannelManagerModel = types
       return entry;
     }
 
+    async function feishuRegistrationRequest<T>(
+      session: Pick<FeishuSetupSession, "baseUrl">,
+      params: Record<string, string>,
+    ): Promise<T> {
+      const response = await fetch(`${session.baseUrl}/oauth/v1/app/registration`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(params).toString(),
+      });
+      const payload = await response.json().catch(() => ({})) as T & { error?: string; error_description?: string };
+      if (!response.ok && !payload.error) {
+        throw new Error(`Feishu setup request failed with HTTP ${response.status}`);
+      }
+      return payload;
+    }
+
+    async function persistFeishuOfficialAccount(params: {
+      appId: string;
+      appSecret: string;
+      domain: "feishu" | "lark";
+      openId?: string;
+    }): Promise<ChannelAccountSnapshotForMst> {
+      const allowFrom = params.openId ? [params.openId] : [];
+      const accountConfig: Record<string, unknown> = {
+        enabled: true,
+        appId: params.appId,
+        appSecret: params.appSecret,
+        domain: params.domain,
+        connectionMode: "websocket",
+        requireMention: true,
+        dmPolicy: "open",
+        allowFrom: ["*"],
+        groupPolicy: "open",
+        groups: { "*": { enabled: true } },
+      };
+
+      const entry = upsertAccountState({
+        channelId: FEISHU_CHANNEL_ID,
+        accountId: FEISHU_OFFICIAL_ACCOUNT_ID,
+        name: "Feishu Official Bot",
+        config: accountConfig,
+      });
+
+      if (params.openId) {
+        const { storage, configPath } = getEnv();
+        addAllowFromEntrySync(FEISHU_CHANNEL_ID, FEISHU_OFFICIAL_ACCOUNT_ID, params.openId);
+        storage.channelRecipients.ensureExists(FEISHU_CHANNEL_ID, params.openId, true);
+        syncOwnerAllowFrom(storage, configPath);
+        updateChannelAccountRecipients(FEISHU_CHANNEL_ID, FEISHU_OFFICIAL_ACCOUNT_ID);
+      }
+
+      return entry;
+    }
+
     function weixinContextTokenSyncKey(accountId: string, recipientId: string): string {
       return `${normalizeWeixinAccountId(accountId)}\u0000${recipientId.trim()}`;
     }
@@ -792,7 +1058,7 @@ export const ChannelManagerModel = types
         name: account.name,
         config: sanitizeChannelAccountConfig(account.channelId, account.config),
         status,
-        recipients: buildChannelRecipientsSnapshot(account.channelId, canonicalAccountId),
+        recipients: buildChannelRecipientsSnapshot(account.channelId, canonicalAccountId, account.config),
       };
     }
 
@@ -812,9 +1078,16 @@ export const ChannelManagerModel = types
       return channelId === WEIXIN_CHANNEL_ID ? normalizeWeixinAccountId(accountId) : accountId;
     }
 
-    function buildChannelRecipientsSnapshot(channelId: string, accountId?: string): ChannelRecipientsSnapshot {
+    function buildChannelRecipientsSnapshot(
+      channelId: string,
+      accountId?: string,
+      accountConfig?: Record<string, unknown>,
+    ): ChannelRecipientsSnapshot {
       const { storage } = getEnv();
       const entries = new Set<string>(readAccountAllowFromListSync(channelId, accountId));
+      for (const entry of collectConfigAllowFrom(accountConfig)) {
+        entries.add(entry);
+      }
 
       if (channelId === WEIXIN_CHANNEL_ID && accountId) {
         for (const recipientId of getWeixinContextTokens(accountId).keys()) {
@@ -847,7 +1120,10 @@ export const ChannelManagerModel = types
     }
 
     function updateChannelAccountRecipients(channelId: string, accountId: string): ChannelRecipientsSnapshot {
-      const recipients = buildChannelRecipientsSnapshot(channelId, accountId);
+      const { storage } = getEnv();
+      const account = storage.channelAccounts.get?.(channelId, accountId)
+        ?? storage.channelAccounts.list(channelId).find((candidate) => candidate.accountId === accountId);
+      const recipients = buildChannelRecipientsSnapshot(channelId, accountId, account?.config);
       (getRoot(self) as any).updateChannelAccountRecipients(channelId, accountId, recipients);
       return recipients;
     }
@@ -867,6 +1143,7 @@ export const ChannelManagerModel = types
         clearAllPendingWeixinContextTokenSyncs();
         self._env = env;
         self._weixinContextTokens.clear();
+        self._feishuSetupSessions.clear();
       },
 
       /** Initialize from SQLite. Runs migration if needed, then loads all accounts. */
@@ -878,6 +1155,7 @@ export const ChannelManagerModel = types
         const allAccounts = storage.channelAccounts.list();
         clearAllPendingWeixinContextTokenSyncs();
         self._weixinContextTokens.clear();
+        self._feishuSetupSessions.clear();
         for (const account of allAccounts) {
           if (account.channelId === WEIXIN_CHANNEL_ID) {
             loadWeixinContextTokens(account.accountId);
@@ -1354,6 +1632,143 @@ export const ChannelManagerModel = types
         updateChannelRecipientsForAccounts(channelId, accountId);
 
         return { changed };
+      }),
+
+      // -----------------------------------------------------------------------
+      // Feishu official QR setup
+      // -----------------------------------------------------------------------
+
+      startFeishuSetup: flow(function* () {
+        const initRes = (yield feishuRegistrationRequest<{
+          supported_auth_methods?: string[];
+        }>({ baseUrl: FEISHU_AUTH_BASE_URL }, { action: "init" })) as {
+          supported_auth_methods?: string[];
+        };
+
+        if (!Array.isArray(initRes.supported_auth_methods) || !initRes.supported_auth_methods.includes("client_secret")) {
+          throw new Error("Current Feishu environment does not support client_secret bot setup");
+        }
+
+        const beginRes = (yield feishuRegistrationRequest<{
+          device_code?: string;
+          verification_uri_complete?: string;
+          interval?: number;
+          expire_in?: number;
+        }>({ baseUrl: FEISHU_AUTH_BASE_URL }, {
+          action: "begin",
+          archetype: "PersonalAgent",
+          auth_method: "client_secret",
+          request_user_info: "open_id",
+        })) as {
+          device_code?: string;
+          verification_uri_complete?: string;
+          interval?: number;
+          expire_in?: number;
+        };
+
+        if (!beginRes.device_code || !beginRes.verification_uri_complete) {
+          throw new Error("Feishu setup did not return a QR authorization URL");
+        }
+
+        const verificationUrl = new URL(beginRes.verification_uri_complete);
+        // Feishu's onboarding completion path expects the official CLI marker.
+        // Changing this can create the bot in Feishu without completing device polling.
+        verificationUrl.searchParams.set("from", "onboard");
+        const sessionKey = randomUUID();
+        const intervalMs = Math.max(2, beginRes.interval ?? 5) * 1000;
+        const expiresAt = Date.now() + Math.max(60, beginRes.expire_in ?? 600) * 1000;
+
+        self._feishuSetupSessions.set(sessionKey, {
+          sessionKey,
+          deviceCode: beginRes.device_code,
+          verificationUrl: verificationUrl.toString(),
+          expiresAt,
+          intervalMs,
+          baseUrl: FEISHU_AUTH_BASE_URL,
+          domain: "feishu",
+          domainSwitched: false,
+        });
+        log.info(`Feishu QR setup started: session=${sessionKey.slice(0, 8)} expiresInMs=${expiresAt - Date.now()} intervalMs=${intervalMs}`);
+
+        return {
+          sessionKey,
+          verificationUrl: verificationUrl.toString(),
+          expiresAt,
+          intervalMs,
+        };
+      }),
+
+      pollFeishuSetup: flow(function* (sessionKey: string) {
+        const session = self._feishuSetupSessions.get(sessionKey);
+        if (!session) {
+          log.info(`Feishu QR setup poll expired: session=${sessionKey.slice(0, 8)} reason=missing`);
+          return { status: "expired" as const, message: "Setup session not found or expired" };
+        }
+        if (Date.now() > session.expiresAt) {
+          self._feishuSetupSessions.delete(sessionKey);
+          log.info(`Feishu QR setup poll expired: session=${sessionKey.slice(0, 8)} reason=timeout`);
+          return { status: "expired" as const, message: "Setup session expired" };
+        }
+
+        const pollRes = (yield feishuRegistrationRequest<FeishuPollResponse>(session, {
+          action: "poll",
+          device_code: session.deviceCode,
+        })) as FeishuPollResponse;
+
+        if (pollRes.user_info?.tenant_brand === "lark" && !session.domainSwitched) {
+          session.baseUrl = LARK_AUTH_BASE_URL;
+          session.domain = "lark";
+          session.domainSwitched = true;
+          log.info(`Feishu QR setup tenant brand is lark; switching poll domain: session=${sessionKey.slice(0, 8)}`);
+          return { status: "pending" as const, intervalMs: session.intervalMs };
+        }
+
+        if (pollRes.client_id && pollRes.client_secret) {
+          const openId = typeof pollRes.user_info?.open_id === "string" && pollRes.user_info.open_id.trim()
+            ? pollRes.user_info.open_id.trim()
+            : undefined;
+          const account = (yield persistFeishuOfficialAccount({
+            appId: pollRes.client_id,
+            appSecret: pollRes.client_secret,
+            domain: session.domain,
+            ...(openId ? { openId } : {}),
+          })) as ChannelAccountSnapshotForMst;
+          self._feishuSetupSessions.delete(sessionKey);
+          log.info(`Feishu QR setup connected: session=${sessionKey.slice(0, 8)} domain=${session.domain} openId=${openId ? "yes" : "no"}`);
+          return {
+            status: "connected" as const,
+            accountId: account.accountId,
+            openId,
+            domain: session.domain,
+          };
+        }
+
+        if (!pollRes.error || pollRes.error === "authorization_pending") {
+          log.info(`Feishu QR setup pending: session=${sessionKey.slice(0, 8)} keys=${Object.keys(pollRes).sort().join(",") || "none"}`);
+          return { status: "pending" as const, intervalMs: session.intervalMs };
+        }
+        if (pollRes.error === "slow_down") {
+          session.intervalMs += 5_000;
+          log.info(`Feishu QR setup slow_down: session=${sessionKey.slice(0, 8)} intervalMs=${session.intervalMs}`);
+          return { status: "pending" as const, intervalMs: session.intervalMs };
+        }
+        if (pollRes.error === "expired_token") {
+          self._feishuSetupSessions.delete(sessionKey);
+          log.info(`Feishu QR setup expired_token: session=${sessionKey.slice(0, 8)}`);
+          return { status: "expired" as const, message: "Setup session expired" };
+        }
+        if (pollRes.error === "access_denied") {
+          self._feishuSetupSessions.delete(sessionKey);
+          log.info(`Feishu QR setup denied: session=${sessionKey.slice(0, 8)}`);
+          return { status: "denied" as const, message: "Authorization was denied" };
+        }
+
+        self._feishuSetupSessions.delete(sessionKey);
+        log.info(`Feishu QR setup failed: session=${sessionKey.slice(0, 8)} error=${pollRes.error || "unknown"}`);
+        return {
+          status: "error" as const,
+          message: pollRes.error_description || pollRes.error || "Feishu setup failed",
+        };
       }),
 
       // -----------------------------------------------------------------------

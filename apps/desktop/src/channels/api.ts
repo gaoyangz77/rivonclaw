@@ -12,6 +12,7 @@ import type { ServerResponse } from "node:http";
 
 const log = createLogger("panel-server");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
+const FEISHU_CHANNEL_ID = "feishu";
 const WEIXIN_QR_START_CACHE_MS = 25_000;
 
 type WeixinQrStartResult = {
@@ -325,6 +326,45 @@ const qrLoginWait: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
   }
 };
 
+// ── POST /api/channels/feishu-setup/start ──
+
+const feishuSetupStart: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
+  const cm = requireChannelManager(ctx, res);
+  if (!cm) return;
+
+  try {
+    const result = await cm.startFeishuSetup();
+    sendJson(res, 200, result);
+  } catch (err) {
+    log.error("Failed to start Feishu setup:", err);
+    sendJson(res, 500, { error: formatError(err) });
+  }
+};
+
+// ── POST /api/channels/feishu-setup/poll ──
+
+const feishuSetupPoll: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  const cm = requireChannelManager(ctx, res);
+  if (!cm) return;
+
+  const body = (await parseBody(req)) as { sessionKey?: string };
+  if (!body.sessionKey) {
+    sendJson(res, 400, { error: "Missing required field: sessionKey" });
+    return;
+  }
+
+  try {
+    const result = await cm.pollFeishuSetup(body.sessionKey);
+    sendJson(res, 200, result);
+    if (result.status === "connected") {
+      ctx.onChannelConfigured?.(FEISHU_CHANNEL_ID);
+    }
+  } catch (err) {
+    log.error("Failed to poll Feishu setup:", err);
+    sendJson(res, 500, { error: formatError(err) });
+  }
+};
+
 // ── GET /api/pairing/requests/:channelId ──
 
 const pairingRequests: EndpointHandler = async (_req, res, url, params, ctx: ApiContext) => {
@@ -474,6 +514,8 @@ export function registerChannelsHandlers(registry: RouteRegistry): void {
   registry.register(API["channels.accounts.delete"], deleteAccount);
   registry.register(API["channels.qrLogin.start"], qrLoginStart);
   registry.register(API["channels.qrLogin.wait"], qrLoginWait);
+  registry.register(API["channels.feishuSetup.start"], feishuSetupStart);
+  registry.register(API["channels.feishuSetup.poll"], feishuSetupPoll);
   registry.register(API["pairing.requests"], pairingRequests);
   registry.register(API["pairing.allowlist.get"], getAllowlist);
   registry.register(API["pairing.allowlist.setLabel"], setLabel);

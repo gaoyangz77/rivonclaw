@@ -168,3 +168,69 @@ describe("channels QR login routes", () => {
     expect(channelManager.startQrLogin).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("channels Feishu setup routes", () => {
+  it("starts the in-app Feishu QR setup flow", async () => {
+    const channelManager = {
+      startFeishuSetup: vi.fn().mockResolvedValue({
+        sessionKey: "feishu-session",
+        verificationUrl: "https://accounts.feishu.cn/qr",
+        expiresAt: 1_800_000_000_000,
+        intervalMs: 5000,
+      }),
+    };
+    const ctx = { channelManager } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/channels/feishu-setup/start", ctx, {});
+
+    expect(result.handled).toBe(true);
+    expect(result.res._status).toBe(200);
+    expect(result.res._body).toEqual({
+      sessionKey: "feishu-session",
+      verificationUrl: "https://accounts.feishu.cn/qr",
+      expiresAt: 1_800_000_000_000,
+      intervalMs: 5000,
+    });
+    expect(channelManager.startFeishuSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it("polls Feishu setup and marks the channel configured when connected", async () => {
+    const channelManager = {
+      pollFeishuSetup: vi.fn().mockResolvedValue({
+        status: "connected",
+        accountId: "default",
+        openId: "ou_owner",
+        domain: "feishu",
+      }),
+    };
+    const onChannelConfigured = vi.fn();
+    const ctx = { channelManager, onChannelConfigured } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/channels/feishu-setup/poll", ctx, {
+      sessionKey: "feishu-session",
+    });
+
+    expect(result.res._status).toBe(200);
+    expect(result.res._body).toEqual({
+      status: "connected",
+      accountId: "default",
+      openId: "ou_owner",
+      domain: "feishu",
+    });
+    expect(channelManager.pollFeishuSetup).toHaveBeenCalledWith("feishu-session");
+    expect(onChannelConfigured).toHaveBeenCalledWith("feishu");
+  });
+
+  it("rejects Feishu setup polling without a session key", async () => {
+    const channelManager = {
+      pollFeishuSetup: vi.fn(),
+    };
+    const ctx = { channelManager } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/channels/feishu-setup/poll", ctx, {});
+
+    expect(result.res._status).toBe(400);
+    expect(result.res._body).toEqual({ error: "Missing required field: sessionKey" });
+    expect(channelManager.pollFeishuSetup).not.toHaveBeenCalled();
+  });
+});

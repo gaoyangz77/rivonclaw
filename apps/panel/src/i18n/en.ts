@@ -548,7 +548,7 @@ export default {
     fieldDmPolicyHint: "Controls how direct messages are handled",
     dmPolicyPairing: "Pairing (default) - Require approval for new senders",
     dmPolicyAllowlist: "Allowlist - Only allow approved senders",
-    dmPolicyOpen: "Open - Allow all DMs (requires allowFrom: [\"*\"])",
+    dmPolicyOpen: "Open - Trust DMs within the platform availability scope",
     dmPolicyDisabled: "Disabled - Ignore all DMs",
     dmPolicyLabel_pairing: "Pairing",
     dmPolicyLabel_allowlist: "Allowlist",

@@ -116,3 +116,33 @@ export async function waitQrLogin(accountId?: string, timeoutMs?: number, signal
     signal,
   });
 }
+
+// --- Feishu Official QR Setup ---
+
+export interface FeishuSetupStartResult {
+  sessionKey: string;
+  verificationUrl: string;
+  expiresAt: number;
+  intervalMs: number;
+}
+
+export type FeishuSetupPollResult =
+  | { status: "pending"; intervalMs?: number }
+  | { status: "connected"; accountId: string; openId?: string; domain?: "feishu" | "lark" }
+  | { status: "expired" | "denied" | "error"; message?: string };
+
+export async function startFeishuSetup(signal?: AbortSignal): Promise<FeishuSetupStartResult> {
+  return fetchJson<FeishuSetupStartResult>(clientPath(API["channels.feishuSetup.start"]), {
+    method: "POST",
+    body: JSON.stringify({}),
+    signal,
+  });
+}
+
+export async function pollFeishuSetup(sessionKey: string, signal?: AbortSignal): Promise<FeishuSetupPollResult> {
+  return fetchJson<FeishuSetupPollResult>(clientPath(API["channels.feishuSetup.poll"]), {
+    method: "POST",
+    body: JSON.stringify({ sessionKey }),
+    signal,
+  });
+}
