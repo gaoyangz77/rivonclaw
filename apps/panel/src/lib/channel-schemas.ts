@@ -26,11 +26,17 @@ const DM_POLICY_OPTIONS: ChannelFieldConfig["options"] = [
   { value: "disabled", label: "channels.dmPolicyDisabled" },
 ];
 
-// Feishu variant: no "disabled" option, vendor schema only supports open/pairing/allowlist
+// Feishu can rely on the Feishu app availability scope as the outer security boundary.
+const FEISHU_DM_POLICY_OPTIONS: ChannelFieldConfig["options"] = [
+  { value: "open", label: "channels.dmPolicyOpen" },
+  { value: "pairing", label: "channels.dmPolicyPairing" },
+  { value: "allowlist", label: "channels.dmPolicyAllowlist" },
+];
+
+// Variant for channels whose vendor schema does not support "disabled".
 const DM_POLICY_OPTIONS_NO_DISABLED: ChannelFieldConfig["options"] = [
   { value: "pairing", label: "channels.dmPolicyPairing" },
   { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-  // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk
 ];
 
 // Shared groupPolicy options
@@ -40,13 +46,16 @@ const GROUP_POLICY_OPTIONS: ChannelFieldConfig["options"] = [
   { value: "disabled", label: "channels.groupPolicyDisabled" },
 ];
 
-function dmPolicyField(options: ChannelFieldConfig["options"] = DM_POLICY_OPTIONS): ChannelFieldConfig {
+function dmPolicyField(
+  options: ChannelFieldConfig["options"] = DM_POLICY_OPTIONS,
+  defaultValue = "pairing",
+): ChannelFieldConfig {
   return {
     id: "dmPolicy",
     label: "channels.fieldDmPolicy",
     type: "select",
     required: false,
-    defaultValue: "pairing",
+    defaultValue,
     options,
   };
 }
@@ -177,13 +186,13 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         isSecret: true,
         showWhen: { field: "connectionMode", value: "webhook" },
       },
-      dmPolicyField(DM_POLICY_OPTIONS_NO_DISABLED),
+      dmPolicyField(FEISHU_DM_POLICY_OPTIONS, "open"),
       {
         id: "groupPolicy",
         label: "channels.fieldGroupPolicy",
         type: "select",
         required: false,
-        defaultValue: "allowlist",
+        defaultValue: "open",
         options: GROUP_POLICY_OPTIONS,
         hint: "channels.feishuGroupPolicyHint",
       },

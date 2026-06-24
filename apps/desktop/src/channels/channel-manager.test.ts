@@ -548,6 +548,206 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     }
   });
 
+  it("keeps Feishu recipient snapshots scoped to each account", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-recipients-"));
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+      const accounts = [
+        {
+          channelId: "feishu",
+          accountId: "acct_legacy",
+          name: "Legacy Feishu",
+          config: { allowFrom: ["ou_legacy"] },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          channelId: "feishu",
+          accountId: "acct_official",
+          name: "Feishu Official Bot",
+          config: { allowFrom: ["ou_official"], groupAllowFrom: ["ou_official"] },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({
+              ou_legacy: { label: "Legacy Owner", isOwner: true },
+              ou_official: { label: "Official Owner", isOwner: true },
+            }),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      root.channelManager.init();
+
+      const legacyRecipients = root.channelAccounts.find((account) => account.accountId === "acct_legacy")
+        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
+      const officialRecipients = root.channelAccounts.find((account) => account.accountId === "acct_official")
+        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
+
+      expect(legacyRecipients.allowlist).toEqual(["ou_legacy"]);
+      expect(legacyRecipients.labels).toEqual({ ou_legacy: "Legacy Owner" });
+      expect(officialRecipients.allowlist).toEqual(["ou_official"]);
+      expect(officialRecipients.labels).toEqual({ ou_official: "Official Owner" });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("creates official Feishu QR accounts with open Feishu-scoped defaults", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-qr-"));
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const previousFetch = globalThis.fetch;
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+
+      const accounts: Array<{
+        channelId: string;
+        accountId: string;
+        name: string | null;
+        config: Record<string, unknown>;
+        createdAt: number;
+        updatedAt: number;
+      }> = [];
+      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
+        const record = {
+          channelId,
+          accountId,
+          name,
+          config,
+          createdAt: 1,
+          updatedAt: 1,
+        };
+        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
+        if (index >= 0) accounts[index] = record;
+        else accounts.push(record);
+        return record;
+      });
+      const ensureExists = vi.fn(() => true);
+
+      globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+        const params = new URLSearchParams(String(init?.body ?? ""));
+        const action = params.get("action");
+        const body = action === "init"
+          ? { supported_auth_methods: ["client_secret"] }
+          : action === "begin"
+            ? {
+                device_code: "device-code",
+                verification_uri_complete: "https://accounts.feishu.cn/qr?token=abc",
+                interval: 1,
+                expire_in: 60,
+              }
+            : {
+                client_id: "cli_test",
+                client_secret: "secret_test",
+                user_info: {
+                  open_id: "ou_creator",
+                  tenant_brand: "feishu",
+                },
+              };
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }) as typeof fetch;
+
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: upsertAccount,
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists,
+            getRecipientMeta: () => ({
+              ou_creator: { label: "Creator", isOwner: true },
+            }),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      const start = await root.channelManager.startFeishuSetup();
+      expect(start.verificationUrl).toContain("from=onboard");
+
+      const poll = await root.channelManager.pollFeishuSetup(start.sessionKey);
+      expect(poll).toMatchObject({
+        status: "connected",
+        accountId: "default",
+        openId: "ou_creator",
+        domain: "feishu",
+      });
+
+      const official = accounts.find((account) => account.channelId === "feishu" && account.accountId === "default");
+      expect(official?.config).toMatchObject({
+        dmPolicy: "open",
+        allowFrom: ["*"],
+        groupPolicy: "open",
+        groups: { "*": { enabled: true } },
+      });
+      expect(official?.config.groupAllowFrom).toBeUndefined();
+      expect(ensureExists).toHaveBeenCalledWith("feishu", "ou_creator", true);
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.feishu.accounts.default.dmPolicy).toBe("open");
+      expect(config.channels.feishu.accounts.default.allowFrom).toEqual(["*"]);
+      expect(config.channels.feishu.accounts.default.groupPolicy).toBe("open");
+      expect(config.channels.feishu.accounts.default.groupAllowFrom).toBeUndefined();
+      expect(config.channels.feishu.dmPolicy).toBe("open");
+      expect(config.channels.feishu.allowFrom).toEqual(["*"]);
+      expect(config.channels.feishu.groupPolicy).toBe("open");
+      expect(config.channels.feishu.groupAllowFrom).toBeUndefined();
+
+      const allowFromFile = JSON.parse(readFileSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"), "utf-8"));
+      expect(allowFromFile.allowFrom).toEqual(["ou_creator"]);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousStateDir === undefined) {
+        delete process.env.OPENCLAW_STATE_DIR;
+      } else {
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      }
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("merges duplicate WeChat QR accounts by provider userId without reusing stale context tokens", async () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
     try {

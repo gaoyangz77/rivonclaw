@@ -121,6 +121,8 @@ export const API = {
   "channels.accounts.delete":{ method: "DELETE", path: "/api/channels/accounts/:channelId/:accountId", desc: "Delete channel account" },
   "channels.qrLogin.start":  { method: "POST",   path: "/api/channels/qr-login/start",   desc: "Start QR code login" },
   "channels.qrLogin.wait":   { method: "POST",   path: "/api/channels/qr-login/wait",    desc: "Wait for QR login completion" },
+  "channels.feishuSetup.start": { method: "POST", path: "/api/channels/feishu-setup/start", desc: "Start Feishu official QR setup" },
+  "channels.feishuSetup.poll":  { method: "POST", path: "/api/channels/feishu-setup/poll",  desc: "Poll Feishu official QR setup" },
 
   // ── Pairing ──
   "pairing.requests":        { method: "GET",    path: "/api/pairing/requests/:channelId", desc: "List pairing requests for channel" },

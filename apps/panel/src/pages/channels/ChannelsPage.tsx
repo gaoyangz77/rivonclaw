@@ -15,6 +15,7 @@ import { useChannelsData } from "./use-channels-data.js";
 import { ChannelAccountsTable } from "./ChannelAccountsTable.js";
 import { QrLoginModal } from "../../components/modals/QrLoginModal.js";
 import { panelEventBus } from "../../lib/event-bus.js";
+import { FeishuSetupModal } from "../../components/modals/FeishuSetupModal.js";
 
 export const ChannelsPage = observer(function ChannelsPage() {
   const { t, i18n } = useTranslation();
@@ -42,6 +43,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
 
   // QR login modal (WeChat)
   const [qrLoginChannelId, setQrLoginChannelId] = useState<string | null>(null);
+  const [feishuSetupOpen, setFeishuSetupOpen] = useState(false);
 
   // Dropdown selection state for add account
   const [selectedDropdownChannel, setSelectedDropdownChannel] = useState<string>("");
@@ -77,6 +79,12 @@ export const ChannelsPage = observer(function ChannelsPage() {
     // Mobile Chat uses its own binding modal (QR code flow)
     if (selectedDropdownChannel === "mobile") {
       setMobileModalOpen(true);
+      return;
+    }
+
+    if (selectedDropdownChannel === "feishu") {
+      setFeishuSetupOpen(true);
+      setSelectedDropdownChannel("");
       return;
     }
 
@@ -178,6 +186,15 @@ export const ChannelsPage = observer(function ChannelsPage() {
   function handleModalClose() {
     setModalOpen(false);
     setEditingAccount(undefined);
+  }
+
+  function handleFeishuManualSetup() {
+    const knownChannel = KNOWN_CHANNELS.find(c => c.id === "feishu");
+    setFeishuSetupOpen(false);
+    setSelectedChannelId("feishu");
+    setSelectedChannelLabel(knownChannel ? t(knownChannel.labelKey) : "Feishu");
+    setEditingAccount(undefined);
+    setModalOpen(true);
   }
 
   async function handleModalSuccess(): Promise<void> {
@@ -305,6 +322,21 @@ export const ChannelsPage = observer(function ChannelsPage() {
             {selectedDropdownChannel && selectedDropdownChannel !== "mobile" && (() => {
               const selected = KNOWN_CHANNELS.find(ch => ch.id === selectedDropdownChannel);
               if (!selected) return null;
+              if (selected.id === "feishu") {
+                const zh = i18n.language.toLowerCase().startsWith("zh");
+                return (
+                  <div className="channel-info-box feishu-channel-onboarding">
+                    <div className="channel-info-title">
+                      {zh ? "推荐扫码自动创建飞书机器人" : "Recommended: create the Feishu/Lark bot by scanning"}
+                    </div>
+                    <div className="channel-info-copy">
+                      {zh
+                        ? "RivonClaw 已内置官方 OpenClaw 飞书插件。连接后会自动保存凭证并启用通道。"
+                        : "RivonClaw includes the official OpenClaw Feishu/Lark plugin. After connecting, it saves credentials and enables the channel."}
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div className="channel-info-box">
@@ -365,6 +397,18 @@ export const ChannelsPage = observer(function ChannelsPage() {
         isOpen={mobileModalOpen}
         onClose={handleMobileModalClose}
         onBindingSuccess={handleMobileBindingSuccess}
+      />
+
+      <FeishuSetupModal
+        isOpen={feishuSetupOpen}
+        onClose={() => setFeishuSetupOpen(false)}
+        onSuccess={() => {
+          void pollGatewayReady(
+            () => loadChannelStatus(true, { probe: false }),
+            { maxRetries: 30 },
+          );
+        }}
+        onManualSetup={handleFeishuManualSetup}
       />
 
       {/* QR Login Modal (WeChat) */}

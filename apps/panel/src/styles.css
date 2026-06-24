@@ -2392,6 +2392,12 @@ tbody td {
   margin-top: 8px;
 }
 
+.feishu-setup-status {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
 .feishu-setup-advanced {
   display: flex;
   justify-content: center;

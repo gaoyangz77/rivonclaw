@@ -548,7 +548,7 @@ export default {
     fieldDmPolicyHint: "控制如何处理私信",
     dmPolicyPairing: "配对（默认）- 需要批准新发送者",
     dmPolicyAllowlist: "白名单 - 仅允许已批准的发送者",
-    dmPolicyOpen: "开放 - 允许所有私信（需要 allowFrom: [\"*\"]）",
+    dmPolicyOpen: "开放 - 信任平台可用范围内的私信",
     dmPolicyDisabled: "禁用 - 忽略所有私信",
     dmPolicyLabel_pairing: "配对",
     dmPolicyLabel_allowlist: "白名单",
