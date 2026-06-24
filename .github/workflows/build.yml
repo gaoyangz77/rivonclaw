@@ -289,7 +289,7 @@ jobs:
           rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS arm64 DMG + ZIP
-        timeout-minutes: 150
+        timeout-minutes: 240
         run: |
           cd apps/desktop
           export PATH="$PWD/scripts/ci-bin:$PATH"
@@ -457,7 +457,7 @@ jobs:
           rm -f certificate.p12 developer-id-g2.cer
 
       - name: Build macOS x64 DMG + ZIP
-        timeout-minutes: 150
+        timeout-minutes: 240
         run: |
           cd apps/desktop
           export PATH="$PWD/scripts/ci-bin:$PATH"
