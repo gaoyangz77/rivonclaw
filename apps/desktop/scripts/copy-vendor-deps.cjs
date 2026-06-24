@@ -9,6 +9,13 @@
 const fs = require("fs");
 const path = require("path");
 
+const ARCH_NAMES = {
+  0: "ia32",
+  1: "x64",
+  2: "armv7l",
+  3: "arm64",
+  4: "universal",
+};
 
 /** Recursively count files in a directory. */
 function countFiles(/** @type {string} */ dir) {
@@ -21,6 +28,86 @@ function countFiles(/** @type {string} */ dir) {
     }
   }
   return count;
+}
+
+function detectElectronAbi() {
+  try {
+    const electronPackagePath = require.resolve("electron/package.json", {
+      paths: [path.resolve(__dirname, "..")],
+    });
+    const electronDir = path.dirname(electronPackagePath);
+    const abiPath = path.join(electronDir, "abi_version");
+    if (fs.existsSync(abiPath)) {
+      const abi = fs.readFileSync(abiPath, "utf8").trim();
+      if (/^\d+$/.test(abi)) return abi;
+    }
+  } catch {}
+
+  return null;
+}
+
+/**
+ * Keep packaged desktop native bindings to the Electron runtime ABI/arch only.
+ * The workspace keeps Node.js and Electron better-sqlite3 prebuilds side-by-side
+ * for tests, but shipping Node.js ABI binaries makes macOS codesign process
+ * irrelevant native files and can hang on timestamping.
+ *
+ * @param {string} resourcesDir
+ * @param {import("electron-builder").AfterPackContext} context
+ */
+function prunePackagedBetterSqliteBindings(resourcesDir, context) {
+  const bindingDir = path.join(
+    resourcesDir,
+    "app.asar.unpacked",
+    "node_modules",
+    "better-sqlite3",
+    "lib",
+    "binding",
+  );
+  if (!fs.existsSync(bindingDir)) return;
+
+  const electronAbi = detectElectronAbi();
+  const targetArch = ARCH_NAMES[context.arch] || String(context.arch || "");
+  const targetPlatform = context.electronPlatformName;
+  const keepName = electronAbi && targetArch && targetArch !== "universal"
+    ? `node-v${electronAbi}-${targetPlatform}-${targetArch}`
+    : null;
+
+  let removedCount = 0;
+  let keptCount = 0;
+  for (const entry of fs.readdirSync(bindingDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith("node-v")) continue;
+
+    if (keepName && entry.name === keepName) {
+      keptCount++;
+      continue;
+    }
+
+    fs.rmSync(path.join(bindingDir, entry.name), { recursive: true, force: true });
+    removedCount++;
+  }
+
+  const releaseBinding = path.join(
+    resourcesDir,
+    "app.asar.unpacked",
+    "node_modules",
+    "better-sqlite3",
+    "build",
+    "Release",
+    "better_sqlite3.node",
+  );
+  const hasReleaseBinding = fs.existsSync(releaseBinding);
+  console.log(
+    `[copy-vendor-deps] Pruned packaged better-sqlite3 bindings: ` +
+    `removed ${removedCount}, kept ${keptCount}${keepName ? ` (${keepName})` : ""}, ` +
+    `build/Release ${hasReleaseBinding ? "present" : "missing"}.`,
+  );
+
+  if (!hasReleaseBinding && keptCount === 0) {
+    throw new Error(
+      "[copy-vendor-deps] FAIL: packaged better-sqlite3 has neither build/Release nor a target Electron binding.",
+    );
+  }
 }
 
 /**
@@ -38,6 +125,8 @@ exports.default = async function copyVendorDeps(context) {
     // Windows / Linux
     resourcesDir = path.join(appOutDir, "resources");
   }
+
+  prunePackagedBetterSqliteBindings(resourcesDir, context);
 
   // ─── macOS: archive-based vendor runtime ───
   // On macOS, the vendor runtime ships as a single tar archive instead of
