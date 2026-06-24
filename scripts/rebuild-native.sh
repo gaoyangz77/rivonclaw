@@ -30,12 +30,81 @@ for arg in "$@"; do
   esac
 done
 
-# Resolve better-sqlite3 location in pnpm store
-SQLITE_DIR=$(ls -d "$REPO_ROOT"/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 | tail -1)
+# Resolve better-sqlite3 location in pnpm store. pnpm can also hoist a private
+# package copy to root node_modules; keep those copies in sync so Node.js tools
+# do not accidentally load a stale build/Release binary.
+SQLITE_DIR=$(cd "$(ls -d "$REPO_ROOT"/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 | tail -1)" && pwd -P)
+SQLITE_DIRS="$SQLITE_DIR"
+while IFS= read -r dir; do
+  if [ -z "$dir" ] || [ ! -d "$dir" ]; then
+    continue
+  fi
+  real_dir=$(cd "$dir" && pwd -P)
+  case ":$SQLITE_DIRS:" in
+    *":$real_dir:"*) ;;
+    *) SQLITE_DIRS="$SQLITE_DIRS:$real_dir" ;;
+  esac
+done < <(
+  REPO_ROOT="$REPO_ROOT" DESKTOP_DIR="$DESKTOP_DIR" node <<'NODE'
+const path = require("node:path");
+const roots = [process.env.REPO_ROOT, process.env.DESKTOP_DIR];
+const seen = new Set();
+
+for (const root of roots) {
+  try {
+    const packagePath = require.resolve("better-sqlite3/package.json", { paths: [root] });
+    const dir = path.dirname(packagePath);
+    if (!seen.has(dir)) {
+      seen.add(dir);
+      console.log(dir);
+    }
+  } catch {
+    // Optional hoisted locations may not exist in a fresh install.
+  }
+}
+NODE
+)
 PLATFORM="$(node -p "process.platform + '-' + process.arch")"
 
 echo "==> better-sqlite3 at: $SQLITE_DIR"
+echo "==> better-sqlite3 roots:"
+printf '    %s\n' ${SQLITE_DIRS//:/ }
 echo "==> Platform: $PLATFORM"
+
+detect_electron_abi() {
+  (
+    cd "$DESKTOP_DIR"
+    node <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+
+function done(value) {
+  const abi = String(value || "").trim();
+  if (/^\d+$/.test(abi)) {
+    process.stdout.write(abi);
+    process.exit(0);
+  }
+}
+
+try {
+  const electronPackagePath = require.resolve("electron/package.json");
+  const electronDir = path.dirname(electronPackagePath);
+  const abiPath = path.join(electronDir, "abi_version");
+  if (fs.existsSync(abiPath)) {
+    done(fs.readFileSync(abiPath, "utf8"));
+  }
+
+  const electronVersion = require(electronPackagePath).version;
+  const nodeAbi = require("node-abi");
+  done(nodeAbi.getAbi(electronVersion, "electron"));
+} catch {
+  process.exit(1);
+}
+
+process.exit(1);
+NODE
+  )
+}
 
 run_logged() {
   local description="$1"
@@ -64,13 +133,20 @@ run_logged() {
 # ---- Quick check: skip if both prebuilds already exist ----
 if [ "$FORCE" = false ]; then
   NODE_ABI=$(node -p "process.versions.modules")
-  ELECTRON_ABI=$(cd "$DESKTOP_DIR" && ELECTRON_RUN_AS_NODE=1 npx electron -e "process.stdout.write(process.versions.modules)" 2>/dev/null) || true
+  ELECTRON_ABI=$(detect_electron_abi 2>/dev/null) || true
+  BUILD_DIR_PRESENT=false
+  for dir in ${SQLITE_DIRS//:/ }; do
+    if [ -d "$dir/build" ]; then
+      BUILD_DIR_PRESENT=true
+      break
+    fi
+  done
 
   if [ -z "$ELECTRON_ABI" ]; then
     # Electron ABI detection failed (can happen in pnpm postinstall on Windows).
     # Check if ANY prebuild exists besides Node.js — if so, skip rebuild.
     EXISTING_ABIS=$(ls -d "$SQLITE_DIR/lib/binding/node-v"*"-${PLATFORM}" 2>/dev/null | grep -v "node-v${NODE_ABI}" | head -1 || true)
-    if [ -n "$EXISTING_ABIS" ] && [ -f "$EXISTING_ABIS/better_sqlite3.node" ] && [ ! -d "$SQLITE_DIR/build" ]; then
+    if [ -n "$EXISTING_ABIS" ] && [ -f "$EXISTING_ABIS/better_sqlite3.node" ] && [ "$BUILD_DIR_PRESENT" = false ]; then
       echo ""
       echo "✅ Electron ABI detection failed but existing prebuilds found — skipping rebuild."
       echo "   Node.js ABI $NODE_ABI: $(ls "$SQLITE_DIR/lib/binding/node-v${NODE_ABI}-${PLATFORM}/better_sqlite3.node" 2>/dev/null && echo 'OK' || echo 'MISSING')"
@@ -84,7 +160,7 @@ if [ "$FORCE" = false ]; then
   NODE_BIN="$SQLITE_DIR/lib/binding/node-v${NODE_ABI}-${PLATFORM}/better_sqlite3.node"
   ELECTRON_BIN="$SQLITE_DIR/lib/binding/node-v${ELECTRON_ABI}-${PLATFORM}/better_sqlite3.node"
 
-  if [ -f "$NODE_BIN" ] && [ -f "$ELECTRON_BIN" ] && [ ! -d "$SQLITE_DIR/build" ]; then
+  if [ -f "$NODE_BIN" ] && [ -f "$ELECTRON_BIN" ] && [ "$BUILD_DIR_PRESENT" = false ]; then
     echo ""
     echo "✅ Prebuilds already exist and build/ is absent — skipping rebuild."
     echo "   Node.js ABI $NODE_ABI: $NODE_BIN"
@@ -97,7 +173,9 @@ fi
 # ---- 1. Build for Node.js ----
 echo ""
 echo "==> Building for Node.js..."
-rm -rf "$SQLITE_DIR/build"
+for dir in ${SQLITE_DIRS//:/ }; do
+  rm -rf "$dir/build"
+done
 (cd "$SQLITE_DIR" && run_logged "node-gyp rebuild for Node.js" npx node-gyp rebuild --release)
 
 NODE_ABI=$(node -p "process.versions.modules")
@@ -112,15 +190,30 @@ echo "==> Building for Electron..."
 (cd "$DESKTOP_DIR" && run_logged "electron-rebuild for Electron" npx electron-rebuild -f -o better-sqlite3)
 
 # Get Electron's internal Node.js ABI version
-# ELECTRON_RUN_AS_NODE=1 makes Electron run as its internal Node.js
-ELECTRON_ABI=$(cd "$DESKTOP_DIR" && ELECTRON_RUN_AS_NODE=1 npx electron -e "process.stdout.write(process.versions.modules)")
+# Prefer Electron's package metadata over launching the Electron binary. In CI,
+# pnpm can leave the binary path unavailable during root postinstall even though
+# electron-rebuild can still build from the package version.
+ELECTRON_ABI=$(detect_electron_abi)
 ELECTRON_BINDING_DIR="$SQLITE_DIR/lib/binding/node-v${ELECTRON_ABI}-${PLATFORM}"
 mkdir -p "$ELECTRON_BINDING_DIR"
 cp "$SQLITE_DIR/build/Release/better_sqlite3.node" "$ELECTRON_BINDING_DIR/"
 echo "    Copied to lib/binding/node-v${ELECTRON_ABI}-${PLATFORM}/"
 
+for dir in ${SQLITE_DIRS//:/ }; do
+  if [ "$dir" = "$SQLITE_DIR" ]; then
+    continue
+  fi
+  mkdir -p "$dir/lib/binding"
+  rm -rf "$dir/lib/binding/node-v${NODE_ABI}-${PLATFORM}"
+  rm -rf "$dir/lib/binding/node-v${ELECTRON_ABI}-${PLATFORM}"
+  cp -R "$NODE_BINDING_DIR" "$dir/lib/binding/"
+  cp -R "$ELECTRON_BINDING_DIR" "$dir/lib/binding/"
+done
+
 # ---- 3. Remove build/ so bindings falls through to lib/binding/ ----
-rm -rf "$SQLITE_DIR/build"
+for dir in ${SQLITE_DIRS//:/ }; do
+  rm -rf "$dir/build"
+done
 echo ""
 echo "==> Removed build/ directory (forces bindings to use lib/binding/)"
 
