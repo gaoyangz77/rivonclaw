@@ -97,6 +97,7 @@ export const API = {
   // ── Session Model ──
   "sessionModel.get":        { method: "GET",    path: "/api/session-model",              desc: "Get per-session model override" },
   "sessionModel.set":        { method: "PUT",    path: "/api/session-model",              desc: "Set per-session model override" },
+  "sessionModel.apply":      { method: "POST",   path: "/api/session-model/apply",        desc: "Apply resolved model to a session" },
 
   // ── Models / Catalog ──
   "models.catalog":          { method: "GET",    path: "/api/models",                     desc: "Full model catalog from all providers" },

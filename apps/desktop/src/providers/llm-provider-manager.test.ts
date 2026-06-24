@@ -1,4 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { ScopeType, type ProviderKeyEntry } from "@rivonclaw/core";
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "./provider-key-utils.js";
@@ -129,6 +132,82 @@ describe("LLMProviderManager", () => {
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
+  it("clears stale OpenClaw auth profile overrides when applying the global default", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+    const stateDir = await mkdtemp(path.join(tmpdir(), "rivonclaw-llm-manager-"));
+    const sessionKey = "agent:main:feishu:default:direct:ou_1";
+    const sessionsDir = path.join(stateDir, "openclaw", "agents", "main", "sessions");
+    const sessionsPath = path.join(sessionsDir, "sessions.json");
+
+    try {
+      await mkdir(sessionsDir, { recursive: true });
+      await writeFile(
+        sessionsPath,
+        `${JSON.stringify({
+          [sessionKey]: {
+            sessionId: "s1",
+            updatedAt: 1,
+            authProfileOverride: "google-gemini-cli:user@example.com",
+            authProfileOverrideSource: "auto",
+            authProfileOverrideCompactionCount: 0,
+          },
+        }, null, 2)}\n`,
+        "utf8",
+      );
+
+      const entry: ProviderKeyEntry = {
+        id: "key-default",
+        provider: "rivonclaw-pro",
+        label: "RivonClaw AI",
+        model: "gpt-5.5",
+        isDefault: true,
+        authType: "custom",
+        baseUrl: "https://example.test/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify([{ id: "gpt-5.5" }]),
+        createdAt: "",
+        updatedAt: "",
+      };
+
+      initLLMProviderManagerEnv({
+        storage: {
+          providerKeys: {
+            getActive: () => entry,
+            getById: () => entry,
+            getAll: () => [entry],
+          },
+        } as any,
+        secretStore: mockSecretStore as any,
+        getRpcClient: () => ({ request: rpcRequest }) as any,
+        toMstSnapshot,
+        allKeysToMstSnapshots,
+        syncActiveKey: async () => {},
+        syncAllAuthProfiles: async () => {},
+        writeProxyRouterConfig: async () => {},
+        writeDefaultModelToConfig: vi.fn(),
+        writeFullGatewayConfig: async () => {},
+        restartGateway: async () => {},
+        proxyFetch: globalThis.fetch,
+        stateDir,
+        getLastSystemProxy: () => null,
+      });
+
+      await rootStore.llmManager.applyModelForSession(sessionKey);
+
+      expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+        key: sessionKey,
+        model: "rivonclaw-pro/gpt-5.5",
+      });
+      const store = JSON.parse(await readFile(sessionsPath, "utf8"));
+      expect(store[sessionKey].authProfileOverride).toBeUndefined();
+      expect(store[sessionKey].authProfileOverrideSource).toBeUndefined();
+      expect(store[sessionKey].authProfileOverrideCompactionCount).toBeUndefined();
+      expect(store[sessionKey].updatedAt).toBeGreaterThan(1);
+    } finally {
+      await rm(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("updates gateway default without eagerly resetting sessions on default provider activation", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
@@ -211,6 +290,14 @@ describe("LLMProviderManager", () => {
       mode: "default",
       provider: null,
       model: null,
+    });
+    expect(rootStore.llmManager.getSessionModelInfo("telegram-session-default")).toMatchObject({
+      provider: "rivonclaw-pro",
+      model: "gpt-5.4",
+      gatewayProvider: "rivonclaw-pro",
+      gatewayModel: "gpt-5.4",
+      mode: "default",
+      isOverridden: false,
     });
 
     await rootStore.llmManager.applyModelForSession("telegram-session-default");

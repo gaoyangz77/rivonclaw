@@ -354,6 +354,24 @@ const setSessionModel: EndpointHandler = async (req, res, _url, _params, _ctx) =
   }
 };
 
+// ── POST /api/session-model/apply ──
+
+const applySessionModel: EndpointHandler = async (req, res, _url, _params, _ctx) => {
+  const body = (await parseBody(req)) as { sessionKey?: string };
+  if (!body.sessionKey) {
+    sendJson(res, 400, { error: "Missing required field: sessionKey" });
+    return;
+  }
+
+  try {
+    await rootStore.llmManager.applyModelForSession(body.sessionKey, undefined, { requestTimeoutMs: 10_000 });
+    const info = rootStore.llmManager.getSessionModelInfo(body.sessionKey);
+    sendJson(res, 200, { ok: true, sessionKey: body.sessionKey, ...info });
+  } catch (err) {
+    sendJson(res, 500, { error: formatError(err) || "Failed to apply session model" });
+  }
+};
+
 // ── POST /api/custom-provider/fetch-models ──
 
 const fetchCustomModels: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
@@ -563,6 +581,7 @@ export function registerProviderHandlers(registry: RouteRegistry): void {
   // Session model
   registry.register(API["sessionModel.get"], getSessionModel);
   registry.register(API["sessionModel.set"], setSessionModel);
+  registry.register(API["sessionModel.apply"], applySessionModel);
 
   // Model catalog
   registry.register(API["models.catalog"], modelCatalog);

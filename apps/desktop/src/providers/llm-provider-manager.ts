@@ -1,5 +1,7 @@
 import { types, flow, getRoot } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, isUsageQueryableProvider } from "@rivonclaw/core";
 import type { GQL, LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
@@ -59,6 +61,15 @@ interface CloudModel {
 interface ApplyModelForSessionOptions {
   requestTimeoutMs?: number;
 }
+
+type OpenClawSessionEntry = {
+  updatedAt?: number;
+  authProfileOverride?: string;
+  authProfileOverrideSource?: string;
+  authProfileOverrideCompactionCount?: number;
+};
+
+type OpenClawSessionStore = Record<string, OpenClawSessionEntry | undefined>;
 
 function selectCloudDefaultModel(cloudModels: CloudModel[]): string {
   return cloudModels.find((model) => model.id === CLOUD_DEFAULT_MODEL_ID)?.id ?? cloudModels[0]?.id ?? "";
@@ -133,6 +144,17 @@ export interface SessionModelFact {
   appliedModel?: string;
 }
 
+interface ResolvedSessionModelInfo {
+  provider: string;
+  model: string;
+  isOverridden: boolean;
+  mode: SessionModelMode;
+  gatewayProvider: string;
+  gatewayModel: string;
+  appliedProvider?: string;
+  appliedModel?: string;
+}
+
 /** Scope context for model resolution. */
 export interface ModelScope {
   type: ToolScopeType;  // e.g., ScopeType.CS_SESSION
@@ -169,41 +191,47 @@ export const LLMProviderManagerModel = types
     /** Get the fully resolved model info for a session (override → global fallback). */
     getSessionModelInfo(sessionKey: string): {
       provider: string; model: string; isOverridden: boolean; mode: SessionModelMode;
-      appliedProvider?: string; appliedModel?: string;
+      gatewayProvider: string; gatewayModel: string; appliedProvider?: string; appliedModel?: string;
     } | null {
       const { storage } = (self as any)._env as LLMProviderManagerEnv;
       const activeKey = storage.providerKeys.getActive();
       if (!activeKey) return null;
 
+      const resolveInfo = (
+        provider: string,
+        model: string,
+        isOverridden: boolean,
+        mode: SessionModelMode,
+        authType?: string,
+        applied?: { provider?: string; model?: string },
+      ): ResolvedSessionModelInfo => ({
+        provider,
+        model,
+        isOverridden,
+        mode,
+        gatewayProvider: authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider),
+        gatewayModel: model,
+        appliedProvider: applied?.provider,
+        appliedModel: applied?.model,
+      });
+
       const fact = self.sessionModelFacts.get(sessionKey);
       if (fact?.mode === "explicit" && fact.provider && fact.model) {
-        return {
-          provider: fact.provider,
-          model: fact.model,
-          isOverridden: true,
-          mode: fact.mode,
-          appliedProvider: fact.appliedProvider,
-          appliedModel: fact.appliedModel,
-        };
+        return resolveInfo(fact.provider, fact.model, true, fact.mode, undefined, {
+          provider: fact.appliedProvider,
+          model: fact.appliedModel,
+        });
       }
       if (fact?.mode === "scope" && fact.provider && fact.model) {
-        return {
-          provider: fact.provider,
-          model: fact.model,
-          isOverridden: false,
-          mode: fact.mode,
-          appliedProvider: fact.appliedProvider,
-          appliedModel: fact.appliedModel,
-        };
+        return resolveInfo(fact.provider, fact.model, false, fact.mode, undefined, {
+          provider: fact.appliedProvider,
+          model: fact.appliedModel,
+        });
       }
-      return {
-        provider: activeKey.provider,
-        model: activeKey.model,
-        isOverridden: false,
-        mode: "default",
-        appliedProvider: fact?.appliedProvider,
-        appliedModel: fact?.appliedModel,
-      };
+      return resolveInfo(activeKey.provider, activeKey.model, false, "default", activeKey.authType, {
+        provider: fact?.appliedProvider,
+        model: fact?.appliedModel,
+      });
     },
   }))
   .actions((self) => {
@@ -274,6 +302,48 @@ export const LLMProviderManagerModel = types
       });
     }
 
+    function agentIdFromSessionKey(sessionKey: string): string {
+      const parts = sessionKey.split(":");
+      return parts[0] === "agent" && parts[1] ? parts[1] : "main";
+    }
+
+    async function clearStoredAuthProfileOverride(sessionKey: string): Promise<void> {
+      const { stateDir } = getEnvDeps();
+      const sessionsPath = path.join(
+        stateDir,
+        "openclaw",
+        "agents",
+        agentIdFromSessionKey(sessionKey),
+        "sessions",
+        "sessions.json",
+      );
+
+      let raw: string;
+      try {
+        raw = await readFile(sessionsPath, "utf8");
+      } catch {
+        return;
+      }
+
+      let store: OpenClawSessionStore;
+      try {
+        store = JSON.parse(raw) as OpenClawSessionStore;
+      } catch (err) {
+        log.warn(`Failed to parse OpenClaw session store while clearing auth profile for ${sessionKey}: ${err}`);
+        return;
+      }
+
+      const entry = store[sessionKey];
+      if (!entry?.authProfileOverride) return;
+
+      delete entry.authProfileOverride;
+      delete entry.authProfileOverrideSource;
+      delete entry.authProfileOverrideCompactionCount;
+      entry.updatedAt = Date.now();
+      await writeFile(sessionsPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+      log.info(`Cleared stored auth profile override for default-following session ${sessionKey}`);
+    }
+
     async function patchSessionToActiveDefault(
       sessionKey: string,
       options?: ApplyModelForSessionOptions,
@@ -284,6 +354,7 @@ export const LLMProviderManagerModel = types
         throw new Error(NO_ACTIVE_LLM_PROVIDER_ERROR);
       }
       await patchSession(sessionKey, active.modelRef, options);
+      await clearStoredAuthProfileOverride(sessionKey);
       const applied = { provider: active.provider, model: active.model };
       markDefaultFollowing(sessionKey, applied);
       return applied;
