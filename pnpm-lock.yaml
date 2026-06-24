@@ -145,6 +145,9 @@ importers:
       graphql:
         specifier: ^16.13.1
         version: 16.13.1
+      node-abi:
+        specifier: 4.26.0
+        version: 4.26.0
       openclaw-weixin:
         specifier: workspace:*
         version: link:../../extensions/channel-weixin

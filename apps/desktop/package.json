@@ -68,6 +68,7 @@
     "electron": "^40.4.1",
     "electron-builder": "^26.0.12",
     "graphql": "^16.13.1",
+    "node-abi": "4.26.0",
     "openclaw-weixin": "workspace:*",
     "oxlint": "^1.43.0",
     "playwright": "^1.58.2",
