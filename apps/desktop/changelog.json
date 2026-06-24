@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.44",
+    "date": "2026-06-24",
+    "en": [
+      "Add Feishu QR onboarding and improve channel form boolean selections and allowlist handling",
+      "Fix stale model authentication in channel sessions and WeChat send-health display",
+      "Refine affiliate creator workflows, content follow-up work items, boundaries, and proposal history cards"
+    ],
+    "zh": [
+      "新增飞书扫码 onboarding，并优化渠道表单布尔选择和 allowlist 处理",
+      "修复渠道会话中的旧模型认证问题，并修复微信发送健康状态展示",
+      "优化达人 creator workflow、内容跟进 work item、边界展示和提案历史卡片"
+    ]
+  },
+  {
     "version": "1.8.43",
     "date": "2026-06-23",
     "en": [
