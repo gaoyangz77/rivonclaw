@@ -2715,6 +2715,7 @@ export default {
       threadConversationId: "对话",
       threadLastInbound: "最近达人消息",
       threadLastOutbound: "最近商家回复",
+      threadContext: "记录上下文",
       threadAmbiguousCollaborations: "可能关联的合作",
       threadNoCollaborations: "这条合作记录暂未关联具体商品合作。",
       threadNoPendingProposals: "这条合作记录暂无待审批提案。",
@@ -2874,6 +2875,7 @@ export default {
       itemCount: "{{count}} 项",
       collaborationRecords: "合作记录",
       historicalCollaborations: "历史合作",
+      relatedCollaborations: "相关合作",
       collaborationRecordsHint: "每张卡片代表一条店铺和达人之间的合作记录；商品或样品上下文明确后，具体商品合作会显示在记录内。",
       pageTitles: {
         NEEDS_ATTENTION: "审批提案",

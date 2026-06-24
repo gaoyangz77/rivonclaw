@@ -2716,6 +2716,7 @@ export default {
       threadConversationId: "Conversation",
       threadLastInbound: "Last inbound",
       threadLastOutbound: "Last outbound",
+      threadContext: "Record context",
       threadAmbiguousCollaborations: "Ambiguous collaboration candidates",
       threadNoCollaborations: "This collaboration record does not have a linked product collaboration yet.",
       threadNoPendingProposals: "No pending proposals on this collaboration record.",
@@ -2875,6 +2876,7 @@ export default {
       itemCount: "{{count}} item(s)",
       collaborationRecords: "Collaboration records",
       historicalCollaborations: "Historical collaborations",
+      relatedCollaborations: "Related collaborations",
       collaborationRecordsHint: "Each card represents one shop-creator collaboration record. Product-level collaborations appear inside the record when product or sample context is known.",
       pageTitles: {
         NEEDS_ATTENTION: "Action proposals",
