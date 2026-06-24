@@ -69,7 +69,7 @@ if [ "$FORCE" = false ]; then
   if [ -z "$ELECTRON_ABI" ]; then
     # Electron ABI detection failed (can happen in pnpm postinstall on Windows).
     # Check if ANY prebuild exists besides Node.js — if so, skip rebuild.
-    EXISTING_ABIS=$(ls -d "$SQLITE_DIR/lib/binding/node-v"*"-${PLATFORM}" 2>/dev/null | grep -v "node-v${NODE_ABI}" | head -1 || true)
+    EXISTING_ABIS=$(ls -d "$SQLITE_DIR/lib/binding/node-v"*"-${PLATFORM}" 2>/dev/null | grep -v "node-v${NODE_ABI}" | head -1)
     if [ -n "$EXISTING_ABIS" ] && [ -f "$EXISTING_ABIS/better_sqlite3.node" ] && [ ! -d "$SQLITE_DIR/build" ]; then
       echo ""
       echo "✅ Electron ABI detection failed but existing prebuilds found — skipping rebuild."
