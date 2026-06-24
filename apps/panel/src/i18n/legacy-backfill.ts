@@ -79,6 +79,33 @@ export const LEGACY_I18N_BACKFILL = {
     "ecommerce": {
       "affiliateWorkspace": {
         "approvalQueueTitle": "Aktionsvorschläge",
+        "creatorThreadPrimaryObject": "Kooperationsdatensatz",
+        "creatorRelationshipPrimaryObject": "Creator-Beziehung",
+        "creatorThreads": "Kooperationsdatensätze",
+        "creatorIdentityObject": "Creator-Identität",
+        "creatorIdentityId": "Identitäts-ID",
+        "creatorBlocked": "Blockiert",
+        "relationshipShopStates": "Shop-Status",
+        "relationshipActiveCollaborations": "Aktive Kooperationen",
+        "relationshipTagCount": "{{count}} Tag(s)",
+        "relationshipThreadCollaborationCount": "{{count}} Kooperation(en)",
+        "threadShortLabel": "Datensatz {{id}}",
+        "threadActiveCollaborations": "Aktive Kooperationen",
+        "threadPendingProposals": "Ausstehende Vorschläge",
+        "threadUnread": "Ungelesen",
+        "threadMoreCollaborations": "+{{count}} weitere Kooperationen",
+        "threadConversationId": "Konversation",
+        "threadLastInbound": "Letzte Creator-Nachricht",
+        "threadLastOutbound": "Letzte Händlerantwort",
+        "threadAmbiguousCollaborations": "Mögliche Kooperationskontexte",
+        "threadNoCollaborations": "Dieser Kooperationsdatensatz ist noch mit keiner Produktkooperation verknüpft.",
+        "threadNoPendingProposals": "Keine ausstehenden Vorschläge in diesem Kooperationsdatensatz.",
+        "threadActiveWorkTitle": "{{count}} aktive Kooperation(en)",
+        "threadRelationshipConversationTitle": "Beziehungskonversation",
+        "threadAmbiguousSummary": "Dieser Kooperationsdatensatz hat mehrere mögliche Produktkontexte. Prüfen Sie sie, bevor Sie produktspezifische Aktionen ausführen.",
+        "threadDefaultSummary": "Kooperationsdatensatz zwischen Shop und Creator. Produktkooperationen erscheinen hier, sobald Produkt- oder Sample-Kontext bekannt ist.",
+        "openCreatorThreadDetailHint": "Kooperationsdatensatz öffnen, um Konversation, Vorschläge und zugehörige Kooperationen zu prüfen.",
+        "collaborationRecordObject": "Kooperation",
         "attentionFilters": {
           "ALL": "Alle",
           "APPROVAL_REQUIRED": "Zulassungen",
@@ -92,7 +119,14 @@ export const LEGACY_I18N_BACKFILL = {
           "done": "Erledigt",
           "staff": "Personal",
           "waitingCreator": "Schöpfer",
+          "waitingExternal": "Extern",
           "waitingPlatform": "Plattform"
+        },
+        "collaborationFilters": {
+          "AGENT_REQUIRED": "Agent erforderlich",
+          "STAFF_REQUIRED": "Personal erforderlich",
+          "WAITING_EXTERNAL": "Wartet auf externe Antwort",
+          "IDLE": "Inaktiv"
         },
         "collaborationWorkDescriptions": {
           "BLOCKED": "Diese Zusammenarbeit ist blockiert und wird nicht automatisch weiterentwickelt.",
@@ -115,8 +149,10 @@ export const LEGACY_I18N_BACKFILL = {
           "BLOCKED": "Dieser Ersteller ist blockiert",
           "DONE": "Diese Zusammenarbeit wird abgewickelt",
           "PROPOSAL_REJECTED": "Vorschlag abgelehnt; Nachbereitung durch das Personal erforderlich",
+          "PROPOSAL_REVISION_REQUESTED": "Überarbeitung des Vorschlags angefordert",
           "RESPOND_TO_CREATOR": "Antworte dem Ersteller",
           "REVIEW_ACTION_PROPOSAL": "Überprüfen Sie den Agentenvorschlag",
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Musterinhalt nachfassen",
           "WAITING_CREATOR": "Warten auf den Schöpfer",
           "WAITING_PLATFORM": "Warten auf Plattform-Updates"
         },
@@ -128,8 +164,49 @@ export const LEGACY_I18N_BACKFILL = {
         "labels": {
           "nextStep": "Nächster Schritt"
         },
+        "historyFilters": {
+          "AGENT_REQUIRED": "Agent erforderlich",
+          "STAFF_REQUIRED": "Personal erforderlich",
+          "WAITING_EXTERNAL": "Wartet auf externe Antwort",
+          "IDLE": "Inaktiv"
+        },
         "lifecycleEventPreview": "Plattform-/Systemereignis: {{eventType}}",
+        "lifecycleEvents": {
+          "PROPOSAL_REVISION_REQUESTED": "Überarbeitung des Vorschlags angefordert"
+        },
         "manualFollowUpNote": "Der Agentenvorschlag wurde abgelehnt. Die Mitarbeiter sollten diesen Punkt manuell auf der Plattform oder in der Folgekommunikation bearbeiten.",
+        "processReasons": {
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Musterinhalt nachfassen"
+        },
+        "requiredActions": {
+          "NONE": "Keine Aktion erforderlich",
+          "RESPOND_TO_CREATOR": "Creator antworten",
+          "REVIEW_SAMPLE_APPLICATION": "Probenantrag prüfen",
+          "SHIP_SAMPLE": "Probe versenden",
+          "FOLLOW_UP_CREATOR": "Creator nachfassen",
+          "REVIEW_COLLABORATION": "Kooperation prüfen",
+          "RESOLVE_CREATOR_IDENTITY": "Creator-Identität klären",
+          "REVIEW_AGENT_FAILURE": "Agentenfehler prüfen",
+          "REVIEW_ACTION_PROPOSAL": "Aktionsvorschlag prüfen"
+        },
+        "statusLabels": {
+          "AGENT_REQUIRED": "Agent erforderlich",
+          "STAFF_REQUIRED": "Personal erforderlich",
+          "WAITING_EXTERNAL": "Wartet auf externe Antwort",
+          "IDLE": "Inaktiv"
+        },
+        "workKinds": {
+          "THREAD": "Thread",
+          "APPROVAL_REVIEW": "Genehmigungsprüfung",
+          "CONTENT_FOLLOW_UP": "Content-Nachfassung",
+          "CREATOR_FOLLOW_UP": "Creator-Nachfassung",
+          "IDENTITY_RESOLUTION": "Identitätsklärung",
+          "INBOUND_MESSAGE_TRIAGE": "Eingehende Nachricht prüfen",
+          "MANUAL_REVIEW": "Manuelle Prüfung",
+          "OBSERVATION_REVIEW": "Beobachtungsprüfung",
+          "SAMPLE_APPLICATION_DECISION": "Probenantrag-Entscheidung",
+          "SAMPLE_SHIPMENT": "Probenversand"
+        },
         "sampleStatusPreview": "Beispielstatus: {{status}}; {{contentCount}}-Inhaltselemente wurden beobachtet.",
         "sectionHints": {
           "HISTORY": "Ausgeführte Aktionen, abgelehnte Vorschläge, Plattformereignisse und direkte Agentenaktionen.",
@@ -363,6 +440,33 @@ export const LEGACY_I18N_BACKFILL = {
     "ecommerce": {
       "affiliateWorkspace": {
         "approvalQueueTitle": "Propuestas de acción",
+        "creatorThreadPrimaryObject": "Registro de colaboración",
+        "creatorRelationshipPrimaryObject": "Relación con el creador",
+        "creatorThreads": "Registros de colaboración",
+        "creatorIdentityObject": "Identidad del creador",
+        "creatorIdentityId": "ID de identidad",
+        "creatorBlocked": "Bloqueado",
+        "relationshipShopStates": "Estados de tienda",
+        "relationshipActiveCollaborations": "Colaboraciones activas",
+        "relationshipTagCount": "{{count}} etiqueta(s)",
+        "relationshipThreadCollaborationCount": "{{count}} colaboración(es)",
+        "threadShortLabel": "Registro {{id}}",
+        "threadActiveCollaborations": "Colaboraciones activas",
+        "threadPendingProposals": "Propuestas pendientes",
+        "threadUnread": "No leído",
+        "threadMoreCollaborations": "+{{count}} colaboraciones más",
+        "threadConversationId": "Conversación",
+        "threadLastInbound": "Último mensaje del creador",
+        "threadLastOutbound": "Última respuesta del vendedor",
+        "threadAmbiguousCollaborations": "Contextos de colaboración posibles",
+        "threadNoCollaborations": "Este registro de colaboración aún no está vinculado a una colaboración de producto.",
+        "threadNoPendingProposals": "No hay propuestas pendientes en este registro de colaboración.",
+        "threadActiveWorkTitle": "{{count}} colaboración(es) activa(s)",
+        "threadRelationshipConversationTitle": "Conversación de relación",
+        "threadAmbiguousSummary": "Este registro de colaboración tiene varios contextos de producto posibles. Revísalos antes de ejecutar acciones específicas de producto.",
+        "threadDefaultSummary": "Registro de colaboración entre tienda y creador. Las colaboraciones de producto aparecen aquí cuando se conoce el contexto de producto o muestra.",
+        "openCreatorThreadDetailHint": "Abre el registro de colaboración para ver conversación, propuestas y colaboraciones relacionadas.",
+        "collaborationRecordObject": "Colaboración",
         "attentionFilters": {
           "ALL": "Todo",
           "APPROVAL_REQUIRED": "Aprobaciones",
@@ -376,7 +480,14 @@ export const LEGACY_I18N_BACKFILL = {
           "done": "Hecho",
           "staff": "Personal",
           "waitingCreator": "Creador",
+          "waitingExternal": "Externo",
           "waitingPlatform": "Plataforma"
+        },
+        "collaborationFilters": {
+          "AGENT_REQUIRED": "Agente requerido",
+          "STAFF_REQUIRED": "Personal requerido",
+          "WAITING_EXTERNAL": "Esperando respuesta externa",
+          "IDLE": "Inactivo"
         },
         "collaborationWorkDescriptions": {
           "BLOCKED": "Esta colaboración está bloqueada y no avanzará automáticamente.",
@@ -399,8 +510,10 @@ export const LEGACY_I18N_BACKFILL = {
           "BLOCKED": "Este creador está bloqueado.",
           "DONE": "Esta colaboración se gestiona",
           "PROPOSAL_REJECTED": "Propuesta rechazada; Se necesita seguimiento del personal.",
+          "PROPOSAL_REVISION_REQUESTED": "Revisión de propuesta solicitada",
           "RESPOND_TO_CREATOR": "Responder al creador",
           "REVIEW_ACTION_PROPOSAL": "Revisar la propuesta del agente",
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Hacer seguimiento del contenido de muestra",
           "WAITING_CREATOR": "Esperando al creador",
           "WAITING_PLATFORM": "Esperando actualizaciones de la plataforma"
         },
@@ -412,8 +525,49 @@ export const LEGACY_I18N_BACKFILL = {
         "labels": {
           "nextStep": "Siguiente paso"
         },
+        "historyFilters": {
+          "AGENT_REQUIRED": "Agente requerido",
+          "STAFF_REQUIRED": "Personal requerido",
+          "WAITING_EXTERNAL": "Esperando respuesta externa",
+          "IDLE": "Inactivo"
+        },
         "lifecycleEventPreview": "Evento de plataforma/sistema: {{eventType}}",
+        "lifecycleEvents": {
+          "PROPOSAL_REVISION_REQUESTED": "Revisión de propuesta solicitada"
+        },
         "manualFollowUpNote": "La propuesta del agente fue rechazada. El personal debe manejar este elemento manualmente en la plataforma o en comunicaciones de seguimiento.",
+        "processReasons": {
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Seguimiento del contenido de muestra pendiente"
+        },
+        "requiredActions": {
+          "NONE": "No requiere acción",
+          "RESPOND_TO_CREATOR": "Responder al creador",
+          "REVIEW_SAMPLE_APPLICATION": "Revisar solicitud de muestra",
+          "SHIP_SAMPLE": "Enviar muestra",
+          "FOLLOW_UP_CREATOR": "Hacer seguimiento al creador",
+          "REVIEW_COLLABORATION": "Revisar colaboración",
+          "RESOLVE_CREATOR_IDENTITY": "Resolver identidad del creador",
+          "REVIEW_AGENT_FAILURE": "Revisar fallo del agente",
+          "REVIEW_ACTION_PROPOSAL": "Revisar propuesta de acción"
+        },
+        "statusLabels": {
+          "AGENT_REQUIRED": "Agente requerido",
+          "STAFF_REQUIRED": "Personal requerido",
+          "WAITING_EXTERNAL": "Esperando respuesta externa",
+          "IDLE": "Inactivo"
+        },
+        "workKinds": {
+          "THREAD": "Hilo",
+          "APPROVAL_REVIEW": "Revisión de aprobación",
+          "CONTENT_FOLLOW_UP": "Seguimiento de contenido",
+          "CREATOR_FOLLOW_UP": "Seguimiento del creador",
+          "IDENTITY_RESOLUTION": "Resolución de identidad",
+          "INBOUND_MESSAGE_TRIAGE": "Triaje de mensaje entrante",
+          "MANUAL_REVIEW": "Revisión manual",
+          "OBSERVATION_REVIEW": "Revisión de observación",
+          "SAMPLE_APPLICATION_DECISION": "Decisión de solicitud de muestra",
+          "SAMPLE_SHIPMENT": "Envío de muestra"
+        },
         "sampleStatusPreview": "Estado de la muestra: {{status}}; Elementos de contenido {{contentCount}} observados.",
         "sectionHints": {
           "HISTORY": "Acciones ejecutadas, propuestas rechazadas, eventos de plataforma y acciones directas de agentes.",
@@ -647,6 +801,33 @@ export const LEGACY_I18N_BACKFILL = {
     "ecommerce": {
       "affiliateWorkspace": {
         "approvalQueueTitle": "Propositions d'actions",
+        "creatorThreadPrimaryObject": "Dossier de collaboration",
+        "creatorRelationshipPrimaryObject": "Relation créateur",
+        "creatorThreads": "Dossiers de collaboration",
+        "creatorIdentityObject": "Identité créateur",
+        "creatorIdentityId": "ID d'identité",
+        "creatorBlocked": "Bloqué",
+        "relationshipShopStates": "États boutique",
+        "relationshipActiveCollaborations": "Collaborations actives",
+        "relationshipTagCount": "{{count}} tag(s)",
+        "relationshipThreadCollaborationCount": "{{count}} collaboration(s)",
+        "threadShortLabel": "Dossier {{id}}",
+        "threadActiveCollaborations": "Collaborations actives",
+        "threadPendingProposals": "Propositions en attente",
+        "threadUnread": "Non lu",
+        "threadMoreCollaborations": "+{{count}} collaborations supplémentaires",
+        "threadConversationId": "Conversation",
+        "threadLastInbound": "Dernier message créateur",
+        "threadLastOutbound": "Dernière réponse vendeur",
+        "threadAmbiguousCollaborations": "Contextes de collaboration possibles",
+        "threadNoCollaborations": "Ce dossier de collaboration n'est pas encore lié à une collaboration produit.",
+        "threadNoPendingProposals": "Aucune proposition en attente dans ce dossier de collaboration.",
+        "threadActiveWorkTitle": "{{count}} collaboration(s) active(s)",
+        "threadRelationshipConversationTitle": "Conversation de relation",
+        "threadAmbiguousSummary": "Ce dossier de collaboration a plusieurs contextes produit possibles. Vérifiez-les avant toute action liée à un produit.",
+        "threadDefaultSummary": "Dossier de collaboration entre boutique et créateur. Les collaborations produit apparaissent ici quand le contexte produit ou échantillon est connu.",
+        "openCreatorThreadDetailHint": "Ouvrir le dossier de collaboration pour voir conversation, propositions et collaborations liées.",
+        "collaborationRecordObject": "Collaboration",
         "attentionFilters": {
           "ALL": "Tous",
           "APPROVAL_REQUIRED": "Approbations",
@@ -660,7 +841,14 @@ export const LEGACY_I18N_BACKFILL = {
           "done": "Fait",
           "staff": "Personnel",
           "waitingCreator": "Créateur",
+          "waitingExternal": "Externe",
           "waitingPlatform": "Plate-forme"
+        },
+        "collaborationFilters": {
+          "AGENT_REQUIRED": "Agent requis",
+          "STAFF_REQUIRED": "Personnel requis",
+          "WAITING_EXTERNAL": "En attente externe",
+          "IDLE": "Inactif"
         },
         "collaborationWorkDescriptions": {
           "BLOCKED": "Cette collaboration est bloquée et ne progressera pas automatiquement.",
@@ -683,8 +871,10 @@ export const LEGACY_I18N_BACKFILL = {
           "BLOCKED": "Ce créateur est bloqué",
           "DONE": "Cette collaboration est gérée",
           "PROPOSAL_REJECTED": "Proposition rejetée ; suivi du personnel nécessaire",
+          "PROPOSAL_REVISION_REQUESTED": "Révision de proposition demandée",
           "RESPOND_TO_CREATOR": "Répondre au créateur",
           "REVIEW_ACTION_PROPOSAL": "Examiner la proposition de l'agent",
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Relancer le contenu d'échantillon",
           "WAITING_CREATOR": "En attendant le créateur",
           "WAITING_PLATFORM": "En attente des mises à jour de la plateforme"
         },
@@ -696,8 +886,49 @@ export const LEGACY_I18N_BACKFILL = {
         "labels": {
           "nextStep": "Étape suivante"
         },
+        "historyFilters": {
+          "AGENT_REQUIRED": "Agent requis",
+          "STAFF_REQUIRED": "Personnel requis",
+          "WAITING_EXTERNAL": "En attente externe",
+          "IDLE": "Inactif"
+        },
         "lifecycleEventPreview": "Événement plateforme/système : {{eventType}}",
+        "lifecycleEvents": {
+          "PROPOSAL_REVISION_REQUESTED": "Révision de proposition demandée"
+        },
         "manualFollowUpNote": "La proposition de l'agent a été rejetée. Le personnel doit gérer cet élément manuellement sur la plateforme ou lors d'une communication de suivi.",
+        "processReasons": {
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Suivi du contenu d'échantillon attendu"
+        },
+        "requiredActions": {
+          "NONE": "Aucune action requise",
+          "RESPOND_TO_CREATOR": "Répondre au créateur",
+          "REVIEW_SAMPLE_APPLICATION": "Examiner la demande d'échantillon",
+          "SHIP_SAMPLE": "Expédier l'échantillon",
+          "FOLLOW_UP_CREATOR": "Relancer le créateur",
+          "REVIEW_COLLABORATION": "Examiner la collaboration",
+          "RESOLVE_CREATOR_IDENTITY": "Résoudre l'identité du créateur",
+          "REVIEW_AGENT_FAILURE": "Examiner l'échec de l'agent",
+          "REVIEW_ACTION_PROPOSAL": "Examiner la proposition d'action"
+        },
+        "statusLabels": {
+          "AGENT_REQUIRED": "Agent requis",
+          "STAFF_REQUIRED": "Personnel requis",
+          "WAITING_EXTERNAL": "En attente externe",
+          "IDLE": "Inactif"
+        },
+        "workKinds": {
+          "THREAD": "Fil",
+          "APPROVAL_REVIEW": "Examen d'approbation",
+          "CONTENT_FOLLOW_UP": "Suivi du contenu",
+          "CREATOR_FOLLOW_UP": "Suivi créateur",
+          "IDENTITY_RESOLUTION": "Résolution d'identité",
+          "INBOUND_MESSAGE_TRIAGE": "Tri des messages entrants",
+          "MANUAL_REVIEW": "Examen manuel",
+          "OBSERVATION_REVIEW": "Examen d'observation",
+          "SAMPLE_APPLICATION_DECISION": "Décision de demande d'échantillon",
+          "SAMPLE_SHIPMENT": "Expédition d'échantillon"
+        },
         "sampleStatusPreview": "Statut de l'échantillon : {{status}} ; Élément(s) de contenu {{contentCount}} observé(s).",
         "sectionHints": {
           "HISTORY": "Actions exécutées, propositions rejetées, événements de plateforme et actions directes des agents.",
@@ -931,6 +1162,33 @@ export const LEGACY_I18N_BACKFILL = {
     "ecommerce": {
       "affiliateWorkspace": {
         "approvalQueueTitle": "Usulan tindakan",
+        "creatorThreadPrimaryObject": "Catatan kolaborasi",
+        "creatorRelationshipPrimaryObject": "Relasi kreator",
+        "creatorThreads": "Catatan kolaborasi",
+        "creatorIdentityObject": "Identitas kreator",
+        "creatorIdentityId": "ID identitas",
+        "creatorBlocked": "Diblokir",
+        "relationshipShopStates": "Status toko",
+        "relationshipActiveCollaborations": "Kolaborasi aktif",
+        "relationshipTagCount": "{{count}} tag",
+        "relationshipThreadCollaborationCount": "{{count}} kolaborasi",
+        "threadShortLabel": "Catatan {{id}}",
+        "threadActiveCollaborations": "Kolaborasi aktif",
+        "threadPendingProposals": "Proposal tertunda",
+        "threadUnread": "Belum dibaca",
+        "threadMoreCollaborations": "+{{count}} kolaborasi lainnya",
+        "threadConversationId": "Percakapan",
+        "threadLastInbound": "Pesan kreator terakhir",
+        "threadLastOutbound": "Balasan penjual terakhir",
+        "threadAmbiguousCollaborations": "Kandidat konteks kolaborasi",
+        "threadNoCollaborations": "Catatan kolaborasi ini belum tertaut ke kolaborasi produk.",
+        "threadNoPendingProposals": "Tidak ada proposal tertunda di catatan kolaborasi ini.",
+        "threadActiveWorkTitle": "{{count}} kolaborasi aktif",
+        "threadRelationshipConversationTitle": "Percakapan relasi",
+        "threadAmbiguousSummary": "Catatan kolaborasi ini memiliki beberapa konteks produk yang mungkin. Tinjau sebelum melakukan tindakan khusus produk.",
+        "threadDefaultSummary": "Catatan kolaborasi antara toko dan kreator. Kolaborasi produk muncul di sini ketika konteks produk atau sampel sudah diketahui.",
+        "openCreatorThreadDetailHint": "Buka catatan kolaborasi untuk melihat percakapan, proposal, dan kolaborasi terkait.",
+        "collaborationRecordObject": "Kolaborasi",
         "attentionFilters": {
           "ALL": "Semua",
           "APPROVAL_REQUIRED": "Persetujuan",
@@ -944,7 +1202,14 @@ export const LEGACY_I18N_BACKFILL = {
           "done": "Selesai",
           "staff": "Staf",
           "waitingCreator": "Pencipta",
+          "waitingExternal": "Eksternal",
           "waitingPlatform": "Platform"
+        },
+        "collaborationFilters": {
+          "AGENT_REQUIRED": "Agen diperlukan",
+          "STAFF_REQUIRED": "Staf diperlukan",
+          "WAITING_EXTERNAL": "Menunggu pihak eksternal",
+          "IDLE": "Diam"
         },
         "collaborationWorkDescriptions": {
           "BLOCKED": "Kolaborasi ini diblokir dan tidak akan dilanjutkan secara otomatis.",
@@ -967,8 +1232,10 @@ export const LEGACY_I18N_BACKFILL = {
           "BLOCKED": "Pembuat konten ini diblokir",
           "DONE": "Kolaborasi ini ditangani",
           "PROPOSAL_REJECTED": "Usulan ditolak; diperlukan tindak lanjut staf",
+          "PROPOSAL_REVISION_REQUESTED": "Revisi proposal diminta",
           "RESPOND_TO_CREATOR": "Balas ke penciptanya",
           "REVIEW_ACTION_PROPOSAL": "Tinjau proposal agen",
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Tindak lanjuti konten sampel",
           "WAITING_CREATOR": "Menunggu penciptanya",
           "WAITING_PLATFORM": "Menunggu pembaruan platform"
         },
@@ -980,8 +1247,49 @@ export const LEGACY_I18N_BACKFILL = {
         "labels": {
           "nextStep": "Langkah selanjutnya"
         },
+        "historyFilters": {
+          "AGENT_REQUIRED": "Agen diperlukan",
+          "STAFF_REQUIRED": "Staf diperlukan",
+          "WAITING_EXTERNAL": "Menunggu pihak eksternal",
+          "IDLE": "Diam"
+        },
         "lifecycleEventPreview": "Acara platform/sistem: {{eventType}}",
+        "lifecycleEvents": {
+          "PROPOSAL_REVISION_REQUESTED": "Revisi proposal diminta"
+        },
         "manualFollowUpNote": "Proposal agen ditolak. Staf harus menangani item ini secara manual di platform atau dalam komunikasi tindak lanjut.",
+        "processReasons": {
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Tindak lanjut konten sampel jatuh tempo"
+        },
+        "requiredActions": {
+          "NONE": "Tidak perlu tindakan",
+          "RESPOND_TO_CREATOR": "Balas kreator",
+          "REVIEW_SAMPLE_APPLICATION": "Tinjau permintaan sampel",
+          "SHIP_SAMPLE": "Kirim sampel",
+          "FOLLOW_UP_CREATOR": "Tindak lanjuti kreator",
+          "REVIEW_COLLABORATION": "Tinjau kolaborasi",
+          "RESOLVE_CREATOR_IDENTITY": "Selesaikan identitas kreator",
+          "REVIEW_AGENT_FAILURE": "Tinjau kegagalan agen",
+          "REVIEW_ACTION_PROPOSAL": "Tinjau proposal tindakan"
+        },
+        "statusLabels": {
+          "AGENT_REQUIRED": "Agen diperlukan",
+          "STAFF_REQUIRED": "Staf diperlukan",
+          "WAITING_EXTERNAL": "Menunggu pihak eksternal",
+          "IDLE": "Diam"
+        },
+        "workKinds": {
+          "THREAD": "Thread",
+          "APPROVAL_REVIEW": "Tinjauan persetujuan",
+          "CONTENT_FOLLOW_UP": "Tindak lanjut konten",
+          "CREATOR_FOLLOW_UP": "Tindak lanjut kreator",
+          "IDENTITY_RESOLUTION": "Penyelesaian identitas",
+          "INBOUND_MESSAGE_TRIAGE": "Triase pesan masuk",
+          "MANUAL_REVIEW": "Tinjauan manual",
+          "OBSERVATION_REVIEW": "Tinjauan observasi",
+          "SAMPLE_APPLICATION_DECISION": "Keputusan permintaan sampel",
+          "SAMPLE_SHIPMENT": "Pengiriman sampel"
+        },
         "sampleStatusPreview": "Status sampel: {{status}}; Item konten {{contentCount}} diamati.",
         "sectionHints": {
           "HISTORY": "Tindakan yang dijalankan, proposal yang ditolak, peristiwa platform, dan tindakan agen langsung.",
@@ -1215,6 +1523,33 @@ export const LEGACY_I18N_BACKFILL = {
     "ecommerce": {
       "affiliateWorkspace": {
         "approvalQueueTitle": "Proposte di azione",
+        "collaborationRecordObject": "Collaborazione",
+        "creatorBlocked": "Bloccato",
+        "creatorIdentityId": "ID identità",
+        "creatorIdentityObject": "Identità creator",
+        "creatorRelationshipPrimaryObject": "Relazione creator",
+        "creatorThreadPrimaryObject": "Record di collaborazione",
+        "creatorThreads": "Record di collaborazione",
+        "openCreatorThreadDetailHint": "Apri il record di collaborazione per vedere conversazione, proposte e collaborazioni correlate.",
+        "relationshipActiveCollaborations": "Collaborazioni attive",
+        "relationshipShopStates": "Stati negozio",
+        "relationshipTagCount": "{{count}} tag",
+        "relationshipThreadCollaborationCount": "{{count}} collaborazione/i",
+        "threadActiveCollaborations": "Collaborazioni attive",
+        "threadActiveWorkTitle": "{{count}} collaborazione/i attiva/e",
+        "threadAmbiguousCollaborations": "Possibili contesti di collaborazione",
+        "threadAmbiguousSummary": "Questo record di collaborazione ha più contesti prodotto possibili. Verificali prima di eseguire azioni specifiche sul prodotto.",
+        "threadConversationId": "Conversazione",
+        "threadDefaultSummary": "Record di collaborazione tra negozio e creator. Le collaborazioni prodotto appaiono qui quando il contesto prodotto o campione è noto.",
+        "threadLastInbound": "Ultimo messaggio creator",
+        "threadLastOutbound": "Ultima risposta venditore",
+        "threadMoreCollaborations": "+{{count}} altre collaborazioni",
+        "threadNoCollaborations": "Questo record di collaborazione non è ancora collegato a una collaborazione prodotto.",
+        "threadNoPendingProposals": "Nessuna proposta in sospeso in questo record di collaborazione.",
+        "threadPendingProposals": "Proposte in sospeso",
+        "threadRelationshipConversationTitle": "Conversazione di relazione",
+        "threadShortLabel": "Record {{id}}",
+        "threadUnread": "Non letto",
         "attentionFilters": {
           "ALL": "Tutto",
           "APPROVAL_REQUIRED": "Approvazioni",
@@ -1228,7 +1563,14 @@ export const LEGACY_I18N_BACKFILL = {
           "done": "Fatto",
           "staff": "Personale",
           "waitingCreator": "Creatore",
+          "waitingExternal": "Esterno",
           "waitingPlatform": "Piattaforma"
+        },
+        "collaborationFilters": {
+          "AGENT_REQUIRED": "Agente richiesto",
+          "IDLE": "Inattivo",
+          "STAFF_REQUIRED": "Personale richiesto",
+          "WAITING_EXTERNAL": "In attesa esterna"
         },
         "collaborationWorkDescriptions": {
           "BLOCKED": "Questa collaborazione è bloccata e non verrà avanzata automaticamente.",
@@ -1251,8 +1593,10 @@ export const LEGACY_I18N_BACKFILL = {
           "BLOCKED": "Questo creatore è bloccato",
           "DONE": "Questa collaborazione viene gestita",
           "PROPOSAL_REJECTED": "Proposta respinta; necessario il follow-up del personale",
+          "PROPOSAL_REVISION_REQUESTED": "Richiesta revisione della proposta",
           "RESPOND_TO_CREATOR": "Rispondi al creatore",
           "REVIEW_ACTION_PROPOSAL": "Esaminare la proposta dell'agente",
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Seguire il contenuto del campione",
           "WAITING_CREATOR": "Aspettando il creatore",
           "WAITING_PLATFORM": "In attesa di aggiornamenti della piattaforma"
         },
@@ -1264,8 +1608,31 @@ export const LEGACY_I18N_BACKFILL = {
         "labels": {
           "nextStep": "Prossimo passo"
         },
+        "historyFilters": {
+          "AGENT_REQUIRED": "Agente richiesto",
+          "IDLE": "Inattivo",
+          "STAFF_REQUIRED": "Personale richiesto",
+          "WAITING_EXTERNAL": "In attesa esterna"
+        },
         "lifecycleEventPreview": "Evento piattaforma/sistema: {{eventType}}",
+        "lifecycleEvents": {
+          "PROPOSAL_REVISION_REQUESTED": "Richiesta revisione della proposta"
+        },
         "manualFollowUpNote": "La proposta dell'agente è stata respinta. Il personale dovrebbe gestire questo elemento manualmente sulla piattaforma o nelle comunicazioni di follow-up.",
+        "processReasons": {
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "Follow-up del contenuto del campione dovuto"
+        },
+        "requiredActions": {
+          "FOLLOW_UP_CREATOR": "Seguire il creator",
+          "NONE": "Nessuna azione richiesta",
+          "RESPOND_TO_CREATOR": "Rispondere al creator",
+          "RESOLVE_CREATOR_IDENTITY": "Risolvere identità creator",
+          "REVIEW_ACTION_PROPOSAL": "Rivedere proposta di azione",
+          "REVIEW_AGENT_FAILURE": "Rivedere errore agente",
+          "REVIEW_COLLABORATION": "Rivedere collaborazione",
+          "REVIEW_SAMPLE_APPLICATION": "Rivedere richiesta campione",
+          "SHIP_SAMPLE": "Spedire campione"
+        },
         "sampleStatusPreview": "Stato del campione: {{status}}; Elementi di contenuto {{contentCount}} osservati.",
         "sectionHints": {
           "HISTORY": "Azioni eseguite, proposte rifiutate, eventi della piattaforma e azioni dell'agente diretto.",
@@ -1281,6 +1648,24 @@ export const LEGACY_I18N_BACKFILL = {
           "historyHint": "Registro dei lavori recenti",
           "inProgressHint": "In attesa del creatore o della piattaforma",
           "needsAttentionHint": "Approvazioni e follow-up del personale"
+        },
+        "statusLabels": {
+          "AGENT_REQUIRED": "Agente richiesto",
+          "IDLE": "Inattivo",
+          "STAFF_REQUIRED": "Personale richiesto",
+          "WAITING_EXTERNAL": "In attesa esterna"
+        },
+        "workKinds": {
+          "APPROVAL_REVIEW": "Revisione approvazione",
+          "CONTENT_FOLLOW_UP": "Follow-up contenuto",
+          "CREATOR_FOLLOW_UP": "Follow-up creator",
+          "IDENTITY_RESOLUTION": "Risoluzione identità",
+          "INBOUND_MESSAGE_TRIAGE": "Smistamento messaggio in arrivo",
+          "MANUAL_REVIEW": "Revisione manuale",
+          "OBSERVATION_REVIEW": "Revisione osservazione",
+          "SAMPLE_APPLICATION_DECISION": "Decisione richiesta campione",
+          "SAMPLE_SHIPMENT": "Spedizione campione",
+          "THREAD": "Thread"
         }
       },
       "customerServiceWorkspace": {
@@ -1499,6 +1884,33 @@ export const LEGACY_I18N_BACKFILL = {
     "ecommerce": {
       "affiliateWorkspace": {
         "approvalQueueTitle": "ข้อเสนอการดำเนินการ",
+        "collaborationRecordObject": "ความร่วมมือ",
+        "creatorBlocked": "ถูกบล็อก",
+        "creatorIdentityId": "รหัสตัวตน",
+        "creatorIdentityObject": "ตัวตนครีเอเตอร์",
+        "creatorRelationshipPrimaryObject": "ความสัมพันธ์กับครีเอเตอร์",
+        "creatorThreadPrimaryObject": "บันทึกความร่วมมือ",
+        "creatorThreads": "บันทึกความร่วมมือ",
+        "openCreatorThreadDetailHint": "เปิดบันทึกความร่วมมือเพื่อดูการสนทนา ข้อเสนอ และความร่วมมือที่เกี่ยวข้อง",
+        "relationshipActiveCollaborations": "ความร่วมมือที่ใช้งานอยู่",
+        "relationshipShopStates": "สถานะร้านค้า",
+        "relationshipTagCount": "{{count}} แท็ก",
+        "relationshipThreadCollaborationCount": "{{count}} ความร่วมมือ",
+        "threadActiveCollaborations": "ความร่วมมือที่ใช้งานอยู่",
+        "threadActiveWorkTitle": "{{count}} ความร่วมมือที่ใช้งานอยู่",
+        "threadAmbiguousCollaborations": "บริบทความร่วมมือที่เป็นไปได้",
+        "threadAmbiguousSummary": "บันทึกความร่วมมือนี้มีบริบทสินค้าที่เป็นไปได้หลายรายการ โปรดตรวจสอบก่อนดำเนินการเฉพาะสินค้า",
+        "threadConversationId": "การสนทนา",
+        "threadDefaultSummary": "บันทึกความร่วมมือระหว่างร้านค้ากับครีเอเตอร์ ความร่วมมือระดับสินค้าจะแสดงที่นี่เมื่อทราบบริบทสินค้า หรือตัวอย่างสินค้า",
+        "threadLastInbound": "ข้อความล่าสุดจากครีเอเตอร์",
+        "threadLastOutbound": "คำตอบล่าสุดจากผู้ขาย",
+        "threadMoreCollaborations": "+{{count}} ความร่วมมือเพิ่มเติม",
+        "threadNoCollaborations": "บันทึกความร่วมมือนี้ยังไม่ได้เชื่อมกับความร่วมมือระดับสินค้า",
+        "threadNoPendingProposals": "ไม่มีข้อเสนอที่รออนุมัติในบันทึกความร่วมมือนี้",
+        "threadPendingProposals": "ข้อเสนอที่รออนุมัติ",
+        "threadRelationshipConversationTitle": "การสนทนาในความสัมพันธ์",
+        "threadShortLabel": "บันทึก {{id}}",
+        "threadUnread": "ยังไม่ได้อ่าน",
         "attentionFilters": {
           "ALL": "ทั้งหมด",
           "APPROVAL_REQUIRED": "การอนุมัติ",
@@ -1512,7 +1924,14 @@ export const LEGACY_I18N_BACKFILL = {
           "done": "เสร็จแล้ว",
           "staff": "พนักงาน",
           "waitingCreator": "ผู้สร้าง",
+          "waitingExternal": "ภายนอก",
           "waitingPlatform": "แพลตฟอร์ม"
+        },
+        "collaborationFilters": {
+          "AGENT_REQUIRED": "ต้องใช้ Agent",
+          "IDLE": "ว่าง",
+          "STAFF_REQUIRED": "ต้องให้พนักงานจัดการ",
+          "WAITING_EXTERNAL": "รอการตอบกลับภายนอก"
         },
         "collaborationWorkDescriptions": {
           "BLOCKED": "การทำงานร่วมกันนี้ถูกบล็อกและจะไม่ก้าวหน้าโดยอัตโนมัติ",
@@ -1535,8 +1954,10 @@ export const LEGACY_I18N_BACKFILL = {
           "BLOCKED": "ผู้สร้างรายนี้ถูกบล็อก",
           "DONE": "ความร่วมมือนี้ได้รับการจัดการ",
           "PROPOSAL_REJECTED": "ข้อเสนอถูกปฏิเสธ จำเป็นต้องมีการติดตามผลจากเจ้าหน้าที่",
+          "PROPOSAL_REVISION_REQUESTED": "มีการขอแก้ไขข้อเสนอ",
           "RESPOND_TO_CREATOR": "ตอบกลับผู้สร้าง",
           "REVIEW_ACTION_PROPOSAL": "ตรวจสอบข้อเสนอตัวแทน",
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "ติดตามคอนเทนต์ตัวอย่าง",
           "WAITING_CREATOR": "รอผู้สร้างครับ",
           "WAITING_PLATFORM": "รอการอัพเดตแพลตฟอร์ม"
         },
@@ -1548,8 +1969,31 @@ export const LEGACY_I18N_BACKFILL = {
         "labels": {
           "nextStep": "ขั้นตอนต่อไป"
         },
+        "historyFilters": {
+          "AGENT_REQUIRED": "ต้องใช้ Agent",
+          "IDLE": "ว่าง",
+          "STAFF_REQUIRED": "ต้องให้พนักงานจัดการ",
+          "WAITING_EXTERNAL": "รอการตอบกลับภายนอก"
+        },
         "lifecycleEventPreview": "เหตุการณ์แพลตฟอร์ม/ระบบ: {{eventType}}",
+        "lifecycleEvents": {
+          "PROPOSAL_REVISION_REQUESTED": "มีการขอแก้ไขข้อเสนอ"
+        },
         "manualFollowUpNote": "ข้อเสนอตัวแทนถูกปฏิเสธ เจ้าหน้าที่ควรจัดการรายการนี้ด้วยตนเองบนแพลตฟอร์มหรือในการสื่อสารเพื่อติดตามผล",
+        "processReasons": {
+          "SAMPLE_CONTENT_FOLLOW_UP_DUE": "ถึงกำหนดติดตามคอนเทนต์ตัวอย่าง"
+        },
+        "requiredActions": {
+          "FOLLOW_UP_CREATOR": "ติดตามครีเอเตอร์",
+          "NONE": "ไม่ต้องดำเนินการ",
+          "RESPOND_TO_CREATOR": "ตอบกลับครีเอเตอร์",
+          "RESOLVE_CREATOR_IDENTITY": "ระบุตัวตนครีเอเตอร์",
+          "REVIEW_ACTION_PROPOSAL": "ตรวจสอบข้อเสนอการดำเนินการ",
+          "REVIEW_AGENT_FAILURE": "ตรวจสอบความล้มเหลวของ Agent",
+          "REVIEW_COLLABORATION": "ตรวจสอบความร่วมมือ",
+          "REVIEW_SAMPLE_APPLICATION": "ตรวจสอบคำขอตัวอย่าง",
+          "SHIP_SAMPLE": "จัดส่งตัวอย่าง"
+        },
         "sampleStatusPreview": "สถานะตัวอย่าง: {{status}}; พบรายการเนื้อหา {{contentCount}}",
         "sectionHints": {
           "HISTORY": "การดำเนินการที่ดำเนินการ ข้อเสนอที่ถูกปฏิเสธ กิจกรรมแพลตฟอร์ม และการดำเนินการของตัวแทนโดยตรง",
@@ -1565,6 +2009,24 @@ export const LEGACY_I18N_BACKFILL = {
           "historyHint": "บันทึกการทำงานล่าสุด",
           "inProgressHint": "กำลังรอผู้สร้างหรือแพลตฟอร์ม",
           "needsAttentionHint": "การอนุมัติและการติดตามผลพนักงาน"
+        },
+        "statusLabels": {
+          "AGENT_REQUIRED": "ต้องใช้ Agent",
+          "IDLE": "ว่าง",
+          "STAFF_REQUIRED": "ต้องให้พนักงานจัดการ",
+          "WAITING_EXTERNAL": "รอการตอบกลับภายนอก"
+        },
+        "workKinds": {
+          "APPROVAL_REVIEW": "ตรวจสอบการอนุมัติ",
+          "CONTENT_FOLLOW_UP": "ติดตามคอนเทนต์",
+          "CREATOR_FOLLOW_UP": "ติดตามครีเอเตอร์",
+          "IDENTITY_RESOLUTION": "ระบุตัวตน",
+          "INBOUND_MESSAGE_TRIAGE": "คัดแยกข้อความขาเข้า",
+          "MANUAL_REVIEW": "ตรวจสอบโดยพนักงาน",
+          "OBSERVATION_REVIEW": "ตรวจสอบผลการสังเกต",
+          "SAMPLE_APPLICATION_DECISION": "ตัดสินใจคำขอตัวอย่าง",
+          "SAMPLE_SHIPMENT": "จัดส่งตัวอย่าง",
+          "THREAD": "เธรด"
         }
       },
       "customerServiceWorkspace": {

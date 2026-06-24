@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ECOMMERCE_GET_PRODUCT_QUERY } from "../../../api/shops-queries.js";
+import { CopyIcon } from "../../../components/icons.js";
 import { RemoteMediaImage } from "../../../components/images/RemoteMediaImage.js";
 
 type ProductDetailQuery = {
@@ -37,8 +38,22 @@ export function ProductSummaryCard({
   const [detailOpen, setDetailOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const canOpenDetail = Boolean(shopId && productId);
-  const price = formatProductSummaryPrice(product);
-  const status = product?.status ?? null;
+  const shouldLoadInlineProduct = canOpenDetail && !hasUsefulProductSummary(product);
+  const [loadInlineProduct, { data: inlineProductData, loading: inlineProductLoading }] = useLazyQuery<
+    ProductDetailQuery,
+    ProductDetailVariables
+  >(
+    ECOMMERCE_GET_PRODUCT_QUERY,
+    { fetchPolicy: "cache-first" },
+  );
+  const resolvedProduct = product ?? productSummaryFromProductDetail(inlineProductData?.ecommerceGetProduct);
+  const price = formatProductSummaryPrice(resolvedProduct);
+  const status = resolvedProduct?.status ?? null;
+
+  useEffect(() => {
+    if (!shouldLoadInlineProduct || !shopId || !productId) return;
+    void loadInlineProduct({ variables: { shopId, productId } });
+  }, [loadInlineProduct, productId, shouldLoadInlineProduct, shopId]);
 
   function openDetail(event: MouseEvent<HTMLElement>) {
     event.preventDefault();
@@ -49,7 +64,7 @@ export function ProductSummaryCard({
   function openImage(event: MouseEvent<HTMLElement>) {
     event.preventDefault();
     event.stopPropagation();
-    if (product?.coverImage) setPreviewImage(product.coverImage);
+    if (resolvedProduct?.coverImage) setPreviewImage(resolvedProduct.coverImage);
   }
 
   if (!productId) {
@@ -73,7 +88,7 @@ export function ProductSummaryCard({
     <ProductDetailModal
       shopId={shopId}
       productId={productId}
-      fallbackProduct={product}
+      fallbackProduct={resolvedProduct}
       onClose={() => setDetailOpen(false)}
       onPreviewImage={setPreviewImage}
     />
@@ -100,7 +115,7 @@ export function ProductSummaryCard({
         }}
       >
         {label ? <div className="affiliate-product-label">{label}</div> : null}
-        {product?.coverImage ? (
+        {resolvedProduct?.coverImage ? (
           <button
             className="affiliate-product-thumb-button"
             type="button"
@@ -112,7 +127,7 @@ export function ProductSummaryCard({
               alt=""
               className="affiliate-product-thumb"
               loading="lazy"
-              sourceUrl={product.coverImage}
+              sourceUrl={resolvedProduct.coverImage}
             />
           </button>
         ) : (
@@ -120,17 +135,16 @@ export function ProductSummaryCard({
         )}
         <div className="affiliate-product-body">
           <div className="affiliate-product-title">
-            {product?.title || t("ecommerce.affiliateWorkspace.productContextConfirmed")}
+            {resolvedProduct?.title || (
+              inlineProductLoading
+                ? t("ecommerce.productCard.loadingProduct")
+                : t("ecommerce.affiliateWorkspace.productContextConfirmed")
+            )}
           </div>
           <div className="affiliate-product-meta-row">
-            {price ? (
-              <span className="affiliate-product-price">{price}</span>
-            ) : (
-              <span className="affiliate-product-muted">
-                {t("ecommerce.affiliateWorkspace.productIdShort", { productId: shortenProductId(productId) })}
-              </span>
-            )}
+            {price ? <span className="affiliate-product-price">{price}</span> : null}
             {status ? <span className="affiliate-product-status">{formatProductStatus(status, t)}</span> : null}
+            <ProductPlatformIdCopy productId={productId} />
           </div>
         </div>
       </article>
@@ -211,7 +225,7 @@ function ProductDetailModal({
         <div className="modal-header product-detail-header">
           <div>
             <h2>{t("ecommerce.productCard.productDetailTitle")}</h2>
-            <p>{t("ecommerce.affiliateWorkspace.productIdShort", { productId: shortenProductId(productId) })}</p>
+            <ProductPlatformIdCopy productId={productId} />
           </div>
           <button className="modal-close-btn" type="button" onClick={closeFromButton} aria-label={t("common.close")}>
             ×
@@ -353,6 +367,45 @@ function ProductMetric({
   );
 }
 
+function ProductPlatformIdCopy({ productId }: { productId?: string | null }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  if (!productId) return null;
+  const resolvedProductId = productId;
+
+  async function copyProductId(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error(t("ecommerce.affiliateWorkspace.copyFailed"));
+      }
+      await navigator.clipboard.writeText(resolvedProductId);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <button
+      className="affiliate-id-copy-button affiliate-platform-id-copy product-platform-id-copy"
+      type="button"
+      onClick={copyProductId}
+      aria-label={t("ecommerce.affiliateWorkspace.copyPlatformId")}
+      title={copied
+        ? t("ecommerce.affiliateWorkspace.platformIdCopied")
+        : t("ecommerce.affiliateWorkspace.copyPlatformId")}
+    >
+      <CopyIcon />
+      <span>{copied
+        ? t("ecommerce.affiliateWorkspace.platformIdCopied")
+        : t("ecommerce.affiliateWorkspace.copyPlatformId")}</span>
+    </button>
+  );
+}
+
 function formatProductSummaryPrice(product: GQL.EcomProductSummary | null | undefined): string | null {
   if (!product?.priceMin) return null;
   const currency = pickSummaryCurrency(product);
@@ -362,6 +415,39 @@ function formatProductSummaryPrice(product: GQL.EcomProductSummary | null | unde
     return min && max ? `${min} - ${max}` : `${product.priceMin} - ${product.priceMax}`;
   }
   return formatMoney(product.priceMin, currency) || product.priceMin;
+}
+
+function hasUsefulProductSummary(product: GQL.EcomProductSummary | null | undefined): boolean {
+  return Boolean(product?.title || product?.coverImage || product?.priceMin || product?.status);
+}
+
+function productSummaryFromProductDetail(product: GQL.EcomProduct | null | undefined): GQL.EcomProductSummary | null {
+  if (!product) return null;
+  const prices = (product.skus ?? [])
+    .map((sku) => ({
+      amount: sku.price?.salePrice,
+      currency: sku.price?.currency,
+      value: parseFloat(sku.price?.salePrice ?? ""),
+    }))
+    .filter((price) => price.amount && Number.isFinite(price.value));
+  const sortedPrices = [...prices].sort((a, b) => a.value - b.value);
+  const min = sortedPrices[0] ?? null;
+  const max = sortedPrices[sortedPrices.length - 1] ?? null;
+  return {
+    productId: product.productId,
+    title: product.title ?? null,
+    coverImage: product.images?.find((image) => image.url)?.url ?? null,
+    status: product.status ?? null,
+    priceMin: min?.amount ?? null,
+    priceMax: max?.amount ?? null,
+    skus: (product.skus ?? []).slice(0, 12).map((sku) => ({
+      skuId: sku.id,
+      skuName: sku.sellerSku ?? sku.id,
+      sellerSku: sku.sellerSku ?? null,
+      price: sku.price?.salePrice ?? null,
+      currency: sku.price?.currency ?? null,
+    })),
+  } as GQL.EcomProductSummary;
 }
 
 function formatFullProductPrice(product: GQL.EcomProduct): string | null {
@@ -468,9 +554,4 @@ function normalizeProductDescription(value: string | null | undefined): string |
 function truncateProductDescription(value: string): string {
   const maxLength = 260;
   return value.length > maxLength ? `${value.slice(0, maxLength).trim()}...` : value;
-}
-
-function shortenProductId(value: string): string {
-  if (value.length <= 12) return value;
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }

@@ -396,6 +396,20 @@ export const AffiliateWorkspaceModel = types
 
     function upsertCollaborationRecord(record: GQL.AffiliateCollaborationRecord | null | undefined): void {
       if (!record?.id) return;
+      const existing = self.collaborationRecords.find((item) => item.id === record.id);
+      if (
+        existing == null &&
+        (!record.userId ||
+          !record.shopId ||
+          !record.creatorId ||
+          !record.lifecycleStage ||
+          !record.processingStatus ||
+          !record.requiredAction ||
+          !record.stateUpdatedAt ||
+          !record.startedAt)
+      ) {
+        return;
+      }
       upsertById(self.collaborationRecords as any, record as any);
       for (const snapshot of record.predictionSnapshots ?? []) {
         const product = (snapshot as any)?.resolvedContext?.productSummary;

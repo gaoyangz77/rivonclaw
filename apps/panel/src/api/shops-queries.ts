@@ -444,16 +444,32 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       shopThreadId
       shopThread {
         id
+        userId
+        shopId
+        platform
         creatorId
         creatorOpenId
         creatorImId
         platformConversationId
+        lastMessageId
+        lastMessageIndex
+        lastMessageAt
+        lastInboundAt
+        lastOutboundAt
+        unreadCount
         processingStatus
         requiredAction
         processReasons
+        lastSignalAt
+        workHandledUntil
+        nextSellerActionAt
+        stateUpdatedAt
         activeCollaborationRecordIds
         focusCollaborationRecordId
         ambiguousCollaborationRecordIds
+        startedAt
+        archivedAt
+        createdAt
         updatedAt
       }
       creatorProfile {
@@ -667,6 +683,435 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         lifecycleEventIds
         executedAt
         errorMessage
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_WORK_ITEMS_QUERY = gql`
+  query AffiliateWorkItems($input: ReadAffiliateWorkItemsInput) {
+    affiliateWorkItems(input: $input) {
+      id
+      subjectType
+      shopId
+      shopThreadId
+      collaborationRecordId
+      platformShopId
+      processingStatus
+      requiredAction
+      processReasons
+      workKind
+      workBundleKind
+      agentDispatchRecommended
+      staffReviewRequired
+      recommendedActionTypes
+      versionAt
+      shopThread {
+        id
+        userId
+        shopId
+        platform
+        creatorId
+        creatorOpenId
+        creatorImId
+        platformConversationId
+        lastMessageId
+        lastMessageIndex
+        lastMessageAt
+        lastInboundAt
+        lastOutboundAt
+        unreadCount
+        processingStatus
+        requiredAction
+        processReasons
+        lastSignalAt
+        workHandledUntil
+        nextSellerActionAt
+        stateUpdatedAt
+        activeCollaborationRecordIds
+        focusCollaborationRecordId
+        ambiguousCollaborationRecordIds
+        startedAt
+        archivedAt
+        createdAt
+        updatedAt
+      }
+      collaboration {
+        id
+        userId
+        shopId
+        creatorId
+        creatorOpenId
+        productId
+        lifecycleStage
+        processingStatus
+        requiredAction
+        processReasons
+        nextSellerActionAt
+        stateUpdatedAt
+        lastSignalAt
+        workHandledUntil
+        affiliateCollaborationId
+        collaborationType
+        sampleApplicationRecordId
+        platformCollaborationId
+        platformConversationId
+        creatorImId
+        lastCreatorMessageId
+        lastCreatorMessageAt
+        startedAt
+        endedAt
+        createdAt
+        updatedAt
+      }
+      sampleApplicationRecord {
+        id
+        platformApplicationId
+        creatorId
+        productId
+        sampleWorkStatus
+        observedContentCount
+        latestObservedContentAt
+        shippedAt
+        deliveredAt
+        trackingNumber
+        updatedAt
+      }
+      latestPendingProposal {
+        id
+        userId
+        shopId
+        campaignId
+        creatorId
+        shopThreadId
+        collaborationRecordId
+        type
+        status
+        operatorSummary
+        predictionCacheIds
+        steps {
+          stepId
+          type
+          operatorSummary
+          predictionCacheIds
+          messageIntent {
+            conversationId
+            creatorId
+            creatorOpenId
+            messageType
+            text
+            productId
+            platformApplicationId
+            platformTargetCollaborationId
+            sampleApplicationRecordId
+            targetCollaborationRecordId: affiliateCollaborationId
+            imageUrl
+            imageWidth
+            imageHeight
+          }
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+          }
+          sampleShipmentIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            warehouseId
+            skuId
+            quantity
+          }
+        }
+        createdAt
+        updatedAt
+        expiresAt
+        policySnapshot {
+          action
+          requiresApproval
+          matchedPolicyIds
+          reasons
+        }
+        decision {
+          decidedAt
+          note
+          actorType
+          actorId
+        }
+        messageIntent {
+          conversationId
+          creatorId
+          creatorOpenId
+          messageType
+          text
+          productId
+          platformApplicationId
+          platformTargetCollaborationId
+          sampleApplicationRecordId
+          targetCollaborationRecordId: affiliateCollaborationId
+          imageUrl
+          imageWidth
+          imageHeight
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        sampleShipmentIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          warehouseId
+          skuId
+          quantity
+        }
+        targetCollaborationIntent {
+          name
+          message
+          endTime
+          hasFreeSample
+          isSampleApprovalExempt
+          creatorIds
+          creatorOpenIds
+          products {
+            productId
+            targetCommissionRateBps
+            shopAdsCommissionRateBps
+          }
+          sellerContactInfo {
+            email
+            phoneNumber
+            whatsapp
+            telegram
+            line
+          }
+        }
+        creatorTagIntent {
+          creatorId
+          tagId
+        }
+        blockCreatorIntent {
+          creatorId
+          reason
+        }
+        campaignProductUpdateIntent {
+          campaignId
+          campaignProductId
+          productId
+          commissionRate
+          maxCommissionRate
+          sampleOfferMode
+          sampleQuota
+          sampleUnitCostAmount
+          sampleUnitCostCurrency
+          promotionPriority
+        }
+        approvalPolicyUpdateIntent {
+          policyId
+          action
+          creatorTagIds
+          campaignIds
+          productIds
+          reason
+          enabled
+        }
+        candidateDecisionIntent {
+          candidateIds
+          status
+          rationale
+        }
+        executionResult {
+          platformObjectId
+          domainObjectId
+          lifecycleEventIds
+          executedAt
+          errorMessage
+        }
+      }
+      context {
+        creatorProfile {
+          id
+          platform
+          creatorOpenId
+          creatorImId
+          username
+          nickname
+          avatarUrl
+          followerCount
+          categoryIds
+          marketplaceSnapshotJson
+          createdAt
+          updatedAt
+        }
+        creatorRelation {
+          id
+          creatorId
+          blocked
+          blockedShopIds
+          shopStates {
+            shopId
+            lifecycleStage
+            tagIds
+            lastContactedAt
+            lastInvitedAt
+            lastQualifiedAt
+          }
+          updatedAt
+        }
+        activeCollaborations {
+          id
+          userId
+          shopId
+          creatorId
+          creatorOpenId
+          productId
+          lifecycleStage
+          processingStatus
+          requiredAction
+          processReasons
+          nextSellerActionAt
+          stateUpdatedAt
+          lastSignalAt
+          workHandledUntil
+          affiliateCollaborationId
+          collaborationType
+          sampleApplicationRecordId
+          platformCollaborationId
+          platformConversationId
+          creatorImId
+          lastCreatorMessageId
+          lastCreatorMessageAt
+          startedAt
+          endedAt
+          createdAt
+          updatedAt
+        }
+        focusCollaboration {
+          id
+          userId
+          shopId
+          creatorId
+          creatorOpenId
+          productId
+          lifecycleStage
+          processingStatus
+          requiredAction
+          processReasons
+          nextSellerActionAt
+          stateUpdatedAt
+          lastSignalAt
+          workHandledUntil
+          affiliateCollaborationId
+          collaborationType
+          sampleApplicationRecordId
+          platformCollaborationId
+          platformConversationId
+          creatorImId
+          lastCreatorMessageId
+          lastCreatorMessageAt
+          startedAt
+          endedAt
+          createdAt
+          updatedAt
+        }
+        ambiguousCollaborationCandidates {
+          id
+          userId
+          shopId
+          creatorId
+          creatorOpenId
+          productId
+          lifecycleStage
+          processingStatus
+          requiredAction
+          processReasons
+          nextSellerActionAt
+          stateUpdatedAt
+          lastSignalAt
+          workHandledUntil
+          affiliateCollaborationId
+          collaborationType
+          sampleApplicationRecordId
+          platformCollaborationId
+          platformConversationId
+          creatorImId
+          lastCreatorMessageId
+          lastCreatorMessageAt
+          startedAt
+          endedAt
+          createdAt
+          updatedAt
+        }
+        pendingProposals {
+          id
+          userId
+          shopId
+          campaignId
+          creatorId
+          shopThreadId
+          collaborationRecordId
+          type
+          status
+          operatorSummary
+          updatedAt
+          messageIntent {
+            conversationId
+            creatorId
+            creatorOpenId
+            messageType
+            text
+            productId
+            platformApplicationId
+            platformTargetCollaborationId
+            sampleApplicationRecordId
+            targetCollaborationRecordId: affiliateCollaborationId
+          }
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+          }
+        }
+        primarySampleApplication {
+          id
+          platformApplicationId
+          creatorId
+          productId
+          sampleWorkStatus
+          observedContentCount
+          latestObservedContentAt
+          shippedAt
+          deliveredAt
+          trackingNumber
+          updatedAt
+        }
+        relatedSampleApplications {
+          id
+          platformApplicationId
+          creatorId
+          productId
+          sampleWorkStatus
+          observedContentCount
+          latestObservedContentAt
+          shippedAt
+          deliveredAt
+          trackingNumber
+          updatedAt
+        }
+        productContext {
+          productId
+          title
+          imageUrl
+          source
+        }
+        recommendedActionTypes
+        missingContext {
+          reason
+          severity
+          message
+        }
       }
     }
   }
