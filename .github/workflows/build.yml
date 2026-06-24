@@ -302,7 +302,7 @@ jobs:
           CSC_KEYCHAIN: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: arm64
           NOTARIZE_TIMEOUT_SECONDS: "7200"
-          CODESIGN_TIMEOUT_SECONDS: "300"
+          CODESIGN_TIMEOUT_SECONDS: "1800"
           DEBUG: electron-notarize:*
 
       - name: Validate macOS bundle
@@ -470,7 +470,7 @@ jobs:
           CSC_KEYCHAIN: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: x64
           NOTARIZE_TIMEOUT_SECONDS: "7200"
-          CODESIGN_TIMEOUT_SECONDS: "300"
+          CODESIGN_TIMEOUT_SECONDS: "1800"
           DEBUG: electron-notarize:*
 
       - name: Validate macOS bundle
