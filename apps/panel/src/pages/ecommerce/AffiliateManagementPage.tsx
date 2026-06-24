@@ -2430,7 +2430,9 @@ function CollaborationRecordSubcard({
       focused ? "affiliate-thread-collaboration-subcard-focused" : "",
     ].filter(Boolean).join(" ")}>
       <div>
-        <span>{t("ecommerce.affiliateWorkspace.latestRecordLabel")}</span>
+        <span>{t("ecommerce.affiliateWorkspace.collaborationRecordObject", {
+          defaultValue: t("ecommerce.affiliateWorkspace.collaborationRecords"),
+        })}</span>
         <strong>
           {record.productId
             ? t("ecommerce.affiliateWorkspace.productContextConfirmed")
@@ -2502,7 +2504,7 @@ function CreatorThreadDetailModal({
   const entityStore = useEntityStore();
   const thread = item.shopThread;
   const [conversationPageToken, setConversationPageToken] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "conversation" | "collaborations" | "proposals">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "conversation" | "collaborations" | "activity">("overview");
   const [replyText, setReplyText] = useState("");
   const creatorName = item.creatorProfile
     ? creatorPrimaryName(item.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
@@ -2616,6 +2618,18 @@ function CreatorThreadDetailModal({
     [lifecycleEvents, threadProposals, t],
   );
   const focusCollaboration = item.focusCollaboration ?? item.activeCollaborations[0] ?? null;
+  const latestCollaboration = focusCollaboration ?? item.activeCollaborations[0] ?? null;
+  const pendingProposalCount = threadProposals.filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending).length;
+  const nextWorkLabel = t(`ecommerce.affiliateWorkspace.workKinds.${item.workItem?.workKind ?? "THREAD"}`, {
+    defaultValue: item.workItem?.workKind
+      ? formatAffiliateEnumLabel(item.workItem.workKind)
+      : t("ecommerce.affiliateWorkspace.workKinds.THREAD"),
+  });
+  const requiredActionLabel = t(`ecommerce.affiliateWorkspace.requiredActions.${thread.requiredAction}`, {
+    defaultValue: formatAffiliateEnumLabel(thread.requiredAction),
+  });
+  const creatorHandle = item.creatorProfile ? creatorTikTokHandle(item.creatorProfile) : null;
+  const creatorPlatformId = item.creatorProfile ? creatorPlatformIdentity(item.creatorProfile) : thread.creatorOpenId ?? null;
   const collaborationEvidence = item.activeCollaborations.map((record) => ({
     record,
     samples: sampleApplications.filter((sample) => sampleBelongsToCollaboration(sample, record)),
@@ -2652,11 +2666,11 @@ function CreatorThreadDetailModal({
     },
     {
       id: "collaborations" as const,
-      label: t("ecommerce.affiliateWorkspace.historicalCollaborations"),
+      label: t("ecommerce.affiliateWorkspace.relatedCollaborations"),
       count: item.activeCollaborations.length,
     },
     {
-      id: "proposals" as const,
+      id: "activity" as const,
       label: t("ecommerce.affiliateWorkspace.operationHistory"),
       count: timeline.length,
     },
@@ -2719,20 +2733,32 @@ function CreatorThreadDetailModal({
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="modal-header">
-          <div className="affiliate-collaboration-modal-title-block">
-            <button
-              className="affiliate-collaboration-modal-creator"
-              type="button"
-              onClick={openRelationship}
-              disabled={!item.creatorProfile}
-            >
-              {creatorName}
-            </button>
-            <p>{shopLabel}</p>
-            <div className="affiliate-modal-id-actions">
-              <SystemIdCopy value={thread.id} />
-              <PlatformIdCopy value={thread.platformConversationId} />
+        <div className="modal-header affiliate-thread-modal-header">
+          <div className="affiliate-thread-modal-heading">
+            {item.creatorProfile?.avatarUrl ? (
+              <img className="affiliate-avatar affiliate-thread-modal-avatar" src={item.creatorProfile.avatarUrl} alt="" />
+            ) : (
+              <div className="affiliate-avatar affiliate-thread-modal-avatar" aria-hidden="true">
+                {creatorName.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="affiliate-collaboration-modal-title-block">
+              <button
+                className="affiliate-collaboration-modal-creator"
+                type="button"
+                onClick={openRelationship}
+                disabled={!item.creatorProfile}
+              >
+                {creatorName}
+              </button>
+              <p>
+                <span>{shopLabel}</span>
+                <CreatorPlatformId handle={creatorHandle} platformId={creatorPlatformId} />
+              </p>
+              <div className="affiliate-modal-id-actions">
+                <SystemIdCopy value={thread.id} labelKey="ecommerce.affiliateWorkspace.copyThreadSystemId" />
+                <PlatformIdCopy value={thread.platformConversationId} />
+              </div>
             </div>
           </div>
           <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
@@ -2741,38 +2767,69 @@ function CreatorThreadDetailModal({
         </div>
         <div className="affiliate-collaboration-modal-body">
           <aside className="affiliate-collaboration-context-pane">
-            <div className="affiliate-collaboration-modal-summary">
-              <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${thread.processingStatus}`, {
-                defaultValue: thread.processingStatus,
-              })}</span>
-              <span>{t(`ecommerce.affiliateWorkspace.requiredActions.${thread.requiredAction}`, {
-                defaultValue: formatAffiliateEnumLabel(thread.requiredAction),
-              })}</span>
-              <span>{t(`ecommerce.affiliateWorkspace.workKinds.${item.workItem?.workKind ?? "THREAD"}`, {
-                defaultValue: item.workItem?.workKind
-                  ? formatAffiliateEnumLabel(item.workItem.workKind)
-                  : t("ecommerce.affiliateWorkspace.workKinds.THREAD"),
-              })}</span>
-            </div>
+            <section className="affiliate-thread-side-card affiliate-thread-side-card-primary">
+              <div className="affiliate-thread-side-card-head">
+                <span>{t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}</span>
+                {item.creatorProfile ? (
+                  <button className="affiliate-inline-link-button" type="button" onClick={openRelationship}>
+                    {t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+                  </button>
+                ) : null}
+              </div>
+              <strong>{creatorName}</strong>
+              <div className="affiliate-thread-side-meta">
+                <span>{shopLabel}</span>
+                {creatorHandle ? <span>{creatorHandle}</span> : null}
+              </div>
+            </section>
+            <section className="affiliate-thread-side-card">
+              <div className="affiliate-thread-side-card-head">
+                <span>{t("ecommerce.affiliateWorkspace.creatorThreadPrimaryObject")}</span>
+                <SystemIdCopy value={thread.id} labelKey="ecommerce.affiliateWorkspace.copyThreadSystemId" />
+              </div>
+              <ThreadStatusBadge display={statusDisplay} tone={threadStatusTone(thread.processingStatus)} compact />
+              <div className="affiliate-thread-side-facts">
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.labels.nextStep")}
+                  value={requiredActionLabel}
+                />
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.threadPendingProposals")}
+                  value={pendingProposalCount}
+                />
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.threadActiveCollaborations")}
+                  value={item.activeCollaborations.length}
+                />
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.latestRecordLabel")}
+                  value={formatProposalTime(thread.stateUpdatedAt ?? thread.updatedAt)}
+                />
+              </div>
+            </section>
             {threadContextFacts.length > 0 ? (
-              <section className="affiliate-thread-detail-section">
-                <h3>{t("ecommerce.affiliateWorkspace.creatorThreadPrimaryObject")}</h3>
-                {threadContextFacts.map((fact) => (
-                  fact.copyKind === "platform" ? (
-                    <SampleApplicationCopyFact
-                      key={fact.label}
-                      label={fact.label}
-                      value={fact.value}
-                      kind="platform"
-                    />
-                  ) : (
-                    <SampleApplicationFact
-                      key={fact.label}
-                      label={fact.label}
-                      value={fact.value}
-                    />
-                  )
-                ))}
+              <section className="affiliate-thread-side-card">
+                <div className="affiliate-thread-side-card-head">
+                  <span>{t("ecommerce.affiliateWorkspace.threadContext")}</span>
+                </div>
+                <div className="affiliate-thread-side-facts">
+                  {threadContextFacts.map((fact) => (
+                    fact.copyKind === "platform" ? (
+                      <SampleApplicationCopyFact
+                        key={fact.label}
+                        label={fact.label}
+                        value={fact.value}
+                        kind="platform"
+                      />
+                    ) : (
+                      <SampleApplicationFact
+                        key={fact.label}
+                        label={fact.label}
+                        value={fact.value}
+                      />
+                    )
+                  ))}
+                </div>
               </section>
             ) : null}
             {item.productContext?.productId ? (
@@ -2815,32 +2872,72 @@ function CreatorThreadDetailModal({
             <div className="affiliate-collaboration-tab-panel">
               {activeTab === "overview" ? (
                 <div className="affiliate-thread-overview-panel">
-                  <section className="affiliate-thread-overview-hero">
-                    <div>
-                      <span>{t("ecommerce.affiliateWorkspace.sampleApplication.status")}</span>
-                      <strong>{statusDisplay.primary}</strong>
-                      {statusDisplay.secondary ? <small>{statusDisplay.secondary}</small> : null}
+                  <section className="affiliate-thread-current-work">
+                    <div className="affiliate-thread-current-work-main">
+                      <span>{t("ecommerce.affiliateWorkspace.labels.currentSituation")}</span>
+                      <h3>{renderCreatorThreadTitle(item, t)}</h3>
+                      <p>{renderCreatorThreadSummary(item, t)}</p>
                     </div>
-                    <div>
-                      <span>{t("ecommerce.affiliateWorkspace.labels.nextStep")}</span>
-                      <strong>{t(`ecommerce.affiliateWorkspace.workKinds.${item.workItem?.workKind ?? "THREAD"}`, {
-                        defaultValue: item.workItem?.workKind
-                          ? formatAffiliateEnumLabel(item.workItem.workKind)
-                          : t("ecommerce.affiliateWorkspace.workKinds.THREAD"),
-                      })}</strong>
-                      <small>{t(`ecommerce.affiliateWorkspace.requiredActions.${thread.requiredAction}`, {
-                        defaultValue: formatAffiliateEnumLabel(thread.requiredAction),
-                      })}</small>
+                    <div className="affiliate-thread-current-work-status">
+                      <ThreadStatusBadge display={statusDisplay} tone={threadStatusTone(thread.processingStatus)} />
                     </div>
-                    <div>
-                      <span>{t("ecommerce.affiliateWorkspace.latestRecordLabel")}</span>
-                      <strong>{focusCollaboration?.productId
-                        ? t("ecommerce.affiliateWorkspace.productContextConfirmed")
-                        : t("ecommerce.affiliateWorkspace.threadRelationshipConversationTitle")}</strong>
-                      <small>{formatProposalTime(thread.stateUpdatedAt ?? thread.updatedAt)}</small>
+                    <div className="affiliate-thread-current-work-actions">
+                      <div>
+                        <span>{t("ecommerce.affiliateWorkspace.labels.nextStep")}</span>
+                        <strong>{nextWorkLabel}</strong>
+                        <small>{requiredActionLabel}</small>
+                      </div>
+                      <div>
+                        <span>{t("ecommerce.affiliateWorkspace.latestRecordLabel")}</span>
+                        <strong>{latestCollaboration?.productId
+                          ? t("ecommerce.affiliateWorkspace.productContextConfirmed")
+                          : t("ecommerce.affiliateWorkspace.threadRelationshipConversationTitle")}</strong>
+                        <small>{formatProposalTime(thread.stateUpdatedAt ?? thread.updatedAt)}</small>
+                      </div>
                     </div>
                   </section>
-
+                  <section className="affiliate-thread-overview-strip" aria-label={t("ecommerce.affiliateWorkspace.creatorThreadPrimaryObject")}>
+                    <ThreadMetric
+                      label={t("ecommerce.affiliateWorkspace.threadActiveCollaborations")}
+                      value={String(item.activeCollaborations.length)}
+                    />
+                    <ThreadMetric
+                      label={t("ecommerce.affiliateWorkspace.threadPendingProposals")}
+                      value={String(pendingProposalCount)}
+                    />
+                    <ThreadMetric
+                      label={t("ecommerce.affiliateWorkspace.threadUnread")}
+                      value={String(thread.unreadCount ?? 0)}
+                    />
+                  </section>
+                  {threadProposals.length > 0 ? (
+                    <section className="affiliate-thread-overview-section">
+                      <h3>{t("ecommerce.affiliateWorkspace.threadPendingProposals")}</h3>
+                      <div className="affiliate-thread-overview-proposal-list">
+                        {threadProposals.slice(0, 2).map((proposal) => (
+                          <ActionProposalCard
+                            key={proposal.id}
+                            proposal={proposal}
+                            shopLabel={shopLabel}
+                            variant="compact"
+                            onOpenCreator={item.creatorProfile ? openRelationship : undefined}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                  {latestCollaboration ? (
+                    <section className="affiliate-thread-overview-section">
+                      <h3>{t("ecommerce.affiliateWorkspace.relatedCollaborations")}</h3>
+                      <CollaborationRecordSubcard
+                        record={latestCollaboration}
+                        focused
+                        compact
+                        statusDisplay={statusDisplay}
+                        statusTone={threadStatusTone(thread.processingStatus)}
+                      />
+                    </section>
+                  ) : null}
                 </div>
               ) : null}
               {activeTab === "conversation" ? (
@@ -2959,7 +3056,7 @@ function CreatorThreadDetailModal({
                   ) : null}
                 </div>
               ) : null}
-              {activeTab === "proposals" ? (
+              {activeTab === "activity" ? (
                 <div className="affiliate-collaboration-timeline">
                   {activityLoading && timeline.length === 0 ? (
                     <div className="affiliate-proposal-empty">{t("common.loading")}</div>
@@ -4381,11 +4478,6 @@ function ActionProposalCard({
               <span>{formatActionProposalTypeLabel(proposal.type, t)}</span>
               <strong>{formatProposalTime(proposal.updatedAt)}</strong>
             </div>
-            {proposal.policySnapshot?.requiresApproval ? (
-              <div className="affiliate-policy-note">
-                {t("ecommerce.affiliateWorkspace.policyApprovalNote")}
-              </div>
-            ) : null}
             {decisionActions}
           </aside>
         </div>
@@ -4485,11 +4577,6 @@ function ActionProposalCard({
               </section>
             ) : null}
           </>
-        ) : null}
-        {bodyExpanded && proposal.policySnapshot?.requiresApproval ? (
-          <div className="affiliate-policy-note">
-            {t("ecommerce.affiliateWorkspace.policyApprovalNote")}
-          </div>
         ) : null}
       </div>
 
@@ -4695,11 +4782,6 @@ function DashboardItemCard({
               <div className="affiliate-work-item-preview">{messagePreview}</div>
             ) : null}
           </section>
-        ) : null}
-        {proposal?.policySnapshot?.requiresApproval ? (
-          <div className="affiliate-policy-note">
-            {t("ecommerce.affiliateWorkspace.policyApprovalNote")}
-          </div>
         ) : null}
         {item.kind === GQL.AffiliateDashboardItemKind.ManualFollowUp ? (
           <div className="affiliate-manual-note">

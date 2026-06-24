@@ -17548,6 +17548,24 @@ html[lang="zh"] .acct-tool-chips {
   border-bottom: 1px solid var(--color-border-light);
 }
 
+.affiliate-thread-modal-header {
+  justify-content: space-between;
+}
+
+.affiliate-thread-modal-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.affiliate-thread-modal-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  object-fit: cover;
+}
+
 .affiliate-collaboration-modal .modal-header h2 {
   margin: 0;
   color: var(--color-text);
@@ -17556,6 +17574,10 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-collaboration-modal .modal-header p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin: 4px 0 0;
   color: var(--color-text-muted);
   font-size: 13px;
@@ -17620,7 +17642,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-collaboration-modal-body {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   flex: 1 1 auto;
   min-height: 0;
   gap: 18px;
@@ -17629,9 +17651,76 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-collaboration-context-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
   overflow-y: auto;
   padding-right: 2px;
+}
+
+.affiliate-thread-side-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg-alt) 58%, var(--color-bg));
+}
+
+.affiliate-thread-side-card-primary {
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+}
+
+.affiliate-thread-side-card-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.affiliate-thread-side-card-head > span {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-thread-side-card > strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-thread-side-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.affiliate-thread-side-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-thread-side-facts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .affiliate-collaboration-work-pane {
@@ -17703,6 +17792,97 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-thread-overview-panel {
   display: grid;
   gap: 14px;
+}
+
+.affiliate-thread-current-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+}
+
+.affiliate-thread-current-work-main {
+  min-width: 0;
+}
+
+.affiliate-thread-current-work-main > span,
+.affiliate-thread-current-work-actions span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.affiliate-thread-current-work-main h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.affiliate-thread-current-work-main p {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.affiliate-thread-current-work-status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.affiliate-thread-current-work-actions {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.affiliate-thread-current-work-actions > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-bg);
+}
+
+.affiliate-thread-current-work-actions strong {
+  display: block;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-thread-current-work-actions small {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-thread-overview-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.affiliate-thread-overview-proposal-list {
+  display: grid;
+  gap: 10px;
 }
 
 .affiliate-thread-overview-hero,
@@ -18255,6 +18435,16 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 720px) {
+  .affiliate-thread-current-work,
+  .affiliate-thread-current-work-actions,
+  .affiliate-thread-overview-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-thread-current-work-status {
+    justify-content: flex-start;
+  }
+
   .affiliate-thread-overview-hero,
   .affiliate-thread-evidence-grid {
     grid-template-columns: 1fr;
