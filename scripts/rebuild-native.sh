@@ -37,6 +37,10 @@ PLATFORM="$(node -p "process.platform + '-' + process.arch")"
 echo "==> better-sqlite3 at: $SQLITE_DIR"
 echo "==> Platform: $PLATFORM"
 
+get_electron_abi() {
+  (cd "$DESKTOP_DIR" && node -e 'const { getAbi } = require("node-abi"); const { version } = require("electron/package.json"); process.stdout.write(getAbi(version, "electron"));')
+}
+
 run_logged() {
   local description="$1"
   shift
@@ -64,7 +68,7 @@ run_logged() {
 # ---- Quick check: skip if both prebuilds already exist ----
 if [ "$FORCE" = false ]; then
   NODE_ABI=$(node -p "process.versions.modules")
-  ELECTRON_ABI=$(cd "$DESKTOP_DIR" && ELECTRON_RUN_AS_NODE=1 npx electron -e "process.stdout.write(process.versions.modules)" 2>/dev/null) || true
+  ELECTRON_ABI=$(get_electron_abi 2>/dev/null) || true
 
   if [ -z "$ELECTRON_ABI" ]; then
     # Electron ABI detection failed (can happen in pnpm postinstall on Windows).
@@ -111,9 +115,7 @@ echo ""
 echo "==> Building for Electron..."
 (cd "$DESKTOP_DIR" && run_logged "electron-rebuild for Electron" npx electron-rebuild -f -o better-sqlite3)
 
-# Get Electron's internal Node.js ABI version
-# ELECTRON_RUN_AS_NODE=1 makes Electron run as its internal Node.js
-ELECTRON_ABI=$(cd "$DESKTOP_DIR" && ELECTRON_RUN_AS_NODE=1 npx electron -e "process.stdout.write(process.versions.modules)")
+ELECTRON_ABI=$(get_electron_abi)
 ELECTRON_BINDING_DIR="$SQLITE_DIR/lib/binding/node-v${ELECTRON_ABI}-${PLATFORM}"
 mkdir -p "$ELECTRON_BINDING_DIR"
 cp "$SQLITE_DIR/build/Release/better_sqlite3.node" "$ELECTRON_BINDING_DIR/"
