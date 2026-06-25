@@ -802,6 +802,38 @@ describe("config-writer", () => {
       expect(paths).toContain(extDir);
     });
 
+    it("removes legacy bundled openclaw-lark plugin paths", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      const extDir = join(tmpDir, "extensions");
+      mkdirSync(extDir);
+
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          plugins: {
+            load: {
+              paths: [
+                "/Applications/RivonClaw.app/Contents/Resources/legacy/@larksuite/openclaw-lark",
+                "/Applications/RivonClaw.app/Contents/Resources/extensions",
+                "/custom/plugin",
+              ],
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        extensionsDir: extDir,
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const paths = config.plugins.load.paths as string[];
+      expect(paths.some((p: string) => p.includes("@larksuite/openclaw-lark"))).toBe(false);
+      expect(paths).toContain("/custom/plugin");
+      expect(paths).toContain(extDir);
+    });
+
     it("filters permanently-removed plugin IDs from plugins.allow", () => {
       const configPath = join(tmpDir, "openclaw.json");
       const extDir = join(tmpDir, "extensions");

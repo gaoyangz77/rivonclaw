@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.46",
+    "date": "2026-06-25",
+    "en": [
+      "Restore Feishu official plugin loading so desktop chat channels can start reliably",
+      "Hydrate the active Feishu plugin config on startup and prune stale bundled OpenClaw plugin paths"
+    ],
+    "zh": [
+      "恢复飞书官方插件加载，确保桌面端客服渠道可以稳定启动",
+      "在启动时补齐当前飞书插件配置，并清理过时的内置 OpenClaw 插件路径"
+    ]
+  },
+  {
     "version": "1.8.45",
     "date": "2026-06-24",
     "en": [

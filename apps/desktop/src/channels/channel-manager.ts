@@ -46,9 +46,12 @@ const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
 const FEISHU_CHANNEL_ID = "feishu";
-const FEISHU_OFFICIAL_PLUGIN_ID = "openclaw-lark";
+const FEISHU_OFFICIAL_PLUGIN_ID = "feishu";
+const FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID = "openclaw-lark";
 const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
 const FEISHU_OFFICIAL_PLUGIN_ROOTS = [
+  "dist/extensions/feishu",
+  "extensions/feishu",
   "extensions/openclaw-lark",
   "dist-runtime/extensions/openclaw-lark",
   "dist/extensions/openclaw-lark",
@@ -182,10 +185,11 @@ function ensureLegacyFeishuPluginConfig(config: Record<string, unknown>): void {
     !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
     ? (entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>)
     : {};
-  entries[FEISHU_OFFICIAL_PLUGIN_ID] = { ...existingOfficial, enabled: false };
+  entries[FEISHU_OFFICIAL_PLUGIN_ID] = { ...existingOfficial, enabled: true };
+  delete entries[FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID];
   const allow = ensureArrayRecord(plugins, "allow");
-  removeString(allow, FEISHU_OFFICIAL_PLUGIN_ID);
-  addUniqueString(allow, FEISHU_CHANNEL_ID);
+  removeString(allow, FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID);
+  addUniqueString(allow, FEISHU_OFFICIAL_PLUGIN_ID);
 }
 
 function ensureWildcardBinding(config: Record<string, unknown>, channelId: string): void {
@@ -448,8 +452,9 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
     ...(entries.feishu && typeof entries.feishu === "object" && !Array.isArray(entries.feishu)
       ? entries.feishu as Record<string, unknown>
       : {}),
-    enabled: false,
+    enabled: true,
   };
+  delete entries[FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID];
   entries[FEISHU_OFFICIAL_PLUGIN_ID] = {
     ...(entries[FEISHU_OFFICIAL_PLUGIN_ID] && typeof entries[FEISHU_OFFICIAL_PLUGIN_ID] === "object" && !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
       ? entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>
@@ -458,7 +463,7 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
   };
 
   const allow = ensureArrayRecord(plugins, "allow");
-  removeString(allow, "feishu");
+  removeString(allow, FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID);
   addUniqueString(allow, FEISHU_OFFICIAL_PLUGIN_ID);
 
   const pluginRoot = resolveFeishuOfficialPluginRoot();
@@ -476,6 +481,12 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
   for (const toolId of readFeishuOfficialToolIds(pluginRoot)) {
     addUniqueString(alsoAllow, toolId);
   }
+}
+
+function hydrateFeishuOfficialPluginConfigOnStartup(configPath: string): void {
+  const config = readExistingConfig(configPath);
+  ensureFeishuOfficialPluginConfig(config);
+  writeDesktopOpenClawConfig(configPath, config, "feishu official plugin startup hydration");
 }
 
 function mirrorFeishuDefaultAccountToChannelRoot(
@@ -640,8 +651,8 @@ export const ChannelManagerModel = types
       }
       for (const channelId of channelIds) {
         if (channelId === FEISHU_CHANNEL_ID && hasOfficialFeishuDefault) {
-          entries.feishu = { enabled: false };
-          entries[FEISHU_OFFICIAL_PLUGIN_ID] = { enabled: true };
+          entries.feishu = { enabled: true };
+          delete entries[FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID];
         } else {
           entries[channelId] = { enabled: true };
         }
@@ -1163,7 +1174,7 @@ export const ChannelManagerModel = types
       init() {
         runMigrationIfNeeded();
 
-        const { storage } = getEnv();
+        const { storage, configPath } = getEnv();
         stripWeixinUserIdFromStoredAccounts();
         const allAccounts = storage.channelAccounts.list();
         clearAllPendingWeixinContextTokenSyncs();
@@ -1173,6 +1184,16 @@ export const ChannelManagerModel = types
           if (account.channelId === WEIXIN_CHANNEL_ID) {
             loadWeixinContextTokens(account.accountId);
           }
+        }
+        if (allAccounts.some((account) => (
+          account.channelId === FEISHU_CHANNEL_ID &&
+          account.accountId === FEISHU_OFFICIAL_ACCOUNT_ID &&
+          typeof account.config === "object" &&
+          account.config !== null &&
+          typeof (account.config as Record<string, unknown>).appId === "string" &&
+          typeof (account.config as Record<string, unknown>).appSecret === "string"
+        ))) {
+          hydrateFeishuOfficialPluginConfigOnStartup(configPath);
         }
         (getRoot(self) as any).loadChannelAccounts(
           allAccounts.map((account) => buildChannelAccountSnapshot(account)),

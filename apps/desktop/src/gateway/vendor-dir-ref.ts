@@ -1,6 +1,6 @@
 let _vendorDir: string | null = null;
 
-export function setVendorDir(dir: string): void {
+export function setVendorDir(dir: string | null): void {
   _vendorDir = dir;
 }
 
