@@ -2484,7 +2484,7 @@ export default {
       "latestRecordLabel": "Catatan terbaru",
       "viewDetails": "Lihat detail",
       "productIdLabel": "Produk",
-      "productContextConfirmed": "Produk tertaut; buka untuk melihat detail",
+      "productContextConfirmed": "Produk tertaut",
       "productContextMissing": "Belum ada produk kolaborasi terkonfirmasi",
       "productContextMissingHint": "Minta kreator mengajukan sampel atau mengonfirmasi produk kolaborasi.",
       "productIdShort": "Produk {{productId}}",

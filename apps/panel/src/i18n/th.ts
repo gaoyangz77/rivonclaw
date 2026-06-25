@@ -2484,7 +2484,7 @@ export default {
       "latestRecordLabel": "บันทึกล่าสุด",
       "viewDetails": "ดูรายละเอียด",
       "productIdLabel": "สินค้า",
-      "productContextConfirmed": "เชื่อมโยงสินค้าแล้ว เปิดเพื่อดูรายละเอียด",
+      "productContextConfirmed": "เชื่อมโยงสินค้าแล้ว",
       "productContextMissing": "ยังไม่มีสินค้าที่ได้รับการยืนยัน",
       "productContextMissingHint": "ขอให้ครีเอเตอร์สมัครตัวอย่างหรือยืนยันสินค้าที่ต้องการร่วมงาน",
       "productIdShort": "สินค้า {{productId}}",
