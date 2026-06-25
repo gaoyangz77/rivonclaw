@@ -27,8 +27,11 @@ const REQUIRED_PATHS = [
   "docs/reference/templates/USER.md",
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
+  "extensions/openclaw-lark/openclaw.plugin.json",
   "node_modules/cli-highlight/package.json",
   "node_modules/highlight.js/package.json",
+  "node_modules/@larksuiteoapi/node-sdk/package.json",
+  "node_modules/openclaw/package.json",
 ];
 
 const PRUNED_FORBIDDEN_PATHS = [

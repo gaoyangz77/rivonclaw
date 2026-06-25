@@ -29,7 +29,6 @@
     "verify:vendor-runtime": "node scripts/verify-vendor-runtime-contract.cjs"
   },
   "dependencies": {
-    "@larksuite/openclaw-lark": "2026.6.10",
     "@rivonclaw/core": "workspace:*",
     "@rivonclaw/device-id": "workspace:*",
     "@rivonclaw/gateway": "workspace:*",

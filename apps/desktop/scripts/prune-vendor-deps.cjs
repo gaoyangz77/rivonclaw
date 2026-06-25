@@ -14,7 +14,8 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-05-29.1";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-06-25.1";
+const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 
 const macRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
   process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "x64"
@@ -244,6 +245,14 @@ function hasBlacklistedPackage() {
   return false;
 }
 
+function hasRequiredOfficialVendorPlugins() {
+  return [
+    path.join(vendorDir, "extensions", "openclaw-lark", "openclaw.plugin.json"),
+    path.join(nmDir, "@larksuiteoapi", "node-sdk", "package.json"),
+    path.join(nmDir, "openclaw", "package.json"),
+  ].every((requiredPath) => fs.existsSync(requiredPath));
+}
+
 function makeDistVisibleToElectronBuilder() {
   const gitignorePath = path.join(vendorDir, ".gitignore");
   if (!fs.existsSync(gitignorePath)) return;
@@ -400,6 +409,18 @@ function removeTreeSitterBashPrebuilds() {
   );
 }
 
+function stageOfficialVendorPlugins() {
+  if (!fs.existsSync(stageOfficialVendorPluginsScript)) return;
+  execSync(`node ${JSON.stringify(stageOfficialVendorPluginsScript)}`, {
+    cwd: path.resolve(__dirname, ".."),
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      VENDOR_DIR_OVERRIDE: vendorDir,
+    },
+  });
+}
+
 function removeSymlinksAndNestedNodeModules(rootDir) {
   let entries;
   try {
@@ -508,7 +529,7 @@ if (fs.existsSync(prunedMarkerPath)) {
   const hasCurrentPruneProfile = markerText.includes(`profile=${PRUNE_PROFILE_VERSION}`);
   const hasDevDeps = fs.existsSync(path.join(nmDir, "typescript"));
 
-  if (hasCurrentPruneProfile && !hasDevDeps && !hasBlacklistedPackage()) {
+  if (hasCurrentPruneProfile && !hasDevDeps && !hasBlacklistedPackage() && hasRequiredOfficialVendorPlugins()) {
     console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
     process.exit(0);
   }
@@ -539,6 +560,9 @@ try {
 try {
   execSync("git checkout -- .", { cwd: vendorDir, stdio: "ignore" });
 } catch {}
+
+console.log("[prune-vendor-deps] Staging official external vendor plugins ...");
+stageOfficialVendorPlugins();
 
 const sizeP1 = dirSize(nmDir);
 console.log(
