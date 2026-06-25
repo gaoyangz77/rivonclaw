@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.45",
+    "date": "2026-06-24",
+    "en": [
+      "Restore macOS runtime dependency packaging so the desktop app can launch after updating",
+      "Fix the macOS 1.8.44 startup crash caused by missing bundled Node modules"
+    ],
+    "zh": [
+      "恢复 macOS 运行时依赖打包，确保桌面端更新后可以正常启动",
+      "修复 macOS 1.8.44 因缺少内置 Node 模块导致的启动崩溃"
+    ]
+  },
+  {
     "version": "1.8.44",
     "date": "2026-06-24",
     "en": [
