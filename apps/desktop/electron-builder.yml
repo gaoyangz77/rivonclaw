@@ -134,6 +134,5 @@ publish:
   - provider: generic
     url: https://www.rivonclaw.com/releases/
 
-beforeBuild: scripts/before-build.cjs
 afterPack: scripts/copy-vendor-deps.cjs
 afterSign: scripts/notarize.cjs
