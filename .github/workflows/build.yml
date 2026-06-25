@@ -154,6 +154,9 @@ jobs:
           foreach ($requiredPath in @(
             "$vendor/dist/extensions/acpx/openclaw.plugin.json",
             "$vendor/dist/extensions/memory-core/openclaw.plugin.json",
+            "$vendor/extensions/openclaw-lark/openclaw.plugin.json",
+            "$vendor/node_modules/@larksuiteoapi/node-sdk/package.json",
+            "$vendor/node_modules/openclaw/package.json",
             "$vendor/docs/reference/templates/AGENTS.md",
             "$vendor/docs/reference/templates/SOUL.md",
             "$vendor/docs/reference/templates/TOOLS.md"
@@ -320,6 +323,9 @@ jobs:
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^extensions/openclaw-lark/openclaw.plugin.json$' || { echo "FAIL: openclaw-lark manifest missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/openclaw/package.json$' || { echo "FAIL: openclaw sdk shim missing from vendor archive"; exit 1; }
           node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
@@ -488,6 +494,9 @@ jobs:
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/TOOLS.md$' || { echo "FAIL: TOOLS.md template missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^extensions/openclaw-lark/openclaw.plugin.json$' || { echo "FAIL: openclaw-lark manifest missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/openclaw/package.json$' || { echo "FAIL: openclaw sdk shim missing from vendor archive"; exit 1; }
           node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
@@ -619,6 +628,9 @@ jobs:
           for path in \
             "$VENDOR/dist/extensions/acpx/openclaw.plugin.json" \
             "$VENDOR/dist/extensions/memory-core/openclaw.plugin.json" \
+            "$VENDOR/extensions/openclaw-lark/openclaw.plugin.json" \
+            "$VENDOR/node_modules/@larksuiteoapi/node-sdk/package.json" \
+            "$VENDOR/node_modules/openclaw/package.json" \
             "$VENDOR/docs/reference/templates/AGENTS.md" \
             "$VENDOR/docs/reference/templates/SOUL.md" \
             "$VENDOR/docs/reference/templates/TOOLS.md"

@@ -55,7 +55,11 @@ if (fs.existsSync(patchDir)) {
 }
 
 // 3. Build scripts that define the archive contents
-for (const scriptName of ["prune-vendor-deps.cjs", "archive-vendor-runtime.cjs"]) {
+for (const scriptName of [
+  "prune-vendor-deps.cjs",
+  "archive-vendor-runtime.cjs",
+  "stage-official-vendor-plugins.cjs",
+]) {
   const scriptPath = path.join(__dirname, scriptName);
   if (fs.existsSync(scriptPath)) {
     hash.update(scriptName);

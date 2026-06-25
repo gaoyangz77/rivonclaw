@@ -1,9 +1,8 @@
 import { types, flow, getRoot, type Instance } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
-import { basename, dirname, join } from "node:path";
+import { basename, join } from "node:path";
 import { promises as fs } from "node:fs";
 import { existsSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import type { Storage } from "@rivonclaw/storage";
 import type { ChannelAccount } from "@rivonclaw/storage";
 import { readExistingConfig } from "@rivonclaw/gateway";
@@ -41,6 +40,7 @@ import {
   TELEGRAM_CHANNEL_ID,
   serializeTelegramDebugOperatorUserIds,
 } from "./telegram-debug-support.js";
+import { getVendorDir } from "../gateway/vendor-dir-ref.js";
 
 const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
@@ -48,6 +48,11 @@ const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
 const FEISHU_CHANNEL_ID = "feishu";
 const FEISHU_OFFICIAL_PLUGIN_ID = "openclaw-lark";
 const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
+const FEISHU_OFFICIAL_PLUGIN_ROOTS = [
+  "extensions/openclaw-lark",
+  "dist-runtime/extensions/openclaw-lark",
+  "dist/extensions/openclaw-lark",
+];
 const FEISHU_AUTH_BASE_URL = "https://accounts.feishu.cn";
 const LARK_AUTH_BASE_URL = "https://accounts.larksuite.com";
 const WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS = [100, 300, 700, 1_500, 3_000];
@@ -391,14 +396,16 @@ function ensureArrayRecord(parent: Record<string, unknown>, key: string): unknow
 }
 
 function resolveFeishuOfficialPluginRoot(): string | undefined {
-  const require = createRequire(import.meta.url);
-  const searchPaths = require.resolve.paths("@larksuite/openclaw-lark") ?? [];
-  for (const base of searchPaths) {
-    const candidate = join(base, "@larksuite", "openclaw-lark", "openclaw.plugin.json");
+  const vendorDir = getVendorDir();
+  if (!vendorDir) return undefined;
+
+  for (const relativeRoot of FEISHU_OFFICIAL_PLUGIN_ROOTS) {
+    const candidate = join(vendorDir, relativeRoot, "openclaw.plugin.json");
     if (existsSync(candidate)) {
-      return dirname(candidate);
+      return join(vendorDir, relativeRoot);
     }
   }
+
   return undefined;
 }
 
@@ -456,7 +463,7 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
 
   const pluginRoot = resolveFeishuOfficialPluginRoot();
   if (!pluginRoot) {
-    log.warn("Feishu official plugin package is not available in desktop node_modules");
+    log.warn("Feishu official plugin is not available in the packaged OpenClaw runtime");
     return;
   }
 

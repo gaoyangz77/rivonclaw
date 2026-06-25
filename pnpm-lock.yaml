@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@larksuite/openclaw-lark':
+        specifier: 2026.6.10
+        version: 2026.6.10(openclaw@2026.5.4(@types/express@5.0.6)(encoding@0.1.13))
       '@larksuiteoapi/node-sdk':
         specifier: ^1.59.0
         version: 1.59.0
@@ -33,9 +36,6 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@larksuite/openclaw-lark':
-        specifier: 2026.6.10
-        version: 2026.6.10(openclaw@2026.5.4(@types/express@5.0.6)(encoding@0.1.13))
       '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1625,8 +1625,8 @@ packages:
   '@larksuiteoapi/node-sdk@1.59.0':
     resolution: {integrity: sha512-sBpkruTvZDOxnVtoTbepWKRX0j1Y1ZElQYu0x7+v088sI9pcpbVp6ZzCGn62dhrKPatzNyCJyzYCPXPYQWccrA==}
 
-  '@larksuiteoapi/node-sdk@1.67.0':
-    resolution: {integrity: sha512-pr3iZbK+CkwgwIhUzt86mZGP/wLCzBDRmCy+Vt+/UAWx/KjwxwrRpfAKm4eOmd0uUd8AcG2mWC/ZSUMu7lZIqg==}
+  '@larksuiteoapi/node-sdk@1.68.0':
+    resolution: {integrity: sha512-ip14+pWAv2La3bss4oDDtee2P5xBLDXuvmzhTvkxQMcPA5jCffFsler1TvNt4MyW6pexscj72AEWektyZwU9Yw==}
 
   '@lydell/node-pty-darwin-arm64@1.2.0-beta.12':
     resolution: {integrity: sha512-tqaifcY9Cr41SblO1+FLzh8oxxtkNhuW9Dhl22lKme9BreYvKvxEZcdPIXTuqkJc5tagOEC4QHShKmJjLyLXLQ==}
@@ -7712,7 +7712,7 @@ snapshots:
 
   '@larksuite/openclaw-lark@2026.6.10(openclaw@2026.5.4(@types/express@5.0.6)(encoding@0.1.13))':
     dependencies:
-      '@larksuiteoapi/node-sdk': 1.67.0
+      '@larksuiteoapi/node-sdk': 1.68.0
       '@sinclair/typebox': 0.34.49
       image-size: 2.0.2
       undici-types: 8.5.0
@@ -7738,7 +7738,7 @@ snapshots:
       - debug
       - utf-8-validate
 
-  '@larksuiteoapi/node-sdk@1.67.0':
+  '@larksuiteoapi/node-sdk@1.68.0':
     dependencies:
       axios: 1.13.5
       lodash.identity: 3.0.0

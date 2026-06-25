@@ -41,6 +41,7 @@ const REQUIRED_RUNTIME_FILES = [
   "docs/reference/templates/TOOLS.md",
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
+  "extensions/openclaw-lark/openclaw.plugin.json",
 ];
 
 function missingRuntimeFiles(runtimeDir: string): string[] {
