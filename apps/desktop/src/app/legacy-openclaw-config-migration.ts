@@ -17,6 +17,12 @@ const REMOVED_PLUGIN_IDS = new Set([
   "rivonclaw-tools",
 ]);
 
+const REMOVED_PLUGIN_LOAD_PATH_HINTS = [
+  "@larksuite/openclaw-lark",
+  "/node_modules/@larksuite/openclaw-lark",
+  "\\node_modules\\@larksuite\\openclaw-lark",
+];
+
 const WEB_SEARCH_PROVIDER_PLUGIN_IDS: Record<string, string> = {
   brave: "brave",
   perplexity: "perplexity",
@@ -59,6 +65,16 @@ function mergePluginWebSearchConfig(
   };
 }
 
+function pruneLegacyPluginLoadPaths(value: unknown): { value: unknown; changed: boolean } {
+  if (!Array.isArray(value)) return { value, changed: false };
+  const next = value.filter((entry) => {
+    if (typeof entry !== "string") return true;
+    const normalized = entry.replace(/\\/g, "/");
+    return !REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) => normalized.includes(hint.replace(/\\/g, "/")));
+  });
+  return { value: next, changed: next.length !== value.length };
+}
+
 /**
  * Remove config keys that older RivonClaw builds wrote but OpenClaw no longer
  * accepts or ships. Run before the first post-upgrade gateway config write so
@@ -94,6 +110,15 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
 
   const plugins = config.plugins;
   if (isRecord(plugins)) {
+    const load = isRecord(plugins.load) ? plugins.load : undefined;
+    if (load) {
+      const loadPaths = pruneLegacyPluginLoadPaths(load.paths);
+      if (loadPaths.changed) {
+        load.paths = loadPaths.value;
+        touched.push("plugins.load.paths");
+      }
+    }
+
     const allow = pruneRemovedPluginIds(plugins.allow);
     if (allow.changed) {
       plugins.allow = allow.value;

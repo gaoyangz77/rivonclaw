@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { applySnapshot, types } from "mobx-state-tree";
 import { ChannelManagerModel, RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID } from "./channel-manager.js";
 import { WEIXIN_CHANNEL_ID } from "./weixin-account-dedupe.js";
+import { getVendorDir, setVendorDir } from "../gateway/vendor-dir-ref.js";
 
 const TestRootModel = types
   .model("TestRoot", {
@@ -612,6 +613,73 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(officialRecipients.allowlist).toEqual(["ou_official"]);
       expect(officialRecipients.labels).toEqual({ ou_official: "Official Owner" });
     } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("hydrates the official Feishu plugin root during startup", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-hydrate-"));
+    const previousVendorDir = getVendorDir();
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      const pluginRoot = join(stateDir, "vendor", "openclaw", "dist", "extensions", "feishu");
+      mkdirSync(pluginRoot, { recursive: true });
+      writeFileSync(
+        join(pluginRoot, "openclaw.plugin.json"),
+        JSON.stringify({ contracts: { tools: ["feishu_send"] } }, null, 2),
+        "utf-8",
+      );
+      writeFileSync(configPath, JSON.stringify({
+        plugins: {
+          load: { paths: [] },
+        },
+        }, null, 2), "utf-8");
+      setVendorDir(join(stateDir, "vendor", "openclaw"));
+
+      const accounts = [{
+        channelId: "feishu",
+        accountId: "default",
+        name: "Feishu Official Bot",
+        config: { appId: "app_123", appSecret: "secret_123" },
+        createdAt: 1,
+        updatedAt: 1,
+      }];
+
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      root.channelManager.init();
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.entries.feishu.enabled).toBe(true);
+      expect(config.plugins.entries["openclaw-lark"]).toBeUndefined();
+      expect(config.plugins.allow).toContain("feishu");
+      expect(config.plugins.load.paths).toContain(pluginRoot);
+      expect(config.tools.alsoAllow).toContain("feishu_send");
+    } finally {
+      setVendorDir(previousVendorDir);
       rmSync(stateDir, { recursive: true, force: true });
     }
   });

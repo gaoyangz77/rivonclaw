@@ -35,6 +35,13 @@ describe("migrateLegacyOpenClawConfig", () => {
           },
         },
         plugins: {
+          load: {
+            paths: [
+              "/Applications/RivonClaw.app/Contents/Resources/extensions",
+              "/Applications/RivonClaw.app/Contents/Resources/legacy/@larksuite/openclaw-lark",
+              "/some/other/plugin",
+            ],
+          },
           allow: ["memory-core", "rivonclaw-tools", "modelstudio"],
           deny: ["xai", "easyclaw-tools"],
           entries: {
@@ -50,6 +57,10 @@ describe("migrateLegacyOpenClawConfig", () => {
 
     const config = readConfig(configPath);
     expect((config.agents as { defaults: Record<string, unknown> }).defaults.llm).toBeUndefined();
+    expect((config.plugins as { load: { paths: string[] } }).load.paths).toEqual([
+      "/Applications/RivonClaw.app/Contents/Resources/extensions",
+      "/some/other/plugin",
+    ]);
     expect((config.plugins as { allow: string[] }).allow).toEqual(["memory-core"]);
     expect((config.plugins as { deny: string[] }).deny).toEqual(["xai"]);
     expect((config.plugins as { entries: Record<string, unknown> }).entries).toEqual({

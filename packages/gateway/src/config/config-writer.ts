@@ -229,6 +229,12 @@ const MANAGED_MERCHANT_EXTENSION_IDS = new Set([
   "rivonclaw-local-tools",
 ]);
 
+const REMOVED_PLUGIN_LOAD_PATH_HINTS = [
+  "@larksuite/openclaw-lark",
+  "/node_modules/@larksuite/openclaw-lark",
+  "\\node_modules\\@larksuite\\openclaw-lark",
+];
+
 /**
  * Find the monorepo root by looking for pnpm-workspace.yaml
  */
@@ -257,6 +263,22 @@ function resolveExtensionsDir(): string {
     return resolve(process.cwd(), "extensions");
   }
   return resolve(monorepoRoot, "extensions");
+}
+
+function isStalePluginLoadPath(pathValue: string, extDir: string, merchantExtensionPaths: string[]): boolean {
+  const normalized = pathValue.replace(/\\/g, "/");
+  const resolvedNormalized = resolve(pathValue).replace(/\\/g, "/");
+  return (
+    REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) => normalized.includes(hint.replace(/\\/g, "/"))) ||
+    REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) => resolvedNormalized.includes(hint.replace(/\\/g, "/"))) ||
+    merchantExtensionPaths.some((merchantPath) => {
+      const normalizedMerchant = resolve(merchantPath).replace(/\\/g, "/");
+      return resolvedNormalized === normalizedMerchant;
+    }) ||
+    normalized.endsWith("/extensions") ||
+    normalized.endsWith("/extensions-merchant") ||
+    pathValue === extDir
+  );
 }
 
 /** Generate a random hex token for gateway auth. */
@@ -980,6 +1002,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
             normalized.includes("extensions/wecom") ||
             normalized.includes("extensions/dingtalk") ||
             normalized.includes("/runtime-extensions/rivonclaw-cloud-tools") ||
+            isStalePluginLoadPath(p, extDir, merchantExtensionPaths ?? []) ||
             normalizedMerchantExtensionPaths.has(resolvedNormalized) ||
             isManagedMerchantExtensionPath(normalized) ||
             normalized.endsWith("/extensions") ||
