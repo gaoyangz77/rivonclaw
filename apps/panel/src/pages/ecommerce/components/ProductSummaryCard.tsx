@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ECOMMERCE_GET_PRODUCT_QUERY } from "../../../api/shops-queries.js";
-import { CopyIcon } from "../../../components/icons.js";
+import { CopyIcon, EyeIcon } from "../../../components/icons.js";
 import { RemoteMediaImage } from "../../../components/images/RemoteMediaImage.js";
 
 type ProductDetailQuery = {
@@ -146,6 +146,23 @@ export function ProductSummaryCard({
             {status ? <span className="affiliate-product-status">{formatProductStatus(status, t)}</span> : null}
             <ProductPlatformIdCopy productId={productId} />
           </div>
+          {canOpenDetail ? (
+            <div className="affiliate-product-summary-footer">
+              <span className="affiliate-product-summary-footer-hint">
+                {t("ecommerce.productCard.openProductDetail")}
+              </span>
+              <button
+                className="affiliate-product-summary-action"
+                type="button"
+                onClick={openDetail}
+                title={t("ecommerce.productCard.openProductDetail")}
+                aria-label={t("ecommerce.productCard.openProductDetail")}
+              >
+                <EyeIcon size={16} />
+                <span>{t("ecommerce.productCard.openProductDetail")}</span>
+              </button>
+            </div>
+          ) : null}
         </div>
       </article>
       {renderProductOverlay(detailModal)}

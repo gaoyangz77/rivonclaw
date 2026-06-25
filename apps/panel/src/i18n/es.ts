@@ -2484,7 +2484,7 @@ export default {
       "latestRecordLabel": "Registro más reciente",
       "viewDetails": "Ver detalles",
       "productIdLabel": "Producto",
-      "productContextConfirmed": "Producto vinculado; abre para ver detalles",
+      "productContextConfirmed": "Producto vinculado",
       "productContextMissing": "Sin producto de colaboración confirmado",
       "productContextMissingHint": "Pida al creador que solicite una muestra o confirme el producto de colaboración.",
       "productIdShort": "Producto {{productId}}",
