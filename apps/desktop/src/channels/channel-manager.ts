@@ -297,6 +297,12 @@ function isRecipientWildcard(entry: string): boolean {
   return entry.trim() === "*";
 }
 
+function normalizeRecipientIdForChannel(channelId: string, recipientId: string): string {
+  const trimmed = recipientId.trim();
+  const prefix = `${channelId}:`;
+  return trimmed.startsWith(prefix) ? trimmed.slice(prefix.length) : trimmed;
+}
+
 function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
   let next = config;
   if (channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId")) {
@@ -1248,7 +1254,7 @@ export const ChannelManagerModel = types
 
       /**
        * Persist a gateway recipient-seen event. This is the action boundary for
-       * recipient SQLite rows, account-scoped WeChat allowFrom files, and the
+       * recipient SQLite rows, account-scoped channel allowFrom files, and the
        * derived WeChat context-token readiness in MST.
        */
       recordRecipientSeen(params: { channelId: string; accountId?: string; recipientId: string }) {
@@ -1256,26 +1262,35 @@ export const ChannelManagerModel = types
         const accountId = params.accountId
           ? normalizeChannelAccountId(params.channelId, params.accountId)
           : undefined;
+        const recipientId = normalizeRecipientIdForChannel(params.channelId, params.recipientId);
 
         if (isRivonClawTelegramDebugAccount(params.channelId, accountId)) {
           return { inserted: false, membershipChanged: false };
         }
 
-        const inserted = storage.channelRecipients.ensureExists(params.channelId, params.recipientId, true);
+        const inserted = storage.channelRecipients.ensureExists(
+          params.channelId,
+          recipientId,
+          params.channelId === WEIXIN_CHANNEL_ID,
+        );
         let membershipChanged = false;
 
         if (params.channelId === WEIXIN_CHANNEL_ID) {
           if (accountId) {
-            const syncResult = applyWeixinContextTokenSync(accountId, params.recipientId);
-            membershipChanged = addAllowFromEntrySync(params.channelId, accountId, params.recipientId);
+            const syncResult = applyWeixinContextTokenSync(accountId, recipientId);
+            membershipChanged = addAllowFromEntrySync(params.channelId, accountId, recipientId);
             if (!syncResult.hasRecipientToken) {
-              scheduleWeixinContextTokenSync(accountId, params.recipientId);
+              scheduleWeixinContextTokenSync(accountId, recipientId);
             }
           } else {
             log.warn(
-              `WeChat recipient-seen missing accountId; skipped account-scoped context-token sync for recipient=${params.recipientId}`,
+              `WeChat recipient-seen missing accountId; skipped account-scoped context-token sync for recipient=${recipientId}`,
             );
           }
+        }
+
+        if (params.channelId === FEISHU_CHANNEL_ID && accountId) {
+          membershipChanged = addAllowFromEntrySync(params.channelId, accountId, recipientId) || membershipChanged;
         }
 
         if (inserted) {
