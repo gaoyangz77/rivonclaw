@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.47",
+    "date": "2026-06-26",
+    "en": [
+      "Record Feishu inbound message recipients per account so channel routing stays accurate",
+      "Refine affiliate proposal placement and supporting localized panel copy"
+    ],
+    "zh": [
+      "按账号记录飞书入站消息接收人，确保渠道路由更准确",
+      "优化达人提案展示位置，并补齐相关面板多语言文案"
+    ]
+  },
+  {
     "version": "1.8.46",
     "date": "2026-06-25",
     "en": [
