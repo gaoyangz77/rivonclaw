@@ -233,6 +233,7 @@ export default {
     "expiresInDays_other": "Scade tra {{count}} giorni",
     "expiresToday": "Scade oggi",
     "expired": "Scaduto",
+    "tokenExpiryUnknown": "Scadenza sconosciuta",
     "reauthModal": {
       "title": "Riautenticare {{label}}",
       "intro": "Accedi di nuovo per ruotare le credenziali OAuth per questa chiave. L'etichetta, il modello e il proxy vengono conservati: viene sostituito solo il token archiviato.",
@@ -246,11 +247,12 @@ export default {
       "callbackHelp_openai-codex": "Dopo aver effettuato l'accesso con ChatGPT, copia il reindirizzamento completo URL dalla barra degli indirizzi del browser e incollalo qui.",
       "completeSignIn": "Completa l'accesso",
       "confirm": "Conferma la riautenticazione",
-      "tokenReady": "Nuovo token OAuth pronto. Confermare per ruotare la credenziale memorizzata.",
+      "tokenReady": "Nuovo token OAuth pronto. Puoi riprovare a ruotare la credenziale memorizzata.",
+      "autoSaving": "Autorizzato. Rotazione automatica della credenziale memorizzata…",
       "starting": "A partire…",
       "rotating": "Credenziali a rotazione...",
       "cancel": "Annulla",
-      "captureWarning": "Il token è stato ruotato, ma non siamo riusciti a leggere la scadenza dell'abbonamento. Se la tua prossima richiesta fallisce, esegui nuovamente l'autenticazione."
+      "captureWarning": "Il token è stato ruotato, ma non siamo riusciti a leggere la scadenza del token. Se la tua prossima richiesta fallisce, esegui nuovamente l'autenticazione."
     },
     "modelLabel": "Modello",
     "labelPlaceholder": "Etichetta (facoltativa)",

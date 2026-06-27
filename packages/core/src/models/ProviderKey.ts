@@ -45,9 +45,10 @@ export const ProviderKeyModel = types.model("ProviderKey", {
   inputModalities: types.maybeNull(types.array(types.string)),
   source: types.optional(types.string, "local"),
   /**
-   * Refresh-token expiry for OAuth subscription keys (ms since epoch). Null when
-   * the key is not OAuth, when the token is opaque, or the row pre-dates the
-   * column. The Providers page uses this to render an "Expires ..." hint.
+   * OAuth credential expiry (ms since epoch). For OpenAI Codex, this is the
+   * refresh token's JWT `exp` claim, not the ChatGPT subscription renewal date
+   * or short-lived access-token TTL. Null when the provider is opaque or the
+   * row pre-dates the column.
    */
   oauthExpiresAt: types.optional(types.maybeNull(types.number), null),
   createdAt: types.string,

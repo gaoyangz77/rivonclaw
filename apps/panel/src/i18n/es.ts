@@ -233,6 +233,7 @@ export default {
     "expiresInDays_other": "Vence en días {{count}}",
     "expiresToday": "Expira hoy",
     "expired": "Caducado",
+    "tokenExpiryUnknown": "Caducidad desconocida",
     "reauthModal": {
       "title": "Volver a autenticar {{label}}",
       "intro": "Inicie sesión nuevamente para rotar las credenciales OAuth para esta clave. Su etiqueta, modelo y proxy se conservan; solo se reemplaza el token almacenado.",
@@ -246,11 +247,12 @@ export default {
       "callbackHelp_openai-codex": "Después de iniciar sesión con ChatGPT, copie el redireccionamiento completo URL desde la barra de direcciones de su navegador y péguelo aquí.",
       "completeSignIn": "Iniciar sesión completo",
       "confirm": "Confirmar reautenticación",
-      "tokenReady": "Nuevo token OAuth listo. Confirme para rotar la credencial almacenada.",
+      "tokenReady": "Nuevo token OAuth listo. Puede reintentar la rotación de la credencial almacenada.",
+      "autoSaving": "Autorizado. Rotando automáticamente la credencial almacenada…",
       "starting": "Empezando…",
       "rotating": "Credencial rotativa…",
       "cancel": "Cancelar",
-      "captureWarning": "El token rotó, pero no pudimos leer el vencimiento de la suscripción. Si su próxima solicitud falla, vuelva a autenticarse."
+      "captureWarning": "El token rotó, pero no pudimos leer el vencimiento del token. Si su próxima solicitud falla, vuelva a autenticarse."
     },
     "modelLabel": "modelo",
     "labelPlaceholder": "Etiqueta (opcional)",

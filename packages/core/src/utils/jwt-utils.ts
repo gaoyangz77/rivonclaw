@@ -4,7 +4,7 @@
  *
  * Does NOT verify the signature. Only use for introspecting claims on tokens
  * whose authenticity is already established by prior exchange with the provider
- * (e.g. OpenAI's id_token claim payload for the Codex subscription expiry).
+ * (e.g. OpenAI's id_token claim payload or a refresh token's `exp` claim).
  */
 export function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
   if (!token) return undefined;

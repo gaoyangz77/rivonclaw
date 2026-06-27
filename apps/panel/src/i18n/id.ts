@@ -233,6 +233,7 @@ export default {
     "expiresInDays_other": "Kedaluwarsa dalam {{count}} hari",
     "expiresToday": "Kedaluwarsa hari ini",
     "expired": "Kedaluwarsa",
+    "tokenExpiryUnknown": "Kedaluwarsa tidak diketahui",
     "reauthModal": {
       "title": "Otentikasi ulang {{label}}",
       "intro": "Masuk lagi untuk merotasi kredensial OAuth untuk kunci ini. Label, model, dan proksi Anda dipertahankan — hanya token tersimpan yang diganti.",
@@ -246,11 +247,12 @@ export default {
       "callbackHelp_openai-codex": "Setelah masuk dengan ChatGPT, salin pengalihan lengkap URL dari bilah alamat browser Anda dan tempel di sini.",
       "completeSignIn": "Selesaikan Masuk",
       "confirm": "Konfirmasi Otentikasi Ulang",
-      "tokenReady": "Token OAuth baru sudah siap. Konfirmasikan untuk merotasi kredensial yang disimpan.",
+      "tokenReady": "Token OAuth baru sudah siap. Anda dapat mencoba lagi merotasi kredensial yang disimpan.",
+      "autoSaving": "Terotorisasi. Merotasi kredensial yang disimpan secara otomatis…",
       "starting": "Mulai…",
       "rotating": "Memutar kredensial…",
       "cancel": "Batalkan",
-      "captureWarning": "Token diputar, tetapi kami tidak dapat membaca masa berlaku langganannya. Jika permintaan Anda berikutnya gagal, harap autentikasi ulang lagi."
+      "captureWarning": "Token diputar, tetapi kami tidak dapat membaca masa berlaku token. Jika permintaan Anda berikutnya gagal, harap autentikasi ulang lagi."
     },
     "modelLabel": "Model",
     "labelPlaceholder": "Label (opsional)",

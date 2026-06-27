@@ -1,4 +1,5 @@
 import type { ProviderKeyEntry } from "@rivonclaw/core";
+import { decodeJwtPayload } from "@rivonclaw/core";
 import { reconstructProxyUrl } from "@rivonclaw/core";
 import type { SecretStore } from "@rivonclaw/secrets";
 
@@ -24,6 +25,37 @@ export interface MstProviderKeySnapshot {
   updatedAt: string;
 }
 
+function extractJwtExpiresAtMs(token: string | undefined): number | null {
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  const exp = payload?.exp;
+  if (typeof exp !== "number" || !Number.isFinite(exp) || exp <= 0) {
+    return null;
+  }
+  return exp * 1000;
+}
+
+async function resolveOAuthExpiresAt(entry: ProviderKeyEntry, secretStore: SecretStore): Promise<number | null> {
+  if (entry.provider !== "openai-codex" || entry.authType !== "oauth") {
+    return entry.oauthExpiresAt ?? null;
+  }
+
+  const credentialJson = await secretStore.get(`oauth-cred-${entry.id}`);
+  if (!credentialJson) {
+    return entry.oauthExpiresAt ?? null;
+  }
+
+  try {
+    const credential = JSON.parse(credentialJson) as { refresh?: unknown };
+    const refreshExpiresAt = extractJwtExpiresAtMs(
+      typeof credential.refresh === "string" ? credential.refresh : undefined,
+    );
+    return refreshExpiresAt ?? null;
+  } catch {
+    return extractJwtExpiresAtMs(credentialJson) ?? null;
+  }
+}
+
 /**
  * Convert a single ProviderKeyEntry (from SQLite) into a snapshot suitable
  * for the MST ProviderKeyModel.  Reconstructs `proxyUrl` from proxyBaseUrl
@@ -40,6 +72,7 @@ export async function toMstSnapshot(
       ? reconstructProxyUrl(entry.proxyBaseUrl, credentials)
       : entry.proxyBaseUrl;
   }
+  const oauthExpiresAt = await resolveOAuthExpiresAt(entry, secretStore);
 
   return {
     id: entry.id,
@@ -54,7 +87,7 @@ export async function toMstSnapshot(
     customModelsJson: entry.customModelsJson ?? null,
     inputModalities: entry.inputModalities ?? null,
     source: entry.source ?? "local",
-    oauthExpiresAt: entry.oauthExpiresAt ?? null,
+    oauthExpiresAt,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
   };
