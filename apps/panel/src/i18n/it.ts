@@ -1402,12 +1402,6 @@ export default {
     "llmKeySuspended": "Sospeso",
     "quotaFiveHour": "Quota (5 ore)",
     "quotaWeekly": "Quota (settimanale)",
-    "officialTemplatesTitle": "Template ufficiali",
-    "officialTemplatesDesc": "Ripristina i template ufficiali più recenti per le skill ecommerce. Sovrascrive le modifiche locali.",
-    "refreshOfficialTemplates": "Aggiorna template",
-    "refreshingOfficialTemplates": "Aggiornamento...",
-    "officialTemplatesRefreshSuccess": "Template ufficiali aggiornati ({{count}} aggiornati).",
-    "officialTemplatesRefreshError": "Impossibile aggiornare i template ufficiali.",
     "quotaRefreshAt": "Si aggiorna a {{time}}"
   },
   "billing": {

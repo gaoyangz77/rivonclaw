@@ -1402,12 +1402,6 @@ export default {
     "llmKeySuspended": "Ditangguhkan",
     "quotaFiveHour": "Kuota (5 jam)",
     "quotaWeekly": "Kuota (Mingguan)",
-    "officialTemplatesTitle": "Template resmi",
-    "officialTemplatesDesc": "Pulihkan template skill ecommerce resmi terbaru. Ini akan menimpa perubahan template lokal.",
-    "refreshOfficialTemplates": "Refresh template",
-    "refreshingOfficialTemplates": "Me-refresh...",
-    "officialTemplatesRefreshSuccess": "Template resmi di-refresh ({{count}} diperbarui).",
-    "officialTemplatesRefreshError": "Gagal me-refresh template resmi.",
     "quotaRefreshAt": "Menyegarkan di {{time}}"
   },
   "billing": {
