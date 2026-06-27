@@ -228,15 +228,21 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.disconnect();
   });
 
-  it("re-subscribes public long-lived subscriptions after operation complete", async () => {
+  it("starts OAuth completion subscriptions only after auth is ready", async () => {
     vi.useFakeTimers();
     const client = new BackendSubscriptionClient("en");
 
     try {
-      client.connect(() => "token");
+      let token: string | null = null;
+      client.connect(() => token);
       client.subscribeToOAuthComplete(vi.fn());
 
+      expect(subscriptions).toHaveLength(0);
+
+      token = "token";
+      client.enableAuthenticatedSubscriptions();
       expect(subscriptions).toHaveLength(1);
+
       subscriptions[0].sink.complete();
 
       await vi.advanceTimersByTimeAsync(1_000);
@@ -246,6 +252,34 @@ describe("BackendSubscriptionClient auth recovery", () => {
       client.disconnect();
       vi.useRealTimers();
     }
+  });
+
+  it("does not recover authenticated subscriptions after JWT signature failure clears auth", async () => {
+    let token: string | null = "staging-token";
+    const refreshAuth = vi.fn(async () => {
+      token = null;
+      throw new Error("invalid signature");
+    });
+
+    const client = new BackendSubscriptionClient("en");
+    client.connect(() => token, { refreshAuth });
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToOAuthComplete(vi.fn());
+    client.subscribeToAdsOAuthComplete(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
+
+    expect(subscriptions).toHaveLength(2);
+
+    subscriptions[0].sink.error(new Error("invalid signature"));
+
+    await vi.waitFor(() => {
+      expect(refreshAuth).toHaveBeenCalledTimes(1);
+    });
+
+    client.subscribeToClientLogUploadRequests("device-1", vi.fn());
+
+    expect(subscriptions).toHaveLength(2);
+    client.disconnect();
   });
 
   it("does not recover a locally disposed operation during shop-id refresh", async () => {

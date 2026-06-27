@@ -223,3 +223,50 @@ describe("AuthSessionManager.requestCaptcha", () => {
     await expect(manager.requestCaptcha()).rejects.toThrow("Rate limited");
   });
 });
+
+describe("AuthSessionManager.refresh", () => {
+  let secretStore: SecretStore;
+  let fetchFn: ReturnType<typeof vi.fn>;
+  let manager: AuthSessionManager;
+
+  beforeEach(async () => {
+    secretStore = makeSecretStore();
+    fetchFn = vi.fn();
+    manager = new AuthSessionManager(secretStore, "en", fetchFn as unknown as typeof fetch);
+    await manager.storeTokens("stale-at", "stale-rt");
+  });
+
+  it("clears stored tokens when the refresh token belongs to a backend with a different JWT signature", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{ message: "invalid signature" }],
+      }),
+    });
+
+    await expect(manager.refresh()).rejects.toThrow("invalid signature");
+
+    expect(manager.getAccessToken()).toBeNull();
+    expect(manager.getCachedUser()).toBeNull();
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it("does not recursively refresh when the refresh mutation returns 401", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 401,
+      json: async () => ({
+        errors: [{ message: "Authentication required" }],
+      }),
+    });
+
+    await expect(manager.refresh()).rejects.toThrow("Authentication required");
+
+    expect(manager.getAccessToken()).toBeNull();
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+});
