@@ -747,6 +747,7 @@ export function mergeTerminalError(
 }
 
 const MESSAGE_DEDUPE_WINDOW_MS = 5 * 60_000;
+const IMAGE_MESSAGE_DEDUPE_WINDOW_MS = 10_000;
 
 function hasMessageImages(message: ChatMessage): boolean {
   return Array.isArray(message.images) && message.images.length > 0;
@@ -760,19 +761,70 @@ function normalizeMessageTextForDedupe(text: string): string {
   return cleanMessageText(text).replace(/\s+/g, " ").trim();
 }
 
+function stripImagePlaceholdersForDedupe(text: string): string {
+  return normalizeMessageTextForDedupe(
+    text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").replaceAll(IMAGE_PLACEHOLDER, ""),
+  );
+}
+
+function hasStrippedImagePlaceholder(message: ChatMessage): boolean {
+  return message.text.includes(IMAGE_EXPIRED_PLACEHOLDER);
+}
+
+function areMessageTimestampsNear(a: ChatMessage, b: ChatMessage, windowMs: number): boolean {
+  if (a.timestamp > 0 && b.timestamp > 0) {
+    return Math.abs(a.timestamp - b.timestamp) <= windowMs;
+  }
+  return true;
+}
+
+function haveSameImages(a: ChatMessage, b: ChatMessage): boolean {
+  if (!a.images || !b.images || a.images.length !== b.images.length) return false;
+  return a.images.every(
+    (image, index) =>
+      image.mimeType === b.images?.[index]?.mimeType && image.data === b.images[index]?.data,
+  );
+}
+
+function isDuplicateImageMessage(a: ChatMessage, b: ChatMessage): boolean {
+  if (!(hasMessageImages(a) || hasMessageImages(b))) return false;
+  const hasExpiredPlaceholder = hasStrippedImagePlaceholder(a) || hasStrippedImagePlaceholder(b);
+  if (!hasExpiredPlaceholder && !haveSameImages(a, b)) return false;
+  const aText = stripImagePlaceholdersForDedupe(a.text);
+  const bText = stripImagePlaceholdersForDedupe(b.text);
+  if (aText !== bText) return false;
+  if (a.channel && b.channel && a.channel !== b.channel) return false;
+  return areMessageTimestampsNear(a, b, IMAGE_MESSAGE_DEDUPE_WINDOW_MS);
+}
+
 function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
   if (isToolMessage(a) || isToolMessage(b)) return false;
   if (a.role !== b.role) return false;
-  if (hasMessageImages(a) || hasMessageImages(b)) return false;
   if (a.idempotencyKey && b.idempotencyKey) return a.idempotencyKey === b.idempotencyKey;
+  if (isDuplicateImageMessage(a, b)) return true;
+  if (hasMessageImages(a) || hasMessageImages(b)) return false;
   const aText = normalizeMessageTextForDedupe(a.text);
   const bText = normalizeMessageTextForDedupe(b.text);
   if (!aText || aText !== bText) return false;
   if (a.channel && b.channel && a.channel !== b.channel) return false;
-  if (a.timestamp > 0 && b.timestamp > 0) {
-    return Math.abs(a.timestamp - b.timestamp) <= MESSAGE_DEDUPE_WINDOW_MS;
-  }
-  return true;
+  return areMessageTimestampsNear(a, b, MESSAGE_DEDUPE_WINDOW_MS);
+}
+
+function mergeDuplicateMessage(existing: ChatMessage, incoming: ChatMessage): ChatMessage {
+  const existingHasImages = hasMessageImages(existing);
+  const incomingHasImages = hasMessageImages(incoming);
+  if (!existingHasImages && !incomingHasImages) return existing;
+
+  const withImages = existingHasImages ? existing : incoming;
+  const withoutExpiredText = stripImagePlaceholdersForDedupe(withImages.text);
+  return {
+    ...existing,
+    ...withImages,
+    text: withoutExpiredText || withImages.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim(),
+    images: withImages.images,
+    idempotencyKey: existing.idempotencyKey ?? incoming.idempotencyKey,
+    timestamp: existing.timestamp > 0 ? existing.timestamp : incoming.timestamp,
+  };
 }
 
 function messageSortTimestamp(message: ChatMessage): number {
@@ -802,12 +854,21 @@ export function mergeChatMessagesDedup(
     __order: index,
   }));
   for (const message of incoming) {
-    if (merged.some((existing) => areNearDuplicateMessages(existing, message))) {
+    const duplicateIndex = merged.findIndex((existing) =>
+      areNearDuplicateMessages(existing, message),
+    );
+    if (duplicateIndex !== -1) {
+      merged[duplicateIndex] = {
+        ...mergeDuplicateMessage(merged[duplicateIndex], message),
+        __order: merged[duplicateIndex].__order,
+      };
       continue;
     }
     merged.push({ ...message, __order: merged.length });
   }
-  return merged.sort(compareChatMessagesByTimeline).map(({ __order: _order, ...message }) => message);
+  return merged
+    .sort(compareChatMessagesByTimeline)
+    .map(({ __order: _order, ...message }) => message);
 }
 
 // ---------------------------------------------------------------------------
