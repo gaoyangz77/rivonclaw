@@ -579,6 +579,8 @@ app.whenReady().then(async () => {
     stateDir,
   });
 
+  await initialAuthBootstrapPromise;
+
   let merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
     sourceMerchantExtensionsDir: merchantExtensionsDir,
     stateDir,

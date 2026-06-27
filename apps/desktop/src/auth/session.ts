@@ -16,6 +16,14 @@ const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
 export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
 
+function isRecoverableAuthErrorMessage(message: string): boolean {
+  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
+}
+
+function isSessionInvalidErrorMessage(message: string): boolean {
+  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
+}
+
 export class AuthSessionManager {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
@@ -100,15 +108,24 @@ export class AuthSessionManager {
       throw new Error("No refresh token available");
     }
 
-    const result = await this.graphqlFetch<{ refreshToken: { accessToken: string; refreshToken: string; user: GQL.MeResponse } }>(
-      REFRESH_TOKEN_MUTATION,
-      { refreshToken: this.refreshToken },
-    );
+    try {
+      const result = await this.graphqlFetch<{ refreshToken: { accessToken: string; refreshToken: string; user: GQL.MeResponse } }>(
+        REFRESH_TOKEN_MUTATION,
+        { refreshToken: this.refreshToken },
+        { autoRefresh: false, includeAccessToken: false },
+      );
 
-    const payload = result.refreshToken;
-    await this.storeTokens(payload.accessToken, payload.refreshToken);
-    await this.setUser(payload.user);
-    return payload.accessToken;
+      const payload = result.refreshToken;
+      await this.storeTokens(payload.accessToken, payload.refreshToken);
+      await this.setUser(payload.user);
+      return payload.accessToken;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (isSessionInvalidErrorMessage(msg)) {
+        await this.clearTokens();
+      }
+      throw err;
+    }
   }
 
   /** Validate the current session by calling the ME query. */
@@ -126,9 +143,9 @@ export class AuthSessionManager {
       // Network errors (timeout, DNS, server 500) should NOT clear tokens — the user
       // may simply be offline or the server temporarily unavailable.
       const msg = err instanceof Error ? err.message : String(err);
-      const isAuthError = msg.includes("Not authenticated") || msg.includes("Authentication required") || msg.includes("Invalid token") || msg.includes("Token expired");
+      const isAuthError = isSessionInvalidErrorMessage(msg);
       if (isAuthError) {
-        log.error("validate: auth error, clearing tokens.", err);
+        log.error("JWT invalid for current backend; clearing stored auth session", { reason: msg });
         await this.clearTokens();
       } else {
         log.warn("validate: non-auth error, keeping tokens.", err);
@@ -179,10 +196,15 @@ export class AuthSessionManager {
   }
 
   /** Lightweight GraphQL fetch to the cloud backend. Public so config builder can use it. */
-  async graphqlFetch<T = unknown>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  async graphqlFetch<T = unknown>(
+    query: string,
+    variables?: Record<string, unknown>,
+    options?: { autoRefresh?: boolean; includeAccessToken?: boolean },
+  ): Promise<T> {
     const url = getGraphqlUrl(this.locale);
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (this.accessToken) {
+    const autoRefresh = options?.autoRefresh !== false;
+    if (options?.includeAccessToken !== false && this.accessToken) {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
 
@@ -195,7 +217,7 @@ export class AuthSessionManager {
     let res = await doFetch();
 
     let refreshed = false;
-    if (res.status === 401 && this.refreshToken) {
+    if (autoRefresh && res.status === 401 && this.refreshToken) {
       headers["Authorization"] = `Bearer ${await this.refresh()}`;
       refreshed = true;
       res = await doFetch();
@@ -205,9 +227,9 @@ export class AuthSessionManager {
 
     // Some servers return auth errors as GraphQL errors (HTTP 200) rather than HTTP 401.
     // Attempt a token refresh if we haven't already.
-    if (json.errors?.length && !refreshed && this.refreshToken) {
+    if (autoRefresh && json.errors?.length && !refreshed && this.refreshToken) {
       const msg = json.errors.map(e => e.message).join("; ");
-      if (/Not authenticated|Authentication required|Invalid token|Token expired/.test(msg)) {
+      if (isRecoverableAuthErrorMessage(msg)) {
         headers["Authorization"] = `Bearer ${await this.refresh()}`;
         res = await doFetch();
         json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
