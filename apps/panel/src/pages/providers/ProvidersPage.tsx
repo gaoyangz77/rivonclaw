@@ -24,8 +24,7 @@ const EXPIRY_WARNING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
  * ChatGPT subscription renewal date or short-lived access-token TTL.
  *
  * States:
- *   - null/undefined → optional gray "unknown" badge when the provider is known
- *     to have opaque refresh credentials; otherwise render nothing.
+ *   - null/undefined → render nothing (provider doesn't expose introspectable expiry)
  *   - expiresAt > now + 3 days → gray "Expires <date>"
  *   - 0 < expiresAt - now <= 3 days → red "Expires in N days" / "Expires today"
  *   - expiresAt <= now → red "Expired"
@@ -34,13 +33,8 @@ function renderExpiry(
   oauthExpiresAt: number | null | undefined,
   t: (key: string, options?: Record<string, unknown>) => string,
   locale: string,
-  options?: { showUnknown?: boolean },
 ): ReactElement | null {
-  if (oauthExpiresAt == null) {
-    return options?.showUnknown
-      ? <span className="key-expiry">{t("providers.tokenExpiryUnknown")}</span>
-      : null;
-  }
+  if (oauthExpiresAt == null) return null;
   const now = Date.now();
   const diff = oauthExpiresAt - now;
 
@@ -297,9 +291,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
                         {(k.authType === "local" || k.authType === "custom") && k.baseUrl && k.provider !== "rivonclaw-pro" && (
                           <span className="text-secondary text-sm">{k.baseUrl}</span>
                         )}
-                        {renderExpiry(k.oauthExpiresAt, t, i18n.language, {
-                          showUnknown: k.provider === "openai-codex" && k.authType === "oauth",
-                        })}
+                        {renderExpiry(k.oauthExpiresAt, t, i18n.language)}
                     </div>
                     {!isActive && (
                       <button

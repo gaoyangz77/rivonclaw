@@ -233,7 +233,6 @@ export default {
     "expiresInDays_other": "Expire dans les jours {{count}}",
     "expiresToday": "Expire aujourd'hui",
     "expired": "Expiré",
-    "tokenExpiryUnknown": "Expiration inconnue",
     "reauthModal": {
       "title": "Réauthentifier {{label}}",
       "intro": "Connectez-vous à nouveau pour alterner les informations d'identification OAuth pour cette clé. Votre étiquette, votre modèle et votre proxy sont conservés: seul le jeton stocké est remplacé.",

@@ -233,7 +233,6 @@ export default {
     "expiresInDays_other": "Kedaluwarsa dalam {{count}} hari",
     "expiresToday": "Kedaluwarsa hari ini",
     "expired": "Kedaluwarsa",
-    "tokenExpiryUnknown": "Kedaluwarsa tidak diketahui",
     "reauthModal": {
       "title": "Otentikasi ulang {{label}}",
       "intro": "Masuk lagi untuk merotasi kredensial OAuth untuk kunci ini. Label, model, dan proksi Anda dipertahankan — hanya token tersimpan yang diganti.",

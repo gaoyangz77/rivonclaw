@@ -243,7 +243,6 @@ export default {
     expiresInDays_other: "{{count}} 天后过期",
     expiresToday: "今日过期",
     expired: "已过期",
-    tokenExpiryUnknown: "有效期未知",
     reauthModal: {
       title: "重新认证 {{label}}",
       intro: "重新登录以更新此密钥的 OAuth 凭据。标签、模型和代理设置会保留，仅替换已存储的令牌。",
