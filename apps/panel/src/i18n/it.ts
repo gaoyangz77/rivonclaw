@@ -233,7 +233,6 @@ export default {
     "expiresInDays_other": "Scade tra {{count}} giorni",
     "expiresToday": "Scade oggi",
     "expired": "Scaduto",
-    "tokenExpiryUnknown": "Scadenza sconosciuta",
     "reauthModal": {
       "title": "Riautenticare {{label}}",
       "intro": "Accedi di nuovo per ruotare le credenziali OAuth per questa chiave. L'etichetta, il modello e il proxy vengono conservati: viene sostituito solo il token archiviato.",

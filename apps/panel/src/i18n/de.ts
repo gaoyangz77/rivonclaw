@@ -233,7 +233,6 @@ export default {
     "expiresInDays_other": "Läuft in {{count}} Tagen ab",
     "expiresToday": "Läuft heute ab",
     "expired": "Abgelaufen",
-    "tokenExpiryUnknown": "Ablauf unbekannt",
     "reauthModal": {
       "title": "Authentifizieren Sie {{label}} erneut",
       "intro": "Melden Sie sich erneut an, um die OAuth-Anmeldeinformationen für diesen Schlüssel zu rotieren. Ihr Label, Ihr Modell und Ihr Proxy bleiben erhalten – nur der gespeicherte Token wird ersetzt.",

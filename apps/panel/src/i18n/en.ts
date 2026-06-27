@@ -243,7 +243,6 @@ export default {
     expiresInDays_other: "Expires in {{count}} days",
     expiresToday: "Expires today",
     expired: "Expired",
-    tokenExpiryUnknown: "Expiry unknown",
     reauthModal: {
       title: "Re-authenticate {{label}}",
       intro: "Sign in again to rotate the OAuth credentials for this key. Your label, model, and proxy are preserved — only the stored token is replaced.",

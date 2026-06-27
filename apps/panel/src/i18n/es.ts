@@ -233,7 +233,6 @@ export default {
     "expiresInDays_other": "Vence en días {{count}}",
     "expiresToday": "Expira hoy",
     "expired": "Caducado",
-    "tokenExpiryUnknown": "Caducidad desconocida",
     "reauthModal": {
       "title": "Volver a autenticar {{label}}",
       "intro": "Inicie sesión nuevamente para rotar las credenciales OAuth para esta clave. Su etiqueta, modelo y proxy se conservan; solo se reemplaza el token almacenado.",
