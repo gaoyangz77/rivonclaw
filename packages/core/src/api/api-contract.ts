@@ -149,6 +149,7 @@ export const API = {
   "skills.bundledSlugs":     { method: "GET",    path: "/api/skills/bundled-slugs",       desc: "List bundled skill slugs" },
   "skills.installed":        { method: "GET",    path: "/api/skills/installed",           desc: "List installed skills" },
   "skills.install":          { method: "POST",   path: "/api/skills/install",             desc: "Install skill from registry" },
+  "skills.syncOfficialPresets": { method: "POST", path: "/api/skills/sync-official-presets", desc: "Sync official preset skills" },
   "skills.writeTemplate":    { method: "POST",   path: "/api/skills/write-template",      desc: "Write SKILL.md template" },
   "skills.delete":           { method: "POST",   path: "/api/skills/delete",              desc: "Delete installed skill" },
   "skills.openFolder":       { method: "POST",   path: "/api/skills/open-folder",         desc: "Open skills folder in file explorer" },

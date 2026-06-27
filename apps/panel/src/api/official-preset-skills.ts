@@ -1,5 +1,7 @@
 import { GQL } from "@rivonclaw/core";
+import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { getClient } from "./apollo-client.js";
+import { fetchJson } from "./client.js";
 import { fetchInstalledSkills, writeSkillTemplate } from "./skills.js";
 import { PRESET_SKILL_MANIFEST_QUERY, PRESET_SKILLS_QUERY } from "./shops-queries.js";
 
@@ -11,6 +13,12 @@ export interface OfficialPresetSkillSyncResult {
   current: number;
   skippedCustom: number;
   failed: number;
+}
+
+interface OfficialPresetSkillLocalSyncResponse {
+  ok: boolean;
+  result?: OfficialPresetSkillSyncResult;
+  error?: string;
 }
 
 function shouldWritePresetSkill(
@@ -31,7 +39,7 @@ function shouldWritePresetSkill(
   return "skip-custom";
 }
 
-export async function syncOfficialPresetSkills(
+async function syncOfficialPresetSkillsViaGraphql(
   mode: OfficialPresetSkillSyncMode = "safe",
 ): Promise<OfficialPresetSkillSyncResult> {
   const result: OfficialPresetSkillSyncResult = {
@@ -99,4 +107,23 @@ export async function syncOfficialPresetSkills(
   }
 
   return result;
+}
+
+export async function syncOfficialPresetSkills(
+  mode: OfficialPresetSkillSyncMode = "safe",
+): Promise<OfficialPresetSkillSyncResult> {
+  try {
+    const response = await fetchJson<OfficialPresetSkillLocalSyncResponse>(
+      clientPath(API["skills.syncOfficialPresets"]),
+      {
+        method: "POST",
+        body: JSON.stringify({ mode }),
+      },
+    );
+    if (response.result && response.ok) return response.result;
+  } catch {
+    // Older desktop builds do not expose the static-manifest sync endpoint yet.
+  }
+
+  return syncOfficialPresetSkillsViaGraphql(mode);
 }
