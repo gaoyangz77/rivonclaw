@@ -1402,12 +1402,6 @@ export default {
     "llmKeySuspended": "Suspendu",
     "quotaFiveHour": "Quota (5h)",
     "quotaWeekly": "Quota (hebdomadaire)",
-    "officialTemplatesTitle": "Modèles officiels",
-    "officialTemplatesDesc": "Restaure les derniers modèles officiels de skills e-commerce. Cette action remplace les modifications locales.",
-    "refreshOfficialTemplates": "Actualiser les modèles",
-    "refreshingOfficialTemplates": "Actualisation...",
-    "officialTemplatesRefreshSuccess": "Modèles officiels actualisés ({{count}} mis à jour).",
-    "officialTemplatesRefreshError": "Échec de l’actualisation des modèles officiels.",
     "quotaRefreshAt": "Actualisation à {{time}}"
   },
   "billing": {

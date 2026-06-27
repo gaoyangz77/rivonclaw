@@ -14,8 +14,6 @@ import { SurfacePresetModal } from "./components/SurfacePresetModal.js";
 import { RunProfilesSection } from "./components/RunProfilesSection.js";
 import { RunProfileFormModal } from "./components/RunProfileFormModal.js";
 import { RunProfilePresetModal } from "./components/RunProfilePresetModal.js";
-import { syncOfficialPresetSkills } from "../../api/official-preset-skills.js";
-import { useToast } from "../../components/Toast.js";
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
@@ -30,7 +28,6 @@ export const AccountPage = observer(function AccountPage({
   onNavigate: (path: string) => void;
 }) {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const resolveSystemName = useSystemName();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
@@ -58,9 +55,6 @@ export const AccountPage = observer(function AccountPage({
   // Read surfaces and run-profiles from MST store (auto-synced via SSE)
   const surfaces = entityStore.allSurfaces;
   const profiles = entityStore.allRunProfiles;
-
-  // ── Official skill template state ──
-  const [refreshingTemplates, setRefreshingTemplates] = useState(false);
 
   // ── Refresh tools state ──
   const [refreshingTools, setRefreshingTools] = useState(false);
@@ -91,21 +85,6 @@ export const AccountPage = observer(function AccountPage({
   function handleLogout() {
     entityStore.logout();
     onNavigate("/");
-  }
-
-  async function handleRefreshOfficialTemplates() {
-    setRefreshingTemplates(true);
-    try {
-      const result = await syncOfficialPresetSkills("force");
-      await entityStore.refreshToolSpecs();
-      showToast(t("account.officialTemplatesRefreshSuccess", {
-        count: result.installed + result.updated,
-      }));
-    } catch {
-      showToast(t("account.officialTemplatesRefreshError"), "error");
-    } finally {
-      setRefreshingTemplates(false);
-    }
   }
 
   if (authChecking) {
@@ -173,26 +152,6 @@ export const AccountPage = observer(function AccountPage({
         onEditProfile={profileForm.openEditProfile}
         onDeleteProfile={(id) => setConfirmDeleteProfileId(id)}
       />
-
-      {/* ── Official Templates ── */}
-      <div className="section-card official-templates-section">
-        <div className="acct-section-header">
-          <div>
-            <h3>{t("account.officialTemplatesTitle")}</h3>
-            <p className="acct-section-desc">{t("account.officialTemplatesDesc")}</p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => void handleRefreshOfficialTemplates()}
-            disabled={refreshingTemplates}
-          >
-            {refreshingTemplates
-              ? t("account.refreshingOfficialTemplates")
-              : t("account.refreshOfficialTemplates")}
-          </button>
-        </div>
-      </div>
 
       {/* ── Surface Modal ── */}
       <SurfaceFormModal
