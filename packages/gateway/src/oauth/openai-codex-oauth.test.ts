@@ -1,6 +1,11 @@
 import { createServer } from "node:http";
 import { describe, it, expect } from "vitest";
-import { extractCodexSubscriptionActiveUntilMs, startHybridCodexOAuthFlow } from "./openai-codex-oauth.js";
+import {
+  extractCodexSubscriptionActiveUntilMs,
+  extractJwtExpiresAtMs,
+  refreshCodexOAuthCredentials,
+  startHybridCodexOAuthFlow,
+} from "./openai-codex-oauth.js";
 
 /**
  * Build a fake 3-segment JWT whose payload is the given object, base64url-encoded.
@@ -67,6 +72,66 @@ describe("extractCodexSubscriptionActiveUntilMs", () => {
 
   it("returns undefined for an invalid base64/JSON payload", () => {
     expect(extractCodexSubscriptionActiveUntilMs("aaa.###.zzz")).toBeUndefined();
+  });
+});
+
+describe("extractJwtExpiresAtMs", () => {
+  it("returns ms since epoch for a standard exp claim", () => {
+    const token = buildIdToken({ exp: 1_776_318_706 });
+
+    expect(extractJwtExpiresAtMs(token)).toBe(1_776_318_706_000);
+  });
+
+  it("returns undefined when exp is missing", () => {
+    const token = buildIdToken({ email: "u@example.com" });
+
+    expect(extractJwtExpiresAtMs(token)).toBeUndefined();
+  });
+
+  it("returns undefined when exp is not a positive number", () => {
+    expect(extractJwtExpiresAtMs(buildIdToken({ exp: "1776318706" }))).toBeUndefined();
+    expect(extractJwtExpiresAtMs(buildIdToken({ exp: 0 }))).toBeUndefined();
+  });
+
+  it("returns undefined for malformed tokens", () => {
+    expect(extractJwtExpiresAtMs("not-a-jwt")).toBeUndefined();
+    expect(extractJwtExpiresAtMs("")).toBeUndefined();
+  });
+});
+
+describe("refreshCodexOAuthCredentials", () => {
+  it("persists the refresh token exp instead of the ChatGPT subscription expiry", async () => {
+    const refreshExpiresAtSec = 1_900_000_000;
+    const subscriptionExpiresAt = "2026-05-15T21:39:45+00:00";
+    const stored = new Map<string, string>();
+    const result = await refreshCodexOAuthCredentials(
+      "key-1",
+      {
+        access: buildIdToken({ exp: 1_800_000_000 }),
+        refresh: buildIdToken({ exp: 1_700_000_000 }),
+        expires: 1_800_000_000_000,
+        accountId: "account-1",
+      },
+      {
+        set: async (key, value) => {
+          stored.set(key, value);
+        },
+      },
+      async () => new Response(JSON.stringify({
+        access_token: buildIdToken({ exp: 1_800_000_000 }),
+        refresh_token: buildIdToken({ exp: refreshExpiresAtSec }),
+        expires_in: 3600,
+        id_token: buildIdToken({
+          "https://api.openai.com/auth": {
+            chatgpt_subscription_active_until: subscriptionExpiresAt,
+          },
+        }),
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    expect(result.oauthExpiresAt).toBe(refreshExpiresAtSec * 1000);
+    expect(result.oauthExpiresAt).not.toBe(Date.parse(subscriptionExpiresAt));
+    expect(stored.get("oauth-cred-key-1")).toContain(`"accountId":"account-1"`);
   });
 });
 

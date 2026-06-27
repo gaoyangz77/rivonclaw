@@ -346,23 +346,17 @@ export async function validateCodexAccessToken(
   }
 }
 
-const ID_TOKEN_CAPTURE_TIMEOUT_MS = 8000;
+const TOKEN_REFRESH_TIMEOUT_MS = 8000;
 
 /**
- * Exchange a refresh token for a fresh token bundle that includes `id_token`.
- *
- * Why this exists: pi-ai's `loginOpenAICodex` / refresh helpers discard the
- * `id_token` from OpenAI's token response. The id_token is the only place
- * the `chatgpt_subscription_active_until` claim appears (not in access_token;
- * refresh_token is opaque). Without it the Providers UI has no signal to
- * display "subscription expires on ...".
+ * Exchange a refresh token for a fresh token bundle.
  *
  * IMPORTANT: this call rotates the refresh_token on OpenAI's side — the
  * returned `refresh_token` is v2; the caller's original refresh_token is now
  * invalid. Caller must persist the rotated creds atomically with the expiry.
  *
  * Returns `undefined` on any error so the caller can fall through to storing
- * pi-ai's original credentials (best effort — subscription expiry won't show,
+ * pi-ai's original credentials (best effort — token expiry may not show,
  * OAuth main flow still works unless OpenAI finished the rotation before our
  * response read failed, in which case the user's next LLM turn will 401 and
  * they'll need to Re-authenticate).
@@ -370,9 +364,8 @@ const ID_TOKEN_CAPTURE_TIMEOUT_MS = 8000;
 /**
  * Discriminated capture result.
  *
- *   `success` — token endpoint returned a usable bundle. Subscription expiry
- *     may still be undefined if the id_token was absent / unparseable, but
- *     OAuth state is consistent (the rotated v2 tokens ARE the stored state).
+ *   `success` — token endpoint returned a usable bundle. OAuth state is
+ *     consistent (the rotated v2 tokens ARE the stored state).
  *   `failed` — the extra call failed network-/HTTP-wise. We persist pi-ai's
  *     original v1 creds. There is a **narrow race window** here: if OpenAI
  *     server-side rotated to v2 before our response read failed, v1 is now
@@ -386,7 +379,6 @@ type IdTokenCaptureResult =
       access: string;
       refresh: string;
       expiresMs: number;
-      subscriptionActiveUntilMs: number | undefined;
     }
   | { kind: "failed" };
 
@@ -395,7 +387,7 @@ async function captureIdTokenViaRefresh(
   fetchFn: typeof fetch,
 ): Promise<IdTokenCaptureResult> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ID_TOKEN_CAPTURE_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), TOKEN_REFRESH_TIMEOUT_MS);
   try {
     // Routed through the caller-supplied fetch — `auth.openai.com` is blocked
     // in several regions and must go via proxy-router / system proxy.
@@ -412,7 +404,7 @@ async function captureIdTokenViaRefresh(
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       log.warn(
-        `Codex id_token capture: token endpoint returned ${res.status} ${res.statusText}: ${body.slice(0, 200)}`,
+        `Codex token refresh: token endpoint returned ${res.status} ${res.statusText}: ${body.slice(0, 200)}`,
       );
       return { kind: "failed" };
     }
@@ -427,22 +419,18 @@ async function captureIdTokenViaRefresh(
       typeof body.refresh_token !== "string" ||
       typeof body.expires_in !== "number"
     ) {
-      log.warn("Codex id_token capture: response missing required fields");
+      log.warn("Codex token refresh: response missing required fields");
       return { kind: "failed" };
     }
-    const subscriptionActiveUntilMs = body.id_token
-      ? extractCodexSubscriptionActiveUntilMs(body.id_token)
-      : undefined;
     return {
       kind: "success",
       access: body.access_token,
       refresh: body.refresh_token,
       expiresMs: Date.now() + body.expires_in * 1000,
-      subscriptionActiveUntilMs,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    log.warn(`Codex id_token capture failed: ${msg}`);
+    log.warn(`Codex token refresh failed: ${msg}`);
     return { kind: "failed" };
   } finally {
     clearTimeout(timer);
@@ -466,18 +454,31 @@ export function extractCodexSubscriptionActiveUntilMs(idToken: string): number |
 }
 
 /**
+ * Extract the expiry of a JWT token itself from its standard `exp` claim.
+ * OpenAI Codex refresh tokens may be opaque; when they are not parseable JWTs,
+ * return undefined and let the UI report the credential expiry as unknown.
+ */
+export function extractJwtExpiresAtMs(token: string): number | undefined {
+  const payload = decodeJwtPayload(token);
+  const exp = payload?.exp;
+  if (typeof exp !== "number" || !Number.isFinite(exp) || exp <= 0) {
+    return undefined;
+  }
+  return exp * 1000;
+}
+
+/**
  * Write OAuth credentials for an existing Codex key — overwrite the keychain
  * credential JSON in place. Does NOT touch the provider_keys row's
  * label/model/isDefault/proxy; only the stored credential is rotated.
  *
- * Side effect: attempts to capture the id_token by calling OpenAI's token
- * endpoint once with the refresh_token. OpenAI rotates the refresh_token on
- * that call, so the persisted credentials are v2 (not pi-ai's original v1).
- * If the capture fails, we fall back to pi-ai's original credentials and the
- * caller won't see a subscription expiry in the UI.
+ * Side effect: calls OpenAI's token endpoint once with the refresh_token.
+ * OpenAI rotates the refresh_token on that call, so the persisted credentials
+ * are v2 (not pi-ai's original v1). If the exchange fails, we fall back to
+ * pi-ai's original credentials.
  *
- * Returns the subscription-active-until timestamp (ms since epoch) so the
- * caller can persist it on the row as `oauth_expires_at`.
+ * Returns the refresh-token expiry timestamp (ms since epoch) so the caller can
+ * persist it on the row as `oauth_expires_at`.
  *
  * Used by both:
  *   - `saveCodexOAuthCredentials` (fresh key creation) — for the credential write step
@@ -503,16 +504,15 @@ export async function refreshCodexOAuthCredentials(
       : credentials;
   await secretStore.set(`oauth-cred-${keyId}`, JSON.stringify(effectiveCreds));
 
-  const oauthExpiresAt =
-    captured.kind === "success" ? captured.subscriptionActiveUntilMs : undefined;
+  const oauthExpiresAt = extractJwtExpiresAtMs(effectiveCreds.refresh);
   const idTokenCaptureFailed = captured.kind === "failed";
   log.info(
     `Wrote Codex OAuth credentials for key ${keyId}` +
       (oauthExpiresAt
-        ? `, subscription active until ${new Date(oauthExpiresAt).toISOString()}`
+        ? `, refresh token expires at ${new Date(oauthExpiresAt).toISOString()}`
         : idTokenCaptureFailed
-          ? " (id_token capture failed — v1 creds persisted; may 401 if OpenAI rotated mid-flight)"
-          : " (subscription expiry unavailable)"),
+          ? " (refresh exchange failed — v1 creds persisted; may 401 if OpenAI rotated mid-flight)"
+          : " (refresh token expiry unavailable)"),
   );
   return { oauthExpiresAt, idTokenCaptureFailed };
 }
@@ -538,7 +538,7 @@ export async function saveCodexOAuthCredentials(
     proxyCredentials?: string | null;
     label?: string;
     model?: string;
-    /** Proxy-aware fetch used for the id_token capture step. Defaults to the
+    /** Proxy-aware fetch used for the token refresh step. Defaults to the
      * global `fetch` — callers in Desktop should pass `proxyNetwork.fetch` so
      * blocked-region users reach `auth.openai.com`. */
     fetchFn?: typeof fetch;
@@ -548,7 +548,7 @@ export async function saveCodexOAuthCredentials(
   const model = options?.model || "gpt-5.5";
   const id = randomUUID();
 
-  // Store credential JSON in Keychain + derive refresh-token expiry
+  // Store credential JSON in Keychain + derive refresh-token expiry.
   const { oauthExpiresAt } = await refreshCodexOAuthCredentials(
     id,
     credentials,

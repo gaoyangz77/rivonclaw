@@ -498,6 +498,20 @@ app.whenReady().then(async () => {
     return best;
   }
 
+  function findLatestManualCompletableFlow(
+    flows: Map<string, PendingOAuthFlow>,
+    provider: string,
+  ): { flowId: string; flow: PendingOAuthFlow } | undefined {
+    let best: { flowId: string; flow: PendingOAuthFlow } | undefined;
+    for (const [flowId, flow] of flows) {
+      if (flow.provider !== provider || (flow.status !== "pending" && flow.status !== "completed")) continue;
+      if (!best || flow._createdAt > best.flow._createdAt) {
+        best = { flowId, flow };
+      }
+    }
+    return best;
+  }
+
   // Clean up abandoned OAuth flows every 5 minutes
   setInterval(() => {
     const now = Date.now();
@@ -1285,19 +1299,11 @@ app.whenReady().then(async () => {
       return { email: undefined, tokenPreview: "", manualMode: true, authUrl: hybrid.authUrl, flowId };
     },
     onOAuthManualComplete: async (provider: string, callbackUrl: string) => {
-      // Find the pending flow for this provider
-      let flowId: string | undefined;
-      let flow: PendingOAuthFlow | undefined;
-      for (const [id, f] of pendingOAuthFlows) {
-        if (f.provider === provider && (f.status === "pending" || f.status === "completed")) {
-          flowId = id;
-          flow = f;
-          break;
-        }
-      }
-      if (!flow || !flowId) {
+      const picked = findLatestManualCompletableFlow(pendingOAuthFlows, provider);
+      if (!picked) {
         throw new Error("No pending OAuth flow. Please start the sign-in process first.");
       }
+      const { flowId, flow } = picked;
 
       // Auto-callback already completed — return its result directly
       if (flow.status === "completed" && flow.creds) {
@@ -1450,7 +1456,7 @@ app.whenReady().then(async () => {
       let idTokenCaptureFailed = false;
       if (entry.provider === "openai-codex") {
         const codexCreds = flow.creds as AcquiredCodexOAuthCredentials;
-        // Thread proxyNetwork.fetch so id_token capture (hits auth.openai.com)
+        // Thread proxyNetwork.fetch so the refresh exchange (hits auth.openai.com)
         // respects per-key / system proxies for users in blocked regions.
         // Narrow cast (see saveCodexOAuthCredentials call above for rationale).
         ({ oauthExpiresAt, idTokenCaptureFailed } = await refreshCodexOAuthCredentials(
@@ -1473,7 +1479,7 @@ app.whenReady().then(async () => {
           throw new Error(validation.error || "Token validation failed");
         }
         ({ oauthExpiresAt } = await refreshGeminiOAuthCredentials(keyId, geminiCreds.credentials, secretStore));
-        // Gemini has no id_token capture step — `idTokenCaptureFailed` stays false.
+        // Gemini refresh tokens are opaque — `idTokenCaptureFailed` stays false.
       }
 
       // Persist the new expiry on the existing row. Pass `null` (not undefined)
@@ -1499,7 +1505,7 @@ app.whenReady().then(async () => {
 
       log.info(
         `Re-authenticated OAuth key ${keyId} (${entry.provider})` +
-          (idTokenCaptureFailed ? " [id_token capture failed]" : ""),
+          (idTokenCaptureFailed ? " [token refresh failed]" : ""),
       );
       return { ok: true, idTokenCaptureFailed };
     },

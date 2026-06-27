@@ -52,8 +52,8 @@ export const ProviderKeyModel = ProviderKeyModelBase.actions((self) => ({
    * tells Desktop to consume the completed flow and rotate the stored credential
    * on THIS key in place — no new row, no change to label/model/isDefault/proxy.
    *
-   * The updated row (with refreshed `oauthExpiresAt` / `updatedAt`) flows back
-   * via SSE patch; observers re-render automatically.
+   * The updated row (with refreshed token-expiry metadata in `oauthExpiresAt`
+   * / `updatedAt`) flows back via SSE patch; observers re-render automatically.
    *
    * Returns `idTokenCaptureFailed`: when true, the Desktop attempted but
    * couldn't capture the id_token (network / HTTP error). OAuth state may be

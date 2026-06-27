@@ -233,6 +233,7 @@ export default {
     "expiresInDays_other": "Läuft in {{count}} Tagen ab",
     "expiresToday": "Läuft heute ab",
     "expired": "Abgelaufen",
+    "tokenExpiryUnknown": "Ablauf unbekannt",
     "reauthModal": {
       "title": "Authentifizieren Sie {{label}} erneut",
       "intro": "Melden Sie sich erneut an, um die OAuth-Anmeldeinformationen für diesen Schlüssel zu rotieren. Ihr Label, Ihr Modell und Ihr Proxy bleiben erhalten – nur der gespeicherte Token wird ersetzt.",
@@ -246,11 +247,12 @@ export default {
       "callbackHelp_openai-codex": "Nachdem Sie sich mit ChatGPT angemeldet haben, kopieren Sie die vollständige Weiterleitung URL aus der Adressleiste Ihres Browsers und fügen Sie sie hier ein.",
       "completeSignIn": "Schließen Sie die Anmeldung ab",
       "confirm": "Bestätigen Sie die erneute Authentifizierung",
-      "tokenReady": "Neuer OAuth-Token bereit. Bestätigen Sie, um die gespeicherten Anmeldeinformationen zu rotieren.",
+      "tokenReady": "Neuer OAuth-Token bereit. Sie können das Rotieren der gespeicherten Anmeldeinformationen erneut versuchen.",
+      "autoSaving": "Autorisiert. Gespeicherte Anmeldeinformationen werden automatisch rotiert…",
       "starting": "Beginnend mit …",
       "rotating": "Rotierender Ausweis…",
       "cancel": "Abbrechen",
-      "captureWarning": "Token wurde rotiert, aber wir konnten den Ablauf des Abonnements nicht lesen. Wenn Ihre nächste Anfrage fehlschlägt, authentifizieren Sie sich bitte erneut."
+      "captureWarning": "Token wurde rotiert, aber wir konnten den Token-Ablauf nicht lesen. Wenn Ihre nächste Anfrage fehlschlägt, authentifizieren Sie sich bitte erneut."
     },
     "modelLabel": "Modell",
     "labelPlaceholder": "Etikett (optional)",

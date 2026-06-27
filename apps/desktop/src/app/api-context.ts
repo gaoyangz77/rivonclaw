@@ -39,7 +39,7 @@ export interface ApiContext {
    */
   /**
    * `idTokenCaptureFailed` is `true` when the post-OAuth token-endpoint call
-   * (used to capture id_token → subscription expiry) failed. Panel uses this
+   * (used to rotate/read the refresh-token expiry) failed. Panel uses this
    * to warn the user about a narrow OAuth server-side rotation race.
    */
   onOAuthReauth?: (keyId: string) => Promise<{ ok: true; idTokenCaptureFailed: boolean }>;

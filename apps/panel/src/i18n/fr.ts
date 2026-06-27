@@ -233,6 +233,7 @@ export default {
     "expiresInDays_other": "Expire dans les jours {{count}}",
     "expiresToday": "Expire aujourd'hui",
     "expired": "Expiré",
+    "tokenExpiryUnknown": "Expiration inconnue",
     "reauthModal": {
       "title": "Réauthentifier {{label}}",
       "intro": "Connectez-vous à nouveau pour alterner les informations d'identification OAuth pour cette clé. Votre étiquette, votre modèle et votre proxy sont conservés: seul le jeton stocké est remplacé.",
@@ -246,11 +247,12 @@ export default {
       "callbackHelp_openai-codex": "Après vous être connecté avec ChatGPT, copiez la redirection complète URL depuis la barre d'adresse de votre navigateur et collez-la ici.",
       "completeSignIn": "Terminer la connexion",
       "confirm": "Confirmer la réauthentification",
-      "tokenReady": "Nouveau jeton OAuth prêt. Confirmez pour faire pivoter les informations d'identification stockées.",
+      "tokenReady": "Nouveau jeton OAuth prêt. Vous pouvez réessayer de faire pivoter les informations d'identification stockées.",
+      "autoSaving": "Autorisé. Rotation automatique des informations d'identification stockées…",
       "starting": "Commencer…",
       "rotating": "Titre tournant…",
       "cancel": "Annuler",
-      "captureWarning": "Le jeton a effectué une rotation, mais nous n'avons pas pu lire l'expiration de l'abonnement. Si votre prochaine demande échoue, veuillez vous réauthentifier à nouveau."
+      "captureWarning": "Le jeton a effectué une rotation, mais nous n'avons pas pu lire l'expiration du jeton. Si votre prochaine demande échoue, veuillez vous réauthentifier à nouveau."
     },
     "modelLabel": "Modèle",
     "labelPlaceholder": "Étiquette (facultatif)",

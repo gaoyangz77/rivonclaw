@@ -13,9 +13,9 @@ import { useToast } from "../../../components/Toast.js";
  *      and registers a pending flow on Desktop.
  *   2. Either the auto-callback completes (polled via `pollOAuthStatus`) OR the
  *      user pastes the redirect URL and we call `completeManualOAuth`.
- *   3. When a token is ready, the user clicks "Confirm" which calls the key's
- *      `reauth()` MST action → Desktop rotates the stored credential in place
- *      and pushes the updated row back via SSE.
+ *   3. As soon as a token is ready, call the key's `reauth()` MST action.
+ *      Desktop rotates the stored credential in place and pushes the updated
+ *      row back via SSE.
  *
  * Unlike the initial-setup OAuthProviderForm, this modal intentionally omits
  * label/model/proxy inputs — those are preserved from the existing row.
@@ -38,6 +38,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
   const [submitting, setSubmitting] = useState(false);
   const [manualLoading, setManualLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finalizingRef = useRef(false);
 
   // Reset all local state on open/close or key change
   useEffect(() => {
@@ -48,6 +49,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
     setTokenReady(false);
     setSubmitting(false);
     setManualLoading(false);
+    finalizingRef.current = false;
     return stopPolling;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyId]);
@@ -73,7 +75,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
             const status = await store.pollOAuthStatus(result.flowId!);
             if (status.status === "completed") {
               stopPolling();
-              setTokenReady(true);
+              await finalizeReauth();
             } else if (status.status === "failed") {
               stopPolling();
               showToast(
@@ -99,7 +101,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
     setManualLoading(true);
     try {
       await store.completeManualOAuth(key.provider, callbackUrl.trim());
-      setTokenReady(true);
+      await finalizeReauth();
     } catch (err) {
       showToast(t("providers.oauthFailed") + String(err), "error");
     } finally {
@@ -108,12 +110,19 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
   }
 
   async function handleConfirm() {
-    if (!key) return;
+    await finalizeReauth();
+  }
+
+  async function finalizeReauth() {
+    if (!key || finalizingRef.current) return;
+    finalizingRef.current = true;
+    stopPolling();
+    setTokenReady(true);
     setSubmitting(true);
     try {
       const result = await key.reauth();
       showToast(t("common.saved"), "success");
-      // Narrow warning: the id_token capture step failed, so OAuth state MAY
+      // Narrow warning: the refresh-token exchange failed, so OAuth state MAY
       // be server-side-rotated past our last successful read. The key likely
       // still works, but if the next LLM call 401s, the user should Re-auth
       // again. We surface this with a longer-duration warning toast so they
@@ -123,6 +132,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
       }
       onClose();
     } catch (err) {
+      finalizingRef.current = false;
       showToast(t("providers.failedToSave") + String(err), "error");
     } finally {
       setSubmitting(false);
@@ -226,20 +236,23 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
       {tokenReady && (
         <div className="mb-sm">
           <div className="info-box info-box-green">
-            {t("providers.reauthModal.tokenReady")}
+            {submitting
+              ? t("providers.reauthModal.autoSaving", { defaultValue: t("providers.reauthModal.rotating") })
+              : t("providers.reauthModal.tokenReady")}
           </div>
-          <div className="form-actions">
-            <button
-              className="btn btn-primary"
-              onClick={handleConfirm}
-              disabled={submitting}
-            >
-              {submitting ? t("providers.reauthModal.rotating") : t("providers.reauthModal.confirm")}
-            </button>
-            <button className="btn btn-secondary" onClick={handleClose} disabled={submitting}>
-              {t("providers.reauthModal.cancel")}
-            </button>
-          </div>
+          {!submitting && (
+            <div className="form-actions">
+              <button
+                className="btn btn-primary"
+                onClick={handleConfirm}
+              >
+                {t("providers.reauthModal.confirm")}
+              </button>
+              <button className="btn btn-secondary" onClick={handleClose}>
+                {t("providers.reauthModal.cancel")}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </Modal>

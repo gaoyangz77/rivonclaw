@@ -20,9 +20,9 @@ export interface ProviderKeyEntry {
   inputModalities?: string[] | null;
   /** Origin of this key: "local" for user-managed, "cloud" for Pro subscription keys. */
   source?: "local" | "cloud";
-  /** Refresh-token expiry (ms since epoch) for OAuth subscription keys where the
-   *  token is introspectable (e.g. openai-codex JWT). Undefined for keys where
-   *  expiry is opaque (e.g. Gemini) or the key is not OAuth. Null when the row
+  /** OAuth credential expiry (ms since epoch) where the provider exposes it.
+   *  For OpenAI Codex this is the refresh token's JWT `exp` claim. Undefined
+   *  for opaque providers (e.g. Gemini) or non-OAuth keys. Null when the row
    *  was created before this column existed. */
   oauthExpiresAt?: number | null;
   createdAt: string;
