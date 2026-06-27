@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { buildCsAgentDispatchSystemPrompt } from "./cs-agent-dispatch-resolver.js";
 
 describe("buildCsAgentDispatchSystemPrompt", () => {
+  it("requires pending buyer-message dispatches to send a buyer-facing reply", () => {
+    const prompt = buildCsAgentDispatchSystemPrompt("PENDING_BUYER_MESSAGE");
+
+    expect(prompt).toContain("MUST produce a buyer-facing reply");
+    expect(prompt).toContain("instead of finishing silently");
+    expect(prompt).toContain("unless you intentionally end the session");
+  });
+
   it("allows expiring escalation dispatches to dismiss resolved escalations before ending the session", () => {
     const prompt = buildCsAgentDispatchSystemPrompt("SESSION_EXPIRING_ESCALATION_FOLLOW_UP");
 
