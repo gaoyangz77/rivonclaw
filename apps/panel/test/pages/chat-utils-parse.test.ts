@@ -24,7 +24,7 @@ const EXEC_COMPLETION_EVENT = [
 
 const EXEC_COMPLETION_EVENT_GMT_OFFSET = [
   "System (untrusted): [2026-04-30 20:05:30 GMT+8] Exec completed (quiet-lo, code 0) :: Requirement already satisfied: six>=1.5",
-  "System (untrusted): [2026-04-30 20:07:40 GMT+8] Exec completed (brisk-bi, code 0) :: {\"sellerSku\":\"14KGold-Rope-6-26\"}",
+  'System (untrusted): [2026-04-30 20:07:40 GMT+8] Exec completed (brisk-bi, code 0) :: {"sellerSku":"14KGold-Rope-6-26"}',
   "",
   "An async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.",
 ].join("\n");
@@ -455,5 +455,83 @@ describe("mergeChatMessagesDedup", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].text).toBe("不用啦。");
+  });
+
+  it("dedupes matching image messages by idempotencyKey and keeps the real image", () => {
+    const history: ChatMessage[] = [
+      {
+        role: "user",
+        text: `你能看到图片吗？\n${IMAGE_EXPIRED_PLACEHOLDER}`,
+        timestamp: 10_100,
+        idempotencyKey: "image-send-1",
+      },
+    ];
+    const realtime: ChatMessage[] = [
+      {
+        role: "user",
+        text: "你能看到图片吗？",
+        timestamp: 10_000,
+        idempotencyKey: "image-send-1",
+        images: [{ data: "base64-cat", mimeType: "image/png" }],
+      },
+    ];
+
+    const result = mergeChatMessagesDedup(history, realtime);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("你能看到图片吗？");
+    expect(result[0].images).toEqual([{ data: "base64-cat", mimeType: "image/png" }]);
+  });
+
+  it("dedupes a stripped image history message against an optimistic image message", () => {
+    const history: ChatMessage[] = [
+      {
+        role: "user",
+        text: `你能看到图片吗？\n${IMAGE_EXPIRED_PLACEHOLDER}`,
+        timestamp: 10_100,
+      },
+    ];
+    const realtime: ChatMessage[] = [
+      {
+        role: "user",
+        text: "你能看到图片吗？",
+        timestamp: 10_000,
+        images: [{ data: "base64-cat", mimeType: "image/png" }],
+      },
+    ];
+
+    const result = mergeChatMessagesDedup(history, realtime);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("你能看到图片吗？");
+    expect(result[0].images).toEqual([{ data: "base64-cat", mimeType: "image/png" }]);
+  });
+
+  it("dedupes restored history images against optimistic image messages", () => {
+    const image = { data: "base64-glasses", mimeType: "image/png" };
+    const history: ChatMessage[] = [
+      {
+        role: "user",
+        text: "你能看到图片吗？",
+        timestamp: 10_100,
+        images: [image],
+      },
+    ];
+    const realtime: ChatMessage[] = [
+      {
+        role: "user",
+        text: "你能看到图片吗？",
+        timestamp: 10_000,
+        idempotencyKey: "image-send-2",
+        images: [image],
+      },
+    ];
+
+    const result = mergeChatMessagesDedup(history, realtime);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("你能看到图片吗？");
+    expect(result[0].idempotencyKey).toBe("image-send-2");
+    expect(result[0].images).toEqual([image]);
   });
 });
