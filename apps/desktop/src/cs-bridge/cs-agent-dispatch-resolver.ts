@@ -155,6 +155,8 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
       return [
         "A buyer may be waiting for a response in this conversation.",
         "Treat this dispatch as buyer-message handling: identify the latest buyer-side request, verify the current platform conversation state, and respond only after you understand what the buyer actually needs.",
+        "This dispatch MUST produce a buyer-facing reply unless you intentionally end the session with ecom_cs_end_session.",
+        "If the buyer's latest message needs no substantive answer, still send a brief acknowledgement in the buyer's language instead of finishing silently.",
         "WARNING: there may have been messages exchanged since your last interaction that you did not receive.",
         "You MUST call ecom_cs_get_conversation_messages before sending a buyer-facing response unless this run includes a complete conversation delta in the prompt.",
         "If you create or update an escalation, you still MUST send a concise buyer-facing status reply in this same run unless you intentionally end the session.",
