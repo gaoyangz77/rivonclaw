@@ -1,4 +1,4 @@
-From 08af009335602efac15a5895f4d68fda127f98fe Mon Sep 17 00:00:00 2001
+From b51654c76b181bab8a34814c27cb86bd000e1afd Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 27 Jun 2026 17:59:11 -0700
 Subject: [PATCH] vendor(openclaw): add cpu debugging diagnostics
@@ -203,14 +203,14 @@ index 6d96316bcc..705af38b3e 100644
    }
 diff --git a/src/logging/cpu-debugging.ts b/src/logging/cpu-debugging.ts
 new file mode 100644
-index 0000000000..fba14f4392
+index 0000000000..e658ab230d
 --- /dev/null
 +++ b/src/logging/cpu-debugging.ts
 @@ -0,0 +1,12 @@
 +export function isCpuDebuggingEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 +  const raw = env.CPU_DEBUGGING ?? env.RIVONCLAW_CPU_DEBUGGING;
-+  if (!raw) {
-+    return false;
++  if (raw === undefined) {
++    return true;
 +  }
 +  const normalized = raw.trim().toLowerCase();
 +  return normalized !== "" && normalized !== "0" && normalized !== "false" && normalized !== "off";
@@ -474,7 +474,7 @@ index 65db6574ab..c36c9133c4 100644
      }
 diff --git a/src/tasks/task-registry.cpu-debugging.e2e.test.ts b/src/tasks/task-registry.cpu-debugging.e2e.test.ts
 new file mode 100644
-index 0000000000..8c11bc5967
+index 0000000000..93486a143c
 --- /dev/null
 +++ b/src/tasks/task-registry.cpu-debugging.e2e.test.ts
 @@ -0,0 +1,78 @@
@@ -499,8 +499,8 @@ index 0000000000..8c11bc5967
 +  beforeEach(async () => {
 +    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-cpu-debug-e2e-"));
 +    logPath = path.join(tempDir, "openclaw-cpu-debug.log");
-+    process.env.CPU_DEBUGGING = "1";
-+    process.env.RIVONCLAW_CPU_DEBUGGING = "1";
++    delete process.env.CPU_DEBUGGING;
++    delete process.env.RIVONCLAW_CPU_DEBUGGING;
 +    resetLogger();
 +    setLoggerOverride({ level: "warn", consoleLevel: "silent", file: logPath });
 +    resetTaskRegistryForTests({ persist: false });
@@ -528,7 +528,7 @@ index 0000000000..8c11bc5967
 +    logPath = undefined;
 +  });
 +
-+  it("emits sampled task inspection diagnostics through the real file logger", async () => {
++  it("emits sampled task inspection diagnostics by default through the real file logger", async () => {
 +    const now = Date.now();
 +    createTaskRecord({
 +      runtime: "cli",

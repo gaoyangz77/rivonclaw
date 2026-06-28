@@ -10,10 +10,12 @@ describe("vendor patch: CPU debugging diagnostics", () => {
 
   const patch = readFileSync(patchPath, "utf-8");
 
-  it("keeps diagnostics behind an explicit CPU debugging switch", () => {
+  it("keeps diagnostics enabled by default with an explicit off switch", () => {
     expect(patch).toContain("CPU_DEBUGGING");
     expect(patch).toContain("RIVONCLAW_CPU_DEBUGGING");
     expect(patch).toContain("+export function isCpuDebuggingEnabled");
+    expect(patch).toContain("+  if (raw === undefined) {");
+    expect(patch).toContain("+    return true;");
   });
 
   it("logs stale model-call details and recovery ineligibility", () => {
@@ -33,7 +35,7 @@ describe("vendor patch: CPU debugging diagnostics", () => {
   it("carries an e2e proof that CPU debug output reaches file logs", () => {
     expect(patch).toContain("src/tasks/task-registry.cpu-debugging.e2e.test.ts");
     expect(patch).toContain(
-      "emits sampled task inspection diagnostics through the real file logger",
+      "emits sampled task inspection diagnostics by default through the real file logger",
     );
     expect(patch).toContain("runId=cpu-debug-e2e-run");
   });
