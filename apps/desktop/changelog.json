@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.49",
+    "date": "2026-06-28",
+    "en": [
+      "Reduce customer-service session churn and require pending dispatch replies before forwarding",
+      "Recover backend subscriptions after invalid JWT responses so desktop update and realtime channels stay connected",
+      "Clean up duplicate chat image bubbles and OAuth token expiry display"
+    ],
+    "zh": [
+      "降低客服会话抖动，并要求待派发回复就绪后再转发",
+      "在 JWT 失效后自动恢复后端订阅，确保桌面更新和实时通道保持连接",
+      "修复聊天图片重复气泡和 OAuth token 过期时间展示问题"
+    ]
+  },
+  {
     "version": "1.8.47",
     "date": "2026-06-26",
     "en": [
