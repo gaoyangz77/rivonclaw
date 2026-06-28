@@ -115,8 +115,24 @@ beforeEach(() => {
   // The simplified SEND_MESSAGE_MUTATION no longer carries a usage payload —
   // the only GraphQL call is the send itself.
   mockGraphqlFetch.mockResolvedValue({ ecommerceSendMessage: { messageId: "m-1" } });
+  const activeProviderKey = {
+    id: "key-default",
+    provider: "rivonclaw-pro",
+    label: "RivonClaw AI",
+    model: "gpt-5.5",
+    isDefault: true,
+    authType: "custom",
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  };
   rootStore.llmManager.setEnv({
-    storage: { providerKeys: { getAll: () => [], getActive: () => null, getById: () => null } } as any,
+    storage: {
+      providerKeys: {
+        getAll: () => [activeProviderKey],
+        getActive: () => activeProviderKey,
+        getById: (id: string) => (id === activeProviderKey.id ? activeProviderKey : null),
+      },
+    } as any,
     secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
     getRpcClient: () => ({ request: mockRpcRequest, isConnected: () => true }) as any,
     toMstSnapshot: async () => ({} as any),
@@ -133,34 +149,11 @@ beforeEach(() => {
   });
 });
 
-/**
- * Helper: prime the scopeKey → sessionId resolution path. Returns the
- * `sessionFile` path that `loadSessionCostSummary` will be called with.
- */
-function primeScopeResolution(sessionId = "session-conv-xyz"): string {
-  mockRpcRequest.mockResolvedValueOnce({
-    session: { sessionId },
-  });
-  return `/tmp/agents/main/sessions/${sessionId}.jsonl`;
-}
-
-/**
- * Flush microtasks so fire-and-forget `void collectAndEmitTokenSnapshot()`
- * can complete before the test inspects its emits.
- */
-async function flushMicrotasks(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
-}
-
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits CS telemetry", () => {
   it("sends the GraphQL mutation with no usage piggyback (BI moved to telemetry stream)", async () => {
     const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValue(null);
 
     await session.forwardTextToBuyer("hello");
 
@@ -176,11 +169,8 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
 
   it("emits an outbound cs.message event with contentLength after the send", async () => {
     const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValue(null);
 
     await session.forwardTextToBuyer("hello world");
-    await flushMicrotasks();
 
     const messageEvent = mockEmitCsTelemetry.mock.calls.find(
       ([type]) => type === "cs.message",
@@ -195,177 +185,16 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     });
   });
 
-  it("emits a cs.token_snapshot event carrying cumulative JSONL totals with the latest assistant model", async () => {
+  it("does not scan gateway session JSONL for token snapshots on the CS send hot path", async () => {
     const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValueOnce({
-      input: 1234,
-      output: 567,
-      cacheRead: 89,
-      cacheWrite: 21,
-      totalTokens: 1911,
-      totalCost: 0,
-      inputCost: 0,
-      outputCost: 0,
-      cacheReadCost: 0,
-      cacheWriteCost: 0,
-      missingCostEntries: 0,
-      modelUsage: [
-        {
-          provider: "anthropic",
-          model: "claude-sonnet-4.6",
-          count: 3,
-          totals: { input: 1234, output: 567 } as never,
-        },
-      ],
-      latestAssistantModel: {
-        provider: "anthropic",
-        model: "claude-sonnet-4.6",
-        timestamp: 1_700_000_000_000,
-      },
-    });
 
     await session.forwardTextToBuyer("hi");
-    await flushMicrotasks();
 
-    const snapshot = mockEmitCsTelemetry.mock.calls.find(
-      ([type]) => type === "cs.token_snapshot",
-    );
-    expect(snapshot).toBeDefined();
-    expect(snapshot![1]).toMatchObject({
-      shopId: "shop-obj-1",
-      conversationId: "conv-xyz",
-      inputTokens: 1234,
-      outputTokens: 567,
-      cacheReadTokens: 89,
-      cacheWriteTokens: 21,
-      provider: "anthropic",
-      model: "claude-sonnet-4.6",
-    });
-  });
-
-  it("skips cs.token_snapshot when scopeKey resolution finds no session id (but still sends)", async () => {
-    const session = makeSession();
-    mockRpcRequest.mockResolvedValueOnce({
-      session: null,
-    });
-
-    await session.forwardTextToBuyer("hi");
-    await flushMicrotasks();
-
-    // cs.message still emitted, but no token_snapshot.
-    expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.message")).toBe(true);
-    expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.token_snapshot")).toBe(false);
-    // Path resolution failed → never read JSONL.
+    expect(mockRpcRequest).not.toHaveBeenCalled();
     expect(mockLoadSessionCostSummary).not.toHaveBeenCalled();
-    // Core send still happens.
-    expect(mockGraphqlFetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("skips cs.token_snapshot when loadSessionCostSummary returns null (file missing / no usage yet)", async () => {
-    const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValueOnce(null);
-
-    await session.forwardTextToBuyer("hi");
-    await flushMicrotasks();
-
-    expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.token_snapshot")).toBe(false);
     expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.message")).toBe(true);
-  });
-
-  it("does not block the send when sessions.describe RPC throws (telemetry failure is system-boundary)", async () => {
-    const session = makeSession();
-    mockRpcRequest.mockRejectedValueOnce(new Error("RPC down"));
-
-    await expect(session.forwardTextToBuyer("hello")).resolves.toBeUndefined();
-    await flushMicrotasks();
-
-    // Send completed fine; no token_snapshot emitted.
-    expect(mockGraphqlFetch).toHaveBeenCalledTimes(1);
     expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.token_snapshot")).toBe(false);
-  });
-
-  it("does not block the send when loadSessionCostSummary throws", async () => {
-    const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockRejectedValueOnce(new Error("disk gone"));
-
-    await expect(session.forwardTextToBuyer("hello")).resolves.toBeUndefined();
-    await flushMicrotasks();
-
     expect(mockGraphqlFetch).toHaveBeenCalledTimes(1);
-    expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.token_snapshot")).toBe(false);
-  });
-
-  it("floors fractional token values and clamps negatives to 0 in the snapshot event", async () => {
-    const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValueOnce({
-      input: 100.9,
-      output: -5,
-      modelUsage: [{ provider: "p", model: "m", count: 1, totals: {} as never }],
-      latestAssistantModel: { provider: "p", model: "m", timestamp: 1 },
-    });
-
-    await session.forwardTextToBuyer("hi");
-    await flushMicrotasks();
-
-    const snapshot = mockEmitCsTelemetry.mock.calls.find(([t]) => t === "cs.token_snapshot");
-    expect(snapshot![1]).toMatchObject({ inputTokens: 100, outputTokens: 0 });
-  });
-
-  it("reports the latest assistant turn's model, not the dominant one (handles cross-provider sessions)", async () => {
-    // Motivating case: session spanned a provider switch. The old provider
-    // has more turns (dominant by count), but the user wants to see the
-    // currently-active provider/model — the last assistant turn.
-    const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValueOnce({
-      input: 100,
-      output: 50,
-      modelUsage: [
-        { provider: "rivonclaw-pro", model: "gpt-5.4", count: 7, totals: {} as never },
-        { provider: "openai-codex", model: "gpt-5.4", count: 1, totals: {} as never },
-      ],
-      latestAssistantModel: {
-        provider: "openai-codex",
-        model: "gpt-5.4",
-        timestamp: 1_700_000_000_000,
-      },
-    });
-
-    await session.forwardTextToBuyer("hi");
-    await flushMicrotasks();
-
-    const snapshot = mockEmitCsTelemetry.mock.calls.find(([t]) => t === "cs.token_snapshot");
-    expect(snapshot![1]).toMatchObject({
-      provider: "openai-codex",
-      model: "gpt-5.4",
-    });
-  });
-
-  it("emits empty provider/model strings when latestAssistantModel is missing from the summary", async () => {
-    const session = makeSession();
-    primeScopeResolution();
-    mockLoadSessionCostSummary.mockResolvedValueOnce({
-      input: 10,
-      output: 5,
-      modelUsage: [],
-      // latestAssistantModel intentionally omitted — e.g. summary came from
-      // an older code path or had no usage-bearing entries.
-    });
-
-    await session.forwardTextToBuyer("hi");
-    await flushMicrotasks();
-
-    const snapshot = mockEmitCsTelemetry.mock.calls.find(([t]) => t === "cs.token_snapshot");
-    expect(snapshot![1]).toMatchObject({
-      inputTokens: 10,
-      outputTokens: 5,
-      provider: "",
-      model: "",
-    });
   });
 
   it("emits cs.delivery_recovery telemetry when sensitive-content recovery dispatch succeeds", async () => {
