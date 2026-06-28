@@ -114,6 +114,13 @@ function classifyDeliveryFailure(err: unknown): {
     };
   }
 
+  if (normalized.includes("no active cs session")) {
+    return {
+      reason: "no_active_cs_session",
+      shouldAttemptLocalRecovery: false,
+    };
+  }
+
   return {
     reason: "platform_error",
     shouldAttemptLocalRecovery: false,
@@ -684,8 +691,8 @@ export class CustomerServiceSession {
    * Ensure a backend CS session exists (entitlement check + session creation).
    * Idempotent — skips if already called successfully.
    */
-  async ensureBackendSession(options?: { forceRefresh?: boolean }): Promise<boolean> {
-    if (this.backendSessionReady && !options?.forceRefresh) return true;
+  async ensureBackendSession(): Promise<boolean> {
+    if (this.backendSessionReady) return true;
 
     const startedAt = Date.now();
     const authSession = getAuthSession();
@@ -761,7 +768,7 @@ export class CustomerServiceSession {
   ): Promise<DispatchResult> {
     const content = this.parseMessageContent(frame);
 
-    if (!await this.ensureBackendSession({ forceRefresh: true })) {
+    if (!await this.ensureBackendSession()) {
       if (this.activeRound === round) round.clearPlaceholderIfCurrent();
       this.emitDispatchTelemetry({
         source: "relay",
@@ -1450,7 +1457,7 @@ export class CustomerServiceSession {
     const currentMessageIndex = options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
 
     try {
-      if (!await this.ensureBackendSession({ forceRefresh: true })) {
+      if (!await this.ensureBackendSession()) {
         if (this.activeRound === round) round.clearPlaceholderIfCurrent(placeholder);
         this.emitDispatchTelemetry({
           source: options.source ?? "cloud",

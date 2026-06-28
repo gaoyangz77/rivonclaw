@@ -272,4 +272,24 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
       }),
     );
   });
+
+  it("classifies missing backend CS session delivery failures separately", async () => {
+    const session = makeSession();
+
+    await session.handleRunDeliveryFailure({
+      runId: "run-no-session",
+      text: "hello",
+      error: new Error("No active CS session for this conversation. Start a session before sending messages."),
+    });
+
+    expect(mockEmitCsError).toHaveBeenCalledWith(
+      "deliver",
+      expect.objectContaining({
+        reason: "no_active_cs_session",
+        runId: "run-no-session",
+        textLength: "hello".length,
+      }),
+    );
+    expect(mockEmitCsDeliveryRecovery).not.toHaveBeenCalled();
+  });
 });

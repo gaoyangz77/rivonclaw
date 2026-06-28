@@ -1855,7 +1855,7 @@ describe("CS session lifecycle", () => {
     );
   });
 
-  it("revalidates backend session for later buyer messages in the same conversation", async () => {
+  it("reuses the backend session marker for later buyer messages in the same conversation", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -1871,8 +1871,8 @@ describe("CS session lifecycle", () => {
     const sessionCalls = mockGraphqlFetch.mock.calls.filter(([query]) =>
       typeof query === "string" && query.includes("csGetOrCreateSession"),
     );
-    expect(sessionCalls).toHaveLength(2);
-    expect(sessionCalls[1]).toEqual([
+    expect(sessionCalls).toHaveLength(1);
+    expect(sessionCalls[0]).toEqual([
       expect.stringContaining("csGetOrCreateSession"),
       {
         shopId: "mongo-id-123",
