@@ -233,6 +233,8 @@ export class CustomerServiceSession {
 
   /** Whether gateway session setup has been completed (cs_register_session + RunProfile + model). */
   private gatewaySetupReady = false;
+  private gatewaySessionRegistrationSignature: string | null = null;
+  private customerServiceSessionPreferencesApplied = false;
 
   /** Active buyer round for this conversation. */
   private activeRound: CSRound | null = null;
@@ -1882,25 +1884,51 @@ export class CustomerServiceSession {
     });
   }
 
-  private async applyCustomerServiceSessionPreferences(): Promise<void> {
+  private async applyCustomerServiceSessionPreferences(): Promise<boolean> {
+    if (this.customerServiceSessionPreferencesApplied) return false;
     await openClawConnector.request("sessions.patch", {
       key: this.scopeKey,
       contextTokens: CS_AGENT_CONTEXT_TOKENS,
       thinkingLevel: "off",
       reasoningLevel: "off",
     }, CS_GATEWAY_SETUP_RPC_TIMEOUT_MS);
+    this.customerServiceSessionPreferencesApplied = true;
+    return true;
+  }
+
+  private buildGatewaySessionRegistrationSignature(): string {
+    return JSON.stringify({
+      sessionKey: this.scopeKey,
+      shopId: this.csContext.shopId,
+      conversationId: this.csContext.conversationId,
+      buyerUserId: this.csContext.buyerUserId,
+      buyerNickname: this.csContext.buyerNickname,
+      imUserId: this.csContext.imUserId,
+      orderId: this.csContext.orderId,
+      recentOrders: this.csContext.recentOrders,
+    });
+  }
+
+  private async registerGatewaySessionIfNeeded(): Promise<{ skipped: boolean; durationMs: number }> {
+    const signature = this.buildGatewaySessionRegistrationSignature();
+    if (this.gatewaySessionRegistrationSignature === signature) {
+      return { skipped: true, durationMs: 0 };
+    }
+    const startedAt = Date.now();
+    await openClawConnector.request("cs_register_session", {
+      sessionKey: this.scopeKey,
+      csContext: this.csContext,
+    });
+    this.gatewaySessionRegistrationSignature = signature;
+    return { skipped: false, durationMs: Date.now() - startedAt };
   }
 
   private async setup(): Promise<void> {
     const runProfileId = this.getRequiredRunProfileId();
 
     const setupStartedAt = Date.now();
-    const registerStartedAt = Date.now();
-    await openClawConnector.request("cs_register_session", {
-      sessionKey: this.scopeKey,
-      csContext: this.csContext,
-    });
-    const registerMs = Date.now() - registerStartedAt;
+    const registration = await this.registerGatewaySessionIfNeeded();
+    const registerMs = registration.durationMs;
 
     if (this.gatewaySetupReady) {
       const modelStartedAt = Date.now();
@@ -1914,7 +1942,7 @@ export class CustomerServiceSession {
       }
       log.info(
         `Gateway setup refreshed: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
-        `registerMs=${registerMs} modelMs=${Date.now() - modelStartedAt} ` +
+        `registerMs=${registerMs} registerSkipped=${registration.skipped} modelMs=${Date.now() - modelStartedAt} ` +
         `scope=${this.scopeKey}`,
       );
       return;
@@ -1932,7 +1960,7 @@ export class CustomerServiceSession {
     this.gatewaySetupReady = true;
     log.info(
       `Gateway setup ready: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
-      `registerMs=${registerMs} runProfileMs=${runProfileMs} modelMs=${modelMs} ` +
+      `registerMs=${registerMs} registerSkipped=${registration.skipped} runProfileMs=${runProfileMs} modelMs=${modelMs} ` +
       `scope=${this.scopeKey} runProfileId=${runProfileId}`,
     );
   }

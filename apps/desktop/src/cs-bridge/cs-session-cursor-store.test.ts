@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 const files = new Map<string, string>();
 
@@ -32,14 +32,24 @@ vi.mock("node:fs", async () => {
 const {
   advanceOpenClawSessionCursor,
   compareMessageCursor,
+  flushCsSessionCursorStore,
   readConversationSummary,
   readOpenClawSessionCursor,
+  resetCsSessionCursorStoreForTests,
   writeConversationSummary,
 } = await import("./cs-session-cursor-store.js");
+const { promises: fsPromises } = await import("node:fs");
 
 describe("cs-session-cursor-store", () => {
   beforeEach(() => {
+    resetCsSessionCursorStoreForTests();
+    vi.clearAllMocks();
     files.clear();
+  });
+
+  afterEach(() => {
+    resetCsSessionCursorStoreForTests();
+    vi.useRealTimers();
   });
 
   it("orders numeric message indexes without lexicographic regression", () => {
@@ -74,6 +84,34 @@ describe("cs-session-cursor-store", () => {
       createTime: 100,
       runId: "run-newer",
     });
+  });
+
+  it("caches the cursor store in memory and batches disk writes", async () => {
+    await advanceOpenClawSessionCursor({
+      shopId: "shop-1",
+      conversationId: "conv-1",
+      cursor: { messageId: "m-10", messageIndex: "10", createTime: 100 },
+    });
+    await advanceOpenClawSessionCursor({
+      shopId: "shop-1",
+      conversationId: "conv-2",
+      cursor: { messageId: "m-20", messageIndex: "20", createTime: 200 },
+    });
+
+    expect(fsPromises.readFile).toHaveBeenCalledTimes(1);
+    expect(fsPromises.writeFile).not.toHaveBeenCalled();
+    expect(await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-2" })).toMatchObject({
+      messageId: "m-20",
+      messageIndex: "20",
+    });
+    expect(fsPromises.readFile).toHaveBeenCalledTimes(1);
+
+    await flushCsSessionCursorStore();
+
+    expect(fsPromises.writeFile).toHaveBeenCalledTimes(1);
+    const serialized = [...files.values()][0] ?? "";
+    expect(serialized).toContain("shop-1:conv-1");
+    expect(serialized).toContain("shop-1:conv-2");
   });
 
   it("stores summaries and prunes records older than 3 years", async () => {

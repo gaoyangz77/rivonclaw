@@ -173,6 +173,8 @@ export const LLMProviderManagerModel = types
     sessionModelFacts: new Map<string, SessionModelFact>(),
     /** Sessions that have had activity since app startup. Only these are patched on global default change. */
     activeSessions: new Set<string>(),
+    /** Concrete OpenClaw model refs successfully applied during this gateway lifetime. */
+    appliedSessionModelRefs: new Map<string, string>(),
     /** Cached model catalog for validation. Set of "provider/modelId" strings. */
     catalogModelIds: new Set<string>(),
   }))
@@ -261,6 +263,20 @@ export const LLMProviderManagerModel = types
       }
     }
 
+    async function patchSessionIfModelChanged(
+      sessionKey: string,
+      signature: string,
+      modelRef: string,
+      options?: ApplyModelForSessionOptions,
+    ): Promise<boolean> {
+      if (self.appliedSessionModelRefs.get(sessionKey) === signature) {
+        return false;
+      }
+      await patchSession(sessionKey, modelRef, options);
+      self.appliedSessionModelRefs.set(sessionKey, signature);
+      return true;
+    }
+
     function getActiveDefaultModel(): (SessionModelOverride & { modelRef: string }) | null {
       const { storage } = getEnvDeps();
       const active = storage.providerKeys.getActive();
@@ -347,14 +363,25 @@ export const LLMProviderManagerModel = types
     async function patchSessionToActiveDefault(
       sessionKey: string,
       options?: ApplyModelForSessionOptions,
+      force = false,
     ): Promise<SessionModelOverride | null> {
       const active = getActiveDefaultModel();
       if (!active) {
         markDefaultFollowing(sessionKey);
         throw new Error(NO_ACTIVE_LLM_PROVIDER_ERROR);
       }
-      await patchSession(sessionKey, active.modelRef, options);
-      await clearStoredAuthProfileOverride(sessionKey);
+      const signature = `default:${active.modelRef}`;
+      let patched = false;
+      if (force) {
+        await patchSession(sessionKey, active.modelRef, options);
+        self.appliedSessionModelRefs.set(sessionKey, signature);
+        patched = true;
+      } else {
+        patched = await patchSessionIfModelChanged(sessionKey, signature, active.modelRef, options);
+      }
+      if (patched || force) {
+        await clearStoredAuthProfileOverride(sessionKey);
+      }
       const applied = { provider: active.provider, model: active.model };
       markDefaultFollowing(sessionKey, applied);
       return applied;
@@ -467,6 +494,12 @@ export const LLMProviderManagerModel = types
         self.sessionOverrides.clear();
         self.sessionModelFacts.clear();
         self.activeSessions.clear();
+        self.appliedSessionModelRefs.clear();
+      },
+
+      /** Clear gateway-lifetime patch state after RPC reconnect/restart. */
+      clearAppliedSessionModelState() {
+        self.appliedSessionModelRefs.clear();
       },
 
       /**
@@ -476,6 +509,7 @@ export const LLMProviderManagerModel = types
       switchModelForSession: flow(function* (sessionKey: string, provider: string, model: string) {
         const modelRef = resolveModelRef(provider, model);
         yield patchSession(sessionKey, modelRef);
+        self.appliedSessionModelRefs.set(sessionKey, `explicit:${modelRef}`);
         self.sessionOverrides.set(sessionKey, { provider, model });
         markExplicit(sessionKey, { provider, model });
         self.activeSessions.add(sessionKey);
@@ -485,7 +519,7 @@ export const LLMProviderManagerModel = types
       /** Clear per-session override — session reverts to global default. */
       resetSessionModel: flow(function* (sessionKey: string) {
         self.sessionOverrides.delete(sessionKey);
-        yield patchSessionToActiveDefault(sessionKey);
+        yield patchSessionToActiveDefault(sessionKey, undefined, true);
         self.activeSessions.add(sessionKey);
         log.info(`Reset session ${sessionKey} to global default`);
       }),
@@ -505,12 +539,11 @@ export const LLMProviderManagerModel = types
       ) {
         self.activeSessions.add(sessionKey);
 
-        // Layer 1: session-level override
         const sessionOverride = self.sessionOverrides.get(sessionKey);
         if (sessionOverride) {
           if (isModelAvailable(sessionOverride.provider, sessionOverride.model)) {
             const ref = resolveModelRef(sessionOverride.provider, sessionOverride.model);
-            yield patchSession(sessionKey, ref, options);
+            yield patchSessionIfModelChanged(sessionKey, `explicit:${ref}`, ref, options);
             markExplicit(sessionKey, sessionOverride);
             log.info(`Applied session override ${ref} to ${sessionKey}`);
             return sessionOverride;
@@ -523,7 +556,7 @@ export const LLMProviderManagerModel = types
           const scopeModel = resolveModelForScope(scope);
           if (scopeModel) {
             const ref = resolveModelRef(scopeModel.provider, scopeModel.model);
-            yield patchSession(sessionKey, ref, options);
+            yield patchSessionIfModelChanged(sessionKey, `scope:${ref}`, ref, options);
             markScope(sessionKey, scopeModel);
             log.info(`Applied scope override ${ref} to ${sessionKey} (${scope.type}/${scope.shopId ?? ""})`);
             return scopeModel;
