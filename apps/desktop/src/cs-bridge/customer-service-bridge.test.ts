@@ -247,6 +247,7 @@ function setChannelManagerTestEnv(stateDir: string): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  rootStore.llmManager.clearVolatileSessionState();
   process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "0";
   applySnapshot(rootStore.toolCapability.sessionProfiles, {});
   setSessionRunProfileCalls.length = 0;
@@ -1007,7 +1008,7 @@ describe("CS RunProfile setup", () => {
     );
   });
 
-  it("refreshes gateway CS context and RunProfile binding before dispatch when an existing session lost it", async () => {
+  it("refreshes RunProfile binding before dispatch when an existing session lost it", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -1019,12 +1020,7 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
-      sessionKey: "agent:main:cs:tiktok:conv-789",
-      csContext: expect.objectContaining({
-        conversationId: "conv-789",
-      }),
-    });
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:main:cs:tiktok:conv-789",
@@ -2253,9 +2249,7 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-2" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.objectContaining({
-      sessionKey: "agent:main:cs:tiktok:conv-789",
-    }));
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "openai/gpt-4o",
@@ -2279,9 +2273,7 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-2" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.objectContaining({
-      sessionKey: "agent:main:cs:tiktok:conv-789",
-    }));
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "rivonclaw-pro/gpt-5.5",

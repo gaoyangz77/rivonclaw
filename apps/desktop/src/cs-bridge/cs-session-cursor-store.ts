@@ -5,6 +5,8 @@ import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("cs-session-cursor-store");
 const RETENTION_MS = 3 * 365 * 24 * 60 * 60 * 1000;
+const PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const WRITE_DEBOUNCE_MS = 1000;
 
 export interface CustomerServiceMessageCursor {
   messageId?: string | null;
@@ -35,6 +37,14 @@ interface CursorStoreFile {
   version: 1;
   conversations: Record<string, ConversationCursorRecord>;
 }
+
+let cachedStore: CursorStoreFile | null = null;
+let loadPromise: Promise<CursorStoreFile> | null = null;
+let writeTimer: ReturnType<typeof setTimeout> | null = null;
+let writePromise: Promise<void> | null = null;
+let writeGeneration = 0;
+let persistedGeneration = 0;
+let lastPruneAt = 0;
 
 function cursorStorePath(): string {
   return join(resolveCredentialsDir(), "customer-service-session-cursors.json");
@@ -116,7 +126,7 @@ export function compareMessageCursor(
   return 0;
 }
 
-async function readStore(): Promise<CursorStoreFile> {
+async function loadStoreFromDisk(): Promise<CursorStoreFile> {
   try {
     const raw = await fs.readFile(cursorStorePath(), "utf-8");
     const parsed = JSON.parse(raw) as Partial<CursorStoreFile>;
@@ -126,27 +136,97 @@ async function readStore(): Promise<CursorStoreFile> {
         ? parsed.conversations
         : {},
     };
-    if (pruneExpiredStore(store)) {
-      void writeStore(store).catch((err) => {
-        log.warn("Failed to prune expired CS cursor records", {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      });
+    lastPruneAt = Date.now();
+    if (pruneExpiredStore(store, lastPruneAt)) {
+      markStoreDirty();
     }
     return store;
   } catch (err: any) {
     if (err?.code === "ENOENT" || err instanceof SyntaxError) {
+      lastPruneAt = Date.now();
       return { version: 1, conversations: {} };
     }
     throw err;
   }
 }
 
-async function writeStore(store: CursorStoreFile): Promise<void> {
-  pruneExpiredStore(store);
+async function readStore(): Promise<CursorStoreFile> {
+  if (cachedStore) {
+    pruneStoreIfDue(cachedStore);
+    return cachedStore;
+  }
+  if (!loadPromise) {
+    loadPromise = loadStoreFromDisk()
+      .then((store) => {
+        cachedStore = store;
+        pruneStoreIfDue(store);
+        return store;
+      })
+      .finally(() => {
+        loadPromise = null;
+      });
+  }
+  return loadPromise;
+}
+
+function pruneStoreIfDue(store: CursorStoreFile): void {
+  const now = Date.now();
+  if (now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+  lastPruneAt = now;
+  if (pruneExpiredStore(store, now)) {
+    markStoreDirty();
+  }
+}
+
+function markStoreDirty(): void {
+  writeGeneration += 1;
+  scheduleStoreWrite();
+}
+
+function scheduleStoreWrite(): void {
+  if (writeTimer) return;
+  writeTimer = setTimeout(() => {
+    writeTimer = null;
+    void flushCsSessionCursorStore().catch((err) => {
+      log.warn("Failed to flush CS cursor store", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }, WRITE_DEBOUNCE_MS);
+  writeTimer.unref?.();
+}
+
+async function writeStoreToDisk(store: CursorStoreFile): Promise<void> {
   const filePath = cursorStorePath();
   await fs.mkdir(dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(store, null, 2) + "\n", "utf-8");
+  await fs.writeFile(filePath, JSON.stringify(store) + "\n", "utf-8");
+}
+
+export async function flushCsSessionCursorStore(): Promise<void> {
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+  if (!cachedStore || persistedGeneration === writeGeneration) {
+    if (writePromise) await writePromise;
+    return;
+  }
+  if (writePromise) {
+    await writePromise;
+    if (!cachedStore || persistedGeneration === writeGeneration) return;
+  }
+  const generationToPersist = writeGeneration;
+  writePromise = writeStoreToDisk(cachedStore)
+    .then(() => {
+      persistedGeneration = Math.max(persistedGeneration, generationToPersist);
+    })
+    .finally(() => {
+      writePromise = null;
+      if (persistedGeneration < writeGeneration) {
+        scheduleStoreWrite();
+      }
+    });
+  await writePromise;
 }
 
 export async function readOpenClawSessionCursor(input: {
@@ -185,7 +265,7 @@ export async function advanceOpenClawSessionCursor(input: {
       ...store.conversations[key],
       openclawSession: next,
     };
-    await writeStore(store);
+    markStoreDirty();
     return next;
   } catch (err) {
     log.warn("Failed to advance OpenClaw CS session cursor", {
@@ -233,7 +313,7 @@ export async function writeConversationSummary(input: {
       ...store.conversations[key],
       summary: next,
     };
-    await writeStore(store);
+    markStoreDirty();
     return next;
   } catch (err) {
     log.warn("Failed to write CS conversation summary", {
@@ -243,4 +323,17 @@ export async function writeConversationSummary(input: {
     });
     return undefined;
   }
+}
+
+export function resetCsSessionCursorStoreForTests(): void {
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+  cachedStore = null;
+  loadPromise = null;
+  writePromise = null;
+  writeGeneration = 0;
+  persistedGeneration = 0;
+  lastPruneAt = 0;
 }

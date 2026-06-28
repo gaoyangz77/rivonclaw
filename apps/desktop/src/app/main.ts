@@ -62,6 +62,7 @@ import { configureAgentToolingReadiness, ensureAgentToolingReady, resetAgentTool
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
+import { flushCsSessionCursorStore } from "../cs-bridge/cs-session-cursor-store.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
 import { syncCloudProviderKey } from "../providers/cloud-provider-sync.js";
 import { setStorageRef } from "./storage-ref.js";
@@ -1639,6 +1640,7 @@ app.whenReady().then(async () => {
   openClawConnector.onRpcConnected(() => {
     const rpc = openClawConnector.ensureRpcReady();
     resetAgentToolingReadiness("gateway rpc connected");
+    rootStore.llmManager.clearAppliedSessionModelState();
 
     // 1. Start Mobile Sync engines for all active pairings (skip stale)
     const allPairings = storage.mobilePairings.getAllPairings();
@@ -1705,6 +1707,7 @@ app.whenReady().then(async () => {
   // so it can be recreated on the next connect.
   openClawConnector.onRpcDisconnected(() => {
     resetAgentToolingReadiness("gateway rpc disconnected");
+    rootStore.llmManager.clearAppliedSessionModelState();
     stopCsBridge();
   });
 
@@ -1772,6 +1775,8 @@ app.whenReady().then(async () => {
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
+    await flushCsSessionCursorStore();
+
     // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches go
     // through the proxy-router for HTTP CONNECT. If we stop the router
     // first, the flush fails 9× (3 outer × 3 inner retries) wasting ~7.5s.
@@ -1822,6 +1827,8 @@ app.whenReady().then(async () => {
     removeHeartbeat();
 
     const cleanup = async () => {
+      await flushCsSessionCursorStore();
+
       // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches
       // go through proxy-router for HTTP CONNECT. If the router is down
       // first, the flush fails 9× (3 outer × 3 inner retries) wasting

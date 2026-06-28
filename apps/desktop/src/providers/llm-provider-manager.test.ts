@@ -132,6 +132,64 @@ describe("LLMProviderManager", () => {
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
+  it("skips redundant lazy default patches but reapplies after the active model changes", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+    let entry: ProviderKeyEntry = {
+      id: "key-default",
+      provider: "rivonclaw-pro",
+      label: "RivonClaw AI",
+      model: "gpt-5.4",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://example.test/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "gpt-5.4" }, { id: "gpt-5.5" }]),
+      createdAt: "",
+      updatedAt: "",
+    };
+
+    initLLMProviderManagerEnv({
+      storage: {
+        providerKeys: {
+          getActive: () => entry,
+          getById: (id: string) => (id === entry.id ? entry : undefined),
+          getAll: () => [entry],
+        },
+      } as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig: async () => {},
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await rootStore.llmManager.applyModelForSession("chat-session-1");
+    await rootStore.llmManager.applyModelForSession("chat-session-1");
+
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+    expect(rpcRequest).toHaveBeenLastCalledWith("sessions.patch", {
+      key: "chat-session-1",
+      model: "rivonclaw-pro/gpt-5.4",
+    });
+
+    entry = { ...entry, model: "gpt-5.5" };
+    await rootStore.llmManager.applyModelForSession("chat-session-1");
+
+    expect(rpcRequest).toHaveBeenCalledTimes(2);
+    expect(rpcRequest).toHaveBeenLastCalledWith("sessions.patch", {
+      key: "chat-session-1",
+      model: "rivonclaw-pro/gpt-5.5",
+    });
+  });
+
   it("clears stale OpenClaw auth profile overrides when applying the global default", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const stateDir = await mkdtemp(path.join(tmpdir(), "rivonclaw-llm-manager-"));
