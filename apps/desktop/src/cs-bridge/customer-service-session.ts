@@ -980,12 +980,8 @@ export class CustomerServiceSession {
    * Forward agent text output to the buyer via the backend GraphQL proxy.
    * Called by the Bridge when an agent run completes with text output.
    *
-   * Emits two BI events after a successful send:
-   *   - `cs.token_snapshot` — cumulative per-conversation LLM token totals
-   *     (from the gateway session JSONL transcript). Append-only stream;
-   *     the warehouse derives deltas via window functions on (conversationId,
-   *     ts).
-   *   - `cs.message` — one row per outbound message crossing the wire.
+   * Emits `cs.message` after a successful send — one row per outbound message
+   * crossing the wire.
    *
    * Telemetry emits are fire-and-forget and NEVER block the send.
    */
@@ -1046,16 +1042,10 @@ export class CustomerServiceSession {
       textLength: text.length,
     });
 
-    // BI emits (fire-and-forget). Collect the cumulative token snapshot from
-    // the JSONL transcript first; if it's unavailable (RPC down, file miss)
-    // we simply skip the token event — the `cs.message` event is still emitted.
-    //
-    // runId is passed in by the caller (bridge's flushTurnText already holds
-    // it) rather than read from round state. The bridge fires
-    // `forwardTextToBuyer(...)` async and may receive chat completion before
-    // our `await graphqlFetch` resumes, so post-await active-run state is not
-    // a reliable source of the runId.
-    void this.collectAndEmitTokenSnapshot(runId);
+    // Token snapshots used to scan the entire gateway session JSONL transcript
+    // after every CS auto-reply. Disable that hot path until usage accounting
+    // can be emitted incrementally.
+    // void this.collectAndEmitTokenSnapshot(runId);
     emitCsTelemetry("cs.message", {
       shopId: this.csContext.shopId,
       platformShopId: this.shop.platformShopId,
