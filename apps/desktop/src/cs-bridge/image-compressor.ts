@@ -1,12 +1,12 @@
 /**
- * Fail-open image compression wrapper backed by a worker thread.
+ * Fail-open image compression wrapper backed by a child process.
  *
- * Lazily spawns a single long-lived `Worker` on first call (worker startup is
- * 50-100ms; one image at a time is fine for CS message frequency). Serialises
- * requests via a FIFO queue and uses a correlation id so stray/late messages
- * cannot resolve the wrong promise.
+ * Lazily forks a single long-lived child on first call. Process startup is
+ * higher than a worker thread, but one image at a time is fine for CS message
+ * frequency. Serialises requests via a FIFO queue and uses a correlation id
+ * so stray/late messages cannot resolve the wrong promise.
  *
- * Fail-open contract: if the worker errors, crashes, or compression fails, we
+ * Fail-open contract: if the child errors, crashes, or compression fails, we
  * log a warning and return the original buffer unchanged. Dropping a customer
  * image is worse than sending a big one — the CS pipeline must never lose a
  * message because of compression.
@@ -18,10 +18,10 @@
  * telemetry themselves — this module stays CS-agnostic.
  *
  * Has no CS-specific knowledge: takes `(Buffer, mimeType)` in, returns a
- * `CompressResult` out. Reusable for any off-thread image compression.
+ * `CompressResult` out. Reusable for any out-of-process image compression.
  */
 
-import { Worker } from "node:worker_threads";
+import { fork, type ChildProcess } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger } from "@rivonclaw/logger";
@@ -29,14 +29,16 @@ import { createLogger } from "@rivonclaw/logger";
 const log = createLogger("image-compressor");
 
 export type CompressResult =
-  | { ok: true; buffer: Buffer; mimeType: string }
-  | { ok: false; buffer: Buffer; mimeType: string; error: string };
+  | { ok: true; compressed: true; buffer: Buffer; mimeType: string }
+  | { ok: true; compressed: false; buffer: Buffer; mimeType: string; reason: "larger_than_input" }
+  | { ok: false; compressed: false; buffer: Buffer; mimeType: string; error: string };
 
-// Sibling file inside dist/ — the worker is a separate tsdown build that emits
-// `dist/image-compression-worker.cjs` alongside `main.cjs` (see tsdown.config.ts).
+// Sibling file inside dist/ — the child process is a separate tsdown build
+// that emits `dist/image-compression-worker.cjs` alongside `main.cjs`
+// (see tsdown.config.ts).
 // This module's source lives under `src/cs-bridge/` but bundles into `main.cjs`,
-// so at runtime `__dirname` is `dist/`. Works in dev and packaged Electron
-// (inside asar — Node resolves paths inside asar transparently).
+// so at runtime `__dirname` is `dist/`. In packaged Electron, fork uses the
+// Electron binary with ELECTRON_RUN_AS_NODE=1 so the child behaves like Node.
 const WORKER_FILENAME = "image-compression-worker.cjs";
 
 type PendingRequest = {
@@ -46,38 +48,50 @@ type PendingRequest = {
   resolve: (value: CompressResult) => void;
 };
 
-type WorkerResponse =
-  | { id: number; ok: true; buffer: ArrayBuffer; mimeType: string }
+type ChildResponse =
+  | { id: number; ok: true; buffer: Buffer | Uint8Array | ArrayBuffer; mimeType: string }
   | { id: number; ok: false; error: string };
 
-let worker: Worker | null = null;
+function toBuffer(value: Buffer | Uint8Array | ArrayBuffer): Buffer {
+  if (Buffer.isBuffer(value)) return value;
+  if (value instanceof ArrayBuffer) return Buffer.from(new Uint8Array(value));
+  return Buffer.from(value);
+}
+
+let child: ChildProcess | null = null;
 let nextId = 1;
 const queue: PendingRequest[] = [];
 let inFlight: PendingRequest | null = null;
 
 // Test-only override: when set, used verbatim instead of the dist/ sibling
-// path. Allows unit tests to point at a fixture worker (e.g. one that crashes
-// on purpose) without spawning the real production worker.
-let workerPathOverride: string | null = null;
+// path. Allows unit tests to point at a fixture child (e.g. one that crashes
+// on purpose) without spawning the real production child.
+let childPathOverride: string | null = null;
+let forkForTests: typeof fork = fork;
 
-function resolveWorkerPath(): string {
-  if (workerPathOverride !== null) return workerPathOverride;
+function resolveChildPath(): string {
+  if (childPathOverride !== null) return childPathOverride;
   const here = dirname(fileURLToPath(import.meta.url));
   return join(here, WORKER_FILENAME);
 }
 
-function ensureWorker(): Worker {
-  if (worker) return worker;
-  const workerPath = resolveWorkerPath();
-  const w = new Worker(workerPath);
-  // Bind every handler to this specific Worker instance via closure. If `w`
-  // crashes, handleWorkerDeath() sets worker = null; any further events from
+function ensureChild(): ChildProcess {
+  if (child) return child;
+  const childPath = resolveChildPath();
+  log.info("Starting image compression child process", { childPath });
+  const w = forkForTests(childPath, [], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+    serialization: "advanced",
+    stdio: ["ignore", "ignore", "ignore", "ipc"],
+  });
+  // Bind every handler to this specific child instance via closure. If `w`
+  // crashes, handleChildDeath() sets child = null; any further events from
   // the same `w` (e.g. a delayed "exit" after "error") are ignored because
-  // `w !== worker`. If a new worker is installed afterwards, it is a different
-  // `w`, so old-worker events still fail the identity check and cannot drain
-  // the new worker's inFlight request.
-  w.on("message", (msg: WorkerResponse) => {
-    if (w !== worker) return; // stale worker — ignore
+  // `w !== child`. If a new child is installed afterwards, it is a different
+  // `w`, so old-child events still fail the identity check and cannot drain
+  // the new child's inFlight request.
+  w.on("message", (msg: ChildResponse) => {
+    if (w !== child) return; // stale child — ignore
     const pending = inFlight;
     inFlight = null;
     if (!pending || pending.id !== msg.id) {
@@ -86,11 +100,35 @@ function ensureWorker(): Worker {
       return;
     }
     if (msg.ok) {
-      pending.resolve({ ok: true, buffer: Buffer.from(msg.buffer), mimeType: msg.mimeType });
+      const output = toBuffer(msg.buffer);
+      log.info("Image compression child completed request", {
+        inputBytes: pending.buffer.byteLength,
+        outputBytes: output.byteLength,
+        mimeType: msg.mimeType,
+      });
+      if (output.byteLength >= pending.buffer.byteLength) {
+        log.info("Image compression kept original buffer because compressed output was not smaller", {
+          inputBytes: pending.buffer.byteLength,
+          outputBytes: output.byteLength,
+          mimeType: pending.mimeType,
+        });
+        pending.resolve({
+          ok: true,
+          compressed: false,
+          buffer: pending.buffer,
+          mimeType: pending.mimeType,
+          reason: "larger_than_input",
+        });
+      } else {
+        pending.resolve({ ok: true, compressed: true, buffer: output, mimeType: msg.mimeType });
+      }
     } else {
-      log.warn("Image compression worker returned error; falling back to original buffer", { error: msg.error });
+      log.warn("Image compression child returned error; falling back to original buffer", {
+        error: msg.error,
+      });
       pending.resolve({
         ok: false,
+        compressed: false,
         buffer: pending.buffer,
         mimeType: pending.mimeType,
         error: msg.error,
@@ -99,27 +137,31 @@ function ensureWorker(): Worker {
     pumpQueue();
   });
   w.on("error", (err) => {
-    if (w !== worker) return; // stale worker — ignore
-    log.warn("Image compression worker errored; will respawn on next request", { err });
-    handleWorkerDeath(`worker error: ${err instanceof Error ? err.message : String(err)}`);
+    if (w !== child) return; // stale child — ignore
+    log.warn("Image compression child errored; will respawn on next request", { err });
+    handleChildDeath(`child process error: ${err instanceof Error ? err.message : String(err)}`);
   });
-  w.on("exit", (code) => {
-    if (w !== worker) return; // stale worker — ignore
+  w.on("exit", (code, signal) => {
+    if (w !== child) return; // stale child — ignore
     if (code !== 0) {
-      log.warn("Image compression worker exited unexpectedly; will respawn on next request", { code });
+      log.warn("Image compression child exited unexpectedly; will respawn on next request", {
+        code,
+        signal,
+      });
     }
-    handleWorkerDeath(`worker exit code=${code}`);
+    handleChildDeath(`child process exit code=${code}${signal ? ` signal=${signal}` : ""}`);
   });
-  worker = w;
+  child = w;
   return w;
 }
 
-function handleWorkerDeath(error: string): void {
-  worker = null;
+function handleChildDeath(error: string): void {
+  child = null;
   // Fail-open any in-flight and queued requests with their original buffers.
   if (inFlight) {
     inFlight.resolve({
       ok: false,
+      compressed: false,
       buffer: inFlight.buffer,
       mimeType: inFlight.mimeType,
       error,
@@ -130,6 +172,7 @@ function handleWorkerDeath(error: string): void {
     const pending = queue.shift()!;
     pending.resolve({
       ok: false,
+      compressed: false,
       buffer: pending.buffer,
       mimeType: pending.mimeType,
       error,
@@ -142,23 +185,26 @@ function pumpQueue(): void {
   const next = queue.shift()!;
   inFlight = next;
   try {
-    const w = ensureWorker();
-    // Copy into a fresh ArrayBuffer for transfer: (1) keeps the original
-    // Buffer intact so fail-open paths can still hand it back, (2) yields
-    // a well-typed ArrayBuffer (Buffer.buffer is `ArrayBuffer | SharedArrayBuffer`).
-    const ab = new ArrayBuffer(next.buffer.byteLength);
-    new Uint8Array(ab).set(next.buffer);
-    w.postMessage({ id: next.id, buffer: ab, mimeType: next.mimeType }, [ab]);
+    const w = ensureChild();
+    const sent = w.send({ id: next.id, buffer: next.buffer, mimeType: next.mimeType });
+    if (!sent) {
+      throw new Error("child process IPC channel is not writable");
+    }
   } catch (err) {
-    // Synchronous throw — e.g. new Worker() failed because the file vanished.
+    // Synchronous throw — e.g. fork() failed or IPC is already closed.
     // Without this catch, inFlight would be stuck and the pending promise
     // would hang forever. Fail-open with the original buffer and drain the
     // rest of the queue (each will also fail-open on the same condition).
-    log.warn("Failed to dispatch to image worker; falling back to original buffer", { err });
+    log.warn("Failed to dispatch to image compression child; falling back to original buffer", {
+      err,
+    });
     inFlight = null;
-    const error = `worker spawn failed: ${err instanceof Error ? err.message : String(err)}`;
+    const error = `child process dispatch failed: ${
+      err instanceof Error ? err.message : String(err)
+    }`;
     next.resolve({
       ok: false,
+      compressed: false,
       buffer: next.buffer,
       mimeType: next.mimeType,
       error,
@@ -168,7 +214,7 @@ function pumpQueue(): void {
 }
 
 /**
- * Compress an image buffer off the main thread. Returns a discriminated union:
+ * Compress an image buffer outside the main process. Returns a discriminated union:
  *   - `{ ok: true, buffer, mimeType }` on success (compressed output).
  *   - `{ ok: false, buffer, mimeType, error }` on any failure — buffer/mimeType
  *     are the original inputs (fail-open) and `error` is a short description
@@ -186,7 +232,7 @@ export function compressImageForAgent(
       resolve,
     };
     queue.push(pending);
-    // pumpQueue() owns the ensureWorker() call and handles synchronous spawn
+    // pumpQueue() owns the ensureChild() call and handles synchronous spawn
     // failures by fail-opening the request. Do not preflight-spawn here — that
     // would fail-open only the current request and leave any queued peers
     // hanging.
@@ -198,29 +244,39 @@ export function compressImageForAgent(
  * Test-only: reset module state between unit tests.
  */
 export function __resetImageCompressorForTests(): void {
-  if (worker) {
-    void worker.terminate();
+  const previousChild = child;
+  if (previousChild) {
+    child = null;
+    previousChild.kill();
   }
-  worker = null;
   inFlight = null;
   queue.length = 0;
   nextId = 1;
-  workerPathOverride = null;
+  childPathOverride = null;
+  forkForTests = fork;
 }
 
 /**
- * Test-only: override the worker script path. Pass an absolute path to a
+ * Test-only: override the child script path. Pass an absolute path to a
  * fixture script, or `null` to restore the default dist/ sibling lookup.
  */
-export function __setWorkerPathForTests(path: string | null): void {
-  workerPathOverride = path;
+export function __setChildPathForTests(path: string | null): void {
+  childPathOverride = path;
 }
 
 /**
- * Test-only: expose the currently-installed Worker instance so tests can
- * simulate stale events from a previous worker (Fix 2 race). Returns `null`
- * if no worker is currently installed.
+ * Test-only: expose the currently-installed child process so tests can
+ * simulate stale events from a previous child (Fix 2 race). Returns `null`
+ * if no child is currently installed.
  */
-export function __getCurrentWorkerForTests(): Worker | null {
-  return worker;
+export function __getCurrentChildForTests(): ChildProcess | null {
+  return child;
+}
+
+/**
+ * Test-only: override child_process.fork so tests can assert fork options or
+ * simulate synchronous spawn failures.
+ */
+export function __setForkForTests(nextFork: typeof fork | null): void {
+  forkForTests = nextFork ?? fork;
 }

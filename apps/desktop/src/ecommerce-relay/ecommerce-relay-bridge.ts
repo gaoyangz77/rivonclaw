@@ -1,9 +1,6 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
-import {
-  type CSNewMessageFrame,
-  stripReasoningTagsFromText,
-} from "@rivonclaw/core";
+import { stripReasoningTagsFromText } from "@rivonclaw/core";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
 import { reaction } from "mobx";
 import type {
@@ -602,41 +599,6 @@ export class EcommerceRelayBridge {
     );
 
     await this.affiliateInbound.handleWorkItem(workItem);
-  }
-
-  /**
-   * Test/compatibility helper for the old relay frame path. Production webhook
-   * delivery now arrives through `handleCsConversationSignal`, whose payload is
-   * intentionally business-level and content-free.
-   */
-  private async onNewMessage(frame: CSNewMessageFrame): Promise<void> {
-    const shop = this.shopContexts.get(frame.shopId);
-    if (!shop) {
-      log.error(`No shop context for platform shopId ${frame.shopId}, dropping message`);
-      emitCsError(CS_ERROR_STAGE.DISPATCH, {
-        platformShopId: frame.shopId,
-        conversationId: frame.conversationId,
-        reason: "no_shop_context",
-      });
-      return;
-    }
-
-    const session = await this.getOrCreateSession(shop.objectId, {
-      conversationId: frame.conversationId,
-      buyerUserId: frame.imUserId,
-      imUserId: frame.imUserId,
-      orderId: frame.orderId,
-    });
-
-    try {
-      await session.handleBuyerMessage(frame);
-    } catch (err) {
-      log.error(`Failed to handle buyer message ${frame.messageId}:`, err);
-      session.emitError(CS_ERROR_STAGE.DISPATCH, {
-        reason: "unhandled_exception",
-        errorMessage: err,
-      });
-    }
   }
 
   // -- Internal helpers -------------------------------------------------------

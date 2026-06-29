@@ -21,7 +21,7 @@
 import crypto from "node:crypto";
 import { join } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
-import { ScopeType, GQL, type CSNewMessageFrame, normalizeWeixinAccountId } from "@rivonclaw/core";
+import { ScopeType, GQL, normalizeWeixinAccountId } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
@@ -71,6 +71,12 @@ function resolveBuyerMessageQuietWindowMs(): number {
   if (raw === undefined) return DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? Math.max(0, parsed) : DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS;
+}
+
+function isCustomerServiceImageCompressionEnabled(): boolean {
+  const raw = process.env.RIVONCLAW_CS_IMAGE_COMPRESSION;
+  if (!raw) return false;
+  return /^(1|true|yes|on)$/i.test(raw.trim());
 }
 
 function buildConversationDeltaAnchor(
@@ -125,6 +131,56 @@ function classifyDeliveryFailure(err: unknown): {
     reason: "platform_error",
     shouldAttemptLocalRecovery: false,
   };
+}
+
+function firstNonEmptyString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function extractImageUrlFromUnknown(value: unknown, depth = 0): string | undefined {
+  if (value == null || depth > 4) return undefined;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) return undefined;
+    if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {
+      try {
+        const parsed = JSON.parse(text) as unknown;
+        const nested = extractImageUrlFromUnknown(parsed, depth + 1);
+        if (nested) return nested;
+      } catch {
+        // Not JSON; try URL extraction below.
+      }
+    }
+    const match = text.match(/https?:\/\/[^\s"'<>]+/i);
+    return match?.[0]?.replace(/[),.;\]]+$/g, "");
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = extractImageUrlFromUnknown(item, depth + 1);
+      if (nested) return nested;
+    }
+    return undefined;
+  }
+  if (typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const direct = firstNonEmptyString(
+    record.url,
+    record.imageUrl,
+    record.image_url,
+    record.originUrl,
+    record.originalUrl,
+    record.mediaUrl,
+    record.media_url,
+    record.src,
+  );
+  if (direct) return direct;
+  return extractImageUrlFromUnknown(
+    record.image ?? record.images ?? record.media ?? record.content ?? record.data,
+    depth + 1,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -197,17 +253,20 @@ type PendingBuyerDispatchBase = {
   reject: (error: unknown) => void;
 };
 
-type PendingBuyerFrameDispatch = PendingBuyerDispatchBase & {
-  kind: "frame";
-  frame: CSNewMessageFrame;
-};
-
 type PendingBuyerCatchUpDispatch = PendingBuyerDispatchBase & {
   kind: "catchUp";
   options: CatchUpDispatchOptions & { currentMessageId: string };
 };
 
-type PendingBuyerDispatch = PendingBuyerFrameDispatch | PendingBuyerCatchUpDispatch;
+type PendingBuyerDispatch = PendingBuyerCatchUpDispatch;
+
+type CSImageAttachment = { mimeType: string; content: string };
+
+type ImageAttachmentSource = {
+  url: string;
+  source: "delta";
+  messageId?: string;
+};
 
 export interface EscalationResult {
   decision: string;
@@ -485,8 +544,8 @@ export class CustomerServiceSession {
       reason: "coalesced_by_new_buyer_message",
       messageId: pending.messageId,
       messageIndex: pending.messageIndex,
-      messageType: pending.kind === "frame" ? pending.frame.messageType : pending.options.messageType,
-      senderRole: pending.kind === "frame" ? pending.frame.senderRole : pending.options.senderRole,
+      messageType: pending.options.messageType,
+      senderRole: pending.options.senderRole,
     });
   }
 
@@ -520,8 +579,7 @@ export class CustomerServiceSession {
   }
 
   private makePendingBuyerDispatch(
-    input: Omit<PendingBuyerFrameDispatch, keyof PendingBuyerDispatchBase>
-      | Omit<PendingBuyerCatchUpDispatch, keyof PendingBuyerDispatchBase>,
+    input: Omit<PendingBuyerCatchUpDispatch, keyof PendingBuyerDispatchBase>,
     messageId: string,
     messageIndex?: string,
   ): PendingBuyerDispatch {
@@ -543,53 +601,6 @@ export class CustomerServiceSession {
       resolve,
       reject,
     } as PendingBuyerDispatch;
-  }
-
-  private enqueueBuyerFrameDispatch(frame: CSNewMessageFrame): Promise<DispatchResult> {
-    if (this.isSamePendingBuyerDispatch(frame.messageId)) {
-      return this.pendingBuyerDispatch?.promise ?? Promise.resolve({ runId: undefined });
-    }
-    if (
-      !this.pendingBuyerDispatch
-      && this.activeRound?.hasActiveRun()
-      && this.activeRound.isSameBuyerMessage(frame.messageId)
-    ) {
-      const activeRunId = this.activeRound.getActiveRunId();
-      this.emitDispatchTelemetry({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "duplicate_active_message",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-        senderRole: frame.senderRole,
-        runId: activeRunId ?? undefined,
-      });
-      return Promise.resolve({ runId: activeRunId ?? undefined });
-    }
-
-    if (this.pendingBuyerDispatch) {
-      this.settlePendingBuyerDispatchAsCoalesced({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-        senderRole: frame.senderRole,
-      });
-    } else {
-      this.abortActiveRoundForPendingBuyerDispatch({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        reason: "superseded_by_new_message",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-        senderRole: frame.senderRole,
-      });
-    }
-
-    const pending = this.makePendingBuyerDispatch({ kind: "frame", frame }, frame.messageId);
-    this.schedulePendingBuyerDispatch(pending);
-    return pending.promise;
   }
 
   private enqueueBuyerCatchUpDispatch(
@@ -676,9 +687,7 @@ export class CustomerServiceSession {
     this.pendingBuyerDispatch = null;
 
     try {
-      const result = pending.kind === "frame"
-        ? await this.dispatchBuyerMessageNow(pending.frame, pending.round, pending.placeholder)
-        : await this.dispatchBuyerCatchUpNow(pending.options, pending.round, pending.placeholder);
+      const result = await this.dispatchBuyerCatchUpNow(pending.options, pending.round, pending.placeholder);
       pending.resolve(result);
     } catch (err) {
       pending.reject(err);
@@ -748,122 +757,6 @@ export class CustomerServiceSession {
   }
 
   // -- Dispatch methods -----------------------------------------------------
-
-  /**
-   * Handle an incoming buyer message.
-   *
-   * If any round has an active or pending run, aborts it and takes over.
-   * Uses JS single-threaded execution: the new round claims a placeholder run
-   * synchronously before any await, so the next incoming message always sees it
-   * and can abort.
-   */
-  async handleBuyerMessage(frame: CSNewMessageFrame): Promise<DispatchResult> {
-    return this.enqueueBuyerFrameDispatch(frame);
-  }
-
-  private async dispatchBuyerMessageNow(
-    frame: CSNewMessageFrame,
-    round: CSRound,
-    placeholder: string,
-  ): Promise<DispatchResult> {
-    const content = this.parseMessageContent(frame);
-
-    if (!await this.ensureBackendSession()) {
-      if (this.activeRound === round) round.clearPlaceholderIfCurrent();
-      this.emitDispatchTelemetry({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "backend_session_failed",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-      });
-      return { runId: undefined };
-    }
-
-    // If a newer message took over while we were awaiting, bail out.
-    if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
-      this.emitDispatchTelemetry({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "superseded_before_context",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-      });
-      return { runId: undefined };
-    }
-
-    const attachments = await this.fetchImageAttachment(frame);
-
-    if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
-      this.emitDispatchTelemetry({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "superseded_before_delta",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-      });
-      return { runId: undefined };
-    }
-
-    // Fetch a bounded platform delta before dispatch. The incoming webhook is
-    // the trigger; the platform conversation delta is the authoritative input.
-    const delta = await this.fetchConversationDelta(frame.messageId);
-
-    if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
-      this.emitDispatchTelemetry({
-        source: "relay",
-        dispatchReason: "PENDING_BUYER_MESSAGE",
-        outcome: "skipped",
-        reason: "superseded_after_delta",
-        messageId: frame.messageId,
-        messageType: frame.messageType,
-      });
-      return { runId: undefined };
-    }
-
-    // If previous runs were aborted, tell the agent its prior replies were not delivered.
-    const message = delta
-      ? round.buildConversationWorkPackageMessage(this.buildConversationDeltaMessage(frame.messageId, delta))
-      : round.buildBuyerMessage(content, isStagingDevMode());
-
-    const result = await this.dispatch({
-      message,
-      idempotencyKey: `${this.platform}:${frame.messageId}`,
-      attachments,
-      round,
-      placeholder,
-      dispatchReason: "PENDING_BUYER_MESSAGE",
-      dispatchSource: "relay",
-      currentMessageId: frame.messageId,
-      messageType: frame.messageType,
-      advanceSessionCursor: {
-        messageId: frame.messageId,
-        createTime: frame.createTime,
-      },
-    });
-
-    // Emit the inbound `cs.message` BI event — one row per message crossing
-    // the wire. Only fire after a successful dispatch so we don't count frames
-    // we dropped. Fire-and-forget: telemetry failure must never block the
-    // buyer-facing path.
-    if (result.runId) {
-      emitCsTelemetry("cs.message", {
-        shopId: this.csContext.shopId,
-        platformShopId: this.shop.platformShopId,
-        conversationId: this.csContext.conversationId,
-        buyerUserId: this.csContext.buyerUserId,
-        direction: "inbound",
-        messageId: frame.messageId,
-        contentLength: typeof content === "string" ? content.length : 0,
-        runId: result.runId,
-      });
-    }
-
-    return result;
-  }
 
   /**
    * Called by Bridge when an agent run completes (final or error).
@@ -1331,6 +1224,9 @@ export class CustomerServiceSession {
   private buildConversationDeltaMessage(
     currentMessageId: string,
     delta: GQL.CustomerServiceMessageDelta,
+    options?: {
+      attachedImageMessageIds?: Set<string>;
+    },
   ): string {
     const timeline = (delta.items ?? []).map((message, index) => [
       `${index + 1}. [${message.sender?.role ?? "UNKNOWN"}${message.sender?.nickname ? ` / ${message.sender.nickname}` : ""}]`,
@@ -1338,7 +1234,9 @@ export class CustomerServiceSession {
       `   messageIndex: ${message.index ?? ""}`,
       `   createTime: ${message.createTime ?? ""}`,
       `   type: ${message.type ?? ""}`,
-      `   text: ${message.text ?? ""}`,
+      `   text: ${options?.attachedImageMessageIds?.has(message.messageId ?? "")
+        ? "[Image attached to this agent run]"
+        : message.text ?? ""}`,
     ].join("\n"));
 
     return [
@@ -1489,6 +1387,7 @@ export class CustomerServiceSession {
       }
 
       let message = this.buildCatchUpMessage(options);
+      let attachments: CSImageAttachment[] | undefined;
       if (options.useMessageDelta !== false) {
         const delta = await this.fetchConversationDelta(options.currentMessageId);
         if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
@@ -1506,7 +1405,27 @@ export class CustomerServiceSession {
           return { runId: undefined };
         }
         if (delta) {
-          message = this.buildConversationDeltaMessage(options.currentMessageId, delta);
+          attachments = await this.fetchDeltaImageAttachment(options.currentMessageId, delta);
+          const attachedImageMessageIds = attachments?.length
+            ? new Set([options.currentMessageId])
+            : undefined;
+          message = this.buildConversationDeltaMessage(options.currentMessageId, delta, {
+            attachedImageMessageIds,
+          });
+          if (this.activeRound !== round || !round.isCurrentRun(placeholder)) {
+            this.emitDispatchTelemetry({
+              source: options.source ?? "cloud",
+              signalType: options.signalType,
+              dispatchReason: options.dispatchReason ?? "PENDING_BUYER_MESSAGE",
+              outcome: "skipped",
+              reason: "superseded_after_image_ingest",
+              messageId: options.currentMessageId,
+              messageIndex: currentMessageIndex,
+              messageType: options.messageType,
+              senderRole: options.senderRole,
+            });
+            return { runId: undefined };
+          }
         }
       }
 
@@ -1537,6 +1456,7 @@ export class CustomerServiceSession {
         currentMessageIndex,
         messageType: options.messageType,
         senderRole: options.senderRole,
+        attachments,
         advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
       });
       if (result.runId) {
@@ -2133,31 +2053,33 @@ export class CustomerServiceSession {
     }
   }
 
-  private parseMessageContent(frame: CSNewMessageFrame): string {
-    if (frame.messageType.toUpperCase() === "TEXT") {
-      try {
-        const parsed = JSON.parse(frame.content) as Record<string, unknown>;
-        if (typeof parsed.content === "string") return parsed.content;
-        if (typeof parsed.text === "string") return parsed.text;
-      } catch {
-        // Not JSON — use raw content
-      }
-      return frame.content;
+  private async fetchDeltaImageAttachment(
+    currentMessageId: string,
+    delta: GQL.CustomerServiceMessageDelta,
+  ): Promise<CSImageAttachment[] | undefined> {
+    const current = (delta.items ?? []).find((item) => item.messageId === currentMessageId);
+    if (!current) return undefined;
+    if (String(current.sender?.role ?? "").toUpperCase() !== "BUYER") return undefined;
+    if (String(current.type ?? "").toUpperCase() !== "IMAGE") return undefined;
+    const url = extractImageUrlFromUnknown(current.text);
+    if (!url) {
+      this.emitError(CS_ERROR_STAGE.IMAGE_INGEST, {
+        reason: `delta_url_missing:${currentMessageId}`,
+      });
+      return undefined;
     }
-    return `[${frame.messageType}] ${frame.content}`;
+    return this.fetchImageAttachmentFromUrl({
+      url,
+      source: "delta",
+      messageId: currentMessageId,
+    });
   }
 
-  private async fetchImageAttachment(
-    frame: CSNewMessageFrame,
-  ): Promise<Array<{ mimeType: string; content: string }> | undefined> {
-    if (frame.messageType.toUpperCase() !== "IMAGE") return undefined;
+  private async fetchImageAttachmentFromUrl(
+    source: ImageAttachmentSource,
+  ): Promise<CSImageAttachment[] | undefined> {
     try {
-      const parsed = JSON.parse(frame.content) as { url?: string };
-      if (!parsed.url) {
-        this.emitError(CS_ERROR_STAGE.IMAGE_INGEST, { reason: "url_missing" });
-        return undefined;
-      }
-      const res = await proxyNetwork.fetch(parsed.url);
+      const res = await proxyNetwork.fetch(source.url);
       if (!res.ok) {
         this.emitError(CS_ERROR_STAGE.IMAGE_INGEST, {
           reason: "url_fetch",
@@ -2167,19 +2089,30 @@ export class CustomerServiceSession {
       }
       const rawBuffer = Buffer.from(await res.arrayBuffer());
       const rawMimeType = res.headers.get("content-type") ?? "image/jpeg";
-      // Off-thread compression: resize + re-encode as JPEG so the main
-      // Electron event loop doesn't block when multiple shops receive images
-      // concurrently. Fail-open: on worker failure we still deliver the
-      // original buffer to the agent, but emit telemetry so the dashboard can
-      // tell compressed vs. fallback at the population level.
-      const result = await compressImageForAgent(rawBuffer, rawMimeType);
-      if (!result.ok) {
-        this.emitError(CS_ERROR_STAGE.IMAGE_INGEST, {
-          reason: "compress_failed",
-          errorMessage: result.error,
-        });
+      let buffer: Buffer<ArrayBufferLike> = rawBuffer;
+      let mimeType = rawMimeType;
+      let compression = "disabled";
+      if (isCustomerServiceImageCompressionEnabled()) {
+        // Optional off-process compression. Disabled by default while we measure
+        // whether platform-provided images already keep LLM payloads reasonable.
+        const result = await compressImageForAgent(rawBuffer, rawMimeType);
+        buffer = result.buffer;
+        mimeType = result.mimeType;
+        if (result.ok) {
+          compression = result.compressed ? "compressed" : result.reason;
+        } else {
+          compression = "fallback_original";
+          this.emitError(CS_ERROR_STAGE.IMAGE_INGEST, {
+            reason: "compress_failed",
+            errorMessage: result.error,
+          });
+        }
       }
-      return [{ mimeType: result.mimeType, content: result.buffer.toString("base64") }];
+      log.info(
+        `CS image attachment ingested: source=${source.source} messageId=${source.messageId ?? ""} ` +
+        `inputBytes=${rawBuffer.byteLength} outputBytes=${buffer.byteLength} compression=${compression}`,
+      );
+      return [{ mimeType, content: buffer.toString("base64") }];
     } catch (err) {
       log.warn("Failed to fetch buyer image, agent will see URL only", { err });
       this.emitError(CS_ERROR_STAGE.IMAGE_INGEST, { reason: "unexpected", errorMessage: err });
