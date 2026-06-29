@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import { getFirstPartyDomainRoute, routeFirstPartyUrl, type FirstPartyDomainRoute } from "@rivonclaw/core";
+import { DEFAULTS, getFirstPartyDomainRoute, routeFirstPartyUrl, type FirstPartyDomainRoute } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -34,6 +34,15 @@ type GenOrGetCachedProxyUrlResponse = {
     lastError?: string | null;
   };
 };
+
+function isFirstPartyObjectStorageUrl(sourceUrl: string): boolean {
+  try {
+    const parsed = new URL(sourceUrl);
+    return parsed.hostname === DEFAULTS.domains.objectStorage || parsed.hostname === DEFAULTS.domains.objectStorageCn;
+  } catch {
+    return false;
+  }
+}
 
 function parseRemoteHttpUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -101,6 +110,11 @@ const resolveMediaCacheUrl: EndpointHandler = async (req, res, _url, _params, ct
 
   const forceProxy = body.forceProxy === true;
   const route = getFirstPartyDomainRoute();
+  if (isFirstPartyObjectStorageUrl(sourceUrl)) {
+    sendJson(res, 200, result(sourceUrl, String(routeFirstPartyUrl(sourceUrl)), true, route));
+    return;
+  }
+
   if (route !== "cn-relay" && !forceProxy) {
     sendJson(res, 200, result(sourceUrl, sourceUrl, false, route));
     return;

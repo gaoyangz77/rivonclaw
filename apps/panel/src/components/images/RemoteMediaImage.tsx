@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { routeFirstPartyUrl } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
+import { DEFAULTS } from "@rivonclaw/core/defaults";
 import { fetchJson } from "../../api/client.js";
 
 type MediaCacheResolveResponse = {
@@ -29,7 +31,24 @@ function cacheKey(sourceUrl: string, cachePolicy: "auto" | "force"): string {
   return `${cachePolicy}:${sourceUrl}`;
 }
 
+function isFirstPartyObjectStorageUrl(sourceUrl: string): boolean {
+  try {
+    const parsed = new URL(sourceUrl);
+    return parsed.hostname === DEFAULTS.domains.objectStorage || parsed.hostname === DEFAULTS.domains.objectStorageCn;
+  } catch {
+    return false;
+  }
+}
+
+function resolveFirstPartyObjectStorageUrl(sourceUrl: string): string | null {
+  if (!isFirstPartyObjectStorageUrl(sourceUrl)) return null;
+  return String(routeFirstPartyUrl(sourceUrl));
+}
+
 function resolveRemoteMediaUrl(sourceUrl: string, cachePolicy: "auto" | "force"): Promise<string> {
+  const firstPartyUrl = resolveFirstPartyObjectStorageUrl(sourceUrl);
+  if (firstPartyUrl) return Promise.resolve(firstPartyUrl);
+
   const key = cacheKey(sourceUrl, cachePolicy);
   const cached = resolvedUrlCache.get(key);
   if (cached) return Promise.resolve(cached);
@@ -66,11 +85,23 @@ export function RemoteMediaImage({
   onImageError,
   style,
 }: RemoteMediaImageProps) {
-  const [src, setSrc] = useState<string | undefined>(() => resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy)));
+  const [src, setSrc] = useState<string | undefined>(
+    () => resolveFirstPartyObjectStorageUrl(sourceUrl) ?? resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy)),
+  );
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    const firstPartyUrl = resolveFirstPartyObjectStorageUrl(sourceUrl);
+    if (firstPartyUrl) {
+      setSrc(firstPartyUrl);
+      onResolvedUrlChange?.(firstPartyUrl);
+      setRetrying(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const cached = resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy));
     setSrc(cached);
     if (cached) onResolvedUrlChange?.(cached);
