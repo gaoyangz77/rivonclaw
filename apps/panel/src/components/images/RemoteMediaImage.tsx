@@ -12,62 +12,71 @@ type MediaCacheResolveResponse = {
 type RemoteMediaImageProps = {
   sourceUrl: string;
   alt: string;
+  cachePolicy?: "auto" | "force";
   className?: string;
   height?: string | number;
   width?: string | number;
   loading?: "eager" | "lazy";
   onResolvedUrlChange?: (url: string) => void;
+  onImageError?: () => void;
   style?: CSSProperties;
 };
 
 const resolvedUrlCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string>>();
 
-function resolveRemoteMediaUrl(sourceUrl: string): Promise<string> {
-  const cached = resolvedUrlCache.get(sourceUrl);
+function cacheKey(sourceUrl: string, cachePolicy: "auto" | "force"): string {
+  return `${cachePolicy}:${sourceUrl}`;
+}
+
+function resolveRemoteMediaUrl(sourceUrl: string, cachePolicy: "auto" | "force"): Promise<string> {
+  const key = cacheKey(sourceUrl, cachePolicy);
+  const cached = resolvedUrlCache.get(key);
   if (cached) return Promise.resolve(cached);
 
-  const existing = inflight.get(sourceUrl);
+  const existing = inflight.get(key);
   if (existing) return existing;
 
   const promise = fetchJson<MediaCacheResolveResponse>(clientPath(API["mediaCache.resolve"]), {
     method: "POST",
-    body: JSON.stringify({ sourceUrl }),
+    body: JSON.stringify({ sourceUrl, forceProxy: cachePolicy === "force" }),
   })
     .then((result) => {
       if (result.proxied) {
-        resolvedUrlCache.set(sourceUrl, result.url);
+        resolvedUrlCache.set(key, result.url);
       }
       return result.url;
     })
     .finally(() => {
-      inflight.delete(sourceUrl);
+      inflight.delete(key);
     });
-  inflight.set(sourceUrl, promise);
+  inflight.set(key, promise);
   return promise;
 }
 
 export function RemoteMediaImage({
   sourceUrl,
   alt,
+  cachePolicy = "auto",
   className,
   height,
   width,
   loading = "lazy",
   onResolvedUrlChange,
+  onImageError,
   style,
 }: RemoteMediaImageProps) {
-  const [src, setSrc] = useState<string | undefined>(() => resolvedUrlCache.get(sourceUrl));
+  const [src, setSrc] = useState<string | undefined>(() => resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy)));
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const cached = resolvedUrlCache.get(sourceUrl);
+    const cached = resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy));
     setSrc(cached);
     if (cached) onResolvedUrlChange?.(cached);
     setRetrying(false);
 
-    resolveRemoteMediaUrl(sourceUrl)
+    resolveRemoteMediaUrl(sourceUrl, cachePolicy)
       .then((resolved) => {
         if (!cancelled) {
           setSrc(resolved);
@@ -76,27 +85,34 @@ export function RemoteMediaImage({
       })
       .catch(() => {
         if (!cancelled) {
-          setSrc(sourceUrl);
-          onResolvedUrlChange?.(sourceUrl);
+          if (cachePolicy === "force") {
+            setSrc(undefined);
+            onImageError?.();
+          } else {
+            setSrc(sourceUrl);
+            onResolvedUrlChange?.(sourceUrl);
+          }
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [onResolvedUrlChange, sourceUrl]);
+  }, [cachePolicy, onImageError, onResolvedUrlChange, sourceUrl]);
 
   const handleError = () => {
     if (retrying) return;
     setRetrying(true);
-    void resolveRemoteMediaUrl(sourceUrl)
+    void resolveRemoteMediaUrl(sourceUrl, cachePolicy)
       .then((resolved) => {
         if (resolved !== src) {
           setSrc(resolved);
           onResolvedUrlChange?.(resolved);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        onImageError?.();
+      });
   };
 
   return (

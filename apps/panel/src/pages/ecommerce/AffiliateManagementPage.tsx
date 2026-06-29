@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useMutation, useQuery } from "@apollo/client/react";
@@ -2175,13 +2175,12 @@ function CreatorRelationshipCard({
       }}
     >
       <div className="affiliate-creator-row-main">
-        {profile?.avatarUrl ? (
-          <img className="affiliate-creator-avatar" src={profile.avatarUrl} alt="" />
-        ) : (
-          <div className="affiliate-creator-avatar affiliate-creator-avatar-empty" aria-hidden="true">
-            {name.slice(0, 1).toUpperCase()}
-          </div>
-        )}
+        <CreatorAvatarImage
+          avatarUrl={profile?.avatarUrl}
+          className="affiliate-creator-avatar"
+          fallbackClassName="affiliate-creator-avatar-empty"
+          name={name}
+        />
         <div className="affiliate-creator-row-copy">
           <div className="affiliate-creator-row-title">
             <CreatorName name={name} onOpen={() => onOpenRelationship(relationshipDetail)} />
@@ -2307,13 +2306,11 @@ function CreatorThreadCard({
     >
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-block">
-          {item.creatorProfile?.avatarUrl ? (
-            <img className="affiliate-avatar affiliate-thread-avatar-image" src={item.creatorProfile.avatarUrl} alt="" />
-          ) : (
-            <div className="affiliate-avatar" aria-hidden="true">
-              {creatorName.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+          <CreatorAvatarImage
+            avatarUrl={item.creatorProfile?.avatarUrl}
+            className="affiliate-avatar affiliate-thread-avatar-image"
+            name={creatorName}
+          />
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}
@@ -2823,13 +2820,11 @@ function CreatorThreadDetailModal({
       >
         <div className="modal-header affiliate-thread-modal-header">
           <div className="affiliate-thread-modal-heading">
-            {item.creatorProfile?.avatarUrl ? (
-              <img className="affiliate-avatar affiliate-thread-modal-avatar" src={item.creatorProfile.avatarUrl} alt="" />
-            ) : (
-              <div className="affiliate-avatar affiliate-thread-modal-avatar" aria-hidden="true">
-                {creatorName.slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <CreatorAvatarImage
+              avatarUrl={item.creatorProfile?.avatarUrl}
+              className="affiliate-avatar affiliate-thread-modal-avatar"
+              name={creatorName}
+            />
             <div className="affiliate-collaboration-modal-title-block">
               <button
                 className="affiliate-collaboration-modal-creator"
@@ -5438,6 +5433,45 @@ function CreatorName({ name, onOpen }: { name: string; onOpen?: () => void }) {
   );
 }
 
+function CreatorAvatarImage({
+  avatarUrl,
+  className,
+  fallbackClassName,
+  name,
+}: {
+  avatarUrl?: string | null;
+  className: string;
+  fallbackClassName?: string;
+  name: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const initial = name.trim().slice(0, 1).toUpperCase() || "?";
+  const handleImageError = useCallback(() => setFailed(true), []);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [avatarUrl]);
+
+  if (!avatarUrl || failed) {
+    return (
+      <div className={`${className} ${fallbackClassName ?? ""}`.trim()} aria-hidden="true">
+        {initial}
+      </div>
+    );
+  }
+
+  return (
+    <RemoteMediaImage
+      alt=""
+      cachePolicy="force"
+      className={className}
+      loading="lazy"
+      onImageError={handleImageError}
+      sourceUrl={avatarUrl}
+    />
+  );
+}
+
 function CreatorRelationshipDetailModal({
   item,
   onClose,
@@ -5468,13 +5502,12 @@ function CreatorRelationshipDetailModal({
       >
         <div className="modal-header affiliate-creator-detail-header">
           <div className="affiliate-creator-detail-identity">
-            {profile?.avatarUrl ? (
-              <img className="affiliate-creator-detail-avatar" src={profile.avatarUrl} alt="" />
-            ) : (
-              <div className="affiliate-creator-detail-avatar affiliate-creator-avatar-empty" aria-hidden="true">
-                {name.slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <CreatorAvatarImage
+              avatarUrl={profile?.avatarUrl}
+              className="affiliate-creator-detail-avatar"
+              fallbackClassName="affiliate-creator-avatar-empty"
+              name={name}
+            />
             <div>
               <h2 className="affiliate-relationship-detail-title">{name}</h2>
               <div className="affiliate-creator-detail-platform">
@@ -5609,13 +5642,12 @@ function CreatorDetailModal({
       >
         <div className="modal-header affiliate-creator-detail-header">
           <div className="affiliate-creator-detail-identity">
-            {profile.avatarUrl ? (
-              <img className="affiliate-creator-detail-avatar" src={profile.avatarUrl} alt="" />
-            ) : (
-              <div className="affiliate-creator-detail-avatar affiliate-creator-detail-avatar-empty" aria-hidden="true">
-                {name.slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <CreatorAvatarImage
+              avatarUrl={profile.avatarUrl}
+              className="affiliate-creator-detail-avatar"
+              fallbackClassName="affiliate-creator-detail-avatar-empty"
+              name={name}
+            />
             <div>
               <h2>{name}</h2>
               {handle ? <p>{handle}</p> : null}
