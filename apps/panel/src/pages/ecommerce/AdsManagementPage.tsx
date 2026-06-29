@@ -24,6 +24,12 @@ function statusClass(status?: string | null): string {
   return "status-badge status-neutral";
 }
 
+function syncHealthClass(status?: string | null, issueCode?: string | null): string {
+  if (status === "FAILED" && issueCode === "PERMISSION_DENIED") return "status-badge status-warning";
+  if (status === "FAILED") return "status-badge status-error";
+  return "status-badge status-authorized";
+}
+
 export const AdsManagementPage = observer(function AdsManagementPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -46,6 +52,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authorizedAdvertisers = advertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED");
+  const unhealthyAdvertisers = advertisers.filter((advertiser) => advertiser.syncHealthStatus === "FAILED");
   const shopCoverageRows = shops.map((shop) => ({
     shop,
     readiness: resolveShopAdsReadiness(shop, advertisers, storeAccesses),
@@ -207,7 +214,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         </div>
       </div>
 
-      <div className="ads-summary-strip ads-summary-strip-four">
+      <div className="ads-summary-strip ads-summary-strip-five">
         <div className="ads-summary-item">
           <span>{t("adsManagement.totalAdvertisers")}</span>
           <strong>{advertisers.length}</strong>
@@ -215,6 +222,10 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         <div className="ads-summary-item">
           <span>{t("adsManagement.authorizedAdvertisers")}</span>
           <strong>{authorizedAdvertisers.length}</strong>
+        </div>
+        <div className="ads-summary-item">
+          <span>{t("adsManagement.needsAttention")}</span>
+          <strong>{unhealthyAdvertisers.length}</strong>
         </div>
         <div className="ads-summary-item">
           <span>{t("adsManagement.adsReadyShops")}</span>
@@ -251,6 +262,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                   <th>{t("adsManagement.columns.name")}</th>
                   <th>{t("adsManagement.columns.advertiserId")}</th>
                   <th>{t("adsManagement.columns.status")}</th>
+                  <th>{t("adsManagement.columns.syncHealth")}</th>
                   <th>{t("adsManagement.columns.role")}</th>
                   <th>{t("adsManagement.columns.currency")}</th>
                   <th>{t("adsManagement.columns.visibleStores")}</th>
@@ -261,7 +273,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
               <tbody>
                 {advertisers.map((advertiser) => (
                   <tr className="table-hover-row" key={advertiser.id}>
-                    <td>
+                    <td title={advertiser.syncIssueMessage || advertiser.lastBiSyncError || undefined}>
                       <div className="shop-table-name">
                         {advertiser.advertiserName || advertiser.advertiserId}
                       </div>
@@ -274,6 +286,27 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                           defaultValue: advertiser.auth.status,
                         })}
                       </span>
+                    </td>
+                    <td>
+                      <div className="ads-sync-health-cell">
+                        <span className={syncHealthClass(advertiser.syncHealthStatus, advertiser.syncIssueCode)}>
+                          {t(`adsManagement.syncHealth.${advertiser.syncHealthStatus || "HEALTHY"}`, {
+                            defaultValue: advertiser.syncHealthStatus || "HEALTHY",
+                          })}
+                        </span>
+                        {advertiser.syncIssueCode ? (
+                          <div className="td-muted">
+                            {t(`adsManagement.syncIssue.${advertiser.syncIssueCode}`, {
+                              defaultValue: advertiser.syncIssueCode,
+                            })}
+                          </div>
+                        ) : null}
+                        {advertiser.syncIssueDetectedAt ? (
+                          <div className="td-muted td-date">
+                            {formatDate(advertiser.syncIssueDetectedAt)}
+                          </div>
+                        ) : null}
+                      </div>
                     </td>
                     <td>{advertiser.advertiserRole || "-"}</td>
                     <td>{advertiser.currency || "-"}</td>

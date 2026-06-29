@@ -444,6 +444,11 @@ export interface AdsAdvertiser {
   ownerType: AdsAdvertiserOwnerType;
   platform: AdsPlatform;
   platformStatus?: Maybe<Scalars['String']['output']>;
+  syncHealthCheckedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  syncHealthStatus: AdsSyncHealthStatus;
+  syncIssueCode?: Maybe<AdsSyncIssueCode>;
+  syncIssueDetectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  syncIssueMessage?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<SupportedTimezone>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['String']['output'];
@@ -482,6 +487,22 @@ export const AdsBiSyncStatus = {
 } as const;
 
 export type AdsBiSyncStatus = typeof AdsBiSyncStatus[keyof typeof AdsBiSyncStatus];
+/** Whether BI sync can currently read data for an ads scope. */
+export const AdsSyncHealthStatus = {
+  Failed: 'FAILED',
+  Healthy: 'HEALTHY'
+} as const;
+
+export type AdsSyncHealthStatus = typeof AdsSyncHealthStatus[keyof typeof AdsSyncHealthStatus];
+/** Structured reason for an ads BI sync health problem. */
+export const AdsSyncIssueCode = {
+  BackendError: 'BACKEND_ERROR',
+  PermissionDenied: 'PERMISSION_DENIED',
+  PlatformError: 'PLATFORM_ERROR',
+  Unknown: 'UNKNOWN'
+} as const;
+
+export type AdsSyncIssueCode = typeof AdsSyncIssueCode[keyof typeof AdsSyncIssueCode];
 /** Local request lifecycle for advertiser-to-shop GMV Max authorization */
 export const AdsGmvMaxAuthorizationRequestStatus = {
   Active: 'ACTIVE',

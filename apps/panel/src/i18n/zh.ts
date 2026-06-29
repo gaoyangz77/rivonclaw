@@ -2471,6 +2471,7 @@ export default {
     connectBusiness: "连接 TikTok Business",
     totalAdvertisers: "广告账户数",
     authorizedAdvertisers: "已授权",
+    needsAttention: "需要处理",
     adsReadyShops: "广告就绪店铺",
     authSeparationHint: "TikTok Ads 能力通过 Business/Ads Manager 授权。EasyClaw 只管理同时已授权为 TikTok Shop 的店铺。",
     businessAccountHint: "TikTok Ads 授权带来 advertiser 访问能力。只有 advertiser 可见的 store 能匹配到 EasyClaw 已授权店铺时，才进入可管理范围。",
@@ -2501,6 +2502,7 @@ export default {
       name: "广告账户",
       advertiserId: "Advertiser ID",
       status: "授权状态",
+      syncHealth: "BI 同步",
       role: "角色",
       currency: "币种",
       visibleStores: "可见 Store",
@@ -2513,6 +2515,16 @@ export default {
       TOKEN_EXPIRED: "Token 过期",
       REVOKED: "已撤销",
       DISCONNECTED: "已断开",
+    },
+    syncHealth: {
+      HEALTHY: "正常",
+      FAILED: "异常",
+    },
+    syncIssue: {
+      PERMISSION_DENIED: "广告账户权限失效",
+      PLATFORM_ERROR: "TikTok Ads API 异常",
+      BACKEND_ERROR: "后端同步异常",
+      UNKNOWN: "同步异常",
     },
     shopColumns: {
       shop: "店铺",

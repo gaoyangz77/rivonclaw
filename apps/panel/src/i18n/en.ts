@@ -2472,6 +2472,7 @@ export default {
     connectBusiness: "Connect TikTok Business",
     totalAdvertisers: "Ad accounts",
     authorizedAdvertisers: "Authorized",
+    needsAttention: "Needs attention",
     adsReadyShops: "Ads-ready shops",
     authSeparationHint: "TikTok Ads access is granted through Business/Ads Manager. EasyClaw only manages stores that are also authorized as TikTok Shops.",
     businessAccountHint: "TikTok Ads authorization grants advertiser access. Store coverage is actionable only when an advertiser-visible store maps back to an EasyClaw-authorized shop.",
@@ -2502,6 +2503,7 @@ export default {
       name: "Advertiser",
       advertiserId: "Advertiser ID",
       status: "Auth Status",
+      syncHealth: "BI Sync",
       role: "Role",
       currency: "Currency",
       visibleStores: "Visible Stores",
@@ -2514,6 +2516,16 @@ export default {
       TOKEN_EXPIRED: "Token Expired",
       REVOKED: "Revoked",
       DISCONNECTED: "Disconnected",
+    },
+    syncHealth: {
+      HEALTHY: "Healthy",
+      FAILED: "Issue",
+    },
+    syncIssue: {
+      PERMISSION_DENIED: "Advertiser permission lost",
+      PLATFORM_ERROR: "TikTok Ads API issue",
+      BACKEND_ERROR: "Backend sync issue",
+      UNKNOWN: "Sync issue",
     },
     shopColumns: {
       shop: "Shop",

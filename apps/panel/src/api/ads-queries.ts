@@ -12,6 +12,17 @@ export const ADS_ADVERTISER_FIELDS_FRAGMENT = gql`
     platformStatus
     currency
     timezone
+    biSyncStatus
+    lastBiSyncError
+    lastContextSyncedAt
+    lastStoreAccessSyncedAt
+    lastAdsObjectSyncedAt
+    lastReportSyncedAt
+    syncHealthStatus
+    syncIssueCode
+    syncIssueMessage
+    syncIssueDetectedAt
+    syncHealthCheckedAt
     createdAt
     updatedAt
     auth {
