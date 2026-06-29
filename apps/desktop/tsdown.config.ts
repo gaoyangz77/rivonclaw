@@ -5,11 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Two separate build configs so the image compression worker does NOT share
+// Two separate build configs so the image compression child process does NOT share
 // chunks with main.cjs. If rolldown shares a chunk (rolldown's default code-
-// splitting behavior for multi-entry builds), the worker's chunk ends up
+// splitting behavior for multi-entry builds), the child entry's chunk ends up
 // `require`ing main.cjs — which imports `electron`, blowing up in a plain
-// Node worker thread. Separate builds guarantee bundle isolation.
+// Node child process. Separate builds guarantee bundle isolation.
 export default defineConfig([
   {
     name: "desktop-main",
@@ -46,7 +46,7 @@ export default defineConfig([
     },
   },
   {
-    name: "image-compression-worker",
+    name: "image-compression-child",
     entry: ["src/cs-bridge/image-compression-worker.ts"],
     format: "cjs",
     dts: false,

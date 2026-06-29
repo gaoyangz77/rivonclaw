@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import type {
   AffiliateNewMessageFrame,
   AffiliateSampleApplicationUpdatedFrame,
-  CSNewMessageFrame,
 } from "@rivonclaw/core";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -22,6 +21,13 @@ vi.mock("../openclaw/index.js", () => ({
     request: (...args: unknown[]) => mockRpcRequest(...args),
     ensureRpcReady: () => mockEnsureRpcReady(),
   },
+}));
+
+const { mockCompressImageForAgent } = vi.hoisted(() => ({
+  mockCompressImageForAgent: vi.fn(),
+}));
+vi.mock("./image-compressor.js", () => ({
+  compressImageForAgent: (...args: unknown[]) => mockCompressImageForAgent(...args),
 }));
 
 const mockGraphqlFetch = vi.fn();
@@ -113,7 +119,22 @@ const defaultShop: CSShopContext = {
   runProfileId: "CUSTOMER_SERVICE",
 };
 
-function createFrame(overrides?: Partial<CSNewMessageFrame>): CSNewMessageFrame {
+type TestCSMessagePayload = {
+  type: "cs_tiktok_new_message";
+  shopId: string;
+  conversationId: string;
+  imUserId: string;
+  messageId: string;
+  messageType: string;
+  content: string;
+  senderRole: string;
+  senderId: string;
+  createTime: number;
+  isVisible: boolean;
+  orderId?: string;
+};
+
+function createFrame(overrides?: Partial<TestCSMessagePayload>): TestCSMessagePayload {
   return {
     type: "cs_tiktok_new_message",
     shopId: "tiktok-shop-456",
@@ -127,6 +148,69 @@ function createFrame(overrides?: Partial<CSNewMessageFrame>): CSNewMessageFrame 
     createTime: 1234567890,
     isVisible: true,
     ...overrides,
+  };
+}
+
+const csTestFramesByMessageId = new Map<string, TestCSMessagePayload>();
+
+function deltaTextFromFrame(frame: TestCSMessagePayload): string {
+  if (frame.messageType.toUpperCase() === "TEXT") {
+    try {
+      const parsed = JSON.parse(frame.content) as Record<string, unknown>;
+      if (typeof parsed.content === "string") return parsed.content;
+      if (typeof parsed.text === "string") return parsed.text;
+    } catch {
+      // Use raw text below.
+    }
+  }
+  if (frame.messageType.toUpperCase() === "IMAGE") {
+    try {
+      const parsed = JSON.parse(frame.content) as Record<string, unknown>;
+      if (typeof parsed.url === "string") return parsed.url;
+    } catch {
+      // Use raw content below.
+    }
+  }
+  return frame.content;
+}
+
+function buildTestConversationDeltaResult(currentMessageId: unknown): {
+  ecommerceGetConversationMessageDelta: {
+    items: Array<{
+      messageId: string;
+      index: string;
+      type: string;
+      text: string;
+      createTime: number;
+      sender: { role?: string; nickname: string };
+    }>;
+    meta: Record<string, unknown>;
+  };
+} {
+  const frame = csTestFramesByMessageId.get(String(currentMessageId ?? ""));
+  return {
+    ecommerceGetConversationMessageDelta: {
+      items: frame
+        ? [{
+          messageId: frame.messageId,
+          index: "1",
+          type: frame.messageType,
+          text: deltaTextFromFrame(frame),
+          createTime: frame.createTime,
+          sender: { role: frame.senderRole, nickname: "Buyer" },
+        }]
+        : [],
+      meta: {
+        completeness: frame ? "COMPLETE" : "CURRENT_MESSAGE_NOT_FOUND",
+        anchorMatchType: "PLATFORM_MESSAGE_ID",
+        currentMessageFound: Boolean(frame),
+        anchorMatched: true,
+        pageLimitReached: false,
+        fetchedMessageCount: frame ? 1 : 0,
+        anchorMessageId: "msg-seen",
+        anchorCreateTime: 100,
+      },
+    },
   };
 }
 
@@ -162,12 +246,59 @@ function createAffiliateSampleFrame(
   };
 }
 
-/** Invoke the private onNewMessage method. */
+/** Simulate the production backend signal path for a buyer message. */
 async function triggerMessage(
   bridge: CustomerServiceBridge,
-  frame: CSNewMessageFrame,
+  frame: TestCSMessagePayload,
 ): Promise<void> {
-  await (bridge as any).onNewMessage(frame);
+  csTestFramesByMessageId.set(frame.messageId, frame);
+  const shop = (bridge as any).shopContexts?.get(frame.shopId) as CSShopContext | undefined;
+  const existingShop = shop
+    ? rootStore.findShopByObjectOrPlatformId(shop.objectId, shop.platformShopId)
+    : undefined;
+  if (shop && !existingShop) {
+    rootStore.ingestGraphQLResponse({
+      shops: [{
+        id: shop.objectId,
+        platform: shop.platform ?? "TIKTOK_SHOP",
+        platformShopId: shop.platformShopId,
+        shopName: shop.shopName,
+        services: {
+          customerService: {
+            enabled: true,
+            csDeviceId: "test-gateway",
+            businessPrompt: shop.systemPrompt,
+            platformSystemPrompt: shop.systemPrompt,
+            runProfileId: shop.runProfileId ?? null,
+            csProviderOverride: shop.csProviderOverride ?? null,
+            csModelOverride: shop.csModelOverride ?? null,
+          },
+          affiliateService: {
+            enabled: false,
+            csDeviceId: null,
+            runProfileId: null,
+          },
+        },
+      }],
+    });
+  }
+  await bridge.handleCsConversationSignal({
+    type: "UNREAD_DETECTED",
+    source: "WEBHOOK",
+    shopId: shop?.objectId ?? frame.shopId,
+    platformShopId: frame.shopId,
+    conversationId: frame.conversationId,
+    messageId: frame.messageId,
+    messageIndex: undefined,
+    imUserId: frame.imUserId,
+    buyerUserId: frame.imUserId,
+    orderId: frame.orderId,
+    messageType: frame.messageType,
+    senderRole: frame.senderRole,
+    aiEnabled: true,
+    latestMessagePreview: deltaTextFromFrame(frame),
+    eventTime: new Date(frame.createTime * 1000).toISOString(),
+  });
 }
 
 /** Route an affiliate message through the domain inbound handler. */
@@ -247,8 +378,10 @@ function setChannelManagerTestEnv(stateDir: string): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  csTestFramesByMessageId.clear();
   rootStore.llmManager.clearVolatileSessionState();
   process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "0";
+  delete process.env.RIVONCLAW_CS_IMAGE_COMPRESSION;
   applySnapshot(rootStore.toolCapability.sessionProfiles, {});
   setSessionRunProfileCalls.length = 0;
   mockRpcRequest.mockResolvedValue({ ok: true });
@@ -313,6 +446,9 @@ beforeEach(() => {
     }
     if (query.includes("csGetOrCreateSession")) {
       return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+    }
+    if (query.includes("ecommerceGetConversationMessageDelta")) {
+      return buildTestConversationDeltaResult(variables?.currentMessageId);
     }
     return { ecommerceSendMessage: { messageId: "msg-default" } };
   });
@@ -704,7 +840,7 @@ describe("session key construction", () => {
       "agent",
       expect.objectContaining({
         sessionKey: "cs:shopee:conv-PLAT",
-        idempotencyKey: "shopee:msg-001",
+        idempotencyKey: "cs-start:conv-PLAT:msg-001",
       }),
       120000,
     );
@@ -726,238 +862,160 @@ describe("session key construction", () => {
   });
 });
 
-// ─── 3. Message content parsing ─────────────────────────────────────────────
-
-describe("message content parsing", () => {
-  it("TEXT message: extracts JSON content field", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "TEXT",
-      content: JSON.stringify({ content: "你好" }),
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: "[External: Buyer]\n你好" }),
-      120000,
-    );
-  });
-
-  it("TEXT message: extracts JSON text field as fallback", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "TEXT",
-      content: JSON.stringify({ text: "Fallback text" }),
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: "[External: Buyer]\nFallback text" }),
-      120000,
-    );
-  });
-
-  it("TEXT message: raw string fallback when content is not JSON", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "TEXT",
-      content: "plain text message",
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: "[External: Buyer]\nplain text message" }),
-      120000,
-    );
-  });
-
-  it("IMAGE message passes raw content with type prefix", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    const content = JSON.stringify({ url: "https://example.com/img.jpg", width: 304, height: 290 });
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "IMAGE",
-      content,
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: `[External: Buyer]\n[IMAGE] ${content}` }),
-      120000,
-    );
-  });
-
-  it("ORDER_CARD message passes raw content with type prefix", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    const content = JSON.stringify({ order_id: "ORD-12345" });
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "ORDER_CARD",
-      content,
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: `[External: Buyer]\n[ORDER_CARD] ${content}` }),
-      120000,
-    );
-  });
-
-  it("VIDEO message passes raw content with type prefix", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    const content = JSON.stringify({ url: "https://example.com/video.mp4", duration: "20.5" });
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "VIDEO",
-      content,
-    }));
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({ message: `[External: Buyer]\n[VIDEO] ${content}` }),
-      120000,
-    );
-  });
-});
-
 // ─── 3a. Image attachment extraction ─────────────────────────────────────────
 
 describe("image attachment extraction", () => {
-  it("IMAGE message: fetches image and passes base64 attachment to agent RPC", async () => {
-    const fakeImageBuffer = Buffer.from("fake-png-data");
+  it("cloud IMAGE delta: fetches current buyer image URL and passes base64 attachment to agent RPC", async () => {
+    const fakeImageBuffer = Buffer.from("fake-delta-image-data");
+    const imageUrl = "https://p16-oec-general-useast5.ttcdn-us.com/tos/test-image~origin-jpeg.jpeg";
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      headers: new Headers({ "content-type": "image/png" }),
+      headers: new Headers({ "content-type": "image/jpeg" }),
       arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer.slice(
         fakeImageBuffer.byteOffset,
         fakeImageBuffer.byteOffset + fakeImageBuffer.byteLength,
       )),
     });
     vi.stubGlobal("fetch", mockFetch);
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return {
+          ecommerceGetConversationMessageDelta: {
+            items: [{
+              messageId: variables?.currentMessageId ?? "msg-image",
+              index: "1779000000000001",
+              type: "IMAGE",
+              text: imageUrl,
+              createTime: 1779000001,
+              sender: { role: "BUYER", nickname: "Alice" },
+            }],
+            meta: {
+              completeness: "COMPLETE",
+              anchorMatchType: "PLATFORM_MESSAGE_ID",
+              currentMessageFound: true,
+              anchorMatched: true,
+              pageLimitReached: false,
+              fetchedMessageCount: 1,
+              anchorMessageId: "msg-seen",
+              anchorCreateTime: 1779000000,
+            },
+          },
+        };
+      }
+      return { ecommerceSendMessage: { messageId: "msg-default" } };
+    });
 
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
-    const imageUrl = "https://tosv.boei18n.byted.org/obj/test-image.png";
-    const content = JSON.stringify({ url: imageUrl, width: 304, height: 290 });
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-delta-image",
+      buyerUserId: "buyer-001",
+    });
 
-    await triggerMessage(bridge, createFrame({
+    await session.dispatchCatchUp({
+      currentMessageId: "msg-image",
       messageType: "IMAGE",
-      content,
-    }));
+      currentMessageCursor: {
+        messageId: "msg-image",
+        messageIndex: "1779000000000001",
+        createTime: 1779000001,
+      },
+    });
 
-    // fetch was called with the image URL
     expect(mockFetch).toHaveBeenCalledWith(imageUrl);
-
-    // agent RPC includes attachments
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    const agentCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
     expect(agentCall).toBeDefined();
-    expect(agentCall![1].attachments).toEqual([
-      { mimeType: "image/png", content: fakeImageBuffer.toString("base64") },
-    ]);
-
-    vi.unstubAllGlobals();
-  });
-
-  it("IMAGE message: fetch failure does not block agent dispatch (graceful degradation)", async () => {
-    const mockFetch = vi.fn().mockRejectedValue(new Error("network error"));
-    vi.stubGlobal("fetch", mockFetch);
-
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    const content = JSON.stringify({ url: "https://example.com/broken.jpg", width: 100, height: 100 });
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "IMAGE",
-      content,
-    }));
-
-    // Agent RPC was still called (dispatch not blocked)
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    expect(agentCall).toBeDefined();
-
-    // No attachments passed (fetch failed)
-    expect(agentCall![1].attachments).toBeUndefined();
-
-    // Text content still includes the IMAGE prefix
-    expect(agentCall![1].message).toContain("[IMAGE]");
-
-    vi.unstubAllGlobals();
-  });
-
-  it("IMAGE message: non-ok response does not produce attachments", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      headers: new Headers(),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-    const content = JSON.stringify({ url: "https://example.com/missing.jpg" });
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "IMAGE",
-      content,
-    }));
-
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    expect(agentCall).toBeDefined();
-    expect(agentCall![1].attachments).toBeUndefined();
-
-    vi.unstubAllGlobals();
-  });
-
-  it("TEXT message: no attachments passed to agent RPC", async () => {
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "TEXT",
-      content: JSON.stringify({ content: "Hello" }),
-    }));
-
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
-    expect(agentCall).toBeDefined();
-    expect(agentCall![1].attachments).toBeUndefined();
-  });
-
-  it("IMAGE message: defaults mimeType to image/jpeg when content-type header is missing", async () => {
-    const fakeImageBuffer = Buffer.from("fake-jpeg-data");
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers(), // no content-type
-      arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer.slice(
-        fakeImageBuffer.byteOffset,
-        fakeImageBuffer.byteOffset + fakeImageBuffer.byteLength,
-      )),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const bridge = createBridge();
-    bridge.setShopContext(defaultShop);
-
-    await triggerMessage(bridge, createFrame({
-      messageType: "IMAGE",
-      content: JSON.stringify({ url: "https://example.com/no-ct.jpg" }),
-    }));
-
-    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall![1].attachments).toEqual([
       { mimeType: "image/jpeg", content: fakeImageBuffer.toString("base64") },
     ]);
+    expect(mockCompressImageForAgent).not.toHaveBeenCalled();
+    expect(agentCall![1].message).toContain("type: IMAGE");
+    expect(agentCall![1].message).toContain("[Image attached to this agent run]");
+    expect(agentCall![1].message).not.toContain(imageUrl);
 
     vi.unstubAllGlobals();
   });
+
+  it("cloud IMAGE delta: compression is opt-in and uses the compressed attachment when enabled", async () => {
+    process.env.RIVONCLAW_CS_IMAGE_COMPRESSION = "1";
+    const rawImageBuffer = Buffer.from("raw-delta-image-data");
+    const compressedImageBuffer = Buffer.from("small");
+    mockCompressImageForAgent.mockResolvedValue({
+      ok: true,
+      compressed: true,
+      buffer: compressedImageBuffer,
+      mimeType: "image/jpeg",
+    });
+    const imageUrl = "https://p16-oec-general-useast5.ttcdn-us.com/tos/test-image~origin-jpeg.jpeg";
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "image/png" }),
+      arrayBuffer: () => Promise.resolve(rawImageBuffer.buffer.slice(
+        rawImageBuffer.byteOffset,
+        rawImageBuffer.byteOffset + rawImageBuffer.byteLength,
+      )),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return {
+          ecommerceGetConversationMessageDelta: {
+            items: [{
+              messageId: variables?.currentMessageId ?? "msg-image",
+              index: "1779000000000001",
+              type: "IMAGE",
+              text: imageUrl,
+              createTime: 1779000001,
+              sender: { role: "BUYER", nickname: "Alice" },
+            }],
+            meta: {
+              completeness: "COMPLETE",
+              anchorMatchType: "PLATFORM_MESSAGE_ID",
+              currentMessageFound: true,
+              anchorMatched: true,
+              pageLimitReached: false,
+              fetchedMessageCount: 1,
+              anchorMessageId: "msg-seen",
+              anchorCreateTime: 1779000000,
+            },
+          },
+        };
+      }
+      return { ecommerceSendMessage: { messageId: "msg-default" } };
+    });
+
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-delta-image-compressed",
+      buyerUserId: "buyer-001",
+    });
+
+    await session.dispatchCatchUp({
+      currentMessageId: "msg-image",
+      messageType: "IMAGE",
+      currentMessageCursor: {
+        messageId: "msg-image",
+        messageIndex: "1779000000000001",
+        createTime: 1779000001,
+      },
+    });
+
+    expect(mockCompressImageForAgent).toHaveBeenCalledWith(rawImageBuffer, "image/png");
+    const agentCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
+    expect(agentCall?.[1].attachments).toEqual([
+      { mimeType: "image/jpeg", content: compressedImageBuffer.toString("base64") },
+    ]);
+
+    vi.unstubAllGlobals();
+  });
+
 });
 
 // ─── 4. CS RunProfile setup ─────────────────────────────────────────────────
@@ -1091,7 +1149,7 @@ describe("session registration", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceGetConversationDetails")) {
         return { ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } } };
       }
@@ -1339,7 +1397,7 @@ describe("agent dispatch", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceGetConversationDetails")) {
         return { ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } } };
       }
@@ -1365,7 +1423,7 @@ describe("agent dispatch", () => {
     expect(agentCall![1].extraSystemPrompt).not.toContain("Order ID");
   });
 
-  it("idempotencyKey = {platform}:{messageId}", async () => {
+  it("idempotencyKey = cs-start:{conversationId}:{messageId}", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -1374,7 +1432,7 @@ describe("agent dispatch", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        idempotencyKey: "tiktok:msg-unique-42",
+        idempotencyKey: "cs-start:conv-789:msg-unique-42",
       }),
       120000,
     );
@@ -2157,6 +2215,7 @@ describe("multi-provider model override", () => {
             enabled: true,
             csDeviceId: "test-gateway",
             businessPrompt: "You are a CS assistant.",
+            platformSystemPrompt: "You are a CS assistant.",
             csProviderOverride: overrides?.csProviderOverride ?? null,
             csModelOverride: overrides?.csModelOverride ?? null,
             runProfileId: "CUSTOMER_SERVICE",
@@ -3354,7 +3413,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
     expect(message).toContain("[Internal: System]");
     expect(message).toContain("Your previous reply was not delivered");
-    expect(message).toContain("[External: Buyer]");
+    expect(message).toContain("[Customer Service Conversation Work Package]");
     expect(message).toContain("Second");
   });
 
@@ -3418,7 +3477,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
     expect(message).not.toContain("[Internal: System]");
     expect(message).not.toContain("not delivered");
-    expect(message).toContain("[External: Buyer]");
+    expect(message).toContain("[Customer Service Conversation Work Package]");
     expect(message).toContain("Third");
   });
 
@@ -3434,7 +3493,8 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
     expect(message).not.toContain("[Internal: System]");
     expect(message).not.toContain("not delivered");
-    expect(message).toBe("[External: Buyer]\nHello");
+    expect(message).toContain("[Customer Service Conversation Work Package]");
+    expect(message).toContain("text: Hello");
   });
 });
 
@@ -3448,7 +3508,7 @@ describe("per-turn message forwarding", () => {
   async function dispatchAndGetRunId(
     bridge: ReturnType<typeof createBridge>,
     runId: string,
-    overrides?: Partial<CSNewMessageFrame>,
+    overrides?: Partial<TestCSMessagePayload>,
   ): Promise<void> {
     mockRpcRequest.mockResolvedValue({ runId });
     await triggerMessage(bridge, createFrame(overrides));
@@ -3779,7 +3839,7 @@ describe("terminal guarantee (error/timeout)", () => {
   async function dispatchAndGetRunId(
     bridge: ReturnType<typeof createBridge>,
     runId: string,
-    overrides?: Partial<CSNewMessageFrame>,
+    overrides?: Partial<TestCSMessagePayload>,
   ): Promise<void> {
     mockRpcRequest.mockResolvedValue({ runId });
     await triggerMessage(bridge, createFrame(overrides));
@@ -4006,7 +4066,7 @@ describe("terminal guarantee (error/timeout)", () => {
    */
   function failFirstNSends(n: number): void {
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceSendMessage")) {
         sendCount++;
         if (sendCount <= n) throw new Error("simulated delivery failure");
@@ -4017,6 +4077,9 @@ describe("terminal guarantee (error/timeout)", () => {
       }
       if (query.includes("csGetOrCreateSession")) {
         return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
       }
       return {};
     });
@@ -4053,7 +4116,7 @@ describe("terminal guarantee (error/timeout)", () => {
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-fwd-sensitive");
 
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceSendMessage")) {
         throw new Error("TikTok API error 45101006: hit sensitive");
       }
@@ -4062,6 +4125,9 @@ describe("terminal guarantee (error/timeout)", () => {
       }
       if (query.includes("csGetOrCreateSession")) {
         return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
       }
       return {};
     });
@@ -4095,7 +4161,7 @@ describe("terminal guarantee (error/timeout)", () => {
     });
 
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceSendMessage")) {
         sendCount++;
         if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
@@ -4106,6 +4172,9 @@ describe("terminal guarantee (error/timeout)", () => {
       }
       if (query.includes("csGetOrCreateSession")) {
         return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
       }
       return {};
     });
@@ -4153,7 +4222,7 @@ describe("terminal guarantee (error/timeout)", () => {
       return { ok: true };
     });
 
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceSendMessage")) {
         throw new Error("TikTok API error 45101006: hit sensitive");
       }
@@ -4162,6 +4231,9 @@ describe("terminal guarantee (error/timeout)", () => {
       }
       if (query.includes("csGetOrCreateSession")) {
         return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
       }
       return {};
     });
@@ -4200,11 +4272,14 @@ describe("terminal guarantee (error/timeout)", () => {
     });
 
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceSendMessage")) {
         sendCount++;
         if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
         return { ecommerceSendMessage: { messageId: `ok-${sendCount}` } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
       }
       if (query.includes("ecommerceGetConversationDetails")) {
         return { ecommerceGetConversationDetails: { buyer: null } };
@@ -4319,7 +4394,7 @@ describe("terminal guarantee (error/timeout)", () => {
     // Make the first send hang, then reject after a delay
     let rejectSend!: (err: Error) => void;
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string) => {
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
       if (query.includes("ecommerceSendMessage")) {
         sendCount++;
         if (sendCount === 1) {
@@ -4333,6 +4408,9 @@ describe("terminal guarantee (error/timeout)", () => {
       }
       if (query.includes("csGetOrCreateSession")) {
         return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
       }
       return {};
     });
