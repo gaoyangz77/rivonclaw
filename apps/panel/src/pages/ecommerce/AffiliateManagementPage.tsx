@@ -3609,9 +3609,11 @@ function CollaborationRecordCard({
     >
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-block">
-          <div className="affiliate-avatar" aria-hidden="true">
-            {creatorName.slice(0, 1).toUpperCase()}
-          </div>
+          <CreatorAvatarImage
+            avatarUrl={item.creatorProfile?.avatarUrl}
+            className="affiliate-avatar affiliate-remote-avatar-image"
+            name={creatorName}
+          />
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}
@@ -4515,9 +4517,11 @@ function ActionProposalCard({
         <div className="affiliate-proposal-row-shell">
           <div className="affiliate-proposal-row-identity">
             <div className="affiliate-creator-block">
-              <div className="affiliate-avatar" aria-hidden="true">
-                {creatorName.slice(0, 1).toUpperCase()}
-              </div>
+              <CreatorAvatarImage
+                avatarUrl={proposal.creatorProfile?.avatarUrl}
+                className="affiliate-avatar affiliate-remote-avatar-image"
+                name={creatorName}
+              />
               <div className="affiliate-creator-text">
                 <CreatorName
                   name={creatorName}
@@ -4616,9 +4620,11 @@ function ActionProposalCard({
     >
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-block">
-          <div className="affiliate-avatar" aria-hidden="true">
-            {creatorName.slice(0, 1).toUpperCase()}
-          </div>
+          <CreatorAvatarImage
+            avatarUrl={proposal.creatorProfile?.avatarUrl}
+            className="affiliate-avatar affiliate-remote-avatar-image"
+            name={creatorName}
+          />
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}
@@ -4835,9 +4841,11 @@ function DashboardItemCard({
     >
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-block">
-          <div className="affiliate-avatar" aria-hidden="true">
-            {creatorName.slice(0, 1).toUpperCase()}
-          </div>
+          <CreatorAvatarImage
+            avatarUrl={item.creatorProfile?.avatarUrl}
+            className="affiliate-avatar affiliate-remote-avatar-image"
+            name={creatorName}
+          />
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}

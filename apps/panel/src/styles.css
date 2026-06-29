@@ -16359,6 +16359,10 @@ html[lang="zh"] .acct-tool-chips {
   font-weight: 800;
 }
 
+.affiliate-remote-avatar-image {
+  object-fit: cover;
+}
+
 .affiliate-creator-text {
   display: flex;
   flex: 1 1 auto;
