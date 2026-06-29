@@ -66,4 +66,26 @@ describe("RemoteMediaImage", () => {
     });
     expect(fetchJsonMock).toHaveBeenCalledTimes(2);
   });
+
+  it("requests forced proxy resolution when cachePolicy is force", async () => {
+    const sourceUrl = "https://p16-oec-general-useast5.ttcdn-us.com/avatar.jpeg";
+    const proxyUrl = "https://media-cache.example.com/avatar.jpeg";
+
+    fetchJsonMock.mockResolvedValueOnce({
+      sourceUrl,
+      url: proxyUrl,
+      proxied: true,
+      route: "global",
+    });
+
+    render(<RemoteMediaImage alt="remote avatar" cachePolicy="force" sourceUrl={sourceUrl} />);
+
+    await waitFor(() => {
+      expect(screen.getByAltText("remote avatar").getAttribute("src")).toBe(proxyUrl);
+    });
+    expect(fetchJsonMock).toHaveBeenCalledWith(expect.any(String), {
+      method: "POST",
+      body: JSON.stringify({ sourceUrl, forceProxy: true }),
+    });
+  });
 });

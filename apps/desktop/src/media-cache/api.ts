@@ -17,6 +17,7 @@ const GEN_OR_GET_CACHED_PROXY_URL_MUTATION = /* GraphQL */ `
 
 type MediaCacheResolveBody = {
   sourceUrl?: unknown;
+  forceProxy?: unknown;
 };
 
 type MediaCacheResolveResult = {
@@ -98,8 +99,9 @@ const resolveMediaCacheUrl: EndpointHandler = async (req, res, _url, _params, ct
     return;
   }
 
+  const forceProxy = body.forceProxy === true;
   const route = getFirstPartyDomainRoute();
-  if (route !== "cn-relay") {
+  if (route !== "cn-relay" && !forceProxy) {
     sendJson(res, 200, result(sourceUrl, sourceUrl, false, route));
     return;
   }

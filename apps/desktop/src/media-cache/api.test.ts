@@ -104,6 +104,35 @@ describe("media-cache resolve handler", () => {
     });
   });
 
+  it("resolves a proxy URL on the global route when forceProxy is true", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      genOrGetCachedProxyUrl: {
+        proxyUrl: "https://media-cache.example.com/avatar.jpeg",
+        status: "READY",
+        lastError: null,
+      },
+    });
+
+    const { res } = await dispatch(
+      { authSession: { getAccessToken: () => "token", graphqlFetch } } as unknown as ApiContext,
+      {
+        sourceUrl: "https://p16-oec-general-useast5.ttcdn-us.com/avatar.jpeg",
+        forceProxy: true,
+      },
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual({
+      sourceUrl: "https://p16-oec-general-useast5.ttcdn-us.com/avatar.jpeg",
+      url: "https://media-cache.example.com/avatar.jpeg",
+      proxied: true,
+      route: "global",
+    });
+    expect(graphqlFetch).toHaveBeenCalledWith(expect.stringContaining("genOrGetCachedProxyUrl"), {
+      sourceUrl: "https://p16-oec-general-useast5.ttcdn-us.com/avatar.jpeg",
+    });
+  });
+
   it("routes first-party object-storage proxy URLs through the CN relay", async () => {
     setFirstPartyDomainRoute("cn-relay");
     const graphqlFetch = vi.fn().mockResolvedValue({
