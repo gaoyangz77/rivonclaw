@@ -88,4 +88,13 @@ describe("RemoteMediaImage", () => {
       body: JSON.stringify({ sourceUrl, forceProxy: true }),
     });
   });
+
+  it("renders first-party object-storage URLs directly without resolving again", () => {
+    const sourceUrl = "https://minio.rivonclaw.com/rivonclaw-assets/media-cache/2026-06/avatar.jpg";
+
+    render(<RemoteMediaImage alt="cached avatar" cachePolicy="force" sourceUrl={sourceUrl} />);
+
+    expect(screen.getByAltText("cached avatar").getAttribute("src")).toBe(sourceUrl);
+    expect(fetchJsonMock).not.toHaveBeenCalled();
+  });
 });

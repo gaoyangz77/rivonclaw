@@ -156,6 +156,25 @@ describe("media-cache resolve handler", () => {
     });
   });
 
+  it("returns first-party object-storage URLs directly without backend recaching", async () => {
+    const graphqlFetch = vi.fn();
+    const sourceUrl = "https://minio.rivonclaw.com/rivonclaw-assets/media-cache/2026-06/avatar.jpg";
+
+    const { res } = await dispatch(
+      { authSession: { getAccessToken: () => "token", graphqlFetch } } as unknown as ApiContext,
+      { sourceUrl, forceProxy: true },
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual({
+      sourceUrl,
+      url: sourceUrl,
+      proxied: true,
+      route: "global",
+    });
+    expect(graphqlFetch).not.toHaveBeenCalled();
+  });
+
   it("requires authentication before calling the backend on the CN relay route", async () => {
     setFirstPartyDomainRoute("cn-relay");
     const graphqlFetch = vi.fn();
