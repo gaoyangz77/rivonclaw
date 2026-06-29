@@ -16,6 +16,7 @@ export const LEGACY_I18N_BACKFILL = {
         "TOKEN_EXPIRED": "Token abgelaufen"
       },
       "authorizedAdvertisers": "Autorisiert",
+      "needsAttention": "Benötigt Aufmerksamkeit",
       "businessAccountHint": "Die TikTok Ads-Autorisierung gewährt Werbetreibenden Zugriff. Die Store-Abdeckung ist nur dann umsetzbar, wenn ein für den Werbetreibenden sichtbarer Store einem von EasyClaw autorisierten Shop zugeordnet ist.",
       "columns": {
         "actions": "Aktionen",
@@ -24,6 +25,7 @@ export const LEGACY_I18N_BACKFILL = {
         "name": "Inserent",
         "role": "Rolle",
         "status": "Authentifizierungsstatus",
+        "syncHealth": "BI-Sync",
         "tokenExpiry": "Token läuft ab",
         "updatedAt": "Aktualisiert",
         "visibleStores": "Sichtbare Geschäfte"
@@ -46,6 +48,16 @@ export const LEGACY_I18N_BACKFILL = {
       "oauthSuccess": "TikTok Business-Verbindung erfolgreich abgeschlossen.",
       "oauthTimeout": "Zeitüberschreitung bei der Autorisierung. Aktualisieren Sie die Seite, wenn die Autorisierung im Browser abgeschlossen ist.",
       "openAuthLink": "Öffnen Sie den Autorisierungslink für TikTok Ads",
+      "syncHealth": {
+        "FAILED": "Problem",
+        "HEALTHY": "Gesund"
+      },
+      "syncIssue": {
+        "BACKEND_ERROR": "Backend-Sync-Problem",
+        "PERMISSION_DENIED": "Advertiser-Berechtigung verloren",
+        "PLATFORM_ERROR": "TikTok Ads API-Problem",
+        "UNKNOWN": "Sync-Problem"
+      },
       "shopAdsStatus": {
         "connected": "Bedeckt",
         "needs_advertiser": "Kein Werbekonto",
@@ -377,6 +389,7 @@ export const LEGACY_I18N_BACKFILL = {
         "TOKEN_EXPIRED": "Token caducado"
       },
       "authorizedAdvertisers": "Autorizado",
+      "needsAttention": "Requiere atención",
       "businessAccountHint": "La autorización de TikTok Ads otorga acceso al anunciante. La cobertura de la tienda es procesable solo cuando una tienda visible para el anunciante se asigna a una tienda autorizada por EasyClaw.",
       "columns": {
         "actions": "Comportamiento",
@@ -385,6 +398,7 @@ export const LEGACY_I18N_BACKFILL = {
         "name": "Anunciante",
         "role": "Role",
         "status": "Estado de autenticación",
+        "syncHealth": "Sincronización BI",
         "tokenExpiry": "El token caduca",
         "updatedAt": "Actualizado",
         "visibleStores": "Tiendas visibles"
@@ -407,6 +421,16 @@ export const LEGACY_I18N_BACKFILL = {
       "oauthSuccess": "La conexión de TikTok Business se completó con éxito.",
       "oauthTimeout": "Se agotó el tiempo de autorización. Actualice la página si se completó la autorización en el navegador.",
       "openAuthLink": "Abra el enlace de autorización de anuncios de TikTok",
+      "syncHealth": {
+        "FAILED": "Problema",
+        "HEALTHY": "Correcto"
+      },
+      "syncIssue": {
+        "BACKEND_ERROR": "Problema de sincronización backend",
+        "PERMISSION_DENIED": "Permiso del anunciante perdido",
+        "PLATFORM_ERROR": "Problema de API de TikTok Ads",
+        "UNKNOWN": "Problema de sincronización"
+      },
       "shopAdsStatus": {
         "connected": "Cubierto",
         "needs_advertiser": "Sin cuenta publicitaria",
@@ -738,6 +762,7 @@ export const LEGACY_I18N_BACKFILL = {
         "TOKEN_EXPIRED": "Jeton expiré"
       },
       "authorizedAdvertisers": "Autorisé",
+      "needsAttention": "À traiter",
       "businessAccountHint": "L’autorisation TikTok Ads accorde l’accès aux annonceurs. La couverture du magasin n'est exploitable que lorsqu'un magasin visible par l'annonceur correspond à un magasin autorisé par EasyClaw.",
       "columns": {
         "actions": "Actes",
@@ -746,6 +771,7 @@ export const LEGACY_I18N_BACKFILL = {
         "name": "Annonceur",
         "role": "Rôle",
         "status": "Statut d'authentification",
+        "syncHealth": "Synchro BI",
         "tokenExpiry": "Le jeton expire",
         "updatedAt": "Mis à jour",
         "visibleStores": "Magasins visibles"
@@ -768,6 +794,16 @@ export const LEGACY_I18N_BACKFILL = {
       "oauthSuccess": "La connexion TikTok Business s’est terminée avec succès.",
       "oauthTimeout": "L'autorisation a expiré. Actualisez la page si l'autorisation est complétée dans le navigateur.",
       "openAuthLink": "Ouvrez le lien d'autorisation TikTok Ads",
+      "syncHealth": {
+        "FAILED": "Problème",
+        "HEALTHY": "Sain"
+      },
+      "syncIssue": {
+        "BACKEND_ERROR": "Problème de synchronisation backend",
+        "PERMISSION_DENIED": "Autorisation annonceur perdue",
+        "PLATFORM_ERROR": "Problème d'API TikTok Ads",
+        "UNKNOWN": "Problème de synchronisation"
+      },
       "shopAdsStatus": {
         "connected": "Couvert",
         "needs_advertiser": "Pas de compte publicitaire",
@@ -1099,6 +1135,7 @@ export const LEGACY_I18N_BACKFILL = {
         "TOKEN_EXPIRED": "Token Kedaluwarsa"
       },
       "authorizedAdvertisers": "Resmi",
+      "needsAttention": "Perlu perhatian",
       "businessAccountHint": "Otorisasi Iklan TikTok memberikan akses kepada pengiklan. Cakupan toko hanya dapat ditindaklanjuti ketika toko yang terlihat oleh pengiklan dipetakan kembali ke toko resmi EasyClaw.",
       "columns": {
         "actions": "Tindakan",
@@ -1107,6 +1144,7 @@ export const LEGACY_I18N_BACKFILL = {
         "name": "Pemasang iklan",
         "role": "Peran",
         "status": "Status Otentikasi",
+        "syncHealth": "Sinkronisasi BI",
         "tokenExpiry": "Token Kedaluwarsa",
         "updatedAt": "Diperbarui",
         "visibleStores": "Toko yang Terlihat"
@@ -1129,6 +1167,16 @@ export const LEGACY_I18N_BACKFILL = {
       "oauthSuccess": "Koneksi TikTok Business berhasil diselesaikan.",
       "oauthTimeout": "Waktu otorisasi habis. Refresh halaman jika otorisasi selesai di browser.",
       "openAuthLink": "Buka tautan otorisasi Iklan TikTok",
+      "syncHealth": {
+        "FAILED": "Masalah",
+        "HEALTHY": "Sehat"
+      },
+      "syncIssue": {
+        "BACKEND_ERROR": "Masalah sinkronisasi backend",
+        "PERMISSION_DENIED": "Izin pengiklan hilang",
+        "PLATFORM_ERROR": "Masalah API TikTok Ads",
+        "UNKNOWN": "Masalah sinkronisasi"
+      },
       "shopAdsStatus": {
         "connected": "Tercakup",
         "needs_advertiser": "Tidak ada akun iklan",
@@ -1460,6 +1508,7 @@ export const LEGACY_I18N_BACKFILL = {
         "TOKEN_EXPIRED": "Gettone scaduto"
       },
       "authorizedAdvertisers": "Autorizzato",
+      "needsAttention": "Richiede attenzione",
       "businessAccountHint": "L'autorizzazione di TikTok Ads garantisce l'accesso all'inserzionista. La copertura del negozio è utilizzabile solo quando un negozio visibile dall'inserzionista corrisponde a un negozio autorizzato da EasyClaw.",
       "columns": {
         "actions": "Azioni",
@@ -1468,6 +1517,7 @@ export const LEGACY_I18N_BACKFILL = {
         "name": "Inserzionista",
         "role": "Ruolo",
         "status": "Stato di autenticazione",
+        "syncHealth": "Sincronizzazione BI",
         "tokenExpiry": "Il token scade",
         "updatedAt": "Aggiornato",
         "visibleStores": "Negozi visibili"
@@ -1490,6 +1540,16 @@ export const LEGACY_I18N_BACKFILL = {
       "oauthSuccess": "Connessione TikTok Business completata con successo.",
       "oauthTimeout": "Autorizzazione scaduta. Aggiorna la pagina se l'autorizzazione è stata completata nel browser.",
       "openAuthLink": "Apri il link di autorizzazione per TikTok Ads",
+      "syncHealth": {
+        "FAILED": "Problema",
+        "HEALTHY": "Integro"
+      },
+      "syncIssue": {
+        "BACKEND_ERROR": "Problema di sincronizzazione backend",
+        "PERMISSION_DENIED": "Autorizzazione inserzionista persa",
+        "PLATFORM_ERROR": "Problema API TikTok Ads",
+        "UNKNOWN": "Problema di sincronizzazione"
+      },
       "shopAdsStatus": {
         "connected": "Coperto",
         "needs_advertiser": "Nessun account pubblicitario",
@@ -1821,6 +1881,7 @@ export const LEGACY_I18N_BACKFILL = {
         "TOKEN_EXPIRED": "โทเค็นหมดอายุ"
       },
       "authorizedAdvertisers": "ได้รับอนุญาต",
+      "needsAttention": "ต้องตรวจสอบ",
       "businessAccountHint": "การอนุญาตโฆษณา TikTok ให้สิทธิ์การเข้าถึงแก่ผู้ลงโฆษณา ความครอบคลุมของร้านค้าจะดำเนินการได้ก็ต่อเมื่อร้านค้าที่ผู้ลงโฆษณามองเห็นได้แม็ปกลับไปยังร้านค้าที่ได้รับอนุญาตจาก EasyClaw เท่านั้น",
       "columns": {
         "actions": "การดำเนินการ",
@@ -1829,6 +1890,7 @@ export const LEGACY_I18N_BACKFILL = {
         "name": "ผู้ลงโฆษณา",
         "role": "บทบาท",
         "status": "สถานะการรับรองความถูกต้อง",
+        "syncHealth": "ซิงค์ BI",
         "tokenExpiry": "โทเค็นหมดอายุ",
         "updatedAt": "อัปเดตแล้ว",
         "visibleStores": "ร้านค้าที่มองเห็นได้"
@@ -1851,6 +1913,16 @@ export const LEGACY_I18N_BACKFILL = {
       "oauthSuccess": "การเชื่อมต่อ TikTok Business เสร็จสมบูรณ์แล้ว",
       "oauthTimeout": "การอนุญาตหมดเวลา รีเฟรชหน้าหากการอนุญาตเสร็จสมบูรณ์ในเบราว์เซอร์",
       "openAuthLink": "เปิดลิงก์การอนุญาตโฆษณา TikTok",
+      "syncHealth": {
+        "FAILED": "มีปัญหา",
+        "HEALTHY": "ปกติ"
+      },
+      "syncIssue": {
+        "BACKEND_ERROR": "ปัญหาการซิงค์ backend",
+        "PERMISSION_DENIED": "สิทธิ์ผู้ลงโฆษณาหายไป",
+        "PLATFORM_ERROR": "ปัญหา API ของ TikTok Ads",
+        "UNKNOWN": "ปัญหาการซิงค์"
+      },
       "shopAdsStatus": {
         "connected": "ครอบคลุม",
         "needs_advertiser": "ไม่มีบัญชีโฆษณา",
