@@ -845,6 +845,11 @@ describe("isHiddenSession", () => {
     expect(isHiddenSession("agent:main:cs:shopee:conv456")).toBe(true);
   });
 
+  it("hides affiliate dispatch sessions", () => {
+    expect(isHiddenSession("agent:main:affiliate:tiktok:6a3a80f0c3e0e28fd3a8598b")).toBe(true);
+    expect(isHiddenSession("agent:main:affiliate:tiktok:sample_application:sample-app-001")).toBe(true);
+  });
+
   it("hides internal API sessions", () => {
     expect(isHiddenSession("agent:main:openai-user:rivonclaw-rule-compiler")).toBe(true);
   });
@@ -861,27 +866,32 @@ describe("isHiddenSession", () => {
   });
 });
 
-describe("ChatStore.sessionList hides CS sessions", () => {
-  it("CS session in store does not appear in sessionList", () => {
+describe("ChatStore.sessionList hides internal service sessions", () => {
+  it("CS and affiliate sessions in store do not appear in sessionList", () => {
     const store = createChatStore();
-    // Add a normal session + a CS session
+    // Add a normal session + internal service sessions
     store.getOrCreateSession("agent:main:telegram:user1");
     store.getOrCreateSession("agent:main:cs:tiktok:conv123");
+    store.getOrCreateSession("agent:main:affiliate:tiktok:6a3a80f0c3e0e28fd3a8598b");
     store.getOrCreateSession("agent:main:main");
 
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).toContain("agent:main:telegram:user1");
     expect(keys).toContain("agent:main:main");
     expect(keys).not.toContain("agent:main:cs:tiktok:conv123");
+    expect(keys).not.toContain("agent:main:affiliate:tiktok:6a3a80f0c3e0e28fd3a8598b");
   });
 
-  it("CS session marked unread still does not appear in sessionList", () => {
+  it("internal service sessions marked unread still do not appear in sessionList", () => {
     const store = createChatStore();
     const csSession = store.getOrCreateSession("agent:main:cs:shopee:conv789");
+    const affiliateSession = store.getOrCreateSession("agent:main:affiliate:tiktok:sample_application:sample-app-001");
     csSession.setUnread(true);
+    affiliateSession.setUnread(true);
 
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).not.toContain("agent:main:cs:shopee:conv789");
+    expect(keys).not.toContain("agent:main:affiliate:tiktok:sample_application:sample-app-001");
   });
 });
 

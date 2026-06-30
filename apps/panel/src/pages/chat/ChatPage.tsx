@@ -222,73 +222,75 @@ const ChatPageInner = observer(function ChatPageInner({
         onRestoreSession={(key) => controller.restoreSession(key)}
         onReorderSession={(from, to) => controller.reorderSessions(from, to)}
       />
-      {messages.length === 0 && !streaming ? (
-        <div className="chat-empty">
-          <div>{t("chat.emptyState")}</div>
-        </div>
-      ) : (
-        <ChatMessageList
-          visibleMessages={visibleMessages}
-          streaming={streaming}
-          runId={runId}
-          externalPending={runState.externalPending}
-          displayPhase={runState.displayPhase}
-          displayToolName={runState.displayToolName}
-          isRunActive={runState.isActive}
-          showAgentEvents={showAgentEvents}
-          preserveToolEvents={preserveToolEvents}
-          collapseMessages={collapseMessages}
-          showHistoryEnd={showHistoryEnd}
-          messagesContainerRef={messagesContainerRef}
-          messagesEndRef={messagesEndRef}
-          onScroll={handleScroll}
+      <div className="chat-main-panel">
+        {messages.length === 0 && !streaming ? (
+          <div className="chat-empty">
+            <div>{t("chat.emptyState")}</div>
+          </div>
+        ) : (
+          <ChatMessageList
+            visibleMessages={visibleMessages}
+            streaming={streaming}
+            runId={runId}
+            externalPending={runState.externalPending}
+            displayPhase={runState.displayPhase}
+            displayToolName={runState.displayToolName}
+            isRunActive={runState.isActive}
+            showAgentEvents={showAgentEvents}
+            preserveToolEvents={preserveToolEvents}
+            collapseMessages={collapseMessages}
+            showHistoryEnd={showHistoryEnd}
+            messagesContainerRef={messagesContainerRef}
+            messagesEndRef={messagesEndRef}
+            onScroll={handleScroll}
+          />
+        )}
+        {showScrollBtn && (
+          <button className="chat-scroll-bottom" onClick={scrollToBottom}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        )}
+
+        <ChatExamples
+          chatExamplesExpanded={examples.chatExamplesExpanded}
+          resolvedExamples={examples.resolvedExamples}
+          overriddenKeys={new Set(Object.keys(examples.customExamples))}
+          onToggleExpanded={examples.toggleExpanded}
+          onSelectExample={(text) => session.setDraft(text)}
+          onEditExample={(key, currentText) => {
+            examples.beginEdit(key, currentText);
+          }}
         />
-      )}
-      {showScrollBtn && (
-        <button className="chat-scroll-bottom" onClick={scrollToBottom}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-      )}
 
-      <ChatExamples
-        chatExamplesExpanded={examples.chatExamplesExpanded}
-        resolvedExamples={examples.resolvedExamples}
-        overriddenKeys={new Set(Object.keys(examples.customExamples))}
-        onToggleExpanded={examples.toggleExpanded}
-        onSelectExample={(text) => session.setDraft(text)}
-        onEditExample={(key, currentText) => {
-          examples.beginEdit(key, currentText);
-        }}
-      />
+        <ChatStatusBar
+          connectionState={connectionState}
+          agentName={agentName}
+          activeModel={modelControls.activeModel}
+          thinkingLevel={session.thinkingLevel}
+          onThinkingLevelChange={(level) => session.setThinkingLevel(level)}
+          totalTokens={totalTokens}
+          contextWindow={contextWindow}
+          selectedRunProfileId={selectedRunProfileId}
+          onRunProfileChange={handleRunProfileChange}
+          onKeyModelChange={modelControls.handleKeyModelChange}
+          onReset={handleReset}
+        />
 
-      <ChatStatusBar
-        connectionState={connectionState}
-        agentName={agentName}
-        activeModel={modelControls.activeModel}
-        thinkingLevel={session.thinkingLevel}
-        onThinkingLevelChange={(level) => session.setThinkingLevel(level)}
-        totalTokens={totalTokens}
-        contextWindow={contextWindow}
-        selectedRunProfileId={selectedRunProfileId}
-        onRunProfileChange={handleRunProfileChange}
-        onKeyModelChange={modelControls.handleKeyModelChange}
-        onReset={handleReset}
-      />
-
-      <ChatInputArea
-        draft={draft}
-        pendingImages={pendingImages}
-        isStreaming={isStreaming}
-        canAbort={runState.canAbort}
-        connectionState={connectionState as "connecting" | "connected" | "disconnected"}
-        hasProviderKeys={modelControls.hasProviderKeys}
-        onDraftChange={(text) => session.setDraft(text)}
-        onPendingImagesChange={(imgs) => session.setPendingImages(imgs)}
-        onSend={handleSend}
-        onStop={handleStop}
-      />
+        <ChatInputArea
+          draft={draft}
+          pendingImages={pendingImages}
+          isStreaming={isStreaming}
+          canAbort={runState.canAbort}
+          connectionState={connectionState as "connecting" | "connected" | "disconnected"}
+          hasProviderKeys={modelControls.hasProviderKeys}
+          onDraftChange={(text) => session.setDraft(text)}
+          onPendingImagesChange={(imgs) => session.setPendingImages(imgs)}
+          onSend={handleSend}
+          onStop={handleStop}
+        />
+      </div>
       <ChatResetModal
         isOpen={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
