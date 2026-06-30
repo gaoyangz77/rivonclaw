@@ -107,6 +107,7 @@ export const AffiliateSampleApplicationRecordModel = types.model("AffiliateSampl
   platformOpenCollaborationId: types.maybeNull(types.string),
   platformTargetCollaborationId: types.maybeNull(types.string),
   sampleWorkStatus: types.string,
+  order: types.maybeNull(types.frozen<GQL.SampleApplicationOrderRecord>()),
   trackingNumber: types.maybeNull(types.string),
   carrier: types.maybeNull(types.string),
   shippedAt: types.maybeNull(types.string),

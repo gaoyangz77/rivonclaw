@@ -7063,6 +7063,7 @@ export interface SampleApplicationRecord {
   latestObservedContentUrl?: Maybe<Scalars['String']['output']>;
   latestObservedContentViewCount?: Maybe<Scalars['Int']['output']>;
   observedContentCount: Scalars['Int']['output'];
+  order?: Maybe<SampleApplicationOrderRecord>;
   platformApplicationId: Scalars['String']['output'];
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   platformOpenCollaborationId?: Maybe<Scalars['String']['output']>;
@@ -7075,6 +7076,13 @@ export interface SampleApplicationRecord {
   trackingNumber?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
+}
+
+/** Order snapshot linked from an affiliate sample application. */
+export interface SampleApplicationOrderRecord {
+  carrier?: Maybe<Scalars['String']['output']>;
+  platformOrderId?: Maybe<Scalars['String']['output']>;
+  trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
 /** RivonClaw-owned, agent-facing sample lifecycle state. Platform raw statuses stay in platformSnapshotJson. */
