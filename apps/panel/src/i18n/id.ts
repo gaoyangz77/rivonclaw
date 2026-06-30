@@ -2496,7 +2496,7 @@ export default {
       "systemIdCopied": "ID sistem disalin",
       "copyPlatformId": "Salin ID platform",
       "platformIdCopied": "ID platform disalin",
-      "copyThreadSystemId": "Salin ID sistem catatan",
+      "copyThreadSystemId": "Salin ID sistem",
       "copyProductPlatformId": "Salin ID platform produk",
       "copySamplePlatformId": "Salin ID platform sampel",
       "copyDebugId": "Salin ID sistem",

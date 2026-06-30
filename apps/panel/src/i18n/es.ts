@@ -2496,7 +2496,7 @@ export default {
       "systemIdCopied": "ID del sistema copiado",
       "copyPlatformId": "Copiar ID de plataforma",
       "platformIdCopied": "ID de plataforma copiado",
-      "copyThreadSystemId": "Copiar ID de sistema del registro",
+      "copyThreadSystemId": "Copiar ID del sistema",
       "copyProductPlatformId": "Copiar ID de plataforma del producto",
       "copySamplePlatformId": "Copiar ID de plataforma de la muestra",
       "copyDebugId": "Copiar ID del sistema",
