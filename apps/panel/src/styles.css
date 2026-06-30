@@ -13860,7 +13860,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-workbench-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
   padding: 16px;
@@ -16253,8 +16253,13 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 1180px) {
-  .affiliate-workbench-list,
   .affiliate-collaboration-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .affiliate-workbench-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }

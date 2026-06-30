@@ -5567,7 +5567,7 @@ function CreatorRelationshipDetailModal({
                       })}</strong>
                     </div>
                     <div className="affiliate-thread-collaboration-subcard-meta">
-                      <PlatformIdCopy value={state.shopId} />
+                      <SystemIdCopy value={state.shopId} />
                       {state.lastContactedAt ? <span>{formatProposalTime(state.lastContactedAt)}</span> : null}
                       {state.tagIds?.length ? (
                         <span>{t("ecommerce.affiliateWorkspace.relationshipTagCount", { count: state.tagIds.length })}</span>
@@ -5589,7 +5589,7 @@ function CreatorRelationshipDetailModal({
                       <strong>{renderCreatorThreadTitle(threadItem, t)}</strong>
                     </div>
                     <div className="affiliate-thread-collaboration-subcard-meta">
-                      <PlatformIdCopy value={threadItem.shopId} />
+                      <SystemIdCopy value={threadItem.shopThread.id} />
                       <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${threadItem.shopThread.processingStatus}`, {
                         defaultValue: formatAffiliateEnumLabel(threadItem.shopThread.processingStatus),
                       })}</span>
@@ -5707,12 +5707,16 @@ function CreatorDetailModal({
               <CreatorDetailCopyRow
                 label={t("ecommerce.affiliateWorkspace.creatorDetail.tiktokHandle")}
                 value={handle}
+                copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorHandle"
+                copiedMessageKey="ecommerce.affiliateWorkspace.creatorHandleCopied"
               />
             ) : null}
             {platformId ? (
               <CreatorDetailCopyRow
                 label={t("ecommerce.affiliateWorkspace.creatorPlatformIdLabel")}
                 value={platformId}
+                copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorPlatformId"
+                copiedMessageKey="ecommerce.affiliateWorkspace.creatorPlatformIdCopied"
               />
             ) : null}
           </div>
@@ -5904,19 +5908,25 @@ function CreatorDetailCopyRow({
   label,
   value,
   muted,
+  copyLabelKey,
+  copiedMessageKey,
+  tone = "platform",
 }: {
   label: string;
   value: string;
   muted?: boolean;
+  copyLabelKey: string;
+  copiedMessageKey: string;
+  tone?: "platform" | "system";
 }) {
   return (
     <div className={`affiliate-creator-detail-id-row${muted ? " affiliate-creator-detail-id-row-muted" : ""}`}>
       <span>{label}</span>
       <CopyInlineValue
         value={value}
-        className="affiliate-id-copy-button affiliate-platform-id-copy affiliate-creator-detail-copy-button"
-        copiedMessageKey="ecommerce.affiliateWorkspace.creatorPlatformIdCopied"
-        copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorPlatformId"
+        className={`affiliate-id-copy-button ${tone === "system" ? "affiliate-system-id-copy" : "affiliate-platform-id-copy"} affiliate-creator-detail-copy-button`}
+        copiedMessageKey={copiedMessageKey}
+        copyLabelKey={copyLabelKey}
       />
     </div>
   );

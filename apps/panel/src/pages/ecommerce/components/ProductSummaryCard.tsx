@@ -410,15 +410,15 @@ function ProductPlatformIdCopy({ productId }: { productId?: string | null }) {
       className="affiliate-id-copy-button affiliate-platform-id-copy product-platform-id-copy"
       type="button"
       onClick={copyProductId}
-      aria-label={t("ecommerce.affiliateWorkspace.copyPlatformId")}
+      aria-label={t("ecommerce.affiliateWorkspace.copyProductPlatformId")}
       title={copied
         ? t("ecommerce.affiliateWorkspace.platformIdCopied")
-        : t("ecommerce.affiliateWorkspace.copyPlatformId")}
+        : t("ecommerce.affiliateWorkspace.copyProductPlatformId")}
     >
       <CopyIcon />
       <span>{copied
         ? t("ecommerce.affiliateWorkspace.platformIdCopied")
-        : t("ecommerce.affiliateWorkspace.copyPlatformId")}</span>
+        : t("ecommerce.affiliateWorkspace.copyProductPlatformId")}</span>
     </button>
   );
 }

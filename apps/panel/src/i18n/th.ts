@@ -2496,7 +2496,7 @@ export default {
       "systemIdCopied": "คัดลอก ID ระบบแล้ว",
       "copyPlatformId": "คัดลอก ID แพลตฟอร์ม",
       "platformIdCopied": "คัดลอก ID แพลตฟอร์มแล้ว",
-      "copyThreadSystemId": "คัดลอก ID ระบบของบันทึก",
+      "copyThreadSystemId": "คัดลอก ID ระบบ",
       "copyProductPlatformId": "คัดลอก ID แพลตฟอร์มของสินค้า",
       "copySamplePlatformId": "คัดลอก ID แพลตฟอร์มของตัวอย่าง",
       "copyDebugId": "คัดลอก ID ระบบ",
