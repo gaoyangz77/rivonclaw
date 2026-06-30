@@ -444,10 +444,10 @@ export class EcommerceRelayBridge {
     cleaned = keptLines.join("\n").trim();
     cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
 
-    // If the remaining text is still overwhelmingly machine/protocol-like,
-    // drop it instead of risking an invalid or embarrassing buyer message.
+    // If protocol stripping removed everything, drop it. Otherwise any
+    // non-whitespace buyer-facing output is valid, including emoji-only
+    // acknowledgements.
     if (!cleaned) return "";
-    if (!/[\p{L}\p{N}]/u.test(cleaned)) return "";
     return cleaned;
   }
 

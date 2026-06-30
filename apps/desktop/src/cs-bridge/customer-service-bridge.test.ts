@@ -3571,6 +3571,26 @@ describe("per-turn message forwarding", () => {
     expect(texts[0]).toBe("Hello buyer!");
   });
 
+  it("emoji-only assistant text is forwarded as valid buyer-facing text", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-emoji");
+
+    agentEvent(bridge, "run-emoji", "assistant", { text: "😊" });
+    agentEvent(bridge, "run-emoji", "lifecycle", { phase: "end" });
+
+    const texts = await getForwardedTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe("😊");
+    expect(mockEmitCsError).not.toHaveBeenCalledWith(
+      "sanitize",
+      expect.objectContaining({
+        reason: "internal_protocol",
+        runId: "run-emoji",
+      }),
+    );
+  });
+
   it("multiple segments (with tool calls): each segment forwarded separately", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
