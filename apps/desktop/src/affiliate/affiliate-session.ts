@@ -118,7 +118,7 @@ export class AffiliateSession {
       "- If you need to message a creator, review a sample application, or create a target collaboration on TikTok, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed platform action payload.",
       "- affiliate_resolve_work_item supports only three platform action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent action types such as CHANGE_COMMISSION; use NEEDS_STAFF_REVIEW for unsupported seller operations.",
       "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageText, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
-      "- For SEND_MESSAGE, action.messageText is required and must contain the exact creator-facing message. Do not put the intended creator message only in operatorSummary.",
+      "- For SEND_MESSAGE, action.messageText is required and must contain the final text the creator should receive. Do not put the intended creator message only in operatorSummary.",
       "- For REVIEW_SAMPLE_APPLICATION, use action.sampleApplicationRecordId, action.platformApplicationId, action.sampleReviewDecision, and optional action.rejectReason. Do not send sampleReviewIntent: {}.",
       "- Omit optional fields when unknown. Never send empty strings for Date, ID, or object fields. nextSellerActionAt is only for DEFERRED decisions and must be a valid ISO timestamp.",
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",

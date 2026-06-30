@@ -117,7 +117,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       "If Work Bundle Kind is CREATOR_REPLY_WITH_SAMPLE_REVIEW, you must handle the sample review and the creator reply in the same REQUEST_ACTION input.actions bundle. Include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE unless the sample is already terminal or no creator-facing reply is appropriate.",
       renderPredictionCacheInstruction(input),
-      "For every text reply, set action.messageText to the exact creator-facing message. Backend will normalize it into a typed SEND_MESSAGE intent.",
+      "For every text reply, set action.messageText to the final text the creator should receive. Backend will normalize it into a typed SEND_MESSAGE intent.",
       "If no reply is needed, use decision NO_ACTION_NEEDED.",
       "If a human should decide, use decision NEEDS_STAFF_REVIEW.",
       "If affiliate_resolve_work_item returns a validation/schema error, do not change the business decision to NEEDS_STAFF_REVIEW just to make the tool call pass. Fix the payload shape and retry the same intended decision.",
@@ -157,7 +157,7 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "If the follow-up depends on a candidate product from a prior creator card and Backend Work Context does not confirm the product, call affiliate_predict_creator_product_fit before recommending continued investment or asking the creator to proceed.",
       "If a follow-up is appropriate, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
-      "For every text follow-up, set action.messageText to the exact creator-facing message. Backend will normalize it into a typed SEND_MESSAGE intent.",
+      "For every text follow-up, set action.messageText to the final text the creator should receive. Backend will normalize it into a typed SEND_MESSAGE intent.",
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
       "If Platform Conversation ID is empty, this is a proactive follow-up: omit conversationId and the backend will create or reuse the TikTok affiliate conversation from creator identity only after approval/execution.",
       `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
@@ -221,7 +221,7 @@ function renderResolveWorkItemToolContract(): string {
     "Each action must populate the required fields matching action.type: SEND_MESSAGE uses the typed messageText shortcut; REVIEW_SAMPLE_APPLICATION uses the flat sample review shortcut fields; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
     "An action that only contains { type: ... } is always invalid. Do not call REQUEST_ACTION until every selected action has the required typed payload.",
     "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleApplicationRecordId, platformApplicationId, sampleReviewDecision, rejectReason? }. Use sampleReviewDecision APPROVE or REJECT. Never send sampleReviewIntent: {}.",
-    "For SEND_MESSAGE, the action shape must be exactly like this minimal payload: { type: SEND_MESSAGE, predictionCacheIds: [...], messageText: \"exact creator-facing message\" }. Add conversationId, creatorId, or productId at the action top level only when known. Never send messageIntent: {}.",
+    "For SEND_MESSAGE, include type SEND_MESSAGE and messageText. The messageText value is the final text the creator will see after approval/execution; write the actual reply in the creator's language. Add conversationId, creatorId, or productId at the action top level only when known. Never send messageIntent: {}.",
     "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
   ].join("\n");
 }
@@ -291,12 +291,12 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
 
   if (recommendedActions.includes(GQL.ActionProposalType.SendMessage)) {
     templates.push([
-      "SEND_MESSAGE action template:",
-      JSON.stringify({
-        type: "SEND_MESSAGE",
-        ...baseActionFields,
-        messageText: "exact creator-facing message to send",
-      }, null, 2),
+      "SEND_MESSAGE required fields:",
+      `- type: SEND_MESSAGE`,
+      cacheIds.length ? `- predictionCacheIds: ${JSON.stringify(cacheIds)}` : "- predictionCacheIds: include only when available",
+      "- messageText: the complete creator-facing reply, ready to send verbatim after approval/execution",
+      "For a low-fit sample decline, a valid messageText would be a polite final reply such as: \"Hi Maria, thank you for your interest in working with us. After reviewing this sample request, we are not moving forward with this collaboration at this time, but we appreciate your interest and hope there may be a better fit in the future.\"",
+      "Do not copy the example unless it exactly fits the current creator, language, and business context; write the current creator's actual message.",
     ].join("\n"));
   }
 
@@ -309,9 +309,10 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
 
   return [
     "## Valid REQUEST_ACTION Payload Templates",
-    "If you choose REQUEST_ACTION, copy these shapes exactly and replace only the decision/reason/message values that require judgment.",
+    "If you choose REQUEST_ACTION, use these field requirements to form a complete tool payload. Do not copy explanatory text as field values.",
     "Never submit an action with only a type. If you cannot fill the typed payload, use NEEDS_STAFF_REVIEW instead of REQUEST_ACTION.",
     "Never replace concrete sample review fields with null or {}. The backend expects sampleApplicationRecordId, platformApplicationId, and sampleReviewDecision to stay on the REVIEW_SAMPLE_APPLICATION action.",
+    "Every SEND_MESSAGE action must contain the actual message for this creator.",
     "When more than one action is relevant, use input.actions as an ordered array and include every concrete action in the same tool call.",
     ...templates,
     recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) &&
@@ -340,11 +341,12 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
             {
               type: "SEND_MESSAGE",
               ...baseActionFields,
-              messageText: "exact creator-facing message to send",
+              messageText: "Hi Maria, thank you for your interest in working with us. After reviewing this sample request, we are not moving forward with this collaboration at this time, but we appreciate your interest and hope there may be a better fit in the future.",
             },
           ],
           operatorSummary: "staff-facing rationale in the requested staff language",
         }, null, 2),
+        "The SEND_MESSAGE text in this example is only a concrete illustration. Rewrite it for the actual creator, language, product, and decision.",
       ].join("\n")
       : "",
   ].filter(Boolean).join("\n\n");
