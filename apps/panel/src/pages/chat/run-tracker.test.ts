@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { ChatRunStateModel } from "./store/models/ChatRunStateModel.js";
 import type { IChatRunState } from "./store/models/ChatRunStateModel.js";
-import { inferSessionChannelFromKey, isHiddenSession } from "./chat-utils.js";
+import {
+  inferSessionChannelFromKey,
+  isHiddenSession,
+  parseChannelSessionRecipient,
+} from "./chat-utils.js";
 import { createChatStore } from "./store/chat-store.js";
 
 function createRunState(): IChatRunState {
@@ -877,6 +881,21 @@ describe("inferSessionChannelFromKey", () => {
     expect(inferSessionChannelFromKey("agent:main:cs:tiktok:conv123")).toBeUndefined();
     expect(inferSessionChannelFromKey("agent:main:panel-abc123")).toBeUndefined();
     expect(inferSessionChannelFromKey("agent:main:main")).toBeUndefined();
+  });
+});
+
+describe("parseChannelSessionRecipient", () => {
+  it("extracts account and recipient ids from plugin-created Feishu session keys", () => {
+    expect(parseChannelSessionRecipient("agent:main:feishu:default:direct:ou_456")).toEqual({
+      channelId: "feishu",
+      accountId: "default",
+      recipientId: "ou_456",
+    });
+  });
+
+  it("ignores non-channel sessions", () => {
+    expect(parseChannelSessionRecipient("agent:main:panel-abc123")).toBeUndefined();
+    expect(parseChannelSessionRecipient("agent:main:main")).toBeUndefined();
   });
 });
 

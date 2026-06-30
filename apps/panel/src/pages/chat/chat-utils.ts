@@ -33,6 +33,7 @@ export type SessionTabInfo = {
   key: string;
   customTitle?: string;
   panelTitle?: string;
+  recipientAlias?: string;
   displayName?: string;
   derivedTitle?: string;
   channel?: string;
@@ -136,6 +137,30 @@ export function inferSessionChannelFromKey(key: string): string | undefined {
   const candidate = parts[2]?.toLowerCase();
   if (!candidate || !SESSION_CHANNEL_ID_SET.has(candidate)) return undefined;
   return candidate;
+}
+
+export type ChannelSessionRecipient = {
+  channelId: string;
+  accountId: string;
+  recipientId: string;
+};
+
+export function parseChannelSessionRecipient(key: string): ChannelSessionRecipient | undefined {
+  const parts = key.split(":");
+  const channelId = inferSessionChannelFromKey(key);
+  if (!channelId || parts.length < 6) return undefined;
+  const accountId = parts[3]?.trim();
+  const recipientId = parts[parts.length - 1]?.trim();
+  if (!accountId || !recipientId) return undefined;
+  return { channelId, accountId, recipientId };
+}
+
+export function channelRecipientAliasKey(
+  channelId: string,
+  accountId: string,
+  recipientId: string,
+): string {
+  return `${channelId}:${accountId}:${recipientId}`;
 }
 
 export function isRawChannelRecipientId(value: string): boolean {

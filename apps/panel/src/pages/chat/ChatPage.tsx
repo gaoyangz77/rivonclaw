@@ -15,8 +15,69 @@ import { ChatResetModal } from "./components/ChatResetModal.js";
 import { ChatContextOverflowModal } from "./components/ChatContextOverflowModal.js";
 import { useChatExamples } from "./hooks/useChatExamples.js";
 import { useChatModelControls } from "./hooks/useChatModelControls.js";
-import { PAGE_SIZE } from "./chat-utils.js";
+import {
+  PAGE_SIZE,
+  channelRecipientAliasKey,
+  parseChannelSessionRecipient,
+  type SessionTabInfo,
+} from "./chat-utils.js";
 import "./ChatPage.css";
+
+type RecipientLabelSource = {
+  channelId?: string;
+  accountId?: string;
+  recipients?: {
+    labels?: Record<string, string>;
+  } | null;
+};
+
+function addRecipientLabels(
+  index: Map<string, string>,
+  account: RecipientLabelSource | null | undefined,
+): void {
+  const channelId = account?.channelId?.trim();
+  const accountId = account?.accountId?.trim();
+  const labels = account?.recipients?.labels;
+  if (!channelId || !accountId || !labels) return;
+  for (const [recipientId, label] of Object.entries(labels)) {
+    const cleanLabel = label.trim();
+    if (!recipientId || !cleanLabel) continue;
+    index.set(channelRecipientAliasKey(channelId, accountId, recipientId), cleanLabel);
+  }
+}
+
+function buildRecipientAliasIndex(entityStore: {
+  channelAccounts: readonly RecipientLabelSource[];
+  channelManager: {
+    statusSnapshot?: {
+      channelAccounts?: Record<string, RecipientLabelSource[]>;
+    } | null;
+  };
+}): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const account of entityStore.channelAccounts) addRecipientLabels(index, account);
+  const snapshotAccounts = entityStore.channelManager.statusSnapshot?.channelAccounts ?? {};
+  for (const [channelId, accounts] of Object.entries(snapshotAccounts)) {
+    for (const account of accounts) addRecipientLabels(index, { ...account, channelId });
+  }
+  return index;
+}
+
+function applyRecipientAliases(
+  sessions: SessionTabInfo[],
+  recipientAliasIndex: Map<string, string>,
+): SessionTabInfo[] {
+  return sessions.map((session) => {
+    const recipient = parseChannelSessionRecipient(session.key);
+    if (!recipient) return session;
+    const alias = recipientAliasIndex.get(channelRecipientAliasKey(
+      recipient.channelId,
+      recipient.accountId,
+      recipient.recipientId,
+    ));
+    return alias ? { ...session, recipientAlias: alias } : session;
+  });
+}
 
 /**
  * Inner component that consumes the ChatStore + ChatGatewayController
@@ -208,11 +269,15 @@ const ChatPageInner = observer(function ChatPageInner({
   const isStreaming = runId !== null;
   const totalTokens = session.totalTokens;
   const contextWindow = modelControls.activeModel?.contextWindow ?? session.contextTokens ?? null;
+  const sessionsWithRecipientAliases = applyRecipientAliases(
+    store.sessionList,
+    buildRecipientAliasIndex(entityStore),
+  );
 
   return (
     <div className="chat-container">
       <SessionTabBar
-        sessions={store.sessionList}
+        sessions={sessionsWithRecipientAliases}
         activeSessionKey={store.activeSessionKey}
         unreadKeys={store.unreadKeys}
         onSwitchSession={(key) => controller.switchSession(key)}

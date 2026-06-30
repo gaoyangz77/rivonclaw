@@ -199,6 +199,32 @@ describe("SessionTabBar", () => {
     expect(screen.queryByText(/^ou_b/)).toBeNull();
   });
 
+  it("uses a recipient alias ahead of gateway-derived channel titles", () => {
+    render(
+      <SessionTabBar
+        sessions={[
+          {
+            key: "agent:main:feishu:default:direct:ou_1326e2b8ae08301a7b523b715762f5ea",
+            channel: "feishu",
+            recipientAlias: "飞书店铺群",
+            derivedTitle: "第 4 批完成了",
+          },
+        ]}
+        activeSessionKey="agent:main:feishu:default:direct:ou_1326e2b8ae08301a7b523b715762f5ea"
+        unreadKeys={new Set()}
+        onSwitchSession={() => {}}
+        onNewChat={() => {}}
+        onArchiveSession={() => {}}
+        onRenameSession={() => {}}
+        onRestoreSession={() => {}}
+        onReorderSession={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("飞书店铺群")).toBeTruthy();
+    expect(screen.queryByText("第 4 批完成了")).toBeNull();
+  });
+
   it("keeps row archive and inline rename actions working in the sidebar", () => {
     const onArchiveSession = vi.fn();
     const onRenameSession = vi.fn();
