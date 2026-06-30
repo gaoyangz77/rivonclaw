@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.50",
+    "date": "2026-06-29",
+    "en": [
+      "Sync desktop ToolSpecs subscriptions so cloud tool runtime stays current",
+      "Fix emoji-only customer-service replies and simplify image handling for forwarded messages",
+      "Improve affiliate creator avatar rendering and add ads sync health status"
+    ],
+    "zh": [
+      "同步桌面端 ToolSpecs 订阅，确保云端工具运行时保持最新",
+      "修复客服纯 emoji 回复，并简化转发消息的图片处理路径",
+      "优化达人头像渲染，并新增广告同步健康状态"
+    ]
+  },
+  {
     "version": "1.8.49",
     "date": "2026-06-28",
     "en": [
