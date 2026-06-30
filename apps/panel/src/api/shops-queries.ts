@@ -774,6 +774,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         latestObservedContentAt
         shippedAt
         deliveredAt
+        order {
+          platformOrderId
+          trackingNumber
+          carrier
+        }
         trackingNumber
         updatedAt
       }
@@ -1084,6 +1089,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           latestObservedContentAt
           shippedAt
           deliveredAt
+          order {
+            platformOrderId
+            trackingNumber
+            carrier
+          }
           trackingNumber
           updatedAt
         }
@@ -1097,6 +1107,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           latestObservedContentAt
           shippedAt
           deliveredAt
+          order {
+            platformOrderId
+            trackingNumber
+            carrier
+          }
           trackingNumber
           updatedAt
         }
@@ -1337,6 +1352,11 @@ export const AFFILIATE_DASHBOARD_QUERY = gql`
           latestObservedContentFormat
           latestObservedContentPaidOrderCount
           latestObservedContentViewCount
+          order {
+            platformOrderId
+            trackingNumber
+            carrier
+          }
           carrier
           trackingNumber
           shippedAt
@@ -1927,6 +1947,11 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
         platformOpenCollaborationId
         platformTargetCollaborationId
         sampleWorkStatus
+        order {
+          platformOrderId
+          trackingNumber
+          carrier
+        }
         trackingNumber
         carrier
         shippedAt
@@ -2015,6 +2040,11 @@ export const AFFILIATE_CONVERSATION_MESSAGES_QUERY = gql`
             platformOpenCollaborationId
             platformTargetCollaborationId
             sampleWorkStatus
+            order {
+              platformOrderId
+              trackingNumber
+              carrier
+            }
             trackingNumber
             carrier
             shippedAt

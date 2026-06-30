@@ -4957,6 +4957,9 @@ function SampleApplicationSummaryCard({
 }) {
   const { t } = useTranslation();
   const [detailOpen, setDetailOpen] = useState(false);
+  const sampleOrder = sampleApplication.order;
+  const trackingNumber = sampleOrder?.trackingNumber ?? sampleApplication.trackingNumber;
+  const carrier = sampleOrder?.carrier ?? sampleApplication.carrier;
   const status = t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`, {
     defaultValue: formatAffiliateEnumLabel(sampleApplication.sampleWorkStatus),
   });
@@ -4991,7 +4994,7 @@ function SampleApplicationSummaryCard({
     },
     {
       label: t("ecommerce.affiliateWorkspace.sampleApplication.carrier"),
-      value: sampleApplication.carrier,
+      value: carrier,
     },
     {
       label: t("ecommerce.affiliateWorkspace.sampleApplication.shippedAt"),
@@ -5035,7 +5038,7 @@ function SampleApplicationSummaryCard({
         />
         <SampleApplicationFact
           label={t("ecommerce.affiliateWorkspace.sampleApplication.shippingProgress")}
-          value={sampleApplication.trackingNumber || t("ecommerce.affiliateWorkspace.sampleApplication.noTrackingYet")}
+          value={trackingNumber || t("ecommerce.affiliateWorkspace.sampleApplication.noTrackingYet")}
         />
         <SampleApplicationFact
           label={t("ecommerce.affiliateWorkspace.sampleApplication.updatedAt")}
