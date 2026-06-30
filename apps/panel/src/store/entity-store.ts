@@ -56,6 +56,7 @@ import { syncOfficialPresetSkills } from "../api/official-preset-skills.js";
 import { trackEvent } from "../api/settings.js";
 import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
+import { parseChannelSessionRecipient } from "../lib/chat-session-keys.js";
 import { panelEventBus } from "../lib/event-bus.js";
 import { gql } from "@apollo/client/core";
 import type { PanelStoreEnv } from "./types.js";
@@ -89,6 +90,7 @@ function stripTypename<T>(value: T): T {
 }
 
 type AffiliateMlInsightModelScope = "user" | "shop";
+type SessionTabAliasTarget = { key: string; recipientAlias?: string };
 
 const AffiliateMlInsightRowModel = types.model("AffiliateMlInsightRow", {
   key: types.identifier,
@@ -166,14 +168,8 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   affiliateMlInsightsLoading: types.optional(types.boolean, false),
   affiliateMlInsightsError: types.maybeNull(types.string),
   affiliateMlInsightsLoadedAt: types.maybeNull(types.number),
-}).views((self) => ({
-  affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope) {
-    return self.affiliateMlInsightRows.find((row) => row.subjectKey === subjectKey && row.modelScope === modelScope) ?? null;
-  },
-  affiliateMlInsightRowsForSubject(subjectKey: string) {
-    return self.affiliateMlInsightRows.filter((row) => row.subjectKey === subjectKey);
-  },
-  channelRecipientAlias(channelIdRaw: string, accountIdRaw: string, recipientIdRaw: string): string | null {
+}).views((self) => {
+  function channelRecipientAlias(channelIdRaw: string, accountIdRaw: string, recipientIdRaw: string): string | null {
     const channelId = cleanRecipientLookupPart(channelIdRaw);
     const accountId = cleanRecipientLookupPart(accountIdRaw);
     const recipientId = cleanRecipientLookupPart(recipientIdRaw);
@@ -191,8 +187,30 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
     }
 
     return null;
-  },
-})).actions((self) => {
+  }
+
+  return {
+    affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope) {
+      return self.affiliateMlInsightRows.find((row) => row.subjectKey === subjectKey && row.modelScope === modelScope) ?? null;
+    },
+    affiliateMlInsightRowsForSubject(subjectKey: string) {
+      return self.affiliateMlInsightRows.filter((row) => row.subjectKey === subjectKey);
+    },
+    channelRecipientAlias,
+    sessionTabsWithRecipientAliases<T extends SessionTabAliasTarget>(sessions: readonly T[]): T[] {
+      return sessions.map((session) => {
+        const recipient = parseChannelSessionRecipient(session.key);
+        if (!recipient) return session;
+        const alias = channelRecipientAlias(
+          recipient.channelId,
+          recipient.accountId,
+          recipient.recipientId,
+        );
+        return alias ? { ...session, recipientAlias: alias } : session;
+      });
+    },
+  };
+}).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
 
   return {
@@ -696,6 +714,7 @@ interface PanelEntityOverrides {
   affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope): Instance<typeof AffiliateMlInsightRowModel> | null;
   affiliateMlInsightRowsForSubject(subjectKey: string): Instance<typeof AffiliateMlInsightRowModel>[];
   channelRecipientAlias(channelId: string, accountId: string, recipientId: string): string | null;
+  sessionTabsWithRecipientAliases<T extends SessionTabAliasTarget>(sessions: readonly T[]): T[];
   fetchAffiliateMlInsights(input?: { shopIds?: string[] }): Promise<void>;
   startBillingSubscription(input: {
     planId: string;

@@ -1,4 +1,10 @@
 import { stripReasoningTagsFromText, DEFAULTS } from "@rivonclaw/core";
+export {
+  SESSION_CHANNEL_IDS,
+  inferSessionChannelFromKey,
+  parseChannelSessionRecipient,
+  type ChannelSessionRecipient,
+} from "../../lib/chat-session-keys.js";
 
 export type ChatImage = { data: string; mimeType: string };
 
@@ -90,26 +96,6 @@ export const COMPRESS_MIN_QUALITY = DEFAULTS.chat.compressMinQuality;
 
 export const DEFAULT_SESSION_KEY = "agent:main:main";
 
-export const SESSION_CHANNEL_IDS = [
-  "telegram",
-  "feishu",
-  "lark",
-  "whatsapp",
-  "discord",
-  "slack",
-  "signal",
-  "imessage",
-  "webchat",
-  "line",
-  "googlechat",
-  "matrix",
-  "msteams",
-  "mattermost",
-  "openclaw-weixin",
-] as const;
-
-const SESSION_CHANNEL_ID_SET = new Set<string>(SESSION_CHANNEL_IDS);
-
 /**
  * Session key patterns that belong to dedicated subsystems and should NOT
  * appear as tabs in the Chat Page.  Each entry is tested via `key.includes()`.
@@ -124,35 +110,6 @@ const HIDDEN_SESSION_KEY_PATTERNS: string[] = [
 /** Returns true if the session key belongs to a hidden subsystem. */
 export function isHiddenSession(key: string): boolean {
   return HIDDEN_SESSION_KEY_PATTERNS.some((pattern) => key.includes(pattern));
-}
-
-/**
- * Some plugin-created channel sessions arrive before gateway metadata has been
- * hydrated. Their session keys still carry the channel id, e.g.
- * `agent:main:feishu:default:direct:ou_xxx`.
- */
-export function inferSessionChannelFromKey(key: string): string | undefined {
-  const parts = key.split(":");
-  if (parts[0] !== "agent" || parts[1] !== "main") return undefined;
-  const candidate = parts[2]?.toLowerCase();
-  if (!candidate || !SESSION_CHANNEL_ID_SET.has(candidate)) return undefined;
-  return candidate;
-}
-
-export type ChannelSessionRecipient = {
-  channelId: string;
-  accountId: string;
-  recipientId: string;
-};
-
-export function parseChannelSessionRecipient(key: string): ChannelSessionRecipient | undefined {
-  const parts = key.split(":");
-  const channelId = inferSessionChannelFromKey(key);
-  if (!channelId || parts.length < 6) return undefined;
-  const accountId = parts[3]?.trim();
-  const recipientId = parts[parts.length - 1]?.trim();
-  if (!accountId || !recipientId) return undefined;
-  return { channelId, accountId, recipientId };
 }
 
 export function isRawChannelRecipientId(value: string): boolean {
