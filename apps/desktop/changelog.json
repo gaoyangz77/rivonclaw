@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.51",
+    "date": "2026-06-30",
+    "en": [
+      "Improve the customer-service chat session sidebar and conversation status typing",
+      "Clarify affiliate send-message prompts for more reliable outreach",
+      "Polish affiliate ID copy interactions in seller workflows"
+    ],
+    "zh": [
+      "优化客服聊天会话侧边栏和会话状态类型",
+      "明确达人消息发送 prompt，提升触达流程稳定性",
+      "优化卖家流程中的达人 ID 复制交互"
+    ]
+  },
+  {
     "version": "1.8.50",
     "date": "2026-06-29",
     "en": [
