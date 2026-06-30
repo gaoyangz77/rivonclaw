@@ -89,6 +89,26 @@ export const COMPRESS_MIN_QUALITY = DEFAULTS.chat.compressMinQuality;
 
 export const DEFAULT_SESSION_KEY = "agent:main:main";
 
+export const SESSION_CHANNEL_IDS = [
+  "telegram",
+  "feishu",
+  "lark",
+  "whatsapp",
+  "discord",
+  "slack",
+  "signal",
+  "imessage",
+  "webchat",
+  "line",
+  "googlechat",
+  "matrix",
+  "msteams",
+  "mattermost",
+  "openclaw-weixin",
+] as const;
+
+const SESSION_CHANNEL_ID_SET = new Set<string>(SESSION_CHANNEL_IDS);
+
 /**
  * Session key patterns that belong to dedicated subsystems and should NOT
  * appear as tabs in the Chat Page.  Each entry is tested via `key.includes()`.
@@ -103,6 +123,33 @@ const HIDDEN_SESSION_KEY_PATTERNS: string[] = [
 /** Returns true if the session key belongs to a hidden subsystem. */
 export function isHiddenSession(key: string): boolean {
   return HIDDEN_SESSION_KEY_PATTERNS.some((pattern) => key.includes(pattern));
+}
+
+/**
+ * Some plugin-created channel sessions arrive before gateway metadata has been
+ * hydrated. Their session keys still carry the channel id, e.g.
+ * `agent:main:feishu:default:direct:ou_xxx`.
+ */
+export function inferSessionChannelFromKey(key: string): string | undefined {
+  const parts = key.split(":");
+  if (parts[0] !== "agent" || parts[1] !== "main") return undefined;
+  const candidate = parts[2]?.toLowerCase();
+  if (!candidate || !SESSION_CHANNEL_ID_SET.has(candidate)) return undefined;
+  return candidate;
+}
+
+export function isRawChannelRecipientId(value: string): boolean {
+  const trimmed = value.trim();
+  return (
+    /^(?:ou|oc)_[a-z0-9_-]{3,}$/i.test(trimmed) ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
+  );
+}
+
+export function formatRawChannelRecipientId(value: string): string {
+  const compact = value.trim().replace(/^(?:ou|oc)_/i, "");
+  if (compact.length <= 12) return compact;
+  return `${compact.slice(0, 8)}...`;
 }
 export const INITIAL_VISIBLE = DEFAULTS.chat.initialVisibleMessages;
 export const PAGE_SIZE = 20;

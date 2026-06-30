@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { ChatRunStateModel } from "./store/models/ChatRunStateModel.js";
 import type { IChatRunState } from "./store/models/ChatRunStateModel.js";
-import { isHiddenSession } from "./chat-utils.js";
+import { inferSessionChannelFromKey, isHiddenSession } from "./chat-utils.js";
 import { createChatStore } from "./store/chat-store.js";
 
 function createRunState(): IChatRunState {
@@ -866,6 +866,20 @@ describe("isHiddenSession", () => {
   });
 });
 
+describe("inferSessionChannelFromKey", () => {
+  it("detects channel sessions created by plugins before metadata hydration", () => {
+    expect(inferSessionChannelFromKey("agent:main:feishu:default:direct:ou_456")).toBe("feishu");
+    expect(inferSessionChannelFromKey("agent:main:lark:default:direct:ou_456")).toBe("lark");
+  });
+
+  it("does not treat internal or panel session segments as channels", () => {
+    expect(inferSessionChannelFromKey("agent:main:affiliate:tiktok:conv123")).toBeUndefined();
+    expect(inferSessionChannelFromKey("agent:main:cs:tiktok:conv123")).toBeUndefined();
+    expect(inferSessionChannelFromKey("agent:main:panel-abc123")).toBeUndefined();
+    expect(inferSessionChannelFromKey("agent:main:main")).toBeUndefined();
+  });
+});
+
 describe("ChatStore.sessionList hides internal service sessions", () => {
   it("CS and affiliate sessions in store do not appear in sessionList", () => {
     const store = createChatStore();
@@ -892,6 +906,14 @@ describe("ChatStore.sessionList hides internal service sessions", () => {
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).not.toContain("agent:main:cs:shopee:conv789");
     expect(keys).not.toContain("agent:main:affiliate:tiktok:sample_application:sample-app-001");
+  });
+
+  it("exposes inferred channel metadata for plugin-created Feishu sessions", () => {
+    const store = createChatStore();
+    store.getOrCreateSession("agent:main:feishu:default:direct:ou_456");
+
+    expect(store.sessionList.find((s) => s.key === "agent:main:feishu:default:direct:ou_456")?.channel)
+      .toBe("feishu");
   });
 });
 

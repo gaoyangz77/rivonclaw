@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { SessionTabInfo } from "./chat-utils.js";
-import { DEFAULT_SESSION_KEY } from "./chat-utils.js";
+import {
+  DEFAULT_SESSION_KEY,
+  SESSION_CHANNEL_IDS,
+  formatRawChannelRecipientId,
+  inferSessionChannelFromKey,
+  isRawChannelRecipientId,
+} from "./chat-utils.js";
 import type { ChatSessionMeta } from "../../api/chat-sessions.js";
 import { fetchChatSessions, deleteChatSession } from "../../api/chat-sessions.js";
 
@@ -23,25 +29,33 @@ function abbreviateKey(key: string): string {
   return parts[parts.length - 1] ?? key;
 }
 
+function sessionChannel(session: SessionTabInfo): string | undefined {
+  return session.channel ?? inferSessionChannelFromKey(session.key);
+}
+
 /** Derive the display label for a session tab. */
 function tabLabel(session: SessionTabInfo, t: (key: string) => string): string {
   if (session.key === DEFAULT_SESSION_KEY) return t("chat.sessionMain");
+  const channel = sessionChannel(session);
   if (session.customTitle) return session.customTitle;
   if (session.panelTitle) return session.panelTitle;
   if (session.derivedTitle) return session.derivedTitle;
   if (session.isLocal) return t("chat.newSessionTitle");
-  if (session.displayName) return session.displayName;
+  if (session.displayName) {
+    if ((channel === "feishu" || channel === "lark") && isRawChannelRecipientId(session.displayName)) {
+      return formatRawChannelRecipientId(session.displayName);
+    }
+    return session.displayName;
+  }
   const abbr = abbreviateKey(session.key);
+  if ((channel === "feishu" || channel === "lark") && isRawChannelRecipientId(abbr)) {
+    return formatRawChannelRecipientId(abbr);
+  }
   return abbr || t("chat.sessionUntitled");
 }
 
 /** Known channel ids for i18n key mapping. */
-const KNOWN_CHANNELS = new Set([
-  "telegram", "feishu", "lark", "whatsapp",
-  "discord", "slack", "signal", "imessage", "webchat", "line",
-  "googlechat", "matrix", "msteams", "mattermost",
-  "openclaw-weixin",
-]);
+const KNOWN_CHANNELS = new Set<string>(SESSION_CHANNEL_IDS);
 
 /** Map non-trivial channel IDs to their i18n suffix (used for chat.channel* keys). */
 const CHANNEL_I18N_SUFFIX: Record<string, string> = {
@@ -639,6 +653,7 @@ export function SessionTabBar({
           const isMain = session.key === DEFAULT_SESSION_KEY;
           const isRenaming = renamingKey === session.key;
           const label = tabLabel(session, t);
+          const channel = sessionChannel(session);
           const isDragging = dragState?.dragIndex === index;
 
           // Compute visual shift for non-dragged rows during drag
@@ -681,7 +696,7 @@ export function SessionTabBar({
             >
               <span className="chat-tab-dot" style={{ background: getTabDotColor(index) }} />
               {session.pinned && <PinIcon />}
-              {session.channel && !isMain && <ChannelBadge channel={session.channel} />}
+              {channel && !isMain && <ChannelBadge channel={channel} />}
               {isRenaming ? (
                 <InlineRenameInput
                   initialValue={label}
