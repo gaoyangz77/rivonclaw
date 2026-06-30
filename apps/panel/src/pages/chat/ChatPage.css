@@ -1,88 +1,143 @@
 .chat-container {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1;
   min-height: 0;
   /* allow flex child to shrink below content size */
   margin: -28px -48px -48px;
   /* escape main padding */
   overflow: hidden;
+  background: var(--color-bg-page);
 }
 
-/* ===== Session Tab Bar — Pill Style ===== */
+.chat-main-panel {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-bg-page);
+}
+
+/* ===== Session Sidebar ===== */
 
 .chat-session-tabs {
+  position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   flex-shrink: 0;
-  background: var(--color-bg-page);
-  padding: 10px 0 10px 48px;
+  min-height: 0;
+  background: color-mix(in srgb, var(--color-bg-page) 88%, var(--color-bg-alt));
+  border-right: 1px solid var(--color-border-light);
+  padding: 14px 10px 12px;
+  gap: 10px;
+}
+
+.chat-session-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  z-index: 20;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.chat-session-resize-handle:hover,
+.chat-session-resize-handle:active {
+  background-color: rgba(156, 163, 175, 0.35);
+}
+
+.chat-session-tabs-header {
+  display: flex;
+  flex-shrink: 0;
 }
 
 .chat-session-tabs-scroll {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
   flex: 1;
   min-width: 0;
-  padding: 2px 0;
+  min-height: 0;
+  padding: 2px 2px 6px;
 }
 
 .chat-session-tabs-scroll::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+.chat-session-tabs-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-border) 72%, transparent);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
 }
 
 .chat-session-tab {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 34px;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 9px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--color-text-muted);
   background: transparent;
-  border: 1px solid var(--color-border-light);
-  border-radius: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
-  white-space: nowrap;
-  max-width: 220px;
+  text-align: left;
   flex-shrink: 0;
-  transition: color 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: color 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .chat-session-tab:hover {
   color: var(--color-text-secondary);
-  background-color: var(--color-bg-alt);
-  border-color: var(--color-border);
+  background-color: color-mix(in srgb, var(--color-bg-alt) 78%, transparent);
+  border-color: var(--color-border-light);
 }
 
 .chat-session-tab-active {
   color: var(--color-primary);
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
+  background-color: var(--color-bg);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border-light));
   font-weight: 600;
-  box-shadow: none;
+  box-shadow: 0 1px 5px rgba(15, 23, 42, 0.06);
 }
 
-/* Remove the old top accent line — pill style doesn't need it */
 .chat-session-tab-active::before {
-  display: none;
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: var(--color-primary);
 }
 
 .chat-session-tab-active:hover {
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
+  background-color: var(--color-bg);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border-light));
 }
 
 .chat-session-tab-label {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  white-space: nowrap;
+  line-height: 1.25;
 }
 
 .chat-tab-pin-icon {
@@ -135,8 +190,8 @@
 
 /* Session color dot — every tab gets one, cycling through a palette */
 .chat-tab-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -152,13 +207,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   flex-shrink: 0;
   color: var(--color-text-muted);
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.28;
   transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
 }
 
@@ -175,18 +230,20 @@
 .chat-session-tab-unread::after {
   content: "";
   position: absolute;
-  top: -1px;
-  right: -1px;
+  top: 8px;
+  right: 8px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background-color: var(--color-primary);
-  border: 1.5px solid var(--color-bg-page);
+  border: 1.5px solid var(--color-bg);
 }
 
 /* Inline rename input */
 .chat-tab-rename-input {
-  width: 100px;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
   height: 22px;
   padding: 0 4px;
   font-size: 13px;
@@ -200,21 +257,25 @@
   box-shadow: var(--focus-ring);
 }
 
-/* New chat button — pill-matching circle */
+/* New chat button */
 .chat-session-tab-new-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 8px;
   align-self: center;
-  width: 30px;
-  height: 30px;
-  border: 1px dashed var(--color-border-light);
-  border-radius: 50%;
-  background: none;
-  color: var(--color-text-muted);
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
   cursor: pointer;
   flex-shrink: 0;
-  margin-left: 2px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
   transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -222,31 +283,35 @@
   color: var(--color-primary);
   background-color: var(--color-primary-light);
   border-color: var(--color-primary);
-  border-style: solid;
 }
 
 /* Action buttons (archive) */
 .chat-session-tabs-actions {
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 14px 0 10px;
-  margin-left: 2px;
   flex-shrink: 0;
-  border-left: 1px solid var(--color-border-light);
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 2px 0;
+  margin: 0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .chat-session-tab-action-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
   border: none;
-  border-radius: 50%;
+  border-radius: 8px;
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
   transition: color var(--transition-fast), background-color var(--transition-fast);
 }
 
@@ -258,15 +323,16 @@
 /* Archived sessions dropdown */
 .chat-archived-trigger-wrap {
   position: relative;
+  width: 100%;
 }
 
 .chat-archived-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  left: 0;
+  bottom: calc(100% + 8px);
   z-index: 100;
-  width: 300px;
-  max-height: 70vh;
+  width: 100%;
+  max-height: min(70vh, 560px);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -414,6 +480,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+  .chat-session-tabs {
+    padding: 10px 8px;
+  }
+
+  .chat-session-tab {
+    min-height: 34px;
+    padding: 7px 8px;
+  }
+
+  .chat-archived-dropdown {
+    width: 100%;
+  }
 }
 
 .chat-messages {
@@ -1481,7 +1562,8 @@
 }
 
 [data-theme="dark"] .chat-session-tabs {
-  background: var(--color-bg-page);
+  background: color-mix(in srgb, var(--color-bg-page) 88%, #0f172a);
+  border-right-color: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .chat-session-tab {
@@ -1496,18 +1578,18 @@
 
 [data-theme="dark"] .chat-session-tab-active {
   color: var(--color-primary);
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
-  box-shadow: none;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.18);
 }
 
 [data-theme="dark"] .chat-session-tab-active::before {
-  display: none;
+  display: block;
 }
 
 [data-theme="dark"] .chat-session-tab-active:hover {
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, rgba(255, 255, 255, 0.12));
 }
 
 [data-theme="dark"] .chat-session-tab-close:hover {
@@ -1526,7 +1608,7 @@
 }
 
 [data-theme="dark"] .chat-session-tab-unread::after {
-  border-color: var(--color-bg-page);
+  border-color: var(--color-bg);
 }
 
 [data-theme="dark"] .chat-tab-rename-input {
@@ -1545,10 +1627,16 @@
 
 [data-theme="dark"] .chat-session-tab-new-btn {
   border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 [data-theme="dark"] .chat-session-tab-new-btn:hover {
   border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .chat-session-resize-handle:hover,
+[data-theme="dark"] .chat-session-resize-handle:active {
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 [data-theme="dark"] .chat-archived-dropdown {

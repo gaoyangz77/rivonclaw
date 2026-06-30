@@ -428,13 +428,13 @@ function ArchivedDropdown({
   );
 }
 
-/** Compute the drop index based on pointer position and tab rects. */
-function computeDropIndex(pointerX: number, rects: DOMRect[]): number {
+/** Compute the drop index based on pointer position and row rects. */
+function computeDropIndex(pointerY: number, rects: DOMRect[]): number {
   let bestIndex = 1;
   let bestDist = Infinity;
   for (let i = 1; i < rects.length; i++) {
-    const center = rects[i].left + rects[i].width / 2;
-    const dist = Math.abs(pointerX - center);
+    const center = rects[i].top + rects[i].height / 2;
+    const dist = Math.abs(pointerY - center);
     if (dist < bestDist) {
       bestDist = dist;
       bestIndex = i;
@@ -444,6 +444,9 @@ function computeDropIndex(pointerX: number, rects: DOMRect[]): number {
 }
 
 const DRAG_THRESHOLD = 5;
+const CHAT_SIDEBAR_MIN = 180;
+const CHAT_SIDEBAR_MAX = 420;
+const CHAT_SIDEBAR_DEFAULT = 260;
 
 export function SessionTabBar({
   sessions, activeSessionKey, unreadKeys,
@@ -455,22 +458,22 @@ export function SessionTabBar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [renamingKey, setRenamingKey] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(CHAT_SIDEBAR_DEFAULT);
+  const resizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   // Drag-to-reorder state
   const [dragState, setDragState] = useState<{
     dragIndex: number;
     currentIndex: number;
-    offsetX: number;
+    offsetY: number;
   } | null>(null);
   const dragStartRef = useRef<{
     pointerId: number;
-    startX: number;
+    startY: number;
     index: number;
     button: HTMLElement;
   } | null>(null);
-  const tabRectsRef = useRef<DOMRect[]>([]);
-  const newBtnRef = useRef<HTMLButtonElement>(null);
-  const newBtnRectRef = useRef<DOMRect | null>(null);
+  const rowRectsRef = useRef<DOMRect[]>([]);
   const justDraggedRef = useRef(false);
   // Synchronous mirrors so pointer handlers don't depend on async React state
   const isDraggingRef = useRef(false);
@@ -497,13 +500,55 @@ export function SessionTabBar({
     setRenamingKey(null);
   }, []);
 
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeStartRef.current = {
+      startX: e.clientX,
+      startWidth: sidebarWidth,
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      const start = resizeStartRef.current;
+      if (!start) return;
+      const nextWidth = Math.min(
+        CHAT_SIDEBAR_MAX,
+        Math.max(CHAT_SIDEBAR_MIN, start.startWidth + e.clientX - start.startX),
+      );
+      setSidebarWidth(nextWidth);
+    }
+
+    function handleMouseUp() {
+      if (!resizeStartRef.current) return;
+      resizeStartRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      if (resizeStartRef.current) {
+        resizeStartRef.current = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      }
+    };
+  }, []);
+
   // --- Drag-to-reorder pointer handlers ---
   const handleTabPointerDown = useCallback((e: React.PointerEvent, index: number) => {
     // Main tab (index 0) cannot be dragged; skip during rename
     if (index === 0 || renamingKey === sessions[index]?.key) return;
     dragStartRef.current = {
       pointerId: e.pointerId,
-      startX: e.clientX,
+      startY: e.clientY,
       index,
       button: e.currentTarget as HTMLElement,
     };
@@ -513,28 +558,27 @@ export function SessionTabBar({
     const start = dragStartRef.current;
     if (!start || e.pointerId !== start.pointerId) return;
 
-    const dx = e.clientX - start.startX;
+    const dy = e.clientY - start.startY;
 
     if (!isDraggingRef.current) {
       // Not yet dragging — check threshold
-      if (Math.abs(dx) < DRAG_THRESHOLD) return;
+      if (Math.abs(dy) < DRAG_THRESHOLD) return;
       // Set flag synchronously to prevent re-entering this branch
       isDraggingRef.current = true;
-      // Initiate drag: snapshot tab rects and + button rect
+      // Initiate drag: snapshot row rects
       const container = scrollContainerRef.current;
       if (!container) return;
       const tabs = container.querySelectorAll(".chat-session-tab");
-      tabRectsRef.current = Array.from(tabs).map((el) => el.getBoundingClientRect());
-      newBtnRectRef.current = newBtnRef.current?.getBoundingClientRect() ?? null;
+      rowRectsRef.current = Array.from(tabs).map((el) => el.getBoundingClientRect());
       // Capture on the button element (not e.target which may be a child)
       start.button.setPointerCapture(e.pointerId);
       dragStateRef.current = { dragIndex: start.index, currentIndex: start.index };
-      setDragState({ dragIndex: start.index, currentIndex: start.index, offsetX: dx });
+      setDragState({ dragIndex: start.index, currentIndex: start.index, offsetY: dy });
     } else {
       // Active drag — update offset and compute drop position
-      const dropIndex = computeDropIndex(e.clientX, tabRectsRef.current);
+      const dropIndex = computeDropIndex(e.clientY, rowRectsRef.current);
       dragStateRef.current = { dragIndex: start.index, currentIndex: dropIndex };
-      setDragState({ dragIndex: start.index, currentIndex: dropIndex, offsetX: dx });
+      setDragState({ dragIndex: start.index, currentIndex: dropIndex, offsetY: dy });
     }
   }, []);
 
@@ -572,7 +616,22 @@ export function SessionTabBar({
   if (sessions.length === 0) return null;
 
   return (
-    <div className="chat-session-tabs">
+    <div
+      className="chat-session-tabs"
+      style={{ width: sidebarWidth, minWidth: sidebarWidth }}
+    >
+      <div className="chat-session-tabs-header">
+        <button
+          className="chat-session-tab-new-btn"
+          onClick={onNewChat}
+          title={t("chat.newSession")}
+        >
+          <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M7 2v10M2 7h10" />
+          </svg>
+          <span>{t("chat.newSession")}</span>
+        </button>
+      </div>
       <div className="chat-session-tabs-scroll" ref={scrollContainerRef}>
         {sessions.map((session, index) => {
           const isActive = session.key === activeSessionKey;
@@ -582,14 +641,14 @@ export function SessionTabBar({
           const label = tabLabel(session, t);
           const isDragging = dragState?.dragIndex === index;
 
-          // Compute visual shift for non-dragged tabs during drag
-          let shiftX = 0;
+          // Compute visual shift for non-dragged rows during drag
+          let shiftY = 0;
           if (dragState && !isDragging) {
             const { dragIndex, currentIndex } = dragState;
             if (dragIndex < currentIndex && index > dragIndex && index <= currentIndex) {
-              shiftX = -(tabRectsRef.current[dragIndex]?.width ?? 0);
+              shiftY = -(rowRectsRef.current[dragIndex]?.height ?? 0);
             } else if (dragIndex > currentIndex && index >= currentIndex && index < dragIndex) {
-              shiftX = tabRectsRef.current[dragIndex]?.width ?? 0;
+              shiftY = rowRectsRef.current[dragIndex]?.height ?? 0;
             }
           }
 
@@ -599,12 +658,12 @@ export function SessionTabBar({
             isUnread ? "chat-session-tab-unread" : "",
             session.pinned ? "chat-session-tab-pinned" : "",
             isDragging ? "chat-session-tab-dragging" : "",
-            (!isDragging && shiftX !== 0) ? "chat-session-tab-shifting" : "",
+            (!isDragging && shiftY !== 0) ? "chat-session-tab-shifting" : "",
           ].filter(Boolean).join(" ");
 
           const dragTransform = isDragging
-            ? `translateX(${dragState!.offsetX}px)`
-            : shiftX !== 0 ? `translateX(${shiftX}px)` : undefined;
+            ? `translateY(${dragState!.offsetY}px)`
+            : shiftY !== 0 ? `translateY(${shiftY}px)` : undefined;
 
           return (
             <button
@@ -649,45 +708,6 @@ export function SessionTabBar({
             </button>
           );
         })}
-        {(() => {
-          // Compute + button shift during drag to stay after the rightmost visual tab
-          let newBtnShift = 0;
-          if (dragState) {
-            const { dragIndex, currentIndex, offsetX } = dragState;
-            const lastIndex = sessions.length - 1;
-            // Shift with the last tab to fill the gap left by the dragged tab
-            if (lastIndex !== dragIndex) {
-              if (dragIndex < currentIndex && lastIndex > dragIndex && lastIndex <= currentIndex) {
-                newBtnShift = -(tabRectsRef.current[dragIndex]?.width ?? 0);
-              } else if (dragIndex > currentIndex && lastIndex >= currentIndex && lastIndex < dragIndex) {
-                newBtnShift = tabRectsRef.current[dragIndex]?.width ?? 0;
-              }
-            }
-            // If the dragged tab's visual right edge goes past the + button, push + further
-            const dragRect = tabRectsRef.current[dragIndex];
-            const btnRect = newBtnRectRef.current;
-            if (dragRect && btnRect) {
-              const dragVisualRight = dragRect.right + offsetX;
-              const plusVisualLeft = btnRect.left + newBtnShift;
-              if (dragVisualRight > plusVisualLeft) {
-                newBtnShift += dragVisualRight - plusVisualLeft;
-              }
-            }
-          }
-          return (
-            <button
-              className="chat-session-tab-new-btn"
-              onClick={onNewChat}
-              title={t("chat.newSession")}
-              ref={newBtnRef}
-              style={newBtnShift !== 0 ? { transform: `translateX(${newBtnShift}px)` } : undefined}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                <path d="M7 2v10M2 7h10" />
-              </svg>
-            </button>
-          );
-        })()}
       </div>
 
       <div className="chat-session-tabs-actions">
@@ -702,6 +722,7 @@ export function SessionTabBar({
               <path d="M2 5v7a1 1 0 001 1h8a1 1 0 001-1V5" />
               <path d="M5.5 8h3" />
             </svg>
+            <span>{t("chat.archivedSessions")}</span>
           </button>
           {showArchived && (
             <ArchivedDropdown
@@ -711,6 +732,17 @@ export function SessionTabBar({
           )}
         </div>
       </div>
+      <div
+        className="chat-session-resize-handle"
+        onMouseDown={handleResizeMouseDown}
+        role="separator"
+        aria-orientation="vertical"
+        aria-valuemin={CHAT_SIDEBAR_MIN}
+        aria-valuemax={CHAT_SIDEBAR_MAX}
+        aria-valuenow={sidebarWidth}
+        aria-label={t("ecommerce.customerServiceWorkspace.resizeConversationList")}
+        title={t("ecommerce.customerServiceWorkspace.resizeConversationList")}
+      />
     </div>
   );
 }
