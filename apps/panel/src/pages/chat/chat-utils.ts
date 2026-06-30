@@ -155,14 +155,6 @@ export function parseChannelSessionRecipient(key: string): ChannelSessionRecipie
   return { channelId, accountId, recipientId };
 }
 
-export function channelRecipientAliasKey(
-  channelId: string,
-  accountId: string,
-  recipientId: string,
-): string {
-  return `${channelId}:${accountId}:${recipientId}`;
-}
-
 export function isRawChannelRecipientId(value: string): boolean {
   const trimmed = value.trim();
   return (
