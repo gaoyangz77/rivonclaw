@@ -15,24 +15,8 @@ import { ChatResetModal } from "./components/ChatResetModal.js";
 import { ChatContextOverflowModal } from "./components/ChatContextOverflowModal.js";
 import { useChatExamples } from "./hooks/useChatExamples.js";
 import { useChatModelControls } from "./hooks/useChatModelControls.js";
-import { PAGE_SIZE, parseChannelSessionRecipient, type SessionTabInfo } from "./chat-utils.js";
+import { PAGE_SIZE } from "./chat-utils.js";
 import "./ChatPage.css";
-
-function applyRecipientAliases(
-  sessions: SessionTabInfo[],
-  aliasForRecipient: (channelId: string, accountId: string, recipientId: string) => string | null | undefined,
-): SessionTabInfo[] {
-  return sessions.map((session) => {
-    const recipient = parseChannelSessionRecipient(session.key);
-    if (!recipient) return session;
-    const alias = aliasForRecipient(
-      recipient.channelId,
-      recipient.accountId,
-      recipient.recipientId,
-    );
-    return alias ? { ...session, recipientAlias: alias } : session;
-  });
-}
 
 /**
  * Inner component that consumes the ChatStore + ChatGatewayController
@@ -224,11 +208,7 @@ const ChatPageInner = observer(function ChatPageInner({
   const isStreaming = runId !== null;
   const totalTokens = session.totalTokens;
   const contextWindow = modelControls.activeModel?.contextWindow ?? session.contextTokens ?? null;
-  const sessionsWithRecipientAliases = applyRecipientAliases(
-    store.sessionList,
-    (channelId, accountId, recipientId) =>
-      entityStore.channelRecipientAlias(channelId, accountId, recipientId),
-  );
+  const sessionsWithRecipientAliases = entityStore.sessionTabsWithRecipientAliases(store.sessionList);
 
   return (
     <div className="chat-container">
