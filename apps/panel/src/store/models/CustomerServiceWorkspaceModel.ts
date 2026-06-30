@@ -229,7 +229,7 @@ function conversationSnapshotToInboxItem(
     conversationId: conversation.conversationId,
     status: conversation.replyStatus,
     isOpen: conversation.isOpen ?? true,
-    platformConversationStatus: conversation.platformConversationStatus ?? conversation.status ?? null,
+    platformConversationStatus: conversation.platformConversationStatus ?? null,
     aiEnabled: conversation.aiEnabled ?? true,
     buyerUserId: buyer?.userId ?? null,
     buyerImUserId: buyer?.imUserId ?? null,
