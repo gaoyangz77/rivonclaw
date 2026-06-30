@@ -798,7 +798,32 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
   }
 `;
 
+const TOOL_SPECS_CHANGED_SUBSCRIPTION = `
+  subscription ToolSpecsChanged {
+    toolSpecsChanged {
+      revision
+      digest
+      changedToolNames
+      changeType
+      reason
+      publishedAt
+    }
+  }
+`;
+
+const PRESET_SKILLS_CHANGED_SUBSCRIPTION = `
+  subscription PresetSkillsChanged {
+    presetSkillsChanged {
+      revision
+      reason
+      publishedAt
+    }
+  }
+`;
+
 export type UpdatePayload = GQL.UpdatePayload;
+export type ToolSpecsChangedPayload = GQL.ToolSpecsChangedPayload;
+export type PresetSkillsChangedPayload = GQL.PresetSkillsChangedPayload;
 export type CsConversationSignalPayload = GQL.CsConversationSignal;
 export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
 export type AffiliateConversationSignalPayload = GQL.AffiliateConversationSignal;
@@ -1577,6 +1602,82 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "Shop updated subscription error", err);
+          },
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+      return { attempt, unsubscribe };
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
+  }
+
+  subscribeToToolSpecsChanged(
+    onChanged: (payload: ToolSpecsChangedPayload) => void,
+  ): () => void {
+    const key = "tool-specs-changed";
+
+    const subscribe = (): StartedSubscription => {
+      if (!this.client) return { attempt: this.nextAttempt(key), unsubscribe: () => {} };
+      const attempt = this.nextAttempt(key);
+
+      const unsubscribe = this.client.subscribe<{ toolSpecsChanged: ToolSpecsChangedPayload }>(
+        {
+          query: TOOL_SPECS_CHANGED_SUBSCRIPTION,
+        },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key);
+            if (this.handleResultErrors(key, attempt, "ToolSpecs changed subscription next contained GraphQL errors", result.errors)) {
+              return;
+            }
+            const payload = result.data?.toolSpecsChanged;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "toolSpecsChanged", result as any);
+              return;
+            }
+            onChanged(payload);
+          },
+          error: (err) => {
+            this.handleSubscriptionError(key, attempt, "ToolSpecs changed subscription error", err);
+          },
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+      return { attempt, unsubscribe };
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
+  }
+
+  subscribeToPresetSkillsChanged(
+    onChanged: (payload: PresetSkillsChangedPayload) => void,
+  ): () => void {
+    const key = "preset-skills-changed";
+
+    const subscribe = (): StartedSubscription => {
+      if (!this.client) return { attempt: this.nextAttempt(key), unsubscribe: () => {} };
+      const attempt = this.nextAttempt(key);
+
+      const unsubscribe = this.client.subscribe<{ presetSkillsChanged: PresetSkillsChangedPayload }>(
+        {
+          query: PRESET_SKILLS_CHANGED_SUBSCRIPTION,
+        },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key);
+            if (this.handleResultErrors(key, attempt, "Preset skills changed subscription next contained GraphQL errors", result.errors)) {
+              return;
+            }
+            const payload = result.data?.presetSkillsChanged;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "presetSkillsChanged", result as any);
+              return;
+            }
+            onChanged(payload);
+          },
+          error: (err) => {
+            this.handleSubscriptionError(key, attempt, "Preset skills changed subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },

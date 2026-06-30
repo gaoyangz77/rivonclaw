@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -52,7 +52,7 @@ afterEach(() => {
 });
 
 describe("stageMerchantExtensionsForCloudTools", () => {
-  it("writes a staged cloud-tools manifest from backend tool specs", async () => {
+  it("writes a staged cloud-tools manifest from Desktop-provided tool names", async () => {
     const root = makeTempRoot();
     const merchantDir = join(root, "extensions-merchant");
     const stateDir = join(root, "state");
@@ -63,16 +63,7 @@ describe("stageMerchantExtensionsForCloudTools", () => {
     const paths = await stageMerchantExtensionsForCloudTools({
       sourceMerchantExtensionsDir: merchantDir,
       stateDir,
-      authSession: {
-        getAccessToken: () => "token",
-        graphqlFetch: async <T = unknown>(_query: string): Promise<T> => ({
-          toolSpecs: [
-            { name: "cs_start_session" },
-            { name: "ecom_list_shops" },
-            { name: "cs_start_session" },
-          ],
-        } as T),
-      },
+      toolNames: ["cs_start_session", "ecom_list_shops", "cs_start_session"],
     });
 
     const stagedCloudDir = join(stateDir, "runtime-extensions", "rivonclaw-cloud-tools");
@@ -85,7 +76,7 @@ describe("stageMerchantExtensionsForCloudTools", () => {
     expect(distManifest.contracts.tools).toEqual(["cs_start_session", "ecom_list_shops"]);
   });
 
-  it("falls back to bundled cloud-tools when signed out", async () => {
+  it("falls back to bundled cloud-tools when Desktop has no tool names", async () => {
     const root = makeTempRoot();
     const merchantDir = join(root, "extensions-merchant");
     mkdirSync(merchantDir, { recursive: true });
@@ -95,15 +86,32 @@ describe("stageMerchantExtensionsForCloudTools", () => {
     const paths = await stageMerchantExtensionsForCloudTools({
       sourceMerchantExtensionsDir: merchantDir,
       stateDir: join(root, "state"),
-      authSession: {
-        getAccessToken: () => null,
-        graphqlFetch: async <T = unknown>(_query: string): Promise<T> => ({} as T),
-      },
     });
 
     expect(paths).toEqual([
       join(merchantDir, "rivonclaw-cloud-tools"),
       staticDir,
     ]);
+  });
+
+  it("keeps the OpenClaw plugin root stable and removes old digest stages", async () => {
+    const root = makeTempRoot();
+    const merchantDir = join(root, "extensions-merchant");
+    const stateDir = join(root, "state");
+    mkdirSync(merchantDir, { recursive: true });
+    writeCloudToolsFixture(merchantDir);
+    writeStaticMerchantFixture(merchantDir);
+    const oldDigestDir = join(stateDir, "runtime-extensions", "rivonclaw-cloud-tools-digest-one");
+    mkdirSync(oldDigestDir, { recursive: true });
+
+    const paths = await stageMerchantExtensionsForCloudTools({
+      sourceMerchantExtensionsDir: merchantDir,
+      stateDir,
+      toolNames: ["ecom_list_shops"],
+    });
+
+    expect(paths[0]).toBe(join(stateDir, "runtime-extensions", "rivonclaw-cloud-tools"));
+    expect(existsSync(oldDigestDir)).toBe(false);
+    expect(existsSync(paths[0])).toBe(true);
   });
 });

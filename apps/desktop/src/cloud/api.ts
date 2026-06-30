@@ -6,6 +6,10 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { CloudRestError } from "./cloud-client.js";
+import {
+  invalidateToolSpecsCache,
+  syncDesktopToolSpecs,
+} from "./tool-specs-sync.js";
 
 const log = createLogger("cloud-graphql-proxy");
 
@@ -20,14 +24,9 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
   DeleteRunProfile: "RunProfile",
 };
 
-// ── ToolSpecs dedup cache ───────────────────────────────────────────────────
-// ToolSpecs is stable data queried by both Panel and plugin on startup.
-// Cache it briefly to coalesce concurrent requests into a single backend call.
-const TOOLSPECS_CACHE_TTL_MS = 5_000;
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
 const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
-let toolSpecsCache: { data: unknown; ts: number; inflight?: Promise<unknown> } | null = null;
 
 function extractOperationName(query: string): string | null {
   const m = query.match(/(?:query|mutation)\s+(\w+)/);
@@ -450,10 +449,6 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
   return hints.join(" ");
 }
 
-export function invalidateToolSpecsCache(): void {
-  toolSpecsCache = null;
-}
-
 export function __resetCloudGraphqlProxyForTests(): void {
   invalidateToolSpecsCache();
 }
@@ -483,45 +478,34 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     return;
   }
 
-  // ToolSpecs-only dedup: coalesce concurrent requests for this stable query
-  if (opName === TOOLSPECS_OP_NAME && toolSpecsCache) {
+  if (opName === TOOLSPECS_OP_NAME) {
     const isExtension = req.headers["x-request-source"] === "extension";
-    if (toolSpecsCache.inflight) {
-      try {
-        const data = await toolSpecsCache.inflight;
-        if (!isExtension) rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
-        sendJson(res, 200, { data });
-      } catch (err) {
-        sendJson(res, 200, {
-          errors: [
-            { message: err instanceof Error ? err.message : "Cloud GraphQL request failed" },
-          ],
-        });
-      }
+    if (isExtension) {
+      sendJson(res, 200, {
+        errors: [{ message: "ToolSpecsSync is desktop-owned; extensions receive ToolSpecs from Desktop via gateway RPC" }],
+      });
       return;
     }
-    if (Date.now() - toolSpecsCache.ts < TOOLSPECS_CACHE_TTL_MS) {
-      if (!isExtension)
-        rootStore.ingestGraphQLResponse(toolSpecsCache.data as Record<string, unknown>);
-      sendJson(res, 200, { data: toolSpecsCache.data });
-      return;
+    try {
+      const snapshot = await syncDesktopToolSpecs({
+        authSession: ctx.authSession,
+        rootStore,
+        source: "cloud-graphql-proxy",
+      });
+      sendJson(res, 200, { data: snapshot.data });
+    } catch (err) {
+      sendJson(res, 200, {
+        errors: [
+          { message: err instanceof Error ? err.message : "Cloud GraphQL request failed" },
+        ],
+      });
     }
+    return;
   }
 
   // Transparent proxy: always returns 200 with standard GraphQL response.
   try {
-    const fetchPromise = ctx.authSession.graphqlFetch(body.query, variables);
-
-    const prevCache = opName === TOOLSPECS_OP_NAME ? toolSpecsCache : null;
-    if (opName === TOOLSPECS_OP_NAME) {
-      toolSpecsCache = {
-        data: prevCache?.data ?? null,
-        ts: prevCache?.ts ?? 0,
-        inflight: fetchPromise,
-      };
-    }
-
-    const data = await fetchPromise;
+    const data = await ctx.authSession.graphqlFetch(body.query, variables);
 
     // Only ingest Panel responses into MST. Extension (agent tool) responses
     // return partial entities that would overwrite complete store data.
@@ -549,20 +533,8 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       rootStore.removeEntity(deleteTypeName, body.variables.id as string);
     }
 
-    if (opName === TOOLSPECS_OP_NAME) {
-      // Only update cache if we got real data — preserve previous good cache on empty results
-      const specs = (data as Record<string, unknown>)?.toolSpecs;
-      const hasData = Array.isArray(specs) && specs.length > 0;
-      if (hasData || !prevCache?.data) {
-        toolSpecsCache = { data, ts: Date.now() };
-      } else {
-        // Restore previous good cache — backend returned empty (likely auth not ready after hot reload)
-        toolSpecsCache = prevCache;
-      }
-    }
-
     if (isModuleEnrollmentOperation(opName)) {
-      toolSpecsCache = null;
+      invalidateToolSpecsCache();
       runAuthChangeInBackground(ctx);
     }
 
@@ -572,7 +544,6 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
 
     sendJson(res, 200, { data });
   } catch (err) {
-    if (opName === TOOLSPECS_OP_NAME) toolSpecsCache = null;
     // undici's "fetch failed" TypeError hides the real error in .cause
     const cause =
       err instanceof Error && "cause" in err

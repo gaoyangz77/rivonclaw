@@ -487,22 +487,6 @@ export const AdsBiSyncStatus = {
 } as const;
 
 export type AdsBiSyncStatus = typeof AdsBiSyncStatus[keyof typeof AdsBiSyncStatus];
-/** Whether BI sync can currently read data for an ads scope. */
-export const AdsSyncHealthStatus = {
-  Failed: 'FAILED',
-  Healthy: 'HEALTHY'
-} as const;
-
-export type AdsSyncHealthStatus = typeof AdsSyncHealthStatus[keyof typeof AdsSyncHealthStatus];
-/** Structured reason for an ads BI sync health problem. */
-export const AdsSyncIssueCode = {
-  BackendError: 'BACKEND_ERROR',
-  PermissionDenied: 'PERMISSION_DENIED',
-  PlatformError: 'PLATFORM_ERROR',
-  Unknown: 'UNKNOWN'
-} as const;
-
-export type AdsSyncIssueCode = typeof AdsSyncIssueCode[keyof typeof AdsSyncIssueCode];
 /** Local request lifecycle for advertiser-to-shop GMV Max authorization */
 export const AdsGmvMaxAuthorizationRequestStatus = {
   Active: 'ACTIVE',
@@ -564,6 +548,22 @@ export const AdsStoreAccessStatus = {
 } as const;
 
 export type AdsStoreAccessStatus = typeof AdsStoreAccessStatus[keyof typeof AdsStoreAccessStatus];
+/** Whether BI sync can currently read data for an ads scope. */
+export const AdsSyncHealthStatus = {
+  Failed: 'FAILED',
+  Healthy: 'HEALTHY'
+} as const;
+
+export type AdsSyncHealthStatus = typeof AdsSyncHealthStatus[keyof typeof AdsSyncHealthStatus];
+/** Structured reason for an ads BI sync health problem. */
+export const AdsSyncIssueCode = {
+  BackendError: 'BACKEND_ERROR',
+  PermissionDenied: 'PERMISSION_DENIED',
+  PlatformError: 'PLATFORM_ERROR',
+  Unknown: 'UNKNOWN'
+} as const;
+
+export type AdsSyncIssueCode = typeof AdsSyncIssueCode[keyof typeof AdsSyncIssueCode];
 /** Subscription payload for a changed affiliate action proposal. */
 export interface AffiliateActionProposalChanged {
   proposal: ActionProposal;
@@ -3220,6 +3220,40 @@ export const EcomApproveReturnDecision = {
 } as const;
 
 export type EcomApproveReturnDecision = typeof EcomApproveReturnDecision[keyof typeof EcomApproveReturnDecision];
+/** A governed dynamic BI attribute filter. */
+export interface EcomBiAttributeFilterInput {
+  attribute: EcomBiAttributeRefInput;
+  /** Filter operator. */
+  operator: EcomBiFilterOperator;
+  /** Filter values. Empty lists are invalid. */
+  values: Array<Scalars['String']['input']>;
+}
+
+/** Governed dynamic BI attribute metadata. */
+export interface EcomBiAttributeMetadata {
+  attributeKey: Scalars['String']['output'];
+  attributeNamespace: Scalars['String']['output'];
+  cardinality: EcomBiDimensionCardinality;
+  description?: Maybe<Scalars['String']['output']>;
+  entity: EcomBiDimensionEntity;
+  filterable: Scalars['Boolean']['output'];
+  groupable: Scalars['Boolean']['output'];
+  label: Scalars['String']['output'];
+  rawJsonPath?: Maybe<Scalars['String']['output']>;
+  sourceSystem: Scalars['String']['output'];
+  valueType: EcomBiValueType;
+}
+
+/** A governed dynamic BI attribute reference from the catalog. */
+export interface EcomBiAttributeRefInput {
+  /** Attribute key from catalog metadata. */
+  attributeKey: Scalars['String']['input'];
+  /** Optional attribute namespace. Omit when the key is unique for the entity in the selected dataset. */
+  attributeNamespace?: InputMaybe<Scalars['String']['input']>;
+  /** Attribute entity, for example PRODUCT or CREATIVE. */
+  entity: EcomBiDimensionEntity;
+}
+
 /** Warehouse-backed ecommerce BI dataset identifiers. */
 export const EcomBiDatasetId = {
   AdsGmvCampaignDaily: 'ADS_GMV_CAMPAIGN_DAILY',
@@ -3235,6 +3269,7 @@ export const EcomBiDatasetId = {
 export type EcomBiDatasetId = typeof EcomBiDatasetId[keyof typeof EcomBiDatasetId];
 /** BI dataset metadata. */
 export interface EcomBiDatasetMetadata {
+  attributes: Array<EcomBiAttributeMetadata>;
   defaultDimensions: Array<EcomBiDimension>;
   defaultMetrics: Array<EcomBiMetric>;
   description: Scalars['String']['output'];
@@ -3251,13 +3286,27 @@ export const EcomBiDimension = {
   AdvertiserId: 'ADVERTISER_ID',
   AdvertiserName: 'ADVERTISER_NAME',
   AdvertiserTimezone: 'ADVERTISER_TIMEZONE',
+  CampaignBudgetMode: 'CAMPAIGN_BUDGET_MODE',
   CampaignId: 'CAMPAIGN_ID',
   CampaignName: 'CAMPAIGN_NAME',
+  CampaignObjectiveType: 'CAMPAIGN_OBJECTIVE_TYPE',
+  CampaignOperationStatus: 'CAMPAIGN_OPERATION_STATUS',
+  CampaignPrimaryStatus: 'CAMPAIGN_PRIMARY_STATUS',
+  CampaignProductSource: 'CAMPAIGN_PRODUCT_SOURCE',
+  CampaignSalesDestination: 'CAMPAIGN_SALES_DESTINATION',
+  CampaignType: 'CAMPAIGN_TYPE',
+  CreativeAssetType: 'CREATIVE_ASSET_TYPE',
   CreativeDeliveryStatus: 'CREATIVE_DELIVERY_STATUS',
+  CreativeReviewStatus: 'CREATIVE_REVIEW_STATUS',
   CreativeTitle: 'CREATIVE_TITLE',
+  CreativeType: 'CREATIVE_TYPE',
   Currency: 'CURRENCY',
   CurrentOptimizations: 'CURRENT_OPTIMIZATIONS',
   Date: 'DATE',
+  ProductBrandId: 'PRODUCT_BRAND_ID',
+  ProductBrandName: 'PRODUCT_BRAND_NAME',
+  ProductCategoryId: 'PRODUCT_CATEGORY_ID',
+  ProductCategoryName: 'PRODUCT_CATEGORY_NAME',
   ProductId: 'PRODUCT_ID',
   ProductName: 'PRODUCT_NAME',
   ProductStatus: 'PRODUCT_STATUS',
@@ -3268,6 +3317,7 @@ export const EcomBiDimension = {
   ShopRegion: 'SHOP_REGION',
   SkuId: 'SKU_ID',
   SkuName: 'SKU_NAME',
+  SkuStatus: 'SKU_STATUS',
   SourceCreativeId: 'SOURCE_CREATIVE_ID',
   SourceCreativeIdType: 'SOURCE_CREATIVE_ID_TYPE',
   StoreId: 'STORE_ID',
@@ -3275,17 +3325,55 @@ export const EcomBiDimension = {
 } as const;
 
 export type EcomBiDimension = typeof EcomBiDimension[keyof typeof EcomBiDimension];
+/** Expected BI dimension cardinality for grouping and filtering guidance. */
+export const EcomBiDimensionCardinality = {
+  High: 'HIGH',
+  Low: 'LOW',
+  Medium: 'MEDIUM'
+} as const;
+
+export type EcomBiDimensionCardinality = typeof EcomBiDimensionCardinality[keyof typeof EcomBiDimensionCardinality];
+/** Business entity described by a BI dimension. */
+export const EcomBiDimensionEntity = {
+  Advertiser: 'ADVERTISER',
+  Campaign: 'CAMPAIGN',
+  Creative: 'CREATIVE',
+  CustomerService: 'CUSTOMER_SERVICE',
+  Date: 'DATE',
+  Product: 'PRODUCT',
+  Shop: 'SHOP',
+  Sku: 'SKU',
+  Store: 'STORE'
+} as const;
+
+export type EcomBiDimensionEntity = typeof EcomBiDimensionEntity[keyof typeof EcomBiDimensionEntity];
 /** BI dimension metadata. */
 export interface EcomBiDimensionMetadata {
+  cardinality: EcomBiDimensionCardinality;
   description: Scalars['String']['output'];
+  entity: EcomBiDimensionEntity;
   filterOperators: Array<EcomBiFilterOperator>;
+  filterable: Scalars['Boolean']['output'];
+  groupable: Scalars['Boolean']['output'];
   id: EcomBiDimension;
   label: Scalars['String']['output'];
+  requiredDimensions: Array<EcomBiDimension>;
+  source: EcomBiDimensionSource;
   valueType: EcomBiValueType;
 }
 
+/** Where a BI dimension value is resolved from. */
+export const EcomBiDimensionSource = {
+  Attribute: 'ATTRIBUTE',
+  Derived: 'DERIVED',
+  Dimension: 'DIMENSION',
+  Fact: 'FACT'
+} as const;
+
+export type EcomBiDimensionSource = typeof EcomBiDimensionSource[keyof typeof EcomBiDimensionSource];
 /** Whether a BI output column is a dimension or metric. */
 export const EcomBiFieldRole = {
+  Attribute: 'ATTRIBUTE',
   Dimension: 'DIMENSION',
   Metric: 'METRIC'
 } as const;
@@ -3384,6 +3472,10 @@ export interface EcomBiOrderByInput {
 
 /** Warehouse-backed BI query. Dates are inclusive/exclusive YYYY-MM-DD report dates. */
 export interface EcomBiQueryInput {
+  /** Optional governed dynamic attributes to group by. Values must come from getEcommerceBiCatalog.attributes. */
+  attributeDimensions?: InputMaybe<Array<EcomBiAttributeRefInput>>;
+  /** Optional filters over governed dynamic attributes from getEcommerceBiCatalog.attributes. */
+  attributeFilters?: InputMaybe<Array<EcomBiAttributeFilterInput>>;
   /** Dataset to query. */
   datasetId: EcomBiDatasetId;
   /** Dimensions to group by. Defaults are declared by dataset metadata. */
@@ -3417,6 +3509,9 @@ export interface EcomBiQueryResult {
 
 /** BI query output column. */
 export interface EcomBiResultColumn {
+  attributeEntity?: Maybe<EcomBiDimensionEntity>;
+  attributeKey?: Maybe<Scalars['String']['output']>;
+  attributeNamespace?: Maybe<Scalars['String']['output']>;
   dimension?: Maybe<EcomBiDimension>;
   key: Scalars['String']['output'];
   label: Scalars['String']['output'];
@@ -3427,6 +3522,7 @@ export interface EcomBiResultColumn {
 
 /** Logical value type for BI fields. */
 export const EcomBiValueType = {
+  Boolean: 'BOOLEAN',
   Date: 'DATE',
   Decimal: 'DECIMAL',
   Integer: 'INTEGER',
@@ -3532,15 +3628,31 @@ export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageTyp
 export interface EcomOrder {
   /** Platform buyer user ID */
   buyerUserId?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds when the order changed to CANCELLED */
+  cancelTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the order must be collected by */
+  collectionDueTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the order changed to IN_TRANSIT */
+  collectionTime?: Maybe<Scalars['Int']['output']>;
   /** Unix seconds */
   createTime?: Maybe<Scalars['Int']['output']>;
   currency?: Maybe<Scalars['String']['output']>;
+  /** Unix seconds when the order must be delivered by */
+  deliveryDueTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds for the delivery option required delivery time */
+  deliveryOptionRequiredDeliveryTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the order changed to DELIVERED */
+  deliveryTime?: Maybe<Scalars['Int']['output']>;
   lineItems?: Maybe<Array<EcomOrderLineItem>>;
   orderId: Scalars['String']['output'];
   /** Unix seconds */
   paidTime?: Maybe<Scalars['Int']['output']>;
   paymentMethodName?: Maybe<Scalars['String']['output']>;
   recipientAddress?: Maybe<EcomRecipientAddress>;
+  /** Unix seconds when the seller shipped the order */
+  rtsTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the order must be shipped by */
+  shippingDueTime?: Maybe<Scalars['Int']['output']>;
   shippingProvider?: Maybe<Scalars['String']['output']>;
   /** Raw platform order status (e.g. AWAITING_SHIPMENT) */
   status?: Maybe<Scalars['String']['output']>;
@@ -3558,14 +3670,20 @@ export interface EcomOrderLineItem {
   /** Unique ID of this order line item */
   orderLineItemId?: Maybe<Scalars['String']['output']>;
   originalPrice?: Maybe<Scalars['String']['output']>;
+  packageId?: Maybe<Scalars['String']['output']>;
+  /** Raw platform package status for this line item */
+  packageStatus?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
   productName?: Maybe<Scalars['String']['output']>;
   quantity?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the seller shipped the line item */
+  rtsTime?: Maybe<Scalars['Int']['output']>;
   salePrice?: Maybe<Scalars['String']['output']>;
   sellerSku?: Maybe<Scalars['String']['output']>;
   skuId?: Maybe<Scalars['String']['output']>;
   skuImage?: Maybe<Scalars['String']['output']>;
   skuName?: Maybe<Scalars['String']['output']>;
+  trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
 /** Definitions for interpreting order-derived ecommerce sales statistics. */
@@ -4890,6 +5008,10 @@ export interface Mutation {
   promoteImageAsset: ImageAsset;
   /** Return the current user's active original LLM API key for desktop sync. Requires an active RivonClaw AI subscription. If the user has no active key yet, one is created. */
   provisionLlmApiKey: LlmApiKey;
+  /** Publish an official preset skill invalidation signal to connected desktop clients (admin only). */
+  publishPresetSkillsChanged: PresetSkillsChangedPayload;
+  /** Publish a ToolSpecs invalidation signal to connected desktop clients (admin only). */
+  publishToolSpecsChanged: ToolSpecsChangedPayload;
   /** Publish an update notification to all connected clients (admin only) */
   publishUpdate: Scalars['Boolean']['output'];
   /** Record an impression, dismissal, or action click for a server-driven announcement. */
@@ -5278,6 +5400,16 @@ export interface MutationPromoteImageAssetArgs {
 }
 
 
+export interface MutationPublishPresetSkillsChangedArgs {
+  reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface MutationPublishToolSpecsChangedArgs {
+  reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+
 export interface MutationPublishUpdateArgs {
   version: Scalars['String']['input'];
 }
@@ -5663,6 +5795,13 @@ export interface PresetSkillManifestItem {
   slug: Scalars['String']['output'];
   updatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   version?: Maybe<Scalars['String']['output']>;
+}
+
+/** Signal that official preset skills may have changed; clients should re-run preset skill sync. */
+export interface PresetSkillsChangedPayload {
+  publishedAt: Scalars['DateTimeISO']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['String']['output'];
 }
 
 /** Promote a temporary uploaded image into permanent object storage */
@@ -7235,8 +7374,12 @@ export interface Subscription {
   devicePresenceProbeRequested: AdminDevicePresenceProbeRequest;
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
   oauthComplete: OAuthCompletePayload;
+  /** Signals that official preset skills changed; clients should re-run preset skill sync. */
+  presetSkillsChanged: PresetSkillsChangedPayload;
   /** Fires when a shop is updated. Only receives updates for shops owned by the authenticated user. */
   shopUpdated: Shop;
+  /** Signals that ToolSpecs changed; clients should run ToolSpecsSync to fetch the latest authorized snapshot. */
+  toolSpecsChanged: ToolSpecsChangedPayload;
   updateAvailable: UpdatePayload;
 }
 
@@ -7942,6 +8085,16 @@ export interface ToolSpec {
   /** True when clients may expose persistResult for this tool */
   supportsPersistResult?: Maybe<Scalars['Boolean']['output']>;
   surfaces?: Maybe<Array<SystemSurface>>;
+}
+
+/** Signal that backend ToolSpecs may have changed; clients should re-query ToolSpecsSync. */
+export interface ToolSpecsChangedPayload {
+  changeType?: Maybe<Scalars['String']['output']>;
+  changedToolNames?: Maybe<Array<Scalars['String']['output']>>;
+  digest: Scalars['String']['output'];
+  publishedAt: Scalars['DateTimeISO']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  revision: Scalars['String']['output'];
 }
 
 /** One active shop SKU that cannot be safely resolved to canonical InventoryGood. */

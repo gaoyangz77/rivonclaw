@@ -56,13 +56,15 @@ interface OfficialPresetSkillManifest {
   skills: OfficialPresetSkillManifestItem[];
 }
 
-interface OfficialPresetSkillSyncResult {
+export interface OfficialPresetSkillSyncResult {
   installed: number;
   updated: number;
   current: number;
   skippedCustom: number;
   failed: number;
 }
+
+export type OfficialPresetSkillSyncMode = "safe" | "force";
 
 async function readInstalledSkills(): Promise<InstalledSkillSnapshot[]> {
   const skillsDir = getUserSkillsDir();
@@ -123,7 +125,9 @@ function normalizeOfficialPresetManifest(raw: unknown): OfficialPresetSkillManif
   };
 }
 
-async function fetchOfficialPresetManifest(ctx: ApiContext): Promise<OfficialPresetSkillManifest> {
+type OfficialPresetSkillSyncContext = Pick<ApiContext, "proxyRouterPort">;
+
+async function fetchOfficialPresetManifest(ctx: OfficialPresetSkillSyncContext): Promise<OfficialPresetSkillManifest> {
   const manifestUrl = routeFirstPartyUrl("https://www.rivonclaw.com/skills/manifest.json").toString();
   const response = await proxiedFetch(ctx.proxyRouterPort, manifestUrl, {
     headers: { "Cache-Control": "no-cache" },
@@ -137,7 +141,7 @@ async function fetchOfficialPresetManifest(ctx: ApiContext): Promise<OfficialPre
 }
 
 async function installOfficialPresetZip(
-  ctx: ApiContext,
+  ctx: OfficialPresetSkillSyncContext,
   item: OfficialPresetSkillManifestItem,
 ): Promise<void> {
   const localSlug = item.localSlug || item.slug;
@@ -308,11 +312,10 @@ const writeTemplate: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
   }
 };
 
-// ── POST /api/skills/sync-official-presets ──
-
-const syncOfficialPresets: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const body = (await parseBody(req).catch(() => ({}))) as { mode?: "safe" | "force" };
-  const mode = body.mode === "force" ? "force" : "safe";
+export async function syncOfficialPresetSkills(
+  ctx: OfficialPresetSkillSyncContext,
+  mode: OfficialPresetSkillSyncMode = "safe",
+): Promise<OfficialPresetSkillSyncResult> {
   const result: OfficialPresetSkillSyncResult = {
     installed: 0,
     updated: 0,
@@ -359,9 +362,36 @@ const syncOfficialPresets: EndpointHandler = async (req, res, _url, _params, ctx
     if (wroteAny) {
       invalidateSkillsSnapshot();
     }
+    return result;
+  } catch (err: unknown) {
+    throw Object.assign(new Error(formatError(err)), { result });
+  }
+};
+
+// ── POST /api/skills/sync-official-presets ──
+
+const syncOfficialPresets: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  const body = (await parseBody(req).catch(() => ({}))) as { mode?: OfficialPresetSkillSyncMode };
+  const mode = body.mode === "force" ? "force" : "safe";
+
+  try {
+    const result = await syncOfficialPresetSkills(ctx, mode);
     sendJson(res, 200, { ok: result.failed === 0, result });
   } catch (err: unknown) {
-    sendJson(res, 200, { ok: false, error: formatError(err), result });
+    const result = err && typeof err === "object" && "result" in err
+      ? (err as { result?: OfficialPresetSkillSyncResult }).result
+      : undefined;
+    sendJson(res, 200, {
+      ok: false,
+      error: formatError(err),
+      result: result ?? {
+        installed: 0,
+        updated: 0,
+        current: 0,
+        skippedCustom: 0,
+        failed: 0,
+      },
+    });
   }
 };
 
