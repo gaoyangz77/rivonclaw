@@ -39,6 +39,7 @@ function tabLabel(session: SessionTabInfo, t: (key: string) => string): string {
   const channel = sessionChannel(session);
   if (session.customTitle) return session.customTitle;
   if (session.panelTitle) return session.panelTitle;
+  if (session.recipientAlias) return session.recipientAlias;
   if (session.derivedTitle) return session.derivedTitle;
   if (session.isLocal) return t("chat.newSessionTitle");
   if (session.displayName) {
