@@ -1,15 +1,5 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { TOOL_SPECS_SYNC_QUERY } from "../cloud/init-queries.js";
-
-type ToolSpecLike = {
-  name?: unknown;
-};
-
-type AuthSessionLike = {
-  getAccessToken(): string | null | undefined;
-  graphqlFetch<T = unknown>(query: string): Promise<T>;
-};
 
 type LoggerLike = {
   info(message: string): void;
@@ -19,7 +9,6 @@ type LoggerLike = {
 export interface StageMerchantExtensionsParams {
   sourceMerchantExtensionsDir: string;
   stateDir: string;
-  authSession?: AuthSessionLike;
   toolNames?: readonly string[];
   logger?: LoggerLike;
 }
@@ -42,19 +31,19 @@ export async function stageMerchantExtensionsForCloudTools(
     return staticMerchantExtensionPaths;
   }
 
-  const toolNames = params.toolNames
-    ? normalizeToolNames(params.toolNames)
-    : await fetchCloudToolNames(params.authSession, params.logger);
+  const toolNames = normalizeToolNames(params.toolNames ?? []);
 
   if (toolNames.length === 0) {
-    if (params.toolNames || params.authSession?.getAccessToken()) {
+    if (params.toolNames) {
       params.logger?.warn("Cloud tool manifest staging skipped: no backend tool names available");
     }
     return [sourceCloudToolsDir, ...staticMerchantExtensionPaths];
   }
 
-  const stagedCloudToolsDir = join(params.stateDir, "runtime-extensions", "rivonclaw-cloud-tools");
+  const runtimeExtensionsDir = join(params.stateDir, "runtime-extensions");
+  const stagedCloudToolsDir = join(runtimeExtensionsDir, "rivonclaw-cloud-tools");
   try {
+    cleanupOldCloudToolsStages(runtimeExtensionsDir, stagedCloudToolsDir);
     stageCloudToolsPlugin({
       sourceCloudToolsDir,
       stagedCloudToolsDir,
@@ -65,23 +54,6 @@ export async function stageMerchantExtensionsForCloudTools(
   } catch (err) {
     params.logger?.warn("Failed to stage rivonclaw-cloud-tools manifest; falling back to bundled manifest", err);
     return [sourceCloudToolsDir, ...staticMerchantExtensionPaths];
-  }
-}
-
-async function fetchCloudToolNames(
-  authSession: AuthSessionLike | undefined,
-  logger: LoggerLike | undefined,
-): Promise<string[]> {
-  if (!authSession?.getAccessToken()) {
-    return [];
-  }
-
-  try {
-    const data = await authSession.graphqlFetch<{ toolSpecs?: ToolSpecLike[] }>(TOOL_SPECS_SYNC_QUERY);
-    return normalizeToolNames((data.toolSpecs ?? []).map((tool) => tool.name));
-  } catch (err) {
-    logger?.warn("Failed to fetch backend tool specs for cloud-tools manifest staging", err);
-    return [];
   }
 }
 
@@ -131,6 +103,17 @@ function normalizeToolNames(names: readonly unknown[]): string[] {
         .filter(Boolean),
     ),
   ).sort();
+}
+
+function cleanupOldCloudToolsStages(runtimeExtensionsDir: string, keepDir: string): void {
+  if (!existsSync(runtimeExtensionsDir)) return;
+  for (const entry of readdirSync(runtimeExtensionsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name === "rivonclaw-cloud-tools" || !entry.name.startsWith("rivonclaw-cloud-tools-")) continue;
+    const fullPath = join(runtimeExtensionsDir, entry.name);
+    if (fullPath === keepDir) continue;
+    rmSync(fullPath, { force: true, recursive: true });
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

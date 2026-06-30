@@ -6,6 +6,7 @@ import { rootStore } from "../../app/store/desktop-store.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
 import { toMstSnapshot } from "../../providers/provider-key-utils.js";
 import { __resetCloudGraphqlProxyForTests, registerCloudHandlers } from "../api.js";
+import { TOOL_SPECS_SYNC_QUERY } from "../init-queries.js";
 
 // ---------------------------------------------------------------------------
 // Test registry
@@ -838,7 +839,7 @@ describe("cloud-graphql handler", () => {
   });
 
   it("invalidates cached toolSpecs and refreshes auth state after module enrollment changes", async () => {
-    const toolSpecsQuery = "query ToolSpecsSync { toolSpecs { id name displayName category } }";
+    const toolSpecsQuery = TOOL_SPECS_SYNC_QUERY;
     const enrollMutation =
       "mutation EnrollModule($moduleId: ModuleId!) { enrollModule(moduleId: $moduleId) { __typename userId email name createdAt enrolledModules entitlementKeys defaultRunProfileId } }";
     const onAuthChange = vi.fn().mockResolvedValue(undefined);
@@ -887,20 +888,24 @@ describe("cloud-graphql handler", () => {
       pathname,
       ctx,
       { query: toolSpecsQuery },
-      { "x-request-source": "extension" },
     );
     const cached = await dispatch(
       "POST",
       pathname,
       ctx,
       { query: toolSpecsQuery },
-      { "x-request-source": "extension" },
     );
     await dispatch("POST", pathname, ctx, {
       query: enrollMutation,
       variables: { moduleId: "GLOBAL_ECOMMERCE_SELLER" },
     });
     const refreshed = await dispatch(
+      "POST",
+      pathname,
+      ctx,
+      { query: toolSpecsQuery },
+    );
+    const extensionAttempt = await dispatch(
       "POST",
       pathname,
       ctx,
@@ -916,6 +921,9 @@ describe("cloud-graphql handler", () => {
     });
     expect(refreshed.res._body).toEqual({
       data: { toolSpecs: [expect.objectContaining({ id: "new-tool" })] },
+    });
+    expect(extensionAttempt.res._body).toEqual({
+      errors: [{ message: "ToolSpecsSync is desktop-owned; extensions receive ToolSpecs from Desktop via gateway RPC" }],
     });
     expect(graphqlFetch.mock.calls.filter(([query]) => query === toolSpecsQuery)).toHaveLength(2);
     expect(onAuthChange).toHaveBeenCalledTimes(1);

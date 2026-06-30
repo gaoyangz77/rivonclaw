@@ -1,5 +1,4 @@
 import {
-  TOOL_SPECS_SYNC_QUERY,
   INIT_SURFACES_QUERY,
   INIT_RUN_PROFILES_QUERY,
   INIT_SHOPS_QUERY,
@@ -10,6 +9,7 @@ import {
   INIT_WAREHOUSES_QUERY,
   INIT_INVENTORY_GOODS_QUERY,
 } from "../cloud/init-queries.js";
+import { syncDesktopToolSpecs } from "../cloud/tool-specs-sync.js";
 
 const ECOMMERCE_MODULE_ID = "GLOBAL_ECOMMERCE_SELLER";
 
@@ -25,7 +25,7 @@ interface BootstrapRootStore {
 interface BootstrapAuthSession {
   getAccessToken(): string | null | undefined;
   validate(): Promise<{ enrolledModules?: string[] } | null>;
-  graphqlFetch(query: string): Promise<Record<string, unknown>>;
+  graphqlFetch<T = Record<string, unknown>>(query: string): Promise<T>;
 }
 
 function wait(ms: number): Promise<void> {
@@ -74,7 +74,6 @@ export async function bootstrapDesktopAuthState(
     }
 
     const queries = [
-      TOOL_SPECS_SYNC_QUERY,
       INIT_SURFACES_QUERY,
       INIT_RUN_PROFILES_QUERY,
     ];
@@ -97,9 +96,14 @@ export async function bootstrapDesktopAuthState(
 
     rootStore.ingestGraphQLResponse({ me });
 
-    const results = await Promise.allSettled(
-      queries.map((query) => fetchBootstrapQuery(authSession, query)),
-    );
+    const results = await Promise.allSettled([
+      syncDesktopToolSpecs({
+        authSession,
+        ingest: false,
+        source: "auth-bootstrap",
+      }).then((snapshot) => snapshot.data),
+      ...queries.map((query) => fetchBootstrapQuery(authSession, query)),
+    ]);
 
     rootStore.clearCloudDataExceptUser({ preserveShops: hasEcommerceModule });
     for (const result of results) {

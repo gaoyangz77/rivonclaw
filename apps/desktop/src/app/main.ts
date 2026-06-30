@@ -58,6 +58,7 @@ import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
 import { stageMerchantExtensionsForCloudTools } from "../gateway/cloud-tools-extension-stage.js";
+import { reloadCloudToolsFromSpecs } from "../gateway/cloud-tools-runtime.js";
 import { configureAgentToolingReadiness, ensureAgentToolingReady, resetAgentToolingReadiness } from "../gateway/agent-tooling-readiness.js";
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
@@ -84,8 +85,14 @@ import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
 import { detectAndApplyFirstPartyDomainRoute } from "../infra/network/first-party-domain-route.js";
-import { invalidateToolSpecsCache } from "../cloud/api.js";
+import {
+  computeToolSpecsDigest,
+  computeToolNameDigest,
+  invalidateToolSpecsCache,
+  syncDesktopToolSpecs,
+} from "../cloud/tool-specs-sync.js";
 import { refreshShopLifecycle } from "./shop-lifecycle.js";
+import { syncOfficialPresetSkills } from "../skills/api.js";
 
 const log = createLogger("desktop");
 
@@ -240,22 +247,22 @@ app.whenReady().then(async () => {
     await ensureAgentToolingReady();
   }
 
+  function getEntitledToolSpecsSnapshot(): Array<Record<string, unknown>> {
+    return JSON.parse(JSON.stringify(rootStore.entitledTools)) as Array<Record<string, unknown>>;
+  }
+
   function getEntitledToolSpecDigest(): string {
-    return JSON.stringify(
-      rootStore.entitledTools.map((tool) => ({
-        id: tool.id,
-        name: tool.name,
-        displayName: tool.displayName,
-        surfaces: [...tool.surfaces],
-        runProfiles: [...tool.runProfiles],
-      })),
-    );
+    return computeToolSpecsDigest(getEntitledToolSpecsSnapshot());
+  }
+
+  function getEntitledToolNameDigest(): string {
+    return computeToolNameDigest(getEntitledToolSpecsSnapshot());
   }
 
   function getAgentToolingDigest(): string {
     return JSON.stringify({
       userId: rootStore.currentUser?.userId ?? null,
-      toolSpecs: JSON.parse(getEntitledToolSpecDigest()),
+      toolNameDigest: getEntitledToolNameDigest(),
     });
   }
 
@@ -585,7 +592,7 @@ app.whenReady().then(async () => {
   let merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
     sourceMerchantExtensionsDir: merchantExtensionsDir,
     stateDir,
-    authSession,
+    toolNames: rootStore.entitledTools.map((tool) => tool.name),
     logger: log,
   });
 
@@ -659,6 +666,100 @@ app.whenReady().then(async () => {
         log.warn("Failed to sync Telegram debug proxy channel:", err);
       });
   }
+
+  async function pushCurrentCloudToolsToGateway(rpc = openClawConnector.ensureRpcReady()): Promise<void> {
+    if (!authSession.getAccessToken()) return;
+    const toolSpecs = getEntitledToolSpecsSnapshot();
+    if (toolSpecs.length === 0) return;
+    const digest = computeToolSpecsDigest(toolSpecs);
+    await reloadCloudToolsFromSpecs({
+      rpc,
+      toolSpecs,
+      revision: digest,
+      digest,
+    });
+  }
+
+  let toolSpecsRefreshQueue: Promise<void> = Promise.resolve();
+  let presetSkillsRefreshQueue: Promise<void> = Promise.resolve();
+
+  async function refreshToolSpecsFromBackend(reason: string): Promise<void> {
+    if (!authSession.getAccessToken()) return;
+
+    const previousToolNameDigest = getEntitledToolNameDigest();
+    invalidateToolSpecsCache();
+    const snapshot = await syncDesktopToolSpecs({
+      authSession,
+      rootStore,
+      force: true,
+      source: reason,
+    });
+    const nextToolNameDigest = snapshot.toolNameDigest;
+    const toolNamesChanged = previousToolNameDigest !== nextToolNameDigest;
+
+    if (!toolNamesChanged) {
+      if (openClawConnector.isReady) {
+        await pushCurrentCloudToolsToGateway();
+        await reinitializeToolCapabilityFromCatalog();
+      }
+      return;
+    }
+
+    resetAgentToolingReadiness(reason);
+    merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
+      sourceMerchantExtensionsDir: merchantExtensionsDir,
+      stateDir,
+      toolNames: snapshot.data.toolSpecs.map((tool) => tool.name),
+      logger: log,
+    });
+
+    if (!openClawConnector.isReady) return;
+
+    writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
+    await openClawConnector.applyConfigMutation(() => {}, "restart_process");
+    log.info(`Gateway restarted after ToolSpecs refresh (${reason})`);
+  }
+
+  function queueToolSpecsRefresh(reason: string): void {
+    toolSpecsRefreshQueue = toolSpecsRefreshQueue
+      .then(() => refreshToolSpecsFromBackend(reason))
+      .catch((err: unknown) => {
+        log.warn(`Failed to refresh ToolSpecs (${reason})`, err);
+      });
+  }
+
+  async function refreshPresetSkillsFromManifest(reason: string): Promise<void> {
+    if (!authSession.getAccessToken()) return;
+    const result = await syncOfficialPresetSkills({ proxyRouterPort: actualProxyRouterPort }, "safe");
+    const message = `Synced official preset skills (${reason}): installed=${result.installed} updated=${result.updated} current=${result.current} skippedCustom=${result.skippedCustom} failed=${result.failed}`;
+    if (result.failed > 0) {
+      log.warn(message);
+    } else {
+      log.info(message);
+    }
+  }
+
+  function queuePresetSkillsRefresh(reason: string): void {
+    presetSkillsRefreshQueue = presetSkillsRefreshQueue
+      .then(() => refreshPresetSkillsFromManifest(reason))
+      .catch((err: unknown) => {
+        log.warn(`Failed to refresh official preset skills (${reason})`, err);
+      });
+  }
+
+  backendSubscription.subscribeToToolSpecsChanged((payload) => {
+    log.info(
+      `Received ToolSpecs changed signal revision=${payload.revision} digest=${payload.digest?.slice(0, 12) ?? "unknown"} reason=${payload.reason ?? "unknown"}`,
+    );
+    queueToolSpecsRefresh(`subscription:${payload.reason ?? payload.revision}`);
+  });
+
+  backendSubscription.subscribeToPresetSkillsChanged((payload) => {
+    log.info(
+      `Received preset skills changed signal revision=${payload.revision} reason=${payload.reason ?? "unknown"}`,
+    );
+    queuePresetSkillsRefresh(`subscription:${payload.reason ?? payload.revision}`);
+  });
 
   async function applyAuthLifecycleSideEffects(action: string): Promise<void> {
     const authReady = rootStore.authBootstrap.status === "ready";
@@ -1170,18 +1271,18 @@ app.whenReady().then(async () => {
     onAuthChange: (action = "auth-change") => {
       return (async () => {
         const transitionId = rootStore.beginAuthLifecycle(action);
-        const previousToolSpecDigest = getEntitledToolSpecDigest();
+        const previousToolNameDigest = getEntitledToolNameDigest();
         const previousAgentToolingDigest = getAgentToolingDigest();
         try {
           invalidateToolSpecsCache();
           resetAgentToolingReadiness(action);
           stopCsBridge();
           await bootstrapDesktopAuthState(authSession, rootStore);
-          const nextToolSpecDigest = getEntitledToolSpecDigest();
+          const nextToolNameDigest = getEntitledToolNameDigest();
           const nextAgentToolingDigest = getAgentToolingDigest();
-          const toolSpecsChanged = previousToolSpecDigest !== nextToolSpecDigest;
+          const toolNamesChanged = previousToolNameDigest !== nextToolNameDigest;
           const agentToolingChanged = previousAgentToolingDigest !== nextAgentToolingDigest;
-          if (toolSpecsChanged) {
+          if (toolNamesChanged) {
             merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
               sourceMerchantExtensionsDir: merchantExtensionsDir,
               stateDir,
@@ -1199,6 +1300,9 @@ app.whenReady().then(async () => {
             }
           } else {
             try {
+              if (openClawConnector.isReady) {
+                await pushCurrentCloudToolsToGateway();
+              }
               await reinitializeToolCapabilityFromCatalog();
               log.info("ToolCapability auth change: re-initialized");
             } catch (e) {
@@ -1681,6 +1785,11 @@ app.whenReady().then(async () => {
     // 3. Initialize gateway-dependent Desktop state. Agent-related business
     // services go through the shared agent tooling readiness gate.
     void (async () => {
+      try {
+        await pushCurrentCloudToolsToGateway(rpc);
+      } catch (err) {
+        log.warn("Failed to push ToolSpecs to cloud-tools plugin after gateway connection:", err);
+      }
       await runGatewayStartupCoordinator({
         rpc,
         waitForCloudTools: Boolean(authSession.getAccessToken()),
