@@ -108,6 +108,26 @@ function normalizeAffiliateMlModelScope(value: unknown, fallback: AffiliateMlIns
   return String(value ?? fallback).toLowerCase() === "shop" ? "shop" : "user";
 }
 
+function cleanRecipientLookupPart(value: string): string {
+  return value.trim();
+}
+
+function recipientAliasFromAccount(
+  account: {
+    channelId?: string;
+    accountId?: string;
+    recipients?: { labels?: Record<string, string> } | null;
+  } | null | undefined,
+  channelId: string,
+  accountId: string,
+  recipientId: string,
+): string | null {
+  if (account?.channelId !== undefined && cleanRecipientLookupPart(account.channelId) !== channelId) return null;
+  if (cleanRecipientLookupPart(account?.accountId ?? "") !== accountId) return null;
+  const label = account?.recipients?.labels?.[recipientId]?.trim();
+  return label || null;
+}
+
 /**
  * Panel-specific extension of RootStoreModel with CRUD mutation actions,
  * auth/session management, module enrollment, and entity sync.
@@ -152,6 +172,25 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   },
   affiliateMlInsightRowsForSubject(subjectKey: string) {
     return self.affiliateMlInsightRows.filter((row) => row.subjectKey === subjectKey);
+  },
+  channelRecipientAlias(channelIdRaw: string, accountIdRaw: string, recipientIdRaw: string): string | null {
+    const channelId = cleanRecipientLookupPart(channelIdRaw);
+    const accountId = cleanRecipientLookupPart(accountIdRaw);
+    const recipientId = cleanRecipientLookupPart(recipientIdRaw);
+    if (!channelId || !accountId || !recipientId) return null;
+
+    for (const account of self.channelAccounts) {
+      const alias = recipientAliasFromAccount(account, channelId, accountId, recipientId);
+      if (alias) return alias;
+    }
+
+    const snapshotAccounts = self.channelManager.statusSnapshot?.channelAccounts?.[channelId] ?? [];
+    for (const account of snapshotAccounts) {
+      const alias = recipientAliasFromAccount({ ...account, channelId }, channelId, accountId, recipientId);
+      if (alias) return alias;
+    }
+
+    return null;
   },
 })).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
@@ -656,6 +695,7 @@ interface PanelEntityOverrides {
   readonly affiliateMlInsightsLoadedAt: number | null;
   affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope): Instance<typeof AffiliateMlInsightRowModel> | null;
   affiliateMlInsightRowsForSubject(subjectKey: string): Instance<typeof AffiliateMlInsightRowModel>[];
+  channelRecipientAlias(channelId: string, accountId: string, recipientId: string): string | null;
   fetchAffiliateMlInsights(input?: { shopIds?: string[] }): Promise<void>;
   startBillingSubscription(input: {
     planId: string;
