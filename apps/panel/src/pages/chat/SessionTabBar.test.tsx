@@ -145,6 +145,60 @@ describe("SessionTabBar", () => {
     expect(screen.getByText("chat.newSessionTitle")).toBeTruthy();
   });
 
+  it("infers Feishu channel tabs from plugin-created session keys", () => {
+    render(
+      <SessionTabBar
+        sessions={[
+          { key: "agent:main:main" },
+          { key: "agent:main:feishu:default:direct:ou_1326e2b8ae08301a7b523b715762f5ea" },
+        ]}
+        activeSessionKey="agent:main:feishu:default:direct:ou_1326e2b8ae08301a7b523b715762f5ea"
+        unreadKeys={new Set()}
+        onSwitchSession={() => {}}
+        onNewChat={() => {}}
+        onArchiveSession={() => {}}
+        onRenameSession={() => {}}
+        onRestoreSession={() => {}}
+        onReorderSession={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("chat.channelFeishu")).toBeTruthy();
+    expect(screen.getByText("1326e2b8...")).toBeTruthy();
+    expect(screen.queryByText(/^ou_/)).toBeNull();
+  });
+
+  it("compacts raw Feishu display names without overriding real names", () => {
+    render(
+      <SessionTabBar
+        sessions={[
+          {
+            key: "agent:main:feishu:default:direct:ou_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            channel: "feishu",
+            displayName: "ou_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          },
+          {
+            key: "agent:main:feishu:default:direct:ou_cccccccccccccccccccccccccccccccc",
+            channel: "feishu",
+            displayName: "张三",
+          },
+        ]}
+        activeSessionKey="agent:main:feishu:default:direct:ou_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        unreadKeys={new Set()}
+        onSwitchSession={() => {}}
+        onNewChat={() => {}}
+        onArchiveSession={() => {}}
+        onRenameSession={() => {}}
+        onRestoreSession={() => {}}
+        onReorderSession={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("bbbbbbbb...")).toBeTruthy();
+    expect(screen.getByText("张三")).toBeTruthy();
+    expect(screen.queryByText(/^ou_b/)).toBeNull();
+  });
+
   it("keeps row archive and inline rename actions working in the sidebar", () => {
     const onArchiveSession = vi.fn();
     const onRenameSession = vi.fn();
