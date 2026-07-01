@@ -86,6 +86,10 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
       });
   });
 
+  backendSubscription.subscribeToAffiliateOutreachAccountConnected((payload) => {
+    broadcastEvent("affiliate-outreach-account-connected", payload);
+  });
+
   backendSubscription.subscribeToClientLogUploadRequests(deviceId, (request) => {
     if (inFlightLogUploadRequests.has(request.requestId)) return;
     inFlightLogUploadRequests.add(request.requestId);

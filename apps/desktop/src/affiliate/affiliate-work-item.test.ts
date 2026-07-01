@@ -33,6 +33,43 @@ import { AffiliateSession, AffiliateTriggerKind } from "./affiliate-session.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 
+describe("affiliate session identity", () => {
+  it("uses creator relationship id as the long-lived affiliate session key when available", () => {
+    expect(
+      AffiliateSession.buildScopeKey("tiktok", {
+        shopId: "shop-1",
+        platformShopId: "platform-shop-1",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conv-1",
+        conversationId: "conv-1",
+        creatorRelationshipId: "rel-1",
+      }),
+    ).toBe("agent:main:affiliate:TIKTOK_SHOP:rel-1");
+  });
+
+  it("keeps legacy affiliate conversation session keys when relationship id is unavailable", () => {
+    expect(
+      AffiliateSession.buildScopeKey("tiktok", {
+        shopId: "shop-1",
+        platformShopId: "platform-shop-1",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conv-1",
+        conversationId: "conv-1",
+      }),
+    ).toBe("agent:main:affiliate:tiktok:conv-1");
+  });
+});
+
+async function waitForCondition(predicate: () => boolean, timeoutMs = 500): Promise<void> {
+  const startedAt = Date.now();
+  while (!predicate()) {
+    if (Date.now() - startedAt > timeoutMs) {
+      throw new Error("Timed out waiting for condition");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
 function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = {}): GQL.AffiliateWorkItem {
   const collaboration = {
     id: "collab-001",
@@ -264,6 +301,285 @@ describe("affiliate work item dispatch", () => {
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
+  it("auto-forwards creator-outreach assistant text through affiliate delivery bridge", async () => {
+    const graphqlFetch = vi.fn().mockImplementation(async (query: string) => {
+      if (query.includes("DeliverAffiliateCreatorText")) {
+        return {
+          deliverAffiliateCreatorText: {
+            id: "delivery-001",
+            status: "SENT",
+            preferredChannel: "WHATSAPP",
+            actualChannel: "WHATSAPP",
+          },
+        };
+      }
+      throw new Error("delta unavailable");
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conversation-001",
+        conversationId: "conversation-001",
+        creatorRelationshipId: "relationship-001",
+      },
+    );
+
+    const result = await session.handleCreatorMessage({
+      shopId: "platform-shop-001",
+      conversationId: "conversation-001",
+      messageId: "message-001",
+      messageType: "TEXT",
+      senderRole: "CREATOR",
+      imUserId: "creator-im-001",
+      content: JSON.stringify({ content: "Can we talk on WhatsApp?" }),
+      createTime: 1780000000,
+    } as any);
+    expect(result.runMode).toBe("CREATOR_OUTREACH");
+    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("CREATOR_OUTREACH");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("WhatsApp and Outlook email are direct affiliate outreach channels");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("bridge delivers the final assistant text");
+    expect(agentCall?.[1]?.message).toContain("direct-channel routing");
+    expect(agentCall?.[1]?.message).toContain("affiliate_set_creator_email");
+    expect(agentCall?.[1]?.message).not.toContain("WhatsApp-first");
+
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "assistant",
+      data: { text: "Sure, I will follow up with the details here." },
+    });
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "lifecycle",
+      data: { phase: "end" },
+    });
+
+    await waitForCondition(() =>
+      graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
+    );
+    const [, variables] = graphqlFetch.mock.calls.find(([query]) =>
+      String(query).includes("DeliverAffiliateCreatorText"),
+    )!;
+    expect(variables).toEqual({
+      input: expect.objectContaining({
+        shopId: "shop-001",
+        creatorRelationshipId: "relationship-001",
+        text: "Sure, I will follow up with the details here.",
+        runId: "run-affiliate-001",
+        sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
+        source: "AGENT_AUTO_FORWARD",
+      }),
+    });
+  });
+
+  it("dispatches relationship-scoped WhatsApp creator signals through the delivery bridge", async () => {
+    const graphqlFetch = vi.fn().mockImplementation(async (query: string) => {
+      if (query.includes("DeliverAffiliateCreatorText")) {
+        return {
+          deliverAffiliateCreatorText: {
+            id: "delivery-whatsapp-001",
+            status: "SENT",
+            preferredChannel: "WHATSAPP",
+            actualChannel: "WHATSAPP",
+          },
+        };
+      }
+      throw new Error("workspace unavailable");
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "relationship-001",
+        creatorRelationshipId: "relationship-001",
+      },
+    );
+
+    const result = await session.handleConversationSignal({
+      type: GQL.AffiliateConversationSignalType.AffiliateConversationMessageObserved,
+      source: GQL.AffiliateConversationSignalSource.Webhook,
+      workSignal: true,
+      shopId: "shop-001",
+      platformShopId: "platform-shop-001",
+      creatorRelationshipId: "relationship-001",
+      messageId: "wamid-1",
+      messageType: "conversation",
+      channel: "WHATSAPP",
+      messageDirection: GQL.AffiliateConversationMessageDirection.Creator,
+      eventTime: "2026-07-01T12:00:00.000Z",
+    } as GQL.AffiliateConversationSignal);
+    expect(result.runMode).toBe("CREATOR_OUTREACH");
+
+    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("WhatsApp and Outlook email are direct affiliate outreach channels");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_get_creator_contact_state");
+    expect(agentCall?.[1]?.message).toContain("Affiliate Creator Direct-Channel Message");
+    expect(agentCall?.[1]?.message).toContain("Creator Relationship ID: relationship-001");
+
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "assistant",
+      data: { text: "Thanks, I will send the next steps here." },
+    });
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "lifecycle",
+      data: { phase: "end" },
+    });
+
+    await waitForCondition(() =>
+      graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
+    );
+    const [, variables] = graphqlFetch.mock.calls.find(([query]) =>
+      String(query).includes("DeliverAffiliateCreatorText"),
+    )!;
+    expect(variables).toEqual({
+      input: expect.objectContaining({
+        creatorRelationshipId: "relationship-001",
+        text: "Thanks, I will send the next steps here.",
+        sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
+        preferredChannel: "WHATSAPP",
+      }),
+    });
+  });
+
+  it("preserves email as preferred channel for relationship-scoped Outlook creator signals", async () => {
+    const graphqlFetch = vi.fn().mockImplementation(async (query: string) => {
+      if (query.includes("DeliverAffiliateCreatorText")) {
+        return {
+          deliverAffiliateCreatorText: {
+            id: "delivery-email-001",
+            status: "SENT",
+            preferredChannel: "EMAIL",
+            actualChannel: "EMAIL",
+          },
+        };
+      }
+      throw new Error("workspace unavailable");
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "relationship-001",
+        creatorRelationshipId: "relationship-001",
+      },
+    );
+
+    const result = await session.handleConversationSignal({
+      type: GQL.AffiliateConversationSignalType.AffiliateConversationMessageObserved,
+      source: GQL.AffiliateConversationSignalSource.Webhook,
+      workSignal: true,
+      shopId: "shop-001",
+      platformShopId: "platform-shop-001",
+      creatorRelationshipId: "relationship-001",
+      messageId: "graph-message-1",
+      messageType: "email",
+      channel: "EMAIL",
+      messageDirection: GQL.AffiliateConversationMessageDirection.Creator,
+      eventTime: "2026-07-01T12:05:00.000Z",
+    } as GQL.AffiliateConversationSignal);
+
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "assistant",
+      data: { text: "Thanks, I will reply with the agreement details by email." },
+    });
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "lifecycle",
+      data: { phase: "end" },
+    });
+
+    await waitForCondition(() =>
+      graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
+    );
+    const [, variables] = graphqlFetch.mock.calls.find(([query]) =>
+      String(query).includes("DeliverAffiliateCreatorText"),
+    )!;
+    expect(variables).toEqual({
+      input: expect.objectContaining({
+        creatorRelationshipId: "relationship-001",
+        text: "Thanks, I will reply with the agreement details by email.",
+        sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
+        preferredChannel: "EMAIL",
+      }),
+    });
+  });
+
+  it("does not auto-forward creator-outreach text without a creator relationship id", async () => {
+    const graphqlFetch = vi.fn().mockRejectedValue(new Error("delta unavailable"));
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conversation-001",
+        conversationId: "conversation-001",
+      },
+    );
+
+    const result = await session.handleCreatorMessage({
+      shopId: "platform-shop-001",
+      conversationId: "conversation-001",
+      messageId: "message-001",
+      messageType: "TEXT",
+      senderRole: "CREATOR",
+      imUserId: "creator-im-001",
+      content: JSON.stringify({ content: "Hello" }),
+      createTime: 1780000000,
+    } as any);
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "assistant",
+      data: { text: "Hello back." },
+    });
+    session.handleAgentEvent({
+      runId: result.runId,
+      stream: "lifecycle",
+      data: { phase: "end" },
+    });
+    await Promise.resolve();
+
+    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText"))).toBe(false);
+  });
+
   it("resolves expected-sales prediction cache ids before dispatching affiliate work", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       affiliateExpectedSalesPredictions: {
@@ -340,7 +656,8 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    await session.handleWorkItem(workItem);
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runMode).toBe("OPERATOR_REASONING");
 
     expect(graphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("affiliateExpectedSalesPredictions"),
@@ -352,8 +669,66 @@ describe("affiliate work item dispatch", () => {
       }),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("assistant output is internal/operator-facing");
     expect(agentCall?.[1]?.message).toContain("prediction-cache-001");
     expect(agentCall?.[1]?.message).toContain("predictionCacheIds");
+  });
+
+  it("does not auto-forward operator-reasoning assistant text even with a creator relationship id", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      affiliateExpectedSalesPredictions: {
+        status: GQL.AffiliateExpectedSalesPredictionStatus.Ok,
+        requestId: "prediction-request-operator-001",
+        modelTag: "affiliate-expected-test",
+        modelType: "ridge",
+        trainedAt: "2026-05-11T00:00:00.000Z",
+        featureVersion: "v1",
+        predictions: [],
+      },
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const workItem = createCreatorReplyWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conversation-001",
+        conversationId: "conversation-001",
+        creatorRelationshipId: "relationship-operator-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    expect(result).toEqual({
+      runId: "run-affiliate-001",
+      runMode: "OPERATOR_REASONING",
+    });
+
+    expect(session.handleAgentEvent({
+      runId: result.runId,
+      stream: "assistant",
+      data: { text: "Internal operator summary that must never be sent." },
+    })).toBe(false);
+    expect(session.handleAgentEvent({
+      runId: result.runId,
+      stream: "lifecycle",
+      data: { phase: "end" },
+    })).toBe(false);
+    await Promise.resolve();
+
+    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText"))).toBe(false);
   });
 
   it("reuses collaboration prediction snapshot cache ids for deterministic sample review", async () => {

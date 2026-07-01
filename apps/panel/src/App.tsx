@@ -16,6 +16,7 @@ import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
 import { getClient } from "./api/apollo-client.js";
 import { ACTIVE_ANNOUNCEMENTS_QUERY, RECORD_ANNOUNCEMENT_EVENT_MUTATION } from "./api/announcement-queries.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
+import { normalizeLanguageCode } from "./i18n/languages.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -38,6 +39,16 @@ export const App = observer(function App() {
   useEffect(() => {
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
+
+  useEffect(() => {
+    if (!runtimeStatus.snapshotReceived) return;
+    const persistedLocale = runtimeStatus.appSettings.locale;
+    if (!persistedLocale) return;
+    const language = normalizeLanguageCode(persistedLocale);
+    if (i18n.language !== language) {
+      i18n.changeLanguage(language);
+    }
+  }, [runtimeStatus.snapshotReceived, runtimeStatus.appSettings.locale, i18n]);
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showTelemetryConsent, setShowTelemetryConsent] = useState(false);

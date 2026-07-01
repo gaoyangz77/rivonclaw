@@ -1,10 +1,15 @@
 import { useEffect, useMemo } from "react";
+import { useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
+import { GQL } from "@rivonclaw/core";
 import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 import { AffiliateApprovalPolicyPanel } from "./AffiliateApprovalPolicyPanel.js";
+import { AffiliateEmailAccountPanel } from "./AffiliateEmailAccountPanel.js";
+import { AffiliateWhatsAppAccountPanel } from "./AffiliateWhatsAppAccountPanel.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SHOP_MODEL_RECOMMENDATION_LIFT_RATIO = 1.25;
@@ -153,6 +158,21 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
             </span>
           </label>
         </div>
+        <AffiliateOutreachOpsPanel shopId={shop.id} />
+      </section>
+
+      <section id="shop-workspace-affiliateManagement-whatsapp" className="shop-workspace-section">
+        <div className="drawer-section-label">
+          {t("ecommerce.affiliateWorkspace.whatsapp.title", { defaultValue: "WhatsApp outreach accounts" })}
+        </div>
+        <AffiliateWhatsAppAccountPanel />
+      </section>
+
+      <section id="shop-workspace-affiliateManagement-email" className="shop-workspace-section">
+        <div className="drawer-section-label">
+          {t("ecommerce.affiliateWorkspace.email.title", { defaultValue: "Outlook email accounts" })}
+        </div>
+        <AffiliateEmailAccountPanel />
       </section>
 
       <section id="shop-workspace-affiliateManagement-run-profile" className="shop-workspace-section">
@@ -295,6 +315,197 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     </div>
   );
 });
+
+type AffiliateOutreachOperationalStatus = {
+  since: string;
+  fallbackCount: number;
+  failedDeliveryCount: number;
+  webhookReceivedCount: number;
+  ignoredWebhookCount: number;
+  rejectedWebhookCount: number;
+  mailboxSyncCount: number;
+  failedMailboxSyncCount: number;
+  subscriptionRenewalCount: number;
+  failedSubscriptionRenewalCount: number;
+  activeWhatsAppProxyCount: number;
+  disabledWhatsAppProxyCount: number;
+  errorWhatsAppProxyCount: number;
+  whatsappAccountsUsingUnavailableProxyCount: number;
+  whatsappAccountsNeedingReconnectCount: number;
+  emailAccountsMissingRefreshTokenCount: number;
+  sharedEmailAccountsMissingAddressCount: number;
+  latestDeliveryAt?: string | null;
+  latestInboundAt?: string | null;
+  latestOperationalEventAt?: string | null;
+  deliveryCounts: Array<{
+    channel?: GQL.AffiliateMessageChannel | null;
+    status: GQL.AffiliateDeliveryStatus;
+    count: number;
+  }>;
+  inboundCounts: Array<{
+    channel: GQL.AffiliateMessageChannel;
+    direction: GQL.AffiliateConversationMessageDirection;
+    count: number;
+  }>;
+  operationalEventCounts: Array<{
+    provider: GQL.AffiliateOutreachOperationalEventProvider;
+    kind: GQL.AffiliateOutreachOperationalEventKind;
+    status: GQL.AffiliateOutreachOperationalEventStatus;
+    count: number;
+  }>;
+  operationalEventTypeCounts: Array<{
+    provider: GQL.AffiliateOutreachOperationalEventProvider;
+    kind: GQL.AffiliateOutreachOperationalEventKind;
+    status: GQL.AffiliateOutreachOperationalEventStatus;
+    eventType?: string | null;
+    count: number;
+  }>;
+};
+
+export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
+  const { t } = useTranslation();
+  const { data, loading, refetch } = useQuery<
+    { affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatus },
+    { input: GQL.AffiliateOutreachOperationalStatusInput }
+  >(AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY, {
+    variables: { input: { shopId, days: 7 } },
+    fetchPolicy: "cache-and-network",
+  });
+  const status = data?.affiliateOutreachOperationalStatus ?? null;
+  const directSent = countDelivery(status, GQL.AffiliateDeliveryStatus.Sent, GQL.AffiliateMessageChannel.Whatsapp)
+    + countDelivery(status, GQL.AffiliateDeliveryStatus.Sent, GQL.AffiliateMessageChannel.Email);
+  const directInbound = countInbound(status, GQL.AffiliateMessageChannel.Whatsapp)
+    + countInbound(status, GQL.AffiliateMessageChannel.Email);
+
+  return (
+    <div className="affiliate-whatsapp-connector affiliate-whatsapp-connector-ready">
+      <div>
+        <strong>
+          {t("ecommerce.affiliateWorkspace.ops.title", {
+            defaultValue: "Outreach operations",
+          })}
+        </strong>
+        <span>
+          {status
+            ? t("ecommerce.affiliateWorkspace.ops.subtitle", {
+                defaultValue: "Last 7 days since {{since}}",
+                since: formatCompactDate(status.since),
+              })
+            : t("common.loading", { defaultValue: "Loading..." })}
+        </span>
+        {status?.latestInboundAt ? (
+          <span>
+            {t("ecommerce.affiliateWorkspace.ops.latestInbound", {
+              defaultValue: "Latest inbound: {{time}}",
+              time: formatCompactDate(status.latestInboundAt),
+            })}
+          </span>
+        ) : null}
+      </div>
+      <div className="affiliate-whatsapp-connector-metrics">
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.directSent", { defaultValue: "Direct sent" })}: {directSent}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.directInbound", { defaultValue: "Direct inbound" })}: {directInbound}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.fallbacks", { defaultValue: "Fallbacks" })}: {status?.fallbackCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.failed", { defaultValue: "Failed" })}: {status?.failedDeliveryCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.webhooks", { defaultValue: "Webhooks" })}:{" "}
+          {status?.webhookReceivedCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.ignoredWebhooks", { defaultValue: "Ignored webhooks" })}:{" "}
+          {status?.ignoredWebhookCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.rejectedWebhooks", { defaultValue: "Rejected webhooks" })}:{" "}
+          {status?.rejectedWebhookCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.mailboxSyncs", { defaultValue: "Mailbox syncs" })}:{" "}
+          {status?.mailboxSyncCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.syncFailed", { defaultValue: "Sync failed" })}:{" "}
+          {status?.failedMailboxSyncCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.renewals", { defaultValue: "Renewals" })}:{" "}
+          {status?.subscriptionRenewalCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.renewalFailed", { defaultValue: "Renewal failed" })}:{" "}
+          {status?.failedSubscriptionRenewalCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.activeProxies", { defaultValue: "Active proxies" })}:{" "}
+          {status?.activeWhatsAppProxyCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.proxyIssues", { defaultValue: "Proxy issues" })}:{" "}
+          {(status?.disabledWhatsAppProxyCount ?? 0) + (status?.errorWhatsAppProxyCount ?? 0)}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.badProxyBindings", { defaultValue: "Bad proxy bindings" })}:{" "}
+          {status?.whatsappAccountsUsingUnavailableProxyCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.reconnectNeeded", { defaultValue: "Reconnect needed" })}:{" "}
+          {status?.whatsappAccountsNeedingReconnectCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.mailboxAuthIssues", { defaultValue: "Mailbox auth issues" })}:{" "}
+          {status?.emailAccountsMissingRefreshTokenCount ?? 0}
+        </span>
+        <span>
+          {t("ecommerce.affiliateWorkspace.ops.sharedMailboxIssues", { defaultValue: "Shared mailbox issues" })}:{" "}
+          {status?.sharedEmailAccountsMissingAddressCount ?? 0}
+        </span>
+        <button
+          className="btn btn-secondary btn-sm"
+          type="button"
+          onClick={() => {
+            void refetch();
+          }}
+          disabled={loading}
+        >
+          {loading ? t("common.loading", { defaultValue: "Loading..." }) : t("common.refresh", { defaultValue: "Refresh" })}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function countDelivery(
+  status: AffiliateOutreachOperationalStatus | null,
+  deliveryStatus: GQL.AffiliateDeliveryStatus,
+  channel?: GQL.AffiliateMessageChannel,
+): number {
+  return status?.deliveryCounts
+    .filter((item) => item.status === deliveryStatus && (!channel || item.channel === channel))
+    .reduce((sum, item) => sum + item.count, 0) ?? 0;
+}
+
+function countInbound(
+  status: AffiliateOutreachOperationalStatus | null,
+  channel: GQL.AffiliateMessageChannel,
+): number {
+  return status?.inboundCounts
+    .filter((item) => item.channel === channel)
+    .reduce((sum, item) => sum + item.count, 0) ?? 0;
+}
+
+function formatCompactDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
 
 type AffiliateModelConfidence = "high" | "medium" | "low";
 

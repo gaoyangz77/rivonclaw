@@ -20,6 +20,11 @@ import { normalizePlatform } from "../utils/platform.js";
 import { localeToStaffLanguage, type StaffLanguage } from "../i18n/locale.js";
 import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
 import type { AffiliateWorkItemPayload } from "../cloud/backend-subscription-client.js";
+import {
+  AFFILIATE_WORK_ITEMS_QUERY,
+  type AffiliateWorkItemsQueryResult,
+} from "../cloud/affiliate-queries.js";
+import { getAuthSession } from "../auth/session-ref.js";
 
 const log = createLogger("affiliate-inbound");
 const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
@@ -29,6 +34,9 @@ const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
 const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
   process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS,
 );
+const AFFILIATE_WORK_CATCH_UP_LIMIT = parseOptionalPositiveInteger(
+  process.env.RIVONCLAW_AFFILIATE_WORK_CATCH_UP_LIMIT,
+) ?? 20;
 
 export interface AffiliateShopSource {
   id: string;
@@ -52,6 +60,12 @@ export class AffiliateInbound {
   /** Agent run id -> affiliate session key, used only for run lifecycle cleanup. */
   private runIndex = new Map<string, string>();
 
+  /** Agent run id -> work item version, used to suppress duplicates only while a run is active. */
+  private runWorkItemVersions = new Map<string, { versionKey: string; version: string }>();
+
+  /** Work item versions currently owned by an active agent run. */
+  private inFlightWorkItemVersions = new Set<string>();
+
   /** Work item handlers that have reserved capacity but have not returned a run id yet. */
   private pendingDispatchCount = 0;
 
@@ -61,14 +75,22 @@ export class AffiliateInbound {
   /** Work item semantic key -> last dispatched backend state version. */
   private dispatchedWorkItemVersions = new Map<string, string>();
 
+  /** Shop object ids with an in-flight catch-up query. */
+  private catchUpInFlightShopIds = new Set<string>();
+
   updateLocale(locale: string | undefined): void {
     if (this.locale === locale) return;
     this.locale = locale;
+    const staffLanguage = normalizeStaffLanguage(locale);
     for (const [platformShopId, ctx] of this.shopContexts) {
       this.shopContexts.set(platformShopId, {
         ...ctx,
-        staffLanguage: normalizeStaffLanguage(locale),
+        staffLanguage,
       });
+    }
+    for (const session of this.sessions.values()) {
+      const shop = this.shopContexts.get(session.affiliateContext.platformShopId);
+      if (shop) session.updateShopContext(shop);
     }
   }
 
@@ -120,6 +142,44 @@ export class AffiliateInbound {
     return this.shopContexts.get(platformShopId);
   }
 
+  async catchUpCurrentWorkItems(): Promise<void> {
+    await Promise.all([...this.shopContexts.values()].map((shop) => this.catchUpShopWorkItems(shop)));
+  }
+
+  private async catchUpShopWorkItems(shop: AffiliateShopContext): Promise<void> {
+    if (this.catchUpInFlightShopIds.has(shop.objectId)) return;
+    const authSession = getAuthSession();
+    if (!authSession) return;
+
+    this.catchUpInFlightShopIds.add(shop.objectId);
+    try {
+      const result = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+        AFFILIATE_WORK_ITEMS_QUERY,
+        {
+          input: {
+            shopId: shop.objectId,
+            agentDispatchRecommended: true,
+            limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
+          },
+        },
+      );
+      const workItems = result.affiliateWorkItems ?? [];
+      if (workItems.length > 0) {
+        log.info(
+          `Affiliate work catch-up fetched ${workItems.length} item(s): ` +
+          `shop=${shop.platformShopId} limit=${AFFILIATE_WORK_CATCH_UP_LIMIT}`,
+        );
+      }
+      for (const workItem of workItems) {
+        await this.handleWorkItem(workItem);
+      }
+    } catch (err) {
+      log.error(`Failed to catch up affiliate work items for shop ${shop.platformShopId}:`, err);
+    } finally {
+      this.catchUpInFlightShopIds.delete(shop.objectId);
+    }
+  }
+
   handleGatewayEvent(evt: GatewayEventFrame): void {
     const payload = evt.payload as { runId?: string; state?: string } | undefined;
     if (!payload?.runId) return;
@@ -129,8 +189,25 @@ export class AffiliateInbound {
     if (!sessionKey) return;
 
     this.sessions.get(sessionKey)?.onRunCompleted(payload.runId, { errored: payload.state === "error" });
+    const workVersion = this.runWorkItemVersions.get(payload.runId);
+    if (workVersion) {
+      this.inFlightWorkItemVersions.delete(`${workVersion.versionKey}:${workVersion.version}`);
+      this.runWorkItemVersions.delete(payload.runId);
+    }
     this.runIndex.delete(payload.runId);
     this.drainWorkItemQueue();
+  }
+
+  handleAgentEvent(evt: GatewayEventFrame): boolean {
+    const payload = evt.payload as {
+      runId?: string;
+      stream?: string;
+      data?: Record<string, unknown>;
+    } | undefined;
+    if (!payload?.runId) return false;
+    const sessionKey = this.runIndex.get(payload.runId);
+    if (!sessionKey) return false;
+    return this.sessions.get(sessionKey)?.handleAgentEvent(payload) ?? false;
   }
 
   async handleFrame(frame: EcommerceRelayFrame): Promise<boolean> {
@@ -199,6 +276,12 @@ export class AffiliateInbound {
       );
       return true;
     }
+    if (version && this.inFlightWorkItemVersions.has(`${versionKey}:${version}`)) {
+      log.info(
+        `Ignoring in-flight affiliate work item version: id=${workItem.id} kind=${workItem.workKind} version=${version}`,
+      );
+      return true;
+    }
 
     const activeOrPendingWork = this.runIndex.size + this.pendingDispatchCount;
     if (activeOrPendingWork >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS) {
@@ -232,8 +315,12 @@ export class AffiliateInbound {
       const result = await session.handleWorkItem(workItem);
       if (result.runId) {
         this.runIndex.set(result.runId, session.scopeKey);
+        if (version) {
+          this.runWorkItemVersions.set(result.runId, { versionKey, version });
+          this.inFlightWorkItemVersions.add(`${versionKey}:${version}`);
+        }
       }
-      if (version && (result.runId || isHandledWithoutAgentDispatch(workItem))) {
+      if (version && isHandledWithoutAgentDispatch(workItem)) {
         this.dispatchedWorkItemVersions.set(versionKey, version);
       }
       return true;
@@ -428,7 +515,10 @@ export class AffiliateInbound {
     const platform = shop.platform ?? normalizePlatform("TIKTOK_SHOP");
     const sessionKey = AffiliateSession.buildScopeKey(platform, params);
     const existing = this.sessions.get(sessionKey);
-    if (existing) return existing;
+    if (existing) {
+      existing.updateShopContext(shop);
+      return existing;
+    }
 
     const session = new AffiliateSession(shop, params);
     this.sessions.set(session.scopeKey, session);
@@ -443,6 +533,7 @@ export class AffiliateInbound {
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
       creatorImUserId: signal.creatorImId ?? undefined,
+      creatorRelationshipId: signalCreatorRelationshipId(signal),
       productId: signal.productId ?? undefined,
       orderId: signal.orderId ?? undefined,
       collaborationRecordId: signal.collaborationRecordId ?? undefined,
@@ -451,13 +542,16 @@ export class AffiliateInbound {
     switch (signal.type) {
       case "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED":
       case "CREATOR_MESSAGE_RECEIVED":
-        if (!signal.conversationId) return null;
+        {
+          const triggerId = signal.conversationId ?? base.creatorRelationshipId;
+          if (!triggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-          triggerId: signal.conversationId,
-          conversationId: signal.conversationId,
+          triggerId,
+          conversationId: signal.conversationId ?? undefined,
         };
+        }
       case "AFFILIATE_SAMPLE_APPLICATION_OBSERVED":
       case "AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED":
       case "SAMPLE_APPLICATION_UPDATED":
@@ -513,6 +607,7 @@ export class AffiliateInbound {
       platformShopId: shop.platformShopId,
       creatorImUserId: collaboration?.creatorImId ?? workItem.shopThread.creatorImId ?? undefined,
       creatorId: collaboration?.creatorId ?? workItem.shopThread.creatorId ?? undefined,
+      creatorRelationshipId: workItem.context?.creatorRelation?.id ?? undefined,
       productId: collaboration?.productId ?? sample?.productId ?? undefined,
       collaborationRecordId: workItem.collaborationRecordId ?? undefined,
     };
@@ -611,4 +706,9 @@ function isHandledWithoutAgentDispatch(workItem: AffiliateWorkItemPayload): bool
 
 function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
   return localeToStaffLanguage(locale);
+}
+
+function signalCreatorRelationshipId(signal: AffiliateConversationSignalPayload): string | undefined {
+  const value = signal.creatorRelationshipId;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }

@@ -19,7 +19,10 @@
     "generate:vendor-artifacts": "node scripts/generate-vendor-artifacts.mjs",
     "check:vendor-boundary": "node scripts/check-vendor-boundary.mjs",
     "check:tools": "node scripts/check-tool-consistency.mjs",
-    "check:panel-arch": "node scripts/check-panel-architecture.mjs"
+    "check:panel-arch": "node scripts/check-panel-architecture.mjs",
+    "check:affiliate-outreach-codegen": "node scripts/check-affiliate-outreach-codegen-sync.mjs",
+    "verify:affiliate-outreach:clients": "bash scripts/verify-affiliate-outreach-clients.sh",
+    "verify:affiliate-outreach:local": "bash scripts/verify-affiliate-outreach-local.sh"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

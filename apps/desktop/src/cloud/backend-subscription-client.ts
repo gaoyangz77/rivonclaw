@@ -99,6 +99,17 @@ const ADS_OAUTH_COMPLETE_SUBSCRIPTION = `
   }
 `;
 
+const AFFILIATE_OUTREACH_ACCOUNT_CONNECTED_SUBSCRIPTION = `
+  subscription AffiliateOutreachAccountConnected {
+    affiliateOutreachAccountConnected {
+      channel
+      accountId
+      displayName
+      address
+    }
+  }
+`;
+
 export const SHOP_UPDATED_SUBSCRIPTION = `
   subscription ShopUpdated {
     shopUpdated {
@@ -294,6 +305,7 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       workSignal
       shopThreadId
       collaborationRecordId
+      creatorRelationshipId
       processingStatus
       requiredAction
       processReasons
@@ -304,6 +316,7 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       messageIndex
       messageType
       messageDirection
+      channel
       creatorImId
       senderRole
       senderId
@@ -950,6 +963,13 @@ export interface AdsOAuthCompletePayload {
   advertiserCount: number;
 }
 
+export interface AffiliateOutreachAccountConnectedPayload {
+  channel: "WHATSAPP" | "EMAIL" | "PLATFORM_CHAT";
+  accountId: string;
+  displayName?: string | null;
+  address?: string | null;
+}
+
 /** Subscription config stored as desired state for long-lived operations. */
 interface SubscriptionConfig {
   key: string;
@@ -1586,6 +1606,58 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "Ads OAuth subscription error", err);
+          },
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+      return { attempt, unsubscribe };
+    };
+
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
+  }
+
+  subscribeToAffiliateOutreachAccountConnected(
+    onConnected: (payload: AffiliateOutreachAccountConnectedPayload) => void,
+  ): () => void {
+    const key = "affiliate-outreach-account-connected";
+
+    const subscribe = (): StartedSubscription => {
+      if (!this.client) return { attempt: this.nextAttempt(key), unsubscribe: () => {} };
+      const attempt = this.nextAttempt(key);
+
+      const unsubscribe = this.client.subscribe<{
+        affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
+      }>(
+        {
+          query: AFFILIATE_OUTREACH_ACCOUNT_CONNECTED_SUBSCRIPTION,
+        },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key);
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate outreach account subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
+              return;
+            }
+            const payload = result.data?.affiliateOutreachAccountConnected;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "affiliateOutreachAccountConnected", result as any);
+              return;
+            }
+            onConnected(payload);
+          },
+          error: (err) => {
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate outreach account subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },

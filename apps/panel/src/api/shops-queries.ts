@@ -2323,6 +2323,16 @@ export const SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION = gql`
         executedAt
         errorMessage
       }
+      delivery {
+        id
+        preferredChannel
+        actualChannel
+        status
+        providerMessageId
+        emailThreadId
+        errorMessage
+        createdAt
+      }
       collaborationRecord {
         id
         processingStatus
@@ -2333,6 +2343,253 @@ export const SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION = gql`
         platformConversationId
         updatedAt
       }
+    }
+  }
+`;
+
+export const WHATSAPP_ACCOUNT_FIELDS_FRAGMENT = gql`
+  fragment WhatsAppAccountFields on WhatsAppAccountBinding {
+    id
+    provider
+    status
+    evolutionInstanceName
+    phoneNumber
+    displayName
+    profilePicUrl
+    proxyId
+    lastQrAt
+    lastConnectedAt
+    lastDisconnectedAt
+    lastError
+    updatedAt
+  }
+`;
+
+export const WHATSAPP_PROXY_FIELDS_FRAGMENT = gql`
+  fragment WhatsAppProxyFields on WhatsAppProxy {
+    id
+    protocol
+    host
+    port
+    username
+    region
+    status
+    lastCheckedAt
+    lastError
+    updatedAt
+  }
+`;
+
+export const WHATSAPP_ACCOUNT_BINDINGS_QUERY = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  query WhatsAppAccountBindings($status: WhatsAppAccountStatus) {
+    whatsAppAccountBindings(status: $status) {
+      ...WhatsAppAccountFields
+    }
+  }
+`;
+
+export const WHATSAPP_PROXIES_QUERY = gql`
+  ${WHATSAPP_PROXY_FIELDS_FRAGMENT}
+  query WhatsAppProxies($status: ProxyStatus) {
+    whatsAppProxies(status: $status) {
+      ...WhatsAppProxyFields
+    }
+  }
+`;
+
+export const WHATSAPP_CONNECTOR_STATUS_QUERY = gql`
+  query WhatsAppConnectorStatus {
+    whatsAppConnectorStatus {
+      configured
+      reachable
+      ready
+      httpStatus
+      licenseRequired
+      message
+      accountCounts {
+        status
+        count
+      }
+      proxyCounts {
+        status
+        count
+      }
+    }
+  }
+`;
+
+export const CREATE_WHATSAPP_PROXY_MUTATION = gql`
+  ${WHATSAPP_PROXY_FIELDS_FRAGMENT}
+  mutation CreateWhatsAppProxy($input: CreateWhatsAppProxyInput!) {
+    createWhatsAppProxy(input: $input) {
+      ...WhatsAppProxyFields
+    }
+  }
+`;
+
+export const UPDATE_WHATSAPP_PROXY_MUTATION = gql`
+  ${WHATSAPP_PROXY_FIELDS_FRAGMENT}
+  mutation UpdateWhatsAppProxy($input: UpdateWhatsAppProxyInput!) {
+    updateWhatsAppProxy(input: $input) {
+      ...WhatsAppProxyFields
+    }
+  }
+`;
+
+export const CREATE_WHATSAPP_ACCOUNT_BINDING_MUTATION = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  mutation CreateWhatsAppAccountBinding($proxyId: ID) {
+    createWhatsAppAccountBinding(proxyId: $proxyId) {
+      ...WhatsAppAccountFields
+    }
+  }
+`;
+
+export const START_WHATSAPP_QR_ONBOARDING_MUTATION = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  mutation StartWhatsAppQrOnboarding($input: StartWhatsAppQrOnboardingInput!) {
+    startWhatsAppQrOnboarding(input: $input) {
+      binding {
+        ...WhatsAppAccountFields
+      }
+      qrBase64
+      pairingCode
+      qrCode
+    }
+  }
+`;
+
+export const REFRESH_WHATSAPP_ACCOUNT_BINDING_MUTATION = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  mutation RefreshWhatsAppAccountBinding($bindingId: ID!) {
+    refreshWhatsAppAccountBinding(bindingId: $bindingId) {
+      ...WhatsAppAccountFields
+    }
+  }
+`;
+
+export const REVOKE_WHATSAPP_ACCOUNT_BINDING_MUTATION = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  mutation RevokeWhatsAppAccountBinding($bindingId: ID!, $deleteInstance: Boolean) {
+    revokeWhatsAppAccountBinding(bindingId: $bindingId, deleteInstance: $deleteInstance) {
+      ...WhatsAppAccountFields
+    }
+  }
+`;
+
+export const EMAIL_ACCOUNT_FIELDS_FRAGMENT = gql`
+  fragment EmailAccountFields on EmailAccountBinding {
+    id
+    provider
+    status
+    mailboxType
+    emailAddress
+    displayName
+    tenantId
+    microsoftUserId
+    sharedMailboxAddress
+    subscriptionId
+    subscriptionExpiresAt
+    lastSyncAt
+    lastError
+    updatedAt
+  }
+`;
+
+export const EMAIL_ACCOUNT_BINDINGS_QUERY = gql`
+  ${EMAIL_ACCOUNT_FIELDS_FRAGMENT}
+  query EmailAccountBindings($status: EmailAccountStatus) {
+    emailAccountBindings(status: $status) {
+      ...EmailAccountFields
+    }
+  }
+`;
+
+export const AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY = gql`
+  query AffiliateOutreachOperationalStatus($input: AffiliateOutreachOperationalStatusInput!) {
+    affiliateOutreachOperationalStatus(input: $input) {
+      since
+      fallbackCount
+      failedDeliveryCount
+      webhookReceivedCount
+      ignoredWebhookCount
+      rejectedWebhookCount
+      mailboxSyncCount
+      failedMailboxSyncCount
+      subscriptionRenewalCount
+      failedSubscriptionRenewalCount
+      activeWhatsAppProxyCount
+      disabledWhatsAppProxyCount
+      errorWhatsAppProxyCount
+      whatsappAccountsUsingUnavailableProxyCount
+      whatsappAccountsNeedingReconnectCount
+      emailAccountsMissingRefreshTokenCount
+      sharedEmailAccountsMissingAddressCount
+      latestDeliveryAt
+      latestInboundAt
+      latestOperationalEventAt
+      deliveryCounts {
+        channel
+        status
+        count
+      }
+      inboundCounts {
+        channel
+        direction
+        count
+      }
+      operationalEventCounts {
+        provider
+        kind
+        status
+        count
+      }
+      operationalEventTypeCounts {
+        provider
+        kind
+        status
+        eventType
+        count
+      }
+    }
+  }
+`;
+
+export const MICROSOFT_GRAPH_CONNECTOR_STATUS_QUERY = gql`
+  query MicrosoftGraphConnectorStatus {
+    microsoftGraphConnectorStatus {
+      configured
+      oauthConfigured
+      webhookConfigured
+      ready
+      message
+      accountCounts {
+        status
+        count
+      }
+      subscriptionCounts {
+        health
+        count
+      }
+    }
+  }
+`;
+
+export const START_MICROSOFT_EMAIL_OAUTH_MUTATION = gql`
+  mutation StartMicrosoftEmailOAuth($input: StartMicrosoftEmailOAuthInput) {
+    startMicrosoftEmailOAuth(input: $input) {
+      url
+      state
+    }
+  }
+`;
+
+export const REVOKE_EMAIL_ACCOUNT_BINDING_MUTATION = gql`
+  ${EMAIL_ACCOUNT_FIELDS_FRAGMENT}
+  mutation RevokeEmailAccountBinding($bindingId: ID!) {
+    revokeEmailAccountBinding(bindingId: $bindingId) {
+      ...EmailAccountFields
     }
   }
 `;

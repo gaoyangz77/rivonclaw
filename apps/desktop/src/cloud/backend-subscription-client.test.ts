@@ -220,3 +220,109 @@ describe("BackendSubscriptionClient preset skill lifecycle", () => {
     expect(mocks.subscriptions).toHaveLength(1);
   });
 });
+
+describe("BackendSubscriptionClient affiliate outreach account lifecycle", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.clients.length = 0;
+    mocks.subscriptions.length = 0;
+    installMockGraphqlWsClient();
+  });
+
+  it("subscribes to affiliate outreach account connection events after auth is enabled", async () => {
+    const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
+    let token: string | null = null;
+    const onConnected = vi.fn();
+    const client = new BackendSubscriptionClient("en-US");
+
+    client.subscribeToAffiliateOutreachAccountConnected(onConnected);
+    client.connect(() => token);
+
+    expect(mocks.subscriptions).toHaveLength(0);
+
+    token = "access-token-1";
+    client.enableAuthenticatedSubscriptions();
+
+    expect(mocks.subscriptions).toHaveLength(1);
+    expect(mocks.subscriptions[0].operation.query).toContain(
+      "subscription AffiliateOutreachAccountConnected",
+    );
+    expect(mocks.subscriptions[0].operation.query).toContain("affiliateOutreachAccountConnected");
+
+    mocks.subscriptions[0].sink.next({
+      data: {
+        affiliateOutreachAccountConnected: {
+          channel: "WHATSAPP",
+          accountId: "wa-1",
+          displayName: "Seller WhatsApp",
+          address: "15551234567",
+        },
+      },
+    });
+
+    expect(onConnected).toHaveBeenCalledWith({
+      channel: "WHATSAPP",
+      accountId: "wa-1",
+      displayName: "Seller WhatsApp",
+      address: "15551234567",
+    });
+  });
+});
+
+describe("BackendSubscriptionClient affiliate conversation signals", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.clients.length = 0;
+    mocks.subscriptions.length = 0;
+    installMockGraphqlWsClient();
+  });
+
+  it("subscribes to affiliate conversation signal channel fields after auth is enabled", async () => {
+    const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
+    let token: string | null = null;
+    const onSignal = vi.fn();
+    const client = new BackendSubscriptionClient("en-US");
+
+    client.subscribeToAffiliateConversationSignals(onSignal);
+    client.connect(() => token);
+
+    expect(mocks.subscriptions).toHaveLength(0);
+
+    token = "access-token-1";
+    client.enableAuthenticatedSubscriptions();
+
+    expect(mocks.subscriptions).toHaveLength(1);
+    expect(mocks.subscriptions[0].operation.query).toContain(
+      "subscription AffiliateConversationSignal",
+    );
+    expect(mocks.subscriptions[0].operation.query).toContain("messageDirection");
+    expect(mocks.subscriptions[0].operation.query).toContain("channel");
+
+    mocks.subscriptions[0].sink.next({
+      data: {
+        affiliateConversationSignal: {
+          type: "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED",
+          source: "WEBHOOK",
+          workSignal: true,
+          shopId: "shop-001",
+          platformShopId: "platform-shop-001",
+          creatorRelationshipId: "relationship-001",
+          messageId: "graph-message-1",
+          messageType: "email",
+          messageDirection: "CREATOR",
+          channel: "EMAIL",
+          eventTime: "2026-07-01T12:05:00.000Z",
+        },
+      },
+    });
+
+    expect(onSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creatorRelationshipId: "relationship-001",
+        messageId: "graph-message-1",
+        messageDirection: "CREATOR",
+        channel: "EMAIL",
+      }),
+    );
+  });
+});
