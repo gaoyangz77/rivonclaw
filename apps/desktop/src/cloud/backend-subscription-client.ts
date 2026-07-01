@@ -61,6 +61,14 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
             escalationChannelId
             escalationRecipientId
             platformSystemPrompt
+            reviewOptimization {
+              enabled
+              badReviewReachout {
+                enabled
+                stars
+                recentDays
+              }
+            }
           }
           wms {
             enabled
@@ -120,6 +128,14 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
           escalationChannelId
           escalationRecipientId
           platformSystemPrompt
+          reviewOptimization {
+            enabled
+            badReviewReachout {
+              enabled
+              stars
+              recentDays
+            }
+          }
         }
         wms {
           enabled

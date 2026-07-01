@@ -37,6 +37,10 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
   const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
   const [editUnpaidOrderReminderTemplate, setEditUnpaidOrderReminderTemplate] = useState("");
+  const [draftReviewOptimizationEnabled, setDraftReviewOptimizationEnabled] = useState(false);
+  const [draftBadReviewReachoutEnabled, setDraftBadReviewReachoutEnabled] = useState(false);
+  const [draftBadReviewReachoutStars, setDraftBadReviewReachoutStars] = useState("3");
+  const [draftBadReviewReachoutRecentDays, setDraftBadReviewReachoutRecentDays] = useState("7");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [editAffiliateMinExpectedSalesUnits, setEditAffiliateMinExpectedSalesUnits] = useState("");
   const [editAffiliateModelUsageScope, setEditAffiliateModelUsageScope] = useState<"USER_LEVEL" | "SHOP_LEVEL">("USER_LEVEL");
@@ -49,6 +53,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
   const [savingUnpaidReachoutSettings, setSavingUnpaidReachoutSettings] = useState(false);
+  const [savingReviewOptimizationSettings, setSavingReviewOptimizationSettings] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
   const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(null);
   const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(null);
@@ -107,6 +112,18 @@ export const EcommercePage = observer(function EcommercePage() {
       setEditUnpaidOrderReminderTemplate(
         selectedShop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "",
       );
+      setDraftReviewOptimizationEnabled(
+        selectedShop.services?.customerService?.reviewOptimization?.enabled ?? false,
+      );
+      setDraftBadReviewReachoutEnabled(
+        selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled ?? false,
+      );
+      setDraftBadReviewReachoutStars(
+        String(selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.stars ?? 3),
+      );
+      setDraftBadReviewReachoutRecentDays(
+        String(selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.recentDays ?? 7),
+      );
     }
   }, [
     selectedShop?.id,
@@ -114,6 +131,10 @@ export const EcommercePage = observer(function EcommercePage() {
     selectedShop?.services?.customerService?.unpaidOrderReachoutEnabled,
     selectedShop?.services?.customerService?.unpaidOrderReachoutDelayHours,
     selectedShop?.services?.customerService?.unpaidOrderReminderMessageTemplate,
+    selectedShop?.services?.customerService?.reviewOptimization?.enabled,
+    selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled,
+    selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.stars,
+    selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.recentDays,
   ]);
 
   useEffect(() => {
@@ -326,6 +347,50 @@ export const EcommercePage = observer(function EcommercePage() {
       handleError(err, "ecommerce.updateFailed");
     } finally {
       setSavingUnpaidReachoutSettings(false);
+    }
+  }
+
+  async function handleSaveReviewOptimizationSettings() {
+    if (!selectedShopId) return;
+    const trimmedStars = draftBadReviewReachoutStars.trim();
+    const parsedStars = Number(trimmedStars);
+    if (!Number.isInteger(parsedStars) || parsedStars < 1 || parsedStars > 3) {
+      showToast(t("ecommerce.shopDrawer.aiCS.reviewOptimizationInvalidStars"), "error");
+      return;
+    }
+
+    const trimmedRecentDays = draftBadReviewReachoutRecentDays.trim();
+    const parsedRecentDays = Number(trimmedRecentDays);
+    if (!Number.isInteger(parsedRecentDays) || parsedRecentDays < 1 || parsedRecentDays > 90) {
+      showToast(t("ecommerce.shopDrawer.aiCS.reviewOptimizationInvalidRecentDays"), "error");
+      return;
+    }
+
+    setSavingReviewOptimizationSettings(true);
+    setUpgradePrompt(false);
+    try {
+      const shop = shops.find((s) => s.id === selectedShopId);
+      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+      await shop.update({
+        services: {
+          customerService: {
+            reviewOptimization: {
+              enabled: draftReviewOptimizationEnabled,
+              badReviewReachout: {
+                enabled: draftBadReviewReachoutEnabled,
+                stars: parsedStars,
+                recentDays: parsedRecentDays,
+              },
+            },
+          },
+        },
+      });
+      setDraftBadReviewReachoutStars(String(parsedStars));
+      setDraftBadReviewReachoutRecentDays(String(parsedRecentDays));
+    } catch (err) {
+      handleError(err, "ecommerce.updateFailed");
+    } finally {
+      setSavingReviewOptimizationSettings(false);
     }
   }
 
@@ -659,6 +724,16 @@ export const EcommercePage = observer(function EcommercePage() {
         onDraftUnpaidReachoutDelayHoursChange={setDraftUnpaidReachoutDelayHours}
         onEditUnpaidOrderReminderTemplate={setEditUnpaidOrderReminderTemplate}
         onSaveUnpaidReachoutSettings={handleSaveUnpaidReachoutSettings}
+        draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
+        draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
+        draftBadReviewReachoutStars={draftBadReviewReachoutStars}
+        draftBadReviewReachoutRecentDays={draftBadReviewReachoutRecentDays}
+        savingReviewOptimizationSettings={savingReviewOptimizationSettings}
+        onToggleReviewOptimizationEnabled={setDraftReviewOptimizationEnabled}
+        onToggleBadReviewReachoutEnabled={setDraftBadReviewReachoutEnabled}
+        onDraftBadReviewReachoutStarsChange={setDraftBadReviewReachoutStars}
+        onDraftBadReviewReachoutRecentDaysChange={setDraftBadReviewReachoutRecentDays}
+        onSaveReviewOptimizationSettings={handleSaveReviewOptimizationSettings}
         savingEscalation={escalation.savingEscalation}
         draftEscalationChannel={escalation.draftEscalationChannel}
         draftEscalationRecipient={escalation.draftEscalationRecipient}

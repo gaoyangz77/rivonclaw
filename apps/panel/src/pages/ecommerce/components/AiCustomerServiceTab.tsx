@@ -6,7 +6,6 @@ import { Select } from "../../../components/inputs/Select.js";
 import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
-import { billingEnumLabel, usagePercentLabel } from "../../../components/billing/billing-labels.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const UNPAID_ORDER_TEMPLATE_PLACEHOLDERS = [
@@ -42,6 +41,17 @@ interface AiCustomerServiceTabProps {
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
   onEditUnpaidOrderReminderTemplate: (value: string) => void;
   onSaveUnpaidReachoutSettings: () => void;
+  // Review optimization
+  draftReviewOptimizationEnabled: boolean;
+  draftBadReviewReachoutEnabled: boolean;
+  draftBadReviewReachoutStars: string;
+  draftBadReviewReachoutRecentDays: string;
+  savingReviewOptimizationSettings: boolean;
+  onToggleReviewOptimizationEnabled: (value: boolean) => void;
+  onToggleBadReviewReachoutEnabled: (value: boolean) => void;
+  onDraftBadReviewReachoutStarsChange: (value: string) => void;
+  onDraftBadReviewReachoutRecentDaysChange: (value: string) => void;
+  onSaveReviewOptimizationSettings: () => void;
   // Escalation
   savingEscalation: boolean;
   draftEscalationChannel: string;
@@ -352,6 +362,8 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         </div>
       </section>
 
+      {/* Review management is temporarily hidden from desktop UI while the product direction is being revisited. */}
+
       <section id="shop-workspace-aiCustomerService-escalation" className="shop-workspace-section">
         <div className="drawer-section-label">{t("tiktokShops.detail.escalationRouting")}</div>
         <div className="shop-info-card">
@@ -409,21 +421,6 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         </div>
       </section>
 
-      {entitlement?.usage.length ? (
-        <section id="shop-workspace-aiCustomerService-credits" className="shop-workspace-section">
-          <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.credits")}</div>
-          <div className="shop-info-card">
-            {entitlement.usage.map((usage) => (
-              <div className="shop-info-row" key={`${usage.metric}:${usage.window}`}>
-                <span className="shop-info-label">{billingEnumLabel(t, "usageMetric", usage.metric)}</span>
-                <span className="shop-info-value">
-                  {t("billing.usageUsedPercent", { percent: usagePercentLabel(usage.usedPercent) })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 });

@@ -25,6 +25,20 @@ export const CustomerServiceConfigModel = types
      * when the backend has no platform prompt configured.
      */
     platformSystemPrompt: types.maybeNull(types.string),
+    reviewOptimization: types.optional(
+      types.model("ReviewOptimizationConfig", {
+        enabled: types.optional(types.boolean, false),
+        badReviewReachout: types.optional(
+          types.model("BadReviewReachoutConfig", {
+            enabled: types.optional(types.boolean, false),
+            stars: types.optional(types.number, 3),
+            recentDays: types.optional(types.number, 7),
+          }),
+          {},
+        ),
+      }),
+      {},
+    ),
   })
   .views((self) => ({
     /**

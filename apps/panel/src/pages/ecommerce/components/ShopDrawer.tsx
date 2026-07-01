@@ -50,6 +50,16 @@ interface ShopDrawerProps {
   onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
   onEditUnpaidOrderReminderTemplate: (value: string) => void;
   onSaveUnpaidReachoutSettings: () => void;
+  draftReviewOptimizationEnabled: boolean;
+  draftBadReviewReachoutEnabled: boolean;
+  draftBadReviewReachoutStars: string;
+  draftBadReviewReachoutRecentDays: string;
+  savingReviewOptimizationSettings: boolean;
+  onToggleReviewOptimizationEnabled: (value: boolean) => void;
+  onToggleBadReviewReachoutEnabled: (value: boolean) => void;
+  onDraftBadReviewReachoutStarsChange: (value: string) => void;
+  onDraftBadReviewReachoutRecentDaysChange: (value: string) => void;
+  onSaveReviewOptimizationSettings: () => void;
   savingEscalation: boolean;
   draftEscalationChannel: string;
   draftEscalationRecipient: string;
@@ -113,6 +123,16 @@ export const ShopDrawer = observer(function ShopDrawer({
   onDraftUnpaidReachoutDelayHoursChange,
   onEditUnpaidOrderReminderTemplate,
   onSaveUnpaidReachoutSettings,
+  draftReviewOptimizationEnabled,
+  draftBadReviewReachoutEnabled,
+  draftBadReviewReachoutStars,
+  draftBadReviewReachoutRecentDays,
+  savingReviewOptimizationSettings,
+  onToggleReviewOptimizationEnabled,
+  onToggleBadReviewReachoutEnabled,
+  onDraftBadReviewReachoutStarsChange,
+  onDraftBadReviewReachoutRecentDaysChange,
+  onSaveReviewOptimizationSettings,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -170,7 +190,6 @@ export const ShopDrawer = observer(function ShopDrawer({
             { id: workspaceSectionId(activeTab, "unpaid-reachout"), label: t("ecommerce.shopDrawer.aiCS.unpaidReachout") },
             { id: workspaceSectionId(activeTab, "escalation"), label: t("tiktokShops.detail.escalationRouting") },
             { id: workspaceSectionId(activeTab, "prompt"), label: t("ecommerce.shopDrawer.aiCS.businessPrompt") },
-            { id: workspaceSectionId(activeTab, "credits"), label: t("ecommerce.shopDrawer.aiCS.credits") },
           ]
         : activeTab === "warehouseMapping" && shop.services?.wms?.enabled
           ? [
@@ -513,6 +532,16 @@ export const ShopDrawer = observer(function ShopDrawer({
                     onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
                     onEditUnpaidOrderReminderTemplate={onEditUnpaidOrderReminderTemplate}
                     onSaveUnpaidReachoutSettings={onSaveUnpaidReachoutSettings}
+                    draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
+                    draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
+                    draftBadReviewReachoutStars={draftBadReviewReachoutStars}
+                    draftBadReviewReachoutRecentDays={draftBadReviewReachoutRecentDays}
+                    savingReviewOptimizationSettings={savingReviewOptimizationSettings}
+                    onToggleReviewOptimizationEnabled={onToggleReviewOptimizationEnabled}
+                    onToggleBadReviewReachoutEnabled={onToggleBadReviewReachoutEnabled}
+                    onDraftBadReviewReachoutStarsChange={onDraftBadReviewReachoutStarsChange}
+                    onDraftBadReviewReachoutRecentDaysChange={onDraftBadReviewReachoutRecentDaysChange}
+                    onSaveReviewOptimizationSettings={onSaveReviewOptimizationSettings}
                     savingEscalation={savingEscalation}
                     draftEscalationChannel={draftEscalationChannel}
                     draftEscalationRecipient={draftEscalationRecipient}

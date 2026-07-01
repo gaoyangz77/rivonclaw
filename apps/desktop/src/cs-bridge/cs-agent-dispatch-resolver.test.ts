@@ -30,4 +30,13 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
     expect(prompt).not.toContain("Your task is to call ecom_cs_end_session");
     expect(prompt).not.toContain("Default to ecom_cs_end_session");
   });
+
+  it("guides bad-review reachouts without requiring a buyer message", () => {
+    const prompt = buildCsAgentDispatchSystemPrompt("BAD_REVIEW_REACHOUT");
+
+    expect(prompt).toContain("bad-review reachout");
+    expect(prompt).toContain("Do not assume a buyer message triggered this run");
+    expect(prompt).toContain("apologize");
+    expect(prompt).toContain("Do not offer coupons");
+  });
 });

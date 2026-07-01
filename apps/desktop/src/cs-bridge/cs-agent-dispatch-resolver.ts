@@ -8,7 +8,8 @@ export type CsAgentDispatchReason =
   | "MANUAL_START"
   | "SESSION_EXPIRING_ESCALATION_FOLLOW_UP"
   | "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"
-  | "UNPAID_ORDER_FOLLOW_UP";
+  | "UNPAID_ORDER_FOLLOW_UP"
+  | "BAD_REVIEW_REACHOUT";
 
 export interface CsAgentDispatchRequest extends CsConversationSignalPayload {
   dispatchReason: CsAgentDispatchReason;
@@ -43,6 +44,11 @@ const CONVERSATION_DISPATCH_PLANS: Record<string, {
   UNPAID_ORDER_FOLLOW_UP: {
     signalType: "UNPAID_ORDER_FOLLOW_UP",
     dispatchReason: "UNPAID_ORDER_FOLLOW_UP",
+    useMessageDelta: false,
+  },
+  BAD_REVIEW_REACHOUT: {
+    signalType: "MANUAL_START",
+    dispatchReason: "BAD_REVIEW_REACHOUT",
     useMessageDelta: false,
   },
 };
@@ -189,6 +195,15 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
     case "UNPAID_ORDER_FOLLOW_UP":
       return [
         "This dispatch was initiated by backend/Airflow for a TikTok Shop unpaid-order customer-service flow.",
+      ].join(" ");
+    case "BAD_REVIEW_REACHOUT":
+      return [
+        "This dispatch was initiated by backend/Airflow for a TikTok Shop bad-review reachout.",
+        "Do not assume a buyer message triggered this run.",
+        "Use the operator instruction as the task authority and review context.",
+        "Send one concise buyer-facing message: apologize for the poor experience and ask what went wrong or how we can help.",
+        "Do not offer coupons, refunds, replacements, or other compensation unless the current shop policy and conversation context explicitly support it.",
+        END_SESSION_GUIDANCE,
       ].join(" ");
   }
 }

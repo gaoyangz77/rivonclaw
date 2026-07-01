@@ -134,6 +134,14 @@ export const INIT_SHOPS_QUERY = `
           escalationChannelId
           escalationRecipientId
           platformSystemPrompt
+          reviewOptimization {
+            enabled
+            badReviewReachout {
+              enabled
+              stars
+              recentDays
+            }
+          }
         }
         wms {
           enabled
