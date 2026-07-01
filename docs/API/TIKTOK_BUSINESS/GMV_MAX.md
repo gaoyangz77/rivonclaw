@@ -12,6 +12,8 @@
 - GMV Max shop list: https://business-api.tiktok.com/portal/docs?id=1822001044479041
 - GMV Max report: https://business-api.tiktok.com/portal/docs?id=1824721673497601
 - GMV Max metrics: https://business-api.tiktok.com/portal/docs?id=1824722485971009
+- Spark Ads post list: https://business-api.tiktok.com/portal/docs?id=1738376465972226
+- Spark Ads post info: https://business-api.tiktok.com/portal/docs?id=1738376324021250
 
 ## Concept
 
@@ -82,6 +84,10 @@ Creative-product delivery metrics are sufficient for the performance side of GMV
 Attribute metrics have compatibility constraints. The official metrics page allows attribute metrics at campaign level, or at product/livestream/duration level only when a single filtered ID is used and only one ID dimension is included. It explicitly disallows attribute metrics when querying product, creative, livestream, or duration levels with multiple filtered IDs or multiple ID dimensions. Therefore creative attributes such as `title`, `tt_account_name`, `tt_account_authorization_type`, and `shop_content_type` are not stable in the daily creative-product fact query. Store the stable IDs and raw report payload in MySQL, then enrich display attributes from creative/video metadata endpoints such as `gmv_max/video/get`, customized-post endpoints, single-ID report pulls, or prior dimension snapshots.
 
 For `gmv_max/video/get`, the Product SPU filter is named `spu_id_list` even though report dimensions call the same ID `item_group_id`. If `need_auth_code_video` is false or omitted and `identity_list` is not specified, TikTok returns an empty post list. The response list is `data.item_list`; post caption/title is `text`, account display name is `identity_info.display_name`, authorization type is `identity_info.identity_type`, and the media video ID is under `video_info.video_id`. The reviewed response does not expose a stable post publish timestamp, so Seller Center `Time posted` should be modeled as nullable metadata unless another endpoint is confirmed for the specific creative source.
+
+Spark Ads post metadata endpoints do not close the `Time posted` gap. `/tt_video/list/` returns authorized Spark posts with `item_info.item_id`, `item_info.text`, `item_info.status`, `item_info.item_type`, product anchors such as `spu_id` and `store_id`, `video_info` preview/media fields, `user_info.tiktok_name`, and authorization windows. `/tt_video/info/` returns similar `auth_info`, `item_info`, `video_info`, and `user_info` fields for one authorization code. Neither reviewed endpoint exposes `post_time`, `create_time`, `publish_time`, or an equivalent publish timestamp.
+
+For EasyClaw reporting, `Time posted` can be enriched from TikTok Shop analytics video/product performance when the same onboarded shop has a matching video/post ID. Treat that as shop-side creative metadata fallback, not as an Ads report metric. If the shop analytics row is absent or the creative is a product card (`item_id=-1`), keep `Time posted` null.
 
 For report modeling, treat `campaign_id + item_group_id + item_id + stat_time_day` as the stable performance fact grain, and treat creative title, TikTok account, authorization/source type, shop content type, and post time as creative metadata dimensions. This prevents a Seller Center style export from losing performance rows when TikTok rejects attribute metrics for a multi-ID query.
 
