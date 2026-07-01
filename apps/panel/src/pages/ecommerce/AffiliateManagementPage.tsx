@@ -180,7 +180,7 @@ type AffiliateInsightSubject = {
   shopId?: string;
 };
 
-type AffiliateInsightModelScope = "user" | "shop";
+type AffiliateInsightModelScope = "user" | "region" | "shop";
 
 type AffiliateInsightRow = {
   key: string;
@@ -243,7 +243,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
     const rows: AffiliateInsightRow[] = [];
     const hasError = Boolean(entityStore.affiliateMlInsightsError);
     for (const subject of insightSubjects) {
-      const scopes: AffiliateInsightModelScope[] = subject.kind === "user" ? ["user"] : ["user", "shop"];
+      const scopes: AffiliateInsightModelScope[] = subject.kind === "user" ? ["user"] : ["user", "region", "shop"];
       for (const modelScope of scopes) {
         const cached = entityStore.affiliateMlInsightRow(subject.key, modelScope);
         rows.push({
@@ -661,17 +661,26 @@ function AffiliateMlInsightsPanel({
     ? rows.filter((row) => row.subjectKey === selectedSubject.key)
     : [];
   const accountModelRow = selectedRows.find((row) => row.modelScope === "user") ?? null;
+  const regionModelRow = selectedRows.find((row) => row.modelScope === "region") ?? null;
   const storeModelRow = selectedRows.find((row) => row.modelScope === "shop") ?? null;
   const availableModelScope =
     activeModelScope === "shop" && storeModelRow?.summary
       ? "shop"
+      : activeModelScope === "region" && regionModelRow?.summary
+        ? "region"
       : accountModelRow?.summary
         ? "user"
+        : regionModelRow?.summary
+          ? "region"
         : storeModelRow?.summary
           ? "shop"
           : activeModelScope;
   const selectedRow =
-    (availableModelScope === "shop" ? storeModelRow : accountModelRow)
+    (availableModelScope === "shop"
+      ? storeModelRow
+      : availableModelScope === "region"
+        ? regionModelRow
+        : accountModelRow)
     ?? selectedRows.find((row) => row.summary)
     ?? selectedRows[0]
     ?? rows.find((row) => row.summary)
@@ -681,6 +690,8 @@ function AffiliateMlInsightsPanel({
   const selectedModelLabel =
     selectedRow?.modelScope === "shop"
       ? t("ecommerce.affiliateWorkspace.intelligenceStoreModel")
+      : selectedRow?.modelScope === "region"
+        ? t("ecommerce.affiliateWorkspace.intelligenceRegionModel")
       : t("ecommerce.affiliateWorkspace.intelligenceAccountModel");
 
   useEffect(() => {
@@ -717,6 +728,7 @@ function AffiliateMlInsightsPanel({
           <AffiliateModelSourceSwitch
             accountRow={accountModelRow}
             activeModelScope={availableModelScope}
+            regionRow={regionModelRow}
             storeRow={storeModelRow}
             onChange={setActiveModelScope}
           />
@@ -831,6 +843,7 @@ function AffiliateMlInsightsPanel({
           <AffiliateModelSourceSwitch
             accountRow={accountModelRow}
             activeModelScope={availableModelScope}
+            regionRow={regionModelRow}
             storeRow={storeModelRow}
             onChange={setActiveModelScope}
           />
@@ -1004,11 +1017,13 @@ function AffiliateImplicitThresholdPanel({
 function AffiliateModelSourceSwitch({
   accountRow,
   activeModelScope,
+  regionRow,
   storeRow,
   onChange,
 }: {
   accountRow: AffiliateInsightRow | null;
   activeModelScope: AffiliateInsightModelScope;
+  regionRow: AffiliateInsightRow | null;
   storeRow: AffiliateInsightRow | null;
   onChange: (scope: AffiliateInsightModelScope) => void;
 }) {
@@ -1019,6 +1034,12 @@ function AffiliateModelSourceSwitch({
       label: t("ecommerce.affiliateWorkspace.intelligenceAccountModel"),
       description: t("ecommerce.affiliateWorkspace.intelligenceAccountModelHint"),
       row: accountRow,
+    },
+    {
+      key: "region" as AffiliateInsightModelScope,
+      label: t("ecommerce.affiliateWorkspace.intelligenceRegionModel"),
+      description: t("ecommerce.affiliateWorkspace.intelligenceRegionModelHint"),
+      row: regionRow,
     },
     {
       key: "shop" as AffiliateInsightModelScope,

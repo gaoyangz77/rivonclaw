@@ -89,7 +89,7 @@ function stripTypename<T>(value: T): T {
   return value;
 }
 
-type AffiliateMlInsightModelScope = "user" | "shop";
+type AffiliateMlInsightModelScope = "user" | "region" | "shop";
 type SessionTabAliasTarget = { key: string; recipientAlias?: string };
 
 const AffiliateMlInsightRowModel = types.model("AffiliateMlInsightRow", {
@@ -97,7 +97,7 @@ const AffiliateMlInsightRowModel = types.model("AffiliateMlInsightRow", {
   subjectKey: types.string,
   kind: types.enumeration(["user", "shop"]),
   shopId: types.maybe(types.string),
-  modelScope: types.enumeration(["user", "shop"]),
+  modelScope: types.enumeration(["user", "region", "shop"]),
   summary: types.maybeNull(types.frozen()),
   failed: types.optional(types.boolean, false),
 });
@@ -107,7 +107,10 @@ function affiliateMlInsightSubjectKey(shopId?: string | null): string {
 }
 
 function normalizeAffiliateMlModelScope(value: unknown, fallback: AffiliateMlInsightModelScope): AffiliateMlInsightModelScope {
-  return String(value ?? fallback).toLowerCase() === "shop" ? "shop" : "user";
+  const normalized = String(value ?? fallback).toLowerCase();
+  if (normalized === "shop") return "shop";
+  if (normalized === "region") return "region";
+  return "user";
 }
 
 function cleanRecipientLookupPart(value: string): string {

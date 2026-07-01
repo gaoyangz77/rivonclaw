@@ -2640,6 +2640,8 @@ export default {
       "intelligenceModelSourceSelector": "Modelo usado para esta tienda",
       "intelligenceAccountModel": "Modelo de cuenta",
       "intelligenceAccountModelHint": "Usa el historial affiliate entre tiendas de esta cuenta.",
+      "intelligenceRegionModel": "Modelo de región",
+      "intelligenceRegionModelHint": "Usa el historial affiliate de tiendas en la misma región.",
       "intelligenceStoreModel": "Modelo de tienda",
       "intelligenceStoreModelHint": "Usa solo el historial affiliate de esta tienda.",
       "intelligenceRecommendedModel": "Recomendado",
@@ -3264,8 +3266,9 @@ export default {
         "runProfileNone": "No se ha seleccionado ningún perfil de ejecución",
         "modelUsageScope": "Usar modelo",
         "modelUsageScopeLabel": "Modelo de predicción",
-        "modelUsageScopeHint": "Elige si esta tienda usa el modelo a nivel de cuenta o su propio modelo de tienda para predecir ventas esperadas.",
+        "modelUsageScopeHint": "Elige si esta tienda usa el modelo de cuenta, región o tienda para predecir ventas esperadas.",
         "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeRegionLevel": "Region level",
         "modelUsageScopeShopLevel": "Shop level",
         "modelRecommendationTitle": "Recomendado: {{scope}}",
         "modelRecommendationSelected": "Actualmente usa el modelo recomendado",
@@ -3277,8 +3280,10 @@ export default {
         "modelRecommendationNoData": "Sin datos aún",
         "modelRecommendationReasons": {
           "account_more_stable": "El modelo de cuenta usa historial de creadores entre tiendas y actualmente es el predeterminado más estable para esta tienda.",
+          "region_balanced": "El modelo regional usa historial de tiendas de la misma región, equilibrando tamaño de muestra y diferencias de mercado.",
           "shop_clear_advantage": "El modelo de tienda muestra una ventaja más clara para esta tienda en la ventana de prueba holdout, con confianza no baja.",
           "only_account": "Solo el modelo de cuenta tiene una evaluación disponible ahora.",
+          "only_region": "Solo el modelo regional tiene una evaluación disponible ahora.",
           "only_shop": "Solo el modelo de tienda tiene una evaluación disponible ahora."
         },
         "modelConfidence": {

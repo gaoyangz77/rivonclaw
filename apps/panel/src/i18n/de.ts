@@ -2640,6 +2640,8 @@ export default {
       "intelligenceModelSourceSelector": "Für diesen Shop verwendetes Modell",
       "intelligenceAccountModel": "Konto-Modell",
       "intelligenceAccountModelHint": "Nutzt die Affiliate-Historie aller Shops dieses Kontos.",
+      "intelligenceRegionModel": "Regions-Modell",
+      "intelligenceRegionModelHint": "Nutzt die Affiliate-Historie von Shops in derselben Region.",
       "intelligenceStoreModel": "Shop-Modell",
       "intelligenceStoreModelHint": "Nutzt nur die Affiliate-Historie dieses Shops.",
       "intelligenceRecommendedModel": "Empfohlen",
@@ -3264,8 +3266,9 @@ export default {
         "runProfileNone": "Kein RunProfile ausgewählt",
         "modelUsageScope": "Modell verwenden",
         "modelUsageScopeLabel": "Prognosemodell",
-        "modelUsageScopeHint": "Wählen Sie, ob dieser Shop das Konto-Modell oder das eigene Shop-Modell für Expected-Sales-Prognosen verwendet.",
+        "modelUsageScopeHint": "Wählen Sie, ob dieser Shop das Konto-, Regions- oder Shop-Modell für Expected-Sales-Prognosen verwendet.",
         "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeRegionLevel": "Region level",
         "modelUsageScopeShopLevel": "Shop level",
         "modelRecommendationTitle": "Empfohlen: {{scope}}",
         "modelRecommendationSelected": "Aktuell wird das empfohlene Modell verwendet",
@@ -3277,8 +3280,10 @@ export default {
         "modelRecommendationNoData": "Noch keine Daten",
         "modelRecommendationReasons": {
           "account_more_stable": "Das Konto-Modell nutzt Creator-Historie über Shops hinweg und ist derzeit der stabilere Standard für diesen Shop.",
+          "region_balanced": "Das Regionsmodell nutzt nur Creator-Historie aus derselben Region und balanciert Stichprobengröße mit Marktunterschieden.",
           "shop_clear_advantage": "Das Shop-Modell zeigt in der Holdout-Testfenster-Auswertung einen klareren Vorteil für diesen Shop und hat keine niedrige Sicherheit.",
           "only_account": "Derzeit hat nur das Konto-Modell eine verfügbare Auswertung.",
+          "only_region": "Derzeit hat nur das Regionsmodell eine verfügbare Auswertung.",
           "only_shop": "Derzeit hat nur das Shop-Modell eine verfügbare Auswertung."
         },
         "modelConfidence": {

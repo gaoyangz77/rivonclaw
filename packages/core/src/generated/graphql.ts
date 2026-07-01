@@ -1434,6 +1434,7 @@ export interface AffiliateMlInsightsInput {
 }
 
 export const AffiliateMlInsightsModelScope = {
+  Region: 'REGION',
   Shop: 'SHOP',
   User: 'USER'
 } as const;
@@ -1470,6 +1471,7 @@ export interface AffiliateMlModelEfficiencySummary {
 
 /** Which tenant-scoped affiliate expected-sales model this shop should use. */
 export const AffiliateModelUsageScope = {
+  RegionLevel: 'REGION_LEVEL',
   ShopLevel: 'SHOP_LEVEL',
   UserLevel: 'USER_LEVEL'
 } as const;
