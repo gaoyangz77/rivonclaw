@@ -49,6 +49,7 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
   const { showToast } = useToast();
   const [form, setForm] = useState<AffiliatePolicyFormState>(EMPTY_POLICY_FORM);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<AffiliatePolicyAction>(AFFILIATE_POLICY_ACTIONS[0]);
   const [policyToDelete, setPolicyToDelete] = useState<AffiliateApprovalPolicy | null>(null);
   const [copiedPolicyId, setCopiedPolicyId] = useState<string | null>(null);
 
@@ -107,17 +108,28 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
       })),
     [t],
   );
-  const hasRecommendedGlobalPolicies = AFFILIATE_POLICY_ACTIONS.every((action) =>
-    policies.some((policy) =>
-      policy.action === action &&
-      policy.enabled &&
-      policy.creatorTagIds.length === 0 &&
-      policy.campaignIds.length === 0 &&
-      policy.productIds.length === 0
-    ),
+  const actionPolicySummaries = useMemo(
+    () =>
+      AFFILIATE_POLICY_ACTIONS.map((action) => {
+        const actionPolicies = policies.filter((policy) => policy.action === action);
+        return {
+          action,
+          label: policyActionLabel(t, action),
+          description: policyActionDescription(t, action),
+          policies: actionPolicies,
+          enabledCount: actionPolicies.filter((policy) => policy.enabled).length,
+          globalCount: actionPolicies.filter((policy) => isGlobalPolicy(policy)).length,
+        };
+      }),
+    [policies, t],
+  );
+  const selectedActionSummary =
+    actionPolicySummaries.find((summary) => summary.action === selectedAction) ?? actionPolicySummaries[0]!;
+  const hasRecommendedGlobalPolicies = actionPolicySummaries.every((summary) =>
+    summary.policies.some((policy) => policy.enabled && isGlobalPolicy(policy)),
   );
 
-  function openCreate(action: AffiliatePolicyAction = GQL.ActionProposalType.SendMessage) {
+  function openCreate(action: AffiliatePolicyAction = selectedAction) {
     setForm({
       ...EMPTY_POLICY_FORM,
       action,
@@ -292,54 +304,107 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
         <div className="shop-info-card">
           <p className="form-hint">{t("common.loading")}</p>
         </div>
-      ) : policies.length === 0 ? (
-        <div className="shop-info-card">
-          <p className="form-hint">{t("ecommerce.affiliateWorkspace.policies.empty")}</p>
-        </div>
       ) : (
-        <div className="affiliate-policy-action-groups affiliate-policy-drawer-groups">
-          {AFFILIATE_POLICY_ACTIONS.map((action) => {
-            const actionPolicies = policies.filter((policy) => policy.action === action);
-            return (
-              <div className="affiliate-policy-action-group" key={action}>
-                <div className="affiliate-policy-action-head">
-                  <div>
-                    <strong>{policyActionLabel(t, action)}</strong>
-                    <span>{policyActionDescription(t, action)}</span>
-                  </div>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    type="button"
-                    onClick={() => openCreate(action)}
-                  >
-                    {t("ecommerce.affiliateWorkspace.policies.addForAction")}
-                  </button>
-                </div>
-                {actionPolicies.length === 0 ? (
-                  <div className="affiliate-policy-action-empty">
-                    {t("ecommerce.affiliateWorkspace.policies.noPolicyForAction")}
-                  </div>
-                ) : (
-                  <div className="affiliate-policy-card-list">
-                    {actionPolicies.map((policy) => (
-                      <AffiliatePolicyCard
-                        key={policy.id}
-                        policy={policy}
-                        copiedPolicyId={copiedPolicyId}
-                        creatorTags={creatorTags}
-                        campaigns={campaigns}
-                        busy={busy}
-                        onCopyId={copyPolicyId}
-                        onEdit={openEdit}
-                        onToggle={togglePolicy}
-                        onDelete={setPolicyToDelete}
-                      />
-                    ))}
-                  </div>
-                )}
+        <div className="affiliate-policy-control-surface">
+          {policies.length === 0 ? (
+            <div className="affiliate-policy-empty-banner">
+              {t("ecommerce.affiliateWorkspace.policies.empty")}
+            </div>
+          ) : null}
+
+          <div
+            className="affiliate-policy-action-switcher"
+            role="tablist"
+            aria-label={t("ecommerce.affiliateWorkspace.policies.actionLabel")}
+          >
+            {actionPolicySummaries.map((summary) => {
+              const isSelected = summary.action === selectedActionSummary.action;
+              const requiresApproval = summary.enabledCount > 0;
+              return (
+                <button
+                  key={summary.action}
+                  className={`affiliate-policy-action-tab${isSelected ? " affiliate-policy-action-tab-active" : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => setSelectedAction(summary.action)}
+                >
+                  <span className="affiliate-policy-action-tab-copy">
+                    <strong>{summary.label}</strong>
+                    <span>{summary.description}</span>
+                  </span>
+                  <span className="affiliate-policy-action-tab-meta">
+                    <span
+                      className={`affiliate-policy-mode-chip ${
+                        requiresApproval ? "affiliate-policy-mode-chip-approval" : "affiliate-policy-mode-chip-auto"
+                      }`}
+                    >
+                      {requiresApproval
+                        ? t("ecommerce.affiliateWorkspace.policies.approvalRequired")
+                        : t("ecommerce.affiliateWorkspace.policies.autoExecute")}
+                    </span>
+                    <span className="affiliate-policy-action-count">
+                      {t("ecommerce.affiliateWorkspace.policies.policyCount", {
+                        count: summary.policies.length,
+                      })}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <section className="affiliate-policy-action-detail" aria-label={selectedActionSummary.label}>
+            <div className="affiliate-policy-action-detail-head">
+              <div className="affiliate-policy-action-detail-copy">
+                <span className="shop-toggle-card-label">
+                  {t("ecommerce.affiliateWorkspace.policies.currentPolicyList")}
+                </span>
               </div>
-            );
-          })}
+              <div className="affiliate-policy-action-detail-meta">
+                <span>
+                  {t("ecommerce.affiliateWorkspace.policies.enabledPolicyCount", {
+                    count: selectedActionSummary.enabledCount,
+                  })}
+                </span>
+                <span>
+                  {t("ecommerce.affiliateWorkspace.policies.globalPolicyCount", {
+                    count: selectedActionSummary.globalCount,
+                  })}
+                </span>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  type="button"
+                  onClick={() => openCreate(selectedActionSummary.action)}
+                >
+                  {t("ecommerce.affiliateWorkspace.policies.addForAction")}
+                </button>
+              </div>
+            </div>
+
+            {selectedActionSummary.policies.length === 0 ? (
+              <div className="affiliate-policy-action-empty affiliate-policy-action-empty-state">
+                {t("ecommerce.affiliateWorkspace.policies.noPolicyForAction")}
+              </div>
+            ) : (
+              <div className="affiliate-policy-card-list">
+                {selectedActionSummary.policies.map((policy) => (
+                  <AffiliatePolicyCard
+                    key={policy.id}
+                    policy={policy}
+                    copiedPolicyId={copiedPolicyId}
+                    creatorTags={creatorTags}
+                    campaigns={campaigns}
+                    busy={busy}
+                    onCopyId={copyPolicyId}
+                    onEdit={openEdit}
+                    onToggle={togglePolicy}
+                    onDelete={setPolicyToDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       )}
 
@@ -510,10 +575,7 @@ function AffiliatePolicyCard({
 }) {
   const { t } = useTranslation();
   const conditionSummary = buildPolicyConditionSummary(t, policy, creatorTags, campaigns);
-  const matchesAll =
-    policy.creatorTagIds.length === 0 &&
-    policy.campaignIds.length === 0 &&
-    policy.productIds.length === 0;
+  const matchesAll = isGlobalPolicy(policy);
 
   return (
     <article className={`affiliate-policy-card${policy.enabled ? "" : " affiliate-policy-card-disabled"}`}>
@@ -532,10 +594,11 @@ function AffiliatePolicyCard({
           className={`affiliate-id-copy-btn${copiedPolicyId === policy.id ? " affiliate-id-copy-copied" : ""}`}
           type="button"
           onClick={() => onCopyId(policy.id)}
-          title={t("ecommerce.affiliateWorkspace.copyDebugId")}
-          aria-label={t("ecommerce.affiliateWorkspace.copyDebugId")}
+          title={t("ecommerce.affiliateWorkspace.policies.copyPolicySystemId")}
+          aria-label={t("ecommerce.affiliateWorkspace.policies.copyPolicySystemId")}
         >
           {copiedPolicyId === policy.id ? <CheckIcon /> : <CopyIcon />}
+          <span>{t("ecommerce.affiliateWorkspace.policies.copyPolicySystemId")}</span>
         </button>
       </div>
 
@@ -673,17 +736,17 @@ function policyFormMatchesAll(form: AffiliatePolicyFormState): boolean {
   );
 }
 
+function isGlobalPolicy(policy: Pick<AffiliateApprovalPolicy, "creatorTagIds" | "campaignIds" | "productIds">): boolean {
+  return policy.creatorTagIds.length === 0 && policy.campaignIds.length === 0 && policy.productIds.length === 0;
+}
+
 function buildPolicyConditionSummary(
   t: AffiliatePolicyTranslate,
   policy: AffiliateApprovalPolicy,
   creatorTags: GQL.CreatorTag[],
   campaigns: GQL.AffiliateCampaign[],
 ): { title: string; description: string } {
-  if (
-    policy.creatorTagIds.length === 0 &&
-    policy.campaignIds.length === 0 &&
-    policy.productIds.length === 0
-  ) {
+  if (isGlobalPolicy(policy)) {
     return {
       title: t("ecommerce.affiliateWorkspace.policies.appliesToAll"),
       description: t("ecommerce.affiliateWorkspace.policies.appliesToAllDescription"),

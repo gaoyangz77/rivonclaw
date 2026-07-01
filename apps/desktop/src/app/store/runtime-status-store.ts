@@ -37,6 +37,7 @@ type Applier = (s: typeof RuntimeStatusStoreModel.Type.appSettings, raw: string 
  * has never toggled it, which the old getter treated as enabled.
  */
 const SETTING_APPLIERS: Record<string, Applier> = {
+  "locale":                       (s, v) => { s.locale                   = v ?? ""; },
   "chat_show_agent_events":       (s, v) => { s.chatShowAgentEvents      = isNotFalse(v); },
   "chat_preserve_tool_events":    (s, v) => { s.chatPreserveToolEvents   = isTrue(v); },
   "chat_collapse_messages":       (s, v) => { s.chatCollapseMessages     = isNotFalse(v); },

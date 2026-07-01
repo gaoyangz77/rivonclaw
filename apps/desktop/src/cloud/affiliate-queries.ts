@@ -319,33 +319,336 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
   query AffiliateWorkItems($input: ReadAffiliateWorkItemsInput) {
     affiliateWorkItems(input: $input) {
       id
+      shopId
+      platformShopId
       subjectType
       shopThreadId
       collaborationRecordId
+      workKind
+      workBundleKind
+      recommendedActionTypes
+      agentDispatchRecommended
+      staffReviewRequired
+      processingStatus
       versionAt
       requiredAction
+      processReasons
       shopThread {
         id
+        userId
+        shopId
+        platform
+        creatorId
+        creatorOpenId
+        creatorImId
+        platformConversationId
+        lastMessageId
+        lastMessageIndex
+        lastMessageAt
+        lastInboundAt
+        lastOutboundAt
+        unreadCount
         lastSignalAt
         workHandledUntil
+        nextSellerActionAt
         processingStatus
         requiredAction
         processReasons
+        stateUpdatedAt
+        activeCollaborationRecordIds
+        focusCollaborationRecordId
+        ambiguousCollaborationRecordIds
+        startedAt
+        archivedAt
+        createdAt
+        updatedAt
       }
       collaboration {
         id
+        userId
+        shopId
         lastSignalAt
         workHandledUntil
+        nextSellerActionAt
         processingStatus
         requiredAction
         processReasons
+        creatorId
+        creatorOpenId
+        productId
+        sampleApplicationRecordId
+        affiliateCollaborationId
+        collaborationType
+        platformCollaborationId
+        platformConversationId
+        creatorImId
+        lifecycleStage
+        lastCreatorMessageId
+        lastCreatorMessageAt
+        stateUpdatedAt
+        startedAt
+        endedAt
+        createdAt
+        updatedAt
+        predictionSnapshots {
+          sourceCacheId
+          predictionType
+          scenario
+          status
+          output
+          model
+          diagnostics
+          predictedAt
+          capturedAt
+        }
+      }
+      sampleApplicationRecord {
+        id
+        userId
+        shopId
+        platformApplicationId
+        creatorId
+        creatorOpenId
+        productId
+        affiliateCollaborationId
+        collaborationType
+        platformCollaborationId
+        platformOpenCollaborationId
+        platformTargetCollaborationId
+        sampleWorkStatus
+        trackingNumber
+        carrier
+        observedContentCount
+        latestObservedContentAt
+        latestObservedContentId
+        latestObservedContentUrl
+        latestObservedContentFormat
+        latestObservedContentPaidOrderCount
+        latestObservedContentViewCount
+        shippedAt
+        deliveredAt
+        updatedAt
+      }
+      context {
+        creatorProfile {
+          id
+          creatorOpenId
+          creatorImId
+          username
+          nickname
+          avatarUrl
+          followerCount
+        }
+        creatorRelation {
+          id
+          creatorId
+          blocked
+          blockedShopIds
+          shopStates {
+            shopId
+            lifecycleStage
+            tagIds
+            lastContactedAt
+            lastInvitedAt
+            lastQualifiedAt
+          }
+        }
+        affiliateCollaboration {
+          id
+          type
+          campaignId
+          platformCollaborationId
+          productIds
+          status
+        }
+        activeCollaborations {
+          id
+          creatorId
+          creatorOpenId
+          productId
+          sampleApplicationRecordId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          platformConversationId
+          lifecycleStage
+          processingStatus
+          requiredAction
+          processReasons
+          lastSignalAt
+          workHandledUntil
+          updatedAt
+        }
+        focusCollaboration {
+          id
+          creatorId
+          productId
+          platformConversationId
+          lifecycleStage
+          processingStatus
+          updatedAt
+        }
+        ambiguousCollaborationCandidates {
+          id
+          creatorId
+          creatorOpenId
+          productId
+          sampleApplicationRecordId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          platformConversationId
+          lifecycleStage
+          processingStatus
+          updatedAt
+        }
+        productContext {
+          productId
+          title
+          imageUrl
+          source
+        }
+        primarySampleApplication {
+          id
+          userId
+          shopId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          productId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          platformOpenCollaborationId
+          platformTargetCollaborationId
+          sampleWorkStatus
+          trackingNumber
+          carrier
+          observedContentCount
+          latestObservedContentAt
+          latestObservedContentId
+          latestObservedContentUrl
+          latestObservedContentFormat
+          latestObservedContentPaidOrderCount
+          latestObservedContentViewCount
+          shippedAt
+          deliveredAt
+          updatedAt
+        }
+        relatedSampleApplications {
+          id
+          userId
+          shopId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          productId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          platformOpenCollaborationId
+          platformTargetCollaborationId
+          sampleWorkStatus
+          trackingNumber
+          carrier
+          observedContentCount
+          latestObservedContentAt
+          latestObservedContentId
+          latestObservedContentUrl
+          latestObservedContentFormat
+          latestObservedContentPaidOrderCount
+          latestObservedContentViewCount
+          shippedAt
+          deliveredAt
+          updatedAt
+        }
+        pendingProposals {
+          id
+          type
+          status
+          operatorSummary
+          creatorId
+          shopThreadId
+          collaborationRecordId
+          sourceWorkBoundary {
+            subjectType
+            shopThreadId
+            collaborationRecordId
+            workKind
+            workBundleKind
+            versionAt
+            triggerKind
+            triggerId
+            recommendedActionTypes
+          }
+          decision {
+            note
+            decidedAt
+            actorType
+            actorId
+          }
+          updatedAt
+        }
+        missingContext {
+          reason
+          severity
+          message
+        }
+        recommendedActionTypes
+      }
+      latestPendingProposal {
+        id
+        type
+        status
+        operatorSummary
+        steps {
+          stepId
+          type
+          operatorSummary
+        }
+        creatorId
+        shopThreadId
+        collaborationRecordId
+        sourceWorkBoundary {
+          subjectType
+          shopThreadId
+          collaborationRecordId
+          workKind
+          workBundleKind
+          versionAt
+          triggerKind
+          triggerId
+          recommendedActionTypes
+        }
+        sampleReviewIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          decision
+          rejectReason
+        }
+        sampleShipmentIntent {
+          sampleApplicationRecordId
+          platformApplicationId
+          warehouseId
+          skuId
+          quantity
+        }
+        messageIntent {
+          conversationId
+          creatorId
+          sampleApplicationRecordId
+          platformApplicationId
+          messageType
+          text
+        }
+        updatedAt
       }
     }
   }
 `;
 
 export interface AffiliateWorkItemsQueryResult {
-  affiliateWorkItems: Array<Pick<GQL.AffiliateWorkItem, "id" | "shopThreadId" | "collaborationRecordId" | "versionAt" | "shopThread" | "collaboration">>;
+  affiliateWorkItems: GQL.AffiliateWorkItem[];
 }
 
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
@@ -381,4 +684,33 @@ export interface ResolveAffiliateWorkItemMutationResult {
       "id" | "processingStatus" | "processReasons" | "workHandledUntil" | "stateUpdatedAt"
     > | null;
   };
+}
+
+export const DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION = `
+  mutation DeliverAffiliateCreatorText($input: DeliverAffiliateCreatorTextInput!) {
+    deliverAffiliateCreatorText(input: $input) {
+      id
+      status
+      preferredChannel
+      actualChannel
+      providerMessageId
+      platformConversationId
+      errorCode
+      errorMessage
+    }
+  }
+`;
+
+export interface DeliverAffiliateCreatorTextMutationResult {
+  deliverAffiliateCreatorText: Pick<
+    GQL.AffiliateMessageDelivery,
+    | "id"
+    | "status"
+    | "preferredChannel"
+    | "actualChannel"
+    | "providerMessageId"
+    | "platformConversationId"
+    | "errorCode"
+    | "errorMessage"
+  >;
 }

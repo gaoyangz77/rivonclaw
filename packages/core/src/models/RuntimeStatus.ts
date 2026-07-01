@@ -25,6 +25,8 @@ export const CsBridgeStatusModel = types.model("CsBridgeStatus", {
  * Rule: isNotFalse settings default to true, isTrue settings default to false.
  */
 export const AppSettingsModel = types.model("AppSettings", {
+  /** Active Panel/Desktop UI locale. */
+  locale: types.optional(types.string, ""),
   // Chat display (isNotFalse → absent = true)
   chatShowAgentEvents: types.optional(types.boolean, true),
   chatCollapseMessages: types.optional(types.boolean, true),

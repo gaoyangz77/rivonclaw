@@ -619,6 +619,39 @@ describe("affiliate message dispatch", () => {
     }));
   });
 
+  it("dispatches relationship-scoped WhatsApp affiliate signals without a platform conversation id", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopInCache();
+    mockRpcRequest.mockResolvedValue({ runId: "run-aff-whatsapp" });
+
+    await bridge.handleAffiliateConversationSignal({
+      type: "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED",
+      source: "WEBHOOK",
+      workSignal: true,
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      creatorRelationshipId: "relationship-001",
+      messageId: "wamid-001",
+      messageType: "conversation",
+      messageDirection: "CREATOR",
+      eventTime: "2026-07-01T12:00:00.000Z",
+    } as any);
+
+    expect(setSessionRunProfileCalls).toContainEqual({
+      sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
+      runProfileId: "AFFILIATE_OPERATOR",
+    });
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
+        idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_CONVERSATION_MESSAGE_OBSERVED:wamid-001:2026-07-01T12:00:00.000Z",
+        message: expect.stringContaining("[Affiliate Creator Direct-Channel Message]"),
+        extraSystemPrompt: expect.stringContaining("CREATOR_OUTREACH"),
+      }),
+    );
+  });
+
   it("drops stale affiliate creator-message dispatch when a newer inbound overtakes delta fetch", async () => {
     const bridge = createBridge();
     seedAffiliateShopInCache();

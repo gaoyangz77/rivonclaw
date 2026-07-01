@@ -2809,6 +2809,7 @@ function CreatorThreadDetailModal({
         variables: {
           input: {
             shopId: item.shopId,
+            creatorRelationshipId: item.creatorRelation?.id ?? undefined,
             conversationId: thread.platformConversationId ?? undefined,
             creatorId: thread.creatorId ?? undefined,
             creatorOpenId: thread.creatorOpenId ?? undefined,

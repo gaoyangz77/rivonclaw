@@ -198,6 +198,8 @@ export const ShopDrawer = observer(function ShopDrawer({
           : activeTab === "affiliateManagement" && shop.services?.affiliateService?.enabled
             ? [
                 { id: workspaceSectionId(activeTab, "service"), label: t("ecommerce.shopDrawer.affiliate.serviceStatus") },
+                { id: workspaceSectionId(activeTab, "whatsapp"), label: t("ecommerce.affiliateWorkspace.whatsapp.nav", { defaultValue: "WhatsApp" }) },
+                { id: workspaceSectionId(activeTab, "email"), label: t("ecommerce.affiliateWorkspace.email.nav", { defaultValue: "Outlook" }) },
                 { id: workspaceSectionId(activeTab, "run-profile"), label: t("ecommerce.shopDrawer.affiliate.runProfile") },
                 { id: workspaceSectionId(activeTab, "model"), label: t("ecommerce.shopDrawer.affiliate.modelUsageScope") },
                 { id: workspaceSectionId(activeTab, "thresholds"), label: t("ecommerce.shopDrawer.affiliate.decisionThresholds") },

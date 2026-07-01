@@ -14632,6 +14632,9 @@ html[lang="zh"] .acct-tool-chips {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding: 14px 16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-alt) 58%, var(--color-bg)), var(--color-bg));
 }
 
 .affiliate-policy-drawer-summary-copy {
@@ -14645,11 +14648,167 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
+  max-width: min(100%, 560px);
+}
+
+.affiliate-policy-drawer-actions .btn {
+  min-height: 34px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .affiliate-policy-drawer-groups {
   padding: 0;
+}
+
+.affiliate-policy-control-surface {
+  display: grid;
+  gap: 12px;
+  padding: 12px 12px 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-bg);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.affiliate-policy-empty-banner {
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border-light);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.affiliate-policy-action-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg));
+}
+
+.affiliate-policy-action-tab {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  min-height: 106px;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.affiliate-policy-action-tab:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+}
+
+.affiliate-policy-action-tab-active {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border-light));
+  background: var(--color-bg);
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--color-primary) 11%, transparent);
+}
+
+.affiliate-policy-action-tab-copy,
+.affiliate-policy-action-detail-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.affiliate-policy-action-tab-copy strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 780;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-policy-action-tab-copy span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.affiliate-policy-action-tab-meta,
+.affiliate-policy-action-detail-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.affiliate-policy-mode-chip,
+.affiliate-policy-action-count,
+.affiliate-policy-action-detail-meta > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.affiliate-policy-mode-chip-approval {
+  border-color: color-mix(in srgb, var(--color-warning, #f59e0b) 28%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 11%, var(--color-bg));
+  color: color-mix(in srgb, #9a5b00 72%, var(--color-text));
+}
+
+.affiliate-policy-mode-chip-auto {
+  border-color: color-mix(in srgb, var(--color-success, #22c55e) 26%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-success, #22c55e) 10%, var(--color-bg));
+  color: color-mix(in srgb, #15803d 76%, var(--color-text));
+}
+
+.affiliate-policy-action-detail {
+  display: grid;
+  gap: 10px;
+  padding: 2px 0 0;
+  background: transparent;
+}
+
+.affiliate-policy-action-detail-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 4px 2px 10px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-policy-action-detail-copy .form-hint {
+  margin: 0;
+}
+
+.affiliate-policy-action-empty-state {
+  min-height: 72px;
+  display: grid;
+  align-items: center;
 }
 
 .affiliate-policy-modal-form {
@@ -14712,21 +14871,29 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-policy-card-list {
   display: grid;
-  gap: 8px;
+  gap: 0;
 }
 
 .affiliate-policy-card {
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--color-border-light) 82%, var(--color-text-muted));
-  border-radius: 8px;
-  background: var(--color-bg);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-text) 4%, transparent);
+  grid-template-columns: minmax(150px, 0.55fr) minmax(180px, 0.85fr) minmax(220px, 1.2fr) minmax(130px, 0.55fr);
+  gap: 10px 14px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.affiliate-policy-card:last-child {
+  border-bottom: 0;
 }
 
 .affiliate-policy-card-disabled {
-  background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg));
+  background: transparent;
   color: var(--color-text-secondary);
 }
 
@@ -14740,13 +14907,43 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-policy-card-head {
-  justify-content: space-between;
+  align-content: start;
+  justify-content: flex-start;
 }
 
 .affiliate-policy-card-head > div {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.affiliate-policy-card .affiliate-id-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg-alt) 64%, var(--color-bg));
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.affiliate-policy-card .affiliate-id-copy-btn svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.affiliate-policy-card .affiliate-id-copy-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border-light));
+  color: var(--color-primary);
 }
 
 .affiliate-policy-status,
@@ -14798,17 +14995,396 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-policy-reason {
   margin: 0;
-  padding: 9px 10px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg));
+  padding: 0;
+  background: transparent;
 }
 
 .affiliate-policy-reason-empty {
   font-style: italic;
 }
 
-.affiliate-policy-card-actions {
+.affiliate-whatsapp-panel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.affiliate-email-panel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.affiliate-whatsapp-head,
+.affiliate-whatsapp-connect,
+.affiliate-whatsapp-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-head > div,
+.affiliate-whatsapp-connect label,
+.affiliate-whatsapp-account-main,
+.affiliate-whatsapp-qr-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-head strong,
+.affiliate-whatsapp-qr-copy strong,
+.affiliate-whatsapp-account-main strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-whatsapp-head span,
+.affiliate-whatsapp-connect label > span,
+.affiliate-whatsapp-qr-copy span,
+.affiliate-whatsapp-account-main small,
+.affiliate-whatsapp-account-main em {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-whatsapp-account-main em {
+  overflow-wrap: anywhere;
+  font-style: normal;
+  color: var(--color-danger, #ef4444);
+}
+
+.affiliate-whatsapp-connect {
+  align-items: end;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 75%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-alt) 60%, var(--color-bg));
+}
+
+.affiliate-email-connect {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(220px, 1.2fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 75%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-alt) 60%, var(--color-bg));
+}
+
+.affiliate-email-connect label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.affiliate-email-connect label > span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-email-connect .btn {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.affiliate-whatsapp-connect label {
+  flex: 1 1 260px;
+}
+
+.affiliate-whatsapp-connector {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-alt) 55%, var(--color-bg));
+}
+
+.affiliate-whatsapp-connector > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-connector strong {
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
+.affiliate-whatsapp-connector span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-whatsapp-connector-ready {
+  border-color: color-mix(in srgb, var(--color-success, #22c55e) 22%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-success, #22c55e) 5%, var(--color-bg));
+}
+
+.affiliate-whatsapp-connector-warning {
+  border-color: color-mix(in srgb, var(--color-warning, #f59e0b) 26%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 7%, var(--color-bg));
+}
+
+.affiliate-whatsapp-connector-metrics {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 6px;
+  max-width: min(100%, 360px);
+}
+
+.affiliate-whatsapp-connector-metrics span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 23px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 78%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.affiliate-whatsapp-qr {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+}
+
+.affiliate-whatsapp-qr-frame {
+  display: grid;
+  place-items: center;
+  width: 150px;
+  aspect-ratio: 1;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.affiliate-whatsapp-qr-frame img {
+  display: block;
+  width: 132px;
+  height: 132px;
+  object-fit: contain;
+}
+
+.affiliate-whatsapp-qr-frame span {
+  padding: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.affiliate-whatsapp-qr-copy code {
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  color: var(--color-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-whatsapp-proxy-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 80%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-alt) 45%, var(--color-bg));
+}
+
+.affiliate-whatsapp-proxy-head,
+.affiliate-whatsapp-proxy-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-proxy-head > div,
+.affiliate-whatsapp-proxy-row > div:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-proxy-head strong,
+.affiliate-whatsapp-proxy-row strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-whatsapp-proxy-head span,
+.affiliate-whatsapp-proxy-row em {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-whatsapp-proxy-row em {
+  overflow-wrap: anywhere;
+  color: var(--color-danger, #ef4444);
+  font-style: normal;
+}
+
+.affiliate-whatsapp-proxy-form {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(140px, 1.2fr) minmax(86px, 0.7fr) minmax(90px, 0.7fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
+  gap: 9px;
+  align-items: end;
+}
+
+.affiliate-whatsapp-proxy-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-proxy-form label > span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.affiliate-whatsapp-proxy-form .btn {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.affiliate-whatsapp-proxy-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-whatsapp-proxy-row {
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-whatsapp-proxy-row:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-whatsapp-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-email-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-email-empty {
+  padding: 14px 2px 2px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-whatsapp-account {
+  align-items: flex-start;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-whatsapp-account:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-whatsapp-account-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.affiliate-whatsapp-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 23px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-muted) 10%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  text-transform: capitalize;
+}
+
+.affiliate-whatsapp-status-connected {
+  background: color-mix(in srgb, var(--color-success, #22c55e) 10%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success, #15803d) 84%, var(--color-text));
+}
+
+.affiliate-whatsapp-status-pending_qr,
+.affiliate-whatsapp-status-qr_pending,
+.affiliate-whatsapp-status-pending {
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 12%, var(--color-bg));
+  color: color-mix(in srgb, #9a5b00 72%, var(--color-text));
+}
+
+.affiliate-whatsapp-status-error,
+.affiliate-whatsapp-status-revoked,
+.affiliate-whatsapp-status-disconnected {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 10%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-danger, #dc2626) 82%, var(--color-text));
+}
+
+.affiliate-policy-card-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .affiliate-policy-delete {
@@ -14965,6 +15541,38 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-policy-layout {
     grid-template-columns: 1fr;
   }
+
+  .affiliate-policy-action-switcher {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-policy-card {
+    grid-template-columns: minmax(170px, 0.9fr) minmax(220px, 1.2fr);
+  }
+
+  .affiliate-policy-card-actions {
+    justify-content: flex-end;
+  }
+
+  .affiliate-whatsapp-connector,
+  .affiliate-whatsapp-account,
+  .affiliate-whatsapp-proxy-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .affiliate-whatsapp-connector-metrics,
+  .affiliate-whatsapp-account-actions {
+    justify-content: flex-start;
+  }
+
+  .affiliate-email-connect {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-whatsapp-proxy-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -14985,7 +15593,49 @@ html[lang="zh"] .acct-tool-chips {
   }
 
   .affiliate-policy-drawer-actions {
+    max-width: 100%;
     justify-content: flex-start;
+    border-radius: 10px;
+  }
+
+  .affiliate-policy-action-detail-head {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-policy-action-detail-meta {
+    align-items: flex-start;
+  }
+
+  .affiliate-policy-card {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .affiliate-policy-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .affiliate-whatsapp-head,
+  .affiliate-whatsapp-connect {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .affiliate-whatsapp-qr {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-whatsapp-qr-frame {
+    width: min(150px, 100%);
+  }
+
+  .affiliate-whatsapp-proxy-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .affiliate-whatsapp-proxy-form {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -16262,29 +16912,28 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-attention-panel-head {
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(560px, 1.35fr);
+  align-items: end;
 }
 
 .affiliate-attention-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(150px, 170px) minmax(190px, 230px) minmax(280px, 1fr);
   align-items: flex-end;
-  justify-content: flex-end;
   gap: 10px;
-  flex: 1 1 auto;
-  flex-wrap: nowrap;
   min-width: 0;
+  width: 100%;
 }
 
 .affiliate-filter-field {
   display: grid;
   gap: 5px;
-  flex: 0 0 170px;
   min-width: 0;
 }
 
 .affiliate-filter-field-search {
-  flex: 1 1 260px;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .affiliate-filter-field > span {
@@ -16300,7 +16949,8 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-type-select {
-  width: 220px;
+  width: 100%;
+  min-width: 0;
 }
 
 .affiliate-attention-tabs {
@@ -16384,18 +17034,22 @@ html[lang="zh"] .acct-tool-chips {
     flex-direction: column;
   }
 
+  .affiliate-attention-panel-head {
+    grid-template-columns: 1fr;
+  }
+
   .affiliate-workbench-panel-title-row {
     min-width: 0;
   }
 
   .affiliate-attention-toolbar {
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .affiliate-filter-field,
-  .affiliate-filter-field-search {
-    flex: 1 1 220px;
+@media (max-width: 620px) {
+  .affiliate-attention-toolbar {
+    grid-template-columns: 1fr;
   }
 }
 

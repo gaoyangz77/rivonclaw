@@ -872,6 +872,10 @@ export interface AffiliateConversationSampleApplicationReference {
 export interface AffiliateConversationSignal {
   /** AffiliateCollaboration ID when this signal can be tied to a platform collaboration. */
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  /** Sample shipment carrier or logistics provider when available. */
+  carrier?: Maybe<Scalars['String']['output']>;
+  /** Outreach channel where the relationship-level message was observed. */
+  channel?: Maybe<AffiliateMessageChannel>;
   /** AffiliateCollaborationRecord ID produced or updated by the reducer. */
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   /** Open or target collaboration type when known. */
@@ -906,6 +910,8 @@ export interface AffiliateConversationSignal {
   creatorNickname?: Maybe<Scalars['String']['output']>;
   /** Creator open ID when carried by the webhook/API event. */
   creatorOpenId?: Maybe<Scalars['String']['output']>;
+  /** User-level AffiliateCreatorRelationship ID for channel-agnostic affiliate sessions. */
+  creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
   /** Best-known creator username carried by platform sync when available. */
   creatorUsername?: Maybe<Scalars['String']['output']>;
   /** When the platform event happened or the affiliate condition was detected. */
@@ -958,6 +964,8 @@ export interface AffiliateConversationSignal {
   shopThreadId?: Maybe<Scalars['ID']['output']>;
   /** System that emitted this signal. */
   source: AffiliateConversationSignalSource;
+  /** Sample shipment tracking number when available. */
+  trackingNumber?: Maybe<Scalars['String']['output']>;
   /** Business event that happened or was detected for affiliate operations. */
   type: AffiliateConversationSignalType;
   /** True when this payload represents seller-turn work that should be considered for desktop agent dispatch. */
@@ -991,6 +999,34 @@ export type AffiliateConversationSignalType = typeof AffiliateConversationSignal
 export interface AffiliateConversationTargetCollaborationReference {
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
   platformTargetCollaborationId: Scalars['String']['output'];
+}
+
+export interface AffiliateCreatorContactStateInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+export interface AffiliateCreatorContactStatePayload {
+  creatorRelationship: AffiliateCreatorRelationship;
+  emailAccounts: Array<EmailAccountBinding>;
+  hasUsableEmailContact: Scalars['Boolean']['output'];
+  hasUsableWhatsAppContact: Scalars['Boolean']['output'];
+  preferredChannel: AffiliateMessageChannel;
+  whatsAppAccounts: Array<WhatsAppAccountBinding>;
+}
+
+/** Relationship-level email contact attached to one seller Outlook/Microsoft Graph account binding. */
+export interface AffiliateCreatorEmailContact {
+  displayName?: Maybe<Scalars['String']['output']>;
+  email: Scalars['String']['output'];
+  emailAccountBindingId: Scalars['ID']['output'];
+  firstLinkedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  source: WhatsAppCreatorContactSource;
+  status: EmailCreatorContactStatus;
+  verifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
 /** Marketplace creator identity and durable marketplace facts. Shop-specific relationship state lives elsewhere. */
@@ -1028,6 +1064,45 @@ export interface AffiliateCreatorManagementItem {
   tags: Array<CreatorTag>;
 }
 
+export interface AffiliateCreatorMessageHistoryInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  includePlatform?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  platformLimit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+/** Relationship-level affiliate conversation item with channel labels across platform chat, WhatsApp, Outlook email, and delivery records. */
+export interface AffiliateCreatorMessageHistoryItem {
+  channel: AffiliateMessageChannel;
+  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
+  direction?: Maybe<AffiliateConversationMessageDirection>;
+  emailAccountBindingId?: Maybe<Scalars['ID']['output']>;
+  emailThreadId?: Maybe<Scalars['String']['output']>;
+  messageId?: Maybe<Scalars['String']['output']>;
+  messageType?: Maybe<Scalars['String']['output']>;
+  platformConversationId?: Maybe<Scalars['String']['output']>;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  source: Scalars['String']['output'];
+  subject?: Maybe<Scalars['String']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+  whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
+}
+
+/** Merged relationship-level affiliate creator conversation history. */
+export interface AffiliateCreatorMessageHistoryPayload {
+  creatorRelationship: AffiliateCreatorRelationship;
+  items: Array<AffiliateCreatorMessageHistoryItem>;
+  platformAvailable: Scalars['Boolean']['output'];
+  platformConversationId?: Maybe<Scalars['String']['output']>;
+  platformError?: Maybe<Scalars['String']['output']>;
+  platformHasMore: Scalars['Boolean']['output'];
+  platformNextPageToken?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateCreatorProductFitInput {
   /** Backend AffiliateCreatorIdentity id. Prefer this when the current affiliate work context already resolved it. */
   creatorId?: InputMaybe<Scalars['ID']['input']>;
@@ -1057,11 +1132,13 @@ export interface AffiliateCreatorRelationship {
   blockedShopIds: Array<Scalars['ID']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
+  emailContacts: Array<AffiliateCreatorEmailContact>;
   id: Scalars['ID']['output'];
   lastBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   shopStates: Array<AffiliateCreatorRelationshipShopState>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
+  whatsappContacts: Array<AffiliateCreatorWhatsAppContact>;
 }
 
 /** Embedded shop-specific lifecycle and tag state for a user-level creator relation. */
@@ -1072,6 +1149,19 @@ export interface AffiliateCreatorRelationshipShopState {
   lifecycleStage: AffiliateLifecycleStage;
   shopId: Scalars['ID']['output'];
   tagIds: Array<Scalars['ID']['output']>;
+}
+
+/** Relationship-level WhatsApp contact attached to one seller WhatsApp account binding. */
+export interface AffiliateCreatorWhatsAppContact {
+  creatorPhone?: Maybe<Scalars['String']['output']>;
+  creatorWaJid?: Maybe<Scalars['String']['output']>;
+  displayName?: Maybe<Scalars['String']['output']>;
+  firstLinkedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  source: WhatsAppCreatorContactSource;
+  status: WhatsAppCreatorContactStatus;
+  verifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
 }
 
 export interface AffiliateDashboardInput {
@@ -1148,6 +1238,24 @@ export interface AffiliateDecisionThresholdsInput {
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
+/** Source of an affiliate creator-facing message delivery */
+export const AffiliateDeliverySource = {
+  AgentAutoForward: 'AGENT_AUTO_FORWARD',
+  HumanManual: 'HUMAN_MANUAL',
+  System: 'SYSTEM'
+} as const;
+
+export type AffiliateDeliverySource = typeof AffiliateDeliverySource[keyof typeof AffiliateDeliverySource];
+/** Delivery lifecycle for an affiliate creator-facing message */
+export const AffiliateDeliveryStatus = {
+  Cancelled: 'CANCELLED',
+  Failed: 'FAILED',
+  FallbackSent: 'FALLBACK_SENT',
+  Queued: 'QUEUED',
+  Sent: 'SENT'
+} as const;
+
+export type AffiliateDeliveryStatus = typeof AffiliateDeliveryStatus[keyof typeof AffiliateDeliveryStatus];
 export interface AffiliateExpectedSalesModelVersion {
   bentomlTag?: Maybe<Scalars['String']['output']>;
   featureVersion?: Maybe<Scalars['String']['output']>;
@@ -1424,6 +1532,41 @@ export const AffiliateLifecycleStage = {
 } as const;
 
 export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
+/** Creator communication channel for affiliate outreach */
+export const AffiliateMessageChannel = {
+  Email: 'EMAIL',
+  PlatformChat: 'PLATFORM_CHAT',
+  Whatsapp: 'WHATSAPP'
+} as const;
+
+export type AffiliateMessageChannel = typeof AffiliateMessageChannel[keyof typeof AffiliateMessageChannel];
+/** Recorded delivery attempt for a creator-facing affiliate message. */
+export interface AffiliateMessageDelivery {
+  actualChannel?: Maybe<AffiliateMessageChannel>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorId: Scalars['ID']['output'];
+  creatorRelationshipId: Scalars['ID']['output'];
+  emailAccountBindingId?: Maybe<Scalars['ID']['output']>;
+  emailThreadId?: Maybe<Scalars['String']['output']>;
+  errorCode?: Maybe<Scalars['String']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  openClawRunId?: Maybe<Scalars['String']['output']>;
+  openClawSessionKey?: Maybe<Scalars['String']['output']>;
+  platformConversationId?: Maybe<Scalars['String']['output']>;
+  preferredChannel: AffiliateMessageChannel;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  shopId?: Maybe<Scalars['ID']['output']>;
+  source: AffiliateDeliverySource;
+  status: AffiliateDeliveryStatus;
+  text: Scalars['String']['output'];
+  textHash: Scalars['String']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+  whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
+}
+
 export interface AffiliateMlInsightSummariesInput {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
@@ -1486,6 +1629,97 @@ export const AffiliateOutboundMessageType = {
 } as const;
 
 export type AffiliateOutboundMessageType = typeof AffiliateOutboundMessageType[keyof typeof AffiliateOutboundMessageType];
+/** Seller outreach account connection event for affiliate direct-channel onboarding. */
+export interface AffiliateOutreachAccountConnectedPayload {
+  accountId: Scalars['ID']['output'];
+  address?: Maybe<Scalars['String']['output']>;
+  channel: AffiliateMessageChannel;
+  displayName?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateOutreachDeliveryStatusCount {
+  channel?: Maybe<AffiliateMessageChannel>;
+  count: Scalars['Int']['output'];
+  status: AffiliateDeliveryStatus;
+}
+
+export interface AffiliateOutreachInboundMessageCount {
+  channel: AffiliateMessageChannel;
+  count: Scalars['Int']['output'];
+  direction: AffiliateConversationMessageDirection;
+}
+
+export interface AffiliateOutreachOperationalEventCount {
+  count: Scalars['Int']['output'];
+  kind: AffiliateOutreachOperationalEventKind;
+  provider: AffiliateOutreachOperationalEventProvider;
+  status: AffiliateOutreachOperationalEventStatus;
+}
+
+/** Type of affiliate outreach connector operational event */
+export const AffiliateOutreachOperationalEventKind = {
+  MailboxDeltaSync: 'MAILBOX_DELTA_SYNC',
+  MailboxSubscriptionRenewal: 'MAILBOX_SUBSCRIPTION_RENEWAL',
+  WebhookReceived: 'WEBHOOK_RECEIVED',
+  WebhookRejected: 'WEBHOOK_REJECTED'
+} as const;
+
+export type AffiliateOutreachOperationalEventKind = typeof AffiliateOutreachOperationalEventKind[keyof typeof AffiliateOutreachOperationalEventKind];
+/** Connector provider that emitted an affiliate outreach operational event */
+export const AffiliateOutreachOperationalEventProvider = {
+  EvolutionApi: 'EVOLUTION_API',
+  MicrosoftGraph: 'MICROSOFT_GRAPH'
+} as const;
+
+export type AffiliateOutreachOperationalEventProvider = typeof AffiliateOutreachOperationalEventProvider[keyof typeof AffiliateOutreachOperationalEventProvider];
+/** Outcome bucket for affiliate outreach connector operational events */
+export const AffiliateOutreachOperationalEventStatus = {
+  Failed: 'FAILED',
+  Ignored: 'IGNORED',
+  Success: 'SUCCESS'
+} as const;
+
+export type AffiliateOutreachOperationalEventStatus = typeof AffiliateOutreachOperationalEventStatus[keyof typeof AffiliateOutreachOperationalEventStatus];
+export interface AffiliateOutreachOperationalEventTypeCount {
+  count: Scalars['Int']['output'];
+  eventType?: Maybe<Scalars['String']['output']>;
+  kind: AffiliateOutreachOperationalEventKind;
+  provider: AffiliateOutreachOperationalEventProvider;
+  status: AffiliateOutreachOperationalEventStatus;
+}
+
+export interface AffiliateOutreachOperationalStatusInput {
+  days?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+export interface AffiliateOutreachOperationalStatusPayload {
+  activeWhatsAppProxyCount: Scalars['Int']['output'];
+  deliveryCounts: Array<AffiliateOutreachDeliveryStatusCount>;
+  disabledWhatsAppProxyCount: Scalars['Int']['output'];
+  emailAccountsMissingRefreshTokenCount: Scalars['Int']['output'];
+  errorWhatsAppProxyCount: Scalars['Int']['output'];
+  failedDeliveryCount: Scalars['Int']['output'];
+  failedMailboxSyncCount: Scalars['Int']['output'];
+  failedSubscriptionRenewalCount: Scalars['Int']['output'];
+  fallbackCount: Scalars['Int']['output'];
+  ignoredWebhookCount: Scalars['Int']['output'];
+  inboundCounts: Array<AffiliateOutreachInboundMessageCount>;
+  latestDeliveryAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  latestInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  latestOperationalEventAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  mailboxSyncCount: Scalars['Int']['output'];
+  operationalEventCounts: Array<AffiliateOutreachOperationalEventCount>;
+  operationalEventTypeCounts: Array<AffiliateOutreachOperationalEventTypeCount>;
+  rejectedWebhookCount: Scalars['Int']['output'];
+  sharedEmailAccountsMissingAddressCount: Scalars['Int']['output'];
+  since: Scalars['DateTimeISO']['output'];
+  subscriptionRenewalCount: Scalars['Int']['output'];
+  webhookReceivedCount: Scalars['Int']['output'];
+  whatsappAccountsNeedingReconnectCount: Scalars['Int']['output'];
+  whatsappAccountsUsingUnavailableProxyCount: Scalars['Int']['output'];
+}
+
 /** How customized affiliate outreach copy should be for this campaign. */
 export const AffiliateOutreachPersonalizationMode = {
   Deep: 'DEEP',
@@ -1607,6 +1841,33 @@ export const AffiliateStaffCollaborationResolutionAction = {
 } as const;
 
 export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffCollaborationResolutionAction[keyof typeof AffiliateStaffCollaborationResolutionAction];
+/** WhatsApp message observed through a seller linked-device account for affiliate outreach. */
+export interface AffiliateWhatsAppMessage {
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorPhone?: Maybe<Scalars['String']['output']>;
+  creatorRelationshipId: Scalars['ID']['output'];
+  creatorWaJid: Scalars['String']['output'];
+  direction: AffiliateConversationMessageDirection;
+  eventTime: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  messageType: Scalars['String']['output'];
+  providerMessageId: Scalars['String']['output'];
+  providerStatus?: Maybe<Scalars['String']['output']>;
+  statusUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+  whatsappAccountBindingId: Scalars['ID']['output'];
+}
+
+export interface AffiliateWhatsAppMessagesInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
 /** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
 export const AffiliateWorkBundleKind = {
   ApprovalReviewOnly: 'APPROVAL_REVIEW_ONLY',
@@ -1782,6 +2043,8 @@ export interface AgentCsSettingsInput {
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
   /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
+  /** Review optimization settings. Omit or pass null to keep. */
+  reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
   /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
@@ -1841,6 +2104,25 @@ export interface AuthPayload {
   accessToken: Scalars['String']['output'];
   refreshToken: Scalars['String']['output'];
   user: MeResponse;
+}
+
+/** Bad-review customer-service reachout settings per shop */
+export interface BadReviewReachoutSettings {
+  enabled: Scalars['Boolean']['output'];
+  /** Only bad reviews created within this many days are eligible for customer-service reachout. Valid range: 1-90. */
+  recentDays: Scalars['Int']['output'];
+  /** Reviews at or below this star rating are treated as bad reviews. Valid range: 1-3. */
+  stars: Scalars['Int']['output'];
+}
+
+/** Bad-review customer-service reachout settings patch. Omit or pass null to keep. */
+export interface BadReviewReachoutSettingsInput {
+  /** Bad-review reachout enabled flag. Omit or pass null to keep. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Recent-review reachout window in days. Valid range: 1-90. Omit or pass null to keep. */
+  recentDays?: InputMaybe<Scalars['Int']['input']>;
+  /** Bad-review star threshold. Valid range: 1-3. Omit or pass null to keep. */
+  stars?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export const BillableProduct = {
@@ -2037,6 +2319,24 @@ export interface CaptchaResponse {
   token: Scalars['String']['output'];
 }
 
+export interface CheckCreatorWhatsAppContactInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorPhone: Scalars['String']['input'];
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  persist?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
+  whatsappAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface CheckCreatorWhatsAppContactPayload {
+  creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
+  exists: Scalars['Boolean']['output'];
+  jid?: Maybe<Scalars['String']['output']>;
+  number: Scalars['String']['output'];
+  whatsAppAccount: WhatsAppAccountBinding;
+}
+
 /** Input for claiming a CS escalation event for local execution */
 export interface ClaimCsEscalationEventInput {
   eventId: Scalars['ID']['input'];
@@ -2048,6 +2348,13 @@ export interface ClientLogUploadRequestPayload {
   reason?: Maybe<Scalars['String']['output']>;
   requestId: Scalars['String']['output'];
   requestedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Input for completing Microsoft Outlook OAuth onboarding */
+export interface CompleteMicrosoftEmailOAuthInput {
+  code: Scalars['String']['input'];
+  mailboxType?: InputMaybe<EmailMailboxType>;
+  sharedMailboxAddress?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** Result of completing TikTok Ads OAuth */
@@ -2149,6 +2456,15 @@ export interface CreateSurfaceInput {
   allowedToolIds: Array<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+}
+
+export interface CreateWhatsAppProxyInput {
+  host: Scalars['String']['input'];
+  password?: InputMaybe<Scalars['String']['input']>;
+  port: Scalars['String']['input'];
+  protocol: ProxyProtocol;
+  region?: InputMaybe<Scalars['String']['input']>;
+  username?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface CreatedLlmApiKeyPayload {
@@ -2645,12 +2961,12 @@ export interface CustomerServiceConversation {
   platformConversationStatus?: Maybe<CustomerServicePlatformConversationStatus>;
   /** Platform shop ID when this conversation is backend-materialized */
   platformShopId?: Maybe<Scalars['String']['output']>;
+  /** Recent bad reviews for this buyer, resolved dynamically from product_reviews. */
+  recentBadReviews?: Maybe<Array<CustomerServiceProductReviewSummary>>;
   /** Backend-owned customer-service reply state when materialized */
   replyStatus?: Maybe<CustomerServiceConversationStatus>;
   /** Unix seconds when the conversation was last resolved. */
   resolvedAt?: Maybe<Scalars['Int']['output']>;
-  /** Recent bad reviews for this buyer, resolved dynamically from product_reviews. */
-  recentBadReviews?: Maybe<Array<CustomerServiceProductReviewSummary>>;
   /** MongoDB shop ID when this conversation is backend-materialized */
   shopId?: Maybe<Scalars['String']['output']>;
   /** Conversation status per platform */
@@ -2708,37 +3024,6 @@ export const CustomerServiceConversationEscalationFilter = {
 } as const;
 
 export type CustomerServiceConversationEscalationFilter = typeof CustomerServiceConversationEscalationFilter[keyof typeof CustomerServiceConversationEscalationFilter];
-
-/** System lifecycle state for customer-service review follow-up. */
-export const ProductReviewFollowUpStatus = {
-  Attached: 'ATTACHED',
-  FailedToReachout: 'FAILED_TO_REACHOUT',
-  NotRequired: 'NOT_REQUIRED',
-  Pending: 'PENDING',
-  Resolved: 'RESOLVED',
-  Suppressed: 'SUPPRESSED'
-} as const;
-
-export type ProductReviewFollowUpStatus = typeof ProductReviewFollowUpStatus[keyof typeof ProductReviewFollowUpStatus];
-
-/** Recent bad product review context linked to a customer-service buyer. */
-export interface CustomerServiceProductReviewSummary {
-  /** MongoDB product review ID. */
-  id: Scalars['ID']['output'];
-  content?: Maybe<Scalars['String']['output']>;
-  followUpStatus: ProductReviewFollowUpStatus;
-  orderId?: Maybe<Scalars['String']['output']>;
-  platformReviewId: Scalars['String']['output'];
-  productId?: Maybe<Scalars['String']['output']>;
-  rating?: Maybe<Scalars['Int']['output']>;
-  /** Unix seconds when the review was created. */
-  reviewCreateTime?: Maybe<Scalars['Int']['output']>;
-  /** Unix seconds when the review was last updated. */
-  reviewUpdateTime?: Maybe<Scalars['Int']['output']>;
-  sellerSkus?: Maybe<Scalars['String']['output']>;
-  title?: Maybe<Scalars['String']['output']>;
-}
-
 /** Backend-materialized customer service conversation inbox item. */
 export interface CustomerServiceConversationInboxItem {
   aiEnabled: Scalars['Boolean']['output'];
@@ -2769,10 +3054,10 @@ export interface CustomerServiceConversationInboxItem {
   /** Backend-normalized platform conversation lifecycle/status when observed. */
   platformConversationStatus?: Maybe<CustomerServicePlatformConversationStatus>;
   platformShopId?: Maybe<Scalars['String']['output']>;
-  /** Unix seconds when the conversation was last resolved. */
-  resolvedAt?: Maybe<Scalars['Int']['output']>;
   /** Recent bad reviews for this buyer, resolved dynamically from product_reviews. */
   recentBadReviews?: Maybe<Array<CustomerServiceProductReviewSummary>>;
+  /** Unix seconds when the conversation was last resolved. */
+  resolvedAt?: Maybe<Scalars['Int']['output']>;
   shopId: Scalars['String']['output'];
   status: CustomerServiceConversationStatus;
   /** Unix seconds of the backend record update time. */
@@ -3058,6 +3343,25 @@ export const CustomerServicePlatformConversationStatus = {
 } as const;
 
 export type CustomerServicePlatformConversationStatus = typeof CustomerServicePlatformConversationStatus[keyof typeof CustomerServicePlatformConversationStatus];
+/** Recent bad product review context linked to a customer-service buyer. */
+export interface CustomerServiceProductReviewSummary {
+  content?: Maybe<Scalars['String']['output']>;
+  followUpStatus: ProductReviewFollowUpStatus;
+  /** MongoDB product review ID. */
+  id: Scalars['ID']['output'];
+  orderId?: Maybe<Scalars['String']['output']>;
+  /** Platform review ID from TikTok Shop. */
+  platformReviewId: Scalars['String']['output'];
+  productId?: Maybe<Scalars['String']['output']>;
+  rating?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the review was created. */
+  reviewCreateTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the review was last updated. */
+  reviewUpdateTime?: Maybe<Scalars['Int']['output']>;
+  sellerSkus?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+}
+
 /** One 5-minute bucket of realtime customer-service performance metrics */
 export interface CustomerServiceRealtimePerformancePoint {
   /** Active customer-service conversations */
@@ -3141,32 +3445,6 @@ export interface CustomerServiceSessionPage {
   nextPageToken?: Maybe<Scalars['String']['output']>;
 }
 
-/** Bad-review customer-service reachout settings per shop */
-export interface BadReviewReachoutSettings {
-  enabled: Scalars['Boolean']['output'];
-  /** Only bad reviews created within this many days are eligible for customer-service reachout. Valid range: 1-90. */
-  recentDays: Scalars['Int']['output'];
-  /** Reviews at or below this star rating are treated as bad reviews. Valid range: 1-3. */
-  stars: Scalars['Int']['output'];
-}
-
-export interface BadReviewReachoutSettingsInput {
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  recentDays?: InputMaybe<Scalars['Int']['input']>;
-  stars?: InputMaybe<Scalars['Int']['input']>;
-}
-
-/** Review optimization settings per shop */
-export interface ReviewOptimizationSettings {
-  badReviewReachout: BadReviewReachoutSettings;
-  enabled: Scalars['Boolean']['output'];
-}
-
-export interface ReviewOptimizationSettingsInput {
-  badReviewReachout?: InputMaybe<BadReviewReachoutSettingsInput>;
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-}
-
 /** Customer service settings per shop (user-configurable) */
 export interface CustomerServiceSettings {
   businessPrompt?: Maybe<Scalars['String']['output']>;
@@ -3182,9 +3460,9 @@ export interface CustomerServiceSettings {
   escalationRecipientId?: Maybe<Scalars['String']['output']>;
   /** Platform-managed CS system prompt (same for all shops on this backend version; versioned by EasyClaw operators). Returns null when no platform prompt is configured. Clients compose this with `businessPrompt` locally via the shared `assembleCsPrompt` helper. */
   platformSystemPrompt?: Maybe<Scalars['String']['output']>;
+  reviewOptimization: ReviewOptimizationSettings;
   /** RunProfile ID for CS agent sessions */
   runProfileId?: Maybe<Scalars['String']['output']>;
-  reviewOptimization: ReviewOptimizationSettings;
   /** Whole-hour delay before unpaid-order proactive reachout. Valid range: 1-47. */
   unpaidOrderReachoutDelayHours?: Maybe<Scalars['Int']['output']>;
   /** Whether CS should proactively reach out for eligible unpaid orders. */
@@ -3209,9 +3487,10 @@ export interface CustomerServiceSettingsInput {
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
   /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
+  /** Review optimization settings. Omit or pass null to keep. */
+  reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
-  reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
   unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
@@ -3224,6 +3503,18 @@ export interface DecideActionProposalInput {
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
   status: ActionProposalStatus;
+}
+
+export interface DeliverAffiliateCreatorTextInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  fallbackToPlatform?: InputMaybe<Scalars['Boolean']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
+  runId?: InputMaybe<Scalars['String']['input']>;
+  sessionKey?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+  source?: InputMaybe<AffiliateDeliverySource>;
+  text: Scalars['String']['input'];
 }
 
 /** Affiliate message */
@@ -3325,11 +3616,14 @@ export const EcomBiDatasetId = {
   AdsGmvCampaignDaily: 'ADS_GMV_CAMPAIGN_DAILY',
   AdsGmvCampaignSummaryDaily: 'ADS_GMV_CAMPAIGN_SUMMARY_DAILY',
   AdsGmvCreativeDaily: 'ADS_GMV_CREATIVE_DAILY',
+  AdsGmvCreativeProductDaily: 'ADS_GMV_CREATIVE_PRODUCT_DAILY',
   AdsGmvProductDaily: 'ADS_GMV_PRODUCT_DAILY',
+  AffiliateOrderExportLine: 'AFFILIATE_ORDER_EXPORT_LINE',
   CsDailySummary: 'CS_DAILY_SUMMARY',
   OrderProductDaily: 'ORDER_PRODUCT_DAILY',
   OrderShopDaily: 'ORDER_SHOP_DAILY',
-  OrderSkuDaily: 'ORDER_SKU_DAILY'
+  OrderSkuDaily: 'ORDER_SKU_DAILY',
+  OrderSkuExportLine: 'ORDER_SKU_EXPORT_LINE'
 } as const;
 
 export type EcomBiDatasetId = typeof EcomBiDatasetId[keyof typeof EcomBiDatasetId];
@@ -3352,6 +3646,9 @@ export const EcomBiDimension = {
   AdvertiserId: 'ADVERTISER_ID',
   AdvertiserName: 'ADVERTISER_NAME',
   AdvertiserTimezone: 'ADVERTISER_TIMEZONE',
+  AffiliateOrderAttributionKey: 'AFFILIATE_ORDER_ATTRIBUTION_KEY',
+  BuyerMessage: 'BUYER_MESSAGE',
+  BuyerUsername: 'BUYER_USERNAME',
   CampaignBudgetMode: 'CAMPAIGN_BUDGET_MODE',
   CampaignId: 'CAMPAIGN_ID',
   CampaignName: 'CAMPAIGN_NAME',
@@ -3361,23 +3658,64 @@ export const EcomBiDimension = {
   CampaignProductSource: 'CAMPAIGN_PRODUCT_SOURCE',
   CampaignSalesDestination: 'CAMPAIGN_SALES_DESTINATION',
   CampaignType: 'CAMPAIGN_TYPE',
+  CancellationReturnType: 'CANCELLATION_RETURN_TYPE',
+  CancelledTime: 'CANCELLED_TIME',
+  CancelBy: 'CANCEL_BY',
+  CancelReason: 'CANCEL_REASON',
+  City: 'CITY',
+  CommissionModel: 'COMMISSION_MODEL',
+  ContentId: 'CONTENT_ID',
+  ContentType: 'CONTENT_TYPE',
+  Country: 'COUNTRY',
+  CreatedTime: 'CREATED_TIME',
   CreativeAssetType: 'CREATIVE_ASSET_TYPE',
   CreativeDeliveryStatus: 'CREATIVE_DELIVERY_STATUS',
+  CreativePostedTime: 'CREATIVE_POSTED_TIME',
   CreativeReviewStatus: 'CREATIVE_REVIEW_STATUS',
   CreativeTitle: 'CREATIVE_TITLE',
   CreativeType: 'CREATIVE_TYPE',
+  CreatorUsername: 'CREATOR_USERNAME',
   Currency: 'CURRENCY',
   CurrentOptimizations: 'CURRENT_OPTIMIZATIONS',
   Date: 'DATE',
+  DeliveredTime: 'DELIVERED_TIME',
+  DeliveryInstruction: 'DELIVERY_INSTRUCTION',
+  DeliveryOption: 'DELIVERY_OPTION',
+  DeliveryOptionType: 'DELIVERY_OPTION_TYPE',
+  District: 'DISTRICT',
+  Email: 'EMAIL',
+  FulfillmentType: 'FULFILLMENT_TYPE',
+  FullyReturnedOrRefunded: 'FULLY_RETURNED_OR_REFUNDED',
+  HouseNameOrNumber: 'HOUSE_NAME_OR_NUMBER',
+  NormalOrPreorder: 'NORMAL_OR_PREORDER',
+  OrderDeliveryTime: 'ORDER_DELIVERY_TIME',
+  OrderId: 'ORDER_ID',
+  OrderLineKey: 'ORDER_LINE_KEY',
+  OrderStatus: 'ORDER_STATUS',
+  OrderSubstatus: 'ORDER_SUBSTATUS',
+  PackageId: 'PACKAGE_ID',
+  PaidTime: 'PAID_TIME',
+  PaymentMethod: 'PAYMENT_METHOD',
+  PaymentTime: 'PAYMENT_TIME',
+  PhoneNumber: 'PHONE_NUMBER',
+  Platform: 'PLATFORM',
   ProductBrandId: 'PRODUCT_BRAND_ID',
   ProductBrandName: 'PRODUCT_BRAND_NAME',
+  ProductCategory: 'PRODUCT_CATEGORY',
   ProductCategoryId: 'PRODUCT_CATEGORY_ID',
   ProductCategoryName: 'PRODUCT_CATEGORY_NAME',
   ProductId: 'PRODUCT_ID',
   ProductName: 'PRODUCT_NAME',
   ProductStatus: 'PRODUCT_STATUS',
+  Recipient: 'RECIPIENT',
   RoiProtection: 'ROI_PROTECTION',
+  RtsTime: 'RTS_TIME',
+  SellerNote: 'SELLER_NOTE',
   SellerSku: 'SELLER_SKU',
+  ShippedTime: 'SHIPPED_TIME',
+  ShippingInformation: 'SHIPPING_INFORMATION',
+  ShippingProviderName: 'SHIPPING_PROVIDER_NAME',
+  ShopAdsCommissionRate: 'SHOP_ADS_COMMISSION_RATE',
   ShopId: 'SHOP_ID',
   ShopName: 'SHOP_NAME',
   ShopRegion: 'SHOP_REGION',
@@ -3386,8 +3724,20 @@ export const EcomBiDimension = {
   SkuStatus: 'SKU_STATUS',
   SourceCreativeId: 'SOURCE_CREATIVE_ID',
   SourceCreativeIdType: 'SOURCE_CREATIVE_ID_TYPE',
+  StandardCommissionRate: 'STANDARD_COMMISSION_RATE',
+  State: 'STATE',
   StoreId: 'STORE_ID',
-  StoreName: 'STORE_NAME'
+  StoreName: 'STORE_NAME',
+  StreetName: 'STREET_NAME',
+  TiktokAccountAuthorizationType: 'TIKTOK_ACCOUNT_AUTHORIZATION_TYPE',
+  TiktokAccountName: 'TIKTOK_ACCOUNT_NAME',
+  TimeCommissionPaid: 'TIME_COMMISSION_PAID',
+  TimeCreated: 'TIME_CREATED',
+  TrackingId: 'TRACKING_ID',
+  Variation: 'VARIATION',
+  VideoSource: 'VIDEO_SOURCE',
+  WarehouseName: 'WAREHOUSE_NAME',
+  Zipcode: 'ZIPCODE'
 } as const;
 
 export type EcomBiDimension = typeof EcomBiDimension[keyof typeof EcomBiDimension];
@@ -3402,10 +3752,12 @@ export type EcomBiDimensionCardinality = typeof EcomBiDimensionCardinality[keyof
 /** Business entity described by a BI dimension. */
 export const EcomBiDimensionEntity = {
   Advertiser: 'ADVERTISER',
+  AffiliateOrder: 'AFFILIATE_ORDER',
   Campaign: 'CAMPAIGN',
   Creative: 'CREATIVE',
   CustomerService: 'CUSTOMER_SERVICE',
   Date: 'DATE',
+  Order: 'ORDER',
   Product: 'PRODUCT',
   Shop: 'SHOP',
   Sku: 'SKU',
@@ -3471,6 +3823,12 @@ export type EcomBiGranularity = typeof EcomBiGranularity[keyof typeof EcomBiGran
 /** Allowed BI metrics. Dataset metadata declares which are valid per dataset. */
 export const EcomBiMetric = {
   ActiveConversations: 'ACTIVE_CONVERSATIONS',
+  ActualCofundedCreatorBonus: 'ACTUAL_COFUNDED_CREATOR_BONUS',
+  ActualCommissionBase: 'ACTUAL_COMMISSION_BASE',
+  ActualCommissionPayment: 'ACTUAL_COMMISSION_PAYMENT',
+  ActualShopAdsCommissionPayment: 'ACTUAL_SHOP_ADS_COMMISSION_PAYMENT',
+  AdClickRate: 'AD_CLICK_RATE',
+  AdConversionRate: 'AD_CONVERSION_RATE',
   AdVideoViewRate_2S: 'AD_VIDEO_VIEW_RATE_2S',
   AdVideoViewRate_6S: 'AD_VIDEO_VIEW_RATE_6S',
   AdVideoViewRate_25P: 'AD_VIDEO_VIEW_RATE_25P',
@@ -3494,6 +3852,10 @@ export const EcomBiMetric = {
   EscalationRatio: 'ESCALATION_RATIO',
   EscalationResolved: 'ESCALATION_RESOLVED',
   EscalationResolveRate: 'ESCALATION_RESOLVE_RATE',
+  EstimatedCofundedCreatorBonus: 'ESTIMATED_COFUNDED_CREATOR_BONUS',
+  EstimatedCommissionBase: 'ESTIMATED_COMMISSION_BASE',
+  EstimatedShopAdsCommissionPayment: 'ESTIMATED_SHOP_ADS_COMMISSION_PAYMENT',
+  EstimatedStandardCommissionPayment: 'ESTIMATED_STANDARD_COMMISSION_PAYMENT',
   FirstResponseCount: 'FIRST_RESPONSE_COUNT',
   GrossGmv: 'GROSS_GMV',
   GrossOrderCount: 'GROSS_ORDER_COUNT',
@@ -3503,17 +3865,35 @@ export const EcomBiMetric = {
   NetCostAmount: 'NET_COST_AMOUNT',
   NewConversations: 'NEW_CONVERSATIONS',
   Orders: 'ORDERS',
+  OrderAmount: 'ORDER_AMOUNT',
+  OrderRefundAmount: 'ORDER_REFUND_AMOUNT',
+  OriginalShippingFee: 'ORIGINAL_SHIPPING_FEE',
   OutboundMessages: 'OUTBOUND_MESSAGES',
+  PaymentAmount: 'PAYMENT_AMOUNT',
+  PaymentPlatformDiscount: 'PAYMENT_PLATFORM_DISCOUNT',
+  PriceAmount: 'PRICE_AMOUNT',
   ProductClicks: 'PRODUCT_CLICKS',
   ProductClickRate: 'PRODUCT_CLICK_RATE',
   ProductImpressions: 'PRODUCT_IMPRESSIONS',
+  Quantity: 'QUANTITY',
   RatedSessions: 'RATED_SESSIONS',
   ReopenedConversations: 'REOPENED_CONVERSATIONS',
+  RetailDeliveryFee: 'RETAIL_DELIVERY_FEE',
   RoasBid: 'ROAS_BID',
   Roi: 'ROI',
   SatisfactionRate: 'SATISFACTION_RATE',
   SatisfiedSessions: 'SATISFIED_SESSIONS',
-  SupportSessionCount: 'SUPPORT_SESSION_COUNT'
+  ShippingFeeAfterDiscount: 'SHIPPING_FEE_AFTER_DISCOUNT',
+  ShippingFeePlatformDiscount: 'SHIPPING_FEE_PLATFORM_DISCOUNT',
+  ShippingFeeSellerDiscount: 'SHIPPING_FEE_SELLER_DISCOUNT',
+  SkuPlatformDiscount: 'SKU_PLATFORM_DISCOUNT',
+  SkuReturnQuantity: 'SKU_RETURN_QUANTITY',
+  SkuSellerDiscount: 'SKU_SELLER_DISCOUNT',
+  SkuSubtotalAfterDiscount: 'SKU_SUBTOTAL_AFTER_DISCOUNT',
+  SkuSubtotalBeforeDiscount: 'SKU_SUBTOTAL_BEFORE_DISCOUNT',
+  SkuUnitOriginalPrice: 'SKU_UNIT_ORIGINAL_PRICE',
+  SupportSessionCount: 'SUPPORT_SESSION_COUNT',
+  WeightKg: 'WEIGHT_KG'
 } as const;
 
 export type EcomBiMetric = typeof EcomBiMetric[keyof typeof EcomBiMetric];
@@ -4429,6 +4809,65 @@ export interface EcommerceUpdateShopResult {
   shopId: Scalars['String']['output'];
 }
 
+/** Seller-level email account binding for affiliate outreach */
+export interface EmailAccountBinding {
+  accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  displayName?: Maybe<Scalars['String']['output']>;
+  emailAddress: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  mailboxType: EmailMailboxType;
+  microsoftUserId?: Maybe<Scalars['String']['output']>;
+  provider: EmailProvider;
+  sharedMailboxAddress?: Maybe<Scalars['String']['output']>;
+  status: EmailAccountStatus;
+  subscriptionExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  subscriptionId?: Maybe<Scalars['String']['output']>;
+  tenantId?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Lifecycle state for a seller email account binding */
+export const EmailAccountStatus = {
+  Connected: 'CONNECTED',
+  Disconnected: 'DISCONNECTED',
+  Error: 'ERROR',
+  Revoked: 'REVOKED'
+} as const;
+
+export type EmailAccountStatus = typeof EmailAccountStatus[keyof typeof EmailAccountStatus];
+/** Count of email account bindings by lifecycle status */
+export interface EmailAccountStatusCount {
+  count: Scalars['Float']['output'];
+  status: EmailAccountStatus;
+}
+
+/** Relationship-level status for a creator email contact */
+export const EmailCreatorContactStatus = {
+  Added: 'ADDED',
+  Invalid: 'INVALID',
+  Requested: 'REQUESTED',
+  Unknown: 'UNKNOWN',
+  Verified: 'VERIFIED'
+} as const;
+
+export type EmailCreatorContactStatus = typeof EmailCreatorContactStatus[keyof typeof EmailCreatorContactStatus];
+/** Mailbox ownership mode for email account bindings */
+export const EmailMailboxType = {
+  Personal: 'PERSONAL',
+  Shared: 'SHARED'
+} as const;
+
+export type EmailMailboxType = typeof EmailMailboxType[keyof typeof EmailMailboxType];
+/** Backend connector provider for email account bindings */
+export const EmailProvider = {
+  MicrosoftGraph: 'MICROSOFT_GRAPH'
+} as const;
+
+export type EmailProvider = typeof EmailProvider[keyof typeof EmailProvider];
 export const EntitlementDecisionCode = {
   Allowed: 'ALLOWED',
   FeatureDisabled: 'FEATURE_DISABLED',
@@ -4862,6 +5301,16 @@ export interface LifecycleEvent {
   userId: Scalars['ID']['output'];
 }
 
+export interface ListAffiliateEmailAccountsInput {
+  shopId: Scalars['ID']['input'];
+  status?: InputMaybe<EmailAccountStatus>;
+}
+
+export interface ListAffiliateWhatsAppAccountsInput {
+  shopId: Scalars['ID']['input'];
+  status?: InputMaybe<WhatsAppAccountStatus>;
+}
+
 /** LLM proxy API key issued by RivonClaw Cloud. The key value is returned to authenticated subscription users so desktop can sync across devices. */
 export interface LlmApiKey {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -4951,6 +5400,33 @@ export const MediaCachedProxyStatus = {
 } as const;
 
 export type MediaCachedProxyStatus = typeof MediaCachedProxyStatus[keyof typeof MediaCachedProxyStatus];
+/** Microsoft Graph connector configuration and subscription health */
+export interface MicrosoftGraphConnectorStatus {
+  accountCounts: Array<EmailAccountStatusCount>;
+  configured: Scalars['Boolean']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  oauthConfigured: Scalars['Boolean']['output'];
+  ready: Scalars['Boolean']['output'];
+  subscriptionCounts: Array<MicrosoftGraphSubscriptionHealthCount>;
+  webhookConfigured: Scalars['Boolean']['output'];
+}
+
+/** Operational health bucket for Microsoft Graph change notifications */
+export const MicrosoftGraphSubscriptionHealth = {
+  Active: 'ACTIVE',
+  Error: 'ERROR',
+  Expired: 'EXPIRED',
+  ExpiringSoon: 'EXPIRING_SOON',
+  Missing: 'MISSING'
+} as const;
+
+export type MicrosoftGraphSubscriptionHealth = typeof MicrosoftGraphSubscriptionHealth[keyof typeof MicrosoftGraphSubscriptionHealth];
+/** Count of Microsoft Graph subscriptions by health bucket */
+export interface MicrosoftGraphSubscriptionHealthCount {
+  count: Scalars['Float']['output'];
+  health: MicrosoftGraphSubscriptionHealth;
+}
+
 export interface ModelPricing {
   displayName: Scalars['String']['output'];
   inputPricePerMillion: Scalars['String']['output'];
@@ -4982,6 +5458,10 @@ export interface Mutation {
   assignOnboardingTrialWindow: BillingSubscription;
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
+  /** Check a creator phone number through Evolution API and optionally persist the result. */
+  checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
+  /** Complete Outlook/Microsoft Graph OAuth onboarding for a seller mailbox. */
+  completeMicrosoftEmailOAuth: EmailAccountBinding;
   /** Complete TikTok Ads OAuth from the public callback using the one-time auth_code and CSRF state. */
   completeTikTokAdsOAuth: CompleteTikTokAdsOAuthResponse;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
@@ -4996,6 +5476,10 @@ export interface Mutation {
   createStripeBillingPortalSession: StripeBillingPortalSessionPayload;
   /** Create a new surface */
   createSurface: Surface;
+  /** Create a seller-level WhatsApp account binding before QR onboarding. */
+  createWhatsAppAccountBinding: WhatsAppAccountBinding;
+  /** Create a user-owned WhatsApp egress proxy for Evolution API instances. */
+  createWhatsAppProxy: WhatsAppProxy;
   /** Acknowledge success/failure after executing a local CS escalation side-effect */
   csAckEscalationEvent?: Maybe<CsEscalationEventDelivery>;
   /** Claim a CS escalation side-effect event for exactly-once local execution */
@@ -5032,6 +5516,8 @@ export interface Mutation {
   deleteShop: Scalars['Boolean']['output'];
   /** Delete a surface */
   deleteSurface: Scalars['Boolean']['output'];
+  /** Bridge-only creator-facing affiliate text delivery. Uses direct channels such as WhatsApp or Outlook email before TikTok Shop platform chat fallback. This operation is intentionally not exposed as an agent tool. */
+  deliverAffiliateCreatorText: AffiliateMessageDelivery;
   /** Disconnect one advertising account for the authenticated user. */
   disconnectAdsAdvertiser: Scalars['Boolean']['output'];
   /** Approve a cancellation request. Returns true on success. */
@@ -5086,6 +5572,8 @@ export interface Mutation {
   refreshPayment: Payment;
   /** Refresh an expired access token */
   refreshToken: AuthPayload;
+  /** Refresh connection state for a WhatsApp account binding from Evolution API. */
+  refreshWhatsAppAccountBinding: WhatsAppAccountBinding;
   /** Refund a Stripe or Lakala payment. */
   refundPayment: Payment;
   /** Register a new user account */
@@ -5108,8 +5596,16 @@ export interface Mutation {
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
+  /** Revoke an Outlook/Microsoft Graph email account binding. */
+  revokeEmailAccountBinding: EmailAccountBinding;
+  /** Logout or delete a WhatsApp account binding and mark it revoked. */
+  revokeWhatsAppAccountBinding: WhatsAppAccountBinding;
   /** Send a human-authored affiliate conversation reply directly to TikTok Shop and record it as a HUMAN lifecycle action. */
   sendAffiliateConversationMessage: SendAffiliateConversationMessagePayload;
+  /** Attach or update a creator email contact on an affiliate creator relationship. */
+  setAffiliateCreatorEmail: AffiliateCreatorRelationship;
+  /** Attach or update a creator WhatsApp contact on an affiliate creator relationship. */
+  setAffiliateCreatorWhatsApp: AffiliateCreatorRelationship;
   /** Admin-only: enable or disable an agent invite code for a user by email. */
   setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
@@ -5118,6 +5614,10 @@ export interface Mutation {
   startBillingSubscription: StartBillingSubscriptionResult;
   /** Start the one-time 7-day / 100 conversation customer-service trial for a shop. */
   startCustomerServiceTrial: EntitlementGrant;
+  /** Start Outlook/Microsoft Graph OAuth onboarding for a seller mailbox. */
+  startMicrosoftEmailOAuth: StartMicrosoftEmailOAuthPayload;
+  /** Create/connect the Evolution instance and return WhatsApp QR onboarding data. */
+  startWhatsAppQrOnboarding: StartWhatsAppQrOnboardingPayload;
   /** Immediately sync stores/shops visible to a connected TikTok Ads advertiser, including GMV Max state. */
   syncAdsStoreAccesses: Array<AdsStoreAccess>;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
@@ -5134,6 +5634,8 @@ export interface Mutation {
   updateShop?: Maybe<Shop>;
   /** Update an existing surface */
   updateSurface?: Maybe<Surface>;
+  /** Update a user-owned WhatsApp egress proxy. */
+  updateWhatsAppProxy: WhatsAppProxy;
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
   /** Create or update an affiliate approval interception policy. */
@@ -5208,6 +5710,16 @@ export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
 }
 
 
+export interface MutationCheckAffiliateCreatorWhatsAppArgs {
+  input: CheckCreatorWhatsAppContactInput;
+}
+
+
+export interface MutationCompleteMicrosoftEmailOAuthArgs {
+  input: CompleteMicrosoftEmailOAuthInput;
+}
+
+
 export interface MutationCompleteTikTokAdsOAuthArgs {
   authCode: Scalars['String']['input'];
   state: Scalars['String']['input'];
@@ -5237,6 +5749,16 @@ export interface MutationCreateStripeBillingPortalSessionArgs {
 
 export interface MutationCreateSurfaceArgs {
   input: CreateSurfaceInput;
+}
+
+
+export interface MutationCreateWhatsAppAccountBindingArgs {
+  proxyId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+
+export interface MutationCreateWhatsAppProxyArgs {
+  input: CreateWhatsAppProxyInput;
 }
 
 
@@ -5345,6 +5867,11 @@ export interface MutationDeleteShopArgs {
 
 export interface MutationDeleteSurfaceArgs {
   id: Scalars['ID']['input'];
+}
+
+
+export interface MutationDeliverAffiliateCreatorTextArgs {
+  input: DeliverAffiliateCreatorTextInput;
 }
 
 
@@ -5496,6 +6023,11 @@ export interface MutationRefreshTokenArgs {
 }
 
 
+export interface MutationRefreshWhatsAppAccountBindingArgs {
+  bindingId: Scalars['ID']['input'];
+}
+
+
 export interface MutationRefundPaymentArgs {
   input: RefundPaymentGraphqlInput;
 }
@@ -5549,8 +6081,29 @@ export interface MutationResolveAffiliateWorkItemArgs {
 }
 
 
+export interface MutationRevokeEmailAccountBindingArgs {
+  bindingId: Scalars['ID']['input'];
+}
+
+
+export interface MutationRevokeWhatsAppAccountBindingArgs {
+  bindingId: Scalars['ID']['input'];
+  deleteInstance?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
+
 export interface MutationSendAffiliateConversationMessageArgs {
   input: SendAffiliateConversationMessageInput;
+}
+
+
+export interface MutationSetAffiliateCreatorEmailArgs {
+  input: SetCreatorEmailContactInput;
+}
+
+
+export interface MutationSetAffiliateCreatorWhatsAppArgs {
+  input: SetCreatorWhatsAppContactInput;
 }
 
 
@@ -5572,6 +6125,16 @@ export interface MutationStartBillingSubscriptionArgs {
 
 export interface MutationStartCustomerServiceTrialArgs {
   shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationStartMicrosoftEmailOAuthArgs {
+  input?: InputMaybe<StartMicrosoftEmailOAuthInput>;
+}
+
+
+export interface MutationStartWhatsAppQrOnboardingArgs {
+  input: StartWhatsAppQrOnboardingInput;
 }
 
 
@@ -5616,6 +6179,11 @@ export interface MutationUpdateShopArgs {
 export interface MutationUpdateSurfaceArgs {
   id: Scalars['ID']['input'];
   input: UpdateSurfaceInput;
+}
+
+
+export interface MutationUpdateWhatsAppProxyArgs {
+  input: UpdateWhatsAppProxyInput;
 }
 
 
@@ -5870,6 +6438,17 @@ export interface PresetSkillsChangedPayload {
   revision: Scalars['String']['output'];
 }
 
+/** System lifecycle state for customer-service review follow-up. */
+export const ProductReviewFollowUpStatus = {
+  Attached: 'ATTACHED',
+  FailedToReachout: 'FAILED_TO_REACHOUT',
+  NotRequired: 'NOT_REQUIRED',
+  Pending: 'PENDING',
+  Resolved: 'RESOLVED',
+  Suppressed: 'SUPPRESSED'
+} as const;
+
+export type ProductReviewFollowUpStatus = typeof ProductReviewFollowUpStatus[keyof typeof ProductReviewFollowUpStatus];
 /** Promote a temporary uploaded image into permanent object storage */
 export interface PromoteImageAssetInput {
   /** ImageAsset ID returned by POST /api/uploads/images. Prefer this over imageUri. */
@@ -5898,10 +6477,29 @@ export interface ProviderSubscription {
   pricingUrl: Scalars['String']['output'];
 }
 
+/** Supported proxy protocols for WhatsApp linked-device sessions */
+export const ProxyProtocol = {
+  Http: 'HTTP',
+  Socks5: 'SOCKS5'
+} as const;
+
+export type ProxyProtocol = typeof ProxyProtocol[keyof typeof ProxyProtocol];
+/** Operational state for a WhatsApp egress proxy */
+export const ProxyStatus = {
+  Active: 'ACTIVE',
+  Disabled: 'DISABLED',
+  Error: 'ERROR'
+} as const;
+
+export type ProxyStatus = typeof ProxyStatus[keyof typeof ProxyStatus];
 /** Input for publishing an ephemeral affiliate signal */
 export interface PublishAffiliateConversationSignalInput {
   /** Existing AffiliateCollaboration ID when the publisher already resolved it. */
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  /** Sample shipment carrier or logistics provider when available. */
+  carrier?: InputMaybe<Scalars['String']['input']>;
+  /** Outreach channel where the relationship-level message was observed. */
+  channel?: InputMaybe<AffiliateMessageChannel>;
   /** Existing AffiliateCollaborationRecord ID for timer/action-result reducer events. */
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Open or target collaboration type when known. */
@@ -5936,6 +6534,8 @@ export interface PublishAffiliateConversationSignalInput {
   creatorNickname?: InputMaybe<Scalars['String']['input']>;
   /** Creator open ID if available. */
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  /** User-level AffiliateCreatorRelationship ID for channel-agnostic affiliate sessions. */
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   /** Best-known creator username from platform sync. */
   creatorUsername?: InputMaybe<Scalars['String']['input']>;
   /** Event timestamp as an ISO string. Defaults to server publish time. */
@@ -5980,6 +6580,8 @@ export interface PublishAffiliateConversationSignalInput {
   shopId?: InputMaybe<Scalars['ID']['input']>;
   /** Origin of the signal. */
   source: AffiliateConversationSignalSource;
+  /** Sample shipment tracking number when available. */
+  trackingNumber?: InputMaybe<Scalars['String']['input']>;
   /** Business signal to publish. */
   type: AffiliateConversationSignalType;
 }
@@ -6059,18 +6661,30 @@ export interface Query {
   affiliateConversationMessages: AffiliateConversationMessagesPage;
   /** Read affiliate creator conversation metadata from MongoDB. Message bodies are not stored here; use affiliateConversationMessages for platform message pages. */
   affiliateConversationRecords: Array<AffiliateConversationRecord>;
+  /** Read relationship-level creator contact state, including WhatsApp/email contacts and available seller accounts. */
+  affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
+  /** Read merged relationship-level affiliate creator message history with channel labels. */
+  affiliateCreatorMessageHistory: AffiliateCreatorMessageHistoryPayload;
+  /** Read stored WhatsApp messages for an affiliate creator relationship. */
+  affiliateCreatorWhatsAppMessages: Array<AffiliateWhatsAppMessage>;
   /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
   affiliateCreators: Array<AffiliateCreatorManagementItem>;
   /** Read the staff-facing affiliate workbench. This combines current work items, proposals across statuses, and direct lifecycle events. */
   affiliateDashboard: AffiliateDashboardPayload;
+  /** List seller-level Outlook/Microsoft Graph email account bindings available to affiliate workflows. */
+  affiliateEmailAccounts: Array<EmailAccountBinding>;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
   affiliateExpectedSalesPredictions: AffiliateExpectedSalesPredictionPayload;
   /** Read latest affiliate ML evaluation summaries in bulk for the current user and owned shops. */
   affiliateMlInsightSummaries: Array<AffiliateMlModelEfficiencySummary>;
   /** Read latest affiliate ML evaluation summary generated by telemetry training jobs for the current user or one shop. */
   affiliateMlInsights: AffiliateMlInsightsPayload;
+  /** Summarize seller-level affiliate outreach delivery and inbound message health across WhatsApp and Outlook. */
+  affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
   /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
+  /** List seller-level WhatsApp account bindings available to affiliate workflows. */
+  affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read compressed affiliate management workspace state from Mongo control-plane state. */
@@ -6149,6 +6763,8 @@ export interface Query {
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
+  /** List Outlook/Microsoft Graph email account bindings for the authenticated seller. */
+  emailAccountBindings: Array<EmailAccountBinding>;
   /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
   getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Query typed warehouse-backed ecommerce BI data. */
@@ -6157,6 +6773,8 @@ export interface Query {
   imageAssets: Array<ImageAsset>;
   /** Get current authenticated user profile */
   me: MeResponse;
+  /** Check Microsoft Graph OAuth/webhook readiness and summarize seller Outlook subscription health. */
+  microsoftGraphConnectorStatus: MicrosoftGraphConnectorStatus;
   /** Get PWA install URL (base URL without pairing code) */
   mobileInstallUrl: Scalars['String']['output'];
   /** List all active platform app secrets (admin-only, for relay startup) */
@@ -6229,6 +6847,12 @@ export interface Query {
   verifyShopAccess: VerifyShopAccessResult;
   /** Long-poll for pairing completion (30s timeout) */
   waitForPairing: WaitPairingResult;
+  /** List WhatsApp account bindings for the authenticated seller account. */
+  whatsAppAccountBindings: Array<WhatsAppAccountBinding>;
+  /** Check Evolution API connector readiness and summarize seller-visible WhatsApp account/proxy state. */
+  whatsAppConnectorStatus: WhatsAppConnectorStatus;
+  /** List WhatsApp egress proxies visible to the authenticated seller. Includes user-owned proxies and global proxies. */
+  whatsAppProxies: Array<WhatsAppProxy>;
 }
 
 
@@ -6323,6 +6947,21 @@ export interface QueryAffiliateConversationRecordsArgs {
 }
 
 
+export interface QueryAffiliateCreatorContactStateArgs {
+  input: AffiliateCreatorContactStateInput;
+}
+
+
+export interface QueryAffiliateCreatorMessageHistoryArgs {
+  input: AffiliateCreatorMessageHistoryInput;
+}
+
+
+export interface QueryAffiliateCreatorWhatsAppMessagesArgs {
+  input: AffiliateWhatsAppMessagesInput;
+}
+
+
 export interface QueryAffiliateCreatorsArgs {
   input: ReadAffiliateCreatorsInput;
 }
@@ -6330,6 +6969,11 @@ export interface QueryAffiliateCreatorsArgs {
 
 export interface QueryAffiliateDashboardArgs {
   input?: InputMaybe<AffiliateDashboardInput>;
+}
+
+
+export interface QueryAffiliateEmailAccountsArgs {
+  input: ListAffiliateEmailAccountsInput;
 }
 
 
@@ -6348,8 +6992,18 @@ export interface QueryAffiliateMlInsightsArgs {
 }
 
 
+export interface QueryAffiliateOutreachOperationalStatusArgs {
+  input: AffiliateOutreachOperationalStatusInput;
+}
+
+
 export interface QueryAffiliatePredictCreatorProductFitArgs {
   input: AffiliateCreatorProductFitInput;
+}
+
+
+export interface QueryAffiliateWhatsAppAccountsArgs {
+  input: ListAffiliateWhatsAppAccountsInput;
 }
 
 
@@ -6617,6 +7271,11 @@ export interface QueryEcommerceSearchReturnsArgs {
 }
 
 
+export interface QueryEmailAccountBindingsArgs {
+  status?: InputMaybe<EmailAccountStatus>;
+}
+
+
 export interface QueryGetEcommerceBiDataArgs {
   input: EcomBiQueryInput;
 }
@@ -6760,6 +7419,16 @@ export interface QueryVerifyShopAccessArgs {
 
 export interface QueryWaitForPairingArgs {
   code: Scalars['String']['input'];
+}
+
+
+export interface QueryWhatsAppAccountBindingsArgs {
+  status?: InputMaybe<WhatsAppAccountStatus>;
+}
+
+
+export interface QueryWhatsAppProxiesArgs {
+  status?: InputMaybe<ProxyStatus>;
 }
 
 export interface ReadActionProposalsInput {
@@ -7102,6 +7771,20 @@ export interface ResolveAffiliateWorkItemPayload {
   stale: Scalars['Boolean']['output'];
 }
 
+/** Review optimization settings per shop */
+export interface ReviewOptimizationSettings {
+  badReviewReachout: BadReviewReachoutSettings;
+  enabled: Scalars['Boolean']['output'];
+}
+
+/** Review optimization settings patch. Omit or pass null to keep. */
+export interface ReviewOptimizationSettingsInput {
+  /** Bad-review reachout settings. Omit or pass null to keep. */
+  badReviewReachout?: InputMaybe<BadReviewReachoutSettingsInput>;
+  /** Review optimization enabled flag. Omit or pass null to keep. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
 /** RunProfile entity — defines tool selection for a specific run. userId=null for system presets. */
 export interface RunProfile {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -7113,6 +7796,13 @@ export interface RunProfile {
   surfaceId: Scalars['String']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId?: Maybe<Scalars['String']['output']>;
+}
+
+/** Order snapshot linked from an affiliate sample application. */
+export interface SampleApplicationOrderRecord {
+  carrier?: Maybe<Scalars['String']['output']>;
+  platformOrderId?: Maybe<Scalars['String']['output']>;
+  trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
 /** Sample application state from TikTok Shop affiliate workflows. */
@@ -7146,13 +7836,6 @@ export interface SampleApplicationRecord {
   userId: Scalars['ID']['output'];
 }
 
-/** Order snapshot linked from an affiliate sample application. */
-export interface SampleApplicationOrderRecord {
-  carrier?: Maybe<Scalars['String']['output']>;
-  platformOrderId?: Maybe<Scalars['String']['output']>;
-  trackingNumber?: Maybe<Scalars['String']['output']>;
-}
-
 /** RivonClaw-owned, agent-facing sample lifecycle state. Platform raw statuses stay in platformSnapshotJson. */
 export const SampleWorkStatus = {
   ApprovedAwaitingShipment: 'APPROVED_AWAITING_SHIPMENT',
@@ -7172,13 +7855,17 @@ export interface SendAffiliateConversationMessageInput {
   conversationId?: InputMaybe<Scalars['String']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   shopId: Scalars['ID']['input'];
   text: Scalars['String']['input'];
 }
 
 export interface SendAffiliateConversationMessagePayload {
   collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
-  executionResult: ActionProposalExecutionResultSnapshot;
+  delivery?: Maybe<AffiliateMessageDelivery>;
+  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
 }
 
 /** Business service type identifiers */
@@ -7191,6 +7878,31 @@ export const ServiceId = {
 } as const;
 
 export type ServiceId = typeof ServiceId[keyof typeof ServiceId];
+export interface SetCreatorEmailContactInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  email: Scalars['String']['input'];
+  emailAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
+  source?: InputMaybe<WhatsAppCreatorContactSource>;
+  status?: InputMaybe<EmailCreatorContactStatus>;
+}
+
+export interface SetCreatorWhatsAppContactInput {
+  creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  creatorPhone?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  creatorWaJid?: InputMaybe<Scalars['String']['input']>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+  source?: InputMaybe<WhatsAppCreatorContactSource>;
+  status?: InputMaybe<WhatsAppCreatorContactStatus>;
+  whatsappAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
+}
+
 /** A connected e-commerce shop */
 export interface Shop {
   accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -7425,6 +8137,34 @@ export interface StartBillingSubscriptionResult {
   subscription?: Maybe<BillingSubscription>;
 }
 
+/** Input for starting Microsoft Outlook OAuth onboarding */
+export interface StartMicrosoftEmailOAuthInput {
+  mailboxType?: InputMaybe<EmailMailboxType>;
+  sharedMailboxAddress?: InputMaybe<Scalars['String']['input']>;
+}
+
+/** Microsoft Outlook OAuth onboarding URL */
+export interface StartMicrosoftEmailOAuthPayload {
+  state: Scalars['String']['output'];
+  url: Scalars['String']['output'];
+}
+
+/** Input for starting WhatsApp QR onboarding */
+export interface StartWhatsAppQrOnboardingInput {
+  bindingId: Scalars['ID']['input'];
+  webhookEvents?: InputMaybe<Array<Scalars['String']['input']>>;
+  webhookSecret?: InputMaybe<Scalars['String']['input']>;
+  webhookUrl?: InputMaybe<Scalars['String']['input']>;
+}
+
+/** WhatsApp QR onboarding payload */
+export interface StartWhatsAppQrOnboardingPayload {
+  binding: WhatsAppAccountBinding;
+  pairingCode?: Maybe<Scalars['String']['output']>;
+  qrBase64?: Maybe<Scalars['String']['output']>;
+  qrCode?: Maybe<Scalars['String']['output']>;
+}
+
 export interface StripeBillingPortalSessionPayload {
   /** Stripe-hosted Customer Portal URL. The client should open this URL externally; the session is temporary. */
   url: Scalars['String']['output'];
@@ -7437,6 +8177,8 @@ export interface Subscription {
   affiliateActionProposalChanged: AffiliateActionProposalChanged;
   /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
   affiliateConversationSignal: AffiliateConversationSignal;
+  /** Fires when a seller-level affiliate outreach account finishes direct-channel onboarding. */
+  affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
   clientLogUploadRequested: ClientLogUploadRequestPayload;
@@ -8050,10 +8792,18 @@ export interface ToolContextBinding {
 
 /** Unique tool identifier */
 export const ToolId = {
+  AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
+  AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
+  AffiliateGetCreatorMessageHistory: 'AFFILIATE_GET_CREATOR_MESSAGE_HISTORY',
+  AffiliateGetCreatorWhatsappMessages: 'AFFILIATE_GET_CREATOR_WHATSAPP_MESSAGES',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
+  AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
+  AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
+  AffiliateSetCreatorEmail: 'AFFILIATE_SET_CREATOR_EMAIL',
+  AffiliateSetCreatorWhatsapp: 'AFFILIATE_SET_CREATOR_WHATSAPP',
   CsDismissConversationEscalations: 'CS_DISMISS_CONVERSATION_ESCALATIONS',
   CsEscalate: 'CS_ESCALATE',
   CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
@@ -8254,6 +9004,17 @@ export interface UpdateSurfaceInput {
   name?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface UpdateWhatsAppProxyInput {
+  host?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  password?: InputMaybe<Scalars['String']['input']>;
+  port?: InputMaybe<Scalars['String']['input']>;
+  protocol?: InputMaybe<ProxyProtocol>;
+  region?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<ProxyStatus>;
+  username?: InputMaybe<Scalars['String']['input']>;
+}
+
 export const UsageLimitWindow = {
   FiveHours: 'FIVE_HOURS',
   GrantLifetime: 'GRANT_LIFETIME',
@@ -8398,6 +9159,100 @@ export const WarehouseType = {
 } as const;
 
 export type WarehouseType = typeof WarehouseType[keyof typeof WarehouseType];
+/** Seller-level WhatsApp linked-device account binding */
+export interface WhatsAppAccountBinding {
+  createdAt: Scalars['DateTimeISO']['output'];
+  displayName?: Maybe<Scalars['String']['output']>;
+  evolutionInstanceId?: Maybe<Scalars['String']['output']>;
+  evolutionInstanceName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  lastConnectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastDisconnectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastError?: Maybe<Scalars['String']['output']>;
+  lastQrAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  phoneNumber?: Maybe<Scalars['String']['output']>;
+  profilePicUrl?: Maybe<Scalars['String']['output']>;
+  provider: WhatsAppProvider;
+  proxyId?: Maybe<Scalars['ID']['output']>;
+  status: WhatsAppAccountStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
+/** Lifecycle state for a seller WhatsApp account binding */
+export const WhatsAppAccountStatus = {
+  Connected: 'CONNECTED',
+  Disconnected: 'DISCONNECTED',
+  Error: 'ERROR',
+  PendingQr: 'PENDING_QR',
+  Revoked: 'REVOKED'
+} as const;
+
+export type WhatsAppAccountStatus = typeof WhatsAppAccountStatus[keyof typeof WhatsAppAccountStatus];
+/** Count of WhatsApp account bindings by lifecycle status */
+export interface WhatsAppAccountStatusCount {
+  count: Scalars['Float']['output'];
+  status: WhatsAppAccountStatus;
+}
+
+/** Evolution API connector health and seller-visible WhatsApp counts */
+export interface WhatsAppConnectorStatus {
+  accountCounts: Array<WhatsAppAccountStatusCount>;
+  configured: Scalars['Boolean']['output'];
+  httpStatus?: Maybe<Scalars['Float']['output']>;
+  licenseRequired: Scalars['Boolean']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  proxyCounts: Array<WhatsAppProxyStatusCount>;
+  reachable: Scalars['Boolean']['output'];
+  ready: Scalars['Boolean']['output'];
+}
+
+/** Source that attached a WhatsApp contact to a creator relationship */
+export const WhatsAppCreatorContactSource = {
+  AgentObserved: 'AGENT_OBSERVED',
+  Import: 'IMPORT',
+  Manual: 'MANUAL'
+} as const;
+
+export type WhatsAppCreatorContactSource = typeof WhatsAppCreatorContactSource[keyof typeof WhatsAppCreatorContactSource];
+/** Relationship-level status for a creator WhatsApp contact */
+export const WhatsAppCreatorContactStatus = {
+  Added: 'ADDED',
+  Invalid: 'INVALID',
+  Requested: 'REQUESTED',
+  Unknown: 'UNKNOWN',
+  Verified: 'VERIFIED'
+} as const;
+
+export type WhatsAppCreatorContactStatus = typeof WhatsAppCreatorContactStatus[keyof typeof WhatsAppCreatorContactStatus];
+/** Backend connector provider for WhatsApp account bindings */
+export const WhatsAppProvider = {
+  EvolutionApi: 'EVOLUTION_API'
+} as const;
+
+export type WhatsAppProvider = typeof WhatsAppProvider[keyof typeof WhatsAppProvider];
+/** Stable egress proxy assigned to WhatsApp linked-device sessions */
+export interface WhatsAppProxy {
+  createdAt: Scalars['DateTimeISO']['output'];
+  host: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  lastCheckedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastError?: Maybe<Scalars['String']['output']>;
+  port: Scalars['String']['output'];
+  protocol: ProxyProtocol;
+  region?: Maybe<Scalars['String']['output']>;
+  status: ProxyStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId?: Maybe<Scalars['ID']['output']>;
+  username?: Maybe<Scalars['String']['output']>;
+}
+
+/** Count of WhatsApp proxies by operational status */
+export interface WhatsAppProxyStatusCount {
+  count: Scalars['Float']['output'];
+  status: ProxyStatus;
+}
+
 /** Third-party WMS API account connection */
 export interface WmsAccount {
   createdAt: Scalars['DateTimeISO']['output'];
