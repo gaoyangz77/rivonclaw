@@ -63,6 +63,14 @@ export const ShopModel = ShopModelBase.views((self) => ({
           csModelOverride?: string | null;
           escalationChannelId?: string | null;
           escalationRecipientId?: string | null;
+          reviewOptimization?: {
+            enabled?: boolean;
+            badReviewReachout?: {
+              enabled?: boolean;
+              stars?: number;
+              recentDays?: number;
+            };
+          } | null;
         };
         wms?: {
           enabled?: boolean | null;

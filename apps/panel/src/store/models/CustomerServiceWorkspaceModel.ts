@@ -19,6 +19,7 @@ export type CustomerServiceWorkspaceTab = "conversations" | "escalations";
 export type ConversationStatusFilter = "pending" | "resolved" | "all";
 export type ConversationAiFilter = "all" | "enabled" | "disabled";
 export type ConversationEscalationFilter = "all" | "open" | "none";
+export type ConversationBadReviewFilter = "all" | "hasBadReview";
 export type EscalationStatusFilter = "open" | "pending" | "inProgress" | "resolved" | "closed" | "all";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -248,6 +249,7 @@ function conversationSnapshotToInboxItem(
     latestOpenEscalationId: conversation.latestOpenEscalationId ?? null,
     latestOpenEscalationStatus: conversation.latestOpenEscalationStatus ?? null,
     latestOpenEscalationUpdatedAt: conversation.latestOpenEscalationUpdatedAt ?? null,
+    recentBadReviews: conversation.recentBadReviews ?? [],
   };
 }
 
@@ -259,6 +261,7 @@ export const CustomerServiceWorkspaceModel = types
     conversationStatusFilter: types.optional(types.enumeration<ConversationStatusFilter>("ConversationStatusFilter", ["pending", "resolved", "all"]), "all"),
     conversationAiFilter: types.optional(types.enumeration<ConversationAiFilter>("ConversationAiFilter", ["all", "enabled", "disabled"]), "all"),
     conversationEscalationFilter: types.optional(types.enumeration<ConversationEscalationFilter>("ConversationEscalationFilter", ["all", "open", "none"]), "all"),
+    conversationBadReviewFilter: types.optional(types.enumeration<ConversationBadReviewFilter>("ConversationBadReviewFilter", ["all", "hasBadReview"]), "all"),
     conversationSearchDraft: types.optional(types.string, ""),
     conversationSearch: types.optional(types.string, ""),
     conversationPage: types.optional(types.number, 1),
@@ -501,6 +504,12 @@ export const CustomerServiceWorkspaceModel = types
       },
       setConversationEscalationFilter(value: ConversationEscalationFilter) {
         self.conversationEscalationFilter = value;
+        self.conversationPage = 1;
+        self.selectedConversationId = null;
+        self.selectedConversationShopId = null;
+      },
+      setConversationBadReviewFilter(value: ConversationBadReviewFilter) {
+        self.conversationBadReviewFilter = value;
         self.conversationPage = 1;
         self.selectedConversationId = null;
         self.selectedConversationShopId = null;

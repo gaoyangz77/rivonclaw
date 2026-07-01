@@ -27,6 +27,14 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         escalationChannelId
         escalationRecipientId
         platformSystemPrompt
+        reviewOptimization {
+          enabled
+          badReviewReachout {
+            enabled
+            stars
+            recentDays
+          }
+        }
       }
       wms {
         enabled
@@ -257,6 +265,7 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
     $aiEnabled: Boolean
     $escalation: CustomerServiceConversationEscalationFilter
     $search: String
+    $hasBadReview: Boolean
     $limit: Int
     $offset: Int
   ) {
@@ -266,6 +275,7 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
       aiEnabled: $aiEnabled
       escalation: $escalation
       search: $search
+      hasBadReview: $hasBadReview
       limit: $limit
       offset: $offset
     ) {
@@ -295,6 +305,19 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
         latestOpenEscalationId
         latestOpenEscalationStatus
         latestOpenEscalationUpdatedAt
+        recentBadReviews {
+          id
+          platformReviewId
+          orderId
+          productId
+          sellerSkus
+          rating
+          title
+          content
+          reviewCreateTime
+          reviewUpdateTime
+          followUpStatus
+        }
       }
     }
   }
@@ -366,6 +389,19 @@ export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
       latestOpenEscalationId
       latestOpenEscalationStatus
       latestOpenEscalationUpdatedAt
+      recentBadReviews {
+        id
+        platformReviewId
+        orderId
+        productId
+        sellerSkus
+        rating
+        title
+        content
+        reviewCreateTime
+        reviewUpdateTime
+        followUpStatus
+      }
     }
   }
 `;
@@ -431,6 +467,19 @@ export const CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION = gql`
       latestOpenEscalationId
       latestOpenEscalationStatus
       latestOpenEscalationUpdatedAt
+      recentBadReviews {
+        id
+        platformReviewId
+        orderId
+        productId
+        sellerSkus
+        rating
+        title
+        content
+        reviewCreateTime
+        reviewUpdateTime
+        followUpStatus
+      }
     }
   }
 `;

@@ -5,7 +5,7 @@ import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
-import { CheckIcon, CopyIcon, InfoIcon } from "../../components/icons.js";
+import { CheckIcon, ChevronRightIcon, CopyIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
@@ -117,8 +117,13 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const fixedTab = mode === "workspace" ? null : mode;
   const activeTab = fixedTab ?? workspace.activeTab;
   const [conversationDetailsOpen, setConversationDetailsOpen] = useState(false);
+  const [conversationAdvancedFiltersOpen, setConversationAdvancedFiltersOpen] = useState(
+    workspace.conversationAiFilter !== "all" ||
+    workspace.conversationEscalationFilter !== "all",
+  );
   const [dismissEscalationConfirm, setDismissEscalationConfirm] = useState<DismissEscalationConfirm | null>(null);
   const [endSessionConfirm, setEndSessionConfirm] = useState<EndSessionConfirm | null>(null);
+  const [reviewModalConversation, setReviewModalConversation] = useState<Conversation | null>(null);
   const conversationDetailsRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -535,70 +540,96 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       {activeTab === "conversations" ? (
         <section className="cs-workspace-panel">
           <div className="cs-workspace-filter-grid cs-conversation-filter-grid">
-            <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
-              <Select
-                ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
-                value={workspace.conversationShopId}
-                onChange={(value) => workspace.setConversationShopId(value)}
-                options={shopOptions}
-              />
-            </FilterField>
-            <FilterField label={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}>
-              <Select
-                ariaLabel={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}
-                value={workspace.conversationStatusFilter}
-                onChange={(value) => workspace.setConversationStatusFilter(value as ConversationStatusFilter)}
-                options={[
-                  { value: "pending", label: t("ecommerce.customerServiceWorkspace.conversationStatusPending") },
-                  { value: "resolved", label: t("ecommerce.customerServiceWorkspace.conversationStatusReplied") },
-                  { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
-                ]}
-              />
-            </FilterField>
-            <FilterField label={t("ecommerce.customerServiceWorkspace.filterAiState")}>
-              <Select
-                ariaLabel={t("ecommerce.customerServiceWorkspace.filterAiState")}
-                value={workspace.conversationAiFilter}
-                onChange={(value) => workspace.setConversationAiFilter(value as ConversationAiFilter)}
-                options={[
-                  { value: "all", label: t("ecommerce.customerServiceWorkspace.aiAll") },
-                  { value: "enabled", label: t("ecommerce.customerServiceWorkspace.aiEnabled") },
-                  { value: "disabled", label: t("ecommerce.customerServiceWorkspace.aiDisabled") },
-                ]}
-              />
-            </FilterField>
-            <FilterField label={t("ecommerce.customerServiceWorkspace.filterEscalationState")}>
-              <Select
-                ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
-                value={workspace.conversationEscalationFilter}
-                onChange={(value) => workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)}
-                options={[
-                  { value: "all", label: t("ecommerce.customerServiceWorkspace.escalationAll") },
-                  { value: "open", label: t("ecommerce.customerServiceWorkspace.escalationOpen") },
-                  { value: "none", label: t("ecommerce.customerServiceWorkspace.escalationNone") },
-                ]}
-              />
-            </FilterField>
-            <FilterField className="cs-filter-field-search" label={t("ecommerce.customerServiceWorkspace.filterSearch")}>
-              <div className="cs-workspace-search">
-                <input
-                  aria-label={t("ecommerce.customerServiceWorkspace.filterSearch")}
-                  className="input-full"
-                  value={workspace.conversationSearchDraft}
-                  onChange={(event) => workspace.setConversationSearchDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") workspace.applyConversationSearch();
-                  }}
-                  placeholder={t("ecommerce.customerServiceWorkspace.conversationSearchPlaceholder")}
+            <div className="cs-conversation-filter-primary">
+              <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
+                <Select
+                  ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
+                  value={workspace.conversationShopId}
+                  onChange={(value) => workspace.setConversationShopId(value)}
+                  options={shopOptions}
                 />
-                <button className="btn btn-secondary" type="button" onClick={() => workspace.applyConversationSearch()}>
-                  {t("ecommerce.customerServiceWorkspace.search")}
+              </FilterField>
+              <FilterField label={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}>
+                <Select
+                  ariaLabel={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}
+                  value={workspace.conversationStatusFilter}
+                  onChange={(value) => workspace.setConversationStatusFilter(value as ConversationStatusFilter)}
+                  options={[
+                    { value: "pending", label: t("ecommerce.customerServiceWorkspace.conversationStatusPending") },
+                    { value: "resolved", label: t("ecommerce.customerServiceWorkspace.conversationStatusReplied") },
+                    { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
+                  ]}
+                />
+              </FilterField>
+              <FilterField className="cs-filter-field-search" label={t("ecommerce.customerServiceWorkspace.filterSearch")}>
+                <div className="cs-workspace-search">
+                  <input
+                    aria-label={t("ecommerce.customerServiceWorkspace.filterSearch")}
+                    className="input-full"
+                    value={workspace.conversationSearchDraft}
+                    onChange={(event) => workspace.setConversationSearchDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") workspace.applyConversationSearch();
+                    }}
+                    placeholder={t("ecommerce.customerServiceWorkspace.conversationSearchPlaceholder")}
+                  />
+                  <button className="btn btn-secondary" type="button" onClick={() => workspace.applyConversationSearch()}>
+                    {t("ecommerce.customerServiceWorkspace.search")}
+                  </button>
+                </div>
+              </FilterField>
+              <div className="cs-conversation-filter-buttons">
+                <button
+                  aria-expanded={conversationAdvancedFiltersOpen}
+                  className={`btn btn-secondary cs-advanced-filter-toggle${conversationAdvancedFiltersOpen ? " active" : ""}`}
+                  type="button"
+                  onClick={() => setConversationAdvancedFiltersOpen((value) => !value)}
+                >
+                  <ChevronRightIcon aria-hidden="true" />
+                  {conversationAdvancedFiltersOpen
+                    ? t("ecommerce.customerServiceWorkspace.hideAdvancedFilters")
+                    : t("ecommerce.customerServiceWorkspace.showAdvancedFilters")}
+                </button>
+                <button
+                  aria-label={workspace.conversationsLoading ? t("common.loading") : t("ecommerce.customerServiceWorkspace.refresh")}
+                  className="btn btn-secondary cs-refresh-button"
+                  disabled={workspace.conversationsLoading}
+                  title={workspace.conversationsLoading ? t("common.loading") : t("ecommerce.customerServiceWorkspace.refresh")}
+                  type="button"
+                  onClick={() => workspace.fetchConversations()}
+                >
+                  <RefreshIcon aria-hidden="true" />
                 </button>
               </div>
-            </FilterField>
-            <button className="btn btn-secondary cs-refresh-button" type="button" onClick={() => workspace.fetchConversations()} disabled={workspace.conversationsLoading}>
-              {workspace.conversationsLoading ? t("common.loading") : t("ecommerce.customerServiceWorkspace.refresh")}
-            </button>
+            </div>
+            {conversationAdvancedFiltersOpen ? (
+              <div className="cs-conversation-filter-secondary">
+                <FilterField label={t("ecommerce.customerServiceWorkspace.filterAiState")}>
+                  <Select
+                    ariaLabel={t("ecommerce.customerServiceWorkspace.filterAiState")}
+                    value={workspace.conversationAiFilter}
+                    onChange={(value) => workspace.setConversationAiFilter(value as ConversationAiFilter)}
+                    options={[
+                      { value: "all", label: t("ecommerce.customerServiceWorkspace.aiAll") },
+                      { value: "enabled", label: t("ecommerce.customerServiceWorkspace.aiEnabled") },
+                      { value: "disabled", label: t("ecommerce.customerServiceWorkspace.aiDisabled") },
+                    ]}
+                  />
+                </FilterField>
+                <FilterField label={t("ecommerce.customerServiceWorkspace.filterEscalationState")}>
+                  <Select
+                    ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
+                    value={workspace.conversationEscalationFilter}
+                    onChange={(value) => workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)}
+                    options={[
+                      { value: "all", label: t("ecommerce.customerServiceWorkspace.escalationAll") },
+                      { value: "open", label: t("ecommerce.customerServiceWorkspace.escalationOpen") },
+                      { value: "none", label: t("ecommerce.customerServiceWorkspace.escalationNone") },
+                    ]}
+                  />
+                </FilterField>
+              </div>
+            ) : null}
           </div>
 
           {workspace.conversationSearch && (
@@ -642,6 +673,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                           {item.openEscalationCount > 0 && (
                             <EscalationStateBadge conversation={item} />
                           )}
+                          <BadReviewBadge conversation={item} onClick={() => setReviewModalConversation(item)} />
                           <span className={item.status === GQL.CustomerServiceConversationStatus.Pending ? "badge badge-warning" : "badge badge-info"}>
                             {conversationStatusLabel(item.status, t)}
                           </span>
@@ -679,6 +711,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       <div>
                         <div className="cs-conversation-title-row">
                           <h2>{buyerLabel(selectedConversation)}</h2>
+                          <BadReviewBadge conversation={selectedConversation} onClick={() => setReviewModalConversation(selectedConversation)} variant="detail" />
                           {selectedConversation.openEscalationCount > 0 && (
                             <EscalationStateBadge conversation={selectedConversation} onClick={() => void openConversationEscalation(selectedConversation)} variant="detail" />
                           )}
@@ -927,6 +960,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
           if (!endSessionConfirm) return;
           void endConversationSession(endSessionConfirm.conversation);
         }}
+      />
+      <BadReviewModal
+        conversation={reviewModalConversation}
+        onClose={() => setReviewModalConversation(null)}
+        shopLabel={shopLabel}
       />
     </div>
   );
@@ -1195,6 +1233,102 @@ const EscalationDetailModal = observer(function EscalationDetailModal({
   );
 });
 
+function BadReviewModal({
+  conversation,
+  onClose,
+  shopLabel,
+}: {
+  conversation: Conversation | null;
+  onClose: () => void;
+  shopLabel: (shopId: string) => string;
+}) {
+  const { t } = useTranslation();
+  const reviews = conversation?.recentBadReviews ?? [];
+  const worstRating = reviews.reduce<number | null>((lowest, review) => {
+    if (typeof review.rating !== "number") return lowest;
+    return lowest == null ? review.rating : Math.min(lowest, review.rating);
+  }, null);
+  const latestReviewTime = reviews
+    .map((review) => Number(review.reviewCreateTime ?? 0))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => b - a)[0];
+  return (
+    <Modal
+      isOpen={Boolean(conversation)}
+      onClose={onClose}
+      title={t("ecommerce.customerServiceWorkspace.badReviewModalTitle")}
+      maxWidth={820}
+    >
+      {conversation && (
+        <div className="cs-bad-review-modal">
+          <div className="cs-bad-review-modal-head">
+            <div>
+              <strong>{buyerLabel(conversation)}</strong>
+              <span>{shopLabel(conversation.shopId)}</span>
+            </div>
+            <div className="cs-bad-review-head-meta">
+              <span>{t("ecommerce.customerServiceWorkspace.badReviewConversation")}</span>
+              <code>{conversation.conversationId}</code>
+            </div>
+          </div>
+          <div className="cs-bad-review-summary">
+            <div className="cs-bad-review-summary-item danger">
+              <span>{t("ecommerce.customerServiceWorkspace.badReviewCount")}</span>
+              <strong>{reviews.length}</strong>
+            </div>
+            <div className="cs-bad-review-summary-item">
+              <span>{t("ecommerce.customerServiceWorkspace.badReviewWorstRating")}</span>
+              <strong>{worstRating == null ? "-" : t("ecommerce.customerServiceWorkspace.badReviewRating", { rating: worstRating })}</strong>
+            </div>
+            <div className="cs-bad-review-summary-item">
+              <span>{t("ecommerce.customerServiceWorkspace.badReviewLatest")}</span>
+              <strong>{latestReviewTime ? formatCompactDateTime(latestReviewTime) : "-"}</strong>
+            </div>
+          </div>
+          <div className="cs-bad-review-list">
+            {reviews.map((review) => (
+              <article className="cs-bad-review-card" key={review.id}>
+                <div className="cs-bad-review-card-head">
+                  <div className="cs-bad-review-rating-block">
+                    <span className="cs-bad-review-rating-number">{review.rating ?? "-"}</span>
+                    <span>{t("ecommerce.customerServiceWorkspace.badReviewStars")}</span>
+                  </div>
+                  <div className="cs-bad-review-card-title">
+                    <strong>{review.title || t("ecommerce.customerServiceWorkspace.badReviewUntitled")}</strong>
+                    <span>{review.reviewCreateTime ? formatCompactDateTime(review.reviewCreateTime) : "-"}</span>
+                  </div>
+                  <span className={`cs-bad-review-status ${badReviewFollowUpClass(review.followUpStatus)}`}>
+                    {badReviewFollowUpLabel(review.followUpStatus, t)}
+                  </span>
+                </div>
+                <p className={review.content || review.title ? "cs-bad-review-content" : "cs-bad-review-content empty"}>
+                  {review.content || t("ecommerce.customerServiceWorkspace.badReviewNoContent")}
+                </p>
+                <div className="cs-bad-review-meta-grid">
+                  <BadReviewMeta label={t("ecommerce.customerServiceWorkspace.order")} value={review.orderId} />
+                  <BadReviewMeta label={t("ecommerce.customerServiceWorkspace.badReviewSku")} value={review.sellerSkus} />
+                  <BadReviewMeta label={t("ecommerce.customerServiceWorkspace.badReviewProduct")} value={review.productId} />
+                  <BadReviewMeta label={t("ecommerce.customerServiceWorkspace.badReviewPlatformReviewId")} value={review.platformReviewId} />
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function BadReviewMeta({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="cs-bad-review-meta-item">
+      <span>{label}</span>
+      <code>{value}</code>
+    </div>
+  );
+}
+
 const DismissEscalationConfirmModal = observer(function DismissEscalationConfirmModal({
   confirm,
   isBusy,
@@ -1347,6 +1481,23 @@ function conversationStatusLabel(status: GQL.CustomerServiceConversationStatus, 
   return t("ecommerce.customerServiceWorkspace.conversationStatusPending");
 }
 
+function badReviewFollowUpLabel(status: GQL.ProductReviewFollowUpStatus, t: (key: string) => string): string {
+  if (status === GQL.ProductReviewFollowUpStatus.Attached) return t("ecommerce.customerServiceWorkspace.badReviewStatusAttached");
+  if (status === GQL.ProductReviewFollowUpStatus.FailedToReachout) return t("ecommerce.customerServiceWorkspace.badReviewStatusFailed");
+  if (status === GQL.ProductReviewFollowUpStatus.Resolved) return t("ecommerce.customerServiceWorkspace.badReviewStatusResolved");
+  if (status === GQL.ProductReviewFollowUpStatus.NotRequired) return t("ecommerce.customerServiceWorkspace.badReviewStatusNotRequired");
+  if (status === GQL.ProductReviewFollowUpStatus.Suppressed) return t("ecommerce.customerServiceWorkspace.badReviewStatusSuppressed");
+  return t("ecommerce.customerServiceWorkspace.badReviewStatusPending");
+}
+
+function badReviewFollowUpClass(status: GQL.ProductReviewFollowUpStatus): string {
+  if (status === GQL.ProductReviewFollowUpStatus.Attached) return "attached";
+  if (status === GQL.ProductReviewFollowUpStatus.FailedToReachout) return "failed";
+  if (status === GQL.ProductReviewFollowUpStatus.Resolved) return "resolved";
+  if (status === GQL.ProductReviewFollowUpStatus.NotRequired || status === GQL.ProductReviewFollowUpStatus.Suppressed) return "muted";
+  return "pending";
+}
+
 function EscalationStateBadge({
   conversation,
   onClick,
@@ -1379,6 +1530,40 @@ function EscalationStateBadge({
       {label}
       {variant === "detail" && (
         <span className="cs-open-escalation-action-label">{t("ecommerce.customerServiceWorkspace.viewEscalationDetails")}</span>
+      )}
+    </button>
+  );
+}
+
+function BadReviewBadge({
+  conversation,
+  onClick,
+  variant = "list",
+}: {
+  conversation: Conversation;
+  onClick: () => void;
+  variant?: "list" | "detail";
+}) {
+  const { t } = useTranslation();
+  const count = conversation.recentBadReviews?.length ?? 0;
+  if (count <= 0) return null;
+  const className = variant === "detail"
+    ? "badge cs-bad-review-badge cs-bad-review-button cs-bad-review-button-detail"
+    : "badge cs-bad-review-badge cs-bad-review-button";
+  return (
+    <button
+      className={className}
+      type="button"
+      aria-label={t("ecommerce.customerServiceWorkspace.openBadReviewDetails")}
+      title={t("ecommerce.customerServiceWorkspace.openBadReviewDetails")}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+    >
+      {t("ecommerce.customerServiceWorkspace.badReviewBadge")}
+      {variant === "detail" && count > 1 && (
+        <span className="cs-bad-review-count">{count}</span>
       )}
     </button>
   );

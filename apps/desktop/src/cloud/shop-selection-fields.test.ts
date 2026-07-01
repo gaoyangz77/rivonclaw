@@ -25,6 +25,15 @@ function requiredShopLeafPaths(): string[] {
   }
 
   for (const field of modelPropertyNames(CustomerServiceConfigModel)) {
+    if (field === "reviewOptimization") {
+      paths.push(
+        "services.customerService.reviewOptimization.enabled",
+        "services.customerService.reviewOptimization.badReviewReachout.enabled",
+        "services.customerService.reviewOptimization.badReviewReachout.stars",
+        "services.customerService.reviewOptimization.badReviewReachout.recentDays",
+      );
+      continue;
+    }
     paths.push(`services.customerService.${field}`);
   }
 

@@ -2647,6 +2647,8 @@ export interface CustomerServiceConversation {
   replyStatus?: Maybe<CustomerServiceConversationStatus>;
   /** Unix seconds when the conversation was last resolved. */
   resolvedAt?: Maybe<Scalars['Int']['output']>;
+  /** Recent bad reviews for this buyer, resolved dynamically from product_reviews. */
+  recentBadReviews?: Maybe<Array<CustomerServiceProductReviewSummary>>;
   /** MongoDB shop ID when this conversation is backend-materialized */
   shopId?: Maybe<Scalars['String']['output']>;
   /** Conversation status per platform */
@@ -2679,6 +2681,7 @@ export interface CustomerServiceConversationDispatchHint {
 
 /** Reason a customer-service conversation snapshot should wake the local CS agent. */
 export const CustomerServiceConversationDispatchReason = {
+  BadReviewReachout: 'BAD_REVIEW_REACHOUT',
   ManualStart: 'MANUAL_START',
   PendingBuyerMessage: 'PENDING_BUYER_MESSAGE',
   SessionExpiringCustomerFollowUp: 'SESSION_EXPIRING_CUSTOMER_FOLLOW_UP',
@@ -2703,6 +2706,37 @@ export const CustomerServiceConversationEscalationFilter = {
 } as const;
 
 export type CustomerServiceConversationEscalationFilter = typeof CustomerServiceConversationEscalationFilter[keyof typeof CustomerServiceConversationEscalationFilter];
+
+/** System lifecycle state for customer-service review follow-up. */
+export const ProductReviewFollowUpStatus = {
+  Attached: 'ATTACHED',
+  FailedToReachout: 'FAILED_TO_REACHOUT',
+  NotRequired: 'NOT_REQUIRED',
+  Pending: 'PENDING',
+  Resolved: 'RESOLVED',
+  Suppressed: 'SUPPRESSED'
+} as const;
+
+export type ProductReviewFollowUpStatus = typeof ProductReviewFollowUpStatus[keyof typeof ProductReviewFollowUpStatus];
+
+/** Recent bad product review context linked to a customer-service buyer. */
+export interface CustomerServiceProductReviewSummary {
+  /** MongoDB product review ID. */
+  id: Scalars['ID']['output'];
+  content?: Maybe<Scalars['String']['output']>;
+  followUpStatus: ProductReviewFollowUpStatus;
+  orderId?: Maybe<Scalars['String']['output']>;
+  platformReviewId: Scalars['String']['output'];
+  productId?: Maybe<Scalars['String']['output']>;
+  rating?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the review was created. */
+  reviewCreateTime?: Maybe<Scalars['Int']['output']>;
+  /** Unix seconds when the review was last updated. */
+  reviewUpdateTime?: Maybe<Scalars['Int']['output']>;
+  sellerSkus?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+}
+
 /** Backend-materialized customer service conversation inbox item. */
 export interface CustomerServiceConversationInboxItem {
   aiEnabled: Scalars['Boolean']['output'];
@@ -2735,6 +2769,8 @@ export interface CustomerServiceConversationInboxItem {
   platformShopId?: Maybe<Scalars['String']['output']>;
   /** Unix seconds when the conversation was last resolved. */
   resolvedAt?: Maybe<Scalars['Int']['output']>;
+  /** Recent bad reviews for this buyer, resolved dynamically from product_reviews. */
+  recentBadReviews?: Maybe<Array<CustomerServiceProductReviewSummary>>;
   shopId: Scalars['String']['output'];
   status: CustomerServiceConversationStatus;
   /** Unix seconds of the backend record update time. */
@@ -3103,6 +3139,32 @@ export interface CustomerServiceSessionPage {
   nextPageToken?: Maybe<Scalars['String']['output']>;
 }
 
+/** Bad-review customer-service reachout settings per shop */
+export interface BadReviewReachoutSettings {
+  enabled: Scalars['Boolean']['output'];
+  /** Only bad reviews created within this many days are eligible for customer-service reachout. Valid range: 1-90. */
+  recentDays: Scalars['Int']['output'];
+  /** Reviews at or below this star rating are treated as bad reviews. Valid range: 1-3. */
+  stars: Scalars['Int']['output'];
+}
+
+export interface BadReviewReachoutSettingsInput {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  recentDays?: InputMaybe<Scalars['Int']['input']>;
+  stars?: InputMaybe<Scalars['Int']['input']>;
+}
+
+/** Review optimization settings per shop */
+export interface ReviewOptimizationSettings {
+  badReviewReachout: BadReviewReachoutSettings;
+  enabled: Scalars['Boolean']['output'];
+}
+
+export interface ReviewOptimizationSettingsInput {
+  badReviewReachout?: InputMaybe<BadReviewReachoutSettingsInput>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
 /** Customer service settings per shop (user-configurable) */
 export interface CustomerServiceSettings {
   businessPrompt?: Maybe<Scalars['String']['output']>;
@@ -3120,6 +3182,7 @@ export interface CustomerServiceSettings {
   platformSystemPrompt?: Maybe<Scalars['String']['output']>;
   /** RunProfile ID for CS agent sessions */
   runProfileId?: Maybe<Scalars['String']['output']>;
+  reviewOptimization: ReviewOptimizationSettings;
   /** Whole-hour delay before unpaid-order proactive reachout. Valid range: 1-47. */
   unpaidOrderReachoutDelayHours?: Maybe<Scalars['Int']['output']>;
   /** Whether CS should proactively reach out for eligible unpaid orders. */
@@ -3146,6 +3209,7 @@ export interface CustomerServiceSettingsInput {
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
   unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
@@ -6407,6 +6471,7 @@ export interface QueryEcommerceGetConversationsArgs {
 export interface QueryEcommerceGetCustomerServiceInboxArgs {
   aiEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   escalation?: InputMaybe<CustomerServiceConversationEscalationFilter>;
+  hasBadReview?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
