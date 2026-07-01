@@ -1290,9 +1290,9 @@ export class BackendSubscriptionClient {
       } catch (err) {
         this.authRecoveryFailures += 1;
         const messages = this.collectErrorMessages(err);
+        const reason = messages.find((message) => message.trim()) ?? "unknown";
 
         if (!this.getToken?.()) {
-          const reason = messages.find((message) => message.trim()) ?? "unknown";
           const invalidJwt = /invalid signature|jwt malformed|jwt expired|Invalid token|Token expired/i.test(reason);
           log.warn(
             invalidJwt
@@ -1304,6 +1304,16 @@ export class BackendSubscriptionClient {
               reason,
             },
           );
+          this.disableAuthenticatedSubscriptions();
+          return;
+        }
+
+        if (this.isAuthError(err)) {
+          log.warn("Backend subscription auth refresh failed; suspending authenticated subscriptions", {
+            source,
+            failureCount: this.authRecoveryFailures,
+            reason,
+          });
           this.disableAuthenticatedSubscriptions();
           return;
         }

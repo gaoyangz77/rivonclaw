@@ -16,6 +16,16 @@ const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
 export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
 
+interface RefreshOptions {
+  clearOnInvalid?: boolean;
+}
+
+interface GraphqlFetchOptions {
+  autoRefresh?: boolean;
+  includeAccessToken?: boolean;
+  clearOnInvalidRefresh?: boolean;
+}
+
 function isRecoverableAuthErrorMessage(message: string): boolean {
   return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
 }
@@ -93,16 +103,20 @@ export class AuthSessionManager {
   }
 
   /** Refresh the access token using the stored refresh token. Single-flight. */
-  async refresh(): Promise<string> {
+  async refresh(options?: RefreshOptions): Promise<string> {
+    if (options?.clearOnInvalid === false) {
+      return this.doRefresh(options);
+    }
+
     if (this.refreshPromise) return this.refreshPromise;
 
-    this.refreshPromise = this.doRefresh().finally(() => {
+    this.refreshPromise = this.doRefresh(options).finally(() => {
       this.refreshPromise = null;
     });
     return this.refreshPromise;
   }
 
-  private async doRefresh(): Promise<string> {
+  private async doRefresh(options?: RefreshOptions): Promise<string> {
     if (!this.refreshToken) {
       await this.clearTokens();
       throw new Error("No refresh token available");
@@ -121,7 +135,7 @@ export class AuthSessionManager {
       return payload.accessToken;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (isSessionInvalidErrorMessage(msg)) {
+      if (options?.clearOnInvalid !== false && isSessionInvalidErrorMessage(msg)) {
         await this.clearTokens();
       }
       throw err;
@@ -199,7 +213,7 @@ export class AuthSessionManager {
   async graphqlFetch<T = unknown>(
     query: string,
     variables?: Record<string, unknown>,
-    options?: { autoRefresh?: boolean; includeAccessToken?: boolean },
+    options?: GraphqlFetchOptions,
   ): Promise<T> {
     const url = getGraphqlUrl(this.locale);
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -218,7 +232,7 @@ export class AuthSessionManager {
 
     let refreshed = false;
     if (autoRefresh && res.status === 401 && this.refreshToken) {
-      headers["Authorization"] = `Bearer ${await this.refresh()}`;
+      headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: options?.clearOnInvalidRefresh })}`;
       refreshed = true;
       res = await doFetch();
     }
@@ -230,7 +244,7 @@ export class AuthSessionManager {
     if (autoRefresh && json.errors?.length && !refreshed && this.refreshToken) {
       const msg = json.errors.map(e => e.message).join("; ");
       if (isRecoverableAuthErrorMessage(msg)) {
-        headers["Authorization"] = `Bearer ${await this.refresh()}`;
+        headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: options?.clearOnInvalidRefresh })}`;
         res = await doFetch();
         json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
       }

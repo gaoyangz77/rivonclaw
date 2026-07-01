@@ -395,14 +395,16 @@ app.whenReady().then(async () => {
   backendSubscription.connect(
     () => authSession.getAccessToken(),
     {
-      refreshAuth: () => authSession.refresh().then(() => undefined),
+      refreshAuth: () => authSession.refresh({ clearOnInvalid: false }).then(() => undefined),
       onConnectedAfterRetry: () => {
         if (!authSession.getAccessToken()) return;
         if (subscriptionReconnectShopRefresh) return subscriptionReconnectShopRefresh;
 
         subscriptionReconnectShopRefresh = (async () => {
           try {
-            await refreshShopLifecycle(authSession, "backend_subscription_reconnect");
+            await refreshShopLifecycle({
+              graphqlFetch: (query) => authSession.graphqlFetch(query, undefined, { clearOnInvalidRefresh: false }),
+            }, "backend_subscription_reconnect");
           } finally {
             subscriptionReconnectShopRefresh = null;
           }

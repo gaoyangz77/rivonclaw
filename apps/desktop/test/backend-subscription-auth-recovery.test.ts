@@ -254,10 +254,9 @@ describe("BackendSubscriptionClient auth recovery", () => {
     }
   });
 
-  it("does not recover authenticated subscriptions after JWT signature failure clears auth", async () => {
+  it("suspends authenticated subscriptions after JWT signature failure without clearing auth", async () => {
     let token: string | null = "staging-token";
     const refreshAuth = vi.fn(async () => {
-      token = null;
       throw new Error("invalid signature");
     });
 
@@ -278,6 +277,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     client.subscribeToClientLogUploadRequests("device-1", vi.fn());
 
+    expect(token).toBe("staging-token");
     expect(subscriptions).toHaveLength(2);
     client.disconnect();
   });

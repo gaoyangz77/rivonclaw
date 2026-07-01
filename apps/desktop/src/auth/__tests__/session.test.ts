@@ -254,6 +254,48 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
+  it("can reject invalid JWT refresh without clearing stored tokens", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{ message: "invalid signature" }],
+      }),
+    });
+
+    await expect(manager.refresh({ clearOnInvalid: false })).rejects.toThrow("invalid signature");
+
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it("can auto-refresh GraphQL auth errors without clearing stored tokens", async () => {
+    fetchFn
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "Authentication required" }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "invalid signature" }],
+        }),
+      });
+
+    await expect(
+      manager.graphqlFetch("query ShopLifecycle { shops { id } }", undefined, { clearOnInvalidRefresh: false }),
+    ).rejects.toThrow("invalid signature");
+
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
   it("does not recursively refresh when the refresh mutation returns 401", async () => {
     fetchFn.mockResolvedValueOnce({
       status: 401,
