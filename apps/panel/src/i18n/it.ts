@@ -2640,6 +2640,8 @@ export default {
       "intelligenceModelSourceSelector": "Modello usato per questo negozio",
       "intelligenceAccountModel": "Modello account",
       "intelligenceAccountModelHint": "Usa la cronologia affiliate cross-shop di questo account.",
+      "intelligenceRegionModel": "Modello regione",
+      "intelligenceRegionModelHint": "Usa la cronologia affiliate dei negozi nella stessa regione.",
       "intelligenceStoreModel": "Modello negozio",
       "intelligenceStoreModelHint": "Usa solo la cronologia affiliate di questo negozio.",
       "intelligenceRecommendedModel": "Consigliato",
@@ -3264,8 +3266,9 @@ export default {
         "runProfileNone": "Nessun profilo di esecuzione selezionato",
         "modelUsageScope": "Usa modello",
         "modelUsageScopeLabel": "Modello predittivo",
-        "modelUsageScopeHint": "Scegli se questo negozio usa il modello a livello account o il proprio modello negozio per le previsioni di vendite attese.",
+        "modelUsageScopeHint": "Scegli se questo negozio usa il modello account, regionale o negozio per le previsioni di vendite attese.",
         "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeRegionLevel": "Region level",
         "modelUsageScopeShopLevel": "Shop level",
         "modelRecommendationTitle": "Consigliato: {{scope}}",
         "modelRecommendationSelected": "Il modello consigliato è attualmente in uso",
@@ -3277,8 +3280,10 @@ export default {
         "modelRecommendationNoData": "Ancora nessun dato",
         "modelRecommendationReasons": {
           "account_more_stable": "Il modello account usa la cronologia creator cross-shop ed è attualmente il default più stabile per questo negozio.",
+          "region_balanced": "Il modello regionale usa solo la cronologia dei negozi nella stessa regione, bilanciando dimensione del campione e differenze di mercato.",
           "shop_clear_advantage": "Il modello negozio mostra un vantaggio più chiaro per questo negozio nella finestra di test holdout, con confidenza non bassa.",
           "only_account": "Al momento solo il modello account ha una valutazione disponibile.",
+          "only_region": "Al momento solo il modello regionale ha una valutazione disponibile.",
           "only_shop": "Al momento solo il modello negozio ha una valutazione disponibile."
         },
         "modelConfidence": {

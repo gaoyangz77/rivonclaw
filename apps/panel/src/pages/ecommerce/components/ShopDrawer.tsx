@@ -80,8 +80,8 @@ interface ShopDrawerProps {
   editAffiliateMinExpectedSalesUnits: string;
   onEditAffiliateMinExpectedSalesUnits: (value: string) => void;
   onCommitAffiliateMinExpectedSalesUnits: () => void;
-  editAffiliateModelUsageScope: "USER_LEVEL" | "SHOP_LEVEL";
-  onEditAffiliateModelUsageScope: (value: "USER_LEVEL" | "SHOP_LEVEL") => void;
+  editAffiliateModelUsageScope: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL";
+  onEditAffiliateModelUsageScope: (value: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL") => void;
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
   togglingAffiliateBindShopId: string | null;

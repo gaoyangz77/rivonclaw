@@ -2640,6 +2640,8 @@ export default {
       "intelligenceModelSourceSelector": "Modèle utilisé pour cette boutique",
       "intelligenceAccountModel": "Modèle du compte",
       "intelligenceAccountModelHint": "Utilise l'historique affilié multi-boutiques de ce compte.",
+      "intelligenceRegionModel": "Modèle région",
+      "intelligenceRegionModelHint": "Utilise l'historique affilié des boutiques de la même région.",
       "intelligenceStoreModel": "Modèle boutique",
       "intelligenceStoreModelHint": "Utilise uniquement l'historique affilié de cette boutique.",
       "intelligenceRecommendedModel": "Recommandé",
@@ -3264,8 +3266,9 @@ export default {
         "runProfileNone": "Aucun profil d'exécution sélectionné",
         "modelUsageScope": "Modèle utilisé",
         "modelUsageScopeLabel": "Modèle de prédiction",
-        "modelUsageScopeHint": "Choisissez si cette boutique utilise le modèle du compte ou son propre modèle boutique pour les prévisions de ventes attendues.",
+        "modelUsageScopeHint": "Choisissez si cette boutique utilise le modèle compte, région ou boutique pour les prévisions de ventes attendues.",
         "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeRegionLevel": "Region level",
         "modelUsageScopeShopLevel": "Shop level",
         "modelRecommendationTitle": "Recommandé : {{scope}}",
         "modelRecommendationSelected": "Le modèle recommandé est actuellement utilisé",
@@ -3277,8 +3280,10 @@ export default {
         "modelRecommendationNoData": "Pas encore de données",
         "modelRecommendationReasons": {
           "account_more_stable": "Le modèle du compte utilise l'historique créateur multi-boutiques et constitue actuellement le choix par défaut le plus stable pour cette boutique.",
+          "region_balanced": "Le modèle régional utilise seulement l'historique des boutiques de la même région, en équilibrant volume d'échantillon et différences de marché.",
           "shop_clear_advantage": "Le modèle boutique montre un avantage plus clair pour cette boutique dans la fenêtre de test holdout, avec une confiance non faible.",
           "only_account": "Seul le modèle du compte dispose actuellement d'une évaluation.",
+          "only_region": "Seul le modèle régional dispose actuellement d'une évaluation.",
           "only_shop": "Seul le modèle boutique dispose actuellement d'une évaluation."
         },
         "modelConfidence": {

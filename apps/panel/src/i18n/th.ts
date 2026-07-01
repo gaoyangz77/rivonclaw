@@ -2640,6 +2640,8 @@ export default {
       "intelligenceModelSourceSelector": "โมเดลที่ใช้กับร้านนี้",
       "intelligenceAccountModel": "โมเดลบัญชี",
       "intelligenceAccountModelHint": "ใช้ประวัติ affiliate ข้ามร้านของบัญชีนี้",
+      "intelligenceRegionModel": "โมเดลภูมิภาค",
+      "intelligenceRegionModelHint": "ใช้ประวัติ affiliate จากร้านค้าในภูมิภาคเดียวกัน",
       "intelligenceStoreModel": "โมเดลร้าน",
       "intelligenceStoreModelHint": "ใช้เฉพาะประวัติ affiliate ของร้านนี้",
       "intelligenceRecommendedModel": "แนะนำ",
@@ -3264,8 +3266,9 @@ export default {
         "runProfileNone": "ไม่ได้เลือก RunProfile",
         "modelUsageScope": "ใช้โมเดล",
         "modelUsageScopeLabel": "โมเดลคาดการณ์",
-        "modelUsageScopeHint": "เลือกให้ร้านนี้ใช้โมเดลระดับบัญชี หรือโมเดลระดับร้านค้าของตัวเองสำหรับการคาดการณ์ expected sales",
+        "modelUsageScopeHint": "เลือกให้ร้านนี้ใช้โมเดลระดับบัญชี ระดับภูมิภาค หรือระดับร้านค้าสำหรับการคาดการณ์ expected sales",
         "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeRegionLevel": "Region level",
         "modelUsageScopeShopLevel": "Shop level",
         "modelRecommendationTitle": "แนะนำ: {{scope}}",
         "modelRecommendationSelected": "กำลังใช้โมเดลที่แนะนำอยู่",
@@ -3277,8 +3280,10 @@ export default {
         "modelRecommendationNoData": "ยังไม่มีข้อมูล",
         "modelRecommendationReasons": {
           "account_more_stable": "โมเดลระดับบัญชีใช้ประวัติครีเอเตอร์ข้ามร้าน และตอนนี้เป็นค่าเริ่มต้นที่เสถียรกว่าสำหรับร้านนี้",
+          "region_balanced": "โมเดลระดับภูมิภาคใช้ประวัติจากร้านในภูมิภาคเดียวกัน เพื่อสมดุลระหว่างจำนวนตัวอย่างและความต่างของตลาด",
           "shop_clear_advantage": "โมเดลระดับร้านแสดงข้อได้เปรียบชัดเจนกว่าสำหรับร้านนี้ในช่วงทดสอบ holdout และความเชื่อมั่นไม่ต่ำ",
           "only_account": "ตอนนี้มีผลประเมินเฉพาะโมเดลระดับบัญชี",
+          "only_region": "ตอนนี้มีผลประเมินเฉพาะโมเดลระดับภูมิภาค",
           "only_shop": "ตอนนี้มีผลประเมินเฉพาะโมเดลระดับร้าน"
         },
         "modelConfidence": {

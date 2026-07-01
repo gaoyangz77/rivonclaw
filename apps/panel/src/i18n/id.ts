@@ -2640,6 +2640,8 @@ export default {
       "intelligenceModelSourceSelector": "Model yang dipakai untuk toko ini",
       "intelligenceAccountModel": "Model akun",
       "intelligenceAccountModelHint": "Memakai riwayat affiliate lintas toko pada akun ini.",
+      "intelligenceRegionModel": "Model region",
+      "intelligenceRegionModelHint": "Memakai riwayat affiliate dari toko di region yang sama.",
       "intelligenceStoreModel": "Model toko",
       "intelligenceStoreModelHint": "Hanya memakai riwayat affiliate toko ini.",
       "intelligenceRecommendedModel": "Direkomendasikan",
@@ -3264,8 +3266,9 @@ export default {
         "runProfileNone": "Tidak ada RunProfile yang dipilih",
         "modelUsageScope": "Gunakan model",
         "modelUsageScopeLabel": "Model prediksi",
-        "modelUsageScopeHint": "Pilih apakah toko ini memakai model tingkat akun atau model tingkat toko sendiri untuk prediksi expected sales.",
+        "modelUsageScopeHint": "Pilih apakah toko ini memakai model tingkat akun, region, atau toko untuk prediksi expected sales.",
         "modelUsageScopeUserLevel": "User level",
+        "modelUsageScopeRegionLevel": "Region level",
         "modelUsageScopeShopLevel": "Shop level",
         "modelRecommendationTitle": "Direkomendasikan: {{scope}}",
         "modelRecommendationSelected": "Saat ini memakai model yang direkomendasikan",
@@ -3277,8 +3280,10 @@ export default {
         "modelRecommendationNoData": "Belum ada data",
         "modelRecommendationReasons": {
           "account_more_stable": "Model akun memakai riwayat kreator lintas toko dan saat ini menjadi default yang lebih stabil untuk toko ini.",
+          "region_balanced": "Model region memakai riwayat toko di region yang sama, menyeimbangkan ukuran sampel dan perbedaan pasar.",
           "shop_clear_advantage": "Model toko menunjukkan keunggulan yang lebih jelas untuk toko ini pada jendela uji holdout, dengan keyakinan tidak rendah.",
           "only_account": "Saat ini hanya model akun yang memiliki evaluasi tersedia.",
+          "only_region": "Saat ini hanya model region yang memiliki evaluasi tersedia.",
           "only_shop": "Saat ini hanya model toko yang memiliki evaluasi tersedia."
         },
         "modelConfidence": {
