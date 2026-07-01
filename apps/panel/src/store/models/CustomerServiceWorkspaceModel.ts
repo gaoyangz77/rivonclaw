@@ -677,6 +677,7 @@ export const CustomerServiceWorkspaceModel = types
               status: statusForConversationFilter(self.conversationStatusFilter),
               aiEnabled: aiEnabledForFilter(self.conversationAiFilter),
               escalation: escalationForConversationFilter(self.conversationEscalationFilter),
+              search: self.conversationSearch || undefined,
               limit: self.conversationPageSize,
               offset: (self.conversationPage - 1) * self.conversationPageSize,
             },
