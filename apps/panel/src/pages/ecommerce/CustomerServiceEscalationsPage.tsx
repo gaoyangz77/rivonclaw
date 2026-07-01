@@ -149,6 +149,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     workspace.conversationStatusFilter,
     workspace.conversationAiFilter,
     workspace.conversationEscalationFilter,
+    workspace.conversationSearch,
     workspace.conversationPage,
     workspace.conversationPageSize,
   ]);

@@ -256,6 +256,7 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
     $status: CustomerServiceConversationStatus
     $aiEnabled: Boolean
     $escalation: CustomerServiceConversationEscalationFilter
+    $search: String
     $limit: Int
     $offset: Int
   ) {
@@ -264,6 +265,7 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
       status: $status
       aiEnabled: $aiEnabled
       escalation: $escalation
+      search: $search
       limit: $limit
       offset: $offset
     ) {
