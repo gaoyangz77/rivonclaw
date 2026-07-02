@@ -34,8 +34,9 @@ export function resolveShopAdsReadiness(
   };
 }
 
-export function getReadinessBadgeClass(status: ShopAdsReadinessStatus): string {
+export function getReadinessBadgeClass(status: ShopAdsReadinessStatus | "partial"): string {
   if (status === "connected") return "status-badge status-authorized";
+  if (status === "partial") return "status-badge status-info";
   if (status === "needs_link") return "status-badge status-warning";
   return "status-badge status-neutral";
 }
