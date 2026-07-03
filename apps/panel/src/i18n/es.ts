@@ -3018,6 +3018,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Se detectó contenido y está en revisión.",
         "FULFILLED": "Esta colaboración de muestra se completó.",
         "FULFILLMENT_FAILED": "Esta colaboración de muestra no se completó correctamente.",
+        "PLATFORM_STATUS_UNKNOWN": "TikTok Shop no devolvió un estado de muestra revisable, por lo que no se intentará una revisión.",
         "CANCELLED": "La solicitud de muestra fue cancelada.",
         "EXPIRED": "La solicitud de muestra expiró.",
         "DEFAULT": "El estado de la solicitud de muestra se actualizó en la plataforma."
@@ -3030,6 +3031,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Contenido en revisión",
         "FULFILLED": "Completado",
         "FULFILLMENT_FAILED": "Cumplimiento fallido",
+        "PLATFORM_STATUS_UNKNOWN": "Estado de plataforma desconocido",
         "CANCELLED": "Cancelado",
         "EXPIRED": "Expirado"
       },

@@ -3018,6 +3018,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "ตรวจพบคอนเทนต์แล้วและอยู่ระหว่างตรวจสอบ",
         "FULFILLED": "การร่วมงานตัวอย่างนี้เสร็จสมบูรณ์แล้ว",
         "FULFILLMENT_FAILED": "การร่วมงานตัวอย่างนี้ไม่เสร็จสมบูรณ์",
+        "PLATFORM_STATUS_UNKNOWN": "TikTok Shop ไม่ได้ส่งคืนสถานะตัวอย่างที่ตรวจสอบได้ ระบบจึงจะไม่ดำเนินการตรวจสอบตัวอย่าง",
         "CANCELLED": "คำขอตัวอย่างถูกยกเลิก",
         "EXPIRED": "คำขอตัวอย่างหมดอายุ",
         "DEFAULT": "สถานะคำขอตัวอย่างบนแพลตฟอร์มมีการอัปเดต"
@@ -3030,6 +3031,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "ตรวจคอนเทนต์",
         "FULFILLED": "เสร็จสมบูรณ์",
         "FULFILLMENT_FAILED": "ดำเนินการล้มเหลว",
+        "PLATFORM_STATUS_UNKNOWN": "ไม่ทราบสถานะแพลตฟอร์ม",
         "CANCELLED": "ยกเลิกแล้ว",
         "EXPIRED": "หมดอายุ"
       },

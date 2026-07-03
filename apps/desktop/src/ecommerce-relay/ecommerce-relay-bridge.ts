@@ -26,6 +26,45 @@ const AFFILIATE_WORK_CATCH_UP_INTERVAL_MS = Math.max(
   15_000,
   Number.parseInt(process.env.RIVONCLAW_AFFILIATE_WORK_CATCH_UP_INTERVAL_MS ?? "60000", 10) || 60_000,
 );
+const DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = 30_000;
+
+function resolveAirflowPendingCatchUpWindowMs(): number {
+  const raw = process.env.RIVONCLAW_CS_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS;
+  if (raw === undefined) return DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS;
+}
+
+function csDispatchBatchKey(dispatch: CsAgentDispatchRequest): string {
+  return `${dispatch.platformShopId}\u0000${dispatch.conversationId}`;
+}
+
+function csDispatchSortKey(dispatch: CsAgentDispatchRequest): [number, number, string, string] {
+  const eventMs = dispatch.eventTime ? new Date(dispatch.eventTime).getTime() : 0;
+  const timestamp = Number.isFinite(eventMs) ? eventMs : 0;
+  const messageIndex = dispatch.messageIndex ?? "";
+  return [timestamp, messageIndex.length, messageIndex, dispatch.messageId ?? ""];
+}
+
+function compareCsDispatchCursor(left: CsAgentDispatchRequest, right: CsAgentDispatchRequest): number {
+  const leftKey = csDispatchSortKey(left);
+  const rightKey = csDispatchSortKey(right);
+  for (let index = 0; index < leftKey.length; index += 1) {
+    const leftValue = leftKey[index];
+    const rightValue = rightKey[index];
+    if (leftValue < rightValue) return -1;
+    if (leftValue > rightValue) return 1;
+  }
+  return 0;
+}
+
+function isAirflowPendingBuyerDispatch(dispatch: CsAgentDispatchRequest): boolean {
+  return (
+    String(dispatch.source ?? "").toUpperCase() === "AIRFLOW" &&
+    dispatch.dispatchReason === "PENDING_BUYER_MESSAGE" &&
+    Boolean(dispatch.messageId)
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,6 +125,12 @@ export class EcommerceRelayBridge {
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
   private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
 
+  /** Airflow backlog buyer-message dispatches keyed by platformShopId + conversationId. */
+  private pendingAirflowBuyerCatchUps = new Map<string, {
+    dispatch: CsAgentDispatchRequest;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>();
+
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
@@ -118,6 +163,10 @@ export class EcommerceRelayBridge {
       clearInterval(this.affiliateWorkCatchUpTimer);
       this.affiliateWorkCatchUpTimer = null;
     }
+    for (const pending of this.pendingAirflowBuyerCatchUps.values()) {
+      if (pending.timer) clearTimeout(pending.timer);
+    }
+    this.pendingAirflowBuyerCatchUps.clear();
     runtimeStatusStore.setCsBridgeDisconnected();
     log.info("Ecommerce signal bridge stopped");
   }
@@ -533,6 +582,45 @@ export class EcommerceRelayBridge {
       return;
     }
 
+    if (isAirflowPendingBuyerDispatch(dispatch)) {
+      this.enqueueAirflowPendingBuyerCatchUp(dispatch);
+      return;
+    }
+
+    await this.dispatchCsConversationSignalNow(dispatch);
+  }
+
+  private enqueueAirflowPendingBuyerCatchUp(dispatch: CsAgentDispatchRequest): void {
+    const key = csDispatchBatchKey(dispatch);
+    const existing = this.pendingAirflowBuyerCatchUps.get(key);
+    const selected = existing && compareCsDispatchCursor(existing.dispatch, dispatch) > 0
+      ? existing.dispatch
+      : dispatch;
+    if (existing?.timer) clearTimeout(existing.timer);
+
+    const windowMs = resolveAirflowPendingCatchUpWindowMs();
+    const pending = {
+      dispatch: selected,
+      timer: null as ReturnType<typeof setTimeout> | null,
+    };
+    const flush = () => {
+      const current = this.pendingAirflowBuyerCatchUps.get(key);
+      if (current !== pending) return;
+      this.pendingAirflowBuyerCatchUps.delete(key);
+      void this.dispatchCsConversationSignalNow(current.dispatch);
+    };
+    pending.timer = setTimeout(flush, windowMs);
+    this.pendingAirflowBuyerCatchUps.set(key, pending);
+
+    if (existing) {
+      log.info(
+        `Coalescing Airflow CS pending buyer catch-up for shop=${dispatch.platformShopId} ` +
+        `conv=${dispatch.conversationId}; latest msg=${selected.messageId ?? ""}`,
+      );
+    }
+  }
+
+  private async dispatchCsConversationSignalNow(dispatch: CsAgentDispatchRequest): Promise<void> {
     this.syncFromCache();
     log.info(
       `CS signal: type=${dispatch.type} reason=${dispatch.dispatchReason} shop=${dispatch.platformShopId} ` +

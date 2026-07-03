@@ -26,6 +26,7 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
 
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
 const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
+const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
 
 function extractOperationName(query: string): string | null {
@@ -75,33 +76,73 @@ function runCloudLlmEntitlementSyncInBackground(ctx: ApiContext): void {
 
 function sanitizeCloudGraphqlVariables(
   opName: string | null,
+  query: string,
   variables: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
-  if (!variables || (opName !== AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME && !looksLikeAffiliateResolveWorkItemVariables(variables))) {
+  if (variables && looksLikeAffiliatePredictCreatorProductFitVariables(opName, variables)) {
+    const normalized = sanitizeAffiliatePredictCreatorProductFitVariables(variables);
+    if (normalized !== variables) {
+      log.info("Normalized affiliate creator-product prediction payload before proxying to backend");
+    }
+    return normalized;
+  }
+
+  if (!variables) {
+    return variables;
+  }
+
+  const isAffiliateResolveWorkItem =
+    opName === AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME ||
+    query.includes("resolveAffiliateWorkItem") ||
+    looksLikeAffiliateResolveWorkItemVariables(variables);
+  if (!isAffiliateResolveWorkItem) {
     return variables;
   }
 
   const input = asRecord(variables.input);
   if (!input) return variables;
-  if (opName === AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME && !hasNonEmptyString(input.creatorRelationshipId)) {
+  if (!hasNonEmptyString(input.creatorRelationshipId)) {
     throw new Error("creatorRelationshipId is required for affiliate_resolve_work_item");
   }
-  if (input.decision !== "REQUEST_ACTION") return variables;
+  if (input.decision !== "REQUEST_ACTION") {
+    const normalizedInput = omitEmptyAffiliateStrings({
+      ...input,
+      action: undefined,
+      actions: undefined,
+      nextSellerActionAt: input.decision === "DEFERRED"
+        ? cleanOptionalAffiliateDateTime(input.nextSellerActionAt)
+        : undefined,
+    });
+    if (normalizedInput !== input) {
+      log.info("Normalized non-action affiliate resolve work item payload before proxying to backend");
+      return {
+        ...variables,
+        input: normalizedInput,
+      };
+    }
+    return variables;
+  }
 
-  const actionLike = input.action != null ? [input.action] : Array.isArray(input.actions) ? input.actions : [];
+  const hasActionBundle = Array.isArray(input.actions) && input.actions.length > 0;
+  const actionLike = hasActionBundle ? input.actions as unknown[] : input.action != null ? [input.action] : [];
   const context = buildAffiliateResolveActionContext(input);
   const normalizedActions = actionLike.map((action) => normalizeAffiliateResolveAction(action, context));
   const hasNormalizedAction = normalizedActions.some((action, index) => action !== actionLike[index]);
   if (actionLike.length > 0 && normalizedActions.every((action) => !isInvalidAffiliateResolveAction(action))) {
-    if (!hasNormalizedAction) return variables;
+    const normalizedInput = omitEmptyAffiliateStrings({
+      ...input,
+      nextSellerActionAt: undefined,
+      // The tool contract says callers must provide either input.action or input.actions,
+      // but model outputs sometimes include both. A non-empty action bundle is the
+      // business-complete payload, so prefer it and drop the stale singular action.
+      action: hasActionBundle ? undefined : input.action != null ? normalizedActions[0] : undefined,
+      actions: hasActionBundle ? normalizedActions : undefined,
+    });
+    if (!hasNormalizedAction && normalizedInput === input) return variables;
     log.info("Normalized affiliate resolve work item action payload before proxying to backend");
     return {
       ...variables,
-      input: {
-        ...input,
-        action: input.action != null ? normalizedActions[0] : undefined,
-        actions: Array.isArray(input.actions) ? normalizedActions : undefined,
-      },
+      input: normalizedInput,
     };
   }
 
@@ -119,6 +160,40 @@ function sanitizeCloudGraphqlVariables(
   }
 
   return variables;
+}
+
+function looksLikeAffiliatePredictCreatorProductFitVariables(
+  opName: string | null,
+  variables: Record<string, unknown>,
+): boolean {
+  if (opName === AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME) return true;
+  const input = asRecord(variables.input);
+  if (!input) return false;
+  return (
+    hasNonEmptyString(input.creatorRelationshipId) &&
+    hasNonEmptyString(input.shopId) &&
+    hasNonEmptyString(input.productId) &&
+    input.decision === undefined &&
+    input.action === undefined &&
+    input.actions === undefined &&
+    input.subjects === undefined
+  );
+}
+
+function sanitizeAffiliatePredictCreatorProductFitVariables(
+  variables: Record<string, unknown>,
+): Record<string, unknown> {
+  const input = asRecord(variables.input);
+  if (!input) return variables;
+  const normalizedInput = omitEmptyAffiliateStrings({
+    ...input,
+    // CreatorRelationship is the business boundary; backend can derive the
+    // platform creator identity. Agent-supplied creatorId/creatorOpenId is
+    // optional and easy to confuse with relationship ids, so do not forward it.
+    creatorId: undefined,
+    creatorOpenId: undefined,
+  });
+  return normalizedInput === input ? variables : { ...variables, input: normalizedInput };
 }
 
 function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, unknown>): boolean {
@@ -300,7 +375,7 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
     messageType: action.messageType ?? "TEXT",
     text,
   };
-  for (const field of ["creatorId", "creatorOpenId", "productId"]) {
+  for (const field of ["productId"]) {
     if (hasNonEmptyString(action[field])) messageIntent[field] = action[field];
   }
   return pickAffiliateActionFields(action, "messageIntent", messageIntent);
@@ -309,8 +384,6 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
 function pickAffiliateMessageIntentFields(intent: Record<string, unknown>): Record<string, unknown> {
   const picked: Record<string, unknown> = {};
   for (const field of [
-    "creatorId",
-    "creatorOpenId",
     "messageType",
     "text",
     "imageUrl",
@@ -338,13 +411,13 @@ function pickAffiliateActionFields(
   intentField: "messageIntent" | "sampleReviewIntent" | "targetCollaborationIntent",
   intentValue: Record<string, unknown>,
 ): Record<string, unknown> {
-  return {
+  return omitEmptyAffiliateStrings({
     type: action.type,
     collaborationRecordId: action.collaborationRecordId,
     predictionCacheIds: action.predictionCacheIds,
-    expiresAt: action.expiresAt,
+    expiresAt: cleanOptionalAffiliateDateTime(action.expiresAt),
     [intentField]: intentValue,
-  };
+  });
 }
 
 function isInvalidAffiliateResolveAction(value: unknown): boolean {
@@ -385,6 +458,44 @@ function firstNonEmptyString(...values: unknown[]): string | null {
     if (hasNonEmptyString(value)) return value;
   }
   return null;
+}
+
+function cleanOptionalAffiliateDateTime(value: unknown): unknown {
+  if (!hasNonEmptyString(value)) return undefined;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) return undefined;
+  return Number.isNaN(Date.parse(trimmed)) ? undefined : trimmed;
+}
+
+function omitEmptyAffiliateStrings<T extends Record<string, unknown>>(record: T): T {
+  let changed = false;
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (value === undefined || value === "") {
+      changed = true;
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const normalizedArray = value.map((item) => (
+        asRecord(item) ? omitEmptyAffiliateStrings(item as Record<string, unknown>) : item
+      ));
+      if (normalizedArray.some((item, index) => item !== value[index])) changed = true;
+      next[key] = normalizedArray;
+      continue;
+    }
+    if (asRecord(value)) {
+      const normalizedValue = omitEmptyAffiliateStrings(value as Record<string, unknown>);
+      if (normalizedValue !== value) changed = true;
+      if (Object.keys(normalizedValue).length === 0) {
+        changed = true;
+        continue;
+      }
+      next[key] = normalizedValue;
+      continue;
+    }
+    next[key] = value;
+  }
+  return changed ? (next as T) : record;
 }
 
 function describeAffiliateResolveActionShape(actions: unknown[]): string {
@@ -495,7 +606,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   const opName = extractOperationName(body.query);
   let variables: Record<string, unknown> | undefined;
   try {
-    variables = sanitizeCloudGraphqlVariables(opName, body.variables);
+    variables = sanitizeCloudGraphqlVariables(opName, body.query, body.variables);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Cloud GraphQL request failed";
     log.warn(`Cloud GraphQL proxy rejected request (op=${opName ?? "unknown"}): ${message}`);

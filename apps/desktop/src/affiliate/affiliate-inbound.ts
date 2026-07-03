@@ -24,6 +24,7 @@ import {
   type AffiliateWorkItemsQueryResult,
 } from "../cloud/affiliate-queries.js";
 import { getAuthSession } from "../auth/session-ref.js";
+import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("affiliate-inbound");
 const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
@@ -160,6 +161,7 @@ export class AffiliateInbound {
           {
             input: {
               shopId: shop.objectId,
+              processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
               agentDispatchRecommended: true,
               limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
             },
@@ -170,6 +172,7 @@ export class AffiliateInbound {
           {
             input: {
               shopId: shop.objectId,
+              processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
               workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
               limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
             },
@@ -493,8 +496,9 @@ export class AffiliateInbound {
   ): AffiliateContext | null {
     const creatorRelationshipId = signalCreatorRelationshipId(signal);
     if (!creatorRelationshipId) return null;
+    const signalUserId = (signal as { userId?: string | null }).userId?.trim();
     const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
-      userId: shop.userId ?? "",
+      userId: signalUserId || shop.userId || rootStore.currentUser?.userId || "",
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
       creatorImUserId: signal.creatorImId ?? undefined,
@@ -564,7 +568,7 @@ export class AffiliateInbound {
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
     if (!creatorRelationshipId) return null;
     const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
-      userId: shop.userId ?? "",
+      userId: this.resolveWorkItemUserId(shop, workItem),
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
       creatorImUserId: collaboration?.creatorImId ?? undefined,
@@ -595,6 +599,14 @@ export class AffiliateInbound {
       default:
         return this.buildContextFromWorkKindFallback(base, workItem);
     }
+  }
+
+  private resolveWorkItemUserId(
+    shop: AffiliateShopContext,
+    workItem: AffiliateWorkItemPayload,
+  ): string {
+    const workItemUserId = (workItem as { userId?: string | null }).userId?.trim();
+    return workItemUserId || shop.userId || rootStore.currentUser?.userId || "";
   }
 
   private buildContextFromWorkKindFallback(

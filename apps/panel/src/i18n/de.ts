@@ -3018,6 +3018,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Content wurde erkannt und wird geprüft.",
         "FULFILLED": "Diese Probenkooperation ist erfüllt.",
         "FULFILLMENT_FAILED": "Diese Probenkooperation wurde nicht erfolgreich abgeschlossen.",
+        "PLATFORM_STATUS_UNKNOWN": "TikTok Shop hat keinen prüfbaren Probenstatus zurückgegeben; es wird keine Prüfaktion versucht.",
         "CANCELLED": "Der Probenantrag wurde storniert.",
         "EXPIRED": "Der Probenantrag ist abgelaufen.",
         "DEFAULT": "Der Plattformstatus des Probenantrags wurde aktualisiert."
@@ -3030,6 +3031,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Content prüfen",
         "FULFILLED": "Erfüllt",
         "FULFILLMENT_FAILED": "Erfüllung fehlgeschlagen",
+        "PLATFORM_STATUS_UNKNOWN": "Plattformstatus unbekannt",
         "CANCELLED": "Storniert",
         "EXPIRED": "Abgelaufen"
       },

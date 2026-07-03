@@ -386,6 +386,270 @@ describe("cloud-graphql handler", () => {
     );
   });
 
+  it("drops empty unrelated affiliate action intents before proxying", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Reject the sample.",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            messageIntent: {},
+            targetCollaborationIntent: {},
+            sampleReviewIntent: {
+              sampleApplicationRecordId: "sample-1",
+              platformApplicationId: "platform-app-1",
+              decision: "REJECT",
+              rejectReason: "OTHER",
+            },
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            predictionCacheIds: undefined,
+            expiresAt: undefined,
+            sampleReviewIntent: {
+              sampleApplicationRecordId: "sample-1",
+              platformApplicationId: "platform-app-1",
+              decision: "REJECT",
+              rejectReason: "OTHER",
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it("prefers bundled affiliate actions when a stale singular action is also present", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Reject the sample and notify the creator.",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            messageIntent: {},
+            targetCollaborationIntent: {},
+            sampleReviewIntent: {},
+          },
+          actions: [
+            {
+              type: "REVIEW_SAMPLE_APPLICATION",
+              sampleReviewIntent: {
+                sampleApplicationRecordId: "sample-1",
+                platformApplicationId: "platform-app-1",
+                decision: "REJECT",
+                rejectReason: "OTHER",
+              },
+            },
+            {
+              type: "SEND_MESSAGE",
+              messageIntent: {
+                text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+                messageType: "TEXT",
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    expect(sentInput?.action).toBeUndefined();
+    expect(sentInput?.actions).toEqual([
+      {
+        type: "REVIEW_SAMPLE_APPLICATION",
+        sampleReviewIntent: {
+          sampleApplicationRecordId: "sample-1",
+          platformApplicationId: "platform-app-1",
+          decision: "REJECT",
+          rejectReason: "OTHER",
+        },
+      },
+      {
+        type: "SEND_MESSAGE",
+        messageIntent: {
+          messageType: "TEXT",
+          text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+        },
+      },
+    ]);
+  });
+
+  it("normalizes anonymous affiliate resolve mutations from agent tool calls", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Send the creator a reply.",
+          action: {
+            type: "SEND_MESSAGE",
+            messageIntent: {},
+          },
+          actions: [
+            {
+              type: "SEND_MESSAGE",
+              messageText: "Thanks for the update. We will review and get back to you soon.",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    expect(sentInput?.action).toBeUndefined();
+    expect(sentInput?.actions).toEqual([
+      {
+        type: "SEND_MESSAGE",
+        messageIntent: {
+          messageType: "TEXT",
+          text: "Thanks for the update. We will review and get back to you soon.",
+        },
+      },
+    ]);
+  });
+
+  it("drops stale action payloads from non-action affiliate resolve decisions", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "NEEDS_STAFF_REVIEW",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          decision: "NEEDS_STAFF_REVIEW",
+          operatorSummary: "Staff should review this sample manually.",
+          action: {
+            type: "SEND_MESSAGE",
+            messageIntent: {},
+            targetCollaborationIntent: {},
+            sampleReviewIntent: {},
+            expiresAt: "",
+          },
+          nextSellerActionAt: "",
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    expect(sentInput).toEqual({
+      creatorRelationshipId: "relationship-1",
+      decision: "NEEDS_STAFF_REVIEW",
+      operatorSummary: "Staff should review this sample manually.",
+    });
+  });
+
   it("blocks bundled sample review actions when decision is missing", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
@@ -829,6 +1093,133 @@ describe("cloud-graphql handler", () => {
             },
           },
         }),
+      }),
+    );
+  });
+
+  it("drops empty optional affiliate resolve fields and does not forward creator identity on SEND_MESSAGE", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Reply to creator.",
+          nextSellerActionAt: ",",
+          action: {
+            type: "SEND_MESSAGE",
+            creatorId: "relationship-1",
+            creatorOpenId: "open-id",
+            expiresAt: ",",
+            messageText: "Thanks for the update.",
+          },
+          actions: [
+            {
+              type: "SEND_MESSAGE",
+              creatorId: "relationship-1",
+              expiresAt: ",",
+              messageText: "Thanks for the update.",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.not.objectContaining({
+          nextSellerActionAt: expect.anything(),
+        }),
+      }),
+    );
+    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    expect(sentInput?.action).toBeUndefined();
+    expect(sentInput?.actions).toEqual([
+      {
+        type: "SEND_MESSAGE",
+        messageIntent: {
+          messageType: "TEXT",
+          text: "Thanks for the update.",
+        },
+      },
+    ]);
+  });
+
+  it("normalizes creator-product prediction variables to relationship-primary identity", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      affiliatePredictCreatorProductFit: {
+        predictionPayload: {
+          status: "OK",
+          predictions: [],
+        },
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const query = `
+      query AffiliatePredictCreatorProductFit($input: AffiliateCreatorProductFitInput!) {
+        affiliatePredictCreatorProductFit(input: $input) {
+          predictionPayload { status }
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          creatorId: "relationship-1",
+          creatorOpenId: "",
+          productId: "product-1",
+          sampleApplicationRecordId: "",
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      query,
+      expect.objectContaining({
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          productId: "product-1",
+        },
       }),
     );
   });

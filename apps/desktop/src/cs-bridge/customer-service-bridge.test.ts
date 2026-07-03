@@ -3331,6 +3331,101 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     expect(abortCalls).toHaveLength(0);
   });
 
+  it("cloud catch-up snapshots: coalesces multiple Airflow pending buyer signals for one conversation", async () => {
+    vi.useFakeTimers();
+    const previousWindow = process.env.RIVONCLAW_CS_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS;
+    process.env.RIVONCLAW_CS_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = "0";
+    try {
+      const bridge = createBridge();
+      rootStore.ingestGraphQLResponse({
+        shops: [{
+          id: defaultShop.objectId,
+          platform: defaultShop.platform ?? "TIKTOK_SHOP",
+          platformShopId: defaultShop.platformShopId,
+          shopName: defaultShop.shopName,
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: defaultShop.systemPrompt,
+              platformSystemPrompt: defaultShop.systemPrompt,
+              runProfileId: defaultShop.runProfileId ?? null,
+              csProviderOverride: null,
+              csModelOverride: null,
+            },
+            affiliateService: {
+              enabled: false,
+              csDeviceId: null,
+              runProfileId: null,
+            },
+          },
+        }],
+      });
+      bridge.syncFromCache();
+      mockRpcRequest.mockImplementation((method: string, params?: any) => {
+        if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
+        if (method === "chat.abort") return Promise.resolve({ aborted: true });
+        if (method === "cs_register_session") return Promise.resolve(true);
+        if (method === "sessions.patch") return Promise.resolve(true);
+        return Promise.resolve({ ok: true });
+      });
+
+      const baseSignal = {
+        type: "UNREAD_DETECTED" as const,
+        source: "AIRFLOW" as const,
+        shopId: defaultShop.objectId,
+        platformShopId: defaultShop.platformShopId,
+        conversationId: "conv-airflow-backlog",
+        dispatchReason: "PENDING_BUYER_MESSAGE" as const,
+        useMessageDelta: false,
+        buyerUserId: "buyer-001",
+        senderRole: "BUYER",
+        aiEnabled: true,
+      };
+
+      await bridge.handleCsConversationSignal({
+        ...baseSignal,
+        messageId: "msg-airflow-1",
+        messageIndex: "1001",
+        eventTime: "2026-06-01T01:00:00.000Z",
+        dispatchEventTime: "2026-06-01T01:00:00.000Z",
+      });
+      await bridge.handleCsConversationSignal({
+        ...baseSignal,
+        messageId: "msg-airflow-latest",
+        messageIndex: "1002",
+        eventTime: "2026-06-01T01:00:20.000Z",
+        dispatchEventTime: "2026-06-01T01:00:20.000Z",
+      });
+      await bridge.handleCsConversationSignal({
+        ...baseSignal,
+        messageId: "msg-airflow-old-replayed-late",
+        messageIndex: "1000",
+        eventTime: "2026-06-01T00:59:50.000Z",
+        dispatchEventTime: "2026-06-01T00:59:50.000Z",
+      });
+
+      expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent")).toHaveLength(0);
+      await vi.runOnlyPendingTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
+      expect(agentCalls).toHaveLength(1);
+      expect(agentCalls[0][1]).toEqual(expect.objectContaining({
+        idempotencyKey: "cs-retry:conv-airflow-backlog:msg-airflow-latest:1780275620000",
+      }));
+      expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "chat.abort")).toHaveLength(0);
+    } finally {
+      if (previousWindow === undefined) {
+        delete process.env.RIVONCLAW_CS_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS;
+      } else {
+        process.env.RIVONCLAW_CS_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = previousWindow;
+      }
+      vi.useRealTimers();
+    }
+  });
+
   it("cloud catch-up snapshots: Airflow retry after no forwarded text uses a fresh run key", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);

@@ -431,6 +431,7 @@ describe("affiliate work item dispatch", () => {
       expect.stringContaining("AffiliateWorkItems"),
       expect.objectContaining({
         input: expect.objectContaining({
+          processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
           agentDispatchRecommended: true,
         }),
       }),
@@ -439,12 +440,45 @@ describe("affiliate work item dispatch", () => {
       expect.stringContaining("AffiliateWorkItems"),
       expect.objectContaining({
         input: expect.objectContaining({
+          processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
           workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
         }),
       }),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall).toBeUndefined();
+  });
+
+  it("uses the signed-in user id for caught-up affiliate work when shop context has no owner id", () => {
+    rootStore.setCurrentUser({
+      userId: "user-001",
+      email: "affiliate@example.com",
+      name: "Affiliate Tester",
+      createdAt: "2026-01-01T00:00:00Z",
+      enrolledModules: [],
+      entitlementKeys: [],
+      defaultRunProfileId: null,
+    });
+    const workItem = createSampleReviewWorkItem({
+      focusShopId: "shop-001",
+      focusPlatformShopId: "platform-shop-001",
+      routingShopIds: ["shop-001"],
+      routingPlatformShopIds: ["platform-shop-001"],
+      agentDispatchRecommended: true,
+    });
+    const inbound = new AffiliateInbound("en");
+    const context = (inbound as any).buildContextFromWorkItem(
+      {
+        objectId: "shop-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      workItem,
+    ) as { userId?: string } | null;
+
+    expect(context?.userId).toBe("user-001");
   });
 
   it("auto-forwards creator-outreach assistant text through affiliate delivery bridge", async () => {

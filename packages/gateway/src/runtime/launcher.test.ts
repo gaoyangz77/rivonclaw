@@ -66,6 +66,10 @@ vi.mock("@rivonclaw/logger", () => ({
   }),
 }));
 
+vi.mock("../utils/cli-utils.js", () => ({
+  enrichedPath: (basePath = "") => `${basePath}:/mock/enriched/bin`,
+}));
+
 // ─── GatewayLauncher tests ─────────────────────────────────────────────────
 
 function createLauncher(overrides?: Partial<GatewayLaunchOptions>): GatewayLauncher {
@@ -162,6 +166,47 @@ describe("GatewayLauncher", () => {
         expect.objectContaining({
           env: expect.objectContaining({
             OPENCLAW_GATEWAY_PORT: "61471",
+          }),
+        }),
+      );
+    });
+
+    it("uses the enriched PATH when launching the gateway", async () => {
+      const { spawn } = await import("node:child_process");
+
+      const launcher = createLauncher({
+        entryPath: "/path/to/openclaw.mjs",
+      });
+
+      await launcher.start();
+
+      expect(spawn).toHaveBeenCalledWith(
+        "node",
+        ["/path/to/openclaw.mjs", "gateway"],
+        expect.objectContaining({
+          env: expect.objectContaining({
+            PATH: `${process.env.PATH ?? ""}:/mock/enriched/bin`,
+          }),
+        }),
+      );
+    });
+
+    it("enriches an explicit PATH override when launching the gateway", async () => {
+      const { spawn } = await import("node:child_process");
+
+      const launcher = createLauncher({
+        entryPath: "/path/to/openclaw.mjs",
+        env: { PATH: "/custom/bin" },
+      });
+
+      await launcher.start();
+
+      expect(spawn).toHaveBeenCalledWith(
+        "node",
+        ["/path/to/openclaw.mjs", "gateway"],
+        expect.objectContaining({
+          env: expect.objectContaining({
+            PATH: "/custom/bin:/mock/enriched/bin",
           }),
         }),
       );

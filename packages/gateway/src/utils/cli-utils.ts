@@ -9,18 +9,23 @@ import { existsSync, readdirSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { delimiter, join } from "node:path";
 import { homedir } from "node:os";
+import { resolveRivonClawHome } from "@rivonclaw/core/node";
 
 /**
  * Build an enriched PATH that includes common Node.js/npm install locations.
  * Packaged Electron apps on macOS inherit a minimal PATH (e.g. /usr/bin:/bin)
  * that doesn't include Homebrew, nvm, volta, fnm, etc.
  */
-export function enrichedPath(): string {
-  const base = process.env.PATH ?? "";
+export function enrichedPath(
+  basePath: string = process.env.PATH ?? "",
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const base = basePath;
   const home = homedir();
   const extra: string[] = [
     "/usr/local/bin",               // Homebrew (Intel Mac) / system installs
     "/opt/homebrew/bin",            // Homebrew (Apple Silicon)
+    join(resolveRivonClawHome(env), "gemini-cli", "node_modules", ".bin"),
     join(home, ".nvm", "current", "bin"),  // nvm (symlink alias)
     join(home, ".volta", "bin"),    // Volta
     join(home, ".fnm", "aliases", "default", "bin"), // fnm

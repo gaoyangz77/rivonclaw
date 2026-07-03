@@ -48,6 +48,8 @@ export interface LLMProviderManagerEnv {
 const CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const CLOUD_KEY_LABEL = "RivonClaw AI";
 const CLOUD_DEFAULT_MODEL_ID = "gpt-5.5";
+const GEMINI_OAUTH_PROVIDER_ID = "gemini";
+const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 const NO_ACTIVE_LLM_PROVIDER_ERROR =
   "No active LLM provider is configured. Renew RivonClaw AI or add and activate an API key in Models.";
 
@@ -112,10 +114,31 @@ function isCloudLlmKeyUnavailableError(err: unknown): boolean {
 // ---------------------------------------------------------------------------
 
 function resolveModelRef(provider: string, model: string, authType?: string): string {
+  if (provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth") {
+    return `${GEMINI_OAUTH_GATEWAY_PROVIDER_ID}/${normalizeGeminiOAuthModelId(model)}`;
+  }
   const gwProvider = authType === "custom"
     ? provider
     : resolveGatewayProvider(provider as LLMProvider);
-  return `${gwProvider}/${model}`;
+  return `${gwProvider}/${stripProviderPrefix(model, gwProvider)}`;
+}
+
+function stripProviderPrefix(model: string, provider: string): string {
+  const prefix = `${provider}/`;
+  let normalized = model.trim();
+  while (normalized.startsWith(prefix)) {
+    normalized = normalized.slice(prefix.length);
+  }
+  return normalized;
+}
+
+function normalizeGeminiOAuthModelId(model: string): string {
+  let normalized = model.trim();
+  for (;;) {
+    const next = stripProviderPrefix(stripProviderPrefix(normalized, GEMINI_OAUTH_GATEWAY_PROVIDER_ID), "google");
+    if (next === normalized) return normalized;
+    normalized = next;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -420,9 +443,14 @@ export const LLMProviderManagerModel = types
      */
     function writeDefaultModel(provider: string, modelId: string, authType?: string): void {
       const { writeDefaultModelToConfig } = getEnvDeps();
-      const gwProvider = authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
-      writeDefaultModelToConfig(gwProvider, modelId);
-      log.info(`Updated default model to ${gwProvider}/${modelId}`);
+      const gwProvider = provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
+        ? GEMINI_OAUTH_GATEWAY_PROVIDER_ID
+        : authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
+      const gatewayModelId = provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
+        ? normalizeGeminiOAuthModelId(modelId)
+        : stripProviderPrefix(modelId, gwProvider);
+      writeDefaultModelToConfig(gwProvider, gatewayModelId);
+      log.info(`Updated default model to ${gwProvider}/${gatewayModelId}`);
     }
 
     /**
