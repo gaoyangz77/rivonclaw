@@ -41,6 +41,10 @@ type OlderMessagesScrollSnapshot = {
   scrollHeight: number;
   scrollTop: number;
 };
+type MessageListScrollState = {
+  conversationKey: string;
+  shouldStickToBottom: boolean;
+};
 type CustomerServiceWorkspaceMode = "workspace" | "conversations" | "escalations";
 
 interface CustomerServiceEscalationsPageProps {
@@ -128,6 +132,10 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const olderMessagesScrollRef = useRef<OlderMessagesScrollSnapshot | null>(null);
+  const messageListScrollStateRef = useRef<MessageListScrollState>({
+    conversationKey: "",
+    shouldStickToBottom: true,
+  });
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
@@ -194,6 +202,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     const frame = window.requestAnimationFrame(() => {
       const list = messageListRef.current;
       if (!list) return;
+      const scrollState = messageListScrollStateRef.current;
       const olderSnapshot = olderMessagesScrollRef.current;
       if (olderSnapshot) {
         if (olderSnapshot.conversationKey !== selectedConversationKey) {
@@ -206,9 +215,19 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
           0,
           list.scrollHeight - olderSnapshot.scrollHeight + olderSnapshot.scrollTop,
         );
+        scrollState.conversationKey = selectedConversationKey;
+        scrollState.shouldStickToBottom = false;
         return;
       }
-      list.scrollTop = list.scrollHeight;
+      if (scrollState.conversationKey !== selectedConversationKey) {
+        list.scrollTop = list.scrollHeight;
+        scrollState.conversationKey = selectedConversationKey;
+        scrollState.shouldStickToBottom = true;
+        return;
+      }
+      if (scrollState.shouldStickToBottom) {
+        list.scrollTop = list.scrollHeight;
+      }
     });
     return () => window.cancelAnimationFrame(frame);
   }, [
@@ -424,13 +443,20 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       scrollHeight: list.scrollHeight,
       scrollTop: list.scrollTop,
     };
+    messageListScrollStateRef.current.shouldStickToBottom = false;
     const loaded = await workspace.fetchOlderConversationMessages(i18n.language);
     if (!loaded) olderMessagesScrollRef.current = null;
   }
 
   function handleMessageListScroll() {
     const list = messageListRef.current;
-    if (!list || list.scrollTop > 36 || !workspace.canLoadOlderConversationMessages) return;
+    if (!list) return;
+    const distanceFromBottom = list.scrollHeight - list.scrollTop - list.clientHeight;
+    messageListScrollStateRef.current = {
+      conversationKey: selectedConversationKey,
+      shouldStickToBottom: distanceFromBottom < 48,
+    };
+    if (list.scrollTop > 36 || !workspace.canLoadOlderConversationMessages) return;
     void loadOlderConversationMessages();
   }
 
