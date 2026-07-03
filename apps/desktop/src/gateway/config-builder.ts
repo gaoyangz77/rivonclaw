@@ -37,6 +37,7 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = [
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
+const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 type RawCustomModel =
   | string
   | {
@@ -53,6 +54,17 @@ type ProviderKeyLike = {
   customModelsJson?: string | null;
   inputModalities?: string[] | null;
 };
+
+export function normalizeGeminiOAuthModelId(modelId: string): string {
+  let normalized = modelId.trim();
+  for (;;) {
+    const next = normalized
+      .replace(/^google-gemini-cli\//, "")
+      .replace(/^google\//, "");
+    if (next === normalized) return normalized;
+    normalized = next;
+  }
+}
 
 function normalizeInputModalities(
   value: unknown,
@@ -128,7 +140,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     if (!isGeminiOAuthActive() || provider !== "gemini") {
       return { provider, modelId };
     }
-    return { provider: "google-gemini-cli", modelId };
+    return { provider: GEMINI_OAUTH_GATEWAY_PROVIDER_ID, modelId: normalizeGeminiOAuthModelId(modelId) };
   }
 
   /** Only include extra providers that the user has configured (has a provider key in DB).

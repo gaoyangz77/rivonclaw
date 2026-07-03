@@ -3018,6 +3018,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "È stato rilevato contenuto ed è in revisione.",
         "FULFILLED": "Questa collaborazione campione è stata completata.",
         "FULFILLMENT_FAILED": "Questa collaborazione campione non si è conclusa correttamente.",
+        "PLATFORM_STATUS_UNKNOWN": "TikTok Shop non ha restituito uno stato campione verificabile, quindi non verrà tentata alcuna revisione.",
         "CANCELLED": "La richiesta campione è stata annullata.",
         "EXPIRED": "La richiesta campione è scaduta.",
         "DEFAULT": "Lo stato della richiesta campione è stato aggiornato sulla piattaforma."
@@ -3030,6 +3031,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Contenuto in revisione",
         "FULFILLED": "Completato",
         "FULFILLMENT_FAILED": "Adempimento fallito",
+        "PLATFORM_STATUS_UNKNOWN": "Stato piattaforma sconosciuto",
         "CANCELLED": "Annullato",
         "EXPIRED": "Scaduto"
       },

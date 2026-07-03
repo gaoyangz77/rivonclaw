@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { chmodSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
@@ -10,8 +10,10 @@ import {
 import {
   resolveOpenClawStateDir as _resolveOpenClawStateDir,
   resolveOpenClawConfigPath as _resolveOpenClawConfigPath,
+  resolveRivonClawHome,
 } from "@rivonclaw/core/node";
 import { generateAudioConfig, mergeAudioConfig } from "./audio-config-writer.js";
+import { resolveManagedGeminiCliHome } from "./auth-profile-writer.js";
 import { migrateSingleAccountChannels } from "./channel-config-writer.js";
 import { sanitizeWindowsBinds } from "./windows-bind-sanitizer.js";
 import { OpenClawSchema } from "../generated/openclaw-schema.js";
@@ -19,6 +21,23 @@ import { OpenClawSchema } from "../generated/openclaw-schema.js";
 const log = createLogger("gateway:config");
 
 const FIXED_DM_SCOPE = "per-account-channel-peer";
+const GEMINI_CLI_BACKEND_ID = "google-gemini-cli";
+const GEMINI_CLI_BACKEND_ARGS = [
+  "--output-format",
+  "json",
+  "--prompt",
+  "{prompt}",
+] as const;
+const GEMINI_CLI_BACKEND_RESUME_ARGS = [
+  "--resume",
+  "{sessionId}",
+  "--output-format",
+  "json",
+  "--prompt",
+  "{prompt}",
+] as const;
+const GEMINI_CLI_WRAPPER_BASENAME =
+  process.platform === "win32" ? "rivonclaw-gemini-cli.cmd" : "rivonclaw-gemini-cli";
 
 const WEB_SEARCH_PROVIDER_PLUGIN_IDS = {
   brave: "brave",
@@ -36,6 +55,56 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   const next: Record<string, unknown> = {};
   parent[key] = next;
   return next;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function resolveGeminiCliWrapperPath(stateDir: string): string {
+  return join(stateDir, "bin", GEMINI_CLI_WRAPPER_BASENAME);
+}
+
+function writeGeminiCliWrapper(stateDir: string): string {
+  const wrapperPath = resolveGeminiCliWrapperPath(stateDir);
+  mkdirSync(dirname(wrapperPath), { recursive: true });
+  const managedHome = resolveManagedGeminiCliHome(stateDir);
+  const managedGeminiBin = join(resolveRivonClawHome(), "gemini-cli", "node_modules", ".bin");
+
+  if (process.platform === "win32") {
+    writeFileSync(
+      wrapperPath,
+      [
+        "@echo off",
+        `set "HOME=${managedHome}"`,
+        `set "PATH=${managedGeminiBin};%PATH%"`,
+        "set \"GOOGLE_GENAI_USE_GCA=true\"",
+        "set \"GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true\"",
+        "set \"NODE_NO_WARNINGS=1\"",
+        "gemini %*",
+        "",
+      ].join("\r\n"),
+      "utf-8",
+    );
+    return wrapperPath;
+  }
+
+  writeFileSync(
+    wrapperPath,
+    [
+      "#!/bin/sh",
+      `export HOME=${shellQuote(managedHome)}`,
+      `export PATH=${shellQuote(managedGeminiBin)}":$PATH"`,
+      "export GOOGLE_GENAI_USE_GCA=true",
+      "export GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true",
+      "export NODE_NO_WARNINGS=1",
+      "exec gemini \"$@\"",
+      "",
+    ].join("\n"),
+    { encoding: "utf-8", mode: 0o700 },
+  );
+  chmodSync(wrapperPath, 0o700);
+  return wrapperPath;
 }
 
 function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>): void {
@@ -599,10 +668,10 @@ function applyTelegramDefaultAccount(
  */
 export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   const configPath = options.configPath ?? resolveOpenClawConfigPath();
+  const stateDir = dirname(configPath);
 
   // Ensure the parent directory exists
-  const dir = dirname(configPath);
-  mkdirSync(dir, { recursive: true });
+  mkdirSync(stateDir, { recursive: true });
 
   // Read existing config to preserve user settings
   const existing = readExistingConfig(configPath);
@@ -797,6 +866,58 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ...existingDefaults,
         blockStreamingDefault: "on",
         blockStreamingBreak: "text_end",
+      },
+    };
+  }
+
+  // Gemini CLI compatibility — the bundled OpenClaw google plugin may carry
+  // backend args for newer CLI builds. RivonClaw installs and runs the user's
+  // local Gemini CLI, so pin args to the currently supported public surface.
+  {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    const existingCliBackends =
+      typeof existingDefaults.cliBackends === "object" && existingDefaults.cliBackends !== null
+        ? (existingDefaults.cliBackends as Record<string, unknown>)
+        : {};
+    const existingGeminiBackend =
+      typeof existingCliBackends[GEMINI_CLI_BACKEND_ID] === "object" &&
+      existingCliBackends[GEMINI_CLI_BACKEND_ID] !== null
+        ? (existingCliBackends[GEMINI_CLI_BACKEND_ID] as Record<string, unknown>)
+        : {};
+    const existingGeminiEnv =
+      typeof existingGeminiBackend.env === "object" && existingGeminiBackend.env !== null &&
+      !Array.isArray(existingGeminiBackend.env)
+        ? (existingGeminiBackend.env as Record<string, unknown>)
+        : {};
+    const normalizedGeminiEnv = { ...existingGeminiEnv };
+    delete normalizedGeminiEnv.HOME;
+    const geminiCliWrapperPath = writeGeminiCliWrapper(stateDir);
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        cliBackends: {
+          ...existingCliBackends,
+          [GEMINI_CLI_BACKEND_ID]: {
+            ...existingGeminiBackend,
+            command: geminiCliWrapperPath,
+            args: [...GEMINI_CLI_BACKEND_ARGS],
+            resumeArgs: [...GEMINI_CLI_BACKEND_RESUME_ARGS],
+            env: {
+              ...normalizedGeminiEnv,
+              GOOGLE_GENAI_USE_GCA: "true",
+              GEMINI_FORCE_ENCRYPTED_FILE_STORAGE: "true",
+              NODE_NO_WARNINGS: "1",
+            },
+          },
+        },
       },
     };
   }

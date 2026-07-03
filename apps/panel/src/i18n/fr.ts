@@ -3018,6 +3018,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Du contenu a été détecté et est en cours d'examen.",
         "FULFILLED": "Cette collaboration d'échantillon est terminée.",
         "FULFILLMENT_FAILED": "Cette collaboration d'échantillon ne s'est pas terminée correctement.",
+        "PLATFORM_STATUS_UNKNOWN": "TikTok Shop n'a pas renvoyé de statut d'échantillon vérifiable ; aucune action d'examen ne sera tentée.",
         "CANCELLED": "La demande d'échantillon a été annulée.",
         "EXPIRED": "La demande d'échantillon a expiré.",
         "DEFAULT": "Le statut de la demande d'échantillon a été mis à jour sur la plateforme."
@@ -3030,6 +3031,7 @@ export default {
         "CONTENT_OBSERVED_REVIEWING": "Contenu à vérifier",
         "FULFILLED": "Terminé",
         "FULFILLMENT_FAILED": "Échec d'exécution",
+        "PLATFORM_STATUS_UNKNOWN": "Statut plateforme inconnu",
         "CANCELLED": "Annulé",
         "EXPIRED": "Expiré"
       },

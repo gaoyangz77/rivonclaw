@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import {
   resolveAuthProfilePath,
+  resolveManagedGeminiCliHome,
   syncAuthProfile,
   removeAuthProfile,
   syncAllAuthProfiles,
@@ -545,6 +546,19 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
 
     // Order key must use "google-gemini-cli" to match model routing
     expect(store.order["google-gemini-cli"]).toEqual(["google-gemini-cli:user@gmail.com"]);
+
+    const managedHome = resolveManagedGeminiCliHome(stateDir);
+    const settings = readJsonFile(join(managedHome, ".gemini", "settings.json")) as {
+      security?: { auth?: { selectedType?: string } };
+    };
+    const creds = readJsonFile(join(managedHome, ".gemini", "oauth_creds.json")) as Record<string, unknown>;
+    expect(settings.security?.auth?.selectedType).toBe("oauth-personal");
+    expect(creds).toMatchObject({
+      access_token: "ya29.test-access-token",
+      refresh_token: "1//test-refresh-token",
+      expiry_date: profile.expires,
+      token_type: "Bearer",
+    });
   });
 
   it("writes non-Google OAuth as oauth type normally", async () => {

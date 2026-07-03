@@ -683,6 +683,66 @@ describe("config-writer", () => {
     });
   });
 
+  describe("writeGatewayConfig - Gemini CLI backend", () => {
+    it("pins Gemini CLI args to the locally supported CLI surface", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              cliBackends: {
+                "google-gemini-cli": {
+                  args: ["--skip-trust", "--output-format", "json", "--prompt", "{prompt}"],
+                  resumeArgs: [
+                    "--skip-trust",
+                    "--resume",
+                    "{sessionId}",
+                    "--output-format",
+                    "json",
+                    "--prompt",
+                    "{prompt}",
+                  ],
+                  command: "gemini",
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.cliBackends["google-gemini-cli"].args).toEqual([
+        "--output-format",
+        "json",
+        "--prompt",
+        "{prompt}",
+      ]);
+      expect(config.agents.defaults.cliBackends["google-gemini-cli"].resumeArgs).toEqual([
+        "--resume",
+        "{sessionId}",
+        "--output-format",
+        "json",
+        "--prompt",
+        "{prompt}",
+      ]);
+      const geminiCommand = config.agents.defaults.cliBackends["google-gemini-cli"].command;
+      expect(geminiCommand).toBe(join(tmpDir, "bin", "rivonclaw-gemini-cli"));
+      const geminiWrapper = readFileSync(geminiCommand, "utf-8");
+      expect(geminiWrapper).toContain(`export HOME='${join(tmpDir, "gemini-cli-home")}'`);
+      expect(geminiWrapper).toContain("gemini-cli/node_modules/.bin");
+      expect(geminiWrapper).toContain("export GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true");
+      expect(geminiWrapper).toContain("exec gemini \"$@\"");
+      expect(config.agents.defaults.cliBackends["google-gemini-cli"].env).toMatchObject({
+        GOOGLE_GENAI_USE_GCA: "true",
+        GEMINI_FORCE_ENCRYPTED_FILE_STORAGE: "true",
+        NODE_NO_WARNINGS: "1",
+      });
+    });
+  });
+
   describe("writeGatewayConfig - legacy llm defaults", () => {
     it("removes pre-existing agents.defaults.llm timeout config", () => {
       const configPath = join(tmpDir, "openclaw.json");

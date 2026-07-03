@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
@@ -7,6 +7,7 @@ import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
 const log = createLogger("gateway:auth-profile");
 
 const AUTH_PROFILE_FILENAME = "auth-profiles.json";
+const GEMINI_CLI_HOME_DIRNAME = "gemini-cli-home";
 
 type ApiKeyProfile = { type: "api_key"; provider: string; key: string };
 type OAuthProfile = {
@@ -39,6 +40,17 @@ export function resolveAuthProfilePath(stateDir: string): string {
 }
 
 /**
+ * Private HOME used only for the managed Gemini CLI subprocess.
+ *
+ * Gemini's official CLI reads OAuth from ~/.gemini/oauth_creds.json and auth
+ * selection from ~/.gemini/settings.json. We derive those files from
+ * auth-profiles.json instead of mutating the user's real ~/.gemini directory.
+ */
+export function resolveManagedGeminiCliHome(stateDir: string): string {
+  return join(stateDir, GEMINI_CLI_HOME_DIRNAME);
+}
+
+/**
  * Read the current auth-profiles.json from disk.
  * Returns an empty store if the file doesn't exist or can't be parsed.
  */
@@ -67,6 +79,39 @@ function writeStore(filePath: string, store: AuthProfileStore): void {
     encoding: "utf-8",
     mode: 0o600,
   });
+}
+
+function syncManagedGeminiCliHome(stateDir: string, store: AuthProfileStore): void {
+  const selectedProfileId = store.order?.["google-gemini-cli"]?.[0];
+  const profile = selectedProfileId ? store.profiles[selectedProfileId] : undefined;
+  const homeDir = resolveManagedGeminiCliHome(stateDir);
+
+  if (!profile || profile.type !== "oauth" || profile.provider !== "google-gemini-cli") {
+    rmSync(homeDir, { recursive: true, force: true });
+    return;
+  }
+
+  const geminiDir = join(homeDir, ".gemini");
+  mkdirSync(geminiDir, { recursive: true, mode: 0o700 });
+  writeFileSync(
+    join(geminiDir, "settings.json"),
+    `${JSON.stringify({ security: { auth: { selectedType: "oauth-personal" } } }, null, 2)}\n`,
+    { encoding: "utf-8", mode: 0o600 },
+  );
+  writeFileSync(
+    join(geminiDir, "oauth_creds.json"),
+    `${JSON.stringify(
+      {
+        access_token: profile.access,
+        refresh_token: profile.refresh,
+        expiry_date: profile.expires,
+        token_type: "Bearer",
+      },
+      null,
+      2,
+    )}\n`,
+    { encoding: "utf-8", mode: 0o600 },
+  );
 }
 
 /**
@@ -236,6 +281,7 @@ export async function syncAllAuthProfiles(
   }
 
   writeStore(filePath, store);
+  syncManagedGeminiCliHome(stateDir, store);
   log.info(`Synced ${Object.keys(store.profiles).length} auth profile(s)`);
 }
 
@@ -313,5 +359,6 @@ export function clearAllAuthProfiles(stateDir: string): void {
   const filePath = resolveAuthProfilePath(stateDir);
   const emptyStore: AuthProfileStore = { version: 1, profiles: {}, order: {} };
   writeStore(filePath, emptyStore);
+  syncManagedGeminiCliHome(stateDir, emptyStore);
   log.info("Cleared all auth profiles");
 }

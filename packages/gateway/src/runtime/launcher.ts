@@ -18,6 +18,7 @@ import type {
   GatewayStatus,
   GatewayEvents,
 } from "./types.js";
+import { enrichedPath } from "../utils/cli-utils.js";
 
 const log = createLogger("gateway");
 
@@ -186,6 +187,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       ...process.env,
       ...this.options.env,
     };
+    env.PATH = enrichedPath(env.PATH ?? "", env);
 
     if (this.options.configPath) {
       env["OPENCLAW_CONFIG_PATH"] = this.options.configPath;
