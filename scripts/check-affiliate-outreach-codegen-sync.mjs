@@ -38,29 +38,29 @@ function hasSnippet(source, expected) {
   return source.includes(expected);
 }
 
-const signalSchema = block(schema, "type", "AffiliateConversationSignal");
-const signalGenerated = generatedInterface("AffiliateConversationSignal");
+const signalSchema = block(schema, "type", "AffiliateRelationshipSignal");
+const signalGenerated = generatedInterface("AffiliateRelationshipSignal");
 addCheck(
-  "AffiliateConversationSignal.channel is in backend schema",
+  "AffiliateRelationshipSignal.channel is in backend schema",
   hasLine(signalSchema, "channel: AffiliateMessageChannel"),
 );
 addCheck(
-  "AffiliateConversationSignal.channel is in core generated type",
+  "AffiliateRelationshipSignal.channel is in core generated type",
   hasLine(signalGenerated, "channel?: Maybe<AffiliateMessageChannel>;"),
 );
 addCheck(
-  "AffiliateConversationSignal.creatorRelationshipId is in core generated type",
+  "AffiliateRelationshipSignal.creatorRelationshipId is in core generated type",
   hasLine(signalGenerated, "creatorRelationshipId?: Maybe<Scalars['ID']['output']>;"),
 );
 
-const publishSignalSchema = block(schema, "input", "PublishAffiliateConversationSignalInput");
-const publishSignalGenerated = generatedInterface("PublishAffiliateConversationSignalInput");
+const publishSignalSchema = block(schema, "input", "PublishAffiliateRelationshipSignalInput");
+const publishSignalGenerated = generatedInterface("PublishAffiliateRelationshipSignalInput");
 addCheck(
-  "PublishAffiliateConversationSignalInput.channel is in backend schema",
+  "PublishAffiliateRelationshipSignalInput.channel is in backend schema",
   hasLine(publishSignalSchema, "channel: AffiliateMessageChannel"),
 );
 addCheck(
-  "PublishAffiliateConversationSignalInput.channel is in core generated type",
+  "PublishAffiliateRelationshipSignalInput.channel is in core generated type",
   hasLine(publishSignalGenerated, "channel?: InputMaybe<AffiliateMessageChannel>;"),
 );
 

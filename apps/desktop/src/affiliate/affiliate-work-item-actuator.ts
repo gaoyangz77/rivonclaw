@@ -5,8 +5,21 @@ import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("affiliate-work-item-actuator");
 
-function findWorkItemShop(workItem: AffiliateWorkItemPayload): any | undefined {
-  return rootStore.findShopByObjectOrPlatformId(workItem.shopId, workItem.platformShopId);
+function findWorkItemShopForDevice(workItem: AffiliateWorkItemPayload, deviceId: string): any | undefined {
+  const shopKeys = uniqueShopKeys([
+    ...(workItem.routingShopIds ?? []),
+    ...(workItem.routingPlatformShopIds ?? []),
+    workItem.focusShopId,
+    workItem.focusPlatformShopId,
+  ]);
+  for (const shopKey of shopKeys) {
+    const shop = rootStore.findShopByObjectOrPlatformId(shopKey, shopKey);
+    const affiliateService = shop?.services?.affiliateService;
+    if (shop && affiliateService?.enabled && affiliateService.csDeviceId === deviceId) {
+      return shop;
+    }
+  }
+  return undefined;
 }
 
 export async function handleAffiliateWorkItemChanged(
@@ -14,20 +27,20 @@ export async function handleAffiliateWorkItemChanged(
   workItem: AffiliateWorkItemPayload,
 ): Promise<void> {
   log.info(
-    `Affiliate work item received: kind=${workItem.workKind} shop=${workItem.platformShopId} ` +
+    `Affiliate work item received: kind=${workItem.workKind} routes=${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.focusPlatformShopId} ` +
     `collaboration=${workItem.collaborationRecordId} status=${workItem.processingStatus}`,
   );
 
-  const shop = findWorkItemShop(workItem);
+  const shop = findWorkItemShopForDevice(workItem, deviceId);
   const affiliateService = shop?.services?.affiliateService;
   if (!shop || !affiliateService?.enabled) {
-    log.info(`Ignoring affiliate work item for unavailable/disabled shop ${workItem.platformShopId}`);
+    log.info(`Ignoring affiliate work item with no available enabled route for this desktop`);
     return;
   }
 
   if (affiliateService.csDeviceId !== deviceId) {
     log.info(
-      `Ignoring affiliate work item for shop ${workItem.platformShopId}: ` +
+      `Ignoring affiliate work item for shop ${shop.platformShopId}: ` +
       `assignedDevice=${affiliateService.csDeviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
@@ -37,11 +50,15 @@ export async function handleAffiliateWorkItemChanged(
 
   const bridge = getCsBridge();
   if (!bridge) {
-    log.warn(`Affiliate work item arrived before ecommerce bridge was ready: shop=${workItem.platformShopId}`);
+    log.warn(`Affiliate work item arrived before ecommerce bridge was ready: shop=${shop.platformShopId}`);
     return;
   }
 
   await bridge.handleAffiliateWorkItemChanged(workItem);
+}
+
+function uniqueShopKeys(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0))];
 }
 
 function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): void {
@@ -58,6 +75,9 @@ function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): vo
     log.warn(`Skipping incomplete affiliate sample snapshot from work item: id=${workItem.sampleApplicationRecord.id}`);
   }
 
+  workspace.upsertAffiliateCreatorRelationship(
+    (workItem.creatorRelationship ?? workItem.context?.creatorRelation) as any,
+  );
   workspace.upsertAffiliateCreatorProfile(workItem.context?.creatorProfile as any);
 
   const primarySample = workItem.context?.primarySampleApplication;

@@ -297,13 +297,12 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
   }
 `;
 
-const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
-  subscription AffiliateConversationSignal {
-    affiliateConversationSignal {
+const AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION = `
+  subscription AffiliateRelationshipSignal {
+    affiliateRelationshipSignal {
       type
       source
       workSignal
-      shopThreadId
       collaborationRecordId
       creatorRelationshipId
       processingStatus
@@ -311,7 +310,6 @@ const AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       processReasons
       shopId
       platformShopId
-      conversationId
       messageId
       messageIndex
       messageType
@@ -341,10 +339,12 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
     affiliateWorkItemChanged {
       workItem {
         id
-        shopId
-        platformShopId
+        focusShopId
+        focusPlatformShopId
+        routingShopIds
+        routingPlatformShopIds
         subjectType
-        shopThreadId
+        creatorRelationshipId
         collaborationRecordId
         workKind
         workBundleKind
@@ -355,35 +355,28 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         requiredAction
         processReasons
         versionAt
-        shopThread {
+        creatorRelationship {
           id
-          userId
-          shopId
-          platform
           creatorId
-          creatorOpenId
-          creatorImId
-          platformConversationId
-          lastMessageId
-          lastMessageIndex
-          lastMessageAt
-          lastInboundAt
-          lastOutboundAt
-          unreadCount
+          blocked
+          blockedShopIds
           processingStatus
           requiredAction
           processReasons
-          lastSignalAt
-          workHandledUntil
-          nextSellerActionAt
+          lastInboundAt
+          lastOutboundAt
+          lastAgentHandledAt
           stateUpdatedAt
           activeCollaborationRecordIds
-          focusCollaborationRecordId
-          ambiguousCollaborationRecordIds
-          startedAt
-          archivedAt
-          createdAt
-          updatedAt
+          pendingActionProposalId
+          shopStates {
+            shopId
+            lifecycleStage
+            tagIds
+            lastContactedAt
+            lastInvitedAt
+            lastQualifiedAt
+          }
         }
         collaboration {
           id
@@ -396,7 +389,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
-          platformConversationId
           creatorImId
           lifecycleStage
           processingStatus
@@ -492,7 +484,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             affiliateCollaborationId
             collaborationType
             platformCollaborationId
-            platformConversationId
             lifecycleStage
             processingStatus
             requiredAction
@@ -505,7 +496,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             id
             creatorId
             productId
-            platformConversationId
             lifecycleStage
             processingStatus
             updatedAt
@@ -519,7 +509,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             affiliateCollaborationId
             collaborationType
             platformCollaborationId
-            platformConversationId
             lifecycleStage
             processingStatus
             updatedAt
@@ -582,14 +571,14 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           pendingProposals {
             id
             type
-            status
-            operatorSummary
+          status
+          operatorSummary
           creatorId
-          shopThreadId
+          creatorRelationshipId
           collaborationRecordId
           sourceWorkBoundary {
             subjectType
-            shopThreadId
+            creatorRelationshipId
             collaborationRecordId
             workKind
             workBundleKind
@@ -624,11 +613,11 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             operatorSummary
           }
           creatorId
-          shopThreadId
+          creatorRelationshipId
           collaborationRecordId
           sourceWorkBoundary {
             subjectType
-            shopThreadId
+            creatorRelationshipId
             collaborationRecordId
             workKind
             workBundleKind
@@ -651,7 +640,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             quantity
           }
           messageIntent {
-            conversationId
             creatorId
             sampleApplicationRecordId
             platformApplicationId
@@ -671,13 +659,16 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
       proposal {
         id
         userId
-        shopId
+        focusShopId
         campaignId
         type
         status
         operatorSummary
         steps {
           stepId
+          shopId
+          campaignId
+          collaborationRecordId
           type
           operatorSummary
           sampleReviewIntent {
@@ -694,7 +685,6 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
             quantity
           }
           messageIntent {
-            conversationId
             creatorId
             sampleApplicationRecordId
             platformApplicationId
@@ -703,6 +693,7 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           }
         }
         creatorId
+        creatorRelationshipId
         creatorProfile {
           id
           creatorOpenId
@@ -712,10 +703,9 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           avatarUrl
         }
         collaborationRecordId
-        shopThreadId
         sourceWorkBoundary {
           subjectType
-          shopThreadId
+          creatorRelationshipId
           collaborationRecordId
           workKind
           workBundleKind
@@ -753,7 +743,6 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           quantity
         }
         messageIntent {
-          conversationId
           creatorId
           sampleApplicationRecordId
           platformApplicationId
@@ -855,7 +844,7 @@ export type ToolSpecsChangedPayload = GQL.ToolSpecsChangedPayload;
 export type PresetSkillsChangedPayload = GQL.PresetSkillsChangedPayload;
 export type CsConversationSignalPayload = GQL.CsConversationSignal;
 export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
-export type AffiliateConversationSignalPayload = GQL.AffiliateConversationSignal;
+export type AffiliateRelationshipSignalPayload = GQL.AffiliateRelationshipSignal;
 export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
 export type AffiliateActionProposalPayload = GQL.ActionProposal;
 
@@ -1993,32 +1982,32 @@ export class BackendSubscriptionClient {
     return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 
-  subscribeToAffiliateConversationSignals(
-    onSignal: (signal: AffiliateConversationSignalPayload) => void,
+  subscribeToAffiliateRelationshipSignals(
+    onSignal: (signal: AffiliateRelationshipSignalPayload) => void,
   ): () => void {
-    const key = "affiliate-conversation-signals";
+    const key = "affiliate-relationship-signals";
 
     const subscribe = (): StartedSubscription => {
       if (!this.client) return { attempt: this.nextAttempt(key), unsubscribe: () => {} };
       const attempt = this.nextAttempt(key);
 
-      const unsubscribe = this.client.subscribe<{ affiliateConversationSignal: AffiliateConversationSignalPayload }>(
-        { query: AFFILIATE_CONVERSATION_SIGNAL_SUBSCRIPTION },
+      const unsubscribe = this.client.subscribe<{ affiliateRelationshipSignal: AffiliateRelationshipSignalPayload }>(
+        { query: AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION },
         {
           next: (result) => {
             this.noteSubscriptionNext(key);
-            if (this.handleResultErrors(key, attempt, "Affiliate conversation signal subscription next contained GraphQL errors", result.errors)) {
+            if (this.handleResultErrors(key, attempt, "Affiliate relationship signal subscription next contained GraphQL errors", result.errors)) {
               return;
             }
-            const payload = result.data?.affiliateConversationSignal;
+            const payload = result.data?.affiliateRelationshipSignal;
             if (!payload) {
-              this.logUnexpectedResult(key, attempt, "affiliateConversationSignal", result as any);
+              this.logUnexpectedResult(key, attempt, "affiliateRelationshipSignal", result as any);
               return;
             }
             onSignal(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Affiliate conversation signal subscription error", err);
+            this.handleSubscriptionError(key, attempt, "Affiliate relationship signal subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },

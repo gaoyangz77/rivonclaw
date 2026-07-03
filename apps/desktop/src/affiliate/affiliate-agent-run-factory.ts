@@ -4,7 +4,7 @@ import type { StaffLanguage } from "../i18n/locale.js";
 export interface AffiliateAgentRunFactoryInput {
   workItem: GQL.AffiliateWorkItem;
   platform: string;
-  conversationDelta?: string;
+  relationshipMessageUpdate?: string;
   proposalDeltaSection?: string;
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
@@ -27,6 +27,8 @@ export function buildAffiliateAgentRunRequest(
   if (!workItem.agentDispatchRecommended) return null;
 
   switch (resolveAgentRunKind(workItem)) {
+    case "SAMPLE_REVIEW":
+      return buildSampleReviewRun(input);
     case "CREATOR_REPLY":
       return buildCreatorReplyRun(input);
     case "CONTENT_FOLLOW_UP":
@@ -37,7 +39,7 @@ export function buildAffiliateAgentRunRequest(
   }
 }
 
-type AffiliateAgentRunKind = "CREATOR_REPLY" | "CONTENT_FOLLOW_UP" | "CREATOR_FOLLOW_UP";
+type AffiliateAgentRunKind = "SAMPLE_REVIEW" | "CREATOR_REPLY" | "CONTENT_FOLLOW_UP" | "CREATOR_FOLLOW_UP";
 
 function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRunKind | null {
   if (
@@ -65,21 +67,74 @@ function resolveAgentRunKind(workItem: GQL.AffiliateWorkItem): AffiliateAgentRun
   }
 
   switch (workItem.requiredAction) {
-    case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
+    case GQL.AffiliateRelationshipRequiredAction.ReplyToCreator:
       return "CREATOR_REPLY";
-    case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
+    case GQL.AffiliateRelationshipRequiredAction.FollowUpCreator:
+    case GQL.AffiliateRelationshipRequiredAction.WaitCreatorResponse:
       return "CREATOR_FOLLOW_UP";
     default:
       break;
   }
 
+  if (isSampleReviewWorkItem(workItem)) {
+    return "SAMPLE_REVIEW";
+  }
+
   return null;
+}
+
+function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
+  const { workItem, platform } = input;
+  const sampleId =
+    workItem.sampleApplicationRecord?.id ??
+    workItem.sampleApplicationRecord?.platformApplicationId ??
+    workItem.collaborationRecordId ??
+    workItem.creatorRelationshipId;
+  return {
+    message: [
+      "[Affiliate Work Item: Sample Application Review]",
+      "",
+      renderWorkItemProjection(workItem),
+      "",
+      renderRequiredActionBundleInstruction(workItem),
+      "",
+      renderResolveActionPayloadTemplates(input),
+      "",
+      renderProposalDeltaSection(input),
+      "",
+      renderPredictionSection(input),
+      "",
+      renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
+      "",
+      renderBusinessPrompt(input.businessPrompt),
+      "",
+      "## Task",
+      "Decide how the seller should handle this sample application.",
+      "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
+      renderResolveWorkItemToolContract(),
+      `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
+      "Use the CreatorRelationship workspace as the business boundary. The sample application is one business target inside that relationship, not the owner of the work.",
+      "Use affiliate prediction and decision thresholds as non-binding evidence only. They may inform the recommendation, but they must not automatically determine approve/reject by themselves.",
+      "Base the sample review on the full available context: merchant instructions, relationship history, creator quality/risk, product/campaign facts, sample status, inventory/fulfillment constraints, and prediction evidence.",
+      "If the injected snapshot does not contain enough current sample, product, creator, or policy context, call affiliate_get_workspace with creatorRelationshipId before deciding.",
+      "If no prediction cache id is already listed below, call affiliate_predict_creator_product_fit with creatorRelationshipId before submitting a REVIEW_SAMPLE_APPLICATION action. Use scenario SAMPLE_REVIEW and include sampleApplicationRecordId/platformApplicationId when available. Use the returned prediction as evidence, and copy its cacheId into action.predictionCacheIds so backend can snapshot the exact evidence used.",
+      "If you can form a concrete sample decision, use decision REQUEST_ACTION with action.type REVIEW_SAMPLE_APPLICATION.",
+      "If approval policy allows automatic execution, backend may execute it; if approval is required, backend will create an ActionProposal. Either way, the decision still comes from your full-context judgment.",
+      "Use NEEDS_STAFF_REVIEW only when the context is ambiguous or incomplete enough that no concrete APPROVE/REJECT action should be proposed.",
+      renderPredictionCacheInstruction(input),
+      `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
+      "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
+    ].join("\n"),
+    idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${sampleId}:${workItem.versionAt}`,
+    abortActive: false,
+  };
 }
 
 function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
   const { workItem, platform } = input;
   const currentMessageId =
-    workItem.collaboration?.lastCreatorMessageId ?? workItemThread(workItem).lastMessageId ?? workItem.shopThreadId;
+    workItem.collaboration?.lastCreatorMessageId ??
+    workItem.creatorRelationshipId;
   return {
     message: [
       "[Affiliate Work Item: Creator Reply Needed]",
@@ -98,22 +153,23 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderBusinessPrompt(input.businessPrompt),
       "",
-      input.conversationDelta
-        ?? "Conversation delta was not available before dispatch. Use affiliate tools conservatively before proposing any outbound message.",
+      input.relationshipMessageUpdate
+        ?? "Relationship message update was not available before dispatch. Use affiliate tools conservatively before proposing any outbound message.",
       "",
       "## Task",
       "Decide whether the creator needs a reply now.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
-      "If the conversation work package includes Candidate Card Hints, treat them as candidate evidence only. Do not treat a product card as confirmed product context unless Backend Work Context already confirms that product through sample, target collaboration, or product context.",
-      "When a candidate productId is available and the decision depends on whether this creator/product is worth pursuing, call affiliate_predict_creator_product_fit before REQUEST_ACTION. Use its product summary, prediction, and decision thresholds as decision evidence.",
-      "When a candidate sample/application id is available and the creator is asking about application approval, rejection, shipment, or sample status, call affiliate_get_workspace with the sample/application identity before replying.",
+      "If the relationship message update includes Candidate Card Hints, treat them as candidate evidence only. Do not treat a product card as confirmed product context unless Backend Work Context already confirms that product through sample, target collaboration, or product context.",
+      "When a candidate productId is available and the decision depends on whether this creator/product is worth pursuing, call affiliate_predict_creator_product_fit with creatorRelationshipId before REQUEST_ACTION. Use its product summary, prediction, and decision thresholds as decision evidence.",
+      "If you decide to review a sample application and no prediction cache id is already listed below, call affiliate_predict_creator_product_fit with creatorRelationshipId and scenario SAMPLE_REVIEW first and copy the returned cacheId into action.predictionCacheIds.",
+      "When a candidate sample/application id is available and the creator is asking about application approval, rejection, shipment, or sample status, call affiliate_get_workspace with creatorRelationshipId plus the sample/application identity before replying.",
       "If a sample application is already terminal (for example cancelled, expired, rejected, or fulfilled), do not propose a REVIEW_SAMPLE_APPLICATION action for it. You may still reply to the creator, but the reply must reflect the business decision and current evidence. Do not invite the creator to resubmit the same sample request unless the merchant context clearly supports continuing with that creator/product.",
       "When the terminal sample state is seller/system rejection or cancellation, avoid passive wording such as \"the request is no longer active\" as the main explanation. Tell the creator plainly and politely that after review we are not moving forward with this sample/collaboration at this time, then add any appropriate future-facing note.",
-      "When prediction or merchant thresholds indicate the creator/product is below the shop's bar, a creator-facing reply should politely decline or leave the door open for better future fit; it should not ask the creator to submit the same application again.",
+      "When prediction or merchant thresholds look weak, treat that as cautionary evidence rather than an automatic decline. Politely decline only when the full relationship, creator, product, sample, merchant, and channel context supports not proceeding; otherwise ask a clarifying question, defer, or request staff review.",
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
-      "If the work item is thread-level or marks collaboration context ambiguous, do not attach sample-review or collaboration-specific action fields unless Backend Work Context resolves a focus collaboration/sample. Prefer a clarifying SEND_MESSAGE or NEEDS_STAFF_REVIEW.",
+      "If the work item is relationship-level or marks collaboration context ambiguous, do not attach sample-review or collaboration-specific action fields unless Backend Work Context resolves a focus collaboration/sample. Prefer a clarifying SEND_MESSAGE or NEEDS_STAFF_REVIEW.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       "If Work Bundle Kind is CREATOR_REPLY_WITH_SAMPLE_REVIEW, you must handle the sample review and the creator reply in the same REQUEST_ACTION input.actions bundle. Include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE unless the sample is already terminal or no creator-facing reply is appropriate.",
       renderPredictionCacheInstruction(input),
@@ -154,12 +210,12 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
-      "If the follow-up depends on a candidate product from a prior creator card and Backend Work Context does not confirm the product, call affiliate_predict_creator_product_fit before recommending continued investment or asking the creator to proceed.",
+      "If the follow-up depends on a candidate product from a prior creator card and Backend Work Context does not confirm the product, call affiliate_predict_creator_product_fit with creatorRelationshipId before recommending continued investment or asking the creator to proceed.",
       "If a follow-up is appropriate, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
       "For every text follow-up, set action.messageText to the final text the creator should receive. Backend will normalize it into a typed SEND_MESSAGE intent.",
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
-      "If Platform Conversation ID is empty, this is a proactive follow-up: omit conversationId and the backend will create or reuse the TikTok affiliate conversation from creator identity only after approval/execution.",
+      "Do not add raw provider route identifiers to SEND_MESSAGE. Backend delivery resolves the correct channel route from the creator relationship, shop scope, contact state, and action target.",
       `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
       "Keep action.messageText creator-facing, concise, and respectful. Do not threaten or over-pressure the creator.",
       "If the context is incomplete, use decision NEEDS_STAFF_REVIEW.",
@@ -189,7 +245,7 @@ function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem):
     "If you choose REQUEST_ACTION, your input.actions array must include every recommended action type that is still applicable after checking current workspace facts.",
     "Do not submit a partial action bundle just because one action is easier to fill.",
     "Never submit an action with an empty typed intent object such as sampleReviewIntent: {} or messageIntent: {}.",
-    "When a concrete REVIEW_SAMPLE_APPLICATION template is provided below, copy sampleApplicationRecordId and platformApplicationId exactly and only change sampleReviewDecision/rejectReason when your judgment requires it.",
+    "When REVIEW_SAMPLE_APPLICATION fields are provided below, copy sampleApplicationRecordId and platformApplicationId exactly, then choose sampleReviewDecision from the full workspace context.",
   ];
 
   if (
@@ -201,8 +257,8 @@ function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem):
   ) {
     lines.push(
       "This is a combined sample-review + creator-reply work item. A normal REQUEST_ACTION should include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE in one input.actions array so staff approves or rejects the complete business response together.",
-      "Only omit SEND_MESSAGE if, after reading the conversation, you decide no creator-facing reply is appropriate; explain that omission in operatorSummary.",
-      "Only omit REVIEW_SAMPLE_APPLICATION if the sample application is already terminal or cannot be identified after using affiliate_get_workspace; explain that omission in operatorSummary.",
+      "Only omit SEND_MESSAGE if, after reading the creator relationship history, you decide no creator-facing reply is appropriate; explain that omission in operatorSummary.",
+      "Only omit REVIEW_SAMPLE_APPLICATION if the sample application is already terminal or cannot be identified after using affiliate_get_workspace with creatorRelationshipId; explain that omission in operatorSummary.",
     );
   }
 
@@ -219,9 +275,11 @@ function renderResolveWorkItemToolContract(): string {
     "Do not use CHANGE_COMMISSION, CHANGE_RATE, DISCOUNT, TAG_CREATOR, BLOCK_CREATOR, SHIP_SAMPLE, or any other action type. If the seller needs an unsupported action, use decision NEEDS_STAFF_REVIEW and explain it in operatorSummary.",
     "When decision is REQUEST_ACTION, provide either input.action for one action or input.actions for an ordered bundle; do not provide both.",
     "Each action must populate the required fields matching action.type: SEND_MESSAGE uses the typed messageText shortcut; REVIEW_SAMPLE_APPLICATION uses the flat sample review shortcut fields; CREATE_TARGET_COLLABORATION uses targetCollaborationIntent.",
+    "When an action targets a specific collaboration from Backend Work Context, put collaborationRecordId on that action. The top-level collaborationRecordId is only the current focus fallback; do not rely on it for every action in a bundled relationship proposal.",
+    "When an action creates new collaboration context and no existing collaboration/sample target can identify the shop, put shopId on that action as the business shop scope. Do not use provider route ids for shop/channel routing.",
     "An action that only contains { type: ... } is always invalid. Do not call REQUEST_ACTION until every selected action has the required typed payload.",
     "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleApplicationRecordId, platformApplicationId, sampleReviewDecision, rejectReason? }. Use sampleReviewDecision APPROVE or REJECT. Never send sampleReviewIntent: {}.",
-    "For SEND_MESSAGE, include type SEND_MESSAGE and messageText. The messageText value is the final text the creator will see after approval/execution; write the actual reply in the creator's language. Add conversationId, creatorId, or productId at the action top level only when known. Never send messageIntent: {}.",
+    "For SEND_MESSAGE, include type SEND_MESSAGE and messageText. The messageText value is the final text the creator will see after approval/execution; write the actual reply in the creator's language. Add productId only when it is a real target reference. Do not add raw provider route identifiers; backend routes delivery from creatorRelationshipId and channel state. Never send messageIntent: {}.",
     "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
   ].join("\n");
 }
@@ -247,9 +305,10 @@ function renderDecisionThresholds(
     "## Affiliate Decision Thresholds",
     `- Source: ${source ?? "configured threshold"}`,
     `- minExpectedSalesUnits: ${minExpectedSalesUnits}`,
-    "Use this as the default investment/continuation threshold when merchant instructions do not provide a more specific rule for the current product, campaign, or creator.",
-    "If expectedSalesUnits is below minExpectedSalesUnits, do not approve, invest in, or continue the collaboration by default unless stronger merchant instructions or workspace facts justify an exception.",
-    "If expectedSalesUnits meets or exceeds minExpectedSalesUnits, that supports proceeding, subject to risk tags, product/sample context, inventory/fulfillment facts, and approval policy.",
+    "Use this as merchant preference evidence when merchant instructions do not provide a more specific rule for the current product, campaign, or creator.",
+    "Do not convert this threshold into a deterministic approve/reject rule. A low or high forecast should shape your reasoning, not replace full-context BD judgment.",
+    "If expectedSalesUnits is below minExpectedSalesUnits, treat that as cautionary evidence and weigh it against relationship history, creator quality, product strategy, campaign goals, inventory/fulfillment facts, and explicit merchant instructions.",
+    "If expectedSalesUnits meets or exceeds minExpectedSalesUnits, treat that as supportive evidence for proceeding, still subject to risk tags, product/sample context, inventory/fulfillment facts, and approval policy.",
     "For existing commitments that already require operational follow-up, use the threshold as background context; do not use it as the only reason to ignore an overdue creator follow-up.",
     "This threshold is a decision aid, not creator-facing copy. If you mention it in operatorSummary, explain it plainly as the shop's minimum expected sales, never as a guaranteed sales outcome.",
   ].join("\n");
@@ -258,7 +317,11 @@ function renderDecisionThresholds(
 function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput): string {
   const cacheIds = input.predictionCacheIds?.filter(Boolean) ?? [];
   if (cacheIds.length === 0) {
-    return "No affiliate prediction cache id was provided for this work item.";
+    return [
+      "No affiliate prediction cache id was prefilled for this work item.",
+      "When a REQUEST_ACTION step needs prediction evidence, call affiliate_predict_creator_product_fit with creatorRelationshipId yourself and include the returned cacheId in action.predictionCacheIds.",
+      "This keeps prediction as an agent decision tool rather than a deterministic pre-dispatch rule.",
+    ].join(" ");
   }
   return [
     `For any REQUEST_ACTION decision in this work item, include predictionCacheIds: ${JSON.stringify(cacheIds)} on the typed action payload.`,
@@ -276,7 +339,25 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
 
   if (recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) && sample) {
     templates.push([
-      "REVIEW_SAMPLE_APPLICATION action template:",
+      "REVIEW_SAMPLE_APPLICATION required fields:",
+      "- type: REVIEW_SAMPLE_APPLICATION",
+      cacheIds.length
+        ? `- predictionCacheIds: ${JSON.stringify(cacheIds)}`
+        : "- predictionCacheIds: call affiliate_predict_creator_product_fit with creatorRelationshipId first, then include the returned cacheId",
+      `- sampleApplicationRecordId: ${sample.id}`,
+      `- platformApplicationId: ${sample.platformApplicationId}`,
+      "- sampleReviewDecision: choose APPROVE or REJECT from full-context judgment.",
+      "- rejectReason: include only when sampleReviewDecision is REJECT.",
+      "Do not treat expected-sales evidence, threshold evidence, or this field list as a default decision.",
+      "APPROVE example shape:",
+      JSON.stringify({
+        type: "REVIEW_SAMPLE_APPLICATION",
+        ...baseActionFields,
+        sampleApplicationRecordId: sample.id,
+        platformApplicationId: sample.platformApplicationId,
+        sampleReviewDecision: "APPROVE",
+      }, null, 2),
+      "REJECT example shape:",
       JSON.stringify({
         type: "REVIEW_SAMPLE_APPLICATION",
         ...baseActionFields,
@@ -285,7 +366,6 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
         sampleReviewDecision: "REJECT",
         rejectReason: "OTHER",
       }, null, 2),
-      "Use sampleReviewDecision APPROVE only when the workspace facts and merchant instructions support approving this sample request.",
     ].join("\n"));
   }
 
@@ -295,7 +375,7 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
       `- type: SEND_MESSAGE`,
       cacheIds.length ? `- predictionCacheIds: ${JSON.stringify(cacheIds)}` : "- predictionCacheIds: include only when available",
       "- messageText: the complete creator-facing reply, ready to send verbatim after approval/execution",
-      "For a low-fit sample decline, a valid messageText would be a polite final reply such as: \"Hi Maria, thank you for your interest in working with us. After reviewing this sample request, we are not moving forward with this collaboration at this time, but we appreciate your interest and hope there may be a better fit in the future.\"",
+      "If full-context judgment supports declining a low-fit sample, a valid messageText would be a polite final reply such as: \"Hi Maria, thank you for your interest in working with us. After reviewing this sample request, we are not moving forward with this collaboration at this time, but we appreciate your interest and hope there may be a better fit in the future.\"",
       "Do not copy the example unless it exactly fits the current creator, language, and business context; write the current creator's actual message.",
     ].join("\n"));
   }
@@ -318,35 +398,14 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
     recommendedActions.includes(GQL.ActionProposalType.ReviewSampleApplication) &&
       recommendedActions.includes(GQL.ActionProposalType.SendMessage)
       ? [
-        "Combined bundle example:",
-        JSON.stringify({
-          decision: "REQUEST_ACTION",
-          handledSignalAt: workItem.versionAt,
-          actions: [
-            sample ? {
-              type: "REVIEW_SAMPLE_APPLICATION",
-              ...baseActionFields,
-              sampleApplicationRecordId: sample.id,
-              platformApplicationId: sample.platformApplicationId,
-              sampleReviewDecision: "REJECT",
-              rejectReason: "OTHER",
-            } : {
-              type: "REVIEW_SAMPLE_APPLICATION",
-              ...baseActionFields,
-              sampleApplicationRecordId: "sampleApplicationRecordId from Backend Work Projection",
-              platformApplicationId: "platformApplicationId from Backend Work Projection",
-              sampleReviewDecision: "REJECT",
-              rejectReason: "OTHER",
-            },
-            {
-              type: "SEND_MESSAGE",
-              ...baseActionFields,
-              messageText: "Hi Maria, thank you for your interest in working with us. After reviewing this sample request, we are not moving forward with this collaboration at this time, but we appreciate your interest and hope there may be a better fit in the future.",
-            },
-          ],
-          operatorSummary: "staff-facing rationale in the requested staff language",
-        }, null, 2),
-        "The SEND_MESSAGE text in this example is only a concrete illustration. Rewrite it for the actual creator, language, product, and decision.",
+        "Combined bundle requirement:",
+        "- Use decision REQUEST_ACTION.",
+        "- Set handledSignalAt to the current work boundary.",
+        "- Use input.actions as an ordered array.",
+        "- Include one complete REVIEW_SAMPLE_APPLICATION action when the sample is still actionable.",
+        "- Include one complete SEND_MESSAGE action when a creator-facing reply is appropriate.",
+        "- Keep the sample decision and message consistent with each other and with the full relationship context.",
+        "- If the sample should be approved, send an approval/status reply; if it should be rejected, send a polite rejection/future-fit reply; if context is insufficient, use NEEDS_STAFF_REVIEW instead of a partial bundle.",
       ].join("\n")
       : "",
   ].filter(Boolean).join("\n\n");
@@ -368,48 +427,30 @@ function recommendedActionTypesForWorkItem(workItem: GQL.AffiliateWorkItem): GQL
   return [...actionTypes];
 }
 
+function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
+  return workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision ||
+    (
+      workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask &&
+      workItem.processReasons?.includes(GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview) === true
+    );
+}
+
 function requiresCreatorReplyAction(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyOnly ||
     workItem.workBundleKind === GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview ||
-    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.RespondToCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.ReplyToCreator ||
     workItem.processReasons?.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply) === true
   );
 }
 
-function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateShopCreatorThread {
-  if (workItem.shopThread) return workItem.shopThread;
-  const collaboration = workItem.collaboration;
-  return {
-    id: workItem.shopThreadId ?? workItem.collaborationRecordId ?? workItem.id,
-    userId: collaboration?.userId ?? "",
-    shopId: collaboration?.shopId ?? workItem.shopId,
-    platform: GQL.ShopPlatform.TiktokShop,
-    creatorId: collaboration?.creatorId ?? null,
-    creatorOpenId: collaboration?.creatorOpenId ?? null,
-    creatorImId: collaboration?.creatorImId ?? null,
-    platformConversationId: collaboration?.platformConversationId ?? null,
-    lastMessageId: collaboration?.lastCreatorMessageId ?? null,
-    lastMessageAt: collaboration?.lastCreatorMessageAt ?? null,
-    lastSignalAt: collaboration?.lastSignalAt ?? null,
-    workHandledUntil: collaboration?.workHandledUntil ?? null,
-    nextSellerActionAt: collaboration?.nextSellerActionAt ?? null,
-    processingStatus: collaboration?.processingStatus ?? workItem.processingStatus,
-    requiredAction: collaboration?.requiredAction ?? workItem.requiredAction,
-    processReasons: collaboration?.processReasons ?? workItem.processReasons ?? [],
-    activeCollaborationRecordIds: workItem.collaborationRecordId ? [workItem.collaborationRecordId] : [],
-    ambiguousCollaborationRecordIds: [],
-    focusCollaborationRecordId: workItem.collaborationRecordId ?? null,
-    startedAt: collaboration?.startedAt ?? workItem.versionAt,
-    stateUpdatedAt: collaboration?.stateUpdatedAt ?? workItem.versionAt,
-    createdAt: collaboration?.createdAt ?? workItem.versionAt,
-    updatedAt: collaboration?.updatedAt ?? workItem.versionAt,
-  };
-}
-
 export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): string {
   const collaboration = workItem.collaboration;
-  const thread = workItemThread(workItem);
+  const relationship = workItem.creatorRelationship ?? workItem.context?.creatorRelation ?? null;
+  const activeCollaborationIds =
+    relationship?.activeCollaborationRecordIds ??
+    workItem.context?.activeCollaborations?.map((item) => item.id) ??
+    (workItem.collaborationRecordId ? [workItem.collaborationRecordId] : []);
   const sample = workItem.sampleApplicationRecord;
   const proposal = workItem.latestPendingProposal;
   const actionableDelta = renderActionableDelta(workItem);
@@ -417,58 +458,49 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "## Backend Actionable Delta",
     ...actionableDelta,
     "",
-    "## Backend Work Projection",
-    `- Work Item ID: ${workItem.id}`,
+    "## Backend Relationship Work Projection",
+    `- Relationship Work Item ID: ${workItem.id}`,
     `- Subject Type: ${workItem.subjectType}`,
-    `- Thread ID: ${workItem.shopThreadId}`,
+    `- Creator Relationship ID: ${workItem.creatorRelationshipId}`,
     `- Work Kind: ${workItem.workKind}`,
     `- Required Action: ${workItem.requiredAction}`,
     `- Work Bundle Kind: ${workItem.workBundleKind ?? ""}`,
-    `- Shop ID: ${workItem.shopId}`,
-    `- Platform Shop ID: ${workItem.platformShopId}`,
-    `- Collaboration ID: ${workItem.collaborationRecordId ?? ""}`,
+    `- Focus Shop ID: ${workItem.focusShopId}`,
+    `- Focus Collaboration Context ID: ${workItem.collaborationRecordId ?? "(none)"}`,
     `- Processing Status: ${workItem.processingStatus}`,
     `- Process Reasons: ${(workItem.processReasons ?? []).join(", ") || "(none)"}`,
     `- Agent Dispatch Recommended: ${workItem.agentDispatchRecommended}`,
     `- Staff Review Required: ${workItem.staffReviewRequired}`,
     `- Version At: ${workItem.versionAt}`,
     "",
-    "## Creator Thread",
-    `- Creator ID: ${thread.creatorId ?? ""}`,
-    `- Creator Open ID: ${thread.creatorOpenId ?? ""}`,
-    `- Creator IM User ID: ${thread.creatorImId ?? ""}`,
-    `- Platform Conversation ID: ${thread.platformConversationId ?? ""}`,
-    `- Last Message ID: ${thread.lastMessageId ?? ""}`,
-    `- Last Message At: ${thread.lastMessageAt ?? ""}`,
-    `- Last Inbound At: ${thread.lastInboundAt ?? ""}`,
-    `- Last Outbound At: ${thread.lastOutboundAt ?? ""}`,
-    `- Last Signal At: ${thread.lastSignalAt ?? ""}`,
-    `- Work Handled Until: ${thread.workHandledUntil ?? ""}`,
-    `- Next Seller Action At: ${thread.nextSellerActionAt ?? ""}`,
-    `- Active Collaboration IDs: ${(thread.activeCollaborationRecordIds ?? []).join(", ") || "(none)"}`,
-    `- Focus Collaboration ID: ${thread.focusCollaborationRecordId ?? ""}`,
-    `- Ambiguous Collaboration IDs: ${(thread.ambiguousCollaborationRecordIds ?? []).join(", ") || "(none)"}`,
+    "## Creator Relationship",
+    `- Workspace Relationship ID: ${workItem.creatorRelationshipId}`,
+    `- Status: ${relationship?.processingStatus ?? workItem.processingStatus}`,
+    `- Required Action: ${relationship?.requiredAction ?? workItem.requiredAction}`,
+    `- Process Reasons: ${((relationship?.processReasons ?? workItem.processReasons) ?? []).join(", ") || "(none)"}`,
+    `- Last Inbound At: ${relationship?.lastInboundAt ?? collaboration?.lastCreatorMessageAt ?? ""}`,
+    `- Last Outbound At: ${relationship?.lastOutboundAt ?? ""}`,
+    `- Last Agent Handled At: ${relationship?.lastAgentHandledAt ?? ""}`,
+    `- Next Seller Action At: ${relationship?.nextSellerActionAt ?? collaboration?.nextSellerActionAt ?? ""}`,
+    `- Active Collaboration IDs: ${activeCollaborationIds.join(", ") || "(none)"}`,
+    `- Pending Proposal ID: ${relationship?.pendingActionProposalId ?? ""}`,
     "",
-    "## Focus Collaboration",
+    "## Focus Business Target / Collaboration Context",
     ...(collaboration ? [
-      `- Creator ID: ${collaboration.creatorId}`,
-      `- Creator IM User ID: ${collaboration.creatorImId ?? ""}`,
+      "- This collaboration is context under the CreatorRelationship; it is not the work owner or Agent memory boundary.",
       `- Product ID: ${collaboration.productId ?? ""}`,
       `- Sample Application Record ID: ${collaboration.sampleApplicationRecordId ?? ""}`,
-      `- Platform Conversation ID: ${collaboration.platformConversationId ?? ""}`,
       `- Lifecycle Stage: ${collaboration.lifecycleStage}`,
-      `- Last Creator Message ID: ${collaboration.lastCreatorMessageId ?? ""}`,
       `- Last Creator Message At: ${collaboration.lastCreatorMessageAt ?? ""}`,
       `- Last Signal At: ${collaboration.lastSignalAt ?? ""}`,
       `- Work Handled Until: ${collaboration.workHandledUntil ?? ""}`,
       `- Next Seller Action At: ${collaboration.nextSellerActionAt ?? ""}`,
-    ] : ["(none: this is a creator-thread work item without a resolved collaboration)"]),
+    ] : ["(none: this creator relationship work item has no resolved focus collaboration context)"]),
     "",
     "## Sample Application",
     ...(sample ? [
       `- Sample Record ID: ${sample.id}`,
       `- Platform Application ID: ${sample.platformApplicationId}`,
-      `- Creator ID: ${sample.creatorId ?? ""}`,
       `- Product ID: ${sample.productId ?? ""}`,
       `- Sample Work Status: ${sample.sampleWorkStatus}`,
       `- Observed Content Count: ${sample.observedContentCount}`,
@@ -490,23 +522,21 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
       `- Type: ${proposal.type}`,
       `- Status: ${proposal.status}`,
       `- Operator Summary: ${proposal.operatorSummary}`,
-      `- Creator ID: ${proposal.creatorId ?? ""}`,
-      `- Thread ID: ${proposal.shopThreadId ?? ""}`,
-      `- Collaboration ID: ${proposal.collaborationRecordId ?? ""}`,
+      `- Creator Relationship ID: ${proposal.creatorRelationshipId ?? ""}`,
+      `- Focus Collaboration Context ID: ${proposal.collaborationRecordId ?? "(none)"}`,
     ] : ["(none)"]),
   ].join("\n");
 }
 
 function renderActionableDelta(workItem: GQL.AffiliateWorkItem): string[] {
   const sources = inferActionableDeltaSources(workItem);
-  const thread = workItemThread(workItem);
-  const boundary = workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? thread.lastSignalAt ?? "";
-  const nextSellerActionAt = workItem.collaboration?.nextSellerActionAt ?? thread.nextSellerActionAt ?? "";
+  const boundary = workItemBoundaryAt(workItem) ?? "";
+  const nextSellerActionAt = workItem.creatorRelationship?.nextSellerActionAt ?? workItem.collaboration?.nextSellerActionAt ?? "";
   const lines = [
     `- Sources: ${sources.join(", ") || "STATE"}`,
     `- Boundary At: ${boundary}`,
-    `- Work Handled Until: ${workItem.collaboration?.workHandledUntil ?? thread.workHandledUntil ?? ""}`,
-    `- Last Signal At: ${workItem.collaboration?.lastSignalAt ?? thread.lastSignalAt ?? ""}`,
+    `- Work Handled Until: ${workItemHandledUntil(workItem) ?? ""}`,
+    `- Last Signal At: ${workItem.collaboration?.lastSignalAt ?? workItem.creatorRelationship?.stateUpdatedAt ?? ""}`,
     `- Next Seller Action At: ${nextSellerActionAt}`,
   ];
   if (sources.includes("TEMPORAL")) {
@@ -527,13 +557,31 @@ function renderActionableDelta(workItem: GQL.AffiliateWorkItem): string[] {
   return lines;
 }
 
+function workItemBoundaryAt(workItem: GQL.AffiliateWorkItem): string | null {
+  return (
+    workItem.versionAt ??
+    workItem.collaboration?.lastSignalAt ??
+    workItem.creatorRelationship?.stateUpdatedAt ??
+    workItem.creatorRelationship?.lastInboundAt ??
+    null
+  );
+}
+
+function workItemHandledUntil(workItem: GQL.AffiliateWorkItem): string | null {
+  if (workItem.creatorRelationship != null) {
+    return workItem.creatorRelationship.lastAgentHandledAt ?? null;
+  }
+  return workItem.collaboration?.workHandledUntil ?? null;
+}
+
 function inferActionableDeltaSources(workItem: GQL.AffiliateWorkItem): Array<"SIGNAL" | "TEMPORAL" | "STATE"> {
   const sources = new Set<"SIGNAL" | "TEMPORAL" | "STATE">();
   const reasons = workItem.processReasons ?? [];
   if (
     workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUp ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp ||
-    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.FollowUpCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.WaitCreatorResponse ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.SampleContentFollowUpDue) ||
     reasons.includes(GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue)
   ) {
@@ -573,8 +621,8 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
   return [
     `- Recommended Actions: ${(workItem.recommendedActionTypes ?? context.recommendedActionTypes ?? []).join(", ") || "(none)"}`,
     creator
-      ? `- Creator: ${creator.nickname ?? creator.username ?? creator.creatorOpenId ?? creator.creatorImId ?? creator.id} (id=${creator.id}, openId=${creator.creatorOpenId ?? ""}, imId=${creator.creatorImId ?? ""})`
-      : "- Creator: (unresolved)",
+      ? `- Creator Profile: ${creator.nickname ?? creator.username ?? "resolved"}`
+      : "- Creator Profile: (unresolved)",
     relation
       ? `- Creator Relation: blocked=${relation.blocked} blockedShopIds=${relation.blockedShopIds.join(", ") || "(none)"}`
       : "- Creator Relation: (none)",
@@ -589,19 +637,19 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
       ? `- Affiliate Collaboration Offer: ${context.affiliateCollaboration.type} ${context.affiliateCollaboration.platformCollaborationId} status=${context.affiliateCollaboration.status}`
       : "- Affiliate Collaboration Offer: (none)",
     context.focusCollaboration
-      ? `- Focus Collaboration Candidate: ${context.focusCollaboration.id} product=${context.focusCollaboration.productId ?? ""} lifecycle=${context.focusCollaboration.lifecycleStage}`
-      : "- Focus Collaboration Candidate: (none)",
+      ? `- Focus Collaboration Context: ${context.focusCollaboration.id} product=${context.focusCollaboration.productId ?? ""} lifecycle=${context.focusCollaboration.lifecycleStage}`
+      : "- Focus Collaboration Context: (none)",
     `- Active Collaborations: ${activeCollaborations.length}`,
     ...activeCollaborations.map((collaboration, index) =>
-      `  ${index + 1}. collaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
+      `  ${index + 1}. contextCollaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
     ),
     `- Ambiguous Collaboration Candidates: ${ambiguousCandidates.length ? "" : "(none)"}`,
     ...ambiguousCandidates.map((collaboration, index) =>
-      `  ${index + 1}. collaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
+      `  ${index + 1}. contextCollaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
     ),
     ...(ambiguousCandidates.length
       ? [
-          "- Ambiguity Instruction: do not assume the creator's message belongs to one collaboration unless the platform conversation delta or workspace facts clearly identify it. Ask a concise clarification question or request staff review when confidence is low.",
+          "- Ambiguity Instruction: do not assume the creator's message belongs to one collaboration unless platform-chat evidence or workspace facts clearly identify it. Ask a concise clarification question or request staff review when confidence is low.",
         ]
       : []),
     `- Related Sample Applications: ${relatedSamples.length}`,

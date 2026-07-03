@@ -181,6 +181,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           handledSignalAt: "2026-06-14T07:17:07.966Z",
           decision: "REQUEST_ACTION",
@@ -202,6 +203,52 @@ describe("cloud-graphql handler", () => {
           message: expect.stringContaining(
             "Desktop blocked an invalid affiliate action payload before sending it to backend",
           ),
+        },
+      ],
+    });
+  });
+
+  it("rejects affiliate resolve work item calls without creatorRelationshipId", async () => {
+    const graphqlFetch = vi.fn();
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Reply to creator.",
+          action: {
+            type: "SEND_MESSAGE",
+            messageText: "Thanks for the update.",
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [
+        {
+          message: "creatorRelationshipId is required for affiliate_resolve_work_item",
         },
       ],
     });
@@ -235,6 +282,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reject the sample.",
@@ -301,6 +349,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Decline the sample.",
@@ -365,6 +414,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Review the sample and send a reply.",
@@ -427,6 +477,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Review the sample and send a reply.",
@@ -489,6 +540,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Review the sample and send a reply.",
@@ -552,6 +604,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Approve or reject the sample request and send a reply.",
@@ -613,6 +666,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reply to creator.",
@@ -623,6 +677,7 @@ describe("cloud-graphql handler", () => {
               messageType: "TEXT",
               text: "Thanks for the update.",
               conversationId: "conv-1",
+              platformConversationId: "platform-conv-1",
             },
             sampleReviewIntent: {
               sampleApplicationRecordId: "sample-1",
@@ -648,7 +703,6 @@ describe("cloud-graphql handler", () => {
             messageIntent: {
               messageType: "TEXT",
               text: "Thanks for the update.",
-              conversationId: "conv-1",
             },
           },
         }),
@@ -684,6 +738,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reply to creator.",
@@ -744,6 +799,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
           collaborationRecordId: "collab-1",
           decision: "REQUEST_ACTION",
           action: {
@@ -769,7 +825,6 @@ describe("cloud-graphql handler", () => {
             expiresAt: undefined,
             messageIntent: {
               messageType: "TEXT",
-              content: "Creator-facing reply.",
               text: "Creator-facing reply.",
             },
           },

@@ -35,7 +35,7 @@ const _surfaceGuard: _AssertSurfaceCompat = true;
 type _AssertRunProfileCompat = AssertSubset<GQL.RunProfile, SnapshotIn<typeof RunProfileModel>>;
 const _runProfileGuard: _AssertRunProfileCompat = true;
 
-// ── Shop (MST is a subset — omits createdAt, updatedAt, grantedScopes, userId) ──
+// ── Shop (MST is a subset — omits createdAt, updatedAt, grantedScopes) ──
 type _AssertShopCompat = AssertSubset<GQL.Shop, SnapshotIn<typeof ShopModel>>;
 const _shopGuard: _AssertShopCompat = true;
 

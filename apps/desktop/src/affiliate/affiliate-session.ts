@@ -7,7 +7,7 @@ import {
   type AffiliateSampleApplicationUpdatedFrame,
   type AffiliateTargetCollaborationUpdatedFrame,
 } from "@rivonclaw/core";
-import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
+import type { AffiliateRelationshipSignalPayload } from "../cloud/backend-subscription-client.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { rootStore } from "../app/store/desktop-store.js";
@@ -15,21 +15,18 @@ import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
-  AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY,
+  AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
   DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION,
-  AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateActionProposalDeltaQueryResult,
+  type AffiliateCreatorMessageHistoryQueryResult,
   type DeliverAffiliateCreatorTextMutationResult,
-  type AffiliateExpectedSalesPredictionsQueryResult,
-  type AffiliateConversationMessageDeltaQueryResult,
   type AffiliateWorkItemsQueryResult,
   type AffiliateWorkspaceQueryResult,
   type ResolveAffiliateWorkItemMutationResult,
 } from "../cloud/affiliate-queries.js";
-import { readLatestUserSessionAnchor } from "../utils/openclaw-session-anchor.js";
 import type { StaffLanguage } from "../i18n/locale.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 
@@ -39,9 +36,9 @@ export const DEFAULT_AFFILIATE_RUN_PROFILE_ID = "AFFILIATE_OPERATOR";
 const DEBUG_AFFILIATE_PROMPT =
   process.env.DEBUG_AFFILIATE_PROMPT === "1" || process.env.RIVONCLAW_DEBUG_AFFILIATE_PROMPT === "1";
 
-const predictionMemo = new Map<string, Promise<AffiliatePredictionDispatchContext>>();
-
 export interface AffiliateShopContext {
+  /** Backend user id owning this affiliate shop. */
+  userId?: string;
   /** MongoDB ObjectId used by backend affiliate tools. */
   objectId: string;
   /** Platform shop ID from TikTok webhook shop_id. */
@@ -59,14 +56,14 @@ export interface AffiliateShopContext {
 }
 
 export interface AffiliateContext {
+  userId?: string;
   shopId: string;
   platformShopId: string;
   triggerKind: AffiliateTriggerKind;
   triggerId: string;
-  conversationId?: string;
   creatorImUserId?: string;
   creatorId?: string | null;
-  creatorRelationshipId?: string | null;
+  creatorRelationshipId: string;
   productId?: string | null;
   sampleApplicationId?: string;
   collaborationRecordId?: string;
@@ -106,24 +103,30 @@ export class AffiliateSession {
 
   constructor(
     private shop: AffiliateShopContext,
-    readonly affiliateContext: AffiliateContext,
+    affiliateContext: AffiliateContext,
   ) {
+    this.affiliateContext = {
+      ...affiliateContext,
+      userId: affiliateContext.userId ?? shop.userId ?? "",
+    };
     this.platform = shop.platform ?? normalizePlatform("TIKTOK_SHOP");
-    this.scopeKey = AffiliateSession.buildScopeKey(this.platform, affiliateContext);
+    this.scopeKey = AffiliateSession.buildScopeKey(this.platform, this.affiliateContext);
   }
+
+  readonly affiliateContext: AffiliateContext;
 
   updateShopContext(shop: AffiliateShopContext): void {
     this.shop = shop;
   }
 
-  static buildScopeKey(platform: string, context: AffiliateContext): string {
-    if (context.creatorRelationshipId) {
-      return `agent:main:affiliate:${affiliateSessionPlatformKey(platform)}:${context.creatorRelationshipId}`;
+  static buildScopeKey(_platform: string, context: AffiliateContext): string {
+    if (!context.userId) {
+      throw new Error("userId is required for affiliate agent sessions");
     }
-    if (context.triggerKind === AffiliateTriggerKind.CREATOR_MESSAGE && context.conversationId) {
-      return `agent:main:affiliate:${platform}:${context.conversationId}`;
+    if (!context.creatorRelationshipId) {
+      throw new Error("creatorRelationshipId is required for affiliate agent sessions");
     }
-    return `agent:main:affiliate:${platform}:${context.triggerKind.toLowerCase()}:${context.triggerId}`;
+    return `agent:main:affiliate:${context.userId}:${context.creatorRelationshipId}`;
   }
 
   get extraSystemPrompt(): string {
@@ -160,7 +163,8 @@ export class AffiliateSession {
       "- Keep context at the seller-creator relationship level: WhatsApp, Outlook email, and platform chat are different channels for the same relationship, not separate memories.",
       "- When the creator provides or corrects a WhatsApp number, use affiliate_set_creator_whatsapp. Use affiliate_check_creator_whatsapp when the number needs validation.",
       "- When the creator provides or corrects an email address, use affiliate_set_creator_email.",
-      "- Use affiliate_get_creator_contact_state to inspect current channel availability, affiliate_get_creator_message_history for relationship-level history, and affiliate_get_creator_whatsapp_messages only when WhatsApp-specific history matters.",
+      "- Use affiliate_get_creator_contact_state to inspect current channel availability and affiliate_get_creator_message_history for relationship-level history across platform chat, WhatsApp, and email. Use its channel filter when you need a narrower slice.",
+      "- Treat provider route identifiers as transport provenance only. Do not use them as the workspace boundary or as primary keys for affiliate tools.",
       "",
       "## Operating Model",
       "- Use backend affiliate tools as the source of truth for campaigns, creator lifecycle state, tags, approval policies, and action execution.",
@@ -175,16 +179,17 @@ export class AffiliateSession {
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
       "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
       `- Write every operatorSummary and staff-facing explanation in ${this.shop.staffLanguage ?? "English"}.`,
-      "- If the merchant explicitly approves, rejects, or asks to revise a pending proposal in the current conversation, use affiliate_decide_proposal. For revision requests, set status REVISION_REQUESTED and put the merchant's requested changes in decision.note.",
+      "- If the merchant explicitly approves, rejects, or asks to revise a pending proposal in this Codex thread, use affiliate_decide_proposal. For revision requests, set status REVISION_REQUESTED and put the merchant's requested changes in decision.note.",
       "- Do not rely on memory for creator history or policy. Ask tools for state when needed.",
       "- Never put a platform sample application ID into campaignId. For sample events, use platformApplicationId or sampleApplicationRecordId.",
       "",
       "## Workflow Discipline",
       "- Desktop resolves a small affiliate workspace snapshot before dispatch when possible. Use it as the initial fact set.",
-      "- Call affiliate_get_workspace when a decision depends on dynamic facts not present in the injected snapshot, such as creator follower count, creator relation/tags, sample status, product context, approval policies, campaign setup, or pending proposals.",
-      "- If you need a variable fact to apply a merchant rule or make a decision, for example follower count, GMV, prior performance, sample cost, inventory, or fulfillment state, fetch the narrow current workspace with affiliate_get_workspace before deciding.",
+      "- Call affiliate_get_workspace with creatorRelationshipId when a decision depends on dynamic facts not present in the injected snapshot, such as creator follower count, creator relation/tags, sample status, product context, approval policies, campaign setup, or pending proposals.",
+      "- If you need a variable fact to apply a merchant rule or make a decision, for example follower count, GMV, prior performance, sample cost, inventory, or fulfillment state, fetch the narrow current CreatorRelationship workspace with affiliate_get_workspace before deciding.",
+      "- Use affiliate_get_action_history when you need relationship-level audit history, previous proposal decisions, prior sample actions, or past staff/agent outcomes before deciding. Query by creatorRelationshipId; do not use provider conversation routes as history keys.",
       "- Use affiliate_predict_creator_product_fit when a creator message or card mentions a candidate product and you need creator/product fit evidence before deciding whether to proceed, decline, create a target collaboration, or reply. The tool returns product summary, decision thresholds, and model prediction without confirming or binding the product to the collaboration.",
-      "- A product card in conversation is candidate evidence only. Do not treat it as the confirmed collaboration product unless Backend Work Context already has a product context, sample application, or target collaboration for that product.",
+      "- A product card in a creator message is candidate evidence only. Do not treat it as the confirmed collaboration product unless Backend Work Context already has a product context, sample application, or target collaboration for that product.",
       "- Treat creator messages as continuation work: understand the request, check relevant campaign/collaboration/sample state, then resolve the work item through affiliate_resolve_work_item.",
       "- Treat sample application events as triage work: inspect creator value, product/sample policy, stock/fulfillment facts exposed by tools, then resolve the work item through affiliate_resolve_work_item.",
       "- Treat collaboration events as lifecycle work: reconcile local state, decide whether follow-up is needed, and avoid duplicate outreach.",
@@ -194,29 +199,31 @@ export class AffiliateSession {
       "",
       "## Current Affiliate Context",
       `- Shop ID: ${this.affiliateContext.shopId}`,
-      `- Platform Shop ID: ${this.affiliateContext.platformShopId}`,
       `- Shop Name: ${this.shop.shopName}`,
       `- Trigger Kind: ${this.affiliateContext.triggerKind}`,
-      `- Trigger ID: ${this.affiliateContext.triggerId}`,
-      ...(this.affiliateContext.conversationId ? [`- Conversation ID: ${this.affiliateContext.conversationId}`] : []),
-      ...(this.affiliateContext.creatorImUserId ? [`- Creator IM User ID: ${this.affiliateContext.creatorImUserId}`] : []),
-      ...(this.affiliateContext.creatorId ? [`- Creator ID: ${this.affiliateContext.creatorId}`] : []),
       ...(this.affiliateContext.creatorRelationshipId ? [`- Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`] : []),
       ...(this.affiliateContext.productId ? [`- Product ID: ${this.affiliateContext.productId}`] : []),
       ...(this.affiliateContext.sampleApplicationId ? [`- Sample Application ID: ${this.affiliateContext.sampleApplicationId}`] : []),
-      ...(this.affiliateContext.collaborationRecordId ? [`- Collaboration ID: ${this.affiliateContext.collaborationRecordId}`] : []),
+      ...(this.affiliateContext.collaborationRecordId ? [`- Related Collaboration Record ID: ${this.affiliateContext.collaborationRecordId}`] : []),
       ...(this.affiliateContext.orderId ? [`- Order ID: ${this.affiliateContext.orderId}`] : []),
     ].join("\n");
   }
 
   async handleCreatorMessage(frame: AffiliateNewMessageFrame): Promise<AffiliateDispatchResult> {
-    const generation = this.beginConversationTakeover();
-    const message = await this.buildCreatorConversationWorkPackage({
-      conversationId: frame.conversationId,
-      currentMessageId: frame.messageId,
+    if (!this.affiliateContext.creatorRelationshipId) {
+      log.warn(
+        `Skipping affiliate creator message ${frame.messageId} because no creatorRelationshipId was provided; ` +
+        "relationship-level backend signal/work item must materialize this message before agent dispatch",
+      );
+      return { runId: undefined };
+    }
+
+    const generation = this.beginCreatorMessageTakeover();
+    const message = await this.buildRelationshipMessageUpdateWorkPackage({
+      currentSignalId: frame.messageId,
+      currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
       messageType: frame.messageType,
       senderRole: frame.senderRole,
-      creatorImUserId: frame.imUserId,
       fallbackContent: this.parseMessageContent(frame),
       eventTime: String(frame.createTime),
     });
@@ -232,58 +239,38 @@ export class AffiliateSession {
     return result;
   }
 
-  async handleConversationSignal(signal: AffiliateConversationSignalPayload): Promise<AffiliateDispatchResult> {
-    if (isAffiliateMessageSignal(signal.type) && signal.conversationId && signal.messageId) {
-      const generation = this.beginConversationTakeover();
-      const workspaceSnapshot = await this.buildWorkspaceSnapshot({
-        includePolicies: true,
-        platformConversationId: signal.conversationId,
-        limit: 20,
-      });
-      const message = await this.buildCreatorConversationWorkPackage({
-        conversationId: signal.conversationId,
-        currentMessageId: signal.messageId,
-        messageType: signal.messageType ?? undefined,
-        senderRole: signal.senderRole ?? undefined,
-        creatorImUserId: signal.creatorImId ?? undefined,
-        eventTime: String(signal.eventTime),
-      });
-      if (generation !== this.dispatchGeneration) return { runId: undefined };
-      return this.dispatch({
-        message: appendOptionalSection(message, workspaceSnapshot),
-        idempotencyKey: buildSignalIdempotencyKey(this.platform, signal),
-        abortActive: false,
-        runMode: AffiliateAgentRunMode.CREATOR_OUTREACH,
-      });
+  async handleRelationshipSignal(signal: AffiliateRelationshipSignalPayload): Promise<AffiliateDispatchResult> {
+    const creatorRelationshipId = signalCreatorRelationshipId(signal);
+
+    if (isAffiliateMessageSignal(signal.type) && signal.messageId && !creatorRelationshipId) {
+      log.warn(
+        `Skipping affiliate message signal ${signal.messageId} because no creatorRelationshipId was provided; ` +
+        "message signals must be materialized to a CreatorRelationship before agent dispatch",
+      );
+      return { runId: undefined };
     }
 
-    const creatorRelationshipId = signalCreatorRelationshipId(signal);
     if (isAffiliateMessageSignal(signal.type) && creatorRelationshipId && signal.messageId) {
+      const generation = this.beginCreatorMessageTakeover();
       const workspaceSnapshot = await this.buildWorkspaceSnapshot({
         includePolicies: true,
         limit: 20,
       });
-      const message = [
-        "[Affiliate Creator Direct-Channel Message]",
-        `Signal Type: ${signal.type}`,
-        `Source: ${signal.source}`,
-        `Work Signal: ${signal.workSignal}`,
-        `Shop ID: ${signal.shopId}`,
-        `Platform Shop ID: ${signal.platformShopId}`,
+      const message = await this.buildRelationshipMessageUpdateWorkPackage({
+        currentSignalId: signal.messageId,
+        currentChannel: signal.channel ?? GQL.AffiliateMessageChannel.PlatformChat,
+        messageType: signal.messageType ?? undefined,
+        senderRole: signal.senderRole ?? undefined,
+        eventTime: String(signal.eventTime),
+      });
+      const relationshipHeader = [
+        "[Creator Relationship Workspace]",
         `Creator Relationship ID: ${creatorRelationshipId}`,
-        `Provider Message ID: ${signal.messageId}`,
-        ...(directSignalPreferredChannel(signal) ? [`Channel: ${directSignalPreferredChannel(signal)}`] : []),
-        ...(signal.messageType ? [`Message Type: ${signal.messageType}`] : []),
-        ...(signal.messageDirection ? [`Message Direction: ${signal.messageDirection}`] : []),
-        `Event Time: ${signal.eventTime}`,
-        "",
-        "The creator replied on a direct outreach channel. Continue the same relationship-level context across WhatsApp, Outlook email, and platform chat.",
-        "Use affiliate_get_creator_contact_state and affiliate_get_creator_message_history when you need contact or cross-channel message history.",
-        "Use platform conversation tools only when TikTok Shop platform chat history is needed.",
-        "If a creator-facing reply is appropriate, make your final assistant text the message to send. If no reply should be sent, answer exactly NO_REPLY.",
+        "This message history is relationship-level channel evidence. Do not treat any provider conversation route as the business subject.",
       ].join("\n");
+      if (generation !== this.dispatchGeneration) return { runId: undefined };
       return this.dispatch({
-        message: appendOptionalSection(message, workspaceSnapshot),
+        message: appendOptionalSection([relationshipHeader, "", message].join("\n"), workspaceSnapshot),
         idempotencyKey: buildSignalIdempotencyKey(this.platform, signal),
         abortActive: false,
         runMode: AffiliateAgentRunMode.CREATOR_OUTREACH,
@@ -303,16 +290,11 @@ export class AffiliateSession {
       `Source: ${signal.source}`,
       `Work Signal: ${signal.workSignal}`,
       `Shop ID: ${signal.shopId}`,
-      `Platform Shop ID: ${signal.platformShopId}`,
-      ...(signal.collaborationRecordId ? [`Collaboration ID: ${signal.collaborationRecordId}`] : []),
+      ...(signal.collaborationRecordId ? [`Related Collaboration Record ID: ${signal.collaborationRecordId}`] : []),
       ...(signal.processingStatus ? [`Processing Status: ${signal.processingStatus}`] : []),
       ...(signal.processReasons?.length ? [`Process Reasons: ${signal.processReasons.join(", ")}`] : []),
-      ...(signal.conversationId ? [`Conversation ID: ${signal.conversationId}`] : []),
-      ...(signal.messageId ? [`Message ID: ${signal.messageId}`] : []),
       ...(signal.messageType ? [`Message Type: ${signal.messageType}`] : []),
       ...(signal.messageDirection ? [`Message Direction: ${signal.messageDirection}`] : []),
-      ...(signal.creatorImId ? [`Creator IM User ID: ${signal.creatorImId}`] : []),
-      ...(signal.creatorOpenId ? [`Creator Open ID: ${signal.creatorOpenId}`] : []),
       ...(signal.platformApplicationId ? [`Sample Application ID: ${signal.platformApplicationId}`] : []),
       ...(signal.platformTargetCollaborationId ? [`Target Collaboration ID: ${signal.platformTargetCollaborationId}`] : []),
       ...(signal.platformStatus ? [`Platform Status: ${signal.platformStatus}`] : []),
@@ -340,34 +322,19 @@ export class AffiliateSession {
   }
 
   async handleWorkItem(workItem: GQL.AffiliateWorkItem): Promise<AffiliateDispatchResult> {
-    if (isDeterministicSampleReviewWorkItem(workItem)) {
-      const predictionContext = await this.resolvePredictionDispatchContext(workItem);
-      const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
-      if (await this.resolveDeterministicSampleReviewIfAvailable(workItem, predictionContext, thresholdContext)) {
-        return { runId: undefined };
-      }
-      await this.resolveSampleReviewNeedsStaffReview(workItem, predictionContext, thresholdContext);
-      return { runId: undefined };
-    }
-
     if (!workItem.agentDispatchRecommended) {
       log.info(`Affiliate work item ${workItem.id} does not recommend agent dispatch; skipping`);
       return { runId: undefined };
     }
 
-    let conversationDelta: string | undefined;
+    let relationshipMessageUpdate: string | undefined;
     let generation: number | undefined;
-    if (
-      isCreatorReplyWorkItem(workItem) &&
-      workItemConversationId(workItem) &&
-      workItemCurrentMessageId(workItem)
-    ) {
-      generation = this.beginConversationTakeover();
-      conversationDelta = await this.buildCreatorConversationWorkPackage({
-        conversationId: workItemConversationId(workItem)!,
-        currentMessageId: workItemCurrentMessageId(workItem)!,
-        creatorImUserId: workItem.collaboration?.creatorImId ?? workItemThread(workItem)?.creatorImId ?? undefined,
-        eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItemThread(workItem)?.lastMessageAt ?? undefined,
+    if (isCreatorReplyWorkItem(workItem)) {
+      generation = this.beginCreatorMessageTakeover();
+      relationshipMessageUpdate = await this.buildRelationshipMessageUpdateWorkPackage({
+        currentSignalId: workItemCurrentMessageId(workItem) ?? undefined,
+        currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
+        eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItem.creatorRelationship?.lastInboundAt ?? undefined,
       });
       if (generation !== this.dispatchGeneration) return { runId: undefined };
     }
@@ -377,7 +344,7 @@ export class AffiliateSession {
     const request = buildAffiliateAgentRunRequest({
       workItem,
       platform: this.platform,
-      conversationDelta,
+      relationshipMessageUpdate,
       proposalDeltaSection: await this.buildProposalDeltaSection(workItem),
       ...predictionContext,
       ...thresholdContext,
@@ -394,105 +361,6 @@ export class AffiliateSession {
       this.pendingRunCompletions.set(result.runId, workItem);
     }
     return result;
-  }
-
-  private async resolveDeterministicSampleReviewIfAvailable(
-    workItem: GQL.AffiliateWorkItem,
-    predictionContext: AffiliatePredictionDispatchContext,
-    thresholdContext: AffiliateDecisionThresholdDispatchContext,
-  ): Promise<boolean> {
-    const defaultDecision = computeSampleReviewDefaultDecision(
-      workItem,
-      predictionContext,
-      thresholdContext,
-      this.shop.staffLanguage,
-    );
-    if (!defaultDecision) return false;
-
-    const sample = workItem.sampleApplicationRecord;
-    if (!sample?.id || !sample.platformApplicationId) return false;
-
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn(`No auth session available, cannot resolve deterministic sample review for ${workItem.id}`);
-      return false;
-    }
-
-    const action: Record<string, unknown> = {
-      type: "REVIEW_SAMPLE_APPLICATION",
-      predictionCacheIds: predictionContext.predictionCacheIds ?? [],
-      sampleReviewIntent: {
-        sampleApplicationRecordId: sample.id,
-        platformApplicationId: sample.platformApplicationId,
-        decision: defaultDecision.decision,
-        ...(defaultDecision.decision === "REJECT" ? { rejectReason: "OTHER" } : {}),
-      },
-    };
-
-    const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
-      RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
-      {
-        input: {
-          shopId: workItem.shopId,
-          shopThreadId: workItem.shopThreadId,
-          collaborationRecordId: workItem.collaborationRecordId ?? undefined,
-          handledSignalAt:
-            workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
-          decision: "REQUEST_ACTION",
-          operatorSummary: defaultDecision.operatorSummary,
-          action,
-        },
-      },
-    );
-    const payload = result.resolveAffiliateWorkItem;
-    log.info(
-      `Deterministic affiliate sample review resolved: collaboration=${workItem.collaborationRecordId} ` +
-      `decision=${defaultDecision.decision} mode=${payload.actionMode ?? ""} ` +
-      `proposal=${payload.proposal?.id ?? ""} stale=${payload.stale} ` +
-      `status=${payload.collaborationRecord?.processingStatus ?? ""}`,
-    );
-    return true;
-  }
-
-  private async resolveSampleReviewNeedsStaffReview(
-    workItem: GQL.AffiliateWorkItem,
-    predictionContext: AffiliatePredictionDispatchContext,
-    thresholdContext: AffiliateDecisionThresholdDispatchContext,
-  ): Promise<void> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn(`No auth session available, cannot mark sample review for staff handling: ${workItem.id}`);
-      return;
-    }
-
-    try {
-      const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
-        RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
-        {
-          input: {
-            shopId: workItem.shopId,
-            shopThreadId: workItem.shopThreadId,
-            collaborationRecordId: workItem.collaborationRecordId ?? undefined,
-            handledSignalAt:
-              workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
-            decision: "NEEDS_STAFF_REVIEW",
-            operatorSummary: renderSampleReviewNeedsStaffReviewSummary({
-              workItem,
-              predictionContext,
-              thresholdContext,
-              staffLanguage: this.shop.staffLanguage,
-            }),
-          },
-        },
-      );
-      const payload = result.resolveAffiliateWorkItem;
-      log.info(
-        `Deterministic affiliate sample review deferred to staff: collaboration=${workItem.collaborationRecordId} ` +
-        `stale=${payload.stale} status=${payload.collaborationRecord?.processingStatus ?? ""}`,
-      );
-    } catch (err) {
-      log.error(`Failed to mark sample review work item for staff handling ${workItem.id}:`, err);
-    }
   }
 
   onRunCompleted(runId: string, options: { errored?: boolean } = {}): void {
@@ -657,7 +525,6 @@ export class AffiliateSession {
         `triggerKind=${this.affiliateContext.triggerKind}`,
         `triggerId=${this.affiliateContext.triggerId}`,
         `shopId=${this.affiliateContext.shopId}`,
-        `conversationId=${this.affiliateContext.conversationId ?? ""}`,
         `collaborationRecordId=${this.affiliateContext.collaborationRecordId ?? ""}`,
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
@@ -708,11 +575,8 @@ export class AffiliateSession {
         RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
         {
           input: {
-            shopId: workItem.shopId,
-            shopThreadId: workItem.shopThreadId,
-            collaborationRecordId: workItem.collaborationRecordId ?? undefined,
-            handledSignalAt:
-              workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt ?? null,
+            creatorRelationshipId: workItem.creatorRelationshipId,
+            handledSignalAt: workItemBoundaryAt(workItem),
             decision: "FAILED_OR_INCOMPLETE",
             operatorSummary: `Agent run ${runId} completed without a structured affiliate_resolve_work_item decision.`,
           },
@@ -730,9 +594,7 @@ export class AffiliateSession {
   }
 
   private async isWorkItemAlreadyHandled(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
-    const boundary = parseOptionalDate(
-      workItem.versionAt ?? workItem.collaboration?.lastSignalAt ?? workItemThread(workItem)?.lastSignalAt,
-    );
+    const boundary = parseOptionalDate(workItemBoundaryAt(workItem));
     if (!boundary) return false;
 
     const authSession = getAuthSession();
@@ -743,45 +605,45 @@ export class AffiliateSession {
       {
         input: {
           shopId: this.affiliateContext.shopId,
-          shopThreadId: workItem.shopThreadId,
-          collaborationRecordId: workItem.collaborationRecordId ?? undefined,
+          creatorRelationshipId: workItem.creatorRelationshipId,
           limit: 1,
         },
       },
     );
     const currentWorkItem = result.affiliateWorkItems[0];
-    const handledUntil = parseOptionalDate(
-      currentWorkItem?.collaboration?.workHandledUntil ?? currentWorkItem?.shopThread?.workHandledUntil,
-    );
+    const handledUntil = parseOptionalDate(workItemHandledUntil(currentWorkItem));
     return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
   }
 
-  private beginConversationTakeover(): number {
+  private beginCreatorMessageTakeover(): number {
     this.dispatchGeneration += 1;
     this.abortActiveRun();
     return this.dispatchGeneration;
   }
 
-  private async buildCreatorConversationWorkPackage(params: {
-    conversationId: string;
-    currentMessageId: string;
+  private async buildRelationshipMessageUpdateWorkPackage(params: {
+    currentSignalId?: string;
+    currentChannel?: GQL.AffiliateMessageChannel;
     messageType?: string;
     senderRole?: string;
-    creatorImUserId?: string;
     fallbackContent?: string;
     eventTime?: string;
   }): Promise<string> {
-    const delta = await this.fetchCreatorConversationDelta(params);
-    if (!delta) {
+    const history = await this.fetchRelationshipMessageHistory({
+      channelFilter: params.currentChannel ? [params.currentChannel] : undefined,
+      limit: 30,
+    });
+    if (!history) {
       return [
-        "[Affiliate Creator Conversation Update]",
-        `Conversation ID: ${params.conversationId}`,
-        `Current Message ID: ${params.currentMessageId}`,
+        "[Affiliate Creator Message Update]",
+        `Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`,
+        ...(params.currentChannel ? [`Current Channel: ${params.currentChannel}`] : []),
+        ...(params.currentSignalId ? [`Current Signal ID: ${params.currentSignalId}`] : []),
         ...(params.senderRole ? [`Current Sender Role: ${params.senderRole}`] : []),
         ...(params.messageType ? [`Current Message Type: ${params.messageType}`] : []),
         ...(params.eventTime ? [`Event Time: ${params.eventTime}`] : []),
         "",
-        "Conversation delta could not be fetched before dispatch. Use affiliate_get_workspace and, if needed, affiliate conversation message tools before taking action.",
+        "Relationship message history could not be fetched before dispatch. Use affiliate_get_workspace and affiliate_get_creator_message_history with creatorRelationshipId before taking action.",
         "If this is a plain creator reply, write the creator-facing message as final assistant text so the affiliate bridge can deliver it through direct-channel routing.",
         "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying or answer NO_REPLY if no creator-facing response is needed.",
         "If the creator provides an email address, use affiliate_set_creator_email before replying or answer NO_REPLY if no creator-facing response is needed.",
@@ -789,76 +651,78 @@ export class AffiliateSession {
       ].join("\n");
     }
 
-    const timelineItems = delta.items ?? [];
+    const timelineItems = [...(history.items ?? [])]
+      .sort((left, right) => historyItemTimestamp(left) - historyItemTimestamp(right));
     const timeline = timelineItems.map((message, index) => {
-      const side = resolveAffiliateMessageSide(message, params.creatorImUserId);
+      const side = resolveRelationshipMessageSide(message);
       return [
         `${index + 1}. [${side}]`,
-        `   messageId: ${message.messageId ?? ""}`,
-        `   createTime: ${message.createTime ?? ""}`,
-        `   type: ${message.type ?? ""}`,
-        `   senderId: ${message.senderId ?? ""}`,
-        `   text: ${affiliateMessageText(message)}`,
+        `   channel: ${message.channelLabel ?? message.channel}`,
+        ...(message.accountLabel ? [`   account: ${message.accountLabel}`] : []),
+        ...(message.shopName ? [`   shop: ${message.shopName}`] : []),
+        `   createdAt: ${message.createdAt ?? ""}`,
+        `   type: ${message.messageType ?? ""}`,
+        ...(message.subject ? [`   subject: ${message.subject}`] : []),
+        `   text: ${relationshipMessageText(message)}`,
       ].join("\n");
     });
-    const semanticHints = deriveAffiliateMessageSemanticHints(timelineItems, params.creatorImUserId);
-    const cardHints = deriveAffiliateMessageCardHints(timelineItems, params.creatorImUserId);
+    const semanticHints = deriveRelationshipMessageSemanticHints(timelineItems);
+    const cardHints = deriveRelationshipMessageCardHints(timelineItems);
 
     return [
-      "[Affiliate Creator Conversation Work Package]",
+      "[Affiliate Creator Message Update]",
       "",
-      "This is the authoritative TikTok Shop platform-chat delta for the current inbound trigger.",
-      "It is bounded by the current inbound message ID; newer platform messages must be handled by later triggers.",
-      "The timeline may overlap with earlier session context if the local anchor could not be matched exactly.",
+      "This is merged relationship-level message history for the current CreatorRelationship workspace.",
+      "Messages may come from TikTok Shop platform chat, WhatsApp, email, or delivery records. Channel labels are provenance, not workspace boundaries.",
+      "Do not ask for or use provider conversation/thread ids. Use CreatorRelationship tools and business target refs.",
       "",
-      "## Delta Meta",
-      `- Conversation ID: ${params.conversationId}`,
-      `- Current Message ID: ${params.currentMessageId}`,
-      `- Completeness: ${delta.meta.completeness}`,
-      `- Anchor Match: ${delta.meta.anchorMatchType}`,
-      `- Current Message Found: ${delta.meta.currentMessageFound}`,
-      `- Anchor Matched: ${delta.meta.anchorMatched}`,
-      `- Page Limit Reached: ${delta.meta.pageLimitReached}`,
+      "## Relationship Message Meta",
+      `- Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`,
+      ...(params.currentChannel ? [`- Current Trigger Channel: ${params.currentChannel}`] : []),
+      ...(params.currentSignalId ? [`- Current Signal ID: ${params.currentSignalId}`] : []),
+      `- Returned Message Count: ${timelineItems.length}`,
       "",
-      "## Ordered Platform Timeline",
-      ...(timeline.length ? timeline : ["(No platform messages returned in this delta.)"]),
+      "## Ordered Relationship Timeline",
+      ...(timeline.length ? timeline : ["(No relationship messages returned.)"]),
       "",
       ...(semanticHints.length ? ["## Derived Message Hints", ...semanticHints, ""] : []),
       ...(cardHints.length ? ["## Candidate Card Hints", ...cardHints, ""] : []),
       "## Task",
-      "Handle the latest creator-side message in the ordered platform timeline.",
+      "Handle the latest creator-side message in the relationship timeline, considering cross-channel context.",
       "If this is a plain creator reply, write the creator-facing message as final assistant text so the affiliate bridge can deliver it through direct-channel routing.",
       "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying or answer NO_REPLY if no creator-facing response is needed.",
       "If the creator provides an email address, use affiliate_set_creator_email before replying or answer NO_REPLY if no creator-facing response is needed.",
-      "If the delta is incomplete or includes seller-side/human messages that change the commitment context, be conservative: ask a concise clarification as final assistant text, or answer NO_REPLY when no safe creator-facing message should be sent.",
+      "If the timeline is incomplete or includes seller-side/human messages that change the commitment context, be conservative: ask a concise clarification as final assistant text, or answer NO_REPLY when no safe creator-facing message should be sent.",
     ].join("\n");
   }
 
-  private async fetchCreatorConversationDelta(params: {
-    conversationId: string;
-    currentMessageId: string;
-  }): Promise<GQL.EcomAffiliateMessageDelta | null> {
+  private async fetchRelationshipMessageHistory(params: {
+    channelFilter?: GQL.AffiliateMessageChannel[];
+    limit?: number;
+  }): Promise<GQL.AffiliateCreatorMessageHistoryPayload | null> {
     const authSession = getAuthSession();
     if (!authSession) {
-      log.warn("No auth session available, cannot fetch affiliate conversation delta");
+      log.warn("No auth session available, cannot fetch affiliate relationship message history");
       return null;
     }
 
     try {
-      const anchor = await readLatestUserSessionAnchor(this.scopeKey);
-      const result = await authSession.graphqlFetch<AffiliateConversationMessageDeltaQueryResult>(
-        AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY,
+      const result = await authSession.graphqlFetch<AffiliateCreatorMessageHistoryQueryResult>(
+        AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
         {
-          shopId: this.affiliateContext.shopId,
-          conversationId: params.conversationId,
-          currentMessageId: params.currentMessageId,
-          anchor: anchor ?? null,
-          maxPages: 20,
+          input: {
+            shopId: this.affiliateContext.shopId,
+            creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+            channelFilter: params.channelFilter,
+            limit: params.limit ?? 30,
+          },
         },
       );
-      return result.affiliateConversationMessageDelta;
+      return result.affiliateCreatorMessageHistory;
     } catch (err) {
-      log.warn(`Failed to fetch affiliate conversation delta for ${params.conversationId}: ${String(err)}`);
+      log.warn(
+        `Failed to fetch affiliate relationship message history for ${this.affiliateContext.creatorRelationshipId}: ${String(err)}`,
+      );
       return null;
     }
   }
@@ -871,7 +735,7 @@ export class AffiliateSession {
     }
 
     try {
-      const since = workItem.collaboration?.workHandledUntil ?? workItemThread(workItem)?.workHandledUntil ?? null;
+      const since = workItemHandledUntil(workItem);
       if (since == null) {
         return [
           "## Proposal Events Since Last Work Boundary",
@@ -882,9 +746,8 @@ export class AffiliateSession {
         AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
         {
           input: {
-            shopId: workItem.shopId,
-            shopThreadId: workItem.shopThreadId,
-            collaborationRecordId: workItem.collaborationRecordId ?? undefined,
+            shopId: workItem.focusShopId,
+            creatorRelationshipId: workItem.creatorRelationshipId,
             since,
             limit: 8,
           },
@@ -901,7 +764,6 @@ export class AffiliateSession {
     includePolicies?: boolean;
     campaignId?: string;
     platformApplicationId?: string;
-    platformConversationId?: string;
     limit?: number;
   }): Promise<GQL.AffiliateWorkspacePayload | null> {
     const authSession = getAuthSession();
@@ -916,10 +778,10 @@ export class AffiliateSession {
         {
           input: {
             shopId: this.affiliateContext.shopId,
+            creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
             includePolicies: params.includePolicies ?? true,
             campaignId: params.campaignId,
             platformApplicationId: params.platformApplicationId,
-            platformConversationId: params.platformConversationId,
             limit: params.limit ?? 20,
           },
         },
@@ -934,7 +796,6 @@ export class AffiliateSession {
   private async buildWorkspaceSnapshot(params: {
     includePolicies?: boolean;
     platformApplicationId?: string;
-    platformConversationId?: string;
     limit?: number;
   }): Promise<string | undefined> {
     const workspace = await this.fetchWorkspace(params);
@@ -981,7 +842,6 @@ export class AffiliateSession {
       snapshot => snapshot.status === GQL.AffiliatePredictionStatus.Ok,
     );
     if (existingSnapshot) {
-      const output = existingSnapshot.output ?? {};
       const sourceCacheId =
         typeof existingSnapshot.sourceCacheId === "string" &&
         existingSnapshot.sourceCacheId.length > 0
@@ -990,75 +850,18 @@ export class AffiliateSession {
       return {
         predictionSection: renderExpectedSalesPredictionSnapshotSection(existingSnapshot.scenario, existingSnapshot),
         predictionCacheIds: sourceCacheId ? [sourceCacheId] : [],
-        primaryPrediction: {
-          status: existingSnapshot.status,
-          expectedSalesUnits: numberFromUnknown(output.expectedSalesUnits),
-          cacheId: sourceCacheId,
-        },
       };
     }
 
-    const memoKey = workItem.collaborationRecordId ?? workItem.shopThreadId;
-    const existing = predictionMemo.get(memoKey);
-    if (existing) return existing;
-
-    const promise = this.fetchAndRenderExpectedSalesPrediction(workItem, scenario)
-      .then((context) => {
-        if ((context.predictionCacheIds?.length ?? 0) === 0) {
-          predictionMemo.delete(memoKey);
-        }
-        return context;
-      })
-      .catch((err: unknown) => {
-        predictionMemo.delete(memoKey);
-        log.warn(`Failed to resolve affiliate prediction for ${memoKey}: ${String(err)}`);
-        return {
-          predictionSection: [
-            "## Affiliate Prediction",
-            `- Scenario: ${scenario}`,
-            "- Status: UNAVAILABLE",
-            "- Cache IDs: (none)",
-            "- Note: prediction could not be resolved before dispatch; continue with current backend work context.",
-          ].join("\n"),
-          predictionCacheIds: [],
-        };
-      });
-    predictionMemo.set(memoKey, promise);
-    return promise;
-  }
-
-  private async fetchAndRenderExpectedSalesPrediction(
-    workItem: GQL.AffiliateWorkItem,
-    scenario: GQL.AffiliateExpectedSalesPredictionScenario,
-  ): Promise<AffiliatePredictionDispatchContext> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      return {
-        predictionSection: [
-          "## Affiliate Prediction",
-          `- Scenario: ${scenario}`,
-          "- Status: UNAVAILABLE",
-          "- Cache IDs: (none)",
-          "- Note: no auth session was available before dispatch.",
-        ].join("\n"),
-        predictionCacheIds: [],
-      };
-    }
-
-    const input = buildExpectedSalesPredictionInput(this.affiliateContext.shopId, scenario, workItem);
-    const result = await authSession.graphqlFetch<AffiliateExpectedSalesPredictionsQueryResult>(
-      AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY,
-      { input },
-    );
-    const payload = result.affiliateExpectedSalesPredictions;
-    const predictions = payload.predictions ?? [];
-    const cacheIds = predictions
-      .map(prediction => prediction.cacheId)
-      .filter((cacheId): cacheId is string => typeof cacheId === "string" && cacheId.length > 0);
     return {
-      predictionSection: renderExpectedSalesPredictionPayloadSection(scenario, payload),
-      predictionCacheIds: cacheIds,
-      primaryPrediction: extractPrimaryPrediction(predictions),
+      predictionSection: [
+        "## Affiliate Prediction",
+        `- Scenario: ${scenario}`,
+        "- Status: NOT_PREFETCHED",
+        "- Cache IDs: (none)",
+        "- Prediction is an agent tool, not a deterministic pre-dispatch rule. Call affiliate_predict_creator_product_fit with creatorRelationshipId if prediction evidence is needed before choosing an action, then include the returned cacheId in predictionCacheIds. For sample review, pass scenario SAMPLE_REVIEW and the sample application ids when available.",
+      ].join("\n"),
+      predictionCacheIds: [],
     };
   }
 
@@ -1072,7 +875,6 @@ export class AffiliateSession {
       message: appendOptionalSection([
         "[Affiliate Sample Application Updated]",
         `Application ID: ${frame.applicationId}`,
-        `Creator ID: ${frame.creatorId ?? ""}`,
         `Product ID: ${frame.productId ?? ""}`,
         `Status: ${frame.status}`,
         `Event Time: ${frame.eventTime}`,
@@ -1093,8 +895,7 @@ export class AffiliateSession {
     return this.dispatch({
       message: [
         "[Affiliate Target Collaboration Updated]",
-        `Collaboration ID: ${frame.collaborationId}`,
-        `Creator ID: ${frame.creatorId ?? ""}`,
+        `Target Collaboration Platform ID: ${frame.collaborationId}`,
         `Product ID: ${frame.productId ?? ""}`,
         `Status: ${frame.status}`,
         `Event Time: ${frame.eventTime}`,
@@ -1108,7 +909,6 @@ export class AffiliateSession {
       message: [
         "[Affiliate Order Attributed]",
         `Order ID: ${frame.orderId}`,
-        `Creator ID: ${frame.creatorId ?? ""}`,
         `Product ID: ${frame.productId ?? ""}`,
         `Event Time: ${frame.eventTime}`,
       ].join("\n"),
@@ -1131,14 +931,14 @@ export class AffiliateSession {
   }
 }
 
-function buildSignalIdempotencyKey(platform: string, signal: AffiliateConversationSignalPayload): string {
+function buildSignalIdempotencyKey(platform: string, signal: AffiliateRelationshipSignalPayload): string {
   const stableId = signal.messageId
     ?? signal.platformApplicationId
     ?? signal.platformTargetCollaborationId
     ?? signal.platformFulfillmentId
+    ?? signal.creatorRelationshipId
     ?? signal.collaborationRecordId
     ?? signal.orderId
-    ?? signal.conversationId
     ?? signal.notificationId
     ?? "unknown";
   return `affiliate:${platform}:signal:${signal.type}:${stableId}:${signal.eventTime}`;
@@ -1147,26 +947,11 @@ function buildSignalIdempotencyKey(platform: string, signal: AffiliateConversati
 interface AffiliatePredictionDispatchContext {
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
-  primaryPrediction?: AffiliatePrimaryPrediction | null;
 }
 
 interface AffiliateDecisionThresholdDispatchContext {
   decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
   decisionThresholdSource?: string | null;
-}
-
-interface AffiliatePrimaryPrediction {
-  status?: string | null;
-  expectedSalesUnits?: number | null;
-  cacheId?: string | null;
-}
-
-interface SampleReviewDefaultDecision {
-  decision: GQL.AffiliateSampleReviewDecision;
-  expectedSalesUnits: number;
-  minExpectedSalesUnits: number;
-  predictionStatus: string;
-  operatorSummary: string;
 }
 
 function hasConfiguredDecisionThreshold(
@@ -1185,310 +970,60 @@ function selectExpectedSalesPredictionScenario(
   return null;
 }
 
-function buildExpectedSalesPredictionInput(
-  shopId: string,
-  scenario: GQL.AffiliateExpectedSalesPredictionScenario,
-  workItem: GQL.AffiliateWorkItem,
-): GQL.AffiliateExpectedSalesPredictionInput {
-  const collaboration = workItem.collaboration ?? null;
-  const sample = workItem.sampleApplicationRecord ?? workItem.context?.primarySampleApplication ?? null;
-  const creatorProfile = workItem.context?.creatorProfile ?? null;
-  const productId = collaboration?.productId ?? sample?.productId ?? workItem.context?.productContext?.productId ?? null;
-  const subject: GQL.AffiliateExpectedSalesPredictionSubjectInput = {
-    creatorId: collaboration?.creatorId ?? creatorProfile?.id ?? workItemThread(workItem)?.creatorId ?? undefined,
-    creatorOpenId: collaboration?.creatorOpenId ?? creatorProfile?.creatorOpenId ?? workItemThread(workItem)?.creatorOpenId ?? undefined,
-    productId: productId ?? undefined,
-    affiliateCollaborationId: collaboration?.affiliateCollaborationId ?? undefined,
-    platformCollaborationId: collaboration?.platformCollaborationId ?? undefined,
-  };
-
-  if (scenario === GQL.AffiliateExpectedSalesPredictionScenario.SampleReview) {
-    subject.sampleApplicationRecordId = sample?.id ?? collaboration?.sampleApplicationRecordId ?? undefined;
-    subject.platformApplicationId = sample?.platformApplicationId ?? undefined;
-  }
-
-  return {
-    shopId,
-    scenario,
-    context: {
-      affiliateCollaborationId: collaboration?.affiliateCollaborationId ?? undefined,
-      platformCollaborationId: collaboration?.platformCollaborationId ?? undefined,
-      productId: productId ?? undefined,
-    },
-    subjects: [subject],
-  };
-}
-
-function extractPrimaryPrediction(
-  predictions: readonly GQL.AffiliateExpectedSalesSubjectPrediction[],
-): AffiliatePrimaryPrediction | null {
-  const prediction = predictions.find(item => isOkPredictionStatus(item.status)) ?? predictions[0];
-  if (!prediction) return null;
-  return {
-    status: String(prediction.status),
-    expectedSalesUnits: typeof prediction.expectedSalesUnits === "number" && Number.isFinite(prediction.expectedSalesUnits)
-      ? prediction.expectedSalesUnits
-      : null,
-    cacheId: prediction.cacheId ?? null,
-  };
-}
-
-function computeSampleReviewDefaultDecision(
-  workItem: GQL.AffiliateWorkItem,
-  predictionContext: AffiliatePredictionDispatchContext,
-  thresholdContext: AffiliateDecisionThresholdDispatchContext,
-  staffLanguage?: StaffLanguage,
-): SampleReviewDefaultDecision | null {
-  if (!isSampleReviewWorkItem(workItem)) return null;
-
-  const minExpectedSalesUnits = thresholdContext.decisionThresholds?.minExpectedSalesUnits;
-  const prediction = predictionContext.primaryPrediction;
-  const expectedSalesUnits = prediction?.expectedSalesUnits;
-  const predictionStatus = prediction?.status ?? "";
-  if (
-    typeof minExpectedSalesUnits !== "number"
-    || !isOkPredictionStatus(predictionStatus)
-    || typeof expectedSalesUnits !== "number"
-    || !Number.isFinite(expectedSalesUnits)
-  ) {
-    return null;
-  }
-
-  const decision = expectedSalesUnits < minExpectedSalesUnits
-    ? GQL.AffiliateSampleReviewDecision.Reject
-    : GQL.AffiliateSampleReviewDecision.Approve;
-
-  return {
-    decision,
-    expectedSalesUnits,
-    minExpectedSalesUnits,
-    predictionStatus,
-    operatorSummary: renderSampleReviewDefaultOperatorSummary({
-      decision,
-      expectedSalesUnits,
-      minExpectedSalesUnits,
-      staffLanguage,
-    }),
-  };
-}
-
 function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
-    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.RespondToCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.ReplyToCreator ||
     workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
   );
 }
 
-function workItemConversationId(workItem: GQL.AffiliateWorkItem): string | null {
-  return workItem.collaboration?.platformConversationId ?? workItemThread(workItem)?.platformConversationId ?? null;
-}
-
 function workItemCurrentMessageId(workItem: GQL.AffiliateWorkItem): string | null {
-  return workItem.collaboration?.lastCreatorMessageId ?? workItemThread(workItem)?.lastMessageId ?? null;
+  return workItem.collaboration?.lastCreatorMessageId ?? null;
 }
 
 function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {
+  const relationshipLabel = `relationship=${workItem.creatorRelationshipId ?? ""}`;
   return workItem.collaborationRecordId
-    ? `collaboration=${workItem.collaborationRecordId} thread=${workItem.shopThreadId}`
-    : `thread=${workItem.shopThreadId}`;
+    ? `${relationshipLabel} collaboration=${workItem.collaborationRecordId}`
+    : relationshipLabel;
 }
 
-function workItemThread(workItem: GQL.AffiliateWorkItem): GQL.AffiliateShopCreatorThread | null {
-  if (workItem.shopThread) return workItem.shopThread;
-  const collaboration = workItem.collaboration;
-  if (!collaboration) return null;
-  return {
-    id: workItem.shopThreadId ?? workItem.collaborationRecordId ?? workItem.id,
-    userId: collaboration.userId,
-    shopId: collaboration.shopId,
-    platform: GQL.ShopPlatform.TiktokShop,
-    creatorId: collaboration.creatorId,
-    creatorOpenId: collaboration.creatorOpenId ?? null,
-    creatorImId: collaboration.creatorImId ?? null,
-    platformConversationId: collaboration.platformConversationId ?? null,
-    lastMessageId: collaboration.lastCreatorMessageId ?? null,
-    lastMessageAt: collaboration.lastCreatorMessageAt ?? null,
-    lastSignalAt: collaboration.lastSignalAt ?? null,
-    workHandledUntil: collaboration.workHandledUntil ?? null,
-    nextSellerActionAt: collaboration.nextSellerActionAt ?? null,
-    processingStatus: collaboration.processingStatus,
-    requiredAction: collaboration.requiredAction,
-    processReasons: collaboration.processReasons,
-    activeCollaborationRecordIds: workItem.collaborationRecordId ? [workItem.collaborationRecordId] : [],
-    ambiguousCollaborationRecordIds: [],
-    focusCollaborationRecordId: workItem.collaborationRecordId ?? null,
-    startedAt: collaboration.startedAt,
-    stateUpdatedAt: collaboration.stateUpdatedAt,
-    createdAt: collaboration.createdAt,
-    updatedAt: collaboration.updatedAt,
-  };
+function workItemBoundaryAt(workItem: GQL.AffiliateWorkItem | null | undefined): string | null {
+  if (!workItem) return null;
+  return (
+    workItem.versionAt ??
+    workItem.collaboration?.lastSignalAt ??
+    workItem.creatorRelationship?.stateUpdatedAt ??
+    workItem.creatorRelationship?.lastInboundAt ??
+    null
+  );
+}
+
+function workItemHandledUntil(workItem: GQL.AffiliateWorkItem | null | undefined): string | null {
+  if (!workItem) return null;
+  if (workItem.creatorRelationship != null) {
+    return workItem.creatorRelationship.lastAgentHandledAt ?? null;
+  }
+  return workItem.collaboration?.workHandledUntil ?? null;
 }
 
 function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
-    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
-    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision
-  );
-}
-
-function isDeterministicSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
-  const recommendedActions = new Set([
-    ...(workItem.recommendedActionTypes ?? []),
-    ...(workItem.context?.recommendedActionTypes ?? []),
-  ]);
-  return (
-    isSampleReviewWorkItem(workItem) &&
-    !isCreatorReplyWorkItem(workItem) &&
-    workItem.workBundleKind !== GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview &&
-    !recommendedActions.has(GQL.ActionProposalType.SendMessage)
+    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision ||
+    (
+      workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask &&
+      workItem.processReasons?.includes(GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview) === true
+    )
   );
 }
 
 function isCreatorFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
-    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.FollowUpCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.FollowUpCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.WaitCreatorResponse ||
     workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUp ||
     workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp
   );
-}
-
-function renderSampleReviewDefaultOperatorSummary(params: {
-  decision: GQL.AffiliateSampleReviewDecision;
-  expectedSalesUnits: number;
-  minExpectedSalesUnits: number;
-  staffLanguage?: StaffLanguage;
-}): string {
-  const expectedSales = formatMaybeNumber(params.expectedSalesUnits);
-  const threshold = formatMaybeNumber(params.minExpectedSalesUnits);
-  const isReject = params.decision === GQL.AffiliateSampleReviewDecision.Reject;
-  switch (params.staffLanguage) {
-    case "Chinese":
-      return isReject
-        ? `预估销量模型认为这个达人带这款商品大约能卖 ${expectedSales} 件，低于店铺最低要求 ${threshold} 件，建议拒绝这次样品申请。`
-        : `预估销量模型认为这个达人带这款商品大约能卖 ${expectedSales} 件，达到店铺最低要求 ${threshold} 件，建议通过这次样品申请。`;
-    case "German":
-      return isReject
-        ? `Das Verkaufsmodell schätzt für diesen Creator und dieses Produkt etwa ${expectedSales} Verkäufe, weniger als das Shop-Minimum von ${threshold}. Daher wird empfohlen, diese Musteranfrage abzulehnen.`
-        : `Das Verkaufsmodell schätzt für diesen Creator und dieses Produkt etwa ${expectedSales} Verkäufe und erreicht damit das Shop-Minimum von ${threshold}. Daher wird empfohlen, diese Musteranfrage zu genehmigen.`;
-    case "Spanish":
-      return isReject
-        ? `El modelo estima que este creador vendería aproximadamente ${expectedSales} unidades de este producto, por debajo del mínimo de la tienda de ${threshold}; se recomienda rechazar esta solicitud de muestra.`
-        : `El modelo estima que este creador vendería aproximadamente ${expectedSales} unidades de este producto, alcanzando el mínimo de la tienda de ${threshold}; se recomienda aprobar esta solicitud de muestra.`;
-    case "French":
-      return isReject
-        ? `Le modèle estime que ce créateur vendrait environ ${expectedSales} unités de ce produit, sous le minimum boutique de ${threshold}; il est recommandé de refuser cette demande d'échantillon.`
-        : `Le modèle estime que ce créateur vendrait environ ${expectedSales} unités de ce produit, ce qui atteint le minimum boutique de ${threshold}; il est recommandé d'approuver cette demande d'échantillon.`;
-    case "Indonesian":
-      return isReject
-        ? `Model memperkirakan kreator ini akan menjual sekitar ${expectedSales} unit untuk produk ini, di bawah minimum toko ${threshold}, jadi permintaan sampel ini disarankan untuk ditolak.`
-        : `Model memperkirakan kreator ini akan menjual sekitar ${expectedSales} unit untuk produk ini, memenuhi minimum toko ${threshold}, jadi permintaan sampel ini disarankan untuk disetujui.`;
-    case "Italian":
-      return isReject
-        ? `Il modello stima che questo creator venderà circa ${expectedSales} unità di questo prodotto, sotto il minimo del negozio di ${threshold}; si consiglia di rifiutare questa richiesta di campione.`
-        : `Il modello stima che questo creator venderà circa ${expectedSales} unità di questo prodotto, raggiungendo il minimo del negozio di ${threshold}; si consiglia di approvare questa richiesta di campione.`;
-    case "Thai":
-      return isReject
-        ? `โมเดลคาดว่าครีเอเตอร์รายนี้จะขายสินค้านี้ได้ประมาณ ${expectedSales} ชิ้น ต่ำกว่าเกณฑ์ขั้นต่ำของร้านที่ ${threshold} ชิ้น จึงแนะนำให้ปฏิเสธคำขอตัวอย่างนี้`
-        : `โมเดลคาดว่าครีเอเตอร์รายนี้จะขายสินค้านี้ได้ประมาณ ${expectedSales} ชิ้น ถึงเกณฑ์ขั้นต่ำของร้านที่ ${threshold} ชิ้น จึงแนะนำให้อนุมัติคำขอตัวอย่างนี้`;
-    default:
-      break;
-  }
-  return isReject
-    ? `The expected-sales model estimates about ${expectedSales} units for this creator and product, below the shop minimum of ${threshold}, so rejecting this sample request is recommended.`
-    : `The expected-sales model estimates about ${expectedSales} units for this creator and product, meeting the shop minimum of ${threshold}, so approving this sample request is recommended.`;
-}
-
-function renderSampleReviewNeedsStaffReviewSummary(params: {
-  workItem: GQL.AffiliateWorkItem;
-  predictionContext: AffiliatePredictionDispatchContext;
-  thresholdContext: AffiliateDecisionThresholdDispatchContext;
-  staffLanguage?: StaffLanguage;
-}): string {
-  const reasons: SampleReviewStaffReason[] = [];
-  const sample = params.workItem.sampleApplicationRecord;
-  const prediction = params.predictionContext.primaryPrediction;
-  if (!sample?.id || !sample.platformApplicationId) reasons.push("MISSING_SAMPLE_IDENTIFIERS");
-  if (!hasConfiguredDecisionThreshold(params.thresholdContext.decisionThresholds)) reasons.push("MISSING_DECISION_THRESHOLD");
-  if (!prediction || !isOkPredictionStatus(prediction.status ?? "") || typeof prediction.expectedSalesUnits !== "number") {
-    reasons.push("MISSING_USABLE_PREDICTION");
-  }
-  if (reasons.length === 0) reasons.push("NO_SAFE_AUTOMATIC_DECISION");
-
-  const reasonText = reasons.map(reason => renderSampleReviewStaffReason(reason, params.staffLanguage)).join("; ");
-  switch (params.staffLanguage) {
-    case "Chinese":
-      return `样品申请没有自动生成通过/拒绝建议：${reasonText}。请人工查看后处理。`;
-    case "German":
-      return `Für diese Musteranfrage wurde keine automatische Genehmigungs-/Ablehnungsentscheidung erstellt: ${reasonText}. Bitte manuell prüfen.`;
-    case "Spanish":
-      return `No se generó una decisión automática de aprobar/rechazar para esta solicitud de muestra: ${reasonText}. Revísala manualmente.`;
-    case "French":
-      return `Aucune décision automatique d'approbation/refus n'a été générée pour cette demande d'échantillon : ${reasonText}. Veuillez la vérifier manuellement.`;
-    case "Indonesian":
-      return `Keputusan otomatis untuk menyetujui/menolak permintaan sampel ini tidak dibuat: ${reasonText}. Harap tinjau secara manual.`;
-    case "Italian":
-      return `Non è stata generata una decisione automatica di approvazione/rifiuto per questa richiesta di campione: ${reasonText}. Controllala manualmente.`;
-    case "Thai":
-      return `ไม่ได้สร้างคำแนะนำอัตโนมัติให้อนุมัติ/ปฏิเสธคำขอตัวอย่างนี้: ${reasonText} โปรดตรวจสอบด้วยตนเอง`;
-    default:
-      return `No automatic approve/reject decision was created for this sample request: ${reasonText}. Please review it manually.`;
-  }
-}
-
-type SampleReviewStaffReason =
-  | "MISSING_SAMPLE_IDENTIFIERS"
-  | "MISSING_DECISION_THRESHOLD"
-  | "MISSING_USABLE_PREDICTION"
-  | "NO_SAFE_AUTOMATIC_DECISION";
-
-function renderSampleReviewStaffReason(reason: SampleReviewStaffReason, staffLanguage?: StaffLanguage): string {
-  const labels: Record<SampleReviewStaffReason, Record<StaffLanguage | "default", string>> = {
-    MISSING_SAMPLE_IDENTIFIERS: {
-      Chinese: "缺少样品申请标识",
-      German: "Musteranfrage-IDs fehlen",
-      Spanish: "faltan identificadores de la solicitud de muestra",
-      French: "identifiants de demande d'échantillon manquants",
-      Indonesian: "identitas permintaan sampel tidak lengkap",
-      Italian: "mancano gli identificativi della richiesta di campione",
-      Thai: "ไม่มีรหัสคำขอตัวอย่างครบถ้วน",
-      English: "missing sample application identifiers",
-      default: "missing sample application identifiers",
-    },
-    MISSING_DECISION_THRESHOLD: {
-      Chinese: "店铺没有配置决策阈值",
-      German: "kein Shop-Entscheidungsschwellenwert konfiguriert",
-      Spanish: "no hay un umbral de decisión configurado para la tienda",
-      French: "aucun seuil de décision boutique n'est configuré",
-      Indonesian: "ambang keputusan toko belum dikonfigurasi",
-      Italian: "nessuna soglia decisionale del negozio configurata",
-      Thai: "ยังไม่ได้ตั้งค่าเกณฑ์ตัดสินใจของร้าน",
-      English: "no shop decision threshold is configured",
-      default: "no shop decision threshold is configured",
-    },
-    MISSING_USABLE_PREDICTION: {
-      Chinese: "没有可用的预估销量结果",
-      German: "keine nutzbare Verkaufsprognose verfügbar",
-      Spanish: "no hay una predicción de ventas utilizable",
-      French: "aucune prédiction de ventes utilisable n'est disponible",
-      Indonesian: "prediksi penjualan yang dapat digunakan tidak tersedia",
-      Italian: "nessuna previsione di vendita utilizzabile disponibile",
-      Thai: "ไม่มีผลคาดการณ์ยอดขายที่ใช้ได้",
-      English: "no usable expected-sales prediction is available",
-      default: "no usable expected-sales prediction is available",
-    },
-    NO_SAFE_AUTOMATIC_DECISION: {
-      Chinese: "系统无法形成安全的自动判断",
-      German: "keine sichere automatische Entscheidung möglich",
-      Spanish: "no se pudo formar una decisión automática segura",
-      French: "aucune décision automatique sûre n'a pu être formée",
-      Indonesian: "sistem tidak dapat membuat keputusan otomatis yang aman",
-      Italian: "non è stato possibile formare una decisione automatica sicura",
-      Thai: "ระบบไม่สามารถตัดสินใจอัตโนมัติได้อย่างปลอดภัย",
-      English: "deterministic sample review could not form a safe decision",
-      default: "deterministic sample review could not form a safe decision",
-    },
-  };
-  return labels[reason][staffLanguage ?? "default"] ?? labels[reason].default;
 }
 
 function isOkPredictionStatus(status: unknown): boolean {
@@ -1513,76 +1048,9 @@ function renderExpectedSalesPredictionSnapshotSection(
   ].join("\n");
 }
 
-function renderExpectedSalesPredictionPayloadSection(
-  scenario: GQL.AffiliateExpectedSalesPredictionScenario,
-  payload: GQL.AffiliateExpectedSalesPredictionPayload,
-): string {
-  const predictions = payload.predictions ?? [];
-  const lines = predictions.length
-    ? predictions.map((prediction, index) => renderExpectedSalesPredictionLine(index, prediction))
-    : ["(none)"];
-  const cacheIds = predictions
-    .map(prediction => prediction.cacheId)
-    .filter((cacheId): cacheId is string => typeof cacheId === "string" && cacheId.length > 0);
-  return [
-    "## Affiliate Prediction",
-    "This prediction was resolved by Desktop before dispatch. If you request an action, preserve the cache IDs so Backend can snapshot the exact prediction used for this decision.",
-    `- Scenario: ${scenario}`,
-    `- Payload Status: ${payload.status}`,
-    `- Cache IDs: ${cacheIds.length ? cacheIds.join(", ") : "(none)"}`,
-    "",
-    "### Subject Predictions",
-    ...lines,
-  ].join("\n");
-}
-
-function renderExpectedSalesPredictionLine(index: number, prediction: GQL.AffiliateExpectedSalesSubjectPrediction): string {
-  const bucket = prediction.predictionBucket;
-  const thresholdProbabilities = prediction.thresholdProbabilities;
-  const thresholdPercentiles = prediction.thresholdPercentiles;
-  const interval = prediction.predictionInterval;
-  return [
-    `${index + 1}. status=${prediction.status} cacheId=${prediction.cacheId ?? ""}`,
-    `   expectedSalesUnits=${formatMaybeNumber(prediction.expectedSalesUnits)} (calibrated expected-value forecast)`,
-    `   expectedSalesPercentile=${formatPercentile(prediction.expectedSalesPercentile)}`,
-    interval
-      ? `   expectedSalesInterval=${formatMaybeNumber(interval.lowerExpectedSalesUnits)}-${formatMaybeNumber(interval.upperExpectedSalesUnits)} confidence=${formatProbability(interval.confidenceLevel)} method=${interval.method ?? ""}`
-      : "   expectedSalesInterval=(none)",
-    bucket
-      ? `   predictionBucket=index:${bucket.bucketIndex ?? ""} sampleCount:${bucket.sampleCount ?? ""} actualAvgUnits:${formatMaybeNumber(bucket.actualAvgUnits)} actualMedianUnits:${formatMaybeNumber(bucket.actualMedianUnits)} zeroRate:${formatMaybeNumber(bucket.actualZeroRate)}`
-      : "   predictionBucket=(none)",
-    thresholdProbabilities
-      ? `   probabilities=P>=1:${formatProbability(thresholdProbabilities.unitsGe1)} P>=2:${formatProbability(thresholdProbabilities.unitsGe2)} P>=3:${formatProbability(thresholdProbabilities.unitsGe3)} P>=5:${formatProbability(thresholdProbabilities.unitsGe5)} P>=10:${formatProbability(thresholdProbabilities.unitsGe10)}`
-      : "   probabilities=(none)",
-    thresholdPercentiles
-      ? `   probabilityRanks=P>=1 top:${formatTopPercent(thresholdPercentiles.unitsGe1?.topPercent)} P>=3 top:${formatTopPercent(thresholdPercentiles.unitsGe3?.topPercent)} P>=10 top:${formatTopPercent(thresholdPercentiles.unitsGe10?.topPercent)}`
-      : "   probabilityRanks=(none)",
-    `   merchantMeaning=${renderPredictionPlainMeaning(prediction.expectedSalesUnits)}`,
-    `   creator=${prediction.resolvedContext?.creatorNickname ?? prediction.resolvedContext?.creatorUsername ?? prediction.resolvedContext?.creatorId ?? prediction.subject.creatorId ?? ""}`,
-    `   product=${prediction.resolvedContext?.productTitle ?? prediction.resolvedContext?.productId ?? prediction.subject.productId ?? ""}`,
-    `   sample=${prediction.resolvedContext?.sampleApplicationRecordId ?? prediction.subject.sampleApplicationRecordId ?? ""}`,
-    ...(prediction.message ? [`   message=${prediction.message}`] : []),
-  ].join("\n");
-}
-
 function formatMaybeNumber(value: number | null | undefined): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "";
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-function formatProbability(value: number | null | undefined): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "";
-  return `${Math.round(value * 100)}%`;
-}
-
-function formatPercentile(value: number | null | undefined): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "";
-  return `${Math.round(value * 100)}th`;
-}
-
-function formatTopPercent(value: number | null | undefined): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "";
-  return `${Math.round(value * 100)}%`;
 }
 
 function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefined): string {
@@ -1603,17 +1071,17 @@ function numberFromUnknown(value: unknown): number | null {
   return null;
 }
 
-function isAffiliateMessageSignal(type: AffiliateConversationSignalPayload["type"]): boolean {
-  return type === "CREATOR_MESSAGE_RECEIVED" || type === "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED";
+function isAffiliateMessageSignal(type: AffiliateRelationshipSignalPayload["type"]): boolean {
+  return type === "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED";
 }
 
-function signalCreatorRelationshipId(signal: AffiliateConversationSignalPayload): string | undefined {
+function signalCreatorRelationshipId(signal: AffiliateRelationshipSignalPayload): string | undefined {
   const value = signal.creatorRelationshipId;
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function directSignalPreferredChannel(
-  signal: AffiliateConversationSignalPayload,
+  signal: AffiliateRelationshipSignalPayload,
 ): GQL.AffiliateMessageChannel | undefined {
   const channel = signal.channel;
   switch (channel) {
@@ -1626,12 +1094,6 @@ function directSignalPreferredChannel(
     default:
       return undefined;
   }
-}
-
-function affiliateSessionPlatformKey(platform: string): string {
-  const normalized = platform.trim().toLowerCase();
-  if (normalized === "tiktok" || normalized === "tiktok_shop") return "TIKTOK_SHOP";
-  return platform.trim() || "TIKTOK_SHOP";
 }
 
 function sanitizeCreatorOutreachText(text: string): string {
@@ -1705,7 +1167,6 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
     ? samples.map((sample, index) => [
       `${index + 1}. sampleApplicationRecordId: ${sample.id}`,
       `   platformApplicationId: ${sample.platformApplicationId}`,
-      `   creatorId: ${sample.creatorId ?? ""}`,
       `   productId: ${sample.productId ?? ""}`,
       `   sampleWorkStatus: ${sample.sampleWorkStatus}`,
       `   observedContentCount: ${sample.observedContentCount}`,
@@ -1722,10 +1183,8 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
   const collaborationLines = collaborations.length
     ? collaborations.map((collaboration, index) => [
       `${index + 1}. collaborationRecordId: ${collaboration.id}`,
-      `   creatorId: ${collaboration.creatorId}`,
       `   productId: ${collaboration.productId ?? ""}`,
       `   sampleApplicationRecordId: ${collaboration.sampleApplicationRecordId ?? ""}`,
-      `   platformConversationId: ${collaboration.platformConversationId ?? ""}`,
       `   lifecycleStage: ${collaboration.lifecycleStage}`,
       `   processingStatus: ${collaboration.processingStatus}`,
       `   processReasons: ${(collaboration.processReasons ?? []).join(", ")}`,
@@ -1744,7 +1203,6 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
       `   status: ${proposal.status}`,
       `   operatorSummary: ${proposal.operatorSummary}`,
       `   collaborationRecordId: ${proposal.collaborationRecordId ?? ""}`,
-      `   creatorId: ${proposal.creatorId ?? ""}`,
     ].join("\n"))
     : ["(none)"];
 
@@ -1767,7 +1225,7 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
 
   const relationLines = creatorRelations.length
     ? creatorRelations.map((relation, index) => [
-      `${index + 1}. creatorId: ${relation.creatorId}`,
+      `${index + 1}. creatorRelationshipId: ${relation.id}`,
       `   blocked: ${relation.blocked}`,
       `   blockedShopIds: ${(relation.blockedShopIds ?? []).join(", ") || "(none)"}`,
       `   shopStates: ${(relation.shopStates ?? []).length}`,
@@ -1802,44 +1260,41 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
   ].join("\n");
 }
 
-function affiliateMessageText(message: GQL.EcomAffiliateMessage): string {
-  const content = message.content ?? "";
-  if (!content) return "";
-  try {
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    if (typeof parsed.content === "string") return parsed.content;
-    if (typeof parsed.text === "string") return parsed.text;
-  } catch {
-    // Raw non-JSON content is acceptable.
-  }
-  return content;
+function historyItemTimestamp(message: GQL.AffiliateCreatorMessageHistoryItem): number {
+  const value = message.createdAt ? new Date(message.createdAt).getTime() : NaN;
+  return Number.isFinite(value) ? value : 0;
 }
 
-function resolveAffiliateMessageSide(
-  message: GQL.EcomAffiliateMessage,
-  creatorImUserId?: string,
+function relationshipMessageText(message: Pick<GQL.AffiliateCreatorMessageHistoryItem, "text">): string {
+  return message.text?.trim() ?? "";
+}
+
+function resolveRelationshipMessageSide(
+  message: Pick<GQL.AffiliateCreatorMessageHistoryItem, "direction">,
 ): "CREATOR" | "SELLER_OR_SYSTEM" | "UNKNOWN" {
-  if (!message.senderId) return "UNKNOWN";
-  if (creatorImUserId && message.senderId === creatorImUserId) return "CREATOR";
-  return "SELLER_OR_SYSTEM";
+  if (message.direction === GQL.AffiliateCreatorMessageDirection.Creator) return "CREATOR";
+  if (
+    message.direction === GQL.AffiliateCreatorMessageDirection.Seller
+    || message.direction === GQL.AffiliateCreatorMessageDirection.System
+  ) {
+    return "SELLER_OR_SYSTEM";
+  }
+  return "UNKNOWN";
 }
 
-function deriveAffiliateMessageSemanticHints(
-  messages: GQL.EcomAffiliateMessage[],
-  creatorImUserId?: string,
-): string[] {
+function deriveRelationshipMessageSemanticHints(messages: GQL.AffiliateCreatorMessageHistoryItem[]): string[] {
   const latestCreatorMessage = [...messages]
     .reverse()
-    .find((message) => resolveAffiliateMessageSide(message, creatorImUserId) === "CREATOR");
+    .find((message) => resolveRelationshipMessageSide(message) === "CREATOR");
   if (!latestCreatorMessage) return [];
 
-  const latestCreatorText = affiliateMessageText(latestCreatorMessage).trim();
+  const latestCreatorText = relationshipMessageText(latestCreatorMessage).trim();
   if (!looksLikeOpaqueAdCodeToken(latestCreatorText)) return [];
 
   const previousSellerAskedForAdCode = messages.some((message) => {
     if (message.messageId === latestCreatorMessage.messageId) return false;
-    if (resolveAffiliateMessageSide(message, creatorImUserId) !== "SELLER_OR_SYSTEM") return false;
-    return mentionsAdAuthorizationCode(affiliateMessageText(message));
+    if (resolveRelationshipMessageSide(message) !== "SELLER_OR_SYSTEM") return false;
+    return mentionsAdAuthorizationCode(relationshipMessageText(message));
   });
 
   if (!previousSellerAskedForAdCode) return [];
@@ -1851,17 +1306,14 @@ function deriveAffiliateMessageSemanticHints(
   ];
 }
 
-function deriveAffiliateMessageCardHints(
-  messages: GQL.EcomAffiliateMessage[],
-  creatorImUserId?: string,
-): string[] {
+function deriveRelationshipMessageCardHints(messages: GQL.AffiliateCreatorMessageHistoryItem[]): string[] {
   const hints: string[] = [];
   const seen = new Set<string>();
 
   for (const message of messages) {
-    if (resolveAffiliateMessageSide(message, creatorImUserId) !== "CREATOR") continue;
+    if (resolveRelationshipMessageSide(message) !== "CREATOR") continue;
 
-    const ids = extractAffiliateMessageReferenceIds(message.content ?? "");
+    const ids = extractAffiliateMessageReferenceIds(message.text ?? "");
     if (
       ids.productIds.length === 0
       && ids.sampleApplicationIds.length === 0
@@ -1881,10 +1333,10 @@ function deriveAffiliateMessageCardHints(
       parts.push(`target/platform collaboration id(s): ${ids.collaborationIds.join(", ")}`);
     }
 
-    const key = `${message.messageId ?? ""}:${parts.join("|")}`;
+    const key = `${message.createdAt ?? ""}:${relationshipMessageText(message)}:${parts.join("|")}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    hints.push(`- Message ${message.messageId ?? "(unknown)"} contains ${parts.join("; ")}.`);
+    hints.push(`- A creator-side message contains ${parts.join("; ")}.`);
   }
 
   if (hints.length === 0) return [];
@@ -1892,8 +1344,8 @@ function deriveAffiliateMessageCardHints(
   return [
     ...hints,
     "- Treat these IDs as candidate evidence extracted from creator-side message cards, not as confirmed collaboration product context.",
-    "- If a candidate productId is relevant to the decision, call affiliate_predict_creator_product_fit with shopId, creatorId or creatorOpenId, and productId before recommending cooperation, target collaboration creation, or a creator-facing reply about whether to proceed.",
-    "- If a sample/application id is relevant, use affiliate_get_workspace with the sample/application identity to verify the current sample state before replying about approval, rejection, or shipment.",
+    "- If a candidate productId is relevant to the decision, call affiliate_predict_creator_product_fit with creatorRelationshipId, shopId, and productId before recommending cooperation, target collaboration creation, or a creator-facing reply about whether to proceed.",
+    "- If a sample/application id is relevant, use affiliate_get_workspace with creatorRelationshipId plus the sample/application identity to verify the current sample state before replying about approval, rejection, or shipment.",
     "- If multiple candidate products appear and Backend Work Context has not confirmed one, compare the relevant candidates or ask the creator a clarifying question instead of silently choosing one.",
   ];
 }

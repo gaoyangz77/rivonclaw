@@ -189,6 +189,8 @@ function extractImageUrlFromUnknown(value: unknown, depth = 0): string | undefin
 
 /** Shop data needed by a CS session (resolved by desktop from entity cache). */
 export interface CSShopContext {
+  /** Backend user id owning this shop, when available from the desktop cache. */
+  userId?: string;
   /** MongoDB ObjectId — used for backend API calls and prompt assembly. */
   objectId: string;
   /** Platform shop ID (TikTok's ID) — matches webhook shop_id. */

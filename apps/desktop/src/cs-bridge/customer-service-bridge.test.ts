@@ -113,6 +113,7 @@ function createBridge(overrides?: Partial<{ defaultRunProfileId: string }>): Cus
 
 const defaultShop: CSShopContext = {
   objectId: "mongo-id-123",
+  userId: "user-001",
   platformShopId: "tiktok-shop-456",
   shopName: "Test Shop",
   systemPrompt: "You are a CS assistant.",
@@ -319,16 +320,21 @@ async function triggerAffiliateSampleEvent(
 function seedAffiliateShopContext(bridge: CustomerServiceBridge): void {
   (bridge as any).affiliateInbound.syncFromShops([{
     id: defaultShop.objectId,
+    userId: defaultShop.userId,
     platformShopId: defaultShop.platformShopId,
     shopName: defaultShop.shopName,
     platform: "TIKTOK_SHOP",
   }]);
 }
 
-function seedAffiliateShopInCache(): void {
+function seedAffiliateShopInCache(overrides: Partial<CSShopContext> = {}): void {
+  const userId = Object.prototype.hasOwnProperty.call(overrides, "userId")
+    ? overrides.userId
+    : defaultShop.userId;
   rootStore.ingestGraphQLResponse({
     shops: [{
       id: defaultShop.objectId,
+      userId,
       platform: "TIKTOK_SHOP",
       platformShopId: defaultShop.platformShopId,
       shopName: defaultShop.shopName,
@@ -391,27 +397,20 @@ beforeEach(() => {
     if (query.includes("ecommerceGetConversationDetails")) {
       return { ecommerceGetConversationDetails: { buyer: null } };
     }
-    if (query.includes("affiliateConversationMessageDelta")) {
+    if (query.includes("affiliateCreatorMessageHistory")) {
       return {
-        affiliateConversationMessageDelta: {
+        affiliateCreatorMessageHistory: {
           items: [{
-            messageId: variables?.currentMessageId ?? "aff-msg-001",
-            type: "TEXT",
-            content: JSON.stringify({ content: "Can you send me a sample?" }),
-            senderId: "creator-001",
-            createTime: 1234567890,
-            cursor: "1",
+            channel: "PLATFORM_CHAT",
+            direction: "CREATOR",
+            text: "Can you send me a sample?",
+            messageType: "TEXT",
+            messageId: "message-history-001",
+            deliveryStatus: null,
+            createdAt: "2026-05-08T10:00:00.000Z",
+            subject: null,
+            source: "PLATFORM_CHAT",
           }],
-          meta: {
-            completeness: "COMPLETE",
-            anchorMatchType: "NONE",
-            currentMessageFound: true,
-            anchorMatched: false,
-            pageLimitReached: false,
-            fetchedMessageCount: 1,
-            anchorMessageId: null,
-            anchorCreateTime: null,
-          },
         },
       };
     }
@@ -508,26 +507,14 @@ beforeEach(() => {
 // ─── Affiliate creator-message dispatch ────────────────────────────────────
 
 describe("affiliate message dispatch", () => {
-  it("dispatches creator messages to an affiliate session without CS session registration", async () => {
+  it("does not dispatch raw platform creator messages before relationship materialization", async () => {
     const bridge = createBridge();
     seedAffiliateShopContext(bridge);
 
     await triggerAffiliateMessage(bridge, createAffiliateFrame({ conversationId: "aff-conv-ABC" }));
 
-    expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:tiktok:aff-conv-ABC",
-      runProfileId: "AFFILIATE_OPERATOR",
-    });
-
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({
-        sessionKey: "agent:main:affiliate:tiktok:aff-conv-ABC",
-        promptMode: "raw",
-        idempotencyKey: "affiliate:tiktok:aff-msg-001",
-        extraSystemPrompt: expect.stringContaining("affiliate_resolve_work_item"),
-      }),
-    );
+    expect(setSessionRunProfileCalls).toHaveLength(0);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
   });
 
@@ -540,24 +527,29 @@ describe("affiliate message dispatch", () => {
     expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
-  it("dispatches sample application events to an affiliate event session", async () => {
+  it("does not dispatch sample application events before relationship materialization", async () => {
     const bridge = createBridge();
     seedAffiliateShopContext(bridge);
 
     await triggerAffiliateSampleEvent(bridge, createAffiliateSampleFrame());
 
-    expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-001",
-      runProfileId: "AFFILIATE_OPERATOR",
-    });
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "agent",
-      expect.objectContaining({
-        sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-001",
-        idempotencyKey: "affiliate:tiktok:sample:sample-app-001:PENDING_REVIEW:1234567890",
-        extraSystemPrompt: expect.stringContaining("Trigger Kind: SAMPLE_APPLICATION"),
+    expect(setSessionRunProfileCalls).toHaveLength(0);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+  });
+
+  it("does not dispatch raw sample application frames even when they include a relationship id", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopContext(bridge);
+
+    await triggerAffiliateSampleEvent(
+      bridge,
+      createAffiliateSampleFrame({
+        creatorRelationshipId: "relationship-from-frame",
       }),
     );
+
+    expect(setSessionRunProfileCalls).toHaveLength(0);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
   it("dispatches backend affiliate creator-message signals through the subscription path", async () => {
@@ -569,53 +561,52 @@ describe("affiliate message dispatch", () => {
           messages: [{
             role: "user",
             timestamp: "2026-05-08T09:59:00.000Z",
-            content: "[Affiliate Creator Conversation Work Package]\ntext: Previous creator message",
+            content: "[Affiliate Creator Message Update]\ntext: Previous creator message",
           }],
         };
       }
       return { runId: "run-aff-sub" };
     });
 
-    await bridge.handleAffiliateConversationSignal({
-      type: "CREATOR_MESSAGE_RECEIVED",
+    await bridge.handleAffiliateRelationshipSignal({
+      type: "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED",
       source: "WEBHOOK",
       shopId: defaultShop.objectId,
       platformShopId: defaultShop.platformShopId,
       conversationId: "aff-conv-SUB",
       messageId: "aff-msg-SUB",
+      creatorRelationshipId: "relationship-SUB",
       messageType: "TEXT",
       creatorImId: "creator-im-SUB",
       eventTime: "2026-05-08T10:00:00.000Z",
     } as any);
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:tiktok:aff-conv-SUB",
+      sessionKey: "agent:main:affiliate:user-001:relationship-SUB",
       runProfileId: "AFFILIATE_OPERATOR",
     });
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("affiliateConversationMessageDelta"),
+      expect.stringContaining("affiliateCreatorMessageHistory"),
       expect.objectContaining({
-        shopId: defaultShop.objectId,
-        conversationId: "aff-conv-SUB",
-        currentMessageId: "aff-msg-SUB",
-        anchor: expect.objectContaining({
-          sessionMessageText: expect.stringContaining("Previous creator message"),
+        input: expect.objectContaining({
+          shopId: defaultShop.objectId,
+          creatorRelationshipId: "relationship-SUB",
+          channelFilter: ["PLATFORM_CHAT"],
         }),
-        maxPages: 20,
       }),
     );
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "agent:main:affiliate:tiktok:aff-conv-SUB",
-        idempotencyKey: "affiliate:tiktok:signal:CREATOR_MESSAGE_RECEIVED:aff-msg-SUB:2026-05-08T10:00:00.000Z",
-        message: expect.stringContaining("[Affiliate Creator Conversation Work Package]"),
+        sessionKey: "agent:main:affiliate:user-001:relationship-SUB",
+        idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED:aff-msg-SUB:2026-05-08T10:00:00.000Z",
+        message: expect.stringContaining("[Affiliate Creator Message Update]"),
         extraSystemPrompt: expect.stringContaining("affiliate_resolve_work_item"),
       }),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call: unknown[]) => call[0] === "agent") as unknown[] | undefined;
     expect(agentCall?.[1]).toEqual(expect.objectContaining({
-      message: expect.stringContaining("Current Message ID: aff-msg-SUB"),
+      message: expect.stringContaining("Current Signal ID: aff-msg-SUB"),
     }));
   });
 
@@ -624,8 +615,8 @@ describe("affiliate message dispatch", () => {
     seedAffiliateShopInCache();
     mockRpcRequest.mockResolvedValue({ runId: "run-aff-whatsapp" });
 
-    await bridge.handleAffiliateConversationSignal({
-      type: "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED",
+    await bridge.handleAffiliateRelationshipSignal({
+      type: "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED",
       source: "WEBHOOK",
       workSignal: true,
       shopId: defaultShop.objectId,
@@ -633,21 +624,51 @@ describe("affiliate message dispatch", () => {
       creatorRelationshipId: "relationship-001",
       messageId: "wamid-001",
       messageType: "conversation",
+      channel: "WHATSAPP",
       messageDirection: "CREATOR",
       eventTime: "2026-07-01T12:00:00.000Z",
     } as any);
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
+      sessionKey: "agent:main:affiliate:user-001:relationship-001",
       runProfileId: "AFFILIATE_OPERATOR",
     });
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "agent:main:affiliate:TIKTOK_SHOP:relationship-001",
-        idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_CONVERSATION_MESSAGE_OBSERVED:wamid-001:2026-07-01T12:00:00.000Z",
-        message: expect.stringContaining("[Affiliate Creator Direct-Channel Message]"),
+        sessionKey: "agent:main:affiliate:user-001:relationship-001",
+        idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED:wamid-001:2026-07-01T12:00:00.000Z",
+        message: expect.stringContaining("[Affiliate Creator Message Update]"),
         extraSystemPrompt: expect.stringContaining("CREATOR_OUTREACH"),
+      }),
+    );
+  });
+
+  it("uses the affiliate signal user id when cached shop context omits it", async () => {
+    const bridge = createBridge();
+    seedAffiliateShopInCache({ userId: undefined } as Partial<CSShopContext>);
+    mockRpcRequest.mockResolvedValue({ runId: "run-aff-signal-user" });
+
+    await bridge.handleAffiliateRelationshipSignal({
+      type: "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED",
+      source: "WEBHOOK",
+      workSignal: true,
+      userId: "signal-user-007",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      creatorRelationshipId: "relationship-SIGNAL-USER",
+      messageId: "wamid-signal-user",
+      messageType: "conversation",
+      channel: "WHATSAPP",
+      messageDirection: "CREATOR",
+      eventTime: "2026-07-01T12:05:00.000Z",
+    } as any);
+
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:main:affiliate:signal-user-007:relationship-SIGNAL-USER",
+        idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED:wamid-signal-user:2026-07-01T12:05:00.000Z",
       }),
     );
   });
@@ -664,43 +685,38 @@ describe("affiliate message dispatch", () => {
       return { runId: `run-${mockRpcRequest.mock.calls.length}` };
     });
     mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("affiliateConversationMessageDelta")) {
-        if (variables?.currentMessageId === "aff-msg-old") {
+      if (query.includes("affiliateCreatorMessageHistory")) {
+        const input = variables?.input as { creatorRelationshipId?: string } | undefined;
+        if (input?.creatorRelationshipId === "relationship-RACE" && mockGraphqlFetch.mock.calls.length === 1) {
           await firstDeltaReady;
         }
         return {
-          affiliateConversationMessageDelta: {
+          affiliateCreatorMessageHistory: {
             items: [{
-              messageId: variables?.currentMessageId,
-              type: "TEXT",
-              content: JSON.stringify({ content: `content for ${variables?.currentMessageId}` }),
-              senderId: "creator-im-SUB",
-              createTime: 1234567890,
-              cursor: String(variables?.currentMessageId),
+              channel: "PLATFORM_CHAT",
+              direction: "CREATOR",
+              text: "content for relationship history",
+              messageType: "TEXT",
+              messageId: "history-message",
+              deliveryStatus: null,
+              createdAt: "2026-05-08T10:00:01.000Z",
+              subject: null,
+              source: "PLATFORM_CHAT",
             }],
-            meta: {
-              completeness: "COMPLETE",
-              anchorMatchType: "NONE",
-              currentMessageFound: true,
-              anchorMatched: false,
-              pageLimitReached: false,
-              fetchedMessageCount: 1,
-              anchorMessageId: null,
-              anchorCreateTime: null,
-            },
           },
         };
       }
       return { ecommerceSendMessage: { messageId: "msg-default" } };
     });
 
-    const oldDispatch = bridge.handleAffiliateConversationSignal({
-      type: "CREATOR_MESSAGE_RECEIVED",
+    const oldDispatch = bridge.handleAffiliateRelationshipSignal({
+      type: "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED",
       source: "WEBHOOK",
       shopId: defaultShop.objectId,
       platformShopId: defaultShop.platformShopId,
       conversationId: "aff-conv-RACE",
       messageId: "aff-msg-old",
+      creatorRelationshipId: "relationship-RACE",
       messageType: "TEXT",
       creatorImId: "creator-im-SUB",
       eventTime: "2026-05-08T10:00:00.000Z",
@@ -708,13 +724,14 @@ describe("affiliate message dispatch", () => {
 
     await Promise.resolve();
 
-    await bridge.handleAffiliateConversationSignal({
-      type: "CREATOR_MESSAGE_RECEIVED",
+    await bridge.handleAffiliateRelationshipSignal({
+      type: "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED",
       source: "WEBHOOK",
       shopId: defaultShop.objectId,
       platformShopId: defaultShop.platformShopId,
       conversationId: "aff-conv-RACE",
       messageId: "aff-msg-new",
+      creatorRelationshipId: "relationship-RACE",
       messageType: "TEXT",
       creatorImId: "creator-im-SUB",
       eventTime: "2026-05-08T10:00:01.000Z",
@@ -726,35 +743,36 @@ describe("affiliate message dispatch", () => {
     const agentCalls = mockRpcRequest.mock.calls.filter((call: unknown[]) => call[0] === "agent");
     expect(agentCalls).toHaveLength(1);
     expect(agentCalls[0][1]).toEqual(expect.objectContaining({
-      idempotencyKey: "affiliate:tiktok:signal:CREATOR_MESSAGE_RECEIVED:aff-msg-new:2026-05-08T10:00:01.000Z",
-      message: expect.stringContaining("Current Message ID: aff-msg-new"),
+      idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED:aff-msg-new:2026-05-08T10:00:01.000Z",
+      message: expect.stringContaining("Current Signal ID: aff-msg-new"),
     }));
   });
 
-  it("dispatches backend affiliate sample signals to an event-scoped session", async () => {
+  it("dispatches backend affiliate sample signals to the relationship-scoped session", async () => {
     const bridge = createBridge();
     seedAffiliateShopInCache();
 
-    await bridge.handleAffiliateConversationSignal({
-      type: "SAMPLE_APPLICATION_UPDATED",
+    await bridge.handleAffiliateRelationshipSignal({
+      type: "AFFILIATE_SAMPLE_APPLICATION_OBSERVED",
       source: "AIRFLOW",
       shopId: defaultShop.objectId,
       platformShopId: defaultShop.platformShopId,
       platformApplicationId: "sample-app-SUB",
+      creatorRelationshipId: "relationship-SAMPLE",
       platformStatus: "AWAITING_SHIPMENT",
       productId: "product-SUB",
       eventTime: "2026-05-08T10:01:00.000Z",
     } as any);
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-SUB",
+      sessionKey: "agent:main:affiliate:user-001:relationship-SAMPLE",
       runProfileId: "AFFILIATE_OPERATOR",
     });
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "agent:main:affiliate:tiktok:sample_application:sample-app-SUB",
-        idempotencyKey: "affiliate:tiktok:signal:SAMPLE_APPLICATION_UPDATED:sample-app-SUB:2026-05-08T10:01:00.000Z",
+        sessionKey: "agent:main:affiliate:user-001:relationship-SAMPLE",
+        idempotencyKey: "affiliate:tiktok:signal:AFFILIATE_SAMPLE_APPLICATION_OBSERVED:sample-app-SUB:2026-05-08T10:01:00.000Z",
         message: expect.stringContaining("Sample Application ID: sample-app-SUB"),
       }),
     );

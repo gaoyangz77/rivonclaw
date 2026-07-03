@@ -2,7 +2,6 @@ import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
   GQL,
-  type AffiliateNewConversationFrame,
   type AffiliateNewMessageFrame,
   type AffiliateOrderAttributedFrame,
   type AffiliateSampleApplicationUpdatedFrame,
@@ -18,7 +17,7 @@ import {
 } from "./affiliate-session.js";
 import { normalizePlatform } from "../utils/platform.js";
 import { localeToStaffLanguage, type StaffLanguage } from "../i18n/locale.js";
-import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
+import type { AffiliateRelationshipSignalPayload } from "../cloud/backend-subscription-client.js";
 import type { AffiliateWorkItemPayload } from "../cloud/backend-subscription-client.js";
 import {
   AFFILIATE_WORK_ITEMS_QUERY,
@@ -40,6 +39,7 @@ const AFFILIATE_WORK_CATCH_UP_LIMIT = parseOptionalPositiveInteger(
 
 export interface AffiliateShopSource {
   id: string;
+  userId?: string | null;
   platform?: string | null;
   platformShopId?: string | null;
   shopName?: string | null;
@@ -103,6 +103,7 @@ export class AffiliateInbound {
 
       activeShopIds.add(platformShopId);
       const ctx: AffiliateShopContext = {
+        userId: shop.userId ?? "",
         objectId: shop.id,
         platformShopId,
         shopName: shop.shopName ?? platformShopId,
@@ -153,17 +154,32 @@ export class AffiliateInbound {
 
     this.catchUpInFlightShopIds.add(shop.objectId);
     try {
-      const result = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
-        AFFILIATE_WORK_ITEMS_QUERY,
-        {
-          input: {
-            shopId: shop.objectId,
-            agentDispatchRecommended: true,
-            limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
+      const [agentWorkResult, sampleReviewResult] = await Promise.all([
+        authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+          AFFILIATE_WORK_ITEMS_QUERY,
+          {
+            input: {
+              shopId: shop.objectId,
+              agentDispatchRecommended: true,
+              limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
+            },
           },
-        },
-      );
-      const workItems = result.affiliateWorkItems ?? [];
+        ),
+        authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+          AFFILIATE_WORK_ITEMS_QUERY,
+          {
+            input: {
+              shopId: shop.objectId,
+              workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+              limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
+            },
+          },
+        ),
+      ]);
+      const workItems = uniqueWorkItems([
+        ...(agentWorkResult.affiliateWorkItems ?? []),
+        ...(sampleReviewResult.affiliateWorkItems ?? []),
+      ]);
       if (workItems.length > 0) {
         log.info(
           `Affiliate work catch-up fetched ${workItems.length} item(s): ` +
@@ -215,9 +231,6 @@ export class AffiliateInbound {
       case "affiliate_tiktok_new_message":
         await this.onNewMessage(frame as AffiliateNewMessageFrame);
         return true;
-      case "affiliate_tiktok_new_conversation":
-        this.onNewConversation(frame as AffiliateNewConversationFrame);
-        return true;
       case "affiliate_tiktok_sample_application_updated":
         await this.onSampleApplicationUpdated(frame as AffiliateSampleApplicationUpdatedFrame);
         return true;
@@ -232,7 +245,7 @@ export class AffiliateInbound {
     }
   }
 
-  async handleSignal(signal: AffiliateConversationSignalPayload): Promise<boolean> {
+  async handleSignal(signal: AffiliateRelationshipSignalPayload): Promise<boolean> {
     if (signal.workSignal === false) {
       log.info(`Ignoring non-work affiliate signal: type=${signal.type} shop=${signal.platformShopId}`);
       return true;
@@ -252,7 +265,7 @@ export class AffiliateInbound {
 
     const session = this.getOrCreateSession(shop, context);
     try {
-      const result = await session.handleConversationSignal(signal);
+      const result = await session.handleRelationshipSignal(signal);
       if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
       return true;
     } catch (err) {
@@ -262,9 +275,9 @@ export class AffiliateInbound {
   }
 
   async handleWorkItem(workItem: AffiliateWorkItemPayload): Promise<boolean> {
-    const handledWithoutAgent = isHandledWithoutAgentDispatch(workItem);
-    if (!workItem.agentDispatchRecommended && !handledWithoutAgent) {
-      log.info(`Ignoring affiliate work item without agent dispatch recommendation: id=${workItem.id} kind=${workItem.workKind}`);
+    const shouldDispatchToLocalAgent = shouldDispatchWorkItemToLocalAgent(workItem);
+    if (!shouldDispatchToLocalAgent) {
+      log.info(`Ignoring affiliate work item that is not locally agent-actionable: id=${workItem.id} kind=${workItem.workKind}`);
       return true;
     }
 
@@ -297,9 +310,11 @@ export class AffiliateInbound {
     versionKey: string,
     version: string,
   ): Promise<boolean> {
-    const shop = this.shopContexts.get(workItem.platformShopId);
+    const shop = this.findRoutedShopContext(workItem);
     if (!shop) {
-      log.error(`No affiliate shop context for platform shopId ${workItem.platformShopId}, dropping work item`);
+      log.error(
+        `No affiliate shop context for work item routes ${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.focusPlatformShopId}, dropping work item`,
+      );
       return false;
     }
 
@@ -319,9 +334,6 @@ export class AffiliateInbound {
           this.runWorkItemVersions.set(result.runId, { versionKey, version });
           this.inFlightWorkItemVersions.add(`${versionKey}:${version}`);
         }
-      }
-      if (version && isHandledWithoutAgentDispatch(workItem)) {
-        this.dispatchedWorkItemVersions.set(versionKey, version);
       }
       return true;
     } catch (err) {
@@ -399,12 +411,11 @@ export class AffiliateInbound {
     return workItem.versionAt ?? "";
   }
 
-  private onNewConversation(frame: AffiliateNewConversationFrame): void {
-    log.info(`New affiliate conversation: shop=${frame.shopId} conv=${frame.conversationId}`);
-  }
-
   private async onNewMessage(frame: AffiliateNewMessageFrame): Promise<void> {
-    log.info(`Incoming affiliate message: shop=${frame.shopId} conv=${frame.conversationId} msg=${frame.messageId} sender=${frame.senderRole}`);
+    log.info(
+      `Incoming raw affiliate platform message signal: ` +
+      `shop=${frame.shopId} route=${frame.conversationId} msg=${frame.messageId} sender=${frame.senderRole}`,
+    );
 
     const shop = this.shopContexts.get(frame.shopId);
     if (!shop) {
@@ -412,22 +423,12 @@ export class AffiliateInbound {
       return;
     }
 
-    const session = this.getOrCreateSession(shop, {
-      shopId: shop.objectId,
-      platformShopId: shop.platformShopId,
-      triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-      triggerId: frame.conversationId,
-      conversationId: frame.conversationId,
-      creatorImUserId: frame.imUserId,
-      orderId: frame.orderId,
-    });
+    log.warn(
+      `Dropping raw affiliate platform message ${frame.messageId} because no creatorRelationshipId was provided; ` +
+      "platform messages must be materialized by backend before agent dispatch",
+    );
+    return;
 
-    try {
-      const result = await session.handleCreatorMessage(frame);
-      if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
-    } catch (err) {
-      log.error(`Failed to handle affiliate message ${frame.messageId}:`, err);
-    }
   }
 
   private async onSampleApplicationUpdated(frame: AffiliateSampleApplicationUpdatedFrame): Promise<void> {
@@ -438,23 +439,10 @@ export class AffiliateInbound {
       log.error(`No affiliate shop context for platform shopId ${frame.shopId}, dropping sample event`);
       return;
     }
-
-    const session = this.getOrCreateSession(shop, {
-      shopId: shop.objectId,
-      platformShopId: shop.platformShopId,
-      triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
-      triggerId: frame.applicationId,
-      sampleApplicationId: frame.applicationId,
-      creatorId: frame.creatorId,
-      productId: frame.productId,
-    });
-
-    try {
-      const result = await session.handleSampleApplicationUpdated(frame);
-      if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
-    } catch (err) {
-      log.error(`Failed to handle affiliate sample application event ${frame.applicationId}:`, err);
-    }
+    log.warn(
+      `Dropping raw affiliate sample event ${frame.applicationId}; ` +
+      "sample events must be reconciled by backend and dispatched as AffiliateWorkItem before agent handling",
+    );
   }
 
   private async onTargetCollaborationUpdated(frame: AffiliateTargetCollaborationUpdatedFrame): Promise<void> {
@@ -465,23 +453,10 @@ export class AffiliateInbound {
       log.error(`No affiliate shop context for platform shopId ${frame.shopId}, dropping target collaboration event`);
       return;
     }
-
-    const session = this.getOrCreateSession(shop, {
-      shopId: shop.objectId,
-      platformShopId: shop.platformShopId,
-      triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
-      triggerId: frame.collaborationId,
-      collaborationRecordId: frame.collaborationId,
-      creatorId: frame.creatorId,
-      productId: frame.productId,
-    });
-
-    try {
-      const result = await session.handleTargetCollaborationUpdated(frame);
-      if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
-    } catch (err) {
-      log.error(`Failed to handle affiliate target collaboration event ${frame.collaborationId}:`, err);
-    }
+    log.warn(
+      `Dropping raw affiliate target collaboration event ${frame.collaborationId}; ` +
+      "target collaboration events must be reconciled by backend and dispatched as AffiliateWorkItem before agent handling",
+    );
   }
 
   private async onOrderAttributed(frame: AffiliateOrderAttributedFrame): Promise<void> {
@@ -492,23 +467,10 @@ export class AffiliateInbound {
       log.error(`No affiliate shop context for platform shopId ${frame.shopId}, dropping order attribution event`);
       return;
     }
-
-    const session = this.getOrCreateSession(shop, {
-      shopId: shop.objectId,
-      platformShopId: shop.platformShopId,
-      triggerKind: AffiliateTriggerKind.ORDER_ATTRIBUTION,
-      triggerId: frame.orderId,
-      orderId: frame.orderId,
-      creatorId: frame.creatorId,
-      productId: frame.productId,
-    });
-
-    try {
-      const result = await session.handleOrderAttributed(frame);
-      if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
-    } catch (err) {
-      log.error(`Failed to handle affiliate order attribution event ${frame.orderId}:`, err);
-    }
+    log.warn(
+      `Dropping raw affiliate order attribution event ${frame.orderId}; ` +
+      "order attribution events must be reconciled by backend and dispatched as AffiliateWorkItem before agent handling",
+    );
   }
 
   private getOrCreateSession(shop: AffiliateShopContext, params: AffiliateContext): AffiliateSession {
@@ -527,73 +489,69 @@ export class AffiliateInbound {
 
   private buildContextFromSignal(
     shop: AffiliateShopContext,
-    signal: AffiliateConversationSignalPayload,
+    signal: AffiliateRelationshipSignalPayload,
   ): AffiliateContext | null {
-    const base = {
+    const creatorRelationshipId = signalCreatorRelationshipId(signal);
+    if (!creatorRelationshipId) return null;
+    const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
+      userId: shop.userId ?? "",
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
       creatorImUserId: signal.creatorImId ?? undefined,
-      creatorRelationshipId: signalCreatorRelationshipId(signal),
+      creatorRelationshipId,
       productId: signal.productId ?? undefined,
       orderId: signal.orderId ?? undefined,
       collaborationRecordId: signal.collaborationRecordId ?? undefined,
     };
 
     switch (signal.type) {
-      case "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED":
-      case "CREATOR_MESSAGE_RECEIVED":
+      case "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED":
         {
-          const triggerId = signal.conversationId ?? base.creatorRelationshipId;
-          if (!triggerId) return null;
-        return {
-          ...base,
-          triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-          triggerId,
-          conversationId: signal.conversationId ?? undefined,
-        };
+          return {
+            ...base,
+            triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+            triggerId: base.creatorRelationshipId,
+          };
         }
       case "AFFILIATE_SAMPLE_APPLICATION_OBSERVED":
       case "AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED":
-      case "SAMPLE_APPLICATION_UPDATED":
         if (!signal.platformApplicationId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: signal.platformApplicationId,
-          conversationId: signal.conversationId ?? undefined,
           sampleApplicationId: signal.platformApplicationId,
         };
       case "AFFILIATE_TARGET_COLLABORATION_OBSERVED":
-      case "TARGET_COLLABORATION_UPDATED":
         if (!signal.platformTargetCollaborationId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
           triggerId: signal.platformTargetCollaborationId,
-          conversationId: signal.conversationId ?? undefined,
           collaborationRecordId: signal.collaborationRecordId ?? signal.platformTargetCollaborationId,
         };
       case "AFFILIATE_TIMER_DUE":
-      case "AFFILIATE_ACTION_RESULT_OBSERVED":
         if (!signal.collaborationRecordId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
           triggerId: signal.collaborationRecordId,
-          conversationId: signal.conversationId ?? undefined,
-        };
-      case "ORDER_ATTRIBUTED":
-        if (!signal.orderId) return null;
-        return {
-          ...base,
-          triggerKind: AffiliateTriggerKind.ORDER_ATTRIBUTION,
-          triggerId: signal.orderId,
-          conversationId: signal.conversationId ?? undefined,
-          orderId: signal.orderId,
         };
       default:
         return null;
     }
+  }
+
+  private findRoutedShopContext(workItem: AffiliateWorkItemPayload): AffiliateShopContext | undefined {
+    const platformShopIds = uniqueNonEmpty([
+      ...(workItem.routingPlatformShopIds ?? []),
+      workItem.focusPlatformShopId,
+    ]);
+    for (const platformShopId of platformShopIds) {
+      const shop = this.shopContexts.get(platformShopId);
+      if (shop) return shop;
+    }
+    return undefined;
   }
 
   private buildContextFromWorkItem(
@@ -602,58 +560,55 @@ export class AffiliateInbound {
   ): AffiliateContext | null {
     const collaboration = workItem.collaboration;
     const sample = workItem.sampleApplicationRecord;
-    const base = {
+    const relationship = workItem.creatorRelationship ?? workItem.context?.creatorRelation ?? null;
+    const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
+    if (!creatorRelationshipId) return null;
+    const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
+      userId: shop.userId ?? "",
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
-      creatorImUserId: collaboration?.creatorImId ?? workItem.shopThread.creatorImId ?? undefined,
-      creatorId: collaboration?.creatorId ?? workItem.shopThread.creatorId ?? undefined,
-      creatorRelationshipId: workItem.context?.creatorRelation?.id ?? undefined,
+      creatorImUserId: collaboration?.creatorImId ?? undefined,
+      creatorId: collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
+      creatorRelationshipId,
       productId: collaboration?.productId ?? sample?.productId ?? undefined,
       collaborationRecordId: workItem.collaborationRecordId ?? undefined,
     };
 
     const requiredAction = workItem.requiredAction;
     switch (requiredAction) {
-      case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
-        if (!(collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId)) return null;
+      case GQL.AffiliateRelationshipRequiredAction.ReplyToCreator:
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-          triggerId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId!,
-          conversationId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId!,
+          triggerId: base.creatorRelationshipId,
         };
-      case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
-      case GQL.AffiliateCollaborationRequiredAction.ShipSample: {
+      case GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask: {
         const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration?.sampleApplicationRecordId;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          conversationId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId ?? undefined,
           sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
         };
       }
       default:
-        return this.buildLegacyContextFromWorkKind(base, workItem);
+        return this.buildContextFromWorkKindFallback(base, workItem);
     }
   }
 
-  private buildLegacyContextFromWorkKind(
+  private buildContextFromWorkKindFallback(
     base: Omit<AffiliateContext, "triggerKind" | "triggerId">,
     workItem: AffiliateWorkItemPayload,
   ): AffiliateContext | null {
     const collaboration = workItem.collaboration;
     const sample = workItem.sampleApplicationRecord;
-
     switch (workItem.workKind) {
       case GQL.AffiliateWorkKind.InboundMessageTriage:
-        if (!(collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId)) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-          triggerId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId!,
-          conversationId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId!,
+          triggerId: base.creatorRelationshipId,
         };
       case GQL.AffiliateWorkKind.SampleApplicationDecision:
       case GQL.AffiliateWorkKind.SampleShipment: {
@@ -663,7 +618,6 @@ export class AffiliateInbound {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          conversationId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId ?? undefined,
           sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
         };
       }
@@ -671,8 +625,7 @@ export class AffiliateInbound {
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
-          triggerId: workItem.collaborationRecordId ?? workItem.shopThreadId,
-          conversationId: collaboration?.platformConversationId ?? workItem.shopThread.platformConversationId ?? undefined,
+          triggerId: base.creatorRelationshipId,
         };
     }
   }
@@ -680,6 +633,7 @@ export class AffiliateInbound {
   private shopContextEqual(a: AffiliateShopContext, b: AffiliateShopContext): boolean {
     return (
       a.objectId === b.objectId &&
+      a.userId === b.userId &&
       a.platformShopId === b.platformShopId &&
       a.platform === b.platform &&
       a.shopName === b.shopName &&
@@ -697,18 +651,44 @@ function parseOptionalPositiveInteger(value: string | undefined): number | undef
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-function isHandledWithoutAgentDispatch(workItem: AffiliateWorkItemPayload): boolean {
-  return (
-    workItem.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication ||
-    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision
-  );
+function shouldDispatchWorkItemToLocalAgent(workItem: AffiliateWorkItemPayload): boolean {
+  return workItem.agentDispatchRecommended;
+}
+
+function uniqueWorkItems(workItems: AffiliateWorkItemPayload[]): AffiliateWorkItemPayload[] {
+  const seen = new Set<string>();
+  const result: AffiliateWorkItemPayload[] = [];
+  for (const workItem of workItems) {
+    const key = [
+      workItem.creatorRelationshipId,
+      workItem.workKind,
+      workItem.versionAt ?? "",
+    ].join(":");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(workItem);
+  }
+  return result;
 }
 
 function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
   return localeToStaffLanguage(locale);
 }
 
-function signalCreatorRelationshipId(signal: AffiliateConversationSignalPayload): string | undefined {
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0))];
+}
+
+function signalCreatorRelationshipId(signal: AffiliateRelationshipSignalPayload): string | undefined {
   const value = signal.creatorRelationshipId;
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function firstNonEmpty(...values: Array<string | null | undefined>): string | undefined {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
 }

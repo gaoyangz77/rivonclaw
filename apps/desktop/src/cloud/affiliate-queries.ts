@@ -1,45 +1,29 @@
 import type { GQL } from "@rivonclaw/core";
 
-export const AFFILIATE_CONVERSATION_MESSAGE_DELTA_QUERY = `
-  query AffiliateConversationMessageDelta(
-    $shopId: String!,
-    $conversationId: String!,
-    $currentMessageId: String!,
-    $anchor: ConversationMessageDeltaAnchorInput,
-    $maxPages: Int
-  ) {
-    affiliateConversationMessageDelta(
-      shopId: $shopId,
-      conversationId: $conversationId,
-      currentMessageId: $currentMessageId,
-      anchor: $anchor,
-      maxPages: $maxPages
-    ) {
+export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = `
+  query AffiliateCreatorMessageHistory($input: AffiliateCreatorMessageHistoryInput!) {
+    affiliateCreatorMessageHistory(input: $input) {
       items {
-        conversationIndex
+        channel
+        direction
+        text
+        messageType
         messageId
-        conversationId
-        type
-        content
-        createTime
-        senderId
-      }
-      meta {
-        completeness
-        anchorMatchType
-        currentMessageFound
-        anchorMatched
-        pageLimitReached
-        fetchedMessageCount
-        anchorMessageId
-        anchorCreateTime
+        deliveryStatus
+        createdAt
+        subject
+        channelLabel
+        shopId
+        shopName
+        accountLabel
+        source
       }
     }
   }
 `;
 
-export interface AffiliateConversationMessageDeltaQueryResult {
-  affiliateConversationMessageDelta: GQL.EcomAffiliateMessageDelta;
+export interface AffiliateCreatorMessageHistoryQueryResult {
+  affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload;
 }
 
 export const AFFILIATE_WORKSPACE_QUERY = `
@@ -62,10 +46,10 @@ export const AFFILIATE_WORKSPACE_QUERY = `
       }
       collaborationRecords: collaborationRecords {
         id
+        creatorRelationshipId
         creatorId
         productId
         sampleApplicationRecordId
-        platformConversationId
         lifecycleStage
         processingStatus
         requiredAction
@@ -83,15 +67,18 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         operatorSummary
         steps {
           stepId
+          shopId
+          campaignId
+          collaborationRecordId
           type
           operatorSummary
         }
         creatorId
-        shopThreadId
+        creatorRelationshipId
         collaborationRecordId
         sourceWorkBoundary {
           subjectType
-          shopThreadId
+          creatorRelationshipId
           collaborationRecordId
           workKind
           workBundleKind
@@ -114,7 +101,6 @@ export const AFFILIATE_WORKSPACE_QUERY = `
           quantity
         }
         messageIntent {
-          conversationId
           creatorId
           sampleApplicationRecordId
           platformApplicationId
@@ -180,11 +166,11 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
       status
       operatorSummary
       creatorId
-      shopThreadId
+      creatorRelationshipId
       collaborationRecordId
       sourceWorkBoundary {
         subjectType
-        shopThreadId
+        creatorRelationshipId
         collaborationRecordId
         workKind
         workBundleKind
@@ -211,7 +197,6 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
         rejectReason
       }
       messageIntent {
-        conversationId
         creatorId
         sampleApplicationRecordId
         platformApplicationId
@@ -319,10 +304,12 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
   query AffiliateWorkItems($input: ReadAffiliateWorkItemsInput) {
     affiliateWorkItems(input: $input) {
       id
-      shopId
-      platformShopId
+      focusShopId
+      focusPlatformShopId
+      routingShopIds
+      routingPlatformShopIds
       subjectType
-      shopThreadId
+      creatorRelationshipId
       collaborationRecordId
       workKind
       workBundleKind
@@ -333,35 +320,28 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       versionAt
       requiredAction
       processReasons
-      shopThread {
+      creatorRelationship {
         id
-        userId
-        shopId
-        platform
         creatorId
-        creatorOpenId
-        creatorImId
-        platformConversationId
-        lastMessageId
-        lastMessageIndex
-        lastMessageAt
-        lastInboundAt
-        lastOutboundAt
-        unreadCount
-        lastSignalAt
-        workHandledUntil
-        nextSellerActionAt
+        blocked
+        blockedShopIds
         processingStatus
         requiredAction
         processReasons
+        lastInboundAt
+        lastOutboundAt
+        lastAgentHandledAt
         stateUpdatedAt
         activeCollaborationRecordIds
-        focusCollaborationRecordId
-        ambiguousCollaborationRecordIds
-        startedAt
-        archivedAt
-        createdAt
-        updatedAt
+        pendingActionProposalId
+        shopStates {
+          shopId
+          lifecycleStage
+          tagIds
+          lastContactedAt
+          lastInvitedAt
+          lastQualifiedAt
+        }
       }
       collaboration {
         id
@@ -380,7 +360,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         affiliateCollaborationId
         collaborationType
         platformCollaborationId
-        platformConversationId
         creatorImId
         lifecycleStage
         lastCreatorMessageId
@@ -470,7 +449,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
-          platformConversationId
           lifecycleStage
           processingStatus
           requiredAction
@@ -483,7 +461,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           id
           creatorId
           productId
-          platformConversationId
           lifecycleStage
           processingStatus
           updatedAt
@@ -497,7 +474,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
-          platformConversationId
           lifecycleStage
           processingStatus
           updatedAt
@@ -568,11 +544,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           status
           operatorSummary
           creatorId
-          shopThreadId
+          creatorRelationshipId
           collaborationRecordId
           sourceWorkBoundary {
             subjectType
-            shopThreadId
+            creatorRelationshipId
             collaborationRecordId
             workKind
             workBundleKind
@@ -607,11 +583,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           operatorSummary
         }
         creatorId
-        shopThreadId
+        creatorRelationshipId
         collaborationRecordId
         sourceWorkBoundary {
           subjectType
-          shopThreadId
+          creatorRelationshipId
           collaborationRecordId
           workKind
           workBundleKind
@@ -634,7 +610,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           quantity
         }
         messageIntent {
-          conversationId
           creatorId
           sampleApplicationRecordId
           platformApplicationId
@@ -693,8 +668,6 @@ export const DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION = `
       status
       preferredChannel
       actualChannel
-      providerMessageId
-      platformConversationId
       errorCode
       errorMessage
     }
@@ -708,8 +681,6 @@ export interface DeliverAffiliateCreatorTextMutationResult {
     | "status"
     | "preferredChannel"
     | "actualChannel"
-    | "providerMessageId"
-    | "platformConversationId"
     | "errorCode"
     | "errorMessage"
   >;

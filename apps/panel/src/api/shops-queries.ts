@@ -489,40 +489,9 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
     actionProposals(input: $input) {
       id
       userId
-      shopId
+      focusShopId
       campaignId
       creatorId
-      shopThreadId
-      shopThread {
-        id
-        userId
-        shopId
-        platform
-        creatorId
-        creatorOpenId
-        creatorImId
-        platformConversationId
-        lastMessageId
-        lastMessageIndex
-        lastMessageAt
-        lastInboundAt
-        lastOutboundAt
-        unreadCount
-        processingStatus
-        requiredAction
-        processReasons
-        lastSignalAt
-        workHandledUntil
-        nextSellerActionAt
-        stateUpdatedAt
-        activeCollaborationRecordIds
-        focusCollaborationRecordId
-        ambiguousCollaborationRecordIds
-        startedAt
-        archivedAt
-        createdAt
-        updatedAt
-      }
       creatorProfile {
         id
         creatorOpenId
@@ -556,7 +525,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         collaborationType
         sampleApplicationRecordId
         platformCollaborationId
-        platformConversationId
         creatorImId
         lastCreatorMessageId
         lastCreatorMessageAt
@@ -598,11 +566,13 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       predictionCacheIds
       steps {
         stepId
+        shopId
+        campaignId
+        collaborationRecordId
         type
         operatorSummary
         predictionCacheIds
         messageIntent {
-          conversationId
           creatorId
           creatorOpenId
           messageType
@@ -646,7 +616,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         actorId
       }
       messageIntent {
-        conversationId
         creatorId
         creatorOpenId
         messageType
@@ -744,10 +713,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
     affiliateWorkItems(input: $input) {
       id
       subjectType
-      shopId
-      shopThreadId
+      focusShopId
       collaborationRecordId
-      platformShopId
+      focusPlatformShopId
+      routingShopIds
+      routingPlatformShopIds
       processingStatus
       requiredAction
       processReasons
@@ -757,36 +727,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
       staffReviewRequired
       recommendedActionTypes
       versionAt
-      shopThread {
-        id
-        userId
-        shopId
-        platform
-        creatorId
-        creatorOpenId
-        creatorImId
-        platformConversationId
-        lastMessageId
-        lastMessageIndex
-        lastMessageAt
-        lastInboundAt
-        lastOutboundAt
-        unreadCount
-        processingStatus
-        requiredAction
-        processReasons
-        lastSignalAt
-        workHandledUntil
-        nextSellerActionAt
-        stateUpdatedAt
-        activeCollaborationRecordIds
-        focusCollaborationRecordId
-        ambiguousCollaborationRecordIds
-        startedAt
-        archivedAt
-        createdAt
-        updatedAt
-      }
       collaboration {
         id
         userId
@@ -806,7 +746,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         collaborationType
         sampleApplicationRecordId
         platformCollaborationId
-        platformConversationId
         creatorImId
         lastCreatorMessageId
         lastCreatorMessageAt
@@ -839,7 +778,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         shopId
         campaignId
         creatorId
-        shopThreadId
         collaborationRecordId
         type
         status
@@ -851,7 +789,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           operatorSummary
           predictionCacheIds
           messageIntent {
-            conversationId
             creatorId
             creatorOpenId
             messageType
@@ -895,7 +832,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           actorId
         }
         messageIntent {
-          conversationId
           creatorId
           creatorOpenId
           messageType
@@ -1034,7 +970,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           collaborationType
           sampleApplicationRecordId
           platformCollaborationId
-          platformConversationId
           creatorImId
           lastCreatorMessageId
           lastCreatorMessageAt
@@ -1062,7 +997,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           collaborationType
           sampleApplicationRecordId
           platformCollaborationId
-          platformConversationId
           creatorImId
           lastCreatorMessageId
           lastCreatorMessageAt
@@ -1090,7 +1024,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           collaborationType
           sampleApplicationRecordId
           platformCollaborationId
-          platformConversationId
           creatorImId
           lastCreatorMessageId
           lastCreatorMessageAt
@@ -1105,14 +1038,12 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           shopId
           campaignId
           creatorId
-          shopThreadId
           collaborationRecordId
           type
           status
           operatorSummary
           updatedAt
           messageIntent {
-            conversationId
             creatorId
             creatorOpenId
             messageType
@@ -1178,295 +1109,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           severity
           message
         }
-      }
-    }
-  }
-`;
-
-export const AFFILIATE_DASHBOARD_QUERY = gql`
-  query AffiliateDashboard($input: AffiliateDashboardInput) {
-    affiliateDashboard(input: $input) {
-      summary {
-        needsAttentionCount
-        pendingApprovalCount
-        manualFollowUpCount
-        inProgressCount
-        historyCount
-      }
-      items {
-        id
-        section
-        kind
-        shopId
-        creatorId
-        creatorProfile {
-          id
-          creatorOpenId
-          creatorImId
-          username
-          nickname
-          avatarUrl
-          followerCount
-          categoryIds
-          marketplaceSnapshotJson
-          createdAt
-          updatedAt
-        }
-        collaborationRecordId
-        collaborationRecord {
-          id
-          creatorId
-          productId
-          sampleApplicationRecordId
-          platformCollaborationId
-          platformConversationId
-          processingStatus
-          processReasons
-          lifecycleStage
-          lastSignalAt
-          workHandledUntil
-          stateUpdatedAt
-        }
-        proposalId
-        proposal {
-          id
-          userId
-          shopId
-          campaignId
-          creatorId
-          shopThreadId
-          collaborationRecordId
-          sourceWorkBoundary {
-            subjectType
-            shopThreadId
-            collaborationRecordId
-            workKind
-            workBundleKind
-            versionAt
-            triggerKind
-            triggerId
-            recommendedActionTypes
-          }
-          type
-          status
-          operatorSummary
-          steps {
-            stepId
-            type
-            operatorSummary
-            messageIntent {
-              conversationId
-              creatorId
-              creatorOpenId
-              messageType
-              text
-              productId
-              platformApplicationId
-              platformTargetCollaborationId
-              sampleApplicationRecordId
-              targetCollaborationRecordId: affiliateCollaborationId
-              imageUrl
-              imageWidth
-              imageHeight
-            }
-            sampleReviewIntent {
-              sampleApplicationRecordId
-              platformApplicationId
-              decision
-              rejectReason
-            }
-            sampleShipmentIntent {
-              sampleApplicationRecordId
-              platformApplicationId
-              warehouseId
-              skuId
-              quantity
-            }
-          }
-          createdAt
-          updatedAt
-          expiresAt
-          policySnapshot {
-            action
-            requiresApproval
-            matchedPolicyIds
-            reasons
-          }
-          decision {
-            decidedAt
-            note
-            actorType
-            actorId
-          }
-          messageIntent {
-            conversationId
-            creatorId
-            creatorOpenId
-            messageType
-            text
-            productId
-            platformApplicationId
-            platformTargetCollaborationId
-            sampleApplicationRecordId
-            targetCollaborationRecordId: affiliateCollaborationId
-            imageUrl
-            imageWidth
-            imageHeight
-          }
-          sampleReviewIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            decision
-            rejectReason
-          }
-          sampleShipmentIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            warehouseId
-            skuId
-            quantity
-          }
-          targetCollaborationIntent {
-            name
-            message
-            endTime
-            hasFreeSample
-            isSampleApprovalExempt
-            creatorIds
-            creatorOpenIds
-            products {
-              productId
-              targetCommissionRateBps
-              shopAdsCommissionRateBps
-            }
-            sellerContactInfo {
-              email
-              phoneNumber
-              whatsapp
-              telegram
-              line
-            }
-          }
-          creatorTagIntent {
-            creatorId
-            tagId
-          }
-          blockCreatorIntent {
-            creatorId
-            reason
-          }
-          campaignProductUpdateIntent {
-            campaignId
-            campaignProductId
-            productId
-            commissionRate
-            maxCommissionRate
-            sampleOfferMode
-            sampleQuota
-            sampleUnitCostAmount
-            sampleUnitCostCurrency
-            promotionPriority
-          }
-          approvalPolicyUpdateIntent {
-            policyId
-            action
-            creatorTagIds
-            campaignIds
-            productIds
-            reason
-            enabled
-          }
-          candidateDecisionIntent {
-            candidateIds
-            status
-            rationale
-          }
-          executionResult {
-            platformObjectId
-            domainObjectId
-            lifecycleEventIds
-            executedAt
-            errorMessage
-          }
-        }
-        sampleApplicationRecordId
-        sampleApplicationRecord {
-          id
-          platformApplicationId
-          creatorId
-          creatorOpenId
-          productId
-          sampleWorkStatus
-          observedContentCount
-          latestObservedContentAt
-          latestObservedContentUrl
-          latestObservedContentFormat
-          latestObservedContentPaidOrderCount
-          latestObservedContentViewCount
-          order {
-            platformOrderId
-            trackingNumber
-            carrier
-          }
-          carrier
-          trackingNumber
-          shippedAt
-          deliveredAt
-          updatedAt
-        }
-        productSummary {
-          productId
-          title
-          coverImage
-          status
-          priceMin
-          priceMax
-          skus {
-            skuId
-            skuName
-            sellerSku
-            price
-            currency
-          }
-        }
-        lifecycleEventId
-        lifecycleEventType
-        title
-        summary
-        statusLabel
-        occurredAt
-        updatedAt
-      }
-    }
-  }
-`;
-
-export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
-  query AffiliateMlInsights($input: AffiliateMlInsightsInput) {
-    affiliateMlInsights(input: $input) {
-      latestModelEfficiencySummary {
-        userId
-        shopId
-        modelScope
-        tenantId
-        trainedAt
-        evaluationScope
-        rowCount
-        humanApprovedCount
-        humanApprovalRate
-        modelSameBudgetCount
-        minExpectedSalesUnitsSameBudget
-        modelSameBudgetExpectedUnits
-        humanSameBudgetExpectedUnits
-        modelVsHumanExpectedUnitsLiftRatio
-        modelSelectedHumanRejectedCount
-        modelRejectedHumanApprovedCount
-        modelRejectedHumanApprovedActualUnits
-        humanApprovedObservedCount
-        humanApprovedActualUnits
-        humanApprovedActualAvgUnits
-        payload
-        createdAt
       }
     }
   }
@@ -1608,7 +1250,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         stateUpdatedAt
         lastSignalAt
         workHandledUntil
-        platformConversationId
         creatorImId
         lastCreatorMessageId
         lastCreatorMessageAt
@@ -1636,7 +1277,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           text
           messageType
           productId
-          conversationId
           creatorId
           sampleApplicationRecordId
           platformApplicationId
@@ -1737,100 +1377,18 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
   }
 `;
 
-export const AFFILIATE_COLLABORATION_RECORD_ITEMS_QUERY = gql`
-  query AffiliateCollaborationRecordItems($input: ReadAffiliateCollaborationRecordsInput!) {
-    affiliateCollaborationRecordItems(input: $input) {
-      collaborationRecord {
-        id
-        userId
-        shopId
-        creatorId
-        creatorOpenId
-        productId
-        lifecycleStage
-        processingStatus
-        requiredAction
-        processReasons
-        nextSellerActionAt
-        stateUpdatedAt
-        lastSignalAt
-        workHandledUntil
-        affiliateCollaborationId
-        collaborationType
-        platformCollaborationId
-        platformConversationId
-        creatorImId
-        lastCreatorMessageId
-        lastCreatorMessageAt
-        sampleApplicationRecordId
-        startedAt
-        endedAt
-        createdAt
-        updatedAt
-      }
-      creatorProfile {
-        id
-        creatorOpenId
-        creatorImId
-        username
-        nickname
-        avatarUrl
-        followerCount
-        categoryIds
-        marketplaceSnapshotJson
-        createdAt
-        updatedAt
-      }
-      productSummary {
-        productId
-        title
-        coverImage
-        status
-        priceMin
-        priceMax
-        skus {
-          skuId
-          skuName
-          sellerSku
-          price
-          currency
-        }
-      }
-      latestProposal {
-        id
-        type
-        status
-        operatorSummary
-        createdAt
-        updatedAt
-      }
-      latestLifecycleEvent {
-        id
-        eventType
-        fromStage
-        toStage
-        displayPayloadJson
-        actorType
-        createdAt
-      }
-    }
-  }
-`;
-
 export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
   query AffiliateCollaborationActivity($input: AffiliateCollaborationActivityInput!) {
     affiliateCollaborationActivity(input: $input) {
       actionProposals {
         id
         userId
-        shopId
+        focusShopId
         campaignId
         creatorId
-        shopThreadId
         collaborationRecordId
         sourceWorkBoundary {
           subjectType
-          shopThreadId
           collaborationRecordId
           workKind
           workBundleKind
@@ -1847,11 +1405,13 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
         predictionCacheIds
         steps {
           stepId
+          shopId
+          campaignId
+          collaborationRecordId
           type
           operatorSummary
           predictionCacheIds
           messageIntent {
-            conversationId
             creatorId
             creatorOpenId
             messageType
@@ -1904,7 +1464,6 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
           reasons
         }
         messageIntent {
-          conversationId
           creatorId
           creatorOpenId
           messageType
@@ -1980,6 +1539,7 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
         collaborationRecordId
         proposalId
         creatorId
+        creatorRelationshipId
         productId
         campaignId
         createdAt
@@ -2020,110 +1580,19 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
   }
 `;
 
-export const AFFILIATE_CONVERSATION_RECORDS_QUERY = gql`
-  query AffiliateConversationRecords($input: ReadAffiliateConversationRecordsInput!) {
-    affiliateConversationRecords(input: $input) {
-      id
-      userId
-      shopId
-      platform
-      conversationId
-      creatorId
-      unreadCount
-      lastMessageAt
-      lastMessageId
-      lastMessageIndex
-      lastInboundAt
-      lastOutboundAt
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const AFFILIATE_CONVERSATION_MESSAGES_QUERY = gql`
-  query AffiliateConversationMessages($input: AffiliateConversationMessagesInput!) {
-    affiliateConversationMessages(input: $input) {
-      hasMore
-      nextPageToken
+export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
+  query AffiliateCreatorMessageHistory($input: AffiliateCreatorMessageHistoryInput!) {
+    affiliateCreatorMessageHistory(input: $input) {
       items {
-        conversationId
-        conversationIndex
-        messageId
-        messageType
+        channel
         direction
-        senderId
-        createTime
-        createdAt
         text
-        rawContent
-        productRefs {
-          productId
-          productSummary {
-            productId
-            title
-            coverImage
-            status
-            priceMin
-            priceMax
-            skus {
-              skuId
-              skuName
-              sellerSku
-              price
-              currency
-            }
-          }
-        }
-        sampleApplicationRefs {
-          platformApplicationId
-          sampleApplicationRecord {
-            id
-            userId
-            shopId
-            creatorId
-            creatorOpenId
-            productId
-            affiliateCollaborationId
-            collaborationType
-            platformApplicationId
-            platformCollaborationId
-            platformOpenCollaborationId
-            platformTargetCollaborationId
-            sampleWorkStatus
-            order {
-              platformOrderId
-              trackingNumber
-              carrier
-            }
-            trackingNumber
-            carrier
-            shippedAt
-            deliveredAt
-            observedContentCount
-            latestObservedContentAt
-            latestObservedContentId
-            latestObservedContentFormat
-            latestObservedContentUrl
-            latestObservedContentViewCount
-            latestObservedContentPaidOrderCount
-            updatedAt
-          }
-        }
-        targetCollaborationRefs {
-          platformTargetCollaborationId
-          affiliateCollaboration {
-            id
-            platformCollaborationId
-            type
-            productIds
-            creatorIds
-            creatorOpenIds
-            status
-            createdAt
-            updatedAt
-          }
-        }
+        messageType
+        messageId
+        deliveryStatus
+        createdAt
+        subject
+        source
       }
     }
   }
@@ -2137,11 +1606,9 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       shopId
       campaignId
       creatorId
-      shopThreadId
       collaborationRecordId
       sourceWorkBoundary {
         subjectType
-        shopThreadId
         collaborationRecordId
         workKind
         workBundleKind
@@ -2160,7 +1627,6 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         operatorSummary
         predictionCacheIds
         messageIntent {
-          conversationId
           creatorId
           creatorOpenId
           messageType
@@ -2204,7 +1670,6 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         actorId
       }
       messageIntent {
-        conversationId
         creatorId
         creatorOpenId
         messageType
@@ -2313,23 +1778,15 @@ export const RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION = gql`
   }
 `;
 
-export const SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION = gql`
-  mutation SendAffiliateConversationMessage($input: SendAffiliateConversationMessageInput!) {
-    sendAffiliateConversationMessage(input: $input) {
-      executionResult {
-        platformObjectId
-        domainObjectId
-        lifecycleEventIds
-        executedAt
-        errorMessage
-      }
+export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
+  mutation SendAffiliateCreatorMessage($input: SendAffiliateCreatorMessageInput!) {
+    sendAffiliateCreatorMessage(input: $input) {
       delivery {
         id
         preferredChannel
         actualChannel
         status
         providerMessageId
-        emailThreadId
         errorMessage
         createdAt
       }
@@ -2340,7 +1797,6 @@ export const SEND_AFFILIATE_CONVERSATION_MESSAGE_MUTATION = gql`
         processReasons
         stateUpdatedAt
         workHandledUntil
-        platformConversationId
         updatedAt
       }
     }

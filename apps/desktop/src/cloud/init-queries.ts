@@ -110,6 +110,7 @@ export const INIT_SHOPS_QUERY = `
   query {
     shops {
       id
+      userId
       platform
       platformAppId
       platformShopId

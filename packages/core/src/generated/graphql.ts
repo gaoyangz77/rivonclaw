@@ -45,10 +45,14 @@ export interface ActionProposal {
   creatorId?: Maybe<Scalars['ID']['output']>;
   /** Best-known creator identity for staff review display. This is a profile projection, not proposal execution input. */
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
+  /** Relationship workspace that owns this proposal. A relationship can have at most one pending proposal. */
+  creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
+  creatorRelationshipId: Scalars['ID']['output'];
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   decision?: Maybe<ActionProposalDecisionSnapshot>;
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
   expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  focusShopId: Scalars['ID']['output'];
   id: Scalars['ID']['output'];
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing proposal summary. Creator-facing text, if any, lives in messageIntent.text or a message step. */
@@ -60,10 +64,6 @@ export interface ActionProposal {
   productSummary?: Maybe<EcomProductSummary>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
-  shopId: Scalars['ID']['output'];
-  /** Shop-scoped creator thread for this proposal. */
-  shopThread?: Maybe<AffiliateShopCreatorThread>;
-  shopThreadId?: Maybe<Scalars['ID']['output']>;
   sourceWorkBoundary?: Maybe<ActionProposalSourceWorkBoundary>;
   status: ActionProposalStatus;
   /** Frozen ordered action steps. Current single-action proposals contain exactly one step. */
@@ -145,7 +145,6 @@ export interface ActionProposalExecutionResultSnapshot {
 
 export interface ActionProposalMessageIntent {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
-  conversationId?: Maybe<Scalars['String']['output']>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
   imageHeight?: Maybe<Scalars['Int']['output']>;
@@ -161,7 +160,6 @@ export interface ActionProposalMessageIntent {
 
 export interface ActionProposalMessageIntentInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  conversationId?: InputMaybe<Scalars['String']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   imageHeight?: InputMaybe<Scalars['Int']['input']>;
@@ -221,9 +219,12 @@ export interface ActionProposalSellerContactInfoIntentInput {
 }
 
 export interface ActionProposalSourceWorkBoundary {
+  /** Optional focus collaboration inside the CreatorRelationship. This is action context, not the work item owner. */
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  /** Primary CreatorRelationship workspace ID for this work item. Agent sessions, proposals, and action history should be anchored here. */
+  creatorRelationshipId: Scalars['ID']['output'];
   recommendedActionTypes: Array<ActionProposalType>;
-  shopThreadId: Scalars['ID']['output'];
+  /** Business subject for dispatch. New affiliate work should use CREATOR_RELATIONSHIP as the primary workspace boundary. */
   subjectType: AffiliateWorkItemSubjectType;
   triggerId?: Maybe<Scalars['String']['output']>;
   triggerKind?: Maybe<Scalars['String']['output']>;
@@ -247,8 +248,10 @@ export type ActionProposalStatus = typeof ActionProposalStatus[keyof typeof Acti
 export interface ActionProposalStep {
   approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
+  campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
+  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing summary for this action step. Use the desktop/operator language. */
@@ -257,6 +260,8 @@ export interface ActionProposalStep {
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
+  /** Platform-action shop scope for this step. The proposal itself is owned by creatorRelationshipId. */
+  shopId: Scalars['ID']['output'];
   stepId: Scalars['String']['output'];
   targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
   type: ActionProposalType;
@@ -571,9 +576,9 @@ export interface AffiliateActionProposalChanged {
 
 export interface AffiliateActionProposalDeltaInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
-  shopThreadId: Scalars['ID']['input'];
   since?: InputMaybe<Scalars['DateTimeISO']['input']>;
 }
 
@@ -665,8 +670,9 @@ export interface AffiliateCollaboration {
 
 export interface AffiliateCollaborationActivityInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  /** Primary CreatorRelationship business boundary for action history. collaborationRecordId may only narrow within this relationship. */
+  creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
-  shopThreadId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface AffiliateCollaborationActivityPayload {
@@ -691,7 +697,6 @@ export interface AffiliateCollaborationRecord {
   lifecycleStage: AffiliateLifecycleStage;
   nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
-  platformConversationId?: Maybe<Scalars['String']['output']>;
   predictionSnapshots: Array<AffiliateCollaborationRecordPredictionSnapshot>;
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
@@ -704,15 +709,6 @@ export interface AffiliateCollaborationRecord {
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   workHandledUntil?: Maybe<Scalars['DateTimeISO']['output']>;
-}
-
-/** Collaboration-centered staff read model. Use this for history/progress pages where the collaboration record is the first-class object. */
-export interface AffiliateCollaborationRecordListItem {
-  collaborationRecord: AffiliateCollaborationRecord;
-  creatorProfile?: Maybe<AffiliateCreatorIdentity>;
-  latestLifecycleEvent?: Maybe<LifecycleEvent>;
-  latestProposal?: Maybe<ActionProposal>;
-  productSummary?: Maybe<EcomProductSummary>;
 }
 
 /** Immutable affiliate prediction evidence copied from the short-lived prediction cache into a collaboration record. */
@@ -799,212 +795,9 @@ export const AffiliateCollaborationType = {
 } as const;
 
 export type AffiliateCollaborationType = typeof AffiliateCollaborationType[keyof typeof AffiliateCollaborationType];
-/** Direction of an observed affiliate IM message. */
-export const AffiliateConversationMessageDirection = {
-  Creator: 'CREATOR',
-  Seller: 'SELLER',
-  System: 'SYSTEM'
-} as const;
-
-export type AffiliateConversationMessageDirection = typeof AffiliateConversationMessageDirection[keyof typeof AffiliateConversationMessageDirection];
-/** Affiliate conversation message loaded on demand from the commerce platform. Message bodies are not persisted by RivonClaw. */
-export interface AffiliateConversationMessageItem {
-  conversationId?: Maybe<Scalars['String']['output']>;
-  conversationIndex?: Maybe<Scalars['String']['output']>;
-  createTime?: Maybe<Scalars['Int']['output']>;
-  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  direction?: Maybe<AffiliateConversationMessageDirection>;
-  messageId?: Maybe<Scalars['String']['output']>;
-  messageType?: Maybe<Scalars['String']['output']>;
-  productRefs: Array<AffiliateConversationProductReference>;
-  rawContent?: Maybe<Scalars['String']['output']>;
-  sampleApplicationRefs: Array<AffiliateConversationSampleApplicationReference>;
-  senderId?: Maybe<Scalars['String']['output']>;
-  targetCollaborationRefs: Array<AffiliateConversationTargetCollaborationReference>;
-  text?: Maybe<Scalars['String']['output']>;
-}
-
-export interface AffiliateConversationMessagesInput {
-  conversationId: Scalars['String']['input'];
-  pageSize?: InputMaybe<Scalars['Int']['input']>;
-  pageToken?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['ID']['input'];
-}
-
-/** Affiliate conversation messages fetched on demand from the platform. */
-export interface AffiliateConversationMessagesPage {
-  hasMore: Scalars['Boolean']['output'];
-  items: Array<AffiliateConversationMessageItem>;
-  nextPageToken?: Maybe<Scalars['String']['output']>;
-}
-
-/** Product card reference parsed from an affiliate conversation message. */
-export interface AffiliateConversationProductReference {
-  productId: Scalars['String']['output'];
-  productSummary?: Maybe<EcomProductSummary>;
-}
-
-/** Backend-materialized affiliate creator conversation metadata. Message bodies are not stored here. */
-export interface AffiliateConversationRecord {
-  conversationId: Scalars['String']['output'];
-  createdAt: Scalars['DateTimeISO']['output'];
-  creatorId?: Maybe<Scalars['ID']['output']>;
-  id: Scalars['ID']['output'];
-  lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastMessageId?: Maybe<Scalars['String']['output']>;
-  lastMessageIndex?: Maybe<Scalars['String']['output']>;
-  lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  platform: ShopPlatform;
-  shopId: Scalars['ID']['output'];
-  unreadCount?: Maybe<Scalars['Int']['output']>;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['ID']['output'];
-}
-
-/** Sample application card reference parsed from an affiliate conversation message. */
-export interface AffiliateConversationSampleApplicationReference {
-  platformApplicationId: Scalars['String']['output'];
-  sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
-}
-
-/** Ephemeral affiliate work signal pushed to desktop after backend materializes a reducer event. */
-export interface AffiliateConversationSignal {
-  /** AffiliateCollaboration ID when this signal can be tied to a platform collaboration. */
-  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
-  /** Sample shipment carrier or logistics provider when available. */
-  carrier?: Maybe<Scalars['String']['output']>;
-  /** Outreach channel where the relationship-level message was observed. */
-  channel?: Maybe<AffiliateMessageChannel>;
-  /** AffiliateCollaborationRecord ID produced or updated by the reducer. */
-  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
-  /** Open or target collaboration type when known. */
-  collaborationType?: Maybe<AffiliateCollaborationType>;
-  /** Observed content comment count when available. */
-  contentCommentCount?: Maybe<Scalars['Float']['output']>;
-  /** Observed content description/title when available. */
-  contentDescription?: Maybe<Scalars['String']['output']>;
-  /** Observed content format, e.g. VIDEO or LIVE. */
-  contentFormat?: Maybe<Scalars['String']['output']>;
-  /** Platform content ID when tied to content/order attribution sync. */
-  contentId?: Maybe<Scalars['String']['output']>;
-  /** Observed content like count when available. */
-  contentLikeCount?: Maybe<Scalars['Float']['output']>;
-  /** Observed TikTok content page link when available. */
-  contentPageLink?: Maybe<Scalars['String']['output']>;
-  /** Observed paid order count attributed to the content when available. */
-  contentPaidOrderCount?: Maybe<Scalars['Float']['output']>;
-  /** Observed content source URL when available. */
-  contentUrl?: Maybe<Scalars['String']['output']>;
-  /** Observed content view count when available. */
-  contentViewCount?: Maybe<Scalars['Float']['output']>;
-  /** Platform conversation/thread ID when the signal is message-related. */
-  conversationId?: Maybe<Scalars['String']['output']>;
-  /** Best-known creator avatar URL carried by platform sync when available. */
-  creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
-  /** Best-known creator follower count carried by platform sync when available. */
-  creatorFollowerCount?: Maybe<Scalars['Float']['output']>;
-  /** Creator IM user ID when available from the platform event. */
-  creatorImId?: Maybe<Scalars['String']['output']>;
-  /** Best-known creator display nickname carried by platform sync when available. */
-  creatorNickname?: Maybe<Scalars['String']['output']>;
-  /** Creator open ID when carried by the webhook/API event. */
-  creatorOpenId?: Maybe<Scalars['String']['output']>;
-  /** User-level AffiliateCreatorRelationship ID for channel-agnostic affiliate sessions. */
-  creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
-  /** Best-known creator username carried by platform sync when available. */
-  creatorUsername?: Maybe<Scalars['String']['output']>;
-  /** When the platform event happened or the affiliate condition was detected. */
-  eventTime: Scalars['DateTimeISO']['output'];
-  /** Observed direction of an affiliate IM message. */
-  messageDirection?: Maybe<AffiliateConversationMessageDirection>;
-  /** Platform message ID when tied to a creator message. */
-  messageId?: Maybe<Scalars['String']['output']>;
-  /** Platform message index when available from the creator chat webhook. */
-  messageIndex?: Maybe<Scalars['String']['output']>;
-  /** Platform message type, e.g. TEXT or IMAGE, when tied to a message. */
-  messageType?: Maybe<Scalars['String']['output']>;
-  /** Platform notification ID for webhook de-duplication or diagnostics. */
-  notificationId?: Maybe<Scalars['String']['output']>;
-  /** Order ID when tied to an affiliate order attribution. */
-  orderId?: Maybe<Scalars['String']['output']>;
-  /** Platform sample application ID when tied to a sample workflow update. */
-  platformApplicationId?: Maybe<Scalars['String']['output']>;
-  /** Platform collaboration ID normalized across open and target collaborations. */
-  platformCollaborationId?: Maybe<Scalars['String']['output']>;
-  /** Platform content/fulfillment ID when tied to content fulfillment sync. */
-  platformFulfillmentId?: Maybe<Scalars['String']['output']>;
-  /** Platform content fulfillment status when tied to sample fulfillment sync. */
-  platformFulfillmentStatus?: Maybe<TikTokSampleContentFulfillmentPlatformStatus>;
-  /** Platform open collaboration ID when tied to an open collaboration sample/update. */
-  platformOpenCollaborationId?: Maybe<Scalars['String']['output']>;
-  /** Platform affiliate program ID when tied to order attribution. */
-  platformProgramId?: Maybe<Scalars['String']['output']>;
-  /** Platform shop ID from the commerce platform webhook/API. */
-  platformShopId: Scalars['String']['output'];
-  /** Platform status string carried by the webhook/API event. */
-  platformStatus?: Maybe<Scalars['String']['output']>;
-  /** Platform target collaboration ID when tied to a target-collaboration update. */
-  platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
-  /** Backend-computed seller-turn reasons after materializing the event. */
-  processReasons?: Maybe<Array<AffiliateCollaborationRecordProcessReason>>;
-  /** Backend-computed processing status after materializing the event. */
-  processingStatus?: Maybe<AffiliateCollaborationRecordProcessingStatus>;
-  /** Product ID when carried by a sample or collaboration event. */
-  productId?: Maybe<Scalars['String']['output']>;
-  /** Backend-computed concrete next action after materializing the event. */
-  requiredAction?: Maybe<AffiliateCollaborationRequiredAction>;
-  /** Platform sender ID when available. */
-  senderId?: Maybe<Scalars['String']['output']>;
-  /** Sender role from the platform event, e.g. CREATOR. */
-  senderRole?: Maybe<Scalars['String']['output']>;
-  /** MongoDB shop ID. Used for ownership checks and desktop shop routing. */
-  shopId: Scalars['ID']['output'];
-  /** AffiliateShopCreatorThread ID produced or updated by the reducer. */
-  shopThreadId?: Maybe<Scalars['ID']['output']>;
-  /** System that emitted this signal. */
-  source: AffiliateConversationSignalSource;
-  /** Sample shipment tracking number when available. */
-  trackingNumber?: Maybe<Scalars['String']['output']>;
-  /** Business event that happened or was detected for affiliate operations. */
-  type: AffiliateConversationSignalType;
-  /** True when this payload represents seller-turn work that should be considered for desktop agent dispatch. */
-  workSignal: Scalars['Boolean']['output'];
-}
-
-/** Origin of an affiliate signal */
-export const AffiliateConversationSignalSource = {
-  Airflow: 'AIRFLOW',
-  Manual: 'MANUAL',
-  Webhook: 'WEBHOOK'
-} as const;
-
-export type AffiliateConversationSignalSource = typeof AffiliateConversationSignalSource[keyof typeof AffiliateConversationSignalSource];
-/** Affiliate reducer event type. Legacy values remain accepted for relay compatibility. */
-export const AffiliateConversationSignalType = {
-  AffiliateActionResultObserved: 'AFFILIATE_ACTION_RESULT_OBSERVED',
-  AffiliateConversationMessageObserved: 'AFFILIATE_CONVERSATION_MESSAGE_OBSERVED',
-  AffiliateSampleApplicationObserved: 'AFFILIATE_SAMPLE_APPLICATION_OBSERVED',
-  AffiliateSampleFulfillmentObserved: 'AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED',
-  AffiliateTargetCollaborationObserved: 'AFFILIATE_TARGET_COLLABORATION_OBSERVED',
-  AffiliateTimerDue: 'AFFILIATE_TIMER_DUE',
-  CreatorMessageReceived: 'CREATOR_MESSAGE_RECEIVED',
-  OrderAttributed: 'ORDER_ATTRIBUTED',
-  SampleApplicationUpdated: 'SAMPLE_APPLICATION_UPDATED',
-  TargetCollaborationUpdated: 'TARGET_COLLABORATION_UPDATED'
-} as const;
-
-export type AffiliateConversationSignalType = typeof AffiliateConversationSignalType[keyof typeof AffiliateConversationSignalType];
-/** Target collaboration card reference parsed from an affiliate conversation message. */
-export interface AffiliateConversationTargetCollaborationReference {
-  affiliateCollaboration?: Maybe<AffiliateCollaboration>;
-  platformTargetCollaborationId: Scalars['String']['output'];
-}
-
 export interface AffiliateCreatorContactStateInput {
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** CreatorRelationship is the business boundary for affiliate contact state. Do not pass raw channel or creator identity ids as the primary lookup. */
+  creatorRelationshipId: Scalars['ID']['input'];
   shopId: Scalars['ID']['input'];
 }
 
@@ -1064,52 +857,59 @@ export interface AffiliateCreatorManagementItem {
   tags: Array<CreatorTag>;
 }
 
+/** Direction of an observed affiliate IM message. */
+export const AffiliateCreatorMessageDirection = {
+  Creator: 'CREATOR',
+  Seller: 'SELLER',
+  System: 'SYSTEM'
+} as const;
+
+export type AffiliateCreatorMessageDirection = typeof AffiliateCreatorMessageDirection[keyof typeof AffiliateCreatorMessageDirection];
 export interface AffiliateCreatorMessageHistoryInput {
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
-  includePlatform?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Optional business channel filter. This narrows the relationship-level timeline without exposing provider route ids. */
+  channelFilter?: InputMaybe<Array<AffiliateMessageChannel>>;
+  /** CreatorRelationship is the relationship-level timeline boundary. The response may include channel labels, but provider route ids are not input keys. */
+  creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
-  platformLimit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
 }
 
-/** Relationship-level affiliate conversation item with channel labels across platform chat, WhatsApp, Outlook email, and delivery records. */
+/** Relationship-level affiliate creator message with channel labels across platform chat, WhatsApp, Outlook email, and delivery records. */
 export interface AffiliateCreatorMessageHistoryItem {
+  accountLabel?: Maybe<Scalars['String']['output']>;
   channel: AffiliateMessageChannel;
+  channelLabel?: Maybe<Scalars['String']['output']>;
   createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
   deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
-  direction?: Maybe<AffiliateConversationMessageDirection>;
-  emailAccountBindingId?: Maybe<Scalars['ID']['output']>;
-  emailThreadId?: Maybe<Scalars['String']['output']>;
+  direction?: Maybe<AffiliateCreatorMessageDirection>;
   messageId?: Maybe<Scalars['String']['output']>;
   messageType?: Maybe<Scalars['String']['output']>;
-  platformConversationId?: Maybe<Scalars['String']['output']>;
-  providerMessageId?: Maybe<Scalars['String']['output']>;
+  shopId?: Maybe<Scalars['ID']['output']>;
+  shopName?: Maybe<Scalars['String']['output']>;
   source: Scalars['String']['output'];
   subject?: Maybe<Scalars['String']['output']>;
   text?: Maybe<Scalars['String']['output']>;
-  whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
 }
 
-/** Merged relationship-level affiliate creator conversation history. */
+/** Merged relationship-level affiliate creator chat history across channels. */
 export interface AffiliateCreatorMessageHistoryPayload {
   creatorRelationship: AffiliateCreatorRelationship;
   items: Array<AffiliateCreatorMessageHistoryItem>;
-  platformAvailable: Scalars['Boolean']['output'];
-  platformConversationId?: Maybe<Scalars['String']['output']>;
-  platformError?: Maybe<Scalars['String']['output']>;
-  platformHasMore: Scalars['Boolean']['output'];
-  platformNextPageToken?: Maybe<Scalars['String']['output']>;
 }
 
 export interface AffiliateCreatorProductFitInput {
-  /** Backend AffiliateCreatorIdentity id. Prefer this when the current affiliate work context already resolved it. */
+  /** Optional Backend AffiliateCreatorIdentity id. When omitted, backend derives it from creatorRelationshipId. */
   creatorId?: InputMaybe<Scalars['ID']['input']>;
-  /** TikTok creator_open_id. Use this when a message/card provides the platform creator id but no backend creator id. */
+  /** Optional TikTok creator_open_id. When provided, it must match the CreatorRelationship's creator identity. */
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  /** CreatorRelationship is the business boundary for this prediction evidence request. The prediction is evidence for the relationship-scoped Desktop Agent, not a standalone backend decision. */
+  creatorRelationshipId: Scalars['ID']['input'];
+  /** TikTok Shop sample application id when the prediction evidence is for a concrete sample review. */
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** TikTok Shop product id to evaluate as a candidate collaboration product. This does not bind the product to any collaboration record. */
   productId: Scalars['String']['input'];
+  /** Backend SampleApplicationRecord id when the prediction evidence is for a concrete sample review. */
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Prediction scenario. Defaults to TARGET_COLLABORATION_PLANNING for creator-product fit checks from affiliate chat. */
   scenario?: InputMaybe<AffiliateExpectedSalesPredictionScenario>;
   shopId: Scalars['ID']['input'];
@@ -1127,6 +927,7 @@ export interface AffiliateCreatorProductFitPayload {
 
 /** User-scoped creator relationship. Shop-specific lifecycle and tags are embedded because a user's shop count is bounded. */
 export interface AffiliateCreatorRelationship {
+  activeCollaborationRecordIds: Array<Scalars['ID']['output']>;
   blocked: Scalars['Boolean']['output'];
   /** When blocked=true and this list is empty, the user-level block applies to all current/future shops. */
   blockedShopIds: Array<Scalars['ID']['output']>;
@@ -1134,8 +935,18 @@ export interface AffiliateCreatorRelationship {
   creatorId: Scalars['ID']['output'];
   emailContacts: Array<AffiliateCreatorEmailContact>;
   id: Scalars['ID']['output'];
+  lastAgentHandledAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastPlatformSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  pendingActionProposalId?: Maybe<Scalars['ID']['output']>;
+  processReasons: Array<AffiliateCollaborationRecordProcessReason>;
+  processingStatus: AffiliateRelationshipProcessingStatus;
+  requiredAction: AffiliateRelationshipRequiredAction;
   shopStates: Array<AffiliateCreatorRelationshipShopState>;
+  stateUpdatedAt: Scalars['DateTimeISO']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   whatsappContacts: Array<AffiliateCreatorWhatsAppContact>;
@@ -1162,69 +973,6 @@ export interface AffiliateCreatorWhatsAppContact {
   status: WhatsAppCreatorContactStatus;
   verifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
-}
-
-export interface AffiliateDashboardInput {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  section?: InputMaybe<AffiliateDashboardSection>;
-  shopId?: InputMaybe<Scalars['ID']['input']>;
-}
-
-/** Workbench item for staff-facing affiliate management. This folds proposals, work projections, and audit events into one UI read model. */
-export interface AffiliateDashboardItem {
-  collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
-  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
-  creatorId?: Maybe<Scalars['ID']['output']>;
-  creatorProfile?: Maybe<AffiliateCreatorIdentity>;
-  id: Scalars['ID']['output'];
-  kind: AffiliateDashboardItemKind;
-  lifecycleEventId?: Maybe<Scalars['ID']['output']>;
-  lifecycleEventType?: Maybe<AffiliateLifecycleEventType>;
-  occurredAt: Scalars['DateTimeISO']['output'];
-  productSummary?: Maybe<EcomProductSummary>;
-  proposal?: Maybe<ActionProposal>;
-  proposalId?: Maybe<Scalars['ID']['output']>;
-  sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
-  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
-  section: AffiliateDashboardSection;
-  shopId: Scalars['ID']['output'];
-  statusLabel?: Maybe<Scalars['String']['output']>;
-  summary?: Maybe<Scalars['String']['output']>;
-  title: Scalars['String']['output'];
-  updatedAt: Scalars['DateTimeISO']['output'];
-  workItem?: Maybe<AffiliateWorkItem>;
-}
-
-export const AffiliateDashboardItemKind = {
-  ActionExecuted: 'ACTION_EXECUTED',
-  ActionRejected: 'ACTION_REJECTED',
-  AgentWorkPending: 'AGENT_WORK_PENDING',
-  ApprovalRequired: 'APPROVAL_REQUIRED',
-  ManualFollowUp: 'MANUAL_FOLLOW_UP',
-  OngoingCollaboration: 'ONGOING_COLLABORATION',
-  PlatformEvent: 'PLATFORM_EVENT',
-  StaffActionRequired: 'STAFF_ACTION_REQUIRED'
-} as const;
-
-export type AffiliateDashboardItemKind = typeof AffiliateDashboardItemKind[keyof typeof AffiliateDashboardItemKind];
-export interface AffiliateDashboardPayload {
-  items: Array<AffiliateDashboardItem>;
-  summary: AffiliateDashboardSummary;
-}
-
-export const AffiliateDashboardSection = {
-  History: 'HISTORY',
-  InProgress: 'IN_PROGRESS',
-  NeedsAttention: 'NEEDS_ATTENTION'
-} as const;
-
-export type AffiliateDashboardSection = typeof AffiliateDashboardSection[keyof typeof AffiliateDashboardSection];
-export interface AffiliateDashboardSummary {
-  historyCount: Scalars['Int']['output'];
-  inProgressCount: Scalars['Int']['output'];
-  manualFollowUpCount: Scalars['Int']['output'];
-  needsAttentionCount: Scalars['Int']['output'];
-  pendingApprovalCount: Scalars['Int']['output'];
 }
 
 /** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
@@ -1474,12 +1222,10 @@ export const AffiliateLifecycleEntityType = {
   AffiliateCollaborationRecord: 'AFFILIATE_COLLABORATION_RECORD',
   AffiliateCreatorIdentity: 'AFFILIATE_CREATOR_IDENTITY',
   AffiliateCreatorRelationship: 'AFFILIATE_CREATOR_RELATIONSHIP',
-  AffiliateShopCreatorThread: 'AFFILIATE_SHOP_CREATOR_THREAD',
   CampaignProduct: 'CAMPAIGN_PRODUCT',
   CreatorCandidate: 'CREATOR_CANDIDATE',
   CreatorSearchRun: 'CREATOR_SEARCH_RUN',
   CreatorTag: 'CREATOR_TAG',
-  OutreachThread: 'OUTREACH_THREAD',
   SampleApplicationRecord: 'SAMPLE_APPLICATION_RECORD'
 } as const;
 
@@ -1547,14 +1293,12 @@ export interface AffiliateMessageDelivery {
   creatorId: Scalars['ID']['output'];
   creatorRelationshipId: Scalars['ID']['output'];
   emailAccountBindingId?: Maybe<Scalars['ID']['output']>;
-  emailThreadId?: Maybe<Scalars['String']['output']>;
   errorCode?: Maybe<Scalars['String']['output']>;
   errorMessage?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   idempotencyKey: Scalars['String']['output'];
   openClawRunId?: Maybe<Scalars['String']['output']>;
   openClawSessionKey?: Maybe<Scalars['String']['output']>;
-  platformConversationId?: Maybe<Scalars['String']['output']>;
   preferredChannel: AffiliateMessageChannel;
   providerMessageId?: Maybe<Scalars['String']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
@@ -1646,7 +1390,7 @@ export interface AffiliateOutreachDeliveryStatusCount {
 export interface AffiliateOutreachInboundMessageCount {
   channel: AffiliateMessageChannel;
   count: Scalars['Int']['output'];
-  direction: AffiliateConversationMessageDirection;
+  direction: AffiliateCreatorMessageDirection;
 }
 
 export interface AffiliateOutreachOperationalEventCount {
@@ -1747,6 +1491,150 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
+/** CreatorRelationship agenda owner state. This is relationship-level and should not encode sample or collaboration lifecycle details. */
+export const AffiliateRelationshipProcessingStatus = {
+  AgentRequired: 'AGENT_REQUIRED',
+  ExternalWaiting: 'EXTERNAL_WAITING',
+  Idle: 'IDLE',
+  StaffRequired: 'STAFF_REQUIRED'
+} as const;
+
+export type AffiliateRelationshipProcessingStatus = typeof AffiliateRelationshipProcessingStatus[keyof typeof AffiliateRelationshipProcessingStatus];
+/** CreatorRelationship agenda next step. Common concrete collaboration tasks are surfaced here; detailed sample/product state stays on CollaborationRecord or SampleApplication. */
+export const AffiliateRelationshipRequiredAction = {
+  CompleteCollaborationTask: 'COMPLETE_COLLABORATION_TASK',
+  FollowUpCreator: 'FOLLOW_UP_CREATOR',
+  NoAction: 'NO_ACTION',
+  ReplyToCreator: 'REPLY_TO_CREATOR',
+  ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
+  ReviewActionProposal: 'REVIEW_ACTION_PROPOSAL',
+  ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
+  ReviewAmbiguousContext: 'REVIEW_AMBIGUOUS_CONTEXT',
+  ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
+  ShipSample: 'SHIP_SAMPLE',
+  WaitCreatorResponse: 'WAIT_CREATOR_RESPONSE',
+  WaitPlatformUpdate: 'WAIT_PLATFORM_UPDATE'
+} as const;
+
+export type AffiliateRelationshipRequiredAction = typeof AffiliateRelationshipRequiredAction[keyof typeof AffiliateRelationshipRequiredAction];
+/** Ephemeral affiliate work signal pushed to desktop after backend materializes a reducer event. */
+export interface AffiliateRelationshipSignal {
+  /** Optional related AffiliateCollaboration platform ID when the relationship-level signal has a resolved collaboration context. */
+  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  /** Sample shipment carrier or logistics provider when available. */
+  carrier?: Maybe<Scalars['String']['output']>;
+  /** Outreach channel where the relationship-level message was observed. */
+  channel?: Maybe<AffiliateMessageChannel>;
+  /** AffiliateCollaborationRecord ID produced or updated by the reducer. */
+  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  /** Open or target collaboration type when known. */
+  collaborationType?: Maybe<AffiliateCollaborationType>;
+  /** Observed content comment count when available. */
+  contentCommentCount?: Maybe<Scalars['Float']['output']>;
+  /** Observed content description/title when available. */
+  contentDescription?: Maybe<Scalars['String']['output']>;
+  /** Observed content format, e.g. VIDEO or LIVE. */
+  contentFormat?: Maybe<Scalars['String']['output']>;
+  /** Platform content ID when tied to content/order attribution sync. */
+  contentId?: Maybe<Scalars['String']['output']>;
+  /** Observed content like count when available. */
+  contentLikeCount?: Maybe<Scalars['Float']['output']>;
+  /** Observed TikTok content page link when available. */
+  contentPageLink?: Maybe<Scalars['String']['output']>;
+  /** Observed paid order count attributed to the content when available. */
+  contentPaidOrderCount?: Maybe<Scalars['Float']['output']>;
+  /** Observed content source URL when available. */
+  contentUrl?: Maybe<Scalars['String']['output']>;
+  /** Observed content view count when available. */
+  contentViewCount?: Maybe<Scalars['Float']['output']>;
+  /** Best-known creator avatar URL carried by platform sync when available. */
+  creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
+  /** Best-known creator follower count carried by platform sync when available. */
+  creatorFollowerCount?: Maybe<Scalars['Float']['output']>;
+  /** Creator IM user ID when available from the platform event. */
+  creatorImId?: Maybe<Scalars['String']['output']>;
+  /** Best-known creator display nickname carried by platform sync when available. */
+  creatorNickname?: Maybe<Scalars['String']['output']>;
+  /** Creator open ID when carried by the webhook/API event. */
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  /** User-level AffiliateCreatorRelationship ID for channel-agnostic affiliate sessions. */
+  creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
+  /** Best-known creator username carried by platform sync when available. */
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  /** When the platform event happened or the affiliate condition was detected. */
+  eventTime: Scalars['DateTimeISO']['output'];
+  /** Observed direction of an affiliate IM message. */
+  messageDirection?: Maybe<AffiliateCreatorMessageDirection>;
+  /** Platform message ID when tied to a creator message. */
+  messageId?: Maybe<Scalars['String']['output']>;
+  /** Platform message index when available from the creator chat webhook. */
+  messageIndex?: Maybe<Scalars['String']['output']>;
+  /** Platform message type, e.g. TEXT or IMAGE, when tied to a message. */
+  messageType?: Maybe<Scalars['String']['output']>;
+  /** Platform notification ID for webhook de-duplication or diagnostics. */
+  notificationId?: Maybe<Scalars['String']['output']>;
+  /** Order ID when tied to an affiliate order attribution. */
+  orderId?: Maybe<Scalars['String']['output']>;
+  /** Platform sample application ID when tied to a sample workflow update. */
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  /** Platform collaboration ID normalized across open and target collaborations. */
+  platformCollaborationId?: Maybe<Scalars['String']['output']>;
+  /** Platform content/fulfillment ID when tied to content fulfillment sync. */
+  platformFulfillmentId?: Maybe<Scalars['String']['output']>;
+  /** Platform content fulfillment status when tied to sample fulfillment sync. */
+  platformFulfillmentStatus?: Maybe<TikTokSampleContentFulfillmentPlatformStatus>;
+  /** Platform open collaboration ID when tied to an open collaboration sample/update. */
+  platformOpenCollaborationId?: Maybe<Scalars['String']['output']>;
+  /** Platform affiliate program ID when tied to order attribution. */
+  platformProgramId?: Maybe<Scalars['String']['output']>;
+  /** Platform shop ID from the commerce platform webhook/API. */
+  platformShopId: Scalars['String']['output'];
+  /** Platform status string carried by the webhook/API event. */
+  platformStatus?: Maybe<Scalars['String']['output']>;
+  /** Platform target collaboration ID when tied to a target-collaboration update. */
+  platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
+  /** Backend-computed seller-turn reasons after materializing the event. */
+  processReasons?: Maybe<Array<AffiliateCollaborationRecordProcessReason>>;
+  /** Backend-computed relationship agenda status after materializing the event. */
+  processingStatus?: Maybe<AffiliateRelationshipProcessingStatus>;
+  /** Product ID when carried by a sample or collaboration event. */
+  productId?: Maybe<Scalars['String']['output']>;
+  /** Backend-computed relationship agenda next action after materializing the event. */
+  requiredAction?: Maybe<AffiliateRelationshipRequiredAction>;
+  /** Platform sender ID when available. */
+  senderId?: Maybe<Scalars['String']['output']>;
+  /** Sender role from the platform event, e.g. CREATOR. */
+  senderRole?: Maybe<Scalars['String']['output']>;
+  /** MongoDB shop ID. Used for ownership checks and desktop shop routing. */
+  shopId: Scalars['ID']['output'];
+  /** System that emitted this signal. */
+  source: AffiliateRelationshipSignalSource;
+  /** Sample shipment tracking number when available. */
+  trackingNumber?: Maybe<Scalars['String']['output']>;
+  /** Business event that happened or was detected for affiliate operations. */
+  type: AffiliateRelationshipSignalType;
+  /** True when this payload represents seller-turn work that should be considered for desktop agent dispatch. */
+  workSignal: Scalars['Boolean']['output'];
+}
+
+/** Origin of an affiliate signal */
+export const AffiliateRelationshipSignalSource = {
+  Airflow: 'AIRFLOW',
+  Manual: 'MANUAL',
+  Webhook: 'WEBHOOK'
+} as const;
+
+export type AffiliateRelationshipSignalSource = typeof AffiliateRelationshipSignalSource[keyof typeof AffiliateRelationshipSignalSource];
+/** Affiliate reducer event type. Events materialize CreatorRelationship state and may carry provider-route evidence. */
+export const AffiliateRelationshipSignalType = {
+  AffiliateRelationshipMessageObserved: 'AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED',
+  AffiliateSampleApplicationObserved: 'AFFILIATE_SAMPLE_APPLICATION_OBSERVED',
+  AffiliateSampleFulfillmentObserved: 'AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED',
+  AffiliateTargetCollaborationObserved: 'AFFILIATE_TARGET_COLLABORATION_OBSERVED',
+  AffiliateTimerDue: 'AFFILIATE_TIMER_DUE'
+} as const;
+
+export type AffiliateRelationshipSignalType = typeof AffiliateRelationshipSignalType[keyof typeof AffiliateRelationshipSignalType];
 /** How much creator research the desktop skill should spend before acting. */
 export const AffiliateResearchDepth = {
   Balanced: 'BALANCED',
@@ -1803,67 +1691,15 @@ export interface AffiliateServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
-/** Shop-scoped seller/creator affiliate conversation and operational work thread. Collaborations are structured business units under this shop thread. */
-export interface AffiliateShopCreatorThread {
-  activeCollaborationRecordIds: Array<Scalars['ID']['output']>;
-  ambiguousCollaborationRecordIds: Array<Scalars['ID']['output']>;
-  archivedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  createdAt: Scalars['DateTimeISO']['output'];
-  creatorId?: Maybe<Scalars['ID']['output']>;
-  creatorImId?: Maybe<Scalars['String']['output']>;
-  creatorOpenId?: Maybe<Scalars['String']['output']>;
-  focusCollaborationRecordId?: Maybe<Scalars['ID']['output']>;
-  id: Scalars['ID']['output'];
-  lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastMessageId?: Maybe<Scalars['String']['output']>;
-  lastMessageIndex?: Maybe<Scalars['String']['output']>;
-  lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastSignalAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  platform: ShopPlatform;
-  platformConversationId?: Maybe<Scalars['String']['output']>;
-  processReasons: Array<AffiliateCollaborationRecordProcessReason>;
-  processingStatus: AffiliateCollaborationRecordProcessingStatus;
-  requiredAction: AffiliateCollaborationRequiredAction;
-  shopId: Scalars['ID']['output'];
-  startedAt: Scalars['DateTimeISO']['output'];
-  stateUpdatedAt: Scalars['DateTimeISO']['output'];
-  unreadCount?: Maybe<Scalars['Int']['output']>;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['ID']['output'];
-  workHandledUntil?: Maybe<Scalars['DateTimeISO']['output']>;
-}
-
 /** Staff-facing terminal action for manually handling an affiliate collaboration work item. */
 export const AffiliateStaffCollaborationResolutionAction = {
   MarkHandled: 'MARK_HANDLED'
 } as const;
 
 export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffCollaborationResolutionAction[keyof typeof AffiliateStaffCollaborationResolutionAction];
-/** WhatsApp message observed through a seller linked-device account for affiliate outreach. */
-export interface AffiliateWhatsAppMessage {
-  createdAt: Scalars['DateTimeISO']['output'];
-  creatorPhone?: Maybe<Scalars['String']['output']>;
-  creatorRelationshipId: Scalars['ID']['output'];
-  creatorWaJid: Scalars['String']['output'];
-  direction: AffiliateConversationMessageDirection;
-  eventTime: Scalars['DateTimeISO']['output'];
-  id: Scalars['ID']['output'];
-  messageType: Scalars['String']['output'];
-  providerMessageId: Scalars['String']['output'];
-  providerStatus?: Maybe<Scalars['String']['output']>;
-  statusUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  text?: Maybe<Scalars['String']['output']>;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['ID']['output'];
-  whatsappAccountBindingId: Scalars['ID']['output'];
-}
-
 export interface AffiliateWhatsAppMessagesInput {
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** CreatorRelationship business boundary. This legacy WhatsApp-only read path is still relationship-scoped and does not accept creator/profile fallback keys. */
+  creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
 }
@@ -1904,22 +1740,31 @@ export interface AffiliateWorkItem {
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
   collaboration?: Maybe<AffiliateCollaborationRecord>;
+  /** Optional focus collaboration inside the CreatorRelationship. This is action context, not the work item owner. */
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   context: AffiliateWorkContext;
-  /** Stable work-item ID. Currently the AffiliateCollaborationRecord ID. */
+  creatorRelationship: AffiliateCreatorRelationship;
+  /** Primary CreatorRelationship workspace ID for this work item. Agent sessions, proposals, and action history should be anchored here. */
+  creatorRelationshipId: Scalars['ID']['output'];
+  /** Default platform shop context for the focused action/collaboration. This is not the work item owner. */
+  focusPlatformShopId: Scalars['String']['output'];
+  /** Default shop context for the focused action/collaboration. This is not the work item owner. */
+  focusShopId: Scalars['ID']['output'];
+  /** Stable work-item ID. Relationship-level work items use the CreatorRelationship ID. */
   id: Scalars['ID']['output'];
   latestPendingProposal?: Maybe<ActionProposal>;
-  platformShopId: Scalars['String']['output'];
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
-  processingStatus: AffiliateCollaborationRecordProcessingStatus;
+  processingStatus: AffiliateRelationshipProcessingStatus;
   recommendedActionTypes: Array<ActionProposalType>;
-  requiredAction: AffiliateCollaborationRequiredAction;
+  requiredAction: AffiliateRelationshipRequiredAction;
+  /** Operational desktop-routing platform shop IDs for this relationship work item. These are routing scopes, not business owners. */
+  routingPlatformShopIds: Array<Scalars['String']['output']>;
+  /** Operational desktop-routing shop IDs for this relationship work item. These are routing scopes, not business owners. */
+  routingShopIds: Array<Scalars['ID']['output']>;
   sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
-  shopId: Scalars['ID']['output'];
-  shopThread: AffiliateShopCreatorThread;
-  shopThreadId: Scalars['ID']['output'];
   /** True when the item should appear in staff review surfaces even if no agent run should start. */
   staffReviewRequired: Scalars['Boolean']['output'];
+  /** Business subject for dispatch. New affiliate work should use CREATOR_RELATIONSHIP as the primary workspace boundary. */
   subjectType: AffiliateWorkItemSubjectType;
   /** Projection version timestamp. Desktop can use this for idempotent upsert. */
   versionAt: Scalars['DateTimeISO']['output'];
@@ -1944,8 +1789,7 @@ export const AffiliateWorkItemResolutionDecision = {
 export type AffiliateWorkItemResolutionDecision = typeof AffiliateWorkItemResolutionDecision[keyof typeof AffiliateWorkItemResolutionDecision];
 /** Primary subject for an affiliate work item. */
 export const AffiliateWorkItemSubjectType = {
-  Collaboration: 'COLLABORATION',
-  ShopCreatorThread: 'SHOP_CREATOR_THREAD'
+  CreatorRelationship: 'CREATOR_RELATIONSHIP'
 } as const;
 
 export type AffiliateWorkItemSubjectType = typeof AffiliateWorkItemSubjectType[keyof typeof AffiliateWorkItemSubjectType];
@@ -1972,9 +1816,9 @@ export interface AffiliateWorkMissingContext {
 /** Typed missing-context diagnostic for backend-resolved affiliate work context. */
 export const AffiliateWorkMissingContextReason = {
   CollaborationOfferMissing: 'COLLABORATION_OFFER_MISSING',
-  ConversationIdMissing: 'CONVERSATION_ID_MISSING',
   CreatorOpenIdMissing: 'CREATOR_OPEN_ID_MISSING',
   CreatorProfileMissing: 'CREATOR_PROFILE_MISSING',
+  PlatformChatRouteMissing: 'PLATFORM_CHAT_ROUTE_MISSING',
   SampleApplicationMissing: 'SAMPLE_APPLICATION_MISSING'
 } as const;
 
@@ -2001,11 +1845,12 @@ export interface AffiliateWorkspaceInput {
   candidateStatus?: InputMaybe<CreatorCandidateStatus>;
   collaborationProcessingStatus?: InputMaybe<AffiliateCollaborationRecordProcessingStatus>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
+  /** Required CreatorRelationship workspace boundary for affiliate agent work. shopId remains the entitlement and shop-scope filter. */
+  creatorRelationshipId: Scalars['ID']['input'];
   includePolicies?: InputMaybe<Scalars['Boolean']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
-  platformConversationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
   proposalStatus?: InputMaybe<ActionProposalStatus>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
@@ -2320,10 +2165,9 @@ export interface CaptchaResponse {
 }
 
 export interface CheckCreatorWhatsAppContactInput {
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   creatorPhone: Scalars['String']['input'];
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** CreatorRelationship is the business boundary for validating and optionally saving creator contact channels. */
+  creatorRelationshipId: Scalars['ID']['input'];
   persist?: InputMaybe<Scalars['Boolean']['input']>;
   shopId: Scalars['ID']['input'];
   whatsappAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
@@ -3500,6 +3344,8 @@ export interface CustomerServiceSettingsInput {
 }
 
 export interface DecideActionProposalInput {
+  /** CreatorRelationship workspace that owns the proposal. Required so proposal decisions stay relationship-scoped instead of proposal-id-only. */
+  creatorRelationshipId: Scalars['ID']['input'];
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
   status: ActionProposalStatus;
@@ -3515,23 +3361,6 @@ export interface DeliverAffiliateCreatorTextInput {
   shopId: Scalars['ID']['input'];
   source?: InputMaybe<AffiliateDeliverySource>;
   text: Scalars['String']['input'];
-}
-
-/** Affiliate message */
-export interface EcomAffiliateMessage {
-  content?: Maybe<Scalars['String']['output']>;
-  conversationId?: Maybe<Scalars['String']['output']>;
-  conversationIndex?: Maybe<Scalars['String']['output']>;
-  createTime?: Maybe<Scalars['Int']['output']>;
-  messageId?: Maybe<Scalars['String']['output']>;
-  senderId?: Maybe<Scalars['String']['output']>;
-  type?: Maybe<Scalars['String']['output']>;
-}
-
-/** Bounded affiliate creator conversation delta from a local OpenClaw session anchor through a current inbound message. */
-export interface EcomAffiliateMessageDelta {
-  items: Array<EcomAffiliateMessage>;
-  meta: ConversationMessageDeltaMeta;
 }
 
 /** Aftersale eligibility for an order */
@@ -3936,7 +3765,9 @@ export interface EcomBiQueryInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Metrics to return. Defaults are declared by dataset metadata. */
   metrics?: InputMaybe<Array<EcomBiMetric>>;
-  /** Optional sort order. Fields must be selected in dimensions or metrics. */
+  /** Rows to skip before returning data. Use with limit to page large export-style result sets. */
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
   /** Onboarded shop Mongo IDs. BI queries only expose Ads rows whose store binding matches these authorized shops. */
   shopIds: Array<Scalars['ID']['input']>;
@@ -4388,6 +4219,10 @@ export interface EcomProduct {
   createTime?: Maybe<Scalars['Int']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   images?: Maybe<Array<EcomImage>>;
+  /** Package weight unit returned by the platform product detail API. */
+  packageWeightUnit?: Maybe<Scalars['String']['output']>;
+  /** Package weight value returned by the platform product detail API. */
+  packageWeightValue?: Maybe<Scalars['String']['output']>;
   productId: Scalars['String']['output'];
   productTypes?: Maybe<Array<Scalars['String']['output']>>;
   skus?: Maybe<Array<EcomProductSku>>;
@@ -5111,9 +4946,9 @@ export interface InventoryAnalysisShopSkuPerformanceFacts {
   startDateGe: Scalars['String']['output'];
 }
 
-/** Inventory quantity for a third-party WMS warehouse where WMS is the source of truth. */
+/** Inventory quantity for a third-party WMS warehouse. When sourceSystem or wmsAccountId is null, the shop warehouse has not been mapped to a canonical WMS warehouse yet, so only inShopQuantities are available from the shop platform's displayed inventory. */
 export interface InventoryAnalysisThirdPartyWmsWarehouseStock {
-  /** Shop backend observations mapped to this WMS warehouse. */
+  /** Shop backend observations mapped to this WMS warehouse. For unmapped third-party shop warehouses, this is the only available inventory signal and represents the platform-displayed quantity, not physical WMS stock. */
   inShopQuantities: Array<InventoryAnalysisInShopWarehouseQuantity>;
   /** Units currently in transit to this WMS warehouse when available. */
   inTransitQuantity?: Maybe<Scalars['Int']['output']>;
@@ -5121,12 +4956,12 @@ export interface InventoryAnalysisThirdPartyWmsWarehouseStock {
   isActive: Scalars['Boolean']['output'];
   /** Authoritative WMS warehouse quantity when available. */
   quantity?: Maybe<Scalars['Int']['output']>;
-  /** Source system label, such as YEJOIN_WMS. */
-  sourceSystem: Scalars['String']['output'];
+  /** Source system label, such as YEJOIN_WMS. Null means this third-party shop warehouse is not mapped yet. */
+  sourceSystem?: Maybe<Scalars['String']['output']>;
   /** Warehouse display name when available. */
   warehouseName?: Maybe<Scalars['String']['output']>;
-  /** WMS account Mongo ID. */
-  wmsAccountId: Scalars['ID']['output'];
+  /** WMS account Mongo ID. Null means this third-party shop warehouse is not mapped yet. */
+  wmsAccountId?: Maybe<Scalars['ID']['output']>;
   /** WMS account label. */
   wmsAccountLabel?: Maybe<Scalars['String']['output']>;
 }
@@ -5286,6 +5121,7 @@ export interface LifecycleEvent {
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId?: Maybe<Scalars['ID']['output']>;
+  creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
   /** Display/debug payload only. Lifecycle reducers must use typed fields. */
   displayPayloadJson?: Maybe<Scalars['String']['output']>;
   entityId: Scalars['ID']['output'];
@@ -5296,7 +5132,6 @@ export interface LifecycleEvent {
   productId?: Maybe<Scalars['String']['output']>;
   proposalId?: Maybe<Scalars['ID']['output']>;
   shopId: Scalars['ID']['output'];
-  shopThreadId?: Maybe<Scalars['ID']['output']>;
   toStage?: Maybe<AffiliateLifecycleStage>;
   userId: Scalars['ID']['output'];
 }
@@ -5449,7 +5284,7 @@ export interface Mutation {
   /** Admin-only: point the relay debugging channel at one desktop device, or clear that relay target. Desktop clients configure their debug proxy account automatically after login; this mutation only changes the relay target. */
   adminSetDebugChannel: AdminDebugChannelResult;
   /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
-  affiliatePublishConversationSignal: AffiliateConversationSignal;
+  affiliatePublishRelationshipSignal: AffiliateRelationshipSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
   applyCreatorTag: AffiliateCreatorRelationship;
   /** Assign a manual subscription for testing or operator-driven activation. */
@@ -5592,7 +5427,7 @@ export interface Mutation {
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
   /** Resolve staff-facing affiliate collaboration work after a human handled it outside the agent proposal flow. */
   resolveAffiliateCollaborationStaffAction: ResolveAffiliateCollaborationStaffActionPayload;
-  /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the work boundary and update collaboration state. */
+  /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the relationship work boundary and update relationship/collaboration state as needed. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
@@ -5600,8 +5435,8 @@ export interface Mutation {
   revokeEmailAccountBinding: EmailAccountBinding;
   /** Logout or delete a WhatsApp account binding and mark it revoked. */
   revokeWhatsAppAccountBinding: WhatsAppAccountBinding;
-  /** Send a human-authored affiliate conversation reply directly to TikTok Shop and record it as a HUMAN lifecycle action. */
-  sendAffiliateConversationMessage: SendAffiliateConversationMessagePayload;
+  /** Send a human-authored affiliate creator message from the CreatorRelationship workspace. */
+  sendAffiliateCreatorMessage: SendAffiliateCreatorMessagePayload;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
   /** Attach or update a creator WhatsApp contact on an affiliate creator relationship. */
@@ -5681,8 +5516,8 @@ export interface MutationAdminSetDebugChannelArgs {
 }
 
 
-export interface MutationAffiliatePublishConversationSignalArgs {
-  input: PublishAffiliateConversationSignalInput;
+export interface MutationAffiliatePublishRelationshipSignalArgs {
+  input: PublishAffiliateRelationshipSignalInput;
 }
 
 
@@ -5999,6 +5834,7 @@ export interface MutationPublishPresetSkillsChangedArgs {
 
 
 export interface MutationPublishToolSpecsChangedArgs {
+  changeType?: InputMaybe<Scalars['String']['input']>;
   reason?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -6092,8 +5928,8 @@ export interface MutationRevokeWhatsAppAccountBindingArgs {
 }
 
 
-export interface MutationSendAffiliateConversationMessageArgs {
-  input: SendAffiliateConversationMessageInput;
+export interface MutationSendAffiliateCreatorMessageArgs {
+  input: SendAffiliateCreatorMessageInput;
 }
 
 
@@ -6493,8 +6329,8 @@ export const ProxyStatus = {
 
 export type ProxyStatus = typeof ProxyStatus[keyof typeof ProxyStatus];
 /** Input for publishing an ephemeral affiliate signal */
-export interface PublishAffiliateConversationSignalInput {
-  /** Existing AffiliateCollaboration ID when the publisher already resolved it. */
+export interface PublishAffiliateRelationshipSignalInput {
+  /** Optional related AffiliateCollaboration platform ID when the publisher already resolved collaboration context. */
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   /** Sample shipment carrier or logistics provider when available. */
   carrier?: InputMaybe<Scalars['String']['input']>;
@@ -6522,7 +6358,7 @@ export interface PublishAffiliateConversationSignalInput {
   contentUrl?: InputMaybe<Scalars['String']['input']>;
   /** Observed content view count when available. */
   contentViewCount?: InputMaybe<Scalars['Float']['input']>;
-  /** Platform conversation/thread ID when message-related. */
+  /** Provider route evidence for message-related signals. This is not the CreatorRelationship workspace key. */
   conversationId?: InputMaybe<Scalars['String']['input']>;
   /** Best-known creator avatar URL from platform sync. */
   creatorAvatarUrl?: InputMaybe<Scalars['String']['input']>;
@@ -6540,12 +6376,14 @@ export interface PublishAffiliateConversationSignalInput {
   creatorUsername?: InputMaybe<Scalars['String']['input']>;
   /** Event timestamp as an ISO string. Defaults to server publish time. */
   eventTime?: InputMaybe<Scalars['String']['input']>;
-  /** Observed message direction. Legacy CREATOR_MESSAGE_RECEIVED defaults to CREATOR when omitted. */
-  messageDirection?: InputMaybe<AffiliateConversationMessageDirection>;
+  /** Observed message direction. Relationship message signals require this or sender role evidence. */
+  messageDirection?: InputMaybe<AffiliateCreatorMessageDirection>;
   /** Platform message ID for creator message signals. */
   messageId?: InputMaybe<Scalars['String']['input']>;
   /** Platform message index when available. */
   messageIndex?: InputMaybe<Scalars['String']['input']>;
+  /** Creator/seller visible message text for materializing relationship-level message facts. Not a provider route identifier. */
+  messageText?: InputMaybe<Scalars['String']['input']>;
   /** Platform message type, e.g. TEXT or IMAGE. */
   messageType?: InputMaybe<Scalars['String']['input']>;
   /** Platform notification ID if available. */
@@ -6579,11 +6417,11 @@ export interface PublishAffiliateConversationSignalInput {
   /** MongoDB shop ID. Provide this from authenticated clients when available. */
   shopId?: InputMaybe<Scalars['ID']['input']>;
   /** Origin of the signal. */
-  source: AffiliateConversationSignalSource;
+  source: AffiliateRelationshipSignalSource;
   /** Sample shipment tracking number when available. */
   trackingNumber?: InputMaybe<Scalars['String']['input']>;
   /** Business signal to publish. */
-  type: AffiliateConversationSignalType;
+  type: AffiliateRelationshipSignalType;
 }
 
 /** Input for publishing an ephemeral CS conversation signal */
@@ -6643,34 +6481,24 @@ export interface Query {
   adsStoreAccess?: Maybe<AdsStoreAccess>;
   /** List TikTok Ads shop/store accesses visible through connected advertising accounts. */
   adsStoreAccesses: Array<AdsStoreAccess>;
-  /** Read bounded proposal events for one affiliate collaboration. Desktop injects this as per-run delta context, not as stable workspace state. */
+  /** Read bounded proposal events for one CreatorRelationship. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
-  /** Read action proposals and lifecycle events for one affiliate collaboration record. */
+  /** Read action proposals and lifecycle events for a creator relationship, optionally narrowed to one collaboration record. */
   affiliateCollaborationActivity: AffiliateCollaborationActivityPayload;
-  /** Read collaboration-centered affiliate records with display context for staff history/progress pages. */
-  affiliateCollaborationRecordItems: Array<AffiliateCollaborationRecordListItem>;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
   affiliateCollaborations: Array<AffiliateCollaboration>;
-  /** Get a bounded affiliate creator conversation delta from a local OpenClaw-session anchor through the current inbound message. */
-  affiliateConversationMessageDelta: EcomAffiliateMessageDelta;
-  /** Read affiliate creator conversation messages on demand from the platform. RivonClaw stores conversation metadata but does not persist message bodies. */
-  affiliateConversationMessages: AffiliateConversationMessagesPage;
-  /** Read affiliate creator conversation metadata from MongoDB. Message bodies are not stored here; use affiliateConversationMessages for platform message pages. */
-  affiliateConversationRecords: Array<AffiliateConversationRecord>;
   /** Read relationship-level creator contact state, including WhatsApp/email contacts and available seller accounts. */
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
   affiliateCreatorMessageHistory: AffiliateCreatorMessageHistoryPayload;
-  /** Read stored WhatsApp messages for an affiliate creator relationship. */
-  affiliateCreatorWhatsAppMessages: Array<AffiliateWhatsAppMessage>;
+  /** Read stored WhatsApp messages for an affiliate creator relationship with channel labels and without raw provider route ids. */
+  affiliateCreatorWhatsAppMessages: Array<AffiliateCreatorMessageHistoryItem>;
   /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
   affiliateCreators: Array<AffiliateCreatorManagementItem>;
-  /** Read the staff-facing affiliate workbench. This combines current work items, proposals across statuses, and direct lifecycle events. */
-  affiliateDashboard: AffiliateDashboardPayload;
   /** List seller-level Outlook/Microsoft Graph email account bindings available to affiliate workflows. */
   affiliateEmailAccounts: Array<EmailAccountBinding>;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
@@ -6687,7 +6515,7 @@ export interface Query {
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
-  /** Read compressed affiliate management workspace state from Mongo control-plane state. */
+  /** Read compressed affiliate management workspace state from Mongo control-plane state. CreatorRelationship is the business boundary; shopId remains the entitlement/scope boundary. */
   affiliateWorkspace: AffiliateWorkspacePayload;
   /** Read account- and shop-scoped billing entitlement decisions for the current user. */
   billingOverview: BillingOverview;
@@ -6697,7 +6525,7 @@ export interface Query {
   campaignProducts: Array<CampaignProduct>;
   /** Check if a newer version is available (public, no auth required) */
   checkUpdate?: Maybe<UpdatePayload>;
-  /** Read creator collaborations, including backend-materialized agent/staff work for affiliate agents. */
+  /** Read structured collaboration records under creator relationships, including backend-materialized agent/staff work. */
   collaborationRecords: Array<AffiliateCollaborationRecord>;
   /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
   creatorCandidates: Array<CreatorCandidate>;
@@ -6918,32 +6746,8 @@ export interface QueryAffiliateCollaborationActivityArgs {
 }
 
 
-export interface QueryAffiliateCollaborationRecordItemsArgs {
-  input: ReadAffiliateCollaborationRecordsInput;
-}
-
-
 export interface QueryAffiliateCollaborationsArgs {
   input: ReadAffiliateCollaborationsInput;
-}
-
-
-export interface QueryAffiliateConversationMessageDeltaArgs {
-  anchor?: InputMaybe<ConversationMessageDeltaAnchorInput>;
-  conversationId: Scalars['String']['input'];
-  currentMessageId: Scalars['String']['input'];
-  maxPages?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['String']['input'];
-}
-
-
-export interface QueryAffiliateConversationMessagesArgs {
-  input: AffiliateConversationMessagesInput;
-}
-
-
-export interface QueryAffiliateConversationRecordsArgs {
-  input: ReadAffiliateConversationRecordsInput;
 }
 
 
@@ -6964,11 +6768,6 @@ export interface QueryAffiliateCreatorWhatsAppMessagesArgs {
 
 export interface QueryAffiliateCreatorsArgs {
   input: ReadAffiliateCreatorsInput;
-}
-
-
-export interface QueryAffiliateDashboardArgs {
-  input?: InputMaybe<AffiliateDashboardInput>;
 }
 
 
@@ -7434,9 +7233,9 @@ export interface QueryWhatsAppProxiesArgs {
 export interface ReadActionProposalsInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
-  shopThreadId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<ActionProposalStatus>;
   type?: InputMaybe<ActionProposalType>;
 }
@@ -7480,31 +7279,22 @@ export interface ReadAffiliateCollaborationsInput {
   type?: InputMaybe<AffiliateCollaborationType>;
 }
 
-export interface ReadAffiliateConversationRecordsInput {
-  conversationId?: InputMaybe<Scalars['String']['input']>;
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  id?: InputMaybe<Scalars['ID']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['ID']['input'];
-}
-
 export interface ReadAffiliateCreatorsInput {
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   needsAttentionOnly?: InputMaybe<Scalars['Boolean']['input']>;
   shopId: Scalars['ID']['input'];
-  shopThreadId?: InputMaybe<Scalars['ID']['input']>;
   tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 export interface ReadAffiliateWorkItemsInput {
   agentDispatchRecommended?: InputMaybe<Scalars['Boolean']['input']>;
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
-  processingStatus?: InputMaybe<AffiliateCollaborationRecordProcessingStatus>;
+  processingStatus?: InputMaybe<AffiliateRelationshipProcessingStatus>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
-  shopThreadId?: InputMaybe<Scalars['ID']['input']>;
   staffReviewRequired?: InputMaybe<Scalars['Boolean']['input']>;
   workKind?: InputMaybe<AffiliateWorkKind>;
 }
@@ -7668,6 +7458,7 @@ export interface RequestAffiliateActionInput {
   candidateDecisionIntent?: InputMaybe<ActionProposalCandidateDecisionIntentInput>;
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId: Scalars['ID']['input'];
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** The collaboration.lastSignalAt value that this action request handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
@@ -7677,7 +7468,6 @@ export interface RequestAffiliateActionInput {
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   shopId: Scalars['ID']['input'];
-  shopThreadId: Scalars['ID']['input'];
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
   type: ActionProposalType;
 }
@@ -7693,7 +7483,6 @@ export interface ResolveAffiliateCollaborationStaffActionInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
-  shopThreadId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ResolveAffiliateCollaborationStaffActionPayload {
@@ -7703,6 +7492,8 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
 /** One backend-supported TikTok affiliate platform write action. Populate required fields matching type: SEND_MESSAGE -> messageIntent or the typed messageText shortcut, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
+  /** Optional action-specific collaboration target inside the CreatorRelationship. Use this when a bundled relationship action targets a specific collaboration record; the top-level collaborationRecordId remains only a fallback focus. */
+  collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE unless messageText is provided. For TEXT messages, text must contain the exact creator-facing message. Do not populate this for REVIEW_SAMPLE_APPLICATION. */
@@ -7723,6 +7514,8 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
+  /** Optional action-specific business shop scope inside the CreatorRelationship. Use this for actions that create new collaboration context and therefore cannot be scoped by an existing collaboration or sample target. */
+  shopId?: InputMaybe<Scalars['ID']['input']>;
   /** Required only when type is CREATE_TARGET_COLLABORATION. Do not populate this for SEND_MESSAGE or REVIEW_SAMPLE_APPLICATION. */
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
   /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Unsupported seller operations such as commission changes must use NEEDS_STAFF_REVIEW instead of a made-up action type. */
@@ -7734,19 +7527,19 @@ export interface ResolveAffiliateWorkItemInput {
   /** Ordered action list for bundled affiliate work. If provided, backend evaluates/executes the whole list together. */
   actions?: InputMaybe<Array<ResolveAffiliateWorkItemActionInput>>;
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId: Scalars['ID']['input'];
   decision: AffiliateWorkItemResolutionDecision;
-  /** The collaboration.lastSignalAt value that this work-item decision handled. Used as the ack boundary. */
+  /** The relationship work boundary timestamp that this decision handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Only set when decision is DEFERRED. Omit for all other decisions; never pass an empty string. */
   nextSellerActionAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   operatorSummary: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
-  shopThreadId: Scalars['ID']['input'];
+  /** Optional platform-action shop scope. The work item itself is owned by creatorRelationshipId; backend derives a shop from the focused action/collaboration/relationship when omitted. */
+  shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ResolveAffiliateWorkItemMessageIntentInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  conversationId?: InputMaybe<Scalars['String']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   imageHeight?: InputMaybe<Scalars['Int']['input']>;
@@ -7850,22 +7643,18 @@ export const SampleWorkStatus = {
 } as const;
 
 export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkStatus];
-export interface SendAffiliateConversationMessageInput {
+export interface SendAffiliateCreatorMessageInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  conversationId?: InputMaybe<Scalars['String']['input']>;
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId: Scalars['ID']['input'];
   idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   shopId: Scalars['ID']['input'];
   text: Scalars['String']['input'];
 }
 
-export interface SendAffiliateConversationMessagePayload {
+export interface SendAffiliateCreatorMessagePayload {
   collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
   delivery?: Maybe<AffiliateMessageDelivery>;
-  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
 }
 
 /** Business service type identifiers */
@@ -7879,9 +7668,8 @@ export const ServiceId = {
 
 export type ServiceId = typeof ServiceId[keyof typeof ServiceId];
 export interface SetCreatorEmailContactInput {
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** CreatorRelationship is the business boundary for setting creator contact channels. */
+  creatorRelationshipId: Scalars['ID']['input'];
   displayName?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
   emailAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
@@ -7891,10 +7679,9 @@ export interface SetCreatorEmailContactInput {
 }
 
 export interface SetCreatorWhatsAppContactInput {
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   creatorPhone?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** CreatorRelationship is the business boundary for setting creator contact channels. */
+  creatorRelationshipId: Scalars['ID']['input'];
   creatorWaJid?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
@@ -8175,10 +7962,10 @@ export interface Subscription {
   adsOAuthComplete: AdsOAuthCompletePayload;
   /** Streams affiliate action proposal changes so desktop review tables can update without polling. */
   affiliateActionProposalChanged: AffiliateActionProposalChanged;
-  /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
-  affiliateConversationSignal: AffiliateConversationSignal;
   /** Fires when a seller-level affiliate outreach account finishes direct-channel onboarding. */
   affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
+  /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
+  affiliateRelationshipSignal: AffiliateRelationshipSignal;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
   clientLogUploadRequested: ClientLogUploadRequestPayload;
@@ -8207,7 +7994,7 @@ export interface SubscriptionAffiliateActionProposalChangedArgs {
 }
 
 
-export interface SubscriptionAffiliateConversationSignalArgs {
+export interface SubscriptionAffiliateRelationshipSignalArgs {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
@@ -8480,6 +8267,7 @@ export const SupportedTimezone = {
   AsiaHebron: 'ASIA_HEBRON',
   AsiaHongKong: 'ASIA_HONG_KONG',
   AsiaHovd: 'ASIA_HOVD',
+  AsiaHoChiMinh: 'ASIA_HO_CHI_MINH',
   AsiaIrkutsk: 'ASIA_IRKUTSK',
   AsiaJakarta: 'ASIA_JAKARTA',
   AsiaJayapura: 'ASIA_JAYAPURA',
@@ -8794,9 +8582,9 @@ export interface ToolContextBinding {
 export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
+  AffiliateGetActionHistory: 'AFFILIATE_GET_ACTION_HISTORY',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetCreatorMessageHistory: 'AFFILIATE_GET_CREATOR_MESSAGE_HISTORY',
-  AffiliateGetCreatorWhatsappMessages: 'AFFILIATE_GET_CREATOR_WHATSAPP_MESSAGES',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',

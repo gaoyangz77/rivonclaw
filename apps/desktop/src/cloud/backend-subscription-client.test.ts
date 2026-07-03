@@ -269,7 +269,7 @@ describe("BackendSubscriptionClient affiliate outreach account lifecycle", () =>
   });
 });
 
-describe("BackendSubscriptionClient affiliate conversation signals", () => {
+describe("BackendSubscriptionClient affiliate relationship signals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.clients.length = 0;
@@ -277,13 +277,13 @@ describe("BackendSubscriptionClient affiliate conversation signals", () => {
     installMockGraphqlWsClient();
   });
 
-  it("subscribes to affiliate conversation signal channel fields after auth is enabled", async () => {
+  it("subscribes to affiliate relationship signal channel fields after auth is enabled", async () => {
     const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
     let token: string | null = null;
     const onSignal = vi.fn();
     const client = new BackendSubscriptionClient("en-US");
 
-    client.subscribeToAffiliateConversationSignals(onSignal);
+    client.subscribeToAffiliateRelationshipSignals(onSignal);
     client.connect(() => token);
 
     expect(mocks.subscriptions).toHaveLength(0);
@@ -293,15 +293,15 @@ describe("BackendSubscriptionClient affiliate conversation signals", () => {
 
     expect(mocks.subscriptions).toHaveLength(1);
     expect(mocks.subscriptions[0].operation.query).toContain(
-      "subscription AffiliateConversationSignal",
+      "subscription AffiliateRelationshipSignal",
     );
     expect(mocks.subscriptions[0].operation.query).toContain("messageDirection");
     expect(mocks.subscriptions[0].operation.query).toContain("channel");
 
     mocks.subscriptions[0].sink.next({
       data: {
-        affiliateConversationSignal: {
-          type: "AFFILIATE_CONVERSATION_MESSAGE_OBSERVED",
+        affiliateRelationshipSignal: {
+          type: "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED",
           source: "WEBHOOK",
           workSignal: true,
           shopId: "shop-001",

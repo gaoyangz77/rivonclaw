@@ -344,7 +344,7 @@ type AffiliateOutreachOperationalStatus = {
   }>;
   inboundCounts: Array<{
     channel: GQL.AffiliateMessageChannel;
-    direction: GQL.AffiliateConversationMessageDirection;
+    direction: GQL.AffiliateCreatorMessageDirection;
     count: number;
   }>;
   operationalEventCounts: Array<{

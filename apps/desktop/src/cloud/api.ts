@@ -82,7 +82,11 @@ function sanitizeCloudGraphqlVariables(
   }
 
   const input = asRecord(variables.input);
-  if (!input || input.decision !== "REQUEST_ACTION") return variables;
+  if (!input) return variables;
+  if (opName === AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME && !hasNonEmptyString(input.creatorRelationshipId)) {
+    throw new Error("creatorRelationshipId is required for affiliate_resolve_work_item");
+  }
+  if (input.decision !== "REQUEST_ACTION") return variables;
 
   const actionLike = input.action != null ? [input.action] : Array.isArray(input.actions) ? input.actions : [];
   const context = buildAffiliateResolveActionContext(input);
@@ -122,9 +126,8 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
   if (!input) return false;
   return (
     typeof input.decision === "string" &&
-    (hasNonEmptyString(input.shopThreadId) ||
-      hasNonEmptyString(input.collaborationRecordId) ||
-      hasNonEmptyString(input.shopId) ||
+    hasNonEmptyString(input.creatorRelationshipId) &&
+    (hasNonEmptyString(input.shopId) ||
       input.action != null ||
       Array.isArray(input.actions))
   );
@@ -271,13 +274,13 @@ function firstNormalizedSampleReviewDecision(
 function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): unknown {
   const existingIntent = asRecord(action.messageIntent);
   if (existingIntent) {
-    const messageIntent: Record<string, unknown> = { ...existingIntent };
+    const messageIntent = pickAffiliateMessageIntentFields(existingIntent);
     if (!hasNonEmptyString(messageIntent.text)) {
       const text = firstNonEmptyString(
-        messageIntent.text,
-        messageIntent.messageText,
-        messageIntent.content,
-        messageIntent.body,
+        existingIntent.text,
+        existingIntent.messageText,
+        existingIntent.content,
+        existingIntent.body,
         action.text,
         action.messageText,
         action.content,
@@ -297,10 +300,31 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
     messageType: action.messageType ?? "TEXT",
     text,
   };
-  for (const field of ["conversationId", "creatorId", "creatorOpenId", "productId"]) {
+  for (const field of ["creatorId", "creatorOpenId", "productId"]) {
     if (hasNonEmptyString(action[field])) messageIntent[field] = action[field];
   }
   return pickAffiliateActionFields(action, "messageIntent", messageIntent);
+}
+
+function pickAffiliateMessageIntentFields(intent: Record<string, unknown>): Record<string, unknown> {
+  const picked: Record<string, unknown> = {};
+  for (const field of [
+    "creatorId",
+    "creatorOpenId",
+    "messageType",
+    "text",
+    "imageUrl",
+    "imageWidth",
+    "imageHeight",
+    "productId",
+    "affiliateCollaborationId",
+    "platformTargetCollaborationId",
+    "sampleApplicationRecordId",
+    "platformApplicationId",
+  ]) {
+    if (intent[field] !== undefined) picked[field] = intent[field];
+  }
+  return picked;
 }
 
 function normalizeAffiliateTargetCollaborationAction(action: Record<string, unknown>): unknown {
@@ -316,6 +340,7 @@ function pickAffiliateActionFields(
 ): Record<string, unknown> {
   return {
     type: action.type,
+    collaborationRecordId: action.collaborationRecordId,
     predictionCacheIds: action.predictionCacheIds,
     expiresAt: action.expiresAt,
     [intentField]: intentValue,
@@ -429,22 +454,22 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
   const hints: string[] = [];
   if (context.sampleApplicationRecordId && context.platformApplicationId) {
     hints.push(
-      `reviewSampleTemplate=${JSON.stringify({
-        type: "REVIEW_SAMPLE_APPLICATION",
-        predictionCacheIds: context.predictionCacheIds?.length ? context.predictionCacheIds : undefined,
-        sampleApplicationRecordId: context.sampleApplicationRecordId,
-        platformApplicationId: context.platformApplicationId,
-        sampleReviewDecision: "APPROVE_OR_REJECT",
-        rejectReason: "required when sampleReviewDecision is REJECT",
-      })}`,
+      [
+        "reviewSampleRequiredFields={type:REVIEW_SAMPLE_APPLICATION",
+        context.predictionCacheIds?.length ? `predictionCacheIds:${JSON.stringify(context.predictionCacheIds)}` : null,
+        `sampleApplicationRecordId:${context.sampleApplicationRecordId}`,
+        `platformApplicationId:${context.platformApplicationId}`,
+        "sampleReviewDecision:APPROVE|REJECT",
+        "rejectReason:required-only-for-REJECT}",
+      ].filter(Boolean).join(" "),
     );
   }
   hints.push(
-    `sendMessageTemplate=${JSON.stringify({
-      type: "SEND_MESSAGE",
-      predictionCacheIds: context.predictionCacheIds?.length ? context.predictionCacheIds : undefined,
-      messageText: "exact creator-facing message",
-    })}`,
+    [
+      "sendMessageRequiredFields={type:SEND_MESSAGE",
+      context.predictionCacheIds?.length ? `predictionCacheIds:${JSON.stringify(context.predictionCacheIds)}` : null,
+      "messageText:final-creator-facing-text}",
+    ].filter(Boolean).join(" "),
   );
   return hints.join(" ");
 }
@@ -512,18 +537,6 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     const isExtension = req.headers["x-request-source"] === "extension";
     if (!isExtension) {
       rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
-      if (opName === "AffiliateConversationMessages") {
-        const input = variables?.input as { shopId?: string; conversationId?: string; pageToken?: string | null } | undefined;
-        const page = (data as Record<string, unknown>)?.affiliateConversationMessages;
-        if (input?.shopId && input.conversationId && page && typeof page === "object") {
-          rootStore.affiliateWorkspace.ingestAffiliateConversationMessages(
-            input.shopId,
-            input.conversationId,
-            page as any,
-            input.pageToken ? "append" : "replace",
-          );
-        }
-      }
     }
 
     // Delete mutations return booleans, which ingestGraphQLResponse skips.
