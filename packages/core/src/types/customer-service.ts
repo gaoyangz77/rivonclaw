@@ -79,7 +79,6 @@ export type {
   CSBindingResolvedFrame,
   CSNewConversationFrame,
   CSNewMessageFrame,
-  AffiliateNewConversationFrame,
   AffiliateNewMessageFrame,
   AffiliateSampleApplicationUpdatedFrame,
   AffiliateTargetCollaborationUpdatedFrame,

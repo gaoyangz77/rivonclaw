@@ -4,7 +4,7 @@ import { stripReasoningTagsFromText } from "@rivonclaw/core";
 import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
 import { reaction } from "mobx";
 import type {
-  AffiliateConversationSignalPayload,
+  AffiliateRelationshipSignalPayload,
   AffiliateWorkItemPayload,
   CsConversationSignalPayload,
   CsEscalationEventDeliveryPayload,
@@ -605,11 +605,11 @@ export class EcommerceRelayBridge {
     }
   }
 
-  async handleAffiliateConversationSignal(signal: AffiliateConversationSignalPayload): Promise<void> {
+  async handleAffiliateRelationshipSignal(signal: AffiliateRelationshipSignalPayload): Promise<void> {
     this.syncFromCache();
     log.info(
       `Affiliate signal: type=${signal.type} shop=${signal.platformShopId} ` +
-      `conv=${signal.conversationId ?? ""} msg=${signal.messageId ?? ""}`,
+      `relationship=${signal.creatorRelationshipId ?? ""} msg=${signal.messageId ?? ""}`,
     );
 
     await this.affiliateInbound.handleSignal(signal);
@@ -618,7 +618,7 @@ export class EcommerceRelayBridge {
   async handleAffiliateWorkItemChanged(workItem: AffiliateWorkItemPayload): Promise<void> {
     this.syncFromCache();
     log.info(
-      `Affiliate work item: kind=${workItem.workKind} shop=${workItem.platformShopId} ` +
+      `Affiliate work item: kind=${workItem.workKind} focusShop=${workItem.focusPlatformShopId} ` +
       `collaboration=${workItem.collaborationRecordId} status=${workItem.processingStatus}`,
     );
 

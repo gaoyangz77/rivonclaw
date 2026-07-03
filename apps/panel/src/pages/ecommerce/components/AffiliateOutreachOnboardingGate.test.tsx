@@ -177,12 +177,12 @@ function renderOpsPanel(status: Partial<AffiliateOutreachOperationalStatus>) {
             inboundCounts: [
               {
                 channel: GQL.AffiliateMessageChannel.Whatsapp,
-                direction: GQL.AffiliateConversationMessageDirection.Creator,
+                direction: GQL.AffiliateCreatorMessageDirection.Creator,
                 count: 8,
               },
               {
                 channel: GQL.AffiliateMessageChannel.Email,
-                direction: GQL.AffiliateConversationMessageDirection.Creator,
+                direction: GQL.AffiliateCreatorMessageDirection.Creator,
                 count: 9,
               },
             ],
@@ -368,7 +368,7 @@ type AffiliateOutreachOperationalStatus = {
   }>;
   inboundCounts: Array<{
     channel: GQL.AffiliateMessageChannel;
-    direction: GQL.AffiliateConversationMessageDirection;
+    direction: GQL.AffiliateCreatorMessageDirection;
     count: number;
   }>;
   operationalEventCounts: Array<{

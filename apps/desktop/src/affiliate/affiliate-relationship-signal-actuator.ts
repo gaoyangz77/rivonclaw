@@ -1,11 +1,11 @@
 import { createLogger } from "@rivonclaw/logger";
-import type { AffiliateConversationSignalPayload } from "../cloud/backend-subscription-client.js";
+import type { AffiliateRelationshipSignalPayload } from "../cloud/backend-subscription-client.js";
 import { getCsBridge } from "../gateway/connection.js";
 import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("affiliate-signal-actuator");
 
-function findSignalShop(signal: AffiliateConversationSignalPayload): any | undefined {
+function findSignalShop(signal: AffiliateRelationshipSignalPayload): any | undefined {
   return rootStore.findShopByObjectOrPlatformId(signal.shopId, signal.platformShopId);
 }
 
@@ -16,13 +16,13 @@ function findSignalShop(signal: AffiliateConversationSignalPayload): any | undef
  * separate actuator gives us the subscription plumbing without coupling
  * affiliate workflow decisions to the lower-level GraphQL subscription client.
  */
-export async function handleAffiliateConversationSignal(
+export async function handleAffiliateRelationshipSignal(
   deviceId: string,
-  signal: AffiliateConversationSignalPayload,
+  signal: AffiliateRelationshipSignalPayload,
 ): Promise<void> {
   log.info(
     `Affiliate signal received: type=${signal.type} shop=${signal.platformShopId} ` +
-    `conv=${signal.conversationId ?? ""} msg=${signal.messageId ?? ""}`,
+    `channel=${signal.channel ?? ""} msg=${signal.messageId ?? ""}`,
   );
 
   const shop = findSignalShop(signal);
@@ -46,5 +46,5 @@ export async function handleAffiliateConversationSignal(
     return;
   }
 
-  await bridge.handleAffiliateConversationSignal(signal);
+  await bridge.handleAffiliateRelationshipSignal(signal);
 }

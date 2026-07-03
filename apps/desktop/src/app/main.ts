@@ -685,7 +685,10 @@ app.whenReady().then(async () => {
   let toolSpecsRefreshQueue: Promise<void> = Promise.resolve();
   let presetSkillsRefreshQueue: Promise<void> = Promise.resolve();
 
-  async function refreshToolSpecsFromBackend(reason: string): Promise<void> {
+  async function refreshToolSpecsFromBackend(params: {
+    reason: string;
+    forceGatewayRestart?: boolean;
+  }): Promise<void> {
     if (!authSession.getAccessToken()) return;
 
     const previousToolNameDigest = getEntitledToolNameDigest();
@@ -694,12 +697,13 @@ app.whenReady().then(async () => {
       authSession,
       rootStore,
       force: true,
-      source: reason,
+      source: params.reason,
     });
     const nextToolNameDigest = snapshot.toolNameDigest;
     const toolNamesChanged = previousToolNameDigest !== nextToolNameDigest;
+    const shouldRestartGateway = params.forceGatewayRestart || toolNamesChanged;
 
-    if (!toolNamesChanged) {
+    if (!shouldRestartGateway) {
       if (openClawConnector.isReady) {
         await pushCurrentCloudToolsToGateway();
         await reinitializeToolCapabilityFromCatalog();
@@ -707,7 +711,7 @@ app.whenReady().then(async () => {
       return;
     }
 
-    resetAgentToolingReadiness(reason);
+    resetAgentToolingReadiness(params.reason);
     merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
       sourceMerchantExtensionsDir: merchantExtensionsDir,
       stateDir,
@@ -719,14 +723,17 @@ app.whenReady().then(async () => {
 
     writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
     await openClawConnector.applyConfigMutation(() => {}, "restart_process");
-    log.info(`Gateway restarted after ToolSpecs refresh (${reason})`);
+    log.info(`Gateway restarted after ToolSpecs refresh (${params.reason})`);
   }
 
-  function queueToolSpecsRefresh(reason: string): void {
+  function queueToolSpecsRefresh(params: {
+    reason: string;
+    forceGatewayRestart?: boolean;
+  }): void {
     toolSpecsRefreshQueue = toolSpecsRefreshQueue
-      .then(() => refreshToolSpecsFromBackend(reason))
+      .then(() => refreshToolSpecsFromBackend(params))
       .catch((err: unknown) => {
-        log.warn(`Failed to refresh ToolSpecs (${reason})`, err);
+        log.warn(`Failed to refresh ToolSpecs (${params.reason})`, err);
       });
   }
 
@@ -750,10 +757,14 @@ app.whenReady().then(async () => {
   }
 
   backendSubscription.subscribeToToolSpecsChanged((payload) => {
+    const forceGatewayRestart = payload.changeType === "hard" && payload.reason !== "subscription_initial_sync";
     log.info(
-      `Received ToolSpecs changed signal revision=${payload.revision} digest=${payload.digest?.slice(0, 12) ?? "unknown"} reason=${payload.reason ?? "unknown"}`,
+      `Received ToolSpecs changed signal revision=${payload.revision} digest=${payload.digest?.slice(0, 12) ?? "unknown"} changeType=${payload.changeType ?? "unknown"} reason=${payload.reason ?? "unknown"}`,
     );
-    queueToolSpecsRefresh(`subscription:${payload.reason ?? payload.revision}`);
+    queueToolSpecsRefresh({
+      reason: `subscription:${payload.reason ?? payload.revision}`,
+      forceGatewayRestart,
+    });
   });
 
   backendSubscription.subscribeToPresetSkillsChanged((payload) => {

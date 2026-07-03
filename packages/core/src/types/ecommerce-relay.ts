@@ -144,18 +144,15 @@ export interface CSNewMessageFrame {
   isVisible: boolean;
 }
 
-/** Relay → Client: new affiliate creator conversation notification. */
-export interface AffiliateNewConversationFrame {
-  type: "affiliate_tiktok_new_conversation";
-  shopId: string;
-  conversationId: string;
-  createTime: number;
-}
-
-/** Relay → Client: creator message relayed to desktop affiliate agent. */
+/**
+ * Relay → Client: raw affiliate platform-chat message signal.
+ * Desktop must not dispatch directly from this provider route payload; backend
+ * relationship materialization should publish CreatorRelationship work instead.
+ */
 export interface AffiliateNewMessageFrame {
   type: "affiliate_tiktok_new_message";
   shopId: string;
+  /** Provider route id, only for technical signal evidence. */
   conversationId: string;
   /** Creator's IM user ID from webhook sender.im_user_id. */
   imUserId: string;
@@ -175,6 +172,7 @@ export interface AffiliateSampleApplicationUpdatedFrame {
   type: "affiliate_tiktok_sample_application_updated";
   shopId: string;
   applicationId: string;
+  creatorRelationshipId?: string;
   creatorId?: string;
   productId?: string;
   status: string;
@@ -186,6 +184,7 @@ export interface AffiliateTargetCollaborationUpdatedFrame {
   type: "affiliate_tiktok_target_collaboration_updated";
   shopId: string;
   collaborationId: string;
+  creatorRelationshipId?: string;
   creatorId?: string;
   productId?: string;
   status: string;
@@ -197,6 +196,7 @@ export interface AffiliateOrderAttributedFrame {
   type: "affiliate_tiktok_order_attributed";
   shopId: string;
   orderId: string;
+  creatorRelationshipId?: string;
   creatorId?: string;
   productId?: string;
   eventTime: number;
@@ -221,7 +221,6 @@ export type CSWSFrame =
   | CSBindingResolvedFrame
   | CSNewConversationFrame
   | CSNewMessageFrame
-  | AffiliateNewConversationFrame
   | AffiliateNewMessageFrame
   | AffiliateSampleApplicationUpdatedFrame
   | AffiliateTargetCollaborationUpdatedFrame

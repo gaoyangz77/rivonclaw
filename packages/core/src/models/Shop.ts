@@ -84,6 +84,7 @@ export const ShopServiceConfigModel = types.model("ShopServiceConfig", {
 
 export const ShopModel = types.model("Shop", {
   id: types.identifier,
+  userId: types.optional(types.string, ""),
   platform: types.string,
   platformAppId: types.optional(types.string, ""),
   platformShopId: types.string,

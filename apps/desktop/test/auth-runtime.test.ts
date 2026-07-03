@@ -118,7 +118,7 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToCsConversationChanges() {
       return () => {};
     }
-    subscribeToAffiliateConversationSignals() {
+    subscribeToAffiliateRelationshipSignals() {
       return () => {};
     }
     subscribeToAffiliateWorkItemChanges() {

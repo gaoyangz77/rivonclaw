@@ -20,6 +20,7 @@ export interface CustomerServiceShopContextProjection {
 
 export interface AffiliateShopContextProjection {
   id: string;
+  userId?: string | null;
   platform?: string | null;
   platformShopId?: string | null;
   shopName?: string | null;
@@ -164,6 +165,7 @@ const DesktopRootStoreModel = RootStoreModel
         if (!shop.platformShopId || !affiliateService?.enabled || affiliateService.csDeviceId !== deviceId) continue;
         contexts.push({
           id: shop.id,
+          userId: shop.userId,
           platform: shop.platform,
           platformShopId: shop.platformShopId,
           shopName: shop.shopName,
@@ -336,8 +338,8 @@ const DesktopRootStoreModel = RootStoreModel
       Payment: self.payments,
       ActionProposal: self.affiliateWorkspace.actionProposals,
       AffiliateCollaborationRecord: self.affiliateWorkspace.collaborationRecords,
+      AffiliateCreatorRelationship: self.affiliateWorkspace.creatorRelationships,
       AffiliateCreatorIdentity: self.affiliateWorkspace.creatorProfiles,
-      AffiliateConversationRecord: self.affiliateWorkspace.conversationRecords,
       SampleApplicationRecord: self.affiliateWorkspace.sampleApplicationRecords,
       LifecycleEvent: self.affiliateWorkspace.lifecycleEvents,
       EcomProductSummary: self.affiliateWorkspace.productSummaries,
@@ -389,12 +391,16 @@ const DesktopRootStoreModel = RootStoreModel
           self.affiliateWorkspace.ingestAffiliateActionProposals(sanitizeForMst(raw) as any);
           continue;
         }
-        if (key === "affiliateCollaborationRecordItems") {
-          self.affiliateWorkspace.ingestAffiliateCollaborationRecordItems(sanitizeForMst(raw) as any);
+        if (key === "creatorRelations") {
+          self.affiliateWorkspace.replaceAffiliateCreatorRelationships(sanitizeForMst(raw) as any);
           continue;
         }
-        if (key === "affiliateConversationRecords") {
-          self.affiliateWorkspace.replaceAffiliateConversationRecords(sanitizeForMst(raw) as any);
+        if (key === "collaborationRecords") {
+          self.affiliateWorkspace.replaceAffiliateCollaborationRecords(sanitizeForMst(raw) as any);
+          continue;
+        }
+        if (key === "creatorProfiles") {
+          self.affiliateWorkspace.replaceAffiliateCreatorProfiles(sanitizeForMst(raw) as any);
           continue;
         }
         const typeName = (raw[0] as any)?.__typename;
@@ -425,6 +431,11 @@ const DesktopRootStoreModel = RootStoreModel
         continue;
       }
 
+      if (key === "affiliateWorkspace") {
+        self.affiliateWorkspace.ingestAffiliateWorkspace(sanitized as any);
+        continue;
+      }
+
       // 3. Collection entity → upsert by identifier
       if (typeName && COLLECTIONS[typeName]) {
         const target = COLLECTIONS[typeName];
@@ -434,10 +445,10 @@ const DesktopRootStoreModel = RootStoreModel
             self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
           } else if (typeName === "AffiliateCollaborationRecord") {
             self.affiliateWorkspace.upsertAffiliateCollaborationRecord(sanitized as any);
+          } else if (typeName === "AffiliateCreatorRelationship") {
+            self.affiliateWorkspace.upsertAffiliateCreatorRelationship(sanitized as any);
           } else if (typeName === "AffiliateCreatorIdentity") {
             self.affiliateWorkspace.upsertAffiliateCreatorProfile(sanitized as any);
-          } else if (typeName === "AffiliateConversationRecord") {
-            self.affiliateWorkspace.upsertAffiliateConversationRecord(sanitized as any);
           } else if (typeName === "SampleApplicationRecord") {
             self.affiliateWorkspace.upsertAffiliateSampleApplicationRecord(sanitized as any);
           } else if (typeName === "LifecycleEvent") {
