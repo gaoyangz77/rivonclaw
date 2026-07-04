@@ -3420,7 +3420,6 @@ export default {
         EXPIRED: "已过期",
       },
       sampleSituationPreview: "{{statusDescription}} 已观察到 {{contentCount}} 个内容。",
-      policyApprovalNote: "安全策略要求员工确认后，系统才会执行这个平台动作。",
       manualFollowUpNote: "员工已拒绝 Agent 提案。该事项仍需要人工在平台或后续沟通中处理。",
       sampleStatusPreview: "样品状态：{{status}}；已观察到 {{contentCount}} 个内容。",
       lifecycleEventPreview: "平台/系统事件：{{eventType}}",

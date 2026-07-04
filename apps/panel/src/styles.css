@@ -14955,12 +14955,13 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-policy-action-switcher {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
   gap: 8px;
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
   border-radius: 10px;
   background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg));
+  overflow: hidden;
 }
 
 .affiliate-policy-action-tab {
@@ -15147,9 +15148,9 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-policy-card {
   display: grid;
-  grid-template-columns: minmax(150px, 0.55fr) minmax(180px, 0.85fr) minmax(220px, 1.2fr) minmax(130px, 0.55fr);
+  grid-template-columns: minmax(160px, 0.75fr) minmax(220px, 1fr) minmax(240px, 1.2fr);
   gap: 10px 14px;
-  align-items: center;
+  align-items: start;
   min-width: 0;
   padding: 12px 2px;
   border: 0;
@@ -15175,6 +15176,11 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
   flex-wrap: wrap;
   gap: 7px;
+}
+
+.affiliate-policy-card-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
 }
 
 .affiliate-policy-card-head {
@@ -17184,13 +17190,14 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-attention-panel-head {
   display: grid;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(560px, 1.35fr);
+  grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.45fr);
   align-items: end;
+  gap: 16px;
 }
 
 .affiliate-attention-toolbar {
   display: grid;
-  grid-template-columns: minmax(150px, 170px) minmax(190px, 230px) minmax(280px, 1fr);
+  grid-template-columns: minmax(150px, 180px) minmax(180px, 220px) minmax(260px, 1fr);
   align-items: flex-end;
   gap: 10px;
   min-width: 0;
@@ -17315,6 +17322,10 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-attention-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .affiliate-filter-field-search {
+    grid-column: 1 / -1;
   }
 }
 

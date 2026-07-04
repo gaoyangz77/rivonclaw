@@ -3035,8 +3035,7 @@ export default {
         "CANCELLED": "ยกเลิกแล้ว",
         "EXPIRED": "หมดอายุ"
       },
-      "sampleSituationPreview": "{{statusDescription}} ตรวจพบคอนเทนต์ {{contentCount}} รายการ",
-      "policyApprovalNote": "การตั้งค่าความปลอดภัยต้องให้พนักงานยืนยันก่อนจึงจะดำเนินการนี้บนแพลตฟอร์ม"
+      "sampleSituationPreview": "{{statusDescription}} ตรวจพบคอนเทนต์ {{contentCount}} รายการ"
     },
     "customerServiceWorkspace": {
       "title": "บริการลูกค้า",

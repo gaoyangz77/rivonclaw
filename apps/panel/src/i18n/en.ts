@@ -3421,7 +3421,6 @@ export default {
         EXPIRED: "Expired",
       },
       sampleSituationPreview: "{{statusDescription}} {{contentCount}} content item(s) have been observed.",
-      policyApprovalNote: "Safety settings require a staff confirmation before this platform action is executed.",
       manualFollowUpNote: "The agent proposal was rejected. Staff should handle this item manually on-platform or in follow-up communication.",
       sampleStatusPreview: "Sample status: {{status}}; {{contentCount}} content item(s) observed.",
       lifecycleEventPreview: "Platform/system event: {{eventType}}",

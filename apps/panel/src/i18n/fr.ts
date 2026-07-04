@@ -3035,8 +3035,7 @@ export default {
         "CANCELLED": "Annulé",
         "EXPIRED": "Expiré"
       },
-      "sampleSituationPreview": "{{statusDescription}} {{contentCount}} contenu(s) observé(s).",
-      "policyApprovalNote": "Les paramètres de sécurité exigent une confirmation du personnel avant d'exécuter cette action sur la plateforme."
+      "sampleSituationPreview": "{{statusDescription}} {{contentCount}} contenu(s) observé(s)."
     },
     "customerServiceWorkspace": {
       "title": "Service client",
