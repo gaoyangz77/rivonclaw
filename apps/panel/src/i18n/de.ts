@@ -3035,8 +3035,7 @@ export default {
         "CANCELLED": "Storniert",
         "EXPIRED": "Abgelaufen"
       },
-      "sampleSituationPreview": "{{statusDescription}} {{contentCount}} Content-Element(e) wurden erkannt.",
-      "policyApprovalNote": "Sicherheitseinstellungen erfordern eine Mitarbeiterbestätigung, bevor diese Plattformaktion ausgeführt wird."
+      "sampleSituationPreview": "{{statusDescription}} {{contentCount}} Content-Element(e) wurden erkannt."
     },
     "customerServiceWorkspace": {
       "title": "Kundenservice",

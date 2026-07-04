@@ -3033,8 +3033,7 @@ export default {
         "CANCELLED": "Dibatalkan",
         "EXPIRED": "Kedaluwarsa"
       },
-      "sampleSituationPreview": "{{statusDescription}} {{contentCount}} konten teramati.",
-      "policyApprovalNote": "Pengaturan keamanan memerlukan konfirmasi staf sebelum tindakan platform ini dijalankan."
+      "sampleSituationPreview": "{{statusDescription}} {{contentCount}} konten teramati."
     },
     "customerServiceWorkspace": {
       "title": "Layanan Pelanggan",

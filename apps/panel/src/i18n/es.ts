@@ -3035,8 +3035,7 @@ export default {
         "CANCELLED": "Cancelado",
         "EXPIRED": "Expirado"
       },
-      "sampleSituationPreview": "{{statusDescription}} Se observaron {{contentCount}} contenido(s).",
-      "policyApprovalNote": "La configuración de seguridad requiere confirmación del personal antes de ejecutar esta acción en la plataforma."
+      "sampleSituationPreview": "{{statusDescription}} Se observaron {{contentCount}} contenido(s)."
     },
     "customerServiceWorkspace": {
       "title": "Servicio al cliente",
