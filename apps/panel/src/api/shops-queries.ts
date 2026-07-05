@@ -492,6 +492,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       focusShopId
       campaignId
       creatorId
+      creatorRelationshipId
       creatorProfile {
         id
         creatorOpenId
@@ -506,6 +507,17 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         updatedAt
       }
       collaborationRecordId
+      sourceWorkBoundary {
+        subjectType
+        collaborationRecordId
+        creatorRelationshipId
+        workKind
+        workBundleKind
+        versionAt
+        triggerKind
+        triggerId
+        recommendedActionTypes
+      }
       collaborationRecord {
         id
         userId
@@ -1680,9 +1692,11 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       campaignId
       creatorId
       collaborationRecordId
+      creatorRelationshipId
       sourceWorkBoundary {
         subjectType
         collaborationRecordId
+        creatorRelationshipId
         workKind
         workBundleKind
         versionAt
