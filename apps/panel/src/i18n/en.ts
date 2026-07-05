@@ -2733,6 +2733,7 @@ export default {
       relationshipWorkShortLabel: "Record {{id}}",
       relationshipWorkActiveCollaborations: "Active collaborations",
       relationshipWorkPendingProposals: "Pending proposals",
+      focusedProposal: "Focused proposal",
       relationshipWorkUnread: "Unread",
       relationshipWorkMoreCollaborations: "+{{count}} more collaborations",
       relationshipWorkPlatformChat: "Conversation",

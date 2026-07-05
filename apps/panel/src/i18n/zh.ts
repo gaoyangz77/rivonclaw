@@ -2732,6 +2732,7 @@ export default {
       relationshipWorkShortLabel: "记录 {{id}}",
       relationshipWorkActiveCollaborations: "活跃合作",
       relationshipWorkPendingProposals: "待审批提案",
+      focusedProposal: "当前提案",
       relationshipWorkUnread: "未读",
       relationshipWorkMoreCollaborations: "另有 {{count}} 个合作",
       relationshipWorkPlatformChat: "对话",
