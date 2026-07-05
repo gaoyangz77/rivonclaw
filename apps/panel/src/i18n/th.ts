@@ -60,6 +60,7 @@ export default {
     "affiliateManagement": "การจัดการพันธมิตร",
     "affiliateIntelligence": "Affiliate Intelligence",
     "affiliateNeedsAttention": "ข้อเสนอการดำเนินการ",
+    "affiliateStaffHandling": "งานที่ต้องให้พนักงานจัดการ",
     "affiliateCreators": "ครีเอเตอร์ที่ร่วมงาน",
     "affiliateInProgress": "กำลังดำเนินการ",
     "affiliatePolicies": "นโยบายการอนุมัติ",

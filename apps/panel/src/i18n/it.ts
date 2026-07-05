@@ -60,6 +60,7 @@ export default {
     "affiliateManagement": "Gestione degli affiliati",
     "affiliateIntelligence": "Intelligence affiliate",
     "affiliateNeedsAttention": "Proposte di azione",
+    "affiliateStaffHandling": "Gestione manuale",
     "affiliateCreators": "Creator collaboratori",
     "affiliateInProgress": "In corso",
     "affiliatePolicies": "Policy di approvazione",

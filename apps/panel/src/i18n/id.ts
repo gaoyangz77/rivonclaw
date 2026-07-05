@@ -60,6 +60,7 @@ export default {
     "affiliateManagement": "Manajemen Afiliasi",
     "affiliateIntelligence": "Intelijen Afiliasi",
     "affiliateNeedsAttention": "Proposal tindakan",
+    "affiliateStaffHandling": "Penanganan staf",
     "affiliateCreators": "Kreator kerja sama",
     "affiliateInProgress": "Sedang berjalan",
     "affiliatePolicies": "Kebijakan Persetujuan",

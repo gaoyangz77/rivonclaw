@@ -64,6 +64,7 @@ export default {
     affiliateManagement: "Affiliate Management",
     affiliateIntelligence: "Affiliate Intelligence",
     affiliateNeedsAttention: "Action proposals",
+    affiliateStaffHandling: "Staff handling",
     affiliateCreators: "Cooperation creators",
     affiliateInProgress: "In progress",
     affiliatePolicies: "Approval Policies",

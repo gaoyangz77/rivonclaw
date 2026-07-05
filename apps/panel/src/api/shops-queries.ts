@@ -1114,6 +1114,79 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_COLLABORATION_RECORDS_QUERY = gql`
+  query AffiliateCollaborationRecords($input: ReadAffiliateCollaborationRecordsInput!) {
+    collaborationRecords(input: $input) {
+      id
+      userId
+      shopId
+      creatorId
+      creatorRelationshipId
+      creatorProfile {
+        id
+        platform
+        creatorOpenId
+        creatorImId
+        nickname
+        username
+        avatarUrl
+        followerCount
+      }
+      creatorOpenId
+      productId
+      lifecycleStage
+      processingStatus
+      requiredAction
+      processReasons
+      nextSellerActionAt
+      stateUpdatedAt
+      lastSignalAt
+      workHandledUntil
+      affiliateCollaborationId
+      collaborationType
+      sampleApplicationRecordId
+      platformCollaborationId
+      creatorImId
+      lastCreatorMessageId
+      lastCreatorMessageAt
+      startedAt
+      endedAt
+      createdAt
+      updatedAt
+      sampleApplicationRecords {
+        id
+        platformApplicationId
+        creatorId
+        creatorOpenId
+        productId
+        affiliateCollaborationId
+        collaborationType
+        platformCollaborationId
+        platformOpenCollaborationId
+        platformTargetCollaborationId
+        sampleWorkStatus
+        order {
+          platformOrderId
+          trackingNumber
+          carrier
+        }
+        trackingNumber
+        carrier
+        shippedAt
+        deliveredAt
+        observedContentCount
+        latestObservedContentAt
+        latestObservedContentId
+        latestObservedContentFormat
+        latestObservedContentUrl
+        latestObservedContentViewCount
+        latestObservedContentPaidOrderCount
+        updatedAt
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY = gql`
   query AffiliateMlInsightSummaries($input: AffiliateMlInsightSummariesInput) {
     affiliateMlInsightSummaries(input: $input) {
