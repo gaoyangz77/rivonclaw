@@ -64,6 +64,7 @@ export default {
     affiliateManagement: "达人联盟",
     affiliateIntelligence: "达人智能分析",
     affiliateNeedsAttention: "审批提案",
+    affiliateStaffHandling: "人工处理",
     affiliateCreators: "合作达人",
     affiliateInProgress: "进行中",
     affiliatePolicies: "安全策略",

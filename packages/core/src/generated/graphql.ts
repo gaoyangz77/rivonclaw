@@ -689,6 +689,8 @@ export interface AffiliateCollaborationRecord {
   creatorId: Scalars['ID']['output'];
   creatorImId?: Maybe<Scalars['String']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
+  creatorProfile?: Maybe<AffiliateCreatorIdentity>;
+  creatorRelationshipId: Scalars['ID']['output'];
   endedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
   lastCreatorMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -703,6 +705,7 @@ export interface AffiliateCollaborationRecord {
   productId?: Maybe<Scalars['String']['output']>;
   requiredAction: AffiliateCollaborationRequiredAction;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  sampleApplicationRecords: Array<SampleApplicationRecord>;
   shopId: Scalars['ID']['output'];
   startedAt: Scalars['DateTimeISO']['output'];
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
@@ -3545,6 +3548,7 @@ export const EcomBiDimension = {
   ShippingInformation: 'SHIPPING_INFORMATION',
   ShippingProviderName: 'SHIPPING_PROVIDER_NAME',
   ShopAdsCommissionRate: 'SHOP_ADS_COMMISSION_RATE',
+  ShopAlias: 'SHOP_ALIAS',
   ShopId: 'SHOP_ID',
   ShopName: 'SHOP_NAME',
   ShopRegion: 'SHOP_REGION',
@@ -7638,6 +7642,7 @@ export const SampleWorkStatus = {
   Expired: 'EXPIRED',
   Fulfilled: 'FULFILLED',
   FulfillmentFailed: 'FULFILLMENT_FAILED',
+  PlatformStatusUnknown: 'PLATFORM_STATUS_UNKNOWN',
   RequestPendingReview: 'REQUEST_PENDING_REVIEW',
   ShippedInTransit: 'SHIPPED_IN_TRANSIT'
 } as const;
