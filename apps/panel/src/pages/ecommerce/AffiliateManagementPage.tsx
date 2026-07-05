@@ -3052,6 +3052,9 @@ function CreatorRelationshipWorkDetailModal({
   );
   const focusCollaboration = item.focusCollaboration ?? item.activeCollaborations[0] ?? null;
   const latestCollaboration = focusCollaboration ?? item.activeCollaborations[0] ?? null;
+  const focusedProposal = item.focusedProposal
+    ? withRelationshipContext(item.focusedProposal, item)
+    : null;
   const pendingProposalCount = workProposals.filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending).length;
   const canDecideProposal = Boolean(onApprove && onReject);
   const nextWorkLabel = t(`ecommerce.affiliateWorkspace.workKinds.${item.workItem?.workKind ?? "RELATIONSHIP"}`, {
@@ -3357,6 +3360,22 @@ function CreatorRelationshipWorkDetailModal({
                         compact
                         statusDisplay={statusDisplay}
                         statusTone={relationshipStatusTone(item.processingStatus)}
+                      />
+                    </section>
+                  ) : null}
+                  {focusedProposal ? (
+                    <section className="affiliate-relationship-work-overview-section">
+                      <h3>{t("ecommerce.affiliateWorkspace.focusedProposal")}</h3>
+                      <ActionProposalCard
+                        proposal={focusedProposal}
+                        shopLabel={shopLabel}
+                        variant="compact"
+                        allowDecisionActions={canDecideProposal}
+                        decidingProposal={decidingProposal}
+                        onOpenCreator={item.creatorProfile ? openRelationship : undefined}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        onRequestRevision={onRequestRevision}
                       />
                     </section>
                   ) : null}
