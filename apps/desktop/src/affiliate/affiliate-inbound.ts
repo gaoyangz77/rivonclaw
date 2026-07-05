@@ -29,7 +29,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 const log = createLogger("affiliate-inbound");
 const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
   1,
-  Number.parseInt(process.env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS ?? "4", 10) || 4,
+  Number.parseInt(process.env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS ?? "1", 10) || 1,
 );
 const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
   process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS,

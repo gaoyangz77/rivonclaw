@@ -1152,6 +1152,43 @@ describe("affiliate work item dispatch", () => {
     expect(mockGetAuthSession).not.toHaveBeenCalled();
   });
 
+  it("does not convert model runtime failures into business review failures", async () => {
+    const workItem = createCreatorReplyWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conversation-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runId).toBe("run-affiliate-001");
+    expect(session.handleAgentEvent({
+      runId: "run-affiliate-001",
+      stream: "assistant",
+      data: { text: "ResourceExhausted: Worker local total request limit reached (24/16)" },
+    })).toBe(false);
+
+    mockGetAuthSession.mockClear();
+    session.onRunCompleted("run-affiliate-001");
+
+    expect(mockGetAuthSession).not.toHaveBeenCalled();
+  });
+
   it("does not mark a run failed when affiliate_resolve_work_item already handled the work boundary", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       if (query.includes("affiliateExpectedSalesPredictions")) {

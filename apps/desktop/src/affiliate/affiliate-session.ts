@@ -35,6 +35,14 @@ const log = createLogger("affiliate-session");
 export const DEFAULT_AFFILIATE_RUN_PROFILE_ID = "AFFILIATE_OPERATOR";
 const DEBUG_AFFILIATE_PROMPT =
   process.env.DEBUG_AFFILIATE_PROMPT === "1" || process.env.RIVONCLAW_DEBUG_AFFILIATE_PROMPT === "1";
+const AGENT_RUNTIME_FAILURE_PATTERNS = [
+  /resourceexhausted/i,
+  /worker local total request limit/i,
+  /llm idle timeout/i,
+  /produced no reply before the idle watchdog/i,
+  /timed out before a response was generated/i,
+  /profile .* timed out/i,
+];
 
 export interface AffiliateShopContext {
   /** Backend user id owning this affiliate shop. */
@@ -95,6 +103,7 @@ export class AffiliateSession {
   private activeRunId: string | null = null;
   private dispatchGeneration = 0;
   private pendingRunCompletions = new Map<string, GQL.AffiliateWorkItem>();
+  private runtimeFailedRuns = new Set<string>();
   private creatorOutreachRuns = new Map<string, {
     text: string;
     deliveryCount: number;
@@ -374,10 +383,11 @@ export class AffiliateSession {
     const workItem = this.pendingRunCompletions.get(runId);
     if (workItem == null) return;
     this.pendingRunCompletions.delete(runId);
-    if (options.errored) {
+    const runtimeFailed = this.runtimeFailedRuns.delete(runId);
+    if (options.errored || runtimeFailed) {
       log.warn(
         `Affiliate agent run ended with gateway error; leaving work item unacked for retry: ` +
-        `runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
+        `runId=${runId} subject=${workItemSubjectLabel(workItem)} runtimeFailed=${runtimeFailed}`,
       );
       return;
     }
@@ -390,9 +400,14 @@ export class AffiliateSession {
     data?: Record<string, unknown>;
   }): boolean {
     const runId = payload.runId;
-    if (!runId || !this.creatorOutreachRuns.has(runId)) return false;
     const { stream, data } = payload;
-    if (!stream || !data) return true;
+    if (!runId || !stream || !data) return false;
+
+    if (this.pendingRunCompletions.has(runId) && this.isRuntimeFailureAgentEvent(stream, data)) {
+      this.runtimeFailedRuns.add(runId);
+    }
+
+    if (!this.creatorOutreachRuns.has(runId)) return false;
 
     if (stream === "assistant") {
       const text = data.text;
@@ -415,6 +430,18 @@ export class AffiliateSession {
     }
 
     return true;
+  }
+
+  private isRuntimeFailureAgentEvent(stream: string, data: Record<string, unknown>): boolean {
+    if (stream === "lifecycle" && data.phase === "error") return true;
+    const text = [
+      data.text,
+      data.message,
+      data.error,
+      data.reason,
+      data.rawError,
+    ].filter((value): value is string => typeof value === "string");
+    return text.some((value) => AGENT_RUNTIME_FAILURE_PATTERNS.some((pattern) => pattern.test(value)));
   }
 
   private async flushCreatorOutreachText(runId: string): Promise<void> {
