@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
 import {
   GQL,
@@ -43,6 +44,8 @@ const AGENT_RUNTIME_FAILURE_PATTERNS = [
   /timed out before a response was generated/i,
   /profile .* timed out/i,
 ];
+const AFFILIATE_CHECKPOINT_PLUGIN_ID = "rivonclaw-capability-manager";
+const AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE = "affiliateCheckpoint";
 
 export interface AffiliateShopContext {
   /** Backend user id owning this affiliate shop. */
@@ -83,6 +86,11 @@ export interface AffiliateDispatchResult {
   runMode?: AffiliateAgentRunMode;
 }
 
+interface AffiliateRunCheckpoint {
+  baseCheckpointId: string | null;
+  candidateCheckpointId: string;
+}
+
 export enum AffiliateAgentRunMode {
   OPERATOR_REASONING = "OPERATOR_REASONING",
   CREATOR_OUTREACH = "CREATOR_OUTREACH",
@@ -103,6 +111,7 @@ export class AffiliateSession {
   private activeRunId: string | null = null;
   private dispatchGeneration = 0;
   private pendingRunCompletions = new Map<string, GQL.AffiliateWorkItem>();
+  private runCheckpoints = new Map<string, AffiliateRunCheckpoint>();
   private runtimeFailedRuns = new Set<string>();
   private creatorOutreachRuns = new Map<string, {
     text: string;
@@ -365,6 +374,7 @@ export class AffiliateSession {
     const result = await this.dispatch({
       ...request,
       runMode: AffiliateAgentRunMode.OPERATOR_REASONING,
+      baseCheckpointId: normalizeCheckpointId(workItem.creatorRelationship?.committedCheckpointId),
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -376,22 +386,21 @@ export class AffiliateSession {
     if (this.activeRunId === runId) {
       this.activeRunId = null;
     }
-    if (this.creatorOutreachRuns.has(runId)) {
-      if (!options.errored) void this.flushCreatorOutreachText(runId);
-      this.creatorOutreachRuns.delete(runId);
-    }
     const workItem = this.pendingRunCompletions.get(runId);
-    if (workItem == null) return;
-    this.pendingRunCompletions.delete(runId);
     const runtimeFailed = this.runtimeFailedRuns.delete(runId);
     if (options.errored || runtimeFailed) {
+      this.runCheckpoints.delete(runId);
+      this.creatorOutreachRuns.delete(runId);
+      if (workItem != null) this.pendingRunCompletions.delete(runId);
       log.warn(
         `Affiliate agent run ended with gateway error; leaving work item unacked for retry: ` +
-        `runId=${runId} subject=${workItemSubjectLabel(workItem)} runtimeFailed=${runtimeFailed}`,
+        `runId=${runId} subject=${workItem ? workItemSubjectLabel(workItem) : "(creator-outreach)"} ` +
+        `runtimeFailed=${runtimeFailed}`,
       );
       return;
     }
-    void this.completeWorkItemIfUnresolved(runId, workItem);
+
+    void this.finalizeSuccessfulRun(runId, workItem);
   }
 
   handleAgentEvent(payload: {
@@ -419,13 +428,10 @@ export class AffiliateSession {
     }
 
     if (stream === "tool" && data.phase === "start") {
-      void this.flushCreatorOutreachText(runId);
       return true;
     }
 
     if (stream === "lifecycle" && (data.phase === "end" || data.phase === "error")) {
-      if (data.phase === "end") void this.flushCreatorOutreachText(runId);
-      this.creatorOutreachRuns.delete(runId);
       return true;
     }
 
@@ -461,6 +467,7 @@ export class AffiliateSession {
     }
     state.deliveryCount += 1;
     try {
+      const checkpoint = this.runCheckpoints.get(runId);
       const result = await authSession.graphqlFetch<DeliverAffiliateCreatorTextMutationResult>(
         DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION,
         {
@@ -471,6 +478,8 @@ export class AffiliateSession {
             idempotencyKey: `affiliate-delivery:${runId}:${state.deliveryCount}`,
             runId,
             sessionKey: this.scopeKey,
+            baseCheckpointId: checkpoint?.baseCheckpointId ?? null,
+            candidateCheckpointId: checkpoint?.candidateCheckpointId,
             source: "AGENT_AUTO_FORWARD",
             fallbackToPlatform: true,
             preferredChannel: state.preferredChannel,
@@ -509,10 +518,12 @@ export class AffiliateSession {
     abortActive?: boolean;
     runMode?: AffiliateAgentRunMode;
     preferredChannel?: GQL.AffiliateMessageChannel;
+    baseCheckpointId?: string | null;
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     const runMode = params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING;
     await this.setup();
+    const checkpoint = await this.prepareRunCheckpoint(params.baseCheckpointId);
     await this.applyCurrentSessionModel();
     this.logDispatchPromptContext(params);
     const response = await requestAgent<AffiliateDispatchResult>({
@@ -525,6 +536,7 @@ export class AffiliateSession {
 
     if (response?.runId) {
       this.activeRunId = response.runId;
+      this.runCheckpoints.set(response.runId, checkpoint);
       if (runMode === AffiliateAgentRunMode.CREATOR_OUTREACH) {
         this.creatorOutreachRuns.set(response.runId, {
           text: "",
@@ -580,6 +592,86 @@ export class AffiliateSession {
     if (!previousRunId) return;
     void openClawConnector.request("chat.abort", { sessionKey: this.scopeKey })
       .catch((err: unknown) => log.warn(`Failed to abort affiliate run ${previousRunId}: ${String(err)}`));
+  }
+
+  private async prepareRunCheckpoint(
+    requestedBaseCheckpointId: string | null | undefined,
+  ): Promise<AffiliateRunCheckpoint> {
+    const baseCheckpointId = requestedBaseCheckpointId === undefined
+      ? await this.resolveRelationshipCommittedCheckpointId()
+      : normalizeCheckpointId(requestedBaseCheckpointId);
+    const candidateCheckpointId = randomUUID();
+
+    await openClawConnector.request("sessions.create", {
+      key: this.scopeKey,
+      label: `Affiliate ${this.affiliateContext.creatorRelationshipId}`,
+    });
+
+    if (baseCheckpointId) {
+      await openClawConnector.request("sessions.compaction.restore", {
+        key: this.scopeKey,
+        checkpointId: baseCheckpointId,
+      });
+    } else {
+      await openClawConnector.request("sessions.reset", {
+        key: this.scopeKey,
+        reason: "new",
+      });
+    }
+
+    await openClawConnector.request("sessions.pluginPatch", {
+      key: this.scopeKey,
+      pluginId: AFFILIATE_CHECKPOINT_PLUGIN_ID,
+      namespace: AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE,
+      value: {
+        baseCheckpointId,
+        candidateCheckpointId,
+      },
+    });
+
+    return { baseCheckpointId, candidateCheckpointId };
+  }
+
+  private async finalizeSuccessfulRun(
+    runId: string,
+    workItem: GQL.AffiliateWorkItem | undefined,
+  ): Promise<void> {
+    try {
+      await this.createCandidateCheckpoint(runId);
+      if (this.creatorOutreachRuns.has(runId)) {
+        await this.flushCreatorOutreachText(runId);
+      }
+      if (workItem != null) {
+        await this.completeWorkItemIfUnresolved(runId, workItem);
+      }
+    } catch (err) {
+      log.error(`Failed to finalize affiliate checkpoint for run ${runId}:`, err);
+    } finally {
+      this.creatorOutreachRuns.delete(runId);
+      this.pendingRunCompletions.delete(runId);
+      this.runCheckpoints.delete(runId);
+    }
+  }
+
+  private async createCandidateCheckpoint(runId: string): Promise<void> {
+    const checkpoint = this.runCheckpoints.get(runId);
+    if (!checkpoint) return;
+    await openClawConnector.request("sessions.checkpoint.create", {
+      key: this.scopeKey,
+      checkpointId: checkpoint.candidateCheckpointId,
+      summary: `Affiliate run ${runId} candidate checkpoint`,
+    });
+  }
+
+  private async resolveRelationshipCommittedCheckpointId(): Promise<string | null> {
+    const workspace = await this.fetchWorkspace({
+      includePolicies: false,
+      limit: 1,
+    });
+    const relationship = workspace?.creatorRelations?.find(
+      item => item.id === this.affiliateContext.creatorRelationshipId,
+    );
+    return normalizeCheckpointId(relationship?.committedCheckpointId);
   }
 
   private async completeWorkItemIfUnresolved(runId: string, workItem: GQL.AffiliateWorkItem): Promise<void> {
@@ -1184,6 +1276,10 @@ function parseOptionalDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizeCheckpointId(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): string {

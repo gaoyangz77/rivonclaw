@@ -393,6 +393,107 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("non-binding evidence");
   });
 
+  it("starts affiliate work runs from a brand-new checkpoint session when no checkpoint is committed", async () => {
+    const workItem = createSampleReviewWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+
+    expect(result.runId).toBe("run-affiliate-001");
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.create", expect.objectContaining({
+      key: "agent:main:affiliate:user-001:relationship-001",
+    }));
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.reset", {
+      key: "agent:main:affiliate:user-001:relationship-001",
+      reason: "new",
+    });
+    const pluginPatchCall = mockRpcRequest.mock.calls.find((call) => call[0] === "sessions.pluginPatch");
+    expect(pluginPatchCall?.[1]).toEqual(expect.objectContaining({
+      key: "agent:main:affiliate:user-001:relationship-001",
+      pluginId: "rivonclaw-capability-manager",
+      namespace: "affiliateCheckpoint",
+      value: {
+        baseCheckpointId: null,
+        candidateCheckpointId: expect.any(String),
+      },
+    }));
+
+    session.onRunCompleted("run-affiliate-001");
+
+    await waitForCondition(() =>
+      mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.checkpoint.create"),
+    );
+    const checkpointCall = mockRpcRequest.mock.calls.find((call) => call[0] === "sessions.checkpoint.create");
+    expect(checkpointCall?.[1]).toEqual(expect.objectContaining({
+      key: "agent:main:affiliate:user-001:relationship-001",
+      checkpointId: pluginPatchCall?.[1]?.value?.candidateCheckpointId,
+    }));
+  });
+
+  it("restores affiliate work runs from the committed relationship checkpoint", async () => {
+    const workItem = createSampleReviewWorkItem({
+      creatorRelationship: {
+        ...(createSampleReviewWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        committedCheckpointId: "checkpoint-committed-001",
+      },
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    await session.handleWorkItem(workItem);
+
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.compaction.restore", {
+      key: "agent:main:affiliate:user-001:relationship-001",
+      checkpointId: "checkpoint-committed-001",
+    });
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.reset")).toBe(false);
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.pluginPatch", expect.objectContaining({
+      value: expect.objectContaining({
+        baseCheckpointId: "checkpoint-committed-001",
+        candidateCheckpointId: expect.any(String),
+      }),
+    }));
+  });
+
   it("does not dispatch caught-up sample-review work items when the backend dispatch flag is false", async () => {
     const sampleWorkItem = createSampleReviewWorkItem({
       focusShopId: "shop-001",
@@ -543,6 +644,7 @@ describe("affiliate work item dispatch", () => {
       stream: "lifecycle",
       data: { phase: "end" },
     });
+    session.onRunCompleted(result.runId!);
 
     await waitForCondition(() =>
       graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
@@ -557,6 +659,8 @@ describe("affiliate work item dispatch", () => {
         text: "Sure, I will follow up with the details here.",
         runId: "run-affiliate-001",
         sessionKey: "agent:main:affiliate:user-001:relationship-001",
+        baseCheckpointId: null,
+        candidateCheckpointId: expect.any(String),
         source: "AGENT_AUTO_FORWARD",
       }),
     });
@@ -627,6 +731,7 @@ describe("affiliate work item dispatch", () => {
       stream: "lifecycle",
       data: { phase: "end" },
     });
+    session.onRunCompleted(result.runId!);
 
     await waitForCondition(() =>
       graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
@@ -639,6 +744,8 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         text: "Thanks, I will send the next steps here.",
         sessionKey: "agent:main:affiliate:user-001:relationship-001",
+        baseCheckpointId: null,
+        candidateCheckpointId: expect.any(String),
         preferredChannel: "WHATSAPP",
       }),
     });
@@ -701,6 +808,7 @@ describe("affiliate work item dispatch", () => {
       stream: "lifecycle",
       data: { phase: "end" },
     });
+    session.onRunCompleted(result.runId!);
 
     await waitForCondition(() =>
       graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
@@ -713,6 +821,8 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         text: "Thanks, I will reply with the agreement details by email.",
         sessionKey: "agent:main:affiliate:user-001:relationship-001",
+        baseCheckpointId: null,
+        candidateCheckpointId: expect.any(String),
         preferredChannel: "EMAIL",
       }),
     });

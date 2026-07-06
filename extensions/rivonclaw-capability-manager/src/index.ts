@@ -30,11 +30,18 @@ type PluginHookBeforeToolCallEvent = {
 type PluginHookToolContext = {
   sessionKey?: string;
   channelId?: string;
+  getSessionExtension?: <T = unknown>(namespace: string) => T | undefined;
 };
 
 type PluginHookBeforeToolCallResult = {
+  params?: Record<string, unknown>;
   block?: boolean;
   blockReason?: string;
+};
+
+type AffiliateCheckpointExtension = {
+  baseCheckpointId?: string | null;
+  candidateCheckpointId?: string | null;
 };
 
 type SessionModelInfo = {
@@ -103,6 +110,24 @@ export default defineRivonClawPlugin({
 
   setup(api) {
     warnIfOpenClawChannelRegistryInvalid("capability-manager setup", api.logger);
+
+    api.registerTrustedToolPolicy({
+      id: "affiliate-checkpoint-injection",
+      evaluate(event: PluginHookBeforeToolCallEvent, ctx: PluginHookToolContext) {
+        if (event.toolName !== "affiliate_resolve_work_item") return;
+        const checkpoint =
+          ctx.getSessionExtension?.<AffiliateCheckpointExtension>("affiliateCheckpoint");
+        const candidateCheckpointId = checkpoint?.candidateCheckpointId?.trim();
+        if (!candidateCheckpointId) return;
+        const baseCheckpointId = checkpoint?.baseCheckpointId?.trim() || null;
+        const params = injectAffiliateCheckpointParams(
+          event.params,
+          baseCheckpointId,
+          candidateCheckpointId,
+        );
+        return { params };
+      },
+    });
 
     // Keep channel sessions synced before OpenClaw selects a backend/model.
     //
@@ -211,3 +236,26 @@ export default defineRivonClawPlugin({
     // No cache lifecycle hooks needed — getEffectiveTools fetches fresh every time.
   },
 });
+
+function injectAffiliateCheckpointParams(
+  params: Record<string, unknown>,
+  baseCheckpointId: string | null,
+  candidateCheckpointId: string,
+): Record<string, unknown> {
+  const maybeInput = params.input;
+  if (maybeInput && typeof maybeInput === "object" && !Array.isArray(maybeInput)) {
+    return {
+      ...params,
+      input: {
+        ...(maybeInput as Record<string, unknown>),
+        baseCheckpointId,
+        candidateCheckpointId,
+      },
+    };
+  }
+  return {
+    ...params,
+    baseCheckpointId,
+    candidateCheckpointId,
+  };
+}
