@@ -32,9 +32,13 @@ export interface AckCsEscalationEventInput {
 /** Human-reviewable action proposed by an agent after policy evaluation. */
 export interface ActionProposal {
   approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
+  /** Committed relationship checkpoint used as this proposal's reasoning base. */
+  baseCheckpointId?: Maybe<Scalars['String']['output']>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
+  /** Candidate checkpoint produced by the agent run. It is promoted only after direct execution or approved execution succeeds. */
+  candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   /** Current collaboration record projection for staff review display. Proposal execution still uses frozen proposal fields. */
   collaborationRecord?: Maybe<AffiliateCollaborationRecord>;
@@ -941,10 +945,14 @@ export interface AffiliateCreatorProductFitPayload {
 /** User-scoped creator relationship. Shop-specific lifecycle and tags are embedded because a user's shop count is bounded. */
 export interface AffiliateCreatorRelationship {
   activeCollaborationRecordIds: Array<Scalars['ID']['output']>;
+  activeRunBaseCheckpointId?: Maybe<Scalars['String']['output']>;
+  activeRunId?: Maybe<Scalars['String']['output']>;
   blocked: Scalars['Boolean']['output'];
   /** When blocked=true and this list is empty, the user-level block applies to all current/future shops. */
   blockedShopIds: Array<Scalars['ID']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
+  committedCheckpointAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  committedCheckpointId?: Maybe<Scalars['String']['output']>;
   creatorId: Scalars['ID']['output'];
   emailContacts: Array<AffiliateCreatorEmailContact>;
   id: Scalars['ID']['output'];
@@ -3474,6 +3482,10 @@ export interface DecideActionProposalInput {
 }
 
 export interface DeliverAffiliateCreatorTextInput {
+  /** Committed CreatorRelationship checkpoint used as the base for this delivery run. */
+  baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
+  /** Candidate checkpoint created by the delivery run. Promoted only after delivery succeeds. */
+  candidateCheckpointId?: InputMaybe<Scalars['String']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
   fallbackToPlatform?: InputMaybe<Scalars['Boolean']['input']>;
   idempotencyKey: Scalars['String']['input'];
@@ -7663,6 +7675,10 @@ export interface ResolveAffiliateWorkItemInput {
   action?: InputMaybe<ResolveAffiliateWorkItemActionInput>;
   /** Ordered action list for bundled affiliate work. If provided, backend evaluates/executes the whole list together. */
   actions?: InputMaybe<Array<ResolveAffiliateWorkItemActionInput>>;
+  /** Committed CreatorRelationship checkpoint used as the base for this agent dispatch. */
+  baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
+  /** Candidate checkpoint id for this agent dispatch. Pending proposals store it; successful execution promotes it. */
+  candidateCheckpointId?: InputMaybe<Scalars['String']['input']>;
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
   decision: AffiliateWorkItemResolutionDecision;

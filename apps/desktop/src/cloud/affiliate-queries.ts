@@ -77,6 +77,8 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         type
         status
         operatorSummary
+        baseCheckpointId
+        candidateCheckpointId
         steps {
           stepId
           shopId
@@ -136,6 +138,10 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         creatorId
         blocked
         blockedShopIds
+        committedCheckpointId
+        committedCheckpointAt
+        activeRunId
+        activeRunBaseCheckpointId
         shopStates {
           shopId
           lifecycleStage
@@ -180,6 +186,8 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
       creatorId
       creatorRelationshipId
       collaborationRecordId
+      baseCheckpointId
+      candidateCheckpointId
       sourceWorkBoundary {
         subjectType
         creatorRelationshipId
@@ -343,6 +351,10 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         lastInboundAt
         lastOutboundAt
         lastAgentHandledAt
+        committedCheckpointId
+        committedCheckpointAt
+        activeRunId
+        activeRunBaseCheckpointId
         stateUpdatedAt
         activeCollaborationRecordIds
         pendingActionProposalId
@@ -648,6 +660,8 @@ export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
         id
         status
         operatorSummary
+        baseCheckpointId
+        candidateCheckpointId
       }
       collaborationRecord {
         id
@@ -665,7 +679,10 @@ export interface ResolveAffiliateWorkItemMutationResult {
     decision: string;
     stale: boolean;
     actionMode?: string | null;
-    proposal?: Pick<GQL.ActionProposal, "id" | "status" | "operatorSummary"> | null;
+    proposal?: Pick<
+      GQL.ActionProposal,
+      "id" | "status" | "operatorSummary" | "baseCheckpointId" | "candidateCheckpointId"
+    > | null;
     collaborationRecord?: Pick<
       GQL.AffiliateCollaborationRecord,
       "id" | "processingStatus" | "processReasons" | "workHandledUntil" | "stateUpdatedAt"
