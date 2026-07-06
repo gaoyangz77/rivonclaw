@@ -3,10 +3,22 @@ import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../../app/api-context.js";
 import { rootStore } from "../../app/store/desktop-store.js";
+import {
+  registerActiveAffiliateRunCheckpoint,
+  unregisterActiveAffiliateRunCheckpoint,
+} from "../../affiliate/affiliate-run-checkpoints.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
 import { toMstSnapshot } from "../../providers/provider-key-utils.js";
 import { __resetCloudGraphqlProxyForTests, registerCloudHandlers } from "../api.js";
 import { TOOL_SPECS_SYNC_QUERY } from "../init-queries.js";
+
+const mockOpenClawRequest = vi.hoisted(() => vi.fn());
+
+vi.mock("../../openclaw/index.js", () => ({
+  openClawConnector: {
+    request: (...args: unknown[]) => mockOpenClawRequest(...args),
+  },
+}));
 
 // ---------------------------------------------------------------------------
 // Test registry
@@ -16,6 +28,12 @@ let registry: RouteRegistry;
 
 beforeEach(() => {
   __resetCloudGraphqlProxyForTests();
+  mockOpenClawRequest.mockReset();
+  mockOpenClawRequest.mockResolvedValue({ ok: true });
+  unregisterActiveAffiliateRunCheckpoint({
+    creatorRelationshipId: "relationship-1",
+    runId: "run-checkpoint-1",
+  });
   rootStore.loadProviderKeys([]);
   registry = new RouteRegistry();
   registerCloudHandlers(registry);
@@ -251,6 +269,140 @@ describe("cloud-graphql handler", () => {
           message: "creatorRelationshipId is required for affiliate_resolve_work_item",
         },
       ],
+    });
+  });
+
+  it("injects the active affiliate run checkpoint into resolve work item calls", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+        proposal: {
+          id: "proposal-1",
+          status: "PENDING",
+          operatorSummary: "Follow up.",
+          baseCheckpointId: null,
+          candidateCheckpointId: "candidate-checkpoint-1",
+        },
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: "relationship-1",
+      sessionKey: "agent:main:affiliate:user-1:relationship-1",
+      runId: "run-checkpoint-1",
+      baseCheckpointId: null,
+      candidateCheckpointId: "candidate-checkpoint-1",
+    });
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          collaborationRecordId: "collab-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Follow up.",
+          baseCheckpointId: "agent-supplied-wrong-base",
+          candidateCheckpointId: null,
+          action: {
+            type: "SEND_MESSAGE",
+            messageText: "Hi, just checking in.",
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          baseCheckpointId: null,
+          candidateCheckpointId: "candidate-checkpoint-1",
+        }),
+      }),
+    );
+    expect(mockOpenClawRequest).toHaveBeenCalledWith(
+      "sessions.checkpoint.create",
+      expect.objectContaining({
+        key: "agent:main:affiliate:user-1:relationship-1",
+        checkpointId: "candidate-checkpoint-1",
+      }),
+    );
+    expect(mockOpenClawRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      graphqlFetch.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("does not proxy affiliate work resolution when the candidate checkpoint cannot be captured", async () => {
+    mockOpenClawRequest.mockRejectedValueOnce(new Error("session transcript not found"));
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      resolveAffiliateWorkItem: {
+        decision: "REQUEST_ACTION",
+        stale: false,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: "relationship-1",
+      sessionKey: "agent:main:affiliate:user-1:relationship-1",
+      runId: "run-checkpoint-1",
+      baseCheckpointId: null,
+      candidateCheckpointId: "candidate-checkpoint-1",
+    });
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Follow up.",
+          action: {
+            type: "SEND_MESSAGE",
+            messageText: "Hi, just checking in.",
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [{ message: "session transcript not found" }],
     });
   });
 

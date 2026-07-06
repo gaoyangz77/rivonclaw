@@ -366,6 +366,10 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           lastInboundAt
           lastOutboundAt
           lastAgentHandledAt
+          committedCheckpointId
+          committedCheckpointAt
+          activeRunId
+          activeRunBaseCheckpointId
           stateUpdatedAt
           activeCollaborationRecordIds
           pendingActionProposalId
@@ -571,25 +575,27 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           pendingProposals {
             id
             type
-          status
-          operatorSummary
-          creatorId
-          creatorRelationshipId
-          collaborationRecordId
-          sourceWorkBoundary {
-            subjectType
+            status
+            operatorSummary
+            baseCheckpointId
+            candidateCheckpointId
+            creatorId
             creatorRelationshipId
             collaborationRecordId
-            workKind
-            workBundleKind
-            versionAt
-            triggerKind
-            triggerId
-            recommendedActionTypes
-          }
-          decision {
-            note
-            decidedAt
+            sourceWorkBoundary {
+              subjectType
+              creatorRelationshipId
+              collaborationRecordId
+              workKind
+              workBundleKind
+              versionAt
+              triggerKind
+              triggerId
+              recommendedActionTypes
+            }
+            decision {
+              note
+              decidedAt
               actorType
               actorId
             }
@@ -609,12 +615,19 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           operatorSummary
           steps {
             stepId
+            shopId
+            campaignId
+            collaborationRecordId
             type
             operatorSummary
+            baseCheckpointId
+            candidateCheckpointId
           }
           creatorId
           creatorRelationshipId
           collaborationRecordId
+          baseCheckpointId
+          candidateCheckpointId
           sourceWorkBoundary {
             subjectType
             creatorRelationshipId
@@ -671,6 +684,8 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           collaborationRecordId
           type
           operatorSummary
+          baseCheckpointId
+          candidateCheckpointId
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
@@ -694,6 +709,8 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         }
         creatorId
         creatorRelationshipId
+        baseCheckpointId
+        candidateCheckpointId
         creatorProfile {
           id
           creatorOpenId
