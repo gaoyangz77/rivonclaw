@@ -111,6 +111,11 @@ export default defineRivonClawPlugin({
   setup(api) {
     warnIfOpenClawChannelRegistryInvalid("capability-manager setup", api.logger);
 
+    api.registerSessionExtension({
+      namespace: "affiliateCheckpoint",
+      description: "Affiliate relationship checkpoint context",
+    });
+
     api.registerTrustedToolPolicy({
       id: "affiliate-checkpoint-injection",
       evaluate(event: PluginHookBeforeToolCallEvent, ctx: PluginHookToolContext) {
