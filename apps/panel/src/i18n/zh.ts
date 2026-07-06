@@ -1801,7 +1801,7 @@ export default {
         ECOM_GET_SHOP: "获取店铺",
         // 达人管理
         AFFILIATE_GET_WORKSPACE: "获取达人工作区",
-        AFFILIATE_GET_ACTION_HISTORY: "获取达人操作历史",
+        AFFILIATE_GET_RELATIONSHIP_HISTORY: "获取达人关系历史",
         AFFILIATE_RESOLVE_WORK_ITEM: "处理达人任务",
         AFFILIATE_DECIDE_PROPOSAL: "审批达人提案",
         AFFILIATE_REQUEST_ACTION: "请求达人操作",
@@ -1809,7 +1809,6 @@ export default {
         AFFILIATE_LIST_WHATSAPP_ACCOUNTS: "列出 WhatsApp 账号",
         AFFILIATE_LIST_EMAIL_ACCOUNTS: "列出邮箱账号",
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "获取达人联系方式状态",
-        AFFILIATE_GET_CREATOR_MESSAGE_HISTORY: "获取达人消息历史",
         AFFILIATE_SET_CREATOR_WHATSAPP: "设置达人 WhatsApp",
         AFFILIATE_SET_CREATOR_EMAIL: "设置达人邮箱",
         AFFILIATE_CHECK_CREATOR_WHATSAPP: "检查达人 WhatsApp",

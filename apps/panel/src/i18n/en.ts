@@ -1801,7 +1801,7 @@ export default {
         ECOM_GET_SHOP: "Get Shop",
         // Affiliate Management
         AFFILIATE_GET_WORKSPACE: "Get Affiliate Workspace",
-        AFFILIATE_GET_ACTION_HISTORY: "Get Affiliate Action History",
+        AFFILIATE_GET_RELATIONSHIP_HISTORY: "Get Creator Relationship History",
         AFFILIATE_RESOLVE_WORK_ITEM: "Resolve Affiliate Work",
         AFFILIATE_DECIDE_PROPOSAL: "Decide Affiliate Proposal",
         AFFILIATE_REQUEST_ACTION: "Request Affiliate Action",
@@ -1809,7 +1809,6 @@ export default {
         AFFILIATE_LIST_WHATSAPP_ACCOUNTS: "List WhatsApp Accounts",
         AFFILIATE_LIST_EMAIL_ACCOUNTS: "List Email Accounts",
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Get Creator Contact State",
-        AFFILIATE_GET_CREATOR_MESSAGE_HISTORY: "Get Creator Message History",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Set Creator WhatsApp",
         AFFILIATE_SET_CREATOR_EMAIL: "Set Creator Email",
         AFFILIATE_CHECK_CREATOR_WHATSAPP: "Check Creator WhatsApp",

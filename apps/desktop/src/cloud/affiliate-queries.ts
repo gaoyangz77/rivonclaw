@@ -1,29 +1,41 @@
 import type { GQL } from "@rivonclaw/core";
 
-export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = `
-  query AffiliateCreatorMessageHistory($input: AffiliateCreatorMessageHistoryInput!) {
-    affiliateCreatorMessageHistory(input: $input) {
+export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = `
+  query AffiliateRelationshipHistory($input: AffiliateRelationshipHistoryInput!) {
+    affiliateRelationshipHistory(input: $input) {
       items {
-        channel
-        direction
-        text
-        messageType
-        messageId
-        deliveryStatus
-        createdAt
-        subject
-        channelLabel
-        shopId
-        shopName
-        accountLabel
-        source
+        id
+        type
+        occurredAt
+        summary
+        relatedIds {
+          shopId
+          creatorId
+          collaborationRecordId
+          sampleApplicationRecordId
+          platformApplicationId
+          actionProposalId
+          lifecycleEventId
+          productId
+        }
+        message {
+          channel
+          direction
+          textPreview
+          messageType
+          deliveryStatus
+          subject
+          channelLabel
+          shopName
+          accountLabel
+        }
       }
     }
   }
 `;
 
-export interface AffiliateCreatorMessageHistoryQueryResult {
-  affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload;
+export interface AffiliateRelationshipHistoryQueryResult {
+  affiliateRelationshipHistory: GQL.AffiliateRelationshipHistoryPayload;
 }
 
 export const AFFILIATE_WORKSPACE_QUERY = `
