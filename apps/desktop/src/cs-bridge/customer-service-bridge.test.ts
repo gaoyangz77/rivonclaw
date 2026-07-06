@@ -3421,9 +3421,10 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
       expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent")).toHaveLength(0);
       await vi.runOnlyPendingTimersAsync();
-      await Promise.resolve();
-      await Promise.resolve();
 
+      await vi.waitFor(() => {
+        expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent")).toHaveLength(1);
+      });
       const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
       expect(agentCalls).toHaveLength(1);
       expect(agentCalls[0][1]).toEqual(expect.objectContaining({
