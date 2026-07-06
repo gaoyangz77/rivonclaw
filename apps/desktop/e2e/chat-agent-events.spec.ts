@@ -530,19 +530,19 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(sectionCards.nth(6)).toContainText(/Telemetry|遥测/);
   });
 
-  test("Settings page: Agent section has DM scope dropdown", async ({ window }) => {
+  test("Settings page: Agent section has browser mode dropdown", async ({ window }) => {
     await dismissModals(window);
 
     const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
     await settingsBtn.click();
     await expect(settingsBtn).toHaveClass(/nav-active/);
 
-    // Agent Settings section should have a select/dropdown for DM scope (use :visible to exclude hidden ChannelsPage cards)
+    // Agent Settings section should have a select/dropdown for browser mode.
     const agentSection = window.locator(".section-card:visible").first();
     await expect(agentSection).toContainText(/Agent Settings|智能体设置/);
-    await expect(agentSection).toContainText(/DM Session Scope|私信会话隔离/);
+    await expect(agentSection).toContainText(/Browser Mode|浏览器模式/);
 
-    // Should have at least one Select component (DM scope dropdown)
+    // Should have at least one Select component (browser mode dropdown)
     const select = agentSection.locator("select, .custom-select-trigger").first();
     await expect(select).toBeVisible();
   });

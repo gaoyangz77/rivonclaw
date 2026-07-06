@@ -2888,7 +2888,7 @@ export default {
       "proposalRecommendationTitles": {
         "APPROVE_SAMPLE_REQUEST": "Approuver cette demande d'échantillon",
         "REJECT_SAMPLE_REQUEST": "Rejeter cette demande d'échantillon",
-        "SEND_MESSAGE": "Envoyer cette réponse au créateur",
+        "SEND_MESSAGE": "Envoyer un message au créateur",
         "CREATE_TARGET_COLLABORATION": "Créer une collaboration ciblée"
       },
       "proposalExecutionDescriptions": {

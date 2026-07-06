@@ -19,11 +19,25 @@ async function dismissModals(window: import("@playwright/test").Page) {
 }
 
 async function navigateToModels(window: import("@playwright/test").Page) {
+  const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+  if (await connectionsGroup.isVisible().catch(() => false)) {
+    const expanded = await connectionsGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await connectionsGroup.click();
+    }
+  }
+
   const btn = window.locator(".nav-btn", { hasText: "Models" });
   await btn.click();
   await expect(btn).toHaveClass(/nav-active/);
   // After seeding via API, the store cache is stale. Reload the page to trigger initSession → fetchProviderKeys.
   await window.reload();
+  if (await connectionsGroup.isVisible().catch(() => false)) {
+    const expanded = await connectionsGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await connectionsGroup.click();
+    }
+  }
   await btn.click();
   await expect(btn).toHaveClass(/nav-active/);
 }

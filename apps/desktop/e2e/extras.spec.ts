@@ -10,7 +10,15 @@ test.describe("Extra Features Page", () => {
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
 
-    const extrasBtn = window.locator(".nav-btn", { hasText: /Extra Features|扩展功能/ });
+    const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+    if (await connectionsGroup.isVisible().catch(() => false)) {
+      const expanded = await connectionsGroup.getAttribute("aria-expanded");
+      if (expanded !== "true") {
+        await connectionsGroup.click();
+      }
+    }
+
+    const extrasBtn = window.locator(".nav-btn", { hasText: /Extensions|Extra Features|扩展功能/ });
     await extrasBtn.click();
     await expect(extrasBtn).toHaveClass(/nav-active/);
   }

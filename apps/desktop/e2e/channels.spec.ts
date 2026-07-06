@@ -12,10 +12,18 @@ async function dismissModals(window: import("@playwright/test").Page) {
 
 /** Navigate to the Channels (Messaging) page and wait for it to load. */
 async function navigateToChannels(window: import("@playwright/test").Page) {
-  const channelsBtn = window.locator(".nav-btn", { hasText: "Messaging" });
+  const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+  if (await connectionsGroup.isVisible().catch(() => false)) {
+    const expanded = await connectionsGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await connectionsGroup.click();
+    }
+  }
+
+  const channelsBtn = window.locator(".nav-btn", { hasText: "Channels" });
   await channelsBtn.click();
   await expect(channelsBtn).toHaveClass(/nav-active/);
-  const channelTitle = window.locator(".channel-title");
+  const channelTitle = window.locator(".channel-title").first();
   await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 }
 
@@ -29,7 +37,7 @@ async function openAddAccountModal(
   window: import("@playwright/test").Page,
   channelLabel: string,
 ) {
-  const addSection = window.locator(".channel-add-section");
+  const addSection = window.locator(".channel-add-section").first();
   await expect(addSection).toBeVisible();
 
   // Open the channel-type dropdown
@@ -37,7 +45,7 @@ async function openAddAccountModal(
   await trigger.click();
 
   // Select the channel from the dropdown options (rendered in a portal on document.body)
-  const option = window.locator(".custom-select-option", { hasText: channelLabel });
+  const option = window.locator(".custom-select-option", { hasText: channelLabel }).first();
   await expect(option).toBeVisible({ timeout: 5_000 });
   await option.click();
 
@@ -46,7 +54,7 @@ async function openAddAccountModal(
   await connectBtn.click();
 
   // Wait for the modal to appear
-  const modal = window.locator(".modal-backdrop .modal-content");
+  const modal = window.locator(".modal-backdrop .modal-content").first();
   await expect(modal).toBeVisible({ timeout: 5_000 });
   return modal;
 }
@@ -87,15 +95,15 @@ test.describe("Channels Page", () => {
     await navigateToChannels(window);
 
     // Verify the refresh button is present
-    const refreshBtn = window.locator(".channel-header .btn.btn-secondary");
+    const refreshBtn = window.locator(".channel-header .btn.btn-secondary").first();
     await expect(refreshBtn).toBeVisible();
 
     // Verify the "Add Account" section renders with the channel dropdown
-    const addSection = window.locator(".channel-add-section");
+    const addSection = window.locator(".channel-add-section").first();
     await expect(addSection).toBeVisible();
 
     // Verify the accounts table is rendered (even if empty)
-    const table = window.locator(".channel-table");
+    const table = window.locator(".channel-table").first();
     await expect(table).toBeVisible();
 
     // Verify the table has expected column headers

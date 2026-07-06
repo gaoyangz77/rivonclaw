@@ -1,5 +1,19 @@
 import { test, expect } from "./electron-fixture.js";
 
+async function navigateToModels(window: import("@playwright/test").Page) {
+  const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+  if (await connectionsGroup.isVisible().catch(() => false)) {
+    const expanded = await connectionsGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await connectionsGroup.click();
+    }
+  }
+
+  const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+  await providersBtn.click();
+  await expect(providersBtn).toHaveClass(/nav-active/);
+}
+
 test.describe("Custom Providers", () => {
   test("add custom provider via UI form", async ({ window }) => {
     const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
@@ -14,9 +28,7 @@ test.describe("Custom Providers", () => {
     }
 
     // Navigate to Models page
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
+    await navigateToModels(window);
 
     // No pre-seeded keys — start from zero
     const keyCards = window.locator(".key-card");
@@ -155,9 +167,7 @@ test.describe("Custom Providers", () => {
     expect(createRes.ok).toBe(true);
 
     // Navigate to Models page — ProvidersPage fetches keys on mount
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
+    await navigateToModels(window);
 
     // Switch to Custom tab where custom provider key cards are displayed
     const form = window.locator(".page-two-col");

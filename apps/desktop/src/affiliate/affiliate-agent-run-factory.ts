@@ -165,6 +165,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "When a candidate productId is available and the decision depends on whether this creator/product is worth pursuing, call affiliate_predict_creator_product_fit with creatorRelationshipId before REQUEST_ACTION. Use its product summary, prediction, and decision thresholds as decision evidence.",
       "If you decide to review a sample application and no prediction cache id is already listed below, call affiliate_predict_creator_product_fit with creatorRelationshipId and scenario SAMPLE_REVIEW first and copy the returned cacheId into action.predictionCacheIds.",
       "When a candidate sample/application id is available and the creator is asking about application approval, rejection, shipment, or sample status, call affiliate_get_workspace with creatorRelationshipId plus the sample/application identity before replying.",
+      renderCreatorFacingMessageGuidance("reply"),
       "If a sample application is already terminal (for example cancelled, expired, rejected, or fulfilled), do not propose a REVIEW_SAMPLE_APPLICATION action for it. You may still reply to the creator, but the reply must reflect the business decision and current evidence. Do not invite the creator to resubmit the same sample request unless the merchant context clearly supports continuing with that creator/product.",
       "When the terminal sample state is seller/system rejection or cancellation, avoid passive wording such as \"the request is no longer active\" as the main explanation. Tell the creator plainly and politely that after review we are not moving forward with this sample/collaboration at this time, then add any appropriate future-facing note.",
       "When prediction or merchant thresholds look weak, treat that as cautionary evidence rather than an automatic decline. Politely decline only when the full relationship, creator, product, sample, merchant, and channel context supports not proceeding; otherwise ask a clarifying question, defer, or request staff review.",
@@ -211,6 +212,7 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the follow-up depends on a candidate product from a prior creator card and Backend Work Context does not confirm the product, call affiliate_predict_creator_product_fit with creatorRelationshipId before recommending continued investment or asking the creator to proceed.",
+      renderCreatorFacingMessageGuidance("follow-up"),
       "If a follow-up is appropriate, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
       "For every text follow-up, set action.messageText to the final text the creator should receive. Backend will normalize it into a typed SEND_MESSAGE intent.",
@@ -282,6 +284,21 @@ function renderResolveWorkItemToolContract(): string {
     "For SEND_MESSAGE, include type SEND_MESSAGE and messageText. The messageText value is the final text the creator will see after approval/execution; write the actual reply in the creator's language. Add productId only when it is a real target reference. Do not add raw provider route identifiers; backend routes delivery from creatorRelationshipId and channel state. Never send messageIntent: {}.",
     "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
   ].join("\n");
+}
+
+function renderCreatorFacingMessageGuidance(kind: "reply" | "follow-up"): string {
+  const opening =
+    kind === "follow-up"
+      ? "For creator follow-ups, choose a proactive progress-check posture: reference the confirmed collaboration/sample/content milestone, then ask for the next useful update or offer useful materials."
+      : "For creator messages, choose the posture that fits the visible work context: continue a visible conversation, open a new outreach thread, ask a concise clarification, or follow up on a confirmed collaboration milestone.";
+  return [
+    opening,
+    "Write creator-facing text from confirmed workspace facts and the intended business next step. Match tone to the relationship stage: warm introduction for first outreach, helpful clarification for ambiguous context, operational update for sample/status work, and gentle accountability for overdue content.",
+    "Write the final creator-facing message as polished, natural language that could be sent without editing. Use the creator's likely language when clear from context; otherwise use concise English.",
+    "For sample/content follow-ups, anchor the message in concrete facts such as the product/sample, approval, shipment, delivery, or content-pending milestone shown in the workspace, then ask for the next update or content plan.",
+    "If the available context is too thin to write a credible creator-facing message, choose NEEDS_STAFF_REVIEW and summarize exactly what context staff should check.",
+    "When context is thin but outreach still helps the business, use a low-risk opening or clarification that advances the relationship and stays anchored to the facts currently available.",
+  ].join(" ");
 }
 
 function renderProposalDeltaSection(input: AffiliateAgentRunFactoryInput): string {

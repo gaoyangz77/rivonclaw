@@ -1,5 +1,19 @@
 import { test, expect } from "./electron-fixture.js";
 
+async function navigateToModels(window: import("@playwright/test").Page) {
+  const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+  if (await connectionsGroup.isVisible().catch(() => false)) {
+    const expanded = await connectionsGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await connectionsGroup.click();
+    }
+  }
+
+  const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+  await providersBtn.click();
+  await expect(providersBtn).toHaveClass(/nav-active/);
+}
+
 test.describe("Dropdown positioning", () => {
   test("model select dropdown appears adjacent to its trigger", async ({ window }) => {
     // Dismiss any modal(s) blocking the UI
@@ -11,9 +25,7 @@ test.describe("Dropdown positioning", () => {
     }
 
     // Navigate to Models page
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
+    await navigateToModels(window);
 
     // Switch to API Key tab where the model dropdown lives
     const apiTab = window.locator(".tab-btn", { hasText: /API/i });

@@ -1,5 +1,19 @@
 import { test, expect } from "./electron-fixture.js";
 
+async function navigateToSkills(window: import("@playwright/test").Page) {
+  const automationGroup = window.locator(".nav-group-toggle", { hasText: "Automation" });
+  if (await automationGroup.isVisible().catch(() => false)) {
+    const expanded = await automationGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await automationGroup.click();
+    }
+  }
+
+  const skillsBtn = window.locator(".nav-btn", { hasText: "Skills" });
+  await skillsBtn.click();
+  await expect(skillsBtn).toHaveClass(/nav-active/);
+}
+
 test.describe("Skills Page", () => {
   test("install from server + delete lifecycle", async ({ electronApp, window, apiBase }) => {
     // --- Get a real skill slug from the bundled-slugs API ---
@@ -104,9 +118,7 @@ test.describe("Skills Page", () => {
     );
 
     // --- Navigate to Skills page → Installed tab ---
-    const skillsBtn = window.locator(".nav-btn", { hasText: "Skills" });
-    await skillsBtn.click();
-    await expect(skillsBtn).toHaveClass(/nav-active/);
+    await navigateToSkills(window);
 
     const installedTab = window.locator(".tab-bar .tab-btn", { hasText: /Installed|已安装/ });
     await installedTab.click();
@@ -162,9 +174,7 @@ test.describe("Skills Page", () => {
     }
 
     // --- Navigate to Skills page ---
-    const skillsBtn = window.locator(".nav-btn", { hasText: "Skills" });
-    await skillsBtn.click();
-    await expect(skillsBtn).toHaveClass(/nav-active/);
+    await navigateToSkills(window);
 
     // Page title and description should be visible
     await expect(window.locator("h1", { hasText: /Skills Marketplace|技能市场/ })).toBeVisible();

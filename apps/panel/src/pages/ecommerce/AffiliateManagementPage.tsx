@@ -99,6 +99,7 @@ const NO_HISTORY_SUB_STATUS = "__NO_HISTORY_SUB_STATUS__";
 type HistoryStatusFilter = (typeof HISTORY_STATUS_FILTERS)[number];
 type HistorySubStatusFilter = string;
 const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
+const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_LIMIT = 200;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
@@ -2954,7 +2955,12 @@ function CreatorRelationshipWorkDetailModal({
     : t("ecommerce.affiliateWorkspace.unknownCreator");
   const activityCollaborationId = item.focusCollaboration?.id ?? item.activeCollaborations[0]?.id ?? null;
 
-  const { data: messageHistoryData, loading: conversationLoading, refetch: refetchConversationMessages } = useQuery<
+  const {
+    data: messageHistoryData,
+    loading: conversationLoading,
+    refetch: refetchConversationMessages,
+    fetchMore: fetchMoreConversationMessages,
+  } = useQuery<
     { affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload },
     { input: GQL.AffiliateCreatorMessageHistoryInput }
   >(AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, {
@@ -2962,13 +2968,17 @@ function CreatorRelationshipWorkDetailModal({
       input: {
         shopId: item.shopId,
         creatorRelationshipId: item.relationshipId,
-        limit: 80,
+        limit: AFFILIATE_TIMELINE_PAGE_SIZE,
       },
     },
     fetchPolicy: "cache-and-network",
     skip: !item.relationshipId,
   });
-  const { data: activityData, loading: activityLoading } = useQuery<
+  const {
+    data: activityData,
+    loading: activityLoading,
+    fetchMore: fetchMoreActivity,
+  } = useQuery<
     { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
     { input: GQL.AffiliateCollaborationActivityInput }
   >(AFFILIATE_COLLABORATION_ACTIVITY_QUERY, {
@@ -2976,7 +2986,7 @@ function CreatorRelationshipWorkDetailModal({
       input: {
         creatorRelationshipId: item.relationshipId,
         collaborationRecordId: activityCollaborationId ?? undefined,
-        limit: 100,
+        limit: AFFILIATE_TIMELINE_PAGE_SIZE,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -2987,11 +2997,13 @@ function CreatorRelationshipWorkDetailModal({
     { input: GQL.SendAffiliateCreatorMessageInput }
   >(SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION);
 
-  const conversationMessages = messageHistoryData?.affiliateCreatorMessageHistory.items ?? [];
-  const canLoadOlderConversation = false;
+  const conversationHistory = messageHistoryData?.affiliateCreatorMessageHistory;
+  const conversationMessages = conversationHistory?.items ?? [];
+  const canLoadOlderConversation = Boolean(conversationHistory?.hasMore && conversationHistory.nextOffset != null);
   const productSummary = productSummaryFromWorkContext(item.productContext);
   const statusDisplay = creatorRelationshipStatusDisplay(item, t);
   const activity = activityData?.affiliateCollaborationActivity;
+  const canLoadOlderActivity = Boolean(activity?.hasMore && activity.nextOffset != null);
   const workProposals = mergeById([
     ...item.pendingProposals,
     ...(item.focusedProposal ? [item.focusedProposal] : []),
@@ -3114,22 +3126,22 @@ function CreatorRelationshipWorkDetailModal({
   const tabItems = [
     {
       id: "overview" as const,
-      label: t("ecommerce.affiliateWorkspace.detailTabs.overview"),
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork"),
       count: 3,
     },
     {
       id: "conversation" as const,
-      label: t("ecommerce.affiliateWorkspace.detailTabs.conversation"),
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCommunication"),
       count: conversationMessages.length,
     },
     {
       id: "collaborations" as const,
-      label: t("ecommerce.affiliateWorkspace.relatedCollaborations"),
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCollaborations"),
       count: item.activeCollaborations.length,
     },
     {
       id: "activity" as const,
-      label: t("ecommerce.affiliateWorkspace.operationHistory"),
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelActivity"),
       count: timeline.length,
     },
   ];
@@ -3145,7 +3157,47 @@ function CreatorRelationshipWorkDetailModal({
   }
 
   function loadOlderConversationMessages(): void {
-    // Relationship-level history is fetched as a merged bounded page for now.
+    if (!conversationHistory?.hasMore || conversationHistory.nextOffset == null) return;
+    void fetchMoreConversationMessages({
+      variables: {
+        input: {
+          shopId: item.shopId,
+          creatorRelationshipId: item.relationshipId,
+          limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+          offset: conversationHistory.nextOffset,
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => {
+        if (!fetchMoreResult) return previous;
+        return {
+          affiliateCreatorMessageHistory: {
+            ...fetchMoreResult.affiliateCreatorMessageHistory,
+            items: mergeAffiliateCreatorMessageHistoryItems(
+              previous.affiliateCreatorMessageHistory.items,
+              fetchMoreResult.affiliateCreatorMessageHistory.items,
+            ),
+          },
+        };
+      },
+    });
+  }
+
+  function loadOlderActivity(): void {
+    if (!activity?.hasMore || activity.nextOffset == null) return;
+    void fetchMoreActivity({
+      variables: {
+        input: {
+          creatorRelationshipId: item.relationshipId,
+          collaborationRecordId: activityCollaborationId ?? undefined,
+          limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+          offset: activity.nextOffset,
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => {
+        if (!fetchMoreResult) return previous;
+        return mergeAffiliateCollaborationActivityPayload(previous, fetchMoreResult);
+      },
+    });
   }
 
   async function sendHumanReply(): Promise<void> {
@@ -3209,6 +3261,9 @@ function CreatorRelationshipWorkDetailModal({
               <div className="affiliate-modal-id-actions">
                 <SystemIdCopy value={item.relationshipId} />
               </div>
+              <div className="affiliate-relationship-work-modal-subtitle">
+                {t("ecommerce.affiliateWorkspace.relationshipWorkbenchSubtitle")}
+              </div>
             </div>
           </div>
           <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
@@ -3219,7 +3274,7 @@ function CreatorRelationshipWorkDetailModal({
           <aside className="affiliate-collaboration-context-pane">
             <section className="affiliate-relationship-work-side-card affiliate-relationship-work-side-card-primary">
               <div className="affiliate-relationship-work-side-card-head">
-                <span>{t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}</span>
+                <span>{t("ecommerce.affiliateWorkspace.relationshipProfileSummary")}</span>
                 {item.creatorProfile ? (
                   <button className="affiliate-inline-link-button" type="button" onClick={openRelationship}>
                     {t("ecommerce.affiliateWorkspace.openCreatorDetail")}
@@ -3234,7 +3289,7 @@ function CreatorRelationshipWorkDetailModal({
             </section>
             <section className="affiliate-relationship-work-side-card">
               <div className="affiliate-relationship-work-side-card-head">
-                <span>{t("ecommerce.affiliateWorkspace.creatorRelationshipWorkPrimaryObject")}</span>
+                <span>{t("ecommerce.affiliateWorkspace.relationshipCurrentDecision")}</span>
                 <SystemIdCopy value={item.relationshipId} />
               </div>
               <RelationshipStatusBadge display={statusDisplay} tone={relationshipStatusTone(item.processingStatus)} compact />
@@ -3315,7 +3370,7 @@ function CreatorRelationshipWorkDetailModal({
                 <div className="affiliate-relationship-work-overview-panel">
                   <section className="affiliate-relationship-work-current-work">
                     <div className="affiliate-relationship-work-current-work-main">
-                      <span>{t("ecommerce.affiliateWorkspace.labels.currentSituation")}</span>
+                      <span>{t("ecommerce.affiliateWorkspace.relationshipCurrentDecision")}</span>
                       <h3>{renderCreatorRelationshipWorkTitle(item, t)}</h3>
                       <p>{renderCreatorRelationshipWorkSummary(item, t)}</p>
                     </div>
@@ -3353,7 +3408,7 @@ function CreatorRelationshipWorkDetailModal({
                   </section>
                   {latestCollaboration ? (
                     <section className="affiliate-relationship-work-overview-section">
-                      <h3>{t("ecommerce.affiliateWorkspace.relatedCollaborations")}</h3>
+                      <h3>{t("ecommerce.affiliateWorkspace.relationshipPanelCollaborations")}</h3>
                       <CollaborationRecordSubcard
                         record={latestCollaboration}
                         focused
@@ -3539,6 +3594,18 @@ function CreatorRelationshipWorkDetailModal({
                       {t("ecommerce.affiliateWorkspace.noActivityYet")}
                     </div>
                   )}
+                  {canLoadOlderActivity ? (
+                    <button
+                      className="btn btn-secondary affiliate-conversation-load-more"
+                      type="button"
+                      disabled={activityLoading}
+                      onClick={loadOlderActivity}
+                    >
+                      {activityLoading
+                        ? t("common.loading")
+                        : t("ecommerce.affiliateWorkspace.activity.loadOlder")}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -3949,6 +4016,40 @@ function affiliateCreatorMessageKey(
   return `${channel}:${message.createdAt ?? "unknown"}:${sender}:${message.text ?? ""}`;
 }
 
+function mergeAffiliateCreatorMessageHistoryItems(
+  currentItems: GQL.AffiliateCreatorMessageHistoryItem[],
+  nextItems: GQL.AffiliateCreatorMessageHistoryItem[],
+): GQL.AffiliateCreatorMessageHistoryItem[] {
+  const merged = new Map<string, GQL.AffiliateCreatorMessageHistoryItem>();
+  for (const item of [...currentItems, ...nextItems]) {
+    merged.set(affiliateCreatorMessageKey(item), item);
+  }
+  return [...merged.values()];
+}
+
+function mergeAffiliateCollaborationActivityPayload(
+  previous: { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
+  next: { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
+): { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload } {
+  return {
+    affiliateCollaborationActivity: {
+      ...next.affiliateCollaborationActivity,
+      actionProposals: mergeById([
+        ...previous.affiliateCollaborationActivity.actionProposals,
+        ...next.affiliateCollaborationActivity.actionProposals,
+      ]),
+      lifecycleEvents: mergeById([
+        ...previous.affiliateCollaborationActivity.lifecycleEvents,
+        ...next.affiliateCollaborationActivity.lifecycleEvents,
+      ]),
+      sampleApplicationRecords: mergeById([
+        ...previous.affiliateCollaborationActivity.sampleApplicationRecords,
+        ...next.affiliateCollaborationActivity.sampleApplicationRecords,
+      ]),
+    },
+  };
+}
+
 function AffiliateCreatorMessageRow({
   message,
 }: {
@@ -3962,11 +4063,13 @@ function AffiliateCreatorMessageRow({
   const productRefs = "productRefs" in message ? message.productRefs ?? [] : [];
   const sampleRefs = "sampleApplicationRefs" in message ? message.sampleApplicationRefs ?? [] : [];
   const targetRefs = "targetCollaborationRefs" in message ? message.targetCollaborationRefs ?? [] : [];
-  const channelLabel = "channel" in message
-    ? t(`ecommerce.affiliateWorkspace.messageChannels.${message.channel}`, {
-        defaultValue: formatAffiliateEnumLabel(message.channel),
-      })
-    : null;
+  const channelLabel = message.accountLabel
+    ?? message.shopName
+    ?? ("channel" in message
+      ? t(`ecommerce.affiliateWorkspace.messageChannels.${message.channel}`, {
+          defaultValue: formatAffiliateEnumLabel(message.channel),
+        })
+      : null);
   const directionKey = String(direction).toLowerCase();
   const hasCardRefs = Boolean(productRefs.length || sampleRefs.length || targetRefs.length);
   const rawCardPayload = text ? parsePlatformCardPayload(text) : null;
@@ -5383,6 +5486,8 @@ function CreatorRelationshipDetailModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<"overview" | "conversation" | "collaborations" | "activity">("overview");
+  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const profile = item.creatorProfile ?? null;
   const name = profile
     ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
@@ -5394,27 +5499,247 @@ function CreatorRelationshipDetailModal({
   const management = item.managementItem ?? null;
   const blocked = Boolean(item.creatorRelation?.blocked);
   const shopStates = item.creatorRelation?.shopStates ?? (item.shopState ? [item.shopState] : []);
+  const workItems = item.workItems ?? [];
+  const primaryWorkItem = [...workItems].sort((left, right) =>
+    new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
+  )[0] ?? null;
+  const relationshipId = item.creatorRelation?.id ?? primaryWorkItem?.relationshipId ?? null;
+  const messageShopId = primaryWorkItem?.shopId ?? item.shopState?.shopId ?? shopStates[0]?.shopId ?? null;
+  const { data: relationshipCollaborationsData } = useQuery<
+    { collaborationRecords: GQL.AffiliateCollaborationRecord[] },
+    { input: GQL.ReadAffiliateCollaborationRecordsInput }
+  >(AFFILIATE_COLLABORATION_RECORDS_QUERY, {
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? undefined,
+        limit: 100,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId,
+  });
+  const collaborationRecords = mergeById([
+    ...(relationshipCollaborationsData?.collaborationRecords ?? []),
+    ...workItems.flatMap((workItem) => workItem.activeCollaborations),
+    ...(management?.latestCollaborationRecord ? [management.latestCollaborationRecord] : []),
+  ]).sort((left, right) => new Date(right.updatedAt ?? right.createdAt).getTime() - new Date(left.updatedAt ?? left.createdAt).getTime());
+  const pendingProposals = mergeById(workItems.flatMap((workItem) => [
+    ...workItem.pendingProposals,
+    ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
+  ])).filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
+  const relationshipStatusDisplay = primaryWorkItem
+    ? creatorRelationshipStatusDisplay(primaryWorkItem, t)
+    : item.creatorRelation
+      ? {
+          primary: t(`ecommerce.affiliateWorkspace.statusLabels.${item.creatorRelation.processingStatus}`, {
+            defaultValue: formatAffiliateEnumLabel(item.creatorRelation.processingStatus),
+          }),
+          secondary: firstTranslatedStatusDetail(
+            t,
+            item.creatorRelation.processReasons,
+            null,
+            item.creatorRelation.requiredAction,
+          ),
+        }
+      : {
+          primary: management?.needsAttention
+            ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
+            : t("ecommerce.affiliateWorkspace.creatorStable"),
+          secondary: null,
+        };
+  const relationshipTone = primaryWorkItem
+    ? relationshipStatusTone(primaryWorkItem.processingStatus)
+    : item.creatorRelation
+      ? relationshipStatusTone(item.creatorRelation.processingStatus)
+      : management?.needsAttention
+        ? "attention"
+        : "done";
+  const currentTitle = primaryWorkItem
+    ? renderCreatorRelationshipWorkTitle(primaryWorkItem, t)
+    : pendingProposals[0]
+      ? renderProposalRecommendationTitle(pendingProposals[0], t)
+      : management?.needsAttention
+        ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
+        : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWork");
+  const currentSummary = primaryWorkItem
+    ? renderCreatorRelationshipWorkSummary(primaryWorkItem, t)
+    : management?.needsAttention
+      ? t("ecommerce.affiliateWorkspace.relationshipNeedsManualReview")
+      : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWorkHint");
+
+  const {
+    data: messageHistoryData,
+    loading: conversationLoading,
+    fetchMore: fetchMoreConversationMessages,
+  } = useQuery<
+    { affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload },
+    { input: GQL.AffiliateCreatorMessageHistoryInput }
+  >(AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, {
+    variables: {
+      input: {
+        shopId: messageShopId ?? "",
+        creatorRelationshipId: relationshipId ?? "",
+        limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId || !messageShopId,
+  });
+  const conversationHistory = messageHistoryData?.affiliateCreatorMessageHistory;
+  const conversationMessages = conversationHistory?.items ?? [];
+  const canLoadOlderConversation = Boolean(conversationHistory?.hasMore && conversationHistory.nextOffset != null);
+  const {
+    data: relationshipActivityData,
+    loading: relationshipActivityLoading,
+    fetchMore: fetchMoreRelationshipActivity,
+  } = useQuery<
+    { affiliateCollaborationActivity: GQL.AffiliateCollaborationActivityPayload },
+    { input: GQL.AffiliateCollaborationActivityInput }
+  >(AFFILIATE_COLLABORATION_ACTIVITY_QUERY, {
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId,
+  });
+  const relationshipActivity = relationshipActivityData?.affiliateCollaborationActivity;
+  const canLoadOlderActivity = Boolean(relationshipActivity?.hasMore && relationshipActivity.nextOffset != null);
+  const activityEntries = [
+    ...mergeById([
+      ...pendingProposals,
+      ...(relationshipActivity?.actionProposals ?? []),
+    ]).map((proposal) => ({
+      id: `proposal:${proposal.id}`,
+      type: "proposal" as const,
+      time: proposal.updatedAt ?? proposal.createdAt,
+      kind: t("ecommerce.affiliateWorkspace.itemKinds.PROPOSAL_PENDING", {
+        defaultValue: t("ecommerce.affiliateWorkspace.focusedProposal"),
+      }),
+      proposal: hydrateAffiliateProposalProjection({
+        proposal,
+        collaborationRecord: proposal.collaborationRecord ?? null,
+        creatorProfile: profile,
+      }),
+    })),
+    ...mergeById((relationshipActivity?.lifecycleEvents ?? []).map((event) =>
+      affiliateSnapshot(event) as GQL.LifecycleEvent,
+    )).map((event) => ({
+      id: `event:${event.id}`,
+      type: "event" as const,
+      time: event.createdAt,
+      kind: t("ecommerce.affiliateWorkspace.itemKinds.PLATFORM_EVENT"),
+      title: t(`ecommerce.affiliateWorkspace.lifecycleEvents.${event.eventType}`, {
+        defaultValue: event.eventType,
+      }),
+      detail: renderLifecycleEventDetail(event, t),
+    })),
+    ...workItems.map((workItem) => ({
+      id: `work:${workItem.relationshipId}:${workItem.stateUpdatedAt ?? ""}`,
+      type: "event" as const,
+      time: workItem.stateUpdatedAt ?? new Date(0).toISOString(),
+      kind: t("ecommerce.affiliateWorkspace.itemKinds.PLATFORM_EVENT"),
+      title: renderCreatorRelationshipWorkTitle(workItem, t),
+      detail: renderCreatorRelationshipWorkSummary(workItem, t),
+    })),
+  ].sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime());
+  const tabItems = [
+    {
+      id: "overview" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork"),
+      count: pendingProposals.length || (primaryWorkItem ? 1 : 0),
+    },
+    {
+      id: "conversation" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCommunication"),
+      count: conversationMessages.length,
+    },
+    {
+      id: "collaborations" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCollaborations"),
+      count: collaborationRecords.length,
+    },
+    {
+      id: "activity" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelActivity"),
+      count: activityEntries.length,
+    },
+  ];
+
+  function loadOlderConversationMessages(): void {
+    if (!conversationHistory?.hasMore || conversationHistory.nextOffset == null || !relationshipId || !messageShopId) return;
+    void fetchMoreConversationMessages({
+      variables: {
+        input: {
+          shopId: messageShopId,
+          creatorRelationshipId: relationshipId,
+          limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+          offset: conversationHistory.nextOffset,
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => {
+        if (!fetchMoreResult) return previous;
+        return {
+          affiliateCreatorMessageHistory: {
+            ...fetchMoreResult.affiliateCreatorMessageHistory,
+            items: mergeAffiliateCreatorMessageHistoryItems(
+              previous.affiliateCreatorMessageHistory.items,
+              fetchMoreResult.affiliateCreatorMessageHistory.items,
+            ),
+          },
+        };
+      },
+    });
+  }
+
+  function loadOlderActivity(): void {
+    if (!relationshipActivity?.hasMore || relationshipActivity.nextOffset == null || !relationshipId) return;
+    void fetchMoreRelationshipActivity({
+      variables: {
+        input: {
+          creatorRelationshipId: relationshipId,
+          limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+          offset: relationshipActivity.nextOffset,
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => {
+        if (!fetchMoreResult) return previous;
+        return mergeAffiliateCollaborationActivityPayload(previous, fetchMoreResult);
+      },
+    });
+  }
 
   return (
     <div className="modal-backdrop affiliate-creator-detail-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="modal-content affiliate-creator-detail-modal affiliate-relationship-detail-modal"
+        className="modal-content affiliate-collaboration-modal affiliate-relationship-detail-modal affiliate-relationship-work-modal"
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="modal-header affiliate-creator-detail-header">
-          <div className="affiliate-creator-detail-identity">
+        <div className="modal-header affiliate-relationship-work-modal-header">
+          <div className="affiliate-relationship-work-modal-heading">
             <CreatorAvatarImage
               avatarUrl={profile?.avatarUrl}
-              className="affiliate-creator-detail-avatar"
+              className="affiliate-avatar affiliate-relationship-work-modal-avatar"
               fallbackClassName="affiliate-creator-avatar-empty"
               name={name}
             />
-            <div>
+            <div className="affiliate-collaboration-modal-title-block">
               <h2 className="affiliate-relationship-detail-title">{name}</h2>
-              <div className="affiliate-creator-detail-platform">
+              <p>
+                <span>{t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}</span>
                 <CreatorPlatformId handle={handle} platformId={platformId} />
+              </p>
+              {relationshipId ? (
+                <div className="affiliate-modal-id-actions">
+                  <SystemIdCopy value={relationshipId} />
+                </div>
+              ) : null}
+              <div className="affiliate-relationship-work-modal-subtitle">
+                {t("ecommerce.affiliateWorkspace.relationshipWorkbenchSubtitle")}
               </div>
             </div>
           </div>
@@ -5422,98 +5747,233 @@ function CreatorRelationshipDetailModal({
             ×
           </button>
         </div>
-        <div className="affiliate-relationship-detail-body">
-          <section className="affiliate-relationship-work-detail-section">
-            <h3>{t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}</h3>
-            <div className="affiliate-relationship-work-metrics">
-              <RelationshipMetric
-                label={t("ecommerce.affiliateWorkspace.relationshipActiveCollaborations")}
-                value={String(management?.activeCollaborationCount ?? item.workItems?.reduce((sum, workItem) => sum + workItem.activeCollaborations.length, 0) ?? 0)}
-              />
-              <RelationshipMetric
-                label={t("ecommerce.affiliateWorkspace.creatorNeedsAttention")}
-                value={management?.needsAttention ? t("common.yes") : t("common.no")}
-              />
-              <RelationshipMetric
-                label={t("ecommerce.affiliateWorkspace.creatorBlocked")}
-                value={blocked ? t("common.yes") : t("common.no")}
-              />
-            </div>
-            {management?.tags?.length ? (
-              <div className="affiliate-creator-tag-list affiliate-relationship-tag-list">
-                {management.tags.map((tag) => (
-                  <span className="affiliate-creator-tag" key={tag.id}>
-                    <span>{creatorTagLabel(t, tag)}</span>
-                  </span>
-                ))}
+        <div className="affiliate-collaboration-modal-body affiliate-relationship-workspace-body">
+          <aside className="affiliate-collaboration-context-pane">
+            <section className="affiliate-relationship-work-side-card affiliate-relationship-work-side-card-primary">
+              <div className="affiliate-relationship-work-side-card-head">
+                <span>{t("ecommerce.affiliateWorkspace.relationshipProfileSummary")}</span>
+                {profile ? (
+                  <button
+                    className="affiliate-inline-link-button"
+                    type="button"
+                    onClick={() => setShowCreatorProfile(true)}
+                  >
+                    {t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+                  </button>
+                ) : null}
               </div>
-            ) : null}
-          </section>
-          {shopStates.length > 0 ? (
-            <section className="affiliate-relationship-work-detail-section">
-              <h3>{t("ecommerce.affiliateWorkspace.relationshipShopStates")}</h3>
-              <div className="affiliate-relationship-work-collaboration-stack">
-                {shopStates.map((state) => (
-                  <div className="affiliate-relationship-work-collaboration-subcard" key={state.shopId}>
-                    <div>
-                      <span>{t("ecommerce.affiliateWorkspace.relationshipShopStates")}</span>
+              <strong>{name}</strong>
+              <div className="affiliate-relationship-work-side-meta">
+                {handle ? <span>{handle}</span> : null}
+                {marketplaceMetrics[0] ? <span>{marketplaceMetrics[0].value}</span> : null}
+              </div>
+              {management?.tags?.length ? (
+                <div className="affiliate-creator-tag-list affiliate-relationship-tag-list">
+                  {management.tags.map((tag) => (
+                    <span className="affiliate-creator-tag" key={tag.id}>
+                      <span>{creatorTagLabel(t, tag)}</span>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+            <section className="affiliate-relationship-work-side-card">
+              <div className="affiliate-relationship-work-side-card-head">
+                <span>{t("ecommerce.affiliateWorkspace.relationshipCurrentDecision")}</span>
+              </div>
+              <RelationshipStatusBadge display={relationshipStatusDisplay} tone={relationshipTone} compact />
+              <div className="affiliate-relationship-work-side-facts">
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.relationshipWorkPendingProposals")}
+                  value={pendingProposals.length}
+                />
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.relationshipWorkActiveCollaborations")}
+                  value={collaborationRecords.length}
+                />
+                <SampleApplicationFact
+                  label={t("ecommerce.affiliateWorkspace.creatorBlocked")}
+                  value={blocked ? t("common.yes") : t("common.no")}
+                />
+              </div>
+            </section>
+            {shopStates.length > 0 ? (
+              <section className="affiliate-relationship-work-side-card">
+                <div className="affiliate-relationship-work-side-card-head">
+                  <span>{t("ecommerce.affiliateWorkspace.relationshipShopStates")}</span>
+                </div>
+                <div className="affiliate-relationship-shop-state-list">
+                  {shopStates.slice(0, 4).map((state) => (
+                    <div className="affiliate-relationship-shop-state" key={state.shopId}>
                       <strong>{t(`ecommerce.affiliateWorkspace.lifecycleStages.${state.lifecycleStage}`, {
                         defaultValue: state.lifecycleStage,
                       })}</strong>
+                      <span>{state.lastContactedAt ? formatProposalTime(state.lastContactedAt) : t("ecommerce.affiliateWorkspace.noRecentContact")}</span>
                     </div>
-                    <div className="affiliate-relationship-work-collaboration-subcard-meta">
-                      <SystemIdCopy value={state.shopId} />
-                      {state.lastContactedAt ? <span>{formatProposalTime(state.lastContactedAt)}</span> : null}
-                      {state.tagIds?.length ? (
-                        <span>{t("ecommerce.affiliateWorkspace.relationshipTagCount", { count: state.tagIds.length })}</span>
-                      ) : null}
+                  ))}
+                  {shopStates.length > 4 ? (
+                    <div className="affiliate-relationship-shop-state affiliate-relationship-shop-state-more">
+                      {t("ecommerce.affiliateWorkspace.relationshipMoreShopStates", { count: shopStates.length - 4 })}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-          {item.workItems?.length ? (
-            <section className="affiliate-relationship-work-detail-section">
-              <h3>{t("ecommerce.affiliateWorkspace.creatorRelationshipWorkItems")}</h3>
-              <div className="affiliate-relationship-work-collaboration-stack affiliate-relationship-work-stack">
-                {item.workItems.map((relationshipWorkItem) => (
-                  <div className="affiliate-relationship-work-collaboration-subcard affiliate-relationship-work-row" key={relationshipWorkItem.relationshipId}>
-                    <div>
-                      <span>{t("ecommerce.affiliateWorkspace.creatorRelationshipWorkPrimaryObject")}</span>
-                      <strong>{renderCreatorRelationshipWorkTitle(relationshipWorkItem, t)}</strong>
-                    </div>
-                    <div className="affiliate-relationship-work-collaboration-subcard-meta">
-                      <SystemIdCopy value={relationshipWorkItem.relationshipId} />
-                      <span>{t(`ecommerce.affiliateWorkspace.statusLabels.${relationshipWorkItem.processingStatus}`, {
-                        defaultValue: formatAffiliateEnumLabel(relationshipWorkItem.processingStatus),
-                      })}</span>
-                      <span>{t("ecommerce.affiliateWorkspace.relationshipWorkCollaborationCount", {
-                        count: relationshipWorkItem.activeCollaborations.length,
-                      })}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-          {profile ? (
-            <section className="affiliate-relationship-work-detail-section">
-              <h3>{t("ecommerce.affiliateWorkspace.creatorIdentityObject")}</h3>
-              <div className="affiliate-creator-detail-grid">
-                <CreatorDetailMetric label={t("ecommerce.affiliateWorkspace.creatorDetail.followers")} value={formatCount(profile.followerCount)} />
-                <div className="affiliate-creator-detail-metric">
-                  <span>{t("ecommerce.affiliateWorkspace.creatorIdentityId")}</span>
-                  <SystemIdCopy value={profile.id} />
+                  ) : null}
                 </div>
-                {marketplaceMetrics.slice(0, 4).map((metric) => (
-                  <CreatorDetailMetric key={metric.label} label={metric.label} value={metric.value} />
-                ))}
-              </div>
-            </section>
-          ) : null}
+              </section>
+            ) : null}
+          </aside>
+          <section className="affiliate-collaboration-work-pane">
+            <div className="affiliate-collaboration-detail-tabs" role="tablist">
+              {tabItems.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`affiliate-collaboration-detail-tab${activeTab === tab.id ? " active" : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <span>{tab.label}</span>
+                  <strong>{tab.count}</strong>
+                </button>
+              ))}
+            </div>
+            <div className="affiliate-collaboration-tab-panel">
+              {activeTab === "overview" ? (
+                <div className="affiliate-relationship-work-overview-panel">
+                  <section className="affiliate-relationship-work-current-work">
+                    <div className="affiliate-relationship-work-current-work-main">
+                      <span>{t("ecommerce.affiliateWorkspace.relationshipCurrentDecision")}</span>
+                      <h3>{currentTitle}</h3>
+                      <p>{currentSummary}</p>
+                    </div>
+                    <div className="affiliate-relationship-work-current-work-status">
+                      <RelationshipStatusBadge display={relationshipStatusDisplay} tone={relationshipTone} />
+                    </div>
+                    <div className="affiliate-relationship-work-current-work-actions">
+                      <div>
+                        <span>{t("ecommerce.affiliateWorkspace.relationshipPanelCollaborations")}</span>
+                        <strong>{t("ecommerce.affiliateWorkspace.relationshipWorkActiveTitle", {
+                          count: collaborationRecords.length,
+                        })}</strong>
+                        <small>{t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}</small>
+                      </div>
+                      <div>
+                        <span>{t("ecommerce.affiliateWorkspace.relationshipPanelCommunication")}</span>
+                        <strong>{conversationMessages.length}</strong>
+                        <small>{t("ecommerce.affiliateWorkspace.relationshipCommunicationHint")}</small>
+                      </div>
+                    </div>
+                  </section>
+                  {pendingProposals.length > 0 ? (
+                    <section className="affiliate-relationship-work-overview-section">
+                      <h3>{t("ecommerce.affiliateWorkspace.relationshipWorkPendingProposals")}</h3>
+                      <div className="affiliate-relationship-work-overview-proposal-list">
+                        {pendingProposals.slice(0, 2).map((proposal) => (
+                          <ActionProposalCard
+                            key={proposal.id}
+                            proposal={hydrateAffiliateProposalProjection({
+                              proposal,
+                              collaborationRecord: proposal.collaborationRecord ?? null,
+                              creatorProfile: profile,
+                            })}
+                            shopLabel={t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}
+                            variant="compact"
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </div>
+              ) : null}
+              {activeTab === "conversation" ? (
+                <div className="affiliate-conversation-tab">
+                  <div className="affiliate-conversation-preview">
+                    {conversationLoading && conversationMessages.length === 0 ? (
+                      <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+                    ) : conversationMessages.length === 0 ? (
+                      <div className="affiliate-proposal-empty">
+                        {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+                      </div>
+                    ) : (
+                      conversationMessages.map((message) => (
+                        <AffiliateCreatorMessageRow
+                          key={affiliateCreatorMessageKey(message)}
+                          message={message}
+                        />
+                      ))
+                    )}
+                    {canLoadOlderConversation ? (
+                      <button
+                        className="btn btn-secondary affiliate-conversation-load-more"
+                        type="button"
+                        disabled={conversationLoading}
+                        onClick={loadOlderConversationMessages}
+                      >
+                        {conversationLoading
+                          ? t("common.loading")
+                          : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+              {activeTab === "collaborations" ? (
+                <div className="affiliate-relationship-work-collaboration-detail-list">
+                  {collaborationRecords.length > 0 ? (
+                    collaborationRecords.map((record) => (
+                      <CollaborationRecordSubcard
+                        key={record.id}
+                        record={record}
+                        compact={false}
+                      />
+                    ))
+                  ) : (
+                    <div className="affiliate-proposal-empty">
+                      {t("ecommerce.affiliateWorkspace.relationshipWorkNoCollaborations")}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+              {activeTab === "activity" ? (
+                <div className="affiliate-collaboration-timeline">
+                  {relationshipActivityLoading && activityEntries.length === 0 ? (
+                    <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+                  ) : activityEntries.length > 0 ? (
+                    activityEntries.map((entry) => (
+                      <RelationshipTimelineEntry
+                        key={entry.id}
+                        entry={entry}
+                        shopLabel={t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}
+                      />
+                    ))
+                  ) : (
+                    <div className="affiliate-proposal-empty">
+                      {t("ecommerce.affiliateWorkspace.noActivityYet")}
+                    </div>
+                  )}
+                  {canLoadOlderActivity ? (
+                    <button
+                      className="btn btn-secondary affiliate-conversation-load-more"
+                      type="button"
+                      disabled={relationshipActivityLoading}
+                      onClick={loadOlderActivity}
+                    >
+                      {relationshipActivityLoading
+                        ? t("common.loading")
+                        : t("ecommerce.affiliateWorkspace.activity.loadOlder")}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
       </div>
+      {showCreatorProfile && profile ? (
+        <CreatorDetailModal
+          profile={profile}
+          onClose={() => setShowCreatorProfile(false)}
+        />
+      ) : null}
     </div>
   );
 }
