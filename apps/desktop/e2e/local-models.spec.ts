@@ -97,6 +97,14 @@ test.describe("Local Models E2E", () => {
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
 
+    const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+    if (await connectionsGroup.isVisible().catch(() => false)) {
+      const expanded = await connectionsGroup.getAttribute("aria-expanded");
+      if (expanded !== "true") {
+        await connectionsGroup.click();
+      }
+    }
+
     const modelsBtn = window.locator(".nav-btn", { hasText: "Models" });
     await modelsBtn.click();
     await expect(modelsBtn).toHaveClass(/nav-active/);

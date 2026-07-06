@@ -673,11 +673,16 @@ export interface AffiliateCollaborationActivityInput {
   /** Primary CreatorRelationship business boundary for action history. collaborationRecordId may only narrow within this relationship. */
   creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export interface AffiliateCollaborationActivityPayload {
   actionProposals: Array<ActionProposal>;
+  hasMore: Scalars['Boolean']['output'];
   lifecycleEvents: Array<LifecycleEvent>;
+  limit: Scalars['Int']['output'];
+  nextOffset?: Maybe<Scalars['Int']['output']>;
+  offset: Scalars['Int']['output'];
   sampleApplicationRecords: Array<SampleApplicationRecord>;
 }
 
@@ -874,6 +879,7 @@ export interface AffiliateCreatorMessageHistoryInput {
   /** CreatorRelationship is the relationship-level timeline boundary. The response may include channel labels, but provider route ids are not input keys. */
   creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
 }
 
@@ -897,7 +903,11 @@ export interface AffiliateCreatorMessageHistoryItem {
 /** Merged relationship-level affiliate creator chat history across channels. */
 export interface AffiliateCreatorMessageHistoryPayload {
   creatorRelationship: AffiliateCreatorRelationship;
+  hasMore: Scalars['Boolean']['output'];
   items: Array<AffiliateCreatorMessageHistoryItem>;
+  limit: Scalars['Int']['output'];
+  nextOffset?: Maybe<Scalars['Int']['output']>;
+  offset: Scalars['Int']['output'];
 }
 
 export interface AffiliateCreatorProductFitInput {
@@ -7260,6 +7270,7 @@ export interface ReadAffiliateCampaignsInput {
 export interface ReadAffiliateCollaborationRecordsInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   dueOnly?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;

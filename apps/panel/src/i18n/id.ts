@@ -2888,7 +2888,7 @@ export default {
       "proposalRecommendationTitles": {
         "APPROVE_SAMPLE_REQUEST": "Setujui permintaan sampel ini",
         "REJECT_SAMPLE_REQUEST": "Tolak permintaan sampel ini",
-        "SEND_MESSAGE": "Kirim balasan ini ke kreator",
+        "SEND_MESSAGE": "Kirim pesan ke kreator",
         "CREATE_TARGET_COLLABORATION": "Buat kolaborasi target"
       },
       "proposalExecutionDescriptions": {

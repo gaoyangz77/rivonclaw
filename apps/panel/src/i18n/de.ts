@@ -2888,7 +2888,7 @@ export default {
       "proposalRecommendationTitles": {
         "APPROVE_SAMPLE_REQUEST": "Diesen Probenantrag genehmigen",
         "REJECT_SAMPLE_REQUEST": "Diesen Probenantrag ablehnen",
-        "SEND_MESSAGE": "Diese Antwort an den Creator senden",
+        "SEND_MESSAGE": "Nachricht an den Creator senden",
         "CREATE_TARGET_COLLABORATION": "Zielkooperation erstellen"
       },
       "proposalExecutionDescriptions": {

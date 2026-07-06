@@ -1465,6 +1465,10 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
 export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
   query AffiliateCollaborationActivity($input: AffiliateCollaborationActivityInput!) {
     affiliateCollaborationActivity(input: $input) {
+      limit
+      offset
+      hasMore
+      nextOffset
       actionProposals {
         id
         userId
@@ -1668,6 +1672,10 @@ export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
 export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
   query AffiliateCreatorMessageHistory($input: AffiliateCreatorMessageHistoryInput!) {
     affiliateCreatorMessageHistory(input: $input) {
+      limit
+      offset
+      hasMore
+      nextOffset
       items {
         channel
         direction
@@ -1677,6 +1685,10 @@ export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
         deliveryStatus
         createdAt
         subject
+        channelLabel
+        shopId
+        shopName
+        accountLabel
         source
       }
     }

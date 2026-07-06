@@ -33,6 +33,14 @@ async function dismissModals(window: import("@playwright/test").Page) {
  */
 async function navigateToCrons(window: import("@playwright/test").Page) {
   await dismissModals(window);
+  const automationGroup = window.locator(".nav-group-toggle", { hasText: "Automation" });
+  if (await automationGroup.isVisible().catch(() => false)) {
+    const expanded = await automationGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await automationGroup.click();
+    }
+  }
+
   const cronsBtn = window.locator(".nav-btn", { hasText: "Cron Jobs" });
   await cronsBtn.click();
   await expect(cronsBtn).toHaveClass(/nav-active/);

@@ -1,5 +1,19 @@
 import { test, expect } from "./electron-fixture.js";
 
+async function navigateToModels(window: import("@playwright/test").Page) {
+  const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+  if (await connectionsGroup.isVisible().catch(() => false)) {
+    const expanded = await connectionsGroup.getAttribute("aria-expanded");
+    if (expanded !== "true") {
+      await connectionsGroup.click();
+    }
+  }
+
+  const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+  await providersBtn.click();
+  await expect(providersBtn).toHaveClass(/nav-active/);
+}
+
 test.describe("LLM Providers", () => {
   test("dropdowns and pricing tables", async ({ window }) => {
     // Dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
@@ -13,9 +27,7 @@ test.describe("LLM Providers", () => {
     }
 
     // Navigate to Models page
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
+    await navigateToModels(window);
 
     // -- Subscription tab (default) --
     const subTab = window.locator(".tab-btn", { hasText: /Subscription/i });
@@ -71,9 +83,7 @@ test.describe("LLM Providers", () => {
     }
 
     // Navigate to Models page
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
+    await navigateToModels(window);
 
     // Subscription tab is the default, and Gemini (OAuth) is the default provider
     // (highest priority in EN_PRIORITY_PROVIDERS). No need to re-select.
@@ -107,9 +117,7 @@ test.describe("LLM Providers", () => {
     }
 
     // Navigate to Models page
-    const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
-    await providersBtn.click();
-    await expect(providersBtn).toHaveClass(/nav-active/);
+    await navigateToModels(window);
 
     // Switch to API Key tab
     const apiTab = window.locator(".tab-btn", { hasText: /API/i });

@@ -2888,7 +2888,7 @@ export default {
       "proposalRecommendationTitles": {
         "APPROVE_SAMPLE_REQUEST": "อนุมัติคำขอตัวอย่างนี้",
         "REJECT_SAMPLE_REQUEST": "ปฏิเสธคำขอตัวอย่างนี้",
-        "SEND_MESSAGE": "ส่งข้อความตอบกลับนี้ให้ครีเอเตอร์",
+        "SEND_MESSAGE": "ส่งข้อความให้ครีเอเตอร์",
         "CREATE_TARGET_COLLABORATION": "สร้างคำเชิญร่วมงานแบบเจาะจง"
       },
       "proposalExecutionDescriptions": {
