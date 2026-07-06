@@ -30,6 +30,10 @@ import {
 } from "../cloud/affiliate-queries.js";
 import type { StaffLanguage } from "../i18n/locale.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
+import {
+  registerActiveAffiliateRunCheckpoint,
+  unregisterActiveAffiliateRunCheckpoint,
+} from "./affiliate-run-checkpoints.js";
 
 const log = createLogger("affiliate-session");
 
@@ -526,17 +530,42 @@ export class AffiliateSession {
     const checkpoint = await this.prepareRunCheckpoint(params.baseCheckpointId);
     await this.applyCurrentSessionModel();
     this.logDispatchPromptContext(params);
-    const response = await requestAgent<AffiliateDispatchResult>({
+    const provisionalRunId = params.idempotencyKey;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
       sessionKey: this.scopeKey,
-      message: params.message,
-      extraSystemPrompt: this.buildExtraSystemPrompt(runMode),
-      promptMode: "raw",
-      idempotencyKey: params.idempotencyKey,
+      runId: provisionalRunId,
+      baseCheckpointId: checkpoint.baseCheckpointId,
+      candidateCheckpointId: checkpoint.candidateCheckpointId,
     });
+
+    let response: AffiliateDispatchResult | undefined;
+    try {
+      response = await requestAgent<AffiliateDispatchResult>({
+        sessionKey: this.scopeKey,
+        message: params.message,
+        extraSystemPrompt: this.buildExtraSystemPrompt(runMode),
+        promptMode: "raw",
+        idempotencyKey: params.idempotencyKey,
+      });
+    } catch (err) {
+      unregisterActiveAffiliateRunCheckpoint({
+        creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+        runId: provisionalRunId,
+      });
+      throw err;
+    }
 
     if (response?.runId) {
       this.activeRunId = response.runId;
       this.runCheckpoints.set(response.runId, checkpoint);
+      registerActiveAffiliateRunCheckpoint({
+        creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+        sessionKey: this.scopeKey,
+        runId: response.runId,
+        baseCheckpointId: checkpoint.baseCheckpointId,
+        candidateCheckpointId: checkpoint.candidateCheckpointId,
+      });
       if (runMode === AffiliateAgentRunMode.CREATOR_OUTREACH) {
         this.creatorOutreachRuns.set(response.runId, {
           text: "",
@@ -547,6 +576,10 @@ export class AffiliateSession {
       log.info(`Affiliate agent run dispatched: runId=${response.runId} scope=${this.scopeKey}`);
     } else {
       this.activeRunId = null;
+      unregisterActiveAffiliateRunCheckpoint({
+        creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+        runId: provisionalRunId,
+      });
     }
     return { runId: response?.runId, runMode };
   }
@@ -647,6 +680,10 @@ export class AffiliateSession {
     } catch (err) {
       log.error(`Failed to finalize affiliate checkpoint for run ${runId}:`, err);
     } finally {
+      unregisterActiveAffiliateRunCheckpoint({
+        creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+        runId,
+      });
       this.creatorOutreachRuns.delete(runId);
       this.pendingRunCompletions.delete(runId);
       this.runCheckpoints.delete(runId);

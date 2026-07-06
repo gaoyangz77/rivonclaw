@@ -1,0 +1,148 @@
+From 7da668fe8f1c5101ae0a9c703e5086c4186c41d1 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 6 Jul 2026 00:29:05 -0700
+Subject: [PATCH] vendor(openclaw): refresh registry for session plugin patch
+
+Why:
+- Affiliate checkpoint-based dispatch patches plugin-owned session state from the gateway.
+- The active plugin registry can be narrowed by runtime-scoped loads, causing sessions.pluginPatch to reject a valid extension that is registered in the full gateway plugin set.
+
+Removal:
+- Drop when upstream makes sessions.pluginPatch resolve session extensions from a stable full registry surface or otherwise preserves plugin session extension registrations across scoped registry loads.
+
+Tests:
+- vendor/openclaw/src/gateway/server.sessions.plugin-patch-registry.test.ts
+---
+ src/gateway/server-methods/sessions.ts        | 16 +++-
+ ...ver.sessions.plugin-patch-registry.test.ts | 79 +++++++++++++++++++
+ 2 files changed, 93 insertions(+), 2 deletions(-)
+ create mode 100644 src/gateway/server.sessions.plugin-patch-registry.test.ts
+
+diff --git a/src/gateway/server-methods/sessions.ts b/src/gateway/server-methods/sessions.ts
+index 27b5167253..8e40d5976c 100644
+--- a/src/gateway/server-methods/sessions.ts
++++ b/src/gateway/server-methods/sessions.ts
+@@ -32,6 +32,7 @@ import {
+ import { formatErrorMessage } from "../../infra/errors.js";
+ import { patchPluginSessionExtension } from "../../plugins/host-hook-state.js";
+ import { isPluginJsonValue } from "../../plugins/host-hooks.js";
++import { ensurePluginRegistryLoaded } from "../../plugins/runtime/runtime-registry-loader.js";
+ import {
+   normalizeAgentId,
+   parseAgentSessionKey,
+@@ -1708,14 +1709,25 @@ export const sessionsHandlers: GatewayRequestHandlers = {
+       );
+       return;
+     }
+-    const patched = await patchPluginSessionExtension({
++    const patchParams = {
+       cfg: context.getRuntimeConfig(),
+       sessionKey: key,
+       pluginId,
+       namespace,
+       value: params.value,
+       unset: params.unset === true,
+-    });
++    };
++    let patched = await patchPluginSessionExtension(patchParams);
++    if (
++      !patched.ok &&
++      patched.error === `unknown plugin session extension: ${pluginId}/${namespace}`
++    ) {
++      ensurePluginRegistryLoaded({
++        scope: "all",
++        config: context.getRuntimeConfig(),
++      });
++      patched = await patchPluginSessionExtension(patchParams);
++    }
+     if (!patched.ok) {
+       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, patched.error));
+       return;
+diff --git a/src/gateway/server.sessions.plugin-patch-registry.test.ts b/src/gateway/server.sessions.plugin-patch-registry.test.ts
+new file mode 100644
+index 0000000000..61490be161
+--- /dev/null
++++ b/src/gateway/server.sessions.plugin-patch-registry.test.ts
+@@ -0,0 +1,79 @@
++import {
++  createPluginRegistryFixture,
++  registerTestPlugin,
++} from "openclaw/plugin-sdk/plugin-test-contracts";
++import { afterEach, beforeEach, expect, test, vi } from "vitest";
++import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
++import { setActivePluginRegistry } from "../plugins/runtime.js";
++import { createPluginRecord } from "../plugins/status.test-helpers.js";
++import { ADMIN_SCOPE } from "./operator-scopes.js";
++import {
++  directSessionReq,
++  setupGatewaySessionsTestHarness,
++} from "./test/server-sessions.test-helpers.js";
++
++const runtimeRegistryMocks = vi.hoisted(() => ({
++  ensurePluginRegistryLoaded: vi.fn(),
++}));
++
++vi.mock("../plugins/runtime/runtime-registry-loader.js", () => ({
++  ensurePluginRegistryLoaded: runtimeRegistryMocks.ensurePluginRegistryLoaded,
++}));
++
++const { seedActiveMainSession } = setupGatewaySessionsTestHarness();
++
++beforeEach(() => {
++  runtimeRegistryMocks.ensurePluginRegistryLoaded.mockReset();
++  setActivePluginRegistry(createEmptyPluginRegistry());
++});
++
++afterEach(() => {
++  setActivePluginRegistry(createEmptyPluginRegistry());
++});
++
++test("sessions.pluginPatch refreshes the full registry when the active registry lacks a session extension", async () => {
++  await seedActiveMainSession();
++
++  const { config, registry } = createPluginRegistryFixture();
++  registerTestPlugin({
++    registry,
++    config,
++    record: createPluginRecord({
++      id: "checkpoint-fixture",
++      name: "Checkpoint Fixture",
++    }),
++    register(api) {
++      api.registerSessionExtension({
++        namespace: "checkpoint",
++        description: "checkpoint patch fixture",
++      });
++    },
++  });
++  runtimeRegistryMocks.ensurePluginRegistryLoaded.mockImplementation((options) => {
++    expect(options).toEqual(expect.objectContaining({ scope: "all" }));
++    setActivePluginRegistry(registry.registry);
++  });
++
++  const result = await directSessionReq(
++    "sessions.pluginPatch",
++    {
++      key: "main",
++      pluginId: "checkpoint-fixture",
++      namespace: "checkpoint",
++      value: { baseCheckpointId: "cp-base", candidateCheckpointId: "cp-next" },
++    },
++    {
++      client: { connect: { scopes: [ADMIN_SCOPE] } } as never,
++    },
++  );
++
++  expect(runtimeRegistryMocks.ensurePluginRegistryLoaded).toHaveBeenCalledTimes(1);
++  expect(result).toEqual({
++    ok: true,
++    payload: {
++      ok: true,
++      key: "agent:main:main",
++      value: { baseCheckpointId: "cp-base", candidateCheckpointId: "cp-next" },
++    },
++  });
++});
+-- 
+2.53.0
+

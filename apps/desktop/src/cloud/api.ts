@@ -10,6 +10,8 @@ import {
   invalidateToolSpecsCache,
   syncDesktopToolSpecs,
 } from "./tool-specs-sync.js";
+import { getActiveAffiliateRunCheckpoint } from "../affiliate/affiliate-run-checkpoints.js";
+import { openClawConnector } from "../openclaw/index.js";
 
 const log = createLogger("cloud-graphql-proxy");
 
@@ -104,9 +106,10 @@ function sanitizeCloudGraphqlVariables(
   if (!hasNonEmptyString(input.creatorRelationshipId)) {
     throw new Error("creatorRelationshipId is required for affiliate_resolve_work_item");
   }
+  const inputWithCheckpoint = injectAffiliateResolveCheckpoint(input);
   if (input.decision !== "REQUEST_ACTION") {
     const normalizedInput = omitEmptyAffiliateStrings({
-      ...input,
+      ...inputWithCheckpoint,
       action: undefined,
       actions: undefined,
       nextSellerActionAt: input.decision === "DEFERRED"
@@ -125,12 +128,12 @@ function sanitizeCloudGraphqlVariables(
 
   const hasActionBundle = Array.isArray(input.actions) && input.actions.length > 0;
   const actionLike = hasActionBundle ? input.actions as unknown[] : input.action != null ? [input.action] : [];
-  const context = buildAffiliateResolveActionContext(input);
+  const context = buildAffiliateResolveActionContext(inputWithCheckpoint);
   const normalizedActions = actionLike.map((action) => normalizeAffiliateResolveAction(action, context));
   const hasNormalizedAction = normalizedActions.some((action, index) => action !== actionLike[index]);
   if (actionLike.length > 0 && normalizedActions.every((action) => !isInvalidAffiliateResolveAction(action))) {
     const normalizedInput = omitEmptyAffiliateStrings({
-      ...input,
+      ...inputWithCheckpoint,
       nextSellerActionAt: undefined,
       // The tool contract says callers must provide either input.action or input.actions,
       // but model outputs sometimes include both. A non-empty action bundle is the
@@ -160,6 +163,45 @@ function sanitizeCloudGraphqlVariables(
   }
 
   return variables;
+}
+
+function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Record<string, unknown> {
+  const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
+  if (!creatorRelationshipId) return input;
+  const checkpoint = getActiveAffiliateRunCheckpoint(creatorRelationshipId);
+  if (!checkpoint) return input;
+  return {
+    ...input,
+    baseCheckpointId: checkpoint.baseCheckpointId,
+    candidateCheckpointId: checkpoint.candidateCheckpointId,
+  };
+}
+
+async function ensureAffiliateResolveCheckpointSnapshot(
+  opName: string | null,
+  query: string,
+  variables: Record<string, unknown> | undefined,
+): Promise<void> {
+  if (!variables) return;
+  const isAffiliateResolveWorkItem =
+    opName === AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME ||
+    query.includes("resolveAffiliateWorkItem") ||
+    looksLikeAffiliateResolveWorkItemVariables(variables);
+  if (!isAffiliateResolveWorkItem) return;
+
+  const input = asRecord(variables.input);
+  if (!input) return;
+  const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
+  if (!creatorRelationshipId) return;
+
+  const checkpoint = getActiveAffiliateRunCheckpoint(creatorRelationshipId);
+  if (!checkpoint) return;
+
+  await openClawConnector.request("sessions.checkpoint.create", {
+    key: checkpoint.sessionKey,
+    checkpointId: checkpoint.candidateCheckpointId,
+    summary: `Affiliate run ${checkpoint.runId} candidate checkpoint before work resolution`,
+  });
 }
 
 function looksLikeAffiliatePredictCreatorProductFitVariables(
@@ -641,6 +683,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
 
   // Transparent proxy: always returns 200 with standard GraphQL response.
   try {
+    await ensureAffiliateResolveCheckpointSnapshot(opName, body.query, variables);
     const data = await ctx.authSession.graphqlFetch(body.query, variables);
 
     // Only ingest Panel responses into MST. Extension (agent tool) responses

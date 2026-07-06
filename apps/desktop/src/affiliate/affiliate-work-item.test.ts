@@ -32,6 +32,10 @@ vi.mock("@rivonclaw/gateway", () => ({
 import { AffiliateSession, AffiliateTriggerKind } from "./affiliate-session.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 import { AffiliateInbound } from "./affiliate-inbound.js";
+import {
+  __clearActiveAffiliateRunCheckpointsForTests,
+  getActiveAffiliateRunCheckpoint,
+} from "./affiliate-run-checkpoints.js";
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 
 describe("affiliate session identity", () => {
@@ -259,6 +263,7 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
 describe("affiliate work item dispatch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __clearActiveAffiliateRunCheckpointsForTests();
     mockGetAuthSession.mockReturnValue(null);
     mockRpcRequest.mockResolvedValue({ runId: "run-affiliate-001" });
     initLLMProviderManagerEnv({
@@ -395,6 +400,16 @@ describe("affiliate work item dispatch", () => {
 
   it("starts affiliate work runs from a brand-new checkpoint session when no checkpoint is committed", async () => {
     const workItem = createSampleReviewWorkItem();
+    let activeCheckpointSeenDuringAgentRequest:
+      | ReturnType<typeof getActiveAffiliateRunCheckpoint>
+      | undefined;
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") {
+        activeCheckpointSeenDuringAgentRequest = getActiveAffiliateRunCheckpoint("relationship-001");
+        return { runId: "run-affiliate-001" };
+      }
+      return { runId: "run-affiliate-001" };
+    });
     const session = new AffiliateSession(
       {
         objectId: "shop-001",
@@ -420,6 +435,13 @@ describe("affiliate work item dispatch", () => {
     const result = await session.handleWorkItem(workItem);
 
     expect(result.runId).toBe("run-affiliate-001");
+    expect(activeCheckpointSeenDuringAgentRequest).toEqual(expect.objectContaining({
+      creatorRelationshipId: "relationship-001",
+      sessionKey: "agent:main:affiliate:user-001:relationship-001",
+      runId: expect.any(String),
+      baseCheckpointId: null,
+      candidateCheckpointId: expect.any(String),
+    }));
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.create", expect.objectContaining({
       key: "agent:main:affiliate:user-001:relationship-001",
     }));
