@@ -397,19 +397,26 @@ beforeEach(() => {
     if (query.includes("ecommerceGetConversationDetails")) {
       return { ecommerceGetConversationDetails: { buyer: null } };
     }
-    if (query.includes("affiliateCreatorMessageHistory")) {
+    if (query.includes("affiliateRelationshipHistory")) {
       return {
-        affiliateCreatorMessageHistory: {
+        affiliateRelationshipHistory: {
           items: [{
-            channel: "PLATFORM_CHAT",
-            direction: "CREATOR",
-            text: "Can you send me a sample?",
-            messageType: "TEXT",
-            messageId: "message-history-001",
-            deliveryStatus: null,
-            createdAt: "2026-05-08T10:00:00.000Z",
-            subject: null,
-            source: "PLATFORM_CHAT",
+            id: "PLATFORM_CHAT_MESSAGE:message-history-001",
+            type: "PLATFORM_CHAT_MESSAGE",
+            occurredAt: "2026-05-08T10:00:00.000Z",
+            summary: "Can you send me a sample?",
+            relatedIds: { shopId: defaultShop.objectId },
+            message: {
+              channel: "PLATFORM_CHAT",
+              direction: "CREATOR",
+              textPreview: "Can you send me a sample?",
+              messageType: "TEXT",
+              deliveryStatus: null,
+              subject: null,
+              channelLabel: "TikTok Shop chat",
+              shopName: null,
+              accountLabel: null,
+            },
           }],
         },
       };
@@ -586,12 +593,12 @@ describe("affiliate message dispatch", () => {
       runProfileId: "AFFILIATE_OPERATOR",
     });
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("affiliateCreatorMessageHistory"),
+      expect.stringContaining("affiliateRelationshipHistory"),
       expect.objectContaining({
         input: expect.objectContaining({
           shopId: defaultShop.objectId,
           creatorRelationshipId: "relationship-SUB",
-          channelFilter: ["PLATFORM_CHAT"],
+          types: ["PLATFORM_CHAT_MESSAGE", "WHATSAPP_MESSAGE", "EMAIL_MESSAGE", "MESSAGE_DELIVERY"],
         }),
       }),
     );
@@ -685,23 +692,30 @@ describe("affiliate message dispatch", () => {
       return { runId: `run-${mockRpcRequest.mock.calls.length}` };
     });
     mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("affiliateCreatorMessageHistory")) {
+      if (query.includes("affiliateRelationshipHistory")) {
         const input = variables?.input as { creatorRelationshipId?: string } | undefined;
         if (input?.creatorRelationshipId === "relationship-RACE" && mockGraphqlFetch.mock.calls.length === 1) {
           await firstDeltaReady;
         }
         return {
-          affiliateCreatorMessageHistory: {
+          affiliateRelationshipHistory: {
             items: [{
-              channel: "PLATFORM_CHAT",
-              direction: "CREATOR",
-              text: "content for relationship history",
-              messageType: "TEXT",
-              messageId: "history-message",
-              deliveryStatus: null,
-              createdAt: "2026-05-08T10:00:01.000Z",
-              subject: null,
-              source: "PLATFORM_CHAT",
+              id: "PLATFORM_CHAT_MESSAGE:history-message",
+              type: "PLATFORM_CHAT_MESSAGE",
+              occurredAt: "2026-05-08T10:00:01.000Z",
+              summary: "content for relationship history",
+              relatedIds: { shopId: defaultShop.objectId },
+              message: {
+                channel: "PLATFORM_CHAT",
+                direction: "CREATOR",
+                textPreview: "content for relationship history",
+                messageType: "TEXT",
+                deliveryStatus: null,
+                subject: null,
+                channelLabel: "TikTok Shop chat",
+                shopName: null,
+                accountLabel: null,
+              },
             }],
           },
         };

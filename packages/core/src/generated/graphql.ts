@@ -1504,6 +1504,115 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
+export interface AffiliateRelationshipHistoryCollaborationSummary {
+  collaborationRecordId: Scalars['ID']['output'];
+  lifecycleStage: AffiliateLifecycleStage;
+  processReasons: Array<AffiliateCollaborationRecordProcessReason>;
+  processingStatus: AffiliateCollaborationRecordProcessingStatus;
+  productId?: Maybe<Scalars['String']['output']>;
+  requiredAction: AffiliateCollaborationRequiredAction;
+}
+
+export interface AffiliateRelationshipHistoryInput {
+  /** CreatorRelationship business boundary. Relationship history is merged across channels and affiliate operational collections. */
+  creatorRelationshipId: Scalars['ID']['input'];
+  endAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+  startAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Optional collection-backed type filter. Empty or omitted means all supported history collections. */
+  types?: InputMaybe<Array<AffiliateRelationshipHistoryType>>;
+}
+
+export interface AffiliateRelationshipHistoryItem {
+  actorType?: Maybe<AffiliateLifecycleActorType>;
+  collaboration?: Maybe<AffiliateRelationshipHistoryCollaborationSummary>;
+  id: Scalars['ID']['output'];
+  lifecycleEvent?: Maybe<AffiliateRelationshipHistoryLifecycleEventSummary>;
+  message?: Maybe<AffiliateRelationshipHistoryMessageSummary>;
+  occurredAt: Scalars['DateTimeISO']['output'];
+  proposal?: Maybe<AffiliateRelationshipHistoryProposalSummary>;
+  relatedIds: AffiliateRelationshipHistoryRelatedIds;
+  sampleApplication?: Maybe<AffiliateRelationshipHistorySampleApplicationSummary>;
+  summary: Scalars['String']['output'];
+  type: AffiliateRelationshipHistoryType;
+}
+
+export interface AffiliateRelationshipHistoryLifecycleEventSummary {
+  displaySummary?: Maybe<Scalars['String']['output']>;
+  entityId: Scalars['ID']['output'];
+  entityType: AffiliateLifecycleEntityType;
+  eventType: AffiliateLifecycleEventType;
+  fromStage?: Maybe<AffiliateLifecycleStage>;
+  lifecycleEventId: Scalars['ID']['output'];
+  toStage?: Maybe<AffiliateLifecycleStage>;
+}
+
+export interface AffiliateRelationshipHistoryMessageSummary {
+  accountLabel?: Maybe<Scalars['String']['output']>;
+  channel: AffiliateMessageChannel;
+  channelLabel?: Maybe<Scalars['String']['output']>;
+  deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
+  direction?: Maybe<AffiliateCreatorMessageDirection>;
+  messageType?: Maybe<Scalars['String']['output']>;
+  shopName?: Maybe<Scalars['String']['output']>;
+  subject?: Maybe<Scalars['String']['output']>;
+  textPreview?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateRelationshipHistoryPayload {
+  creatorRelationship: AffiliateCreatorRelationship;
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<AffiliateRelationshipHistoryItem>;
+  limit: Scalars['Int']['output'];
+  nextOffset?: Maybe<Scalars['Int']['output']>;
+  offset: Scalars['Int']['output'];
+}
+
+export interface AffiliateRelationshipHistoryProposalSummary {
+  actionProposalId: Scalars['ID']['output'];
+  operatorSummary: Scalars['String']['output'];
+  status: ActionProposalStatus;
+  stepCount: Scalars['Int']['output'];
+  type: ActionProposalType;
+}
+
+export interface AffiliateRelationshipHistoryRelatedIds {
+  actionProposalId?: Maybe<Scalars['ID']['output']>;
+  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  lifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  shopId?: Maybe<Scalars['ID']['output']>;
+}
+
+export interface AffiliateRelationshipHistorySampleApplicationSummary {
+  deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  latestObservedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  observedContentCount: Scalars['Int']['output'];
+  platformApplicationId: Scalars['String']['output'];
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId: Scalars['ID']['output'];
+  sampleWorkStatus: SampleWorkStatus;
+  shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+/** Mongo collection-backed relationship history item type. Filtering by this enum maps directly to known affiliate collections. */
+export const AffiliateRelationshipHistoryType = {
+  ActionProposal: 'ACTION_PROPOSAL',
+  CollaborationRecord: 'COLLABORATION_RECORD',
+  EmailMessage: 'EMAIL_MESSAGE',
+  LifecycleEvent: 'LIFECYCLE_EVENT',
+  MessageDelivery: 'MESSAGE_DELIVERY',
+  PlatformChatMessage: 'PLATFORM_CHAT_MESSAGE',
+  SampleApplicationRecord: 'SAMPLE_APPLICATION_RECORD',
+  WhatsappMessage: 'WHATSAPP_MESSAGE'
+} as const;
+
+export type AffiliateRelationshipHistoryType = typeof AffiliateRelationshipHistoryType[keyof typeof AffiliateRelationshipHistoryType];
 /** CreatorRelationship agenda owner state. This is relationship-level and should not encode sample or collaboration lifecycle details. */
 export const AffiliateRelationshipProcessingStatus = {
   AgentRequired: 'AGENT_REQUIRED',
@@ -4271,6 +4380,12 @@ export interface EcomProductSku {
   preSale?: Maybe<EcomProductSkuPreSale>;
   price?: Maybe<EcomProductSkuPrice>;
   sellerSku?: Maybe<Scalars['String']['output']>;
+  /** SKU package weight normalized to kilograms when the unit is supported. */
+  skuWeightKg?: Maybe<Scalars['String']['output']>;
+  /** SKU package weight unit returned by TikTok Product detail. */
+  skuWeightUnit?: Maybe<Scalars['String']['output']>;
+  /** SKU package weight value returned by TikTok Product detail. */
+  skuWeightValue?: Maybe<Scalars['String']['output']>;
   statusInfo?: Maybe<EcomProductSkuStatusInfo>;
 }
 
@@ -6525,6 +6640,8 @@ export interface Query {
   affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
   /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
+  /** Read a merged CreatorRelationship history timeline with lightweight typed summaries. */
+  affiliateRelationshipHistory: AffiliateRelationshipHistoryPayload;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
@@ -6812,6 +6929,11 @@ export interface QueryAffiliateOutreachOperationalStatusArgs {
 
 export interface QueryAffiliatePredictCreatorProductFitArgs {
   input: AffiliateCreatorProductFitInput;
+}
+
+
+export interface QueryAffiliateRelationshipHistoryArgs {
+  input: AffiliateRelationshipHistoryInput;
 }
 
 
@@ -8598,9 +8720,8 @@ export interface ToolContextBinding {
 export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
-  AffiliateGetActionHistory: 'AFFILIATE_GET_ACTION_HISTORY',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
-  AffiliateGetCreatorMessageHistory: 'AFFILIATE_GET_CREATOR_MESSAGE_HISTORY',
+  AffiliateGetRelationshipHistory: 'AFFILIATE_GET_RELATIONSHIP_HISTORY',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
