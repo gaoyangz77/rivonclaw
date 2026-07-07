@@ -2575,6 +2575,8 @@ export default {
         "none": "Aún no hay una solicitud de muestra vinculada para esta colaboración."
       },
       "creatorDetail": {
+        "bio": "Biografía del marketplace",
+        "noBio": "Aún no hay biografía del creador.",
         "followers": "Seguidores",
         "platform": "Plataforma",
         "lastUpdated": "Perfil actualizado",
@@ -2610,10 +2612,27 @@ export default {
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Propuesta creada",
+        "PROPOSAL_REVISION_REQUESTED": "Revisión de propuesta solicitada",
+        "PROPOSAL_APPROVED": "Propuesta aprobada",
+        "PROPOSAL_REJECTED": "Propuesta rechazada",
+        "PROPOSAL_EXPIRED": "Propuesta vencida",
+        "PROPOSAL_EXECUTED": "Propuesta ejecutada",
+        "TAG_ADDED": "Etiqueta de creador añadida",
+        "TAG_REMOVED": "Etiqueta de creador eliminada",
         "MESSAGE_SENT": "Mensaje enviado",
+        "COLLABORATION_CREATED": "Colaboración creada",
+        "COLLABORATION_CLOSED": "Colaboración cerrada",
+        "SAMPLE_APPLICATION_SUBMITTED": "Solicitud de muestra enviada",
+        "SAMPLE_APPLICATION_APPROVED": "Solicitud de muestra aprobada",
+        "SAMPLE_APPLICATION_REJECTED": "Solicitud de muestra rechazada",
+        "SAMPLE_APPLICATION_CANCELLED": "Solicitud de muestra cancelada",
         "SAMPLE_APPROVED": "Solicitud de muestra aprobada",
         "SAMPLE_REJECTED": "Solicitud de muestra rechazada",
+        "SAMPLE_SHIPPED": "Muestra enviada",
+        "SAMPLE_DELIVERED": "Muestra entregada",
+        "SAMPLE_DELIVERY_FAILED": "Entrega de muestra fallida",
         "TARGET_COLLABORATION_CREATED": "Colaboración dirigida creada",
+        "ACTION_EXECUTED": "Acción ejecutada",
         "STAFF_MARKED_HANDLED": "Marcado como gestionado por el equipo",
         "WORK_RESOLVED": "Trabajo resuelto"
       },
@@ -2842,6 +2861,33 @@ export default {
         "ACTION_EXECUTED": "Ejecutado",
         "ACTION_REJECTED": "Rechazado",
         "PLATFORM_EVENT": "Evento de plataforma"
+      },
+      "historyActors": {
+        "CREATOR_ACTION": "Acción del creador",
+        "STAFF_ACTION": "Acción del personal",
+        "AGENT_ACTION": "Acción del agente",
+        "PLATFORM_EVENT": "Evento de plataforma",
+        "SYSTEM_RECORD": "Registro del sistema"
+      },
+      "messageDirections": {
+        "CREATOR": "Creator",
+        "SELLER": "Seller",
+        "SYSTEM": "System"
+      },
+      "messageChannels": {
+        "PLATFORM_CHAT": "TikTok Shop",
+        "WHATSAPP": "WhatsApp",
+        "EMAIL": "Email"
+      },
+      "historyTypes": {
+        "PLATFORM_CHAT_MESSAGE": "Platform chat",
+        "WHATSAPP_MESSAGE": "WhatsApp",
+        "EMAIL_MESSAGE": "Email",
+        "MESSAGE_DELIVERY": "Message delivery",
+        "COLLABORATION_RECORD": "Collaboration",
+        "SAMPLE_APPLICATION_RECORD": "Sample application",
+        "ACTION_PROPOSAL": "Action proposal",
+        "LIFECYCLE_EVENT": "System event"
       },
       "requiredActions": {
         "NONE": "No se requiere acción",

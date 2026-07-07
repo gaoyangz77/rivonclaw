@@ -27,9 +27,6 @@ export interface GatewayConfigDeps {
 }
 
 export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = [
-  "group:openclaw",
-  "group:fs",
-  "group:runtime",
   "rivonclaw-cloud-tools",
   "rivonclaw-local-tools",
 ];
@@ -196,7 +193,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     mistral: "RIVONCLAW_EMB_MISTRAL_APIKEY",
   };
 
-  async function buildFullGatewayConfig(gatewayPort: number, overrides?: { toolAllowlist?: string[] }): Promise<Parameters<typeof writeGatewayConfig>[0]> {
+  async function buildFullGatewayConfig(
+    gatewayPort: number,
+    overrides?: { toolAllowlist?: string[]; toolAlsoAllowlist?: string[] },
+  ): Promise<Parameters<typeof writeGatewayConfig>[0]> {
     const activeKey = storage.providerKeys.getActive();
     const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
     const curModel = activeKey
@@ -320,16 +320,14 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
       extraSkillDirs: [resolveUserSkillsDir()],
-      // ADR-031: keep the full RivonClaw surface, but make the optional plugin
-      // admission explicit. `tools.alsoAllow` without a base allow is normalized
-      // by OpenClaw into `* + extra`, which makes plugin discovery consider every
-      // manifest-owned tool plugin. Use `tools.allow` with the core groups we
-      // need plus our plugin ids so only RivonClaw dynamic/local tools are
-      // materialized.
+      // Keep the default OpenClaw profile unrestricted, and use alsoAllow only
+      // as an optional plugin discovery hint. `tools.allow` is a hard runtime
+      // allowlist; using plugin ids there can filter out dynamically staged
+      // client tools before the session-scoped effective tool patch is applied.
       ...(overrides?.toolAllowlist
         ? { toolAllowlist: overrides.toolAllowlist }
         : {
-            toolAllowlist: DEFAULT_GATEWAY_TOOL_ALLOWLIST,
+            toolAlsoAllowlist: overrides?.toolAlsoAllowlist ?? DEFAULT_GATEWAY_TOOL_ALLOWLIST,
           }),
     };
   }

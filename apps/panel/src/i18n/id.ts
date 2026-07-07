@@ -2575,6 +2575,8 @@ export default {
         "none": "Belum ada permintaan sampel tertaut untuk kolaborasi ini."
       },
       "creatorDetail": {
+        "bio": "Bio marketplace",
+        "noBio": "Bio kreator belum tersedia.",
         "followers": "Pengikut",
         "platform": "Platform",
         "lastUpdated": "Profil diperbarui",
@@ -2610,10 +2612,27 @@ export default {
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "Proposal dibuat",
+        "PROPOSAL_REVISION_REQUESTED": "Revisi proposal diminta",
+        "PROPOSAL_APPROVED": "Proposal disetujui",
+        "PROPOSAL_REJECTED": "Proposal ditolak",
+        "PROPOSAL_EXPIRED": "Proposal kedaluwarsa",
+        "PROPOSAL_EXECUTED": "Proposal dieksekusi",
+        "TAG_ADDED": "Tag creator ditambahkan",
+        "TAG_REMOVED": "Tag creator dihapus",
         "MESSAGE_SENT": "Pesan terkirim",
+        "COLLABORATION_CREATED": "Kolaborasi dibuat",
+        "COLLABORATION_CLOSED": "Kolaborasi ditutup",
+        "SAMPLE_APPLICATION_SUBMITTED": "Permintaan sampel dikirim",
+        "SAMPLE_APPLICATION_APPROVED": "Permintaan sampel disetujui",
+        "SAMPLE_APPLICATION_REJECTED": "Permintaan sampel ditolak",
+        "SAMPLE_APPLICATION_CANCELLED": "Permintaan sampel dibatalkan",
         "SAMPLE_APPROVED": "Permintaan sampel disetujui",
         "SAMPLE_REJECTED": "Permintaan sampel ditolak",
+        "SAMPLE_SHIPPED": "Sampel dikirim",
+        "SAMPLE_DELIVERED": "Sampel diterima",
+        "SAMPLE_DELIVERY_FAILED": "Pengiriman sampel gagal",
         "TARGET_COLLABORATION_CREATED": "Kolaborasi target dibuat",
+        "ACTION_EXECUTED": "Aksi dieksekusi",
         "STAFF_MARKED_HANDLED": "Ditandai ditangani oleh staf",
         "WORK_RESOLVED": "Pekerjaan selesai"
       },
@@ -2842,6 +2861,33 @@ export default {
         "ACTION_EXECUTED": "Dieksekusi",
         "ACTION_REJECTED": "Ditolak",
         "PLATFORM_EVENT": "Event platform"
+      },
+      "historyActors": {
+        "CREATOR_ACTION": "Tindakan kreator",
+        "STAFF_ACTION": "Tindakan staf",
+        "AGENT_ACTION": "Tindakan agen",
+        "PLATFORM_EVENT": "Event platform",
+        "SYSTEM_RECORD": "Catatan sistem"
+      },
+      "messageDirections": {
+        "CREATOR": "Creator",
+        "SELLER": "Seller",
+        "SYSTEM": "System"
+      },
+      "messageChannels": {
+        "PLATFORM_CHAT": "TikTok Shop",
+        "WHATSAPP": "WhatsApp",
+        "EMAIL": "Email"
+      },
+      "historyTypes": {
+        "PLATFORM_CHAT_MESSAGE": "Platform chat",
+        "WHATSAPP_MESSAGE": "WhatsApp",
+        "EMAIL_MESSAGE": "Email",
+        "MESSAGE_DELIVERY": "Message delivery",
+        "COLLABORATION_RECORD": "Collaboration",
+        "SAMPLE_APPLICATION_RECORD": "Sample application",
+        "ACTION_PROPOSAL": "Action proposal",
+        "LIFECYCLE_EVENT": "System event"
       },
       "requiredActions": {
         "NONE": "Tidak perlu tindakan",

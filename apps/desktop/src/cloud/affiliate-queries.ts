@@ -7,6 +7,7 @@ export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = `
         id
         type
         occurredAt
+        actorRole
         summary
         relatedIds {
           shopId
@@ -28,6 +29,16 @@ export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = `
           channelLabel
           shopName
           accountLabel
+        }
+        lifecycleEvent {
+          lifecycleEventId
+          eventType
+          entityType
+          entityId
+          fromStage
+          toStage
+          actorRole
+          displaySummary
         }
       }
     }
@@ -81,9 +92,6 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         candidateCheckpointId
         steps {
           stepId
-          shopId
-          campaignId
-          collaborationRecordId
           type
           operatorSummary
         }
@@ -511,7 +519,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         primarySampleApplication {
           id
           userId
-          shopId
           platformApplicationId
           creatorId
           creatorOpenId
@@ -538,7 +545,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         relatedSampleApplications {
           id
           userId
-          shopId
           platformApplicationId
           creatorId
           creatorOpenId

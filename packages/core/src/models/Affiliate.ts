@@ -173,6 +173,7 @@ export const AffiliateLifecycleEventModel = types.model("AffiliateLifecycleEvent
   entityId: types.string,
   eventType: types.string,
   actorType: types.maybeNull(types.string),
+  actorRole: types.maybeNull(types.string),
   actorId: types.maybeNull(types.string),
   collaborationRecordId: types.maybeNull(types.string),
   creatorRelationshipId: types.maybeNull(types.string),
@@ -607,18 +608,6 @@ export const AffiliateWorkspaceModel = types
           lifecycleEvents?: GQL.LifecycleEvent[];
         }) | null | undefined)?.lifecycleEvents ?? [];
         for (const event of lifecycleEvents) upsertLifecycleEvent(event);
-      },
-      ingestAffiliateCollaborationActivity(activity: {
-        actionProposals?: GQL.ActionProposal[];
-        lifecycleEvents?: GQL.LifecycleEvent[];
-        sampleApplicationRecords?: GQL.SampleApplicationRecord[];
-        sampleApplications?: GQL.SampleApplicationRecord[];
-      } | null | undefined) {
-        for (const proposal of activity?.actionProposals ?? []) upsertProposal(proposal);
-        for (const event of activity?.lifecycleEvents ?? []) upsertLifecycleEvent(event);
-        for (const sample of activity?.sampleApplicationRecords ?? activity?.sampleApplications ?? []) {
-          upsertSampleApplication(sample);
-        }
       },
       clearAffiliateWorkspace() {
         self.actionProposals.clear();

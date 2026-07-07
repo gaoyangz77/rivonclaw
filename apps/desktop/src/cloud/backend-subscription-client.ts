@@ -526,7 +526,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           primarySampleApplication {
             id
             userId
-            shopId
             platformApplicationId
             creatorId
             creatorOpenId
@@ -548,7 +547,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           relatedSampleApplications {
             id
             userId
-            shopId
             platformApplicationId
             creatorId
             creatorOpenId
@@ -615,13 +613,8 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           operatorSummary
           steps {
             stepId
-            shopId
-            campaignId
-            collaborationRecordId
             type
             operatorSummary
-            baseCheckpointId
-            candidateCheckpointId
           }
           creatorId
           creatorRelationshipId
@@ -679,13 +672,8 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         operatorSummary
         steps {
           stepId
-          shopId
-          campaignId
-          collaborationRecordId
           type
           operatorSummary
-          baseCheckpointId
-          candidateCheckpointId
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId

@@ -18909,6 +18909,10 @@ html[lang="zh"] .acct-tool-chips {
   gap: 8px;
 }
 
+.affiliate-relationship-work-collaboration-detail-list {
+  gap: 16px;
+}
+
 .affiliate-relationship-work-collaboration-subcard {
   display: grid;
   gap: 7px;
@@ -18917,6 +18921,14 @@ html[lang="zh"] .acct-tool-chips {
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg-alt) 66%, var(--color-bg));
+}
+
+.affiliate-relationship-work-collaboration-detail-list > .affiliate-relationship-work-collaboration-subcard {
+  gap: 12px;
+  padding: 16px;
+  border-color: color-mix(in srgb, var(--color-border-light) 82%, var(--color-text-muted));
+  background: color-mix(in srgb, var(--color-bg) 74%, var(--color-bg-alt));
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--color-text) 5%, transparent);
 }
 
 .affiliate-relationship-work-collaboration-subcard-focused {
@@ -18942,6 +18954,18 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text);
   font-size: 13px;
   font-weight: 760;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-relationship-work-collaboration-subcard > div:first-child > small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -19284,6 +19308,19 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
+.affiliate-relationship-creator-bio {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  white-space: pre-wrap;
+}
+
 .affiliate-relationship-work-side-facts {
   display: grid;
   grid-template-columns: 1fr;
@@ -19621,6 +19658,10 @@ html[lang="zh"] .acct-tool-chips {
   border: 1px solid var(--color-border-light);
   border-radius: 9px;
   background: var(--color-bg);
+}
+
+.affiliate-timeline-card-stack {
+  margin-top: 10px;
 }
 
 .affiliate-conversation-preview {
@@ -20254,6 +20295,10 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.affiliate-creator-detail-bio {
+  white-space: pre-wrap;
 }
 
 @media (max-width: 640px) {

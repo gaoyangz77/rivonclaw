@@ -1462,208 +1462,51 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
   }
 `;
 
-export const AFFILIATE_COLLABORATION_ACTIVITY_QUERY = gql`
-  query AffiliateCollaborationActivity($input: AffiliateCollaborationActivityInput!) {
-    affiliateCollaborationActivity(input: $input) {
+export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = gql`
+  query AffiliateRelationshipHistory($input: AffiliateRelationshipHistoryInput!) {
+    affiliateRelationshipHistory(input: $input) {
       limit
       offset
       hasMore
       nextOffset
-      actionProposals {
+      items {
         id
-        userId
-        focusShopId
-        campaignId
-        creatorId
-        collaborationRecordId
-        sourceWorkBoundary {
-          subjectType
-          collaborationRecordId
-          workKind
-          workBundleKind
-          versionAt
-          triggerKind
-          triggerId
-          recommendedActionTypes
-        }
-        collaborationRecordLastSignalAt
-        collaborationRecordStateUpdatedAt
         type
-        status
-        operatorSummary
-        predictionCacheIds
-        steps {
-          stepId
-          shopId
-          campaignId
-          collaborationRecordId
-          type
-          operatorSummary
-          predictionCacheIds
-          messageIntent {
-            creatorId
-            creatorOpenId
-            messageType
-            text
-            productId
-            platformApplicationId
-            platformTargetCollaborationId
-            sampleApplicationRecordId
-            targetCollaborationRecordId: affiliateCollaborationId
-          }
-          sampleReviewIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            decision
-            rejectReason
-          }
-          sampleShipmentIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            warehouseId
-            skuId
-            quantity
-          }
-          targetCollaborationIntent {
-            name
-            message
-            endTime
-            hasFreeSample
-            isSampleApprovalExempt
-            creatorIds
-            creatorOpenIds
-            products {
-              productId
-              targetCommissionRateBps
-              shopAdsCommissionRateBps
-            }
-            sellerContactInfo {
-              email
-              phoneNumber
-              whatsapp
-              telegram
-              line
-            }
-          }
-        }
-        policySnapshot {
-          action
-          requiresApproval
-          matchedPolicyIds
-          reasons
-        }
-        messageIntent {
-          creatorId
-          creatorOpenId
-          messageType
-          text
-          productId
-          platformApplicationId
-          platformTargetCollaborationId
-          sampleApplicationRecordId
-          targetCollaborationRecordId: affiliateCollaborationId
-        }
-        sampleReviewIntent {
-          sampleApplicationRecordId
-          platformApplicationId
-          decision
-          rejectReason
-        }
-        sampleShipmentIntent {
-          sampleApplicationRecordId
-          platformApplicationId
-          warehouseId
-          skuId
-          quantity
-        }
-        targetCollaborationIntent {
-          name
-          message
-          endTime
-          hasFreeSample
-          isSampleApprovalExempt
-          creatorIds
-          creatorOpenIds
-          products {
-            productId
-            targetCommissionRateBps
-            shopAdsCommissionRateBps
-          }
-          sellerContactInfo {
-            email
-            phoneNumber
-            whatsapp
-            telegram
-            line
-          }
-        }
-        createdAt
-        updatedAt
-        expiresAt
-        decision {
-          decidedAt
-          note
-          actorType
-          actorId
-        }
-        executionResult {
-          platformObjectId
-          domainObjectId
-          executedAt
-          errorMessage
-        }
-      }
-      lifecycleEvents {
-        id
-        userId
-        shopId
-        entityType
-        entityId
-        eventType
-        fromStage
-        toStage
-        displayPayloadJson
+        occurredAt
         actorType
-        actorId
-        collaborationRecordId
-        proposalId
-        creatorId
-        creatorRelationshipId
-        productId
-        campaignId
-        createdAt
-      }
-      sampleApplicationRecords {
-        id
-        userId
-        shopId
-        creatorId
-        creatorOpenId
-        productId
-        affiliateCollaborationId
-        collaborationType
-        platformApplicationId
-        platformCollaborationId
-        platformOpenCollaborationId
-        platformTargetCollaborationId
-        sampleWorkStatus
-        order {
-          platformOrderId
-          trackingNumber
-          carrier
+        actorRole
+        summary
+        relatedIds {
+          shopId
+          creatorId
+          collaborationRecordId
+          sampleApplicationRecordId
+          platformApplicationId
+          actionProposalId
+          lifecycleEventId
+          productId
         }
-        trackingNumber
-        carrier
-        shippedAt
-        deliveredAt
-        observedContentCount
-        latestObservedContentAt
-        latestObservedContentId
-        latestObservedContentFormat
-        latestObservedContentUrl
-        latestObservedContentViewCount
-        latestObservedContentPaidOrderCount
-        updatedAt
+        message {
+          channel
+          direction
+          textPreview
+          messageType
+          deliveryStatus
+          subject
+          channelLabel
+          shopName
+          accountLabel
+        }
+        lifecycleEvent {
+          lifecycleEventId
+          eventType
+          entityType
+          entityId
+          fromStage
+          toStage
+          actorRole
+          displaySummary
+        }
       }
     }
   }
