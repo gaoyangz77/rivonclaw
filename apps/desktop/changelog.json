@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.52",
+    "date": "2026-07-06",
+    "en": [
+      "Add affiliate outreach channel UI and desktop bridge support",
+      "Introduce affiliate checkpoint sessions, relationship history tools, and workspace refinements",
+      "Improve customer-service inbox search, channel aliases, subscription auth recovery, and TikTok Ads management"
+    ],
+    "zh": [
+      "新增达人触达渠道 UI 和桌面端 bridge 支持",
+      "引入达人 checkpoint sessions、关系历史工具，并优化工作区体验",
+      "优化客服 inbox 搜索、渠道别名、订阅鉴权恢复和 TikTok Ads 管理"
+    ]
+  },
+  {
     "version": "1.8.51",
     "date": "2026-06-30",
     "en": [
