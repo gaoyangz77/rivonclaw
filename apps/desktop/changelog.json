@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.53",
+    "date": "2026-07-07",
+    "en": [
+      "Refresh the production desktop build from the latest main branch",
+      "Update release delivery metadata for macOS, Windows, and Linux installers"
+    ],
+    "zh": [
+      "基于最新 main 分支刷新生产桌面端构建",
+      "更新 macOS、Windows 和 Linux 安装包的发布分发元数据"
+    ]
+  },
+  {
     "version": "1.8.52",
     "date": "2026-07-06",
     "en": [
