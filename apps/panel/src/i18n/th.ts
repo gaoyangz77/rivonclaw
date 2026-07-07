@@ -2575,6 +2575,8 @@ export default {
         "none": "ยังไม่มีคำขอตัวอย่างที่เชื่อมกับความร่วมมือนี้"
       },
       "creatorDetail": {
+        "bio": "ประวัติจาก marketplace",
+        "noBio": "ยังไม่มีประวัติครีเอเตอร์",
         "followers": "ผู้ติดตาม",
         "platform": "แพลตฟอร์ม",
         "lastUpdated": "อัปเดตโปรไฟล์",
@@ -2610,10 +2612,27 @@ export default {
       },
       "lifecycleEvents": {
         "PROPOSAL_CREATED": "สร้างข้อเสนอแล้ว",
+        "PROPOSAL_REVISION_REQUESTED": "ขอแก้ไขข้อเสนอแล้ว",
+        "PROPOSAL_APPROVED": "อนุมัติข้อเสนอแล้ว",
+        "PROPOSAL_REJECTED": "ปฏิเสธข้อเสนอแล้ว",
+        "PROPOSAL_EXPIRED": "ข้อเสนอหมดอายุแล้ว",
+        "PROPOSAL_EXECUTED": "ดำเนินการตามข้อเสนอแล้ว",
+        "TAG_ADDED": "เพิ่มแท็กครีเอเตอร์แล้ว",
+        "TAG_REMOVED": "ลบแท็กครีเอเตอร์แล้ว",
         "MESSAGE_SENT": "ส่งข้อความแล้ว",
+        "COLLABORATION_CREATED": "สร้างความร่วมมือแล้ว",
+        "COLLABORATION_CLOSED": "ปิดความร่วมมือแล้ว",
+        "SAMPLE_APPLICATION_SUBMITTED": "ส่งคำขอตัวอย่างแล้ว",
+        "SAMPLE_APPLICATION_APPROVED": "อนุมัติคำขอตัวอย่างแล้ว",
+        "SAMPLE_APPLICATION_REJECTED": "ปฏิเสธคำขอตัวอย่างแล้ว",
+        "SAMPLE_APPLICATION_CANCELLED": "ยกเลิกคำขอตัวอย่างแล้ว",
         "SAMPLE_APPROVED": "อนุมัติคำขอตัวอย่างแล้ว",
         "SAMPLE_REJECTED": "ปฏิเสธคำขอตัวอย่างแล้ว",
+        "SAMPLE_SHIPPED": "จัดส่งตัวอย่างแล้ว",
+        "SAMPLE_DELIVERED": "ส่งมอบตัวอย่างแล้ว",
+        "SAMPLE_DELIVERY_FAILED": "การส่งมอบตัวอย่างล้มเหลว",
         "TARGET_COLLABORATION_CREATED": "สร้างความร่วมมือแบบกำหนดเป้าหมายแล้ว",
+        "ACTION_EXECUTED": "ดำเนินการแล้ว",
         "STAFF_MARKED_HANDLED": "พนักงานทำเครื่องหมายว่าจัดการแล้ว",
         "WORK_RESOLVED": "งานได้รับการจัดการแล้ว"
       },
@@ -2842,6 +2861,33 @@ export default {
         "ACTION_EXECUTED": "ดำเนินการแล้ว",
         "ACTION_REJECTED": "ปฏิเสธแล้ว",
         "PLATFORM_EVENT": "เหตุการณ์แพลตฟอร์ม"
+      },
+      "historyActors": {
+        "CREATOR_ACTION": "การดำเนินการของครีเอเตอร์",
+        "STAFF_ACTION": "การดำเนินการของพนักงาน",
+        "AGENT_ACTION": "การดำเนินการของ Agent",
+        "PLATFORM_EVENT": "เหตุการณ์แพลตฟอร์ม",
+        "SYSTEM_RECORD": "บันทึกระบบ"
+      },
+      "messageDirections": {
+        "CREATOR": "Creator",
+        "SELLER": "Seller",
+        "SYSTEM": "System"
+      },
+      "messageChannels": {
+        "PLATFORM_CHAT": "TikTok Shop",
+        "WHATSAPP": "WhatsApp",
+        "EMAIL": "Email"
+      },
+      "historyTypes": {
+        "PLATFORM_CHAT_MESSAGE": "Platform chat",
+        "WHATSAPP_MESSAGE": "WhatsApp",
+        "EMAIL_MESSAGE": "Email",
+        "MESSAGE_DELIVERY": "Message delivery",
+        "COLLABORATION_RECORD": "Collaboration",
+        "SAMPLE_APPLICATION_RECORD": "Sample application",
+        "ACTION_PROPOSAL": "Action proposal",
+        "LIFECYCLE_EVENT": "System event"
       },
       "requiredActions": {
         "NONE": "ไม่ต้องดำเนินการ",

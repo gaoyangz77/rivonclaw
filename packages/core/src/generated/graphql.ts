@@ -672,24 +672,6 @@ export interface AffiliateCollaboration {
   userId: Scalars['ID']['output'];
 }
 
-export interface AffiliateCollaborationActivityInput {
-  collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  /** Primary CreatorRelationship business boundary for action history. collaborationRecordId may only narrow within this relationship. */
-  creatorRelationshipId: Scalars['ID']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-}
-
-export interface AffiliateCollaborationActivityPayload {
-  actionProposals: Array<ActionProposal>;
-  hasMore: Scalars['Boolean']['output'];
-  lifecycleEvents: Array<LifecycleEvent>;
-  limit: Scalars['Int']['output'];
-  nextOffset?: Maybe<Scalars['Int']['output']>;
-  offset: Scalars['Int']['output'];
-  sampleApplicationRecords: Array<SampleApplicationRecord>;
-}
-
 /** One creator-product collaboration attempt. If a creator promotes the same product twice, create two collaborations. */
 export interface AffiliateCollaborationRecord {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
@@ -1235,6 +1217,15 @@ export const AffiliateLifecycleActorType = {
 } as const;
 
 export type AffiliateLifecycleActorType = typeof AffiliateLifecycleActorType[keyof typeof AffiliateLifecycleActorType];
+export const AffiliateLifecycleActorRole = {
+  Agent: 'AGENT',
+  Creator: 'CREATOR',
+  Platform: 'PLATFORM',
+  Staff: 'STAFF',
+  System: 'SYSTEM'
+} as const;
+
+export type AffiliateLifecycleActorRole = typeof AffiliateLifecycleActorRole[keyof typeof AffiliateLifecycleActorRole];
 export const AffiliateLifecycleEntityType = {
   ActionProposal: 'ACTION_PROPOSAL',
   AffiliateApprovalPolicy: 'AFFILIATE_APPROVAL_POLICY',
@@ -1269,6 +1260,12 @@ export const AffiliateLifecycleEventType = {
   ProposalModified: 'PROPOSAL_MODIFIED',
   ProposalRejected: 'PROPOSAL_REJECTED',
   ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
+  CollaborationCreated: 'COLLABORATION_CREATED',
+  CollaborationClosed: 'COLLABORATION_CLOSED',
+  SampleApplicationSubmitted: 'SAMPLE_APPLICATION_SUBMITTED',
+  SampleApplicationApproved: 'SAMPLE_APPLICATION_APPROVED',
+  SampleApplicationRejected: 'SAMPLE_APPLICATION_REJECTED',
+  SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
   SampleApproved: 'SAMPLE_APPROVED',
   SampleDelivered: 'SAMPLE_DELIVERED',
   SampleDeliveryFailed: 'SAMPLE_DELIVERY_FAILED',
@@ -1512,15 +1509,6 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
-export interface AffiliateRelationshipHistoryCollaborationSummary {
-  collaborationRecordId: Scalars['ID']['output'];
-  lifecycleStage: AffiliateLifecycleStage;
-  processReasons: Array<AffiliateCollaborationRecordProcessReason>;
-  processingStatus: AffiliateCollaborationRecordProcessingStatus;
-  productId?: Maybe<Scalars['String']['output']>;
-  requiredAction: AffiliateCollaborationRequiredAction;
-}
-
 export interface AffiliateRelationshipHistoryInput {
   /** CreatorRelationship business boundary. Relationship history is merged across channels and affiliate operational collections. */
   creatorRelationshipId: Scalars['ID']['input'];
@@ -1529,25 +1517,24 @@ export interface AffiliateRelationshipHistoryInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
   startAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  /** Optional collection-backed type filter. Empty or omitted means all supported history collections. */
+  /** Optional event type filter. Empty or omitted means all supported relationship timeline events. */
   types?: InputMaybe<Array<AffiliateRelationshipHistoryType>>;
 }
 
 export interface AffiliateRelationshipHistoryItem {
+  actorRole?: Maybe<AffiliateLifecycleActorRole>;
   actorType?: Maybe<AffiliateLifecycleActorType>;
-  collaboration?: Maybe<AffiliateRelationshipHistoryCollaborationSummary>;
   id: Scalars['ID']['output'];
   lifecycleEvent?: Maybe<AffiliateRelationshipHistoryLifecycleEventSummary>;
   message?: Maybe<AffiliateRelationshipHistoryMessageSummary>;
   occurredAt: Scalars['DateTimeISO']['output'];
-  proposal?: Maybe<AffiliateRelationshipHistoryProposalSummary>;
   relatedIds: AffiliateRelationshipHistoryRelatedIds;
-  sampleApplication?: Maybe<AffiliateRelationshipHistorySampleApplicationSummary>;
   summary: Scalars['String']['output'];
   type: AffiliateRelationshipHistoryType;
 }
 
 export interface AffiliateRelationshipHistoryLifecycleEventSummary {
+  actorRole?: Maybe<AffiliateLifecycleActorRole>;
   displaySummary?: Maybe<Scalars['String']['output']>;
   entityId: Scalars['ID']['output'];
   entityType: AffiliateLifecycleEntityType;
@@ -1578,14 +1565,6 @@ export interface AffiliateRelationshipHistoryPayload {
   offset: Scalars['Int']['output'];
 }
 
-export interface AffiliateRelationshipHistoryProposalSummary {
-  actionProposalId: Scalars['ID']['output'];
-  operatorSummary: Scalars['String']['output'];
-  status: ActionProposalStatus;
-  stepCount: Scalars['Int']['output'];
-  type: ActionProposalType;
-}
-
 export interface AffiliateRelationshipHistoryRelatedIds {
   actionProposalId?: Maybe<Scalars['ID']['output']>;
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
@@ -1597,26 +1576,12 @@ export interface AffiliateRelationshipHistoryRelatedIds {
   shopId?: Maybe<Scalars['ID']['output']>;
 }
 
-export interface AffiliateRelationshipHistorySampleApplicationSummary {
-  deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  latestObservedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  observedContentCount: Scalars['Int']['output'];
-  platformApplicationId: Scalars['String']['output'];
-  productId?: Maybe<Scalars['String']['output']>;
-  sampleApplicationRecordId: Scalars['ID']['output'];
-  sampleWorkStatus: SampleWorkStatus;
-  shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-}
-
-/** Mongo collection-backed relationship history item type. Filtering by this enum maps directly to known affiliate collections. */
+/** CreatorRelationship event timeline type. Entity snapshots belong to workspace/detail APIs, not history. */
 export const AffiliateRelationshipHistoryType = {
-  ActionProposal: 'ACTION_PROPOSAL',
-  CollaborationRecord: 'COLLABORATION_RECORD',
   EmailMessage: 'EMAIL_MESSAGE',
   LifecycleEvent: 'LIFECYCLE_EVENT',
   MessageDelivery: 'MESSAGE_DELIVERY',
   PlatformChatMessage: 'PLATFORM_CHAT_MESSAGE',
-  SampleApplicationRecord: 'SAMPLE_APPLICATION_RECORD',
   WhatsappMessage: 'WHATSAPP_MESSAGE'
 } as const;
 
@@ -6628,8 +6593,6 @@ export interface Query {
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
-  /** Read action proposals and lifecycle events for a creator relationship, optionally narrowed to one collaboration record. */
-  affiliateCollaborationActivity: AffiliateCollaborationActivityPayload;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Read relationship-level creator contact state, including WhatsApp/email contacts and available seller accounts. */
@@ -6881,11 +6844,6 @@ export interface QueryAffiliateApprovalPoliciesArgs {
 
 export interface QueryAffiliateCampaignsArgs {
   input: ReadAffiliateCampaignsInput;
-}
-
-
-export interface QueryAffiliateCollaborationActivityArgs {
-  input: AffiliateCollaborationActivityInput;
 }
 
 

@@ -426,11 +426,6 @@ const DesktopRootStoreModel = RootStoreModel
         self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
       }
 
-      if (key === "affiliateCollaborationActivity") {
-        self.affiliateWorkspace.ingestAffiliateCollaborationActivity(sanitized as any);
-        continue;
-      }
-
       if (key === "affiliateWorkspace") {
         self.affiliateWorkspace.ingestAffiliateWorkspace(sanitized as any);
         continue;
