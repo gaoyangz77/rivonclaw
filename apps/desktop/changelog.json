@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.54",
+    "date": "2026-07-07",
+    "en": [
+      "Refresh the production desktop build from the latest main branch",
+      "Supersede the 1.8.53 rollout with updated production release metadata"
+    ],
+    "zh": [
+      "基于最新 main 分支刷新生产桌面端构建",
+      "使用新的生产发布元数据替代 1.8.53 rollout"
+    ]
+  },
+  {
     "version": "1.8.53",
     "date": "2026-07-07",
     "en": [
