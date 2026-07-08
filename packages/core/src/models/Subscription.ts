@@ -44,6 +44,7 @@ export const ShopBillingStatusModel = types.model("ShopBillingStatus", {
   customerService: BillingEntitlementStatusModel,
   inventory: BillingEntitlementStatusModel,
   affiliate: BillingEntitlementStatusModel,
+  analytics: BillingEntitlementStatusModel,
 });
 
 export const BillingOverviewModel = types.model("BillingOverview", {
