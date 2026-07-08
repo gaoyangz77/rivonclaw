@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { GQL } from "@rivonclaw/core";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { AuthSessionManager } from "../session.js";
 
@@ -15,7 +16,7 @@ function makeSecretStore(): SecretStore {
   } as unknown as SecretStore;
 }
 
-const mockUser = {
+const mockUser: GQL.MeResponse = {
   userId: "u1",
   email: "test@example.com",
   name: "Test",
@@ -236,7 +237,7 @@ describe("AuthSessionManager.refresh", () => {
     await manager.storeTokens("stale-at", "stale-rt");
   });
 
-  it("clears stored tokens when the refresh token belongs to a backend with a different JWT signature", async () => {
+  it("keeps stored tokens by default when refresh sees a different JWT signature", async () => {
     fetchFn.mockResolvedValueOnce({
       status: 200,
       json: async () => ({
@@ -246,6 +247,23 @@ describe("AuthSessionManager.refresh", () => {
 
     await expect(manager.refresh()).rejects.toThrow("invalid signature");
 
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it("only clears stored tokens when explicitly asked and the JWT signature is invalid", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{ message: "invalid signature" }],
+      }),
+    });
+
+    await expect(manager.refresh({ clearOnInvalid: true })).rejects.toThrow("invalid signature");
+
     expect(manager.getAccessToken()).toBeNull();
     expect(manager.getCachedUser()).toBeNull();
     expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
@@ -254,15 +272,15 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
-  it("can reject invalid JWT refresh without clearing stored tokens", async () => {
+  it("does not clear stored tokens for generic auth errors even when clearing is requested", async () => {
     fetchFn.mockResolvedValueOnce({
-      status: 200,
+      status: 401,
       json: async () => ({
-        errors: [{ message: "invalid signature" }],
+        errors: [{ message: "Authentication required" }],
       }),
     });
 
-    await expect(manager.refresh({ clearOnInvalid: false })).rejects.toThrow("invalid signature");
+    await expect(manager.refresh({ clearOnInvalid: true })).rejects.toThrow("Authentication required");
 
     expect(manager.getAccessToken()).toBe("stale-at");
     expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
@@ -296,7 +314,7 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it("can explicitly clear stored tokens when GraphQL auto-refresh sees an invalid JWT", async () => {
+  it("can explicitly clear stored tokens when GraphQL auto-refresh sees a JWT signature mismatch", async () => {
     fetchFn
       .mockResolvedValueOnce({
         status: 200,
@@ -331,9 +349,36 @@ describe("AuthSessionManager.refresh", () => {
 
     await expect(manager.refresh()).rejects.toThrow("Authentication required");
 
-    expect(manager.getAccessToken()).toBeNull();
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps stored tokens when validate sees an invalid JWT", async () => {
+    await manager.storeTokens("validate-at", "validate-rt");
+    manager.setCachedUser(mockUser);
+
+    fetchFn
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "Authentication required" }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "invalid signature" }],
+        }),
+      });
+
+    await expect(manager.validate()).resolves.toBeNull();
+
+    expect(manager.getAccessToken()).toBe("validate-at");
+    expect(manager.getCachedUser()).toBeNull();
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 });
