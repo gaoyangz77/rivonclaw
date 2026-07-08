@@ -344,6 +344,34 @@ export const INIT_BILLING_OVERVIEW_QUERY = `
             refreshAt
           }
         }
+        analytics {
+          scopeType
+          scopeId
+          product
+          allowed
+          code
+          source
+          subscription {
+            planId
+            provider
+            status
+            currency
+            amountMinor
+            currentPeriodStart
+            currentPeriodEnd
+            graceUntil
+            renewalMode
+            cancelAtPeriodEnd
+          }
+          validUntil
+          usage {
+            metric
+            window
+            usedPercent
+            remainingPercent
+            refreshAt
+          }
+        }
       }
     }
   }

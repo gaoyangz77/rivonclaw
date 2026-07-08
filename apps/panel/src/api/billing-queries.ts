@@ -93,6 +93,9 @@ export const BILLING_OVERVIEW_QUERY = gql`
         affiliate {
           ...BillingEntitlementFields
         }
+        analytics {
+          ...BillingEntitlementFields
+        }
       }
     }
   }

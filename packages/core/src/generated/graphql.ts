@@ -2067,6 +2067,7 @@ export interface BadReviewReachoutSettingsInput {
 
 export const BillableProduct = {
   EcomAffiliate: 'ECOM_AFFILIATE',
+  EcomAnalytics: 'ECOM_ANALYTICS',
   EcomCustomerService: 'ECOM_CUSTOMER_SERVICE',
   EcomInventory: 'ECOM_INVENTORY',
   EcomOnboardingTrialWindow: 'ECOM_ONBOARDING_TRIAL_WINDOW',
@@ -4855,6 +4856,7 @@ export type EntitlementGrantStatus = typeof EntitlementGrantStatus[keyof typeof 
 /** Feature entitlement identifiers */
 export const EntitlementKey = {
   EcomAffiliateManagement: 'ECOM_AFFILIATE_MANAGEMENT',
+  EcomAnalyticsRead: 'ECOM_ANALYTICS_READ',
   EcomCsEscalationRead: 'ECOM_CS_ESCALATION_READ',
   EcomCsEscalationWrite: 'ECOM_CS_ESCALATION_WRITE',
   EcomCsRead: 'ECOM_CS_READ',
@@ -7845,6 +7847,7 @@ export interface ShopAuthStatusResponse {
 
 export interface ShopBillingStatus {
   affiliate: BillingEntitlementStatus;
+  analytics: BillingEntitlementStatus;
   customerService: BillingEntitlementStatus;
   inventory: BillingEntitlementStatus;
   shopId: Scalars['String']['output'];
@@ -8925,6 +8928,7 @@ export type UsageLimitWindow = typeof UsageLimitWindow[keyof typeof UsageLimitWi
 export const UsageMetric = {
   CsConversationStarted: 'CS_CONVERSATION_STARTED',
   EcomAffiliateAction: 'ECOM_AFFILIATE_ACTION',
+  EcomAnalyticsQuery: 'ECOM_ANALYTICS_QUERY',
   EcomInventoryAction: 'ECOM_INVENTORY_ACTION',
   LlmToken: 'LLM_TOKEN'
 } as const;
