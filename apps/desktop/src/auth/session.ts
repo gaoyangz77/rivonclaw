@@ -34,8 +34,23 @@ function isSessionInvalidErrorMessage(message: string): boolean {
   return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
 }
 
-function isJwtSignatureMismatchErrorMessage(message: string): boolean {
+class JwtIllegalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "JwtIllegalError";
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isJwtIllegalErrorMessage(message: string): boolean {
   return /invalid signature/i.test(message);
+}
+
+function isJwtIllegalError(error: unknown): error is JwtIllegalError {
+  return error instanceof JwtIllegalError;
 }
 
 export class AuthSessionManager {
@@ -133,8 +148,7 @@ export class AuthSessionManager {
       await this.setUser(payload.user);
       return payload.accessToken;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (options?.clearOnInvalid === true && isJwtSignatureMismatchErrorMessage(msg)) {
+      if (options?.clearOnInvalid === true && isJwtIllegalError(err)) {
         await this.clearTokens();
       }
       throw err;
@@ -152,11 +166,13 @@ export class AuthSessionManager {
       await this.setUser(result.me);
       return result.me;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       const isAuthError = isSessionInvalidErrorMessage(msg);
-      if (isAuthError) {
-        log.error("JWT rejected during validate; keeping stored auth tokens", { reason: msg });
-        await this.setUser(null);
+      if (isJwtIllegalError(err)) {
+        log.error("JWT illegal for current backend; clearing stored auth session", { reason: msg });
+        await this.clearTokens();
+      } else if (isAuthError) {
+        log.warn("validate: auth rejected, keeping cached auth session.", { reason: msg });
       } else {
         log.warn("validate: non-auth error, keeping tokens.", err);
       }
@@ -248,7 +264,11 @@ export class AuthSessionManager {
     }
 
     if (json.errors?.length) {
-      throw new Error(json.errors.map((e) => e.message).join("; "));
+      const msg = json.errors.map((e) => e.message).join("; ");
+      if (isJwtIllegalErrorMessage(msg)) {
+        throw new JwtIllegalError(msg);
+      }
+      throw new Error(msg);
     }
     if (!json.data) {
       throw new Error("No data returned from cloud GraphQL");
