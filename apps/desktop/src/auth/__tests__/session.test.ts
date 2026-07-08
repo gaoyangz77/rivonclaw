@@ -355,7 +355,34 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps stored tokens when validate sees an invalid JWT", async () => {
+  it("keeps the cached auth session when validate sees a generic auth failure", async () => {
+    await manager.storeTokens("validate-at", "validate-rt");
+    manager.setCachedUser(mockUser);
+
+    fetchFn
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "Authentication required" }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 401,
+        json: async () => ({
+          errors: [{ message: "Authentication required" }],
+        }),
+      });
+
+    await expect(manager.validate()).resolves.toBeNull();
+
+    expect(manager.getAccessToken()).toBe("validate-at");
+    expect(manager.getCachedUser()).toEqual(mockUser);
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears the cached auth session when validate sees an illegal JWT signature", async () => {
     await manager.storeTokens("validate-at", "validate-rt");
     manager.setCachedUser(mockUser);
 
@@ -375,10 +402,10 @@ describe("AuthSessionManager.refresh", () => {
 
     await expect(manager.validate()).resolves.toBeNull();
 
-    expect(manager.getAccessToken()).toBe("validate-at");
+    expect(manager.getAccessToken()).toBeNull();
     expect(manager.getCachedUser()).toBeNull();
-    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
-    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 });
