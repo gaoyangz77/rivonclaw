@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.55",
+    "date": "2026-07-07",
+    "en": [
+      "Harden desktop JWT session recovery and background auth refresh handling",
+      "Classify invalid JWT responses more reliably so stale sessions can recover",
+      "Fix Feishu QR onboarding account overwrite behavior"
+    ],
+    "zh": [
+      "增强桌面端 JWT 会话恢复和后台认证刷新处理",
+      "更可靠地识别非法 JWT 响应，帮助过期会话自动恢复",
+      "修复飞书扫码 onboarding 覆盖账号的问题"
+    ]
+  },
+  {
     "version": "1.8.54",
     "date": "2026-07-07",
     "en": [
