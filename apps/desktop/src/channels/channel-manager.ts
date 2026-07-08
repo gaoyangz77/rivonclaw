@@ -1,5 +1,5 @@
 import { types, flow, getRoot, type Instance } from "mobx-state-tree";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { basename, join } from "node:path";
 import { promises as fs } from "node:fs";
 import { existsSync, readFileSync } from "node:fs";
@@ -49,6 +49,7 @@ const FEISHU_CHANNEL_ID = "feishu";
 const FEISHU_OFFICIAL_PLUGIN_ID = "feishu";
 const FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID = "openclaw-lark";
 const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
+const FEISHU_ACCOUNT_ID_MAX_LENGTH = 64;
 const FEISHU_OFFICIAL_PLUGIN_ROOTS = [
   "dist/extensions/feishu",
   "extensions/feishu",
@@ -431,9 +432,27 @@ function removeString(values: unknown[], value: string): void {
   }
 }
 
-function hasFeishuOfficialDefaultAccount(accounts: Record<string, Record<string, unknown>>): boolean {
-  const account = accounts[FEISHU_OFFICIAL_ACCOUNT_ID];
+function isFeishuOfficialAccountConfig(account: Record<string, unknown> | undefined): boolean {
   return !!account && typeof account.appId === "string" && typeof account.appSecret === "string";
+}
+
+function hasFeishuOfficialAccount(accounts: Record<string, Record<string, unknown>>): boolean {
+  return Object.values(accounts).some(isFeishuOfficialAccountConfig);
+}
+
+function deriveFeishuOfficialAccountId(appId: string): string {
+  const trimmed = appId.trim();
+  const digest = createHash("sha256").update(trimmed).digest("hex").slice(0, 8);
+  const sanitized = trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+  const suffix = `-${digest}`;
+  const prefix = "feishu-";
+  const maxBaseLength = FEISHU_ACCOUNT_ID_MAX_LENGTH - prefix.length - suffix.length;
+  const base = (sanitized || "bot").slice(0, Math.max(1, maxBaseLength)).replace(/-+$/, "") || "bot";
+  return `${prefix}${base}${suffix}`;
 }
 
 function readFeishuOfficialToolIds(pluginRoot: string): string[] {
@@ -641,22 +660,21 @@ export const ChannelManagerModel = types
 
       // Channel accounts from root store
       const channelIds = new Set<string>();
-      let hasOfficialFeishuDefault = false;
+      let hasOfficialFeishuAccount = false;
       for (const a of self.root.channelAccounts as any[]) {
         channelIds.add(a.channelId);
         if (
           a.channelId === FEISHU_CHANNEL_ID &&
-          a.accountId === FEISHU_OFFICIAL_ACCOUNT_ID &&
           a.config &&
           typeof a.config === "object" &&
           typeof a.config.appId === "string" &&
           typeof a.config.appSecret === "string"
         ) {
-          hasOfficialFeishuDefault = true;
+          hasOfficialFeishuAccount = true;
         }
       }
       for (const channelId of channelIds) {
-        if (channelId === FEISHU_CHANNEL_ID && hasOfficialFeishuDefault) {
+        if (channelId === FEISHU_CHANNEL_ID && hasOfficialFeishuAccount) {
           entries.feishu = { enabled: true };
           delete entries[FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID];
         } else {
@@ -827,7 +845,7 @@ export const ChannelManagerModel = types
       }
       config.channels = channels;
       if (channelId === FEISHU_CHANNEL_ID && Object.keys(accounts).length > 0) {
-        if (hasFeishuOfficialDefaultAccount(accounts)) {
+        if (hasFeishuOfficialAccount(accounts)) {
           ensureFeishuOfficialPluginConfig(config);
         } else {
           ensureLegacyFeishuPluginConfig(config);
@@ -957,7 +975,14 @@ export const ChannelManagerModel = types
       domain: "feishu" | "lark";
       openId?: string;
     }): Promise<ChannelAccountSnapshotForMst> {
-      const allowFrom = params.openId ? [params.openId] : [];
+      const { storage } = getEnv();
+      const existingAccount = storage.channelAccounts.list(FEISHU_CHANNEL_ID).find((account) => (
+        typeof account.config === "object" &&
+        account.config !== null &&
+        (account.config as Record<string, unknown>).appId === params.appId
+      ));
+      const accountId = existingAccount?.accountId ?? deriveFeishuOfficialAccountId(params.appId);
+      const shortAppId = params.appId.trim().slice(-6);
       const accountConfig: Record<string, unknown> = {
         enabled: true,
         appId: params.appId,
@@ -973,17 +998,17 @@ export const ChannelManagerModel = types
 
       const entry = upsertAccountState({
         channelId: FEISHU_CHANNEL_ID,
-        accountId: FEISHU_OFFICIAL_ACCOUNT_ID,
-        name: "Feishu Official Bot",
+        accountId,
+        name: shortAppId ? `Feishu Official Bot (${shortAppId})` : "Feishu Official Bot",
         config: accountConfig,
       });
 
       if (params.openId) {
-        const { storage, configPath } = getEnv();
-        addAllowFromEntrySync(FEISHU_CHANNEL_ID, FEISHU_OFFICIAL_ACCOUNT_ID, params.openId);
+        const { configPath } = getEnv();
+        addAllowFromEntrySync(FEISHU_CHANNEL_ID, accountId, params.openId);
         storage.channelRecipients.ensureExists(FEISHU_CHANNEL_ID, params.openId, true);
         syncOwnerAllowFrom(storage, configPath);
-        updateChannelAccountRecipients(FEISHU_CHANNEL_ID, FEISHU_OFFICIAL_ACCOUNT_ID);
+        updateChannelAccountRecipients(FEISHU_CHANNEL_ID, accountId);
       }
 
       return entry;
@@ -1193,7 +1218,6 @@ export const ChannelManagerModel = types
         }
         if (allAccounts.some((account) => (
           account.channelId === FEISHU_CHANNEL_ID &&
-          account.accountId === FEISHU_OFFICIAL_ACCOUNT_ID &&
           typeof account.config === "object" &&
           account.config !== null &&
           typeof (account.config as Record<string, unknown>).appId === "string" &&

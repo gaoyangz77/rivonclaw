@@ -852,12 +852,14 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const poll = await root.channelManager.pollFeishuSetup(start.sessionKey);
       expect(poll).toMatchObject({
         status: "connected",
-        accountId: "default",
         openId: "ou_creator",
         domain: "feishu",
       });
+      expect(poll.accountId).toMatch(/^feishu-cli_test-[a-f0-9]{8}$/);
 
-      const official = accounts.find((account) => account.channelId === "feishu" && account.accountId === "default");
+      const accountId = poll.accountId!;
+      const official = accounts.find((account) => account.channelId === "feishu" && account.accountId === accountId);
+      expect(official?.name).toBe("Feishu Official Bot (i_test)");
       expect(official?.config).toMatchObject({
         dmPolicy: "open",
         allowFrom: ["*"],
@@ -868,24 +870,174 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(ensureExists).toHaveBeenCalledWith("feishu", "ou_creator", true);
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.feishu.accounts.default.dmPolicy).toBe("open");
-      expect(config.channels.feishu.accounts.default.allowFrom).toEqual(["*"]);
-      expect(config.channels.feishu.accounts.default.groupPolicy).toBe("open");
-      expect(config.channels.feishu.accounts.default.groupAllowFrom).toBeUndefined();
-      expect(config.channels.feishu.dmPolicy).toBe("open");
-      expect(config.channels.feishu.allowFrom).toEqual(["*"]);
-      expect(config.channels.feishu.groupPolicy).toBe("open");
+      expect(config.channels.feishu.accounts[accountId].dmPolicy).toBe("open");
+      expect(config.channels.feishu.accounts[accountId].allowFrom).toEqual(["*"]);
+      expect(config.channels.feishu.accounts[accountId].groupPolicy).toBe("open");
+      expect(config.channels.feishu.accounts[accountId].groupAllowFrom).toBeUndefined();
+      expect(config.channels.feishu.dmPolicy).toBeUndefined();
+      expect(config.channels.feishu.allowFrom).toBeUndefined();
+      expect(config.channels.feishu.groupPolicy).toBeUndefined();
       expect(config.channels.feishu.groupAllowFrom).toBeUndefined();
 
-      const allowFromFile = JSON.parse(readFileSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"), "utf-8"));
+      const allowFromFile = JSON.parse(readFileSync(join(stateDir, "credentials", `feishu-${accountId}-allowFrom.json`), "utf-8"));
       expect(allowFromFile.allowFrom).toEqual(["ou_creator"]);
 
-      const recipients = root.channelAccounts.find((account) => account.channelId === "feishu" && account.accountId === "default")
+      const recipients = root.channelAccounts.find((account) => account.channelId === "feishu" && account.accountId === accountId)
         ?.recipients as { allowlist: string[]; labels: Record<string, string>; owners: Record<string, boolean> };
       expect(recipients.allowlist).toEqual(["ou_creator"]);
       expect(recipients.allowlist).not.toContain("*");
       expect(recipients.labels).toEqual({ ou_creator: "Creator" });
       expect(recipients.owners).toEqual({ ou_creator: true });
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousStateDir === undefined) {
+        delete process.env.OPENCLAW_STATE_DIR;
+      } else {
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      }
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("adds a new official Feishu QR account instead of replacing an existing default account", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-qr-existing-"));
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const previousFetch = globalThis.fetch;
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+
+      const accounts: Array<{
+        channelId: string;
+        accountId: string;
+        name: string | null;
+        config: Record<string, unknown>;
+        createdAt: number;
+        updatedAt: number;
+      }> = [{
+        channelId: "feishu",
+        accountId: "default",
+        name: "Existing Feishu Bot",
+        config: {
+          enabled: true,
+          appId: "cli_existing",
+          appSecret: "existing_secret",
+          domain: "feishu",
+          dmPolicy: "pairing",
+          groupPolicy: "allowlist",
+        },
+        createdAt: 1,
+        updatedAt: 1,
+      }];
+      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
+        const record = {
+          channelId,
+          accountId,
+          name,
+          config,
+          createdAt: 1,
+          updatedAt: 2,
+        };
+        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
+        if (index >= 0) accounts[index] = record;
+        else accounts.push(record);
+        return record;
+      });
+
+      globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+        const params = new URLSearchParams(String(init?.body ?? ""));
+        const action = params.get("action");
+        const body = action === "init"
+          ? { supported_auth_methods: ["client_secret"] }
+          : action === "begin"
+            ? {
+                device_code: "device-code",
+                verification_uri_complete: "https://accounts.feishu.cn/qr?token=abc",
+                interval: 1,
+                expire_in: 60,
+              }
+            : {
+                client_id: "cli_new_bot",
+                client_secret: "new_secret",
+                user_info: {
+                  open_id: "ou_creator",
+                  tenant_brand: "feishu",
+                },
+              };
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }) as typeof fetch;
+
+      const root = TestRootModel.create({
+        channelAccounts: accounts.map((account) => ({
+          channelId: account.channelId,
+          accountId: account.accountId,
+          name: account.name,
+          config: account.config,
+          status: { hasContextToken: null },
+          recipients: { allowlist: [], labels: {}, owners: {}, pairingRequests: [] },
+        })),
+      });
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: upsertAccount,
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(() => true),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      const start = await root.channelManager.startFeishuSetup();
+      const poll = await root.channelManager.pollFeishuSetup(start.sessionKey);
+      expect(poll).toMatchObject({
+        status: "connected",
+        openId: "ou_creator",
+        domain: "feishu",
+      });
+      expect(poll.accountId).toMatch(/^feishu-cli_new_bot-[a-f0-9]{8}$/);
+      expect(poll.accountId).not.toBe("default");
+      const newAccountId = poll.accountId!;
+
+      expect(accounts).toHaveLength(2);
+      expect(accounts.find((account) => account.accountId === "default")?.config).toMatchObject({
+        appId: "cli_existing",
+        appSecret: "existing_secret",
+        dmPolicy: "pairing",
+        groupPolicy: "allowlist",
+      });
+      expect(accounts.find((account) => account.accountId === newAccountId)?.config).toMatchObject({
+        appId: "cli_new_bot",
+        appSecret: "new_secret",
+        dmPolicy: "open",
+        groupPolicy: "open",
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.feishu.accounts.default.appId).toBe("cli_existing");
+      expect(config.channels.feishu.accounts[newAccountId].appId).toBe("cli_new_bot");
+      expect(config.channels.feishu.appId).toBe("cli_existing");
+      expect(config.plugins.entries.feishu.enabled).toBe(true);
+      expect(config.plugins.entries["openclaw-lark"]).toBeUndefined();
     } finally {
       globalThis.fetch = previousFetch;
       if (previousStateDir === undefined) {
